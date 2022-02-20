@@ -1,0 +1,23 @@
+{
+	"name"        : "blush-dev/framework",
+	"autoload"    : {
+		"psr-4" : {
+			"Blush\\" : "src/"
+		}
+	},
+	"require": {
+		"symfony/yaml": "^3.0",
+		"erusev/parsedown-extra": "^0.8.1",
+		"michelf/php-smartypants": "^1.8",
+		"suin/php-rss-writer": "^1.6"
+	},
+	"extra": {
+		"blush" : {
+			"providers" : [
+				"Blush\\Plugins\\Blog\\Provider",
+				"Blush\\Plugins\\Eras\\Provider",
+				"Blush\\Plugins\\Literary\\Provider"
+			]
+		}
+	}
+}
