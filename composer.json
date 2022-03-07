@@ -9,9 +9,8 @@
 		]
 	},
 	"require": {
+		"symfony/http-foundation": "5.4.x-dev",
 		"symfony/yaml": "^3.0",
-		"erusev/parsedown-extra": "^0.8.1",
-		"michelf/php-smartypants": "^1.8",
 		"suin/php-rss-writer": "^1.6",
 		"league/commonmark": "^2.2"
 	}
