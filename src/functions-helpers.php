@@ -69,7 +69,7 @@ function cache() {
 	return App::resolve( 'cache' );
 }
 
-function cache_get_add( string $name, string $type = 'collection' ) {
+function cache_get_make( string $name, string $type = 'collection' ) {
 	$cache = cache();
 
 	if ( $cache->has( $name ) ) {
@@ -84,9 +84,23 @@ function cache_get_add( string $name, string $type = 'collection' ) {
 	return $_cache->get();
 }
 
+function cache_get_add( string $name, string $type = 'collection' ) {
+	$cache = cache();
+
+	if ( $cache->has( $name ) ) {
+		return $cache->get( $name )->get();
+	}
+
+	cache_add( $name, $type );
+
+	$_cache = $cache->get( $name );
+
+	return $_cache->get();
+}
+
 function cache_get( string $name ) {
 	$cache = cache();
-	return $cache->has( $name ) ? $cache->get( $name ) : false;
+	return $cache->has( $name ) ? $cache->get( $name )->get() : false;
 }
 
 function cache_set( string $name, $data, string $type = 'collect' ) {
