@@ -46,7 +46,7 @@ class Locator {
 	protected function getCache() {
 
 		if ( ! $this->cache ) {
-			$cache = cache_get( $this->cache_path, 'collection' );
+			$cache = cache_get( $this->cache_path );
 			$this->cache = $cache ? $cache->all() : [];
 		}
 

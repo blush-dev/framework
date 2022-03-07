@@ -49,7 +49,7 @@ class Router {
 		}
 
 		$cache_key = "global/{$path}";
-		$content   = cache_get( $cache_key, 'html' );
+		$content   = cache_get_add( $cache_key, 'html' );
 		$response  = false;
 
 		if ( ! $content ) {
