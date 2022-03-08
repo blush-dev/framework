@@ -17,27 +17,62 @@ use Blush\Tools\Collection;
 
 class Engine {
 
+	protected $shared;
+
 	/**
 	 * Returns a View object.
 	 *
 	 * @since  1.0.0
 	 * @access public
-	 * @param  string            $name
-	 * @param  array|string      $slugs
+	 * @param  string            $names
 	 * @param  array|Collection  $data
 	 * @return View
 	 */
-	public function view( string $name, array $slugs = [], $data = [] ) {
+	public function view( $names, $data = [] ) {
 
-		if ( ! $data instanceof Collection ) {
-			$data = new Collection( (array) $data );
+		$data['engine'] = $this;
+
+		$view = App::resolve( View::class, compact( 'names', 'data' ) );
+
+		$this->shared = $view->getData();
+
+		return $view;
+	}
+
+	public function include( $names, $data = [] ) {
+
+		if ( $this->shared ) {
+			$data = array_merge(
+				$this->shared->all(),
+				$data instanceof Collection ? $data->all() : $data
+			);
 		}
 
-		// Pass the engine itself along so that it can be used directly
-		// in views.
-		$data->add( 'engine', $this );
+		$data['engine'] = $this;
 
-		return App::resolve( View::class, compact( 'name', 'slugs', 'data' ) );
+		return App::resolve( View::class, compact( 'names', 'data' ) )->display();
+	}
+
+	public function includeWhen( bool $when, $names, $data = [] ) {
+		if ( true === $when ) {
+			$this->include( $names, $data );
+		}
+	}
+
+	public function includeUnless( bool $unless, $names, $data = [] ) {
+		if ( false === $unless ) {
+			$this->include( $names, $data );
+		}
+	}
+
+
+	public function each( $names, array $items = [], string $data_slug = '' ) {
+		foreach ( $items as $item ) {
+			$view = $this->include(
+				$names,
+				$data_slug ? [ $data_slug => $item ] : []
+			);
+		}
 	}
 
 	/**
@@ -45,13 +80,12 @@ class Engine {
 	 *
 	 * @since  1.00
 	 * @access public
-	 * @param  string            $name
-	 * @param  array|string      $slugs
+	 * @param  string            $names
 	 * @param  array|Collection  $data
 	 * @return void
 	 */
-	public function display( string $name, array $slugs = [], $data = [] ) {
-		$this->view( $name, $slugs, $data )->display();
+	public function display( $names, $data = [] ) {
+		$this->view( $names, $data )->display();
 	}
 
 	/**
@@ -59,12 +93,11 @@ class Engine {
 	 *
 	 * @since  1.00
 	 * @access public
-	 * @param  string            $name
-	 * @param  array|string      $slugs
+	 * @param  string            $names
 	 * @param  array|Collection  $data
 	 * @return string
 	 */
-	public function render( string $name, array $slugs = [], $data = [] ) {
-		return $this->view( $name, $slugs, $data )->render();
+	public function render( $names, $data = [] ) {
+		return $this->view( $names, $data )->render();
 	}
 }

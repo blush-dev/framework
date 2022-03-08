@@ -34,8 +34,8 @@ abstract class Controller {
 		return $this->params[ $name ] ?? null;
 	}
 
-	protected function view( string $name, array $slugs = [], $data = [] ) {
-		return App::resolve( Engine::class )->view( $name, $slugs, $data );
+	protected function view( $names, $data = [] ) {
+		return App::resolve( Engine::class )->view( $names, $data );
 	}
 
 	protected function response( $view ) {

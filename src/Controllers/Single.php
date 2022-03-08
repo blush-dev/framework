@@ -56,12 +56,16 @@ class Single extends Controller {
 			$type = $types->getTypeFromPath( $this->getParameter( 'path' ) );
 
 			$view_slugs = [
-				$slug,
-				$type ? sanitize_with_dashes( $type->type() ) : 'page'
+				"single-{$slug}",
+				sprintf(
+					'single-%s',
+					$type ? sanitize_with_dashes( $type->type() ) : 'content'
+				),
+				'single'
 			];
 
 			return $this->response(
-				$this->view( 'single', $view_slugs, [
+				$this->view( $view_slugs, [
 					'title'   => $entry->title(),
 					'query'   => $entry,
 					'page'    => 1,
@@ -78,12 +82,16 @@ class Single extends Controller {
 			$entry = array_shift( $all );
 
 			$view_slugs = [
-				$slug,
-				$type ? sanitize_with_dashes( $type->type() ) : 'page'
+				"single-{$slug}",
+				sprintf(
+					'single-%s',
+					$type ? sanitize_with_dashes( $type->type() ) : 'content'
+				),
+				'single'
 			];
 
 			return $this->response(
-				$this->view( 'single', $view_slugs, [
+				$this->view( $view_slugs, [
 					'title'   => $entry->title(),
 					'query'   => $entry,
 					'page'    => 1,

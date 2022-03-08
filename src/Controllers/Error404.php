@@ -27,7 +27,10 @@ class Error404 extends Controller {
 		$entry = array_shift( $all );
 
 		return $this->response(
-			$this->view( 'error-404', [], [
+			$this->view( [
+				'error-404',
+				'error'
+			], [
 				'title'   => $entry ? $entry->title() : 'Not Found',
 				'query'   => $entry ? $entry : false,
 				'page'    => 1,

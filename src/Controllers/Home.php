@@ -25,7 +25,7 @@ class Home extends Controller {
 		$entry = array_shift( $all );
 
 		return $this->response(
-			$this->view( 'home', [], [
+			$this->view( 'home', [
 				'title'   => config( 'app', 'title' ),
 				'query'   => $entry ? $entry : false,
 				'page'    => 1,

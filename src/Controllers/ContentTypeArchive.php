@@ -44,15 +44,19 @@ class ContentTypeArchive extends Controller {
 		] );
 
 		if ( $query->all() && $collection->all() ) {
-			$view_slugs = [ sanitize_with_dashes( $type->type() ) ];
+			$view_slugs = [
+				'collection-' . sanitize_with_dashes( $type->type() )
+			];
 
 			if ( $type->isTaxonomy() ) {
-				$view_slugs[] = 'taxonomy-' . sanitize_with_dashes( $type->type() );
-				$view_slugs[] = 'taxonomy';
+				$view_slugs[] = 'collection-taxonomy-' . sanitize_with_dashes( $type->type() );
+				$view_slugs[] = 'collection-taxonomy';
 			}
 
+			$view_slugs[] = 'collection';
+
 			return $this->response(
-				$this->view( 'collection', $view_slugs, [
+				$this->view( $view_slugs, [
 					'query'   => $query->first(),
 					'title'   => $query->first()->title(),
 					'page'    => $number ? intval( $number ) : 1,

@@ -22,20 +22,9 @@ class View {
 	 *
 	 * @since  1.0.0
 	 * @access protected
-	 * @var    string
+	 * @var    []
 	 */
-	protected $name = '';
-
-	/**
-	 * Array of slugs to look for. This creates the hierarchy based on the
-	 * `$name` property (e.g., `{$name}/{$slug}.php`). Slugs are used in
-	 * the order that they are set.
-	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
-	 */
-	protected $slugs = [];
+	protected $names = [];
 
 	/**
 	 * An array of data that is passed into the view template.
@@ -60,15 +49,18 @@ class View {
 	 *
 	 * @since  1.0.0
 	 * @access public
-	 * @param  string  $name
-	 * @param  array   $slugs
-	 * @param  object  $data
+	 * @param  string           $name
+	 * @param  array|Collection $data
 	 * @return object
 	 */
-	public function __construct( string $name, array $slugs = [], Collection $data = null ) {
-		$this->name  = $name;
-		$this->slugs = $slugs;
-		$this->data  = $data;
+	public function __construct( $names, $data = []) {
+
+		if ( ! $data instanceof Collection ) {
+			$data = new Collection( (array) $data );
+		}
+
+		$this->names = (array) $names;
+		$this->data = $data;
 	}
 
 	/**
@@ -83,17 +75,6 @@ class View {
 	}
 
 	/**
-	 * Returns the array of slugs.
-	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return array
-	 */
-	public function slugs() {
-		return $this->slugs;
-	}
-
-	/**
 	 * Uses the array of template slugs to build a hierarchy of potential
 	 * templates that can be used.
 	 *
@@ -102,21 +83,21 @@ class View {
 	 * @return array
 	 */
 	protected function hierarchy() {
+		$templates = [];
 
-		// Uses the slugs to build a hierarchy.
-		foreach ( $this->slugs as $slug ) {
-			$templates[] = "{$this->name}/{$slug}.php";
+		foreach ( $this->names as $name ) {
+			$templates[] = "{$name}.php";
 		}
-
-		// Add in a `default.php` template.
-		if ( ! in_array( 'default', $this->slugs ) ) {
-			$templates[] = "{$this->name}/default.php";
-		}
-
-		// Fallback to `{$name}.php` as a last resort.
-		$templates[] = "{$this->name}.php";
 
 		return $templates;
+	}
+
+	public function setData( Collection $data ) {
+		$this->data = $data;
+	}
+
+	public function getData() {
+		return $this->data;
 	}
 
 	/**

@@ -51,10 +51,11 @@ class TaxonomyTerm extends Controller {
 		if ( $query->all() && $collection->all() ) {
 
 			return $this->response(
-				$this->view( 'collection', [
-					$taxonomy->type() . "-{$term}",
-					$taxonomy->type() . '-term',
-					'taxonomy-term'
+				$this->view( [
+					'collection-' . $taxonomy->type() . "-{$term}",
+					'collection-' . $taxonomy->type() . '-term',
+					'collection-taxonomy-term',
+					'collection'
 				], [
 					'title'   => $query->first()->title(),
 					'query'   => $query->first(),
