@@ -17,14 +17,23 @@ use Blush\Tools\Collection;
 
 class Engine {
 
+	/**
+	 * Houses shared data to pass down to subviews.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    Collection
+	 */
 	protected $shared;
 
 	/**
-	 * Returns a View object.
+	 * Returns a View object. This should only be used for top-level views
+	 * because it resets the shared data when called.  If including views
+	 * within views, use `subview()` or descendent functions.
 	 *
 	 * @since  1.0.0
 	 * @access public
-	 * @param  string            $names
+	 * @param  array|string      $names
 	 * @param  array|Collection  $data
 	 * @return View
 	 */
@@ -39,7 +48,17 @@ class Engine {
 		return $view;
 	}
 
-	public function include( $names, $data = [] ) {
+	/**
+	 * Returns a View object. Use for getting views inside of other views.
+	 * This makes sure shared data is passed down to the subview.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  array|string      $names
+	 * @param  array|Collection  $data
+	 * @return View
+	 */
+	public function subview( $names, $data = [] ) {
 
 		if ( $this->shared ) {
 			$data = array_merge(
@@ -50,27 +69,78 @@ class Engine {
 
 		$data['engine'] = $this;
 
-		return App::resolve( View::class, compact( 'names', 'data' ) )->display();
+		return App::resolve( View::class, compact( 'names', 'data' ) );
 	}
 
+	/**
+	 * Includes a subview.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  array|string      $names
+	 * @param  array|Collection  $data
+	 * @return void
+	 */
+	public function include( $names, $data = [] ) {
+		$this->subview( $names, $data )->display();
+	}
+
+	/**
+	 * Includes a subview when `$when` is `true`.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  bool              $unless
+	 * @param  array|string      $names
+	 * @param  array|Collection  $data
+	 * @return void
+	 */
 	public function includeWhen( bool $when, $names, $data = [] ) {
 		if ( true === $when ) {
 			$this->include( $names, $data );
 		}
 	}
 
+	/**
+	 * Includes a subview unless `$unless` is `true`.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  bool              $unless
+	 * @param  array|string      $names
+	 * @param  array|Collection  $data
+	 * @return void
+	 */
 	public function includeUnless( bool $unless, $names, $data = [] ) {
 		if ( false === $unless ) {
 			$this->include( $names, $data );
 		}
 	}
 
+	/**
+	 * Loops through an array of items and includes a subview for each.  Use
+	 * the `$var` variable to set a variable name for the item when passed
+	 * to the subview.  Pass a fallback view name via `$empty` to show if
+	 * the items array is empty.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  array|string $names
+	 * @param  array        $items
+	 * @param  string       $var
+	 * @param  array|string $empty
+	 * @return void
+	 */
+	public function each( $names, array $items = [], string $var = '', $empty = [] ) {
 
-	public function each( $names, array $items = [], string $data_slug = '' ) {
+		if ( ! $items && $empty ) {
+			$this->include( $empty );
+		}
+
 		foreach ( $items as $item ) {
-			$view = $this->include(
+			$this->include(
 				$names,
-				$data_slug ? [ $data_slug => $item ] : []
+				$var ? [ $var => $item ] : []
 			);
 		}
 	}

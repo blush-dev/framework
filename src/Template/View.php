@@ -92,10 +92,24 @@ class View {
 		return $templates;
 	}
 
+	/**
+	 * Sets the view data.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  Collection
+	 */
 	public function setData( Collection $data ) {
 		$this->data = $data;
 	}
 
+	/**
+	 * Gets the view data.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return Collection
+	 */
 	public function getData() {
 		return $this->data;
 	}
@@ -137,10 +151,24 @@ class View {
 		return $this->template;
 	}
 
+	/**
+	 * Displays the view.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return void
+	 */
 	public function display() {
 		echo $this->render();
 	}
 
+	/**
+	 * Returns the view.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function render() {
 		$template = $this->template();
 
