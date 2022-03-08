@@ -20,6 +20,8 @@ use Blush\Contracts\Core\Application as ApplicationContract;
 use Blush\Contracts\Bootable;
 use Blush\Proxies\Proxy;
 use Blush\Proxies\App;
+use Blush\Tools\Collection;
+use Blush\Tools\Config;
 
 /**
  * Application class.
@@ -81,7 +83,6 @@ class Application extends Container implements ApplicationContract, Bootable {
 	 * @return void
 	 */
 	public function boot() {
-
 		$this->registerProviders();
 		$this->bootProviders();
 		$this->registerProxies();
@@ -101,6 +102,28 @@ class Application extends Container implements ApplicationContract, Bootable {
 
 		// Add the version for the framework.
 		$this->instance( 'version', static::VERSION );
+
+		// Add default paths.
+		$this->instance( 'path/public',    "{$this->path}/public"       );
+		$this->instance( 'path/resources', "{$this->path}/resources"    );
+		$this->instance( 'path/user',      "{$this->path}/user"         );
+		$this->instance( 'path/cache',     "{$this->path}/user/cache"   );
+		$this->instance( 'path/content',   "{$this->path}/user/content" );
+		$this->instance( 'path/media',     "{$this->path}/user/media"   );
+
+		// Add configs.
+		$this->instance( 'config', new Collection() );
+
+		foreach ( glob( "{$this->path}/config/*.php" ) as $file ) {
+			$config = include $file;
+
+			if ( is_array( $config ) ) {
+				$this->config->add(
+					basename( $file, '.php' ),
+					new Config( $config )
+				);
+			}
+		}
 	}
 
 	/**
@@ -111,10 +134,21 @@ class Application extends Container implements ApplicationContract, Bootable {
 	 * @return void
 	 */
 	protected function registerDefaultProviders() {
+
+		// Register framework service providers.
 		$this->provider( Providers\App::class      );
 		$this->provider( Providers\Content::class  );
 		$this->provider( Providers\Markdown::class );
 		$this->provider( Providers\Route::class    );
+
+		// Register app service providers.
+		$config = $this->config->get( 'app' );
+
+		if ( $config->has( 'providers' ) ) {
+			foreach ( (array) $config->get( 'providers' ) as $provider ) {
+				$this->provider( $provider );
+			}
+		}
 	}
 
 	/**

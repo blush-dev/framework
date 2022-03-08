@@ -15,7 +15,6 @@ use Blush\Core\ServiceProvider;
 use Blush\Template\Engine;
 use Blush\Template\View;
 use Blush\Tools\Collection;
-use Blush\Tools\Config;
 
 class App extends ServiceProvider {
 
@@ -27,20 +26,6 @@ class App extends ServiceProvider {
 	 * @return void
 	 */
         public function register() {
-                $this->app->instance( 'config', new Collection() );
-
-                $files = glob( "{$this->app->path}/config/*.php" );
-
-                foreach ( $files as $file ) {
-                        $config = include $file;
-
-                        if ( is_array( $config ) ) {
-                                $this->app->config->add(
-                                        basename( $file, '.php' ),
-                                        new Config( $config )
-                                );
-                        }
-                }
 
                 // Get the app config collection.
                 $app_config = $this->app->config->get( 'app' );
@@ -48,20 +33,14 @@ class App extends ServiceProvider {
                 // Sets the default timezone.
                 date_default_timezone_set( $app_config['timezone'] ?? 'America/Chicago' );
 
-                $this->app->instance( 'path/public',    "{$this->app->path}/public"       );
-                $this->app->instance( 'path/resources', "{$this->app->path}/resources"    );
-                $this->app->instance( 'path/user',      "{$this->app->path}/user"         );
-                $this->app->instance( 'path/cache',     "{$this->app->path}/user/cache"   );
-                $this->app->instance( 'path/content',   "{$this->app->path}/user/content" );
-                $this->app->instance( 'path/media',     "{$this->app->path}/user/media"   );
-
-                $uri = $this->app->config->get( 'app' )->get( 'uri' );
-
+		// Add URI.
                 $this->app->instance( 'uri', $app_config['uri'] );
                 $this->app->instance( 'uri/relative', parse_url( $app_config['uri'], PHP_URL_PATH ) );
 
+		// Add cache.
                 $this->app->instance( 'cache', new Collection() );
 
+		// Add template engine.
                 $this->app->bind( View::class );
 		$this->app->singleton( Engine::class );
         }
