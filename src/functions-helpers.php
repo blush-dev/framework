@@ -11,6 +11,7 @@
 
 use Blush\Proxies\App;
 use Blush\Cache;
+use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 
 function app( $abstract = '', $params = [] ) {
@@ -27,14 +28,64 @@ function config( $name, $key = '' ) {
 	return $config;
 }
 
-function path( string $path = '' ) {
-	$path = trim( $path, '/' );
-	return $path ? app( 'path' ) . "/{$path}" : app( 'path' );
+function path( string $append = '' ) {
+	return Str::appendPath( app( 'path' ), $append );
 }
 
-function uri( string $path = '' ) {
-	$path = trim( $path, '/' );
-	return $path ? app( 'uri' ) . "/{$path}" : app( 'uri' );
+function uri( string $append = '' ) {
+	return Str::appendUri( app( 'uri' ), $append );
+}
+
+function public_path( string $append = '' ) {
+	return Str::appendPath( app( 'path.public' ), $append );
+}
+
+function resource_path( string $append = '' ) {
+	return Str::appendPath( app( 'path.resource' ), $append );
+}
+
+function storage_path( string $append = '' ) {
+	return Str::appendPath( app( 'path.storage' ), $append );
+}
+
+function cache_path( string $append = '' ) {
+	return Str::appendPath( app( 'path.cache' ), $append );
+}
+
+function user_path( string $append = '' ) {
+	return Str::appendPath( app( 'path.user' ), $append );
+}
+
+function content_path( string $append = '' ) {
+	return Str::appendPath( app( 'path.content' ), $append );
+}
+
+function media_path( string $append = '' ) {
+	return Str::appendPath( app( 'path.media' ), $append );
+}
+
+function public_uri( string $append = '' ) {
+	return Str::appendUri( app( 'uri.public' ), $append );
+}
+
+function resource_uri( string $append = '' ) {
+	return Str::appendUri( app( 'uri.resource' ), $append );
+}
+
+function storage_uri( string $append = '' ) {
+	return Str::appendUri( app( 'uri.storage' ), $append );
+}
+
+function user_uri( string $append = '' ) {
+	return Str::appendUri( app( 'uri.user' ), $append );
+}
+
+function content_uri( string $append = '' ) {
+	return Str::appendUri( app( 'uri.content' ), $append );
+}
+
+function media_uri( string $append = '' ) {
+	return Str::appendUri( app( 'uri.media' ), $append );
 }
 
 function e( $value, $double_encode = true ) {

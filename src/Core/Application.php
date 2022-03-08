@@ -106,7 +106,7 @@ class Application extends Container implements ApplicationContract, Bootable {
 		// Add default paths.
 		$this->instance( 'path.config',    "{$this->path}/config"        );
 		$this->instance( 'path.public',    "{$this->path}/public"        );
-		$this->instance( 'path.resources', "{$this->path}/resources"     );
+		$this->instance( 'path.resource',  "{$this->path}/resources"     );
 		$this->instance( 'path.storage',   "{$this->path}/storage"       );
 		$this->instance( 'path.cache',     "{$this->path}/storage/cache" );
 		$this->instance( 'path.user',      "{$this->path}/user"          );
