@@ -54,7 +54,7 @@ class TaxonomyTerm extends Controller {
 				$this->view( [
 					'collection-' . $taxonomy->type() . "-{$term}",
 					'collection-' . $taxonomy->type() . '-term',
-					'collection-taxonomy-term',
+					'collection-term',
 					'collection'
 				], [
 					'title'   => $query->first()->title(),

@@ -25,7 +25,7 @@ class Cache {
 		$response->setContent( 'Invalid cache purge request.' );
 
 		if ( isset( $params['key'] ) && $key === $params['key'] ) {
-			$this->recursiveRemove( App::resolve( 'path/cache' ) );
+			$this->recursiveRemove( App::resolve( 'path.cache' ) );
 			$response->setContent( 'Cache purged.' );
 		}
 

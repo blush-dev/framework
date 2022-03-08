@@ -104,17 +104,19 @@ class Application extends Container implements ApplicationContract, Bootable {
 		$this->instance( 'version', static::VERSION );
 
 		// Add default paths.
-		$this->instance( 'path/public',    "{$this->path}/public"       );
-		$this->instance( 'path/resources', "{$this->path}/resources"    );
-		$this->instance( 'path/user',      "{$this->path}/user"         );
-		$this->instance( 'path/cache',     "{$this->path}/user/cache"   );
-		$this->instance( 'path/content',   "{$this->path}/user/content" );
-		$this->instance( 'path/media',     "{$this->path}/user/media"   );
+		$this->instance( 'path.config',    "{$this->path}/config"        );
+		$this->instance( 'path.public',    "{$this->path}/public"        );
+		$this->instance( 'path.resources', "{$this->path}/resources"     );
+		$this->instance( 'path.storage',   "{$this->path}/storage"       );
+		$this->instance( 'path.cache',     "{$this->path}/storage/cache" );
+		$this->instance( 'path.user',      "{$this->path}/user"          );
+		$this->instance( 'path.content',   "{$this->path}/user/content"  );
+		$this->instance( 'path.media',     "{$this->path}/user/media"    );
 
 		// Add configs.
 		$this->instance( 'config', new Collection() );
 
-		foreach ( glob( "{$this->path}/config/*.php" ) as $file ) {
+		foreach ( glob( $this->get( 'path.config' ) . '/*.php' ) as $file ) {
 			$config = include $file;
 
 			if ( is_array( $config ) ) {

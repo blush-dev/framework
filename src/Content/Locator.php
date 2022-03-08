@@ -26,7 +26,7 @@ class Locator {
 		// Remove slashes and dots from the left/right sides.
 		$path = trim( $path, '/.' );
 
-		$this->path = App::resolve( 'path/content' );
+		$this->path = App::resolve( 'path.content' );
 
 		if ( $path ) {
 			$this->path .= "/{$path}";

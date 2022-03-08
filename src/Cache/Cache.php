@@ -15,7 +15,7 @@ abstract class Cache {
 	public function __construct( $name, $path = ''  ) {
 
 		$this->name = Str::afterLast( $name, '/' );
-		$this->path = App::resolve( 'path/cache' ) . '/' . Str::beforeLast( $name, '/' );
+		$this->path = App::resolve( 'path.cache' ) . '/' . Str::beforeLast( $name, '/' );
 	}
 
 	//abstract protected function fileType();

@@ -39,7 +39,7 @@ class Router {
 
 		// Don't cache excluded pages. Just return response.
 		foreach ( (array) $exclude as $_path ) {
-			if ( Str::startsWith( $path, 'cache' ) ) {
+			if ( Str::startsWith( $path, $_path ) ) {
 				return $this->getResponse();
 			}
 		}

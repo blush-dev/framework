@@ -108,7 +108,7 @@ class View {
 	 * @return string
 	 */
 	protected function locate() {
-		$path = App::resolve( 'path/public' ) . '/views';
+		$path = App::resolve( 'path.public' ) . '/views';
 
 		$templates = $this->hierarchy();
 
