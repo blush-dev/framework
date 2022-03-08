@@ -113,9 +113,10 @@ class Application extends Container implements ApplicationContract, Bootable {
 		$this->instance( 'path.content',   "{$this->path}/user/content"  );
 		$this->instance( 'path.media',     "{$this->path}/user/media"    );
 
-		// Add configs.
+		// Add config binding.
 		$this->instance( 'config', new Collection() );
 
+		// Register each config.
 		foreach ( glob( $this->get( 'path.config' ) . '/*.php' ) as $file ) {
 			$config = include $file;
 
@@ -126,6 +127,15 @@ class Application extends Container implements ApplicationContract, Bootable {
 				);
 			}
 		}
+
+		// Add default URIs.
+                $this->instance( 'uri',           $this->config->app->uri      );
+		$this->instance( 'uri.public',    "{$this->uri}/public"        );
+		$this->instance( 'uri.resources', "{$this->uri}/resources"     );
+		$this->instance( 'uri.storage',   "{$this->uri}/storage"       );
+		$this->instance( 'uri.user',      "{$this->uri}/user"          );
+		$this->instance( 'uri.content',   "{$this->uri}/user/content"  );
+		$this->instance( 'uri.media',     "{$this->uri}/user/media"    );
 	}
 
 	/**

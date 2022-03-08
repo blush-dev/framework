@@ -162,7 +162,7 @@ class Entry {
 
 		$uri = 'index' === $uri ? '' : "/{$uri}";
 
-		return App::resolve( 'uri/relative' ) . "/{$path}{$uri}";
+		return App::resolve( 'uri' ) . "/{$path}{$uri}";
 	}
 
 	public function excerpt( $length = 40, $more = '&hellip;' ) {

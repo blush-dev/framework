@@ -33,10 +33,6 @@ class App extends ServiceProvider {
                 // Sets the default timezone.
                 date_default_timezone_set( $app_config['timezone'] ?? 'America/Chicago' );
 
-		// Add URI.
-                $this->app->instance( 'uri', $app_config['uri'] );
-                $this->app->instance( 'uri/relative', parse_url( $app_config['uri'], PHP_URL_PATH ) );
-
 		// Add cache.
                 $this->app->instance( 'cache', new Collection() );
 
