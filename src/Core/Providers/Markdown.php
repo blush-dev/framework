@@ -40,7 +40,7 @@ class Markdown extends ServiceProvider {
                 $this->app->singleton( 'markdown/converter', function( $app ) {
 
 			// Gets the user Markdown config.
-                        $markdown = $app->config->get( 'markdown' );
+                        $markdown = $app->get( 'config.markdown' );
 
                         // Configure the Environment.
                         $environment = new Environment( $markdown['config'] ?? [] );

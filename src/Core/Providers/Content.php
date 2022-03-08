@@ -30,7 +30,7 @@ class Content extends ServiceProvider {
                 $this->app->singleton( Component::class, function() {
                         return new Component(
                                 $this->app->resolve( 'content/types' ),
-                                $this->app->config->get( 'content' )
+                                $this->app->resolve( 'config.content' )
                         );
                 } );
         }

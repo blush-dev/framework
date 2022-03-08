@@ -19,7 +19,7 @@ class Cache {
 	public function __invoke( array $params = [] ) {
 		$this->params = $params;
 
-		$key = App::resolve( 'config' )->get( 'cache' )->get( 'secret_key' );
+		$key = App::resolve( 'config.cache' )->get( 'secret_key' );
 
 		$response = new Response();
 		$response->setContent( 'Invalid cache purge request.' );

@@ -22,6 +22,7 @@ use Blush\Proxies\Proxy;
 use Blush\Proxies\App;
 use Blush\Tools\Collection;
 use Blush\Tools\Config;
+use Blush\Tools\Str;
 
 /**
  * Application class.
@@ -104,38 +105,36 @@ class Application extends Container implements ApplicationContract, Bootable {
 		$this->instance( 'version', static::VERSION );
 
 		// Add default paths.
-		$this->instance( 'path.config',    "{$this->path}/config"        );
-		$this->instance( 'path.public',    "{$this->path}/public"        );
-		$this->instance( 'path.resource',  "{$this->path}/resources"     );
-		$this->instance( 'path.storage',   "{$this->path}/storage"       );
-		$this->instance( 'path.cache',     "{$this->path}/storage/cache" );
-		$this->instance( 'path.user',      "{$this->path}/user"          );
-		$this->instance( 'path.content',   "{$this->path}/user/content"  );
-		$this->instance( 'path.media',     "{$this->path}/user/media"    );
-
-		// Add config binding.
-		$this->instance( 'config', new Collection() );
+		$this->instance( 'path.config',   Str::appendPath( $this['path'],         'config'    ) );
+		$this->instance( 'path.public',   Str::appendPath( $this['path'],         'public'    ) );
+		$this->instance( 'path.resource', Str::appendPath( $this['path'],         'resources' ) );
+		$this->instance( 'path.storage',  Str::appendPath( $this['path'],         'storage'   ) );
+		$this->instance( 'path.cache',    Str::appendPath( $this['path.storage'], 'cache'     ) );
+		$this->instance( 'path.user',     Str::appendPath( $this['path'],         'user'      ) );
+		$this->instance( 'path.content',  Str::appendPath( $this['path.user'],    'content'   ) );
+		$this->instance( 'path.media',    Str::appendPath( $this['path.user'],    'media'     ) );
 
 		// Register each config.
-		foreach ( glob( $this->get( 'path.config' ) . '/*.php' ) as $file ) {
+		foreach ( glob( Str::appendPath( $this['path.config'], '*.php' ) ) as $file ) {
 			$config = include $file;
 
 			if ( is_array( $config ) ) {
-				$this->config->add(
-					basename( $file, '.php' ),
+				$this->instance(
+					'config.' . basename( $file, '.php' ),
 					new Config( $config )
 				);
 			}
 		}
 
 		// Add default URIs.
-                $this->instance( 'uri',           $this->config->app->uri      );
-		$this->instance( 'uri.public',    "{$this->uri}/public"        );
-		$this->instance( 'uri.resources', "{$this->uri}/resources"     );
-		$this->instance( 'uri.storage',   "{$this->uri}/storage"       );
-		$this->instance( 'uri.user',      "{$this->uri}/user"          );
-		$this->instance( 'uri.content',   "{$this->uri}/user/content"  );
-		$this->instance( 'uri.media',     "{$this->uri}/user/media"    );
+		$this->instance( 'uri',          $this['config.app']['uri']                          );
+		$this->instance( 'uri.public',   Str::appendUri( $this['uri'],         'public'    ) );
+		$this->instance( 'uri.resource', Str::appendUri( $this['uri'],         'resources' ) );
+		$this->instance( 'uri.storage',  Str::appendUri( $this['uri'],         'storage'   ) );
+		$this->instance( 'uri.cache',    Str::appendUri( $this['uri.storage'], 'cache'     ) );
+		$this->instance( 'uri.user',     Str::appendUri( $this['uri'],         'user'      ) );
+		$this->instance( 'uri.content',  Str::appendUri( $this['uri.user'],    'content'   ) );
+		$this->instance( 'uri.media',    Str::appendUri( $this['uri.user'],    'media'     ) );
 	}
 
 	/**
@@ -154,7 +153,7 @@ class Application extends Container implements ApplicationContract, Bootable {
 		$this->provider( Providers\Route::class    );
 
 		// Register app service providers.
-		$config = $this->config->get( 'app' );
+		$config = $this->resolve( 'config.app' );
 
 		if ( $config->has( 'providers' ) ) {
 			foreach ( (array) $config->get( 'providers' ) as $provider ) {

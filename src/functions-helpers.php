@@ -19,7 +19,7 @@ function app( $abstract = '', $params = [] ) {
 }
 
 function config( $name, $key = '' ) {
-	$config = app( 'config' )->get( $name );
+	$config = app( "config.{$name}" );
 
 	if ( $key ) {
 		return $config[ $key ] ?? null;
@@ -74,6 +74,10 @@ function resource_uri( string $append = '' ) {
 
 function storage_uri( string $append = '' ) {
 	return Str::appendUri( app( 'uri.storage' ), $append );
+}
+
+function cache_uri( string $append = '' ) {
+	return Str::appendUri( app( 'uri.cache' ), $append );
 }
 
 function user_uri( string $append = '' ) {
