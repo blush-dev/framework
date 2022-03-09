@@ -35,7 +35,7 @@ class Router {
 		}
 
 		$exclude = $config['global_exclude'] ?? [];
-		$path    = trim( $this->path(), '/' );
+		$path    = Str::slashTrim( $this->path() );
 
 		// Don't cache excluded pages. Just return response.
 		foreach ( (array) $exclude as $_path ) {
@@ -72,7 +72,7 @@ class Router {
 
 		// Trim slashes unless homepage.
 		if ( '/' !== $request ) {
-			$request = trim( $request, '/' );
+			$request = Str::slashTrim( $request );
 		}
 
 		// Check for routes that are an exact match for the request.

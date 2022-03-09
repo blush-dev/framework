@@ -13,17 +13,18 @@ abstract class Cache {
 	protected $data;
 
 	public function __construct( $name, $path = ''  ) {
-
 		$this->name = Str::afterLast( $name, '/' );
-		$this->path = App::resolve( 'path.cache' ) . '/' . Str::beforeLast( $name, '/' );
+		$this->path = Str::appendPath(
+			App::resolve( 'path.cache' ),
+			Str::beforeLast( $name, '/' )
+		);
 	}
 
 	//abstract protected function fileType();
 	abstract protected function filename();
 
 	protected function path( $file = '' ) {
-		$file = trim( $file, '/' );
-		return $file ? "{$this->path}/{$file}" : $this->path;
+		return $file ? Str::appendPath( $this->path, $file ) : $this->path;
 	}
 
 	public function make() {

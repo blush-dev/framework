@@ -12,6 +12,7 @@
 namespace Blush\Content;
 
 use Blush\Proxies\App;
+use Blush\Tools\Str;
 
 class Entry {
 
@@ -162,7 +163,7 @@ class Entry {
 
 		$uri = 'index' === $uri ? '' : "/{$uri}";
 
-		return App::resolve( 'uri' ) . "/{$path}{$uri}";
+		return Str::appendUri( App::resolve( 'uri' ), $path . $uri );
 	}
 
 	public function excerpt( $length = 40, $more = '&hellip;' ) {

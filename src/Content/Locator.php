@@ -12,6 +12,7 @@
 namespace Blush\Content;
 
 use Blush\Proxies\App;
+use Blush\Tools\Str;
 
 class Locator {
 
@@ -29,13 +30,8 @@ class Locator {
 		$this->path = App::resolve( 'path.content' );
 
 		if ( $path ) {
-			$this->path .= "/{$path}";
-		}
-
-		// Use the path to build the cache key/name, such as
-		// `{$cache_path}.json`.
-		if ( $path ) {
-			$this->cache_path .= "/{$path}";
+			$this->path       = Str::appendPath( $this->path, $path );
+			$this->cache_path = Str::appendPath( $this->cache_path, $path );
 		}
 	}
 
@@ -70,9 +66,7 @@ class Locator {
 		$located = [];
 
 		foreach ( (array) $entries as $filename => $data ) {
-
-			$filename = "{$this->path}/{$filename}";
-
+			$filename = Str::appendPath( $this->path, $filename );
 			$located[ $filename ] = $data;
 		}
 
@@ -81,8 +75,7 @@ class Locator {
 
 	protected function locate() {
 
-		//$files = glob( App::resolve( 'path' ) . "/{$this->path}/*.md" );
-		$files = glob( "{$this->path}/*.md" );
+		$files = glob( Str::appendPath( $this->path, '*.md' ) );
 
 		if ( ! $files ) {
 			return [];
