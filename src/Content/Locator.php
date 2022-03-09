@@ -75,7 +75,7 @@ class Locator {
 
 	protected function locate() {
 
-		$files = glob( Str::appendPath( $this->path, '*.md' ) );
+		$files = glob( "{$this->path}/*.md" );
 
 		if ( ! $files ) {
 			return [];

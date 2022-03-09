@@ -115,7 +115,7 @@ class Application extends Container implements ApplicationContract, Bootable {
 		$this->instance( 'path.media',    Str::appendPath( $this['path.user'],    'media'     ) );
 
 		// Register each config.
-		foreach ( glob( Str::appendPath( $this['path.config'], '*.php' ) ) as $file ) {
+		foreach ( glob( "{$this->path}/config/*.php" ) as $file ) {
 			$config = include $file;
 
 			if ( is_array( $config ) ) {
