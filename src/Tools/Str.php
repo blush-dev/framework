@@ -6,14 +6,14 @@ class Str {
 
 	// @todo DIRECTORY_SEPARATOR
 	public static function appendPath( string $path, string $append = '' ) {
-		$path   = static::slashTrim( $path   );
-		$append = static::slashTrim( $append );
+		$path   = rtrim( $path, '/\\' );
+		$append = ltrim( $append, '/\\' );
 		return $append ? "{$path}/{$append}" : $path;
 	}
 
 	public static function appendUri( string $uri, string $append = '' ) {
-		$uri    = static::slashTrim( $uri    );
-		$append = static::slashTrim( $append );
+		$uri    = rtrim( $uri, '/\\' );
+		$append = ltrim( $append, '/\\' );
 		return $append ? "{$uri}/{$append}" : $uri;
 	}
 
