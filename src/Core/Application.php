@@ -127,7 +127,7 @@ class Application extends Container implements ApplicationContract, Bootable {
 		}
 
 		// Add default URIs.
-		$this->instance( 'uri',          $this['config.app']['uri']                          );
+		$this->instance( 'uri',          $this->get( 'config.app' )->get( 'uri' ) );
 		$this->instance( 'uri.public',   Str::appendUri( $this['uri'],         'public'    ) );
 		$this->instance( 'uri.resource', Str::appendUri( $this['uri'],         'resources' ) );
 		$this->instance( 'uri.storage',  Str::appendUri( $this['uri'],         'storage'   ) );
