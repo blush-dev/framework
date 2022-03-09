@@ -15,29 +15,41 @@ use Blush\Proxies\App;
 use Blush\Content\Query;
 use Blush\Tools\Str;
 
-class Single extends Controller {
+class SinglePage extends Controller {
 
 	public function __invoke( array $params = [] ) {
 		$types = App::resolve( 'content/types' );
 
-		// Get the post name and path.
-		$name = $params['name'] ?? '';
-		$path = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
+		$path = $params['path'] ?? '';
+		$name = Str::afterLast( $path, '/' );
 
-		// Get the content type by path.
-		$type = $types->getTypeFromPath( $path );
+		$views = [
+			"single-page-{$name}",
+			'single-page',
+			'single'
+		];
 
-		// Look for a `path/{$name}.md` file.
-		$entries = new Query( $path, [ 'slug' => $name ] );
+		// Look for an `path/index.md` file.
+		$entries = new Query( $path, [ 'slug' => 'index' ] );
 
 		if ( $entries->all() ) {
-			$type_name = sanitize_with_dashes( $type->type() );
-			$views = [
-				"single-{$type_name}-{$name}",
-				"single-{$type_name}",
-				'single'
-			];
+			return $this->response(
+				$this->view( $views, [
+					'query'   => $entries->first(),
+					'title'   => $entries->first()->title(),
+					'page'    => 1,
+					'entries' => $entries
+				] )
+			);
+		}
 
+		// Look for a `path/{$name}.md` file.
+		$entries = new Query(
+			Str::beforeLast( $path, '/' ),
+			[ 'slug' => $name ]
+		);
+
+		if ( $entries->all() ) {
 			return $this->response(
 				$this->view( $views, [
 					'query'   => $entries->first(),

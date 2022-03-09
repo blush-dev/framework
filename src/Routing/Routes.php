@@ -44,11 +44,10 @@ class Routes {
 		return $this->routes;
 	}
 
-	public function get( $route, $callback, $position = 'bottom' ) {
+	public function get( $route, $callback ) {
 
 		$router = [
-			'callback' => $callback,
-			'position' => $position
+			'callback' => $callback
 		];
 
 		$this->routes[ $route ] = $callback;
@@ -73,10 +72,7 @@ class Routes {
 
 		$router['vars'] = $route_vars;
 
-		if ( 'top' === $position ) {
-			$this->routers = [ $route => $router ] + $this->routers;
-		} else {
-			$this->routers[ $route ] = $router;
-		}
+		// @todo - Build in positioning system?
+		$this->routers[ $route ] = $router;
 	}
 }

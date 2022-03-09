@@ -38,16 +38,38 @@ class Route extends ServiceProvider {
 	 * @return void
 	 */
         public function boot() {
-		// Todo build `$route->where()` checks that match content types.
-		// This will be more accurate and efficient than all the checks
-		// in the current controllers.
-		// $this->app->routes->get( '{content_type}',               Controllers\ContentType::class );
-		// $this->app->routes->get( '{content_type}/page/{number}', Controllers\ContentType::class );
-		// $this->app->routes->get( '{content_type}/{name}',        Controllers\ContentType::class );
+		$types = $this->app->resolve( 'content/types' );
+		$types = array_reverse( $types->sortByPath() );
 
-		$this->app->routes->get( '/',                    Controllers\Home::class    );
-                $this->app->routes->get( 'cache/purge/{key}',    Controllers\Cache::class   );
-                $this->app->routes->get( '{name}/page/{number}', Controllers\Content::class );
-                $this->app->routes->get( '{name}',               Controllers\Content::class );
+		foreach ( (array) $types as $type ) {
+
+			$this->app->routes->get(
+				$type->path() . '/page/{number}',
+				Controllers\ContentTypeArchive::class
+			);
+
+			if ( $type->isTaxonomy() ) {
+				$this->app->routes->get(
+					$type->path() . '/{name}/page/{number}',
+					Controllers\TaxonomyTerm::class
+				);
+			}
+
+			$this->app->routes->get(
+				$type->path() . '/{name}',
+				$type->isTaxonomy()
+					? Controllers\TaxonomyTerm::class
+					: Controllers\Single::class
+			);
+
+			$this->app->routes->get(
+				$type->path(),
+				Controllers\ContentTypeArchive::class
+			);
+		}
+
+		$this->app->routes->get( '/',                 Controllers\Home::class    );
+                $this->app->routes->get( 'cache/purge/{key}', Controllers\Cache::class   );
+                $this->app->routes->get( '{name}',            Controllers\SinglePage::class );
         }
 }

@@ -13,29 +13,26 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Blush\Tools\Str;
 
 class TaxonomyTerm extends Controller {
 
 	public function __invoke( array $params = [] ) {
-		$this->params = $params;
 		$types = App::resolve( 'content/types' );
 
-		$path       = $this->getParameter( 'path' );
-		$name       = $this->getParameter( 'name' );
-		$number     = $this->getParameter( 'number' );
+		$name   = $params['name'] ?? '';
+		$number = $params['number'] ?? 0;
+		$path   = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
 
-		// Get the taxonomy's content type.
-		$taxonomy = $types->get( $this->getParameter( 'taxonomy' ) );
-		$collect  = $types->get( $taxonomy->termCollect() );
-
-		// Get the term name.
-		$term = trim( str_replace( $taxonomy->path(), '', $name ), '/' );
-
-		$current  = $this->params['number'] ?? 1;
+		$current  = $number ?: 1;
 		$per_page = posts_per_page();
 
+		// Get the taxonomy's content type.
+		$taxonomy = $types->getTypeFromPath( $path );
+		$collect  = $types->get( $taxonomy->termCollect() );
+
 		// Query the taxonomy term.
-		$query = new Query( $taxonomy->path(), [ 'slug' => $term ] );
+		$query = new Query( $taxonomy->path(), [ 'slug' => $name ] );
 
 		// Query the term's content collection.
 		$collection = new Query( $collect->path(), [
@@ -45,21 +42,22 @@ class TaxonomyTerm extends Controller {
 			'order'      => 'desc',
 			'orderby'    => 'filename',
 			'meta_key'   => $taxonomy->type(),
-			'meta_value' => $term
+			'meta_value' => $name
 		] );
 
 		if ( $query->all() && $collection->all() ) {
+			$type_name = sanitize_with_dashes( $taxonomy->type() );
 
 			return $this->response(
 				$this->view( [
-					'collection-' . $taxonomy->type() . "-{$term}",
-					'collection-' . $taxonomy->type() . '-term',
+					"collection-{$type_name}-{$name}",
+					"collection-{$type_name}-term",
 					'collection-term',
 					'collection'
 				], [
 					'title'   => $query->first()->title(),
 					'query'   => $query->first(),
-					'page'    => isset( $this->params['number'] ) ? intval( $this->params['number'] ) : 1,
+					'page'    => $number ? intval( $number ) : 1,
 					'entries' => $collection
 				] )
 			);

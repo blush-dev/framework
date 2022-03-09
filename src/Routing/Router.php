@@ -83,10 +83,8 @@ class Router {
 				$callback = new $callback;
 			}
 
-			return $callback();
+			return $callback( [ 'path' => $request ] );
 		}
-
-		$request_parts = explode( '/', $request );
 
 		foreach ( $this->routes->routers() as $route => $args ) {
 

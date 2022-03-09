@@ -22,16 +22,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 abstract class Controller {
 
-	protected $params = [];
-
 	public function __invoke( array $params = [] ) {
 		$this->params = $params;
 
 		return $this->response( $this->view( 'index' ) );
-	}
-
-	protected function getParameter( string $name ) {
-		return $this->params[ $name ] ?? null;
 	}
 
 	protected function view( $names, $data = [] ) {

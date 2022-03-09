@@ -13,29 +13,29 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Symfony\Component\HttpFoundation\Response;
 
 class Error404 extends Controller {
 
 	public function __invoke( array $params = [] ) {
-		$this->params = $params;
-
 		http_response_code( 404 );
 
 		$entries = new Query( '_error', [ 'slug' => '404' ] );
 
-		$all   = $entries->all();
-		$entry = array_shift( $all );
+		if ( $entries->all() ) {
+			return $this->response(
+				$this->view( [
+					'error-404',
+					'error'
+				], [
+					'query'   => $query->first(),
+					'title'   => $query->first()->title(),
+					'page'    => 1,
+					'entries' => $entries
+				] )
+			);
+		}
 
-		return $this->response(
-			$this->view( [
-				'error-404',
-				'error'
-			], [
-				'title'   => $entry ? $entry->title() : 'Not Found',
-				'query'   => $entry ? $entry : false,
-				'page'    => 1,
-				'entries' => $entries
-			] )
-		);
+		return new Response( 'Nothing Found' );
 	}
 }

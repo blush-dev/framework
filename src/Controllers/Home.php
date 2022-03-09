@@ -13,24 +13,25 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Symfony\Component\HttpFoundation\Response;
 
 class Home extends Controller {
 
 	public function __invoke( array $params = [] ) {
-		$this->params = $params;
 
-		$query = new Query( '', [ 'slug' => 'index' ] );
+		$entries = new Query( '', [ 'slug' => 'index' ] );
 
-		$all   = $query->all();
-		$entry = array_shift( $all );
+		if ( $entries->all() ) {
+			return $this->response(
+				$this->view( 'home', [
+					'query'   => $entries->first(),
+					'title'   => $entries->first()->title(),
+					'page'    => 1,
+					'entries' => $entries
+				] )
+			);
+		}
 
-		return $this->response(
-			$this->view( 'home', [
-				'title'   => config( 'app', 'title' ),
-				'query'   => $entry ? $entry : false,
-				'page'    => 1,
-				'entries' => $query
-			] )
-		);
+		return new Response( 'No user/content/index.md file found.' );
 	}
 }

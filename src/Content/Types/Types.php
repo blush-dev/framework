@@ -16,6 +16,7 @@ use Blush\Tools\Collection;
 class Types extends Collection {
 
 	private $paths = [];
+	private $taxonomies = [];
 
 	public function add( $name, $options = [] ) {
 		parent::add( $name, new Type( $name, $options ) );
@@ -30,5 +31,23 @@ class Types extends Collection {
 		}
 
 		return $this->paths[ $path ] ?? false;
+	}
+
+	public function sortByPath() {
+
+		$paths = [];
+		$sorted = [];
+
+		foreach ( $this->all() as $type ) {
+			$paths[] = $type->path();
+		}
+
+		asort( $paths );
+
+		foreach ( $paths as $path ) {
+			$sorted[] = $this->getTypeFromPath( $path );
+		}
+
+		return $sorted;
 	}
 }

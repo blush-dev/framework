@@ -17,7 +17,6 @@ use Symfony\Component\HttpFoundation\Response;
 class Cache {
 
 	public function __invoke( array $params = [] ) {
-		$this->params = $params;
 
 		$key = App::resolve( 'config.cache' )->get( 'secret_key' );
 

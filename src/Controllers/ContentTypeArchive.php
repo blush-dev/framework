@@ -13,29 +13,32 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Blush\Tools\Str;
 
 class ContentTypeArchive extends Controller {
 
 	public function __invoke( array $params = [] ) {
-		$this->params = $params;
 		$types = App::resolve( 'content/types' );
 
-		$path   = $this->getParameter( 'path' );
-		$name   = $this->getParameter( 'name' );
-		$number = $this->getParameter( 'number' );
+		$path   = $params['path'] ?? '';
+		$number = $params['number'] ?? '';
 
-		$current  = $number ?? 1;
+		if ( $number ) {
+			$path = Str::beforeLast( $path, "/page" );
+		}
+
+		$current  = $number ?: 1;
 		$per_page = posts_per_page();
 
 		// Get the content type.
-		$type     = $types->getTypeFromPath( $name );
+		$type     = $types->getTypeFromPath( $path );
 		$collect  = $types->get( $type->collect() );
 
 		// Query the content type.
 		$query = new Query( $type->path(), [ 'slug' => 'index' ] );
 
 		// Query the content type collection.
-		$collection = new Query( $collect->path(), [
+		$entries = new Query( $collect->path(), [
 			'noindex'    => true,
 			'number'     => $per_page,
 			'offset'     => $per_page * ( intval( $current ) - 1 ),
@@ -43,24 +46,24 @@ class ContentTypeArchive extends Controller {
 			'orderby'    => 'filename'
 		] );
 
-		if ( $query->all() && $collection->all() ) {
-			$view_slugs = [
+		if ( $query->all() && $entries->all() ) {
+			$views = [
 				'collection-' . sanitize_with_dashes( $type->type() )
 			];
 
 			if ( $type->isTaxonomy() ) {
-				$view_slugs[] = 'collection-taxonomy-' . sanitize_with_dashes( $type->type() );
-				$view_slugs[] = 'collection-taxonomy';
+				$views[] = 'collection-taxonomy-' . sanitize_with_dashes( $type->type() );
+				$views[] = 'collection-taxonomy';
 			}
 
-			$view_slugs[] = 'collection';
+			$views[] = 'collection';
 
 			return $this->response(
-				$this->view( $view_slugs, [
+				$this->view( $views, [
 					'query'   => $query->first(),
 					'title'   => $query->first()->title(),
 					'page'    => $number ? intval( $number ) : 1,
-					'entries' => $collection
+					'entries' => $entries
 				] )
 			);
 		}
