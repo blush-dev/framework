@@ -16,6 +16,14 @@ use Symfony\Component\HttpFoundation\Response;
 
 class Cache {
 
+	/**
+	 * Callback method when route matches request.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  array  $params
+	 * @return Response
+	 */
 	public function __invoke( array $params = [] ) {
 
 		$key = App::resolve( 'config.cache' )->get( 'secret_key' );
@@ -31,6 +39,14 @@ class Cache {
 		return $response;
 	}
 
+	/**
+	 * Recursively removes a directory.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @param  string  $dir
+	 * @return void
+	 */
 	protected function recursiveRemove( $dir ) {
 
 		if ( ! is_dir( $dir ) ) {

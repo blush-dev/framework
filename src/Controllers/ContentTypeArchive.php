@@ -17,6 +17,14 @@ use Blush\Tools\Str;
 
 class ContentTypeArchive extends Controller {
 
+	/**
+	 * Callback method when route matches request.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  array  $params
+	 * @return Response
+	 */
 	public function __invoke( array $params = [] ) {
 		$types = App::resolve( 'content/types' );
 
@@ -69,7 +77,6 @@ class ContentTypeArchive extends Controller {
 		}
 
 		// If all else fails, return a 404.
-		$controller = new Error404();
-		return $controller( $params );
+		return $this->forward( Error404::class, $params );
 	}
 }
