@@ -16,14 +16,45 @@ use Blush\Tools\Collection;
 
 class Component implements Bootable {
 
+	/**
+	 * Collection of content types.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    Types
+	 */
         protected $types;
+
+	/**
+	 * Config collection for content types.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    Collection
+	 */
         protected $config;
 
+	/**
+	 * Sets up object state.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  Types      $types
+	 * @param  Collection $config
+	 * @return void
+	 */
         public function __construct( Types $types, Collection $config ) {
                 $this->types  = $types;
                 $this->config = $config;
         }
 
+	/**
+	 * Registers content types on boot.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return void
+	 */
         public function boot() {
                 foreach ( $this->config as $type => $options ) {
                         $this->types->add( $type, $options );

@@ -15,14 +15,37 @@ use Blush\Tools\Collection;
 
 class Types extends Collection {
 
+	/**
+	 * Stores types by path.
+	 *
+	 * @since  1.0.0
+	 * @access private
+	 * @var    array
+	 */
 	private $paths = [];
-	private $taxonomies = [];
 
+	/**
+	 * Adds a custom content type.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $name
+	 * @param  array   $options
+	 * @return void
+	 */
 	public function add( $name, $options = [] ) {
 		parent::add( $name, new Type( $name, $options ) );
 	}
 
-	public function getTypeFromPath( $path ) {
+	/**
+	 * Gets a custom post type by its path.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $path
+	 * @return Type|false
+	 */
+	public function getTypeFromPath( string $path ) {
 
 		if ( ! $this->paths ) {
 			foreach ( $this->all() as $type ) {
@@ -33,9 +56,15 @@ class Types extends Collection {
 		return $this->paths[ $path ] ?? false;
 	}
 
+	/**
+	 * Sorts types by their path.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return array
+	 */
 	public function sortByPath() {
-
-		$paths = [];
+		$paths  = [];
 		$sorted = [];
 
 		foreach ( $this->all() as $type ) {

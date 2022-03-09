@@ -16,15 +16,70 @@ use Blush\Tools\Str;
 
 class Entry {
 
+	/**
+	 * Entry filename.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
 	protected $filename;
-	protected $path;
+
+	/**
+	 * Entry path info.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    array
+	 */
 	protected $pathinfo;
+
+	/**
+	 * Entry content.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
 	protected $content;
-	protected $datetime;
+
+	/**
+	 * Entry content type.
+	 *
+	 * @todo   This is not implemented yet.
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
 	protected $type;
+
+	/**
+	 * Stores the entry metadata (front matter).
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    array
+	 */
 	protected $meta = [];
+
+	/**
+	 * Resolved metadata, which represent content type relationships, such
+	 * as taxonomy terms.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    array
+	 */
 	protected $resolved_meta = [];
 
+	/**
+	 * Sets up the object state.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $filename
+	 * @return void
+	 */
 	public function __construct( $filename ) {
 
 		$markdown = App::resolve( 'markdown' )->convert(
@@ -37,18 +92,48 @@ class Entry {
 		$this->content  = $markdown->content();
 	}
 
+	/**
+	 * Returns the entry filename.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function filename() {
 		return $this->filename;
 	}
 
+	/**
+	 * Returns the entry type.
+	 *
+	 * @todo   Implementation needed.
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function type() {
 		return $this->type;
 	}
 
+	/**
+	 * Returns the entry content.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function content() {
 		return $this->content;
 	}
 
+	/**
+	 * Returns entry metadata.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $name
+	 * @return mixed
+	 */
 	public function meta( string $name = '' ) {
 		if ( $name ) {
 			return $this->meta[ $name ] ?? false;
@@ -57,6 +142,15 @@ class Entry {
 		return $this->meta;
 	}
 
+	/**
+	 * Returns queried content type entries stored as meta.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $name
+	 * @param  string  $path
+	 * @return array
+	 */
 	public function metaEntries( string $name, string $path = '' ) {
 
 		if ( ! $path ) {
@@ -87,16 +181,36 @@ class Entry {
 		return $this->resolved_meta[ $name ];
 	}
 
+	/**
+	 * Returns the entry title.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function title() {
 		return $this->meta( 'title' );
 	}
 
+	/**
+	 * Returns the entry subtitle.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function subtitle() {
 		return $this->meta( 'subtitle' );
 	}
 
+	/**
+	 * Returns the entry date.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function date() {
-
 		if ( ! $this->meta( 'date' ) ) {
 			return '';
 		}
@@ -109,18 +223,38 @@ class Entry {
 		return date( 'F j, Y', $timestamp );
 	}
 
+	/**
+	 * Returns the entry author.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function author() {
 		$authors = $this->authors();
-
 		return $authors ? array_shift( $authors ) : '';
 	}
 
+	/**
+	 * Returns the entry authors.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function authors() {
 		return $this->metaEntries( 'author' );
 	}
 
+	/**
+	 * Returns a taxonomy entries.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $taxonomy
+	 * @return array
+	 */
 	public function terms( $taxonomy ) {
-
 		$content_types = App::resolve( 'content/types' );
 
 		if ( $content_types->has( $taxonomy ) ) {
@@ -133,10 +267,18 @@ class Entry {
 		return [];
 	}
 
+	/**
+	 * Returns the entry URI.
+	 *
+	 * @todo   Massive cleanup.
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function uri() {
-
 		$uri = $this->meta( 'uri' );
 
+		// @todo check for http. If not, prepend site URI.
 		if ( ! $uri ) {
 			$uri = $this->meta( 'slug' );
 		}
@@ -166,7 +308,16 @@ class Entry {
 		return Str::appendUri( App::resolve( 'uri' ), $path . $uri );
 	}
 
-	public function excerpt( $length = 40, $more = '&hellip;' ) {
+	/**
+	 * Returns the entry excerpt.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  int    $length
+	 * @param  string $more
+	 * @return string
+	 */
+	public function excerpt( int $length = 40, string $more = '&hellip;' ) {
 
 		$content = $this->content();
 
