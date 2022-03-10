@@ -11,6 +11,8 @@
 
 namespace Blush\Content\Types;
 
+use Blush\Controllers;
+
 class Type {
 
 	/**
@@ -32,7 +34,7 @@ class Type {
 	protected $path = '';
 
 	/**
-	 * Array of custom routes.
+	 * Array of content type routes.
 	 *
 	 * @since  1.0.0
 	 * @access protected
@@ -125,13 +127,46 @@ class Type {
 	}
 
 	/**
-	 * Returns the content type path.
+	 * Returns the content type routes as an array.
 	 *
 	 * @since  1.0.0
 	 * @access public
 	 * @return array
 	 */
 	public function routes() {
+
+		// If routes are already stored, return them.
+		if ( $this->routes ) {
+			return $this->routes;
+		}
+
+		$path = $this->path();
+
+		// Add paged type archive.
+		$this->routes[ $path . '/page/{number}' ] = [
+			'controller' => Controllers\ContentTypeArchive::class
+		];
+
+		// If this is a taxonomy, add paged term archive.
+		if ( $this->isTaxonomy() ) {
+			$this->routes[ $path . '/{name}/page/{number}' ] = [
+				'controller' => Controllers\TaxonomyTerm::class
+			];
+		}
+
+		// Add type single route.
+		$this->routes[ $path . '/{name}' ] = [
+			'controller' => $this->isTaxonomy()
+				? Controllers\TaxonomyTerm::class
+				: Controllers\Single::class
+		];
+
+		// Add type archive route.
+		$this->routes[ $path ] = [
+			'controller' => Controllers\ContentTypeArchive::class
+		];
+
+		// Return the built routes.
 		return $this->routes;
 	}
 

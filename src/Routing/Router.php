@@ -61,45 +61,14 @@ class Router implements Bootable {
 	 * @return void
 	 */
 	public function boot() {
-		$types = $this->sortTypes();
+		$types = App::resolve( 'content/types' );
+		$types = array_reverse( $types->sortByPath() );
 
-		// Loop through types with custom routes and add them.
-		foreach ( (array) $types['routed'] as $type ) {
-			foreach ( $type->routes() as $route => $options ) {
-				$this->routes->add( $route, [
-					'controller' => $options['controller']
-				] );
+		// Loop through the content types and add their routes.
+		foreach ( (array) $types as $type ) {
+			foreach ( $type->routes() as $uri => $args ) {
+				$this->routes->add( $uri, $args );
 			}
-		}
-
-		// Loop through types with standard routes and add them.
-		foreach ( (array) $types['unrouted'] as $type ) {
-
-			// Add paged type archive.
-			$this->routes->add(
-				$type->path() . '/page/{number}',
-				[ 'controller' => Controllers\ContentTypeArchive::class ]
-			);
-
-			// If this is a taxonomy, add paged term archive.
-			if ( $type->isTaxonomy() ) {
-				$this->routes->add(
-					$type->path() . '/{name}/page/{number}',
-					[ 'controller' => Controllers\TaxonomyTerm::class ]
-				);
-			}
-
-			// Add type single route.
-			$this->routes->add( $type->path() . '/{name}', [
-				'controller' => $type->isTaxonomy()
-					? Controllers\TaxonomyTerm::class
-					: Controllers\Single::class
-			] );
-
-			// Add type archive route.
-			$this->routes->add( $type->path(), [
-				'controller' => Controllers\ContentTypeArchive::class
-			] );
 		}
 
 		// Add homepage route.
@@ -108,39 +77,14 @@ class Router implements Bootable {
 		] );
 
 		// Add cache purge route.
-                $this->routes->add( 'cache/purge/{key}', [
+		$this->routes->add( 'cache/purge/{key}', [
 			'controller' => Controllers\Cache::class
 		] );
 
 		// Add catchall page route.
-                $this->routes->add( '{*}', [
+		$this->routes->add( '{*}', [
 			'controller' => Controllers\SinglePage::class
 		] );
-	}
-
-	/**
-	 * Sort content types for more ideal route registration.
-	 *
-	 * @since  1.0.0
-	 * @access private
-	 * @return array
-	 */
-	private function sortTypes() {
-		$types = App::resolve( 'content/types' );
-		$types = array_reverse( $types->sortByPath() );
-
-		$routed   = [];
-		$unrouted = [];
-
-		foreach ( $types as $type ) {
-			if ( $routes = $type->routes() ) {
-				$routed[] = $type;
-				continue;
-			}
-			$unrouted[] = $type;
-		}
-
-		return [ 'routed' => $routed, 'unrouted' => $unrouted ];
 	}
 
 	/**
