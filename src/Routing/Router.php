@@ -1,31 +1,178 @@
 <?php
+/**
+ * Router class.
+ *
+ * @package   Blush
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2018 - 2022, Justin Tadlock
+ * @link      https://github.com/blush-dev/framework
+ * @license   https://opensource.org/licenses/MIT
+ */
 
 namespace Blush\Routing;
 
+use Blush\Contracts\Bootable;
 use Blush\Proxies\App;
+use Blush\Controllers;
 use Blush\Tools\Collection;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class Router {
+class Router implements Bootable {
 
+	/**
+	 * Routes collection.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    Collection
+	 */
 	protected $routes;
+
+	/**
+	 * HTTP Request.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    Request
+	 */
 	protected $request;
 
-	public function __construct( $routes ) {
+	/**
+	 * Sets up the object state.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  Routes  $routes
+	 * @return void
+	 */
+	public function __construct( Routes $routes ) {
 		$this->request = Request::createFromGlobals();
                 $this->routes  = $routes;
 	}
 
+	/**
+	 * Bootstraps the component.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  Routes  $routes
+	 * @return void
+	 */
+	public function boot() {
+		$types = $this->sortTypes();
+
+		// Loop through types with custom routes and add them.
+		foreach ( (array) $types['routed'] as $type ) {
+			foreach ( $type->routes() as $route => $options ) {
+				$this->routes->add( $route, [
+					'controller' => $options['controller']
+				] );
+			}
+		}
+
+		// Loop through types with standard routes and add them.
+		foreach ( (array) $types['unrouted'] as $type ) {
+
+			// Add paged type archive.
+			$this->routes->add(
+				$type->path() . '/page/{number}',
+				[ 'controller' => Controllers\ContentTypeArchive::class ]
+			);
+
+			// If this is a taxonomy, add paged term archive.
+			if ( $type->isTaxonomy() ) {
+				$this->routes->add(
+					$type->path() . '/{name}/page/{number}',
+					[ 'controller' => Controllers\TaxonomyTerm::class ]
+				);
+			}
+
+			// Add type single route.
+			$this->routes->add( $type->path() . '/{name}', [
+				'controller' => $type->isTaxonomy()
+					? Controllers\TaxonomyTerm::class
+					: Controllers\Single::class
+			] );
+
+			// Add type archive route.
+			$this->routes->add( $type->path(), [
+				'controller' => Controllers\ContentTypeArchive::class
+			] );
+		}
+
+		// Add homepage route.
+		$this->routes->add( '/', [
+			'controller' => Controllers\Home::class
+		] );
+
+		// Add cache purge route.
+                $this->routes->add( 'cache/purge/{key}', [
+			'controller' => Controllers\Cache::class
+		] );
+
+		// Add catchall page route.
+                $this->routes->add( '{*}', [
+			'controller' => Controllers\SinglePage::class
+		] );
+	}
+
+	/**
+	 * Sort content types for more ideal route registration.
+	 *
+	 * @since  1.0.0
+	 * @access private
+	 * @return array
+	 */
+	private function sortTypes() {
+		$types = App::resolve( 'content/types' );
+		$types = array_reverse( $types->sortByPath() );
+
+		$routed   = [];
+		$unrouted = [];
+
+		foreach ( $types as $type ) {
+			if ( $routes = $type->routes() ) {
+				$routed[] = $type;
+				continue;
+			}
+			$unrouted[] = $type;
+		}
+
+		return [ 'routed' => $routed, 'unrouted' => $unrouted ];
+	}
+
+	/**
+	 * Returns the HTTP request.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return Request
+	 */
 	public function request() {
 		return $this->request;
 	}
 
+	/**
+	 * Returns the request path.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function path() {
 		return $this->request->getPathInfo();
 	}
 
+	/**
+	 * Returns a cached HTTP Response if global caching is enabled.  If not,
+	 * returns a new HTTP Response.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return Response
+	 */
 	public function response() {
 		$config = config( 'cache' );
 
@@ -44,6 +191,7 @@ class Router {
 			}
 		}
 
+		// If the path is empty, name it 'index'.
 		if ( ! $path ) {
 			$path = 'index';
 		}
@@ -52,65 +200,94 @@ class Router {
 		$content   = cache_get_make( $cache_key, 'html' );
 		$response  = false;
 
+		// If no cached content, get a new response and cache it.
 		if ( ! $content ) {
 			$response = $this->getResponse();
 			$content  = $this->getResponse()->getContent();
 			cache_set( $cache_key, $content, 'html' );
 		}
 
+		// If no response is set, add the cached content to new response.
 		if ( ! $response ) {
 			$response = new Response();
 			$response->setContent( $content );
 		}
 
+		// Return HTTP response.
 		return $response;
 	}
 
+	/**
+	 * Returns an HTTP response.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return Response
+	 */
 	private function getResponse() {
-		$request = $this->path();
-		$routes  = $this->routes->routes();
+	        $path   = $this->path();
+	        $routes = $this->routes->all();
 
-		// Trim slashes unless homepage.
-		if ( '/' !== $request ) {
-			$request = Str::slashTrim( $request );
-		}
+	        // Trim slashes unless homepage.
+	        if ( '/' !== $path ) {
+	                $path = Str::slashTrim( $path );
+	        }
 
-		// Check for routes that are an exact match for the request.
-		if ( isset( $routes[ $request ] ) ) {
-			$callback = $routes[ $request ];
+	        // Check for routes that are an exact match for the request.
+	        if ( isset( $routes[ $path ] ) ) {
+	                $callback = $routes[ $path ]->controller();
 
-			if ( is_string( $callback ) ) {
-				$callback = new $callback;
-			}
+	                if ( is_string( $callback ) ) {
+	                        $callback = new $callback;
+	                }
 
-			return $callback( [ 'path' => $request ] );
-		}
+	                return $callback( [ 'path' => $path ] );
+	        }
 
-		foreach ( $this->routes->routers() as $route => $args ) {
+	        // Loops through all routes and try to match them based on the
+	        // variables contained in the route URI.
+	        foreach ( $routes as $route ) {
 
-			// Skip homepage route here.
-			if ( '/' === $route ) {
-				continue;
-			}
+	                // Skip homepage route here.
+	                if ( '/' === $route->uri() ) {
+	                        continue;
+	                }
 
-			if ( @preg_match( $args['regex'], $request, $matches ) ) {
+	                if ( @preg_match( $route->regex(), $path, $matches ) ) {
 
-				array_shift( $matches );
+	                        // Removes the full match from the array.
+	                        // Results match the route regex vars.
+	                        array_shift( $matches );
 
-				$params = array_combine( $args['vars'], $matches );
+	                        // Combines the route vars as array keys and the
+	                        // matches as the values.
+	                        $params = array_combine(
+	                                $route->parameters(),
+	                                $matches
+	                        );
 
-				$params['path'] = $request;
+	                        // If no path set, pass the request path.
+	                        if ( ! isset( $params['path'] ) ) {
+	                                $params['path'] = $path;
+	                        }
 
-				$callback = $args['callback'];
+	                        // Gets the controller for the route.
+	                        $callback = $route->controller();
 
-				if ( is_string( $callback ) ) {
-					$callback = new $callback;
-				}
+	                        // If it is a string, assume it is a classname
+	                        // and create a new instance.
+	                        if ( is_string( $callback ) ) {
+	                                $callback = new $callback;
+	                        }
 
-				return $callback( $params );
-			}
-		}
+	                        // Call class as a function, which triggers the
+	                        // __invoke() method.
+	                        return $callback( $params );
+	                }
+	        }
 
-		return new Response( '' );
+	        // If nothing is found, send response.
+	        // @todo - Send 404.
+	        return new Response( '' );
 	}
 }

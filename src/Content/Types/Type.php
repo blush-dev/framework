@@ -32,6 +32,15 @@ class Type {
 	protected $path = '';
 
 	/**
+	 * Array of custom routes.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    array
+	 */
+	protected $routes = [];
+
+	/**
 	 * Whether the content type is a taxonomy.
 	 *
 	 * @since  1.0.0
@@ -80,6 +89,16 @@ class Type {
 			$this->collect = $type;
 		}
 
+		if ( $this->routes ) {
+			$_routes = [];
+			foreach ( $this->routes as $route => $args ) {
+				$_routes[ $route ] = is_string( $args )
+					? [ 'controller' => $args ]
+					: $args;
+			}
+			$this->routes = $_routes;
+		}
+
 		$this->type = $type;
 	}
 
@@ -103,6 +122,17 @@ class Type {
 	 */
 	public function path() {
 		return $this->path;
+	}
+
+	/**
+	 * Returns the content type path.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return array
+	 */
+	public function routes() {
+		return $this->routes;
 	}
 
 	/**

@@ -170,6 +170,8 @@ class Application extends Container implements ApplicationContract, Bootable {
 	 * @return void
 	 */
 	protected function registerDefaultProxies() {
+		Proxy::setContainer( $this );
+
 		$this->proxy( App::class, '\Blush\App' );
 	}
 
@@ -296,9 +298,6 @@ class Application extends Container implements ApplicationContract, Bootable {
 	 * @return void
 	 */
 	protected function registerProxies() {
-
-		Proxy::setContainer( $this );
-
 		foreach ( $this->proxies as $class => $alias ) {
 			class_alias( $class, $alias );
 		}

@@ -398,7 +398,7 @@ class Query {
 
 		foreach ( $entries as $file => $matter ) {
 
-			if ( ! $matter['date'] ) {
+			if ( ! isset( $matter['date'] ) ) {
 				continue;
 			}
 
