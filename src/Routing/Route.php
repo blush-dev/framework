@@ -170,6 +170,28 @@ class Route {
 	}
 
 	/**
+	 * Invokes the route controller.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  array  $params
+	 * @return callable
+	 */
+	public function callback( array $params = [] ) {
+
+		// Get the route controller.
+		$callback = $this->controller();
+
+		// If controller is a string, create a new instance of the class.
+		if ( is_string( $callback ) ) {
+			$callback = new $callback;
+		}
+
+		// Call class as a function, triggering the __invoke() method.
+		return $callback( $params );
+	}
+
+	/**
 	 * Returns the route regex.
 	 *
 	 * @since  1.0.0

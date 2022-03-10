@@ -177,15 +177,13 @@ class Router implements Bootable {
 	                $path = Str::slashTrim( $path );
 	        }
 
-	        // Check for routes that are an exact match for the request.
+	        // Check for route that is an exact match for the request. This
+		// will match route URIs that do no have variables, so we can
+		// just return the matched route controller here.
 	        if ( isset( $routes[ $path ] ) ) {
-	                $callback = $routes[ $path ]->controller();
-
-	                if ( is_string( $callback ) ) {
-	                        $callback = new $callback;
-	                }
-
-	                return $callback( [ 'path' => $path ] );
+			return $routes[ $path ]->callback( [
+				'path' => $path
+			] );
 	        }
 
 	        // Loops through all routes and try to match them based on the
@@ -193,14 +191,23 @@ class Router implements Bootable {
 	        foreach ( $routes as $route ) {
 
 	                // Skip homepage route here.
+			// @todo Also skip route URIs w/o variables.
 	                if ( '/' === $route->uri() ) {
 	                        continue;
 	                }
 
+			// Checks for matches against the route regex pattern,
+			// e.g., `/path/{var_a}/example/{var_b}`.
+			//
+			// Individual `{var}` patterns are defined in the
+			// `Route` class. If we have a full pattern match, we
+			// pull out the `{var}` instances and set them as params
+			// and pass them to the route's controller.
 	                if ( @preg_match( $route->regex(), $path, $matches ) ) {
 
-	                        // Removes the full match from the array.
-	                        // Results match the route regex vars.
+	                        // Removes the full match from the array, which
+				// matches the entire URI path.  The leftover
+				// matches are the parameter values.
 	                        array_shift( $matches );
 
 	                        // Combines the route vars as array keys and the
@@ -215,18 +222,8 @@ class Router implements Bootable {
 	                                $params['path'] = $path;
 	                        }
 
-	                        // Gets the controller for the route.
-	                        $callback = $route->controller();
-
-	                        // If it is a string, assume it is a classname
-	                        // and create a new instance.
-	                        if ( is_string( $callback ) ) {
-	                                $callback = new $callback;
-	                        }
-
-	                        // Call class as a function, which triggers the
-	                        // __invoke() method.
-	                        return $callback( $params );
+				// Invoke the route callback.
+				return $route->callback( $params );
 	                }
 	        }
 
