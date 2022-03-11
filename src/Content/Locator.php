@@ -13,6 +13,7 @@ namespace Blush\Content;
 
 use Blush\Proxies\App;
 use Blush\Tools\Str;
+use Symfony\Component\Yaml\Yaml;
 
 class Locator {
 
@@ -160,19 +161,36 @@ class Locator {
 				continue;
 			}
 
-			$data     = [];
-			$contents = file_get_contents( $file );
+			// Set up empty array in case there's no data.
+			$data = [];
 
-			if ( $contents ) {
-				$markdown = App::resolve( 'markdown' )->convert( $contents );
+			// Get the first 8 kb of data from the file.  We're only
+			// grabbing the frontmatter. Anything even encroaching
+			// this number would be insane.
+			$content = file_get_contents(
+				$file, false, null, 0, 8 * 1024
+			);
 
-				$data = $markdown->frontMatter();
+			if ( $content ) {
+				// Grab the YAML frontmatter from the file.
+		                preg_match(
+					'/^---[\r\n|\r|\n](.*?)[\r\n|\r|\n]---/s',
+					$content,
+					$match
+				);
 
+				// If frontmatter found, parse it.
+		                if ( $match ) {
+		                        $data = Yaml::parse( $match[1] );
+		                }
+
+				// Exclude meta from cache.
 				if ( $exclude ) {
 					$data = array_diff_key( $data, $exclude );
 				}
 			}
 
+			// Remove the file path. We only need the basename.
 			$filename = str_replace( "{$this->path}/", '', $file );
 
 			$cache[ $filename ] = $data;
