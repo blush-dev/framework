@@ -149,8 +149,9 @@ class Locator {
 
 		$cache = [];
 
-		// Get the metadata keys that we want to cache.
-		//$cache_meta_keys = array_flip( App::resolve( 'cache/meta' ) );
+		// Get the metadata keys to exclude from the cache.
+		$exclude = config( 'cache', 'content_exclude_meta' );
+		$exclude = is_array( $exclude ) ? array_flip( $exclude ) : false;
 
 		foreach ( $files as $file ) {
 
@@ -163,15 +164,13 @@ class Locator {
 			$contents = file_get_contents( $file );
 
 			if ( $contents ) {
-
 				$markdown = App::resolve( 'markdown' )->convert( $contents );
 
-				$_data = $markdown->frontMatter();
+				$data = $markdown->frontMatter();
 
-				$data = $_data;
-
-				// only cache the data that we need.
-				//$data = array_intersect_key( $_data, $cache_meta_keys );
+				if ( $exclude ) {
+					$data = array_diff_key( $data, $exclude );
+				}
 			}
 
 			$filename = str_replace( "{$this->path}/", '', $file );
