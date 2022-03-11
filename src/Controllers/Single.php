@@ -36,9 +36,9 @@ class Single extends Controller {
 		$type = $types->getTypeFromPath( $path );
 
 		// Look for a `path/{$name}.md` file.
-		$entries = new Query( $path, [ 'slug' => $name ] );
+		$single = new Query( $path, [ 'slug' => $name ] );
 
-		if ( $entries->all() ) {
+		if ( $single->all() ) {
 			$type_name = sanitize_with_dashes( $type->type() );
 			$views = [
 				"single-{$type_name}-{$name}",
@@ -48,10 +48,12 @@ class Single extends Controller {
 
 			return $this->response(
 				$this->view( $views, [
-					'query'   => $entries->first(),
-					'title'   => $entries->first()->title(),
-					'page'    => 1,
-					'entries' => $entries
+					'title'      => $single->first()->title(),
+					'single'     => $single->first(),
+					'collection' => $single,
+					'query'      => $single->first(),
+					'entries'    => $single,
+					'page'       => 1
 				] )
 			);
 		}

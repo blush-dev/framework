@@ -37,32 +37,25 @@ class SinglePage extends Controller {
 		];
 
 		// Look for an `path/index.md` file.
-		$entries = new Query( $path, [ 'slug' => 'index' ] );
+		$single = new Query( $path, [ 'slug' => 'index' ] );
 
-		if ( $entries->all() ) {
-			return $this->response(
-				$this->view( $views, [
-					'query'   => $entries->first(),
-					'title'   => $entries->first()->title(),
-					'page'    => 1,
-					'entries' => $entries
-				] )
+		// Look for a `path/{$name}.md` file if `path/index.md` not found.
+		if ( ! $single->all() ) {
+			$single = new Query(
+				Str::beforeLast( $path, '/' ),
+				[ 'slug' => $name ]
 			);
 		}
 
-		// Look for a `path/{$name}.md` file.
-		$entries = new Query(
-			Str::beforeLast( $path, '/' ),
-			[ 'slug' => $name ]
-		);
-
-		if ( $entries->all() ) {
+		if ( $single->all() ) {
 			return $this->response(
 				$this->view( $views, [
-					'query'   => $entries->first(),
-					'title'   => $entries->first()->title(),
-					'page'    => 1,
-					'entries' => $entries
+					'title'      => $single->first()->title(),
+					'single'     => $single->first(),
+					'collection' => $single,
+					'query'      => $single->first(),
+					'entries'    => $single,
+					'page'       => 1
 				] )
 			);
 		}

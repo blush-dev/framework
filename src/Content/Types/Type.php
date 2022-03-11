@@ -12,6 +12,7 @@
 namespace Blush\Content\Types;
 
 use Blush\Controllers;
+use Blush\Tools\Str;
 
 class Type {
 
@@ -43,6 +44,16 @@ class Type {
 	protected $routes = [];
 
 	/**
+	 * Whether routing should be enabled for this post type. Mostly for
+	 * internal use with pages.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    bool
+	 */
+	protected $routing = true;
+
+	/**
 	 * Whether the content type is a taxonomy.
 	 *
 	 * @since  1.0.0
@@ -71,6 +82,24 @@ class Type {
 	protected $term_collect = null;
 
 	/**
+	 * Stores the URI path for the content type.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
+	protected $uri = '';
+
+	/**
+	 * Stores the single entry URI path for the content type.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
+	protected $uri_single = '';
+
+	/**
 	 * Sets up the object state.
 	 *
 	 * @since  1.0.0
@@ -87,10 +116,14 @@ class Type {
 			}
 		}
 
-		if ( is_null( $this->collect ) ) {
+		// If the content type doesn't collect another, it should
+		// collect itself.
+		if ( is_null( $this->collect ) && false !== $this->collect ) {
 			$this->collect = $type;
 		}
 
+		// Parse routes passed in via `[ $uri => $controller ]` so that
+		// they are stored as `$uri => $args`.
 		if ( $this->routes ) {
 			$_routes = [];
 			foreach ( $this->routes as $route => $args ) {
@@ -102,6 +135,17 @@ class Type {
 		}
 
 		$this->type = $type;
+	}
+
+	/**
+	 * Returns the content type name (alias for `type()`).
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
+	public function name() {
+		return $this->type();
 	}
 
 	/**
@@ -127,6 +171,39 @@ class Type {
 	}
 
 	/**
+	 * Returns the content type URI.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
+	public function uri() {
+		return $this->uri ?: $this->path();
+	}
+
+	/**
+	 * Returns the content type URI for single entries.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
+	public function singleUri() {
+		return $this->uri_single ?: Str::appendUri( $this->path(), '{name}' );
+	}
+
+	/**
+	 * Whether routing is enabled.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return bool
+	 */
+	public function routing() {
+		return (bool) $this->routing;
+	}
+
+	/**
 	 * Returns the content type routes as an array.
 	 *
 	 * @since  1.0.0
@@ -134,6 +211,11 @@ class Type {
 	 * @return array
 	 */
 	public function routes() {
+
+		// Return empty array of the content type doesn't support routes.
+		if ( ! $this->routing() ) {
+			return [];
+		}
 
 		// If routes are already stored, return them.
 		if ( $this->routes ) {
@@ -158,7 +240,8 @@ class Type {
 		$this->routes[ $path . '/{name}' ] = [
 			'controller' => $this->isTaxonomy()
 				? Controllers\TaxonomyTerm::class
-				: Controllers\Single::class
+				: Controllers\Single::class,
+			'single' => true
 		];
 
 		// Add type archive route.

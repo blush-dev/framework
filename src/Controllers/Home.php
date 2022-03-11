@@ -27,15 +27,23 @@ class Home extends Controller {
 	 */
 	public function __invoke( array $params = [] ) {
 
-		$entries = new Query( '', [ 'slug' => 'index' ] );
+		$single = new Query( '', [ 'slug' => 'index' ] );
 
-		if ( $entries->all() ) {
+		if ( $single->all() ) {
 			return $this->response(
-				$this->view( 'home', [
-					'query'   => $entries->first(),
-					'title'   => $entries->first()->title(),
-					'page'    => 1,
-					'entries' => $entries
+				$this->view( [
+					'single-page-home',
+					'single-home',
+					'home', // @todo - remove.
+					'single-page',
+					'single'
+				], [
+					'title'      => $single->first()->title(),
+					'single'     => $single->first(),
+					'collection' => $single,
+					'query'      => $single->first(),
+					'entries'    => $single,
+					'page'       => 1
 				] )
 			);
 		}

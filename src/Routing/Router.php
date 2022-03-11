@@ -66,6 +66,12 @@ class Router implements Bootable {
 
 		// Loop through the content types and add their routes.
 		foreach ( (array) $types as $type ) {
+
+			// Skip if the content type doesn't support routing.
+			if ( ! $type->routing() ) {
+				continue;
+			}
+
 			foreach ( $type->routes() as $uri => $args ) {
 				$this->routes->add( $uri, $args );
 			}

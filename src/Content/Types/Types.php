@@ -25,6 +25,15 @@ class Types extends Collection {
 	private $paths = [];
 
 	/**
+	 * Stores types by URI.
+	 *
+	 * @since  1.0.0
+	 * @access private
+	 * @var    array
+	 */
+	private $uris = [];
+
+	/**
 	 * Adds a custom content type.
 	 *
 	 * @since  1.0.0
@@ -38,7 +47,7 @@ class Types extends Collection {
 	}
 
 	/**
-	 * Gets a custom post type by its path.
+	 * Gets a custom content type by its path.
 	 *
 	 * @since  1.0.0
 	 * @access public
@@ -47,13 +56,48 @@ class Types extends Collection {
 	 */
 	public function getTypeFromPath( string $path ) {
 
+		// If there is no path, this is a page.
+		if ( '' === $path ) {
+			return $this->get( 'page' );
+		}
+
+		// If paths are not stored, loop through all and store them in
+		// the `$paths` property.
 		if ( ! $this->paths ) {
 			foreach ( $this->all() as $type ) {
 				$this->paths[ $type->path() ] = $type;
 			}
 		}
 
+		// Return the type if the path matches. Else, false.
 		return $this->paths[ $path ] ?? false;
+	}
+
+	/**
+	 * Gets a custom content type by its URI.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $uri
+	 * @return Type|false
+	 */
+	public function getTypeFromUri( string $uri ) {
+
+		// If there is no URI, this is a page.
+		if ( '' === $uri ) {
+			return $this->get( 'page' );
+		}
+
+		// If URIs are not stored, loop through all and store them in
+		// the `$uris` property.
+		if ( ! $this->uris ) {
+			foreach ( $this->all() as $type ) {
+				$this->uris[ $type->uri() ] = $type;
+			}
+		}
+
+		// Return the type if the URI matches. Else, false.
+		return $this->uris[ $uri ] ?? false;
 	}
 
 	/**
@@ -67,12 +111,15 @@ class Types extends Collection {
 		$paths  = [];
 		$sorted = [];
 
+		// Gets all the type paths.
 		foreach ( $this->all() as $type ) {
 			$paths[] = $type->path();
 		}
 
+		// Sort paths alphabetically.
 		asort( $paths );
 
+		// Loop through each of the paths and get its type.
 		foreach ( $paths as $path ) {
 			$sorted[] = $this->getTypeFromPath( $path );
 		}

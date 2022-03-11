@@ -40,7 +40,7 @@ class TaxonomyTerm extends Controller {
 		$collect  = $types->get( $taxonomy->termCollect() );
 
 		// Query the taxonomy term.
-		$query = new Query( $taxonomy->path(), [ 'slug' => $name ] );
+		$single = new Query( $taxonomy->path(), [ 'slug' => $name ] );
 
 		// Query the term's content collection.
 		$collection = new Query( $collect->path(), [
@@ -53,7 +53,7 @@ class TaxonomyTerm extends Controller {
 			'meta_value' => $name
 		] );
 
-		if ( $query->all() && $collection->all() ) {
+		if ( $single->all() && $collection->all() ) {
 			$type_name = sanitize_with_dashes( $taxonomy->type() );
 
 			return $this->response(
@@ -63,10 +63,12 @@ class TaxonomyTerm extends Controller {
 					'collection-term',
 					'collection'
 				], [
-					'title'   => $query->first()->title(),
-					'query'   => $query->first(),
-					'page'    => $number ? intval( $number ) : 1,
-					'entries' => $collection
+					'title'      => $single->first()->title(),
+					'single'     => $single->first(),
+					'collection' => $collection,
+					'query'      => $single->first(),
+					'entries'    => $collection,
+					'page'       => $number ? intval( $number ) : 1
 				] )
 			);
 		}

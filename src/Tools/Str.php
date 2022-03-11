@@ -46,6 +46,25 @@ class Str {
 	}
 
 	/**
+	 * Checks if a string contains another string.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $haystack
+	 * @param  string  $needle
+	 * @return bool
+	 */
+	public static function contains( string $haystack, string $needle ) {
+
+		// PHP 8.
+		if ( function_exists( 'str_contains' ) ) {
+			return str_contains( $haystack, $needle );
+		}
+
+		return false !== mb_strpos( $haystack, $needle );
+	}
+
+	/**
 	 * Adds a slash before a string.
 	 *
 	 * @since  1.0.0
@@ -56,6 +75,7 @@ class Str {
 	public static function slashBefore( $str ) {
 		return '/' . ltrim( $str, '/\\' );
 	}
+
 	/**
 	 * Adds a slash after a string.
 	 *

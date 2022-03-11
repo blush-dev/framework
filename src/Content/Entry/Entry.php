@@ -1,6 +1,6 @@
 <?php
 /**
- * Content entry.
+ * Base content entry class.
  *
  * @package   Blush
  * @author    Justin Tadlock <justintadlock@gmail.com>
@@ -9,30 +9,13 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Content;
+namespace Blush\Content\Entry;
 
 use Blush\Proxies\App;
+use Blush\Content\Query;
 use Blush\Tools\Str;
 
-class Entry {
-
-	/**
-	 * Entry filename.
-	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
-	 */
-	protected $filename;
-
-	/**
-	 * Entry path info.
-	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
-	 */
-	protected $pathinfo;
+abstract class Entry {
 
 	/**
 	 * Entry content.
@@ -46,12 +29,11 @@ class Entry {
 	/**
 	 * Entry content type.
 	 *
-	 * @todo   This is not implemented yet.
 	 * @since  1.0.0
 	 * @access protected
-	 * @var    string
+	 * @var    null|\Blush\Content\Types\Type
 	 */
-	protected $type;
+	protected $type = null;
 
 	/**
 	 * Stores the entry metadata (front matter).
@@ -73,37 +55,6 @@ class Entry {
 	protected $resolved_meta = [];
 
 	/**
-	 * Sets up the object state.
-	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $filename
-	 * @return void
-	 */
-	public function __construct( $filename ) {
-
-		$markdown = App::resolve( 'markdown' )->convert(
-			file_get_contents( $filename )
-		);
-
-		$this->filename = $filename;
-		$this->pathinfo = pathinfo( $filename );
-		$this->meta     = $markdown->frontMatter();
-		$this->content  = $markdown->content();
-	}
-
-	/**
-	 * Returns the entry filename.
-	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
-	 */
-	public function filename() {
-		return $this->filename;
-	}
-
-	/**
 	 * Returns the entry type.
 	 *
 	 * @todo   Implementation needed.
@@ -113,6 +64,18 @@ class Entry {
 	 */
 	public function type() {
 		return $this->type;
+	}
+
+	/**
+	 * Returns the entry URI.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
+	public function uri() {
+		$uri = $this->meta( 'uri' );
+		return $uri ?: '';
 	}
 
 	/**
@@ -265,47 +228,6 @@ class Entry {
 		}
 
 		return [];
-	}
-
-	/**
-	 * Returns the entry URI.
-	 *
-	 * @todo   Massive cleanup.
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
-	 */
-	public function uri() {
-		$uri = $this->meta( 'uri' );
-
-		// @todo check for http. If not, prepend site URI.
-		if ( ! $uri ) {
-			$uri = $this->meta( 'slug' );
-		}
-
-		$filename = $this->pathinfo['basename'];
-
-		$parts = explode( '.', $filename );
-		array_pop( $parts );
-		if ( 1 < count( $parts ) ) {
-			array_shift( $parts );
-		}
-		$uri = join( '', $parts );
-
-		$path = str_replace(
-			[
-				App::resolve( 'path' ) . '/user/content/',
-				$this->pathinfo['basename']
-			],
-			'',
-			$this->filename
-		);
-
-		$path = trim( $path, '/' );
-
-		$uri = 'index' === $uri ? '' : "/{$uri}";
-
-		return Str::appendUri( App::resolve( 'uri' ), $path . $uri );
 	}
 
 	/**

@@ -38,15 +38,27 @@ class ContentTypeArchive extends Controller {
 		$current  = $number ?: 1;
 		$per_page = posts_per_page();
 
-		// Get the content type.
-		$type     = $types->getTypeFromPath( $path );
-		$collect  = $types->get( $type->collect() );
+		// Get the content by path.
+		$type = $types->getTypeFromPath( $path );
+
+		// If no match for the path, try the URI.
+		if ( ! $type ) {
+			$type = $types->getTypeFromUri( $path );
+		}
+
+		// Bail if there is no type.
+		if ( ! $type ) {
+			return $this->forward( Error404::class, $params );
+		}
+
+		// Get the collection type.
+		$collect = $types->get( $type->collect() );
 
 		// Query the content type.
-		$query = new Query( $type->path(), [ 'slug' => 'index' ] );
+		$single = new Query( $type->path(), [ 'slug' => 'index' ] );
 
 		// Query the content type collection.
-		$entries = new Query( $collect->path(), [
+		$collection = new Query( $collect->path(), [
 			'noindex'    => true,
 			'number'     => $per_page,
 			'offset'     => $per_page * ( intval( $current ) - 1 ),
@@ -54,7 +66,7 @@ class ContentTypeArchive extends Controller {
 			'orderby'    => 'filename'
 		] );
 
-		if ( $query->all() && $entries->all() ) {
+		if ( $single->all() && $collection->all() ) {
 			$views = [
 				'collection-' . sanitize_with_dashes( $type->type() )
 			];
@@ -68,10 +80,12 @@ class ContentTypeArchive extends Controller {
 
 			return $this->response(
 				$this->view( $views, [
-					'query'   => $query->first(),
-					'title'   => $query->first()->title(),
-					'page'    => $number ? intval( $number ) : 1,
-					'entries' => $entries
+					'title'      => $single->first()->title(),
+					'single'     => $single->first(),
+					'collection' => $collection,
+					'query'      => $single->first(),
+					'entries'    => $collection,
+					'page'       => $number ? intval( $number ) : 1
 				] )
 			);
 		}

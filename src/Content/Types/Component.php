@@ -56,8 +56,17 @@ class Component implements Bootable {
 	 * @return void
 	 */
         public function boot() {
+
+		// Registers user-configured content types.
                 foreach ( $this->config as $type => $options ) {
                         $this->types->add( $type, $options );
                 }
+
+		// Adds the internal `page` content type.
+		$this->types->add( 'page', [
+			'path'    => '',
+			'routing' => false,
+			'collect' => false
+		] );
         }
 }

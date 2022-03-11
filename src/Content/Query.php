@@ -13,6 +13,8 @@ namespace Blush\Content;
 
 use Blush\Proxies\App;
 
+use Blush\Content\Entry\File as Entry;
+
 class Query {
 
 	/**

@@ -28,18 +28,23 @@ class Error404 extends Controller {
 	public function __invoke( array $params = [] ) {
 		http_response_code( 404 );
 
-		$entries = new Query( '_error', [ 'slug' => '404' ] );
+		$single = new Query( '_error', [ 'slug' => '404' ] );
 
-		if ( $entries->all() ) {
+		if ( $single->all() ) {
 			return $this->response(
 				$this->view( [
+					'single-error-404',
+					'single-error',
+					'single',
 					'error-404',
 					'error'
 				], [
-					'query'   => $query->first(),
-					'title'   => $query->first()->title(),
-					'page'    => 1,
-					'entries' => $entries
+					'title'      => $single->first()->title(),
+					'single'     => $single->first(),
+					'collection' => $single,
+					'query'      => $single->first(),
+					'entries'    => $single,
+					'page'       => 1
 				] )
 			);
 		}
