@@ -62,6 +62,12 @@ class Router implements Bootable {
 	 */
 	public function boot() {
 		$types = App::resolve( 'content/types' );
+
+		// Get the homepage alias if it exists.
+		$alias = \config( 'app', 'home_alias' );
+		$alias = $alias && $types->has( $alias ) ? $types->get( $alias ) : false;
+
+		// Sort the content types.
 		$types = array_reverse( $types->sortByPath() );
 
 		// Loop through the content types and add their routes.
@@ -75,6 +81,13 @@ class Router implements Bootable {
 			foreach ( $type->routes() as $uri => $args ) {
 				$this->routes->add( $uri, $args );
 			}
+		}
+
+		// Add paginated homepage route if we have content type alias.
+		if ( $alias ) {
+			$this->routes->add( '/page/{number}', [
+				'controller' => Controllers\Home::class
+			] );
 		}
 
 		// Add homepage route.

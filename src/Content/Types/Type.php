@@ -222,12 +222,15 @@ class Type {
 			return $this->routes;
 		}
 
-		$path = $this->path();
+		$path  = $this->path();
+		$alias = \config( 'app', 'home_alias' );
 
-		// Add paged type archive.
-		$this->routes[ $path . '/page/{number}' ] = [
-			'controller' => Controllers\ContentTypeArchive::class
-		];
+		// Add paged type archive if not set as the homepage.
+		if ( $alias !== $this->type() ) {
+			$this->routes[ $path . '/page/{number}' ] = [
+				'controller' => Controllers\ContentTypeArchive::class
+			];
+		}
 
 		// If this is a taxonomy, add paged term archive.
 		if ( $this->isTaxonomy() ) {
@@ -244,10 +247,12 @@ class Type {
 			'single' => true
 		];
 
-		// Add type archive route.
-		$this->routes[ $path ] = [
-			'controller' => Controllers\ContentTypeArchive::class
-		];
+		// Add type archive route if not set as the homepage.
+		if ( $alias !== $this->type() ) {
+			$this->routes[ $path ] = [
+				'controller' => Controllers\ContentTypeArchive::class
+			];
+		}
 
 		// Return the built routes.
 		return $this->routes;
