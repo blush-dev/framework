@@ -16,13 +16,43 @@ use Blush\Tools\Str;
 
 class Locator {
 
+	/**
+	 * Relative path to the content folder where to locate content.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
 	protected $path;
 
+	/**
+	 * Array of cached filenames and metadata.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    array
+	 */
 	protected $cache;
 
+	/**
+	 * Relative path to the cache folder where to store located content.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
 	protected $cache_path = 'content';
 
-	public function __construct( $path = '' ) {
+	/**
+	 * Sets up object state. The path is relative to the user content
+	 * folder. If no value is passed in, it will be the root.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $path
+	 * @return void
+	 */
+	public function __construct( string $path = '' ) {
 
 		// Remove slashes and dots from the left/right sides.
 		$path = trim( $path, '/.' );
@@ -35,10 +65,24 @@ class Locator {
 		}
 	}
 
+	/**
+	 * Returns the folder path relative to the content directory.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return string
+	 */
 	public function path() {
 		return $this->path;
 	}
 
+	/**
+	 * Returns the cached filenames and metadata.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @return array
+	 */
 	protected function getCache() {
 
 		if ( ! $this->cache ) {
@@ -49,14 +93,29 @@ class Locator {
 		return $this->cache;
 	}
 
+	/**
+	 * Caches filenames and metadata.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @param  array  $data
+	 * @return void
+	 */
 	protected function setCache( $data ) {
 		cache_set( $this->cache_path, $data, 'collection' );
 
 		$this->cache = $data;
 	}
 
+	/**
+	 * Returns collection of located files as an array. The filenames are
+	 * the array keys and the metadata is the value.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @return array
+	 */
 	public function all() {
-
 		$entries = $this->getCache();
 
 		if ( ! $entries ) {
@@ -73,6 +132,14 @@ class Locator {
 		return $located;
 	}
 
+	/**
+	 * Locates content files and returns them as an array with the filename
+	 * as the key and the metadata as the value.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @return array
+	 */
 	protected function locate() {
 		$files = glob( Str::appendPath( $this->path, '*.md' ) );
 
@@ -87,6 +154,7 @@ class Locator {
 
 		foreach ( $files as $file ) {
 
+			// Skip if the file isn't Markdown.
 			if ( ! is_file( $file ) || 'md' !== pathinfo( $file, PATHINFO_EXTENSION ) ) {
 				continue;
 			}
