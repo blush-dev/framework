@@ -2,6 +2,10 @@
 /**
  * File-based content entry.
  *
+ * Sub-classes need to at least override the constructor to set up the content
+ * and metadata properties. This class should be able to handle most file types
+ * outside of those two properties.
+ *
  * @package   Blush
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2018 - 2022, Justin Tadlock
@@ -14,7 +18,7 @@ namespace Blush\Content\Entry;
 use Blush\Proxies\App;
 use Blush\Tools\Str;
 
-class File extends Entry {
+abstract class File extends Entry {
 
 	/**
 	 * Entry filename.
@@ -35,7 +39,8 @@ class File extends Entry {
 	protected $pathinfo;
 
 	/**
-	 * Sets up the object state.
+	 * Sets up the object state. Child classes need to overwrite this and
+	 * pull content and metadata from the file.
 	 *
 	 * @since  1.0.0
 	 * @access public
@@ -43,15 +48,8 @@ class File extends Entry {
 	 * @return void
 	 */
 	public function __construct( $filename ) {
-
-		$markdown = App::resolve( 'markdown' )->convert(
-			file_get_contents( $filename )
-		);
-
 		$this->filename = $filename;
 		$this->pathinfo = pathinfo( $filename );
-		$this->meta     = $markdown->frontMatter();
-		$this->content  = $markdown->content();
 	}
 
 	/**
@@ -109,7 +107,8 @@ class File extends Entry {
 	 * @return string
 	 */
 	public function name() {
-		$name = basename( $this->filename(), '.md' );
+		// Get the filename without the extension.
+		$name = $this->pathinfo['filename'];
 
 		// Strip anything after potential ordering dot, e.g.,
 		// `01.{$name}.md`, `02.{$name}.md`, etc.

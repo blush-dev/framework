@@ -18,15 +18,6 @@ use Blush\Tools\Str;
 abstract class Entry {
 
 	/**
-	 * Entry content.
-	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
-	 */
-	protected $content;
-
-	/**
 	 * Entry content type.
 	 *
 	 * @since  1.0.0
@@ -34,6 +25,15 @@ abstract class Entry {
 	 * @var    null|\Blush\Content\Types\Type
 	 */
 	protected $type = null;
+
+	/**
+	 * Entry content.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
+	protected $content = '';
 
 	/**
 	 * Stores the entry metadata (front matter).

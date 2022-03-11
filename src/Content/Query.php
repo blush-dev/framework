@@ -13,7 +13,7 @@ namespace Blush\Content;
 
 use Blush\Proxies\App;
 
-use Blush\Content\Entry\File as Entry;
+use Blush\Content\Entry\MarkdownFile as Entry;
 
 class Query {
 
