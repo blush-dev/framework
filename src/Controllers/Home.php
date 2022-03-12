@@ -103,7 +103,6 @@ class Home extends Controller {
 
 			return $this->response(
 				$this->view( [
-					'single-page-home',
 					'single-home',
 					'single-page',
 					'single',
