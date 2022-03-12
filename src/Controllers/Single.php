@@ -36,18 +36,27 @@ class Single extends Controller {
 		$type = $types->getTypeFromPath( $path );
 
 		// Look for a `path/{$name}.md` file.
-		$single = new Query( $path, [ 'slug' => $name ] );
+		$single = new Query( [
+			'path' => $path,
+			'slug' => $name
+		] );
 
 		if ( $single->all() ) {
-			$type_name = sanitize_with_dashes( $type->type() );
-			$views = [
-				"single-{$type_name}-{$name}",
-				"single-{$type_name}",
-				'single'
-			];
+			$type_name    = sanitize_with_dashes( $type->type() );
+			$collection   = false;
+			$collect_args = $single->first()->meta( 'collection' );
+
+			if ( $collect_args ) {
+				$collection = new Query( $collect_args );
+			}
 
 			return $this->response(
-				$this->view( $views, [
+				$this->view( [
+					"single-{$type_name}-{$name}",
+					"single-{$type_name}",
+					'single',
+					'index'
+				], [
 					'title'      => $single->first()->title(),
 					'single'     => $single->first(),
 					'collection' => $single,

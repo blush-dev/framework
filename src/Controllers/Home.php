@@ -43,25 +43,35 @@ class Home extends Controller {
 			$per_page = posts_per_page();
 
 			// Query the content type.
-			$single = new Query( $type->path(), [ 'slug' => 'index' ] );
-
-			// Query the content type collection.
-			$collection = new Query( $collect->path(), [
-				'noindex'    => true,
-				'number'     => $per_page,
-				'offset'     => $per_page * ( intval( $current ) - 1 ),
-				'order'      => 'desc',
-				'orderby'    => 'filename'
+			$single = new Query( [
+				'path' => $type->path(),
+				'slug' => 'index'
 			] );
 
+			if ( $single->all() ) {
+				$args = $single->first()->meta( 'collection' );
+				$args = $args ?: [];
+				// Needed to calculate the offset.
+				$per_page = $args['number'] ?? $per_page;
+			}
+
+			// Query the content type collection.
+			$collection = new Query( array_merge( [
+				'path'    => $collect->path(),
+				'noindex' => true,
+				'number'  => $per_page,
+				'offset'  => $per_page * ( intval( $current ) - 1 ),
+				'order'   => 'desc',
+				'orderby' => 'filename'
+			], $args ) );
+
 			if ( $single->all() && $collection->all() ) {
+				$type_name = sanitize_with_dashes( $type->type() );
+
 				return $this->response(
 					$this->view( [
 						'collection-home',
-						sprintf(
-							'collection-%s',
-							sanitize_with_dashes( $type->type() )
-						),
+						"collection-{$type_name}",
 						'collection',
 						'index'
 					], [
@@ -75,22 +85,30 @@ class Home extends Controller {
 		}
 
 		// Query the homepage `index.md` file.
-		$single = new Query( '', [ 'slug' => 'index' ] );
+		$single = new Query( [
+			'path' => '',
+			'slug' => 'index'
+		] );
 
 		if ( $single->all() ) {
+			$collection   = false;
+			$collect_args = $single->first()->meta( 'collection' );
+
+			if ( $collect_args ) {
+				$collection = new Query( $collect_args );
+			}
+
 			return $this->response(
 				$this->view( [
 					'single-page-home',
 					'single-home',
-					'home', // @todo - remove.
 					'single-page',
-					'single'
+					'single',
+					'index'
 				], [
-					'title'      => $single->first()->title(),
+					'title'      => \config( 'app', 'title' ),
 					'single'     => $single->first(),
-					'collection' => $single,
-					'query'      => $single->first(),
-					'entries'    => $single,
+					'collection' => $collection ?: false,
 					'page'       => 1
 				] )
 			);

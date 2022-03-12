@@ -34,16 +34,28 @@ class TaxonomyTerm extends Controller {
 
 		$current  = $number ?: 1;
 		$per_page = posts_per_page();
+		$args     = [];
 
 		// Get the taxonomy's content type.
 		$taxonomy = $types->getTypeFromPath( $path );
 		$collect  = $types->get( $taxonomy->termCollect() );
 
 		// Query the taxonomy term.
-		$single = new Query( $taxonomy->path(), [ 'slug' => $name ] );
+		$single = new Query( [
+			'path' => $taxonomy->path(),
+			'slug' => $name
+		] );
+
+		if ( $single->all() ) {
+			$args = $single->first()->meta( 'collection' );
+			$args = $args ?: [];
+			// Needed to calculate the offset.
+			$per_page = $args['number'] ?? $per_page;
+		}
 
 		// Query the term's content collection.
-		$collection = new Query( $collect->path(), [
+		$collection = new Query( array_merge( [
+			'path'       => $collect->path(),
 			'noindex'    => true,
 			'number'     => $per_page,
 			'offset'     => $per_page * ( intval( $current ) - 1 ),
@@ -51,7 +63,7 @@ class TaxonomyTerm extends Controller {
 			'orderby'    => 'filename',
 			'meta_key'   => $taxonomy->type(),
 			'meta_value' => $name
-		] );
+		], $args ) );
 
 		if ( $single->all() && $collection->all() ) {
 			$type_name = sanitize_with_dashes( $taxonomy->type() );
@@ -61,13 +73,12 @@ class TaxonomyTerm extends Controller {
 					"collection-{$type_name}-{$name}",
 					"collection-{$type_name}-term",
 					'collection-term',
-					'collection'
+					'collection',
+					'index'
 				], [
 					'title'      => $single->first()->title(),
 					'single'     => $single->first(),
 					'collection' => $collection,
-					'query'      => $single->first(),
-					'entries'    => $collection,
 					'page'       => $number ? intval( $number ) : 1
 				] )
 			);

@@ -134,7 +134,10 @@ abstract class Entry {
 				$slugs[] = sanitize_slug( $value );
 			}
 
-			$entries = new Query( $path, [ 'slug' => $slugs ] );
+			$entries = new Query( [
+				'path' => $path,
+				'slug' => $slugs
+			] );
 
 			if ( $entries->all() ) {
 				$this->resolved_meta[ $name ] = $entries->all();

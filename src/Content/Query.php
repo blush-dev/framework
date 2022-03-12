@@ -27,6 +27,15 @@ class Query {
         protected $locator;
 
 	/**
+	 * Path to the entries relative to the content folder.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    string
+	 */
+	protected $path = '';
+
+	/**
 	 * Array of `Entry` objects.
 	 *
 	 * @since  1.0.0
@@ -87,7 +96,7 @@ class Query {
 	 * @access protected
 	 * @var    bool
 	 */
-	protected $noindex = false;
+	protected $noindex = true;
 
 	/**
 	 * Number of entries to query.
@@ -185,11 +194,10 @@ class Query {
 	 *
 	 * @since  1.0.0
 	 * @access public
-	 * @param  string  $path
-	 * @param  array   $options
+	 * @param  array  $options
 	 * @return void
 	 */
-        public function __construct( string $path = '', array $options = [] ) {
+        public function __construct( array $options = [] ) {
 
         	foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
         		if ( isset( $options[ $key ] ) ) {
@@ -197,9 +205,19 @@ class Query {
         		}
         	}
 
+		if ( 'index' === $this->slug ) {
+			$this->noindex = false;
+		}
+
+		// If query is set to a negative number or 0, we are querying
+		// all posts, so set this high.
+		if ( 0 >= intval( $this->number ) ) {
+			$this->number = PHP_INT_MAX;
+		}
+
 		$this->order   = strtolower( $this->order );
                 $this->slug    = (array) $this->slug;
-                $this->locator = new Locator( $path );
+                $this->locator = new Locator( $this->path );
         }
 
 	/**

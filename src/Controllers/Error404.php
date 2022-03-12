@@ -28,7 +28,10 @@ class Error404 extends Controller {
 	public function __invoke( array $params = [] ) {
 		http_response_code( 404 );
 
-		$single = new Query( '_error', [ 'slug' => '404' ] );
+		$single = new Query( [
+			'path' => '_error',
+			'slug' => '404'
+		] );
 
 		if ( $single->all() ) {
 			return $this->response(

@@ -55,36 +55,42 @@ class ContentTypeArchive extends Controller {
 		$collect = $types->get( $type->collect() );
 
 		// Query the content type.
-		$single = new Query( $type->path(), [ 'slug' => 'index' ] );
+		$single = new Query( [
+			'path' => $type->path(),
+			'slug' => 'index'
+		] );
+
+		if ( $single->all() ) {
+			$args = $single->first()->meta( 'collection' );
+			$args = $args ?: [];
+			// Needed to calculate the offset.
+			$per_page = $args['number'] ?? $per_page;
+		}
 
 		// Query the content type collection.
-		$collection = new Query( $collect->path(), [
+		$collection = new Query( array_merge( [
+			'path' => $collect->path(),
 			'noindex'    => true,
 			'number'     => $per_page,
 			'offset'     => $per_page * ( intval( $current ) - 1 ),
 			'order'      => 'desc',
 			'orderby'    => 'filename'
-		] );
+		], $args ) );
 
 		if ( $single->all() && $collection->all() ) {
+			$type_name = sanitize_with_dashes( $type->type() );
+
 			$views = [
-				'collection-' . sanitize_with_dashes( $type->type() )
+				"collection-{$type_name}",
+				'collection',
+				'index'
 			];
-
-			if ( $type->isTaxonomy() ) {
-				$views[] = 'collection-taxonomy-' . sanitize_with_dashes( $type->type() );
-				$views[] = 'collection-taxonomy';
-			}
-
-			$views[] = 'collection';
 
 			return $this->response(
 				$this->view( $views, [
 					'title'      => $single->first()->title(),
 					'single'     => $single->first(),
 					'collection' => $collection,
-					'query'      => $single->first(),
-					'entries'    => $collection,
 					'page'       => $number ? intval( $number ) : 1
 				] )
 			);

@@ -243,8 +243,7 @@ class Type {
 		$this->routes[ $path . '/{name}' ] = [
 			'controller' => $this->isTaxonomy()
 				? Controllers\TaxonomyTerm::class
-				: Controllers\Single::class,
-			'single' => true
+				: Controllers\Single::class
 		];
 
 		// Add type archive route if not set as the homepage.

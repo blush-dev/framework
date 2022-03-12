@@ -15,7 +15,7 @@ use Blush\Proxies\App;
 use Blush\Content\Query;
 use Blush\Tools\Str;
 
-class SinglePage extends Controller {
+class SinglePage extends Single {
 
 	/**
 	 * Callback method when route matches request.
@@ -30,31 +30,38 @@ class SinglePage extends Controller {
 		$path = $params['path'] ?? '';
 		$name = Str::afterLast( $path, '/' );
 
-		$views = [
-			"single-page-{$name}",
-			'single-page',
-			'single'
-		];
-
 		// Look for an `path/index.md` file.
-		$single = new Query( $path, [ 'slug' => 'index' ] );
+		$single = new Query( [
+			'path' => $path,
+			'slug' => 'index'
+		] );
 
 		// Look for a `path/{$name}.md` file if `path/index.md` not found.
 		if ( ! $single->all() ) {
-			$single = new Query(
-				Str::beforeLast( $path, '/' ),
-				[ 'slug' => $name ]
-			);
+			$single = new Query( [
+				'path' => Str::beforeLast( $path, '/' ),
+				'slug' => $name
+			] );
 		}
 
 		if ( $single->all() ) {
+			$collection   = false;
+			$collect_args = $single->first()->meta( 'collection' );
+
+			if ( $collect_args ) {
+				$collection = new Query( $collect_args );
+			}
+
 			return $this->response(
-				$this->view( $views, [
+				$this->view( [
+					"single-page-{$name}",
+					'single-page',
+					'single',
+					'index'
+				], [
 					'title'      => $single->first()->title(),
 					'single'     => $single->first(),
-					'collection' => $single,
-					'query'      => $single->first(),
-					'entries'    => $single,
+					'collection' => $collection ?: false,
 					'page'       => 1
 				] )
 			);
