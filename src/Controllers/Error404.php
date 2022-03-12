@@ -45,9 +45,9 @@ class Error404 extends Controller {
 					'index'
 				], [
 					'doctitle'   => $doctitle,
+					'pagination' => false,
 					'single'     => $single->first(),
-					'collection' => false,
-					'page'       => 1
+					'collection' => false
 				] )
 			);
 		}

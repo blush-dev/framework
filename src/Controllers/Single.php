@@ -61,9 +61,9 @@ class Single extends Controller {
 					'index'
 				], [
 					'doctitle'   => $doctitle,
+					'pagination' => false,
 					'single'     => $single->first(),
-					'collection' => $single,
-					'page'       => 1
+					'collection' => $single
 				] )
 			);
 		}

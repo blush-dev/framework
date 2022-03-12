@@ -96,6 +96,10 @@ function e( $value, $double_encode = true ) {
 	return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8', $double_encode );
 }
 
+function escape_tag( string $tag ) {
+	return strtolower( preg_replace( '/[^a-zA-Z0-9_:]/', '', $tag ) );
+}
+
 function sanitize_slug( $slug ) {
 	return sanitize_with_dashes( $slug );
 }

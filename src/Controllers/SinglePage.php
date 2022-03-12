@@ -63,9 +63,9 @@ class SinglePage extends Single {
 					'index'
 				], [
 					'doctitle'   => $doctitle,
+					'pagination' => false,
 					'single'     => $single->first(),
-					'collection' => $collection ?: false,
-					'page'       => 1
+					'collection' => $collection ?: false
 				] )
 			);
 		}

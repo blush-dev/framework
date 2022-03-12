@@ -14,6 +14,7 @@ namespace Blush\Controllers;
 use Blush\Proxies\App;
 use Blush\Content\Query;
 use Blush\Template\Tags\DocumentTitle;
+use Blush\Template\Tags\Pagination;
 use Blush\Tools\Str;
 
 class TaxonomyTerm extends Controller {
@@ -70,7 +71,13 @@ class TaxonomyTerm extends Controller {
 			$type_name = sanitize_with_dashes( $taxonomy->type() );
 
 			$doctitle = new DocumentTitle( $single->first()->title(), [
-				'page' => $number ?? 1
+				'page' => $number ?: 1
+			] );
+
+			$pagination = new Pagination( [
+				'base'    => $path,
+				'current' => $number ?: 1,
+				'total'   => ceil( $collection->total() / $collection->number() )
 			] );
 
 			return $this->response(
@@ -82,9 +89,9 @@ class TaxonomyTerm extends Controller {
 					'index'
 				], [
 					'doctitle'   => $doctitle,
+					'pagination' => $pagination,
 					'single'     => $single->first(),
-					'collection' => $collection,
-					'page'       => $number ? intval( $number ) : 1
+					'collection' => $collection
 				] )
 			);
 		}

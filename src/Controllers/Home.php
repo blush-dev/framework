@@ -14,6 +14,7 @@ namespace Blush\Controllers;
 use Blush\Proxies\App;
 use Blush\Content\Query;
 use Blush\Template\Tags\DocumentTitle;
+use Blush\Template\Tags\Pagination;
 use Symfony\Component\HttpFoundation\Response;
 
 class Home extends Controller {
@@ -71,6 +72,12 @@ class Home extends Controller {
 
 				$doctitle = new DocumentTitle( '', [ 'page' => $current ] );
 
+				$pagination = new Pagination( [
+					'base'    => '',
+					'current' => $current,
+					'total'   => ceil( $collection->total() / $collection->number() )
+				] );
+
 				return $this->response(
 					$this->view( [
 						'collection-home',
@@ -79,9 +86,9 @@ class Home extends Controller {
 						'index'
 					], [
 						'doctitle'   => $doctitle,
+						'pagination' => $pagination,
 						'single'     => $single->first(),
-						'collection' => $collection,
-						'page'       => intval( $current )
+						'collection' => $collection
 					] )
 				);
 			}
@@ -109,9 +116,9 @@ class Home extends Controller {
 					'index'
 				], [
 					'doctitle'   => new DocumentTitle(),
+					'pagination' => false,
 					'single'     => $single->first(),
-					'collection' => $collection ?: false,
-					'page'       => 1
+					'collection' => $collection ?: false
 				] )
 			);
 		}

@@ -14,6 +14,7 @@ namespace Blush\Controllers;
 use Blush\Proxies\App;
 use Blush\Content\Query;
 use Blush\Template\Tags\DocumentTitle;
+use Blush\Template\Tags\Pagination;
 use Blush\Tools\Str;
 
 class ContentTypeArchive extends Controller {
@@ -86,6 +87,12 @@ class ContentTypeArchive extends Controller {
 				'page' => $number ?? 1
 			] );
 
+			$pagination = new Pagination( [
+				'base'    => $path,
+				'current' => $current,
+				'total'   => ceil( $collection->total() / $collection->number() )
+			] );
+
 			if ( $type->isTaxonomy() ) {
 				$views[] = 'collection-taxonomy';
 			}
@@ -96,9 +103,9 @@ class ContentTypeArchive extends Controller {
 					'index'
 				] ), [
 					'doctitle'   => $doctitle,
+					'pagination' => $pagination,
 					'single'     => $single->first(),
-					'collection' => $collection,
-					'page'       => $number ? intval( $number ) : 1
+					'collection' => $collection
 				] )
 			);
 		}
