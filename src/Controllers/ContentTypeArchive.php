@@ -79,15 +79,17 @@ class ContentTypeArchive extends Controller {
 
 		if ( $single->all() && $collection->all() ) {
 			$type_name = sanitize_with_dashes( $type->type() );
+			$views = [ "collection-{$type_name}" ];
 
-			$views = [
-				"collection-{$type_name}",
-				'collection',
-				'index'
-			];
+			if ( $type->isTaxonomy() ) {
+				$views[] = 'collection-taxonomy';
+			}
 
 			return $this->response(
-				$this->view( $views, [
+				$this->view( array_merge( $views, [
+					'collection',
+					'index'
+				] ), [
 					'title'      => $single->first()->title(),
 					'single'     => $single->first(),
 					'collection' => $collection,
