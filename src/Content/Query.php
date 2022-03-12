@@ -209,6 +209,15 @@ class Query {
 			$this->noindex = false;
 		}
 
+		// If a content type is passed in, use its path.
+		if ( ! $this->path && isset( $options['type'] ) ) {
+			$types = App::resolve( 'content/types' );
+
+			if ( $types->has( $options['type'] ) ) {
+				$this->path = $types->get( $options['type'] )->path();
+			}
+		}
+
 		// If query is set to a negative number or 0, we are querying
 		// all posts, so set this high.
 		if ( 0 >= intval( $this->number ) ) {
