@@ -13,6 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Blush\Template\Tags\DocumentTitle;
 use Blush\Tools\Str;
 
 class TaxonomyTerm extends Controller {
@@ -68,6 +69,10 @@ class TaxonomyTerm extends Controller {
 		if ( $single->all() && $collection->all() ) {
 			$type_name = sanitize_with_dashes( $taxonomy->type() );
 
+			$doctitle = new DocumentTitle( $single->first()->title(), [
+				'page' => $number ?? 1
+			] );
+
 			return $this->response(
 				$this->view( [
 					"collection-{$type_name}-{$name}",
@@ -76,7 +81,7 @@ class TaxonomyTerm extends Controller {
 					'collection',
 					'index'
 				], [
-					'title'      => $single->first()->title(),
+					'doctitle'   => $doctitle,
 					'single'     => $single->first(),
 					'collection' => $collection,
 					'page'       => $number ? intval( $number ) : 1

@@ -13,6 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Blush\Template\Tags\DocumentTitle;
 use Symfony\Component\HttpFoundation\Response;
 
 class Home extends Controller {
@@ -68,6 +69,8 @@ class Home extends Controller {
 			if ( $single->all() && $collection->all() ) {
 				$type_name = sanitize_with_dashes( $type->type() );
 
+				$doctitle = new DocumentTitle( '', [ 'page' => $current ] );
+
 				return $this->response(
 					$this->view( [
 						'collection-home',
@@ -75,7 +78,7 @@ class Home extends Controller {
 						'collection',
 						'index'
 					], [
-						'title'      => \config( 'app', 'title' ),
+						'doctitle'   => $doctitle,
 						'single'     => $single->first(),
 						'collection' => $collection,
 						'page'       => intval( $current )
@@ -106,7 +109,7 @@ class Home extends Controller {
 					'single',
 					'index'
 				], [
-					'title'      => \config( 'app', 'title' ),
+					'doctitle'   => new DocumentTitle(),
 					'single'     => $single->first(),
 					'collection' => $collection ?: false,
 					'page'       => 1

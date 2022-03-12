@@ -13,6 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Blush\Template\Tags\DocumentTitle;
 use Blush\Tools\Str;
 
 class SinglePage extends Single {
@@ -52,6 +53,8 @@ class SinglePage extends Single {
 				$collection = new Query( $collect_args );
 			}
 
+			$doctitle = new DocumentTitle( $single->first()->title() );
+
 			return $this->response(
 				$this->view( [
 					"single-page-{$name}",
@@ -59,7 +62,7 @@ class SinglePage extends Single {
 					'single',
 					'index'
 				], [
-					'title'      => $single->first()->title(),
+					'doctitle'   => $doctitle,
 					'single'     => $single->first(),
 					'collection' => $collection ?: false,
 					'page'       => 1

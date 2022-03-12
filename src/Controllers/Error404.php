@@ -13,6 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Blush\Template\Tags\DocumentTitle;
 use Symfony\Component\HttpFoundation\Response;
 
 class Error404 extends Controller {
@@ -34,19 +35,18 @@ class Error404 extends Controller {
 		] );
 
 		if ( $single->all() ) {
+			$doctitle = new DocumentTitle( $single->first()->title() );
+
 			return $this->response(
 				$this->view( [
 					'single-error-404',
 					'single-error',
 					'single',
-					'error-404',
-					'error'
+					'index'
 				], [
-					'title'      => $single->first()->title(),
+					'doctitle'   => $doctitle,
 					'single'     => $single->first(),
-					'collection' => $single,
-					'query'      => $single->first(),
-					'entries'    => $single,
+					'collection' => false,
 					'page'       => 1
 				] )
 			);

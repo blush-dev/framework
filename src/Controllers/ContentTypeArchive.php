@@ -13,6 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\Proxies\App;
 use Blush\Content\Query;
+use Blush\Template\Tags\DocumentTitle;
 use Blush\Tools\Str;
 
 class ContentTypeArchive extends Controller {
@@ -69,7 +70,7 @@ class ContentTypeArchive extends Controller {
 
 		// Query the content type collection.
 		$collection = new Query( array_merge( [
-			'path' => $collect->path(),
+			'path'       => $collect->path(),
 			'noindex'    => true,
 			'number'     => $per_page,
 			'offset'     => $per_page * ( intval( $current ) - 1 ),
@@ -81,6 +82,10 @@ class ContentTypeArchive extends Controller {
 			$type_name = sanitize_with_dashes( $type->type() );
 			$views = [ "collection-{$type_name}" ];
 
+			$doctitle = new DocumentTitle( $single->first()->title(), [
+				'page' => $number ?? 1
+			] );
+
 			if ( $type->isTaxonomy() ) {
 				$views[] = 'collection-taxonomy';
 			}
@@ -90,7 +95,7 @@ class ContentTypeArchive extends Controller {
 					'collection',
 					'index'
 				] ), [
-					'title'      => $single->first()->title(),
+					'doctitle'   => $doctitle,
 					'single'     => $single->first(),
 					'collection' => $collection,
 					'page'       => $number ? intval( $number ) : 1
