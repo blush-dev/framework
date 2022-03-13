@@ -16,6 +16,7 @@
 namespace Blush\Content\Entry;
 
 use Blush\Proxies\App;
+use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
 abstract class File extends Entry {
@@ -59,7 +60,8 @@ abstract class File extends Entry {
 	 * @access public
 	 * @return Type
 	 */
-	public function type() {
+	public function type() : Type
+	{
 
 		// Return type if it's already set.
 		if ( $this->type ) {
@@ -127,7 +129,8 @@ abstract class File extends Entry {
 	 * @access public
 	 * @return string
 	 */
-	public function uri() {
+	public function uri() : string
+	{
 		$uri       = $this->type()->singleUri();
 		$name      = $this->name();
 		$timestamp = false;

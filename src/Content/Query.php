@@ -11,11 +11,14 @@
 
 namespace Blush\Content;
 
+use ArrayIterator;
+use IteratorAggregate;
+use Traversable;
 use Blush\Proxies\App;
+use Blush\Content\Entry\{Entry, MarkdownFile};
 
-use Blush\Content\Entry\MarkdownFile as Entry;
-
-class Query {
+class Query implements IteratorAggregate
+{
 
 	/**
 	 * File locator object.
@@ -24,7 +27,7 @@ class Query {
 	 * @access protected
 	 * @var    Locator
 	 */
-        protected $locator;
+        protected Locator $locator;
 
 	/**
 	 * Path to the entries relative to the content folder.
@@ -33,7 +36,7 @@ class Query {
 	 * @access protected
 	 * @var    string
 	 */
-	protected $path = '';
+	protected string $path = '';
 
 	/**
 	 * Array of `Entry` objects.
@@ -42,7 +45,7 @@ class Query {
 	 * @access protected
 	 * @var    array
 	 */
-	protected $entries = [];
+	protected array $entries;
 
 	/**
 	 * Array of filenames.
@@ -51,7 +54,16 @@ class Query {
 	 * @access protected
 	 * @var    array
 	 */
-	protected $filenames = [];
+	protected array $filenames;
+
+	/**
+	 * Array of located entry slugs.
+	 *
+	 * @since  1.0.0
+	 * @access protected
+	 * @var    array
+	 */
+	protected array $located_slugs;
 
 	/**
 	 * Stores the first entry object.
@@ -60,7 +72,7 @@ class Query {
 	 * @access protected
 	 * @var    Entry
 	 */
-	protected $first;
+	protected ?Entry $first = null;
 
 	/**
 	 * Stores the last entry object.
@@ -69,7 +81,7 @@ class Query {
 	 * @access protected
 	 * @var    Entry
 	 */
-	protected $last;
+	protected ?Entry $last = null;
 
 	/**
 	 * Count of found entries.
@@ -78,7 +90,7 @@ class Query {
 	 * @access protected
 	 * @var    int
 	 */
-	protected $count = 0;
+	protected int $count = 0;
 
 	/**
 	 * Total number of entries.
@@ -87,7 +99,7 @@ class Query {
 	 * @access protected
 	 * @var    int
 	 */
-	protected $total = 0;
+	protected int $total = 0;
 
 	/**
 	 * Whether to remove `index.md` files.
@@ -96,25 +108,25 @@ class Query {
 	 * @access protected
 	 * @var    bool
 	 */
-	protected $noindex = true;
+	protected bool $noindex = true;
 
 	/**
 	 * Number of entries to query.
 	 *
 	 * @since  1.0.0
 	 * @access protected
-	 * @var    bool
+	 * @var    int
 	 */
-	protected $number = 10;
+	protected int $number = 10;
 
 	/**
 	 * Number of entries to offset.
 	 *
 	 * @since  1.0.0
 	 * @access protected
-	 * @var    bool
+	 * @var    int
 	 */
-	protected $offset = 0;
+	protected int $offset = 0;
 
 	/**
 	 * How to order entries (asc|desc).
@@ -123,7 +135,7 @@ class Query {
 	 * @access protected
 	 * @var    string
 	 */
-	protected $order = 'asc';
+	protected string $order = 'asc';
 
 	/**
 	 * What to sort entries by (filename).
@@ -132,7 +144,7 @@ class Query {
 	 * @access protected
 	 * @var    string
 	 */
-	protected $orderby = 'filename';
+	protected string $orderby = 'filename';
 
 	/**
 	 * Query entries with meta key.
@@ -141,7 +153,7 @@ class Query {
 	 * @access protected
 	 * @var    string
 	 */
-	protected $meta_key = '';
+	protected string $meta_key = '';
 
 	/**
 	 * Query entries with meta value. Meta key is required.
@@ -150,16 +162,16 @@ class Query {
 	 * @access protected
 	 * @var    string
 	 */
-	protected $meta_value = '';
+	protected string $meta_value = '';
 
 	/**
-	 * Query entries by slug.
+	 * Query entries by filename (w/o extension).
 	 *
 	 * @since  1.0.0
 	 * @access protected
 	 * @var    array
 	 */
-	protected $slug = [];
+	protected array $names = [];
 
 	/**
 	 * Query entries by year.
@@ -168,7 +180,7 @@ class Query {
 	 * @access protected
 	 * @var    int|null
 	 */
-	protected $year = null;
+	protected ?int $year = null;
 
 	/**
 	 * Query entries by month.
@@ -177,7 +189,7 @@ class Query {
 	 * @access protected
 	 * @var    int|null
 	 */
-	protected $month = null;
+	protected ?int $month = null;
 
 	/**
 	 * Query entries by day.
@@ -186,26 +198,30 @@ class Query {
 	 * @access protected
 	 * @var    int|null
 	 */
-	protected $day = null;
+	protected ?int $day = null;
 
 	/**
 	 * Sets up object state. The path is relative to the user content
 	 * folder. If no value is passed in, it will be the root.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @param  array  $options
-	 * @return void
 	 */
-        public function __construct( array $options = [] ) {
-
+        public function __construct( array $options = [] )
+	{
         	foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
         		if ( isset( $options[ $key ] ) ) {
         			$this->$key = $options[ $key ];
         		}
         	}
 
-		if ( 'index' === $this->slug ) {
+		// Back-compat for `$names`.
+		if ( isset( $options['slug'] ) && ! isset( $options['name'] ) ) {
+			$this->names = (array) $options['slug'];
+		}
+
+		// Disable `noindex` if `index` is being specifically queried.
+		if ( in_array( 'index', $this->names, true ) ) {
 			$this->noindex = false;
 		}
 
@@ -220,78 +236,102 @@ class Query {
 
 		// If query is set to a negative number or 0, we are querying
 		// all posts, so set this high.
-		if ( 0 >= intval( $this->number ) ) {
+		if ( 0 >= $this->number ) {
 			$this->number = PHP_INT_MAX;
 		}
 
 		$this->order   = strtolower( $this->order );
-                $this->slug    = (array) $this->slug;
                 $this->locator = new Locator( $this->path );
+
+		// Run the query.
+		$this->build();
         }
 
 	/**
-	 * Filters and returns all entries by the query options.
+	 * Filters, sorts, and reduces located entries according the query vars.
 	 *
 	 * @since  1.0.0
-	 * @access private
+	 * @return void
+	 */
+	protected function build() : void
+	{
+		$located = $this->locator->all();
+
+		// Set the entry properties to arrays.
+		$this->entries = [];
+		$this->located_slugs = [];
+
+		// Filter entries based on query vars.
+		$located = $this->filterByNames( $located );
+		$located = $this->filterByDate( $located );
+		$located = $this->filterByMeta( $located );
+
+		// Sort entries based on query vars.
+		$located = $this->sortByOrder( $located );
+
+		// Reduce array of located files to filenames.
+		$filenames = array_keys( $located );
+
+		// Remove index file if noindex query.
+		if ( $this->noindex && ! in_array( 'index', $this->names ) ) {
+			$filenames = array_filter( $filenames, function( $filename ) {
+				return 'index' !== basename( $filename, '.md' );
+			} );
+		}
+
+		// Get the total number of entries.
+		$this->total = count( $filenames );
+
+		// Reduce to currently-queried number.
+		$this->filenames = array_slice(
+			$filenames,
+			$this->offset(),
+			$this->number()
+		);
+
+		// Get the current number of entries.
+		$this->count = count( $this->filenames );
+
+		// Create array of entry objects.
+		foreach ( $this->filenames as $filename ) {
+			$this->entries[] = new MarkdownFile( $filename );
+			$this->located_slugs[] = basename( $filename, '.md' );
+		}
+	}
+
+	/**
+	 * Returns the located entries as an array.
+	 *
+	 * @since  1.0.0
 	 * @param  array   $entries
 	 * @return array
 	 */
-        public function all() {
-
-		if ( ! $this->entries ) {
-                        $located = $this->locator->all();
-
-                        // Filter entries based on query vars.
-                        $located = $this->filterBySlug( $located );
-                        $located = $this->filterByDate( $located );
-                        $located = $this->filterByMeta( $located );
-
-			// Sort entries based on query vars.
-                        $located = $this->sortByOrder( $located );
-
-                        // Reduce array of located files to filenames.
-			$filenames = array_keys( $located );
-
-                        // Remove index file if noindex query.
-                        if ( $this->noindex && ! in_array( 'index', $this->slug ) ) {
-                                $filenames = array_filter( $filenames, function( $filename ) {
-                                        return 'index' !== basename( $filename, '.md' );
-                                } );
-                        }
-
-                        // Get the total number of entries.
-			$this->total = count( $filenames );
-
-                        // Reduce to currently-queried number.
-			$this->filenames = array_slice(
-                                $filenames,
-                                $this->offset(),
-                                $this->number()
-                        );
-
-                        // Get the current number of entries.
-			$this->count = count( $this->filenames );
-
-                        // Create array of entry objects.
-			foreach ( $this->filenames as $filename ) {
-				$this->entries[] = new Entry( $filename );
-			}
-		}
-
+        public function all() : array
+	{
 		return $this->entries;
+	}
+
+	/**
+	 * Checks if an entry was located by slug (basename w/o extension).
+	 *
+	 * @since  1.0.0
+	 * @param  string  $slug
+	 * @return bool
+	 */
+	public function has( string $slug ) : bool
+	{
+		return in_array( $slug, $this->located_slugs, true );
 	}
 
 	/**
 	 * Returns the first entry.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @return Entry
 	 */
-	public function first() {
-		if ( ! $this->first ) {
-			$all = $this->all();
+	public function first() : Entry
+	{
+		if ( ! $this->first && $all = $this->all() ) {
 			$this->first = array_shift( $all );
 		}
 
@@ -302,12 +342,11 @@ class Query {
 	 * Returns the last entry.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @return Entry
 	 */
-	public function last() {
-		if ( ! $this->last ) {
-			$all = $this->all();
+	public function last() : Entry
+	{
+		if ( ! $this->last && $all = $this->all() ) {
 			$this->last = array_pop( $all );
 		}
 
@@ -318,10 +357,10 @@ class Query {
 	 * Returns the count for the current query.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @return int
 	 */
-	public function count() {
+	public function count() : int
+	{
 		return abs( intval( $this->count ) );
 	}
 
@@ -329,10 +368,10 @@ class Query {
 	 * Returns the total entries.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @return int
 	 */
-	public function total() {
+	public function total() : int
+	{
 		return abs( intval( $this->total ) );
 	}
 
@@ -340,10 +379,10 @@ class Query {
 	 * Returns the number query option.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @return int
 	 */
-	public function number() {
+	public function number() : int
+	{
 		return abs( intval( $this->number ) );
 	}
 
@@ -351,24 +390,24 @@ class Query {
 	 * Returns the offset query option.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @return int
 	 */
-	public function offset() {
+	public function offset() : int
+	{
 		return abs( intval( $this->offset ) );
 	}
 
 	/**
-	 * Filter entries by slug.
+	 * Filter entries by filename/slug.
 	 *
 	 * @since  1.0.0
-	 * @access private
 	 * @param  array   $entries
 	 * @return array
 	 */
-        private function filterBySlug( $entries ) {
+        private function filterByNames( array $entries ) : array
+	{
 
-                if ( ! $this->slug ) {
+                if ( ! $this->names ) {
                         return $entries;
                 }
 
@@ -378,7 +417,7 @@ class Query {
 
                 	if ( isset( $matter['slug'] ) ) {
 
-                		if ( in_array( $matter['slug'], (array) $this->slug ) ) {
+                		if ( in_array( $matter['slug'], $this->names ) ) {
                 			$located[ $file ] = $matter;
                 			continue;
                 		} else {
@@ -388,7 +427,7 @@ class Query {
 
                 	$pathinfo = pathinfo( $file );
 
-                	if ( in_array( $pathinfo['filename'], $this->slug ) ) {
+                	if ( in_array( $pathinfo['filename'], $this->names ) ) {
                 		$located[ $file ] = $matter;
                 		continue;
                 	}
@@ -400,7 +439,7 @@ class Query {
                 	}
                 	$slug_from_file = join( '', $parts );
 
-                	if ( in_array( $slug_from_file, (array) $this->slug ) ) {
+                	if ( in_array( $slug_from_file, $this->names ) ) {
                 		$located[ $file ] = $matter;
                 		continue;
                 	}
@@ -413,11 +452,11 @@ class Query {
 	 * Filter entries by date.
 	 *
 	 * @since  1.0.0
-	 * @access private
 	 * @param  array   $entries
 	 * @return array
 	 */
-        private function filterByDate( $entries ) {
+        private function filterByDate( array $entries ) : array
+	{
 
                 if ( ! $this->year && ! $this->month && ! $this->day ) {
                         return $entries;
@@ -457,11 +496,11 @@ class Query {
 	 * Filter entries by meta.
 	 *
 	 * @since  1.0.0
-	 * @access private
 	 * @param  array   $entries
 	 * @return array
 	 */
-	private function filterByMeta( $entries ) {
+	private function filterByMeta( $entries ) : array
+	{
 
 		if ( ! $this->meta_value && ! $this->meta_key ) {
 			return $entries;
@@ -493,11 +532,11 @@ class Query {
 	 * Sort entries by order query options.
 	 *
 	 * @since  1.0.0
-	 * @access private
 	 * @param  array   $entries
 	 * @return array
 	 */
-        private function sortByOrder( $entries ) {
+        private function sortByOrder( array $entries ) : array
+	{
 
 		$meta_keys = [
 			'author',
@@ -547,4 +586,17 @@ class Query {
 
         	return $entries;
         }
+
+	/**
+	 * Needed for implementing the `IteratorAggregate` interface. This
+	 * allows developers to use the object as an array in `foreach()` loops.
+	 * What we do is create an `ArrayIterator` and pass along the entries.
+	 *
+	 * @since  1.0.0
+	 * @return ArrayIterator
+	 */
+	public function getIterator() : Traversable
+	{
+		return new ArrayIterator( $this->all() );
+	}
 }

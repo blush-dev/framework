@@ -217,4 +217,21 @@ class Str {
 
 		return static::substr( $str, 0, $pos );
 	}
+
+	/**
+	 * Returns an excerpt of a string by limiting its number of words.
+	 *
+	 * @since  1.0.0
+	 */
+	public static function words( string $str, int $limit = 50, string $more = '&hellip;' ) : string
+	{
+		$limit = $limit > 1 ? $limit - 1 : $limit;
+		preg_match( '/^\s*+(?:\S++\s*+){1,' . $limit . '}/u', $str, $matches );
+
+	        if ( ! isset( $matches[0] ) ) {
+	    	    return $str;
+	        }
+
+		return trim( $matches[0] ) . $more;
+	}
 }
