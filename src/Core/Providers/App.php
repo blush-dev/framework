@@ -43,49 +43,63 @@ class App extends ServiceProvider {
                 $this->app->bind( View::class );
 		$this->app->singleton( Engine::class );
 
+		// Set up variable dumper.
+		$this->setVarDumper();
+	}
+
+	/**
+	 * Sets the handler for Symfony's variable dumper. We are just making it
+	 * look a little prettier with custom styles.
+	 *
+	 * @since  1.0.0
+	 * @access private
+	 * @return void
+	 */
+	private function setVarDumper() {
 
 		VarDumper::setHandler( function( $var ) {
-			$cloner = new VarCloner();
+			$cloner      = new VarCloner();
 			$html_dumper = new HtmlDumper();
+
 			$html_dumper->setTheme( 'light' );
+
 			$html_dumper->setStyles( [
-				'default' =>
-					'--dump-text-mono: \"Source Code Pro\", Monaco, Consolas, \"Andale Mono WT\", \"Andale Mono\", \"Lucida Console\", \"Lucida Sans Typewriter\", \"DejaVu Sans Mono\", \"Bitstream Vera Sans Mono\", \"Liberation Mono\", \"Nimbus Mono L\", \"Courier New\", Courier, monospace;
-					background: #f8fafc;
+				'default' => '
+					box-sizing: border-box;
+					position: relative;
+					z-index: 99999;
+					overflow: auto !important;
+					word-break: break-all;
+					word-wrap: normal;
+					white-space: revert;
 					margin: 2rem;
 					max-width: 100%;
 					padding: 2rem;
+					font-family: \"Source Code Pro\", Monaco, Consolas, \"Andale Mono WT\", \"Andale Mono\", \"Lucida Console\", \"Lucida Sans Typewriter\", \"DejaVu Sans Mono\", \"Bitstream Vera Sans Mono\", \"Liberation Mono\", \"Nimbus Mono L\", \"Courier New\", Courier, monospace;
+					font-size: 18px;
+					line-height: 1.75;
+					color: #334155;
+					background: #f8fafc;
 					border: 1px solid #e2e8f0;
 					border-bottom-color: #cbd5e1;
-					color: #334155;
-					font-size: 18px;
-					font-family: var( --dump-text-mono );
-					line-height:1.75;
-					overflow: auto !important;
-					word-wrap: normal;
-					white-space: revert;
-					position: relative;
-					z-index: 99999;
-					word-break: break-all;
 					border-radius: 0;
 					box-shadow: none;
-					box-sizing: border-box;',
-				'index' => 'color: #60a5fa;',
-				'note' => 'color: #1d4ed8;',
-				'ref' => 'color: #3b82f6;',
-				'meta' => 'color: #9333ea;',
-				'num' => 'color: #60a5fa;',
-				'private' => 'color: #64748b;',
+				',
+				'index'     => 'color: #60a5fa;',
+		                'key'       => 'color: #16a34a;',
+				'meta'      => 'color: #9333ea;',
+				'note'      => 'color: #1d4ed8;',
+				'num'       => 'color: #60a5fa;',
+				'private'   => 'color: #64748b;',
 				'protected' => 'color: #475569;',
-		                'key' => 'color: #16a34a;',
-		                'str' => 'color: #16a34a;',
-				'toggle' => 'padding: 0 0.5rem'
+				'ref'       => 'color: #3b82f6;',
+		                'str'       => 'color: #16a34a;',
+				'toggle'    => 'padding: 0 0.5rem'
 			] );
-
 
 			$dumper = PHP_SAPI === 'cli' ? new CliDumper() : $html_dumper;
 
 			$dumper->dump( $cloner->cloneVar( $var ) );
-		});
+		} );
         }
 }
