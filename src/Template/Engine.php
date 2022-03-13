@@ -82,6 +82,34 @@ class Engine {
 	 * @return void
 	 */
 	public function include( $names, $data = [] ) {
+		$subview = $this->subview( $names, $data );
+
+		if ( ! $subview->template() ) {
+			$templates = array_map(
+				fn( $name ) => "`{$name}.php`",
+				(array) $names
+			);
+
+			dump( sprintf(
+				'Notice: View templates not found: %s.',
+				implode( ', ', $templates )
+			) );
+		}
+
+		$subview->display();
+	}
+
+	/**
+	 * Includes a subview only if it exists. No errors or warnings if no
+	 * view template is found.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  array|string      $names
+	 * @param  array|Collection  $data
+	 * @return void
+	 */
+	public function includeIf( $names, $data = [] ) {
 		$this->subview( $names, $data )->display();
 	}
 
