@@ -228,28 +228,28 @@ class Type {
 		// Add paged type archive if not set as the homepage.
 		if ( $alias !== $this->type() ) {
 			$this->routes[ $path . '/page/{number}' ] = [
-				'controller' => Controllers\ContentTypeArchive::class
+				'controller' => Controllers\Collection::class
 			];
 		}
 
 		// If this is a taxonomy, add paged term archive.
 		if ( $this->isTaxonomy() ) {
 			$this->routes[ $path . '/{name}/page/{number}' ] = [
-				'controller' => Controllers\TaxonomyTerm::class
+				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
 		}
 
 		// Add type single route.
 		$this->routes[ $path . '/{name}' ] = [
 			'controller' => $this->isTaxonomy()
-				? Controllers\TaxonomyTerm::class
+				? Controllers\CollectionTaxonomyTerm::class
 				: Controllers\Single::class
 		];
 
 		// Add type archive route if not set as the homepage.
 		if ( $alias !== $this->type() ) {
 			$this->routes[ $path ] = [
-				'controller' => Controllers\ContentTypeArchive::class
+				'controller' => Controllers\Collection::class
 			];
 		}
 

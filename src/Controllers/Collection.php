@@ -17,7 +17,7 @@ use Blush\Template\Tags\DocumentTitle;
 use Blush\Template\Tags\Pagination;
 use Blush\Tools\Str;
 
-class ContentTypeArchive extends Controller {
+class Collection extends Controller {
 
 	/**
 	 * Callback method when route matches request.

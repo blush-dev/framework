@@ -69,7 +69,7 @@ class Application extends Container implements ApplicationContract, Bootable {
 	 */
 	public function __construct( $path ) {
 
-		$this->instance( 'path', $path );
+		$this->instance( 'path', Str::normalizePath( $path ) );
 
 		$this->registerDefaultBindings();
 		$this->registerDefaultProviders();

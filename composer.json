@@ -12,6 +12,7 @@
 		"symfony/http-foundation": "5.4.x-dev",
 		"symfony/yaml": "^3.0",
 		"suin/php-rss-writer": "^1.6",
-		"league/commonmark": "^2.2"
+		"league/commonmark": "^2.2",
+		"symfony/var-dumper": "^5.4"
 	}
 }

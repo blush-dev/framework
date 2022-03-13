@@ -65,6 +65,27 @@ class Str {
 	}
 
 	/**
+	 * Normalizes the filesystem path to use `/` instead of `\` for the
+	 * directory separator.
+	 *
+	 * @since  1.0.0
+	 * @access public
+	 * @param  string  $haystack
+	 * @param  string  $needle
+	 * @return bool
+	 */
+	public static function normalizePath( string $path ) {
+		$path = str_replace( '\\', '/', $path );
+		$path = preg_replace( '|(?<=.)/+|', '/', $path );
+
+		if ( ':' === static::substr( $path, 1, 1 ) ) {
+			$path = ucfirst( $path );
+		}
+
+		return $path;
+	}
+
+	/**
 	 * Adds a slash before a string.
 	 *
 	 * @since  1.0.0
