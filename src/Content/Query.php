@@ -16,6 +16,7 @@ use IteratorAggregate;
 use Traversable;
 use Blush\App;
 use Blush\Content\Entry\{Entry, MarkdownFile};
+use Blush\Tools\Str;
 
 class Query implements IteratorAggregate
 {
@@ -252,8 +253,12 @@ class Query implements IteratorAggregate
 
 		// Create array of entry objects.
 		foreach ( $this->filenames as $filename ) {
-			$this->entries[] = new MarkdownFile( $filename );
-			$this->located_slugs[] = basename( $filename, '.md' );
+			$entry = new MarkdownFile( $filename );
+			$file  = $entry->pathinfo( 'filename' );
+			$slug  = Str::afterLast( $file, '.' );
+
+			$this->entries[] = $entry;
+			$this->located_slugs[ $slug ] = $file;
 		}
 	}
 
@@ -278,13 +283,16 @@ class Query implements IteratorAggregate
 	}
 
 	/**
-	 * Checks if an entry was located by slug (basename w/o extension).
+	 * Checks if an entry was located by slug (basename w/o extension). It
+	 * checks for both the slug with (e.g., `01.{$slug}`) and without (e.g.,
+	 * `{$slug}`) the order prefix.
 	 *
 	 * @since 1.0.0
 	 */
 	public function has( string $slug ) : bool
 	{
-		return in_array( $slug, $this->located_slugs, true );
+		return isset( $this->located_slugs[ $slug ] ) ||
+		       in_array( $slug, $this->located_slugs, true );
 	}
 
 	/**
