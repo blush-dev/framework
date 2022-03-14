@@ -71,9 +71,9 @@ class Home extends Controller
 				$doctitle = new DocumentTitle( '', [ 'page' => $current ] );
 
 				$pagination = new Pagination( [
-					'base'    => '',
-					'current' => $current,
-					'total'   => ceil( $collection->total() / $collection->number() )
+					'basepath' => '',
+					'current'  => $current,
+					'total'    => ceil( $collection->total() / $collection->number() )
 				] );
 
 				return $this->response( $this->view( [

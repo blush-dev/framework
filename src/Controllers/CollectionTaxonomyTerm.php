@@ -78,9 +78,9 @@ class CollectionTaxonomyTerm extends Controller
 			] );
 
 			$pagination = new Pagination( [
-				'base'    => $path,
-				'current' => $number ?: 1,
-				'total'   => ceil( $collection->total() / $collection->number() )
+				'basepath' => $path,
+				'current'  => $number ?: 1,
+				'total'    => ceil( $collection->total() / $collection->number() )
 			] );
 
 			return $this->response( $this->view( [

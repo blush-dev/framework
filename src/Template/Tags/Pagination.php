@@ -15,41 +15,12 @@ use Blush\Tools\Str;
 
 class Pagination
 {
-
 	/**
 	 * An array of the pagination items.
 	 *
 	 * @since 1.0.0
 	 */
 	protected array $items = [];
-
-	/**
-	 * The total number of pages.
-	 *
-	 * @since 1.0.0
-	 */
-	protected int $total = 0;
-
-	/**
-	 * The current page being viewed.
-	 *
-	 * @since 1.0.0
-	 */
-	protected int $current = 0;
-
-	/**
-	 * The number of items to show on the ends.
-	 *
-	 * @since 1.0.0
-	 */
-	protected int $end_size = 0;
-
-	/**
-	 * The number of items to show in the middle.
-	 *
-	 * @since 1.0.0
-	 */
-	protected int $mid_size = 0;
 
 	/**
 	 * Helper for keeping track of whether to show dots instead of a number.
@@ -59,20 +30,77 @@ class Pagination
 	protected bool $dots = false;
 
 	/**
+	 * The total number of pages.
+	 *
+	 * @since 1.0.0
+	 */
+	protected int $total = 1;
+
+	/**
+	 * The current page being viewed.
+	 *
+	 * @since 1.0.0
+	 */
+	protected int $current = 1;
+
+	/**
+	 * The basepath for the current URI (relative).
+	 *
+	 * @since 1.0.0
+	 */
+	protected string $basepath = '';
+
+	/**
+	 * The format of the paged part of the URI string. Input should always
+	 * include `{page}`, which will be replaced with the real page number.
+	 *
+	 * @since 1.0.0
+	 */
+	protected string $format = 'page/{page}';
+
+	/**
+	 * HTML and display options.
+	 *
+	 * @since 1.0.0
+	 */
+	protected array $display_options = [];
+
+	/**
 	 * Create a new pagination object.
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( array $args = [] )
+	public function __construct( array $options = [] )
 	{
+		$options = array_merge( [
+			'total'    => 1,
+			'current'  => 1,
+			'basepath' => '',
+			'format'   => 'page/{page}'
+		], $options );
 
-		$defaults = [
-			// Base arguments.
-			'base'               => '',
-			'format'             => 'page/{page}',
-			'total'              => 0,
-			'current'            => 0,
+		// Assign the format property.
+		$this->format = $options['format'];
 
+		// Append the base to the full URI.
+		$this->basepath = Str::appendUri(
+			uri( $options['basepath'] ),
+			'%_%'
+		);
+
+		// Make sure that we have absolute integers.
+		$this->total   = abs( intval( $options['total']   ) );
+		$this->current = abs( intval( $options['current'] ) );
+	}
+
+	/**
+	 * Set and overwrite display options.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function setDisplayOptions( array $options = [] ) : void
+	{
+		$this->display_options = array_merge( [
 			// Customize the items that are shown.
 			'show_all'           => false,
 			'end_size'           => 1,
@@ -80,8 +108,8 @@ class Pagination
 			'prev_next'          => true,
 
 			// Custom text, content, and HTML.
-			'prev_text'          => '',
-			'next_text'          => '',
+			'prev_text'          => '&larr; Previous',
+			'next_text'          => 'Next &rarr;',
 			'screen_reader_text' => '',
 			'title_text'         => '',
 			'before_page_number' => '',
@@ -100,38 +128,58 @@ class Pagination
 			'item_class'         => 'pagination__item pagination__item--%s',
 			'anchor_class'       => 'pagination__anchor pagination__anchor--%s',
 			'aria_current'       => 'page'
-		];
-
-		// Parse the args with the defaults.
-		$this->args = array_merge( $defaults, $args );
-
-		// Append the base to the full URI.
-		$this->args['base'] = Str::appendUri( uri( $this->args['base'] ), '%_%' );
-
-		// Make sure that we have absolute integers.
-		$this->total    = abs( intval( $this->args['total']    ) );
-		$this->current  = abs( intval( $this->args['current']  ) );
-		$this->end_size = abs( intval( $this->args['end_size'] ) );
-		$this->mid_size = abs( intval( $this->args['mid_size'] ) );
-
-		// The end size must be at least 1.
-		if ( $this->end_size < 1 ) {
-			$this->end_size = 1;
-		}
+		], $options );
 	}
 
 	/**
-	 * Set and overwrite arguments.
+	 * Returns the total number of pages.
 	 *
 	 * @since 1.0.0
 	 */
-	protected function setArgs( array $args = [] ) : void
+	public function total() : int
 	{
-		foreach ( $args as $key => $value ) {
-			if ( isset( $this->args[ $key ] ) ) {
-				$this->args[ $key ] = $value;
-			}
-		}
+		return $this->total;
+	}
+
+	/**
+	 * Returns the current page being viewed.
+	 *
+	 * @since 1.0.0
+	 */
+	public function current() : int
+	{
+		return $this->current;
+	}
+
+	/**
+	 * Conditional check for whether there are pages.
+	 *
+	 * @since 1.0.0
+	 */
+	public function hasPages() : bool
+	{
+		return 1 > $this->total();
+	}
+
+	/**
+	 * Conditional check for whether currently a paged view.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isPaged() : bool
+	{
+		return 1 < $this->current();
+	}
+
+	/**
+	 * DO NOT USE. THIS WILL BE REMOVED.
+	 *
+	 * @since 1.0.0
+	 */
+	public function make( array $options = [] ) : self
+	{
+		$this->setDisplayOptions( $options );
+		return $this;
 	}
 
 	/**
@@ -139,9 +187,9 @@ class Pagination
 	 *
 	 * @since 1.0.0
 	 */
-	public function display() : void
+	public function display( array $options = [] ) : void
 	{
-		echo $this->render();
+		echo $this->render( $options );
 	}
 
 	/**
@@ -149,58 +197,72 @@ class Pagination
 	 *
 	 * @since 1.0.0
 	 */
-	public function render() : string
+	public function render( array $options = [] ) : string
 	{
+		$this->setDisplayOptions( $options );
+
 		$title = $list = $template = '';
 
-		if ( $this->items ) {
+		if ( $items = $this->items() ) {
 
-			// If there's title text, format it.
-			if ( $this->args['title_text'] ) {
-				$title = sprintf(
-					'<%1$s class="%2$s">%3$s</%1$s>',
-					escape_tag( $this->args['title_tag'] ),
-					e( $this->args['title_class'] ),
-					e( $this->args['title_text'] )
-				);
-			}
+		        // If there's title text, format it.
+		        if ( $this->display_options['title_text'] ) {
+		                $title = sprintf(
+		                        '<%1$s class="%2$s">%3$s</%1$s>',
+		                        escape_tag( $this->display_options['title_tag'] ),
+		                        e( $this->display_options['title_class'] ),
+		                        e( $this->display_options['title_text'] )
+		                );
+		        }
 
-			// Loop through each of the items and format each into
-			// an HTML string.
-			foreach ( $this->items as $item ) {
-				$list .= $this->formatItem( $item );
-			}
+		        // Loop through each of the items and format each into
+		        // an HTML string.
+		        foreach ( $items as $item ) {
+		                $list .= $this->formatItem( $item );
+		        }
 
-			// Format the list.
-			$list = sprintf(
-				'<%1$s class="%2$s">%3$s</%1$s>',
-				escape_tag( $this->args['list_tag'] ),
-				e( $this->args['list_class'] ),
-				$list
-			);
+		        // Format the list.
+		        $list = sprintf(
+		                '<%1$s class="%2$s">%3$s</%1$s>',
+		                escape_tag( $this->display_options['list_tag'] ),
+		                e( $this->display_options['list_class'] ),
+		                $list
+		        );
 
-			// Format the nav wrapper.
-			$template = sprintf(
-				'<%1$s class="%2$s" role="navigation">%3$s%4$s</%1$s>',
-				escape_tag( $this->args['container_tag'] ),
-				e( $this->args['container_class'] ),
-				$title,
-				$list
-			);
+		        // Format the nav wrapper.
+		        $template = sprintf(
+		                '<%1$s class="%2$s" role="navigation">%3$s%4$s</%1$s>',
+		                escape_tag( $this->display_options['container_tag'] ),
+		                e( $this->display_options['container_class'] ),
+		                $title,
+		                $list
+		        );
 		}
 
 		return $template;
 	}
 
 	/**
-	 * Builds the pagination `$items` array.
+	 * Returns the array of paginated items.
 	 *
 	 * @since 1.0.0
 	 */
-	public function make( array $args = [] ) : self
+	protected function items() : array
 	{
-		$this->setArgs( $args );
+		if ( ! $this->items ) {
+			$this->buildItems();
+		}
 
+		return $this->items;
+	}
+
+	/**
+	 * Build the array of paginated items.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function buildItems() : void
+	{
 		if ( 2 <= $this->total ) {
 			$this->prevItem();
 
@@ -210,8 +272,6 @@ class Pagination
 
 			$this->nextItem();
 		}
-
-		return $this;
 	}
 
 	/**
@@ -227,7 +287,7 @@ class Pagination
 
 		// Add the anchor/span class attribute.
 		$attr['class'] = sprintf(
-			$this->args['anchor_class'],
+			$this->display_options['anchor_class'],
 			$is_link ? 'link' : $item['type']
 		);
 
@@ -238,7 +298,7 @@ class Pagination
 
 		// If this is the current item, add the `aria-current` attribute.
 		if ( 'current' === $item['type'] ) {
-			$attr['aria-current'] = $this->args['aria_current'];
+			$attr['aria-current'] = $this->display_options['aria_current'];
 		}
 
 		// Loop through the attributes and format them into a string.
@@ -253,8 +313,8 @@ class Pagination
 		// Builds and formats the list item.
 		return sprintf(
 			'<%1$s class="%2$s"><%3$s %4$s>%5$s</%3$s></%1$s>',
-			escape_tag( $this->args['item_tag'] ),
-			e( sprintf( $this->args['item_class'], $item['type'] ) ),
+			escape_tag( $this->display_options['item_tag'] ),
+			e( sprintf( $this->display_options['item_class'], $item['type'] ) ),
 			$is_link ? 'a' : 'span',
 			trim( $esc_attr ),
 			$item['content']
@@ -268,12 +328,12 @@ class Pagination
 	 */
 	protected function prevItem() : void
 	{
-		if ( $this->args['prev_next'] && $this->current && 1 < $this->current ) {
+		if ( $this->display_options['prev_next'] && $this->current && 1 < $this->current ) {
 
 			$this->items[] = [
 				'type'    => 'prev',
-				'url'     => $this->buildUrl( 2 == $this->current ? '' : $this->args['format'], $this->current - 1 ),
-				'content' => $this->args['prev_text']
+				'url'     => $this->buildUrl( 2 == $this->current ? '' : $this->format, $this->current - 1 ),
+				'content' => $this->display_options['prev_text']
 			];
 		}
 	}
@@ -285,11 +345,11 @@ class Pagination
 	 */
 	protected function nextItem() : void
 	{
-		if ( $this->args['prev_next'] && $this->current && $this->current < $this->total ) {
+		if ( $this->display_options['prev_next'] && $this->current && $this->current < $this->total ) {
 			$this->items[] = [
 				'type'    => 'next',
-				'url'     => $this->buildUrl( $this->args['format'], $this->current + 1 ),
-				'content' => $this->args['next_text']
+				'url'     => $this->buildUrl( $this->format, $this->current + 1 ),
+				'content' => $this->display_options['next_text']
 			];
 		}
 	}
@@ -307,24 +367,35 @@ class Pagination
 
 			$this->items[] = [
 				'type'    => 'current',
-				'content' => $this->args['before_page_number'] . e( $n ) . $this->args['after_page_number']
+				'content' => $this->display_options['before_page_number'] . e( $n ) . $this->display_options['after_page_number']
 			];
 
 			$this->dots = true;
 
 		// If showing a linked number or dots.
 		} else {
-			if ( $this->args['show_all'] || ( $n <= $this->end_size || ( $this->current && $n >= $this->current - $this->mid_size && $n <= $this->current + $this->mid_size ) || $n > $this->total - $this->end_size ) ) {
+			if (
+				$this->display_options['show_all']
+				|| (
+					$n <= $this->display_options['end_size']
+					|| (
+						$this->current
+						&& $n >= $this->current - $this->display_options['mid_size']
+						&& $n <= $this->current + $this->display_options['mid_size']
+					)
+					|| $n > $this->total - $this->display_options['end_size']
+				)
+			) {
 
 				$this->items[] = [
 					'type'    => 'number',
-					'url'     => $this->buildUrl( 1 == $n ? '' : $this->args['format'], $n ),
-					'content' => $this->args['before_page_number'] . e( $n ) . $this->args['after_page_number']
+					'url'     => $this->buildUrl( 1 == $n ? '' : $this->format, $n ),
+					'content' => $this->display_options['before_page_number'] . e( $n ) . $this->display_options['after_page_number']
 				];
 
 				$this->dots = true;
 
-			} elseif ( $this->dots && ! $this->args['show_all'] ) {
+			} elseif ( $this->dots && ! $this->display_options['show_all'] ) {
 
 				$this->items[] = [
 					'type'    => 'dots',
@@ -343,7 +414,7 @@ class Pagination
 	 */
 	protected function buildUrl( string $format, int $number ) : string
 	{
-		$uri = str_replace( '%_%', $format, $this->args['base'] );
+		$uri = str_replace( '%_%', $format, $this->basepath );
 		$uri = str_replace( '{page}', $number, $uri );
 
 		return $uri;

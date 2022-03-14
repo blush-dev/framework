@@ -86,9 +86,9 @@ class Collection extends Controller
 			] );
 
 			$pagination = new Pagination( [
-				'base'    => $path,
-				'current' => $current,
-				'total'   => ceil( $collection->total() / $collection->number() )
+				'basepath' => $path,
+				'current'  => $current,
+				'total'    => ceil( $collection->total() / $collection->number() )
 			] );
 
 			return $this->response( $this->view( [
