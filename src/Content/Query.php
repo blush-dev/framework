@@ -20,7 +20,6 @@ use Blush\Tools\Str;
 
 class Query implements IteratorAggregate
 {
-
 	/**
 	 * File locator object.
 	 *
@@ -47,7 +46,7 @@ class Query implements IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	protected array $filenames;
+	protected array $filepaths;
 
 	/**
 	 * Array of located entry slugs.
@@ -229,36 +228,37 @@ class Query implements IteratorAggregate
 		$located = $this->sortByOrder( $located );
 
 		// Reduce array of located files to filenames.
-		$filenames = array_keys( $located );
+		$filepaths = array_keys( $located );
 
 		// Remove index file if noindex query.
 		if ( $this->noindex && ! in_array( 'index', $this->names ) ) {
-			$filenames = array_filter( $filenames, function( $filename ) {
-				return 'index' !== basename( $filename, '.md' );
+			$filepaths = array_filter( $filepaths, function( $filepath ) {
+				return 'index' !== basename( $filepath, '.md' );
 			} );
 		}
 
 		// Get the total number of entries.
-		$this->total = count( $filenames );
+		$this->total = count( $filepaths );
 
 		// Reduce to currently-queried number.
-		$this->filenames = array_slice(
-			$filenames,
+		$this->filepaths = array_slice(
+			$filepaths,
 			$this->offset(),
 			$this->number()
 		);
 
 		// Get the current number of entries.
-		$this->count = count( $this->filenames );
+		$this->count = count( $this->filepaths );
 
 		// Create array of entry objects.
-		foreach ( $this->filenames as $filename ) {
-			$entry = new MarkdownFile( $filename );
-			$file  = $entry->pathinfo( 'filename' );
-			$slug  = Str::afterLast( $file, '.' );
+		foreach ( $this->filepaths as $filepath ) {
+			$entry = new MarkdownFile( $filepath );
+
+			$filename = $entry->pathinfo( 'filename' );
+			$slug     = Str::afterLast( $filename, '.' );
 
 			$this->entries[] = $entry;
-			$this->located_slugs[ $slug ] = $file;
+			$this->located_slugs[ $slug ] = $filename;
 		}
 	}
 
@@ -467,7 +467,7 @@ class Query implements IteratorAggregate
 		$located = [];
 		$value = sanitize_slug( $this->meta_value );
 
-		foreach ( $entries as $filename => $matter ) {
+		foreach ( $entries as $basename => $matter ) {
 
 			if ( isset( $matter[ $this->meta_key ] ) ) {
 
@@ -478,7 +478,7 @@ class Query implements IteratorAggregate
 				}, $_v );
 
 				if ( in_array( $value, $_v ) ) {
-					$located[ $filename ] = $matter;
+					$located[ $basename ] = $matter;
 				}
 			}
 		}

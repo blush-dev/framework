@@ -22,11 +22,11 @@ use Blush\Tools\Str;
 abstract class File extends Entry
 {
 	/**
-	 * Entry filename.
+	 * Entry file path.
 	 *
 	 * @since 1.0.0
 	 */
-	protected string $filename;
+	protected string $filepath;
 
 	/**
 	 * Entry path info.
@@ -37,14 +37,14 @@ abstract class File extends Entry
 
 	/**
 	 * Sets up the object state. Child classes need to overwrite this and
-	 * pull content and metadata from the file.
+	 * pull content and metadata from the file path.
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( string $filename )
+	public function __construct( string $filepath )
 	{
-		$this->filename = $filename;
-		$this->pathinfo = pathinfo( $filename );
+		$this->filepath = $filepath;
+		$this->pathinfo = pathinfo( $filepath );
 	}
 
 	/**
@@ -61,10 +61,10 @@ abstract class File extends Entry
 
 		$types = App::get( 'content/types' );
 
-		// Strip the file basename and content path from the filename.
+		// Strip the file basename and content path from the file path.
 		// This should give us the content type path, which we can match
 		// against registered content types.
-		$path = Str::beforeLast( $this->filename(), basename( $this->filename() ) );
+		$path = Str::beforeLast( $this->filePath(), basename( $this->filePath() ) );
 		$path = Str::afterLast( $path, App::get( 'path.content' ) );
 		$path = Str::slashTrim( $path );
 
@@ -82,13 +82,13 @@ abstract class File extends Entry
 	}
 
 	/**
-	 * Returns the entry filename.
+	 * Returns the entry file path.
 	 *
 	 * @since 1.0.0
 	 */
-	public function filename() : string
+	public function filePath() : string
 	{
-		return $this->filename;
+		return $this->filepath;
 	}
 
 	/**
@@ -99,7 +99,51 @@ abstract class File extends Entry
 	 */
 	public function pathinfo( string $key = '' )
 	{
-		return $this->pathinfo[ $key ] ?? $this->pathinfo;
+		if ( $key ) {
+			return $this->pathinfo[ $key ] ?? '';
+		}
+
+		return $this->pathinfo;
+	}
+
+	/**
+	 * Returns the file's directory name.
+	 *
+	 * @since 1.0.0
+	 */
+	public function dirname() : string
+	{
+		return $this->pathinfo( 'dirname' );
+	}
+
+	/**
+	 * Returns the file's basename (includes extension).
+	 *
+	 * @since 1.0.0
+	 */
+	public function basename() : string
+	{
+		return $this->pathinfo( 'basename' );
+	}
+
+	/**
+	 * Returns the file's extension.
+	 *
+	 * @since 1.0.0
+	 */
+	public function extension() : string
+	{
+		return $this->pathinfo( 'extension' );
+	}
+
+	/**
+	 * Returns the filename without extension.
+	 *
+	 * @since 1.0.0
+	 */
+	public function filename() : string
+	{
+		return $this->pathinfo( 'filename' );
 	}
 
 	/**
@@ -110,7 +154,7 @@ abstract class File extends Entry
 	public function name() : string
 	{
 		// Get the filename without the extension.
-		$name = $this->pathinfo['filename'];
+		$name = $this->filename();
 
 		// Strip anything after potential ordering dot, e.g.,
 		// `01.{$name}.md`, `02.{$name}.md`, etc.

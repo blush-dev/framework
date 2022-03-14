@@ -21,12 +21,12 @@ class MarkdownFile extends File
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( string $filename )
+	public function __construct( string $filepath )
 	{
-		parent::__construct( $filename );
+		parent::__construct( $filepath );
 
 		$markdown = App::resolve( 'markdown' )->convert(
-			file_get_contents( $filename )
+			file_get_contents( $filepath )
 		);
 
 		$this->meta    = $markdown->frontMatter();

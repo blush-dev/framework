@@ -109,9 +109,9 @@ class Locator
 
 		$located = [];
 
-		foreach ( $entries as $filename => $data ) {
-			$filename = Str::appendPath( $this->path, $filename );
-			$located[ $filename ] = $data;
+		foreach ( $entries as $basename => $data ) {
+			$filepath = Str::appendPath( $this->path, $basename );
+			$located[ $filepath ] = $data;
 		}
 
 		return $located;
@@ -125,9 +125,9 @@ class Locator
 	 */
 	protected function locate() : array
 	{
-		$files = glob( Str::appendPath( $this->path, '*.md' ) );
+		$filepaths = glob( Str::appendPath( $this->path, '*.md' ) );
 
-		if ( ! $files ) {
+		if ( ! $filepaths ) {
 			return [];
 		}
 
@@ -137,10 +137,10 @@ class Locator
 		$exclude = config( 'cache', 'content_exclude_meta' );
 		$exclude = is_array( $exclude ) ? array_flip( $exclude ) : false;
 
-		foreach ( $files as $file ) {
+		foreach ( $filepaths as $filepath ) {
 
 			// Skip if the file isn't Markdown.
-			if ( ! is_file( $file ) || 'md' !== pathinfo( $file, PATHINFO_EXTENSION ) ) {
+			if ( ! is_file( $filepath ) || 'md' !== pathinfo( $filepath, PATHINFO_EXTENSION ) ) {
 				continue;
 			}
 
@@ -151,7 +151,7 @@ class Locator
 			// grabbing the frontmatter. Anything even encroaching
 			// this number would be insane.
 			$content = file_get_contents(
-				$file, false, null, 0, 8 * 1024
+				$filepath, false, null, 0, 8 * 1024
 			);
 
 			if ( $content ) {
@@ -173,10 +173,10 @@ class Locator
 				}
 			}
 
-			// Remove the file path. We only need the basename.
-			$filename = str_replace( "{$this->path}/", '', $file );
+			// Remove the content dir path. We only need the basename.
+			$key = str_replace( "{$this->path}/", '', $filepath );
 
-			$cache[ $filename ] = $data;
+			$cache[ $key ] = $data;
 		}
 
 		if ( $cache ) {
