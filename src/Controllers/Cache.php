@@ -40,12 +40,12 @@ class Cache extends Controller
 		}
 
 		// Create a virtual entry for the content.
-		$virtual = new Virtual( [
+		$single = new Virtual( [
 			'content' => $content,
 			'meta'    => [ 'title' => $title ]
 		] );
 
-		$doctitle = new DocumentTitle( $virtual->title() );
+		$doctitle = new DocumentTitle( $single->title() );
 
 		return $this->response( $this->view( [
 			"single-page-cache",
@@ -55,7 +55,7 @@ class Cache extends Controller
 		], [
 			'doctitle'   => $doctitle,
 			'pagination' => false,
-			'single'     => $virtual,
+			'single'     => $single,
 			'collection' => false
 		] ) );
 	}

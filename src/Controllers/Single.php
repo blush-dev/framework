@@ -36,21 +36,20 @@ class Single extends Controller
 		$type = $types->getTypeFromPath( $path );
 
 		// Look for a `path/{$name}.md` file.
-		$single = new Query( [
+		$single = ( new Query( [
 			'path' => $path,
 			'slug' => $name
-		] );
+		] ) )->single();
 
-		if ( $single->all() ) {
-			$type_name    = sanitize_with_dashes( $type->type() );
-			$collection   = false;
-			$collect_args = $single->first()->meta( 'collection' );
+		if ( $single ) {
+			$type_name  = sanitize_slug( $type->type() );
+			$collection = false;
 
-			if ( $collect_args ) {
-				$collection = new Query( $collect_args );
+			if ( $args = $single->metaArr( 'collection' ) ) {
+				$collection = new Query( $args );
 			}
 
-			$doctitle = new DocumentTitle( $single->first()->title() );
+			$doctitle = new DocumentTitle( $single->title() );
 
 			return $this->response( $this->view( [
 				"single-{$type_name}-{$name}",
@@ -60,8 +59,8 @@ class Single extends Controller
 			], [
 				'doctitle'   => $doctitle,
 				'pagination' => false,
-				'single'     => $single->first(),
-				'collection' => $single
+				'single'     => $single,
+				'collection' => $collection
 			] ) );
 		}
 

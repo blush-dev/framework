@@ -27,13 +27,13 @@ class Error404 extends Controller
 	{
 		http_response_code( 404 );
 
-		$single = new Query( [
+		$single = ( new Query( [
 			'path' => '_error',
 			'slug' => '404'
-		] );
+		] ) )->single();
 
-		if ( $single->all() ) {
-			$doctitle = new DocumentTitle( $single->first()->title() );
+		if ( $single ) {
+			$doctitle = new DocumentTitle( $single->title() );
 
 			return $this->response( $this->view( [
 				'single-error-404',
@@ -43,7 +43,7 @@ class Error404 extends Controller
 			], [
 				'doctitle'   => $doctitle,
 				'pagination' => false,
-				'single'     => $single->first(),
+				'single'     => $single,
 				'collection' => false
 			] ) );
 		}

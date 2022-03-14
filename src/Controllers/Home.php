@@ -41,15 +41,16 @@ class Home extends Controller
 		if ( $type && $collect ) {
 			$current  = $params['number'] ?? 1;
 			$per_page = posts_per_page();
+			$args     = [];
 
 			// Query the content type.
-			$single = new Query( [
+			$single = ( new Query( [
 				'path' => $type->path(),
 				'slug' => 'index'
-			] );
+			] ) )->single();
 
-			if ( $single->all() ) {
-				$args = $single->first()->meta( 'collection' );
+			if ( $single ) {
+				$args = $single->meta( 'collection' );
 				$args = $args ?: [];
 				// Needed to calculate the offset.
 				$per_page = $args['number'] ?? $per_page;
@@ -65,8 +66,8 @@ class Home extends Controller
 				'orderby' => 'filename'
 			], $args ) );
 
-			if ( $single->all() && $collection->all() ) {
-				$type_name = sanitize_with_dashes( $type->type() );
+			if ( $single && $collection->all() ) {
+				$type_name = sanitize_slug( $type->type() );
 
 				$doctitle = new DocumentTitle( '', [ 'page' => $current ] );
 
@@ -84,21 +85,21 @@ class Home extends Controller
 				], [
 					'doctitle'   => $doctitle,
 					'pagination' => $pagination,
-					'single'     => $single->first(),
+					'single'     => $single,
 					'collection' => $collection
 				] ) );
 			}
 		}
 
 		// Query the homepage `index.md` file.
-		$single = new Query( [
+		$single = ( new Query( [
 			'path' => '',
 			'slug' => 'index'
-		] );
+		] ) )->single();
 
-		if ( $single->all() ) {
+		if ( $single ) {
 			$collection   = false;
-			$collect_args = $single->first()->meta( 'collection' );
+			$collect_args = $single->meta( 'collection' );
 
 			if ( $collect_args ) {
 				$collection = new Query( $collect_args );
@@ -112,7 +113,7 @@ class Home extends Controller
 			], [
 				'doctitle'   => new DocumentTitle(),
 				'pagination' => false,
-				'single'     => $single->first(),
+				'single'     => $single,
 				'collection' => $collection ?: false
 			] ) );
 		}

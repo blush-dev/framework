@@ -296,6 +296,16 @@ class Query implements IteratorAggregate
 	}
 
 	/**
+	 * Returns the first entry. Alias for `first()`.
+	 *
+	 * @since 1.0.0
+	 */
+	public function single() : ?Entry
+	{
+		return $this->first();
+	}
+
+	/**
 	 * Returns the first entry.
 	 *
 	 * @since 1.0.0

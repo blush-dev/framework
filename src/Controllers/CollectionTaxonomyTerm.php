@@ -31,7 +31,8 @@ class CollectionTaxonomyTerm extends Controller
 		$name   = $params['name'] ?? '';
 		$number = $params['number'] ?? '';
 		$path   = $params['path'];
-		$type_path   = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
+
+		$type_path = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
 
 		if ( $number ) {
 			$path = Str::beforeLast( $path , "/page/{$number}" );
@@ -46,13 +47,14 @@ class CollectionTaxonomyTerm extends Controller
 		$collect  = $types->get( $taxonomy->termCollect() );
 
 		// Query the taxonomy term.
-		$single = new Query( [
+		$single = ( new Query( [
 			'path' => $taxonomy->path(),
 			'slug' => $name
-		] );
+		] ) )->single();
 
-		if ( $single->all() ) {
-			$args = $single->first()->meta( 'collection' );
+		// Gets query vars from entry meta.
+		if ( $single ) {
+			$args = $single->meta( 'collection' );
 			$args = $args ?: [];
 			// Needed to calculate the offset.
 			$per_page = $args['number'] ?? $per_page;
@@ -70,10 +72,10 @@ class CollectionTaxonomyTerm extends Controller
 			'meta_value' => $name
 		], $args ) );
 
-		if ( $single->all() && $collection->all() ) {
-			$type_name = sanitize_with_dashes( $taxonomy->type() );
+		if ( $single && $collection->all() ) {
+			$type_name = sanitize_slug( $taxonomy->type() );
 
-			$doctitle = new DocumentTitle( $single->first()->title(), [
+			$doctitle = new DocumentTitle( $single->title(), [
 				'page' => $number ?: 1
 			] );
 
@@ -92,7 +94,7 @@ class CollectionTaxonomyTerm extends Controller
 			], [
 				'doctitle'   => $doctitle,
 				'pagination' => $pagination,
-				'single'     => $single->first(),
+				'single'     => $single,
 				'collection' => $collection
 			] ) );
 		}

@@ -37,6 +37,7 @@ class Collection extends Controller
 
 		$current  = $number ?: 1;
 		$per_page = posts_per_page();
+		$args     = [];
 
 		// Get the content by path.
 		$type = $types->getTypeFromPath( $path );
@@ -55,13 +56,14 @@ class Collection extends Controller
 		$collect = $types->get( $type->collect() );
 
 		// Query the content type.
-		$single = new Query( [
+		$single = ( new Query( [
 			'path' => $type->path(),
 			'slug' => 'index'
-		] );
+		] ) )->single();
 
-		if ( $single->all() ) {
-			$args = $single->first()->meta( 'collection' );
+		// Gets query vars from entry meta.
+		if ( $single ) {
+			$args = $single->meta( 'collection' );
 			$args = $args ?: [];
 			// Needed to calculate the offset.
 			$per_page = $args['number'] ?? $per_page;
@@ -69,20 +71,20 @@ class Collection extends Controller
 
 		// Query the content type collection.
 		$collection = new Query( array_merge( [
-			'path'       => $collect->path(),
-			'noindex'    => true,
-			'number'     => $per_page,
-			'offset'     => $per_page * ( intval( $current ) - 1 ),
-			'order'      => 'desc',
-			'orderby'    => 'filename'
+			'path'    => $collect->path(),
+			'noindex' => true,
+			'number'  => $per_page,
+			'offset'  => $per_page * ( intval( $current ) - 1 ),
+			'order'   => 'desc',
+			'orderby' => 'filename'
 		], $args ) );
 
-		if ( $single->all() && $collection->all() ) {
-			$type_name  = sanitize_with_dashes( $type->type() );
+		if ( $single && $collection->all() ) {
+			$type_name  = sanitize_slug( $type->type() );
 			$model_name = $type->isTaxonomy() ? 'taxonomy' : 'content';
 
-			$doctitle = new DocumentTitle( $single->first()->title(), [
-				'page' => $number ?? 1
+			$doctitle = new DocumentTitle( $single->title(), [
+				'page' => $number ?: 1
 			] );
 
 			$pagination = new Pagination( [
@@ -99,7 +101,7 @@ class Collection extends Controller
 			], [
 				'doctitle'   => $doctitle,
 				'pagination' => $pagination,
-				'single'     => $single->first(),
+				'single'     => $single,
 				'collection' => $collection
 			] ) );
 		}

@@ -30,28 +30,27 @@ class SinglePage extends Single
 		$name = Str::afterLast( $path, '/' );
 
 		// Look for an `path/index.md` file.
-		$single = new Query( [
+		$single = ( new Query( [
 			'path' => $path,
 			'slug' => 'index'
-		] );
+		] ) )->single();
 
 		// Look for a `path/{$name}.md` file if `path/index.md` not found.
-		if ( ! $single->all() ) {
-			$single = new Query( [
+		if ( ! $single ) {
+			$single = ( new Query( [
 				'path' => Str::beforeLast( $path, '/' ),
 				'slug' => $name
-			] );
+			] ) )->single();
 		}
 
-		if ( $single->all() ) {
-			$collection   = false;
-			$collect_args = $single->first()->meta( 'collection' );
+		if ( $single ) {
+			$collection = false;
 
-			if ( $collect_args ) {
-				$collection = new Query( $collect_args );
+			if ( $args = $single->meta( 'collection' ) ) {
+				$collection = new Query( $args );
 			}
 
-			$doctitle = new DocumentTitle( $single->first()->title() );
+			$doctitle = new DocumentTitle( $single->title() );
 
 			return $this->response( $this->view( [
 				"single-page-{$name}",
@@ -61,8 +60,8 @@ class SinglePage extends Single
 			], [
 				'doctitle'   => $doctitle,
 				'pagination' => false,
-				'single'     => $single->first(),
-				'collection' => $collection ?: false
+				'single'     => $single,
+				'collection' => $collection
 			] ) );
 		}
 
