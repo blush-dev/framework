@@ -268,6 +268,16 @@ class Query implements IteratorAggregate
 	}
 
 	/**
+	 * Checks if the query has any entries.
+	 *
+	 * @since 1.0.0
+	 */
+	public function hasEntries() : bool
+	{
+		return 0 < $this->count();
+	}
+
+	/**
 	 * Checks if an entry was located by slug (basename w/o extension).
 	 *
 	 * @since 1.0.0
