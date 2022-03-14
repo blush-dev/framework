@@ -11,16 +11,15 @@
 
 namespace Blush\Cache;
 
-class Html extends Cache {
-
+class Html extends Cache
+{
 	/**
 	 * Returns the cache filename.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return string
+	 * @since 1.0.0
 	 */
-	protected function filename() {
+	protected function filename() : string
+	{
 		return $this->path( "{$this->name}.html" );
 	}
 
@@ -29,11 +28,10 @@ class Html extends Cache {
 	 * here. Otherwise, the data is only cached for a single page load.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @param  mixed  $data
-	 * @return void
 	 */
-	public function set( $data ) {
+	public function set( $data ) : void
+	{
 		$this->make();
 		$this->data = $data;
 
@@ -45,9 +43,9 @@ class Html extends Cache {
 	 *
 	 * @since  1.0.0
 	 * @access public
-	 * @return mixed
 	 */
-	public function get() {
+	public function get()
+	{
 		if ( $this->data ) {
 			return $this->data;
 		}
@@ -57,8 +55,6 @@ class Html extends Cache {
 			return $this->data;
 		}
 
-		$this->data = '';
-
-		return $this->data;
+		return $this->data = '';
 	}
 }

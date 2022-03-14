@@ -12,19 +12,17 @@
 namespace Blush\Core\Providers;
 
 use Blush\Core\ServiceProvider;
-use Blush\Routing\Routes;
-use Blush\Routing\Router;
+use Blush\Routing\{Routes, Router};
 
-class Route extends ServiceProvider {
-
+class Route extends ServiceProvider
+{
 	/**
 	 * Register bindings.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function register() {
+        public function register() : void
+	{
                 $this->app->instance( 'routes', new Routes() );
                 $this->app->instance( 'router', new Router( $this->app->routes ) );
         }
@@ -32,11 +30,10 @@ class Route extends ServiceProvider {
 	/**
 	 * Bootstrap bindings.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function boot() {
+        public function boot() : void
+	{
 		$this->app->resolve( 'router' )->boot();
         }
 }

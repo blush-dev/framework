@@ -12,60 +12,46 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Proxies;
+namespace Blush\Core;
 
 use Blush\Contracts\Container\Container;
 
-/**
- * Base static proxy class.
- *
- * @since  5.0.0
- * @access public
- */
-class Proxy {
-
+class Proxy
+{
 	/**
 	 * The container object.
 	 *
-	 * @since  5.0.0
-	 * @access protected
-	 * @var    Container
+	 * @since 1.0.0
 	 */
-	protected static $container;
+	protected static Container $container;
 
 	/**
 	 * Returns the name of the accessor for object registered in the container.
 	 *
-	 * @since  5.0.0
-	 * @access protected
-	 * @return string
+	 * @since  1.0.0
 	 */
-	protected static function accessor() {
-
+	protected static function accessor() : string
+	{
 		return '';
 	}
 
 	/**
 	 * Sets the container object.
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public static function setContainer( Container $container ) {
-
+	public static function setContainer( Container $container ) : void
+	{
 		static::$container = $container;
 	}
 
 	/**
 	 * Returns the instance from the container.
 	 *
-	 * @since  5.0.0
-	 * @access protected
-	 * @return object
+	 * @since 1.0.0
 	 */
-	protected static function instance() {
-
+	protected static function instance() : object
+	{
 		return static::$container->resolve( static::accessor() );
 	}
 
@@ -73,16 +59,13 @@ class Proxy {
 	 * Calls the requested method from the object registered with the
 	 * container statically.
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @param  string  $method
+	 * @since  1.0.0
 	 * @param  array   $args
 	 * @return mixed
 	 */
-	public static function __callStatic( $method, $args ) {
-
+	public static function __callStatic( string $method, $args )
+	{
 		$instance = static::instance();
-
 		return $instance ? $instance->$method( ...$args ) : null;
 	}
 }

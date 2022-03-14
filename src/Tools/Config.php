@@ -17,17 +17,15 @@ namespace Blush\Tools;
 use Blush\Tools\Collection;
 use Symfony\Component\Yaml\Yaml;
 
-class Config extends Collection {
-
+class Config extends Collection
+{
 	/**
 	 * Parses a YAML file and appends the values to the collection.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $filename
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function parseYamlFile( $filename ) {
+        public function parseYamlFile( string $filename ) : void
+	{
                 $config = Yaml::parseFile( $filename );
 
                 if ( ! is_array( $config ) ) {
@@ -42,12 +40,10 @@ class Config extends Collection {
 	/**
 	 * Parses a JSON file and appends the values to the collection.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $filename
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function parseJsonFile( $filename ) {
+        public function parseJsonFile( string $filename ) : void
+	{
                 $config = json_decode( file_get_contents( $filename ), true );
 
                 if ( ! is_array( $config ) ) {

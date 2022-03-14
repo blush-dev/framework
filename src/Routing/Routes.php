@@ -13,18 +13,17 @@ namespace Blush\Routing;
 
 use Blush\Tools\Collection;
 
-class Routes extends Collection {
-
+class Routes extends Collection
+{
 	/**
 	 * Add a route.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $name
-	 * @param  mixed   $value
-	 * @return void
+	 * @param  string  $uri
+	 * @param  array   $args
 	 */
-	public function add( $uri, $args = [] ) {
+	public function add( $uri, $args = [] ) : void
+	{
 		parent::add( $uri, new Route( $uri, $args ) );
 
 		$this->get( $uri )->make();

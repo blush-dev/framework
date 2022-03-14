@@ -19,17 +19,15 @@ use Symfony\Component\VarDumper\VarDumper;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\{HtmlDumper, CliDumper};
 
-class App extends ServiceProvider {
-
+class App extends ServiceProvider
+{
 	/**
 	 * Register bindings.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function register() {
-
+        public function register() : void
+	{
                 // Get the app config collection.
                 $app_config = $this->app->resolve( 'config.app' );
 
@@ -37,7 +35,7 @@ class App extends ServiceProvider {
                 date_default_timezone_set( $app_config['timezone'] ?? 'America/Chicago' );
 
 		// Add cache.
-                $this->app->instance( 'cache', new Collection() );
+                $this->app->instance( 'caches', new Collection() );
 
 		// Add template engine.
                 $this->app->bind( View::class );
@@ -51,12 +49,10 @@ class App extends ServiceProvider {
 	 * Sets the handler for Symfony's variable dumper. We are just making it
 	 * look a little prettier with custom styles.
 	 *
-	 * @since  1.0.0
-	 * @access private
-	 * @return void
+	 * @since 1.0.0
 	 */
-	private function setVarDumper() {
-
+	private function setVarDumper() : void
+	{
 		VarDumper::setHandler( function( $var ) {
 			$cloner      = new VarCloner();
 			$html_dumper = new HtmlDumper();

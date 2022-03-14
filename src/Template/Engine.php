@@ -11,20 +11,18 @@
 
 namespace Blush\Template;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Template\View;
 use Blush\Tools\Collection;
 
-class Engine {
-
+class Engine
+{
 	/**
 	 * Houses shared data to pass down to subviews.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    Collection
+	 * @since 1.0.0
 	 */
-	protected $shared;
+	protected Collection $shared;
 
 	/**
 	 * Returns a View object. This should only be used for top-level views
@@ -32,16 +30,14 @@ class Engine {
 	 * within views, use `subview()` or descendent functions.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  array|string      $names
+	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
-	 * @return View
 	 */
-	public function view( $names, $data = [] ) {
-
+	public function view( $paths, $data = [] ) : View
+	{
 		$data['engine'] = $this;
 
-		$view = App::resolve( View::class, compact( 'names', 'data' ) );
+		$view = App::resolve( View::class, compact( 'paths', 'data' ) );
 
 		$this->shared = $view->getData();
 
@@ -53,13 +49,11 @@ class Engine {
 	 * This makes sure shared data is passed down to the subview.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  array|string      $names
+	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
-	 * @return View
 	 */
-	public function subview( $names, $data = [] ) {
-
+	public function subview( $paths, $data = [] ) : View
+	{
 		if ( $this->shared ) {
 			$data = array_merge(
 				$this->shared->all(),
@@ -69,25 +63,24 @@ class Engine {
 
 		$data['engine'] = $this;
 
-		return App::resolve( View::class, compact( 'names', 'data' ) );
+		return App::resolve( View::class, compact( 'paths', 'data' ) );
 	}
 
 	/**
 	 * Includes a subview.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  array|string      $names
+	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
-	 * @return void
 	 */
-	public function include( $names, $data = [] ) {
-		$subview = $this->subview( $names, $data );
+	public function include( $paths, $data = [] ) : void
+	{
+		$subview = $this->subview( $paths, $data );
 
 		if ( ! $subview->template() ) {
 			$templates = array_map(
 				fn( $name ) => "`{$name}.php`",
-				(array) $names
+				(array) $paths
 			);
 
 			dump( sprintf(
@@ -104,28 +97,26 @@ class Engine {
 	 * view template is found.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  array|string      $names
+	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
-	 * @return void
 	 */
-	public function includeIf( $names, $data = [] ) {
-		$this->subview( $names, $data )->display();
+	public function includeIf( $paths, $data = [] ) : void
+	{
+		$this->subview( $paths, $data )->display();
 	}
 
 	/**
 	 * Includes a subview when `$when` is `true`.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  bool              $unless
-	 * @param  array|string      $names
+	 * @param  mixed             $when
+	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
-	 * @return void
 	 */
-	public function includeWhen( bool $when, $names, $data = [] ) {
-		if ( true === $when ) {
-			$this->include( $names, $data );
+	public function includeWhen( $when, $paths, $data = [] ) : void
+	{
+		if ( $when ) {
+			$this->include( $paths, $data );
 		}
 	}
 
@@ -133,15 +124,14 @@ class Engine {
 	 * Includes a subview unless `$unless` is `true`.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  bool              $unless
-	 * @param  array|string      $names
+	 * @param  mixed             $unless
+	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
-	 * @return void
 	 */
-	public function includeUnless( bool $unless, $names, $data = [] ) {
-		if ( false === $unless ) {
-			$this->include( $names, $data );
+	public function includeUnless( $unless, $paths, $data = [] ) : void
+	{
+		if ( ! $unless ) {
+			$this->include( $paths, $data );
 		}
 	}
 
@@ -152,22 +142,20 @@ class Engine {
 	 * the items array is empty.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  array|string $names
+	 * @param  array|string $paths
 	 * @param  array        $items
 	 * @param  string       $var
 	 * @param  array|string $empty
-	 * @return void
 	 */
-	public function each( $names, array $items = [], string $var = '', $empty = [] ) {
-
+	public function each( $paths, array $items = [], string $var = '', $empty = [] ) : void
+	{
 		if ( ! $items && $empty ) {
 			$this->include( $empty );
 		}
 
 		foreach ( $items as $item ) {
 			$this->include(
-				$names,
+				$paths,
 				$var ? [ $var => $item ] : []
 			);
 		}
@@ -176,26 +164,24 @@ class Engine {
 	/**
 	 * Outputs a view template.
 	 *
-	 * @since  1.00
-	 * @access public
-	 * @param  string            $names
+	 * @since  1.0.0
+	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
-	 * @return void
 	 */
-	public function display( $names, $data = [] ) {
-		$this->view( $names, $data )->display();
+	public function display( $paths, $data = [] ) : void
+	{
+		$this->view( $paths, $data )->display();
 	}
 
 	/**
 	 * Returns a view template as a string.
 	 *
-	 * @since  1.00
-	 * @access public
-	 * @param  string            $names
+	 * @since  1.0.0
+	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
-	 * @return string
 	 */
-	public function render( $names, $data = [] ) {
-		return $this->view( $names, $data )->render();
+	public function render( $paths, $data = [] ) : string
+	{
+		return $this->view( $paths, $data )->render();
 	}
 }

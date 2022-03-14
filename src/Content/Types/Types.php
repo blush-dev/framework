@@ -13,36 +13,31 @@ namespace Blush\Content\Types;
 
 use Blush\Tools\Collection;
 
-class Types extends Collection {
-
+class Types extends Collection
+{
 	/**
 	 * Stores types by path.
 	 *
-	 * @since  1.0.0
-	 * @access private
-	 * @var    array
+	 * @since 1.0.0
 	 */
-	private $paths = [];
+	private array $paths = [];
 
 	/**
 	 * Stores types by URI.
 	 *
-	 * @since  1.0.0
-	 * @access private
-	 * @var    array
+	 * @since 1.0.0
 	 */
-	private $uris = [];
+	private array $uris = [];
 
 	/**
 	 * Adds a custom content type.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @param  string  $name
 	 * @param  array   $options
-	 * @return void
 	 */
-	public function add( $name, $options = [] ) {
+	public function add( $name, $options = [] ) : void
+	{
 		parent::add( $name, new Type( $name, $options ) );
 	}
 
@@ -50,12 +45,10 @@ class Types extends Collection {
 	 * Gets a custom content type by its path.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $path
 	 * @return Type|false
 	 */
-	public function getTypeFromPath( string $path ) {
-
+	public function getTypeFromPath( string $path )
+	{
 		// If there is no path, this is a page.
 		if ( '' === $path ) {
 			return $this->get( 'page' );
@@ -77,12 +70,10 @@ class Types extends Collection {
 	 * Gets a custom content type by its URI.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $uri
 	 * @return Type|false
 	 */
-	public function getTypeFromUri( string $uri ) {
-
+	public function getTypeFromUri( string $uri )
+	{
 		// If there is no URI, this is a page.
 		if ( '' === $uri ) {
 			return $this->get( 'page' );
@@ -103,11 +94,10 @@ class Types extends Collection {
 	/**
 	 * Sorts types by their path.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return array
+	 * @since 1.0.0
 	 */
-	public function sortByPath() {
+	public function sortByPath() : array
+	{
 		$paths  = [];
 		$sorted = [];
 

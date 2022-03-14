@@ -11,11 +11,13 @@
 
 namespace Blush\Controllers;
 
-use Blush\Proxies\App;
+use Blush\App;
+use Blush\Content\Entry\Virtual;
+use Blush\Template\Tags\DocumentTitle;
 use Symfony\Component\HttpFoundation\Response;
 
-class Cache {
-
+class Cache extends Controller
+{
 	/**
 	 * Callback method when route matches request.
 	 *
@@ -24,31 +26,47 @@ class Cache {
 	 * @param  array  $params
 	 * @return Response
 	 */
-	public function __invoke( array $params = [] ) {
-
+	public function __invoke( array $params = [] ) : Response
+	{
 		$key = App::resolve( 'config.cache' )->get( 'secret_key' );
 
-		$response = new Response();
-		$response->setContent( 'Invalid cache purge request.' );
+		$title = 'Cache Purge Failure';
+		$content = '<p>Invalid cache purge request.<p>';
 
 		if ( isset( $params['key'] ) && $key === $params['key'] ) {
 			$this->recursiveRemove( App::resolve( 'path.cache' ) );
-			$response->setContent( 'Cache purged.' );
+			$title = 'Cache Purged';
+			$content = '<p>Cached content and data successfully purged.</p>';
 		}
 
-		return $response;
+		// Create a virtual entry for the content.
+		$virtual = new Virtual( [
+			'content' => $content,
+			'meta'    => [ 'title' => $title ]
+		] );
+
+		$doctitle = new DocumentTitle( $virtual->title() );
+
+		return $this->response( $this->view( [
+			"single-page-cache",
+			'single-page',
+			'single',
+			'index'
+		], [
+			'doctitle'   => $doctitle,
+			'pagination' => false,
+			'single'     => $virtual,
+			'collection' => false
+		] ) );
 	}
 
 	/**
 	 * Recursively removes a directory.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  string  $dir
-	 * @return void
+	 * @since 1.0.0
 	 */
-	protected function recursiveRemove( $dir ) {
-
+	private function recursiveRemove( string $dir ) : void
+	{
 		if ( ! is_dir( $dir ) ) {
 			return;
 		}
@@ -63,6 +81,9 @@ class Cache {
 			}
 		}
 
-		rmdir( $dir );
+		// Don't remove the cache directory itself.
+		if ( App::resolve( 'path.cache' ) !== $dir ) {
+			rmdir( $dir );
+		}
 	}
 }

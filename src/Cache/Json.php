@@ -13,16 +13,15 @@ namespace Blush\Cache;
 
 use Blush\Tools\Collection;
 
-class Json extends Cache {
-
+class Json extends Cache
+{
 	/**
 	 * Returns the cache filename.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return string
+	 * @since 1.0.0
 	 */
-	protected function filename() {
+	protected function filename() : string
+	{
 		return $this->path( "{$this->name}.json" );
 	}
 
@@ -31,9 +30,7 @@ class Json extends Cache {
 	 * here. Otherwise, the data is only cached for a single page load.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @param  mixed  $data
-	 * @return void
 	 */
 	public function set( $data ) {
 		$this->make();
@@ -66,28 +63,19 @@ class Json extends Cache {
 	 * @access public
 	 * @return mixed
 	 */
-	public function get() {
+	public function get()
+	{
 		if ( $this->data ) {
 			return $this->data;
 		}
 
-		if ( file_exists( $this->filename() ) ) {
+		$filename = file_exists( $this->filename() );
+		$contents = $filename ? file_get_contents( $this->filename() ) : '';
 
-			$contents = file_get_contents( $this->filename() );
-
-			if ( $contents ) {
-
-				$decoded = json_decode( $contents, true );
-
-				if ( $decoded ) {
-					$this->data = $decoded;
-					return $this->data;
-				}
-			}
+		if ( $contents && $decoded = json_decode( $contents, true ) ) {
+			return $this->data = $decoded;
 		}
 
-		$this->data = [];
-
-		return $this->data;
+		return $this->data = [];
 	}
 }

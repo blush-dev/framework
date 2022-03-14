@@ -13,53 +13,48 @@
 
 namespace Blush\Cache;
 
-use Blush\Proxies\App;
-use Blush\Tools\Collection;
-use Blush\Tools\Str;
+use Blush\App;
+use Blush\Contracts\Makeable;
+use Blush\Tools\{Collection, Str};
 
-abstract class Cache {
-
+abstract class Cache implements Makeable
+{
 	/**
 	 * Cache name.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    mixed
+	 * @since 1.0.0
 	 */
-	protected $name;
+	protected string $name;
 
 	/**
 	 * Cache directory path.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    mixed
+	 * @since 1.0.0
 	 */
-	protected $path;
+	protected string $path;
 
 	/**
 	 * Houses cached data.
 	 *
 	 * @since  1.0.0
-	 * @access protected
 	 * @var    mixed
 	 */
-	protected $data;
+	protected $data = null;
 
 	/**
-	 * Sets up object state.
+	 * Sets up object state. If no `$path` is passed in, `$name` should
+	 * include a `/`, which will be split to create the cache name and
+	 * path.  Anything after the final `/` becomes the name and anything
+	 * before, the path.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $name
-	 * @param  string  $path
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( $name, $path = ''  ) {
+	public function __construct( string $name, string $path = ''  )
+	{
 		$this->name = Str::afterLast( $name, '/' );
 		$this->path = Str::appendPath(
 			App::resolve( 'path.cache' ),
-			Str::beforeLast( $name, '/' )
+			$path ?: Str::beforeLast( $name, '/' )
 		);
 	}
 
@@ -67,45 +62,42 @@ abstract class Cache {
 	 * Sub-classes should append the appropriate file extension to the
 	 * `$this->name` property using the `$this->path()` method.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return string
+	 * @since 1.0.0
 	 */
-	abstract protected function filename();
+	abstract protected function filename() : string;
 
 	/**
 	 * Returns the cache directory path.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  string  $file
-	 * @return string
+	 * @since 1.0.0
 	 */
-	protected function path( string $file = '' ) {
+	protected function path( string $file = '' ) :string
+	{
 		return $file ? Str::appendPath( $this->path, $file ) : $this->path;
 	}
 
 	/**
 	 * Makes the cache directory path if it doesn't exist.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function make() {
+	public function make() : self
+	{
 		if ( ! file_exists( $this->path() ) ) {
 			mkdir( $this->path(), 0775, true );
 		}
+
+		return $this;
 	}
 
 	/**
 	 * Returns the cached data.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @return mixed
 	 */
-	public function get() {
+	public function get()
+	{
 		return $this->data ?: null;
 	}
 
@@ -114,11 +106,10 @@ abstract class Cache {
 	 * here. Otherwise, the data is only cached for a single page load.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @param  mixed  $data
-	 * @return void
 	 */
-	public function set( $data ) {
+	public function set( $data ) : void
+	{
 		$this->make();
 		$this->data = $data;
 	}
@@ -126,11 +117,10 @@ abstract class Cache {
 	/**
 	 * Deletes cache.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function delete() {
+	public function delete() : void
+	{
 		if ( file_exists( $this->filename() ) ) {
 			unlink( $this->filename() );
 		}

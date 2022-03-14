@@ -14,60 +14,49 @@ namespace Blush\Content\Types;
 use Blush\Controllers;
 use Blush\Tools\Str;
 
-class Type {
-
+class Type
+{
 	/**
 	 * Name of the content type.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $type;
+	protected string $type = 'page';
 
 	/**
 	 * Content type path.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $path = '';
+	protected string $path = '';
 
 	/**
 	 * Array of content type routes.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
+	 * @since 1.0.0
 	 */
-	protected $routes = [];
+	protected array $routes = [];
 
 	/**
 	 * Whether routing should be enabled for this post type. Mostly for
 	 * internal use with pages.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    bool
+	 * @since 1.0.0
 	 */
-	protected $routing = true;
+	protected bool $routing = true;
 
 	/**
 	 * Whether the content type is a taxonomy.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    bool
+	 * @since 1.0.0
 	 */
-	protected $taxonomy = false;
+	protected bool $taxonomy = false;
 
 	/**
 	 * The content type that this content type collects in archives.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
+	 * @var   string|false|null
 	 */
 	protected $collect = null;
 
@@ -75,41 +64,32 @@ class Type {
 	 * If the content type is a taxonomy, the content type that the
 	 * taxonomy terms collect.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
+	 * @var   string|false|null
 	 */
 	protected $term_collect = null;
 
 	/**
 	 * Stores the URI path for the content type.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $uri = '';
+	protected string $uri = '';
 
 	/**
 	 * Stores the single entry URI path for the content type.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $uri_single = '';
+	protected string $uri_single = '';
 
 	/**
 	 * Sets up the object state.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $type
-	 * @param  array   $options
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( string $type, array $options = [] ) {
-
+	public function __construct( string $type, array $options = [] )
+	{
 		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
 			if ( isset( $options[ $key ] ) ) {
 				$this->$key = $options[ $key ];
@@ -140,78 +120,70 @@ class Type {
 	/**
 	 * Returns the content type name (alias for `type()`).
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function name() {
+	public function name() : string
+	{
 		return $this->type();
 	}
 
 	/**
 	 * Returns the content type name.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function type() {
+	public function type() : string
+	{
 		return $this->type;
 	}
 
 	/**
 	 * Returns the content type path.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function path() {
+	public function path() : string
+	{
 		return $this->path;
 	}
 
 	/**
 	 * Returns the content type URI.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function uri() {
+	public function uri() : string
+	{
 		return $this->uri ?: $this->path();
 	}
 
 	/**
 	 * Returns the content type URI for single entries.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function singleUri() {
+	public function singleUri() : string
+	{
 		return $this->uri_single ?: Str::appendUri( $this->path(), '{name}' );
 	}
 
 	/**
 	 * Whether routing is enabled.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return bool
+	 * @since 1.0.0
 	 */
-	public function routing() {
-		return (bool) $this->routing;
+	public function routing() : bool
+	{
+		return $this->routing;
 	}
 
 	/**
 	 * Returns the content type routes as an array.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return array
+	 * @since 1.0.0
 	 */
-	public function routes() {
-
+	public function routes() : array
+	{
 		// Return empty array of the content type doesn't support routes.
 		if ( ! $this->routing() ) {
 			return [];
@@ -261,10 +233,10 @@ class Type {
 	 * Returns the type this content type collects.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @return string|false|null
 	 */
-	public function collect() {
+	public function collect()
+	{
 		return $this->collect;
 	}
 
@@ -272,21 +244,20 @@ class Type {
 	 * Returns the type that terms of this type collects if a taxonomy.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @return string|false|null
 	 */
-	public function termCollect() {
+	public function termCollect()
+	{
 		return $this->term_collect;
 	}
 
 	/**
 	 * Whether this type is a taxonomy.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return bool
+	 * @since 1.0.0
 	 */
-	public function isTaxonomy() {
-		return (bool) $this->taxonomy;
+	public function isTaxonomy() : bool
+	{
+		return $this->taxonomy;
 	}
 }

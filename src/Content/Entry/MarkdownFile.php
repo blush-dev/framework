@@ -11,20 +11,18 @@
 
 namespace Blush\Content\Entry;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Tools\Str;
 
-class MarkdownFile extends File {
-
+class MarkdownFile extends File
+{
 	/**
 	 * Sets up the object state.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $filename
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( $filename ) {
+	public function __construct( string $filename )
+	{
 		parent::__construct( $filename );
 
 		$markdown = App::resolve( 'markdown' )->convert(

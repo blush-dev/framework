@@ -11,23 +11,21 @@
 
 namespace Blush\Controllers;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Content\Query;
-use Blush\Template\Tags\DocumentTitle;
-use Blush\Template\Tags\Pagination;
+use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
+use Symfony\Component\HttpFoundation\Response;
 
-class Collection extends Controller {
-
+class Collection extends Controller
+{
 	/**
 	 * Callback method when route matches request.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  array  $params
-	 * @return Response
+	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [] ) {
+	public function __invoke( array $params = [] ) : Response
+	{
 		$types = App::resolve( 'content/types' );
 
 		$path   = $params['path'] ?? '';
@@ -50,7 +48,7 @@ class Collection extends Controller {
 
 		// Bail if there is no type.
 		if ( ! $type ) {
-			return $this->forward( Error404::class, $params );
+			return $this->forward404( $params );
 		}
 
 		// Get the collection type.
@@ -80,8 +78,8 @@ class Collection extends Controller {
 		], $args ) );
 
 		if ( $single->all() && $collection->all() ) {
-			$type_name = sanitize_with_dashes( $type->type() );
-			$views = [ "collection-{$type_name}" ];
+			$type_name  = sanitize_with_dashes( $type->type() );
+			$model_name = $type->isTaxonomy() ? 'taxonomy' : 'content';
 
 			$doctitle = new DocumentTitle( $single->first()->title(), [
 				'page' => $number ?? 1
@@ -93,24 +91,20 @@ class Collection extends Controller {
 				'total'   => ceil( $collection->total() / $collection->number() )
 			] );
 
-			if ( $type->isTaxonomy() ) {
-				$views[] = 'collection-taxonomy';
-			}
-
-			return $this->response(
-				$this->view( array_merge( $views, [
-					'collection',
-					'index'
-				] ), [
-					'doctitle'   => $doctitle,
-					'pagination' => $pagination,
-					'single'     => $single->first(),
-					'collection' => $collection
-				] )
-			);
+			return $this->response( $this->view( [
+				"collection-{$type_name}",
+				"collection-{$model_name}",
+				'collection',
+				'index'
+			], [
+				'doctitle'   => $doctitle,
+				'pagination' => $pagination,
+				'single'     => $single->first(),
+				'collection' => $collection
+			] ) );
 		}
 
 		// If all else fails, return a 404.
-		return $this->forward( Error404::class, $params );
+		return $this->forward404( $params );
 	}
 }

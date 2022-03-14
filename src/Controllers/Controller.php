@@ -16,21 +16,19 @@
 
 namespace Blush\Controllers;
 
-use Blush\Proxies\App;
-use Blush\Template\Engine;
+use Blush\App;
+use Blush\Template\{Engine, View};
 use Symfony\Component\HttpFoundation\Response;
 
-abstract class Controller {
-
+abstract class Controller
+{
 	/**
 	 * Callback method when route matches request.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  array  $params
-	 * @return Response
+	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [] ) {
+	public function __invoke( array $params = [] ) : Response
+	{
 		return $this->response( $this->view( 'index' ) );
 	}
 
@@ -38,39 +36,42 @@ abstract class Controller {
 	 * Wrapper for the template engine view class.
 	 *
 	 * @since  1.0.0
-	 * @access protected
 	 * @param  string|array     $names
 	 * @param  array|Collection $data
-	 * @return View
 	 */
-	protected function view( $names, $data = [] ) {
+	protected function view( $names, $data = [] ) : View
+	{
 		return App::resolve( Engine::class )->view( $names, $data );
 	}
 
 	/**
 	 * Wrapper for sending a new response to the browser.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  View   $view
-	 * @return Response
+	 * @since 1.0.0
 	 */
-	protected function response( $view ) {
-		$response = new Response();
-		$response->setContent( $view->render() );
-		return $response;
+	protected function response( View $view ) : Response
+	{
+		return new Response( $view->render() );
 	}
 
 	/**
 	 * Forwards request to another controller.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  array  $params
-	 * @return Response
+	 * @since 1.0.0
 	 */
-	protected function forward( string $callback, array $params = [] ) {
+	protected function forward( string $callback, array $params = [] ) : Response
+	{
 		$controller = new $callback;
 		return $controller( $params );
+	}
+
+	/**
+	 * Forwards request to the `Error404` controller.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function forward404( array $params = [] ) : Response
+	{
+		return $this->forward( Error404::class, $params );
 	}
 }

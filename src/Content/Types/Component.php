@@ -14,36 +14,29 @@ namespace Blush\Content\Types;
 use Blush\Contracts\Bootable;
 use Blush\Tools\Collection;
 
-class Component implements Bootable {
-
+class Component implements Bootable
+{
 	/**
 	 * Collection of content types.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    Types
+	 * @since 1.0.0
 	 */
-        protected $types;
+        protected Types $types;
 
 	/**
 	 * Config collection for content types.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    Collection
+	 * @since 1.0.0
 	 */
-        protected $config;
+        protected Collection $config;
 
 	/**
 	 * Sets up object state.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  Types      $types
-	 * @param  Collection $config
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function __construct( Types $types, Collection $config ) {
+        public function __construct( Types $types, Collection $config )
+	{
                 $this->types  = $types;
                 $this->config = $config;
         }
@@ -51,12 +44,10 @@ class Component implements Bootable {
 	/**
 	 * Registers content types on boot.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function boot() {
-
+        public function boot() : void
+	{
 		// Registers user-configured content types.
                 foreach ( $this->config as $type => $options ) {
                         $this->types->add( $type, $options );

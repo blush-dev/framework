@@ -14,28 +14,22 @@ namespace Blush\Core\Providers;
 use Blush\Contracts\Markdown\Parser as ParserContract;
 
 use Blush\Core\ServiceProvider;
-use Blush\Markdown\Parser;
-use Blush\Markdown\ImageRenderer;
-use Blush\Markdown\LinkRenderer;
-use Blush\Markdown\ParagraphRenderer;
+use Blush\Markdown\{Parser, ImageRenderer, LinkRenderer, ParagraphRenderer};
 
 use League\CommonMark\MarkdownConverter;
 use League\CommonMark\Environment\Environment;
-use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
-use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
+use League\CommonMark\Extension\CommonMark\Node\Inline\{Image, Link};
 use League\CommonMark\Node\Block\Paragraph;
 
-class Markdown extends ServiceProvider {
-
+class Markdown extends ServiceProvider
+{
 	/**
 	 * Register bindings.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function register() {
-
+        public function register() : void
+	{
 		// Sets up the Markdown converter and environment.
                 $this->app->singleton( 'markdown/converter', function( $app ) {
 

@@ -15,56 +15,46 @@ use Blush\Contracts\Markdown\Parser as ParserContract;
 use League\CommonMark\ConverterInterface;
 use Symfony\Component\Yaml\Yaml;
 
-class Parser implements ParserContract {
-
+class Parser implements ParserContract
+{
 	/**
 	 * Markdown converter.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  ConverterInterface
+	 * @since 1.0.0
 	 */
-        protected $converter;
+        protected ConverterInterface $converter;
 
 	/**
 	 * Stores content.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  string
+	 * @since 1.0.0
 	 */
-        protected $content;
+        protected string $content;
 
 	/**
 	 * Stores front matter.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  array
+	 * @since 1.0.0
 	 */
-        protected $front_matter;
+        protected array $front_matter;
 
 	/**
 	 * Sets up object state.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  ConverterInterface $converter
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function __construct( ConverterInterface $converter ) {
+        public function __construct( ConverterInterface $converter )
+	{
                 $this->converter = $converter;
         }
 
 	/**
 	 * Converts Markdown to HTML.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $convert
-	 * @return Parser
+	 * @since 1.0.0
 	 */
-        public function convert( string $content ) {
+        public function convert( string $content ) : self
+	{
                 $this->front_matter = [];
 
                 $regex = '/^---[\r\n|\r|\n](.*?)[\r\n|\r|\n]---/s';
@@ -86,22 +76,20 @@ class Parser implements ParserContract {
 	/**
 	 * Returns Markdown HTML.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-        public function content() {
+        public function content() : string
+	{
                 return $this->content;
         }
 
 	/**
 	 * Returns YAML front matter.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return array
+	 * @since 1.0.0
 	 */
-        public function frontMatter() {
+        public function frontMatter() : array
+	{
                 return $this->front_matter;
         }
 }

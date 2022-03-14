@@ -11,50 +11,41 @@
 
 namespace Blush\Content;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 
-class Locator {
-
+class Locator
+{
 	/**
 	 * Relative path to the content folder where to locate content.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $path;
+	protected string $path = '';
 
 	/**
 	 * Array of cached filenames and metadata.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
+	 * @since 1.0.0
 	 */
-	protected $cache;
+	protected array $cache = [];
 
 	/**
 	 * Relative path to the cache folder where to store located content.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $cache_path = 'content';
+	protected string $cache_path = 'content';
 
 	/**
 	 * Sets up object state. The path is relative to the user content
 	 * folder. If no value is passed in, it will be the root.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $path
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( string $path = '' ) {
-
+	public function __construct( string $path = '' )
+	{
 		// Remove slashes and dots from the left/right sides.
 		$path = trim( $path, '/.' );
 
@@ -69,23 +60,20 @@ class Locator {
 	/**
 	 * Returns the folder path relative to the content directory.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function path() {
+	public function path() : string
+	{
 		return $this->path;
 	}
 
 	/**
 	 * Returns the cached filenames and metadata.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return array
+	 * @since 1.0.0
 	 */
-	protected function getCache() {
-
+	protected function getCache() : array
+	{
 		if ( ! $this->cache ) {
 			$cache = cache_get_add( $this->cache_path, 'collection' );
 			$this->cache = $cache ? $cache->all() : [];
@@ -97,14 +85,11 @@ class Locator {
 	/**
 	 * Caches filenames and metadata.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  array  $data
-	 * @return void
+	 * @since 1.0.0
 	 */
-	protected function setCache( $data ) {
+	protected function setCache( array $data ) : void
+	{
 		cache_set( $this->cache_path, $data, 'collection' );
-
 		$this->cache = $data;
 	}
 
@@ -112,11 +97,10 @@ class Locator {
 	 * Returns collection of located files as an array. The filenames are
 	 * the array keys and the metadata is the value.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return array
+	 * @since 1.0.0
 	 */
-	public function all() {
+	public function all() : array
+	{
 		$entries = $this->getCache();
 
 		if ( ! $entries ) {
@@ -125,7 +109,7 @@ class Locator {
 
 		$located = [];
 
-		foreach ( (array) $entries as $filename => $data ) {
+		foreach ( $entries as $filename => $data ) {
 			$filename = Str::appendPath( $this->path, $filename );
 			$located[ $filename ] = $data;
 		}
@@ -137,11 +121,10 @@ class Locator {
 	 * Locates content files and returns them as an array with the filename
 	 * as the key and the metadata as the value.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return array
+	 * @since 1.0.0
 	 */
-	protected function locate() {
+	protected function locate() : array
+	{
 		$files = glob( Str::appendPath( $this->path, '*.md' ) );
 
 		if ( ! $files ) {

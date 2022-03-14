@@ -12,65 +12,52 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-
 namespace Blush\Contracts\Container;
 
 use Closure;
 
-/**
- * Container interface.
- *
- * @since  5.0.0
- * @access public
- */
-interface Container {
-
+interface Container
+{
 	/**
 	 * Add a binding. The abstract should be a key, abstract class name, or
 	 * interface name. The concrete should be the concrete implementation of
 	 * the abstract.
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @param  string  $abstract
-	 * @param  mixed   $concrete
-	 * @param  bool    $shared
-	 * @return void
+	 * @since  1.0.0
+	 * @param  mixed  $concrete
 	 */
-	public function bind( $abstract, $concrete = null, $shared = false );
+	public function bind(
+		string $abstract,
+		$concrete = null,
+		bool $shared = false
+	) : void;
 
 	/**
 	* Alias for `bind()`.
 	*
-	* @since  5.0.0
-	* @access public
-	* @param  string  $abstract
-	* @param  mixed   $concrete
-	* @param  bool    $shared
-	* @return void
+	* @since  1.0.0
+	* @param  mixed  $concrete
 	*/
-	public function add( $abstract, $concrete = null, $shared = false );
+	public function add(
+		string $abstract,
+		$concrete = null,
+		bool $shared = false
+	) : void;
 
 	/**
 	 * Remove a binding.
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @param  string  $abstract
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function remove( $abstract );
+	public function remove( string $abstract ) : void;
 
 	/**
 	 * Resolve and return the binding.
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @param  string  $abstract
-	 * @param  array   $parameters
+	 * @since  1.0.0
 	 * @return mixed
 	 */
-	public function resolve( $abstract, array $parameters = [] );
+	public function resolve( string $abstract, array $parameters = [] );
 
 	/**
 	 * Alias for `resolve()`.
@@ -78,12 +65,10 @@ interface Container {
 	 * Follows the PSR-11 standard. Do not alter.
 	 * @link https://www.php-fig.org/psr/psr-11/
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @param  string  $abstract
-	 * @return object
+	 * @since  1.0.0
+	 * @return mixed
 	 */
-	public function get( $abstract );
+	public function get( string $abstract );
 
 	/**
 	 * Check if a binding exists.
@@ -91,54 +76,38 @@ interface Container {
 	 * Follows the PSR-11 standard. Do not alter.
 	 * @link https://www.php-fig.org/psr/psr-11/
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @param  string  $abstract
-	 * @return bool
+	 * @since  1.0.0
 	 */
-	public function has( $abstract );
+	public function has( $abstract ) : bool;
 
 	/**
 	 * Add a shared binding.
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @param  string  $abstract
-	 * @param  object  $concrete
-	 * @return void
+	 * @since  1.0.0
+	 * @param  mixed  $concrete
 	 */
-	public function singleton( $abstract, $concrete = null );
+	public function singleton( string $abstract, $concrete = null ) : void;
 
 	/**
 	 * Add an existing instance.
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @param  string  $abstract
-	 * @param  mixed   $instance
+	 * @since  1.0.0
+	 * @param  mixed  $instance
 	 * @return mixed
 	 */
-	 public function instance( $abstract, $instance );
+	 public function instance( string $abstract, $instance );
 
 	 /**
 	  * Extend a binding.
 	  *
-	  * @since  5.0.0
-	  * @access public
-	  * @param  string  $abstract
-	  * @param  Closure $closure
-	  * @return void
+	  * @since 1.0.0
 	  */
-	 public function extend( $abstract, Closure $closure );
+	 public function extend( string $abstract, Closure $closure ) : void;
 
 	 /**
 	  * Create an alias for an abstract type.
 	  *
-	  * @since  5.0.0
-	  * @access public
-	  * @param  string  $abstract
-	  * @param  string  $alias
-	  * @return void
+	  * @since 1.0.0
 	  */
-	 public function alias( $abstract, $alias );
+	 public function alias( string $abstract, string $alias ) : void;
 }

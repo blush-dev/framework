@@ -19,18 +19,15 @@ use League\CommonMark\Renderer\ChildNodeRendererInterface;
 use League\CommonMark\Renderer\NodeRendererInterface;
 use League\CommonMark\Util\HtmlElement;
 
-class ImageRenderer implements NodeRendererInterface {
-
+class ImageRenderer implements NodeRendererInterface
+{
 	/**
 	 * Renders the element.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  Node   $node
-	 * @param  ChildNodeRendererInterface $childRenderer
+	 * @since 1.0.0
 	 */
-        public function render( Node $node, ChildNodeRendererInterface $childRenderer ) {
-
+        public function render( Node $node, ChildNodeRendererInterface $childRenderer )
+	{
                 $url        = $node->getUrl();
 		$alt        = '';
 		$figcaption = '';

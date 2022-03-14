@@ -15,40 +15,34 @@
 
 namespace Blush\Content\Entry;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
-abstract class File extends Entry {
-
+abstract class File extends Entry
+{
 	/**
 	 * Entry filename.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $filename;
+	protected string $filename;
 
 	/**
 	 * Entry path info.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
+	 * @since 1.0.0
 	 */
-	protected $pathinfo;
+	protected array $pathinfo;
 
 	/**
 	 * Sets up the object state. Child classes need to overwrite this and
 	 * pull content and metadata from the file.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $filename
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( $filename ) {
+	public function __construct( string $filename )
+	{
 		$this->filename = $filename;
 		$this->pathinfo = pathinfo( $filename );
 	}
@@ -56,13 +50,10 @@ abstract class File extends Entry {
 	/**
 	 * Returns the entry type.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return Type
+	 * @since 1.0.0
 	 */
 	public function type() : Type
 	{
-
 		// Return type if it's already set.
 		if ( $this->type ) {
 			return $this->type;
@@ -93,22 +84,20 @@ abstract class File extends Entry {
 	/**
 	 * Returns the entry filename.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function filename() {
+	public function filename() : string
+	{
 		return $this->filename;
 	}
 
 	/**
 	 * Returns the entry name (basename).
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function name() {
+	public function name() : string
+	{
 		// Get the filename without the extension.
 		$name = $this->pathinfo['filename'];
 
@@ -119,42 +108,5 @@ abstract class File extends Entry {
 		}
 
 		return $name;
-	}
-
-	/**
-	 * Returns the entry URI.
-	 *
-	 * @todo   Massive cleanup.
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
-	 */
-	public function uri() : string
-	{
-		$uri       = $this->type()->singleUri();
-		$name      = $this->name();
-		$timestamp = false;
-
-		if ( $date = $this->date() ) {
-			$timestamp = strtotime( $date );
-		}
-
-		if ( Str::contains( $uri, '{name}' ) ) {
-			$uri = str_replace( '{name}', $name, $uri );
-		}
-
-		if (  $timestamp && Str::contains( $uri, '{year}' ) ) {
-			$uri = str_replace( '{year}', date( 'Y', $timestamp ), $uri );
-		}
-
-		if (  $timestamp && Str::contains( $uri, '{month}' ) ) {
-			$uri = str_replace( '{month}', date( 'm', $timestamp ), $uri );
-		}
-
-		if (  $timestamp && Str::contains( $uri, '{day}' ) ) {
-			$uri = str_replace( '{day}', date( 'd', $timestamp ), $uri );
-		}
-
-		return \uri( $uri );
 	}
 }

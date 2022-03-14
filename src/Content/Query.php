@@ -14,7 +14,7 @@ namespace Blush\Content;
 use ArrayIterator;
 use IteratorAggregate;
 use Traversable;
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Content\Entry\{Entry, MarkdownFile};
 
 class Query implements IteratorAggregate
@@ -23,180 +23,140 @@ class Query implements IteratorAggregate
 	/**
 	 * File locator object.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    Locator
+	 * @since 1.0.0
 	 */
         protected Locator $locator;
 
 	/**
 	 * Path to the entries relative to the content folder.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
 	protected string $path = '';
 
 	/**
 	 * Array of `Entry` objects.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
+	 * @since 1.0.0
 	 */
 	protected array $entries;
 
 	/**
 	 * Array of filenames.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
+	 * @since 1.0.0
 	 */
 	protected array $filenames;
 
 	/**
 	 * Array of located entry slugs.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
+	 * @since 1.0.0
 	 */
 	protected array $located_slugs;
 
 	/**
 	 * Stores the first entry object.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    Entry
+	 * @since 1.0.0
 	 */
 	protected ?Entry $first = null;
 
 	/**
 	 * Stores the last entry object.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    Entry
+	 * @since 1.0.0
 	 */
 	protected ?Entry $last = null;
 
 	/**
 	 * Count of found entries.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
 	protected int $count = 0;
 
 	/**
 	 * Total number of entries.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
 	protected int $total = 0;
 
 	/**
 	 * Whether to remove `index.md` files.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    bool
+	 * @since 1.0.0
 	 */
 	protected bool $noindex = true;
 
 	/**
 	 * Number of entries to query.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
 	protected int $number = 10;
 
 	/**
 	 * Number of entries to offset.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
 	protected int $offset = 0;
 
 	/**
 	 * How to order entries (asc|desc).
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
 	protected string $order = 'asc';
 
 	/**
 	 * What to sort entries by (filename).
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
 	protected string $orderby = 'filename';
 
 	/**
 	 * Query entries with meta key.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
 	protected string $meta_key = '';
 
 	/**
 	 * Query entries with meta value. Meta key is required.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
 	protected string $meta_value = '';
 
 	/**
 	 * Query entries by filename (w/o extension).
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
+	 * @since 1.0.0
 	 */
 	protected array $names = [];
 
 	/**
 	 * Query entries by year.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int|null
+	 * @since 1.0.0
 	 */
 	protected ?int $year = null;
 
 	/**
 	 * Query entries by month.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int|null
+	 * @since 1.0.0
 	 */
 	protected ?int $month = null;
 
 	/**
 	 * Query entries by day.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int|null
+	 * @since 1.0.0
 	 */
 	protected ?int $day = null;
 
@@ -204,8 +164,7 @@ class Query implements IteratorAggregate
 	 * Sets up object state. The path is relative to the user content
 	 * folder. If no value is passed in, it will be the root.
 	 *
-	 * @since  1.0.0
-	 * @param  array  $options
+	 * @since 1.0.0
 	 */
         public function __construct( array $options = [] )
 	{
@@ -250,8 +209,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Filters, sorts, and reduces located entries according the query vars.
 	 *
-	 * @since  1.0.0
-	 * @return void
+	 * @since 1.0.0
 	 */
 	protected function build() : void
 	{
@@ -302,9 +260,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Returns the located entries as an array.
 	 *
-	 * @since  1.0.0
-	 * @param  array   $entries
-	 * @return array
+	 * @since 1.0.0
 	 */
         public function all() : array
 	{
@@ -314,9 +270,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Checks if an entry was located by slug (basename w/o extension).
 	 *
-	 * @since  1.0.0
-	 * @param  string  $slug
-	 * @return bool
+	 * @since 1.0.0
 	 */
 	public function has( string $slug ) : bool
 	{
@@ -326,8 +280,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Returns the first entry.
 	 *
-	 * @since  1.0.0
-	 * @return Entry
+	 * @since 1.0.0
 	 */
 	public function first() : Entry
 	{
@@ -341,8 +294,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Returns the last entry.
 	 *
-	 * @since  1.0.0
-	 * @return Entry
+	 * @since 1.0.0
 	 */
 	public function last() : Entry
 	{
@@ -356,8 +308,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Returns the count for the current query.
 	 *
-	 * @since  1.0.0
-	 * @return int
+	 * @since 1.0.0
 	 */
 	public function count() : int
 	{
@@ -367,8 +318,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Returns the total entries.
 	 *
-	 * @since  1.0.0
-	 * @return int
+	 * @since 1.0.0
 	 */
 	public function total() : int
 	{
@@ -378,8 +328,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Returns the number query option.
 	 *
-	 * @since  1.0.0
-	 * @return int
+	 * @since 1.0.0
 	 */
 	public function number() : int
 	{
@@ -389,8 +338,7 @@ class Query implements IteratorAggregate
 	/**
 	 * Returns the offset query option.
 	 *
-	 * @since  1.0.0
-	 * @return int
+	 * @since 1.0.0
 	 */
 	public function offset() : int
 	{
@@ -400,13 +348,10 @@ class Query implements IteratorAggregate
 	/**
 	 * Filter entries by filename/slug.
 	 *
-	 * @since  1.0.0
-	 * @param  array   $entries
-	 * @return array
+	 * @since 1.0.0
 	 */
         private function filterByNames( array $entries ) : array
 	{
-
                 if ( ! $this->names ) {
                         return $entries;
                 }
@@ -421,7 +366,8 @@ class Query implements IteratorAggregate
                 			$located[ $file ] = $matter;
                 			continue;
                 		} else {
-                			continue; // If file has a defined slug, always use it.
+					// If file has a defined slug, always use it.
+                			continue;
                 		}
         		}
 
@@ -451,13 +397,10 @@ class Query implements IteratorAggregate
 	/**
 	 * Filter entries by date.
 	 *
-	 * @since  1.0.0
-	 * @param  array   $entries
-	 * @return array
+	 * @since 1.0.0
 	 */
         private function filterByDate( array $entries ) : array
 	{
-
                 if ( ! $this->year && ! $this->month && ! $this->day ) {
                         return $entries;
                 }
@@ -495,13 +438,10 @@ class Query implements IteratorAggregate
 	/**
 	 * Filter entries by meta.
 	 *
-	 * @since  1.0.0
-	 * @param  array   $entries
-	 * @return array
+	 * @since 1.0.0
 	 */
-	private function filterByMeta( $entries ) : array
+	private function filterByMeta( array $entries ) : array
 	{
-
 		if ( ! $this->meta_value && ! $this->meta_key ) {
 			return $entries;
 		}
@@ -531,13 +471,10 @@ class Query implements IteratorAggregate
 	/**
 	 * Sort entries by order query options.
 	 *
-	 * @since  1.0.0
-	 * @param  array   $entries
-	 * @return array
+	 * @since 1.0.0
 	 */
         private function sortByOrder( array $entries ) : array
 	{
-
 		$meta_keys = [
 			'author',
 			'date',
@@ -592,8 +529,7 @@ class Query implements IteratorAggregate
 	 * allows developers to use the object as an array in `foreach()` loops.
 	 * What we do is create an `ArrayIterator` and pass along the entries.
 	 *
-	 * @since  1.0.0
-	 * @return ArrayIterator
+	 * @since 1.0.0
 	 */
 	public function getIterator() : Traversable
 	{

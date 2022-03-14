@@ -16,18 +16,15 @@
 
 namespace Blush\Content\Entry;
 
-class Virtual extends Entry {
-
+class Virtual extends Entry
+{
 	/**
 	 * Sets up the object state.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  array  $data
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( array $data = [] ) {
-
+	public function __construct( array $data = [] )
+	{
 		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
 			if ( isset( $data[ $key ] ) ) {
 				$this->$key = $data[ $key ];

@@ -14,38 +14,37 @@
 
 namespace Blush\Cache;
 
-class Rapid extends Cache {
-
+class Rapid extends Cache
+{
 	/**
 	 * No filename.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return string
+	 * @since 1.0.0
 	 */
-	protected function filename() {
+	protected function filename() : string
+	{
 		return '';
 	}
 
 	/**
 	 * Don't make a cache directory.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function make() {}
+	public function make() : self
+	{
+		return $this;
+	}
 
 	/**
 	 * Sets the cached data. Child classes should write the file contents
 	 * here. Otherwise, the data is only cached for a single page load.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @param  mixed  $data
-	 * @return void
 	 */
-	public function set( $data ) {
+	public function set( $data ) : void
+	{
 		$this->data = $data;
 	}
 }

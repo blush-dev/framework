@@ -12,42 +12,34 @@
 namespace Blush\Routing;
 
 use Blush\Contracts\Bootable;
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Controllers;
-use Blush\Tools\Collection;
-use Blush\Tools\Str;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Blush\Tools\{Collection, Str};
+use Symfony\Component\HttpFoundation\{Request, Response};
 
-class Router implements Bootable {
-
+class Router implements Bootable
+{
 	/**
 	 * Routes collection.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    Collection
+	 * @since 1.0.0
 	 */
-	protected $routes;
+	protected Routes $routes;
 
 	/**
 	 * HTTP Request.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    Request
+	 * @since 1.0.0
 	 */
-	protected $request;
+	protected Request $request;
 
 	/**
 	 * Sets up the object state.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  Routes  $routes
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( Routes $routes ) {
+	public function __construct( Routes $routes )
+	{
 		$this->request = Request::createFromGlobals();
                 $this->routes  = $routes;
 	}
@@ -55,12 +47,10 @@ class Router implements Bootable {
 	/**
 	 * Bootstraps the component.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  Routes  $routes
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function boot() {
+	public function boot() : void
+	{
 		$types = App::resolve( 'content/types' );
 
 		// Get the homepage alias if it exists.
@@ -109,22 +99,20 @@ class Router implements Bootable {
 	/**
 	 * Returns the HTTP request.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return Request
+	 * @since 1.0.0
 	 */
-	public function request() {
+	public function request() : Request
+	{
 		return $this->request;
 	}
 
 	/**
 	 * Returns the request path.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function path() {
+	public function path() : string
+	{
 		return $this->request->getPathInfo();
 	}
 
@@ -132,11 +120,10 @@ class Router implements Bootable {
 	 * Returns a cached HTTP Response if global caching is enabled.  If not,
 	 * returns a new HTTP Response.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return Response
+	 * @since 1.0.0
 	 */
-	public function response() {
+	public function response() : Response
+	{
 		$config = config( 'cache' );
 
 		// Just return the response if global caching is disabled.
@@ -183,11 +170,10 @@ class Router implements Bootable {
 	/**
 	 * Returns an HTTP response.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return Response
+	 * @since 1.0.0
 	 */
-	private function getResponse() {
+	private function getResponse() : Response
+	{
 	        $path   = $this->path();
 	        $routes = $this->routes->all();
 

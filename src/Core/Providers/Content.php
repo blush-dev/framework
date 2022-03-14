@@ -12,19 +12,17 @@
 namespace Blush\Core\Providers;
 
 use Blush\Core\ServiceProvider;
-use Blush\Content\Types\Component;
-use Blush\Content\Types\Types;
+use Blush\Content\Types\{Component, Types};
 
-class Content extends ServiceProvider {
-
+class Content extends ServiceProvider
+{
 	/**
 	 * Register bindings.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function register() {
+        public function register() : void
+	{
                 $this->app->singleton( 'content/types', Types::class );
 
                 $this->app->singleton( Component::class, function() {
@@ -38,11 +36,10 @@ class Content extends ServiceProvider {
 	/**
 	 * Bootstrap bindings.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-        public function boot() {
+        public function boot() : void
+	{
                 $this->app->resolve( Component::class )->boot();
         }
 }

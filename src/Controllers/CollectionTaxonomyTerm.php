@@ -11,35 +11,38 @@
 
 namespace Blush\Controllers;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Content\Query;
-use Blush\Template\Tags\DocumentTitle;
-use Blush\Template\Tags\Pagination;
+use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
+use Symfony\Component\HttpFoundation\Response;
 
-class CollectionTaxonomyTerm extends Controller {
-
+class CollectionTaxonomyTerm extends Controller
+{
 	/**
 	 * Callback method when route matches request.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  array  $params
-	 * @return Response
+	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [] ) {
+	public function __invoke( array $params = [] ) : Response
+	{
 		$types = App::resolve( 'content/types' );
 
 		$name   = $params['name'] ?? '';
 		$number = $params['number'] ?? '';
-		$path   = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
+		$path   = $params['path'];
+		$type_path   = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
+
+		if ( $number ) {
+			$path = Str::beforeLast( $path , "/page/{$number}" );
+		}
 
 		$current  = $number ?: 1;
 		$per_page = posts_per_page();
 		$args     = [];
 
 		// Get the taxonomy's content type.
-		$taxonomy = $types->getTypeFromPath( $path );
+		$taxonomy = $types->getTypeFromPath( $type_path );
 		$collect  = $types->get( $taxonomy->termCollect() );
 
 		// Query the taxonomy term.
@@ -80,23 +83,21 @@ class CollectionTaxonomyTerm extends Controller {
 				'total'   => ceil( $collection->total() / $collection->number() )
 			] );
 
-			return $this->response(
-				$this->view( [
-					"collection-{$type_name}-{$name}",
-					"collection-{$type_name}-term",
-					'collection-term',
-					'collection',
-					'index'
-				], [
-					'doctitle'   => $doctitle,
-					'pagination' => $pagination,
-					'single'     => $single->first(),
-					'collection' => $collection
-				] )
-			);
+			return $this->response( $this->view( [
+				"collection-{$type_name}-{$name}",
+				"collection-{$type_name}-term",
+				'collection-term',
+				'collection',
+				'index'
+			], [
+				'doctitle'   => $doctitle,
+				'pagination' => $pagination,
+				'single'     => $single->first(),
+				'collection' => $collection
+			] ) );
 		}
 
 		// If all else fails, return a 404.
-		return $this->forward( Error404::class, $params );
+		return $this->forward404( $params );
 	}
 }

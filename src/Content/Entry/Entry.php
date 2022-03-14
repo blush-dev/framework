@@ -11,14 +11,13 @@
 
 namespace Blush\Content\Entry;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Content\Query;
 use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
 abstract class Entry
 {
-
 	/**
 	 * Entry content type.
 	 *
@@ -61,11 +60,36 @@ abstract class Entry
 	/**
 	 * Returns the entry URI.
 	 *
-	 * @since 1.0.0
+	 * @todo   Allow for taxonomy terms in slug.
+	 * @since  1.0.0
 	 */
 	public function uri() : string
 	{
-		return $uri ?: '';
+		$uri       = $this->type()->singleUri();
+		$name      = $this->name();
+		$timestamp = false;
+
+		if ( $date = $this->date() ) {
+			$timestamp = strtotime( $date );
+		}
+
+		if ( Str::contains( $uri, '{name}' ) ) {
+			$uri = str_replace( '{name}', $name, $uri );
+		}
+
+		if (  $timestamp && Str::contains( $uri, '{year}' ) ) {
+			$uri = str_replace( '{year}', date( 'Y', $timestamp ), $uri );
+		}
+
+		if (  $timestamp && Str::contains( $uri, '{month}' ) ) {
+			$uri = str_replace( '{month}', date( 'm', $timestamp ), $uri );
+		}
+
+		if (  $timestamp && Str::contains( $uri, '{day}' ) ) {
+			$uri = str_replace( '{day}', date( 'd', $timestamp ), $uri );
+		}
+
+		return \uri( $uri );
 	}
 
 	/**

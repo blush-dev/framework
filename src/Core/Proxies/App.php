@@ -11,25 +11,18 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Proxies;
+namespace Blush\Core\Proxies;
 
-/**
- * App static proxy class.
- *
- * @since  5.0.0
- * @access public
- */
-class App extends Proxy {
+use Blush\Core\Proxy;
 
+class App extends Proxy
+{
 	/**
 	 * Returns the name of the accessor for object registered in the container.
 	 *
-	 * @since  5.0.0
-	 * @access protected
-	 * @return string
+	 * @since 1.0.0
 	 */
-	protected static function accessor() {
-
+	protected static function accessor() : string {
 		return 'app';
 	}
 }

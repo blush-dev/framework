@@ -11,72 +11,61 @@
 
 namespace Blush\Template\Tags;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Tools\Str;
 
-class DocumentTitle {
+class DocumentTitle
+{
 
 	/**
 	 * Stores the built document title.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $doctitle;
+	protected string $doctitle = '';
 
 	/**
 	 * View title.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
+	 * @since 1.0.0
 	 */
-	protected $view_title;
+	protected string $view_title = '';
 
 	/**
 	 * Page number for paged views.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
-	protected $page = 1;
+	protected int $page = 1;
 
 	/**
 	 * Separator string between doctitle items
 	 *
 	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
 	 */
-	protected $sep = '&mdash;';
+	protected string $sep = '&mdash;';
 
 	/**
 	 * Sets up the object state.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $view_title
-	 * @param  array   $options
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( string $view_title = '', array $options = [] ) {
-		$this->view_title = $view_title;
+	public function __construct( string $title = '', array $options = [] )
+	{
+		$this->view_title = $title;
 
 		if ( isset( $options['page'] ) ) {
-			$this->page = intval( $options['page'] );
+			$this->page = abs( intval( $options['page'] ) );
 		}
 	}
 
 	/**
 	 * Returns the doctitle between `<title>` tags.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function toHtml() {
+	public function toHtml() : string
+	{
 		return sprintf(
 			'<title>%s</title>',
 			$this->render()
@@ -86,33 +75,30 @@ class DocumentTitle {
 	/**
 	 * Returns the view title.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function viewTitle() {
+	public function viewTitle() : string
+	{
 		return $this->view_title;
 	}
 
 	/**
 	 * Displays the doctitle.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function display() {
+	public function display() : void
+	{
 		echo $this->render();
 	}
 
 	/**
 	 * Returns the doctitle.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function render() {
+	public function render() : string
+	{
 		if ( $this->doctitle ) {
 			return $this->doctitle;
 		}

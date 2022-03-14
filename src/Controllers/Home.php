@@ -11,23 +11,21 @@
 
 namespace Blush\Controllers;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Content\Query;
-use Blush\Template\Tags\DocumentTitle;
-use Blush\Template\Tags\Pagination;
+use Blush\Template\Tags\{DocumentTitle, Pagination};
+use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\Response;
 
-class Home extends Controller {
-
+class Home extends Controller
+{
 	/**
 	 * Callback method when route matches request.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  array  $params
-	 * @return Response
+	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [] ) {
+	public function __invoke( array $params = [] ) : Response
+	{
 		$types = App::resolve( 'content/types' );
 		$alias = \config( 'app', 'home_alias' );
 		$type  = false;
@@ -78,19 +76,17 @@ class Home extends Controller {
 					'total'   => ceil( $collection->total() / $collection->number() )
 				] );
 
-				return $this->response(
-					$this->view( [
-						'collection-home',
-						"collection-{$type_name}",
-						'collection',
-						'index'
-					], [
-						'doctitle'   => $doctitle,
-						'pagination' => $pagination,
-						'single'     => $single->first(),
-						'collection' => $collection
-					] )
-				);
+				return $this->response( $this->view( [
+					'collection-home',
+					"collection-{$type_name}",
+					'collection',
+					'index'
+				], [
+					'doctitle'   => $doctitle,
+					'pagination' => $pagination,
+					'single'     => $single->first(),
+					'collection' => $collection
+				] ) );
 			}
 		}
 
@@ -108,21 +104,28 @@ class Home extends Controller {
 				$collection = new Query( $collect_args );
 			}
 
-			return $this->response(
-				$this->view( [
-					'single-home',
-					'single-page',
-					'single',
-					'index'
-				], [
-					'doctitle'   => new DocumentTitle(),
-					'pagination' => false,
-					'single'     => $single->first(),
-					'collection' => $collection ?: false
-				] )
-			);
+			return $this->response( $this->view( [
+				'single-home',
+				'single-page',
+				'single',
+				'index'
+			], [
+				'doctitle'   => new DocumentTitle(),
+				'pagination' => false,
+				'single'     => $single->first(),
+				'collection' => $collection ?: false
+			] ) );
 		}
 
-		return new Response( 'No user/content/index.md file found.' );
+		// If no index file is found, which is the minimum necessary for
+		// a site, we'll dump a notice and return an empty response.
+		// Note that this is not a 404. It is a user error.
+		$notice = sprintf(
+			'No %s file found.',
+			Str::appendPath( App::resolve( 'path.content' ), 'index.md' )
+		);
+
+		dump( $notice );
+		return new Response( '' );
 	}
 }

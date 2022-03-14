@@ -11,20 +11,18 @@
 
 namespace Blush\Template;
 
-use Blush\Proxies\App;
+use Blush\App;
 use Blush\Tools\Collection;
 
-class View {
-
+class View
+{
 	/**
-	 * Name of the view. This is primarily used as the folder name. However,
+	 * Names for the view. This is primarily used as the folder name. However,
 	 * it can also be the filename as the final fallback if no folder exists.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    []
+	 * @since 1.0.0
 	 */
-	protected $names = [];
+	protected array $paths = [];
 
 	/**
 	 * An array of data that is passed into the view template.
@@ -48,29 +46,27 @@ class View {
 	 * Sets up the view properties.
 	 *
 	 * @since  1.0.0
-	 * @access public
 	 * @param  string           $name
 	 * @param  array|Collection $data
-	 * @return object
 	 */
-	public function __construct( $names, $data = []) {
-
+	public function __construct( $paths, $data = [] )
+	{
 		if ( ! $data instanceof Collection ) {
 			$data = new Collection( (array) $data );
 		}
 
-		$this->names = (array) $names;
+		$this->paths = (array) $paths;
 		$this->data = $data;
 	}
 
 	/**
-	 * When attempting to use the object as a string, return the template output.
+	 * When attempting to use the object as a string, return the template
+	 * output.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function __toString() {
+	public function __toString() : string
+	{
 		return $this->render();
 	}
 
@@ -78,55 +74,43 @@ class View {
 	 * Uses the array of template slugs to build a hierarchy of potential
 	 * templates that can be used.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return array
+	 * @since 1.0.0
 	 */
-	protected function hierarchy() {
-		$templates = [];
-
-		foreach ( $this->names as $name ) {
-			$templates[] = "{$name}.php";
-		}
-
-		return $templates;
+	protected function hierarchy() : array
+	{
+		return array_map( fn( $file ) => "{$file}.php", $this->paths );
 	}
 
 	/**
 	 * Sets the view data.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  Collection
+	 * @since 1.0.0
 	 */
-	public function setData( Collection $data ) {
+	public function setData( Collection $data ) : void
+	{
 		$this->data = $data;
 	}
 
 	/**
 	 * Gets the view data.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return Collection
+	 * @since 1.0.0
 	 */
-	public function getData() {
+	public function getData() : Collection
+	{
 		return $this->data;
 	}
 
 	/**
 	 * Locates the template.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return string
+	 * @since 1.0.0
 	 */
-	protected function locate() {
+	protected function locate() : string
+	{
 		$path = App::resolve( 'path.public' ) . '/views';
 
-		$templates = $this->hierarchy();
-
-		foreach ( $templates as $template ) {
+		foreach ( $this->hierarchy() as $template ) {
 			if ( file_exists( "{$path}/{$template}" ) ) {
 				return "{$path}/{$template}";
 			}
@@ -138,12 +122,10 @@ class View {
 	/**
 	 * Returns the located template.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function template() {
-
+	public function template() : string
+	{
 		if ( is_null( $this->template ) ) {
 			$this->template = $this->locate();
 		}
@@ -154,25 +136,21 @@ class View {
 	/**
 	 * Displays the view.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function display() {
+	public function display() : void
+	{
 		echo $this->render();
 	}
 
 	/**
 	 * Returns the view.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function render() {
-		$template = $this->template();
-
-		if ( ! $template ) {
+	public function render() : string
+	{
+		if ( ! $template = $this->template() ) {
 			return '';
 		}
 

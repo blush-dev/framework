@@ -13,71 +13,58 @@ namespace Blush\Template\Tags;
 
 use Blush\Tools\Str;
 
-class Pagination {
+class Pagination
+{
 
 	/**
 	 * An array of the pagination items.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
+	 * @since 1.0.0
 	 */
-	protected $items = [];
+	protected array $items = [];
 
 	/**
 	 * The total number of pages.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
-	protected $total = 0;
+	protected int $total = 0;
 
 	/**
 	 * The current page being viewed.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
-	protected $current = 0;
+	protected int $current = 0;
 
 	/**
 	 * The number of items to show on the ends.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
-	protected $end_size = 0;
+	protected int $end_size = 0;
 
 	/**
 	 * The number of items to show in the middle.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    int
+	 * @since 1.0.0
 	 */
-	protected $mid_size = 0;
+	protected int $mid_size = 0;
 
 	/**
 	 * Helper for keeping track of whether to show dots instead of a number.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @var    bool
+	 * @since 1.0.0
 	 */
-	protected $dots = false;
+	protected bool $dots = false;
 
 	/**
 	 * Create a new pagination object.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @param  array   $args
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function __construct( array $args = [] ) {
+	public function __construct( array $args = [] )
+	{
 
 		$defaults = [
 			// Base arguments.
@@ -133,7 +120,13 @@ class Pagination {
 		}
 	}
 
-	protected function setArgs( array $args = [] ) {
+	/**
+	 * Set and overwrite arguments.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function setArgs( array $args = [] ) : void
+	{
 		foreach ( $args as $key => $value ) {
 			if ( isset( $this->args[ $key ] ) ) {
 				$this->args[ $key ] = $value;
@@ -144,22 +137,20 @@ class Pagination {
 	/**
 	 * Outputs the pagination output.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return void
+	 * @since 1.0.0
 	 */
-	public function display() {
+	public function display() : void
+	{
 		echo $this->render();
 	}
 
 	/**
 	 * Returns the pagination output.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function render() {
+	public function render() : string
+	{
 		$title = $list = $template = '';
 
 		if ( $this->items ) {
@@ -204,15 +195,13 @@ class Pagination {
 	/**
 	 * Builds the pagination `$items` array.
 	 *
-	 * @since  1.0.0
-	 * @access public
-	 * @return PaginationContract
+	 * @since 1.0.0
 	 */
-	public function make( array $args = [] ) {
+	public function make( array $args = [] ) : self
+	{
 		$this->setArgs( $args );
 
 		if ( 2 <= $this->total ) {
-
 			$this->prevItem();
 
 			for ( $n = 1; $n <= $this->total; $n++ ) {
@@ -228,13 +217,10 @@ class Pagination {
 	/**
 	 * Format an item's HTML output.
 	 *
-	 * @since  1.0.0
-	 * @access private
-	 * @param  array   $item
-	 * @return string
+	 * @since 1.0.0
 	 */
-	private function formatItem( $item ) {
-
+	private function formatItem( array $item = [] ) : string
+	{
 		$is_link  = isset( $item['url'] );
 		$attr     = [];
 		$esc_attr = '';
@@ -257,7 +243,6 @@ class Pagination {
 
 		// Loop through the attributes and format them into a string.
 		foreach ( $attr as $name => $value ) {
-
 			$esc_attr .= sprintf(
 				' %s="%s"',
 				e( $name ),
@@ -279,12 +264,10 @@ class Pagination {
 	/**
 	 * Builds the previous item.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return void
+	 * @since 1.0.0
 	 */
-	protected function prevItem() {
-
+	protected function prevItem() : void
+	{
 		if ( $this->args['prev_next'] && $this->current && 1 < $this->current ) {
 
 			$this->items[] = [
@@ -298,14 +281,11 @@ class Pagination {
 	/**
 	 * Builds the next item.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return void
+	 * @since 1.0.0
 	 */
-	protected function nextItem() {
-
+	protected function nextItem() : void
+	{
 		if ( $this->args['prev_next'] && $this->current && $this->current < $this->total ) {
-
 			$this->items[] = [
 				'type'    => 'next',
 				'url'     => $this->buildUrl( $this->args['format'], $this->current + 1 ),
@@ -317,12 +297,10 @@ class Pagination {
 	/**
 	 * Builds the numeric page link, current item, and dots item.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @return void
+	 * @since 1.0.0
 	 */
-	protected function pageItem( $n ) {
-
+	protected function pageItem( int $n ) : void
+	{
 		// If the current item we're building is for the current page
 		// being viewed.
 		if ( $n === $this->current ) {
@@ -336,7 +314,6 @@ class Pagination {
 
 		// If showing a linked number or dots.
 		} else {
-
 			if ( $this->args['show_all'] || ( $n <= $this->end_size || ( $this->current && $n >= $this->current - $this->mid_size && $n <= $this->current + $this->mid_size ) || $n > $this->total - $this->end_size ) ) {
 
 				$this->items[] = [
@@ -362,14 +339,10 @@ class Pagination {
 	/**
 	 * Builds and formats a page link URL.
 	 *
-	 * @since  1.0.0
-	 * @access protected
-	 * @param  string    $format
-	 * @param  int       $number
-	 * @return string
+	 * @since 1.0.0
 	 */
-	protected function buildUrl( $format, $number ) {
-
+	protected function buildUrl( string $format, int $number ) : string
+	{
 		$uri = str_replace( '%_%', $format, $this->args['base'] );
 		$uri = str_replace( '{page}', $number, $uri );
 
