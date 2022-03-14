@@ -69,12 +69,14 @@ class Home extends Controller
 			if ( $single && $collection->all() ) {
 				$type_name = sanitize_slug( $type->type() );
 
-				$doctitle = new DocumentTitle( '', [ 'page' => $current ] );
+				$doctitle = new DocumentTitle( '', [
+					'page' => $current
+				] );
 
 				$pagination = new Pagination( [
 					'basepath' => '',
 					'current'  => $current,
-					'total'    => ceil( $collection->total() / $collection->number() )
+					'total'    => $collection->pages()
 				] );
 
 				return $this->response( $this->view( [
@@ -98,11 +100,10 @@ class Home extends Controller
 		] ) )->single();
 
 		if ( $single ) {
-			$collection   = false;
-			$collect_args = $single->meta( 'collection' );
+			$collection = false;
 
-			if ( $collect_args ) {
-				$collection = new Query( $collect_args );
+			if ( $args = $single->metaArr( 'collection' ) ) {
+				$collection = new Query( $args );
 			}
 
 			return $this->response( $this->view( [
@@ -114,7 +115,7 @@ class Home extends Controller
 				'doctitle'   => new DocumentTitle(),
 				'pagination' => false,
 				'single'     => $single,
-				'collection' => $collection ?: false
+				'collection' => $collection
 			] ) );
 		}
 

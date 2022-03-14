@@ -46,7 +46,7 @@ class SinglePage extends Single
 		if ( $single ) {
 			$collection = false;
 
-			if ( $args = $single->meta( 'collection' ) ) {
+			if ( $args = $single->metaArr( 'collection' ) ) {
 				$collection = new Query( $args );
 			}
 

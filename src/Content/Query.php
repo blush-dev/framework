@@ -364,6 +364,17 @@ class Query implements IteratorAggregate
 	}
 
 	/**
+	 * Returns the number of pages of entries. This is for use with
+	 * pagination output.
+	 *
+	 * @since 1.0.0
+	 */
+	public function pages() : int
+	{
+		return abs( intval( ceil( $this->total() / $this->number() ) ) );
+	}
+
+	/**
 	 * Returns the offset query option.
 	 *
 	 * @since 1.0.0

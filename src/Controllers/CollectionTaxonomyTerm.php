@@ -54,7 +54,7 @@ class CollectionTaxonomyTerm extends Controller
 
 		// Gets query vars from entry meta.
 		if ( $single ) {
-			$args = $single->meta( 'collection' );
+			$args = $single->metaArr( 'collection' );
 			$args = $args ?: [];
 			// Needed to calculate the offset.
 			$per_page = $args['number'] ?? $per_page;
@@ -82,7 +82,7 @@ class CollectionTaxonomyTerm extends Controller
 			$pagination = new Pagination( [
 				'basepath' => $path,
 				'current'  => $number ?: 1,
-				'total'    => ceil( $collection->total() / $collection->number() )
+				'total'    => $collection->pages()
 			] );
 
 			return $this->response( $this->view( [
