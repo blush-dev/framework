@@ -143,11 +143,9 @@ class Engine
 	 *
 	 * @since  1.0.0
 	 * @param  array|string $paths
-	 * @param  array        $items
-	 * @param  string       $var
 	 * @param  array|string $empty
 	 */
-	public function each( $paths, array $items = [], string $var = '', $empty = [] ) : void
+	public function each( $paths, iterable $items = [], string $var = '', $empty = [] ) : void
 	{
 		if ( ! $items && $empty ) {
 			$this->include( $empty );
