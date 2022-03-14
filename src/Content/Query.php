@@ -300,7 +300,7 @@ class Query implements IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function first() : Entry
+	public function first() : ?Entry
 	{
 		if ( ! $this->first && $all = $this->all() ) {
 			$this->first = array_shift( $all );
@@ -314,7 +314,7 @@ class Query implements IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function last() : Entry
+	public function last() : ?Entry
 	{
 		if ( ! $this->last && $all = $this->all() ) {
 			$this->last = array_pop( $all );
