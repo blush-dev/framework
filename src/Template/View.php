@@ -11,10 +11,15 @@
 
 namespace Blush\Template;
 
-use Blush\App;
-use Blush\Tools\Collection;
+// Contracts.
+use Blush\Contracts\{Displayable, Renderable};
+use Blush\Contracts\Template\View as ViewContract;
 
-class View
+// Concretes.
+use Blush\App;
+use Blush\Tools\{Collection, Str};
+
+class View implements ViewContract, Displayable, Renderable
 {
 	/**
 	 * Names for the view. This is primarily used as the folder name. However,
@@ -65,7 +70,7 @@ class View
 	 *
 	 * @since 1.0.0
 	 */
-	public function __toString() : string
+	public function __toString(): string
 	{
 		return $this->render();
 	}
@@ -76,7 +81,7 @@ class View
 	 *
 	 * @since 1.0.0
 	 */
-	protected function hierarchy() : array
+	protected function hierarchy(): array
 	{
 		return array_map( fn( $file ) => "{$file}.php", $this->paths );
 	}
@@ -86,7 +91,7 @@ class View
 	 *
 	 * @since 1.0.0
 	 */
-	public function setData( Collection $data ) : void
+	public function setData( Collection $data ): void
 	{
 		$this->data = $data;
 	}
@@ -96,7 +101,7 @@ class View
 	 *
 	 * @since 1.0.0
 	 */
-	public function getData() : Collection
+	public function getData(): Collection
 	{
 		return $this->data;
 	}
@@ -106,13 +111,13 @@ class View
 	 *
 	 * @since 1.0.0
 	 */
-	protected function locate() : string
+	protected function locate(): string
 	{
-		$path = App::resolve( 'path.public' ) . '/views';
-
 		foreach ( $this->hierarchy() as $template ) {
-			if ( file_exists( "{$path}/{$template}" ) ) {
-				return "{$path}/{$template}";
+			$filepath = view_path( $template );
+
+			if ( file_exists( $filepath ) ) {
+				return $filepath;
 			}
 		}
 
@@ -124,7 +129,7 @@ class View
 	 *
 	 * @since 1.0.0
 	 */
-	public function template() : string
+	public function template(): string
 	{
 		if ( is_null( $this->template ) ) {
 			$this->template = $this->locate();
@@ -138,7 +143,7 @@ class View
 	 *
 	 * @since 1.0.0
 	 */
-	public function display() : void
+	public function display(): void
 	{
 		echo $this->render();
 	}
@@ -148,7 +153,7 @@ class View
 	 *
 	 * @since 1.0.0
 	 */
-	public function render() : string
+	public function render(): string
 	{
 		if ( ! $template = $this->template() ) {
 			return '';

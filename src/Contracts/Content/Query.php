@@ -13,9 +13,6 @@
 
 namespace Blush\Contracts\Content;
 
-use IteratorAggregate;
-use Blush\Content\Entry\Entry;
-
 interface Query
 {
 	/**

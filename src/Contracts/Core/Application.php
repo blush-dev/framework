@@ -30,7 +30,7 @@ interface Application extends Container
 	 * @since  1.0.0
 	 * @param  string|object  $provider
 	 */
-	public function provider( $provider ) : void;
+	public function provider( $provider ): void;
 
 	/**
 	 * Adds a static proxy alias. Developers must pass in fully-qualified
@@ -38,5 +38,5 @@ interface Application extends Container
 	 *
 	 * @since 1.0.0
 	 */
-	public function proxy( string $class_name, string $alias ) : void;
+	public function proxy( string $class_name, string $alias ): void;
 }

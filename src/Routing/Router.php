@@ -11,13 +11,10 @@
 
 namespace Blush\Routing;
 
-use Blush\Contracts\Bootable;
-use Blush\App;
-use Blush\Controllers;
-use Blush\Tools\{Collection, Str};
+use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
-class Router implements Bootable
+class Router
 {
 	/**
 	 * Routes collection.
@@ -42,58 +39,6 @@ class Router implements Bootable
 	{
 		$this->request = Request::createFromGlobals();
                 $this->routes  = $routes;
-	}
-
-	/**
-	 * Bootstraps the component.
-	 *
-	 * @since 1.0.0
-	 */
-	public function boot() : void
-	{
-		$types = App::resolve( 'content/types' );
-
-		// Get the homepage alias if it exists.
-		$alias = \config( 'app', 'home_alias' );
-		$alias = $alias && $types->has( $alias ) ? $types->get( $alias ) : false;
-
-		// Sort the content types.
-		$types = array_reverse( $types->sortByPath() );
-
-		// Loop through the content types and add their routes.
-		foreach ( (array) $types as $type ) {
-
-			// Skip if the content type doesn't support routing.
-			if ( ! $type->routing() ) {
-				continue;
-			}
-
-			foreach ( $type->routes() as $uri => $args ) {
-				$this->routes->add( $uri, $args );
-			}
-		}
-
-		// Add paginated homepage route if we have content type alias.
-		if ( $alias ) {
-			$this->routes->add( '/page/{number}', [
-				'controller' => Controllers\Home::class
-			] );
-		}
-
-		// Add homepage route.
-		$this->routes->add( '/', [
-			'controller' => Controllers\Home::class
-		] );
-
-		// Add cache purge route.
-		$this->routes->add( 'cache/purge/{key}', [
-			'controller' => Controllers\Cache::class
-		] );
-
-		// Add catchall page route.
-		$this->routes->add( '{*}', [
-			'controller' => Controllers\SinglePage::class
-		] );
 	}
 
 	/**
@@ -122,7 +67,7 @@ class Router implements Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function response() : Response
+	public function response(): Response
 	{
 		$config = config( 'cache' );
 
@@ -172,7 +117,7 @@ class Router implements Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	private function getResponse() : Response
+	private function getResponse(): Response
 	{
 	        $path   = $this->path();
 	        $routes = $this->routes->all();

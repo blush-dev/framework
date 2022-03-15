@@ -25,7 +25,7 @@ class Home extends Controller
 	 */
 	public function __invoke( array $params = [] ) : Response
 	{
-		$types = App::resolve( 'content/types' );
+		$types = App::resolve( 'content.types' );
 		$alias = \config( 'app', 'home_alias' );
 		$type  = false;
 

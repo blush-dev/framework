@@ -82,6 +82,18 @@ if ( ! function_exists( 'public_path' ) ) {
 	}
 }
 
+if ( ! function_exists( 'view_path' ) ) {
+	/**
+	 * Returns view path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	function view_path( string $append = '' ) : string
+	{
+		return Str::appendPath( app( 'path.view' ), $append );
+	}
+}
+
 if ( ! function_exists( 'resource_path' ) ) {
 	/**
 	 * Returns resource path with optional appended path/file.
@@ -163,6 +175,18 @@ if ( ! function_exists( 'public_uri' ) ) {
 	function public_uri( string $append = '' ) : string
 	{
 		return Str::appendUri( app( 'uri.public' ), $append );
+	}
+}
+
+if ( ! function_exists( 'view_uri' ) ) {
+	/**
+	 * Returns view URI with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	function view_uri( string $append = '' ) : string
+	{
+		return Str::appendUri( app( 'uri.view' ), $append );
 	}
 }
 

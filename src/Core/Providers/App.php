@@ -11,7 +11,12 @@
 
 namespace Blush\Core\Providers;
 
+// Abstracts.
+use Blush\Contracts\Template\Engine as EngineContract;
+use Blush\Contracts\Template\View as ViewContract;
 use Blush\Core\ServiceProvider;
+
+// Concretes.
 use Blush\Template\Engine;
 use Blush\Template\View;
 use Blush\Tools\Collection;
@@ -38,8 +43,12 @@ class App extends ServiceProvider
                 $this->app->instance( 'caches', new Collection() );
 
 		// Add template engine.
-                $this->app->bind( View::class );
-		$this->app->singleton( Engine::class );
+		$this->app->singleton( EngineContract::class, Engine::class );
+                $this->app->bind(      ViewContract::class,   View::class   );
+
+		// Add aliases.
+		$this->app->alias( ViewContract::class,   'template.engine' );
+		$this->app->alias( EngineContract::class, 'template.view'   );
 
 		// Set up variable dumper.
 		$this->setVarDumper();

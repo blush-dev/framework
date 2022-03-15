@@ -1,10 +1,10 @@
 <?php
 /**
- * Fetchable contract.
+ * Renderable contract.
  *
- * Fetchable classes should implement a `fetch()` method that returns an HTML
+ * Renderable classes should implement a `render()` method that returns an HTML
  * string ready for output to the screen. While there's no way to ensure this
- * via the contract, the intent here is for anything that's fetchable to already
+ * via the contract, the intent here is for anything that's renderable to already
  * be escaped. For clarity in the code, when returning raw data, it is
  * recommended to use an alternate method name, such as `get()`, and not use
  * this contract.
@@ -18,20 +18,12 @@
 
 namespace Blush\Contracts;
 
-/**
- * Fetchable interface.
- *
- * @since  5.0.0
- * @access public
- */
-interface Fetchable {
-
+interface Renderable
+{
 	/**
 	 * Returns an HTML string for output.
 	 *
-	 * @since  5.0.0
-	 * @access public
-	 * @return string
+	 * @since 1.0.0
 	 */
-	public function fetch();
+	public function render(): string;
 }

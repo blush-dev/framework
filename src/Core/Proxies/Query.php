@@ -23,6 +23,6 @@ class Query extends Proxy
 	 */
 	protected static function accessor(): string
 	{
-		return QueryContract::class;
+		return 'content.query';
 	}
 }

@@ -59,7 +59,7 @@ abstract class File extends Entry
 			return $this->type;
 		}
 
-		$types = App::get( 'content/types' );
+		$types = App::get( 'content.types' );
 
 		// Strip the file basename and content path from the file path.
 		// This should give us the content type path, which we can match

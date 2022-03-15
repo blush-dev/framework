@@ -14,13 +14,13 @@ namespace Blush\Content;
 // Interfaces.
 use IteratorAggregate;
 use Blush\Contracts\Makeable;
+use Blush\Contracts\Content\{Entry, Locator};
 use Blush\Contracts\Content\Query as QueryContract;
 
 // Classes.
 use ArrayIterator;
 use Traversable;
 use Blush\App;
-use Blush\Content\Entry\{Entry, MarkdownFile};
 use Blush\Tools\Str;
 
 class Query implements Makeable, QueryContract, IteratorAggregate
@@ -201,7 +201,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
 		// If a content type is passed in, use its path.
 		if ( ! $this->path && isset( $options['type'] ) ) {
-			$types = App::resolve( 'content/types' );
+			$types = App::resolve( 'content.types' );
 
 			if ( $types->has( $options['type'] ) ) {
 				$this->path = $types->get( $options['type'] )->path();
@@ -273,7 +273,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
 		// Create array of entry objects.
 		foreach ( $this->filepaths as $filepath ) {
-			$entry = new MarkdownFile( $filepath );
+			$entry = App::resolve( 'content.entry', [ 'filepath' => $filepath ] );
 
 			$filename = $entry->pathinfo( 'filename' );
 			$slug     = Str::afterLast( $filename, '.' );

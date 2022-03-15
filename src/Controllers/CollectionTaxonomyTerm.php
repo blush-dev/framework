@@ -25,7 +25,7 @@ class CollectionTaxonomyTerm extends Controller
 	 */
 	public function __invoke( array $params = [] ) : Response
 	{
-		$types = App::resolve( 'content/types' );
+		$types = App::resolve( 'content.types' );
 
 		$name   = $params['name'] ?? '';
 		$number = $params['number'] ?? '';

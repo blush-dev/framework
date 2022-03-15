@@ -31,7 +31,7 @@ class Markdown extends ServiceProvider
         public function register() : void
 	{
 		// Sets up the Markdown converter and environment.
-                $this->app->singleton( 'markdown/converter', function( $app ) {
+                $this->app->singleton( 'markdown.converter', function( $app ) {
 
 			// Gets the user Markdown config.
                         $markdown = $app->get( 'config.markdown' );
@@ -68,7 +68,7 @@ class Markdown extends ServiceProvider
 
 		// Binds a Markdown wrapper class for accessing the converter.
 		$this->app->bind( 'markdown', function( $app ) {
-			return new Parser( $app->resolve( 'markdown/converter' ) );
+			return new Parser( $app->make( 'markdown.converter' ) );
 		} );
         }
 }

@@ -25,7 +25,7 @@ class Single extends Controller
 	 */
 	public function __invoke( array $params = [] ) : Response
 	{
-		$types = App::resolve( 'content/types' );
+		$types = App::resolve( 'content.types' );
 
 		// Get the post name and path.
 		$name = $params['name'] ?? '';

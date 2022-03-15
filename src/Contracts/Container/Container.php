@@ -30,7 +30,7 @@ interface Container
 		string $abstract,
 		$concrete = null,
 		bool $shared = false
-	) : void;
+	): void;
 
 	/**
 	* Alias for `bind()`.
@@ -42,14 +42,14 @@ interface Container
 		string $abstract,
 		$concrete = null,
 		bool $shared = false
-	) : void;
+	): void;
 
 	/**
 	 * Remove a binding.
 	 *
 	 * @since 1.0.0
 	 */
-	public function remove( string $abstract ) : void;
+	public function remove( string $abstract ): void;
 
 	/**
 	 * Resolve and return the binding.
@@ -58,6 +58,14 @@ interface Container
 	 * @return mixed
 	 */
 	public function resolve( string $abstract, array $parameters = [] );
+
+	/**
+	 * Alias for `resolve()`.
+	 *
+	 * @since  1.0.0
+	 * @return mixed
+	 */
+	public function make( string $abstract, array $parameters = [] );
 
 	/**
 	 * Alias for `resolve()`.
@@ -78,7 +86,7 @@ interface Container
 	 *
 	 * @since  1.0.0
 	 */
-	public function has( $abstract ) : bool;
+	public function has( $abstract ): bool;
 
 	/**
 	 * Add a shared binding.
@@ -86,7 +94,7 @@ interface Container
 	 * @since  1.0.0
 	 * @param  mixed  $concrete
 	 */
-	public function singleton( string $abstract, $concrete = null ) : void;
+	public function singleton( string $abstract, $concrete = null ): void;
 
 	/**
 	 * Add an existing instance.
@@ -102,12 +110,12 @@ interface Container
 	  *
 	  * @since 1.0.0
 	  */
-	 public function extend( string $abstract, Closure $closure ) : void;
+	 public function extend( string $abstract, Closure $closure ): void;
 
 	 /**
 	  * Create an alias for an abstract type.
 	  *
 	  * @since 1.0.0
 	  */
-	 public function alias( string $abstract, string $alias ) : void;
+	 public function alias( string $abstract, string $alias ): void;
 }

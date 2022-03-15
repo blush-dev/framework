@@ -22,7 +22,7 @@ class App extends Proxy
 	 *
 	 * @since 1.0.0
 	 */
-	protected static function accessor() : string {
+	protected static function accessor(): string {
 		return 'app';
 	}
 }

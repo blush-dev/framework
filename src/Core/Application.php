@@ -70,7 +70,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function boot() : void
+	public function boot(): void
 	{
 		$this->registerProviders();
 		$this->registerProxies();
@@ -82,7 +82,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function registerDefaultBindings() : void
+	protected function registerDefaultBindings(): void
 	{
 		// Add the instance of this application.
 		$this->instance( 'app', $this );
@@ -102,6 +102,7 @@ class Application extends Container implements ApplicationContract, Bootable
 
 		// Add default paths.
 		$this->instance( 'path.public',   Str::appendPath( $this['path'],         'public'    ) );
+		$this->instance( 'path.view',     Str::appendPath( $this['path.public'],  'views'     ) );
 		$this->instance( 'path.resource', Str::appendPath( $this['path'],         'resources' ) );
 		$this->instance( 'path.storage',  Str::appendPath( $this['path'],         'storage'   ) );
 		$this->instance( 'path.cache',    Str::appendPath( $this['path.storage'], 'cache'     ) );
@@ -112,6 +113,7 @@ class Application extends Container implements ApplicationContract, Bootable
 		// Add default URIs.
 		$this->instance( 'uri',          $this['config.app']['uri']                          );
 		$this->instance( 'uri.public',   Str::appendUri( $this['uri'],         'public'    ) );
+		$this->instance( 'uri.view',     Str::appendUri( $this['uri.public'],  'views'     ) );
 		$this->instance( 'uri.resource', Str::appendUri( $this['uri'],         'resources' ) );
 		$this->instance( 'uri.storage',  Str::appendUri( $this['uri'],         'storage'   ) );
 		$this->instance( 'uri.cache',    Str::appendUri( $this['uri.storage'], 'cache'     ) );
@@ -125,13 +127,13 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function registerDefaultProviders() : void
+	protected function registerDefaultProviders(): void
 	{
 		// Register framework service providers.
 		$this->provider( Providers\App::class      );
 		$this->provider( Providers\Content::class  );
 		$this->provider( Providers\Markdown::class );
-		$this->provider( Providers\Route::class    );
+		$this->provider( Providers\Routing::class  );
 
 		// Register app service providers.
 		$config = $this->resolve( 'config.app' );
@@ -148,7 +150,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function registerDefaultProxies() : void
+	protected function registerDefaultProxies(): void
 	{
 		Proxy::setContainer( $this );
 
@@ -174,7 +176,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 * @since  1.0.0
 	 * @param  string|object  $provider
 	 */
-	public function provider( $provider ) : void
+	public function provider( $provider ): void
 	{
 		if ( is_string( $provider ) ) {
 			$provider = $this->resolveProvider( $provider );
@@ -188,7 +190,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function resolveProvider( string $provider ) : ServiceProvider
+	protected function resolveProvider( string $provider ): ServiceProvider
 	{
 		return new $provider( $this );
 	}
@@ -198,7 +200,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function registerProvider( ServiceProvider $provider ) : void
+	protected function registerProvider( ServiceProvider $provider ): void
 	{
 		$provider->register();
 	}
@@ -208,7 +210,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function bootProvider( ServiceProvider $provider ) : void
+	protected function bootProvider( ServiceProvider $provider ): void
 	{
 		$provider->boot();
 	}
@@ -218,7 +220,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function getProviders() : array
+	protected function getProviders(): array
 	{
 		return $this->providers;
 	}
@@ -228,7 +230,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function registerProviders() : void
+	protected function registerProviders(): void
 	{
 		foreach ( $this->getProviders() as $provider ) {
 			$this->registerProvider( $provider );
@@ -240,7 +242,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function bootProviders() : void
+	protected function bootProviders(): void
 	{
 		foreach ( $this->getProviders() as $provider ) {
 			$this->bootProvider( $provider );
@@ -253,7 +255,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function proxy( string $class_name, string $alias ) : void
+	public function proxy( string $class_name, string $alias ): void
 	{
 		$this->proxies[ $class_name ] = $alias;
 	}
@@ -263,7 +265,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function registerProxies() : void
+	protected function registerProxies(): void
 	{
 		foreach ( $this->proxies as $class => $alias ) {
 			class_alias( $class, $alias );

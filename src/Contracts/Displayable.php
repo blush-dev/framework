@@ -15,18 +15,12 @@
 
 namespace Blush\Contracts;
 
-/**
- * Displayable interface.
- *
- * @since  5.0.0
- * @access public
- */
-interface Displayable {
-
+interface Displayable
+{
 	/**
 	 * Prints the HTML string.
 	 *
-	 * @since  5.0.0
+	 * @since  1.0.0
 	 * @access public
 	 * @return void
 	 */

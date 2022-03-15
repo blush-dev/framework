@@ -163,6 +163,17 @@ class Container implements ContainerContract, ArrayAccess
 	}
 
 	/**
+	 * Alias for `resolve()`.
+	 *
+	 * @since  1.0.0
+	 * @return mixed
+	 */
+	public function make( string $abstract, array $parameters = [] )
+	{
+		return $this->resolve( $abstract, $parameters );
+	}
+
+	/**
 	* Alias for `resolve()`.
 	*
 	* @since  1.0.0

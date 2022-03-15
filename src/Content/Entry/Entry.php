@@ -11,11 +11,15 @@
 
 namespace Blush\Content\Entry;
 
+// Abstracts.
+use Blush\Contracts\Content\Entry as EntryContract;
+
+// Concretes.
 use Blush\{App, Query};
 use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
-abstract class Entry
+abstract class Entry implements EntryContract
 {
 	/**
 	 * Entry content type.
@@ -241,7 +245,7 @@ abstract class Entry
 	 */
 	public function terms( string $taxonomy, array $args = [] )
 	{
-		$types = App::resolve( 'content/types' );
+		$types = App::resolve( 'content.types' );
 
 		if ( $types->has( $taxonomy ) && $types->get( $taxonomy )->isTaxonomy() ) {
 			return $this->metaQuery(

@@ -11,8 +11,11 @@
 
 namespace Blush\Markdown;
 
+// Contracts.
 use Blush\Contracts\Markdown\Parser as ParserContract;
 use League\CommonMark\ConverterInterface;
+
+// Concretes.
 use Symfony\Component\Yaml\Yaml;
 
 class Parser implements ParserContract
@@ -53,7 +56,7 @@ class Parser implements ParserContract
 	 *
 	 * @since 1.0.0
 	 */
-        public function convert( string $content ) : self
+        public function convert( string $content ): self
 	{
                 $this->front_matter = [];
 
@@ -78,7 +81,7 @@ class Parser implements ParserContract
 	 *
 	 * @since 1.0.0
 	 */
-        public function content() : string
+        public function content(): string
 	{
                 return $this->content;
         }
@@ -88,7 +91,7 @@ class Parser implements ParserContract
 	 *
 	 * @since 1.0.0
 	 */
-        public function frontMatter() : array
+        public function frontMatter(): array
 	{
                 return $this->front_matter;
         }

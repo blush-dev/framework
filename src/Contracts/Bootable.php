@@ -16,12 +16,12 @@
 
 namespace Blush\Contracts;
 
-interface Bootable {
-
+interface Bootable
+{
 	/**
 	 * Bootstraps the class.
 	 *
 	 * @since 1.0.0
 	 */
-	public function boot() : void;
+	public function boot(): void;
 }

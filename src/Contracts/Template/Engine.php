@@ -1,6 +1,6 @@
 <?php
 /**
- * Template engine.
+ * Template engine interface.
  *
  * @package   Blush
  * @author    Justin Tadlock <justintadlock@gmail.com>
@@ -9,25 +9,10 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Template;
+namespace Blush\Contracts\Template;
 
-// Abstracts.
-use Blush\Contracts\Template\Engine as EngineContract;
-use Blush\Contracts\Template\View;
-
-// Concretes.
-use Blush\App;
-use Blush\Tools\Collection;
-
-class Engine implements EngineContract
+interface Engine
 {
-	/**
-	 * Houses shared data to pass down to subviews.
-	 *
-	 * @since 1.0.0
-	 */
-	protected Collection $shared;
-
 	/**
 	 * Returns a View object. This should only be used for top-level views
 	 * because it resets the shared data when called.  If including views
@@ -37,16 +22,7 @@ class Engine implements EngineContract
 	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
 	 */
-	public function view( $paths, $data = [] ): View
-	{
-		$data['engine'] = $this;
-
-		$view = App::make( View::class, compact( 'paths', 'data' ) );
-
-		$this->shared = $view->getData();
-
-		return $view;
-	}
+	public function view( $paths, $data = [] ): View;
 
 	/**
 	 * Returns a View object. Use for getting views inside of other views.
@@ -56,19 +32,7 @@ class Engine implements EngineContract
 	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
 	 */
-	public function subview( $paths, $data = [] ): View
-	{
-		if ( $this->shared ) {
-			$data = array_merge(
-				$this->shared->all(),
-				$data instanceof Collection ? $data->all() : $data
-			);
-		}
-
-		$data['engine'] = $this;
-
-		return App::make( View::class, compact( 'paths', 'data' ) );
-	}
+	public function subview( $paths, $data = [] ): View;
 
 	/**
 	 * Includes a subview.
@@ -77,24 +41,7 @@ class Engine implements EngineContract
 	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
 	 */
-	public function include( $paths, $data = [] ): void
-	{
-		$subview = $this->subview( $paths, $data );
-
-		if ( ! $subview->template() ) {
-			$templates = array_map(
-				fn( $name ) => "`{$name}.php`",
-				(array) $paths
-			);
-
-			dump( sprintf(
-				'Notice: View templates not found: %s.',
-				implode( ', ', $templates )
-			) );
-		}
-
-		$subview->display();
-	}
+	public function include( $paths, $data = [] ): void;
 
 	/**
 	 * Includes a subview only if it exists. No errors or warnings if no
@@ -104,10 +51,7 @@ class Engine implements EngineContract
 	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
 	 */
-	public function includeIf( $paths, $data = [] ): void
-	{
-		$this->subview( $paths, $data )->display();
-	}
+	public function includeIf( $paths, $data = [] ): void;
 
 	/**
 	 * Includes a subview when `$when` is `true`.
@@ -117,12 +61,7 @@ class Engine implements EngineContract
 	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
 	 */
-	public function includeWhen( $when, $paths, $data = [] ): void
-	{
-		if ( $when ) {
-			$this->include( $paths, $data );
-		}
-	}
+	public function includeWhen( $when, $paths, $data = [] ): void;
 
 	/**
 	 * Includes a subview unless `$unless` is `true`.
@@ -132,12 +71,7 @@ class Engine implements EngineContract
 	 * @param  array|string      $paths
 	 * @param  array|Collection  $data
 	 */
-	public function includeUnless( $unless, $paths, $data = [] ): void
-	{
-		if ( ! $unless ) {
-			$this->include( $paths, $data );
-		}
-	}
+	public function includeUnless( $unless, $paths, $data = [] ): void;
 
 	/**
 	 * Loops through an array of items and includes a subview for each.  Use
@@ -149,17 +83,10 @@ class Engine implements EngineContract
 	 * @param  array|string $paths
 	 * @param  array|string $empty
 	 */
-	public function each( $paths, iterable $items = [], string $var = '', $empty = [] ): void
-	{
-		if ( ! $items && $empty ) {
-			$this->include( $empty );
-		}
-
-		foreach ( $items as $item ) {
-			$this->include(
-				$paths,
-				$var ? [ $var => $item ] : []
-			);
-		}
-	}
+	public function each(
+		$paths,
+		iterable $items = [],
+		string $var = '',
+		$empty = []
+	): void;
 }
