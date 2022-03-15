@@ -11,7 +11,9 @@
 
 namespace Blush\Core\Providers;
 
+use Blush\Contracts\Content\Query as QueryContract;
 use Blush\Core\ServiceProvider;
+use Blush\Content\{Locator, Query};
 use Blush\Content\Types\{Component, Types};
 
 class Content extends ServiceProvider
@@ -31,6 +33,9 @@ class Content extends ServiceProvider
                                 $this->app->resolve( 'config.content' )
                         );
                 } );
+
+		$this->app->bind( Locator::class );
+		$this->app->bind( QueryContract::class, Query::class );
         }
 
 	/**

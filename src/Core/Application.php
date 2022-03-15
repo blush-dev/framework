@@ -18,7 +18,7 @@ namespace Blush\Core;
 use Blush\Container\Container;
 use Blush\Contracts\Core\Application as ApplicationContract;
 use Blush\Contracts\Bootable;
-use Blush\Core\Proxies\App;
+use Blush\Core\Proxies;
 use Blush\Tools\{Collection, Config, Str};
 
 /**
@@ -153,7 +153,8 @@ class Application extends Container implements ApplicationContract, Bootable
 		Proxy::setContainer( $this );
 
 		// Register framework proxies.
-		$this->proxy( App::class, '\Blush\App' );
+		$this->proxy( Proxies\App::class,   '\Blush\App'   );
+		$this->proxy( Proxies\Query::class, '\Blush\Query' );
 
 		// Register app proxies.
 		$config = $this->resolve( 'config.app' );

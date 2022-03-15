@@ -39,17 +39,29 @@ class Locator
 	protected string $cache_path = 'content';
 
 	/**
-	 * Sets up object state. The path is relative to the user content
-	 * folder. If no value is passed in, it will be the root.
+	 * Sets up object state.
 	 *
 	 * @since 1.0.0
 	 */
 	public function __construct( string $path = '' )
 	{
+		$this->path = App::resolve( 'path.content' );
+
+		if ( $path ) {
+			$this->setPath( $path );
+		}
+	}
+
+	/**
+	 * Sets the locator path. The path is relative to the user content
+	 * folder. If no value is passed in, it will be the root.
+	 *
+	 * @since 1.0.0
+	 */
+	public function setPath( string $path ) : void
+	{
 		// Remove slashes and dots from the left/right sides.
 		$path = trim( $path, '/.' );
-
-		$this->path = App::resolve( 'path.content' );
 
 		if ( $path ) {
 			$this->path       = Str::appendPath( $this->path, $path );

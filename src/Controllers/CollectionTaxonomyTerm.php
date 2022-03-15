@@ -11,8 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\App;
-use Blush\Content\Query;
+use Blush\{App, Query};
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,10 +46,10 @@ class CollectionTaxonomyTerm extends Controller
 		$collect  = $types->get( $taxonomy->termCollect() );
 
 		// Query the taxonomy term.
-		$single = ( new Query( [
+		$single = Query::make( [
 			'path' => $taxonomy->path(),
 			'slug' => $name
-		] ) )->single();
+		] )->single();
 
 		// Gets query vars from entry meta.
 		if ( $single ) {
@@ -61,7 +60,7 @@ class CollectionTaxonomyTerm extends Controller
 		}
 
 		// Query the term's content collection.
-		$collection = new Query( array_merge( [
+		$collection = Query::make( array_merge( [
 			'path'       => $collect->path(),
 			'noindex'    => true,
 			'number'     => $per_page,

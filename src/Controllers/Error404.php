@@ -11,8 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\App;
-use Blush\Content\Query;
+use Blush\{App, Query};
 use Blush\Template\Tags\DocumentTitle;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -27,10 +26,10 @@ class Error404 extends Controller
 	{
 		http_response_code( 404 );
 
-		$single = ( new Query( [
+		$single = Query::make( [
 			'path' => '_error',
 			'slug' => '404'
-		] ) )->single();
+		] )->single();
 
 		if ( $single ) {
 			$doctitle = new DocumentTitle( $single->title() );

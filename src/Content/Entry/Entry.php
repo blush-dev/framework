@@ -11,8 +11,7 @@
 
 namespace Blush\Content\Entry;
 
-use Blush\App;
-use Blush\Content\Query;
+use Blush\{App, Query};
 use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
@@ -169,7 +168,7 @@ abstract class Entry
 		}
 
 		if ( $args['names'] ) {
-			$this->resolved_meta[ $name ] = new Query( $args );
+			$this->resolved_meta[ $name ] = Query::make( $args );
 		}
 
 		// Return the resolved meta.

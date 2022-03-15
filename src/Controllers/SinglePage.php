@@ -11,8 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\App;
-use Blush\Content\Query;
+use Blush\{App, Query};
 use Blush\Template\Tags\DocumentTitle;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,24 +29,24 @@ class SinglePage extends Single
 		$name = Str::afterLast( $path, '/' );
 
 		// Look for an `path/index.md` file.
-		$single = ( new Query( [
+		$single = Query::make( [
 			'path' => $path,
 			'slug' => 'index'
-		] ) )->single();
+		] )->single();
 
 		// Look for a `path/{$name}.md` file if `path/index.md` not found.
 		if ( ! $single ) {
-			$single = ( new Query( [
+			$single = Query::make( [
 				'path' => Str::beforeLast( $path, '/' ),
 				'slug' => $name
-			] ) )->single();
+			] )->single();
 		}
 
 		if ( $single ) {
 			$collection = false;
 
 			if ( $args = $single->metaArr( 'collection' ) ) {
-				$collection = new Query( $args );
+				$collection = Query::make( $args );
 			}
 
 			$doctitle = new DocumentTitle( $single->title() );

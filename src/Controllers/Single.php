@@ -11,8 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\App;
-use Blush\Content\Query;
+use Blush\{App, Query};
 use Blush\Template\Tags\DocumentTitle;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,18 +34,17 @@ class Single extends Controller
 		// Get the content type by path.
 		$type = $types->getTypeFromPath( $path );
 
-		// Look for a `path/{$name}.md` file.
-		$single = ( new Query( [
+		$single = Query::make( [
 			'path' => $path,
 			'slug' => $name
-		] ) )->single();
+		] )->single();
 
 		if ( $single ) {
 			$type_name  = sanitize_slug( $type->type() );
 			$collection = false;
 
 			if ( $args = $single->metaArr( 'collection' ) ) {
-				$collection = new Query( $args );
+				$collection = Query::make( $args );
 			}
 
 			$doctitle = new DocumentTitle( $single->title() );

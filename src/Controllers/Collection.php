@@ -11,8 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\App;
-use Blush\Content\Query;
+use Blush\{App, Query};
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,10 +55,10 @@ class Collection extends Controller
 		$collect = $types->get( $type->collect() );
 
 		// Query the content type.
-		$single = ( new Query( [
+		$single = Query::make( [
 			'path' => $type->path(),
 			'slug' => 'index'
-		] ) )->single();
+		] )->single();
 
 		// Gets query vars from entry meta.
 		if ( $single ) {
@@ -70,7 +69,7 @@ class Collection extends Controller
 		}
 
 		// Query the content type collection.
-		$collection = new Query( array_merge( [
+		$collection = Query::make( array_merge( [
 			'path'    => $collect->path(),
 			'noindex' => true,
 			'number'  => $per_page,

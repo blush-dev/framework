@@ -11,14 +11,19 @@
 
 namespace Blush\Content;
 
-use ArrayIterator;
+// Interfaces.
 use IteratorAggregate;
+use Blush\Contracts\Makeable;
+use Blush\Contracts\Content\Query as QueryContract;
+
+// Classes.
+use ArrayIterator;
 use Traversable;
 use Blush\App;
 use Blush\Content\Entry\{Entry, MarkdownFile};
 use Blush\Tools\Str;
 
-class Query implements IteratorAggregate
+class Query implements Makeable, QueryContract, IteratorAggregate
 {
 	/**
 	 * File locator object.
@@ -166,7 +171,17 @@ class Query implements IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-        public function __construct( array $options = [] )
+        public function __construct( Locator $locator )
+	{
+		$this->locator = $locator;
+	}
+
+	/**
+	 * Sets up the query options and makes the query.
+	 *
+	 * @since 1.0.0
+	 */
+	public function make( array $options = [] ) : self
 	{
         	foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
         		if ( isset( $options[ $key ] ) ) {
@@ -199,11 +214,17 @@ class Query implements IteratorAggregate
 			$this->number = PHP_INT_MAX;
 		}
 
-		$this->order   = strtolower( $this->order );
-                $this->locator = new Locator( $this->path );
+		// Lowercase order.
+		$this->order = strtolower( $this->order );
+
+		// Sets the path to the locator.
+		$this->locator->setPath( $this->path );
 
 		// Run the query.
 		$this->build();
+
+		// make() should always return self.
+		return $this;
         }
 
 	/**

@@ -11,8 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\App;
-use Blush\Content\Query;
+use Blush\{App, Query};
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,10 +43,10 @@ class Home extends Controller
 			$args     = [];
 
 			// Query the content type.
-			$single = ( new Query( [
+			$single = Query::make( [
 				'path' => $type->path(),
 				'slug' => 'index'
-			] ) )->single();
+			] )->single();
 
 			if ( $single ) {
 				$args = $single->meta( 'collection' );
@@ -57,7 +56,7 @@ class Home extends Controller
 			}
 
 			// Query the content type collection.
-			$collection = new Query( array_merge( [
+			$collection = Query::make( array_merge( [
 				'path'    => $collect->path(),
 				'noindex' => true,
 				'number'  => $per_page,
@@ -94,16 +93,16 @@ class Home extends Controller
 		}
 
 		// Query the homepage `index.md` file.
-		$single = ( new Query( [
+		$single = Query::make( [
 			'path' => '',
 			'slug' => 'index'
-		] ) )->single();
+		] )->single();
 
 		if ( $single ) {
 			$collection = false;
 
 			if ( $args = $single->metaArr( 'collection' ) ) {
-				$collection = new Query( $args );
+				$collection = Query::make( $args );
 			}
 
 			return $this->response( $this->view( [
