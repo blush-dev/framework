@@ -13,6 +13,7 @@
 		"symfony/yaml": "^3.0",
 		"suin/php-rss-writer": "^1.6",
 		"league/commonmark": "^2.2",
-		"symfony/var-dumper": "^5.4"
+		"symfony/var-dumper": "^5.4",
+		"vlucas/phpdotenv": "^5.4"
 	}
 }

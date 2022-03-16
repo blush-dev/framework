@@ -20,6 +20,7 @@ use Blush\Contracts\Core\Application as ApplicationContract;
 use Blush\Contracts\Bootable;
 use Blush\Core\Proxies;
 use Blush\Tools\{Collection, Config, Str};
+use Dotenv\Dotenv;
 
 /**
  * Application class.
@@ -89,6 +90,12 @@ class Application extends Container implements ApplicationContract, Bootable
 
 		// Add the version for the framework.
 		$this->instance( 'version', static::VERSION );
+
+		// Load `.env` file. If `.env.local` is present, it will overrule.
+		Dotenv::createImmutable( $this->path, [
+			'.env.local',
+			'.env'
+		] )->load();
 
 		// Add config path early (cannot change).
 		$this->instance( 'path.config', Str::appendPath( $this['path'], 'config' ) );

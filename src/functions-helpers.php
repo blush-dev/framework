@@ -27,6 +27,19 @@ if ( ! function_exists( 'app' ) ) {
 	}
 }
 
+if ( ! function_exists( 'env' ) ) {
+	/**
+	 * Returns an environment variable if it is set or `false`.
+	 *
+	 * @since  1.0.0
+	 * @return string
+	 */
+	function env( string $var, ?string $default = null ): ?string
+	{
+		return $_ENV[ $var ] ?? $default;
+	}
+}
+
 if ( ! function_exists( 'config' ) ) {
 	/**
 	 * Returns and instances of a config object or a setting.
