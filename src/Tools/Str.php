@@ -16,6 +16,22 @@ namespace Blush\Tools;
 class Str
 {
 	/**
+	 * Returns part of a string after the first occurrence.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function afterFirst( string $str, string $search ): string
+	{
+		if ( '' === $str ) {
+			return $str;
+		}
+
+		$parts = array_reverse( explode( $search, $str, 2 ) );
+
+		return array_shift( $parts );
+	}
+
+	/**
 	 * Returns part of a string after the last occurrence.
 	 *
 	 * @since 1.0.0
@@ -57,6 +73,22 @@ class Str
 		$uri    = rtrim( $uri, '/\\' );
 		$append = ltrim( $append, '/\\' );
 		return $append ? "{$uri}/{$append}" : $uri;
+	}
+
+	/**
+	 * Returns part of a string before the first occurrence.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function beforeFirst( string $str, string $search ): string
+	{
+		if ( '' === $str ) {
+			return $str;
+		}
+
+		$before = strstr( $str, $search, true );
+
+		return false === $before ? $str : $before;
 	}
 
 	/**

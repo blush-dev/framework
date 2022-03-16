@@ -26,7 +26,7 @@ class Home extends Controller
 	public function __invoke( array $params = [], Request $request ): Response
 	{
 		$types = App::resolve( 'content.types' );
-		$alias = \config( 'app', 'home_alias' );
+		$alias = \config( 'app.home_alias' );
 		$type  = false;
 
 		// Checks if the homepage has an alias content type and if the

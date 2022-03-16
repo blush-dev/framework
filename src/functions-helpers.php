@@ -49,7 +49,18 @@ if ( ! function_exists( 'config' ) ) {
 	 */
 	function config( string $name, string $setting = '' )
 	{
-		$config = app( "config.{$name}" );
+		$config = Str::beforeFirst( $name, '.' );
+		$option = Str::afterFirst( $name, '.' );
+
+		if ( $config === $option ) {
+			$option = false;
+		}
+
+		if ( $option && ! $setting ) {
+			$setting = $option;
+		}
+
+		$config = app( "config.{$config}" );
 
 		if ( $setting ) {
 			return $config[ $setting ] ?? null;

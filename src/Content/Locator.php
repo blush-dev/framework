@@ -150,7 +150,7 @@ class Locator implements LocatorContract
 		$cache = [];
 
 		// Get the metadata keys to exclude from the cache.
-		$exclude = config( 'cache', 'content_exclude_meta' );
+		$exclude = config( 'cache.content_exclude_meta' );
 		$exclude = is_array( $exclude ) ? array_flip( $exclude ) : false;
 
 		foreach ( $filepaths as $filepath ) {

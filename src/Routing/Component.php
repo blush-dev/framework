@@ -51,7 +51,7 @@ class Component implements Bootable
 	public function boot() : void
 	{
 		// Get the homepage alias if it exists.
-		$alias = config( 'app', 'home_alias' );
+		$alias = config( 'app.home_alias' );
 
 		// Sort the content types.
 		$types = array_reverse( $this->types->sortByPath() );

@@ -209,7 +209,7 @@ class Type
 		}
 
 		$path  = $this->path();
-		$alias = \config( 'app', 'home_alias' );
+		$alias = \config( 'app.home_alias' );
 
 		// Add paged type archive if not set as the homepage.
 		if ( $alias !== $this->type() ) {

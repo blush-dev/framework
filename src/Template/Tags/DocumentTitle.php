@@ -103,8 +103,8 @@ class DocumentTitle
 			return $this->doctitle;
 		}
 
-		$app_title   = \config( 'app', 'title' );
-		$app_tagline = \config( 'app', 'description' );
+		$app_title   = \config( 'app.title' );
+		$app_tagline = \config( 'app.description' );
 		$paged       = 2 <= $this->page;
 		$items       = [];
 
