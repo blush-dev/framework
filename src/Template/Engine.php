@@ -29,9 +29,17 @@ class Engine implements EngineContract
 	protected Collection $shared;
 
 	/**
-	 * Returns a View object. This should only be used for top-level views
-	 * because it resets the shared data when called.  If including views
-	 * within views, use `subview()` or descendent functions.
+	 * Whether the top-level page view has been booted.
+	 *
+	 * @since 1.0.0
+	 */
+	protected bool $view_booted = false;
+
+	/**
+	 * Returns a View object. This should only be used for top-level views.
+	 * Otherwise, an error message is dumped and the process is stalled.
+	 * If including views within views, use `subview()` or one of its
+	 * several descendent methods included in this class.
 	 *
 	 * @since  1.0.0
 	 * @param  array|string      $paths
@@ -39,12 +47,24 @@ class Engine implements EngineContract
 	 */
 	public function view( $paths, $data = [] ): View
 	{
+		// If `view()` is called for a second time on a single page load
+		// dump and die.
+		if ( $this->view_booted ) {
+			dump( 'Cannot call Engine::view() twice. If this is a sub-view, try the Engine::subview() method.' );
+			die();
+		}
+
+		// Always pass the engine back to the view.
 		$data['engine'] = $this;
 
+		// Make a new `View`.
 		$view = App::make( View::class, compact( 'paths', 'data' ) );
 
-		$this->shared = $view->getData();
+		// Set object properties.
+		$this->shared      = $view->getData();
+		$this->view_booted = true;
 
+		// Returns a `View` object.
 		return $view;
 	}
 
