@@ -25,70 +25,63 @@ class Collection extends Controller
 	 */
 	public function __invoke( array $params = [], Request $request ): Response
 	{
-		$types = App::resolve( 'content.types' );
+		// Get all content types.
+		$types = App::get( 'content.types' );
 
-		$path   = $params['path'] ?? '';
-		$number = $params['number'] ?? '';
+		// Get needed URI params from the router.
+		$path = $params['path']   ?? '';
+		$page = $params['number'] ?? '';
 
-		if ( $number ) {
-			$path = Str::beforeLast( $path, "/page" );
+		// If this is a paged view, strip the page from the path.
+		if ( $page ) {
+			$path = Str::beforeLast( $path, "/page/{$page}" );
 		}
 
-		$current  = $number ?: 1;
-		$per_page = posts_per_page();
-		$args     = [];
-
-		// Get the content by path.
-		$type = $types->getTypeFromPath( $path );
-
-		// If no match for the path, try the URI.
-		if ( ! $type ) {
-			$type = $types->getTypeFromUri( $path );
-		}
+		// Get the content type from the path or URI.
+		$type = $types->getTypeFromPath( $path ) ?: $types->getTypeFromUri( $path );
 
 		// Bail if there is no type.
 		if ( ! $type ) {
-			return $this->forward404( $params );
+			return $this->forward404( $params, $request );
 		}
 
 		// Get the collection type.
 		$collect = $types->get( $type->collect() );
 
-		// Query the content type.
+		// Query the content type's index file.
 		$single = Query::make( [
 			'path' => $type->path(),
 			'slug' => 'index'
 		] )->single();
 
-		// Gets query vars from entry meta.
-		if ( $single ) {
-			$args = $single->metaArr( 'collection' );
-			$args = $args ?: [];
-			// Needed to calculate the offset.
-			$per_page = $args['number'] ?? $per_page;
+		// Get the default collection query args for the type.
+		$query_args = $type->collectionArgs();
+
+		// Get user collection query args and merge if there are any.
+		if ( $single && $args = $single->metaArr( 'collection' ) ) {
+			$query_args = array_merge( $query_args, $args );
 		}
 
-		// Query the content type collection.
-		$collection = Query::make( array_merge( [
-			'path'    => $collect->path(),
-			'noindex' => true,
-			'number'  => $per_page,
-			'offset'  => $per_page * ( intval( $current ) - 1 ),
-			'order'   => 'desc',
-			'orderby' => 'filename'
-		], $args ) );
+		// Set required variables for the query.
+		$page = $page ? abs( intval( $page ) ) : 1;
+		$query_args['number'] = $query_args['number'] ?? 10;
+		$query_args['offset'] = $query_args['number'] * ( $page - 1 );
 
-		if ( $single && $collection->all() ) {
+		// Query the content type collection.
+		$collection = Query::make( $query_args );
+
+		if ( $single && $collection->hasEntries() ) {
+
 			$type_name  = sanitize_slug( $type->type() );
 			$model_name = $type->isTaxonomy() ? 'taxonomy' : 'content';
 
 			$doctitle = new DocumentTitle( $single->title(), [
-				'page' => $number ?: 1
+				'page' => $page
 			] );
 
 			$pagination = new Pagination( [
 				'basepath' => $path,
-				'current'  => $current,
+				'current'  => $page,
 				'total'    => $collection->pages()
 			] );
 
@@ -106,6 +99,6 @@ class Collection extends Controller
 		}
 
 		// If all else fails, return a 404.
-		return $this->forward404( $params );
+		return $this->forward404( $params, $request );
 	}
 }

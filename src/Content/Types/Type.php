@@ -70,6 +70,20 @@ class Type
 	protected $term_collect = null;
 
 	/**
+	 * Array of Query args when type is called as a collection.
+	 *
+	 * @since 1.0.0
+	 */
+	protected $collection = [];
+
+	/**
+	 * Array of Query args when a taxonomy term is called as a collection.
+	 *
+	 * @since 1.0.0
+	 */
+	protected $term_collection = [];
+
+	/**
 	 * Stores the URI path for the content type.
 	 *
 	 * @since 1.0.0
@@ -249,6 +263,38 @@ class Type
 	public function termCollect()
 	{
 		return $this->term_collect;
+	}
+
+	/**
+	 * Returns an array of Query arguments when the content type is used in
+	 * a collection.
+	 *
+	 * @since 1.0.0
+	 */
+	public function collectionArgs(): array
+	{
+		return array_merge( [
+			'type' => $this->collect() ?: $this->type()
+		], $this->collection );
+	}
+
+	/**
+	 * Returns an array of Query arguments when the terms of the content
+	 * type is called as a collection. Only works for taxonomies.
+	 *
+	 * @since 1.0.0
+	 */
+	public function termCollectionArgs(): array
+	{
+		if ( ! $this->isTaxonomy() ) {
+			return [];
+		}
+
+		$type = $this->termCollect() ?: $this->collect();
+
+		return array_merge( [
+			'type' => $type ?: $this->type()
+		], $this->term_collection );
 	}
 
 	/**

@@ -63,6 +63,6 @@ class Single extends Controller
 		}
 
 		// If all else fails, return a 404.
-		return $this->forward404( $params );
+		return $this->forward404( $params, $request );
 	}
 }

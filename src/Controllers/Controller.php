@@ -62,10 +62,10 @@ abstract class Controller
 	 *
 	 * @since 1.0.0
 	 */
-	protected function forward( string $callback, array $params = [] ): Response
+	protected function forward( string $callback, array $params = [], Request $request ): Response
 	{
 		$controller = new $callback;
-		return $controller( $params );
+		return $controller( $params, $request );
 	}
 
 	/**
@@ -73,8 +73,8 @@ abstract class Controller
 	 *
 	 * @since 1.0.0
 	 */
-	protected function forward404( array $params = [] ): Response
+	protected function forward404( array $params = [], Request $request ): Response
 	{
-		return $this->forward( Error404::class, $params );
+		return $this->forward( Error404::class, $params, $request );
 	}
 }

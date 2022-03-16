@@ -38,9 +38,7 @@ class Home extends Controller
 
 		// If we have a content type and a collection type, run query.
 		if ( $type && $collect ) {
-			$current  = $params['number'] ?? 1;
-			$per_page = posts_per_page();
-			$args     = [];
+			$page = $params['number'] ?? 1;
 
 			// Query the content type.
 			$single = Query::make( [
@@ -48,33 +46,32 @@ class Home extends Controller
 				'slug' => 'index'
 			] )->single();
 
-			if ( $single ) {
-				$args = $single->meta( 'collection' );
-				$args = $args ?: [];
-				// Needed to calculate the offset.
-				$per_page = $args['number'] ?? $per_page;
+			// Get the default collection query args for the type.
+			$query_args = $type->collectionArgs();
+
+			// Get user collection query args and merge if there are any.
+			if ( $single && $args = $single->metaArr( 'collection' ) ) {
+				$query_args = array_merge( $query_args, $args );
 			}
 
+			// Set required variables for the query.
+			$page = $page ? abs( intval( $page ) ) : 1;
+			$query_args['number'] = $query_args['number'] ?? 10;
+			$query_args['offset'] = $query_args['number'] * ( $page - 1 );
+
 			// Query the content type collection.
-			$collection = Query::make( array_merge( [
-				'path'    => $collect->path(),
-				'noindex' => true,
-				'number'  => $per_page,
-				'offset'  => $per_page * ( intval( $current ) - 1 ),
-				'order'   => 'desc',
-				'orderby' => 'filename'
-			], $args ) );
+			$collection = Query::make( $query_args );
 
 			if ( $single && $collection->all() ) {
 				$type_name = sanitize_slug( $type->type() );
 
 				$doctitle = new DocumentTitle( '', [
-					'page' => $current
+					'page' => $page
 				] );
 
 				$pagination = new Pagination( [
 					'basepath' => '',
-					'current'  => $current,
+					'current'  => $page,
 					'total'    => $collection->pages()
 				] );
 
@@ -93,10 +90,7 @@ class Home extends Controller
 		}
 
 		// Query the homepage `index.md` file.
-		$single = Query::make( [
-			'path' => '',
-			'slug' => 'index'
-		] )->single();
+		$single = Query::make( [ 'slug' => 'index' ] )->single();
 
 		if ( $single ) {
 			$collection = false;
@@ -123,7 +117,7 @@ class Home extends Controller
 		// Note that this is not a 404. It is a user error.
 		$notice = sprintf(
 			'No %s file found.',
-			Str::appendPath( App::resolve( 'path.content' ), 'index.md' )
+			Str::appendPath( App::get( 'path.content' ), 'index.md' )
 		);
 
 		dump( $notice );

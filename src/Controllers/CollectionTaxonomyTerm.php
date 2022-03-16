@@ -25,62 +25,57 @@ class CollectionTaxonomyTerm extends Controller
 	 */
 	public function __invoke( array $params = [], Request $request ): Response
 	{
-		$types = App::resolve( 'content.types' );
+		$types = App::get( 'content.types' );
 
-		$name   = $params['name'] ?? '';
-		$number = $params['number'] ?? '';
-		$path   = $params['path'];
+		$name = $params['name'] ?? '';
+		$page = $params['number'] ?? '';
+		$path = $params['path'];
 
 		$type_path = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
 
-		if ( $number ) {
-			$path = Str::beforeLast( $path , "/page/{$number}" );
+		if ( $page ) {
+			$path = Str::beforeLast( $path , "/page/{$page}" );
 		}
 
-		$current  = $number ?: 1;
-		$per_page = posts_per_page();
-		$args     = [];
-
 		// Get the taxonomy's content type.
-		$taxonomy = $types->getTypeFromPath( $type_path );
-		$collect  = $types->get( $taxonomy->termCollect() );
+		$type    = $types->getTypeFromPath( $type_path );
+		$collect = $types->get( $type->termCollect() );
 
 		// Query the taxonomy term.
 		$single = Query::make( [
-			'path' => $taxonomy->path(),
+			'path' => $type->path(),
 			'slug' => $name
 		] )->single();
 
-		// Gets query vars from entry meta.
-		if ( $single ) {
-			$args = $single->metaArr( 'collection' );
-			$args = $args ?: [];
-			// Needed to calculate the offset.
-			$per_page = $args['number'] ?? $per_page;
+		// Get the default collection query args for the type.
+		$query_args = $type->termCollectionArgs();
+
+		// Get user collection query args and merge if there are any.
+		if ( $single && $args = $single->metaArr( 'collection' ) ) {
+			$query_args = array_merge( $query_args, $args );
 		}
 
+		// Set required variables for the query.
+		$page = $page ? abs( intval( $page ) ) : 1;
+		$query_args['number'] = $query_args['number'] ?? 10;
+		$query_args['offset'] = $query_args['number'] * ( $page - 1 );
+
 		// Query the term's content collection.
-		$collection = Query::make( array_merge( [
-			'path'       => $collect->path(),
-			'noindex'    => true,
-			'number'     => $per_page,
-			'offset'     => $per_page * ( intval( $current ) - 1 ),
-			'order'      => 'desc',
-			'orderby'    => 'filename',
-			'meta_key'   => $taxonomy->type(),
+		$collection = Query::make( array_merge( $query_args, [
+			'meta_key'   => $type->type(),
 			'meta_value' => $name
-		], $args ) );
+		] ) );
 
 		if ( $single && $collection->all() ) {
-			$type_name = sanitize_slug( $taxonomy->type() );
+			$type_name = sanitize_slug( $type->type() );
 
 			$doctitle = new DocumentTitle( $single->title(), [
-				'page' => $number ?: 1
+				'page' => $page
 			] );
 
 			$pagination = new Pagination( [
 				'basepath' => $path,
-				'current'  => $number ?: 1,
+				'current'  => $page,
 				'total'    => $collection->pages()
 			] );
 
@@ -99,6 +94,6 @@ class CollectionTaxonomyTerm extends Controller
 		}
 
 		// If all else fails, return a 404.
-		return $this->forward404( $params );
+		return $this->forward404( $params, $request );
 	}
 }
