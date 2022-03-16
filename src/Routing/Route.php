@@ -12,7 +12,7 @@
 namespace Blush\Routing;
 
 use Blush\Controllers\Controller;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\{Request, Response};
 
 class Route
 {
@@ -160,7 +160,7 @@ class Route
 	 *
 	 * @since 1.0.0
 	 */
-	public function callback( array $params = [] ) : Response
+	public function callback( array $params = [], Request $request ) : Response
 	{
 		// Get the route controller.
 		$callback = $this->controller();
@@ -171,7 +171,7 @@ class Route
 		}
 
 		// Call class as a function, triggering the __invoke() method.
-		return $callback( $params );
+		return $callback( $params, $request );
 	}
 
 	/**

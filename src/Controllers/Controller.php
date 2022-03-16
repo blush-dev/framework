@@ -21,7 +21,7 @@ use Blush\Contracts\Template\{Engine, View};
 
 // Concretes.
 use Blush\App;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\{Request, Response};
 
 abstract class Controller
 {
@@ -30,7 +30,7 @@ abstract class Controller
 	 *
 	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [] ) : Response
+	public function __invoke( array $params = [], Request $request ): Response
 	{
 		return $this->response( $this->view( 'index' ) );
 	}
@@ -42,7 +42,7 @@ abstract class Controller
 	 * @param  string|array     $names
 	 * @param  array|Collection $data
 	 */
-	protected function view( $names, $data = [] ) : View
+	protected function view( $names, $data = [] ): View
 	{
 		return App::make( Engine::class )->view( $names, $data );
 	}
@@ -52,7 +52,7 @@ abstract class Controller
 	 *
 	 * @since 1.0.0
 	 */
-	protected function response( View $view ) : Response
+	protected function response( View $view ): Response
 	{
 		return new Response( $view->render() );
 	}
@@ -62,7 +62,7 @@ abstract class Controller
 	 *
 	 * @since 1.0.0
 	 */
-	protected function forward( string $callback, array $params = [] ) : Response
+	protected function forward( string $callback, array $params = [] ): Response
 	{
 		$controller = new $callback;
 		return $controller( $params );
@@ -73,7 +73,7 @@ abstract class Controller
 	 *
 	 * @since 1.0.0
 	 */
-	protected function forward404( array $params = [] ) : Response
+	protected function forward404( array $params = [] ): Response
 	{
 		return $this->forward( Error404::class, $params );
 	}

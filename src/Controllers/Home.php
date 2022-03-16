@@ -14,7 +14,7 @@ namespace Blush\Controllers;
 use Blush\{App, Query};
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\{Request, Response};
 
 class Home extends Controller
 {
@@ -23,7 +23,7 @@ class Home extends Controller
 	 *
 	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [] ) : Response
+	public function __invoke( array $params = [], Request $request ): Response
 	{
 		$types = App::resolve( 'content.types' );
 		$alias = \config( 'app', 'home_alias' );

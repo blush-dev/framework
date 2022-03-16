@@ -13,7 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\{App, Query};
 use Blush\Template\Tags\DocumentTitle;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\{Request, Response};
 
 class Error404 extends Controller
 {
@@ -22,7 +22,7 @@ class Error404 extends Controller
 	 *
 	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [] ) : Response
+	public function __invoke( array $params = [], Request $request ): Response
 	{
 		http_response_code( 404 );
 

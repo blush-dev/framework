@@ -133,7 +133,7 @@ class Router
 	        if ( isset( $routes[ $path ] ) ) {
 			return $routes[ $path ]->callback( [
 				'path' => $path
-			] );
+			], $this->request() );
 	        }
 
 	        // Loops through all routes and try to match them based on the
@@ -173,7 +173,7 @@ class Router
 	                        }
 
 				// Invoke the route callback.
-				return $route->callback( $params );
+				return $route->callback( $params, $this->request() );
 	                }
 	        }
 

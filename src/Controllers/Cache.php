@@ -14,7 +14,7 @@ namespace Blush\Controllers;
 use Blush\App;
 use Blush\Content\Entry\Virtual;
 use Blush\Template\Tags\DocumentTitle;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\{Request, Response};
 
 class Cache extends Controller
 {
@@ -26,15 +26,15 @@ class Cache extends Controller
 	 * @param  array  $params
 	 * @return Response
 	 */
-	public function __invoke( array $params = [] ) : Response
+	public function __invoke( array $params = [], Request $request ): Response
 	{
-		$key = App::resolve( 'config.cache' )->get( 'secret_key' );
+		$key = App::get( 'config.cache' )->get( 'secret_key' );
 
 		$title = 'Cache Purge Failure';
 		$content = '<p>Invalid cache purge request.<p>';
 
 		if ( isset( $params['key'] ) && $key === $params['key'] ) {
-			$this->recursiveRemove( App::resolve( 'path.cache' ) );
+			$this->recursiveRemove( App::get( 'path.cache' ) );
 			$title = 'Cache Purged';
 			$content = '<p>Cached content and data successfully purged.</p>';
 		}
@@ -65,25 +65,23 @@ class Cache extends Controller
 	 *
 	 * @since 1.0.0
 	 */
-	private function recursiveRemove( string $dir ) : void
+	private function recursiveRemove( string $path ): void
 	{
-		if ( ! is_dir( $dir ) ) {
+		if ( ! is_dir( $path ) ) {
 			return;
 		}
 
-		$files = glob( "{$dir}/*" );
+		$filepaths = glob( "{$path}/*" );
 
-		foreach ( $files as $file ) {
-			if ( is_dir( $file ) ) {
-				$this->recursiveRemove( $file );
-			} else {
-				unlink( $file );
-			}
+		foreach ( $filepaths as $filepath ) {
+			is_dir( $filepath )
+			    ? $this->recursiveRemove( $filepath )
+			    : unlink( $filepath );
 		}
 
 		// Don't remove the cache directory itself.
-		if ( App::resolve( 'path.cache' ) !== $dir ) {
-			rmdir( $dir );
+		if ( App::get( 'path.cache' ) !== $path ) {
+			rmdir( $path );
 		}
 	}
 }
