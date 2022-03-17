@@ -64,14 +64,14 @@ abstract class Cache implements Makeable
 	 *
 	 * @since 1.0.0
 	 */
-	abstract protected function filename() : string;
+	abstract public function filename() : string;
 
 	/**
 	 * Returns the cache directory path.
 	 *
 	 * @since 1.0.0
 	 */
-	protected function path( string $file = '' ) :string
+	public function path( string $file = '' ) :string
 	{
 		return $file ? Str::appendPath( $this->path, $file ) : $this->path;
 	}

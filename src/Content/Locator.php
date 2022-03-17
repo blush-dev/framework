@@ -91,6 +91,31 @@ class Locator implements LocatorContract
 	protected function getCache() : array
 	{
 		if ( ! $this->cache ) {
+			$cache = cache( $this->cache_path );
+
+			if ( false !== $cache ) {
+				$content_time = filemtime( Str::appendPath( $this->path, '.' ) );
+				$cache_time   = filemtime( $cache->filename() );
+
+				if (
+					false === $cache_time ||
+					false === $content_time ||
+					$content_time > $cache_time
+				) {
+					$cache->delete();
+					caches()->remove( $this->cache_path );
+				}
+
+			//	$this->cache = [];
+
+			//	dump( $this->path );
+			//	dump( $content_time );
+			//	dump( $cache );
+			//	dump( $cache_time );
+
+			}
+
+
 			$cache = cache_get_add( $this->cache_path, 'collection' );
 			$this->cache = $cache ? $cache->all() : [];
 		}

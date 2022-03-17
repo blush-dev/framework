@@ -20,7 +20,7 @@ class Json extends Cache
 	 *
 	 * @since 1.0.0
 	 */
-	protected function filename() : string
+	public function filename() : string
 	{
 		return $this->path( "{$this->name}.json" );
 	}
