@@ -90,13 +90,23 @@ class Locator implements LocatorContract
 	 */
 	protected function getCache() : array
 	{
+		// On first run, check the temporary cache, let's see if there
+		// is a persistent cache.
 		if ( ! $this->cache ) {
+
+			// Get persistent cache.
 			$cache = cache( $this->cache_path );
 
+			// If the persistent cache exists, let's see if it needs
+			// refreshing based on file modified times.
 			if ( false !== $cache ) {
 				$content_time = filemtime( Str::appendPath( $this->path, '.' ) );
 				$cache_time   = filemtime( $cache->filename() );
 
+				// If there are no modified file times or the
+				// content folder is newer than the cache, delete
+				// the current cache. Also, remove the cache
+				// from the cache repository.
 				if (
 					false === $cache_time ||
 					false === $content_time ||
@@ -105,17 +115,10 @@ class Locator implements LocatorContract
 					$cache->delete();
 					caches()->remove( $this->cache_path );
 				}
-
-			//	$this->cache = [];
-
-			//	dump( $this->path );
-			//	dump( $content_time );
-			//	dump( $cache );
-			//	dump( $cache_time );
-
 			}
 
-
+			// Get the persistent cache if it exists. If not, add it
+			// to the repository and set to an empty array.
 			$cache = cache_get_add( $this->cache_path, 'collection' );
 			$this->cache = $cache ? $cache->all() : [];
 		}
