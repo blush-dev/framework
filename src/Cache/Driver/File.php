@@ -148,8 +148,8 @@ class File extends Store
 	public function forget( string $key ): bool
 	{
 		if ( $this->fileExists( $key ) ) {
-			return unlink( $this->filepath() );
 			$this->removeData( $key );
+			return unlink( $this->filepath() );
 		}
 
 		return false;
