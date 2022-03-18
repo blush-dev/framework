@@ -177,7 +177,7 @@ class File extends Store
 		$data = $this->get( $key );
 
 		if ( ! $data ) {
-			$data = $concrete();
+			$data = $callback();
 			if ( $data ) {
 				$this->put( $key, $data, $expire );
 			}
