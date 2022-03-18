@@ -91,7 +91,17 @@ class Application extends Container implements ApplicationContract, Bootable
 		// Add the version for the framework.
 		$this->instance( 'version', static::VERSION );
 
-		// Load `.env` file. If `.env.local` is present, it will overrule.
+		// Require the `.env` or `.env.local` file before proceeding.
+		if (
+			! file_exists( Str::appendPath( $this['path'], '.env' ) ) &&
+			! file_exists( Str::appendPath( $this['path'], '.env.local' ) )
+		) {
+			dump( "No '.env' or '.env.local' file found for the application. If setting up Blush for the first time, copy and rename the '.env.example' file." );
+			die();
+		}
+
+		// Load the dotenv file and parse its data, making it available
+		// through the `$_ENV` and `$_SERVER` super-globals.
 		Dotenv::createImmutable( $this->path, [
 			'.env.local',
 			'.env'
