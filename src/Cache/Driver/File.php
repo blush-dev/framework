@@ -15,6 +15,7 @@
 
 namespace Blush\Cache\Driver;
 
+use Closure;
 use Blush\Tools\Str;
 
 class File extends Store

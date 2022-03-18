@@ -11,6 +11,7 @@
 
 namespace Blush\Cache\Driver;
 
+use Closure;
 use Blush\Contracts\Makeable;
 
 abstract class Store
