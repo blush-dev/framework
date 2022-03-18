@@ -206,7 +206,8 @@ class File extends Store
 	 */
 	public function flush(): void
 	{
-		$search = Str::appendPath( $this->path(), "*.{$this->extension}" );
+		$ext = trim( $this->extension, '.' );
+		$search = Str::appendPath( $this->path(), "*.{$ext}" );
 
 		foreach ( glob( $search ) as $filepath ) {
 			unlink( $filepath );
