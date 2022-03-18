@@ -4,7 +4,9 @@
  *
  * This class serializes and stores data to the filesystem by key. The filepaths
  * are built by path, key, and extension (e.g., `{$path}/{$key}.{$extension}`).
- * Sub-classes can expand on this for various data and file types.
+ * Sub-classes can expand on this for various data and file types. The most
+ * important methods to overwrite are usually `get()` and `put()` because all
+ * roads lead back to simply getting and putting data.
  *
  * @package   Blush
  * @author    Justin Tadlock <justintadlock@gmail.com>
@@ -200,6 +202,21 @@ class File extends Store
 	}
 
 	/**
+	 * Gets and returns data by key. Deletes previous data.
+	 *
+	 * @since  1.0.0
+	 * @return mixed
+	 */
+	public function pull( string $key )
+	{
+		$data = $this->get( $key );
+
+		$this->forget( $key );
+
+		return $data;
+	}
+
+	/**
 	 * Deletes all cached data from a store.
 	 *
 	 * @since  1.0.0
@@ -213,20 +230,5 @@ class File extends Store
 			unlink( $filepath );
 			$this->resetData();
 		}
-	}
-
-	/**
-	 * Gets and returns data by key. Deletes previous data.
-	 *
-	 * @since  1.0.0
-	 * @return mixed
-	 */
-	public function pull( string $key )
-	{
-		$data = $this->get( $key );
-
-		$this->forget( $key );
-
-		return $data;
 	}
 }

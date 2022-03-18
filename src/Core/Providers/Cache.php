@@ -1,6 +1,6 @@
 <?php
 /**
- * Route service provider.
+ * Cache service provider.
  *
  * @package   Blush
  * @author    Justin Tadlock <justintadlock@gmail.com>

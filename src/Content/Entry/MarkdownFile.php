@@ -25,7 +25,6 @@ class MarkdownFile extends File
 	{
 		parent::__construct( $filepath );
 
-
 		$markdown = App::resolve( 'markdown' )->convert(
 			file_get_contents( $filepath )
 		);

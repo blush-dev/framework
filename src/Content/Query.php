@@ -236,8 +236,6 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	{
 		$located = $this->locator->all();
 
-		//( $this->locator );
-
 		// Set the entry properties to arrays.
 		$this->entries = [];
 		$this->located_slugs = [];

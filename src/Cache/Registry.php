@@ -17,6 +17,7 @@
 
 namespace Blush\Cache;
 
+use Blush\Cache\Driver\Store;
 use Blush\Tools\Str;
 
 class Registry
@@ -36,10 +37,22 @@ class Registry
 	protected array $stores = [];
 
 	/**
-	 * Get data from a store's cache.
+	 * Check if the store has data via `store.key`.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
+	 */
+	public function has( string $name )
+	{
+		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
+
+		return $this->store( $store )->has( $key );
+	}
+
+	/**
+	 * Returns data from a store via `store.key`.
+	 *
+	 * @since  1.0.0
+	 * @return mixed|null
 	 */
 	public function get( string $name )
 	{
@@ -49,9 +62,10 @@ class Registry
 	}
 
 	/**
-	 * Write data to a store's cache. Overwrites existing data.
+	 * Writes new data or replaces existing data via `store.key`.
 	 *
 	 * @since  1.0.0
+	 * @param  mixed  $data
 	 */
 	public function put( string $name, $data, $expire = 0 ): bool
 	{
@@ -61,7 +75,7 @@ class Registry
 	}
 
 	/**
-	 * Add data to a store's cache if it doesn't exist.
+	 * Writes new data if it doesn't exist via `store.key`.
 	 *
 	 * @since  1.0.0
 	 */
@@ -73,7 +87,19 @@ class Registry
 	}
 
 	/**
-	 * Write data to a store's cache with no expiration.
+	 * Deletes data if it exists via `store.key`.
+	 *
+	 * @since  1.0.0
+	 */
+	public function forget( string $name )
+	{
+		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
+
+		$this->store( $store )->forget( $key );
+	}
+
+	/**
+	 * Writes new data if it doesn't exist via `store.key`. Doesn't expire.
 	 *
 	 * @since  1.0.0
 	 */
@@ -84,25 +110,27 @@ class Registry
 		$this->store( $store )->forever( $key, $data );
 	}
 
+	/**
+	 * Gets and returns data via `store.key`. If it doesn't exist, callback
+	 * is executed to pass in custom data and write it.
+	 *
+	 * @since  1.0.0
+	 * @return mixed
+	 */
 	public function remember( string $name, $expire, Closure $callback )
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
-		$this->store( $store )->remember( $key );
-
-		// code goes in driver class.
-		$data = $this->store( $store )->get( $key );
-
-		if ( ! $data ) {
-			$data = $concrete();
-			if ( $data ) {
-				$this->store( $store )->put( $key, $data, $expire );
-			}
-		}
-
-		return $data;
+		return $this->store( $store )->remember( $key );
 	}
 
+	/**
+	 * Gets and returns data via `store.key`. If it doesn't exist, callback
+	 * is executed to pass in custom data and write it. Doesn't expire.
+	 *
+	 * @since  1.0.0
+	 * @return mixed
+	 */
 	public function rememberForever( string $name, Closure $callback )
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
@@ -110,55 +138,49 @@ class Registry
 		return $this->store( $store )->rememberForever( $key, $callback );
 	}
 
-	public function has( string $name )
-	{
-		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
-
-		return $this->store( $store )->has( $key );
-	}
-
-	public function delete( string $name )
-	{
-		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
-
-		return $this->store( $store )->delete( $key );
-	}
-
-	public function forget( string $name )
-	{
-		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
-
-		$this->store( $store )->forget( $key );
-	}
-
-	public function flush( string $name )
-	{
-		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
-
-		$this->store( $store )->flush( $key );
-	}
-
-	// Get and delete. "pull" from cache.
+	/**
+	 * Gets and returns data via `store.key`. Deletes previous data.
+	 *
+	 * @since  1.0.0
+	 * @return mixed
+	 */
 	public function pull( string $name )
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
-		$data = $this->store( $store )->get();
-
-		$this->store( $store )->delete( $key );
-
-		return $data;
+		return $this->store( $store )->pull( $key );
 	}
 
-	public function store( $name )
+	/**
+	 * Deletes all cached data from a store.
+	 *
+	 * @since  1.0.0
+	 */
+	public function flush( string $store )
 	{
-		if ( isset( $this->stores[ $name ] ) ) {
-			return $this->stores[ $name ]->make();
+		$this->store( $store )->flush();
+	}
+
+	/**
+	 * Returns a store object or `false`.
+	 *
+	 * @since  1.0.0
+	 * @return Store|false
+	 */
+	public function store( string $store )
+	{
+		if ( isset( $this->stores[ $store ] ) ) {
+			return $this->stores[ $store ];
 		}
 
 		return false;
 	}
 
+	/**
+	 * Returns all stores.
+	 *
+	 * @since  1.0.0
+	 */
 	public function getStores(): array
 	{
 		$stores = [];
@@ -170,42 +192,40 @@ class Registry
 		return $stores;
 	}
 
-	public function driver( $name )
-	{
-		return $this->drivers[ $name ] ?? false;
-	}
-
-	public function addDriver( string $name, string $driver )
-	{
-		$this->drivers[ $name ] = $driver;
-	}
-
-	public function removeDriver( string $name )
-	{
-		if ( isset( $this->drivers[ $name ] ) ) {
-			unset( $this->drivers[ $name ] );
-		}
-	}
-
+	/**
+	 * Adds a store. A driver and path are the minimum requirements for a
+	 * store, so those are added as defaults. However, individual driver
+	 * implementations may have additional `$options` requirements.
+	 *
+	 * @since  1.0.0
+	 */
 	public function addStore( string $name, array $options = [] )
 	{
-		$options = array_merge( [
-			'driver' => 'file',
-			'path'   => cache_path( $name )
-		], $options );
+		$options = array_merge( [ 'driver' => 'file' ], $options );
 
+		// If this is a file-based driver, make sure it has a full path
+		// for the cache directory. By default, we'll use the store name.
+		if ( Str::startsWith( $options['driver'], 'file' ) && ! isset( $options['path'] ) ) {
+			$options['path'] = cache_path( $name );
+		}
+
+		// Add a new store if the driver is registered.
 		if ( $this->driverExists( $options['driver'] ) ) {
 			$driver = $this->driver( $options['driver'] );
 
-			$this->stores[ $name ] = new $driver( $name, $options );
+			// Create a new store via its driver.
+			$store = new $driver( $name, $options );
+
+			// Add the store object to the registry and make it.
+			$this->stores[ $name ] = $store->make();
 		}
 	}
 
-	public function driverExists( $name ): bool
-	{
-		return isset( $this->drivers[ $name ] );
-	}
-
+	/**
+	 * Removes a store.
+	 *
+	 * @since  1.0.0
+	 */
 	public function removeStore( string $store )
 	{
 		if ( isset( $this->stores[ $store ] ) ) {
@@ -213,21 +233,77 @@ class Registry
 		}
 	}
 
-	public function storeExists( string $name ): bool
+	/**
+	 * Checks if a store exists.
+	 *
+	 * @since  1.0.0
+	 */
+	public function storeExists( string $store ): bool
 	{
-		return isset( $this->stores[ $name ] );
+		return isset( $this->stores[ $store ] );
 	}
 
-	private function parseDotName( string $name ) {
+	/**
+	 * Returns a driver.
+	 *
+	 * @since  1.0.0
+	 * @return string|false
+	 */
+	public function driver( $name )
+	{
+		return $this->drivers[ $name ] ?? false;
+	}
+
+	/**
+	 * Checks if a driver exists.
+	 *
+	 * @since  1.0.0
+	 */
+	public function driverExists( $name ): bool
+	{
+		return isset( $this->drivers[ $name ] );
+	}
+
+	/**
+	 * Adds a driver.
+	 *
+	 * @since  1.0.0
+	 */
+	public function addDriver( string $name, string $driver )
+	{
+		$this->drivers[ $name ] = $driver;
+	}
+
+	/**
+	 * Removes a driver.
+	 *
+	 * @since  1.0.0
+	 */
+	public function removeDriver( string $name )
+	{
+		if ( isset( $this->drivers[ $name ] ) ) {
+			unset( $this->drivers[ $name ] );
+		}
+	}
+
+	/**
+	 * Helper function for parsing a store and key name via dot notation.
+	 *
+	 * @since  1.0.0
+	 */
+	private function parseDotName( string $name ): array
+	{
 		$store = Str::beforeFirst( $name, '.' );
 		$key   = Str::afterFirst( $name, '.' );
 
 		if ( $store === $key ) {
-			return false; // @todo dump error message.
+			dump( 'Cached data must be accessed via dot notation (.e.g, `store.key`).' );
+			die();
 		}
 
 		if ( ! $this->storeExists( $store ) ) {
-			return false; // @todo dump error message.
+			dump( "Cache store `{$store}` does not exist." );
+			die();
 		}
 
 		return [ 'store' => $store, 'key' => $key ];
