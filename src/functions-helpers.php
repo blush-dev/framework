@@ -10,9 +10,7 @@
  */
 
 use Blush\App;
-use Blush\Cache;
 use Blush\Tools\{Collection, Config, Str};
-use Symfony\Component\Yaml\Yaml;
 
 if ( ! function_exists( 'app' ) ) {
 	/**
@@ -29,10 +27,9 @@ if ( ! function_exists( 'app' ) ) {
 
 if ( ! function_exists( 'env' ) ) {
 	/**
-	 * Returns an environment variable if it is set or `false`.
+	 * Returns an environment variable if it is set or `null`.
 	 *
 	 * @since  1.0.0
-	 * @return string
 	 */
 	function env( string $var, ?string $default = null ): ?string
 	{
@@ -341,161 +338,5 @@ if ( ! function_exists( 'sanitize_with_dashes' ) ) {
 	function sanitize_with_dashes( string $str ) : string
 	{
 		return sanitize_slug( $str, '-' );
-	}
-}
-
-if ( ! function_exists( 'posts_per_page' ) ) {
-	/**
-	 * DO NOT USE. WILL BE REMOVED IN FAVOR OF SETTING/CONFIG.
-	 *
-	 * @since 1.0.0
-	 */
-	function posts_per_page() {
-		return 10;
-	}
-}
-
-if ( ! function_exists( 'caches' ) ) {
-	/**
-	 * Returns the cache collection.
-	 *
-	 * @since 1.0.0
-	 */
-	function caches() : Collection
-	{
-		return App::resolve( 'caches' );
-	}
-}
-
-if ( ! function_exists( 'cache' ) ) {
-	/**
-	 * Returns a cache or false.
-	 *
-	 * @since 1.0.0
-	 * @return  Cache\Cache|false
-	 */
-	function cache( string $name )
-	{
-		return caches()->has( $name ) ? caches()->get( $name ) : false;
-	}
-}
-
-if ( ! function_exists( 'cache_get_make' ) ) {
-	/**
-	 * Gets a cache. If it does not exist, it adds the cache to the
-	 * collection and creates the cache storage.
-	 *
-	 * @since  1.0.0
-	 * @return mixed
-	 */
-	function cache_get_make( string $name, string $type = 'collection' )
-	{
-		$cache = caches();
-
-		if ( $cache->has( $name ) ) {
-			return $cache->get( $name )->get();
-		}
-
-		cache_add( $name, $type );
-
-		$_cache = $cache->get( $name );
-		$_cache->make();
-
-		return $_cache->get();
-	}
-}
-
-if ( ! function_exists( 'cache_get_add' ) ) {
-	/**
-	 * Gets cache. If it does not exist, adds it to the collection.
-	 *
-	 * @since  1.0.0
-	 * @return mixed
-	 */
-	function cache_get_add( string $name, string $type = 'collection' )
-	{
-		$cache = caches();
-
-		if ( $cache->has( $name ) ) {
-			return $cache->get( $name )->get();
-		}
-
-		cache_add( $name, $type );
-
-		$_cache = $cache->get( $name );
-
-		return $_cache->get();
-	}
-}
-
-if ( ! function_exists( 'cache_get' ) ) {
-	/**
-	 * Returns a cache or false.
-	 *
-	 * @since  1.0.0
-	 * @return mixed
-	 */
-	function cache_get( string $name )
-	{
-		$cache = caches();
-		return $cache->has( $name ) ? $cache->get( $name )->get() : false;
-	}
-}
-
-if ( ! function_exists( 'cache_set' ) ) {
-	/**
-	 * Adds data to a cache.
-	 *
-	 * @since  1.0.0
-	 * @param  mixed  $data
-	 */
-	function cache_set( string $name, $data, string $type = 'collect' ) : void
-	{
-		$cache = caches();
-
-		if ( ! $cache->has( $name ) ) {
-			cache_add( $name, $type );
-		}
-
-		$cache->get( $name )->set( $data );
-	}
-}
-
-if ( ! function_exists( 'cache_add' ) ) {
-	/**
-	 * Adds a new cache.
-	 *
-	 * @since 1.0.0
-	 */
-	function cache_add( string $name, string $type = 'collection' ) : void
-	{
-		$cache = caches();
-
-		$map = [
-			'collection' => Cache\Collection::class,
-			'html'       => Cache\Html::class,
-			'json'       => Cache\Json::class,
-			'rapid'      => Cache\Rapid::class
-		];
-
-		if ( isset( $map[ $type ] ) ) {
-			$callback = $map[ $type ];
-			$cache->add( $name, new $callback( $name ) );
-		}
-	}
-}
-
-if ( ! function_exists( 'cache_delete' ) ) {
-	/**
-	 * Deletes a cache.
-	 *
-	 * @since 1.0.0
-	 */
-	function cache_delete( string $name ) {
-		$cache = caches();
-
-		if ( $cache->has( $name ) ) {
-			$cache->get( $name )->delete();
-		}
 	}
 }

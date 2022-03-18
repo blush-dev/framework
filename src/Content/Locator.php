@@ -15,8 +15,8 @@ namespace Blush\Content;
 use Blush\Contracts\Content\Locator as LocatorContract;
 
 // Classes.
-use Blush\App;
-use Blush\Tools\Str;
+use Blush\{App, Cache};
+use Blush\Tools\{Collection, Str};
 use Symfony\Component\Yaml\Yaml;
 
 class Locator implements LocatorContract
@@ -40,7 +40,10 @@ class Locator implements LocatorContract
 	 *
 	 * @since 1.0.0
 	 */
-	protected string $cache_path = 'content';
+	protected string $cache_key = '';
+
+	protected ?int $content_time = null;
+	protected ?int $cache_time = null;
 
 	/**
 	 * Sets up object state.
@@ -68,9 +71,13 @@ class Locator implements LocatorContract
 		$path = trim( $path, '/.' );
 
 		if ( $path ) {
-			$this->path       = Str::appendPath( $this->path, $path );
-			$this->cache_path = Str::appendPath( $this->cache_path, $path );
+			$this->path = Str::appendPath( $this->path, $path );
 		}
+
+		$this->cache_key = str_replace( [
+			'/',
+			'\\',
+		], '.', $path ?: 'index' );
 	}
 
 	/**
@@ -90,37 +97,44 @@ class Locator implements LocatorContract
 	 */
 	protected function getCache() : array
 	{
+		$store = Cache::store( 'content' );
+
+		if ( ! $this->cache ) {
+			$cache = $store->get( $this->cache_key );
+
+			if ( $cache && $cache instanceof Collection ) {
+				$this->cache = $cache->all();
+			}
+
+			return $this->cache;
+		}
+
 		// On first run, check the temporary cache, let's see if there
 		// is a persistent cache.
-		if ( ! $this->cache ) {
+		if ( $this->cache && is_null( $this->content_time ) && is_null( $this->cache_time ) ) {
 
 			// Get persistent cache.
-			$cache = cache( $this->cache_path );
+			$cache = $store->get( $this->cache_key );
 
 			// If the persistent cache exists, let's see if it needs
 			// refreshing based on file modified times.
-			if ( false !== $cache ) {
-				$content_time = filemtime( Str::appendPath( $this->path, '.' ) );
-				$cache_time   = filemtime( $cache->filename() );
+			if ( $cache ) {
+				$this->content_time = filemtime( $this->path );
+				$this->cache_time   = filemtime( $store->filepath( $this->cache_key ) );
 
 				// If there are no modified file times or the
 				// content folder is newer than the cache, delete
 				// the current cache. Also, remove the cache
 				// from the cache repository.
 				if (
-					false === $cache_time ||
-					false === $content_time ||
-					$content_time > $cache_time
+					false === $this->cache_time ||
+					false === $this->content_time ||
+					$this->content_time > $this->cache_time
 				) {
-					$cache->delete();
-					caches()->remove( $this->cache_path );
+					$store->forget( $this->cache_key );
+					$this->cache = [];
 				}
 			}
-
-			// Get the persistent cache if it exists. If not, add it
-			// to the repository and set to an empty array.
-			$cache = cache_get_add( $this->cache_path, 'collection' );
-			$this->cache = $cache ? $cache->all() : [];
 		}
 
 		return $this->cache;
@@ -133,7 +147,8 @@ class Locator implements LocatorContract
 	 */
 	protected function setCache( array $data ) : void
 	{
-		cache_set( $this->cache_path, $data, 'collection' );
+		Cache::store( 'content' )->put( $this->cache_key, $data );
+
 		$this->cache = $data;
 	}
 

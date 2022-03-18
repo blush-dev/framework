@@ -11,6 +11,7 @@
 
 namespace Blush\Routing;
 
+use Blush\Cache;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
@@ -76,8 +77,13 @@ class Router
 			return $this->getResponse();
 		}
 
-		$exclude = $config['global_exclude'] ?? [];
-		$path    = Str::slashTrim( $this->path() );
+		// Trim slashes from the path.
+		$path = Str::slashTrim( $this->path() );
+
+		// Get excluded paths.
+		$exclude = array_merge( [
+			'purge/cache'
+		], $config['global_exclude'] ?? [] );
 
 		// Don't cache excluded pages. Just return response.
 		foreach ( (array) $exclude as $_path ) {
@@ -91,15 +97,15 @@ class Router
 			$path = 'index';
 		}
 
-		$cache_key = "global/{$path}";
-		$content   = cache_get_make( $cache_key, 'html' );
+		$cache_key = str_replace( [ '/', '\\' ], '.', $path );
+		$content = Cache::get( "global.{$cache_key}" );
 		$response  = false;
 
 		// If no cached content, get a new response and cache it.
 		if ( ! $content ) {
 			$response = $this->getResponse();
-			$content  = $this->getResponse()->getContent();
-			cache_set( $cache_key, $content, 'html' );
+			$content  = $response->getContent();
+			Cache::put( "global.{$cache_key}", $content );
 		}
 
 		// If no response is set, add the cached content to new response.

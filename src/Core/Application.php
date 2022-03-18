@@ -138,6 +138,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	{
 		// Register framework service providers.
 		$this->provider( Providers\App::class      );
+		$this->provider( Providers\Cache::class    );
 		$this->provider( Providers\Content::class  );
 		$this->provider( Providers\Markdown::class );
 		$this->provider( Providers\Routing::class  );
@@ -163,6 +164,7 @@ class Application extends Container implements ApplicationContract, Bootable
 
 		// Register framework proxies.
 		$this->proxy( Proxies\App::class,   '\Blush\App'   );
+		$this->proxy( Proxies\Cache::class, '\Blush\Cache' );
 		$this->proxy( Proxies\Query::class, '\Blush\Query' );
 
 		// Register app proxies.

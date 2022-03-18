@@ -81,8 +81,13 @@ class Component implements Bootable
 			'controller' => Controllers\Home::class
 		] );
 
-		// Add cache purge route.
-		$this->routes->add( 'cache/purge/{key}', [
+		// Add cache purge route for individual stores.
+		$this->routes->add( 'purge/cache/{name}/{key}', [
+			'controller' => Controllers\Cache::class
+		] );
+
+		// Add cache purge route for all stores.
+		$this->routes->add( 'purge/cache/{key}', [
 			'controller' => Controllers\Cache::class
 		] );
 

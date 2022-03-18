@@ -12,6 +12,7 @@
 namespace Blush\Controllers;
 
 use Blush\App;
+use Blush\Cache as CacheRegistry;
 use Blush\Content\Entry\Virtual;
 use Blush\Template\Tags\DocumentTitle;
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -28,15 +29,32 @@ class Cache extends Controller
 	 */
 	public function __invoke( array $params = [], Request $request ): Response
 	{
-		$key = App::get( 'config.cache' )->get( 'secret_key' );
+		$purge_key = App::get( 'config.cache' )->get( 'purge_key' );
 
-		$title = 'Cache Purge Failure';
-		$content = '<p>Invalid cache purge request.<p>';
+		$store   = $params['name'] ?? '';
+		$key     = $params['key'] ?? '';
+		$flushed = false;
 
-		if ( isset( $params['key'] ) && $key === $params['key'] ) {
-			$this->recursiveRemove( App::get( 'path.cache' ) );
-			$title = 'Cache Purged';
-			$content = '<p>Cached content and data successfully purged.</p>';
+		$title = 'Cache Flush Failure';
+		$content = '<p>Invalid cache flush request.<p>';
+
+		// Flush cache store.
+		if ( $store && $key && $key === $purge_key ) {
+			if ( $this->flushCacheStore( $store ) ) {
+				$title = 'Cache Store Flushed';
+				$content = sprintf(
+					'<p>Successfully flushed and purged all data from the <code>%s</code> cache store.</p>',
+					CacheRegistry::store( $store )->name()
+				);
+			}
+		}
+
+		// Flush all stores.
+		if ( ! $store && ! $flushed && $key && $key === $purge_key ) {
+			if ( $this->flushAllCacheStores() ) {
+				$title = 'Cache Stores Flushed';
+				$content = sprintf( '<p>Successfully flushed and purged data from all cache stores.</p>' );
+			}
 		}
 
 		// Create a virtual entry for the content.
@@ -61,27 +79,34 @@ class Cache extends Controller
 	}
 
 	/**
-	 * Recursively removes a directory.
+	 * Flushes a cache store.
 	 *
 	 * @since 1.0.0
 	 */
-	private function recursiveRemove( string $path ): void
+	private function flushCacheStore( string $name ): bool
 	{
-		if ( ! is_dir( $path ) ) {
-			return;
+		if ( CacheRegistry::storeExists( $name ) ) {
+			CacheRegistry::store( $name )->flush();
+			return true;
 		}
 
-		$filepaths = glob( "{$path}/*" );
+		return false;
+	}
 
-		foreach ( $filepaths as $filepath ) {
-			is_dir( $filepath )
-			    ? $this->recursiveRemove( $filepath )
-			    : unlink( $filepath );
+	/**
+	 * Flushes all cache stores.
+	 *
+	 * @since 1.0.0
+	 */
+	private function flushAllCacheStores(): bool
+	{
+		if ( $stores = CacheRegistry::getStores() ) {
+			foreach ( $stores as $store ) {
+				$store->flush();
+			}
+			return true;
 		}
 
-		// Don't remove the cache directory itself.
-		if ( App::get( 'path.cache' ) !== $path ) {
-			rmdir( $path );
-		}
+		return false;
 	}
 }

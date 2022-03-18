@@ -236,6 +236,8 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	{
 		$located = $this->locator->all();
 
+		//( $this->locator );
+
 		// Set the entry properties to arrays.
 		$this->entries = [];
 		$this->located_slugs = [];
@@ -419,17 +421,6 @@ class Query implements Makeable, QueryContract, IteratorAggregate
                 $located = [];
 
                 foreach ( $entries as $file => $matter ) {
-
-                	if ( isset( $matter['slug'] ) ) {
-
-                		if ( in_array( $matter['slug'], $this->names ) ) {
-                			$located[ $file ] = $matter;
-                			continue;
-                		} else {
-					// If file has a defined slug, always use it.
-                			continue;
-                		}
-        		}
 
                 	$pathinfo = pathinfo( $file );
 

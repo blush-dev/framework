@@ -39,9 +39,6 @@ class App extends ServiceProvider
                 // Sets the default timezone.
                 date_default_timezone_set( $app_config['timezone'] ?? 'America/Chicago' );
 
-		// Add cache.
-                $this->app->instance( 'caches', new Collection() );
-
 		// Add template engine.
 		$this->app->singleton( EngineContract::class, Engine::class );
                 $this->app->bind(      ViewContract::class,   View::class   );
