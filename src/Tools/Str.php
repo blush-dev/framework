@@ -145,6 +145,17 @@ class Str
 	}
 
 	/**
+	 * Returns the singular or plural version of a string based on the count.
+	 *
+	 * @todo  Implement translation system that handles this based on locale.
+	 * @since 1.0.0
+	 */
+	function nText( string $singular, string $plural, int $count ): string
+	{
+		return 1 === $count ? $singular : $plural;
+	}
+
+	/**
 	 * Replaces the last occurrence of a string.
 	 *
 	 * @since 1.0.0

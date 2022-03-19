@@ -276,4 +276,54 @@ abstract class Entry implements EntryContract
 			$more
 		) );
 	}
+
+	/**
+	 * Returns an estimated reading time in hours (if an hour or longer) and
+	 * minutes.
+	 *
+	 * @since  1.0.0
+	 */
+	public function readingTime( int $words_per_min = 200 ): string
+	{
+		$words_per_hour = $words_per_min * 60;
+
+		// Strip tags and get the word count from the content.
+		$count = str_word_count( strip_tags( $this->content() ) );
+
+		// Get the floor for hours.  Otherwise, it will round up to
+		// `1.0`. But, get the ceiling for minutes.
+		$time_hours = intval( floor( $count / $words_per_hour ) );
+		$time_mins  = intval( ceil( $count / $words_per_min ) );
+
+		// If there are no hours, just return the minutes.
+		if ( 0 >= $time_hours ) {
+			return sprintf(
+				Str::nText( '%d Minute', '%d Minutes', $time_mins ),
+				number_format( $time_mins )
+			);
+		}
+
+		// Subtract the hours by minute from the total minutes.
+		$time_mins = $time_mins - ( $time_hours * 60 );
+
+		// Set up text for hours.
+		$text_hours = sprintf(
+			Str::nText( '%d Hour', '%d Hours', $time_hours ),
+			number_format( $time_hours )
+		);
+
+		// Set up text for minutes.
+		$text_mins = sprintf(
+			Str::nText( '%d Minute', '%d Minutes', $time_mins ),
+			number_format( $time_mins )
+		);
+
+		// If no minutes left after subtraction of hours, return hours.
+		if ( 0 >= $time_mins ) {
+			return $text_hours;
+		}
+
+		// Merge hours + minutes text.
+		return sprintf( '%s, %s', $text_hours, $text_mins );
+	}
 }
