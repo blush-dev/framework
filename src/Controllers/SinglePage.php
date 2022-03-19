@@ -28,6 +28,11 @@ class SinglePage extends Single
 		$path = $params['path'] ?? '';
 		$name = Str::afterLast( $path, '/' );
 
+		// If the page name begins with `_`, it is private.
+		if ( Str::startsWith( $name, '_' ) ) {
+			return $this->forward404( $params, $request );
+		}
+
 		// Look for an `path/index.md` file.
 		$single = Query::make( [
 			'path' => $path,
