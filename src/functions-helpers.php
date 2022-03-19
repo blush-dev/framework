@@ -315,7 +315,7 @@ if ( ! function_exists( 'sanitize_slug' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function sanitize_slug( string $str, string $sep = '' ) : string
+	function sanitize_slug( string $str, string $sep = '-' ) : string
 	{
 		$dividers = $sep === '-' ? '_' : '-';
 
