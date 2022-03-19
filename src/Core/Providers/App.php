@@ -44,8 +44,8 @@ class App extends ServiceProvider
                 $this->app->bind(      ViewContract::class,   View::class   );
 
 		// Add aliases.
-		$this->app->alias( ViewContract::class,   'template.engine' );
-		$this->app->alias( EngineContract::class, 'template.view'   );
+		$this->app->alias( ViewContract::class,   'template.view'   );
+		$this->app->alias( EngineContract::class, 'template.engine' );
 
 		// Set up variable dumper.
 		$this->setVarDumper();

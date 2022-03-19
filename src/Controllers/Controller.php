@@ -17,10 +17,10 @@
 namespace Blush\Controllers;
 
 // Abstracts.
-use Blush\Contracts\Template\{Engine, View};
+use Blush\Contracts\Template\View;
 
 // Concretes.
-use Blush\App;
+use Blush\Engine;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
 abstract class Controller
@@ -44,7 +44,7 @@ abstract class Controller
 	 */
 	protected function view( $names, $data = [] ): View
 	{
-		return App::make( Engine::class )->view( $names, $data );
+		return Engine::view( $names, $data );
 	}
 
 	/**
