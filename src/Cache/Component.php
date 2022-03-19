@@ -58,7 +58,7 @@ class Component implements Bootable
 		// Merge default and user-configured stores.
 		$stores = array_merge( [
 			'content' => [
-				'driver' => 'file.collection',
+				'driver' => 'file.json',
 				'path'   => cache_path( 'content' )
 			],
 			'global'  => [

@@ -16,7 +16,7 @@ use Blush\Contracts\Content\Locator as LocatorContract;
 
 // Classes.
 use Blush\{App, Cache};
-use Blush\Tools\{Collection, Str};
+use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 
 class Locator implements LocatorContract
@@ -65,7 +65,7 @@ class Locator implements LocatorContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function setPath( string $path ) : void
+	public function setPath( string $path ): void
 	{
 		// Remove slashes and dots from the left/right sides.
 		$path = trim( $path, '/.' );
@@ -74,10 +74,8 @@ class Locator implements LocatorContract
 			$this->path = Str::appendPath( $this->path, $path );
 		}
 
-		$this->cache_key = str_replace( [
-			'/',
-			'\\',
-		], '.', $path ?: 'index' );
+		// Replace slash with dot for cache key.
+		$this->cache_key = str_replace( '/' , '.', $path ?: 'index' );
 	}
 
 	/**
@@ -102,8 +100,8 @@ class Locator implements LocatorContract
 		if ( ! $this->cache ) {
 			$cache = $store->get( $this->cache_key );
 
-			if ( $cache && $cache instanceof Collection ) {
-				$this->cache = $cache->all();
+			if ( $cache ) {
+				$this->cache = $cache;
 			}
 
 			return $this->cache;
