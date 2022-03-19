@@ -30,7 +30,7 @@ class Collection extends Controller
 
 		// Get needed URI params from the router.
 		$path = $params['path']   ?? '';
-		$page = $params['number'] ?? '';
+		$page = $params['page'] ?? '';
 
 		// If this is a paged view, strip the page from the path.
 		if ( $page ) {

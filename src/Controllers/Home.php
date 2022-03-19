@@ -38,7 +38,7 @@ class Home extends Controller
 
 		// If we have a content type and a collection type, run query.
 		if ( $type && $collect ) {
-			$page = $params['number'] ?? 1;
+			$page = $params['page'] ?? 1;
 
 			// Query the content type.
 			$single = Query::make( [

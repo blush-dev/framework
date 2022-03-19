@@ -28,7 +28,7 @@ class CollectionTaxonomyTerm extends Controller
 		$types = App::get( 'content.types' );
 
 		$name = $params['name'] ?? '';
-		$page = $params['number'] ?? '';
+		$page = $params['page'] ?? '';
 		$path = $params['path'];
 
 		$type_path = Str::beforeLast( $params['path'] ?? '', "/{$name}" );

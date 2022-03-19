@@ -213,14 +213,14 @@ class Type
 
 		// Add paged type archive if not set as the homepage.
 		if ( $alias !== $this->type() ) {
-			$this->routes[ $path . '/page/{number}' ] = [
+			$this->routes[ $path . '/page/{page}' ] = [
 				'controller' => Controllers\Collection::class
 			];
 		}
 
 		// If this is a taxonomy, add paged term archive.
 		if ( $this->isTaxonomy() ) {
-			$this->routes[ $path . '/{name}/page/{number}' ] = [
+			$this->routes[ $path . '/{name}/page/{page}' ] = [
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
 		}
