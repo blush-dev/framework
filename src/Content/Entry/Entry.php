@@ -212,7 +212,7 @@ abstract class Entry implements EntryContract
 
 		// @todo - config/site.yaml
 		return date(
-			'F j, Y',
+			config( 'app.date_format' ) ?: 'F j, Y',
 		 	is_numeric( $date ) ? $date : strtotime( $date )
 		);
 	}
