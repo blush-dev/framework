@@ -48,7 +48,7 @@ class Single extends Controller
 			$type_name  = sanitize_slug( $type->type() );
 			$collection = false;
 
-			if ( $args = $single->metaArr( 'collection' ) ) {
+			if ( $args = $single->collectionArgs() ) {
 				$collection = Query::make( $args );
 			}
 

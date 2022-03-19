@@ -50,7 +50,7 @@ class SinglePage extends Single
 		if ( $single ) {
 			$collection = false;
 
-			if ( $args = $single->metaArr( 'collection' ) ) {
+			if ( $args = $single->collectionArgs() ) {
 				$collection = Query::make( $args );
 			}
 

@@ -54,13 +54,12 @@ class Collection extends Controller
 			'slug' => 'index'
 		] )->single();
 
-		// Get the default collection query args for the type.
-		$query_args = $type->collectionArgs();
-
-		// Get user collection query args and merge if there are any.
-		if ( $single && $args = $single->metaArr( 'collection' ) ) {
-			$query_args = array_merge( $query_args, $args );
-		}
+		// Merge the default collection query args for the type
+		// with user query args.
+		$query_args = array_merge(
+			$type->collectionArgs(),
+			$single ? $single->collectionArgs() : []
+		);
 
 		// Set required variables for the query.
 		$page = $page ? abs( intval( $page ) ) : 1;

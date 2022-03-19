@@ -253,6 +253,22 @@ abstract class Entry implements EntryContract
 	}
 
 	/**
+	 * Returns an array of Query arguments if assigned as metadata.
+	 *
+	 * @since  1.0.0
+	 */
+	public function collectionArgs(): array
+	{
+		$collection = $this->metaArr( 'collection' );
+
+		// Make sure this is an associative array.
+		$keys = array_keys( $collection );
+		$is_associative = array_keys( $keys ) !== $keys;
+
+		return $is_associative ? $collection : [];
+	}
+
+	/**
 	 * Returns a Query of taxonomy entries or false.
 	 *
 	 * @since  1.0.0
