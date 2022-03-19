@@ -152,7 +152,7 @@ class File extends Store
 	{
 		if ( $this->fileExists( $key ) ) {
 			$this->removeData( $key );
-			return unlink( $this->filepath() );
+			return unlink( $this->filepath( $key ) );
 		}
 
 		return false;
