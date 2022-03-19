@@ -79,18 +79,20 @@ class CollectionTaxonomyTerm extends Controller
 				'total'    => $collection->pages()
 			] );
 
-			return $this->response( $this->view( [
-				"collection-{$type_name}-{$name}",
-				"collection-{$type_name}-term",
-				'collection-term',
-				'collection',
-				'index'
-			], [
-				'doctitle'   => $doctitle,
-				'pagination' => $pagination,
-				'single'     => $single,
-				'collection' => $collection
-			] ) );
+			return $this->response( $this->view(
+				array_merge( $single->viewPaths(), [
+					"collection-{$type_name}-{$name}",
+					"collection-{$type_name}-term",
+					'collection-term',
+					'collection',
+					'index'
+				] ), [
+					'doctitle'   => $doctitle,
+					'pagination' => $pagination,
+					'single'     => $single,
+					'collection' => $collection
+				]
+			) );
 		}
 
 		// If all else fails, return a 404.

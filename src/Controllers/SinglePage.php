@@ -56,17 +56,19 @@ class SinglePage extends Single
 
 			$doctitle = new DocumentTitle( $single->title() );
 
-			return $this->response( $this->view( [
-				"single-page-{$name}",
-				'single-page',
-				'single',
-				'index'
-			], [
-				'doctitle'   => $doctitle,
-				'pagination' => false,
-				'single'     => $single,
-				'collection' => $collection
-			] ) );
+			return $this->response( $this->view(
+				array_merge( $single->viewPaths(), [
+					"single-page-{$name}",
+					'single-page',
+					'single',
+					'index'
+				] ), [
+					'doctitle'   => $doctitle,
+					'pagination' => false,
+					'single'     => $single,
+					'collection' => $collection
+				]
+			) );
 		}
 
 		// If all else fails, return a 404.

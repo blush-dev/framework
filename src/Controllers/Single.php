@@ -54,17 +54,19 @@ class Single extends Controller
 
 			$doctitle = new DocumentTitle( $single->title() );
 
-			return $this->response( $this->view( [
-				"single-{$type_name}-{$name}",
-				"single-{$type_name}",
-				'single',
-				'index'
-			], [
-				'doctitle'   => $doctitle,
-				'pagination' => false,
-				'single'     => $single,
-				'collection' => $collection
-			] ) );
+			return $this->response( $this->view(
+				array_merge( $single->viewPaths(), [
+					"single-{$type_name}-{$name}",
+					"single-{$type_name}",
+					'single',
+					'index'
+				] ), [
+					'doctitle'   => $doctitle,
+					'pagination' => false,
+					'single'     => $single,
+					'collection' => $collection
+				]
+			) );
 		}
 
 		// If all else fails, return a 404.

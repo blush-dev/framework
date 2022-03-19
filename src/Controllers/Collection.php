@@ -85,17 +85,19 @@ class Collection extends Controller
 				'total'    => $collection->pages()
 			] );
 
-			return $this->response( $this->view( [
-				"collection-{$type_name}",
-				"collection-{$model_name}",
-				'collection',
-				'index'
-			], [
-				'doctitle'   => $doctitle,
-				'pagination' => $pagination,
-				'single'     => $single,
-				'collection' => $collection
-			] ) );
+			return $this->response( $this->view(
+				array_merge( $single->viewPaths(), [
+					"collection-{$type_name}",
+					"collection-{$model_name}",
+					'collection',
+					'index'
+				] ), [
+					'doctitle'   => $doctitle,
+					'pagination' => $pagination,
+					'single'     => $single,
+					'collection' => $collection
+				]
+			) );
 		}
 
 		// If all else fails, return a 404.

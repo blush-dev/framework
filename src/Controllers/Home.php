@@ -75,17 +75,19 @@ class Home extends Controller
 					'total'    => $collection->pages()
 				] );
 
-				return $this->response( $this->view( [
-					'collection-home',
-					"collection-{$type_name}",
-					'collection',
-					'index'
-				], [
-					'doctitle'   => $doctitle,
-					'pagination' => $pagination,
-					'single'     => $single,
-					'collection' => $collection
-				] ) );
+				return $this->response( $this->view(
+					array_merge( $single->viewPaths(), [
+						'collection-home',
+						"collection-{$type_name}",
+						'collection',
+						'index'
+					] ), [
+						'doctitle'   => $doctitle,
+						'pagination' => $pagination,
+						'single'     => $single,
+						'collection' => $collection
+					]
+				) );
 			}
 		}
 
@@ -99,17 +101,19 @@ class Home extends Controller
 				$collection = Query::make( $args );
 			}
 
-			return $this->response( $this->view( [
-				'single-home',
-				'single-page',
-				'single',
-				'index'
-			], [
-				'doctitle'   => new DocumentTitle(),
-				'pagination' => false,
-				'single'     => $single,
-				'collection' => $collection
-			] ) );
+			return $this->response( $this->view(
+				array_merge( $single->viewPaths(), [
+					'single-home',
+					'single-page',
+					'single',
+					'index'
+				] ), [
+					'doctitle'   => new DocumentTitle(),
+					'pagination' => false,
+					'single'     => $single,
+					'collection' => $collection
+				]
+			) );
 		}
 
 		// If no index file is found, which is the minimum necessary for

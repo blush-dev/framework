@@ -210,7 +210,6 @@ abstract class Entry implements EntryContract
 			return '';
 		}
 
-		// @todo - config/site.yaml
 		return date(
 			config( 'app.date_format' ) ?: 'F j, Y',
 		 	is_numeric( $date ) ? $date : strtotime( $date )
@@ -235,6 +234,22 @@ abstract class Entry implements EntryContract
 	public function authors() : array
 	{
 		return (string) $this->metaArr( 'author' );
+	}
+
+	/**
+	 * Returns an array of view paths assigned as metadata.
+	 *
+	 * @since  1.0.0
+	 */
+	public function viewPaths(): array
+	{
+		return array_map(
+			fn( $view ) => Str::beforeLast( $view, '.php' ),
+			array_merge(
+				$this->metaArr( 'template' ),
+				$this->metaArr( 'view' )
+			)
+		);
 	}
 
 	/**
