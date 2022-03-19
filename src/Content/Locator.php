@@ -22,18 +22,18 @@ use Symfony\Component\Yaml\Yaml;
 class Locator implements LocatorContract
 {
 	/**
-	 * Relative path to the content folder where to locate content.
+	 * Full path to the folder to search for content.
 	 *
 	 * @since 1.0.0
 	 */
-	protected string $path = '';
+	protected string $path;
 
 	/**
-	 * Array of cached filenames and metadata.
+	 * Array of located filepaths and metadata.
 	 *
 	 * @since 1.0.0
 	 */
-	protected array $cache = [];
+	protected ?array $located = null;
 
 	/**
 	 * Relative path to the cache folder where to store located content.
@@ -42,7 +42,18 @@ class Locator implements LocatorContract
 	 */
 	protected string $cache_key = '';
 
+	/**
+	 * Stores the result of `filemtime()` on the content folder.
+	 *
+	 * @since 1.0.0
+	 */
 	protected ?int $content_time = null;
+
+	/**
+	 * Stores the result of `filemetime()` on the cache file.
+	 *
+	 * @since 1.0.0
+	 */
 	protected ?int $cache_time = null;
 
 	/**
@@ -83,71 +94,9 @@ class Locator implements LocatorContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function path() : string
+	public function path(): string
 	{
 		return $this->path;
-	}
-
-	/**
-	 * Returns the cached filenames and metadata.
-	 *
-	 * @since 1.0.0
-	 */
-	protected function getCache() : array
-	{
-		$store = Cache::store( 'content' );
-
-		if ( ! $this->cache ) {
-			$cache = $store->get( $this->cache_key );
-
-			if ( $cache ) {
-				$this->cache = $cache;
-			}
-
-			return $this->cache;
-		}
-
-		// On first run, check the temporary cache, let's see if there
-		// is a persistent cache.
-		if ( $this->cache && is_null( $this->content_time ) && is_null( $this->cache_time ) ) {
-
-			// Get persistent cache.
-			$cache = $store->get( $this->cache_key );
-
-			// If the persistent cache exists, let's see if it needs
-			// refreshing based on file modified times.
-			if ( $cache ) {
-				$this->content_time = filemtime( $this->path );
-				$this->cache_time   = filemtime( $store->filepath( $this->cache_key ) );
-
-				// If there are no modified file times or the
-				// content folder is newer than the cache, delete
-				// the current cache. Also, remove the cache
-				// from the cache repository.
-				if (
-					false === $this->cache_time ||
-					false === $this->content_time ||
-					$this->content_time > $this->cache_time
-				) {
-					$store->forget( $this->cache_key );
-					$this->cache = [];
-				}
-			}
-		}
-
-		return $this->cache;
-	}
-
-	/**
-	 * Caches filenames and metadata.
-	 *
-	 * @since 1.0.0
-	 */
-	protected function setCache( array $data ) : void
-	{
-		Cache::store( 'content' )->put( $this->cache_key, $data );
-
-		$this->cache = $data;
 	}
 
 	/**
@@ -156,22 +105,74 @@ class Locator implements LocatorContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function all() : array
+	public function all(): array
 	{
-		$entries = $this->getCache();
-
-		if ( ! $entries ) {
-			$entries = $this->locate();
+		// If the content has already been located, return it early.
+		if ( ! is_null( $this->located ) ) {
+			return $this->located;
 		}
 
-		$located = [];
+		// Get cached entries if any exist. If not, locate entries from
+		// the filesystem.
+		if ( ! $entries = $this->getCachedEntries() ) {
 
+			// Cache the located entries.
+			if ( $entries = $this->locate() ) {
+				Cache::put( "content.{$this->cache_key}", $entries );
+			}
+		}
+
+		// Set or reset located array (it should be `null` here).
+		$this->located = [];
+
+		// Loop through the entries and re-add the full filepath as the
+		// key. We previously removed it for the cache.
 		foreach ( $entries as $basename => $data ) {
 			$filepath = Str::appendPath( $this->path, $basename );
-			$located[ $filepath ] = $data;
+			$this->located[ $filepath ] = $data;
 		}
 
-		return $located;
+		// Return located entries.
+		return $this->located;
+	}
+
+	/**
+	 * Returns the cached filenames and metadata.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function getCachedEntries(): array
+	{
+		$store = Cache::store( 'content' );
+
+		// Check cache for entries. If none found, return empty array.
+		if ( ! $cache = $store->get( $this->cache_key ) ) {
+			return [];
+		}
+
+		// If we've already checked file modified times, return the cache.
+		if ( ! is_null( $this->content_time ) && ! is_null( $this->cache_time ) ) {
+			return $cache;
+		}
+
+		// If the persistent cache exists, let's see if it needs
+		// refreshing based on file modified times.
+		$this->content_time = filemtime( $this->path );
+		$this->cache_time   = filemtime( $store->filepath( $this->cache_key ) );
+
+		// If there are no modified file times or the content folder is
+		// newer than the cache, forget the current cache.
+		if (
+			false === $this->cache_time ||
+			false === $this->content_time ||
+			$this->content_time > $this->cache_time
+		) {
+			$store->forget( $this->cache_key );
+			$cache = [];
+		}
+
+		// Return the cache, empty or otherwise.
+		return $cache;
 	}
 
 	/**
@@ -180,26 +181,25 @@ class Locator implements LocatorContract
 	 *
 	 * @since 1.0.0
 	 */
-	protected function locate() : array
+	protected function locate(): array
 	{
-		$filepaths = glob( Str::appendPath( $this->path, '*.md' ) );
+		$search = Str::appendPath( $this->path, '*.md' );
 
-		if ( ! $filepaths ) {
+		// Return an empty array if search results in no files.
+		if ( ! $filepaths = glob( $search ) ) {
 			return [];
 		}
 
-		$cache = [];
+		// Set up new array for located entries.
+		$located = [];
 
 		// Get the metadata keys to exclude from the cache.
 		$exclude = config( 'cache.content_exclude_meta' );
 		$exclude = is_array( $exclude ) ? array_flip( $exclude ) : false;
 
+		// Loop through filepaths and add them to the located array
+		// unless they should be excluded.
 		foreach ( $filepaths as $filepath ) {
-
-			// Skip if the file isn't Markdown.
-			if ( ! is_file( $filepath ) || 'md' !== pathinfo( $filepath, PATHINFO_EXTENSION ) ) {
-				continue;
-			}
 
 			// Set up empty array in case there's no data.
 			$data = [];
@@ -230,17 +230,14 @@ class Locator implements LocatorContract
 				}
 			}
 
-			// Remove the content dir path. We only need the basename.
-			$key = str_replace( "{$this->path}/", '', $filepath );
+			// Create the array key with just the file basename.
+			$key = Str::slashTrim(
+				str_replace( $this->path, '', $filepath )
+			);
 
-			$cache[ $key ] = $data;
+			$located[ $key ] = $data;
 		}
 
-		if ( $cache ) {
-			$this->setCache( $cache );
-			return $cache;
-		}
-
-		return [];
+		return $located;
 	}
 }
