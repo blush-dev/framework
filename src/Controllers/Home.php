@@ -93,7 +93,7 @@ class Home extends Controller
 		// Query the homepage `index.md` file.
 		$single = Query::make( [ 'slug' => 'index' ] )->single();
 
-		if ( $single ) {
+		if ( $single && $single->isPublic() ) {
 			$collection = false;
 
 			if ( $args = $single->collectionArgs() ) {

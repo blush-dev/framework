@@ -241,6 +241,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 		$this->located_slugs = [];
 
 		// Filter entries based on query vars.
+		$located = $this->filterByVisibility( $located );
 		$located = $this->filterByNames( $located );
 		$located = $this->filterByDate( $located );
 		$located = $this->filterByMeta( $located );
@@ -406,6 +407,42 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	}
 
 	/**
+	 * Filter entries by visibility.
+	 *
+	 * @todo  Allow queries specifically for visibility.
+	 * @since 1.0.0
+	 */
+	private function filterByVisibility( array $entries ): array
+	{
+		$located = [];
+
+		foreach ( $entries as $file => $matter ) {
+
+			if ( ! isset( $matter['visibility'] ) ) {
+				$matter['visibility'] = 'public';
+			}
+
+			$slug = Str::afterFirst(
+				pathinfo( $file, PATHINFO_FILENAME ),
+				'.'
+			);
+
+			// If the entry is hidden and not specifically queried,
+			// don't add it to the located array.
+			if (
+				! in_array( $slug, $this->names ) &&
+			 	'hidden' === $matter['visibility']
+			) {
+				continue;
+			}
+
+	                $located[ $file ] = $matter;
+		}
+
+		return $located;
+	}
+
+	/**
 	 * Filter entries by filename/slug.
 	 *
 	 * @since 1.0.0
@@ -420,12 +457,22 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
                 foreach ( $entries as $file => $matter ) {
 
-                	$pathinfo = pathinfo( $file );
+                //	$pathinfo = pathinfo( $file );
 
-                	if ( in_array( $pathinfo['filename'], $this->names ) ) {
+			$slug = Str::afterFirst(
+				pathinfo( $file, PATHINFO_FILENAME ),
+				'.'
+			);
+
+                	if ( in_array( $slug, $this->names ) ) {
                 		$located[ $file ] = $matter;
                 		continue;
                 	}
+		}
+
+		return $located;
+/*
+			$slug = Str::afterFirst( $pathinfo['filename'], '.' );
 
                 	// Strips everything from front of string to the first `.` char.
                 	$parts = explode( '.', $pathinfo['filename'] );
@@ -438,9 +485,10 @@ class Query implements Makeable, QueryContract, IteratorAggregate
                 		$located[ $file ] = $matter;
                 		continue;
                 	}
-                }
+			*/
+                //}
 
-                return $located;
+                //return $located;
         }
 
 	/**

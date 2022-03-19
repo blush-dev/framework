@@ -31,11 +31,6 @@ class Single extends Controller
 		$name = $params['name'] ?? '';
 		$path = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
 
-		// If the post name begins with `_`, it is private.
-		if ( Str::startsWith( $name, '_' ) ) {
-			return $this->forward404( $params, $request );
-		}
-
 		// Get the content type by path.
 		$type = $types->getTypeFromPath( $path );
 
@@ -44,7 +39,7 @@ class Single extends Controller
 			'slug' => $name
 		] )->single();
 
-		if ( $single ) {
+		if ( $single && $single->isPublic() ) {
 			$type_name  = sanitize_slug( $type->type() );
 			$collection = false;
 

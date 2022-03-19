@@ -47,7 +47,7 @@ class SinglePage extends Single
 			] )->single();
 		}
 
-		if ( $single ) {
+		if ( $single && $single->isPublic() ) {
 			$collection = false;
 
 			if ( $args = $single->collectionArgs() ) {

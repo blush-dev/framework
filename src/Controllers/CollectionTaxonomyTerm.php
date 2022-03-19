@@ -65,7 +65,7 @@ class CollectionTaxonomyTerm extends Controller
 			'meta_value' => $name
 		] ) );
 
-		if ( $single && $collection->all() ) {
+		if ( $single && $single->isPublic() && $collection->all() ) {
 			$type_name = sanitize_slug( $type->type() );
 
 			$doctitle = new DocumentTitle( $single->title(), [

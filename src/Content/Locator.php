@@ -195,7 +195,10 @@ class Locator implements LocatorContract
 
 		// Get the metadata keys to exclude from the cache.
 		$exclude = config( 'cache.content_exclude_meta' );
-		$exclude = is_array( $exclude ) ? array_flip( $exclude ) : false;
+		$exclude = is_array( $exclude ) ? array_flip( $exclude ) : [];
+
+		// Don't allow exclusion of visbility.
+		unset( $exclude['visibility'] );
 
 		// Loop through filepaths and add them to the located array
 		// unless they should be excluded.
@@ -227,6 +230,14 @@ class Locator implements LocatorContract
 				// Exclude meta from cache.
 				if ( $exclude ) {
 					$data = array_diff_key( $data, $exclude );
+				}
+
+				// If visibility isn't set, add it now.
+				if ( ! isset( $data['visibility'] ) ) {
+					$data['visibility'] = Str::startsWith(
+						pathinfo( $filepath, PATHINFO_FILENAME ),
+						'_'
+					) ? 'hidden' : 'public';
 				}
 			}
 

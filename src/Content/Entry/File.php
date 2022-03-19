@@ -164,4 +164,19 @@ abstract class File extends Entry
 
 		return $name;
 	}
+
+	/**
+	 * If an entry filename begins with an underscore (e.g., `_example.md`),
+	 * then we consider it hidden. Otherwise, the entry is public.
+	 *
+	 * @since 1.0.0
+	 */
+	public function visibility(): string
+	{
+		if ( $this->metaSingle( 'visibility' ) ) {
+			return parent::visibility();
+		}
+
+		return Str::startsWith( $this->filename(), '_' ) ? 'hidden' : 'public';
+	}
 }

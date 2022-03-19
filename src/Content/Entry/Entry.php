@@ -74,6 +74,42 @@ abstract class Entry implements EntryContract
 	}
 
 	/**
+	 * Returns a post's visibility. Currently, the API allows for
+	 * `public` and `hidden`.
+	 *
+	 * @since 1.0.0
+	 */
+	public function visibility(): string
+	{
+		$visibility = $this->metaSingle( 'visibility' );
+
+		return $visibility && in_array( $visibility, [
+			'public',
+			'hidden'
+		] ) ? $visibility : 'public';
+	}
+
+	/**
+	 * Checks if an entry is viewable to the public.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isPublic(): bool
+	{
+		return 'public' === $this->visibility();
+	}
+
+	/**
+	 * Checks if an entry is hidden from the public.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isHidden(): bool
+	{
+		return 'hidden' === $this->visibility();
+	}
+
+	/**
 	 * Returns the entry URI.
 	 *
 	 * @todo   Allow for taxonomy terms in slug.
