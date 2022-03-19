@@ -61,6 +61,19 @@ abstract class Entry implements EntryContract
 	}
 
 	/**
+	 * Returns the entry name (slug). By default, we try to use a sanitized
+	 * version of the title if set. Otherwise, we add a unique ID. This
+	 * should be handled in sub-classes for a proper solution.
+	 *
+	 * @since 1.0.0
+	 */
+	public function name(): string
+	{
+		$title = $this->title();
+		return $title ? sanitize_slug( $tile ) : uniqid( 'entry-' );
+	}
+
+	/**
 	 * Returns the entry URI.
 	 *
 	 * @todo   Allow for taxonomy terms in slug.
