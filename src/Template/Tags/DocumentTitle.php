@@ -11,12 +11,15 @@
 
 namespace Blush\Template\Tags;
 
+// Contracts.
+use Blush\Contracts\{Displayable, Renderable};
+
+// Concretes.
 use Blush\App;
 use Blush\Tools\Str;
 
-class DocumentTitle
+class DocumentTitle implements Displayable, Renderable
 {
-
 	/**
 	 * Stores the built document title.
 	 *
@@ -64,22 +67,9 @@ class DocumentTitle
 	 *
 	 * @since 1.0.0
 	 */
-	public function toHtml() : string
+	public function toHtml(): string
 	{
-		return sprintf(
-			'<title>%s</title>',
-			$this->render()
-		);
-	}
-
-	/**
-	 * Returns the view title.
-	 *
-	 * @since 1.0.0
-	 */
-	public function viewTitle() : string
-	{
-		return $this->view_title;
+		return $this->render();
 	}
 
 	/**
@@ -87,7 +77,7 @@ class DocumentTitle
 	 *
 	 * @since 1.0.0
 	 */
-	public function display() : void
+	public function display(): void
 	{
 		echo $this->render();
 	}
@@ -97,12 +87,22 @@ class DocumentTitle
 	 *
 	 * @since 1.0.0
 	 */
-	public function render() : string
+	public function render(): string
 	{
-		if ( $this->doctitle ) {
-			return $this->doctitle;
+		if ( ! $this->doctitle ) {
+			$this->doctitle = $this->build();
 		}
 
+		return sprintf( '<title>%s</title>', $this->doctitle );
+	}
+
+	/**
+	 * Builds the doctitle.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function build(): string
+	{
 		$app_title   = config( 'app.title' );
 		$app_tagline = config( 'app.tagline' ) ?: config( 'app.description' );
 		$paged       = 2 <= $this->page;
@@ -111,7 +111,7 @@ class DocumentTitle
 		$items['title'] = $this->view_title ? \e( $this->view_title ) : \e( $app_title );
 
 		if ( $paged ) {
-			$items['page'] = sprintf( 'Page %s', intval( $this->page ) );
+			$items['title'] .= sprintf( ': Page %d', intval( $this->page ) );
 		}
 
 		if ( $this->view_title ) {
@@ -122,8 +122,6 @@ class DocumentTitle
 			$items['app_tagline'] = \e( $app_tagline );
 		}
 
-		$this->doctitle = implode( " {$this->sep} ", array_filter( $items ) );
-
-		return $this->doctitle;
+		return implode( " {$this->sep} ", array_filter( $items ) );
 	}
 }

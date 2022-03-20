@@ -11,9 +11,13 @@
 
 namespace Blush\Template\Tags;
 
+// Contracts.
+use Blush\Contracts\{Displayable, Renderable};
+
+// Concretes.
 use Blush\Tools\Str;
 
-class Pagination
+class Pagination implements Displayable, Renderable
 {
 	/**
 	 * An array of the pagination items.
