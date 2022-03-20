@@ -283,6 +283,23 @@ if ( ! function_exists( 'media_uri' ) ) {
 	}
 }
 
+if ( ! function_exists( 'asset' ) ){
+	/**
+	 * Returns an asset URI with an ID query var attached to it based on the
+	 * file's last modified time. Used for cache button.  The `$path` param
+	 * must be a filename relative to the public path.
+	 *
+	 * @since 1.0.0
+	 */
+	function asset( string $path ): string
+	{
+		$asset_uri = public_uri( $path );
+		$modified = filemtime( public_path( $path ) );
+
+		return false !== $modified ? "{$asset_uri}?id={$modified}" : $asset_uri;
+	}
+}
+
 if ( ! function_exists( 'e' ) ) {
 	/**
 	 * Convenient wrapper around `htmlspecialchars()` for escaping strings
