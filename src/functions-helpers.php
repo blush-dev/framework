@@ -64,19 +64,31 @@ if ( ! function_exists( 'path' ) ) {
 	 */
 	function path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path' ), $append );
+		return app()->path( '', $append );
 	}
 }
 
-if ( ! function_exists( 'uri' ) ) {
+if ( ! function_exists( 'app_path' ) ) {
 	/**
-	 * Returns app URI with optionsal appended path.
+	 * Returns app path with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function uri( string $append = '' ) : string
+	function app_path( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri' ), $append );
+		return app()->app_path( $append );
+	}
+}
+
+if ( ! function_exists( 'config_path' ) ) {
+	/**
+	 * Returns public path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	function config_path( string $append = '' ) : string
+	{
+		return app()->config_path( $append );
 	}
 }
 
@@ -88,7 +100,7 @@ if ( ! function_exists( 'public_path' ) ) {
 	 */
 	function public_path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path.public' ), $append );
+		return app()->public_path( $append );
 	}
 }
 
@@ -100,7 +112,7 @@ if ( ! function_exists( 'view_path' ) ) {
 	 */
 	function view_path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path.view' ), $append );
+		return app()->view_path( $append );
 	}
 }
 
@@ -112,7 +124,7 @@ if ( ! function_exists( 'resource_path' ) ) {
 	 */
 	function resource_path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path.resource' ), $append );
+		return app()->resource_path( $append );
 	}
 }
 
@@ -124,7 +136,7 @@ if ( ! function_exists( 'storage_path' ) ) {
 	 */
 	function storage_path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path.storage' ), $append );
+		return app()->storage_path( $append );
 	}
 }
 
@@ -136,7 +148,7 @@ if ( ! function_exists( 'cache_path' ) ) {
 	 */
 	function cache_path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path.cache' ), $append );
+		return app()->cache_path( $append );
 	}
 }
 
@@ -148,7 +160,7 @@ if ( ! function_exists( 'user_path' ) ) {
 	 */
 	function user_path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path.user' ), $append );
+		return app()->user_path( $append );
 	}
 }
 
@@ -160,7 +172,7 @@ if ( ! function_exists( 'content_path' ) ) {
 	 */
 	function content_path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path.content' ), $append );
+		return app()->content_path( $append );
 	}
 }
 
@@ -172,7 +184,43 @@ if ( ! function_exists( 'media_path' ) ) {
 	 */
 	function media_path( string $append = '' ) : string
 	{
-		return Str::appendPath( app( 'path.media' ), $append );
+		return app()->media_path( $append );
+	}
+}
+
+if ( ! function_exists( 'uri' ) ) {
+	/**
+	 * Returns app URI with optionsal appended path.
+	 *
+	 * @since 1.0.0
+	 */
+	function uri( string $append = '' ) : string
+	{
+		return app()->uri( '', $append );
+	}
+}
+
+if ( ! function_exists( 'app_uri' ) ) {
+	/**
+	 * Returns config URI with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	function app_uri( string $append = '' ) : string
+	{
+		return app()->app_uri( $append );
+	}
+}
+
+if ( ! function_exists( 'config_uri' ) ) {
+	/**
+	 * Returns config URI with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	function config_uri( string $append = '' ) : string
+	{
+		return app()->config_uri( $append );
 	}
 }
 
@@ -184,7 +232,7 @@ if ( ! function_exists( 'public_uri' ) ) {
 	 */
 	function public_uri( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri.public' ), $append );
+		return app()->public_uri( $append );
 	}
 }
 
@@ -196,7 +244,7 @@ if ( ! function_exists( 'view_uri' ) ) {
 	 */
 	function view_uri( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri.view' ), $append );
+		return app()->view_uri( $append );
 	}
 }
 
@@ -208,7 +256,7 @@ if ( ! function_exists( 'resource_uri' ) ) {
 	 */
 	function resource_uri( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri.resource' ), $append );
+		return app()->resource_uri( $append );
 	}
 }
 
@@ -220,7 +268,7 @@ if ( ! function_exists( 'storage_uri' ) ) {
 	 */
 	function storage_uri( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri.storage' ), $append );
+		return app()->storage_uri( $append );
 	}
 }
 
@@ -232,7 +280,7 @@ if ( ! function_exists( 'cache_uri' ) ) {
 	 */
 	function cache_uri( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri.cache' ), $append );
+		return app()->cache_uri( $append );
 	}
 }
 
@@ -244,7 +292,7 @@ if ( ! function_exists( 'user_uri' ) ) {
 	 */
 	function user_uri( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri.user' ), $append );
+		return app()->user_uri( $append );
 	}
 }
 
@@ -256,7 +304,7 @@ if ( ! function_exists( 'content_uri' ) ) {
 	 */
 	function content_uri( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri.content' ), $append );
+		return app()->content_uri( $append );
 	}
 }
 
@@ -268,7 +316,7 @@ if ( ! function_exists( 'media_uri' ) ) {
 	 */
 	function media_uri( string $append = '' ) : string
 	{
-		return Str::appendUri( app( 'uri.media' ), $append );
+		return app()->media_uri( $append );
 	}
 }
 

@@ -134,6 +134,7 @@ class Application extends Container implements ApplicationContract, Bootable
 		}
 
 		// Add default paths.
+		$this->instance( 'path.app',      $this['path']                                         );
 		$this->instance( 'path.public',   Str::appendPath( $this['path'],         'public'    ) );
 		$this->instance( 'path.view',     Str::appendPath( $this['path.public'],  'views'     ) );
 		$this->instance( 'path.resource', Str::appendPath( $this['path'],         'resources' ) );
@@ -145,6 +146,8 @@ class Application extends Container implements ApplicationContract, Bootable
 
 		// Add default URIs.
 		$this->instance( 'uri',          $this['config']->get( 'app.uri' )                   );
+		$this->instance( 'uri.app',      $this['uri']                                        );
+		$this->instance( 'uri.config',   Str::appendUri( $this['uri'],         'config'    ) );
 		$this->instance( 'uri.public',   Str::appendUri( $this['uri'],         'public'    ) );
 		$this->instance( 'uri.view',     Str::appendUri( $this['uri.public'],  'views'     ) );
 		$this->instance( 'uri.resource', Str::appendUri( $this['uri'],         'resources' ) );
@@ -303,5 +306,227 @@ class Application extends Container implements ApplicationContract, Bootable
 		foreach ( $this->proxies as $class => $alias ) {
 			class_alias( $class, $alias );
 		}
+	}
+
+	/**
+	 * Access a keyed path and append a path to it.
+	 *
+	 * @since  1.0.0
+	 */
+	public function path( string $accessor = '', string $append = '' ): string
+	{
+		$path = $accessor ? $this->get( "path.{$accessor}" ) : $this->path;
+		return Str::appendPath( $path, $append );
+	}
+
+	/**
+	 * Returns app path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function app_path( string $append = '' ): string
+	{
+		return $this->path( 'app', $append );
+	}
+
+	/**
+	 * Returns config path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function config_path( string $append = '' ): string
+	{
+		return $this->path( 'config', $append );
+	}
+
+	/**
+	 * Returns public path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function public_path( string $append = '' ): string
+	{
+		return $this->path( 'public', $append );
+	}
+
+	/**
+	 * Returns view path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function view_path( string $append = '' ): string
+	{
+		return $this->path( 'view', $append );
+	}
+
+	/**
+	 * Returns resource path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function resource_path( string $append = '' ): string
+	{
+		return $this->path( 'resource', $append );
+	}
+
+	/**
+	 * Returns storage path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function storage_path( string $append = '' ): string
+	{
+		return $this->path( 'storage', $append );
+	}
+
+	/**
+	 * Returns cache path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function cache_path( string $append = '' ): string
+	{
+		return $this->path( 'cache', $append );
+	}
+
+	/**
+	 * Returns user path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function user_path( string $append = '' ): string
+	{
+		return $this->path( 'user', $append );
+	}
+
+	/**
+	 * Returns content path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function content_path( string $append = '' ): string
+	{
+		return $this->path( 'content', $append );
+	}
+
+	/**
+	 * Returns media path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function media_path( string $append = '' ): string
+	{
+		return $this->path( 'media', $append );
+	}
+
+	/**
+	 * Access a keyed uri and append a uri to it.
+	 *
+	 * @since  1.0.0
+	 */
+	public function uri( string $accessor = '', string $append = '' ): string
+	{
+	        $uri = $accessor ? $this->get( "uri.{$accessor}" ) : $this->uri;
+	        return Str::appendUri( $uri, $append );
+	}
+
+	/**
+	 * Returns app uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function app_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'app', $append );
+	}
+
+	/**
+	 * Returns config uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function config_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'config', $append );
+	}
+
+	/**
+	 * Returns public uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function public_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'public', $append );
+	}
+
+	/**
+	 * Returns view uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function view_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'view', $append );
+	}
+
+	/**
+	 * Returns resource uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function resource_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'resource', $append );
+	}
+
+	/**
+	 * Returns storage uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function storage_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'storage', $append );
+	}
+
+	/**
+	 * Returns cache uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function cache_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'cache', $append );
+	}
+
+	/**
+	 * Returns user uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function user_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'user', $append );
+	}
+
+	/**
+	 * Returns content uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function content_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'content', $append );
+	}
+
+	/**
+	 * Returns media uri with optional appended uri/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function media_uri( string $append = '' ): string
+	{
+	        return $this->uri( 'media', $append );
 	}
 }
