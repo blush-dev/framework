@@ -286,7 +286,7 @@ if ( ! function_exists( 'media_uri' ) ) {
 if ( ! function_exists( 'asset' ) ){
 	/**
 	 * Returns an asset URI with an ID query var attached to it based on the
-	 * file's last modified time. Used for cache button.  The `$path` param
+	 * file's last modified time. Used for cache busting. The `$path` param
 	 * must be a filename relative to the public path.
 	 *
 	 * @since 1.0.0
