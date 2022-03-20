@@ -34,16 +34,14 @@ class Markdown extends ServiceProvider
                 $this->app->singleton( 'markdown.converter', function( $app ) {
 
 			// Gets the user Markdown config.
-                        $markdown = $app->get( 'config.markdown' );
+                        $markdown = $app->get( 'config' )->get( 'markdown' );
 
                         // Configure the Environment.
-                        $environment = new Environment( $markdown['config'] ?? [] );
+                        $environment = new Environment( $markdown['config'] );
 
 			// Loops through user-added extensions and adds them.
-                        if ( $markdown->has( 'extensions' ) ) {
-                                foreach ( $markdown->get( 'extensions' ) as $extension ) {
-                                        $environment->addExtension( new $extension() );
-                                }
+                        foreach ( $markdown['extensions'] as $extension ) {
+                                $environment->addExtension( new $extension() );
                         }
 
 			// Add default renderers.

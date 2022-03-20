@@ -41,7 +41,7 @@ class Content extends ServiceProvider
                 $this->app->singleton( Component::class, function( $app ) {
                         return new Component(
                                 $app->make( Types::class     ),
-                                $app->make( 'config.content' )
+                                $app->make( 'config' )->get( 'content' )
                         );
                 } );
 

@@ -11,7 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\{App, Query};
+use Blush\{App, Config, Query};
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -26,7 +26,7 @@ class Home extends Controller
 	public function __invoke( array $params = [], Request $request ): Response
 	{
 		$types = App::resolve( 'content.types' );
-		$alias = \config( 'app.home_alias' );
+		$alias = Config::get( 'app.home_alias' );
 		$type  = false;
 
 		// Checks if the homepage has an alias content type and if the

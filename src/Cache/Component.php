@@ -14,7 +14,11 @@
 
 namespace Blush\Cache;
 
+// Contracts.
 use Blush\Contracts\Bootable;
+
+// Classes.
+use Blush\Config;
 use Blush\Cache\Driver\{File, HtmlFile, JsonFile, CollectionFile};
 
 class Component implements Bootable
@@ -44,8 +48,8 @@ class Component implements Bootable
 	public function boot(): void
 	{
 		// Get user-configured drivers and stores.
-		$drivers = config( 'cache.drivers' );
-		$stores  = config( 'cache.stores'  );
+		$drivers = Config::get( 'cache.drivers' );
+		$stores  = Config::get( 'cache.stores'  );
 
 		// Merge default and user-configured drivers.
 		$drivers = array_merge( [

@@ -15,7 +15,7 @@ namespace Blush\Content\Entry;
 use Blush\Contracts\Content\Entry as EntryContract;
 
 // Concretes.
-use Blush\{App, Query};
+use Blush\{App, Config, Query};
 use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
@@ -260,7 +260,7 @@ abstract class Entry implements EntryContract
 		}
 
 		return date(
-			config( 'app.date_format' ) ?: 'F j, Y',
+			Config::get( 'app.date_format' ) ?: 'F j, Y',
 		 	is_numeric( $date ) ? $date : strtotime( $date )
 		);
 	}

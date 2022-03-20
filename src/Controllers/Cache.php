@@ -11,7 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\App;
+use Blush\{App, Config};
 use Blush\Cache as CacheRegistry;
 use Blush\Content\Entry\Virtual;
 use Blush\Template\Tags\DocumentTitle;
@@ -29,7 +29,7 @@ class Cache extends Controller
 	 */
 	public function __invoke( array $params = [], Request $request ): Response
 	{
-		$purge_key = App::get( 'config.cache' )->get( 'purge_key' );
+		$purge_key = Config::get( 'cache.purge_key' );
 
 		$store   = $params['name'] ?? '';
 		$key     = $params['key'] ?? '';

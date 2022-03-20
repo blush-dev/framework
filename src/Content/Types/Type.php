@@ -11,6 +11,7 @@
 
 namespace Blush\Content\Types;
 
+use Blush\Config;
 use Blush\Controllers;
 use Blush\Tools\Str;
 
@@ -209,7 +210,7 @@ class Type
 		}
 
 		$path  = $this->path();
-		$alias = \config( 'app.home_alias' );
+		$alias = Config::get( 'app.home_alias' );
 
 		// Add paged type archive if not set as the homepage.
 		if ( $alias !== $this->type() ) {

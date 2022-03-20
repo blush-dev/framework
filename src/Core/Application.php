@@ -19,8 +19,10 @@ use Blush\Container\Container;
 use Blush\Contracts\Core\Application as ApplicationContract;
 use Blush\Contracts\Bootable;
 use Blush\Core\Proxies;
+use Blush\Core\Schemas;
 use Blush\Tools\{Collection, Config, Str};
 use Dotenv\Dotenv;
+use League\Config\Configuration;
 
 /**
  * Application class.
@@ -107,14 +109,28 @@ class Application extends Container implements ApplicationContract, Bootable
 			'.env'
 		] )->load();
 
+		// Creates a new configuration instance and adds the default
+		// framework scheams.
+		$this->instance( Configuration::class, new Configuration( [
+			'app'      => Schemas\App::schema(),
+			'cache'    => Schemas\Cache::schema(),
+			'content'  => Schemas\Content::schema(),
+			'markdown' => Schemas\Markdown::schema()
+		] ) );
+
+		// Add alias for configuration.
+		$this->alias( Configuration::class, 'config' );
+
 		// Add config path early (cannot change).
 		$this->instance( 'path.config', Str::appendPath( $this['path'], 'config' ) );
 
-		// Register each config.
-		foreach ( glob( Str::appendPath( $this['path.config'], '*.php' ) ) as $file ) {
-			$config = include $file;
-			$name   = 'config.' . basename( $file, '.php' );
-			$this->instance( $name, new Config( (array) $config ) );
+		// Loop through user-supplied config files and set the data.
+		foreach ( [ 'app', 'cache', 'content', 'markdown' ] as $type ) {
+			$filepath = Str::appendPath( $this['path.config'], "{$type}.php" );
+
+			if ( file_exists( $filepath ) ) {
+				$this['config']->set( $type, include $filepath );
+			}
 		}
 
 		// Add default paths.
@@ -128,7 +144,7 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->instance( 'path.media',    Str::appendPath( $this['path.user'],    'media'     ) );
 
 		// Add default URIs.
-		$this->instance( 'uri',          $this['config.app']['uri']                          );
+		$this->instance( 'uri',          $this['config']->get( 'app.uri' )                   );
 		$this->instance( 'uri.public',   Str::appendUri( $this['uri'],         'public'    ) );
 		$this->instance( 'uri.view',     Str::appendUri( $this['uri.public'],  'views'     ) );
 		$this->instance( 'uri.resource', Str::appendUri( $this['uri'],         'resources' ) );
@@ -154,12 +170,10 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->provider( Providers\Routing::class  );
 
 		// Register app service providers.
-		$config = $this->resolve( 'config.app' );
+		$providers = $this['config']->get( 'app.providers' );
 
-		if ( $config->has( 'providers' ) ) {
-			foreach ( (array) $config->get( 'providers' ) as $provider ) {
-				$this->provider( $provider );
-			}
+		foreach ( $providers as $provider ) {
+			$this->provider( $provider );
 		}
 	}
 
@@ -175,16 +189,15 @@ class Application extends Container implements ApplicationContract, Bootable
 		// Register framework proxies.
 		$this->proxy( Proxies\App::class,    '\Blush\App'    );
 		$this->proxy( Proxies\Cache::class,  '\Blush\Cache'  );
+		$this->proxy( Proxies\Config::class, '\Blush\Config' );
 		$this->proxy( Proxies\Engine::class, '\Blush\Engine' );
 		$this->proxy( Proxies\Query::class,  '\Blush\Query'  );
 
 		// Register app proxies.
-		$config = $this->resolve( 'config.app' );
+		$proxies = $this['config']->get( 'app.proxies' );
 
-		if ( $config->has( 'proxies' ) ) {
-			foreach ( (array) $config->get( 'proxies' ) as $accessor => $proxy ) {
-				$this->proxy( $accessor, $proxy );
-			}
+		foreach ( $proxies as $abstract => $proxy ) {
+			$this->proxy( $abstract, $proxy );
 		}
 	}
 

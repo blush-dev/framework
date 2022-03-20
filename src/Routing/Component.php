@@ -11,8 +11,11 @@
 
 namespace Blush\Routing;
 
+// Contracts.
 use Blush\Contracts\Bootable;
-use Blush\App;
+
+// Classes.
+use Blush\{App, Config};
 use Blush\Content\Types\Types;
 use Blush\Controllers;
 
@@ -51,7 +54,7 @@ class Component implements Bootable
 	public function boot() : void
 	{
 		// Get the homepage alias if it exists.
-		$alias = config( 'app.home_alias' );
+		$alias = Config::get( 'app.home_alias' );
 
 		// Sort the content types.
 		$types = array_reverse( $this->types->sortByPath() );

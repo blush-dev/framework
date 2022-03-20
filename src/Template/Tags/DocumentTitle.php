@@ -15,7 +15,7 @@ namespace Blush\Template\Tags;
 use Blush\Contracts\{Displayable, Renderable};
 
 // Concretes.
-use Blush\App;
+use Blush\{App, Config};
 use Blush\Tools\Str;
 
 class DocumentTitle implements Displayable, Renderable
@@ -103,8 +103,8 @@ class DocumentTitle implements Displayable, Renderable
 	 */
 	protected function build(): string
 	{
-		$app_title   = config( 'app.title' );
-		$app_tagline = config( 'app.tagline' ) ?: config( 'app.description' );
+		$app_title   = Config::get( 'app.title'   );
+		$app_tagline = Config::get( 'app.tagline' );
 		$paged       = 2 <= $this->page;
 		$items       = [];
 

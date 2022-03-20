@@ -33,11 +33,8 @@ class App extends ServiceProvider
 	 */
         public function register() : void
 	{
-                // Get the app config collection.
-                $app_config = $this->app->resolve( 'config.app' );
-
                 // Sets the default timezone.
-                date_default_timezone_set( $app_config['timezone'] ?? 'America/Chicago' );
+                date_default_timezone_set( $this->app['config']->get( 'app.timezone' ) );
 
 		// Add template engine.
 		$this->app->singleton( EngineContract::class, Engine::class );

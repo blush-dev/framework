@@ -11,7 +11,7 @@
 
 namespace Blush\Routing;
 
-use Blush\Cache;
+use Blush\{Cache, Config};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
@@ -70,10 +70,8 @@ class Router
 	 */
 	public function response(): Response
 	{
-		$config = config( 'cache' );
-
 		// Just return the response if global caching is disabled.
-		if ( ! $config['global'] ) {
+		if ( ! Config::get( 'cache.global' ) ) {
 			return $this->getResponse();
 		}
 
@@ -83,7 +81,7 @@ class Router
 		// Get excluded paths.
 		$exclude = array_merge( [
 			'purge/cache'
-		], $config['global_exclude'] ?? [] );
+		], Config::get( 'cache.global_exclude' ) );
 
 		// Don't cache excluded pages. Just return response.
 		foreach ( (array) $exclude as $_path ) {

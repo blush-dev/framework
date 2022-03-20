@@ -15,7 +15,7 @@ namespace Blush\Content;
 use Blush\Contracts\Content\Locator as LocatorContract;
 
 // Classes.
-use Blush\{App, Cache};
+use Blush\{App, Cache, Config};
 use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 
@@ -194,7 +194,7 @@ class Locator implements LocatorContract
 		$located = [];
 
 		// Get the metadata keys to exclude from the cache.
-		$exclude = config( 'cache.content_exclude_meta' );
+		$exclude = Config::get( 'cache.content_exclude_meta' );
 		$exclude = is_array( $exclude ) ? array_flip( $exclude ) : [];
 
 		// Don't allow exclusion of visbility.

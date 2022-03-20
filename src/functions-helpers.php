@@ -9,8 +9,8 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-use Blush\App;
-use Blush\Tools\{Collection, Config, Str};
+use Blush\{App, Config};
+use Blush\Tools\{Collection, Str};
 
 if ( ! function_exists( 'app' ) ) {
 	/**
@@ -39,31 +39,20 @@ if ( ! function_exists( 'env' ) ) {
 
 if ( ! function_exists( 'config' ) ) {
 	/**
-	 * Returns and instances of a config object or a setting.
+	 * Returns a value from the configuration instance using either dot
+	 * (e.g., `app.uri`) or slash (e.g., `app/uri`) notation.
 	 *
 	 * @since  1.0.0
+	 * @param  string  $deprecated  Setting key. Use dot notation instead.
 	 * @return mixed
 	 */
-	function config( string $name, string $setting = '' )
+	function config( string $name, string $deprecated = '' )
 	{
-		$config = Str::beforeFirst( $name, '.' );
-		$option = Str::afterFirst( $name, '.' );
-
-		if ( $config === $option ) {
-			$option = false;
+		if ( $deprecated && ! Str::contains( $name, '.' ) ) {
+			$name = "{$name}.{$deprecated}";
 		}
 
-		if ( $option && ! $setting ) {
-			$setting = $option;
-		}
-
-		$config = app( "config.{$config}" );
-
-		if ( $setting ) {
-			return $config[ $setting ] ?? null;
-		}
-
-		return $config;
+		return Config::get( $name );
 	}
 }
 
