@@ -12,6 +12,7 @@
 namespace Blush\Routing;
 
 use Blush\Controllers\Controller;
+use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
 class Route
@@ -102,6 +103,17 @@ class Route
 		// Gets the regex map for specific vars.
 		$map = $this->regexMap();
 
+		// Convert a `{type:{$type}}` param to `{$type}` and add it to
+		// the regex map.  This allows users to add any content type
+		// (usually taxonomies) to their permalinks.
+		if ( Str::contains( $regex, '{type:', $regex ) ) {
+			$type = Str::between( $regex, '{type:', '}' );
+
+			if ( ! isset( $map[ $type ] ) ) {
+				$map[ $type ] = '([a-zA-Z0-9_-]+)';
+			}
+		}
+
 		// Switches the vars to placeholders temporarily to keep the
 		// following `preg_replace()` from breaking it.
 		foreach ( $map as $var => $exp ) {
@@ -128,7 +140,7 @@ class Route
 		}
 
 		// Build final regex pattern for the full route URI.
-		$this->regex = "#{$regex}#i";
+		$this->regex = "#{$regex}\/?$#i";
 
 		// Return route for chaining methods.
 		return $this;
@@ -203,6 +215,7 @@ class Route
 			'{day}'    => '([0-9]{2})',
 			'{number}' => '([0-9]+)',
 			'{page}'   => '([0-9]+)',
+			'{type}'   => '([a-zA-Z0-9_-]+)',
 			'{name}'   => '([a-zA-Z0-9_-]+)',
 			'{path}'   => '(.+)'
 		], $_wheres );

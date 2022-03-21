@@ -112,6 +112,20 @@ class Str
 	}
 
 	/**
+	 * Returns a string between two strings.
+	 *
+	 * @since 1.0.0
+	 */
+	public function between( string $str, string $from, string $to ): string
+	{
+		if ( ! $str || ! $from || ! $to ) {
+			return $str;
+		}
+
+		return static::beforeLast( static::afterFirst( $str, $from ), $to );
+	}
+
+	/**
 	 * Checks if a string contains another string.
 	 *
 	 * @since 1.0.0

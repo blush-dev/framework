@@ -125,20 +125,47 @@ abstract class Entry implements EntryContract
 			$timestamp = strtotime( $date );
 		}
 
+		// Replaces the name param in a URI with the entry name/slug.
 		if ( Str::contains( $uri, '{name}' ) ) {
 			$uri = str_replace( '{name}', $name, $uri );
 		}
 
+		// Replaces the year param in a URI with the entry year.
 		if (  $timestamp && Str::contains( $uri, '{year}' ) ) {
 			$uri = str_replace( '{year}', date( 'Y', $timestamp ), $uri );
 		}
 
+		// Replaces the month param in a URI with the entry month.
 		if (  $timestamp && Str::contains( $uri, '{month}' ) ) {
 			$uri = str_replace( '{month}', date( 'm', $timestamp ), $uri );
 		}
 
+		// Replaces the day param in a URI with the entry day.
 		if (  $timestamp && Str::contains( $uri, '{day}' ) ) {
 			$uri = str_replace( '{day}', date( 'd', $timestamp ), $uri );
+		}
+
+		// Replaces the author in a URI with the entry author.
+		if ( Str::contains( $uri, '{author}' ) ) {
+			$author = $this->metaSingle( 'author' ) ?: '';
+			$uri = str_replace( '{author}', sanitize_slug( $author ), $uri );
+		}
+
+		// Allows another content type as part of the URI. This is typical
+		// of categories and other taxonomies.
+		if ( Str::contains( $uri, '{type:' ) ) {
+			$types = App::get( 'content.types' );
+			$type = Str::between( $uri, '{type:', '}' );
+
+			if ( $type && $uri !== $type && $types->has( $type ) ) {
+				$slug = $this->metaSingle( $type ) ?: '';
+
+				$uri = str_replace(
+					"{type:{$type}}",
+					sanitize_slug( $slug ),
+					$uri
+				);
+			}
 		}
 
 		return \uri( $uri );
