@@ -371,14 +371,6 @@ if ( ! function_exists( 'sanitize_slug' ) ) {
 	 */
 	function sanitize_slug( string $str, string $sep = '-' ) : string
 	{
-		$dividers = $sep === '-' ? '_' : '-';
-
-		$str = preg_replace( '/[' . preg_quote( $dividers ) . ']+/u', $sep, $str );
-
-		$str = preg_replace( '/[^' . preg_quote( $sep ) . '\pL\pN\s]+/u', $sep, $str );
-
-		$str = preg_replace( '/[' . preg_quote( $sep ) . '\s]+/u', $sep, $str );
-
-		return trim( strtolower( $str ), $sep );
+		return Str::slug( $str, $sep );
 	}
 }

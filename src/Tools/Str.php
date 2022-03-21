@@ -220,6 +220,22 @@ class Str
 	}
 
 	/**
+	 * Sanitizes a string meant to be used as a slug.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function slug( string $str, string $sep = '-' ) : string
+	{
+		$dividers = $sep === '-' ? '_' : '-';
+
+		$str = preg_replace( '/[' . preg_quote( $dividers ) . ']+/u',     $sep, $str );
+		$str = preg_replace( '/[^' . preg_quote( $sep ) . '\pL\pN\s]+/u', $sep, $str );
+		$str = preg_replace( '/[' . preg_quote( $sep ) . '\s]+/u',        $sep, $str );
+
+		return trim( strtolower( $str ), $sep );
+	}
+
+	/**
 	 * Checks if a string starts with another string.
 	 *
 	 * @since 1.0.0
