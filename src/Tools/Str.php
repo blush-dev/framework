@@ -116,7 +116,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public function between( string $str, string $from, string $to ): string
+	public static function between( string $str, string $from, string $to ): string
 	{
 		if ( ! $str || ! $from || ! $to ) {
 			return $str;
@@ -164,7 +164,7 @@ class Str
 	 * @todo  Implement translation system that handles this based on locale.
 	 * @since 1.0.0
 	 */
-	function nText( string $singular, string $plural, int $count ): string
+	public static function nText( string $singular, string $plural, int $count ): string
 	{
 		return 1 === $count ? $singular : $plural;
 	}
