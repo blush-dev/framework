@@ -228,7 +228,8 @@ class File extends Store
 
 		foreach ( glob( $search ) as $filepath ) {
 			unlink( $filepath );
-			$this->resetData();
 		}
+
+		$this->resetData();
 	}
 }
