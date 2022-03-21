@@ -1,5 +1,20 @@
 {
 	"name"        : "blush-dev/framework",
+	"description" : "Blush Framework: Foundation of the Blush CMS, a flat-file CMS.",
+	"keywords"    : [ "cms" ],
+	"homepage"    : "https://github.com/blush-dev/framework",
+	"license"     : "GPL-2.0-or-later",
+	"authors"     : [
+		{
+			"name"     : "Justin Tadlock",
+			"email"    : "justintadlock@gmail.com",
+			"homepage" : "http://justintadlock.com",
+			"role"     : "Developer"
+		}
+	],
+	"support"     : {
+		"issues" : "https://github.com/blush-dev/framework/issues"
+	},
 	"autoload"    : {
 		"psr-4" : {
 			"Blush\\" : "src/"

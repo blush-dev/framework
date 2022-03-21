@@ -137,7 +137,7 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function name() : string
+	public function name(): string
 	{
 		return $this->type();
 	}
@@ -147,7 +147,7 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function type() : string
+	public function type(): string
 	{
 		return $this->type;
 	}
@@ -157,7 +157,7 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function path() : string
+	public function path(): string
 	{
 		return $this->path;
 	}
@@ -167,7 +167,7 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function uri() : string
+	public function uri(): string
 	{
 		return $this->uri ?: $this->path();
 	}
@@ -177,7 +177,7 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function singleUri() : string
+	public function singleUri(): string
 	{
 		return $this->uri_single ?: Str::appendUri( $this->path(), '{name}' );
 	}
@@ -187,7 +187,7 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function routing() : bool
+	public function routing(): bool
 	{
 		return $this->routing;
 	}
@@ -197,7 +197,7 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function routes() : array
+	public function routes(): array
 	{
 		// Return empty array of the content type doesn't support routes.
 		if ( ! $this->routing() ) {
@@ -303,7 +303,7 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function isTaxonomy() : bool
+	public function isTaxonomy(): bool
 	{
 		return $this->taxonomy;
 	}

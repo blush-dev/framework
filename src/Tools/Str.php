@@ -36,7 +36,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function afterLast( string $str, string $search ) : string
+	public static function afterLast( string $str, string $search ): string
 	{
 		if ( '' === $search ) {
 			return $str;
@@ -56,7 +56,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function appendPath( string $path, string $append = '' ) : string
+	public static function appendPath( string $path, string $append = '' ): string
 	{
 		$path   = rtrim( $path, '/\\' );
 		$append = ltrim( $append, '/\\' );
@@ -68,7 +68,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function appendUri( string $uri, string $append = '' ) : string
+	public static function appendUri( string $uri, string $append = '' ): string
 	{
 		$uri    = rtrim( $uri, '/\\' );
 		$append = ltrim( $append, '/\\' );
@@ -96,7 +96,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function beforeLast( string $str, string $search ) : string
+	public static function beforeLast( string $str, string $search ): string
 	{
 		if ( '' === $search ) {
 			return $str;
@@ -146,7 +146,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function normalizePath( string $path ) : string
+	public static function normalizePath( string $path ): string
 	{
 		$path = str_replace( '\\', '/', $path );
 		$path = preg_replace( '|(?<=.)/+|', '/', $path );
@@ -174,7 +174,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function replaceLast( string $search, string $replace, string $str ) : string
+	public static function replaceLast( string $search, string $replace, string $str ): string
 	{
 		if ( '' === $search ) {
 			return $str;
@@ -194,7 +194,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function slashAfter( string $str ) : string
+	public static function slashAfter( string $str ): string
 	{
 		return rtrim( $str, '/\\' ) . '/';
 	}
@@ -204,7 +204,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function slashBefore( string $str ) : string
+	public static function slashBefore( string $str ): string
 	{
 		return '/' . ltrim( $str, '/\\' );
 	}
@@ -214,7 +214,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function slashTrim( string $str ) : string
+	public static function slashTrim( string $str ): string
 	{
 		return trim( $str, '/\\' );
 	}
@@ -224,7 +224,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function slug( string $str, string $sep = '-' ) : string
+	public static function slug( string $str, string $sep = '-' ): string
 	{
 		$dividers = $sep === '-' ? '_' : '-';
 
@@ -250,7 +250,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function substr( string $str, int $start, ?int $length = null ) : string
+	public static function substr( string $str, int $start, ?int $length = null ): string
 	{
 		return mb_substr( $str, $start, $length, 'UTF-8' );
 	}
@@ -260,7 +260,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function words( string $str, int $limit = 50, string $more = '&hellip;' ) : string
+	public static function words( string $str, int $limit = 50, string $more = '&hellip;' ): string
 	{
 		$limit = $limit > 1 ? $limit - 1 : $limit;
 		preg_match( '/^\s*+(?:\S++\s*+){1,' . $limit . '}/u', $str, $matches );

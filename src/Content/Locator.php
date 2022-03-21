@@ -11,7 +11,7 @@
 
 namespace Blush\Content;
 
-// Interfaces.
+// Contracts.
 use Blush\Contracts\Content\Locator as LocatorContract;
 
 // Classes.
@@ -207,11 +207,11 @@ class Locator implements LocatorContract
 			// Set up empty array in case there's no data.
 			$data = [];
 
-			// Get the first 8 kb of data from the file.  We're only
+			// Get the first 4 kb of data from the file.  We're only
 			// grabbing the frontmatter. Anything even encroaching
 			// this number would be insane.
 			$content = file_get_contents(
-				$filepath, false, null, 0, 8 * 1024
+				$filepath, false, null, 0, 4 * 1024
 			);
 
 			if ( $content ) {

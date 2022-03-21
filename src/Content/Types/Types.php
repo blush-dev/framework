@@ -36,7 +36,7 @@ class Types extends Collection
 	 * @param  string  $name
 	 * @param  array   $options
 	 */
-	public function add( $name, $options = [] ) : void
+	public function add( $name, $options = [] ): void
 	{
 		parent::add( $name, new Type( $name, $options ) );
 	}
@@ -96,7 +96,7 @@ class Types extends Collection
 	 *
 	 * @since 1.0.0
 	 */
-	public function sortByPath() : array
+	public function sortByPath(): array
 	{
 		$paths  = [];
 		$sorted = [];

@@ -320,7 +320,7 @@ if ( ! function_exists( 'media_uri' ) ) {
 	}
 }
 
-if ( ! function_exists( 'asset' ) ){
+if ( ! function_exists( 'asset' ) ) {
 	/**
 	 * Returns an asset URI with an ID query var attached to it based on the
 	 * file's last modified time. Used for cache busting. The `$path` param

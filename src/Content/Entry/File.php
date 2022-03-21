@@ -52,7 +52,7 @@ abstract class File extends Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function type() : Type
+	public function type(): Type
 	{
 		// Return type if it's already set.
 		if ( $this->type ) {
@@ -86,7 +86,7 @@ abstract class File extends Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function filePath() : string
+	public function filePath(): string
 	{
 		return $this->filepath;
 	}
@@ -111,7 +111,7 @@ abstract class File extends Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function dirname() : string
+	public function dirname(): string
 	{
 		return $this->pathinfo( 'dirname' );
 	}
@@ -121,7 +121,7 @@ abstract class File extends Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function basename() : string
+	public function basename(): string
 	{
 		return $this->pathinfo( 'basename' );
 	}
@@ -131,7 +131,7 @@ abstract class File extends Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function extension() : string
+	public function extension(): string
 	{
 		return $this->pathinfo( 'extension' );
 	}
@@ -141,7 +141,7 @@ abstract class File extends Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function filename() : string
+	public function filename(): string
 	{
 		return $this->pathinfo( 'filename' );
 	}
@@ -151,7 +151,7 @@ abstract class File extends Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function name() : string
+	public function name(): string
 	{
 		// Get the filename without the extension.
 		$name = $this->filename();

@@ -74,7 +74,7 @@ class Container implements ContainerContract, ArrayAccess
 	 * @since  1.0.0
 	 * @param  mixed  $concrete
 	 */
-	public function bind( string $abstract, $concrete = null, bool $shared = false ) : void
+	public function bind( string $abstract, $concrete = null, bool $shared = false ): void
 	{
 		unset( $this->instances[ $abstract ] );
 
@@ -92,7 +92,7 @@ class Container implements ContainerContract, ArrayAccess
 	* @since  1.0.0
 	* @param  mixed  $concrete
 	*/
-	public function add( string $abstract, $concrete = null, bool $shared = false ) : void
+	public function add( string $abstract, $concrete = null, bool $shared = false ): void
 	{
 		$this->bind( $abstract, $concrete, $shared );
 	}
@@ -102,7 +102,7 @@ class Container implements ContainerContract, ArrayAccess
 	 *
 	 * @since 1.0.0
 	 */
-	public function remove( string $abstract ) : void
+	public function remove( string $abstract ): void
 	{
 		if ( $this->has( $abstract ) ) {
 			unset( $this->bindings[ $abstract ], $this->instances[ $abstract ] );
@@ -190,7 +190,7 @@ class Container implements ContainerContract, ArrayAccess
 	 *
 	 * @since 1.0.0
 	 */
-	public function alias( string $abstract, string $alias ) : void
+	public function alias( string $abstract, string $alias ): void
 	{
 		$this->aliases[ $alias ] = $abstract;
 	}
@@ -200,7 +200,7 @@ class Container implements ContainerContract, ArrayAccess
 	*
 	* @since 1.0.0
 	*/
-	public function has( $abstract ) : bool
+	public function has( $abstract ): bool
 	{
 		return isset( $this->bindings[ $abstract ] ) || isset( $this->instances[ $abstract ] );
 	}
@@ -211,7 +211,7 @@ class Container implements ContainerContract, ArrayAccess
 	 * @since  1.0.0
 	 * @param  mixed  $concrete
 	 */
-	public function singleton( string $abstract, $concrete = null ) : void
+	public function singleton( string $abstract, $concrete = null ): void
 	{
 		$this->add( $abstract, $concrete, true );
 	}
@@ -237,7 +237,7 @@ class Container implements ContainerContract, ArrayAccess
 	 * @param  string  $abstract
 	 * @param  Closure $closure
 	 */
-	public function extend( string $abstract, Closure $closure ) : void
+	public function extend( string $abstract, Closure $closure ): void
 	{
 		$abstract = $this->getAbstract( $abstract );
 
@@ -250,7 +250,7 @@ class Container implements ContainerContract, ArrayAccess
 	 *
 	 * @since 1.0.0
 	 */
-	protected function getAbstract( string $abstract ) : string
+	protected function getAbstract( string $abstract ): string
 	{
 		if ( isset( $this->aliases[ $abstract ] ) ) {
 			return $this->aliases[ $abstract ];
@@ -284,7 +284,7 @@ class Container implements ContainerContract, ArrayAccess
 	 * @since  1.0.0
 	 * @param  mixed  $concrete
 	 */
-	protected function isBuildable( $concrete ) : bool
+	protected function isBuildable( $concrete ): bool
 	{
 		return $concrete instanceof Closure ||
 		       ( is_string( $concrete ) && class_exists( $concrete ) );
@@ -324,7 +324,7 @@ class Container implements ContainerContract, ArrayAccess
 	 * @todo  Handle errors when we can't solve a dependency.
 	 * @since 1.0.0
 	 */
-	protected function resolveDependencies( array $dependencies, array $parameters ) : array
+	protected function resolveDependencies( array $dependencies, array $parameters ): array
 	{
 		$args = [];
 
@@ -375,7 +375,7 @@ class Container implements ContainerContract, ArrayAccess
 	 * @since  1.0.0
 	 * @param  object    $dependency
 	 */
-	protected function getReflectionTypes( $dependency ) : array
+	protected function getReflectionTypes( $dependency ): array
 	{
 		$types = $dependency->getType();
 
@@ -395,7 +395,7 @@ class Container implements ContainerContract, ArrayAccess
 	* @param  string  $name
 	* @param  mixed   $value
 	*/
-	public function offsetSet( $name, $value ) : void
+	public function offsetSet( $name, $value ): void
 	{
 		$this->add( $name, $value );
 	}
@@ -406,7 +406,7 @@ class Container implements ContainerContract, ArrayAccess
 	* @since  1.0.0
 	* @param  string  $name
 	*/
-	public function offsetUnset( $name ) : void
+	public function offsetUnset( $name ): void
 	{
 		$this->remove( $name );
 	}
@@ -417,7 +417,7 @@ class Container implements ContainerContract, ArrayAccess
 	* @since  1.0.0
 	* @param  string  $name
 	*/
-	public function offsetExists( $name ) : bool
+	public function offsetExists( $name ): bool
 	{
 		return $this->has( $name );
 	}
@@ -441,7 +441,7 @@ class Container implements ContainerContract, ArrayAccess
 	* @param  string  $name
 	* @param  mixed   $value
 	*/
-	public function __set( $name, $value ) : void
+	public function __set( $name, $value ): void
 	{
 		$this->add( $name, $value );
 	}
@@ -452,7 +452,7 @@ class Container implements ContainerContract, ArrayAccess
 	* @since  1.0.0
 	* @param  string  $name
 	*/
-	public function __unset( $name ) : void
+	public function __unset( $name ): void
 	{
 		$this->remove( $name );
 	}
@@ -463,7 +463,7 @@ class Container implements ContainerContract, ArrayAccess
 	* @since  1.0.0
 	* @param  string  $name
 	*/
-	public function __isset( $name ) : bool
+	public function __isset( $name ): bool
 	{
 		return $this->has( $name );
 	}

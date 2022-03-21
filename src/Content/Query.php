@@ -181,7 +181,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function make( array $options = [] ) : self
+	public function make( array $options = [] ): self
 	{
         	foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
         		if ( isset( $options[ $key ] ) ) {
@@ -311,7 +311,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function has( string $slug ) : bool
+	public function has( string $slug ): bool
 	{
 		return isset( $this->located_slugs[ $slug ] ) ||
 		       in_array( $slug, $this->located_slugs, true );
@@ -447,7 +447,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-        private function filterByNames( array $entries ) : array
+        private function filterByNames( array $entries ): array
 	{
                 if ( ! $this->names ) {
                         return $entries;
@@ -496,7 +496,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-        private function filterByDate( array $entries ) : array
+        private function filterByDate( array $entries ): array
 	{
                 if ( ! $this->year && ! $this->month && ! $this->day ) {
                         return $entries;
@@ -537,7 +537,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	private function filterByMeta( array $entries ) : array
+	private function filterByMeta( array $entries ): array
 	{
 		if ( ! $this->meta_value && ! $this->meta_key ) {
 			return $entries;
@@ -570,7 +570,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-        private function sortByOrder( array $entries ) : array
+        private function sortByOrder( array $entries ): array
 	{
 		$meta_keys = [
 			'author',
