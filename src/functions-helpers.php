@@ -382,15 +382,3 @@ if ( ! function_exists( 'sanitize_slug' ) ) {
 		return trim( strtolower( $str ), $sep );
 	}
 }
-
-if ( ! function_exists( 'sanitize_with_dashes' ) ) {
-	/**
-	 * Sanitizes a string meant to be used as a slug.
-	 *
-	 * @since 1.0.0
-	 */
-	function sanitize_with_dashes( string $str ) : string
-	{
-		return sanitize_slug( $str, '-' );
-	}
-}
