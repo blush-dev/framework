@@ -152,23 +152,28 @@ abstract class Entry implements EntryContract
 		}
 
 		// Allows another content type as part of the URI. This is typical
-		// of categories and other taxonomies.
-		if ( Str::contains( $uri, '{type:' ) ) {
-			$types = App::get( 'content.types' );
-			$type = Str::between( $uri, '{type:', '}' );
+		// of categories and other taxonomies. We're only going to check
+		// if the URI still contains params since this is a heavier run.
+		if ( Str::contains( $uri, '{' ) ) {
+			foreach ( App::get( 'content.types' ) as $type ) {
+				$param = sprintf( '{%s}', $type->name() );
 
-			if ( $type && $uri !== $type && $types->has( $type ) ) {
-				$slug = $this->metaSingle( $type ) ?: '';
+				// Skip if URI doesn't contain param.
+				if ( ! Str::contains( $uri, $param ) ) {
+					continue;
+				}
+
+				$slug = $this->metaSingle( $type->name() ) ?: '';
 
 				$uri = str_replace(
-					"{type:{$type}}",
+					$param,
 					sanitize_slug( $slug ),
 					$uri
 				);
 			}
 		}
 
-		return \uri( $uri );
+		return uri( $uri );
 	}
 
 	/**

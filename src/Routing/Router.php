@@ -47,7 +47,7 @@ class Router
 	 *
 	 * @since 1.0.0
 	 */
-	public function request() : Request
+	public function request(): Request
 	{
 		return $this->request;
 	}
@@ -57,7 +57,7 @@ class Router
 	 *
 	 * @since 1.0.0
 	 */
-	public function path() : string
+	public function path(): string
 	{
 		return $this->request->getPathInfo();
 	}
@@ -136,7 +136,7 @@ class Router
 	        }
 
 	        // Check for route that is an exact match for the request. This
-		// will match route URIs that do no have variables, so we can
+		// will match route URIs that do not have variables, so we can
 		// just return the matched route controller here.
 	        if ( isset( $routes[ $path ] ) ) {
 			return $routes[ $path ]->callback( [
@@ -145,12 +145,11 @@ class Router
 	        }
 
 	        // Loops through all routes and try to match them based on the
-	        // variables contained in the route URI.
+	        // params contained in the route URI.
 	        foreach ( $routes as $route ) {
 
-	                // Skip homepage route here.
-			// @todo Also skip route URIs w/o variables.
-	                if ( '/' === $route->uri() ) {
+	                // Skip routes without params.
+	                if ( ! Str::contains( $route->uri(), '{' ) ) {
 	                        continue;
 	                }
 
@@ -161,7 +160,7 @@ class Router
 			// `Route` class. If we have a full pattern match, we
 			// pull out the `{var}` instances and set them as params
 			// and pass them to the route's controller.
-	                if ( @preg_match( $route->regex(), $path, $matches ) ) {
+	                if ( @preg_match( $route->pattern(), $path, $matches ) ) {
 
 	                        // Removes the full match from the array, which
 				// matches the entire URI path.  The leftover

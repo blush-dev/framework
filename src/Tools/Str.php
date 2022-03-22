@@ -122,7 +122,7 @@ class Str
 			return $str;
 		}
 
-		return static::beforeLast( static::afterFirst( $str, $from ), $to );
+		return static::beforeFirst( static::afterFirst( $str, $from ), $to );
 	}
 
 	/**

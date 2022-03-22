@@ -11,11 +11,15 @@
 
 namespace Blush\Routing;
 
+// Contracts.
+use Blush\Contracts\Makeable;
+
+// Classes.
 use Blush\Controllers\Controller;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
-class Route
+class Route implements Makeable
 {
 	/**
 	 * Route URI.
@@ -33,19 +37,26 @@ class Route
 	protected $controller;
 
 	/**
-	 * Route regex.
+	 * Route regex pattern.
 	 *
-	 * @todo  Rename to `$pattern`.
 	 * @since 1.0.0
 	 */
-	protected string $regex;
+	protected string $pattern;
 
 	/**
-	 * Route parameters.
+	 * Route parameters pulled from the `{param}` definitions in the URI.
 	 *
 	 * @since 1.0.0
 	 */
 	protected array $parameters = [];
+
+	/**
+	 * Stores the regex patterns for matching against the `{param}`
+	 * definitions in the URI.
+	 *
+	 * @since 1.0.0
+	 */
+	protected array $wheres = [];
 
 	/**
 	 * Route methods. Only `GET` is supported.
@@ -53,13 +64,6 @@ class Route
 	 * @since 1.0.0
 	 */
 	protected array $methods = [];
-
-	/**
-	 * Parameter to regex mapping.
-	 *
-	 * @since 1.0.0
-	 */
-	protected array $wheres = [];
 
 	/**
 	 * Sets up the object state.
@@ -74,8 +78,23 @@ class Route
 			}
 		}
 
-		$this->methods = [ 'get' ];
+		// Assign route URI and methods.
 		$this->uri     = $uri;
+		$this->methods = [ 'GET' ];
+
+		// Merge default regex mapping with user-defined wheres.
+		$this->wheres = array_merge( [
+			'year'   => '[0-9]{4}',
+			'month'  => '[0-9]{2}',
+			'day'    => '[0-9]{2}',
+			'number' => '[0-9]+',
+			'page'   => '[0-9]+',
+			'author' => '[a-zA-Z0-9_-]+',
+			'type'   => '[a-zA-Z0-9_-]+',
+			'name'   => '[a-zA-Z0-9_-]+',
+			'path'   => '.+',
+			'*'      => '.+'
+		], $this->wheres );
 	}
 
 	/**
@@ -83,64 +102,43 @@ class Route
 	 *
 	 * @since 1.0.0
 	 */
-	public function make() : self
+	public function make(): self
 	{
 		// Find matches for parameter names set with `{param}`.
-		// Stores them in `$this->parameters`.
 		preg_match_all( '/\{(.*?)\}/', $this->uri(), $matches );
 
-		// @todo - $matches[0] should be param name `$params['path']`.
+		// If matches are found, loop through each `{param}` and add it
+		// to the parameters array. Also, if it has not been added to
+		// the wheres array, register it with the generic slug pattern,
+		// which matches alphanumeric, hyphen, and underscore characters.
 		if ( $matches && isset( $matches[1] ) ) {
-			foreach ( $matches[1] as $match ) {
-				$this->parameters[] = $match;
+			foreach ( $matches[1] as $param ) {
+
+				// Assign parameter.
+				$this->parameters[] = $param;
+
+				// Assign where if not set.
+				if ( ! $this->hasWhere( $param ) ) {
+					$this->whereSlug( $param );
+				}
 			}
 		}
 
-		// Trim and escape slashes.
+		// Trim and escape slashes for regex.
 		$regex = ltrim( $this->uri(), '/' );
 		$regex = str_replace( '/', '\/', $regex );
 
-		// Gets the regex map for specific vars.
-		$map = $this->regexMap();
-
-		// Convert a `{type:{$type}}` param to `{$type}` and add it to
-		// the regex map.  This allows users to add any content type
-		// (usually taxonomies) to their permalinks.
-		if ( Str::contains( $regex, '{type:', $regex ) ) {
-			$type = Str::between( $regex, '{type:', '}' );
-
-			if ( ! isset( $map[ $type ] ) ) {
-				$map[ $type ] = '([a-zA-Z0-9_-]+)';
-			}
+		// Switches the params with patterns from wheres array.
+		foreach ( $this->wheres() as $where => $pattern ) {
+			$regex = str_replace(
+				sprintf( '{%s}', $where   ),
+				sprintf( '(%s)', $pattern ),
+				$regex
+			);
 		}
 
-		// Switches the vars to placeholders temporarily to keep the
-		// following `preg_replace()` from breaking it.
-		foreach ( $map as $var => $exp ) {
-			$regex = str_replace( $var, str_replace(
-				[ '{', '}' ],
-				[ '@blushopen@', '@blushclose@' ],
-				$var
-			), $regex );
-		}
-
-		// Use general selector for unknown variables.
-		$regex = preg_replace( '/\{.*?\}/', '(.+)', $regex );
-
-		// Replace placeholders with original vars.
-		$regex = str_replace(
-			[ '@blushopen@', '@blushclose@' ],
-			[ '{', '}' ],
-			$regex
-		);
-
-		// Map known vars to their regex patterns.
-		foreach ( $map as $var => $exp ) {
-			$regex = str_replace( $var, $exp, $regex );
-		}
-
-		// Build final regex pattern for the full route URI.
-		$this->regex = "#{$regex}\/?$#i";
+		// Build final pattern for the full route URI.
+		$this->pattern = "#{$regex}\/?$#i";
 
 		// Return route for chaining methods.
 		return $this;
@@ -151,7 +149,7 @@ class Route
 	 *
 	 * @since 1.0.0
 	 */
-	public function uri() : string
+	public function uri(): string
 	{
 		return $this->uri;
 	}
@@ -172,7 +170,7 @@ class Route
 	 *
 	 * @since 1.0.0
 	 */
-	public function callback( array $params = [], Request $request ) : Response
+	public function callback( array $params = [], Request $request ): Response
 	{
 		// Get the route controller.
 		$callback = $this->controller();
@@ -187,38 +185,13 @@ class Route
 	}
 
 	/**
-	 * Returns the route regex.
+	 * Returns the route regex pattern.
 	 *
 	 * @since 1.0.0
 	 */
-	public function regex() : string
+	public function pattern(): string
 	{
-		return $this->regex;
-	}
-
-	/**
-	 * Returns an array of parameter to regex mappings.
-	 *
-	 * @since 1.0.0
-	 */
-	protected function regexMap() : array
-	{
-		$_wheres = [];
-
-		foreach ( $this->wheres() as $var => $regex ) {
-			$_wheres[ '{' . $var . '}' ] = $regex;
-		}
-
-		return array_merge( [
-			'{year}'   => '([0-9]{4})',
-			'{month}'  => '([0-9]{2})',
-			'{day}'    => '([0-9]{2})',
-			'{number}' => '([0-9]+)',
-			'{page}'   => '([0-9]+)',
-			'{type}'   => '([a-zA-Z0-9_-]+)',
-			'{name}'   => '([a-zA-Z0-9_-]+)',
-			'{path}'   => '(.+)'
-		], $_wheres );
+		return $this->pattern;
 	}
 
 	/**
@@ -226,7 +199,7 @@ class Route
 	 *
 	 * @since 1.0.0
 	 */
-	public function parameters() : array
+	public function parameters(): array
 	{
 		return $this->parameters;
 	}
@@ -236,7 +209,7 @@ class Route
 	 *
 	 * @since 1.0.0
 	 */
-	public function wheres() : array
+	public function wheres(): array
 	{
 		return $this->wheres;
 	}
@@ -248,7 +221,7 @@ class Route
 	 * @param  string|array  $name
 	 * @param  string|null   $regex
 	 */
-	public function where( $name, $regex = null ) : void
+	public function where( $name, $regex = null ): void
 	{
 		$wheres = $this->parseWhere( $name, $regex );
 
@@ -258,43 +231,117 @@ class Route
 	}
 
 	/**
+	 * Checks if a where param has been added.
+	 *
+	 * @since  1.0.0
+	 */
+	public function hasWhere( string $name ): bool
+	{
+		return isset( $this->wheres[ $name ] );
+	}
+
+	/**
 	 * Parses where mapping.
 	 *
 	 * @since  1.0.0
 	 * @param  string|array  $name
 	 * @param  string|null   $regex
 	 */
-	protected function parseWhere( $name, $regex ) : array
+	protected function parseWhere( $name, ?string $regex = null ): array
 	{
 		return is_array( $name ) ? $name : [ $name => $regex ];
 	}
 
-	public function whereAlpha( $parameters )
+	/**
+	 * Adds parameters to wheres with slug-based regex pattern.
+	 *
+	 * @since  1.0.0
+	 * @param  string|array  $parameters
+	 */
+	public function whereSlug( $parameters ): void
 	{
-		$this->addRegexToParameters( $parameters, '([a-zA-Z]+)' );
+		$this->addPatternToParameters( $parameters, '[a-zA-Z0-9_-]+' );
 	}
 
-	public function whereAlphaNumeric( $parameters )
+	/**
+	 * Adds parameters to wheres with alpha-based regex pattern.
+	 *
+	 * @since  1.0.0
+	 * @param  string|array  $parameters
+	 */
+	public function whereAlpha( $parameters ): void
 	{
-		$this->addRegexToParameters( $parameters, '([a-zA-Z0-9]+)' );
+		$this->addPatternToParameters( $parameters, '[a-zA-Z]+' );
 	}
 
-	public function whereNumber( $parameters )
+	/**
+	 * Adds parameters to wheres with alphanumeric-based regex pattern.
+	 *
+	 * @since  1.0.0
+	 * @param  string|array  $parameters
+	 */
+	public function whereAlphaNumeric( $parameters ): void
 	{
-		$this->addRegexToParameters( $parameters, '([0-9]+)' );
+		$this->addPatternToParameters( $parameters, '[a-zA-Z0-9]+' );
 	}
 
-	public function whereYear( $parameters )
+	/**
+	 * Adds parameters to wheres with number-based regex pattern.
+	 *
+	 * @since  1.0.0
+	 * @param  string|array  $parameters
+	 */
+	public function whereNumber( $parameters ): void
 	{
-		$this->addRegexToParameters( $parameters, '([0-9]{4})' );
+		$this->addPatternToParameters( $parameters, '[0-9]+' );
 	}
 
-	private function addRegexToParameters( $parameters, $regex )
+	/**
+	 * Adds parameters to wheres with year-based regex pattern.
+	 *
+	 * @since  1.0.0
+	 * @param  string|array  $parameters
+	 */
+	public function whereYear( $parameters ): void
+	{
+		$this->addPatternToParameters( $parameters, '[0-9]{4}' );
+	}
+
+	/**
+	 * Adds parameters to wheres with month-based regex pattern.
+	 *
+	 * @since  1.0.0
+	 * @param  string|array  $parameters
+	 */
+	public function whereMonth( $parameters ): void
+	{
+		$this->addPatternToParameters( $parameters, '[0-9]{2}' );
+	}
+
+	/**
+	 * Adds parameters to wheres with day-based regex pattern.
+	 *
+	 * @since  1.0.0
+	 * @param  string|array  $parameters
+	 */
+	public function whereDay( $parameters ): void
+	{
+		$this->addPatternToParameters( $parameters, '[0-9]{2}' );
+	}
+
+	/**
+	 * Adds parameters to wheres with regex pattern.
+	 *
+	 * @since  1.0.0
+	 * @param  string|array  $parameters
+	 * @param  string        $regex
+	 */
+	private function addPatternToParameters( $parameters, $pattern ): void
 	{
 		$wheres = [];
 
 		foreach ( (array) $parameters as $name ) {
-			$wheres[ $name ] = $regex;
+			$wheres[ $name ] = $pattern;
 		}
 
 		$this->where( $wheres );
