@@ -28,8 +28,8 @@ class Cache
 			'content_exclude_meta' => Expect::array()->default( [] ),
 			'global'               => Expect::bool()->default( false ),
 			'global_exclude'       => Expect::array()->default( [] ),
-			'stores'               => Expect::array()->default( [] ),
-			'drivers'              => Expect::array()->default( [] )
+			'stores'               => Expect::arrayOf( 'array',  'string' )->default( [] ),
+			'drivers'              => Expect::arrayOf( 'string', 'string' )->default( [] )
 		] );
 	}
 }

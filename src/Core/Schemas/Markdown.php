@@ -25,7 +25,7 @@ class Markdown
 	{
 		return Expect::structure( [
 			'config'     => Expect::array()->default( [] ),
-			'extensions' => Expect::array()->default( [] )
+			'extensions' => Expect::listOf( 'string' )->default( [] )
 		] );
 	}
 }

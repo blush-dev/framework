@@ -23,6 +23,17 @@ class Content
 	 */
 	public static function schema(): Schema
 	{
-		return Expect::array()->default( [] );
+		return Expect::arrayOf( Expect::structure( [
+			'path'            => Expect::string()->default( '' ),
+			'collect'         => Expect::type( 'string|bool|null' )->default( null ),
+			'collection'      => Expect::array()->default( [] ),
+			'uri'             => Expect::string()->default( '' ),
+			'uri_single'      => Expect::string()->default( '' ),
+			'routing'         => Expect::bool()->default( true ),
+			'routes'          => Expect::arrayOf( 'string', 'string' )->default( [] ),
+			'taxonomy'        => Expect::bool()->default( false ),
+			'term_collect'    => Expect::type( 'string|bool|null' )->default( null ),
+			'term_collection' => Expect::array()->default( [] )
+		] ), 'string' )->default( [] );
 	}
 }
