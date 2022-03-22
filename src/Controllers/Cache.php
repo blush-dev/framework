@@ -100,13 +100,7 @@ class Cache extends Controller
 	 */
 	private function flushAllCacheStores(): bool
 	{
-		if ( $stores = CacheRegistry::getStores() ) {
-			foreach ( $stores as $store ) {
-				$store->flush();
-			}
-			return true;
-		}
-
-		return false;
+		CacheRegistry::purge();
+		return true;
 	}
 }

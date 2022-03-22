@@ -156,9 +156,21 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function flush( string $store )
+	public function flush( string $store ): void
 	{
 		$this->store( $store )->flush();
+	}
+
+	/**
+	 * Flushes the cached data from all stores.
+	 *
+	 * @since  1.0.0
+	 */
+	public function purge(): void
+	{
+		foreach ( $this->getStores() as $store ) {
+			$store->flush();
+		}
 	}
 
 	/**
