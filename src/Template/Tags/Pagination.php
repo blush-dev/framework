@@ -55,7 +55,7 @@ class Pagination implements Displayable, Renderable
 	protected string $basepath = '';
 
 	/**
-	 * The format of the paged part of the URI string. Input should always
+	 * The format of the paged part of the URI string. Format should always
 	 * include `{page}`, which will be replaced with the real page number.
 	 *
 	 * @since 1.0.0
@@ -67,7 +67,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	protected array $display_options = [];
+	protected array $display = [];
 
 	/**
 	 * Create a new pagination object.
@@ -83,14 +83,13 @@ class Pagination implements Displayable, Renderable
 			'format'   => 'page/{page}'
 		], $options );
 
-		// Assign the format property.
-		$this->format = $options['format'];
+		// Assign the format property only if it contains `{page}`.
+		if ( Str::contains( $options['format'], '{page}' ) ) {
+			$this->format = $options['format'];
+		}
 
-		// Append the base to the full URI.
-		$this->basepath = Str::appendUri(
-			uri( $options['basepath'] ),
-			'%_%'
-		);
+		// Append the basepath to the full URI.
+		$this->basepath = uri( $options['basepath'] );
 
 		// Make sure that we have absolute integers.
 		$this->total   = abs( intval( $options['total']   ) );
@@ -102,9 +101,9 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function setDisplayOptions( array $options = [] ) : void
+	protected function setDisplayOptions( array $options = [] ): void
 	{
-		$this->display_options = array_merge( [
+		$this->display = array_merge( [
 			// Customize the items that are shown.
 			'show_all'           => false,
 			'end_size'           => 1,
@@ -140,7 +139,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	public function total() : int
+	public function total(): int
 	{
 		return $this->total;
 	}
@@ -150,7 +149,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	public function current() : int
+	public function current(): int
 	{
 		return $this->current;
 	}
@@ -160,7 +159,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	public function hasPages() : bool
+	public function hasPages(): bool
 	{
 		return 1 > $this->total();
 	}
@@ -170,20 +169,9 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	public function isPaged() : bool
+	public function isPaged(): bool
 	{
 		return 1 < $this->current();
-	}
-
-	/**
-	 * DO NOT USE. THIS WILL BE REMOVED.
-	 *
-	 * @since 1.0.0
-	 */
-	public function make( array $options = [] ) : self
-	{
-		$this->setDisplayOptions( $options );
-		return $this;
 	}
 
 	/**
@@ -191,7 +179,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	public function display( array $options = [] ) : void
+	public function display( array $options = [] ): void
 	{
 		echo $this->render( $options );
 	}
@@ -201,7 +189,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	public function render( array $options = [] ) : string
+	public function render( array $options = [] ): string
 	{
 		$this->setDisplayOptions( $options );
 
@@ -210,12 +198,12 @@ class Pagination implements Displayable, Renderable
 		if ( $items = $this->items() ) {
 
 		        // If there's title text, format it.
-		        if ( $this->display_options['title_text'] ) {
+		        if ( $this->display['title_text'] ) {
 		                $title = sprintf(
 		                        '<%1$s class="%2$s">%3$s</%1$s>',
-		                        escape_tag( $this->display_options['title_tag'] ),
-		                        e( $this->display_options['title_class'] ),
-		                        e( $this->display_options['title_text'] )
+		                        escape_tag( $this->display['title_tag'] ),
+		                        e( $this->display['title_class'] ),
+		                        e( $this->display['title_text'] )
 		                );
 		        }
 
@@ -228,16 +216,16 @@ class Pagination implements Displayable, Renderable
 		        // Format the list.
 		        $list = sprintf(
 		                '<%1$s class="%2$s">%3$s</%1$s>',
-		                escape_tag( $this->display_options['list_tag'] ),
-		                e( $this->display_options['list_class'] ),
+		                escape_tag( $this->display['list_tag'] ),
+		                e( $this->display['list_class'] ),
 		                $list
 		        );
 
 		        // Format the nav wrapper.
 		        $template = sprintf(
 		                '<%1$s class="%2$s" role="navigation">%3$s%4$s</%1$s>',
-		                escape_tag( $this->display_options['container_tag'] ),
-		                e( $this->display_options['container_class'] ),
+		                escape_tag( $this->display['container_tag'] ),
+		                e( $this->display['container_class'] ),
 		                $title,
 		                $list
 		        );
@@ -251,7 +239,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function items() : array
+	protected function items(): array
 	{
 		if ( ! $this->items ) {
 			$this->buildItems();
@@ -265,7 +253,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function buildItems() : void
+	protected function buildItems(): void
 	{
 		if ( 2 <= $this->total ) {
 			$this->prevItem();
@@ -283,7 +271,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	private function formatItem( array $item = [] ) : string
+	private function formatItem( array $item = [] ): string
 	{
 		$is_link  = isset( $item['url'] );
 		$attr     = [];
@@ -291,7 +279,7 @@ class Pagination implements Displayable, Renderable
 
 		// Add the anchor/span class attribute.
 		$attr['class'] = sprintf(
-			$this->display_options['anchor_class'],
+			$this->display['anchor_class'],
 			$is_link ? 'link' : $item['type']
 		);
 
@@ -302,7 +290,7 @@ class Pagination implements Displayable, Renderable
 
 		// If this is the current item, add the `aria-current` attribute.
 		if ( 'current' === $item['type'] ) {
-			$attr['aria-current'] = $this->display_options['aria_current'];
+			$attr['aria-current'] = $this->display['aria_current'];
 		}
 
 		// Loop through the attributes and format them into a string.
@@ -317,8 +305,8 @@ class Pagination implements Displayable, Renderable
 		// Builds and formats the list item.
 		return sprintf(
 			'<%1$s class="%2$s"><%3$s %4$s>%5$s</%3$s></%1$s>',
-			escape_tag( $this->display_options['item_tag'] ),
-			e( sprintf( $this->display_options['item_class'], $item['type'] ) ),
+			escape_tag( $this->display['item_tag'] ),
+			e( sprintf( $this->display['item_class'], $item['type'] ) ),
 			$is_link ? 'a' : 'span',
 			trim( $esc_attr ),
 			$item['content']
@@ -330,14 +318,14 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function prevItem() : void
+	protected function prevItem(): void
 	{
-		if ( $this->display_options['prev_next'] && $this->current && 1 < $this->current ) {
+		if ( $this->display['prev_next'] && $this->current && 1 < $this->current ) {
 
 			$this->items[] = [
 				'type'    => 'prev',
 				'url'     => $this->buildUrl( 2 == $this->current ? '' : $this->format, $this->current - 1 ),
-				'content' => $this->display_options['prev_text']
+				'content' => $this->display['prev_text']
 			];
 		}
 	}
@@ -347,13 +335,13 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function nextItem() : void
+	protected function nextItem(): void
 	{
-		if ( $this->display_options['prev_next'] && $this->current && $this->current < $this->total ) {
+		if ( $this->display['prev_next'] && $this->current && $this->current < $this->total ) {
 			$this->items[] = [
 				'type'    => 'next',
 				'url'     => $this->buildUrl( $this->format, $this->current + 1 ),
-				'content' => $this->display_options['next_text']
+				'content' => $this->display['next_text']
 			];
 		}
 	}
@@ -363,7 +351,7 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function pageItem( int $n ) : void
+	protected function pageItem( int $n ): void
 	{
 		// If the current item we're building is for the current page
 		// being viewed.
@@ -371,7 +359,7 @@ class Pagination implements Displayable, Renderable
 
 			$this->items[] = [
 				'type'    => 'current',
-				'content' => $this->display_options['before_page_number'] . e( $n ) . $this->display_options['after_page_number']
+				'content' => $this->display['before_page_number'] . e( $n ) . $this->display['after_page_number']
 			];
 
 			$this->dots = true;
@@ -379,27 +367,31 @@ class Pagination implements Displayable, Renderable
 		// If showing a linked number or dots.
 		} else {
 			if (
-				$this->display_options['show_all']
+				$this->display['show_all']
 				|| (
-					$n <= $this->display_options['end_size']
+					$n <= $this->display['end_size']
 					|| (
 						$this->current
-						&& $n >= $this->current - $this->display_options['mid_size']
-						&& $n <= $this->current + $this->display_options['mid_size']
+						&& $n >= $this->current - $this->display['mid_size']
+						&& $n <= $this->current + $this->display['mid_size']
 					)
-					|| $n > $this->total - $this->display_options['end_size']
+					|| $n > $this->total - $this->display['end_size']
 				)
 			) {
-
 				$this->items[] = [
 					'type'    => 'number',
 					'url'     => $this->buildUrl( 1 == $n ? '' : $this->format, $n ),
-					'content' => $this->display_options['before_page_number'] . e( $n ) . $this->display_options['after_page_number']
+					'content' => sprintf(
+						'%s%s%s',
+						$this->display['before_page_number'],
+						e( $n ),
+						$this->display['after_page_number']
+					)
 				];
 
 				$this->dots = true;
 
-			} elseif ( $this->dots && ! $this->display_options['show_all'] ) {
+			} elseif ( $this->dots && ! $this->display['show_all'] ) {
 
 				$this->items[] = [
 					'type'    => 'dots',
@@ -416,13 +408,12 @@ class Pagination implements Displayable, Renderable
 	 *
 	 * @since 1.0.0
 	 */
-	protected function buildUrl( string $format, int $number ) : string
+	protected function buildUrl( string $format, int $number ): string
 	{
-		$pattern = 1 < $number ? '%_%' : '/%_%';
-
-		$uri = str_replace( $pattern, $format, $this->basepath );
-		$uri = str_replace( '{page}', $number, $uri );
-
-		return $uri;
+		return str_replace(
+			'{page}',
+			$number,
+			Str::appendUri( $this->basepath, $format )
+		);
 	}
 }
