@@ -16,28 +16,28 @@ use Blush\Contracts\Bootable;
 class Component implements Bootable
 {
 	/**
-	 * Collection of content types.
+	 * Registry of content types.
 	 *
 	 * @since 1.0.0
 	 */
-        protected Types $types;
+        protected Types $registy;
 
 	/**
-	 * Config array for content types.
+	 * Array of user-defined content types.
 	 *
-	 * @since 1.0.0
+	 * @since  1.0.0
 	 */
-        protected array $config;
+        protected array $types;
 
 	/**
 	 * Sets up object state.
 	 *
 	 * @since 1.0.0
 	 */
-        public function __construct( Types $types, array $config )
+        public function __construct( Types $registry, array $types )
 	{
-                $this->types  = $types;
-                $this->config = $config;
+                $this->registry = $registry;
+		$this->types    = $types;
         }
 
 	/**
@@ -48,15 +48,8 @@ class Component implements Bootable
         public function boot(): void
 	{
 		// Registers user-configured content types.
-                foreach ( $this->config as $type => $options ) {
-                        $this->types->add( $type, $options );
-                }
-
-		// Adds the internal `page` content type.
-		$this->types->add( 'page', [
-			'path'    => '',
-			'routing' => false,
-			'collect' => false
-		] );
+		foreach ( $this->types as $type => $options ) {
+			$this->registry->add( $type, $options );
+		}
         }
 }

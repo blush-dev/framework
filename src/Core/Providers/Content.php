@@ -39,9 +39,20 @@ class Content extends ServiceProvider
 
 		// Bind content types component and pass types and config in.
                 $this->app->singleton( Component::class, function( $app ) {
+
+			// Merge default and user-configured content types.
+			$types = array_merge( $app->make( 'config' )->get( 'content' ), [
+				'page' => [
+					'path'    => '',
+					'routing' => false,
+					'collect' => false
+				]
+			] );
+
+			// Creates the content types component.
                         return new Component(
-                                $app->make( Types::class     ),
-                                $app->make( 'config' )->get( 'content' )
+                                $app->make( Types::class ),
+                                $types
                         );
                 } );
 
