@@ -118,7 +118,11 @@ class Locator implements LocatorContract
 
 			// Cache the located entries.
 			if ( $entries = $this->locate() ) {
-				Cache::put( "content.{$this->cache_key}", $entries );
+				Cache::put(
+					"content.{$this->cache_key}",
+					$entries,
+					Config::get( 'cache.expires' )
+				);
 			}
 		}
 

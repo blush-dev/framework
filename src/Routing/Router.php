@@ -103,7 +103,11 @@ class Router
 		if ( ! $content ) {
 			$response = $this->getResponse();
 			$content  = $response->getContent();
-			Cache::put( "global.{$cache_key}", $content );
+			Cache::put(
+				"global.{$cache_key}",
+				$content,
+				Config::get( 'cache.expires' )
+			);
 		}
 
 		// If no response is set, add the cached content to new response.

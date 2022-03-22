@@ -33,9 +33,8 @@ class Cache extends ServiceProvider
 			// Merge default and user-configured drivers.
 			$drivers = array_merge( [
 				'file'            => File::class,
-				'file.html'       => HtmlFile::class,
-				'file.json'       => JsonFile::class,
-				'file.collection' => CollectionFile::class
+				'file.cache'      => File::class,
+				'file.json'       => JsonFile::class
 			], $app->make( 'config' )->get( 'cache.drivers' ) );
 
 			// Merge default and user-configured stores.
@@ -45,7 +44,7 @@ class Cache extends ServiceProvider
 					'path'   => cache_path( 'content' )
 				],
 				'global'  => [
-					'driver' => 'file.html',
+					'driver' => 'file.cache',
 					'path'   => cache_path( 'global' )
 				]
 			], $app->make( 'config' )->get( 'cache.stores'  ) );

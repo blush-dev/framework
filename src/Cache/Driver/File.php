@@ -100,15 +100,22 @@ class File extends Store
 	public function get( string $key )
 	{
 		if ( $this->hasData( $key ) ) {
-			return $this->data[ $key ];
+			return $this->getData( $key );
 		}
 
 		if ( $this->fileExists( $key ) ) {
 			$data = file_get_contents( $this->filepath( $key ) );
-			$this->setData( $key, unserialize( $data ) );
+			$data = unserialize( $data );
+
+			if ( $this->hasExpired( $data ) ) {
+				$this->forget( $key );
+				return null;
+			}
+
+			$this->setData( $key, $data );
 		}
 
-		return $this->data[ $key ] ?? null;
+		return $this->data[$key]['data'] ?? null;
 	}
 
 	/**
@@ -117,9 +124,15 @@ class File extends Store
 	 * @since  1.0.0
 	 * @param  mixed  $data
 	 */
-	public function put( string $key, $data, int $expire = 0 ): bool
+	public function put( string $key, $data, int $seconds = 0 ): bool
 	{
-		$data = serialize( $data );
+		$data = serialize( [
+			'meta' => [
+				'expires' => $this->availableAt( $seconds )
+			],
+			'data' => $data
+		] );
+
 		$put  = file_put_contents( $this->filepath( $key ), $data );
 
 		if ( true === $put ) {
@@ -134,10 +147,10 @@ class File extends Store
 	 *
 	 * @since  1.0.0
 	 */
-	public function add( string $key, $data, int $expire = 0 ): bool
+	public function add( string $key, $data, int $seconds = 0 ): bool
 	{
 		if ( ! $this->fileExists( $key ) ) {
-			return $this->put( $key, $data, $expire );
+			return $this->put( $key, $data, $seconds );
 		}
 
 		return false;
@@ -175,14 +188,14 @@ class File extends Store
 	 * @since  1.0.0
 	 * @return mixed
 	 */
-	public function remember( string $key, int $expire = 0, Closure $callback )
+	public function remember( string $key, int $seconds = 0, Closure $callback )
 	{
 		$data = $this->get( $key );
 
 		if ( ! $data ) {
 			$data = $callback();
 			if ( $data ) {
-				$this->put( $key, $data, $expire );
+				$this->put( $key, $data, $seconds );
 			}
 		}
 
@@ -231,5 +244,31 @@ class File extends Store
 		}
 
 		$this->resetData();
+	}
+
+	/**
+	 * Determines if a dataset has expired.
+	 *
+	 * @since  1.0.0
+	 * @param  array  $data  Not type-hinting this for back-compat during 1.0 beta.
+	 */
+	protected function hasExpired( $data ): bool
+	{
+		// If no metadata is set, assume it does not expire.
+		if ( ! isset( $data['meta'] ) && ! isset( $data['meta']['expires'] ) ) {
+			return false;
+		}
+
+		$expires = abs( intval( $data['meta']['expires'] ) );
+
+		// If the expiration is set to 0, then it is set to `forever`,
+		// and the data should only be manually flushed.
+		if ( 0 === $expires ) {
+			return false;
+		}
+
+		// If the current time is greater than the expiration, then the
+		// data has expired.
+		return time() > $expires;
 	}
 }

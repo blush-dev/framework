@@ -30,7 +30,7 @@ class Registry
 	protected array $drivers = [];
 
 	/**
-	 * Stores registered cache drivers.
+	 * Stores registered cache stores.
 	 *
 	 * @since 1.0.0
 	 */
@@ -67,11 +67,11 @@ class Registry
 	 * @since  1.0.0
 	 * @param  mixed  $data
 	 */
-	public function put( string $name, $data, $expire = 0 ): bool
+	public function put( string $name, $data, int $seconds = 0 ): bool
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
-		return $this->store( $store )->put( $key, $data, $expire );
+		return $this->store( $store )->put( $key, $data, $seconds );
 	}
 
 	/**
@@ -79,11 +79,11 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function add( string $name, $data, $expire = 0 )
+	public function add( string $name, $data, int $seconds = 0 )
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
-		$this->store( $store )->add( $key, $data, $expire );
+		$this->store( $store )->add( $key, $data, $seconds );
 	}
 
 	/**
@@ -117,7 +117,7 @@ class Registry
 	 * @since  1.0.0
 	 * @return mixed
 	 */
-	public function remember( string $name, $expire, Closure $callback )
+	public function remember( string $name, int $seconds, Closure $callback )
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 

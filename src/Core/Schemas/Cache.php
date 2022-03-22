@@ -25,6 +25,7 @@ class Cache
 	{
 		return Expect::structure( [
 			'purge_key'            => Expect::string()->default( '' ),
+			'expires'              => Expect::int()->default( 0 ),
 			'content_exclude_meta' => Expect::array()->default( [] ),
 			'global'               => Expect::bool()->default( false ),
 			'global_exclude'       => Expect::array()->default( [] ),

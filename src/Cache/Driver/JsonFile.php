@@ -31,15 +31,20 @@ class JsonFile extends File
 	public function get( string $key )
 	{
 		if ( $this->hasData( $key ) ) {
-			return $this->data[ $key ];
+			return $this->getData( $key );
 		}
 
 		if ( $data = $this->getJsonFileContents( $key ) ) {
+
+			if ( $this->hasExpired( $data ) ) {
+				$this->forget( $key );
+				return null;
+			}
+
 			$this->setData( $key, $data );
-			return $this->data[ $key ];
 		}
 
-		return $this->data[ $key ] = null;
+		return $this->data[$key]['data'] ?? null;
 	}
 
 	/**
@@ -48,9 +53,9 @@ class JsonFile extends File
 	 * @since  1.0.0
 	 * @param  mixed  $data
 	 */
-	public function put( string $key, $data, int $expire = 0 ): bool
+	public function put( string $key, $data, int $seconds = 0 ): bool
 	{
-		$put = $this->putJsonFileContents( $key, $data );
+		$put = $this->putJsonFileContents( $key, $data, $seconds );
 
 		if ( true === $put ) {
 			$this->setData( $key, $data );
@@ -83,23 +88,14 @@ class JsonFile extends File
 	 *
 	 * @since  1.0.0
 	 */
-	protected function putJsonFileContents( string $key, array $data ): bool
+	protected function putJsonFileContents( string $key, array $data, int $seconds ): bool
 	{
-		$data = preg_replace(
-			[
-				"/\n\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s\s/",
-				"/\n\s\s\s\s\s\s\s\s\s\s\s\s/",
-				"/\n\s\s\s\s\s\s\s\s/",
-				"/\n\s\s\s\s/"
+		$data = json_encode( [
+			'meta' => [
+				'expires' => $this->availableAt( $seconds )
 			],
-			[
-				"\n\t\t\t\t",
-				"\n\t\t\t",
-				"\n\t\t",
-				"\n\t"
-			],
-			json_encode( $data, JSON_PRETTY_PRINT )
-		);
+			'data' => $data
+		], JSON_PRETTY_PRINT );
 
 		$put = file_put_contents( $this->filepath( $key ), $data );
 

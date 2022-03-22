@@ -88,14 +88,14 @@ abstract class Store
 	 * @since  1.0.0
 	 * @param  mixed  $data
 	 */
-	abstract public function put( string $key, $data, int $expire = 0 ): bool;
+	abstract public function put( string $key, $data, int $seconds = 0 ): bool;
 
 	/**
 	 * Writes new data if it doesn't exist by cache key.
 	 *
 	 * @since  1.0.0
 	 */
-	abstract public function add( string $key, $data, int $expire = 0 ): bool;
+	abstract public function add( string $key, $data, int $seconds = 0 ): bool;
 
 	/**
 	 * Deletes data if it exists by cache key.
@@ -118,7 +118,7 @@ abstract class Store
 	 * @since  1.0.0
 	 * @return mixed
 	 */
-	abstract public function remember( string $key, int $expire, Closure $callback );
+	abstract public function remember( string $key, int $seconds, Closure $callback );
 
 	/**
 	 * Gets and returns data by cache key. If it doesn't exist, callback is
@@ -145,7 +145,18 @@ abstract class Store
 	abstract public function pull( string $key );
 
 	/**
-	 * Check's if a store's data is set.
+	 * Helper function for creating an expiration time when added to the
+	 * current time.  If set to `0`, we just send that back.
+	 *
+	 * @since  1.0.0
+	 */
+	protected function availableAt( int $seconds = 0 ): int
+	{
+		return 0 === $seconds ? 0 : $seconds + time();
+	}
+
+	/**
+	 * Check's if a store's data is set by key.
 	 *
 	 * @since  1.0.0
 	 */
@@ -155,28 +166,35 @@ abstract class Store
 	}
 
 	/**
-	 * Returns store's data if it is set.
+	 * Returns store's data by key if it is set.
 	 *
 	 * @since  1.0.0
 	 * @return mixed
 	 */
 	protected function getData( string $key )
 	{
-		return $this->data[ $key ];
+		return $this->data[ $key ]['data'];
 	}
 
 	/**
-	 * Sets a store's data.
+	 * Sets a store's data by key.
 	 *
 	 * @since  1.0.0
 	 */
 	protected function setData( string $key, $data ): void
 	{
+		if ( ! is_array( $data ) || ! isset( $data['meta'] ) ) {
+			$data = [
+				'meta' => [ 'expires' => 0 ],
+				'data'  => $data
+			];
+		}
+
 		$this->data[ $key ] = $data;
 	}
 
 	/**
-	 * Removes store's data if set.
+	 * Removes store's data by key if set.
 	 *
 	 * @since  1.0.0
 	 */
@@ -190,7 +208,7 @@ abstract class Store
 	 *
 	 * @since  1.0.0
 	 */
-	protected function resetData()
+	protected function resetData(): void
 	{
 		$this->data = [];
 	}

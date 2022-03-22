@@ -37,7 +37,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	const VERSION = '1.0.0-alpha';
+	const VERSION = '1.0.0';
 
 	/**
 	 * Array of service provider objects.
@@ -63,6 +63,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	{
 		$this->instance( 'path', Str::normalizePath( $path ) );
 
+		$this->registerDefaultConstants();
 		$this->registerDefaultBindings();
 		$this->registerDefaultProviders();
 		$this->registerDefaultProxies();
@@ -78,6 +79,21 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->registerProviders();
 		$this->registerProxies();
 		$this->bootProviders();
+	}
+
+	/**
+	 * Registers the default constants provided by the framework.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerDefaultConstants(): void
+	{
+		define( 'MINUTE_IN_SECONDS',  60                     );
+		define( 'HOUR_IN_SECONDS',    60 * MINUTE_IN_SECONDS );
+		define( 'DAY_IN_SECONDS',     24 * HOUR_IN_SECONDS   );
+		define( 'WEEK_IN_SECONDS',     7 * DAY_IN_SECONDS    );
+		define( 'MONTH_IN_SECONDS',   30 * DAY_IN_SECONDS    );
+		define( 'YEAR_IN_SECONDS',   365 * DAY_IN_SECONDS    );
 	}
 
 	/**
@@ -110,7 +126,7 @@ class Application extends Container implements ApplicationContract, Bootable
 		] )->load();
 
 		// Creates a new configuration instance and adds the default
-		// framework scheams.
+		// framework schemas.
 		$this->instance( Configuration::class, new Configuration( [
 			'app'      => Schemas\App::schema(),
 			'cache'    => Schemas\Cache::schema(),
