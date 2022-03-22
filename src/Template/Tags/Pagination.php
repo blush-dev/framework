@@ -418,7 +418,9 @@ class Pagination implements Displayable, Renderable
 	 */
 	protected function buildUrl( string $format, int $number ) : string
 	{
-		$uri = str_replace( '%_%', $format, $this->basepath );
+		$pattern = 1 < $number ? '%_%' : '/%_%';
+
+		$uri = str_replace( $pattern, $format, $this->basepath );
 		$uri = str_replace( '{page}', $number, $uri );
 
 		return $uri;
