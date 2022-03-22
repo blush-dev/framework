@@ -19,7 +19,6 @@ use Blush\Contracts\Bootable;
 
 // Classes.
 use Blush\Config;
-use Blush\Cache\Driver\{File, HtmlFile, JsonFile, CollectionFile};
 
 class Component implements Bootable
 {
@@ -31,13 +30,29 @@ class Component implements Bootable
 	protected Registry $registry;
 
 	/**
+	 * Array of user-defined drivers.
+	 *
+	 * @since  1.0.0
+	 */
+	protected array $drivers;
+
+	/**
+	 * Array of user-defined stores.
+	 *
+	 * @since  1.0.0
+	 */
+	protected array $stores;
+
+	/**
 	 * Sets up object state.
 	 *
 	 * @since  1.0.0
 	 */
-	public function __construct( Registry $registry )
+	public function __construct( Registry $registry, array $drivers, array $stores )
 	{
 		$this->registry = $registry;
+		$this->drivers  = $drivers;
+		$this->stores   = $stores;
 	}
 
 	/**
@@ -47,37 +62,13 @@ class Component implements Bootable
 	 */
 	public function boot(): void
 	{
-		// Get user-configured drivers and stores.
-		$drivers = Config::get( 'cache.drivers' );
-		$stores  = Config::get( 'cache.stores'  );
-
-		// Merge default and user-configured drivers.
-		$drivers = array_merge( [
-			'file'            => File::class,
-			'file.html'       => HtmlFile::class,
-			'file.json'       => JsonFile::class,
-			'file.collection' => CollectionFile::class
-		], $drivers ? (array) $drivers : [] );
-
-		// Merge default and user-configured stores.
-		$stores = array_merge( [
-			'content' => [
-				'driver' => 'file.json',
-				'path'   => cache_path( 'content' )
-			],
-			'global'  => [
-				'driver' => 'file.html',
-				'path'   => cache_path( 'global' )
-			]
-		], $stores ? (array) $stores : [] );
-
 		// Add drivers to the cache registry.
-		foreach ( $drivers as $name => $driver ) {
+		foreach ( $this->drivers as $name => $driver ) {
 			$this->registry->addDriver( $name, $driver );
 		}
 
 		// Add stores to the cache registry.
-		foreach ( $stores as $name => $options ) {
+		foreach ( $this->stores as $name => $options ) {
 			$this->registry->addStore( $name, $options );
 		}
 	}

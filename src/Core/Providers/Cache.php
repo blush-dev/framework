@@ -13,6 +13,7 @@ namespace Blush\Core\Providers;
 
 use Blush\Core\ServiceProvider;
 use Blush\Cache\{Component, Registry};
+use Blush\Cache\Driver\{File, HtmlFile, JsonFile, CollectionFile};
 
 class Cache extends ServiceProvider
 {
@@ -28,8 +29,32 @@ class Cache extends ServiceProvider
 
 		// Binds the cache component.
 		$this->app->singleton( Component::class, function( $app ) {
+
+			// Merge default and user-configured drivers.
+			$drivers = array_merge( [
+				'file'            => File::class,
+				'file.html'       => HtmlFile::class,
+				'file.json'       => JsonFile::class,
+				'file.collection' => CollectionFile::class
+			], $app->make( 'config' )->get( 'cache.drivers' ) );
+
+			// Merge default and user-configured stores.
+			$stores = array_merge( [
+				'content' => [
+					'driver' => 'file.json',
+					'path'   => cache_path( 'content' )
+				],
+				'global'  => [
+					'driver' => 'file.html',
+					'path'   => cache_path( 'global' )
+				]
+			], $app->make( 'config' )->get( 'cache.stores'  ) );
+
+			// Creates the cache component.
 			return new Component(
-				$app->make( Registry::class )
+				$app->make( Registry::class ),
+				$drivers,
+				$stores
 			);
 		} );
 
