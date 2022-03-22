@@ -51,13 +51,9 @@ class Markdown extends ServiceProvider
                                 Paragraph::class => ParagraphRenderer::class
                         ];
 
+			// Loops through renderers and adds them.
                         foreach ( $renderers as $node => $renderer ) {
-                                $environment->addRenderer(
-                                        $node,
-                                        is_string( $renderer )
-                                                ? new $renderer()
-                                                : $renderer
-                                );
+                                $environment->addRenderer( $node, new $renderer() );
                         }
 
 			// Return Markdown converter instance.
