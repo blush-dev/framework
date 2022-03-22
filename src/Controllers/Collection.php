@@ -29,12 +29,12 @@ class Collection extends Controller
 		$types = App::get( 'content.types' );
 
 		// Get needed URI params from the router.
-		$path = $params['path']   ?? '';
-		$page = $params['page'] ?? '';
+		$path = $params['path'];
+		$page = intval( $params['page'] ?? 1 );
 
 		// If this is a paged view, strip the page from the path.
-		if ( $page ) {
-			$path = Str::beforeLast( $path, "/page/{$page}" );
+		if ( Str::contains( $path, "/page/{$page}" ) ) {
+			$path = Str::beforeFirst( $path, "/page/{$page}" );
 		}
 
 		// Get the content type from the path or URI.
@@ -62,7 +62,6 @@ class Collection extends Controller
 		);
 
 		// Set required variables for the query.
-		$page = $page ? abs( intval( $page ) ) : 1;
 		$query_args['number'] = $query_args['number'] ?? 10;
 		$query_args['offset'] = $query_args['number'] * ( $page - 1 );
 

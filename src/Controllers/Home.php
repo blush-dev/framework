@@ -38,7 +38,7 @@ class Home extends Controller
 
 		// If we have a content type and a collection type, run query.
 		if ( $type && $collect ) {
-			$page = $params['page'] ?? 1;
+			$page = intval( $params['page'] ?? 1 );
 
 			// Query the content type.
 			$single = Query::make( [
@@ -54,7 +54,6 @@ class Home extends Controller
 			);
 
 			// Set required variables for the query.
-			$page = $page ? abs( intval( $page ) ) : 1;
 			$query_args['number'] = $query_args['number'] ?? 10;
 			$query_args['offset'] = $query_args['number'] * ( $page - 1 );
 

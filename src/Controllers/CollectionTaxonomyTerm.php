@@ -27,14 +27,14 @@ class CollectionTaxonomyTerm extends Controller
 	{
 		$types = App::get( 'content.types' );
 
-		$name = $params['name'] ?? '';
-		$page = $params['page'] ?? '';
 		$path = $params['path'];
+		$name = $params['name'];
+		$page = $params['page'] ? intval( $params['page'] ) : 1;
 
-		$type_path = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
+		$type_path = Str::beforeLast( $path, "/{$name}" );
 
-		if ( $page ) {
-			$path = Str::beforeLast( $path , "/page/{$page}" );
+		if ( Str::contains( $path, "/page/{$page}" ) ) {
+			$path = Str::beforeFirst( $path, "/page/{$page}" );
 		}
 
 		// Get the taxonomy's content type.
@@ -55,7 +55,6 @@ class CollectionTaxonomyTerm extends Controller
 		);
 
 		// Set required variables for the query.
-		$page = $page ? abs( intval( $page ) ) : 1;
 		$query_args['number'] = $query_args['number'] ?? 10;
 		$query_args['offset'] = $query_args['number'] * ( $page - 1 );
 
