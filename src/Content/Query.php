@@ -124,6 +124,13 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	protected string $orderby = 'filename';
 
 	/**
+	 * Query entries by authors.
+	 *
+	 * @since 1.0.0
+	 */
+	protected array $authors = [];
+
+	/**
 	 * Query entries with meta key.
 	 *
 	 * @since 1.0.0
@@ -199,6 +206,11 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 			$this->noindex = false;
 		}
 
+		// Convert single `author` to array of `authors`.
+		if ( isset( $options['author'] ) ) {
+			$this->authors = (array) $options['author'];
+		}
+
 		// If a content type is passed in, use its path.
 		if ( ! $this->path && isset( $options['type'] ) ) {
 			$types = App::resolve( 'content.types' );
@@ -242,9 +254,10 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
 		// Filter entries based on query vars.
 		$located = $this->filterByVisibility( $located );
-		$located = $this->filterByNames( $located );
-		$located = $this->filterByDate( $located );
-		$located = $this->filterByMeta( $located );
+		$located = $this->filterByNames(   $located );
+		$located = $this->filterByDate(    $located );
+		$located = $this->filterByAuthor(  $located );
+		$located = $this->filterByMeta(    $located );
 
 		// Sort entries based on query vars.
 		$located = $this->sortByOrder( $located );
@@ -471,24 +484,6 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 		}
 
 		return $located;
-/*
-			$slug = Str::afterFirst( $pathinfo['filename'], '.' );
-
-                	// Strips everything from front of string to the first `.` char.
-                	$parts = explode( '.', $pathinfo['filename'] );
-                	if ( 1 < count( $parts ) ) {
-                		array_shift( $parts );
-                	}
-                	$slug_from_file = join( '', $parts );
-
-                	if ( in_array( $slug_from_file, $this->names ) ) {
-                		$located[ $file ] = $matter;
-                		continue;
-                	}
-			*/
-                //}
-
-                //return $located;
         }
 
 	/**
@@ -531,6 +526,50 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
 		return $located;
         }
+
+	/**
+	 * Filter entries by author. Technically, authors are stored as metadata,
+	 * but this offers a dedicated solution specifically for this use case.
+	 *
+	 * @since 1.0.0
+	 */
+	private function filterByAuthor( array $entries ): array
+	{
+		if ( ! $this->authors ) {
+			return $entries;
+		}
+
+		// Sanitize author names.
+		$authors = array_map(
+			fn( $author ) => sanitize_slug( $author ),
+			$this->authors
+		);
+
+		$located = [];
+
+		foreach ( $entries as $basename => $matter ) {
+
+			// Skip entry if no author set.
+			if ( ! isset( $matter['author'] ) ) {
+				continue;
+			}
+
+			// Loop through each of the queried authors. If a queried
+			// author is not found in the entry's author list, skip
+			// ahead to the next entry in the parent loop.
+			foreach ( $authors as $author ) {
+				if ( ! in_array( $author, (array) $matter['author'] ) ) {
+					continue 2;
+				}
+			}
+
+			// If we get to this point, all authors queried were
+			// found in the entry's author list.
+			$located[ $basename ] = $matter;
+		}
+
+		return $located;
+	}
 
 	/**
 	 * Filter entries by meta.
