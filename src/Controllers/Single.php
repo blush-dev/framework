@@ -27,16 +27,43 @@ class Single extends Controller
 	{
 		$types = App::resolve( 'content.types' );
 
-		// Get the post name and path.
-		$name = $params['name'] ?? '';
-		$path = Str::beforeLast( $params['path'] ?? '', "/{$name}" );
+		// Check if another content type is part of the request. In
+		// particular, this is mostly used for taxonomies used in the URL.
+		foreach ( $types as $type ) {
+			if ( isset( $params[ $type->name() ] ) ) {
+				$meta_key   = $type->name();
+				$meta_value = $params[ $type->name() ];
+			}
+		}
 
-		// Get the content type by path.
-		$type = $types->getTypeFromPath( $path );
+		// Get the post name and path.
+		$name = $params['name'];
+		$path = $params['path'] ?? '';
+
+		// Explodes the path into parts and loops through each. Strips
+		// the last part off the original path with each iteration and
+		// checks if its the path or URI for the content type. If a
+		// match is found, break out of the loop.
+		foreach ( explode( '/', $path ) as $part ) {
+			$path = Str::beforeLast( $path, "/{$part}" );
+
+			// Check type by path and URI.
+			if ( $type = $types->getTypeFromPath( $path ) ) {
+				break;
+			} elseif ( $type = $types->getTypeFromUri( $path ) ) {
+				break;
+			}
+		}
 
 		$single = Query::make( [
-			'path' => $path,
-			'slug' => $name
+			'path'       => $type ? $type->path() : $path,
+			'slug'       => $name,
+			'year'       => $params['year']   ?? null,
+			'month'      => $params['month']  ?? null,
+			'day'        => $params['day']    ?? null,
+			'author'     => $params['author'] ?? null,
+			'meta_key'   => $meta_key         ?? null,
+			'meta_value' => $meta_value       ?? null
 		] )->single();
 
 		if ( $single && $single->isPublic() ) {
