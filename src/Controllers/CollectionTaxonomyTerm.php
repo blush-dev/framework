@@ -29,7 +29,7 @@ class CollectionTaxonomyTerm extends Controller
 
 		$path = $params['path'];
 		$name = $params['name'];
-		$page = $params['page'] ? intval( $params['page'] ) : 1;
+		$page = intval( $params['page'] ?? 1 );
 
 		$type_path = Str::beforeLast( $path, "/{$name}" );
 
