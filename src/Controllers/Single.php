@@ -42,7 +42,7 @@ class Single extends Controller
 
 		// Explodes the path into parts and loops through each. Strips
 		// the last part off the original path with each iteration and
-		// checks if its the path or URI for the content type. If a
+		// checks if it's the path or URI for the content type. If a
 		// match is found, break out of the loop.
 		foreach ( explode( '/', $path ) as $part ) {
 			$path = Str::beforeLast( $path, "/{$part}" );

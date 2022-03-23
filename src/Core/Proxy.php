@@ -30,7 +30,7 @@ class Proxy
 	 *
 	 * @since  1.0.0
 	 */
-	protected static function accessor() : string
+	protected static function accessor(): string
 	{
 		return '';
 	}
@@ -40,7 +40,7 @@ class Proxy
 	 *
 	 * @since 1.0.0
 	 */
-	public static function setContainer( Container $container ) : void
+	public static function setContainer( Container $container ): void
 	{
 		static::$container = $container;
 	}
@@ -50,7 +50,7 @@ class Proxy
 	 *
 	 * @since 1.0.0
 	 */
-	protected static function instance() : object
+	protected static function instance(): object
 	{
 		return static::$container->resolve( static::accessor() );
 	}

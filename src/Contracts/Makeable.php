@@ -22,5 +22,5 @@ interface Makeable
 	 *
 	 * @since 1.0.0
 	 */
-	public function make() : self;
+	public function make(): self;
 }

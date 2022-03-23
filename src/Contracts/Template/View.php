@@ -21,14 +21,14 @@ interface View
 	 *
 	 * @since 1.0.0
 	 */
-	public function setData( Collection $data ) : void;
+	public function setData( Collection $data ): void;
 
 	/**
 	 * Gets the view data.
 	 *
 	 * @since 1.0.0
 	 */
-	public function getData() : Collection;
+	public function getData(): Collection;
 
 	/**
 	 * Returns the located template.

@@ -42,7 +42,7 @@ abstract class ServiceProvider implements Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function register() : void {}
+	public function register(): void {}
 
 	/**
 	 * Callback executed after all the service providers have been registered.
@@ -51,5 +51,5 @@ abstract class ServiceProvider implements Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function boot() : void {}
+	public function boot(): void {}
 }

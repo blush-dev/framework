@@ -31,7 +31,7 @@ class App extends ServiceProvider
 	 *
 	 * @since 1.0.0
 	 */
-        public function register() : void
+        public function register(): void
 	{
                 // Sets the default timezone.
                 date_default_timezone_set( $this->app['config']->get( 'app.timezone' ) );
@@ -58,7 +58,7 @@ class App extends ServiceProvider
 	 *
 	 * @since 1.0.0
 	 */
-	private function setVarDumper() : void
+	private function setVarDumper(): void
 	{
 		VarDumper::setHandler( function( $var ) {
 			$cloner      = new VarCloner();

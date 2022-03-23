@@ -28,7 +28,7 @@ class Markdown extends ServiceProvider
 	 *
 	 * @since 1.0.0
 	 */
-        public function register() : void
+        public function register(): void
 	{
 		// Sets up the Markdown converter and environment.
                 $this->app->singleton( 'markdown.converter', function( $app ) {
