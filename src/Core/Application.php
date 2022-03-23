@@ -206,11 +206,12 @@ class Application extends Container implements ApplicationContract, Bootable
 		Proxy::setContainer( $this );
 
 		// Register framework proxies.
-		$this->proxy( Proxies\App::class,    '\Blush\App'    );
-		$this->proxy( Proxies\Cache::class,  '\Blush\Cache'  );
-		$this->proxy( Proxies\Config::class, '\Blush\Config' );
-		$this->proxy( Proxies\Engine::class, '\Blush\Engine' );
-		$this->proxy( Proxies\Query::class,  '\Blush\Query'  );
+		$this->proxy( Proxies\App::class,       '\Blush\App'       );
+		$this->proxy( Proxies\Cache::class,     '\Blush\Cache'     );
+		$this->proxy( Proxies\Config::class,    '\Blush\Config'    );
+		$this->proxy( Proxies\Engine::class,    '\Blush\Engine'    );
+		$this->proxy( Proxies\PoweredBy::class, '\Blush\PoweredBy' );
+		$this->proxy( Proxies\Query::class,     '\Blush\Query'     );
 
 		// Register app proxies.
 		$proxies = $this['config']->get( 'app.proxies' );
