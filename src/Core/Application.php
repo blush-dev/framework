@@ -20,6 +20,7 @@ use Blush\Contracts\Core\Application as ApplicationContract;
 use Blush\Contracts\Bootable;
 use Blush\Core\Proxies;
 use Blush\Core\Schemas;
+use Blush\Messenger\Message;
 use Blush\Tools\{Collection, Config, Str};
 use Dotenv\Dotenv;
 use League\Config\Configuration;
@@ -114,16 +115,14 @@ class Application extends Container implements ApplicationContract, Bootable
 			! file_exists( Str::appendPath( $this['path'], '.env' ) ) &&
 			! file_exists( Str::appendPath( $this['path'], '.env.local' ) )
 		) {
-			dump( "No '.env' or '.env.local' file found for the application. If setting up Blush for the first time, copy and rename the '.env.example' file." );
-			die();
+			( new Message() )->make(
+				'No <code>.env</code> or <code>.env.local</code> file found for the application. If setting up Blush for the first time, copy and rename the <code>.env.example</code> file.'
+			)->dd();
 		}
 
 		// Load the dotenv file and parse its data, making it available
 		// through the `$_ENV` and `$_SERVER` super-globals.
-		Dotenv::createImmutable( $this->path, [
-			'.env.local',
-			'.env'
-		] )->load();
+		Dotenv::createImmutable( $this->path, [ '.env.local', '.env' ] )->load();
 
 		// Creates a new configuration instance and adds the default
 		// framework schemas.
@@ -210,6 +209,7 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->proxy( Proxies\Cache::class,     '\Blush\Cache'     );
 		$this->proxy( Proxies\Config::class,    '\Blush\Config'    );
 		$this->proxy( Proxies\Engine::class,    '\Blush\Engine'    );
+		$this->proxy( Proxies\Message::class,   '\Blush\Message'   );
 		$this->proxy( Proxies\PoweredBy::class, '\Blush\PoweredBy' );
 		$this->proxy( Proxies\Query::class,     '\Blush\Query'     );
 

@@ -17,6 +17,7 @@ use Blush\Contracts\Template\View;
 
 // Concretes.
 use Blush\App;
+use Blush\Message;
 use Blush\Tools\Collection;
 
 class Engine implements EngineContract
@@ -50,8 +51,9 @@ class Engine implements EngineContract
 		// If `view()` is called for a second time on a single page load
 		// dump and die.
 		if ( $this->view_booted ) {
-			dump( 'Cannot call Engine::view() twice. If this is a sub-view, try the Engine::subview() method.' );
-			die();
+			Message::make(
+				'Cannot call <code>Engine::view()</code> twice. If this is a sub-view, try the <code>Engine::subview()</code> or <code>Engine::include()</code> method.'
+			)->dd();
 		}
 
 		// Always pass the engine back to the view.
@@ -103,14 +105,14 @@ class Engine implements EngineContract
 
 		if ( ! $subview->template() ) {
 			$templates = array_map(
-				fn( $name ) => "`{$name}.php`",
+				fn( $name ) => "<li><code>{$name}.php</code></li>",
 				(array) $paths
 			);
 
-			dump( sprintf(
-				'Notice: View templates not found: %s.',
-				implode( ', ', $templates )
-			) );
+			Message::make( sprintf(
+				'<p>Notice: View templates not found:</p> <ul>%s</ul>',
+				implode( "\n", $templates )
+			) )->dump();
 		}
 
 		$subview->display();

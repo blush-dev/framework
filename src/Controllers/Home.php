@@ -12,6 +12,7 @@
 namespace Blush\Controllers;
 
 use Blush\{App, Config, Query};
+use Blush\Message;
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -118,11 +119,12 @@ class Home extends Controller
 		// a site, we'll dump a notice and return an empty response.
 		// Note that this is not a 404. It is a user error.
 		$notice = sprintf(
-			'No %s file found.',
+			'No <code>%s</code> file found.',
 			Str::appendPath( App::get( 'path.content' ), 'index.md' )
 		);
 
-		dump( $notice );
+		Message::make( $notice )->dump();
+
 		return new Response( '' );
 	}
 }

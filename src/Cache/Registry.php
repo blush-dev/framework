@@ -18,6 +18,7 @@
 namespace Blush\Cache;
 
 use Blush\Cache\Driver\Store;
+use Blush\Message;
 use Blush\Tools\Str;
 
 class Registry
@@ -309,13 +310,15 @@ class Registry
 		$key   = Str::afterFirst( $name, '.' );
 
 		if ( $store === $key ) {
-			dump( 'Cached data must be accessed via dot notation (.e.g, `store.key`).' );
-			die();
+			Message::make(
+				'Cached data must be accessed via dot notation (.e.g, <code>store.key</code>).'
+			)->dd();
 		}
 
 		if ( ! $this->storeExists( $store ) ) {
-			dump( "Cache store `{$store}` does not exist." );
-			die();
+			Message::make(
+				"Cache store <code>{$store}</code> does not exist."
+			)->dd();
 		}
 
 		return [ 'store' => $store, 'key' => $key ];
