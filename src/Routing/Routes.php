@@ -17,6 +17,13 @@ use Blush\Tools\Collection;
 class Routes extends Collection
 {
 	/**
+	 * Holds an array of the route objects by name.
+	 *
+	 * @since  1.0.0
+	 */
+	protected array $named_routes = [];
+
+	/**
 	 * Add a route.
 	 *
 	 * @since  1.0.0
@@ -38,7 +45,6 @@ class Routes extends Collection
 	public function getNamedRoute( string $name ): ?Route
 	{
 		$routes = $this->getRoutesByName();
-
 		return $routes[ $name ] ?? null;
 	}
 
@@ -50,12 +56,14 @@ class Routes extends Collection
 	 */
 	public function getRoutesByName(): array
 	{
-		$routes = [];
-
-		foreach ( $this->all() as $route ) {
-			$routes[ $route->getName() ] = $route;
+		if ( $this->named_routes ) {
+			return $this->named_routes;
 		}
 
-		return $routes;
+		foreach ( $this->all() as $route ) {
+			$this->named_routes[ $route->getName() ] = $route;
+		}
+
+		return $this->named_routes;
 	}
 }

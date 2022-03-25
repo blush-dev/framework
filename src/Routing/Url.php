@@ -67,11 +67,9 @@ class Url implements Makeable
 	 */
 	public function route( string $name, array $params = [] ): string
 	{
-		$route = $this->routes->getNamedRoute( $name );
-
-		// If route not found, return app URL.
-		if ( ! $route ) {
-			return $this->to();
+		// If route not found, return empty string.
+		if ( ! $route = $this->routes->getNamedRoute( $name ) ) {
+			return '';
 		}
 
 		$url_path = $route->uri();
