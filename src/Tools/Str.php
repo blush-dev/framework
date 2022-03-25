@@ -70,9 +70,7 @@ class Str
 	 */
 	public static function appendUri( string $uri, string $append = '' ): string
 	{
-		$uri    = rtrim( $uri, '/\\' );
-		$append = ltrim( $append, '/\\' );
-		return $append ? "{$uri}/{$append}" : $uri;
+		return static::appendPath( $uri, $append );
 	}
 
 	/**

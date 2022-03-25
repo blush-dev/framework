@@ -33,7 +33,7 @@ class ImageRenderer implements NodeRendererInterface
 		$figcaption = '';
 
                 if ( Str::startsWith( $url, '/' ) ) {
-			$url = Str::appendUri( uri(), $url );
+			$url = Str::appendUri( url( $url ) );
                 }
 
                 if ( 1 === count( $node->children() ) && $node->firstChild() instanceof Text ) {

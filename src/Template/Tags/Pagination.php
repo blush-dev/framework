@@ -88,8 +88,8 @@ class Pagination implements Displayable, Renderable
 			$this->format = $options['format'];
 		}
 
-		// Append the basepath to the full URI.
-		$this->basepath = uri( $options['basepath'] );
+		// Append the basepath to the full URL
+		$this->basepath = url( $options['basepath'] );
 
 		// Make sure that we have absolute integers.
 		$this->total   = abs( intval( $options['total']   ) );

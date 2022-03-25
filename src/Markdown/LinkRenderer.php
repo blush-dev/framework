@@ -30,7 +30,7 @@ class LinkRenderer implements NodeRendererInterface
                 $url = $node->getUrl();
 
                 if ( Str::startsWith( $url, '/' ) ) {
-			$url = Str::appendUri( uri(), $url );
+			$url = Str::appendUri( url( $url ) );
                 }
 
                 $innerHtml = $childRenderer->renderNodes( $node->children() );

@@ -110,14 +110,13 @@ abstract class Entry implements EntryContract
 	}
 
 	/**
-	 * Returns the entry URI.
+	 * Returns the entry URL.
 	 *
-	 * @todo   Allow for taxonomy terms in slug.
 	 * @since  1.0.0
 	 */
-	public function uri() : string
+	public function url() : string
 	{
-		$uri       = $this->type()->singleUri();
+		$url_path  = $this->type()->singleUrlPath();
 		$name      = $this->name();
 		$timestamp = false;
 
@@ -125,55 +124,66 @@ abstract class Entry implements EntryContract
 			$timestamp = strtotime( $date );
 		}
 
-		// Replaces the name param in a URI with the entry name/slug.
-		if ( Str::contains( $uri, '{name}' ) ) {
-			$uri = str_replace( '{name}', $name, $uri );
+		// Replaces the name param in the path with the entry name/slug.
+		if ( Str::contains( $url_path, '{name}' ) ) {
+			$url_path = str_replace( '{name}', $name, $url_path );
 		}
 
-		// Replaces the year param in a URI with the entry year.
-		if (  $timestamp && Str::contains( $uri, '{year}' ) ) {
-			$uri = str_replace( '{year}', date( 'Y', $timestamp ), $uri );
+		// Replaces the year param in the path with the entry year.
+		if (  $timestamp && Str::contains( $url_path, '{year}' ) ) {
+			$url_path = str_replace( '{year}', date( 'Y', $timestamp ), $url_path );
 		}
 
 		// Replaces the month param in a URI with the entry month.
-		if (  $timestamp && Str::contains( $uri, '{month}' ) ) {
-			$uri = str_replace( '{month}', date( 'm', $timestamp ), $uri );
+		if (  $timestamp && Str::contains( $url_path, '{month}' ) ) {
+			$url_path = str_replace( '{month}', date( 'm', $timestamp ), $url_path );
 		}
 
 		// Replaces the day param in a URI with the entry day.
-		if (  $timestamp && Str::contains( $uri, '{day}' ) ) {
-			$uri = str_replace( '{day}', date( 'd', $timestamp ), $uri );
+		if (  $timestamp && Str::contains( $url_path, '{day}' ) ) {
+			$url_path = str_replace( '{day}', date( 'd', $timestamp ), $url_path );
 		}
 
 		// Replaces the author in a URI with the entry author.
-		if ( Str::contains( $uri, '{author}' ) ) {
+		if ( Str::contains( $url_path, '{author}' ) ) {
 			$author = $this->metaSingle( 'author' ) ?: '';
-			$uri = str_replace( '{author}', sanitize_slug( $author ), $uri );
+			$url_path = str_replace( '{author}', sanitize_slug( $author ), $url_path );
 		}
 
 		// Allows another content type as part of the URI. This is typical
 		// of categories and other taxonomies. We're only going to check
 		// if the URI still contains params since this is a heavier run.
-		if ( Str::contains( $uri, '{' ) ) {
+		if ( Str::contains( $url_path, '{' ) ) {
 			foreach ( App::get( 'content.types' ) as $type ) {
 				$param = sprintf( '{%s}', $type->name() );
 
 				// Skip if URI doesn't contain param.
-				if ( ! Str::contains( $uri, $param ) ) {
+				if ( ! Str::contains( $url_path, $param ) ) {
 					continue;
 				}
 
 				$slug = $this->metaSingle( $type->name() ) ?: '';
 
-				$uri = str_replace(
+				$url_path = str_replace(
 					$param,
 					sanitize_slug( $slug ),
-					$uri
+					$url_path
 				);
 			}
 		}
 
-		return uri( $uri );
+		return url( $url_path );
+	}
+
+	/**
+	 * Returns the entry URL.
+	 *
+	 * @deprecated 1.0.0  Soft deprecated.
+	 * @since      1.0.0
+	 */
+	public function uri() : string
+	{
+		return $this->url();
 	}
 
 	/**

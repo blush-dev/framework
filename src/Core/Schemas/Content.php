@@ -27,6 +27,7 @@ class Content
 			'path'            => Expect::string()->default( '' ),
 			'collect'         => Expect::type( 'string|bool|null' )->default( null ),
 			'collection'      => Expect::array()->default( [] ),
+			'date_archives'   => Expect::bool()->default( false ),
 			'uri'             => Expect::string()->default( '' ),
 			'uri_single'      => Expect::string()->default( '' ),
 			'routing'         => Expect::bool()->default( true ),

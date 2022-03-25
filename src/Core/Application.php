@@ -160,17 +160,17 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->instance( 'path.media',    Str::appendPath( $this['path.user'],    'media'     ) );
 
 		// Add default URIs.
-		$this->instance( 'uri',          $this['config']->get( 'app.uri' )                   );
-		$this->instance( 'uri.app',      $this['uri']                                        );
-		$this->instance( 'uri.config',   Str::appendUri( $this['uri'],         'config'    ) );
-		$this->instance( 'uri.public',   Str::appendUri( $this['uri'],         'public'    ) );
-		$this->instance( 'uri.view',     Str::appendUri( $this['uri.public'],  'views'     ) );
-		$this->instance( 'uri.resource', Str::appendUri( $this['uri'],         'resources' ) );
-		$this->instance( 'uri.storage',  Str::appendUri( $this['uri'],         'storage'   ) );
-		$this->instance( 'uri.cache',    Str::appendUri( $this['uri.storage'], 'cache'     ) );
-		$this->instance( 'uri.user',     Str::appendUri( $this['uri'],         'user'      ) );
-		$this->instance( 'uri.content',  Str::appendUri( $this['uri.user'],    'content'   ) );
-		$this->instance( 'uri.media',    Str::appendUri( $this['uri.user'],    'media'     ) );
+		$this->instance( 'url',          $this['config']->get( 'app.uri' )                   );
+		$this->instance( 'url.app',      $this['url']                                        );
+		$this->instance( 'url.config',   Str::appendUri( $this['url'],         'config'    ) );
+		$this->instance( 'url.public',   Str::appendUri( $this['url'],         'public'    ) );
+		$this->instance( 'url.view',     Str::appendUri( $this['url.public'],  'views'     ) );
+		$this->instance( 'url.resource', Str::appendUri( $this['url'],         'resources' ) );
+		$this->instance( 'url.storage',  Str::appendUri( $this['url'],         'storage'   ) );
+		$this->instance( 'url.cache',    Str::appendUri( $this['url.storage'], 'cache'     ) );
+		$this->instance( 'url.user',     Str::appendUri( $this['url'],         'user'      ) );
+		$this->instance( 'url.content',  Str::appendUri( $this['url.user'],    'content'   ) );
+		$this->instance( 'url.media',    Str::appendUri( $this['url.user'],    'media'     ) );
 	}
 
 	/**
@@ -437,113 +437,113 @@ class Application extends Container implements ApplicationContract, Bootable
 	}
 
 	/**
-	 * Access a keyed uri and append a uri to it.
+	 * Access a keyed URL and append a path to it.
 	 *
 	 * @since  1.0.0
 	 */
-	public function uri( string $accessor = '', string $append = '' ): string
+	public function url( string $accessor = '', string $append = '' ): string
 	{
-	        $uri = $accessor ? $this->get( "uri.{$accessor}" ) : $this->uri;
-	        return Str::appendUri( $uri, $append );
+	        $url = $accessor ? $this->get( "url.{$accessor}" ) : $this->url;
+	        return Str::appendUri( $url, $append );
 	}
 
 	/**
-	 * Returns app uri with optional appended uri/file.
+	 * Returns app URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function app_uri( string $append = '' ): string
+	public function app_url( string $append = '' ): string
 	{
-	        return $this->uri( 'app', $append );
+	        return $this->url( 'app', $append );
 	}
 
 	/**
-	 * Returns config uri with optional appended uri/file.
+	 * Returns config URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function config_uri( string $append = '' ): string
+	public function config_url( string $append = '' ): string
 	{
-	        return $this->uri( 'config', $append );
+	        return $this->url( 'config', $append );
 	}
 
 	/**
-	 * Returns public uri with optional appended uri/file.
+	 * Returns public URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function public_uri( string $append = '' ): string
+	public function public_url( string $append = '' ): string
 	{
-	        return $this->uri( 'public', $append );
+	        return $this->url( 'public', $append );
 	}
 
 	/**
-	 * Returns view uri with optional appended uri/file.
+	 * Returns view URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function view_uri( string $append = '' ): string
+	public function view_url( string $append = '' ): string
 	{
-	        return $this->uri( 'view', $append );
+	        return $this->url( 'view', $append );
 	}
 
 	/**
-	 * Returns resource uri with optional appended uri/file.
+	 * Returns resource URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function resource_uri( string $append = '' ): string
+	public function resource_url( string $append = '' ): string
 	{
-	        return $this->uri( 'resource', $append );
+	        return $this->url( 'resource', $append );
 	}
 
 	/**
-	 * Returns storage uri with optional appended uri/file.
+	 * Returns storage URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function storage_uri( string $append = '' ): string
+	public function storage_url( string $append = '' ): string
 	{
-	        return $this->uri( 'storage', $append );
+	        return $this->url( 'storage', $append );
 	}
 
 	/**
-	 * Returns cache uri with optional appended uri/file.
+	 * Returns cache URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function cache_uri( string $append = '' ): string
+	public function cache_url( string $append = '' ): string
 	{
-	        return $this->uri( 'cache', $append );
+	        return $this->url( 'cache', $append );
 	}
 
 	/**
-	 * Returns user uri with optional appended uri/file.
+	 * Returns user URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function user_uri( string $append = '' ): string
+	public function user_url( string $append = '' ): string
 	{
-	        return $this->uri( 'user', $append );
+	        return $this->url( 'user', $append );
 	}
 
 	/**
-	 * Returns content uri with optional appended uri/file.
+	 * Returns content URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function content_uri( string $append = '' ): string
+	public function content_url( string $append = '' ): string
 	{
-	        return $this->uri( 'content', $append );
+	        return $this->url( 'content', $append );
 	}
 
 	/**
-	 * Returns media uri with optional appended uri/file.
+	 * Returns media URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	public function media_uri( string $append = '' ): string
+	public function media_url( string $append = '' ): string
 	{
-	        return $this->uri( 'media', $append );
+	        return $this->url( 'media', $append );
 	}
 }

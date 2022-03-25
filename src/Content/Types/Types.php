@@ -83,7 +83,7 @@ class Types extends Collection
 		// the `$uris` property.
 		if ( ! $this->uris ) {
 			foreach ( $this->all() as $type ) {
-				$this->uris[ $type->uri() ] = $type;
+				$this->uris[ $type->urlPath() ] = $type;
 			}
 		}
 

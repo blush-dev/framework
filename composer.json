@@ -20,7 +20,8 @@
 			"Blush\\" : "src/"
 		},
 		"files" : [
-			"src/functions-helpers.php"
+			"src/functions-helpers.php",
+			"src/functions-deprecated.php"
 		]
 	},
 	"require": {

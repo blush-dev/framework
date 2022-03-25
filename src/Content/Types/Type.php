@@ -85,6 +85,13 @@ class Type
 	protected $term_collection = [];
 
 	/**
+	 * Whether to generate date-based archives for the content type.
+	 *
+	 * @since 1.0.0
+	 */
+	protected bool $date_archives = false;
+
+	/**
 	 * Stores the URI path for the content type.
 	 *
 	 * @since 1.0.0
@@ -129,7 +136,18 @@ class Type
 			$this->routes = $_routes;
 		}
 
+		// Set the type name.
 		$this->type = $type;
+
+		// If there is no URI, set it to the path.
+		if ( ! $this->uri ) {
+			$this->uri = $this->path;
+		}
+
+		// If there is no single URI, append the `{name}` param to the URI.
+		if ( ! $this->uri_single ) {
+			$this->uri_single = Str::appendUri( $this->uri, '{name}' );
+		}
 	}
 
 	/**
@@ -163,23 +181,87 @@ class Type
 	}
 
 	/**
-	 * Returns the content type URI.
+	 * Returns the content type URL path.
 	 *
 	 * @since 1.0.0
 	 */
-	public function uri(): string
+	public function urlPath(): string
 	{
-		return $this->uri ?: $this->path();
+		return $this->uri;
 	}
 
 	/**
-	 * Returns the content type URI for single entries.
+	 * Returns the content type URL path for single entries.
 	 *
 	 * @since 1.0.0
 	 */
-	public function singleUri(): string
+	public function singleUrlPath(): string
 	{
-		return $this->uri_single ?: Str::appendUri( $this->path(), '{name}' );
+		return $this->uri_single;
+	}
+
+	/**
+	 * Returns the content type URL.
+	 *
+	 * @since 1.0.0
+	 */
+	public function url( string $append = '' ): string
+	{
+		return url( Str::appendUri( $this->url(), $append ) );
+	}
+
+	/**
+	 * Returns the content type URL for single entries.
+	 *
+	 * @since 1.0.0
+	 */
+	public function singleUrl(): string
+	{
+		return url( $this->singleUrlPath() );
+	}
+
+	/**
+	 * Returns the content type URL for year archives.
+	 *
+	 * @since 1.0.0
+	 */
+	public function yearUrl( string $year = '{year}' ): string
+	{
+		return $this->url( $year );
+	}
+
+	/**
+	 * Returns the content type URL for month archives.
+	 *
+	 * @since 1.0.0
+	 */
+	public function monthUrl( string $year = '{year}', string $month = '{month}' ): string
+	{
+		return Str::appendUri( $this->yearUrl( $year ), $month );
+	}
+
+	/**
+	 * Returns the content type URI for day archives.
+	 *
+	 * @since 1.0.0
+	 */
+	public function dayUrl(
+		string $year  = '{year}',
+		string $month = '{month}',
+		string $day   = '{day}'
+	): string
+	{
+		return Str::appendUri( $this->monthUrl( $year, $month ), $day );
+	}
+
+	/**
+	 * Whether date archives are supported.
+	 *
+	 * @since 1.0.0
+	 */
+	public function hasDateArchives(): bool
+	{
+		return $this->date_archives;
 	}
 
 	/**
@@ -199,7 +281,7 @@ class Type
 	 */
 	public function routes(): array
 	{
-		// Return empty array of the content type doesn't support routes.
+		// Return empty array if the content type doesn't support routes.
 		if ( ! $this->routing() ) {
 			return [];
 		}
@@ -209,7 +291,7 @@ class Type
 			return $this->routes;
 		}
 
-		$path  = $this->path();
+		$path  = $this->urlPath();
 		$alias = Config::get( 'app.home_alias' );
 
 		// Add paged type archive if not set as the homepage.
@@ -219,19 +301,41 @@ class Type
 			];
 		}
 
-		// If this is a taxonomy, add paged term archive.
+		// If the type supports date-based archives, add routes.
+		if ( $this->hasDateArchives() ) {
+			$archives = [
+				'{year}/{month}/{day}/page/{page}',
+				'{year}/{month}/{day}',
+				'{year}/{month}/page/{page}',
+				'{year}/{month}',
+				'{year}/page/{page}',
+				'{year}'
+			];
+
+			foreach ( $archives as $archive ) {
+				$this->routes[ "{$path}/{$archive}" ] = [
+					'controller' => Controllers\CollectionArchiveDate::class
+				];
+			}
+		}
+
+		// If this is a taxonomy, add paged term archive and single route.
 		if ( $this->isTaxonomy() ) {
 			$this->routes[ $path . '/{name}/page/{page}' ] = [
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
+
+			$this->routes[ $this->singleUrlPath() ] = [
+				'controller' => Controllers\CollectionTaxonomyTerm::class
+			];
 		}
 
-		// Add type single route.
-		$this->routes[ $path . '/{name}' ] = [
-			'controller' => $this->isTaxonomy()
-				? Controllers\CollectionTaxonomyTerm::class
-				: Controllers\Single::class
-		];
+		// Add single route if not a taxonomy.
+		if ( ! $this->isTaxonomy() ) {
+			$this->routes[ $this->singleUrlPath() ] = [
+				'controller' => Controllers\Single::class
+			];
+		}
 
 		// Add type archive route if not set as the homepage.
 		if ( $alias !== $this->type() ) {

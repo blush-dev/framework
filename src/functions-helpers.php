@@ -40,7 +40,7 @@ if ( ! function_exists( 'env' ) ) {
 if ( ! function_exists( 'config' ) ) {
 	/**
 	 * Returns a value from the configuration instance using either dot
-	 * (e.g., `app.uri`) or slash (e.g., `app/uri`) notation.
+	 * (e.g., `app.example`) or slash (e.g., `app/example`) notation.
 	 *
 	 * @since  1.0.0
 	 * @param  string  $deprecated  Setting key. Use dot notation instead.
@@ -188,135 +188,135 @@ if ( ! function_exists( 'media_path' ) ) {
 	}
 }
 
-if ( ! function_exists( 'uri' ) ) {
+if ( ! function_exists( 'url' ) ) {
 	/**
 	 * Returns app URI with optionsal appended path.
 	 *
 	 * @since 1.0.0
 	 */
-	function uri( string $append = '' ) : string
+	function url( string $append = '' ) : string
 	{
-		return app()->uri( '', $append );
+		return app()->url( '', $append );
 	}
 }
 
-if ( ! function_exists( 'app_uri' ) ) {
+if ( ! function_exists( 'app_url' ) ) {
 	/**
-	 * Returns config URI with optional appended path/file.
+	 * Returns config URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function app_uri( string $append = '' ) : string
+	function app_url( string $append = '' ) : string
 	{
-		return app()->app_uri( $append );
+		return app()->app_url( $append );
 	}
 }
 
-if ( ! function_exists( 'config_uri' ) ) {
+if ( ! function_exists( 'config_url' ) ) {
 	/**
-	 * Returns config URI with optional appended path/file.
+	 * Returns config URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function config_uri( string $append = '' ) : string
+	function config_url( string $append = '' ) : string
 	{
-		return app()->config_uri( $append );
+		return app()->config_url( $append );
 	}
 }
 
-if ( ! function_exists( 'public_uri' ) ) {
+if ( ! function_exists( 'public_url' ) ) {
 	/**
-	 * Returns public URI with optional appended path/file.
+	 * Returns public URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function public_uri( string $append = '' ) : string
+	function public_url( string $append = '' ) : string
 	{
-		return app()->public_uri( $append );
+		return app()->public_url( $append );
 	}
 }
 
-if ( ! function_exists( 'view_uri' ) ) {
+if ( ! function_exists( 'view_url' ) ) {
 	/**
-	 * Returns view URI with optional appended path/file.
+	 * Returns view URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function view_uri( string $append = '' ) : string
+	function view_url( string $append = '' ) : string
 	{
-		return app()->view_uri( $append );
+		return app()->view_url( $append );
 	}
 }
 
-if ( ! function_exists( 'resource_uri' ) ) {
+if ( ! function_exists( 'resource_url' ) ) {
 	/**
-	 * Returns resource URI with optional appended path/file.
+	 * Returns resource URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function resource_uri( string $append = '' ) : string
+	function resource_url( string $append = '' ) : string
 	{
-		return app()->resource_uri( $append );
+		return app()->resource_url( $append );
 	}
 }
 
-if ( ! function_exists( 'storage_uri' ) ) {
+if ( ! function_exists( 'storage_url' ) ) {
 	/**
-	 * Returns storage URI with optional appended path/file.
+	 * Returns storage URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function storage_uri( string $append = '' ) : string
+	function storage_url( string $append = '' ) : string
 	{
-		return app()->storage_uri( $append );
+		return app()->storage_url( $append );
 	}
 }
 
-if ( ! function_exists( 'cache_uri' ) ) {
+if ( ! function_exists( 'cache_url' ) ) {
 	/**
-	 * Returns cache URI with optional appended path/file.
+	 * Returns cache URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function cache_uri( string $append = '' ) : string
+	function cache_url( string $append = '' ) : string
 	{
-		return app()->cache_uri( $append );
+		return app()->cache_url( $append );
 	}
 }
 
-if ( ! function_exists( 'user_uri' ) ) {
+if ( ! function_exists( 'user_url' ) ) {
 	/**
-	 * Returns public URI with optional appended path/file.
+	 * Returns public URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function user_uri( string $append = '' ) : string
+	function user_url( string $append = '' ) : string
 	{
-		return app()->user_uri( $append );
+		return app()->user_url( $append );
 	}
 }
 
-if ( ! function_exists( 'content_uri' ) ) {
+if ( ! function_exists( 'content_url' ) ) {
 	/**
-	 * Returns content URI with optional appended path/file.
+	 * Returns content URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function content_uri( string $append = '' ) : string
+	function content_url( string $append = '' ) : string
 	{
-		return app()->content_uri( $append );
+		return app()->content_url( $append );
 	}
 }
 
-if ( ! function_exists( 'media_uri' ) ) {
+if ( ! function_exists( 'media_url' ) ) {
 	/**
-	 * Returns media URI with optional appended path/file.
+	 * Returns media URL with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function media_uri( string $append = '' ) : string
+	function media_url( string $append = '' ) : string
 	{
-		return app()->media_uri( $append );
+		return app()->media_url( $append );
 	}
 }
 
@@ -330,10 +330,10 @@ if ( ! function_exists( 'asset' ) ) {
 	 */
 	function asset( string $path ): string
 	{
-		$asset_uri = public_uri( $path );
-		$modified = filemtime( public_path( $path ) );
+		$asset_url = public_url( $path );
+		$modified  = filemtime( public_path( $path ) );
 
-		return false !== $modified ? "{$asset_uri}?id={$modified}" : $asset_uri;
+		return false !== $modified ? "{$asset_url}?id={$modified}" : $asset_url;
 	}
 }
 
