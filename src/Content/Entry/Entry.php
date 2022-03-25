@@ -55,7 +55,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function type() : Type
+	public function type():  Type
 	{
 		return $this->type;
 	}
@@ -114,7 +114,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function url() : string
+	public function url():  string
 	{
 		$url_path  = $this->type()->singleUrlPath();
 		$name      = $this->name();
@@ -181,7 +181,7 @@ abstract class Entry implements EntryContract
 	 * @deprecated 1.0.0  Soft deprecated.
 	 * @since      1.0.0
 	 */
-	public function uri() : string
+	public function uri():  string
 	{
 		return $this->url();
 	}
@@ -191,7 +191,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function content() : string
+	public function content():  string
 	{
 		return $this->content;
 	}
@@ -200,12 +200,13 @@ abstract class Entry implements EntryContract
 	 * Returns entry metadata.
 	 *
 	 * @since  1.0.0
+	 * @param  mixed  $default
 	 * @return mixed
 	 */
-	public function meta( string $name = '' )
+	public function meta( string $name = '', $default = false )
 	{
 		if ( $name ) {
-			return $this->meta[ $name ] ?? false;
+			return $this->meta[ $name ] ?? $default;
 		}
 
 		return $this->meta;
@@ -216,11 +217,12 @@ abstract class Entry implements EntryContract
 	 * if the metadata is an array.
 	 *
 	 * @since  1.0.0
+	 * @param  mixed  $default
 	 * @return mixed
 	 */
-	public function metaSingle( string $name = '' )
+	public function metaSingle( string $name, $default = false )
 	{
-		$meta = $this->meta( $name );
+		$meta = $this->meta( $name, $default );
 		return $meta && is_array( $meta ) ? array_shift( $meta ) : $meta;
 	}
 
@@ -229,10 +231,10 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function metaArr( string $name = '' ) : array
+	public function metaArr( string $name, array $default = [] ): array
 	{
 		if ( ! $meta = $this->meta( $name ) ) {
-			return [];
+			return $default;
 		}
 
 		return is_array( $meta ) ? $meta : (array) $meta;
@@ -275,7 +277,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function title() : string
+	public function title():  string
 	{
 		return (string) $this->metaSingle( 'title' );
 	}
@@ -285,7 +287,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function subtitle() : string
+	public function subtitle():  string
 	{
 		return (string) $this->metaSingle( 'subtitle' );
 	}
@@ -295,7 +297,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function date() : string
+	public function date():  string
 	{
 		if ( ! $date = $this->metaSingle( 'date' ) ) {
 			return '';
@@ -312,7 +314,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function author() : string
+	public function author():  string
 	{
 		return (string) $this->metaSingle( 'author' );
 	}
@@ -322,7 +324,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function authors() : array
+	public function authors():  array
 	{
 		return (string) $this->metaArr( 'author' );
 	}
@@ -384,7 +386,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function excerpt( int $limit = 50, string $more = '&hellip;' ) : string
+	public function excerpt( int $limit = 50, string $more = '&hellip;' ):  string
 	{
 		if ( $content = $this->metaSingle( 'excerpt' ) ) {
 			return App::resolve( 'markdown' )->convert(

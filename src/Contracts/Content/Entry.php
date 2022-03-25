@@ -43,25 +43,26 @@ interface Entry
 	 * Returns entry metadata.
 	 *
 	 * @since  1.0.0
+	 * @param  mixed  $default
 	 * @return mixed
 	 */
-	public function meta( string $name = '' );
+	public function meta( string $name = '', $default = false );
 
 	/**
-	 * Returns only a single meta value. Shifts and returns the first value
-	 * if the metadata is an array.
+	 * Returns only a single meta value.
 	 *
 	 * @since  1.0.0
+	 * @param  mixed  $default
 	 * @return mixed
 	 */
-	public function metaSingle( string $name = '' );
+	public function metaSingle( string $name, $default = false );
 
 	/**
 	 * Ensures that an array of meta values is returned.
 	 *
 	 * @since  1.0.0
 	 */
-	public function metaArr( string $name = '' ): array;
+	public function metaArr( string $name, array $default = [] ): array;
 
 	/**
 	 * Returns a Query for content type entries stored in the current
