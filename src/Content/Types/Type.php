@@ -209,7 +209,7 @@ class Type
 	{
 		$url = Url::route( $this->name() . '.collection' );
 
-		return $url ?: Route::route( $this->urlPath() );
+		return $url ?: Url::route( $this->urlPath() );
 	}
 
 	/**
@@ -221,7 +221,7 @@ class Type
 	{
 		$url = Url::route( $this->name() . '.single', $params );
 
-		return $url ?: Route::route( $this->singleUrlPath() );
+		return $url ?: Url::route( $this->singleUrlPath() );
 	}
 
 	/**
