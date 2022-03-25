@@ -1,4 +1,13 @@
 <?php
+/**
+ * Deprecated functions.
+ *
+ * @package   Blush
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2018 - 2022, Justin Tadlock
+ * @link      https://github.com/blush-dev/framework
+ * @license   https://opensource.org/licenses/MIT
+ */
 
 if ( ! function_exists( 'uri' ) ) {
 	/**
@@ -6,7 +15,7 @@ if ( ! function_exists( 'uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function uri( string $append = '' ) : string
+	function uri( string $append = '' ): string
 	{
 		return url( $append );
 	}
@@ -18,7 +27,7 @@ if ( ! function_exists( 'app_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function app_uri( string $append = '' ) : string
+	function app_uri( string $append = '' ): string
 	{
 		return app_url( $append );
 	}
@@ -30,7 +39,7 @@ if ( ! function_exists( 'config_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function config_uri( string $append = '' ) : string
+	function config_uri( string $append = '' ): string
 	{
 		return config_url( $append );
 	}
@@ -42,7 +51,7 @@ if ( ! function_exists( 'public_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function public_uri( string $append = '' ) : string
+	function public_uri( string $append = '' ): string
 	{
 		return public_url( $append );
 	}
@@ -54,7 +63,7 @@ if ( ! function_exists( 'view_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function view_uri( string $append = '' ) : string
+	function view_uri( string $append = '' ): string
 	{
 		return view_url( $append );
 	}
@@ -66,7 +75,7 @@ if ( ! function_exists( 'resource_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function resource_uri( string $append = '' ) : string
+	function resource_uri( string $append = '' ): string
 	{
 		return resource_url( $append );
 	}
@@ -78,7 +87,7 @@ if ( ! function_exists( 'storage_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function storage_uri( string $append = '' ) : string
+	function storage_uri( string $append = '' ): string
 	{
 		return storage_url( $append );
 	}
@@ -90,7 +99,7 @@ if ( ! function_exists( 'cache_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function cache_uri( string $append = '' ) : string
+	function cache_uri( string $append = '' ): string
 	{
 		return cache_url( $append );
 	}
@@ -102,7 +111,7 @@ if ( ! function_exists( 'user_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function user_uri( string $append = '' ) : string
+	function user_uri( string $append = '' ): string
 	{
 		return user_url( $append );
 	}
@@ -114,7 +123,7 @@ if ( ! function_exists( 'content_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function content_uri( string $append = '' ) : string
+	function content_uri( string $append = '' ): string
 	{
 		return content_url( $append );
 	}
@@ -126,7 +135,7 @@ if ( ! function_exists( 'media_uri' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function media_uri( string $append = '' ) : string
+	function media_uri( string $append = '' ): string
 	{
 		return media_url( $append );
 	}

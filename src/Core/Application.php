@@ -212,6 +212,7 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->proxy( Proxies\Message::class,   '\Blush\Message'   );
 		$this->proxy( Proxies\PoweredBy::class, '\Blush\PoweredBy' );
 		$this->proxy( Proxies\Query::class,     '\Blush\Query'     );
+		$this->proxy( Proxies\Url::class,       '\Blush\Url'       );
 
 		// Register app proxies.
 		$proxies = $this['config']->get( 'app.proxies' );
@@ -341,7 +342,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function app_path( string $append = '' ): string
+	public function appPath( string $append = '' ): string
 	{
 		return $this->path( 'app', $append );
 	}
@@ -351,7 +352,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function config_path( string $append = '' ): string
+	public function configPath( string $append = '' ): string
 	{
 		return $this->path( 'config', $append );
 	}
@@ -361,7 +362,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function public_path( string $append = '' ): string
+	public function publicPath( string $append = '' ): string
 	{
 		return $this->path( 'public', $append );
 	}
@@ -371,7 +372,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function view_path( string $append = '' ): string
+	public function viewPath( string $append = '' ): string
 	{
 		return $this->path( 'view', $append );
 	}
@@ -381,7 +382,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function resource_path( string $append = '' ): string
+	public function resourcePath( string $append = '' ): string
 	{
 		return $this->path( 'resource', $append );
 	}
@@ -391,7 +392,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function storage_path( string $append = '' ): string
+	public function storagePath( string $append = '' ): string
 	{
 		return $this->path( 'storage', $append );
 	}
@@ -401,7 +402,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function cache_path( string $append = '' ): string
+	public function cachePath( string $append = '' ): string
 	{
 		return $this->path( 'cache', $append );
 	}
@@ -411,7 +412,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function user_path( string $append = '' ): string
+	public function userPath( string $append = '' ): string
 	{
 		return $this->path( 'user', $append );
 	}
@@ -421,7 +422,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function content_path( string $append = '' ): string
+	public function contentPath( string $append = '' ): string
 	{
 		return $this->path( 'content', $append );
 	}
@@ -431,7 +432,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function media_path( string $append = '' ): string
+	public function mediaPath( string $append = '' ): string
 	{
 		return $this->path( 'media', $append );
 	}
@@ -444,7 +445,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	public function url( string $accessor = '', string $append = '' ): string
 	{
 	        $url = $accessor ? $this->get( "url.{$accessor}" ) : $this->url;
-	        return Str::appendUri( $url, $append );
+	        return Str::appendPath( $url, $append );
 	}
 
 	/**
@@ -452,7 +453,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function app_url( string $append = '' ): string
+	public function appUrl( string $append = '' ): string
 	{
 	        return $this->url( 'app', $append );
 	}
@@ -462,7 +463,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function config_url( string $append = '' ): string
+	public function configUrl( string $append = '' ): string
 	{
 	        return $this->url( 'config', $append );
 	}
@@ -472,7 +473,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function public_url( string $append = '' ): string
+	public function publicUrl( string $append = '' ): string
 	{
 	        return $this->url( 'public', $append );
 	}
@@ -482,7 +483,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function view_url( string $append = '' ): string
+	public function viewUrl( string $append = '' ): string
 	{
 	        return $this->url( 'view', $append );
 	}
@@ -492,7 +493,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function resource_url( string $append = '' ): string
+	public function resourceUrl( string $append = '' ): string
 	{
 	        return $this->url( 'resource', $append );
 	}
@@ -502,7 +503,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function storage_url( string $append = '' ): string
+	public function storageUrl( string $append = '' ): string
 	{
 	        return $this->url( 'storage', $append );
 	}
@@ -512,7 +513,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function cache_url( string $append = '' ): string
+	public function cacheUrl( string $append = '' ): string
 	{
 	        return $this->url( 'cache', $append );
 	}
@@ -522,7 +523,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function user_url( string $append = '' ): string
+	public function userUrl( string $append = '' ): string
 	{
 	        return $this->url( 'user', $append );
 	}
@@ -532,7 +533,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function content_url( string $append = '' ): string
+	public function contentUrl( string $append = '' ): string
 	{
 	        return $this->url( 'content', $append );
 	}
@@ -542,7 +543,7 @@ class Application extends Container implements ApplicationContract, Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function media_url( string $append = '' ): string
+	public function mediaUrl( string $append = '' ): string
 	{
 	        return $this->url( 'media', $append );
 	}

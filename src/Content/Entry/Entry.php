@@ -15,7 +15,7 @@ namespace Blush\Content\Entry;
 use Blush\Contracts\Content\Entry as EntryContract;
 
 // Concretes.
-use Blush\{App, Config, Query};
+use Blush\{App, Config, Query, Url};
 use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
@@ -55,7 +55,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function type():  Type
+	public function type(): Type
 	{
 		return $this->type;
 	}
@@ -116,63 +116,32 @@ abstract class Entry implements EntryContract
 	 */
 	public function url():  string
 	{
-		$url_path  = $this->type()->singleUrlPath();
-		$name      = $this->name();
-		$timestamp = false;
+		// Adds the required name param.
+		$params = [ 'name' => $this->name() ];
 
+		// Adds date-based params if we have a date.
 		if ( $date = $this->date() ) {
-			$timestamp = strtotime( $date );
-		}
-
-		// Replaces the name param in the path with the entry name/slug.
-		if ( Str::contains( $url_path, '{name}' ) ) {
-			$url_path = str_replace( '{name}', $name, $url_path );
-		}
-
-		// Replaces date-based params in the path.
-		if ( $timestamp && Str::containsAny( $url_path, [ '{year}', '{month}', '{day}' ] ) ) {
-			$url_path = str_replace( [
-				'{year}',
-				'{month}',
-				'{day}'
-			], [
-				date( 'Y', $timestamp ),
-				date( 'm', $timestamp ),
-				date( 'd', $timestamp )
-			],
-			$url_path );
-		}
-
-		// Replaces the author in a URI with the entry author.
-		if ( Str::contains( $url_path, '{author}' ) ) {
-			$author = $this->metaSingle( 'author' ) ?: '';
-			$url_path = str_replace( '{author}', sanitize_slug( $author ), $url_path );
-		}
-
-		// Allows another content type as part of the URI. This is typical
-		// of categories and other taxonomies. We're only going to check
-		// if the URI still contains params since this is a heavier run.
-		if ( Str::contains( $url_path, '{' ) ) {
-			foreach ( App::get( 'content.types' ) as $type ) {
-				$param = sprintf( '{%s}', $type->name() );
-
-				// Skip if URI doesn't contain param.
-				if ( ! Str::contains( $url_path, $param ) ) {
-					continue;
-				}
-
-				$slug = $this->metaSingle( $type->name() ) ?: '';
-
-				$url_path = str_replace(
-					$param,
-					sanitize_slug( $slug ),
-					$url_path
-				);
+			if ( $timestamp = strtotime( $date ) ) {
+				$params['year']  = date( 'Y', $timestamp );
+				$params['month'] = date( 'm', $timestamp );
+				$params['day']   = date( 'd', $timestamp );
 			}
 		}
 
-		// Append the path to the site URL.
-		return url( $url_path );
+		// Add author param if author exists.
+		if ( $author = $this->metaSingle( 'author' ) ) {
+			$params['author'] = sanitize_slug( $author );
+		}
+
+		// Add content type/taxonomy params if they exist.
+		foreach ( App::get( 'content.types' ) as $type ) {
+			if ( $slug = $this->metaSingle( $type->name() ) ) {
+				$params[ $type->name() ] = $slug;
+			}
+		}
+
+		// Build the URL based on the route.
+		return $this->type()->singleUrl( $params );
 	}
 
 	/**

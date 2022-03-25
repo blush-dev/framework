@@ -75,27 +75,32 @@ class Component implements Bootable
 		// Add paginated homepage route if we have content type alias.
 		if ( $alias && $this->types->has( $alias ) ) {
 			$this->routes->add( '/page/{page}', [
+				'name'       => 'home.paged',
 				'controller' => Controllers\Home::class
 			] );
 		}
 
 		// Add homepage route.
 		$this->routes->add( '/', [
+			'name'       => 'home',
 			'controller' => Controllers\Home::class
 		] );
 
 		// Add cache purge route for individual stores.
 		$this->routes->add( 'purge/cache/{name}/{key}', [
+			'name'       => 'purge.cache.store',
 			'controller' => Controllers\Cache::class
 		] );
 
 		// Add cache purge route for all stores.
 		$this->routes->add( 'purge/cache/{key}', [
+			'name'       => 'purge.cache',
 			'controller' => Controllers\Cache::class
 		] );
 
 		// Add catchall page route.
 		$this->routes->add( '{*}', [
+			'name'       => 'page.single',
 			'controller' => Controllers\SinglePage::class
 		] );
 	}

@@ -39,12 +39,13 @@ class Single extends Controller
 		// Get the post name and path.
 		$name = $params['name'];
 		$path = $params['path'] ?? '';
+		$parts = explode( '/', $path );
 
 		// Explodes the path into parts and loops through each. Strips
 		// the last part off the original path with each iteration and
 		// checks if it's the path or URI for the content type. If a
 		// match is found, break out of the loop.
-		foreach ( explode( '/', $path ) as $part ) {
+		foreach ( array_reverse( $parts ) as $part ) {
 			$path = Str::beforeLast( $path, "/{$part}" );
 
 			// Check type by path and URI.
@@ -54,6 +55,7 @@ class Single extends Controller
 				break;
 			}
 		}
+
 
 		$single = Query::make( [
 			'path'       => $type ? $type->path() : $path,

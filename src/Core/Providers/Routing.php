@@ -12,7 +12,7 @@
 namespace Blush\Core\Providers;
 
 use Blush\Core\ServiceProvider;
-use Blush\Routing\{Component, Routes, Router};
+use Blush\Routing\{Component, Routes, Router, Url};
 
 class Routing extends ServiceProvider
 {
@@ -31,6 +31,11 @@ class Routing extends ServiceProvider
 			return new Router( $app->make( Routes::class ) );
 		} );
 
+		// Binds the routing URL instance.
+                $this->app->singleton( Url::class, function( $app ) {
+			return new Url( $app->make( Routes::class ) );
+		} );
+
 		// Binds the routing component.
 		$this->app->singleton( Component::class, function( $app ) {
 			return new Component(
@@ -42,6 +47,7 @@ class Routing extends ServiceProvider
 		// Add aliases.
 		$this->app->alias( Routes::class, 'routing.routes' );
 		$this->app->alias( Router::class, 'routing.router' );
+		$this->app->alias( Url::class,    'routing.url'    );
 		$this->app->alias( Router::class, 'router'         );
         }
 

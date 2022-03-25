@@ -23,10 +23,39 @@ class Routes extends Collection
 	 * @param  string  $uri
 	 * @param  array   $args
 	 */
-	public function add( $uri, $args = [] ) : void
+	public function add( $uri, $args = [] ): void
 	{
 		parent::add( $uri, new Route( $uri, $args ) );
 
 		$this->get( $uri )->make();
+	}
+
+	/**
+	 * Returns route by name.
+	 *
+	 * @since  1.0.0
+	 */
+	public function getNamedRoute( string $name ): ?Route
+	{
+		$routes = $this->getRoutesByName();
+
+		return $routes[ $name ] ?? null;
+	}
+
+	/**
+	 * Returns an array of all routes with their names as the keys and the
+	 * Route objects as the values.
+	 *
+	 * @since  1.0.0
+	 */
+	public function getRoutesByName(): array
+	{
+		$routes = [];
+
+		foreach ( $this->all() as $route ) {
+			$routes[ $route->getName() ] = $route;
+		}
+
+		return $routes;
 	}
 }

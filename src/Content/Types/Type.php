@@ -11,7 +11,7 @@
 
 namespace Blush\Content\Types;
 
-use Blush\Config;
+use Blush\{Config, Url};
 use Blush\Controllers;
 use Blush\Tools\Str;
 
@@ -205,9 +205,9 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function url( string $append = '' ): string
+	public function url(): string
 	{
-		return url( Str::appendUri( $this->url(), $append ) );
+		Url::route( $this->name() . '.collection' );
 	}
 
 	/**
@@ -215,9 +215,9 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function singleUrl(): string
+	public function singleUrl( array $params = [] ): string
 	{
-		return url( $this->singleUrlPath() );
+		return Url::route( $this->name() . '.single', $params );
 	}
 
 	/**
@@ -225,9 +225,11 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function yearUrl( string $year = '{year}' ): string
+	public function yearUrl( string $year ): string
 	{
-		return $this->url( $year );
+		return Url::route( $this->name() . '.collection.year', [
+			'year' => $year
+		] );
 	}
 
 	/**
@@ -235,9 +237,12 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function monthUrl( string $year = '{year}', string $month = '{month}' ): string
+	public function monthUrl( string $year, string $month ): string
 	{
-		return Str::appendUri( $this->yearUrl( $year ), $month );
+		return Url::route( $this->name() . '.collection.month', [
+			'year'  => $year,
+			'month' => $month
+		] );
 	}
 
 	/**
@@ -245,13 +250,13 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function dayUrl(
-		string $year  = '{year}',
-		string $month = '{month}',
-		string $day   = '{day}'
-	): string
+	public function dayUrl( string $year, string $month, string $day ): string
 	{
-		return Str::appendUri( $this->monthUrl( $year, $month ), $day );
+		return Url::route( $this->name() . '.collection.month', [
+			'year'  => $year,
+			'month' => $month,
+			'day'   => $day
+		] );
 	}
 
 	/**
@@ -291,12 +296,14 @@ class Type
 			return $this->routes;
 		}
 
+		$type  = $this->name();
 		$path  = $this->urlPath();
 		$alias = Config::get( 'app.home_alias' );
 
 		// Add paged type archive if not set as the homepage.
 		if ( $alias !== $this->type() ) {
 			$this->routes[ $path . '/page/{page}' ] = [
+				'name'       => "{$type}.collection.paged",
 				'controller' => Controllers\Collection::class
 			];
 		}
@@ -304,16 +311,17 @@ class Type
 		// If the type supports date-based archives, add routes.
 		if ( $this->hasDateArchives() ) {
 			$archives = [
-				'{year}/{month}/{day}/page/{page}',
-				'{year}/{month}/{day}',
-				'{year}/{month}/page/{page}',
-				'{year}/{month}',
-				'{year}/page/{page}',
-				'{year}'
+				"{$type}.collection.day.paged"   => '{year}/{month}/{day}/page/{page}',
+				"{$type}.collection.day"         => '{year}/{month}/{day}',
+				"{$type}.collection.month.paged" => '{year}/{month}/page/{page}',
+				"{$type}.collection.month"       => '{year}/{month}',
+				"{$type}.collection.year.paged"  => '{year}/page/{page}',
+				"{$type}.collection.year"        => '{year}'
 			];
 
-			foreach ( $archives as $archive ) {
-				$this->routes[ "{$path}/{$archive}" ] = [
+			foreach ( $archives as $name => $uri ) {
+				$this->routes[ "{$path}/{$uri}" ] = [
+					'name'       => $name,
 					'controller' => Controllers\CollectionArchiveDate::class
 				];
 			}
@@ -322,10 +330,12 @@ class Type
 		// If this is a taxonomy, add paged term archive and single route.
 		if ( $this->isTaxonomy() ) {
 			$this->routes[ $path . '/{name}/page/{page}' ] = [
+				'name'       => "{$type}.single.paged",
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
 
 			$this->routes[ $this->singleUrlPath() ] = [
+				'name'       => "{$type}.single",
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
 		}
@@ -333,13 +343,15 @@ class Type
 		// Add single route if not a taxonomy.
 		if ( ! $this->isTaxonomy() ) {
 			$this->routes[ $this->singleUrlPath() ] = [
+				'name'       => "{$type}.single",
 				'controller' => Controllers\Single::class
 			];
 		}
 
 		// Add type archive route if not set as the homepage.
-		if ( $alias !== $this->type() ) {
+		if ( $alias !== $type ) {
 			$this->routes[ $path ] = [
+				'name'       => "{$type}.collection",
 				'controller' => Controllers\Collection::class
 			];
 		}

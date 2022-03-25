@@ -29,6 +29,13 @@ class Route implements Makeable
 	protected string $uri;
 
 	/**
+	 * Route name.
+	 *
+	 * @since 1.0.0
+	 */
+	protected string $name = '';
+
+	/**
 	 * Route controller.
 	 *
 	 * @since  1.0.0
@@ -81,6 +88,11 @@ class Route implements Makeable
 		// Assign route URI and methods.
 		$this->uri     = $uri;
 		$this->methods = [ 'GET' ];
+
+		// If no route name, use the URI.
+		if ( ! $this->name ) {
+			$this->name = $this->uri;
+		}
 
 		// Merge default regex mapping with user-defined wheres.
 		$this->wheres = array_merge( [
@@ -152,6 +164,27 @@ class Route implements Makeable
 	public function uri(): string
 	{
 		return $this->uri;
+	}
+
+	/**
+	 * Assigns the route name and returns self for chaining.
+	 *
+	 * @since 1.0.0
+	 */
+	public function name( string $name ): self
+	{
+		$this->name = $name;
+		return $this;
+	}
+
+	/**
+	 * Returns the route name.
+	 *
+	 * @since 1.0.0
+	 */
+	public function getName(): string
+	{
+		return $this->name;
 	}
 
 	/**

@@ -15,7 +15,7 @@
 
 namespace Blush\Content\Entry;
 
-use Blush\App;
+use Blush\{App, Url};
 use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
@@ -59,7 +59,8 @@ abstract class File extends Entry
 			return $this->type;
 		}
 
-		$types = App::get( 'content.types' );
+		$types    = App::get( 'content.types' );
+		$has_type = false;
 
 		// Strip the file basename and content path from the file path.
 		// This should give us the content type path, which we can match
@@ -70,15 +71,42 @@ abstract class File extends Entry
 
 		// Get the content type by path.
 		if ( $path ) {
-			$this->type = $types->getTypeFromPath( $path );
+			$has_type = $types->getTypeFromPath( $path );
 		}
 
-		// If no type, fall back to the `page` type.
-		if ( ! $this->type ) {
-			$this->type = $types->get( 'page' );
-		}
+		// Set type or fall back to the `page` type.
+		$this->type = $has_type ?: $types->get( 'page' );
 
 		return $this->type;
+	}
+
+	/**
+	 * Returns the entry URL.
+	 *
+	 * @since  1.0.0
+	 */
+	public function url():  string
+	{
+		// If dealing with a page, build the URL from the filepath.
+		if ( 'page' === $this->type()->name() ) {
+
+			// Strip the content path from the directory name.
+			$url_path = Str::afterLast( $this->dirname(), content_path() );
+
+			// If this is not the `index` file, append the filename
+			// to the URL path.
+			if ( 'index' !== $this->filename() ) {
+				$url_path = Str::appendPath(
+					$url_path,
+					$this->filename()
+				);
+			}
+
+			return Url::to( $url_path );
+		}
+
+		// Let the parent class handle non-page URLs.
+		return parent::url();
 	}
 
 	/**

@@ -9,7 +9,7 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-use Blush\{App, Config};
+use Blush\{App, Config, Url};
 use Blush\Tools\{Collection, Str};
 
 if ( ! function_exists( 'app' ) ) {
@@ -56,13 +56,25 @@ if ( ! function_exists( 'config' ) ) {
 	}
 }
 
+if ( ! function_exists( 'route' ) ) {
+	/**
+	 * Returns the named route URL.
+	 *
+	 * @since 1.0.0
+	 */
+	function route( string $name, array $params = [] ): string
+	{
+		return Url::route( $name, $params );
+	}
+}
+
 if ( ! function_exists( 'path' ) ) {
 	/**
 	 * Returns app path with optional appended path/file.
 	 *
 	 * @since 1.0.0
 	 */
-	function path( string $append = '' ) : string
+	function path( string $append = '' ): string
 	{
 		return app()->path( '', $append );
 	}
@@ -74,9 +86,9 @@ if ( ! function_exists( 'app_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function app_path( string $append = '' ) : string
+	function app_path( string $append = '' ): string
 	{
-		return app()->app_path( $append );
+		return app()->appPath( $append );
 	}
 }
 
@@ -86,9 +98,9 @@ if ( ! function_exists( 'config_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function config_path( string $append = '' ) : string
+	function config_path( string $append = '' ): string
 	{
-		return app()->config_path( $append );
+		return app()->configPath( $append );
 	}
 }
 
@@ -98,9 +110,9 @@ if ( ! function_exists( 'public_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function public_path( string $append = '' ) : string
+	function public_path( string $append = '' ): string
 	{
-		return app()->public_path( $append );
+		return app()->publicPath( $append );
 	}
 }
 
@@ -110,9 +122,9 @@ if ( ! function_exists( 'view_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function view_path( string $append = '' ) : string
+	function view_path( string $append = '' ): string
 	{
-		return app()->view_path( $append );
+		return app()->viewPath( $append );
 	}
 }
 
@@ -122,9 +134,9 @@ if ( ! function_exists( 'resource_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function resource_path( string $append = '' ) : string
+	function resource_path( string $append = '' ): string
 	{
-		return app()->resource_path( $append );
+		return app()->resourcePath( $append );
 	}
 }
 
@@ -134,9 +146,9 @@ if ( ! function_exists( 'storage_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function storage_path( string $append = '' ) : string
+	function storage_path( string $append = '' ): string
 	{
-		return app()->storage_path( $append );
+		return app()->storagePath( $append );
 	}
 }
 
@@ -146,9 +158,9 @@ if ( ! function_exists( 'cache_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function cache_path( string $append = '' ) : string
+	function cache_path( string $append = '' ): string
 	{
-		return app()->cache_path( $append );
+		return app()->cachePath( $append );
 	}
 }
 
@@ -158,9 +170,9 @@ if ( ! function_exists( 'user_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function user_path( string $append = '' ) : string
+	function user_path( string $append = '' ): string
 	{
-		return app()->user_path( $append );
+		return app()->userPath( $append );
 	}
 }
 
@@ -170,9 +182,9 @@ if ( ! function_exists( 'content_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function content_path( string $append = '' ) : string
+	function content_path( string $append = '' ): string
 	{
-		return app()->content_path( $append );
+		return app()->contentPath( $append );
 	}
 }
 
@@ -182,21 +194,24 @@ if ( ! function_exists( 'media_path' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function media_path( string $append = '' ) : string
+	function media_path( string $append = '' ): string
 	{
-		return app()->media_path( $append );
+		return app()->mediaPath( $append );
 	}
 }
 
 if ( ! function_exists( 'url' ) ) {
 	/**
-	 * Returns app URI with optionsal appended path.
+	 * Returns app URL with optional appended path. If no appended path,
+	 * returns the `Url` object, which can be used as a string to get the
+	 * app URL. Or, it can be used as a static class to access its methods.
 	 *
-	 * @since 1.0.0
+	 * @since  1.0.0
+	 * @return string|Url
 	 */
-	function url( string $append = '' ) : string
+	function url( string $append = '' )
 	{
-		return app()->url( '', $append );
+		return $append ? Url::to( $append ) : Url::make();
 	}
 }
 
@@ -206,9 +221,9 @@ if ( ! function_exists( 'app_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function app_url( string $append = '' ) : string
+	function app_url( string $append = '' ): string
 	{
-		return app()->app_url( $append );
+		return app()->appUrl( $append );
 	}
 }
 
@@ -218,9 +233,9 @@ if ( ! function_exists( 'config_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function config_url( string $append = '' ) : string
+	function config_url( string $append = '' ): string
 	{
-		return app()->config_url( $append );
+		return app()->configUrl( $append );
 	}
 }
 
@@ -230,9 +245,9 @@ if ( ! function_exists( 'public_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function public_url( string $append = '' ) : string
+	function public_url( string $append = '' ): string
 	{
-		return app()->public_url( $append );
+		return app()->publicUrl( $append );
 	}
 }
 
@@ -242,9 +257,9 @@ if ( ! function_exists( 'view_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function view_url( string $append = '' ) : string
+	function view_url( string $append = '' ): string
 	{
-		return app()->view_url( $append );
+		return app()->viewUrl( $append );
 	}
 }
 
@@ -254,9 +269,9 @@ if ( ! function_exists( 'resource_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function resource_url( string $append = '' ) : string
+	function resource_url( string $append = '' ): string
 	{
-		return app()->resource_url( $append );
+		return app()->resourceUrl( $append );
 	}
 }
 
@@ -266,9 +281,9 @@ if ( ! function_exists( 'storage_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function storage_url( string $append = '' ) : string
+	function storage_url( string $append = '' ): string
 	{
-		return app()->storage_url( $append );
+		return app()->storageUrl( $append );
 	}
 }
 
@@ -278,9 +293,9 @@ if ( ! function_exists( 'cache_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function cache_url( string $append = '' ) : string
+	function cache_url( string $append = '' ): string
 	{
-		return app()->cache_url( $append );
+		return app()->cacheUrl( $append );
 	}
 }
 
@@ -290,9 +305,9 @@ if ( ! function_exists( 'user_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function user_url( string $append = '' ) : string
+	function user_url( string $append = '' ): string
 	{
-		return app()->user_url( $append );
+		return app()->userUrl( $append );
 	}
 }
 
@@ -302,9 +317,9 @@ if ( ! function_exists( 'content_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function content_url( string $append = '' ) : string
+	function content_url( string $append = '' ): string
 	{
-		return app()->content_url( $append );
+		return app()->contentUrl( $append );
 	}
 }
 
@@ -314,9 +329,9 @@ if ( ! function_exists( 'media_url' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function media_url( string $append = '' ) : string
+	function media_url( string $append = '' ): string
 	{
-		return app()->media_url( $append );
+		return app()->mediaUrl( $append );
 	}
 }
 
@@ -344,7 +359,7 @@ if ( ! function_exists( 'e' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function e( string $value, bool $double_encode = true ) : string
+	function e( string $value, bool $double_encode = true ): string
 	{
 		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8', $double_encode );
 	}
@@ -357,7 +372,7 @@ if ( ! function_exists( 'escape_tag' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function escape_tag( string $tag ) : string
+	function escape_tag( string $tag ): string
 	{
 		return strtolower( preg_replace( '/[^a-zA-Z0-9_:]/', '', $tag ) );
 	}
@@ -369,7 +384,7 @@ if ( ! function_exists( 'sanitize_slug' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	function sanitize_slug( string $str, string $sep = '-' ) : string
+	function sanitize_slug( string $str, string $sep = '-' ): string
 	{
 		return Str::slug( $str, $sep );
 	}
