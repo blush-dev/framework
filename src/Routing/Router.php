@@ -40,8 +40,6 @@ class Router
 	{
 		$this->request = Request::createFromGlobals();
                 $this->routes  = $routes;
-
-		dump( $this->request );
 	}
 
 	/**
