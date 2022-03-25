@@ -129,19 +129,18 @@ abstract class Entry implements EntryContract
 			$url_path = str_replace( '{name}', $name, $url_path );
 		}
 
-		// Replaces the year param in the path with the entry year.
-		if (  $timestamp && Str::contains( $url_path, '{year}' ) ) {
-			$url_path = str_replace( '{year}', date( 'Y', $timestamp ), $url_path );
-		}
-
-		// Replaces the month param in a URI with the entry month.
-		if (  $timestamp && Str::contains( $url_path, '{month}' ) ) {
-			$url_path = str_replace( '{month}', date( 'm', $timestamp ), $url_path );
-		}
-
-		// Replaces the day param in a URI with the entry day.
-		if (  $timestamp && Str::contains( $url_path, '{day}' ) ) {
-			$url_path = str_replace( '{day}', date( 'd', $timestamp ), $url_path );
+		// Replaces date-based params in the path.
+		if ( $timestamp && Str::containsAny( $url_path, [ '{year}', '{month}', '{day}' ] ) ) {
+			$url_path = str_replace( [
+				'{year}',
+				'{month}',
+				'{day}'
+			], [
+				date( 'Y', $timestamp ),
+				date( 'm', $timestamp ),
+				date( 'd', $timestamp )
+			],
+			$url_path );
 		}
 
 		// Replaces the author in a URI with the entry author.
@@ -172,6 +171,7 @@ abstract class Entry implements EntryContract
 			}
 		}
 
+		// Append the path to the site URL.
 		return url( $url_path );
 	}
 

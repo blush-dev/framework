@@ -128,7 +128,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function contains( string $haystack, string $needle ) : bool
+	public static function contains( string $haystack, string $needle ): bool
 	{
 		// PHP 8.
 		if ( function_exists( 'str_contains' ) ) {
@@ -136,6 +136,38 @@ class Str
 		}
 
 		return false !== mb_strpos( $haystack, $needle );
+	}
+
+	/**
+	 * Checks if a string contains all of the provided array of strings.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function containsAll( string $haystack, array $needles ): bool
+	{
+		foreach ( $needles as $needle ) {
+			if ( false === static::contains( $haystack, $needle ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Checks if a string contains any of the provided array of strings.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function containsAny( string $haystack, array $needles ): bool
+	{
+		foreach ( $needles as $needle ) {
+			if ( true === static::contains( $haystack, $needle ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -238,7 +270,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function startsWith( string $str, string $starts ) : bool
+	public static function startsWith( string $str, string $starts ): bool
 	{
 		return substr( $str, 0, strlen( $starts ) ) === $starts;
 	}
