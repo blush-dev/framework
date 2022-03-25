@@ -8,7 +8,7 @@ if ( ! function_exists( 'uri' ) ) {
 	 */
 	function uri( string $append = '' ) : string
 	{
-		return url( '', $append );
+		return url( $append );
 	}
 }
 
