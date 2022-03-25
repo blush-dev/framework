@@ -96,6 +96,16 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	protected bool $noindex = true;
 
 	/**
+	 * Whether to return a query of posts without content. This can be useful
+	 * for list-style output and other situations where content is not
+	 * needed.  It is also faster because we do not have to parse the
+	 * Markdown for the file.
+	 *
+	 * @since 1.0.0
+	 */
+	protected bool $nocontent = false;
+
+	/**
 	 * Number of entries to query.
 	 *
 	 * @since 1.0.0
@@ -287,7 +297,10 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
 		// Create array of entry objects.
 		foreach ( $this->filepaths as $filepath ) {
-			$entry = App::resolve( 'content.entry', [ 'filepath' => $filepath ] );
+			$entry = App::resolve( 'content.entry', [
+				'filepath' => $filepath,
+				'options'  => [ 'nocontent' => $this->nocontent ]
+			] );
 
 			$filename = $entry->pathinfo( 'filename' );
 			$slug     = Str::afterLast( $filename, '.' );
