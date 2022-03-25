@@ -252,7 +252,7 @@ class Type
 	 */
 	public function dayUrl( string $year, string $month, string $day ): string
 	{
-		return Url::route( $this->name() . '.collection.month', [
+		return Url::route( $this->name() . '.collection.day', [
 			'year'  => $year,
 			'month' => $month,
 			'day'   => $day
