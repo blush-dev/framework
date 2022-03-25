@@ -37,6 +37,18 @@ if ( ! function_exists( 'env' ) ) {
 	}
 }
 
+if ( ! function_exists( 'environment' ) ) {
+	/**
+	 * Returns the application environment.
+	 *
+	 * @since  1.0.0
+	 */
+	function environment(): string
+	{
+		return env( 'APP_ENV', 'development' );
+	}
+}
+
 if ( ! function_exists( 'config' ) ) {
 	/**
 	 * Returns a value from the configuration instance using either dot
