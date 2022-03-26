@@ -24,8 +24,6 @@ class Error404 extends Controller
 	 */
 	public function __invoke( array $params = [], Request $request ): Response
 	{
-		http_response_code( 404 );
-
 		$single = Query::make( [
 			'path' => '_error',
 			'slug' => '404'
@@ -44,9 +42,9 @@ class Error404 extends Controller
 				'pagination' => false,
 				'single'     => $single,
 				'collection' => false
-			] ) );
+			] ), Response::HTTP_NOT_FOUND );
 		}
 
-		return new Response( 'Nothing Found' );
+		return new Response( 'Nothing Found', Response::HTTP_NOT_FOUND );
 	}
 }

@@ -52,9 +52,9 @@ abstract class Controller
 	 *
 	 * @since 1.0.0
 	 */
-	protected function response( View $view ): Response
+	protected function response( View $view, int $status = 200, array $headers = [] ): Response
 	{
-		return new Response( $view->render() );
+		return new Response( $view->render(), $status, $headers );
 	}
 
 	/**
