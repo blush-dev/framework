@@ -67,23 +67,37 @@ class Url implements Makeable
 	 */
 	public function route( string $name, array $params = [] ): string
 	{
-		// If route not found, return empty string.
-		if ( ! $route = $this->routes->getNamedRoute( $name ) ) {
-			return '';
+		$path = false;
+
+		if ( isset( $this->routes[ $name ] ) ) {
+			$path = $this->routes[ $name ]->uri();
+		} elseif ( $route = $this->routes->getNamedRoute( $name ) ) {
+			$path = $route->uri();
 		}
 
-		$url_path = $route->uri();
+		return $path ? $this->to(
+			$this->parseParams( $path, $params )
+		) : '';
+	}
 
+	/**
+	 * Accepts a path or URL string with possible `{param}` values in it.
+	 * Replaces the `{param}` strings with values from the `$params` array.
+	 *
+	 * @since 1.0.0
+	 */
+	public function parseParams( string $path, array $params = [] ): string
+	{
 		// Replace parameters with values.
 		foreach ( $params as $param => $value ) {
-			$url_path = str_replace(
+			$path = str_replace(
 				sprintf( '{%s}', $param ),
 				$value,
-				$url_path
+				$path
 			);
 		}
 
-		return $this->to( $url_path );
+		return $path;
 	}
 
 	/**
