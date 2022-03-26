@@ -29,12 +29,15 @@ class CollectionArchiveDate extends Controller
 		$types = App::resolve( 'content.types' );
 
 		// Get or set params.
-		$path  = $basepath = $params['path'] ?? '';
-		$page  = intval( $params['page'] ?? 1 );
-		$day   = $params['day']   ?? '';
-		$month = $params['month'] ?? '';
-		$year  = $params['year']  ?? '';
-		$type  = false;
+		$path   = $basepath = $params['path'] ?? '';
+		$page   = intval( $params['page'] ?? 1 );
+		$second = $params['second'] ?? '';
+		$minute = $params['minute'] ?? '';
+		$hour   = $params['hour']   ?? '';
+		$day    = $params['day']    ?? '';
+		$month  = $params['month']  ?? '';
+		$year   = $params['year']   ?? '';
+		$type   = false;
 
 		// Strip page from path.
 		if ( Str::contains( $path, "/page/{$page}" ) ) {
@@ -68,14 +71,23 @@ class CollectionArchiveDate extends Controller
 		$query_args['number'] = $query_args['number'] ?? 10;
 		$query_args['offset'] = $query_args['number'] * ( $page - 1 );
 
-		if ( $day   ) { $query_args['day']   = $day;   }
-		if ( $month ) { $query_args['month'] = $month; }
-		if ( $year  ) { $query_args['year']  = $year;  }
+		if ( $second ) { $query_args['second'] = $second; }
+		if ( $minute ) { $query_args['minute'] = $minute; }
+		if ( $hour   ) { $query_args['hour']   = $hour;   }
+		if ( $day    ) { $query_args['day']    = $day;    }
+		if ( $month  ) { $query_args['month']  = $month;  }
+		if ( $year   ) { $query_args['year']   = $year;   }
 
 		// Build the title for the type of date archive.
-		if ( $year && $month && $day ) {
+		if ( $second && $minute && $hour && $day && $month && $year ) {
+			$title = date( 'F j, Y \@ H:i:s', strtotime( "{$year}-{$month}-{$day} {$hour}:{$minute}:{$second}" ) );
+		} elseif ( $minute && $hour && $day && $month && $year ) {
+			$title = date( 'F j, Y \@ H:i', strtotime( "{$year}-{$month}-{$day} {$hour}:{$minute}:00" ) );
+		} elseif ( $hour && $day && $month && $year ) {
+			$title = date( 'F j, Y \@ H', strtotime( "{$year}-{$month}-{$day} {$hour}:00:00" ) );
+		} elseif ( $day && $month && $year ) {
 			$title = date( 'F j, Y', strtotime( "{$year}-{$month}-{$day}" ) );
-		} elseif ( $year && $month ) {
+		} elseif ( $month && $year ) {
 			$title = date( 'F Y', strtotime( "{$year}-{$month}" ) );
 		} elseif ( $year ) {
 			$title = date( 'Y', strtotime( $year ) );
@@ -91,7 +103,6 @@ class CollectionArchiveDate extends Controller
 		$collection = Query::make( $query_args );
 
 		if ( $collection->all() ) {
-			$views     = [];
 			$type_name = $type->name();
 
 			$doctitle = new DocumentTitle( $single->title(), [
@@ -104,31 +115,18 @@ class CollectionArchiveDate extends Controller
 				'total'    => $collection->pages()
 			] );
 
-			if ( $day ) {
-				$views[] = "collection-{$type_name}-archive-day";
-				$views[] = 'collection-archive-day';
-			} elseif ( $month ) {
-				$views[] = "collection-{$type_name}-archive-month";
-				$views[] = 'collection-archive-month';
-			} elseif ( $year ) {
-				$views[] = "collection-{$type_name}-archive-year";
-				$views[] = 'collection-archive-year';
-			}
-
-			$views[] = "collection-{$type_name}-archive-date";
-			$views[] = 'collection-archive-date';
-			$views[] = "collection-{$type_name}-archive";
-			$views[] = 'collection-archive';
-			$views[] = 'collection';
-
-			return $this->response(
-				$this->view( $views, [
-					'doctitle'   => $doctitle,
-					'pagination' => $pagination,
-					'single'     => $single,
-					'collection' => $collection
-				] )
-			);
+			return $this->response( $this->view( [
+				"collection-{$type_name}-archive-datetime",
+				'collection-archive-datetime',
+				"collection-{$type_name}-archive",
+				'collection-archive',
+				'collection'
+			], [
+				'doctitle'   => $doctitle,
+				'pagination' => $pagination,
+				'single'     => $single,
+				'collection' => $collection
+			] ) );
 		}
 
 		// If all else fails, return a 404.

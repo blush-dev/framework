@@ -120,12 +120,17 @@ abstract class Entry implements EntryContract
 		$params = [ 'name' => $this->name() ];
 
 		// Adds date-based params if we have a date.
-		if ( $date = $this->date() ) {
-			if ( $timestamp = strtotime( $date ) ) {
-				$params['year']  = date( 'Y', $timestamp );
-				$params['month'] = date( 'm', $timestamp );
-				$params['day']   = date( 'd', $timestamp );
-			}
+		if ( $date = $this->metaSingle( 'date' ) ) {
+			$timestamp = is_numeric( $date ) ? $date : strtotime( $date );
+			$date      = date( 'Y-m-d', $timestamp );
+			$time      = date( 'H:i:s', $timestamp );
+
+			$params['year']   = Str::beforeFirst( $date, '-' );
+			$params['month']  = Str::between( $date, '-', '-' );
+			$params['day']    = Str::afterLast( $date, '-' );
+			$params['hour']   = Str::beforeFirst( $time, ':' );
+			$params['minute'] = Str::between( $time, ':', ':' );
+			$params['second'] = Str::afterLast( $time, ':' );
 		}
 
 		// Add author param if author exists.

@@ -92,6 +92,13 @@ class Type
 	protected bool $date_archives = false;
 
 	/**
+	 * Whether to generate time-based archives for the content type.
+	 *
+	 * @since 1.0.0
+	 */
+	protected bool $time_archives = false;
+
+	/**
 	 * Stores an array of the URL paths.
 	 *
 	 * @since 1.0.0
@@ -112,6 +119,7 @@ class Type
 		$this->routes          = $options['routes']          ?? [];
 		$this->routing         = $options['routing']         ?? true;
 		$this->date_archives   = $options['date_archives']   ?? false;
+		$this->time_archives   = $options['time_archives']   ?? false;
 		$this->taxonomy        = $options['taxonomy']        ?? false;
 		$this->term_collect    = $options['term_collect']    ?? null;
 		$this->term_collection = $options['term_collection'] ?? [];
@@ -134,16 +142,23 @@ class Type
 
 		// Merge the user-configured URL paths with the defaults.
 		$this->url_paths = array_merge( [
-			'collection'             => $collection,
-			'single'                 => $single,
-			'single.paged'           => "{$single}/page/{page}",
-			'collection.paged'       => "{$collection}/page/{page}",
-			'collection.day.paged'   => "{$collection}/{year}/{month}/{day}/page/{page}",
-			'collection.day'         => "{$collection}/{year}/{month}/{day}",
-			'collection.month.paged' => "{$collection}/{year}/{month}/page/{page}",
-			'collection.month'       => "{$collection}/{year}/{month}",
-			'collection.year.paged'  => "{$collection}/{year}/page/{page}",
-			'collection.year'        => "{$collection}/{year}"
+			'collection'              => $collection,
+			'single'                  => $single,
+			'single.paged'            => "{$single}/page/{page}",
+			'collection.feed'         => "{$collection}/feed",
+			'collection.paged'        => "{$collection}/page/{page}",
+			'collection.second.paged' => "{$collection}/{year}/{month}/{day}/{hour}/{minute}/{second}/page/{page}",
+			'collection.second'       => "{$collection}/{year}/{month}/{day}/{hour}/{minute}/{second}",
+			'collection.minute.paged' => "{$collection}/{year}/{month}/{day}/{hour}/{minute}/page/{page}",
+			'collection.minute'       => "{$collection}/{year}/{month}/{day}/{hour}/{minute}",
+			'collection.hour.paged'   => "{$collection}/{year}/{month}/{day}/{hour}/page/{page}",
+			'collection.hour'         => "{$collection}/{year}/{month}/{day}/{hour}",
+			'collection.day.paged'    => "{$collection}/{year}/{month}/{day}/page/{page}",
+			'collection.day'          => "{$collection}/{year}/{month}/{day}",
+			'collection.month.paged'  => "{$collection}/{year}/{month}/page/{page}",
+			'collection.month'        => "{$collection}/{year}/{month}",
+			'collection.year.paged'   => "{$collection}/{year}/page/{page}",
+			'collection.year'         => "{$collection}/{year}"
 		], $options['url_paths'] ?? [] );
 
 		// Check if user passed in a set of custom routes.
@@ -267,13 +282,24 @@ class Type
 	}
 
 	/**
-	 * Whether date archives are supported.
+	 * Whether date archives are supported. If time archives are supported
+	 * date archives are required to be enabled.
 	 *
 	 * @since 1.0.0
 	 */
 	public function hasDateArchives(): bool
 	{
-		return $this->date_archives;
+		return $this->date_archives || $this->hasTimeArchives();
+	}
+
+	/**
+	 * Whether time archives are supported.
+	 *
+	 * @since 1.0.0
+	 */
+	public function hasTimeArchives(): bool
+	{
+		return $this->time_archives;
 	}
 
 	/**
@@ -312,6 +338,25 @@ class Type
 				'name'       => "{$type}.collection.paged",
 				'controller' => Controllers\Collection::class
 			];
+		}
+
+		// If the type supports time-based archives, add routes.
+		if ( $this->hasTimeArchives() ) {
+			$archives = [
+				"{$type}.collection.second.paged" => $this->urlPath( 'collection.second.paged' ),
+				"{$type}.collection.second"       => $this->urlPath( 'collection.second'       ),
+				"{$type}.collection.minute.paged" => $this->urlPath( 'collection.minute.paged' ),
+				"{$type}.collection.minute"       => $this->urlPath( 'collection.minute'       ),
+				"{$type}.collection.hour.paged"   => $this->urlPath( 'collection.hour.paged'   ),
+				"{$type}.collection.hour"         => $this->urlPath( 'collection.hour'         )
+			];
+
+			foreach ( $archives as $name => $uri ) {
+				$this->routes[$uri] = [
+					'name'       => $name,
+					'controller' => Controllers\CollectionArchiveDate::class
+				];
+			}
 		}
 
 		// If the type supports date-based archives, add routes.

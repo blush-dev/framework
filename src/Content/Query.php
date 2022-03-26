@@ -183,6 +183,27 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	protected ?int $day = null;
 
 	/**
+	 * Query entries by hour.
+	 *
+	 * @since 1.0.0
+	 */
+	protected ?int $hour = null;
+
+	/**
+	 * Query entries by minute.
+	 *
+	 * @since 1.0.0
+	 */
+	protected ?int $minute = null;
+
+	/**
+	 * Query entries by second.
+	 *
+	 * @since 1.0.0
+	 */
+	protected ?int $second = null;
+
+	/**
 	 * Sets up object state. The path is relative to the user content
 	 * folder. If no value is passed in, it will be the root.
 	 *

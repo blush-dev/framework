@@ -56,7 +56,6 @@ class Single extends Controller
 			}
 		}
 
-
 		$single = Query::make( [
 			'path'       => $type ? $type->path() : $path,
 			'slug'       => $name,
