@@ -92,18 +92,11 @@ class Type
 	protected bool $date_archives = false;
 
 	/**
-	 * Stores the URI path for the content type.
+	 * Stores an array of the URL paths.
 	 *
 	 * @since 1.0.0
 	 */
-	protected string $uri = '';
-
-	/**
-	 * Stores the single entry URI path for the content type.
-	 *
-	 * @since 1.0.0
-	 */
-	protected string $uri_single = '';
+	protected array $url_paths = [];
 
 	/**
 	 * Sets up the object state.
@@ -112,41 +105,61 @@ class Type
 	 */
 	public function __construct( string $type, array $options = [] )
 	{
-		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
-			if ( isset( $options[ $key ] ) ) {
-				$this->$key = $options[ $key ];
+		// Set up the object properties based on parameters.
+		$this->type            = $type;
+		$this->path            = $options['path']            ?? $type;
+		$this->collection      = $options['collection']      ?? [];
+		$this->routes          = $options['routes']          ?? [];
+		$this->routing         = $options['routing']         ?? true;
+		$this->date_archives   = $options['date_archives']   ?? false;
+		$this->taxonomy        = $options['taxonomy']        ?? false;
+		$this->term_collect    = $options['term_collect']    ?? null;
+		$this->term_collection = $options['term_collection'] ?? [];
+
+		// Unless the `collect` option is explicitly set to `false`,
+		// it should at least collect itself.
+		if ( false !== $options['collect'] ) {
+			$this->collect = $options['collect'] ?: $type;
+		}
+
+		// Build the collection path.
+		$collection = $options['url_paths']['collection']
+			?? $options['uri']
+			?? $this->path;
+
+		// Build the single path.
+		$single = $options['url_paths']['single']
+			?? $options['uri_single']
+			?? "{$collection}/{name}";
+
+		// Merge the user-configured URL paths with the defaults.
+		$this->url_paths = array_merge( [
+			'collection'             => $collection,
+			'single'                 => $single,
+			'single.paged'           => "{$single}/page/{page}",
+			'collection.paged'       => "{$collection}/page/{page}",
+			'collection.day.paged'   => "{$collection}/{year}/{month}/{day}/page/{page}",
+			'collection.day'         => "{$collection}/{year}/{month}/{day}",
+			'collection.month.paged' => "{$collection}/{year}/{month}/page/{page}",
+			'collection.month'       => "{$collection}/{year}/{month}",
+			'collection.year.paged'  => "{$collection}/{year}/page/{page}",
+			'collection.year'        => "{$collection}/{year}"
+		], $options['url_paths'] ?? [] );
+
+		// Check if user passed in a set of custom routes.
+		if ( isset( $options['routes'] ) && is_array( $options['routes'] ) ) {
+
+			// Loop through each route and add it to routes array.
+			foreach ( $options['routes'] as $route => $args ) {
+
+				// If args is a string, make it the controller.
+				if ( is_string( $args ) ) {
+					$args = [ 'controller' => $args ];
+				}
+
+				// Add the route to the routes array.
+				$this->routes[ $route ] = $args;
 			}
-		}
-
-		// If the content type doesn't collect another, it should
-		// collect itself.
-		if ( is_null( $this->collect ) && false !== $this->collect ) {
-			$this->collect = $type;
-		}
-
-		// Parse routes passed in via `[ $uri => $controller ]` so that
-		// they are stored as `$uri => $args`.
-		if ( $this->routes ) {
-			$_routes = [];
-			foreach ( $this->routes as $route => $args ) {
-				$_routes[ $route ] = is_string( $args )
-					? [ 'controller' => $args ]
-					: $args;
-			}
-			$this->routes = $_routes;
-		}
-
-		// Set the type name.
-		$this->type = $type;
-
-		// If there is no URI, set it to the path.
-		if ( ! $this->uri ) {
-			$this->uri = $this->path;
-		}
-
-		// If there is no single URI, append the `{name}` param to the URI.
-		if ( ! $this->uri_single ) {
-			$this->uri_single = Str::appendUri( $this->uri, '{name}' );
 		}
 	}
 
@@ -181,23 +194,17 @@ class Type
 	}
 
 	/**
-	 * Returns the content type URL path.
+	 * Returns a keyed URL path.
 	 *
 	 * @since 1.0.0
 	 */
-	public function urlPath(): string
+	public function urlPath( string $key = '' ): string
 	{
-		return $this->uri;
-	}
+		if ( ! $key ) {
+			return $this->url_paths['collection'];
+		}
 
-	/**
-	 * Returns the content type URL path for single entries.
-	 *
-	 * @since 1.0.0
-	 */
-	public function singleUrlPath(): string
-	{
-		return $this->uri_single;
+		return $this->url_paths[ $key ] ?? '';
 	}
 
 	/**
@@ -207,9 +214,7 @@ class Type
 	 */
 	public function url(): string
 	{
-		$url = Url::route( $this->name() . '.collection' );
-
-		return $url ?: Url::route( $this->urlPath() );
+		return Url::route( $this->urlPath( 'collection' ) );
 	}
 
 	/**
@@ -219,9 +224,7 @@ class Type
 	 */
 	public function singleUrl( array $params = [] ): string
 	{
-		$url = Url::route( $this->name() . '.single', $params );
-
-		return $url ?: Url::route( $this->singleUrlPath(), $params );
+		return Url::route( $this->urlPath( 'single' ), $params );
 	}
 
 	/**
@@ -231,7 +234,7 @@ class Type
 	 */
 	public function yearUrl( string $year ): string
 	{
-		return Url::route( $this->name() . '.collection.year', [
+		return Url::route( $this->urlPath( 'collection.year' ), [
 			'year' => $year
 		] );
 	}
@@ -243,7 +246,7 @@ class Type
 	 */
 	public function monthUrl( string $year, string $month ): string
 	{
-		return Url::route( $this->name() . '.collection.month', [
+		return Url::route( $this->urlPath( 'collection.month' ), [
 			'year'  => $year,
 			'month' => $month
 		] );
@@ -256,7 +259,7 @@ class Type
 	 */
 	public function dayUrl( string $year, string $month, string $day ): string
 	{
-		return Url::route( $this->name() . '.collection.day', [
+		return Url::route( $this->urlPath( 'collection.day' ), [
 			'year'  => $year,
 			'month' => $month,
 			'day'   => $day
@@ -301,12 +304,11 @@ class Type
 		}
 
 		$type  = $this->name();
-		$path  = $this->urlPath();
 		$alias = Config::get( 'app.home_alias' );
 
 		// Add paged type archive if not set as the homepage.
 		if ( $alias !== $this->type() ) {
-			$this->routes[ $path . '/page/{page}' ] = [
+			$this->routes[ $this->urlPath( 'collection.paged' ) ] = [
 				'name'       => "{$type}.collection.paged",
 				'controller' => Controllers\Collection::class
 			];
@@ -315,16 +317,16 @@ class Type
 		// If the type supports date-based archives, add routes.
 		if ( $this->hasDateArchives() ) {
 			$archives = [
-				"{$type}.collection.day.paged"   => '{year}/{month}/{day}/page/{page}',
-				"{$type}.collection.day"         => '{year}/{month}/{day}',
-				"{$type}.collection.month.paged" => '{year}/{month}/page/{page}',
-				"{$type}.collection.month"       => '{year}/{month}',
-				"{$type}.collection.year.paged"  => '{year}/page/{page}',
-				"{$type}.collection.year"        => '{year}'
+				"{$type}.collection.day.paged"   => $this->urlPath( 'collection.day.paged'   ),
+				"{$type}.collection.day"         => $this->urlPath( 'collection.day'         ),
+				"{$type}.collection.month.paged" => $this->urlPath( 'collection.month.paged' ),
+				"{$type}.collection.month"       => $this->urlPath( 'collection.month'       ),
+				"{$type}.collection.year.paged"  => $this->urlPath( 'collection.year.paged'  ),
+				"{$type}.collection.year"        => $this->urlPath( 'collection.year'        )
 			];
 
 			foreach ( $archives as $name => $uri ) {
-				$this->routes[ "{$path}/{$uri}" ] = [
+				$this->routes[$uri] = [
 					'name'       => $name,
 					'controller' => Controllers\CollectionArchiveDate::class
 				];
@@ -333,12 +335,12 @@ class Type
 
 		// If this is a taxonomy, add paged term archive and single route.
 		if ( $this->isTaxonomy() ) {
-			$this->routes[ $path . '/{name}/page/{page}' ] = [
+			$this->routes[ $this->urlPath( 'single.paged' ) ] = [
 				'name'       => "{$type}.single.paged",
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
 
-			$this->routes[ $this->singleUrlPath() ] = [
+			$this->routes[ $this->urlPath( 'single' ) ] = [
 				'name'       => "{$type}.single",
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
@@ -346,7 +348,7 @@ class Type
 
 		// Add single route if not a taxonomy.
 		if ( ! $this->isTaxonomy() ) {
-			$this->routes[ $this->singleUrlPath() ] = [
+			$this->routes[ $this->urlPath( 'single' ) ] = [
 				'name'       => "{$type}.single",
 				'controller' => Controllers\Single::class
 			];
@@ -354,7 +356,7 @@ class Type
 
 		// Add type archive route if not set as the homepage.
 		if ( $alias !== $type ) {
-			$this->routes[ $path ] = [
+			$this->routes[ $this->urlPath( 'collection' ) ] = [
 				'name'       => "{$type}.collection",
 				'controller' => Controllers\Collection::class
 			];
