@@ -221,7 +221,7 @@ class Type
 	{
 		$url = Url::route( $this->name() . '.single', $params );
 
-		return $url ?: Url::route( $this->singleUrlPath(), $params = [] );
+		return $url ?: Url::route( $this->singleUrlPath(), $params );
 	}
 
 	/**
