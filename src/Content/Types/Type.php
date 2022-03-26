@@ -209,11 +209,11 @@ class Type
 	}
 
 	/**
-	 * Returns the content type name.
+	 * Conditional check if the typs is the homepage alias.
 	 *
 	 * @since 1.0.0
 	 */
-	public function isHomeAlias(): string
+	public function isHomeAlias(): bool
 	{
 		return $this->type() === Config::get( 'app.home_alias' );
 	}
