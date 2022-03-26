@@ -54,7 +54,8 @@ class Type
 	protected bool $taxonomy = false;
 
 	/**
-	 * The content type that this content type collects in archives.
+	 * The content type that this content type collects in archives. By
+	 * default, content types will collect themselves.
 	 *
 	 * @since 1.0.0
 	 * @var   string|false|null
@@ -83,6 +84,14 @@ class Type
 	 * @since 1.0.0
 	 */
 	protected $term_collection = [];
+
+	/**
+	 * Whether to generate a feed for the content type.
+	 *
+	 * @since 1.0.0
+	 * @var   bool|array
+	 */
+	protected $feed = false;
 
 	/**
 	 * Whether to generate date-based archives for the content type.
@@ -118,6 +127,7 @@ class Type
 		$this->collection      = $options['collection']      ?? [];
 		$this->routes          = $options['routes']          ?? [];
 		$this->routing         = $options['routing']         ?? true;
+		$this->feed            = $options['feed']            ?? false;
 		$this->date_archives   = $options['date_archives']   ?? false;
 		$this->time_archives   = $options['time_archives']   ?? false;
 		$this->taxonomy        = $options['taxonomy']        ?? false;
@@ -199,6 +209,16 @@ class Type
 	}
 
 	/**
+	 * Returns the content type name.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isHomeAlias(): string
+	{
+		return $this->type() === Config::get( 'app.home_alias' );
+	}
+
+	/**
 	 * Returns the content type path.
 	 *
 	 * @since 1.0.0
@@ -229,7 +249,9 @@ class Type
 	 */
 	public function url(): string
 	{
-		return Url::route( $this->urlPath( 'collection' ) );
+		return $this->isHomeAlias()
+		       ? Url::route( '/' )
+		       : Url::route( $this->urlPath( 'collection' ) );
 	}
 
 	/**
@@ -240,6 +262,18 @@ class Type
 	public function singleUrl( array $params = [] ): string
 	{
 		return Url::route( $this->urlPath( 'single' ), $params );
+	}
+
+	/**
+	 * Returns the content type feed URL.
+	 *
+	 * @since 1.0.0
+	 */
+	public function feedUrl(): string
+	{
+		return $this->isHomeAlias()
+		       ? Url::route( 'feed' )
+		       : Url::route( $this->urlPath( 'collection.feed' ) );
 	}
 
 	/**
@@ -282,6 +316,16 @@ class Type
 	}
 
 	/**
+	 * Whether the content type should have a feed.
+	 *
+	 * @since 1.0.0
+	 */
+	public function hasFeed(): bool
+	{
+		return false !== $this->feed;
+	}
+
+	/**
 	 * Whether date archives are supported. If time archives are supported
 	 * date archives are required to be enabled.
 	 *
@@ -313,6 +357,85 @@ class Type
 	}
 
 	/**
+	 * Returns the type this content type collects.
+	 *
+	 * @since  1.0.0
+	 * @return string|false|null
+	 */
+	public function collect()
+	{
+		return $this->collect;
+	}
+
+	/**
+	 * Returns the type that terms of this type collects if a taxonomy.
+	 *
+	 * @since  1.0.0
+	 * @return string|false|null
+	 */
+	public function termCollect()
+	{
+		return $this->term_collect;
+	}
+
+	/**
+	 * Returns an array of Query arguments when the content type is used in
+	 * a collection.
+	 *
+	 * @since 1.0.0
+	 */
+	public function collectionArgs(): array
+	{
+		return array_merge( [
+			'type' => $this->collect() ?: $this->type()
+		], $this->collection );
+	}
+
+	/**
+	 * Returns an array of Query arguments when the terms of the content
+	 * type is called as a collection. Only works for taxonomies.
+	 *
+	 * @since 1.0.0
+	 */
+	public function termCollectionArgs(): array
+	{
+		if ( ! $this->isTaxonomy() ) {
+			return [];
+		}
+
+		$type = $this->termCollect() ?: $this->collect();
+
+		return array_merge( [
+			'type' => $type ?: $this->type()
+		], $this->term_collection );
+	}
+
+	/**
+	 * Returns an array of Query arguments when the content type is used in
+	 * a feed.
+	 *
+	 * @since 1.0.0
+	 */
+	public function feedArgs(): array
+	{
+		return array_merge( [
+			'type'    => $this->collect() ?: $this->type(),
+			'order'   => 'desc',
+			'orderby' => 'filename'
+		], is_array( $this->feed ) ? $this->feed : [] );
+	}
+
+	/**
+	 * Whether this type is a taxonomy.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isTaxonomy(): bool
+	{
+		return $this->taxonomy;
+	}
+
+	/**
 	 * Returns the content type routes as an array.
 	 *
 	 * @since 1.0.0
@@ -329,14 +452,21 @@ class Type
 			return $this->routes;
 		}
 
-		$type  = $this->name();
-		$alias = Config::get( 'app.home_alias' );
+		$type = $this->name();
 
 		// Add paged type archive if not set as the homepage.
-		if ( $alias !== $this->type() ) {
+		if ( ! $this->isHomeAlias() ) {
 			$this->routes[ $this->urlPath( 'collection.paged' ) ] = [
 				'name'       => "{$type}.collection.paged",
 				'controller' => Controllers\Collection::class
+			];
+		}
+
+		// If the type supports a feed, add route.
+		if ( $this->hasFeed() && ! $this->isHomeAlias() ) {
+			$this->routes[ $this->urlPath( 'collection.feed' ) ] = [
+				'name'       => "{$type}.collection.feed",
+				'controller' => Controllers\CollectionFeed::class
 			];
 		}
 
@@ -400,7 +530,7 @@ class Type
 		}
 
 		// Add type archive route if not set as the homepage.
-		if ( $alias !== $type ) {
+		if ( ! $this->isHomeAlias() ) {
 			$this->routes[ $this->urlPath( 'collection' ) ] = [
 				'name'       => "{$type}.collection",
 				'controller' => Controllers\Collection::class
@@ -409,69 +539,5 @@ class Type
 
 		// Return the built routes.
 		return $this->routes;
-	}
-
-	/**
-	 * Returns the type this content type collects.
-	 *
-	 * @since  1.0.0
-	 * @return string|false|null
-	 */
-	public function collect()
-	{
-		return $this->collect;
-	}
-
-	/**
-	 * Returns the type that terms of this type collects if a taxonomy.
-	 *
-	 * @since  1.0.0
-	 * @return string|false|null
-	 */
-	public function termCollect()
-	{
-		return $this->term_collect;
-	}
-
-	/**
-	 * Returns an array of Query arguments when the content type is used in
-	 * a collection.
-	 *
-	 * @since 1.0.0
-	 */
-	public function collectionArgs(): array
-	{
-		return array_merge( [
-			'type' => $this->collect() ?: $this->type()
-		], $this->collection );
-	}
-
-	/**
-	 * Returns an array of Query arguments when the terms of the content
-	 * type is called as a collection. Only works for taxonomies.
-	 *
-	 * @since 1.0.0
-	 */
-	public function termCollectionArgs(): array
-	{
-		if ( ! $this->isTaxonomy() ) {
-			return [];
-		}
-
-		$type = $this->termCollect() ?: $this->collect();
-
-		return array_merge( [
-			'type' => $type ?: $this->type()
-		], $this->term_collection );
-	}
-
-	/**
-	 * Whether this type is a taxonomy.
-	 *
-	 * @since 1.0.0
-	 */
-	public function isTaxonomy(): bool
-	{
-		return $this->taxonomy;
 	}
 }

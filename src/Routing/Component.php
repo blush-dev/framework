@@ -72,9 +72,17 @@ class Component implements Bootable
 			}
 		}
 
-		// Add paginated homepage route if we have content type alias.
+		// Add homepage feed and paged routes if we have content type alias.
 		if ( $alias && $this->types->has( $alias ) ) {
-			$this->routes->add( '/page/{page}', [
+
+			if ( $this->types->get( $alias )->hasFeed() ) {
+				$this->routes->add( 'feed', [
+					'name'       => 'home.feed',
+					'controller' => Controllers\CollectionFeed::class
+				] );
+			}
+
+			$this->routes->add( 'page/{page}', [
 				'name'       => 'home.paged',
 				'controller' => Controllers\Home::class
 			] );
