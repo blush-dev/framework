@@ -356,6 +356,18 @@ abstract class Entry implements EntryContract
 	}
 
 	/**
+	 * Conditional check if the entry has a term from a specific taxonomy.
+	 *
+	 * @since  1.0.0
+	 */
+	public function hasTerm( string $term, string $taxonomy = 'tag' ): bool
+	{
+		$terms = $this->terms( $taxonomy );
+
+		return $terms ? $terms->has( $term ) : false;
+	}
+
+	/**
 	 * Returns the entry excerpt.
 	 *
 	 * @since  1.0.0
