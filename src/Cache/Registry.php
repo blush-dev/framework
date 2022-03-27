@@ -196,13 +196,7 @@ class Registry
 	 */
 	public function getStores(): array
 	{
-		$stores = [];
-
-		foreach ( $this->stores as $store => $options ) {
-			$stores[ $store ] = $this->store( $store );
-		}
-
-		return $stores;
+		return $this->stores;
 	}
 
 	/**
