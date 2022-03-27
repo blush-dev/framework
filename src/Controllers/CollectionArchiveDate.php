@@ -120,7 +120,8 @@ class CollectionArchiveDate extends Controller
 				'collection-archive-datetime',
 				"collection-{$type_name}-archive",
 				'collection-archive',
-				'collection'
+				'collection',
+				'index'
 			], [
 				'doctitle'   => $doctitle,
 				'pagination' => $pagination,
