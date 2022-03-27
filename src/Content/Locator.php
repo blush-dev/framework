@@ -219,17 +219,7 @@ class Locator implements LocatorContract
 			);
 
 			if ( $content ) {
-				// Grab the YAML frontmatter from the file.
-		                preg_match(
-					'/^---[\r\n|\r|\n](.*?)[\r\n|\r|\n]---/s',
-					$content,
-					$match
-				);
-
-				// If frontmatter found, parse it.
-		                if ( $match ) {
-		                        $data = Yaml::parse( $match[1] );
-		                }
+				$data = Str::frontMatter( $content );
 
 				// Exclude meta from cache.
 				if ( $exclude ) {
@@ -246,7 +236,7 @@ class Locator implements LocatorContract
 			}
 
 			// Create the array key with just the file basename.
-			$key = Str::slashTrim(
+			$key = Str::trimSlashes(
 				str_replace( $this->path, '', $filepath )
 			);
 

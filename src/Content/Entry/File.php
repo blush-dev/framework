@@ -67,7 +67,7 @@ abstract class File extends Entry
 		// against registered content types.
 		$path = Str::beforeLast( $this->filePath(), basename( $this->filePath() ) );
 		$path = Str::afterLast( $path, App::get( 'path.content' ) );
-		$path = Str::slashTrim( $path );
+		$path = Str::trimSlashes( $path );
 
 		// Get the content type by path.
 		if ( $path ) {

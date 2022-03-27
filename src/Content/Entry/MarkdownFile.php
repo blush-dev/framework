@@ -81,21 +81,8 @@ class MarkdownFile extends File
 			$this->filePath(), false, null, 0, 4 * 1024
 		);
 
-		if ( $content ) {
-			preg_match(
-				'/^---[\r\n|\r|\n](.*?)[\r\n|\r|\n]---/s',
-				$content,
-				$match
-			);
-
-			// If frontmatter found, parse it.
-			if ( $match ) {
-				$data = Yaml::parse( $match[1] );
-			}
-		}
-
 		$this->yaml_parsed = true;
-		$this->meta        = $data ?? [];
+		$this->meta = $content ? Str::frontMatter( $content ) : [];
 	}
 
 	/**

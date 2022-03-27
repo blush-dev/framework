@@ -120,27 +120,23 @@ class Route implements Makeable
 	public function make(): self
 	{
 		// Find matches for parameter names set with `{param}`.
-		preg_match_all( '/\{(.*?)\}/', $this->uri(), $matches );
+		$params = Str::matchAll( '/\{(.*?)\}/', $this->uri() );
 
 		// If matches are found, loop through each `{param}` and add it
 		// to the parameters array. Also, if it has not been added to
 		// the wheres array, register it with the generic slug pattern,
 		// which matches alphanumeric, hyphen, and underscore characters.
-		if ( $matches && isset( $matches[1] ) ) {
-			foreach ( $matches[1] as $param ) {
+		foreach ( $params as $param ) {
+			$this->parameters[] = $param;
 
-				// Assign parameter.
-				$this->parameters[] = $param;
-
-				// Assign where if not set.
-				if ( ! $this->hasWhere( $param ) ) {
-					$this->whereSlug( $param );
-				}
+			// Assign where if not set.
+			if ( ! $this->hasWhere( $param ) ) {
+				$this->whereSlug( $param );
 			}
 		}
 
 		// Trim and escape slashes for regex.
-		$regex = ltrim( $this->uri(), '/' );
+		$regex = Str::trimSlashes( $this->uri() );
 		$regex = str_replace( '/', '\/', $regex );
 
 		// Switches the params with patterns from wheres array.

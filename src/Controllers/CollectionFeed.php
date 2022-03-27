@@ -30,7 +30,7 @@ class CollectionFeed extends Controller
 		$type  = false;
 
 		// Get needed URI params from the router.
-		$path = trim( Str::beforeLast( $params['path'], 'feed' ), '/' );
+		$path = Str::trimSlashes( Str::beforeLast( $params['path'], 'feed' ) );
 
 		// If there is no path, we're looking at the homepage feed.
 		// Get the alias type if there is one.

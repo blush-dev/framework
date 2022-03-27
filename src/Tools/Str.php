@@ -13,6 +13,8 @@
 
 namespace Blush\Tools;
 
+use Symfony\Component\Yaml\Yaml;
+
 class Str
 {
 	/**
@@ -124,6 +126,20 @@ class Str
 	}
 
 	/**
+	 * Captures front matter from a string and returns it without the opening
+	 * and closing `---` lines.
+	 *
+	 * @since  1.0.0
+	 */
+	public static function captureFrontMatter( string $content ): string
+	{
+		return static::match(
+			'/^---[\r\n|\r|\n](.*?)[\r\n|\r|\n]---/s',
+			$content
+		);
+	}
+
+	/**
 	 * Checks if a string contains another string.
 	 *
 	 * @since 1.0.0
@@ -168,6 +184,51 @@ class Str
 		}
 
 		return false;
+	}
+
+	/**
+	 * Captures front matter from a string, passes it through the Yaml
+	 * parser, and returns an array of data.
+	 *
+	 * @since  1.0.0
+	 */
+	public static function frontMatter( string $content ): array
+	{
+		$match = static::captureFrontMatter( $content );
+
+		return $match ? static::yaml( $match ) : [];
+	}
+
+	/**
+	 * Returns a pattern match or empty string.
+	 *
+	 * @since  1.0.0
+	 */
+	public static function match( string $pattern, string $str ): string
+	{
+		preg_match( $pattern, $str, $matches );
+
+		if ( ! $matches ) {
+			return '';
+		}
+
+		return $matches[1] ?? $matches[0];
+	}
+
+	/**
+	 * Returns all pattern matches from a string or an empty array.
+	 *
+	 * @since  1.0.0
+	 */
+	public static function matchAll( string $pattern, string $str ): array
+	{
+		preg_match_all( $pattern, $str, $matches );
+
+		if ( empty( $matches[0] ) ) {
+			return [];
+		}
+
+		return $matches[1] ?? $matches[0];
 	}
 
 	/**
@@ -240,16 +301,6 @@ class Str
 	}
 
 	/**
-	 * Trims slashes from both sides of string.
-	 *
-	 * @since 1.0.0
-	 */
-	public static function slashTrim( string $str ): string
-	{
-		return trim( $str, '/\\' );
-	}
-
-	/**
 	 * Sanitizes a string meant to be used as a slug.
 	 *
 	 * @since 1.0.0
@@ -286,19 +337,52 @@ class Str
 	}
 
 	/**
+	 * Trims front matter from the beginning of a string.
+	 *
+	 * @since  1.0.0
+	 */
+	public static function trimFrontMatter( string $content ): string
+	{
+		return preg_replace(
+			'/^---[\r\n|\r|\n](.*?)[\r\n|\r|\n]---/s',
+			'', $content, 1
+		);
+	}
+
+	/**
+	 * Trims slashes from both sides of string.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function trimSlashes( string $str ): string
+	{
+		return trim( $str, '/\\' );
+	}
+
+	/**
 	 * Returns an excerpt of a string by limiting its number of words.
 	 *
 	 * @since 1.0.0
 	 */
 	public static function words( string $str, int $limit = 50, string $more = '&hellip;' ): string
 	{
-		$limit = $limit > 1 ? $limit - 1 : $limit;
-		preg_match( '/^\s*+(?:\S++\s*+){1,' . $limit . '}/u', $str, $matches );
+		$match = static::match(
+			'/^\s*+(?:\S++\s*+){1,' . $limit . '}/u',
+	 		$str
+		);
 
-	        if ( ! isset( $matches[0] ) ) {
-	    	    return $str;
-	        }
+		return $match ? trim( $match ) . $more : $str;
+	}
 
-		return trim( $matches[0] ) . $more;
+	/**
+	 * Parses a string with the Yaml parser and returns an array.
+	 *
+	 * @since  1.0.0
+	 */
+	public static function yaml( string $content ): array
+	{
+		$yaml = Yaml::parse( $content );
+
+		return is_array( $yaml ) ? $yaml : [];
 	}
 }

@@ -76,7 +76,7 @@ class Router
 		}
 
 		// Trim slashes from the path.
-		$path = Str::slashTrim( $this->path() );
+		$path = Str::trimSlashes( $this->path() );
 
 		// Get excluded paths.
 		$exclude = array_merge( [
@@ -132,7 +132,7 @@ class Router
 
 	        // Trim slashes unless homepage.
 	        if ( '/' !== $path ) {
-	                $path = Str::slashTrim( $path );
+	                $path = Str::trimSlashes( $path );
 	        }
 
 	        // Check for route that is an exact match for the request. This
@@ -160,9 +160,9 @@ class Router
 			// `Route` class. If we have a full pattern match, we
 			// pull out the `{var}` instances and set them as params
 			// and pass them to the route's controller.
-	                if ( @preg_match( $route->pattern(), $path, $matches ) ) {
+			if ( @preg_match( $route->pattern(), $path, $matches ) ) {
 
-	                        // Removes the full match from the array, which
+				// Removes the full match from the array, which
 				// matches the entire URI path.  The leftover
 				// matches are the parameter values.
 	                        array_shift( $matches );

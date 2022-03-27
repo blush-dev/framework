@@ -13,10 +13,8 @@ namespace Blush\Markdown;
 
 // Contracts.
 use Blush\Contracts\Markdown\Parser as ParserContract;
+use Blush\Tools\Str;
 use League\CommonMark\ConverterInterface;
-
-// Concretes.
-use Symfony\Component\Yaml\Yaml;
 
 class Parser implements ParserContract
 {
@@ -60,13 +58,11 @@ class Parser implements ParserContract
 	{
                 $this->front_matter = [];
 
-                $regex = '/^---[\r\n|\r|\n](.*?)[\r\n|\r|\n]---/s';
-
-                preg_match( $regex, $content, $match );
+		$match = Str::captureFrontMatter( $content );
 
                 if ( $match ) {
-                        $this->front_matter = Yaml::parse( $match[1] );
-                        $content = preg_replace( $regex, '', $content, 1 );
+			$this->front_matter = Str::yaml( $match );
+			$content = Str::trimFrontMatter( $content );
                 }
 
                 $this->content = $this->converter->convert(
