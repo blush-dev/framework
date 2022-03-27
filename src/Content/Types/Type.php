@@ -540,4 +540,15 @@ class Type
 		// Return the built routes.
 		return $this->routes;
 	}
+
+	/**
+	 * When attempting to use the object as a string, return the result
+	 * of the `name()` method.
+	 *
+	 * @since 1.0.0
+	 */
+	public function __toString(): string
+	{
+		return $this->name();
+	}
 }
