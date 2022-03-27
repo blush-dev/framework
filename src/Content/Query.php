@@ -275,7 +275,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	protected function build() : void
+	protected function build(): void
 	{
 		$located = $this->locator->all();
 
@@ -336,7 +336,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-        public function all() : array
+        public function all(): array
 	{
 		return $this->entries;
 	}
@@ -346,7 +346,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function hasEntries() : bool
+	public function hasEntries(): bool
 	{
 		return 0 < $this->count();
 	}
@@ -369,7 +369,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function single() : ?Entry
+	public function single(): ?Entry
 	{
 		return $this->first();
 	}
@@ -379,7 +379,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function first() : ?Entry
+	public function first(): ?Entry
 	{
 		if ( ! $this->first && $all = $this->all() ) {
 			$this->first = array_shift( $all );
@@ -393,7 +393,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function last() : ?Entry
+	public function last(): ?Entry
 	{
 		if ( ! $this->last && $all = $this->all() ) {
 			$this->last = array_pop( $all );
@@ -407,7 +407,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function count() : int
+	public function count(): int
 	{
 		return abs( intval( $this->count ) );
 	}
@@ -417,7 +417,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function total() : int
+	public function total(): int
 	{
 		return abs( intval( $this->total ) );
 	}
@@ -427,7 +427,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function number() : int
+	public function number(): int
 	{
 		return abs( intval( $this->number ) );
 	}
@@ -438,7 +438,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function pages() : int
+	public function pages(): int
 	{
 		return abs( intval( ceil( $this->total() / $this->number() ) ) );
 	}
@@ -448,7 +448,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function offset() : int
+	public function offset(): int
 	{
 		return abs( intval( $this->offset ) );
 	}
@@ -503,8 +503,6 @@ class Query implements Makeable, QueryContract, IteratorAggregate
                 $located = [];
 
                 foreach ( $entries as $file => $matter ) {
-
-                //	$pathinfo = pathinfo( $file );
 
 			$slug = Str::afterFirst(
 				pathinfo( $file, PATHINFO_FILENAME ),
@@ -701,7 +699,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-	public function getIterator() : Traversable
+	public function getIterator(): Traversable
 	{
 		return new ArrayIterator( $this->all() );
 	}
