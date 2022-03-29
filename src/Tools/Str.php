@@ -271,13 +271,28 @@ class Str
 			return $str;
 		}
 
-		$pos = strpos( $str, $search );
+		$pos = strrpos( $str, $search );
 
 		if ( false !== $pos ) {
 			return substr_replace( $str, $replace, $pos, strlen( $search ) );
 		}
 
 		return $str;
+	}
+
+	/**
+	 * Ensures that the final two words of string with three or more words
+	 * does not result in a runt (final word hangs on line by itself).
+	 *
+	 * @since 1.0.0
+	 */
+	public static function runt( string $str ): string
+	{
+		if ( 3 >= count( explode( ' ', $str ) ) ) {
+			return $str;
+		}
+
+		return static::replaceLast( ' ', '&nbsp;', $str );
 	}
 
 	/**

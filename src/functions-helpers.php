@@ -401,3 +401,16 @@ if ( ! function_exists( 'sanitize_slug' ) ) {
 		return Str::slug( $str, $sep );
 	}
 }
+
+if ( ! function_exists( 'runt' ) ) {
+	/**
+	 * Ensures that the final two words of string with three or more words
+	 * does not result in a runt (final word hangs on line by itself).
+	 *
+	 * @since 1.0.0
+	 */
+	function runt( string $str ): string
+	{
+		return Str::runt( $str );
+	}
+}
