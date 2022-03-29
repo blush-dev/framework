@@ -212,6 +212,18 @@ if ( ! function_exists( 'media_path' ) ) {
 	}
 }
 
+if ( ! function_exists( 'vendor_path' ) ) {
+	/**
+	 * Returns vendor path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	function vendor_path( string $append = '' ): string
+	{
+		return app()->vendorPath( $append );
+	}
+}
+
 if ( ! function_exists( 'url' ) ) {
 	/**
 	 * Returns app URL with optional appended path. If no appended path,
@@ -344,6 +356,18 @@ if ( ! function_exists( 'media_url' ) ) {
 	function media_url( string $append = '' ): string
 	{
 		return app()->mediaUrl( $append );
+	}
+}
+
+if ( ! function_exists( 'vendor_url' ) ) {
+	/**
+	 * Returns vendor URL with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	function vendor_url( string $append = '' ): string
+	{
+		return app()->vendorUrl( $append );
 	}
 }
 

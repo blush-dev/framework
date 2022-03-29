@@ -158,19 +158,21 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->instance( 'path.user',     Str::appendPath( $this['path'],         'user'      ) );
 		$this->instance( 'path.content',  Str::appendPath( $this['path.user'],    'content'   ) );
 		$this->instance( 'path.media',    Str::appendPath( $this['path.user'],    'media'     ) );
+		$this->instance( 'path.vendor',   Str::appendPath( $this['path'],         'vendor'    ) );
 
 		// Add default URIs.
 		$this->instance( 'url',          $this['config']->get( 'app.uri' )                   );
 		$this->instance( 'url.app',      $this['url']                                        );
-		$this->instance( 'url.config',   Str::appendUri( $this['url'],         'config'    ) );
-		$this->instance( 'url.public',   Str::appendUri( $this['url'],         'public'    ) );
-		$this->instance( 'url.view',     Str::appendUri( $this['url.public'],  'views'     ) );
-		$this->instance( 'url.resource', Str::appendUri( $this['url'],         'resources' ) );
-		$this->instance( 'url.storage',  Str::appendUri( $this['url'],         'storage'   ) );
-		$this->instance( 'url.cache',    Str::appendUri( $this['url.storage'], 'cache'     ) );
-		$this->instance( 'url.user',     Str::appendUri( $this['url'],         'user'      ) );
-		$this->instance( 'url.content',  Str::appendUri( $this['url.user'],    'content'   ) );
-		$this->instance( 'url.media',    Str::appendUri( $this['url.user'],    'media'     ) );
+		$this->instance( 'url.config',   Str::appendPath( $this['url'],         'config'    ) );
+		$this->instance( 'url.public',   Str::appendPath( $this['url'],         'public'    ) );
+		$this->instance( 'url.view',     Str::appendPath( $this['url.public'],  'views'     ) );
+		$this->instance( 'url.resource', Str::appendPath( $this['url'],         'resources' ) );
+		$this->instance( 'url.storage',  Str::appendPath( $this['url'],         'storage'   ) );
+		$this->instance( 'url.cache',    Str::appendPath( $this['url.storage'], 'cache'     ) );
+		$this->instance( 'url.user',     Str::appendPath( $this['url'],         'user'      ) );
+		$this->instance( 'url.content',  Str::appendPath( $this['url.user'],    'content'   ) );
+		$this->instance( 'url.media',    Str::appendPath( $this['url.user'],    'media'     ) );
+		$this->instance( 'url.vendor',   Str::appendPath( $this['url'],         'vendor'    ) );
 	}
 
 	/**
@@ -438,6 +440,16 @@ class Application extends Container implements ApplicationContract, Bootable
 	}
 
 	/**
+	 * Returns vendor path with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function vendorPath( string $append = '' ): string
+	{
+		return $this->path( 'vendor', $append );
+	}
+
+	/**
 	 * Access a keyed URL and append a path to it.
 	 *
 	 * @since  1.0.0
@@ -546,5 +558,15 @@ class Application extends Container implements ApplicationContract, Bootable
 	public function mediaUrl( string $append = '' ): string
 	{
 	        return $this->url( 'media', $append );
+	}
+
+	/**
+	 * Returns vendor URL with optional appended path/file.
+	 *
+	 * @since 1.0.0
+	 */
+	public function vendorUrl( string $append = '' ): string
+	{
+		return $this->url( 'vendor', $append );
 	}
 }
