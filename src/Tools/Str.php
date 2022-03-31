@@ -261,6 +261,36 @@ class Str
 	}
 
 	/**
+	 * Pads both sides of a string.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function pad( string $str, int $length, string $pad = ' ' ): string
+	{
+		return str_pad( $str, $length, $pad, STR_PAD_BOTH );
+	}
+
+	/**
+	 * Pads both sides of a string.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function padLeft( string $str, int $length, string $pad = ' ' ): string
+	{
+		return str_pad( $str, $length, $pad, STR_PAD_LEFT );
+	}
+
+	/**
+	 * Pads both sides of a string.
+	 *
+	 * @since 1.0.0
+	 */
+	public static function padRight( string $str, int $length, string $pad = ' ' ): string
+	{
+		return str_pad( $str, $length, $pad, STR_PAD_RIGHT );
+	}
+
+	/**
 	 * Replaces the last occurrence of a string.
 	 *
 	 * @since 1.0.0
