@@ -109,6 +109,7 @@ class Pagination implements Displayable, Renderable
 			'end_size'           => 1,
 			'mid_size'           => 1,
 			'prev_next'          => true,
+			'leading_zeroes'     => false,
 
 			// Custom text, content, and HTML.
 			'prev_text'          => '&larr; Previous',
@@ -119,17 +120,19 @@ class Pagination implements Displayable, Renderable
 			'after_page_number'  => '',
 
 			// HTML tags.
-			'container_tag'      => 'nav',
+			'container_tag'      => 'div',
+			'nav_tag'            => 'nav',
 			'title_tag'          => 'h2',
 			'list_tag'           => 'ul',
 			'item_tag'           => 'li',
 
 			// Attributes.
-			'container_class'    => 'pagination',
-			'title_class'        => 'pagination__title screen-reader-text',
-			'list_class'         => 'pagination__items',
-			'item_class'         => 'pagination__item pagination__item--%s',
-			'anchor_class'       => 'pagination__anchor pagination__anchor--%s',
+			'container_class'    => 'block-pagination',
+			'nav_class'          => 'block-pagination__nav',
+			'title_class'        => 'block-pagination__title',
+			'list_class'         => 'block-pagination__items',
+			'item_class'         => 'block-pagination__item block-pagination__item--%s',
+			'anchor_class'       => 'block-pagination__anchor block-pagination__anchor--%s',
 			'aria_current'       => 'page'
 		], $options );
 	}
@@ -172,6 +175,36 @@ class Pagination implements Displayable, Renderable
 	public function isPaged(): bool
 	{
 		return 1 < $this->current();
+	}
+
+	/**
+	 * Conditionally check a number against the current page.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isPage( int $number ): bool
+	{
+		return $number === $this->current();
+	}
+
+	/**
+	 * Conditional check for whether currently viewing first page.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isFirstPage(): bool
+	{
+		return 1 === $this->current();
+	}
+
+	/**
+	 * Conditional check for whether currently viewing the last page.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isLastPage(): bool
+	{
+		return $this->total() === $this->current();
 	}
 
 	/**
@@ -224,11 +257,21 @@ class Pagination implements Displayable, Renderable
 		        // Format the nav wrapper.
 		        $template = sprintf(
 		                '<%1$s class="%2$s" role="navigation">%3$s%4$s</%1$s>',
-		                escape_tag( $this->display['container_tag'] ),
-		                e( $this->display['container_class'] ),
+		                escape_tag( $this->display['nav_tag'] ),
+		                e( $this->display['nav_class'] ),
 		                $title,
 		                $list
 		        );
+
+			// Format the container wrapper.
+			if ( $this->display['container_tag'] ) {
+				$template = sprintf(
+					'<%1$s class="%2$s">%3$s</%1$s>',
+			                escape_tag( $this->display['container_tag'] ),
+			                e( $this->display['container_class'] ),
+			                $template
+				);
+			}
 		}
 
 		return $template;
@@ -320,7 +363,7 @@ class Pagination implements Displayable, Renderable
 	 */
 	protected function prevItem(): void
 	{
-		if ( $this->display['prev_next'] && $this->current && 1 < $this->current ) {
+		if ( $this->display['prev_next'] && $this->display['prev_text'] && $this->current && 1 < $this->current ) {
 
 			$this->items[] = [
 				'type'    => 'prev',
@@ -337,7 +380,7 @@ class Pagination implements Displayable, Renderable
 	 */
 	protected function nextItem(): void
 	{
-		if ( $this->display['prev_next'] && $this->current && $this->current < $this->total ) {
+		if ( $this->display['prev_next'] && $this->display['next_text'] && $this->current && $this->current < $this->total ) {
 			$this->items[] = [
 				'type'    => 'next',
 				'url'     => $this->buildUrl( $this->format, $this->current + 1 ),
@@ -353,13 +396,19 @@ class Pagination implements Displayable, Renderable
 	 */
 	protected function pageItem( int $n ): void
 	{
+		$length = 10 < $this->total() ? strlen( $this->total() ) : 2;
+
+		$number = $this->display['leading_zeroes']
+			  ? Str::padLeft( $n, $length, '0' )
+			  : $n;
+
 		// If the current item we're building is for the current page
 		// being viewed.
 		if ( $n === $this->current ) {
 
 			$this->items[] = [
 				'type'    => 'current',
-				'content' => $this->display['before_page_number'] . e( $n ) . $this->display['after_page_number']
+				'content' => $this->display['before_page_number'] . e( $number ) . $this->display['after_page_number']
 			];
 
 			$this->dots = true;
@@ -378,13 +427,14 @@ class Pagination implements Displayable, Renderable
 					|| $n > $this->total - $this->display['end_size']
 				)
 			) {
+
 				$this->items[] = [
 					'type'    => 'number',
 					'url'     => $this->buildUrl( 1 == $n ? '' : $this->format, $n ),
 					'content' => sprintf(
 						'%s%s%s',
 						$this->display['before_page_number'],
-						e( $n ),
+						e( $number ),
 						$this->display['after_page_number']
 					)
 				];
