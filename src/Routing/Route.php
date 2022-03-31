@@ -149,7 +149,7 @@ class Route implements Makeable
 		}
 
 		// Build final pattern for the full route URI.
-		$this->pattern = "#{$regex}\/?$#i";
+		$this->pattern = "#^{$regex}\/?$#i";
 
 		// Return route for chaining methods.
 		return $this;
