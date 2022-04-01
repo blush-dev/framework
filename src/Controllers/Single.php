@@ -23,7 +23,7 @@ class Single extends Controller
 	 *
 	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [], Request $request ): Response
+	public function __invoke( array $params, Request $request ): Response
 	{
 		$types = App::resolve( 'content.types' );
 

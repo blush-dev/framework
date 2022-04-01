@@ -23,11 +23,8 @@ class Cache extends Controller
 	 * Callback method when route matches request.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  array  $params
-	 * @return Response
 	 */
-	public function __invoke( array $params = [], Request $request ): Response
+	public function __invoke( array $params, Request $request ): Response
 	{
 		$purge_key = Config::get( 'cache.purge_key' );
 

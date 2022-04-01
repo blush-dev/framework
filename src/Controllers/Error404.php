@@ -22,7 +22,7 @@ class Error404 extends Controller
 	 *
 	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [], Request $request ): Response
+	public function __invoke( array $params, Request $request ): Response
 	{
 		$single = Query::make( [
 			'path' => '_error',

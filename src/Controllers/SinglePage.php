@@ -23,7 +23,7 @@ class SinglePage extends Single
 	 *
 	 * @since 1.0.0
 	 */
-	public function __invoke( array $params = [], Request $request ): Response
+	public function __invoke( array $params, Request $request ): Response
 	{
 		$path = $params['path'] ?? '';
 		$name = Str::afterLast( $path, '/' );

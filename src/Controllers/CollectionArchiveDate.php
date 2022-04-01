@@ -22,9 +22,9 @@ class CollectionArchiveDate extends Controller
 	/**
 	 * Callback method when route matches request.
 	 *
-	 * @since 1.0.0
+	 * @since  1.0.0
 	 */
-	public function __invoke( array $params = [], Request $request ): Response
+	public function __invoke( array $params, Request $request ): Response
 	{
 		$types = App::resolve( 'content.types' );
 

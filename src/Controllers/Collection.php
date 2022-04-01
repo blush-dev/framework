@@ -21,9 +21,9 @@ class Collection extends Controller
 	/**
 	 * Callback method when route matches request.
 	 *
-	 * @since 1.0.0
+	 * @since  1.0.0
 	 */
-	public function __invoke( array $params = [], Request $request ): Response
+	public function __invoke( array $params, Request $request ): Response
 	{
 		// Get all content types.
 		$types = App::get( 'content.types' );
