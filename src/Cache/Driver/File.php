@@ -188,7 +188,7 @@ class File extends Store
 	 * @since  1.0.0
 	 * @return mixed
 	 */
-	public function remember( string $key, int $seconds = 0, Closure $callback )
+	public function remember( string $key, int $seconds, Closure $callback )
 	{
 		$data = $this->get( $key );
 
