@@ -202,7 +202,7 @@ class Route implements Makeable
 	 *
 	 * @since 1.0.0
 	 */
-	public function callback( array $params = [], Request $request ): Response
+	public function callback( array $params, Request $request ): Response
 	{
 		// Get the route controller.
 		$callback = $this->controller();
