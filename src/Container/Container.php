@@ -429,6 +429,7 @@ class Container implements ContainerContract, ArrayAccess
 	* @param  string  $name
 	* @return mixed
 	*/
+	#[\ReturnTypeWillChange]
 	public function offsetGet( $name )
 	{
 		return $this->get( $name );

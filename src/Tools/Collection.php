@@ -135,8 +135,9 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Returns a JSON-ready array of data.
 	 *
 	 * @since  1.0.0
-	 * @return array
+	 * @return mixed
 	 */
+	#[\ReturnTypeWillChange]
 	public function jsonSerialize()
 	{
 		return array_map( function( $value ) {
