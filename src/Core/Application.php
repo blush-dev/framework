@@ -161,8 +161,12 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->instance( 'path.vendor',   Str::appendPath( $this['path'],         'vendor'    ) );
 
 		// Add default URIs.
-		$this->instance( 'url',          $this['config']->get( 'app.uri' )                   );
-		$this->instance( 'url.app',      $this['url']                                        );
+		if ( ! $url = $this->config->get( 'app.uri' ) ) {
+			$url = $this->config->get( 'app.url' );
+		}
+
+		$this->instance( 'url',          $url                                                 );
+		$this->instance( 'url.app',      $this['url']                                         );
 		$this->instance( 'url.config',   Str::appendPath( $this['url'],         'config'    ) );
 		$this->instance( 'url.public',   Str::appendPath( $this['url'],         'public'    ) );
 		$this->instance( 'url.view',     Str::appendPath( $this['url.public'],  'views'     ) );

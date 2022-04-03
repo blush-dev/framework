@@ -24,7 +24,8 @@ class App
 	public static function schema(): Schema
 	{
 		return Expect::structure( [
-			'uri'         => Expect::string()->default( 'http://localhost' ),
+			'url'         => Expect::string( 'http://localhost' ),
+			'uri'         => Expect::string( '' ),
 			'title'       => Expect::string()->default( 'Blush' ),
 			'tagline'     => Expect::string()->default( '' ),
 			'timezone'    => Expect::string()->default( 'America/Chicago' ),
