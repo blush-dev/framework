@@ -13,6 +13,7 @@ namespace Blush\Markdown;
 
 use Blush\Tools\Str;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
 use League\CommonMark\Node\Node;
 use League\CommonMark\Node\Inline\Text;
 use League\CommonMark\Renderer\ChildNodeRendererInterface;
@@ -31,6 +32,7 @@ class ImageRenderer implements NodeRendererInterface
                 $url        = $node->getUrl();
 		$alt        = '';
 		$figcaption = '';
+		$attr       = [];
 
                 if ( Str::startsWith( $url, '/' ) ) {
 			$url = Str::appendUri( url( $url ) );
@@ -39,6 +41,18 @@ class ImageRenderer implements NodeRendererInterface
                 if ( 1 === count( $node->children() ) && $node->firstChild() instanceof Text ) {
                 	$alt = $childRenderer->renderNodes( $node->children() );
                 }
+
+		// Get attributes from `<img>` element if they exist.
+		if ( ! empty( $node->data['attributes'] ) ) {
+			$attr = $node->data['attributes'];
+
+		// If the `<img>` parent is a link, try its attributes.
+		} elseif ( $node->parent() instanceof Link ) {
+			if ( ! empty( $node->parent()->data['attributes'] ) ) {
+				$attr = $node->parent()->data['attributes'];
+				$node->parent()->data['attributes'] = [];
+			}
+		}
 
                 $image = new HtmlElement( 'img', [
                         'src' => e( $url ),
@@ -55,7 +69,7 @@ class ImageRenderer implements NodeRendererInterface
 
                 return new HtmlElement(
                         'figure',
-                        $node->data['attributes'] ?? [],
+                        $attr,
                         "{$image}\n{$figcaption}"
                 );
         }
