@@ -25,15 +25,17 @@ class App
 	{
 		return Expect::structure( [
 			'url'         => Expect::string( 'http://localhost' ),
-			'uri'         => Expect::string( '' ),
-			'title'       => Expect::string()->default( 'Blush' ),
-			'tagline'     => Expect::string()->default( '' ),
-			'timezone'    => Expect::string()->default( 'America/Chicago' ),
-			'date_format' => Expect::string()->default( 'F j, Y' ),
-			'time_format' => Expect::string()->default( 'g:i a' ),
-			'home_alias'  => Expect::string()->default( '' ),
-			'providers'   => Expect::array()->default( [] ),
-			'proxies'     => Expect::array()->default( [] )
+			'title'       => Expect::string( 'Blush' ),
+			'tagline'     => Expect::string( '' ),
+			'timezone'    => Expect::string( 'America/Chicago' ),
+			'date_format' => Expect::string( 'F j, Y' ),
+			'time_format' => Expect::string( 'g:i a' ),
+			'home_alias'  => Expect::string( '' ),
+			'providers'   => Expect::array( [] ),
+			'proxies'     => Expect::array( [] ),
+
+			// @deprecated 1.0.0 Soft deprecation in favor of `url`.
+			'uri'         => Expect::string( '' )
 		] );
 	}
 }

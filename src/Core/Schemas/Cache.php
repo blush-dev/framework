@@ -24,13 +24,13 @@ class Cache
 	public static function schema(): Schema
 	{
 		return Expect::structure( [
-			'purge_key'            => Expect::string()->default( '' ),
-			'expires'              => Expect::int()->default( 0 ),
-			'content_exclude_meta' => Expect::array()->default( [] ),
-			'global'               => Expect::bool()->default( false ),
-			'global_exclude'       => Expect::array()->default( [] ),
-			'stores'               => Expect::arrayOf( 'array',  'string' )->default( [] ),
-			'drivers'              => Expect::arrayOf( 'string', 'string' )->default( [] )
+			'purge_key'            => Expect::string( '' ),
+			'expires'              => Expect::int( 0 ),
+			'content_exclude_meta' => Expect::array( [] ),
+			'global'               => Expect::bool( false ),
+			'global_exclude'       => Expect::array( [] ),
+			'stores'               => Expect::arrayOf( 'array',  'string' ),
+			'drivers'              => Expect::arrayOf( 'string', 'string' )
 		] );
 	}
 }
