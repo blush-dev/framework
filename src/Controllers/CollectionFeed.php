@@ -62,9 +62,10 @@ class CollectionFeed extends Controller
 			$channel = new Channel();
 
 			$channel->title( e( sprintf(
-				'%s - %s',
+				'%s%s',
 				Config::get( 'app.title' ),
-				$single->title()
+				// If no path, we're viewing the homepage feed.
+				$path ? ' - ' . $single->title() : ''
 			) ) );
 
 			$channel->url( $type->url() );
