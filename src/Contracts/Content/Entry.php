@@ -43,19 +43,15 @@ interface Entry
 	 * Returns entry metadata.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $default
-	 * @return mixed
 	 */
-	public function meta( string $name = '', $default = false );
+	public function meta( string $name = '', mixed $default = false ): mixed;
 
 	/**
 	 * Returns only a single meta value.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $default
-	 * @return mixed
 	 */
-	public function metaSingle( string $name, $default = false );
+	public function metaSingle( string $name, mixed $default = false ): mixed;
 
 	/**
 	 * Ensures that an array of meta values is returned.
@@ -69,9 +65,8 @@ interface Entry
 	 * entry's metadata.
 	 *
 	 * @since  1.0.0
-	 * @return Query|false
 	 */
-	public function metaQuery( string $name, array $args = [] );
+	public function metaQuery( string $name, array $args = [] ): Query|bool;
 
 	/**
 	 * Returns the entry title.
@@ -112,9 +107,8 @@ interface Entry
 	 * Returns a Query of taxonomy entries or false.
 	 *
 	 * @since  1.0.0
-	 * @return false|Query
 	 */
-	public function terms( string $taxonomy, array $args = [] );
+	public function terms( string $taxonomy, array $args = [] ): Query|bool;
 
 	/**
 	 * Returns the entry excerpt.

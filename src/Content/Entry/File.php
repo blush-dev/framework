@@ -123,9 +123,8 @@ abstract class File extends Entry
 	 * Returns the file's pathinfo or a specific value.
 	 *
 	 * @since  1.0.0
-	 * @return array|string
 	 */
-	public function pathinfo( string $key = '' )
+	public function pathinfo( string $key = '' ): array|string
 	{
 		if ( $key ) {
 			return $this->pathinfo[ $key ] ?? '';

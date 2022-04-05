@@ -53,9 +53,8 @@ class Registry
 	 * Returns data from a store via `store.key`.
 	 *
 	 * @since  1.0.0
-	 * @return mixed|null
 	 */
-	public function get( string $name )
+	public function get( string $name ): mixed
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -66,9 +65,8 @@ class Registry
 	 * Writes new data or replaces existing data via `store.key`.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $data
 	 */
-	public function put( string $name, $data, int $seconds = 0 ): bool
+	public function put( string $name, mixed $data, int $seconds = 0 ): bool
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -116,9 +114,8 @@ class Registry
 	 * is executed to pass in custom data and write it.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function remember( string $name, int $seconds, Closure $callback )
+	public function remember( string $name, int $seconds, Closure $callback ): mixed
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -130,9 +127,8 @@ class Registry
 	 * is executed to pass in custom data and write it. Doesn't expire.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function rememberForever( string $name, Closure $callback )
+	public function rememberForever( string $name, Closure $callback ): mixed
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -143,9 +139,8 @@ class Registry
 	 * Gets and returns data via `store.key`. Deletes previous data.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function pull( string $name )
+	public function pull( string $name ): mixed
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -178,9 +173,8 @@ class Registry
 	 * Returns a store object or `false`.
 	 *
 	 * @since  1.0.0
-	 * @return Store|false
 	 */
-	public function store( string $store )
+	public function store( string $store ): Store|bool
 	{
 		if ( isset( $this->stores[ $store ] ) ) {
 			return $this->stores[ $store ];
@@ -206,7 +200,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function addStore( string $name, array $options = [] )
+	public function addStore( string $name, array $options = [] ): void
 	{
 		$options = array_merge( [ 'driver' => 'file' ], $options );
 
@@ -233,7 +227,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function removeStore( string $store )
+	public function removeStore( string $store ): void
 	{
 		if ( isset( $this->stores[ $store ] ) ) {
 			unset( $this->stores[ $store ] );
@@ -254,9 +248,8 @@ class Registry
 	 * Returns a driver.
 	 *
 	 * @since  1.0.0
-	 * @return string|false
 	 */
-	public function driver( $name )
+	public function driver( string $name ): string|bool
 	{
 		return $this->drivers[ $name ] ?? false;
 	}
@@ -266,7 +259,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function driverExists( $name ): bool
+	public function driverExists( string $name ): bool
 	{
 		return isset( $this->drivers[ $name ] );
 	}
@@ -276,7 +269,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function addDriver( string $name, string $driver )
+	public function addDriver( string $name, string $driver ): void
 	{
 		$this->drivers[ $name ] = $driver;
 	}
@@ -286,7 +279,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function removeDriver( string $name )
+	public function removeDriver( string $name ): void
 	{
 		if ( isset( $this->drivers[ $name ] ) ) {
 			unset( $this->drivers[ $name ] );

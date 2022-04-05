@@ -95,9 +95,8 @@ class File extends Store
 	 * Returns data from a store by cache key.
 	 *
 	 * @since  1.0.0
-	 * @return mixed|null
 	 */
-	public function get( string $key )
+	public function get( string $key ): mixed
 	{
 		if ( $this->hasData( $key ) ) {
 			return $this->getData( $key );
@@ -122,9 +121,8 @@ class File extends Store
 	 * Writes new data or replaces existing data by cache key.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $data
 	 */
-	public function put( string $key, $data, int $seconds = 0 ): bool
+	public function put( string $key, mixed $data, int $seconds = 0 ): bool
 	{
 		$data = serialize( [
 			'meta' => [
@@ -186,9 +184,8 @@ class File extends Store
 	 * executed to pass in custom data and write it.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function remember( string $key, int $seconds, Closure $callback )
+	public function remember( string $key, int $seconds, Closure $callback ): mixed
 	{
 		$data = $this->get( $key );
 
@@ -207,9 +204,8 @@ class File extends Store
 	 * executed to pass in custom data and write it. Doesn't expire.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function rememberForever( string $key, Closure $callback )
+	public function rememberForever( string $key, Closure $callback ): mixed
 	{
 		return $this->remember( $key, 0, $callback );
 	}
@@ -218,9 +214,8 @@ class File extends Store
 	 * Gets and returns data by key. Deletes previous data.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function pull( string $key )
+	public function pull( string $key ): mixed
 	{
 		$data = $this->get( $key );
 

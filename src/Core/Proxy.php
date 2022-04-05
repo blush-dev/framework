@@ -60,10 +60,8 @@ class Proxy
 	 * container statically.
 	 *
 	 * @since  1.0.0
-	 * @param  array   $args
-	 * @return mixed
 	 */
-	public static function __callStatic( string $method, $args )
+	public static function __callStatic( string $method, array $args ): mixed
 	{
 		$instance = static::instance();
 		return $instance ? $instance->$method( ...$args ) : null;

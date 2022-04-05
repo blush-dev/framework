@@ -103,10 +103,8 @@ class MarkdownFile extends File
 	 * Returns entry metadata.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $default
-	 * @return mixed
 	 */
-	public function meta( string $name = '', $default = false )
+	public function meta( string $name = '', mixed $default = false ): mixed
 	{
 		if ( $this->nocontent && ! $this->yaml_parsed ) {
 			$this->parseYaml();

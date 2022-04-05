@@ -17,9 +17,8 @@ if ( ! function_exists( 'app' ) ) {
 	 * Returns an instance of the application or a binding.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	function app( $abstract = '', array $params = [] )
+	function app( string $abstract = '', array $params = [] ): mixed
 	{
 		return App::resolve( $abstract ?: 'app', $params );
 	}
@@ -56,9 +55,8 @@ if ( ! function_exists( 'config' ) ) {
 	 *
 	 * @since  1.0.0
 	 * @param  string  $deprecated  Setting key. Use dot notation instead.
-	 * @return mixed
 	 */
-	function config( string $name, string $deprecated = '' )
+	function config( string $name, string $deprecated = '' ): mixed
 	{
 		if ( $deprecated && ! Str::contains( $name, '.' ) ) {
 			$name = "{$name}.{$deprecated}";
@@ -231,9 +229,8 @@ if ( ! function_exists( 'url' ) ) {
 	 * app URL. Or, it can be used as a static class to access its methods.
 	 *
 	 * @since  1.0.0
-	 * @return string|Url
 	 */
-	function url( string $append = '' )
+	function url( string $append = '' ): Url|string
 	{
 		return $append ? Url::to( $append ) : Url::make();
 	}

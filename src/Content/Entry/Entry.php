@@ -13,6 +13,7 @@ namespace Blush\Content\Entry;
 
 // Abstracts.
 use Blush\Contracts\Content\Entry as EntryContract;
+use Blush\Contracts\Content\Query as QueryContract;
 
 // Concretes.
 use Blush\{App, Config, Query, Url};
@@ -174,10 +175,8 @@ abstract class Entry implements EntryContract
 	 * Returns entry metadata.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $default
-	 * @return mixed
 	 */
-	public function meta( string $name = '', $default = false )
+	public function meta( string $name = '', mixed $default = false ): mixed
 	{
 		if ( $name ) {
 			return $this->meta[ $name ] ?? $default;
@@ -191,10 +190,8 @@ abstract class Entry implements EntryContract
 	 * if the metadata is an array.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $default
-	 * @return mixed
 	 */
-	public function metaSingle( string $name, $default = false )
+	public function metaSingle( string $name, mixed $default = false ): mixed
 	{
 		$meta = $this->meta( $name, $default );
 		return $meta && is_array( $meta ) ? array_shift( $meta ) : $meta;
@@ -219,9 +216,8 @@ abstract class Entry implements EntryContract
 	 * entry's metadata.
 	 *
 	 * @since  1.0.0
-	 * @return Query|false
 	 */
-	public function metaQuery( string $name, array $args = [] )
+	public function metaQuery( string $name, array $args = [] ): QueryContract|bool
 	{
 		if ( isset( $this->resolved_meta[ $name ] ) ) {
 			return $this->resolved_meta[ $name ];
@@ -251,7 +247,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function title():  string
+	public function title(): string
 	{
 		return (string) $this->metaSingle( 'title' );
 	}
@@ -261,7 +257,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function subtitle():  string
+	public function subtitle(): string
 	{
 		return (string) $this->metaSingle( 'subtitle' );
 	}
@@ -271,7 +267,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function date():  string
+	public function date(): string
 	{
 		if ( ! $date = $this->metaSingle( 'date' ) ) {
 			return '';
@@ -288,7 +284,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function author():  string
+	public function author(): string
 	{
 		return (string) $this->metaSingle( 'author' );
 	}
@@ -298,7 +294,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function authors():  array
+	public function authors(): array
 	{
 		return (string) $this->metaArr( 'author' );
 	}
@@ -339,9 +335,8 @@ abstract class Entry implements EntryContract
 	 * Returns a Query of taxonomy entries or false.
 	 *
 	 * @since  1.0.0
-	 * @return false|Query
 	 */
-	public function terms( string $taxonomy, array $args = [] )
+	public function terms( string $taxonomy, array $args = [] ): QueryContract|bool
 	{
 		$types = App::resolve( 'content.types' );
 
@@ -372,7 +367,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function excerpt( int $limit = 50, string $more = '&hellip;' ):  string
+	public function excerpt( int $limit = 50, string $more = '&hellip;' ): string
 	{
 		if ( $content = $this->metaSingle( 'excerpt' ) ) {
 			return App::resolve( 'markdown' )->convert(

@@ -78,24 +78,22 @@ abstract class Store
 	 * Returns data from a store by cache key.
 	 *
 	 * @since  1.0.0
-	 * @return mixed|null
 	 */
-	abstract public function get( string $key );
+	abstract public function get( string $key ): mixed;
 
 	/**
 	 * Writes new data or replaces existing data by cache key.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $data
 	 */
-	abstract public function put( string $key, $data, int $seconds = 0 ): bool;
+	abstract public function put( string $key, mixed $data, int $seconds = 0 ): bool;
 
 	/**
 	 * Writes new data if it doesn't exist by cache key.
 	 *
 	 * @since  1.0.0
 	 */
-	abstract public function add( string $key, $data, int $seconds = 0 ): bool;
+	abstract public function add( string $key, mixed $data, int $seconds = 0 ): bool;
 
 	/**
 	 * Deletes data if it exists by cache key.
@@ -116,18 +114,16 @@ abstract class Store
 	 * executed to pass in custom data and write it.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	abstract public function remember( string $key, int $seconds, Closure $callback );
+	abstract public function remember( string $key, int $seconds, Closure $callback ): mixed;
 
 	/**
 	 * Gets and returns data by cache key. If it doesn't exist, callback is
 	 * executed to pass in custom data and write it. Doesn't expire.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	abstract public function rememberForever( string $key, Closure $callback );
+	abstract public function rememberForever( string $key, Closure $callback ): mixed;
 
 	/**
 	 * Deletes all cached data from a store.
@@ -140,9 +136,8 @@ abstract class Store
 	 * Gets and returns data by key. Deletes previous data.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	abstract public function pull( string $key );
+	abstract public function pull( string $key ): mixed;
 
 	/**
 	 * Helper function for creating an expiration time when added to the
@@ -169,9 +164,8 @@ abstract class Store
 	 * Returns store's data by key if it is set.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	protected function getData( string $key )
+	protected function getData( string $key ): mixed
 	{
 		return $this->data[ $key ]['data'];
 	}
@@ -181,7 +175,7 @@ abstract class Store
 	 *
 	 * @since  1.0.0
 	 */
-	protected function setData( string $key, $data ): void
+	protected function setData( string $key, mixed $data ): void
 	{
 		if ( ! is_array( $data ) || ! isset( $data['meta'] ) ) {
 			$data = [

@@ -26,9 +26,8 @@ class JsonFile extends File
 	 * Returns data from a store by cache key.
 	 *
 	 * @since  1.0.0
-	 * @return array|null
 	 */
-	public function get( string $key )
+	public function get( string $key ): mixed
 	{
 		if ( $this->hasData( $key ) ) {
 			return $this->getData( $key );
@@ -51,9 +50,8 @@ class JsonFile extends File
 	 * Writes new data or replaces existing data by cache key.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $data
 	 */
-	public function put( string $key, $data, int $seconds = 0 ): bool
+	public function put( string $key, mixed $data, int $seconds = 0 ): bool
 	{
 		$put = $this->putJsonFileContents( $key, $data, $seconds );
 
@@ -68,9 +66,8 @@ class JsonFile extends File
 	 * Gets the cache file contents by key and runs it through `json_decode()`.
 	 *
 	 * @since  1.0.0
-	 * @return array|false
 	 */
-	protected function getJsonFileContents( string $key )
+	protected function getJsonFileContents( string $key ): array|bool
 	{
 		if ( ! $this->fileExists( $key ) ) {
 			return false;

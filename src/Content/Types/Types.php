@@ -33,10 +33,8 @@ class Types extends Collection
 	 * Adds a custom content type.
 	 *
 	 * @since  1.0.0
-	 * @param  string  $name
-	 * @param  array   $options
 	 */
-	public function add( $name, $options = [] ): void
+	public function add( mixed $name, mixed $options = [] ): void
 	{
 		parent::add( $name, new Type( $name, $options ) );
 	}
@@ -45,9 +43,8 @@ class Types extends Collection
 	 * Gets a custom content type by its path.
 	 *
 	 * @since  1.0.0
-	 * @return Type|false
 	 */
-	public function getTypeFromPath( string $path )
+	public function getTypeFromPath( string $path ): Type|bool
 	{
 		// If there is no path, this is a page.
 		if ( '' === $path ) {
@@ -70,9 +67,8 @@ class Types extends Collection
 	 * Gets a custom content type by its URI.
 	 *
 	 * @since  1.0.0
-	 * @return Type|false
 	 */
-	public function getTypeFromUri( string $uri )
+	public function getTypeFromUri( string $uri ): Type|bool
 	{
 		// If there is no URI, this is a page.
 		if ( '' === $uri ) {

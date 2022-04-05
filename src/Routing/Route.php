@@ -190,9 +190,8 @@ class Route implements Makeable
 	 * Returns the route controller.
 	 *
 	 * @since  1.0.0
-	 * @return string|Controller
 	 */
-	public function controller()
+	public function controller(): Controller|string
 	{
 		return $this->controller;
 	}
@@ -250,10 +249,8 @@ class Route implements Makeable
 	 * Add custom param to regex mapping.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $name
-	 * @param  string|null   $regex
 	 */
-	public function where( $name, $regex = null ): void
+	public function where( string|array $name, ?string $regex = null ): void
 	{
 		$wheres = $this->parseWhere( $name, $regex );
 
@@ -276,10 +273,8 @@ class Route implements Makeable
 	 * Parses where mapping.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $name
-	 * @param  string|null   $regex
 	 */
-	protected function parseWhere( $name, ?string $regex = null ): array
+	protected function parseWhere( string|array $name, ?string $regex = null ): array
 	{
 		return is_array( $name ) ? $name : [ $name => $regex ];
 	}
@@ -288,9 +283,8 @@ class Route implements Makeable
 	 * Adds parameters to wheres with slug-based regex pattern.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $parameters
 	 */
-	public function whereSlug( $parameters ): void
+	public function whereSlug( string|array $parameters ): void
 	{
 		$this->addPatternToParameters( $parameters, '[a-zA-Z0-9_-]+' );
 	}
@@ -299,9 +293,8 @@ class Route implements Makeable
 	 * Adds parameters to wheres with alpha-based regex pattern.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $parameters
 	 */
-	public function whereAlpha( $parameters ): void
+	public function whereAlpha( string|array $parameters ): void
 	{
 		$this->addPatternToParameters( $parameters, '[a-zA-Z]+' );
 	}
@@ -310,9 +303,8 @@ class Route implements Makeable
 	 * Adds parameters to wheres with alphanumeric-based regex pattern.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $parameters
 	 */
-	public function whereAlphaNumeric( $parameters ): void
+	public function whereAlphaNumeric( string|array $parameters ): void
 	{
 		$this->addPatternToParameters( $parameters, '[a-zA-Z0-9]+' );
 	}
@@ -321,9 +313,8 @@ class Route implements Makeable
 	 * Adds parameters to wheres with number-based regex pattern.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $parameters
 	 */
-	public function whereNumber( $parameters ): void
+	public function whereNumber( string|array $parameters ): void
 	{
 		$this->addPatternToParameters( $parameters, '[0-9]+' );
 	}
@@ -332,9 +323,8 @@ class Route implements Makeable
 	 * Adds parameters to wheres with year-based regex pattern.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $parameters
 	 */
-	public function whereYear( $parameters ): void
+	public function whereYear( string|array $parameters ): void
 	{
 		$this->addPatternToParameters( $parameters, '[0-9]{4}' );
 	}
@@ -343,9 +333,8 @@ class Route implements Makeable
 	 * Adds parameters to wheres with month-based regex pattern.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $parameters
 	 */
-	public function whereMonth( $parameters ): void
+	public function whereMonth( string|array $parameters ): void
 	{
 		$this->addPatternToParameters( $parameters, '[0-9]{2}' );
 	}
@@ -354,9 +343,8 @@ class Route implements Makeable
 	 * Adds parameters to wheres with day-based regex pattern.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $parameters
 	 */
-	public function whereDay( $parameters ): void
+	public function whereDay( string|array $parameters ): void
 	{
 		$this->addPatternToParameters( $parameters, '[0-9]{2}' );
 	}
@@ -365,10 +353,8 @@ class Route implements Makeable
 	 * Adds parameters to wheres with regex pattern.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array  $parameters
-	 * @param  string        $regex
 	 */
-	private function addPatternToParameters( $parameters, $pattern ): void
+	private function addPatternToParameters( string|array $parameters, string $pattern ): void
 	{
 		$wheres = [];
 

@@ -43,10 +43,8 @@ class Engine implements EngineContract
 	 * several descendent methods included in this class.
 	 *
 	 * @since  1.0.0
-	 * @param  array|string      $paths
-	 * @param  array|Collection  $data
 	 */
-	public function view( $paths, $data = [] ): View
+	public function view( array|string $paths, array|Collection $data = [] ): View
 	{
 		// If `view()` is called for a second time on a single page load
 		// dump and die.
@@ -75,10 +73,8 @@ class Engine implements EngineContract
 	 * This makes sure shared data is passed down to the subview.
 	 *
 	 * @since  1.0.0
-	 * @param  array|string      $paths
-	 * @param  array|Collection  $data
 	 */
-	public function subview( $paths, $data = [] ): View
+	public function subview( array|string $paths, array|Collection $data = [] ): View
 	{
 		if ( $this->shared ) {
 			$data = array_merge(
@@ -96,10 +92,8 @@ class Engine implements EngineContract
 	 * Includes a subview.
 	 *
 	 * @since  1.0.0
-	 * @param  array|string      $paths
-	 * @param  array|Collection  $data
 	 */
-	public function include( $paths, $data = [] ): void
+	public function include( array|string $paths, array|Collection $data = [] ): void
 	{
 		$subview = $this->subview( $paths, $data );
 
@@ -123,10 +117,8 @@ class Engine implements EngineContract
 	 * view template is found.
 	 *
 	 * @since  1.0.0
-	 * @param  array|string      $paths
-	 * @param  array|Collection  $data
 	 */
-	public function includeIf( $paths, $data = [] ): void
+	public function includeIf( array|string $paths, array|Collection $data = [] ): void
 	{
 		$this->subview( $paths, $data )->display();
 	}
@@ -135,11 +127,12 @@ class Engine implements EngineContract
 	 * Includes a subview when `$when` is `true`.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed             $when
-	 * @param  array|string      $paths
-	 * @param  array|Collection  $data
 	 */
-	public function includeWhen( $when, $paths, $data = [] ): void
+	public function includeWhen(
+		mixed $when,
+		array|string $paths,
+		array|Collection $data = []
+	): void
 	{
 		if ( $when ) {
 			$this->include( $paths, $data );
@@ -150,11 +143,12 @@ class Engine implements EngineContract
 	 * Includes a subview unless `$unless` is `true`.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed             $unless
-	 * @param  array|string      $paths
-	 * @param  array|Collection  $data
 	 */
-	public function includeUnless( $unless, $paths, $data = [] ): void
+	public function includeUnless(
+		mixed $unless,
+		array|string $paths,
+		array|Collection $data = []
+	): void
 	{
 		if ( ! $unless ) {
 			$this->include( $paths, $data );
@@ -168,10 +162,13 @@ class Engine implements EngineContract
 	 * the items array is empty.
 	 *
 	 * @since  1.0.0
-	 * @param  array|string $paths
-	 * @param  array|string $empty
 	 */
-	public function each( $paths, iterable $items = [], string $var = '', $empty = [] ): void
+	public function each(
+		array|string $paths,
+		iterable $items = [],
+		string $var = '',
+		array|string $empty = []
+	): void
 	{
 		if ( ! $items && $empty ) {
 			$this->include( $empty );

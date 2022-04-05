@@ -234,9 +234,8 @@ class Application extends Container implements ApplicationContract, Bootable
 	 * be passed in.
 	 *
 	 * @since  1.0.0
-	 * @param  string|object  $provider
 	 */
-	public function provider( $provider ): void
+	public function provider( ServiceProvider|string $provider ): void
 	{
 		if ( is_string( $provider ) ) {
 			$provider = $this->resolveProvider( $provider );

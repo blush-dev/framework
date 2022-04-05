@@ -31,10 +31,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Add an item.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $name
-	 * @param  mixed  $value
 	 */
-	public function add( $name, $value ): void
+	public function add( mixed $name, mixed $value ): void
 	{
 		$this->offsetSet( $name, $value );
 	}
@@ -43,9 +41,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Removes an item.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $name
 	 */
-	public function remove( $name ): void
+	public function remove( mixed $name ): void
 	{
 		$this->offsetUnset( $name );
 	}
@@ -54,9 +51,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Checks if an item exists.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $name
 	 */
-	public function has( $name ): bool
+	public function has( mixed $name ): bool
 	{
 		return $this->offsetExists( $name );
 	}
@@ -65,9 +61,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Returns an item.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $name
 	 */
-	public function get( $name )
+	public function get( mixed $name )
 	{
 		return $this->offsetGet( $name );
 	}
@@ -87,11 +82,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * part of the collection and add it.
 	 *
 	 * @since  1.0.0
-	 * @access public
-	 * @param  string  $name
-	 * @param  mixed   $value
 	 */
-	public function __set( $name, $value ): void
+	public function __set( string $name, mixed $value ): void
 	{
 		$this->offsetSet( $name, $value );
 	}
@@ -100,10 +92,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Magic method when trying to unset a property.
 	 *
 	 * @since  1.0.0
-	 * @param  string $name
-	 * @param  mixed  $value
 	 */
-	public function __unset( $name ): void
+	public function __unset( string $name ): void
 	{
 		$this->offsetUnset( $name );
 	}
@@ -112,9 +102,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Magic method when trying to check if a property has.
 	 *
 	 * @since  1.0.0
-	 * @param  string $name
 	 */
-	public function __isset( $name ): bool
+	public function __isset( string $name ): bool
 	{
 		return $this->offsetExists( $name );
 	}
@@ -123,10 +112,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Magic method when trying to get a property.
 	 *
 	 * @since  1.0.0
-	 * @param  string $name
-	 * @return mixed
 	 */
-	public function __get( $name )
+	public function __get( string $name ): mixed
 	{
 		return $this->offSetGet( $name );
 	}
@@ -135,10 +122,8 @@ class Collection extends ArrayObject implements JsonSerializable
 	 * Returns a JSON-ready array of data.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	#[\ReturnTypeWillChange]
-	public function jsonSerialize()
+	public function jsonSerialize(): mixed
 	{
 		return array_map( function( $value ) {
 

@@ -27,10 +27,8 @@ class Routes extends Collection
 	 * Add a route.
 	 *
 	 * @since  1.0.0
-	 * @param  string  $uri
-	 * @param  array   $args
 	 */
-	public function add( $uri, $args = [] ): void
+	public function add( mixed $uri, mixed $args = [] ): void
 	{
 		parent::add( $uri, new Route( $uri, $args ) );
 

@@ -22,7 +22,6 @@ interface Displayable
 	 *
 	 * @since  1.0.0
 	 * @access public
-	 * @return void
 	 */
-	public function display();
+	public function display(): void;
 }

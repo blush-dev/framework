@@ -39,10 +39,8 @@ abstract class Controller
 	 * Wrapper for the template engine view class.
 	 *
 	 * @since  1.0.0
-	 * @param  string|array     $names
-	 * @param  array|Collection $data
 	 */
-	protected function view( $names, $data = [] ): View
+	protected function view( string|array $names, Collection|array $data = [] ): View
 	{
 		return Engine::view( $names, $data );
 	}

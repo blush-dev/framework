@@ -15,6 +15,7 @@
 namespace Blush\Contracts\Core;
 
 use Blush\Contracts\Container\Container;
+use Blush\Core\ServiceProvider;
 
 /**
  * Application interface.
@@ -28,9 +29,8 @@ interface Application extends Container
 	 * qualified class name.
 	 *
 	 * @since  1.0.0
-	 * @param  string|object  $provider
 	 */
-	public function provider( $provider ): void;
+	public function provider( ServiceProvider|string $provider ): void;
 
 	/**
 	 * Adds a static proxy alias. Developers must pass in fully-qualified

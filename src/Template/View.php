@@ -30,31 +30,25 @@ class View implements ViewContract, Displayable, Renderable
 	protected array $paths = [];
 
 	/**
-	 * An array of data that is passed into the view template.
+	 * An collection of data that is passed into the view template.
 	 *
 	 * @since  1.0.0
-	 * @access protected
-	 * @var    array
 	 */
-	protected $data = [];
+	protected Collection $data;
 
 	/**
 	 * The template filename.
 	 *
 	 * @since  1.0.0
-	 * @access protected
-	 * @var    string
 	 */
-	protected $template = null;
+	protected ?string $template = null;
 
 	/**
 	 * Sets up the view properties.
 	 *
 	 * @since  1.0.0
-	 * @param  string           $name
-	 * @param  array|Collection $data
 	 */
-	public function __construct( $paths, $data = [] )
+	public function __construct( array|string $paths, array|Collection $data = [] )
 	{
 		if ( ! $data instanceof Collection ) {
 			$data = new Collection( (array) $data );

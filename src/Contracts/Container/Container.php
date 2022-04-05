@@ -24,11 +24,10 @@ interface Container
 	 * the abstract.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $concrete
 	 */
 	public function bind(
 		string $abstract,
-		$concrete = null,
+		mixed $concrete = null,
 		bool $shared = false
 	): void;
 
@@ -36,11 +35,10 @@ interface Container
 	* Alias for `bind()`.
 	*
 	* @since  1.0.0
-	* @param  mixed  $concrete
 	*/
 	public function add(
 		string $abstract,
-		$concrete = null,
+		mixed $concrete = null,
 		bool $shared = false
 	): void;
 
@@ -55,17 +53,15 @@ interface Container
 	 * Resolve and return the binding.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function resolve( string $abstract, array $parameters = [] );
+	public function resolve( string $abstract, array $parameters = [] ): mixed;
 
 	/**
 	 * Alias for `resolve()`.
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function make( string $abstract, array $parameters = [] );
+	public function make( string $abstract, array $parameters = [] ): mixed;
 
 	/**
 	 * Alias for `resolve()`.
@@ -74,9 +70,8 @@ interface Container
 	 * @link https://www.php-fig.org/psr/psr-11/
 	 *
 	 * @since  1.0.0
-	 * @return mixed
 	 */
-	public function get( string $abstract );
+	public function get( string $abstract ): mixed;
 
 	/**
 	 * Check if a binding exists.
@@ -86,24 +81,21 @@ interface Container
 	 *
 	 * @since  1.0.0
 	 */
-	public function has( $abstract ): bool;
+	public function has( string $abstract ): bool;
 
 	/**
 	 * Add a shared binding.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $concrete
 	 */
-	public function singleton( string $abstract, $concrete = null ): void;
+	public function singleton( string $abstract, mixed $concrete = null ): void;
 
 	/**
 	 * Add an existing instance.
 	 *
 	 * @since  1.0.0
-	 * @param  mixed  $instance
-	 * @return mixed
 	 */
-	 public function instance( string $abstract, $instance );
+	 public function instance( string $abstract, mixed $instance ): mixed;
 
 	 /**
 	  * Extend a binding.

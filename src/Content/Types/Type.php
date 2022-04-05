@@ -58,40 +58,37 @@ class Type
 	 * default, content types will collect themselves.
 	 *
 	 * @since 1.0.0
-	 * @var   string|false|null
 	 */
-	protected $collect = null;
+	protected string|bool|null $collect = null;
 
 	/**
 	 * If the content type is a taxonomy, the content type that the
 	 * taxonomy terms collect.
 	 *
 	 * @since 1.0.0
-	 * @var   string|false|null
 	 */
-	protected $term_collect = null;
+	protected string|bool|null $term_collect = null;
 
 	/**
 	 * Array of Query args when type is called as a collection.
 	 *
 	 * @since 1.0.0
 	 */
-	protected $collection = [];
+	protected array $collection = [];
 
 	/**
 	 * Array of Query args when a taxonomy term is called as a collection.
 	 *
 	 * @since 1.0.0
 	 */
-	protected $term_collection = [];
+	protected array $term_collection = [];
 
 	/**
 	 * Whether to generate a feed for the content type.
 	 *
 	 * @since 1.0.0
-	 * @var   bool|array
 	 */
-	protected $feed = false;
+	protected bool|array $feed = false;
 
 	/**
 	 * Whether to generate date-based archives for the content type.
@@ -360,9 +357,8 @@ class Type
 	 * Returns the type this content type collects.
 	 *
 	 * @since  1.0.0
-	 * @return string|false|null
 	 */
-	public function collect()
+	public function collect(): string|bool|null
 	{
 		return $this->collect;
 	}
@@ -371,9 +367,8 @@ class Type
 	 * Returns the type that terms of this type collects if a taxonomy.
 	 *
 	 * @since  1.0.0
-	 * @return string|false|null
 	 */
-	public function termCollect()
+	public function termCollect(): string|bool|null
 	{
 		return $this->term_collect;
 	}
