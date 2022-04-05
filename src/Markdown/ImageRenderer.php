@@ -57,7 +57,7 @@ class ImageRenderer implements NodeRendererInterface
                 $image = new HtmlElement( 'img', [
                         'src' => e( $url ),
 			'alt' => e( $alt ),
-                ] );
+                ], '', true );
 
                 if ( $node->getTitle() ) {
                         $figcaption = new HtmlElement(
