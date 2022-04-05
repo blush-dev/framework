@@ -17,13 +17,6 @@ use Blush\Contracts\Makeable;
 abstract class Store
 {
 	/**
-	 * Store name.
-	 *
-	 * @since  1.0.0
-	 */
-	protected string $name = '';
-
-	/**
 	 * Houses store data after it has been retreived from the cache.
 	 *
 	 * @since  1.0.0
@@ -35,15 +28,13 @@ abstract class Store
 	 *
 	 * @since  1.0.0
 	 */
-	public function __construct( string $name, array $options = [] )
+	public function __construct( protected string $name, array $options = [] )
 	{
 		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
 			if ( isset( $options[ $key ] ) ) {
 				$this->$key = $options[ $key ];
 			}
 		}
-
-		$this->name = $name;
 
 		if ( ! $this->path ) {
 			$this->path = cache_path( $this->name );

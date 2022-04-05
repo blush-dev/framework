@@ -23,37 +23,15 @@ use Blush\Config;
 class Component implements Bootable
 {
 	/**
-	 * Cache registry.
-	 *
-	 * @since  1.0.0
-	 */
-	protected Registry $registry;
-
-	/**
-	 * Array of user-defined drivers.
-	 *
-	 * @since  1.0.0
-	 */
-	protected array $drivers;
-
-	/**
-	 * Array of user-defined stores.
-	 *
-	 * @since  1.0.0
-	 */
-	protected array $stores;
-
-	/**
 	 * Sets up object state.
 	 *
 	 * @since  1.0.0
 	 */
-	public function __construct( Registry $registry, array $drivers, array $stores )
-	{
-		$this->registry = $registry;
-		$this->drivers  = $drivers;
-		$this->stores   = $stores;
-	}
+	public function __construct(
+		protected Registry $registry,
+		protected array $drivers,
+		protected $stores
+	) {}
 
 	/**
 	 * Bootstraps the component, setting up cache drivers and stores.

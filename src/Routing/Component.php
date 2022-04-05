@@ -22,29 +22,12 @@ use Blush\Controllers;
 class Component implements Bootable
 {
 	/**
-	 * Routes collection.
-	 *
-	 * @since 1.0.0
-	 */
-	protected Routes $routes;
-
-	/**
-	 * Types collection.
-	 *
-	 * @since 1.0.0
-	 */
-	protected Types $types;
-
-	/**
 	 * Sets up the object state.
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( Routes $routes, Types $types )
-	{
-                $this->routes = $routes;
-		$this->types  = $types;
-	}
+	public function __construct( protected Routes $routes, protected Types $types )
+	{}
 
 	/**
 	 * Bootstraps the component.

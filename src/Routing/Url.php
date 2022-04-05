@@ -22,21 +22,12 @@ use Blush\Contracts\Makeable;
 class Url implements Makeable
 {
 	/**
-	 * Collection of Routes.
-	 *
-	 * @since 1.0.0
-	 */
-	protected Routes $routes;
-
-	/**
 	 * Sets up the object state.
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( Routes $routes )
-	{
-		$this->routes = $routes;
-	}
+	public function __construct( protected Routes $routes )
+	{}
 
 	/**
 	 * Return the object instance.

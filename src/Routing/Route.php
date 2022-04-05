@@ -22,13 +22,6 @@ use Symfony\Component\HttpFoundation\{Request, Response};
 class Route implements Makeable
 {
 	/**
-	 * Route URI.
-	 *
-	 * @since 1.0.0
-	 */
-	protected string $uri;
-
-	/**
 	 * Route name.
 	 *
 	 * @since 1.0.0
@@ -77,7 +70,7 @@ class Route implements Makeable
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( string $uri, array $args = [] )
+	public function __construct( protected string $uri, array $args = [] )
 	{
 		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
 			if ( isset( $args[ $key ] ) ) {
@@ -85,8 +78,7 @@ class Route implements Makeable
 			}
 		}
 
-		// Assign route URI and methods.
-		$this->uri     = $uri;
+		// Assign route methods.
 		$this->methods = [ 'GET' ];
 
 		// If no route name, use the URI.

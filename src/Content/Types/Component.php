@@ -16,29 +16,14 @@ use Blush\Contracts\Bootable;
 class Component implements Bootable
 {
 	/**
-	 * Registry of content types.
-	 *
-	 * @since 1.0.0
-	 */
-        protected Types $registy;
-
-	/**
-	 * Array of user-defined content types.
-	 *
-	 * @since  1.0.0
-	 */
-        protected array $types;
-
-	/**
 	 * Sets up object state.
 	 *
 	 * @since 1.0.0
 	 */
-        public function __construct( Types $registry, array $types )
-	{
-                $this->registry = $registry;
-		$this->types    = $types;
-        }
+        public function __construct(
+		protected Types $registry,
+		protected array $types
+	) {}
 
 	/**
 	 * Registers content types on boot.

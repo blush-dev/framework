@@ -20,22 +20,12 @@ use Blush\Contracts\Core\Application;
 abstract class ServiceProvider implements Bootable
 {
 	/**
-	 * Application instance. Sub-classes should use this property to access
-	 * the application (container) to add, remove, or resolve bindings.
-	 *
-	 * @since 1.0.0
-	 */
-	protected Application $app;
-
-	/**
 	 * Accepts the application and sets it to the `$app` property.
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( Application $app )
-	{
-		$this->app = $app;
-	}
+	public function __construct( protected Application $app )
+	{}
 
 	/**
 	 * Callback executed when the `Application` class registers providers.

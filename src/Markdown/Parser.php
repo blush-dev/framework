@@ -19,13 +19,6 @@ use League\CommonMark\ConverterInterface;
 class Parser implements ParserContract
 {
 	/**
-	 * Markdown converter.
-	 *
-	 * @since 1.0.0
-	 */
-        protected ConverterInterface $converter;
-
-	/**
 	 * Stores content.
 	 *
 	 * @since 1.0.0
@@ -44,10 +37,8 @@ class Parser implements ParserContract
 	 *
 	 * @since 1.0.0
 	 */
-        public function __construct( ConverterInterface $converter )
-	{
-                $this->converter = $converter;
-        }
+        public function __construct( protected ConverterInterface $converter )
+	{}
 
 	/**
 	 * Converts Markdown to HTML.

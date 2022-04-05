@@ -18,13 +18,6 @@ use Symfony\Component\HttpFoundation\{Request, Response};
 class Router
 {
 	/**
-	 * Routes collection.
-	 *
-	 * @since 1.0.0
-	 */
-	protected Routes $routes;
-
-	/**
 	 * HTTP Request.
 	 *
 	 * @since 1.0.0
@@ -36,10 +29,9 @@ class Router
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( Routes $routes )
+	public function __construct( protected Routes $routes )
 	{
 		$this->request = Request::createFromGlobals();
-                $this->routes  = $routes;
 	}
 
 	/**

@@ -22,13 +22,6 @@ use Blush\Tools\Str;
 abstract class File extends Entry
 {
 	/**
-	 * Entry file path.
-	 *
-	 * @since 1.0.0
-	 */
-	protected string $filepath;
-
-	/**
 	 * Entry path info.
 	 *
 	 * @since 1.0.0
@@ -41,9 +34,8 @@ abstract class File extends Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( string $filepath )
+	public function __construct( protected string $filepath )
 	{
-		$this->filepath = $filepath;
 		$this->pathinfo = pathinfo( $filepath );
 	}
 

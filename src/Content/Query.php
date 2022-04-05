@@ -26,13 +26,6 @@ use Blush\Tools\Str;
 class Query implements Makeable, QueryContract, IteratorAggregate
 {
 	/**
-	 * File locator object.
-	 *
-	 * @since 1.0.0
-	 */
-        protected Locator $locator;
-
-	/**
 	 * Path to the entries relative to the content folder.
 	 *
 	 * @since 1.0.0
@@ -209,10 +202,8 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-        public function __construct( Locator $locator )
-	{
-		$this->locator = $locator;
-	}
+        public function __construct( protected Locator $locator )
+	{}
 
 	/**
 	 * Sets up the query options and makes the query.

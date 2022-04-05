@@ -18,13 +18,6 @@ use Blush\Tools\Str;
 class Type
 {
 	/**
-	 * Name of the content type.
-	 *
-	 * @since 1.0.0
-	 */
-	protected string $type = 'page';
-
-	/**
 	 * Content type path.
 	 *
 	 * @since 1.0.0
@@ -116,10 +109,9 @@ class Type
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( string $type, array $options = [] )
+	public function __construct( protected string $type, array $options = [] )
 	{
 		// Set up the object properties based on parameters.
-		$this->type            = $type;
 		$this->path            = $options['path']            ?? $type;
 		$this->collection      = $options['collection']      ?? [];
 		$this->routes          = $options['routes']          ?? [];
