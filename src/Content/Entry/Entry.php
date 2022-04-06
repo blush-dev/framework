@@ -390,26 +390,18 @@ abstract class Entry implements EntryContract
 	 */
 	public function readingTime( int $words_per_min = 200 ): string
 	{
-		$words_per_hour = $words_per_min * 60;
-
 		// Strip tags and get the word count from the content.
 		$count = str_word_count( strip_tags( $this->content() ) );
 
-		// Get the floor for hours.  Otherwise, it will round up to
-		// `1.0`. But, get the ceiling for minutes.
-		$time_hours = intval( floor( $count / $words_per_hour ) );
+		// Get the ceiling for minutes.
 		$time_mins  = intval( ceil( $count / $words_per_min ) );
+		$time_hours = 0;
 
-		// If there are no hours, just return the minutes.
-		if ( 0 >= $time_hours ) {
-			return sprintf(
-				Str::nText( '%d Minute', '%d Minutes', $time_mins ),
-				number_format( $time_mins )
-			);
+		// If more than 60 mins, calculate hours and get leftover mins.
+		if ( 60 <= $time_mins ) {
+			$time_hours = intval( floor( $time_mins / 60 ) );
+			$time_mins  = intval( $time_mins % 60 );
 		}
-
-		// Subtract the hours by minute from the total minutes.
-		$time_mins = $time_mins - ( $time_hours * 60 );
 
 		// Set up text for hours.
 		$text_hours = sprintf(
@@ -423,8 +415,11 @@ abstract class Entry implements EntryContract
 			number_format( $time_mins )
 		);
 
-		// If no minutes left after subtraction of hours, return hours.
-		if ( 0 >= $time_mins ) {
+		// If there are no hours, just return the minutes.
+		// If there are no minutes, just return the hours.
+		if ( 0 >= $time_hours ) {
+			return $text_mins;
+		} elseif ( 0 >= $time_mins ) {
 			return $text_hours;
 		}
 
