@@ -15,6 +15,7 @@ namespace Blush\Routing;
 use Blush\Contracts\Makeable;
 
 // Classes.
+use Blush\Message;
 use Blush\Controllers\Controller;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -70,21 +71,20 @@ class Route implements Makeable
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( protected string $uri, array $args = [] )
+	public function __construct( protected string $uri, array $options = [] )
 	{
-		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
-			if ( isset( $args[ $key ] ) ) {
-				$this->$key = $args[ $key ];
-			}
+		if ( ! isset( $options['controller'] ) ) {
+			Message::make( sprintf(
+				'A sub-class name or instance of <code>%s</code> is a required for instantiating a new <code>%s</code>. It should be passed in via the <code>$options[\'controller\']</code> parameter.',
+				Controller::class,
+				get_class()
+			) )->dd();
 		}
 
-		// Assign route methods.
-		$this->methods = [ 'GET' ];
-
-		// If no route name, use the URI.
-		if ( ! $this->name ) {
-			$this->name = $this->uri;
-		}
+		// Assign object properties.
+		$this->name       = $options['name'] ?? $this->uri;
+		$this->controller = $options['controller'];
+		$this->methods    = [ 'GET' ];
 
 		// Merge default regex mapping with user-defined wheres.
 		$this->wheres = array_merge( [
@@ -101,7 +101,7 @@ class Route implements Makeable
 			'name'   => '[a-zA-Z0-9_-]+',
 			'path'   => '.+',
 			'*'      => '.+'
-		], $this->wheres );
+		], $options['wheres'] ?? [] );
 	}
 
 	/**
