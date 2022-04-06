@@ -67,7 +67,7 @@ class JsonFile extends File
 	 *
 	 * @since  1.0.0
 	 */
-	protected function getJsonFileContents( string $key ): array|bool
+	protected function getJsonFileContents( string $key ): array|false
 	{
 		if ( ! $this->fileExists( $key ) ) {
 			return false;

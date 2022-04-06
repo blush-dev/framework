@@ -19,12 +19,6 @@ namespace Blush\Tools;
 use ArrayObject;
 use JsonSerializable;
 
-/**
- * Registry class.
- *
- * @since  1.0.0
- * @access public
- */
 class Collection extends ArrayObject implements JsonSerializable
 {
 	/**

@@ -14,8 +14,7 @@ namespace Blush\Markdown;
 use Blush\Tools\Str;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
 use League\CommonMark\Node\Node;
-use League\CommonMark\Renderer\ChildNodeRendererInterface;
-use League\CommonMark\Renderer\NodeRendererInterface;
+use League\CommonMark\Renderer\{ChildNodeRendererInterface, NodeRendererInterface};
 use League\CommonMark\Util\HtmlElement;
 
 class LinkRenderer implements NodeRendererInterface

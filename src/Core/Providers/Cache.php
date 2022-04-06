@@ -13,7 +13,7 @@ namespace Blush\Core\Providers;
 
 use Blush\Core\ServiceProvider;
 use Blush\Cache\{Component, Registry};
-use Blush\Cache\Driver\{File, HtmlFile, JsonFile, CollectionFile};
+use Blush\Cache\Driver\{File, JsonFile};
 
 class Cache extends ServiceProvider
 {

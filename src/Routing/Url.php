@@ -46,7 +46,7 @@ class Url implements Makeable
 	 */
 	public function to( string $append = '' ): string
 	{
-		return App::url( '', $append );
+		return App::url( append: $append );
 	}
 
 	/**

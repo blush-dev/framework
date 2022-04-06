@@ -13,8 +13,7 @@ namespace Blush\Markdown;
 
 use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use League\CommonMark\Node\Node;
-use League\CommonMark\Renderer\ChildNodeRendererInterface;
-use League\CommonMark\Renderer\NodeRendererInterface;
+use League\CommonMark\Renderer\{ChildNodeRendererInterface, NodeRendererInterface};
 use League\CommonMark\Util\HtmlElement;
 
 class ParagraphRenderer implements NodeRendererInterface

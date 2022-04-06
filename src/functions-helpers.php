@@ -86,7 +86,7 @@ if ( ! function_exists( 'path' ) ) {
 	 */
 	function path( string $append = '' ): string
 	{
-		return app()->path( '', $append );
+		return app()->path( append: $append );
 	}
 }
 

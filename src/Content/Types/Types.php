@@ -44,7 +44,7 @@ class Types extends Collection
 	 *
 	 * @since  1.0.0
 	 */
-	public function getTypeFromPath( string $path ): Type|bool
+	public function getTypeFromPath( string $path ): Type|false
 	{
 		// If there is no path, this is a page.
 		if ( '' === $path ) {
@@ -68,7 +68,7 @@ class Types extends Collection
 	 *
 	 * @since  1.0.0
 	 */
-	public function getTypeFromUri( string $uri ): Type|bool
+	public function getTypeFromUri( string $uri ): Type|false
 	{
 		// If there is no URI, this is a page.
 		if ( '' === $uri ) {

@@ -24,8 +24,7 @@ abstract class ServiceProvider implements Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( protected Application $app )
-	{}
+	public function __construct( protected Application $app ) {}
 
 	/**
 	 * Callback executed when the `Application` class registers providers.

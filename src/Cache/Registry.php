@@ -42,7 +42,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function has( string $name )
+	public function has( string $name ): bool
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -78,7 +78,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function add( string $name, $data, int $seconds = 0 )
+	public function add( string $name, $data, int $seconds = 0 ): void
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -90,7 +90,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function forget( string $name )
+	public function forget( string $name ): void
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -102,7 +102,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function forever( string $name, $data )
+	public function forever( string $name, $data ): void
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
@@ -174,7 +174,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function store( string $store ): Store|bool
+	public function store( string $store ): Store|false
 	{
 		if ( isset( $this->stores[ $store ] ) ) {
 			return $this->stores[ $store ];
@@ -249,7 +249,7 @@ class Registry
 	 *
 	 * @since  1.0.0
 	 */
-	public function driver( string $name ): string|bool
+	public function driver( string $name ): string|false
 	{
 		return $this->drivers[ $name ] ?? false;
 	}

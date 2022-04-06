@@ -30,7 +30,5 @@ class Virtual extends Entry
 				$this->$key = $data[ $key ];
 			}
 		}
-
-		$this->meta = (array) $this->meta;
 	}
 }

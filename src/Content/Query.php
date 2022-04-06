@@ -202,8 +202,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 *
 	 * @since 1.0.0
 	 */
-        public function __construct( protected Locator $locator )
-	{}
+        public function __construct( protected Locator $locator ) {}
 
 	/**
 	 * Sets up the query options and makes the query.

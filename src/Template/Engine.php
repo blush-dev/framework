@@ -16,8 +16,7 @@ use Blush\Contracts\Template\Engine as EngineContract;
 use Blush\Contracts\Template\View;
 
 // Concretes.
-use Blush\App;
-use Blush\Message;
+use Blush\{App, Message};
 use Blush\Tools\Collection;
 
 class Engine implements EngineContract

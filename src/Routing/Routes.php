@@ -11,7 +11,6 @@
 
 namespace Blush\Routing;
 
-use Blush\App;
 use Blush\Tools\Collection;
 
 class Routes extends Collection

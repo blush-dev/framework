@@ -66,7 +66,7 @@ interface Entry
 	 *
 	 * @since  1.0.0
 	 */
-	public function metaQuery( string $name, array $args = [] ): Query|bool;
+	public function metaQuery( string $name, array $args = [] ): Query|false;
 
 	/**
 	 * Returns the entry title.
@@ -108,7 +108,7 @@ interface Entry
 	 *
 	 * @since  1.0.0
 	 */
-	public function terms( string $taxonomy, array $args = [] ): Query|bool;
+	public function terms( string $taxonomy, array $args = [] ): Query|false;
 
 	/**
 	 * Returns the entry excerpt.

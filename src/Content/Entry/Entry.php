@@ -217,7 +217,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function metaQuery( string $name, array $args = [] ): QueryContract|bool
+	public function metaQuery( string $name, array $args = [] ): QueryContract|false
 	{
 		if ( isset( $this->resolved_meta[ $name ] ) ) {
 			return $this->resolved_meta[ $name ];
@@ -336,7 +336,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function terms( string $taxonomy, array $args = [] ): QueryContract|bool
+	public function terms( string $taxonomy, array $args = [] ): QueryContract|false
 	{
 		$types = App::resolve( 'content.types' );
 

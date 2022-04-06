@@ -26,8 +26,10 @@ class Component implements Bootable
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( protected Routes $routes, protected Types $types )
-	{}
+	public function __construct(
+		protected Routes $routes,
+		protected Types $types
+	) {}
 
 	/**
 	 * Bootstraps the component.
@@ -43,7 +45,7 @@ class Component implements Bootable
 		$types = array_reverse( $this->types->sortByPath() );
 
 		// Loop through the content types and add their routes.
-		foreach ( (array) $types as $type ) {
+		foreach ( $types as $type ) {
 
 			// Skip if the content type doesn't support routing.
 			if ( ! $type->routing() ) {

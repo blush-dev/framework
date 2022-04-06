@@ -12,12 +12,10 @@
 namespace Blush\Markdown;
 
 use Blush\Tools\Str;
-use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
-use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
+use League\CommonMark\Extension\CommonMark\Node\Inline\{Image, Link};
 use League\CommonMark\Node\Node;
 use League\CommonMark\Node\Inline\Text;
-use League\CommonMark\Renderer\ChildNodeRendererInterface;
-use League\CommonMark\Renderer\NodeRendererInterface;
+use League\CommonMark\Renderer\{ChildNodeRendererInterface, NodeRendererInterface};
 use League\CommonMark\Util\HtmlElement;
 
 class ImageRenderer implements NodeRendererInterface

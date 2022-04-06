@@ -11,7 +11,6 @@
 
 namespace Blush\Markdown;
 
-// Contracts.
 use Blush\Contracts\Markdown\Parser as ParserContract;
 use Blush\Tools\Str;
 use League\CommonMark\ConverterInterface;
@@ -37,8 +36,7 @@ class Parser implements ParserContract
 	 *
 	 * @since 1.0.0
 	 */
-        public function __construct( protected ConverterInterface $converter )
-	{}
+        public function __construct( protected ConverterInterface $converter ) {}
 
 	/**
 	 * Converts Markdown to HTML.
