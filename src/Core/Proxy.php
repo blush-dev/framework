@@ -14,7 +14,7 @@
 
 namespace Blush\Core;
 
-use Blush\Contracts\Container\Container;
+use Blush\Contracts\Core\Container;
 
 class Proxy
 {

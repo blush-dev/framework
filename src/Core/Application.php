@@ -4,8 +4,7 @@
  *
  * This class is essentially a wrapper around the `Container` class that's
  * specific to the framework. This class is meant to be used as the single,
- * one-true instance of the framework. It's used to load up service providers
- * that interact with the container.
+ * one-true instance of the framework.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2018 - 2022, Justin Tadlock
@@ -15,7 +14,6 @@
 
 namespace Blush\Core;
 
-use Blush\Container\Container;
 use Blush\Contracts\Core\Application as ApplicationContract;
 use Blush\Contracts\Bootable;
 use Blush\Core\{Proxies, Schemas};

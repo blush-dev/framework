@@ -12,7 +12,7 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Contracts\Container;
+namespace Blush\Contracts\Core;
 
 use Closure;
 use Blush\Core\ServiceProvider;

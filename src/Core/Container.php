@@ -2,12 +2,6 @@
 /**
  * Container class.
  *
- * This file maintains the `Container` class, which handles storing objects for
- * later use. It's primarily designed for handling single instances to avoid
- * globals or singletons. This is just a basic container for the purposes of
- * WordPress theme dev and isn't as powerful as some of the more robust
- * containers available in the larger PHP world.
- *
  * @package   Blush
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2018 - 2022, Justin Tadlock
@@ -15,15 +9,14 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Container;
+namespace Blush\Core;
 
 use ArrayAccess;
 use Closure;
 use ReflectionClass;
 use ReflectionParameter;
 use ReflectionUnionType;
-use Blush\Core\{ServiceProvider, Proxy};
-use Blush\Contracts\Container\Container as ContainerContract;
+use Blush\Contracts\Core\Container as ContainerContract;
 
 class Container implements ContainerContract, ArrayAccess
 {
