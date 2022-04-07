@@ -15,28 +15,10 @@
 namespace Blush\Contracts\Core;
 
 use Blush\Contracts\Container\Container;
-use Blush\Core\ServiceProvider;
 
 /**
  * Application interface.
  *
  * @since 1.0.0
  */
-interface Application extends Container
-{
-	/**
-	 * Adds a service provider. Developers can pass in an object or a fully-
-	 * qualified class name.
-	 *
-	 * @since  1.0.0
-	 */
-	public function provider( ServiceProvider|string $provider ): void;
-
-	/**
-	 * Adds a static proxy alias. Developers must pass in fully-qualified
-	 * class name and alias class name.
-	 *
-	 * @since 1.0.0
-	 */
-	public function proxy( string $class_name, string $alias ): void;
-}
+interface Application extends Container {}

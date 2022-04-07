@@ -22,6 +22,7 @@ use Closure;
 use ReflectionClass;
 use ReflectionParameter;
 use ReflectionUnionType;
+use Blush\Core\{ServiceProvider, Proxy};
 use Blush\Contracts\Container\Container as ContainerContract;
 
 class Container implements ContainerContract, ArrayAccess
@@ -53,6 +54,20 @@ class Container implements ContainerContract, ArrayAccess
 	* @since 1.0.0
 	*/
 	protected array $extensions = [];
+
+	/**
+	 * Array of service provider objects.
+	 *
+	 * @since 1.0.0
+	 */
+	protected array $providers = [];
+
+	/**
+	 * Array of static proxy classes and aliases.
+	 *
+	 * @since 1.0.0
+	 */
+	protected array $proxies = [];
 
 	/**
 	* Set up a new container.
@@ -372,6 +387,111 @@ class Container implements ContainerContract, ArrayAccess
 		}
 
 		return [ $types ];
+	}
+
+	/**
+	 * Adds a service provider. All service providers must extend the
+	 * `ServiceProvider` class. A string or an instance of the provider may
+	 * be passed in.
+	 *
+	 * @since  1.0.0
+	 */
+	public function provider( ServiceProvider|string $provider ): void
+	{
+		if ( is_string( $provider ) ) {
+			$provider = $this->resolveProvider( $provider );
+		}
+
+		$this->providers[] = $provider;
+	}
+
+	/**
+	 * Creates a new instance of a service provider class.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function resolveProvider( string $provider ): ServiceProvider
+	{
+		return new $provider( $this );
+	}
+
+	/**
+	 * Calls a service provider's `register()` method.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerProvider( ServiceProvider $provider ): void
+	{
+		$provider->register();
+	}
+
+	/**
+	 * Calls a service provider's `boot()` method.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function bootProvider( ServiceProvider $provider ): void
+	{
+		$provider->boot();
+	}
+
+	/**
+	 * Returns an array of service providers.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function getProviders(): array
+	{
+		return $this->providers;
+	}
+
+	/**
+	 * Calls the `register()` method of all the available service providers.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerProviders(): void
+	{
+		foreach ( $this->getProviders() as $provider ) {
+			$this->registerProvider( $provider );
+		}
+	}
+
+	/**
+	 * Calls the `boot()` method of all the registered service providers.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function bootProviders(): void
+	{
+		foreach ( $this->getProviders() as $provider ) {
+			$this->bootProvider( $provider );
+		}
+	}
+
+	/**
+	 * Adds a static proxy alias. Developers must pass in fully-qualified
+	 * class name and alias class name.
+	 *
+	 * @since 1.0.0
+	 */
+	public function proxy( string $class_name, string $alias ): void
+	{
+		$this->proxies[ $class_name ] = $alias;
+	}
+
+	/**
+	 * Registers the static proxy classes.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerProxies(): void
+	{
+		Proxy::setContainer( $this );
+
+		foreach ( $this->proxies as $class => $alias ) {
+			class_alias( $class, $alias );
+		}
 	}
 
 	/**

@@ -15,6 +15,7 @@
 namespace Blush\Contracts\Container;
 
 use Closure;
+use Blush\Core\ServiceProvider;
 
 interface Container
 {
@@ -110,4 +111,20 @@ interface Container
 	  * @since 1.0.0
 	  */
 	 public function alias( string $abstract, string $alias ): void;
+
+	 /**
+	  * Adds a service provider. Developers can pass in an object or a fully-
+	  * qualified class name.
+	  *
+	  * @since  1.0.0
+	  */
+	 public function provider( ServiceProvider|string $provider ): void;
+
+	 /**
+	  * Adds a static proxy alias. Developers must pass in fully-qualified
+	  * class name and alias class name.
+	  *
+	  * @since 1.0.0
+	  */
+	 public function proxy( string $class_name, string $alias ): void;
 }
