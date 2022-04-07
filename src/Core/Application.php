@@ -191,6 +191,7 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->provider( Providers\Content::class  );
 		$this->provider( Providers\Markdown::class );
 		$this->provider( Providers\Routing::class  );
+		$this->provider( Providers\Template::class );
 
 		// Register app service providers.
 		$providers = $this['config']->get( 'app.providers' );

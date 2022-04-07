@@ -26,8 +26,7 @@ class Url implements Makeable
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( protected Routes $routes )
-	{}
+	public function __construct( protected Routes $routes ) {}
 
 	/**
 	 * Return the object instance.

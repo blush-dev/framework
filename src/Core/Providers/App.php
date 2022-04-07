@@ -12,15 +12,10 @@
 namespace Blush\Core\Providers;
 
 // Abstracts.
-use Blush\Contracts\Template\Engine as EngineContract;
-use Blush\Contracts\Template\View as ViewContract;
 use Blush\Core\ServiceProvider;
 
 // Concretes.
 use Blush\Messenger\Message;
-use Blush\Template\{Engine, View};
-use Blush\Template\Tags\PoweredBy;
-use Blush\Tools\Collection;
 use Symfony\Component\VarDumper\VarDumper;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\{HtmlDumper, CliDumper};
@@ -40,18 +35,8 @@ class App extends ServiceProvider
 		// Add messenger.
 		$this->app->bind( Message::class );
 
-		// Add template engine.
-		$this->app->singleton( EngineContract::class, Engine::class );
-                $this->app->bind(      ViewContract::class,   View::class   );
-
-		// Add powered-by class.
-		$this->app->singleton( PoweredBy::class );
-
 		// Add aliases.
-		$this->app->alias( Message::class,        'messenger.message' );
-		$this->app->alias( ViewContract::class,   'template.view'     );
-		$this->app->alias( EngineContract::class, 'template.engine'   );
-		$this->app->alias( PoweredBy::class,      'poweredby'         );
+		$this->app->alias( Message::class, 'messenger.message' );
 
 		// Set up variable dumper.
 		$this->setVarDumper();
