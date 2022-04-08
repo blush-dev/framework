@@ -355,7 +355,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function hasTerm( string $term, string $taxonomy = 'tag' ): bool
+	public function hasTerm( string $taxonomy, string $term ): bool
 	{
 		$terms = $this->terms( $taxonomy );
 
