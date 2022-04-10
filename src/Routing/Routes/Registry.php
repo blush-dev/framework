@@ -1,6 +1,6 @@
 <?php
 /**
- * Routes collection.
+ * Routes registry.
  *
  * @package   Blush
  * @author    Justin Tadlock <justintadlock@gmail.com>
@@ -9,11 +9,13 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Routing;
+namespace Blush\Routing\Routes;
 
+use Blush\App;
+use Blush\Contracts\Routing\{Route, Routes};
 use Blush\Tools\Collection;
 
-class Routes extends Collection
+class Registry extends Collection implements Routes
 {
 	/**
 	 * Holds an array of the route objects by name.
@@ -27,9 +29,12 @@ class Routes extends Collection
 	 *
 	 * @since  1.0.0
 	 */
-	public function add( mixed $uri, mixed $args = [] ): void
+	public function add( mixed $uri, mixed $options = [] ): void
 	{
-		parent::add( $uri, new Route( $uri, $args ) );
+		parent::add( $uri, App::make( 'routing.route', [
+			'uri'     => $uri,
+			'options' => $options
+		] ) );
 
 		$this->get( $uri )->make();
 	}

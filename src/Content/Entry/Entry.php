@@ -14,10 +14,10 @@ namespace Blush\Content\Entry;
 // Abstracts.
 use Blush\Contracts\Content\Entry as EntryContract;
 use Blush\Contracts\Content\Query as QueryContract;
+use Blush\Contracts\Content\Type;
 
 // Concretes.
 use Blush\{App, Config, Query, Url};
-use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
 abstract class Entry implements EntryContract
@@ -115,7 +115,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function url():  string
+	public function url(): string
 	{
 		// Adds the required name param.
 		$params = [ 'name' => $this->name() ];
@@ -156,7 +156,7 @@ abstract class Entry implements EntryContract
 	 * @deprecated 1.0.0  Soft deprecated.
 	 * @since      1.0.0
 	 */
-	public function uri():  string
+	public function uri(): string
 	{
 		return $this->url();
 	}
@@ -166,7 +166,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function content():  string
+	public function content(): string
 	{
 		return $this->content;
 	}

@@ -59,7 +59,7 @@ class MarkdownFile extends File
 	 */
 	protected function parseMarkdown(): void
 	{
-		$markdown = App::resolve( 'markdown' )->convert(
+		$markdown = App::make( 'markdown' )->convert(
 			file_get_contents( $this->filePath() )
 		);
 

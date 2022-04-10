@@ -17,11 +17,14 @@
 
 namespace Blush\Cache;
 
-use Blush\Cache\Driver\Store;
+use Blush\Contracts\Cache\Driver;
+use Blush\Contracts\Cache\Registry as CacheRegistry;
+
+use Closure;
 use Blush\Message;
 use Blush\Tools\Str;
 
-class Registry
+class Registry implements CacheRegistry
 {
 	/**
 	 * Stores registered cache drivers.
@@ -36,6 +39,123 @@ class Registry
 	 * @since 1.0.0
 	 */
 	protected array $stores = [];
+
+	/**
+	 * Returns a store driver object or `false`.
+	 *
+	 * @since  1.0.0
+	 */
+	public function store( string $store ): Driver|false
+	{
+		if ( isset( $this->stores[ $store ] ) ) {
+			return $this->stores[ $store ];
+		}
+
+		return false;
+	}
+
+	/**
+	 * Returns all stores.
+	 *
+	 * @since  1.0.0
+	 */
+	public function getStores(): array
+	{
+		return $this->stores;
+	}
+
+	/**
+	 * Adds a store. A driver and path are the minimum requirements for a
+	 * store, so those are added as defaults. However, individual driver
+	 * implementations may have additional `$options` requirements.
+	 *
+	 * @since  1.0.0
+	 */
+	public function addStore( string $name, array $options = [] ): void
+	{
+		$options = array_merge( [ 'driver' => 'file' ], $options );
+
+		// If this is a file-based driver, make sure it has a full path
+		// for the cache directory. By default, we'll use the store name.
+		if ( Str::startsWith( $options['driver'], 'file' ) && ! isset( $options['path'] ) ) {
+			$options['path'] = cache_path( $name );
+		}
+
+		// Add a new store if the driver is registered.
+		if ( $this->driverExists( $options['driver'] ) ) {
+			$driver = $this->driver( $options['driver'] );
+
+			// Create a new store via its driver.
+			$store = new $driver( $name, $options );
+
+			// Add the store object to the registry and make it.
+			$this->stores[ $name ] = $store->make();
+		}
+	}
+
+	/**
+	 * Removes a store.
+	 *
+	 * @since  1.0.0
+	 */
+	public function removeStore( string $store ): void
+	{
+		if ( isset( $this->stores[ $store ] ) ) {
+			unset( $this->stores[ $store ] );
+		}
+	}
+
+	/**
+	 * Checks if a store exists.
+	 *
+	 * @since  1.0.0
+	 */
+	public function storeExists( string $store ): bool
+	{
+		return isset( $this->stores[ $store ] );
+	}
+
+	/**
+	 * Returns a driver.
+	 *
+	 * @since  1.0.0
+	 */
+	public function driver( string $name ): string|false
+	{
+		return $this->drivers[ $name ] ?? false;
+	}
+
+	/**
+	 * Checks if a driver exists.
+	 *
+	 * @since  1.0.0
+	 */
+	public function driverExists( string $name ): bool
+	{
+		return isset( $this->drivers[ $name ] );
+	}
+
+	/**
+	 * Adds a driver.
+	 *
+	 * @since  1.0.0
+	 */
+	public function addDriver( string $name, string $driver ): void
+	{
+		$this->drivers[ $name ] = $driver;
+	}
+
+	/**
+	 * Removes a driver.
+	 *
+	 * @since  1.0.0
+	 */
+	public function removeDriver( string $name ): void
+	{
+		if ( isset( $this->drivers[ $name ] ) ) {
+			unset( $this->drivers[ $name ] );
+		}
+	}
 
 	/**
 	 * Check if the store has data via `store.key`.
@@ -166,123 +286,6 @@ class Registry
 	{
 		foreach ( $this->getStores() as $store ) {
 			$store->flush();
-		}
-	}
-
-	/**
-	 * Returns a store object or `false`.
-	 *
-	 * @since  1.0.0
-	 */
-	public function store( string $store ): Store|false
-	{
-		if ( isset( $this->stores[ $store ] ) ) {
-			return $this->stores[ $store ];
-		}
-
-		return false;
-	}
-
-	/**
-	 * Returns all stores.
-	 *
-	 * @since  1.0.0
-	 */
-	public function getStores(): array
-	{
-		return $this->stores;
-	}
-
-	/**
-	 * Adds a store. A driver and path are the minimum requirements for a
-	 * store, so those are added as defaults. However, individual driver
-	 * implementations may have additional `$options` requirements.
-	 *
-	 * @since  1.0.0
-	 */
-	public function addStore( string $name, array $options = [] ): void
-	{
-		$options = array_merge( [ 'driver' => 'file' ], $options );
-
-		// If this is a file-based driver, make sure it has a full path
-		// for the cache directory. By default, we'll use the store name.
-		if ( Str::startsWith( $options['driver'], 'file' ) && ! isset( $options['path'] ) ) {
-			$options['path'] = cache_path( $name );
-		}
-
-		// Add a new store if the driver is registered.
-		if ( $this->driverExists( $options['driver'] ) ) {
-			$driver = $this->driver( $options['driver'] );
-
-			// Create a new store via its driver.
-			$store = new $driver( $name, $options );
-
-			// Add the store object to the registry and make it.
-			$this->stores[ $name ] = $store->make();
-		}
-	}
-
-	/**
-	 * Removes a store.
-	 *
-	 * @since  1.0.0
-	 */
-	public function removeStore( string $store ): void
-	{
-		if ( isset( $this->stores[ $store ] ) ) {
-			unset( $this->stores[ $store ] );
-		}
-	}
-
-	/**
-	 * Checks if a store exists.
-	 *
-	 * @since  1.0.0
-	 */
-	public function storeExists( string $store ): bool
-	{
-		return isset( $this->stores[ $store ] );
-	}
-
-	/**
-	 * Returns a driver.
-	 *
-	 * @since  1.0.0
-	 */
-	public function driver( string $name ): string|false
-	{
-		return $this->drivers[ $name ] ?? false;
-	}
-
-	/**
-	 * Checks if a driver exists.
-	 *
-	 * @since  1.0.0
-	 */
-	public function driverExists( string $name ): bool
-	{
-		return isset( $this->drivers[ $name ] );
-	}
-
-	/**
-	 * Adds a driver.
-	 *
-	 * @since  1.0.0
-	 */
-	public function addDriver( string $name, string $driver ): void
-	{
-		$this->drivers[ $name ] = $driver;
-	}
-
-	/**
-	 * Removes a driver.
-	 *
-	 * @since  1.0.0
-	 */
-	public function removeDriver( string $name ): void
-	{
-		if ( isset( $this->drivers[ $name ] ) ) {
-			unset( $this->drivers[ $name ] );
 		}
 	}
 

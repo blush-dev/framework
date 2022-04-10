@@ -15,19 +15,19 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Cache\Driver;
+namespace Blush\Cache\Drivers;
 
 use Closure;
 use Blush\Tools\Str;
 
-class File extends Store
+class File extends Driver
 {
 	/**
 	 * The store's full directory path.
 	 *
 	 * @since  1.0.0
 	 */
-	protected string $path = '';
+	protected string $path;
 
 	/**
 	 * File extenstion for the store's files without the preceding dot.
@@ -35,6 +35,16 @@ class File extends Store
 	 * @since  1.0.0
 	 */
 	protected string $extension = 'cache';
+
+	/**
+	 * Sets up object state.
+	 *
+	 * @since  1.0.0
+	 */
+	public function __construct( protected string $store, array $options = [] )
+	{
+		$this->path = $options['path'] ?? cache_path( $this->store );
+	}
 
 	/**
 	 * Creates the store directory.

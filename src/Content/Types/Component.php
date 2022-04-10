@@ -12,6 +12,7 @@
 namespace Blush\Content\Types;
 
 use Blush\Contracts\Bootable;
+use Blush\Contracts\Content\Types;
 
 class Component implements Bootable
 {

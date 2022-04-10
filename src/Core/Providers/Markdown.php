@@ -16,7 +16,7 @@ use Blush\Contracts\Markdown\Parser as ParserContract;
 use Blush\Core\ServiceProvider;
 use Blush\Markdown\{Parser, ImageRenderer, LinkRenderer, ParagraphRenderer};
 
-use League\CommonMark\MarkdownConverter;
+use League\CommonMark\{ConverterInterface, MarkdownConverter};
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\Node\Inline\{Image, Link};
 use League\CommonMark\Node\Block\Paragraph;
@@ -31,7 +31,7 @@ class Markdown extends ServiceProvider
         public function register(): void
 	{
 		// Sets up the Markdown converter and environment.
-                $this->app->singleton( 'markdown.converter', function( $app ) {
+		$this->app->singleton( ConverterInterface::class, function( $app ) {
 
 			// Gets the user Markdown config.
                         $markdown = $app->get( 'config' )->get( 'markdown' );
@@ -61,8 +61,11 @@ class Markdown extends ServiceProvider
                 } );
 
 		// Binds a Markdown wrapper class for accessing the converter.
-		$this->app->bind( 'markdown', function( $app ) {
-			return new Parser( $app->make( 'markdown.converter' ) );
+		$this->app->bind( ParserContract::class, function( $app ) {
+			return new Parser( $app->make( ConverterInterface::class ) );
 		} );
+
+		$this->app->alias( ConverterInterface::class, 'markdown.converter' );
+		$this->app->alias( ParserContract::class,     'markdown'           );
         }
 }

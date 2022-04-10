@@ -9,12 +9,13 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Cache\Driver;
+namespace Blush\Cache\Drivers;
 
 use Closure;
+use Blush\Contracts\Cache\Driver as DriverContract;
 use Blush\Contracts\Makeable;
 
-abstract class Store implements Makeable
+abstract class Driver implements DriverContract, Makeable
 {
 	/**
 	 * Houses store data after it has been retreived from the cache.
@@ -28,27 +29,16 @@ abstract class Store implements Makeable
 	 *
 	 * @since  1.0.0
 	 */
-	public function __construct( protected string $name, array $options = [] )
-	{
-		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
-			if ( isset( $options[ $key ] ) ) {
-				$this->$key = $options[ $key ];
-			}
-		}
-
-		if ( ! $this->path ) {
-			$this->path = cache_path( $this->name );
-		}
-	}
+	public function __construct( protected string $store ) {}
 
 	/**
 	 * Returns the store name.
 	 *
 	 * @since  1.0.0
 	 */
-	public function name(): string
+	public function store(): string
 	{
-		return $this->name;
+		return $this->store;
 	}
 
 	/**

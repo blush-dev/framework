@@ -16,6 +16,7 @@ namespace Blush\Cache;
 
 // Contracts.
 use Blush\Contracts\Bootable;
+use Blush\Contracts\Cache\Registry;
 
 // Classes.
 use Blush\Config;

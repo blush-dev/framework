@@ -18,8 +18,10 @@ namespace Blush\Routing;
 
 use Blush\App;
 use Blush\Contracts\Makeable;
+use Blush\Contracts\Routing\Routes;
+use Blush\Contracts\Routing\Url as UrlContract;
 
-class Url implements Makeable
+class Url implements Makeable, UrlContract
 {
 	/**
 	 * Sets up the object state.

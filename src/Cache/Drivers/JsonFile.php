@@ -9,7 +9,7 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Cache\Driver;
+namespace Blush\Cache\Drivers;
 
 use Blush\Tools\Str;
 

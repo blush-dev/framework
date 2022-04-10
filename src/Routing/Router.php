@@ -11,11 +11,14 @@
 
 namespace Blush\Routing;
 
+use Blush\Contracts\Routing\Routes;
+use Blush\Contracts\Routing\Router as RouterContract;
+
 use Blush\{Cache, Config};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
-class Router
+class Router implements RouterContract
 {
 	/**
 	 * HTTP Request.

@@ -15,12 +15,15 @@ namespace Blush\Core\Providers;
 use Blush\Contracts\Content\Entry as EntryContract;
 use Blush\Contracts\Content\Locator as LocatorContract;
 use Blush\Contracts\Content\Query as QueryContract;
+use Blush\Contracts\Content\Type as TypeContract;
+use Blush\Contracts\Content\Types as TypesContract;
 
 // Classes.
 use Blush\Core\ServiceProvider;
 use Blush\Content\{Locator, Query};
 use Blush\Content\Entry\MarkdownFile;
-use Blush\Content\Types\{Component, Types};
+use Blush\Content\Locator\File;
+use Blush\Content\Types\{Component, Registry, Type};
 
 class Content extends ServiceProvider
 {
@@ -34,8 +37,11 @@ class Content extends ServiceProvider
 		// Bind content entry.
 		$this->app->bind( EntryContract::class, MarkdownFile::class );
 
-		// Bind content types singleton.
-                $this->app->singleton( Types::class );
+		// Bind content type.
+		$this->app->bind( TypeContract::class, Type::class );
+
+		// Bind content type registry singleton.
+                $this->app->singleton( TypesContract::class, Registry::class );
 
 		// Bind content types component and pass types and config in.
                 $this->app->singleton( Component::class, function( $app ) {
@@ -51,7 +57,7 @@ class Content extends ServiceProvider
 
 			// Creates the content types component.
                         return new Component(
-                                $app->make( Types::class ),
+                                $app->make( TypesContract::class ),
                                 $types
                         );
                 } );
@@ -61,16 +67,15 @@ class Content extends ServiceProvider
 
 		// Bind the content query.
 		$this->app->bind( QueryContract::class, function( $app ) {
-			return new Query(
-				$app->make( LocatorContract::class )
-			);
+			return new Query( $app->make( LocatorContract::class ) );
 		} );
 
 		// Add aliases.
 		$this->app->alias( EntryContract::class,   'content.entry'   );
 		$this->app->alias( LocatorContract::class, 'content.locator' );
 		$this->app->alias( QueryContract::class,   'content.query'   );
-		$this->app->alias( Types::class,           'content.types'   );
+		$this->app->alias( TypeContract::class,    'content.type'    );
+		$this->app->alias( TypesContract::class,   'content.types'   );
         }
 
 	/**

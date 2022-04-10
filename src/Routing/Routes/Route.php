@@ -9,10 +9,11 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Routing;
+namespace Blush\Routing\Routes;
 
 // Contracts.
 use Blush\Contracts\Makeable;
+use Blush\Contracts\Routing\Route as RouteContract;
 
 // Classes.
 use Blush\Message;
@@ -20,7 +21,7 @@ use Blush\Controllers\Controller;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
-class Route implements Makeable
+class Route implements Makeable, RouteContract
 {
 	/**
 	 * Route name.

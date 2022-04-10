@@ -11,9 +11,11 @@
 
 namespace Blush\Core\Providers;
 
+use Blush\Contracts\Cache\Registry as CacheRegistry;
+
 use Blush\Core\ServiceProvider;
 use Blush\Cache\{Component, Registry};
-use Blush\Cache\Driver\{File, JsonFile};
+use Blush\Cache\Drivers\{File, JsonFile};
 
 class Cache extends ServiceProvider
 {
@@ -25,40 +27,40 @@ class Cache extends ServiceProvider
         public function register(): void
 	{
 		// Bind cache registry.
-                $this->app->singleton( Registry::class );
+                $this->app->singleton( CacheRegistry::class, Registry::class );
 
 		// Binds the cache component.
 		$this->app->singleton( Component::class, function( $app ) {
 
 			// Merge default and user-configured drivers.
 			$drivers = array_merge( [
-				'file'            => File::class,
-				'file.cache'      => File::class,
-				'file.json'       => JsonFile::class
+				'file'       => File::class,
+				'file.cache' => File::class,
+				'file.json'  => JsonFile::class
 			], $app->make( 'config' )->get( 'cache.drivers' ) );
 
 			// Merge default and user-configured stores.
 			$stores = array_merge( [
 				'content' => [
 					'driver' => 'file.json',
-					'path'   => cache_path( 'content' )
+					'path'   => $app->cachePath( 'content' )
 				],
 				'global'  => [
 					'driver' => 'file.cache',
-					'path'   => cache_path( 'global' )
+					'path'   => $app->cachePath( 'global' )
 				]
 			], $app->make( 'config' )->get( 'cache.stores'  ) );
 
 			// Creates the cache component.
 			return new Component(
-				$app->make( Registry::class ),
+				$app->make( CacheRegistry::class ),
 				$drivers,
 				$stores
 			);
 		} );
 
 		// Add aliases.
-		$this->app->alias( Registry::class, 'cache.registry' );
+		$this->app->alias( CacheRegistry::class, 'cache.registry' );
         }
 
 	/**

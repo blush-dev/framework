@@ -13,8 +13,6 @@
 
 namespace Blush\Contracts\Content;
 
-use Blush\Content\Types\Type;
-
 interface Entry
 {
 	/**
@@ -25,12 +23,39 @@ interface Entry
 	public function type(): Type;
 
 	/**
-	 * Returns the entry URI.
+	 * Returns the entry name/slug/ID.
 	 *
-	 * @todo   Allow for taxonomy terms in slug.
+	 * @since 1.0.0
+	 */
+	public function name(): string;
+
+	/**
+	 * Returns the entry's visibility.
+	 *
+	 * @since 1.0.0
+	 */
+	public function visibility(): string;
+
+	/**
+	 * Checks if an entry is viewable to the public.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isPublic(): bool;
+
+	/**
+	 * Checks if an entry is hidden from the public.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isHidden(): bool;
+
+	/**
+	 * Returns the entry URL.
+	 *
 	 * @since  1.0.0
 	 */
-	public function uri(): string;
+	public function url(): string;
 
 	/**
 	 * Returns the entry content.
@@ -104,6 +129,20 @@ interface Entry
 	public function authors(): array;
 
 	/**
+	 * Returns an array of view paths assigned as metadata.
+	 *
+	 * @since  1.0.0
+	 */
+	public function viewPaths(): array;
+
+	/**
+	 * Returns an array of Query arguments if assigned as metadata.
+	 *
+	 * @since  1.0.0
+	 */
+	public function collectionArgs(): array;
+
+	/**
 	 * Returns a Query of taxonomy entries or false.
 	 *
 	 * @since  1.0.0
@@ -111,12 +150,24 @@ interface Entry
 	public function terms( string $taxonomy, array $args = [] ): Query|false;
 
 	/**
+	 * Conditional check if the entry has a term from a specific taxonomy.
+	 *
+	 * @since  1.0.0
+	 */
+	public function hasTerm( string $taxonomy, string $term ): bool;
+
+	/**
 	 * Returns the entry excerpt.
 	 *
 	 * @since  1.0.0
 	 */
-	public function excerpt(
-		int $limit = 50,
-		string $more = '&hellip;'
-	): string;
+	public function excerpt( int $limit = 50, string $more = '&hellip;' ): string;
+
+	/**
+	 * Returns an estimated reading time in hours (if an hour or longer) and
+	 * minutes.
+	 *
+	 * @since  1.0.0
+	 */
+	public function readingTime( int $words_per_min = 200 ): string;
 }

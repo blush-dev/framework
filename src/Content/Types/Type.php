@@ -11,11 +11,12 @@
 
 namespace Blush\Content\Types;
 
+use Blush\Contracts\Content\Type as TypeContract;
 use Blush\{Config, Url};
 use Blush\Controllers;
 use Blush\Tools\Str;
 
-class Type
+class Type implements TypeContract
 {
 	/**
 	 * Content type path.

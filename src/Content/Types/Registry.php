@@ -11,9 +11,11 @@
 
 namespace Blush\Content\Types;
 
+use Blush\App;
+use Blush\Contracts\Content\{Type, Types};
 use Blush\Tools\Collection;
 
-class Types extends Collection
+class Registry extends Collection implements Types
 {
 	/**
 	 * Stores types by path.
@@ -34,9 +36,12 @@ class Types extends Collection
 	 *
 	 * @since  1.0.0
 	 */
-	public function add( mixed $name, mixed $options = [] ): void
+	public function add( mixed $type, mixed $options = [] ): void
 	{
-		parent::add( $name, new Type( $name, $options ) );
+		parent::add( $type, App::make( 'content.type', [
+			'type'    => $type,
+			'options' => $options
+		] ) );
 	}
 
 	/**

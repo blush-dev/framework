@@ -15,8 +15,9 @@
 
 namespace Blush\Content\Entry;
 
+use Blush\Contracts\Content\Type;
+
 use Blush\{App, Url};
-use Blush\Content\Types\Type;
 use Blush\Tools\Str;
 
 abstract class File extends Entry

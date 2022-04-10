@@ -11,8 +11,14 @@
 
 namespace Blush\Core\Providers;
 
+use Blush\Contracts\Routing\Routes;
+use Blush\Contracts\Routing\Route as RouteContract;
+use Blush\Contracts\Routing\Router as RouterContract;
+use Blush\Contracts\Routing\Url as UrlContract;
+
 use Blush\Core\ServiceProvider;
-use Blush\Routing\{Component, Routes, Router, Url};
+use Blush\Routing\{Component, Router, Url};
+use Blush\Routing\Routes\{Route, Registry};
 
 class Routing extends ServiceProvider
 {
@@ -23,16 +29,19 @@ class Routing extends ServiceProvider
 	 */
         public function register(): void
 	{
-		// Bind routes.
-                $this->app->singleton( Routes::class );
+		// Bind route registry.
+		$this->app->singleton( Routes::class, Registry::class );
+
+		// Bind route.
+		$this->app->bind( RouteContract::class, Route::class );
 
 		// Binds the router.
-                $this->app->singleton( Router::class, function( $app ) {
+                $this->app->singleton( RouterContract::class, function( $app ) {
 			return new Router( $app->make( Routes::class ) );
 		} );
 
 		// Binds the routing URL instance.
-                $this->app->singleton( Url::class, function( $app ) {
+                $this->app->singleton( UrlContract::class, function( $app ) {
 			return new Url( $app->make( Routes::class ) );
 		} );
 
@@ -45,10 +54,13 @@ class Routing extends ServiceProvider
 		} );
 
 		// Add aliases.
-		$this->app->alias( Routes::class, 'routing.routes' );
-		$this->app->alias( Router::class, 'routing.router' );
-		$this->app->alias( Url::class,    'routing.url'    );
-		$this->app->alias( Router::class, 'router'         );
+		$this->app->alias( Routes::class,           'routing.routes' );
+		$this->app->alias( RouteContract::class,    'routing.route'  );
+		$this->app->alias( RouterContract::class,   'routing.router' );
+		$this->app->alias( UrlContract::class,      'routing.url'    );
+
+		// @deprecated 1.0.0
+		$this->app->alias( RouterContract::class, 'router' );
         }
 
 	/**

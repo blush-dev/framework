@@ -13,10 +13,11 @@ namespace Blush\Routing;
 
 // Contracts.
 use Blush\Contracts\Bootable;
+use Blush\Contracts\Content\Types;
+use Blush\Contracts\Routing\Routes;
 
 // Classes.
-use Blush\{App, Config};
-use Blush\Content\Types\Types;
+use Blush\Config;
 use Blush\Controllers;
 
 class Component implements Bootable
