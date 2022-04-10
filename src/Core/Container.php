@@ -161,7 +161,7 @@ class Container implements ContainerContract, ArrayAccess
 
 		// Run through each of the extensions for the object.
 		foreach ( $this->extensions[ $abstract ] as $extension ) {
-			$object = new $extension( $object, $this );
+			$object = $extension( $object, $this );
 		}
 
 		// Return the object.
