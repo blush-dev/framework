@@ -31,7 +31,7 @@ class Component implements Bootable
 	public function __construct(
 		protected Registry $registry,
 		protected array $drivers,
-		protected $stores
+		protected array $stores
 	) {}
 
 	/**
