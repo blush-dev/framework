@@ -47,6 +47,8 @@ class MarkdownFile extends Entry
 	public function __construct( protected string $filepath, array $options = [] )
 	{
 		$this->nocontent = $options['nocontent'] ?? false;
+
+		parent::__construct( $filepath );
 	}
 
 	/**
