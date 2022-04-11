@@ -22,7 +22,6 @@ use Blush\Contracts\Content\Types as TypesContract;
 use Blush\Core\ServiceProvider;
 use Blush\Content\{Locator, Query};
 use Blush\Content\Entry\MarkdownFile;
-use Blush\Content\Locator\File;
 use Blush\Content\Types\{Component, Registry, Type};
 
 class Content extends ServiceProvider
