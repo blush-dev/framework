@@ -11,7 +11,7 @@
 
 namespace Blush\Core\Providers;
 
-use Blush\Contracts\Cache\Registry as CacheRegistry;
+use Blush\Contracts\Cache\Registry as RegistryContract;
 
 use Blush\Core\ServiceProvider;
 use Blush\Cache\{Component, Registry};
@@ -27,7 +27,7 @@ class Cache extends ServiceProvider
         public function register(): void
 	{
 		// Bind cache registry.
-                $this->app->singleton( CacheRegistry::class, Registry::class );
+                $this->app->singleton( RegistryContract::class, Registry::class );
 
 		// Binds the cache component.
 		$this->app->singleton( Component::class, function( $app ) {
@@ -49,18 +49,18 @@ class Cache extends ServiceProvider
 					'driver' => 'file.cache',
 					'path'   => $app->cachePath( 'global' )
 				]
-			], $app->make( 'config' )->get( 'cache.stores'  ) );
+			], $app->make( 'config' )->get( 'cache.stores' ) );
 
 			// Creates the cache component.
 			return new Component(
-				$app->make( CacheRegistry::class ),
+				$app->make( RegistryContract::class ),
 				$drivers,
 				$stores
 			);
 		} );
 
 		// Add aliases.
-		$this->app->alias( CacheRegistry::class, 'cache.registry' );
+		$this->app->alias( RegistryContract::class, 'cache.registry' );
         }
 
 	/**
