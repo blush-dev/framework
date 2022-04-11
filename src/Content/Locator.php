@@ -29,6 +29,13 @@ class Locator implements LocatorContract
 	protected string $path;
 
 	/**
+	 * File extenstion for the store's files without the preceding dot.
+	 *
+	 * @since  1.0.0
+	 */
+	protected string $extension = 'md';
+
+	/**
 	 * Array of located filepaths and metadata.
 	 *
 	 * @since 1.0.0
@@ -97,6 +104,16 @@ class Locator implements LocatorContract
 	public function path(): string
 	{
 		return $this->path;
+	}
+
+	/**
+	 * Returns the file extension for the entries without the preceding dot.
+	 *
+	 * @since  1.0.0
+	 */
+	protected function extension(): string
+	{
+		return trim( $this->extension, '.' );
 	}
 
 	/**
@@ -187,7 +204,10 @@ class Locator implements LocatorContract
 	 */
 	protected function locate(): array
 	{
-		$search = Str::appendPath( $this->path, '*.md' );
+		$search = Str::appendPath(
+			$this->path,
+			sprintf( '*.%s', $this->extension() )
+		);
 
 		// Return an empty array if search results in no files.
 		if ( ! $filepaths = glob( $search ) ) {

@@ -15,7 +15,7 @@ use Blush\App;
 use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 
-class MarkdownFile extends File
+class MarkdownFile extends Entry
 {
 	/**
 	 * Whether Markdown has been parsed.
@@ -44,10 +44,8 @@ class MarkdownFile extends File
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( string $filepath, array $options = [] )
+	public function __construct( protected string $filepath, array $options = [] )
 	{
-		parent::__construct( $filepath );
-
 		$this->nocontent = $options['nocontent'] ?? false;
 	}
 

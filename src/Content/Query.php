@@ -82,7 +82,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	protected int $total = 0;
 
 	/**
-	 * Whether to remove `index.md` files.
+	 * Whether to remove `index.{ext}` files.
 	 *
 	 * @since 1.0.0
 	 */
@@ -288,9 +288,10 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
 		// Remove index file if noindex query.
 		if ( $this->noindex && ! in_array( 'index', $this->names ) ) {
-			$filepaths = array_filter( $filepaths, function( $filepath ) {
-				return 'index' !== basename( $filepath, '.md' );
-			} );
+			$filepaths = array_filter(
+				$filepaths,
+				fn( $filepath ) => 'index' !== Str::beforeLast( basename( $filepath ), '.' )
+			);
 		}
 
 		// Get the total number of entries.

@@ -2,7 +2,7 @@
 /**
  * Creates a virtual content entry.
  *
- * Developers can pass an array of data to the contstructure with keys matching
+ * Developers can pass an array of data to the constructor with keys matching
  * the class properties to set up a virtual entry. This is primarily useful for
  * creating the `$single` entry object for routed URIs that do not exist in the
  * filesystem.  For example, custom date-based archive pages.
@@ -30,5 +30,10 @@ class Virtual extends Entry
 				$this->$key = $data[ $key ];
 			}
 		}
+
+		// Pass an empty filepath to the parent class. This ensures that
+		// nothing relying on the file system errors out in the
+		// off-chance those methods are accessed.
+		parent::__construct( '' );
 	}
 }
