@@ -268,6 +268,42 @@ class Registry implements CacheRegistry
 	}
 
 	/**
+	 * Returns the timestamp for when a dataset was created via `store.key`.
+	 *
+	 * @since  1.0.0
+	 */
+	public function created( string $name ): ?int
+	{
+		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
+
+		return $this->store( $store )->created( $key );
+	}
+
+	/**
+	 * Returns the timestamp for when a dataset expires via `store.key`.
+	 *
+	 * @since  1.0.0
+	 */
+	public function expires( string $name ): ?int
+	{
+		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
+
+		return $this->store( $store )->expires( $key );
+	}
+
+	/**
+	 * Determines if a dataset has expired via `store.key`.
+	 *
+	 * @since  1.0.0
+	 */
+	public function expired( string $name ): bool
+	{
+		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
+
+		return $this->store( $store )->expires( $key );
+	}
+
+	/**
 	 * Deletes all cached data from a store.
 	 *
 	 * @since  1.0.0

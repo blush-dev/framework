@@ -121,6 +121,87 @@ abstract class Driver implements DriverContract, Makeable
 	abstract public function pull( string $key ): mixed;
 
 	/**
+	 * Returns the timestamp for when a dataset was created. Returns `null`
+	 * if the data has not been set.
+	 *
+	 * @since  1.0.0
+	 */
+	public function created( string $key ): ?int
+	{
+		if ( ! $this->hasData( $key ) ) {
+			return null;
+		}
+
+		return $this->data[$key]['meta']['created'] ?? 0;
+	}
+
+	/**
+	 * Returns the timestamp for when a dataset expires. Returns `null` if
+	 * the data has not been set.
+	 *
+	 * @since  1.0.0
+	 */
+	public function expires( string $key ): ?int
+	{
+		if ( ! $this->hasData( $key ) ) {
+			return null;
+		}
+
+		return $this->data[$key]['meta']['expires'] ?? 0;
+	}
+
+	/**
+	 * Determines if a dataset has expired by key.  This will only return
+	 * accurately if the data is set.
+	 *
+	 * @since  1.0.0
+	 */
+	public function expired( string $key ): bool
+	{
+		$expires = $this->expires( $key );
+
+		// If the expiration is set to 0, then it is set to `forever`,
+		// and the data should only be manually flushed.
+		//
+		// If expiration is `null`, assume it doesn't expire, but this
+		// is likely that the method was called before data was set.
+		if ( 0 === $expires || is_null( $expires ) ) {
+			return false;
+		}
+
+		// If the current time is greater than the expiration, then the
+		// data has expired.
+		return time() > $expires;
+	}
+
+	/**
+	 * Determines if a dataset has expired by checking within the dataset
+	 * itself. This should be used internally over the `expired()` method if
+	 * access to the data is already available.
+	 *
+	 * @since  1.0.0
+	 */
+	protected function hasExpired( array $data ): bool
+	{
+		// If no metadata is set, assume it does not expire.
+		if ( ! isset( $data['meta'] ) && ! isset( $data['meta']['expires'] ) ) {
+			return false;
+		}
+
+		$expires = abs( intval( $data['meta']['expires'] ) );
+
+		// If the expiration is set to 0, then it is set to `forever`,
+		// and the data should only be manually flushed.
+		if ( 0 === $expires ) {
+			return false;
+		}
+
+		// If the current time is greater than the expiration, then the
+		// data has expired.
+		return time() > $expires;
+	}
+
+	/**
 	 * Helper function for creating an expiration time when added to the
 	 * current time.  If set to `0`, we just send that back.
 	 *
@@ -129,6 +210,16 @@ abstract class Driver implements DriverContract, Makeable
 	protected function availableAt( int $seconds = 0 ): int
 	{
 		return 0 === $seconds ? 0 : $seconds + time();
+	}
+
+	/**
+	 * Helper function for adding a created timestamp.
+	 *
+	 * @since  1.0.0
+	 */
+	protected function createdAt(): int
+	{
+		return time();
 	}
 
 	/**
@@ -160,7 +251,10 @@ abstract class Driver implements DriverContract, Makeable
 	{
 		if ( ! is_array( $data ) || ! isset( $data['meta'] ) ) {
 			$data = [
-				'meta' => [ 'expires' => 0 ],
+				'meta' => [
+					'expires' => $this->availableAt(),
+					'created' => $this->createdAt()
+				],
 				'data'  => $data
 			];
 		}

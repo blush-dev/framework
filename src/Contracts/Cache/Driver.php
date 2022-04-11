@@ -93,4 +93,25 @@ interface Driver
 	 * @since  1.0.0
 	 */
 	public function pull( string $key ): mixed;
+
+	/**
+	 * Returns the timestamp for when a dataset was created.
+	 *
+	 * @since  1.0.0
+	 */
+	public function created( string $key ): ?int;
+
+	/**
+	 * Returns the timestamp for when a dataset expires.
+	 *
+	 * @since  1.0.0
+	 */
+	public function expires( string $key ): ?int;
+
+	/**
+	 * Determines if a dataset has expired.
+	 *
+	 * @since  1.0.0
+	 */
+	public function expired( string $key ): bool;
 }

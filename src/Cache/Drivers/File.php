@@ -65,7 +65,7 @@ class File extends Driver
 	 *
 	 * @since  1.0.0
 	 */
-	public function path(): string
+	protected function path(): string
 	{
 		return $this->path;
 	}
@@ -75,7 +75,7 @@ class File extends Driver
 	 *
 	 * @since  1.0.0
 	 */
-	public function filepath( string $key ): string
+	protected function filepath( string $key ): string
 	{
 		$ext = trim( $this->extension, '.' );
 		return Str::appendPath( $this->path(), "{$key}.{$ext}" );
@@ -136,18 +136,20 @@ class File extends Driver
 	{
 		$data = serialize( [
 			'meta' => [
-				'expires' => $this->availableAt( $seconds )
+				'expires' => $this->availableAt( $seconds ),
+				'created' => $this->createdAt()
 			],
 			'data' => $data
 		] );
 
-		$put  = file_put_contents( $this->filepath( $key ), $data );
+		$put = file_put_contents( $this->filepath( $key ), $data );
 
 		if ( true === $put ) {
 			$this->setData( $key, $data );
 		}
 
-		return false;
+		// `file_put_contents()` returns `int|false`.
+		return false !== $put;
 	}
 
 	/**
@@ -249,31 +251,5 @@ class File extends Driver
 		}
 
 		$this->resetData();
-	}
-
-	/**
-	 * Determines if a dataset has expired.
-	 *
-	 * @since  1.0.0
-	 * @param  array  $data  Not type-hinting this for back-compat during 1.0 beta.
-	 */
-	protected function hasExpired( $data ): bool
-	{
-		// If no metadata is set, assume it does not expire.
-		if ( ! isset( $data['meta'] ) && ! isset( $data['meta']['expires'] ) ) {
-			return false;
-		}
-
-		$expires = abs( intval( $data['meta']['expires'] ) );
-
-		// If the expiration is set to 0, then it is set to `forever`,
-		// and the data should only be manually flushed.
-		if ( 0 === $expires ) {
-			return false;
-		}
-
-		// If the current time is greater than the expiration, then the
-		// data has expired.
-		return time() > $expires;
 	}
 }

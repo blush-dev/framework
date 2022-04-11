@@ -177,9 +177,11 @@ class Locator implements LocatorContract
 		}
 
 		// If the persistent cache exists, let's see if it needs
-		// refreshing based on file modified times.
+		// refreshing based on file modified times. Note that the
+		// `$store->created()` method syould always be called after the
+		// data is set/get from the cache store.
 		$this->content_time = filemtime( $this->path );
-		$this->cache_time   = filemtime( $store->filepath( $this->cache_key ) );
+		$this->cache_time   = $store->created( $this->cache_key );
 
 		// If there are no modified file times or the content folder is
 		// newer than the cache, forget the current cache.

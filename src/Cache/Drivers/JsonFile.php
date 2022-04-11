@@ -89,13 +89,15 @@ class JsonFile extends File
 	{
 		$data = json_encode( [
 			'meta' => [
-				'expires' => $this->availableAt( $seconds )
+				'expires' => $this->availableAt( $seconds ),
+				'created' => $this->createdAt()
 			],
 			'data' => $data
 		], JSON_PRETTY_PRINT );
 
 		$put = file_put_contents( $this->filepath( $key ), $data );
 
+		// `file_put_contents()` returns `int|false`.
 		return false !== $put;
 	}
 }

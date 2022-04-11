@@ -144,6 +144,27 @@ interface Registry
 	public function pull( string $name ): mixed;
 
 	/**
+	 * Returns the timestamp for when a dataset was created via `store.key`.
+	 *
+	 * @since  1.0.0
+	 */
+	public function created( string $name ): ?int;
+
+	/**
+	 * Returns the timestamp for when a dataset expires via `store.key`.
+	 *
+	 * @since  1.0.0
+	 */
+	public function expires( string $name ): ?int;
+
+	/**
+	 * Determines if a dataset has expired via `store.key`.
+	 *
+	 * @since  1.0.0
+	 */
+	public function expired( string $name ): bool;
+
+	/**
 	 * Deletes all cached data from a store.
 	 *
 	 * @since  1.0.0
