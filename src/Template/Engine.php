@@ -171,6 +171,7 @@ class Engine implements EngineContract
 	{
 		if ( ! $items && $empty ) {
 			$this->include( $empty );
+			return;
 		}
 
 		foreach ( $items as $item ) {
