@@ -81,6 +81,26 @@ class View implements ViewContract, Displayable, Renderable
 	}
 
 	/**
+	 * Sets the view paths.
+	 *
+	 * @since 1.0.0
+	 */
+	public function setPaths( array $paths ): void
+	{
+		$this->paths = $paths;
+	}
+
+	/**
+	 * Gets the view paths.
+	 *
+	 * @since 1.0.0
+	 */
+	public function getPaths(): array
+	{
+		return $this->paths;
+	}
+
+	/**
 	 * Sets the view data.
 	 *
 	 * @since 1.0.0

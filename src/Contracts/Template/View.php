@@ -17,6 +17,20 @@ use Blush\Tools\Collection;
 interface View
 {
 	/**
+	 * Sets the view paths.
+	 *
+	 * @since 1.0.0
+	 */
+	public function setPaths( array $paths ): void;
+
+	/**
+	 * Gets the view paths.
+	 *
+	 * @since 1.0.0
+	 */
+	public function getPaths(): array;
+
+	/**
 	 * Sets the view data.
 	 *
 	 * @since 1.0.0
