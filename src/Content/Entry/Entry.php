@@ -506,8 +506,15 @@ abstract class Entry implements EntryContract
 			)->content();
 		}
 
+		// Remove `<figcaption>` so that its text isn't in the excerpt.
+		$content = preg_replace(
+			"/<figcaption.*?>(.*?)<\/figcaption>/i",
+			"",
+			$content ?: $this->content()
+		);
+
 		return sprintf( '<p>%s</p>', Str::words(
-			strip_tags( $content ?: $this->content() ),
+			strip_tags( $content ),
 			$limit,
 			$more
 		) );
