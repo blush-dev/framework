@@ -144,7 +144,7 @@ class File extends Driver
 
 		$put = file_put_contents( $this->filepath( $key ), $data );
 
-		if ( true === $put ) {
+		if ( false !== $put ) {
 			$this->setData( $key, $data );
 		}
 
