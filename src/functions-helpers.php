@@ -385,6 +385,27 @@ if ( ! function_exists( 'asset' ) ) {
 	}
 }
 
+if ( ! function_exists( 'batch' ) ) {
+	/**
+	 * Helper method for passing a batch of functions to apply to a variable.
+	 * Functions list should be separated with a `|` pipe character. This is
+	 * useful for cleaning up multiple wrappers for a variable like so:
+	 * `batch( $string, 'strip_tags|strtoupper' )`.
+	 *
+	 * @since 1.0.0
+	 */
+	function batch( mixed $var, string $functions ): mixed
+	{
+		foreach ( explode( '|', $functions ) as $function ) {
+			if ( is_callable( $function ) ) {
+				$var = call_user_func( $function, $var );
+			}
+		}
+
+		return $var;
+	}
+}
+
 if ( ! function_exists( 'e' ) ) {
 	/**
 	 * Convenient wrapper around `htmlspecialchars()` for escaping strings
