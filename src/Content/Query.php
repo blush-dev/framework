@@ -218,7 +218,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
         	}
 
 		// Back-compat for `$names`.
-		if ( isset( $options['slug'] ) && ! isset( $options['name'] ) ) {
+		if ( isset( $options['slug'] ) && ! isset( $options['names'] ) ) {
 			$this->names = (array) $options['slug'];
 		}
 
