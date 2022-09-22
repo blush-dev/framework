@@ -502,16 +502,21 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
                 foreach ( $entries as $file => $matter ) {
 
-			$slug = Str::afterFirst(
-				pathinfo( $file, PATHINFO_FILENAME ),
-				'.'
-			);
+			// Get the filename without the extension.
+			$name = pathinfo( $file, PATHINFO_FILENAME );
 
-			// Note: included names take precedence over excluded.
-                	if ( $this->names && in_array( $slug, $this->names ) ) {
+			// Strip anything before potential ordering dot, e.g.,
+			// `01.{$name}`, `02.{$name}`, etc.
+			if ( Str::contains( $name, '.' ) ) {
+				$name =  Str::afterLast( $name, '.' );
+			}
+
+			// Check if the name is specifically included/excluded.
+			// Included names take precedence over excluded.
+                	if ( $this->names && in_array( $name, $this->names ) ) {
                 		$located[ $file ] = $matter;
                 		continue;
-                	} elseif ( $this->names_exclude && ! in_array( $slug, $this->names_exclude ) ) {
+                	} elseif ( $this->names_exclude && ! in_array( $name, $this->names_exclude ) ) {
 				$located[ $file ] = $matter;
 				continue;
 			}

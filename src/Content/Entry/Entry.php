@@ -112,8 +112,8 @@ abstract class Entry implements EntryContract
 		// Get the filename without the extension.
 		$name = $this->filename();
 
-		// Strip anything after potential ordering dot, e.g.,
-		// `01.{$name}.md`, `02.{$name}.md`, etc.
+		// Strip anything before potential ordering dot, e.g.,
+		// `01.{$name}`, `02.{$name}`, etc.
 		if ( Str::contains( $name, '.' ) ) {
 			$name =  Str::afterLast( $name, '.' );
 		}
