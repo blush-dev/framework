@@ -155,6 +155,13 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	protected array $names = [];
 
 	/**
+	 * Exclude entries by filename (w/o extension).
+	 *
+	 * @since 1.0.0
+	 */
+	protected array $names_exclude = [];
+
+	/**
 	 * Query entries by year.
 	 *
 	 * @since 1.0.0
@@ -487,7 +494,7 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	 */
         private function filterByNames( array $entries ): array
 	{
-                if ( ! $this->names ) {
+                if ( ! $this->names && ! $this->names_exclude ) {
                         return $entries;
                 }
 
@@ -500,10 +507,14 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 				'.'
 			);
 
-                	if ( in_array( $slug, $this->names ) ) {
+			// Note: included names take precedence over excluded.
+                	if ( $this->names && in_array( $slug, $this->names ) ) {
                 		$located[ $file ] = $matter;
                 		continue;
-                	}
+                	} elseif ( $this->names_exclude && ! in_array( $slug, $this->names_exclude ) ) {
+				$located[ $file ] = $matter;
+				continue;
+			}
 		}
 
 		return $located;
