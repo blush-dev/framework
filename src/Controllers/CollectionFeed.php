@@ -61,6 +61,9 @@ class CollectionFeed extends Controller
 			$feed    = new Feed();
 			$channel = new Channel();
 
+			// Separate channel datetime.
+			$channel_datetime = '';
+
 			$channel->title( e( sprintf(
 				'%s%s',
 				Config::get( 'app.title' ),
@@ -94,12 +97,21 @@ class CollectionFeed extends Controller
 					            : strtotime( $date );
 
 					$item->pubDate( $datetime );
+
+					// Grab the channel datetime from the
+					// first post in the feed with a date.
+					if ( '' === $channel_datetime ) {
+						$channel_datetime = $datetime;
+					}
 				}
 			}
 
-			if ( ! empty( $datetime ) ) {
-				$channel->pubDate( $datetime );
-				$channel->lastBuildDate( $datetime );
+			// @todo Need a method for figuring out the last time
+			// the content itself changed, regardless of the last
+			// published date, for a proper `<lastBuildDate>`.
+			if ( '' !== $channel_datetime ) {
+				$channel->pubDate( $channel_datetime );
+				$channel->lastBuildDate( $channel_datetime);
 			}
 
 			return new Response(
