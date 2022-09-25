@@ -12,7 +12,7 @@
 namespace Blush\Content\Types;
 
 use Blush\Contracts\Content\Type as TypeContract;
-use Blush\{Config, Url};
+use Blush\{App, Config, Url};
 use Blush\Controllers;
 use Blush\Tools\Str;
 
@@ -82,7 +82,7 @@ class Type implements TypeContract
 	 *
 	 * @since 1.0.0
 	 */
-	protected bool|array $feed = false;
+	protected ?array $feed = null;
 
 	/**
 	 * Whether to generate date-based archives for the content type.
@@ -117,7 +117,6 @@ class Type implements TypeContract
 		$this->collection      = $options['collection']      ?? [];
 		$this->routes          = $options['routes']          ?? [];
 		$this->routing         = $options['routing']         ?? true;
-		$this->feed            = $options['feed']            ?? false;
 		$this->date_archives   = $options['date_archives']   ?? false;
 		$this->time_archives   = $options['time_archives']   ?? false;
 		$this->taxonomy        = $options['taxonomy']        ?? false;
@@ -128,6 +127,18 @@ class Type implements TypeContract
 		// it should at least collect itself.
 		if ( false !== $options['collect'] ) {
 			$this->collect = $options['collect'] ?: $type;
+		}
+
+		// Build the feed options.
+		$feed = [
+			'taxonomy'   => null,
+			'collection' => []
+		];
+
+		if ( isset( $options['feed'] ) && true === $options['feed'] ) {
+			$this->feed = $feed;
+		} elseif ( isset( $options['feed'] ) && is_array( $options['feed'] ) ) {
+			$this->feed = array_merge( $feed, $options['feed'] );
 		}
 
 		// Build the collection path.
@@ -199,7 +210,7 @@ class Type implements TypeContract
 	}
 
 	/**
-	 * Conditional check if the typs is the homepage alias.
+	 * Conditional check if the type is the homepage alias.
 	 *
 	 * @since 1.0.0
 	 */
@@ -312,7 +323,26 @@ class Type implements TypeContract
 	 */
 	public function hasFeed(): bool
 	{
-		return false !== $this->feed;
+		return is_array( $this->feed );
+	}
+
+	/**
+	 * Returns the taxonomy used with entries of this type in feeds.  Each
+	 * term is of the taxonomy is output as a `<category>`.
+	 *
+	 * @since 1.0.0
+	 */
+	public function feedTaxonomy(): TypeContract|null
+	{
+		if ( ! $taxonomy = $this->feed['taxonomy'] ) {
+			return null;
+		}
+
+		if ( App::get( 'content.types' )->has( $taxonomy ) ) {
+			return App::get( 'content.types' )->get( $taxonomy );
+		}
+
+		return null;
 	}
 
 	/**
@@ -406,11 +436,15 @@ class Type implements TypeContract
 	 */
 	public function feedArgs(): array
 	{
+		if ( ! is_array( $this->feed ) ) {
+			return [];
+		}
+
 		return array_merge( [
 			'type'    => $this->collect() ?: $this->type(),
 			'order'   => 'desc',
 			'orderby' => 'filename'
-		], is_array( $this->feed ) ? $this->feed : [] );
+		], $this->feed['collection'] ?? [] );
 	}
 
 	/**

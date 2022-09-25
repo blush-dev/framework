@@ -185,6 +185,21 @@ interface Entry
 	public function collectionArgs(): array;
 
 	/**
+	 * Returns an array of the taxonomy (content type) objects associated
+	 * with the entry.
+	 *
+	 * @since  1.0.0
+	 */
+	public function taxonomies(): array;
+
+	/**
+	 * Conditional check if the entry is associated with a taxonomy.
+	 *
+	 * @since  1.0.0
+	 */
+	public function hasTaxonomy( string $taxonomy ): bool;
+
+	/**
 	 * Returns a Query of taxonomy entries or false.
 	 *
 	 * @since  1.0.0

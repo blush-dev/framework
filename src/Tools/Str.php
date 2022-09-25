@@ -409,7 +409,7 @@ class Str
 	 *
 	 * @since 1.0.0
 	 */
-	public static function words( string $str, int $limit = 50, string $more = '&hellip;' ): string
+	public static function words( string $str, int $limit = 50, string $more = '&#8230;' ): string
 	{
 		$match = static::match(
 			'/^\s*+(?:\S++\s*+){1,' . $limit . '}/u',

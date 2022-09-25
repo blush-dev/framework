@@ -52,6 +52,13 @@ abstract class Entry implements EntryContract
 	protected array $resolved_meta = [];
 
 	/**
+	 * Stores the taxonomies associated with the entry.
+	 *
+	 * @since 1.0.0
+	 */
+	protected array $taxonomies = [];
+
+	/**
 	 * Entry path info.
 	 *
 	 * @since 1.0.0
@@ -463,22 +470,47 @@ abstract class Entry implements EntryContract
 	}
 
 	/**
+	 * Returns an array of the taxonomy (content type) objects associated
+	 * with the entry.
+	 *
+	 * @since  1.0.0
+	 */
+	public function taxonomies(): array
+	{
+		if ( $this->taxonomies ) {
+			return $this->taxonomies;
+		}
+
+		foreach ( App::get( 'content.types' ) as $type ) {
+			if ( $this->metaSingle( $type->name() ) && $type->isTaxonomy() ) {
+				$this->taxonomies[ $type->name() ] = $type;
+			}
+		}
+
+		return $this->taxonomies;
+	}
+
+	/**
+	 * Conditional check if the entry is associated with a taxonomy.
+	 *
+	 * @since  1.0.0
+	 */
+	public function hasTaxonomy( string $taxonomy ): bool
+	{
+		$taxonomies = $this->taxonomies();
+		return isset( $taxonomies[ $taxonomy ] );
+	}
+
+	/**
 	 * Returns a Query of taxonomy entries or false.
 	 *
 	 * @since  1.0.0
 	 */
 	public function terms( string $taxonomy, array $args = [] ): QueryContract|false
 	{
-		$types = App::resolve( 'content.types' );
-
-		if ( $types->has( $taxonomy ) && $types->get( $taxonomy )->isTaxonomy() ) {
-			return $this->metaQuery(
-				$types->get( $taxonomy )->type(),
-				$args
-			);
-		}
-
-		return false;
+		return $this->hasTaxonomy( $taxonomy )
+		       ? $this->metaQuery( $taxonomy, $args )
+		       : false;
 	}
 
 	/**
@@ -489,7 +521,6 @@ abstract class Entry implements EntryContract
 	public function hasTerm( string $taxonomy, string $term ): bool
 	{
 		$terms = $this->terms( $taxonomy );
-
 		return $terms ? $terms->has( $term ) : false;
 	}
 
@@ -498,7 +529,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function excerpt( int $limit = 50, string $more = '&hellip;' ): string
+	public function excerpt( int $limit = 50, string $more = '&#8230;' ): string
 	{
 		if ( $content = $this->metaSingle( 'excerpt' ) ) {
 			return App::resolve( 'markdown' )->convert(

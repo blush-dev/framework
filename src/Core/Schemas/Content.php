@@ -27,7 +27,7 @@ class Content
 			'path'            => Expect::string(),
 			'collect'         => Expect::type( 'string|bool' )->nullable(),
 			'collection'      => Expect::array(),
-			'feed'            => Expect::type( 'bool|array' )->default( false ),
+			'feed'            => Expect::type( 'bool|array' )->nullable(),
 			'date_archives'   => Expect::bool( false ),
 			'time_archives'   => Expect::bool( false ),
 			'url_paths'       => Expect::arrayOf( 'string', 'string' ),
