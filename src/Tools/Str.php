@@ -291,6 +291,51 @@ class Str
 	}
 
 	/**
+	 * Returns an estimated reading time in hours (if an hour or longer) and
+	 * minutes.
+	 *
+	 * @since  1.0.0
+	 */
+	public static function readingTime( string $str, int $words_per_min = 200 ): string
+	{
+		// Strip tags and get the word count from the content.
+		$count = str_word_count( strip_tags( $str ) );
+
+		// Get the ceiling for minutes.
+		$time_mins  = intval( ceil( $count / $words_per_min ) );
+		$time_hours = 0;
+
+		// If more than 60 mins, calculate hours and get leftover mins.
+		if ( 60 <= $time_mins ) {
+			$time_hours = intval( floor( $time_mins / 60 ) );
+			$time_mins  = intval( $time_mins % 60 );
+		}
+
+		// Set up text for hours.
+		$text_hours = sprintf(
+			Str::nText( '%d Hour', '%d Hours', $time_hours ),
+			number_format( $time_hours )
+		);
+
+		// Set up text for minutes.
+		$text_mins = sprintf(
+			Str::nText( '%d Minute', '%d Minutes', $time_mins ),
+			number_format( $time_mins )
+		);
+
+		// If there are no hours, just return the minutes.
+		// If there are no minutes, just return the hours.
+		if ( 0 >= $time_hours ) {
+			return $text_mins;
+		} elseif ( 0 >= $time_mins ) {
+			return $text_hours;
+		}
+
+		// Merge hours + minutes text.
+		return sprintf( '%s, %s', $text_hours, $text_mins );
+	}
+
+	/**
 	 * Replaces the last occurrence of a string.
 	 *
 	 * @since 1.0.0
