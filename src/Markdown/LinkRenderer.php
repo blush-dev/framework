@@ -12,7 +12,7 @@
 namespace Blush\Markdown;
 
 use Blush\Tools\Str;
-use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
+use League\CommonMark\Extension\CommonMark\Node\Inline\{Image, Link};
 use League\CommonMark\Node\Node;
 use League\CommonMark\Renderer\{ChildNodeRendererInterface, NodeRendererInterface};
 use League\CommonMark\Util\HtmlElement;
@@ -32,8 +32,6 @@ class LinkRenderer implements NodeRendererInterface
 			$url = Str::appendUri( url( $url ) );
                 }
 
-                $innerHtml = $childRenderer->renderNodes( $node->children() );
-
                 $attr = $node->data['attributes'] ?? [];
 
                 $attr['href'] = e( $url );
@@ -41,6 +39,13 @@ class LinkRenderer implements NodeRendererInterface
                 if ( $title = $node->getTitle() ) {
                         $attr['title'] = e( $title );
                 }
+
+		if ( 1 === count( $node->children() ) && $node->firstChild() instanceof Image ) {
+			return ( new ImageRenderer( $node ) )->render( $node->firstChild(), $childRenderer );
+		}
+
+
+                $innerHtml = $childRenderer->renderNodes( $node->children() );
 
                 return new HtmlElement( 'a', $attr, $innerHtml );
         }

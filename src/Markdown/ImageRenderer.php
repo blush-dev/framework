@@ -20,6 +20,8 @@ use League\CommonMark\Util\HtmlElement;
 
 class ImageRenderer implements NodeRendererInterface
 {
+	public function __construct( protected ?Node $parent = null ) {}
+
 	/**
 	 * Renders the element.
 	 *
@@ -40,15 +42,17 @@ class ImageRenderer implements NodeRendererInterface
                 	$alt = $childRenderer->renderNodes( $node->children() );
                 }
 
+		$parent = $this->parent ?? $node->parent();
+
 		// Get attributes from `<img>` element if they exist.
 		if ( ! empty( $node->data['attributes'] ) ) {
 			$attr = $node->data['attributes'];
 
 		// If the `<img>` parent is a link, try its attributes.
-		} elseif ( $node->parent() instanceof Link ) {
-			if ( ! empty( $node->parent()->data['attributes'] ) ) {
-				$attr = $node->parent()->data['attributes'];
-				$node->parent()->data['attributes'] = [];
+		} elseif ( $parent instanceof Link ) {
+			if ( ! empty( $parent->data['attributes'] ) ) {
+				$attr = $parent->data['attributes'];
+				$parent->data['attributes'] = [];
 			}
 		}
 
@@ -56,6 +60,18 @@ class ImageRenderer implements NodeRendererInterface
                         'src' => e( $url ),
 			'alt' => e( $alt ),
                 ], '', true );
+
+		if ( $this->parent instanceof Link ) {
+			$url = $this->parent->getUrl();
+
+			if ( Str::startsWith( $url, '/' ) ) {
+				$url = Str::appendUri( url( $url ) );
+			}
+
+			$image = new HtmlElement( 'a', [
+				'href' => e( $url )
+			], $image );
+		}
 
                 if ( $node->getTitle() ) {
                         $figcaption = new HtmlElement(
