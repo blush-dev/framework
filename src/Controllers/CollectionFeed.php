@@ -153,9 +153,14 @@ class CollectionFeed extends Controller
 				'items'      => $items
 			];
 
+			$type_name  = sanitize_slug( $type->type() );
+			$model_name = $type->isTaxonomy() ? 'taxonomy' : 'content';
+
 			// Get the feed view.
 			return $this->response(
 				$this->view( [
+					"feed-{$type_name}",
+					"feed-{$model_name}",
 					'feed'
 				], $view_data ),
 				Response::HTTP_OK,
