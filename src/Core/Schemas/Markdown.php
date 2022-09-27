@@ -24,8 +24,9 @@ class Markdown
 	public static function schema(): Schema
 	{
 		return Expect::structure( [
-			'config'     => Expect::array( [] ),
-			'extensions' => Expect::listOf( 'string' )
+			'config'         => Expect::array( [] ),
+			'extensions'     => Expect::listOf( 'string' ),
+			'inline_parsers' => Expect::listOf( 'string' )
 		] );
 	}
 }

@@ -44,6 +44,11 @@ class Markdown extends ServiceProvider
                                 $environment->addExtension( new $extension() );
                         }
 
+			// Loops through user-added inline parsers and adds them.
+			foreach ( $markdown['inline_parsers'] as $parser ) {
+				$environment->addInlineParser( new $parser() );
+			}
+
 			// Add default renderers.
                         $renderers = [
                                 Image::class     => ImageRenderer::class,
