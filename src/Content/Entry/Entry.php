@@ -125,6 +125,13 @@ abstract class Entry implements EntryContract
 			$name =  Str::afterLast( $name, '.' );
 		}
 
+		// If the name is 'index', let's base it on the directory.
+		if ( 'index' === $name && Str::contains( $this->filepath(), '/' ) ) {
+			$path  = str_replace( content_path(), '', $this->filePath() );
+			$_name = Str::trimSlashes( Str::beforeLast( $path, '/index' ) );
+			$name = $_name ?: $name;
+		}
+
 		return $name;
 	}
 
