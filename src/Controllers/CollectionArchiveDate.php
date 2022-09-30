@@ -13,6 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\{App, Query};
 use Blush\Content\Entry\Virtual;
+use Blush\Template\Hierarchy;
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -115,19 +116,15 @@ class CollectionArchiveDate extends Controller
 				'total'    => $collection->pages()
 			] );
 
-			return $this->response( $this->view( [
-				"collection-{$type_name}-archive-datetime",
-				'collection-archive-datetime',
-				"collection-{$type_name}-archive",
-				'collection-archive',
-				'collection',
-				'index'
-			], [
-				'doctitle'   => $doctitle,
-				'pagination' => $pagination,
-				'single'     => $single,
-				'collection' => $collection
-			] ) );
+			return $this->response( $this->view(
+				Hierarchy::collectionDate( $type ),
+				[
+					'doctitle'   => $doctitle,
+					'pagination' => $pagination,
+					'single'     => $single,
+					'collection' => $collection
+				]
+			) );
 		}
 
 		// If all else fails, return a 404.

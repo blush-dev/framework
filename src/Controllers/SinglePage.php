@@ -12,6 +12,7 @@
 namespace Blush\Controllers;
 
 use Blush\{App, Query};
+use Blush\Template\Hierarchy;
 use Blush\Template\Tags\DocumentTitle;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -57,12 +58,8 @@ class SinglePage extends Single
 			$doctitle = new DocumentTitle( $single->title() );
 
 			return $this->response( $this->view(
-				array_merge( $single->viewPaths(), [
-					"single-page-{$name}",
-					'single-page',
-					'single',
-					'index'
-				] ), [
+				Hierarchy::single( $single ),
+				[
 					'doctitle'   => $doctitle,
 					'pagination' => false,
 					'single'     => $single,

@@ -12,6 +12,7 @@
 namespace Blush\Controllers;
 
 use Blush\{App, Query};
+use Blush\Template\Hierarchy;
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -84,12 +85,8 @@ class Collection extends Controller
 			] );
 
 			return $this->response( $this->view(
-				array_merge( $single->viewPaths(), [
-					"collection-{$type_name}",
-					"collection-{$model_name}",
-					'collection',
-					'index'
-				] ), [
+				Hierarchy::collection( $single ),
+				[
 					'doctitle'   => $doctitle,
 					'pagination' => $pagination,
 					'single'     => $single,
