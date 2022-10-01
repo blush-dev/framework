@@ -444,6 +444,18 @@ if ( ! function_exists( 'sanitize_slug' ) ) {
 	}
 }
 
+if ( ! function_exists( 'cdata' ) ) {
+	/**
+	 * Prevents nested CDATA.
+	 *
+	 * @since 1.0.0
+	 */
+	function cdata( string $str ): string
+	{
+		return Str::cdata( $str );
+	}
+}
+
 if ( ! function_exists( 'runt' ) ) {
 	/**
 	 * Ensures that the final two words of string with three or more words

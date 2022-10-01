@@ -1,6 +1,6 @@
 <?php
 /**
- * Feed Builder - Experimental
+ * Feed Writer.
  *
  * @package   Blush
  * @author    Justin Tadlock <justintadlock@gmail.com>
@@ -9,11 +9,12 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Template\Feed;
+namespace Blush\Feed\Writer;
 
+use Blush\Template\Feed\Types\Type;
 use Blush\Tools\Collection;
 
-abstract class Feed
+class Writer
 {
 	/**
 	 * Feed title.
@@ -23,11 +24,11 @@ abstract class Feed
 	protected string $title = '';
 
 	/**
-	 * Feed webpage URL.
+	 * Webpage URL.
 	 *
 	 * @since 1.0.0
 	 */
-	protected string $url = '';
+	protected string $webpage_url = '';
 
 	/**
 	 * Feed feed URL.
@@ -58,26 +59,17 @@ abstract class Feed
 	 */
 	protected ?string $copyright = null;
 
-	/**
-	 * Feed URL published date.
-	 *
-	 * @since 1.0.0
-	 */
-	protected ?string $pub_date = null;
-
-	/**
-	 * Feed last build date.
-	 *
-	 * @since 1.0.0
-	 */
-	protected ?string $last_build_date = null;
+	protected ?string $published = null;
+	protected ?string $updated = null;
+	protected ?string $image = null;
+	protected ?string $favicon = null;
 
 	/**
 	 * Feed Time To Live (TTL).
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?int $ttl;
+	protected ?int $ttl = 60;
 
 	/**
 	 * Stores the feed items as a collection.
@@ -91,7 +83,7 @@ abstract class Feed
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( array $options = [] )
+	public function __construct( protected string $type, array $options = [] )
 	{
 		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
 			if ( isset( $options[ $key ] ) ) {
@@ -115,9 +107,9 @@ abstract class Feed
 	 *
 	 * @since 1.0.0
 	 */
-	public function url(): string
+	public function webpageUrl(): string
 	{
-		return $this->url;
+		return $this->webpage_url;
 	}
 
 	/**
@@ -137,7 +129,7 @@ abstract class Feed
 	 */
 	public function description(): string
 	{
-		return $this->description;
+		return str_replace( ']]>', ']]&gt;', $this->description );
 	}
 
 	/**
@@ -161,23 +153,18 @@ abstract class Feed
 	}
 
 	/**
-	 * Returns the Feed published date.
+	 * Returns the Feed TTL.
 	 *
 	 * @since 1.0.0
 	 */
-	public function pubDate(): ?string
+	public function published(): ?string
 	{
-		return $this->pub_date;
+		return $this->published;
 	}
 
-	/**
-	 * Returns the Feed last build date.
-	 *
-	 * @since 1.0.0
-	 */
-	public function lastBuildDate(): ?string
+	public function updated(): ?string
 	{
-		return $this->last_build_date;
+		return $this->updated;
 	}
 
 	/**
@@ -195,8 +182,13 @@ abstract class Feed
 	 *
 	 * @since 1.0.0
 	 */
-	public function items(): Collection
+	public function items(): ?Collection
 	{
 		return $this->items;
 	}
+
+	// Slated for the 1.0.0 chopping block.
+	public function url(): string { return $this->webpageUrl(); }
+	public function pubDate(): ?string { return $this->published(); }
+	public function lastBuildDate(): ?string { return $this->updated(); }
 }

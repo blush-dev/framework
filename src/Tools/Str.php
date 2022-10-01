@@ -140,6 +140,17 @@ class Str
 	}
 
 	/**
+	 * Escapes nested `CDATA`.
+	 *
+	 * @since 1.0.0
+	 * @link  https://en.wikipedia.org/wiki/CDATA#Nesting
+	 */
+	public static function cdata( string $str ): string
+	{
+		return str_replace( ']]>', ']]]]><![CDATA[>', $str );
+	}
+
+	/**
 	 * Checks if a string contains another string.
 	 *
 	 * @since 1.0.0

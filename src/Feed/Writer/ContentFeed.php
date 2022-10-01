@@ -9,13 +9,13 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Template\Feed;
+namespace Blush\Feed\Writer;
 
 use Blush\Config;
 use Blush\Contracts\Content\{Entry, Query};
 use Blush\Tools\Collection;
 
-class EntryFeed extends Feed
+class ContentFeed extends Writer
 {
 	/**
 	 * Sets up the object state.
@@ -37,7 +37,7 @@ class EntryFeed extends Feed
 
 		$this->title       = $title;
 		$this->description = $desc;
-		$this->url         = $this->single->type()->url();
+		$this->webpage_url  = $this->single->type()->url();
 		$this->feed_url    = $this->single->type()->feedUrl();
 		$this->language    = 'en-US';
 		$this->ttl         = 60;
@@ -60,10 +60,10 @@ class EntryFeed extends Feed
 		foreach ( $this->collection as $entry ) {
 
 			$args = [
-				'title'           => $entry->title(),
-				'description'     => $entry->excerpt(),
-				'content_encoded' => $entry->content(),
-				'url'             => $entry->url()
+				'title'       => $entry->title(),
+				'description' => $entry->excerpt(),
+				'content'     => $entry->content(),
+				'url'         => $entry->url()
 			];
 
 			$taxonomies = [];
@@ -79,12 +79,10 @@ class EntryFeed extends Feed
 
 				foreach ( $taxonomies as $taxonomy ) {
 					if ( $terms = $entry->terms( $taxonomy ) ) {
-						foreach ( $terms as $term ) {
-							$args['categories'][] = [
-								'label' => $term->title(),
-								'term'  => $term->name()
-							];
-						}
+						$args['categories'] = array_merge(
+							$args['categories'],
+							$terms->all()
+						);
 					}
 				}
 			}
@@ -98,13 +96,13 @@ class EntryFeed extends Feed
 				            ? $date
 				            : strtotime( $date );
 
-				$args['pub_date'] = $datetime;
+				$args['published'] = $datetime;
 
 				// Grab the feed datetime from the first post in
 				// the feed with a date.
-				if ( ! $this->pub_date || ! $this->last_build_date ) {
-					$this->pub_date       = $datetime;
-					$this->last_build_date = $datetime;
+				if ( ! $this->published || ! $this->updated ) {
+					$this->published = $datetime;
+					$this->updated   = $datetime;
 				}
 			}
 

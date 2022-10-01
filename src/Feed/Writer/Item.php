@@ -9,7 +9,7 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Template\Feed;
+namespace Blush\Feed\Writer;
 
 class Item
 {
@@ -39,7 +39,7 @@ class Item
 	 *
 	 * @since 1.0.0
 	 */
-	protected string $content_encoded = '';
+	protected string $content = '';
 
 	/**
 	 * Feed item categories.
@@ -49,25 +49,11 @@ class Item
 	protected array $categories = [];
 
 	/**
-	 * Feed item GUID.
-	 *
-	 * @since 1.0.0
-	 */
-	protected ?string $guid;
-
-	/**
-	 * Whether the GUID is the item permalink.
-	 *
-	 * @since 1.0.0
-	 */
-	protected bool $guid_is_permalink = false;
-
-	/**
 	 * Feed item URL published date.
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?int $pub_date;
+	protected ?int $published;
 
 	/**
 	 * Feed item enclosure.
@@ -98,17 +84,15 @@ class Item
 	public function __construct( array $options = [] )
 	{
 		// Set up the object properties based on parameters.
-		$this->title             = $options['title']             ?? '';
-		$this->url               = $options['url']               ?? '';
-		$this->description       = $options['description']       ?? '';
-		$this->content_encoded   = $options['content_encoded']   ?? '';
-		$this->author            = $options['author']            ?? null;
-		$this->creator           = $options['creator']           ?? null;
-		$this->pub_date          = $options['pub_date']          ?? null;
-		$this->guid              = $options['guid']              ?? null;
-		$this->guid_is_permalink = $options['guid_is_permalink'] ?? false;
-		$this->enclosure         = $options['enclosure']         ?? [];
-		$this->categories        = $options['categories']        ?? [];
+		$this->title       = $options['title']       ?? '';
+		$this->url         = $options['url']         ?? '';
+		$this->description = $options['description'] ?? '';
+		$this->content     = $options['content']     ?? '';
+		$this->author      = $options['author']      ?? null;
+		$this->creator     = $options['creator']     ?? null;
+		$this->published   = $options['published']   ?? null;
+		$this->enclosure   = $options['enclosure']   ?? [];
+		$this->categories  = $options['categories']  ?? [];
 	}
 
 	/**
@@ -137,17 +121,17 @@ class Item
 	 */
 	public function description(): string
 	{
-		return $this->description;
+		return str_replace( ']]>', ']]]]><![CDATA[>', $this->description );
 	}
 
 	/**
-	 * Returns the feed item content encoded.
+	 * Returns the feed item content.
 	 *
 	 * @since 1.0.0
 	 */
-	public function contentEncoded(): string
+	public function content(): string
 	{
-		return $this->content_encoded;
+		return str_replace( ']]>', ']]]]><![CDATA[>', $this->content );
 	}
 
 	/**
@@ -161,33 +145,13 @@ class Item
 	}
 
 	/**
-	 * Returns the feed item GUID.
-	 *
-	 * @since 1.0.0
-	 */
-	public function guid(): ?string
-	{
-		return $this->guid;
-	}
-
-	/**
-	 * Conditional for whether the GUID is the feed item permalink.
-	 *
-	 * @since 1.0.0
-	 */
-	public function guidIsPermalink(): bool
-	{
-		return $this->guid_is_permalink;
-	}
-
-	/**
 	 * Returns the feed item published date.
 	 *
 	 * @since 1.0.0
 	 */
-	public function pubDate(): ?string
+	public function published(): ?string
 	{
-		return $this->pub_date;
+		return $this->published;
 	}
 
 	/**
@@ -219,4 +183,10 @@ class Item
 	{
 		return $this->creator;
 	}
+
+	// On the chopping block for 1.0.0.
+	public function contentEncoded(): string { return $this->content(); }
+	public function pubDate(): string { return $this->published(); }
+	public function guid(): ?string { return $this->url(); }
+	public function guidIsPermalink(): bool { return true; }
 }
