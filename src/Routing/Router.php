@@ -76,6 +76,7 @@ class Router implements RouterContract
 
 		// Get excluded paths.
 		$exclude = array_merge( [
+			'feed',
 			'purge/cache'
 		], Config::get( 'cache.global_exclude' ) );
 
