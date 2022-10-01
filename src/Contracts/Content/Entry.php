@@ -13,6 +13,8 @@
 
 namespace Blush\Contracts\Content;
 
+use Blush\Tools\Media;
+
 interface Entry
 {
 	/**
@@ -150,9 +152,24 @@ interface Entry
 	public function subtitle(): string;
 
 	/**
+	* Returns the entry published datetime.
+	*
+	* @since 1.0.0
+	*/
+       public function published( string $format = '' ): string;
+
+       /**
+	* Returns the entry updated datetime.
+	*
+	* @since 1.0.0
+	*/
+       public function updated( string $format = '' ): string;
+
+	/**
 	 * Returns the entry date.
 	 *
 	 * @since 1.0.0
+	 * @deprecated 1.0.0
 	 */
 	public function date(): string;
 
@@ -161,7 +178,7 @@ interface Entry
 	 *
 	 * @since  1.0.0
 	 */
-	public function author(): string;
+	public function author(): Entry|false;
 
 	/**
 	 * Returns the entry authors.
@@ -169,6 +186,13 @@ interface Entry
 	 * @since  1.0.0
 	 */
 	public function authors(): array;
+
+	/**
+	* Returns a media object based on a media file path stored as metadata.
+	*
+	* @since  1.0.0
+	*/
+       public function media( string $name = 'image' ): Media|null;
 
 	/**
 	 * Returns an array of view paths assigned as metadata.

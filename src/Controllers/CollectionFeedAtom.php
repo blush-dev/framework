@@ -12,7 +12,7 @@
 namespace Blush\Controllers;
 
 use Blush\{App, Config, Query};
-use Blush\Feed\Writer\ContentFeed;
+use Blush\Feed\Writer;
 use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\{Collection, Str};
 use Symfony\Component\HttpFoundation\{Request, Response};
@@ -74,7 +74,7 @@ class CollectionFeedAtom extends Controller
 					'pagination' => false,
 					'single'     => $single,
 					'collection' => $collection,
-					'feed'       => new ContentFeed( $single, $collection )
+					'feed'       => new Writer( $single, $collection, 'atom' )
 				]
 			), Response::HTTP_OK, [ 'content-type' => 'text/xml' ] );
 		}

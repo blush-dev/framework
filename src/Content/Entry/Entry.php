@@ -18,7 +18,7 @@ use Blush\Contracts\Content\Type;
 
 // Concretes.
 use Blush\{App, Config, Query, Url};
-use Blush\Tools\Str;
+use Blush\Tools\{Media, Str};
 
 abstract class Entry implements EntryContract
 {
@@ -408,20 +408,50 @@ abstract class Entry implements EntryContract
 	}
 
 	/**
-	 * Returns the entry date.
+	 * Returns the entry published datetime.
 	 *
 	 * @since 1.0.0
 	 */
-	public function date(): string
+	public function published( string $format = '' ): string
 	{
-		if ( ! $date = $this->metaSingle( 'date' ) ) {
+		$date = $this->metaSingle( 'published' );
+
+		if ( ! $date && ! $date = $this->metaSingle( 'date' ) ) {
 			return '';
 		}
 
 		return date(
-			Config::get( 'app.date_format' ) ?: 'F j, Y',
-		 	is_numeric( $date ) ? $date : strtotime( $date )
+			$format ?: Config::get( 'app.date_format' ),
+			is_numeric( $date ) ? $date : strtotime( $date )
 		);
+	}
+
+	/**
+	 * Returns the entry updated datetime.
+	 *
+	 * @since 1.0.0
+	 */
+	public function updated( string $format = '' ): string
+	{
+		if ( $date = $this->metaSingle( 'updated' ) ) {
+			return date(
+				$format ?: Config::get( 'app.date_format' ),
+				is_numeric( $date ) ? $date : strtotime( $date )
+			);
+		}
+
+		return $this->published( $format );
+	}
+
+	/**
+	 * Returns the entry date. Alias for `published()`.
+	 *
+	 * @since 1.0.0
+	 * @deprecated 1.0.0
+	 */
+	public function date( string $format = '' ): string
+	{
+		return $this->published( $format );
 	}
 
 	/**
@@ -429,9 +459,15 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function author(): string
+	public function author(): EntryContract|false
 	{
-		return (string) $this->metaSingle( 'author' );
+		if ( $meta = $this->metaSingle( 'author' ) ) {
+			return new Virtual( [
+				'meta' => [ 'title' => (string) $meta ]
+			] );
+		}
+
+		return false;
 	}
 
 	/**
@@ -442,6 +478,20 @@ abstract class Entry implements EntryContract
 	public function authors(): array
 	{
 		return (string) $this->metaArr( 'author' );
+	}
+
+	/**
+	 * Returns a media object based on a media file path stored as metadata.
+	 * Note: pass in the meta key for the `$name` and not the media type.
+	 *
+	 * @since  1.0.0
+	 */
+	public function media( string $name = 'image' ): Media|null
+	{
+		$meta  = $this->metaSingle( $name );
+		$media = $meta ? new Media( $meta ) : false;
+
+		return $media && $media->valid() ? $media : null;
 	}
 
 	/**
@@ -567,5 +617,15 @@ abstract class Entry implements EntryContract
 	public function readingTime( int $words_per_min = 200 ): string
 	{
 		return Str::readingTime( $this->content(), $words_per_min );
+	}
+
+	/**
+	 * Returns the entry name when it's used as a string.
+	 *
+	 * @since 1.0.0
+	 */
+	public function __toString(): string
+	{
+		return $this->name();
 	}
 }

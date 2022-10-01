@@ -9,9 +9,10 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Feed\Writer;
+namespace Blush\Feed;
 
-use Blush\Template\Feed\Types\Type;
+use Blush\Config;
+use Blush\Contracts\Content\{Entry, Query};
 use Blush\Tools\Collection;
 
 class Writer
@@ -28,7 +29,7 @@ class Writer
 	 *
 	 * @since 1.0.0
 	 */
-	protected string $webpage_url = '';
+	protected string $url = '';
 
 	/**
 	 * Feed feed URL.
@@ -59,9 +60,34 @@ class Writer
 	 */
 	protected ?string $copyright = null;
 
+	/**
+	 * Feed published datetime.
+	 *
+	 * @since 1.0.0
+	 */
 	protected ?string $published = null;
+
+	/**
+	 * Feed updated datetime.
+	 *
+	 * @since 1.0.0
+	 */
 	protected ?string $updated = null;
+
+	/**
+	 * Feed image.
+	 *
+	 * @todo  Not yet implemented.
+	 * @since 1.0.0
+	 */
 	protected ?string $image = null;
+
+	/**
+	 * Feed favicon.
+	 *
+	 * @todo  Not yet implemented.
+	 * @since 1.0.0
+	 */
 	protected ?string $favicon = null;
 
 	/**
@@ -69,26 +95,35 @@ class Writer
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?int $ttl = 60;
-
-	/**
-	 * Stores the feed items as a collection.
-	 *
-	 * @since 1.0.0
-	 */
-	protected ?Collection $items = null;
+	protected int $ttl = 60;
 
 	/**
 	 * Sets up the object state.
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( protected string $type, array $options = [] )
+	public function __construct(
+		protected Entry $single,
+		protected Query $collection,
+		protected string $type = 'rss2'
+	)
 	{
-		foreach ( array_keys( get_object_vars( $this ) ) as $key ) {
-			if ( isset( $options[ $key ] ) ) {
-				$this->$key = $options[ $key ];
-			}
+		$is_home = $this->single->type()->isHomeAlias();
+
+		$this->title       = $is_home ? Config::get( 'app.title' ) : $single->title();
+		$this->description = $is_home ? Config::get( 'app.tagline' ) : $single->excerpt();
+		$this->url         = $single->type()->url();
+		$this->feed_url    = $single->type()->feedUrl();
+		$this->language    = 'en-US';
+		$this->ttl         = 60;
+
+		// Get the first entry in the collection to set the published
+		// and updated datetimes for the channel.
+		if ( $first = $collection->first() ) {
+			$format = 'atom' === $this->type ? DATE_ATOM : DATE_RSS;
+
+			$this->published = $first->published( $format ) ?: null;
+			$this->updated   = $first->updated( $format )   ?: null;
 		}
 	}
 
@@ -107,9 +142,9 @@ class Writer
 	 *
 	 * @since 1.0.0
 	 */
-	public function webpageUrl(): string
+	public function url(): string
 	{
-		return $this->webpage_url;
+		return $this->url;
 	}
 
 	/**
@@ -153,7 +188,7 @@ class Writer
 	}
 
 	/**
-	 * Returns the Feed TTL.
+	 * Returns the feed published datetime.
 	 *
 	 * @since 1.0.0
 	 */
@@ -162,6 +197,11 @@ class Writer
 		return $this->published;
 	}
 
+	/**
+	 * Returns the feed updated datetime.
+	 *
+	 * @since 1.0.0
+	 */
 	public function updated(): ?string
 	{
 		return $this->updated;
@@ -172,23 +212,18 @@ class Writer
 	 *
 	 * @since 1.0.0
 	 */
-	public function ttl(): ?int
+	public function ttl(): int
 	{
 		return $this->ttl;
 	}
 
 	/**
-	 * Returns the items collection.
+	 * Returns the collection.
 	 *
 	 * @since 1.0.0
 	 */
-	public function items(): ?Collection
+	public function collection(): Query
 	{
-		return $this->items;
+		return $this->collection;
 	}
-
-	// Slated for the 1.0.0 chopping block.
-	public function url(): string { return $this->webpageUrl(); }
-	public function pubDate(): ?string { return $this->published(); }
-	public function lastBuildDate(): ?string { return $this->updated(); }
 }
