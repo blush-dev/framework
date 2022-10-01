@@ -62,6 +62,11 @@ class Component implements Bootable
 		if ( $alias && $this->types->has( $alias ) ) {
 
 			if ( $this->types->get( $alias )->hasFeed() ) {
+				$this->routes->add( 'feed/atom', [
+					'name'       => 'home.feed.atom',
+					'controller' => Controllers\CollectionFeedAtom::class
+				] );
+
 				$this->routes->add( 'feed', [
 					'name'       => 'home.feed',
 					'controller' => Controllers\CollectionFeed::class

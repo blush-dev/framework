@@ -17,7 +17,7 @@ use Blush\Template\Tags\{DocumentTitle, Pagination};
 use Blush\Tools\{Collection, Str};
 use Symfony\Component\HttpFoundation\{Request, Response};
 
-class CollectionFeed extends Controller
+class CollectionFeedAtom extends Controller
 {
 	/**
 	 * Callback method when route matches request.
@@ -68,8 +68,7 @@ class CollectionFeed extends Controller
 				[
 					"feed-{$type_name}",
 					"feed-{$model_name}",
-					'feed-rss',
-					'feed'
+					'feed-atom'
 				], [
 					'doctitle'   => new DocumentTitle(),
 					'pagination' => false,

@@ -70,6 +70,20 @@ interface Type
 	public function feedUrl(): string;
 
 	/**
+	* Returns the content type RSS feed URL.
+	*
+	* @since 1.0.0
+	*/
+       public function rssFeedUrl(): string;
+
+       /**
+	* Returns the content type atom feed URL.
+	*
+	* @since 1.0.0
+	*/
+       public function atomFeedUrl(): string;
+
+	/**
 	 * Returns the content type URL for year archives.
 	 *
 	 * @since 1.0.0

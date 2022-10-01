@@ -156,6 +156,7 @@ class Type implements TypeContract
 			'collection'              => $collection,
 			'single'                  => $single,
 			'single.paged'            => "{$single}/page/{page}",
+			'collection.feed.atom'    => "{$collection}/feed/atom",
 			'collection.feed'         => "{$collection}/feed",
 			'collection.paged'        => "{$collection}/page/{page}",
 			'collection.second.paged' => "{$collection}/{year}/{month}/{day}/{hour}/{minute}/{second}/page/{page}",
@@ -272,9 +273,31 @@ class Type implements TypeContract
 	 */
 	public function feedUrl(): string
 	{
+		return $this->rssFeedUrl();
+	}
+
+	/**
+	 * Returns the content type RSS feed URL.
+	 *
+	 * @since 1.0.0
+	 */
+	public function rssFeedUrl(): string
+	{
 		return $this->isHomeAlias()
 		       ? Url::route( 'feed' )
 		       : Url::route( $this->urlPath( 'collection.feed' ) );
+	}
+
+	/**
+	 * Returns the content type atom feed URL.
+	 *
+	 * @since 1.0.0
+	 */
+	public function atomFeedUrl(): string
+	{
+		return $this->isHomeAlias()
+		       ? Url::route( 'feed/atom' )
+		       : Url::route( $this->urlPath( 'collection.feed.atom' ) );
 	}
 
 	/**
@@ -484,8 +507,13 @@ class Type implements TypeContract
 			];
 		}
 
-		// If the type supports a feed, add route.
+		// If the type supports a feed, add feed routes.
 		if ( $this->hasFeed() && ! $this->isHomeAlias() ) {
+			$this->routes[ $this->urlPath( 'collection.feed.atom' ) ] = [
+				'name'       => "{$type}.collection.feed.atom",
+				'controller' => Controllers\CollectionFeedAtom::class
+			];
+
 			$this->routes[ $this->urlPath( 'collection.feed' ) ] = [
 				'name'       => "{$type}.collection.feed",
 				'controller' => Controllers\CollectionFeed::class
