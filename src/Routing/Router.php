@@ -15,6 +15,7 @@ use Blush\Contracts\Routing\Routes;
 use Blush\Contracts\Routing\Router as RouterContract;
 
 use Blush\{Cache, Config};
+use Blush\Controllers\Error404;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
@@ -179,8 +180,9 @@ class Router implements RouterContract
 	                }
 	        }
 
-	        // If nothing is found, send response.
-	        // @todo - Send 404.
-	        return new Response( '' );
+	        // If nothing is found, send 404.
+		return ( new Error404() )->__invoke( [
+			'path' => $path
+		], $this->request() );
 	}
 }
