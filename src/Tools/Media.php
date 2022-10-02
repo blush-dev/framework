@@ -165,32 +165,23 @@ class Media
 	{
 		return [
 			// Images
-			'image/jpeg',
-			'image/png',
+			'image/apng',
+			'image/avif',
 			'image/gif',
+			'image/jpeg', // .jpg|.jpeg
+			'image/png',
+			'image/svg+xml',
 			'image/webp',
 
 			// Audio
-			'audio/mpeg',
+			'audio/mpeg', // .mp3
 			'audio/wav',
-			'audio/midi',
 			'audio/ogg',
-			'audio/x-matroska',
 
 			// Video
-			'video/avi',
-			'video/divx',
-			'video/x-flv',
-			'video/mpeg',
 			'video/mp4',
 			'video/ogg',
-			'video/quicktime',
-			'video/webm',
-			'video/x-matroska',
-			'video/x-ms-asf',
-			'video/x-ms-wmv',
-			'video/x-ms-wmx',
-			'video/x-ms-wm'
+			'video/webm'
 		];
 	}
 
