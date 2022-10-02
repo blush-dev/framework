@@ -98,7 +98,7 @@ class Home extends Controller
 			}
 
 			return $this->response( $this->view(
-				Hierarchy::collectionHome( $single ),
+				Hierarchy::singleHome( $single ),
 				[
 					'doctitle'   => new DocumentTitle(),
 					'pagination' => false,
