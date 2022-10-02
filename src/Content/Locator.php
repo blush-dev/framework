@@ -255,6 +255,12 @@ class Locator implements LocatorContract
 						'_'
 					) ? 'hidden' : 'public';
 				}
+
+				// Update old `date` key to `published`.
+				if ( isset( $data['date'] ) && ! isset( $data['published'] ) ) {
+					$data['published'] = $data['date'];
+					unset( $data['date'] );
+				}
 			}
 
 			// Create the array key with just the file basename.

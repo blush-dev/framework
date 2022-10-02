@@ -229,6 +229,15 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 			$this->names = (array) $options['slug'];
 		}
 
+		// Back-compat for `date` when used instead of `publish`.
+		if ( 'date' === $this->orderby ) {
+			$this->orderby = 'published';
+		}
+
+		if ( 'date' === $this->meta_key ) {
+			$this->meta_key = 'published';
+		}
+
 		// Disable `noindex` if `index` is being specifically queried.
 		if ( in_array( 'index', $this->names, true ) ) {
 			$this->noindex = false;
@@ -540,13 +549,13 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 
 		foreach ( $entries as $file => $matter ) {
 
-			if ( ! isset( $matter['date'] ) ) {
+			$date = $matter['published'] ?? $matter['date'] ?? false;
+
+			if ( ! $date ) {
 				continue;
 			}
 
-			$timestamp = is_numeric( $matter['date'] )
-				     ? $matter['date']
-				     : strtotime( $matter['date'] );
+			$timestamp = is_numeric( $date ) ? $date : strtotime( $date );
 
 			if ( $this->year && intval( $this->year ) !== intval( date( 'Y', $timestamp ) ) ) {
 				continue;
@@ -652,7 +661,8 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 	{
 		$meta_keys = [
 			'author',
-			'date',
+			'published',
+			'updated',
 			'title',
 			$this->meta_key
 		];

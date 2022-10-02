@@ -201,8 +201,12 @@ abstract class Entry implements EntryContract
 		// Adds the required name param.
 		$params = [ 'name' => $this->name() ];
 
+		// Get `published` meta and add back-compat for `date`.
+		$date = $this->metaSingle( 'published' );
+		$date = $date ?: $this->metaSingle( 'date' );
+
 		// Adds date-based params if we have a date.
-		if ( $date = $this->metaSingle( 'date' ) ) {
+		if ( $date ) {
 			$timestamp = is_numeric( $date ) ? $date : strtotime( $date );
 			$date      = date( 'Y-m-d', $timestamp );
 			$time      = date( 'H:i:s', $timestamp );
@@ -323,7 +327,9 @@ abstract class Entry implements EntryContract
 	 */
 	public function meta( string $name = '', mixed $default = false ): mixed
 	{
-		if ( $name ) {
+		if ( 'date' === $name ) {
+			return $this->meta[ $name ] ?? $this->meta['published'] ?? $default;
+		} elseif ( $name ) {
 			return $this->meta[ $name ] ?? $default;
 		}
 
@@ -416,6 +422,8 @@ abstract class Entry implements EntryContract
 	{
 		$date = $this->metaSingle( 'published' );
 
+		// @todo Remove `date` check. `published` get cached, so this is
+		// only needed on installs with the old `date` key cached.
 		if ( ! $date && ! $date = $this->metaSingle( 'date' ) ) {
 			return '';
 		}
