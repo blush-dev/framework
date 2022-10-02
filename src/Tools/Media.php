@@ -50,6 +50,7 @@ class Media
 	 */
 	public function __construct( string $filepath )
 	{
+		// Strip the app directory and URL path if they prepend the file.
 		$filepath = Str::afterFirst( $filepath, path() );
 		$filepath = Str::afterFirst( $filepath, url() );
 
@@ -112,6 +113,34 @@ class Media
 	}
 
 	/**
+	 * Returns the media file type  (e.g., image, audio, video).
+	 *
+	 * @since 1.0.0
+	 */
+	public function type(): ?string
+	{
+		if ( ! $mime = $this->mimeType() ) {
+			return null;
+		}
+
+		return Str::beforeFirst( $mime, '/' );
+	}
+
+	/**
+	 * Returns the media file subtype (e.g., jpeg, mp4, mp3, etc.).
+	 *
+	 * @since 1.0.0
+	 */
+	public function subtype(): ?string
+	{
+		if ( ! $mime = $this->mimeType() ) {
+			return null;
+		}
+
+		return Str::afterFirst( $mime, '/' );
+	}
+
+	/**
 	 * Conditional to check if the media file has a specific type (e.g.,
 	 * image, audio, video).
 	 *
@@ -119,11 +148,7 @@ class Media
 	 */
 	public function hasType( string $type = 'image' ): bool
 	{
-		if ( ! $mime = $this->mimeType() ) {
-			return false;
-		}
-
-		return $type === $mime || $type === Str::beforeFirst( $mime, '/' );
+		return $type === $this->type();
 	}
 
 	/**
@@ -134,11 +159,7 @@ class Media
 	 */
 	public function hasSubtype( string $subtype = 'jpeg' ): bool
 	{
-		if ( ! $mime = $this->mimeType() ) {
-			return false;
-		}
-
-		return $subtype === $mime || $subtype === Str::afterFirst( $mime, '/' );
+		return $subtype === $this->subtype();
 	}
 
 	/**
