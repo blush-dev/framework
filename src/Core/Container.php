@@ -338,10 +338,13 @@ class Container implements ContainerContract, ArrayAccess
 				$resolved_type = false;
 
 				foreach ( $types as $type ) {
-					if ( class_exists( $type->getName() ) ) {
-						$args[] = $this->resolve(
-							$type->getName()
-						);
+					$name = $type->getName();
+
+					if (
+						class_exists( $name ) ||
+						interface_exists( $name )
+					) {
+						$args[] = $this->resolve( $name );
 						$resolved_type = true;
 					}
 				}
