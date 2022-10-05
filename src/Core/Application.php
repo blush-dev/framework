@@ -113,7 +113,8 @@ class Application extends Container implements ApplicationContract, Bootable
 			'app'      => Schemas\App::schema(),
 			'cache'    => Schemas\Cache::schema(),
 			'content'  => Schemas\Content::schema(),
-			'markdown' => Schemas\Markdown::schema()
+			'markdown' => Schemas\Markdown::schema(),
+			'template' => Schemas\Template::schema()
 		] ) );
 
 		// Add alias for configuration.
@@ -123,7 +124,7 @@ class Application extends Container implements ApplicationContract, Bootable
 		$this->instance( 'path.config', Str::appendPath( $this['path'], 'config' ) );
 
 		// Loop through user-supplied config files and set the data.
-		foreach ( [ 'app', 'cache', 'content', 'markdown' ] as $type ) {
+		foreach ( [ 'app', 'cache', 'content', 'markdown', 'template' ] as $type ) {
 			$filepath = Str::appendPath( $this['path.config'], "{$type}.php" );
 
 			if ( file_exists( $filepath ) ) {

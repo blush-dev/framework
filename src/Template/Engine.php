@@ -13,11 +13,12 @@ namespace Blush\Template;
 
 // Abstracts.
 use Blush\Contracts\Template\Engine as EngineContract;
-use Blush\Contracts\Template\View;
+use Blush\Contracts\Template\{Tags, View};
 
 // Concretes.
 use Blush\{App, Message};
 use Blush\Tools\Collection;
+use Blush\Template\Tags\Tag;
 
 class Engine implements EngineContract
 {
@@ -34,6 +35,13 @@ class Engine implements EngineContract
 	 * @since 1.0.0
 	 */
 	protected bool $view_booted = false;
+
+	/**
+	 * Sets up the object properties.
+	 *
+	 * @since  1.0.0
+	 */
+	public function __construct( protected Tags $tags ) {}
 
 	/**
 	 * Returns a View object. This should only be used for top-level views.
@@ -180,5 +188,25 @@ class Engine implements EngineContract
 				$var ? [ $var => $item ] : []
 			);
 		}
+	}
+
+	/**
+	 * Returns a template tag object or null when it doesn't exist.
+	 *
+	 * @since  1.0.0
+	 */
+	public function tag( string $name, mixed ...$args ): ?Tag
+	{
+		return $this->tags->callback( $name, $this->shared, $args );
+	}
+
+	/**
+	 * Allows registered template tags to be used as methods.
+	 *
+	 * @since  1.0.0
+	 */
+	public function __call( string $name, array $arguments ): mixed
+	{
+		return $this->tag( $name, ...$arguments );
 	}
 }

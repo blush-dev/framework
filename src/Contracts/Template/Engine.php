@@ -11,6 +11,7 @@
 
 namespace Blush\Contracts\Template;
 
+use Blush\Template\Tags\Tag;
 use Blush\Tools\Collection;
 
 interface Engine
@@ -83,4 +84,11 @@ interface Engine
 		string $var = '',
 		array|string $empty = []
 	): void;
+
+	/**
+	* Returns a template tag object or null when it doesn't exist.
+	*
+	* @since  1.0.0
+	*/
+       public function tag( string $name, mixed ...$args ): ?Tag;
 }
