@@ -164,7 +164,7 @@ class Writer
 	 */
 	public function description(): string
 	{
-		return str_replace( ']]>', ']]&gt;', $this->description );
+		return $this->description;
 	}
 
 	/**
