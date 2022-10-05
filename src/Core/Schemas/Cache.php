@@ -29,6 +29,7 @@ class Cache
 			'content_exclude_meta' => Expect::array( [] ),
 			'global'               => Expect::bool( false ),
 			'global_exclude'       => Expect::array( [] ),
+			'markdown'             => Expect::bool( false ),
 			'stores'               => Expect::arrayOf( 'array',  'string' ),
 			'drivers'              => Expect::arrayOf( 'string', 'string' )
 		] );
