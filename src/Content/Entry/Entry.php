@@ -198,6 +198,12 @@ abstract class Entry implements EntryContract
 			return Url::to( $url_path );
 		}
 
+		// If this is the index file, it is the content type archive,
+		// so we'll just return early with the type's URL.
+		if ( 'index' === $this->filename() ) {
+			return $this->type->url();
+		}
+
 		// Adds the required name param.
 		$params = [ 'name' => $this->name() ];
 
