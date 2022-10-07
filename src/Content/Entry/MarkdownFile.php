@@ -82,13 +82,17 @@ class MarkdownFile extends Entry
 	}
 
 	/**
-	 * Just-in-time Markdown parsing. This should not be called unless
-	 * Markdown has yet to be parsed.
+	 * Helper conditional for determining whether the Markdown has been
+	 * parsed (also true if cached).
 	 *
 	 * @since 1.0.0
 	 */
-	protected function parseMarkdown(): void
+	protected function isMarkdownParsed(): bool
 	{
+		if ( $this->markdown_parsed && $this->yaml_parsed ) {
+			return true;
+		}
+
 		// Get cached entries if any exist. If not, locate entries from
 		// the filesystem.
 		if ( Config::get( 'cache.markdown' ) && $md = $this->getCachedMarkdown() ) {
@@ -96,6 +100,21 @@ class MarkdownFile extends Entry
 			$this->yaml_parsed     = true;
 			$this->content         = $md['content'];
 			$this->meta            = $md['meta'];
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Just-in-time Markdown parsing. This should not be called unless
+	 * Markdown has yet to be parsed.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function parseMarkdown(): void
+	{
+		if ( $this->isMarkdownParsed() ) {
 			return;
 		}
 
@@ -125,6 +144,10 @@ class MarkdownFile extends Entry
 	 */
 	protected function parseYaml(): void
 	{
+		if ( $this->isMarkdownParsed() ) {
+			return;
+		}
+
 		$content = file_get_contents(
 			$this->filePath(), false, null, 0, 4 * 1024
 		);
@@ -156,7 +179,7 @@ class MarkdownFile extends Entry
 	{
 		if ( $this->nocontent && ! $this->yaml_parsed ) {
 			$this->parseYaml();
-		} elseif ( ! $this->markdown_parsed ) {
+		} elseif ( ! $this->nocontent && ! $this->markdown_parsed ) {
 			$this->parseMarkdown();
 		}
 
