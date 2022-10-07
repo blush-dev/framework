@@ -28,6 +28,7 @@ class Content
 			'collect'         => Expect::type( 'string|bool' )->nullable(),
 			'collection'      => Expect::array(),
 			'feed'            => Expect::type( 'bool|array' )->nullable(),
+			'sitemap'         => Expect::bool( true ),
 			'date_archives'   => Expect::bool( false ),
 			'time_archives'   => Expect::bool( false ),
 			'url_paths'       => Expect::arrayOf( 'string', 'string' ),

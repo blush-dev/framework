@@ -79,6 +79,19 @@ class Component implements Bootable
 			] );
 		}
 
+		// Add sitemap routes if supported.
+		if ( Config::get( 'app.sitemap' ) ) {
+			$this->routes->add( 'sitemap/{type}', [
+				'name'       => "sitemap",
+				'controller' => Controllers\Sitemap::class
+			] );
+
+			$this->routes->add( 'sitemap', [
+				'name'       => 'sitemapindex',
+				'controller' => Controllers\SitemapIndex::class
+			] );
+		}
+
 		// Add homepage route.
 		$this->routes->add( '/', [
 			'name'       => 'home',

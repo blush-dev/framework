@@ -85,6 +85,14 @@ class Type implements TypeContract
 	protected ?array $feed = null;
 
 	/**
+	 * Whether to generate a sitemap for the content type. Sitemaps must
+	 * also be enabled globally.
+	 *
+	 * @since 1.0.0
+	 */
+	protected bool $sitemap = true;
+
+	/**
 	 * Whether to generate date-based archives for the content type.
 	 *
 	 * @since 1.0.0
@@ -122,6 +130,7 @@ class Type implements TypeContract
 		$this->taxonomy        = $options['taxonomy']        ?? false;
 		$this->term_collect    = $options['term_collect']    ?? null;
 		$this->term_collection = $options['term_collection'] ?? [];
+		$this->sitemap         = $options['sitemap']         ?? true;
 
 		// Unless the `collect` option is explicitly set to `false`,
 		// it should at least collect itself.
@@ -301,6 +310,16 @@ class Type implements TypeContract
 	}
 
 	/**
+	 * Returns the sitemap URL.
+	 *
+	 * @since 1.0.0
+	 */
+	public function sitemapUrl(): string
+	{
+		return Url::route( 'sitemap/{type}', [ 'type' => $this->name() ] );
+	}
+
+	/**
 	 * Returns the content type URL for year archives.
 	 *
 	 * @since 1.0.0
@@ -366,6 +385,16 @@ class Type implements TypeContract
 		}
 
 		return null;
+	}
+
+	/**
+	 * Whether the content type has a sitemap.
+	 *
+	 * @since 1.0.0
+	 */
+	public function hasSitemap(): bool
+	{
+		return Config::get( 'sitemap' ) && $this->sitemap;
 	}
 
 	/**

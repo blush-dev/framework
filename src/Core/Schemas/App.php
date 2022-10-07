@@ -31,6 +31,7 @@ class App
 			'date_format' => Expect::string( 'F j, Y' ),
 			'time_format' => Expect::string( 'g:i a' ),
 			'home_alias'  => Expect::string( '' ),
+			'sitemap'     => Expect::bool( false ),
 			'providers'   => Expect::array( [] ),
 			'proxies'     => Expect::array( [] ),
 
