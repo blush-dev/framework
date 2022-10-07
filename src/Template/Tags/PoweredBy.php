@@ -39,9 +39,13 @@ class PoweredBy implements Displayable, Renderable
 			'Powered by the code of a maniac.',
 			'Powered by peace and understanding.',
 			'Powered by coffee.',
-			'Powered by sleepness nights.',
+			'Powered by sleepless nights.',
 			'Powered by the love of all things.',
-			'Powered by something greater than myself.'
+			'Powered by something greater than myself.',
+			 // 2022-10-05
+			'Powered by elbow grease. Held together by tape and bubble gum.',
+			'Powered by an old mixtape and memories of lost love.',
+			'Powered by thoughts of old love letters.'
 		];
 	}
 
