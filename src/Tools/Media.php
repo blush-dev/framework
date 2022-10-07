@@ -87,9 +87,21 @@ class Media
 	 *
 	 * @since 1.0.0
 	 */
-	public function valid(): bool
+	public function isValid(): bool
 	{
 		return $this->path && $this->url && $this->hasAllowedMimeType();
+	}
+
+	/**
+	 * Conditional for checking if the media is considered valid. Alias for
+	 * `isValid()`.
+	 *
+	 * @since 1.0.0
+	 * @deprecated 1.0.0
+	 */
+	public function valid(): bool
+	{
+		return $this->isValid();
 	}
 
 	/**

@@ -11,7 +11,7 @@
 
 namespace Blush\Markdown;
 
-use Blush\Tools\Str;
+use Blush\Tools\{Media, Str};
 use League\CommonMark\Extension\CommonMark\Node\Inline\{Image, Link};
 use League\CommonMark\Node\Node;
 use League\CommonMark\Node\Inline\Text;
@@ -34,9 +34,7 @@ class ImageRenderer implements NodeRendererInterface
 		$figcaption = '';
 		$attr       = [];
 
-                if ( Str::startsWith( $url, '/' ) ) {
-			$url = Str::appendUri( url( $url ) );
-                }
+                $media = new Media( $url );
 
                 if ( 1 === count( $node->children() ) && $node->firstChild() instanceof Text ) {
                 	$alt = $childRenderer->renderNodes( $node->children() );
@@ -56,10 +54,28 @@ class ImageRenderer implements NodeRendererInterface
 			}
 		}
 
-                $image = new HtmlElement( 'img', [
-                        'src' => e( $url ),
-			'alt' => e( $alt ),
-                ], '', true );
+		$args = [
+			'src' => e( $url ),
+			'alt' => e( $alt )
+		];
+
+		if ( $media->isValid() ) {
+			$args['src'] = e( $media->url() );
+			$args['width'] = e( $media->width() );
+			$args['height'] = e( $media->height() );
+		}
+
+		if ( isset( $attr['srcset'] ) ) {
+			$args['srcset'] = $attr['srcset'];
+			unset( $attr['srcset'] );
+		}
+
+		if ( isset( $attr['sizes'] ) ) {
+			$args['sizes'] = $attr['sizes'];
+			unset( $attr['sizes'] );
+		}
+
+                $image = new HtmlElement( 'img', $args, '', true );
 
 		if ( $this->parent instanceof Link ) {
 			$url = $this->parent->getUrl();
