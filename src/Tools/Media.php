@@ -18,28 +18,42 @@ class Media
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?string $path = null;
+	protected string $path = '';
 
 	/**
 	 * URL path for the media file.
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?string $url = null;
+	protected string $url = '';
+
+	/**
+	 * Width of the media.
+	 *
+	 * @since 1.0.0
+	 */
+	protected int $width = 0;
+
+	/**
+	 * Height of the media.
+	 *
+	 * @since 1.0.0
+	 */
+	protected int $height = 0;
 
 	/**
 	 * Size (in bytes) of the media file.
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?int $size = null;
+	protected int $size = 0;
 
 	/**
 	 * Mime type for the media file.
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?string $mime_type = null;
+	protected string $mime_type = '';
 
 	/**
 	 * Sets up the object properties. The `$filepath` is expected to be
@@ -59,6 +73,12 @@ class Media
 			$this->url       = url( $filepath );
 			$this->size      = filesize( $this->path );
 			$this->mime_type = mime_content_type( $this->path );
+
+			if ( $this->hasType( 'image' ) ) {
+				$image           = getimagesize( $this->path );
+				$this->width     = $image[0];
+				$this->height    = $image[1];
+			}
 		}
 	}
 
@@ -77,7 +97,7 @@ class Media
 	 *
 	 * @since 1.0.0
 	 */
-	public function path(): ?string
+	public function path(): string
 	{
 		return $this->path;
 	}
@@ -87,9 +107,27 @@ class Media
 	 *
 	 * @since 1.0.0
 	 */
-	public function url(): ?string
+	public function url(): string
 	{
 		return $this->url;
+	}
+
+	/**
+	 * Returns the width of the media.
+	 */
+	public function width(): int
+	{
+		return $this->width;
+	}
+
+	/**
+	 * Returns the height of the media.
+	 *
+	 * @since 1.0.0
+	 */
+	public function height(): int
+	{
+		return $this->height;
 	}
 
 	/**
@@ -97,7 +135,7 @@ class Media
 	 *
 	 * @since 1.0.0
 	 */
-	public function size(): ?int
+	public function size(): int
 	{
 		return $this->size;
 	}
@@ -107,7 +145,7 @@ class Media
 	 *
 	 * @since 1.0.0
 	 */
-	public function mimeType(): ?string
+	public function mimeType(): string
 	{
 		return $this->mime_type;
 	}
@@ -117,10 +155,10 @@ class Media
 	 *
 	 * @since 1.0.0
 	 */
-	public function type(): ?string
+	public function type(): string
 	{
 		if ( ! $mime = $this->mimeType() ) {
-			return null;
+			return '';
 		}
 
 		return Str::beforeFirst( $mime, '/' );
@@ -131,10 +169,10 @@ class Media
 	 *
 	 * @since 1.0.0
 	 */
-	public function subtype(): ?string
+	public function subtype(): string
 	{
 		if ( ! $mime = $this->mimeType() ) {
-			return null;
+			return '';
 		}
 
 		return Str::afterFirst( $mime, '/' );
