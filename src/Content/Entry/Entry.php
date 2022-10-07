@@ -426,18 +426,7 @@ abstract class Entry implements EntryContract
 	 */
 	public function published( string $format = '' ): string
 	{
-		$date = $this->metaSingle( 'published' );
-
-		// @todo Remove `date` check. `published` get cached, so this is
-		// only needed on installs with the old `date` key cached.
-		if ( ! $date && ! $date = $this->metaSingle( 'date' ) ) {
-			return '';
-		}
-
-		return date(
-			$format ?: Config::get( 'app.date_format' ),
-			is_numeric( $date ) ? $date : strtotime( $date )
-		);
+		return $this->date( 'published', $format );
 	}
 
 	/**
@@ -447,25 +436,40 @@ abstract class Entry implements EntryContract
 	 */
 	public function updated( string $format = '' ): string
 	{
-		if ( $date = $this->metaSingle( 'updated' ) ) {
-			return date(
-				$format ?: Config::get( 'app.date_format' ),
-				is_numeric( $date ) ? $date : strtotime( $date )
-			);
+		// Returned updated meta if found.
+		if ( $updated = $this->date( 'updated', $format ) ) {
+			return $updated;
 		}
 
-		return $this->published( $format );
+		// Fall back to published meta if it exists.
+		if ( $published = $this->published( $format ) ) {
+			return $published;
+		}
+
+		// Fall back to file's modified time.
+		return $this->date( filemtime( $this->filePath() ) );
 	}
 
 	/**
-	 * Returns the entry date. Alias for `published()`.
+	 * Returns a formatted entry date by meta key name.
 	 *
 	 * @since 1.0.0
-	 * @deprecated 1.0.0
 	 */
-	public function date( string $format = '' ): string
+	public function date( string $name = 'published', string $format = '' ): string
 	{
-		return $this->published( $format );
+		$format = $format ?: Config::get( 'app.date_format' );
+
+		// Get the date by meta key name.
+		$date = $this->metaSingle( $name );
+
+		// Back-compat check for older `date` meta key.
+		if ( ! $date && 'published' === $name ) {
+			$date = $this->metaSingle( 'date' );
+		}
+
+		return $date
+		       ? date( $format, is_numeric( $date ) ? $date : strtotime( $date ) )
+		       : '';
 	}
 
 	/**
