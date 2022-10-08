@@ -16,6 +16,9 @@
 
 namespace Blush\Content\Entry;
 
+use Blush\App;
+use Blush\Contracts\Content\Type;
+
 class Virtual extends Entry
 {
 	/**
@@ -30,10 +33,35 @@ class Virtual extends Entry
 				$this->$key = $data[ $key ];
 			}
 		}
+	}
 
-		// Pass an empty filepath to the parent class. This ensures that
-		// nothing relying on the file system errors out in the
-		// off-chance those methods are accessed.
-		parent::__construct( '' );
+	/**
+	 * Returns the entry type.
+	 *
+	 * @since 1.0.0
+	 */
+	public function type(): Type
+	{
+		return App::get( 'content.types' )->get( 'virtual' );
+	}
+
+	/**
+	 * Returns the entry name (slug).
+	 *
+	 * @since 1.0.0
+	 */
+	public function name(): string
+	{
+		return '';
+	}
+
+	/**
+	 * Returns the entry URL.
+	 *
+	 * @since  1.0.0
+	 */
+	public function url(): string
+	{
+		return '';
 	}
 }

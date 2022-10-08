@@ -37,5 +37,11 @@ class Component implements Bootable
 		foreach ( $this->types as $type => $options ) {
 			$this->registry->add( $type, $options );
 		}
-        }
+
+		// Registers the virtual content type.
+		$this->registry->add( 'virtual', [
+			'public'  => false,
+			'routing' => false
+		] );
+	}
 }

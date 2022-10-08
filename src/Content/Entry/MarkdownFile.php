@@ -15,7 +15,7 @@ use Blush\{App, Cache, Config};
 use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 
-class MarkdownFile extends Entry
+class MarkdownFile extends File
 {
 	/**
 	 * Whether Markdown has been parsed.

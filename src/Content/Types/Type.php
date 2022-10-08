@@ -26,6 +26,13 @@ class Type implements TypeContract
 	protected string $path = '';
 
 	/**
+	 * Whether the type is public.
+	 *
+	 * @since 1.0.0
+	 */
+	protected bool $public = true;
+
+	/**
 	 * Array of content type routes.
 	 *
 	 * @since 1.0.0
@@ -122,6 +129,7 @@ class Type implements TypeContract
 	{
 		// Set up the object properties based on parameters.
 		$this->path            = $options['path']            ?? $type;
+		$this->public          = $options['public']          ?? true;
 		$this->collection      = $options['collection']      ?? [];
 		$this->routes          = $options['routes']          ?? [];
 		$this->routing         = $options['routing']         ?? true;
@@ -134,8 +142,8 @@ class Type implements TypeContract
 
 		// Unless the `collect` option is explicitly set to `false`,
 		// it should at least collect itself.
-		if ( false !== $options['collect'] ) {
-			$this->collect = $options['collect'] ?: $type;
+		if ( ! isset( $options['collect'] ) || false !== $options['collect'] ) {
+			$this->collect = $options['collect'] ?? $type;
 		}
 
 		// Build the feed options.
@@ -237,6 +245,16 @@ class Type implements TypeContract
 	public function path(): string
 	{
 		return $this->path;
+	}
+
+	/**
+	 * Conditional check for whether the content type is public.
+	 *
+	 * @since 1.0.0
+	 */
+	public function isPublic(): bool
+	{
+		return $this->public;
 	}
 
 	/**
@@ -425,7 +443,7 @@ class Type implements TypeContract
 	 */
 	public function routing(): bool
 	{
-		return $this->routing;
+		return $this->routing && $this->isPublic();
 	}
 
 	/**
