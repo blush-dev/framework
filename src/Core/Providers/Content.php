@@ -12,15 +12,15 @@
 namespace Blush\Core\Providers;
 
 // Interfaces.
-use Blush\Contracts\Content\Entry;
+use Blush\Contracts\Content\{Entry, Query};
 use Blush\Contracts\Content\Locator as LocatorContract;
-use Blush\Contracts\Content\Query as QueryContract;
 use Blush\Contracts\Content\Type as TypeContract;
 use Blush\Contracts\Content\Types as TypesContract;
 
 // Classes.
 use Blush\Core\ServiceProvider;
-use Blush\Content\{Locator, Query};
+use Blush\Content\Locator;
+use Blush\Content\Query\File as FileQuery;
 use Blush\Content\Entry\MarkdownFile;
 use Blush\Content\Types\{Component, Registry, Type};
 
@@ -65,14 +65,14 @@ class Content extends ServiceProvider
 		$this->app->bind( LocatorContract::class, Locator::class );
 
 		// Bind the content query.
-		$this->app->bind( QueryContract::class, function( $app ) {
-			return new Query( $app->make( LocatorContract::class ) );
+		$this->app->bind( Query::class, function( $app ) {
+			return new FileQuery( $app->make( LocatorContract::class ) );
 		} );
 
 		// Add aliases.
 		$this->app->alias( Entry::class,           'content.entry'   );
 		$this->app->alias( LocatorContract::class, 'content.locator' );
-		$this->app->alias( QueryContract::class,   'content.query'   );
+		$this->app->alias( Query::class,           'content.query'   );
 		$this->app->alias( TypeContract::class,    'content.type'    );
 		$this->app->alias( TypesContract::class,   'content.types'   );
         }

@@ -9,13 +9,12 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Content;
+namespace Blush\Content\Query;
 
 // Interfaces.
 use IteratorAggregate;
 use Blush\Contracts\Makeable;
-use Blush\Contracts\Content\{Entry, Locator};
-use Blush\Contracts\Content\Query as QueryContract;
+use Blush\Contracts\Content\{Entry, Locator, Query};
 
 // Classes.
 use ArrayIterator;
@@ -23,7 +22,7 @@ use Traversable;
 use Blush\App;
 use Blush\Tools\Str;
 
-class Query implements Makeable, QueryContract, IteratorAggregate
+class File implements IteratorAggregate, Makeable, Query
 {
 	/**
 	 * Path to the entries relative to the content folder.
