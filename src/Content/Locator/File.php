@@ -9,17 +9,17 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Content;
+namespace Blush\Content\Locator;
 
 // Contracts.
-use Blush\Contracts\Content\Locator as LocatorContract;
+use Blush\Contracts\Content\Locator;
 
 // Classes.
 use Blush\{App, Cache, Config};
 use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 
-class Locator implements LocatorContract
+class File implements Locator
 {
 	/**
 	 * Full path to the folder to search for content.
@@ -29,7 +29,7 @@ class Locator implements LocatorContract
 	protected string $path;
 
 	/**
-	 * File extenstion for the store's files without the preceding dot.
+	 * File extension for the store's files without the preceding dot.
 	 *
 	 * @since  1.0.0
 	 */
