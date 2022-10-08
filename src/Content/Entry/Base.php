@@ -12,7 +12,7 @@
 namespace Blush\Content\Entry;
 
 // Abstracts.
-use Blush\Contracts\Content\Entry as EntryContract;
+use Blush\Contracts\Content\Entry;
 use Blush\Contracts\Content\Query as QueryContract;
 use Blush\Contracts\Content\Type;
 
@@ -20,7 +20,7 @@ use Blush\Contracts\Content\Type;
 use Blush\{App, Config, Query, Url};
 use Blush\Tools\{Media, Str};
 
-abstract class Entry implements EntryContract
+abstract class Base implements Entry
 {
 	/**
 	 * Entry content type.
@@ -291,7 +291,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function author(): EntryContract|false
+	public function author(): Entry|false
 	{
 		if ( $meta = $this->metaSingle( 'author' ) ) {
 			return new Virtual( [

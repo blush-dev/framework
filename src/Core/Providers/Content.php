@@ -12,7 +12,7 @@
 namespace Blush\Core\Providers;
 
 // Interfaces.
-use Blush\Contracts\Content\Entry as EntryContract;
+use Blush\Contracts\Content\Entry;
 use Blush\Contracts\Content\Locator as LocatorContract;
 use Blush\Contracts\Content\Query as QueryContract;
 use Blush\Contracts\Content\Type as TypeContract;
@@ -34,7 +34,7 @@ class Content extends ServiceProvider
         public function register(): void
 	{
 		// Bind content entry.
-		$this->app->bind( EntryContract::class, MarkdownFile::class );
+		$this->app->bind( Entry::class, MarkdownFile::class );
 
 		// Bind content type.
 		$this->app->bind( TypeContract::class, Type::class );
@@ -70,7 +70,7 @@ class Content extends ServiceProvider
 		} );
 
 		// Add aliases.
-		$this->app->alias( EntryContract::class,   'content.entry'   );
+		$this->app->alias( Entry::class,           'content.entry'   );
 		$this->app->alias( LocatorContract::class, 'content.locator' );
 		$this->app->alias( QueryContract::class,   'content.query'   );
 		$this->app->alias( TypeContract::class,    'content.type'    );

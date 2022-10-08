@@ -19,7 +19,7 @@ namespace Blush\Content\Entry;
 use Blush\App;
 use Blush\Contracts\Content\Type;
 
-class Virtual extends Entry
+class Virtual extends Base
 {
 	/**
 	 * Sets up the object state.

@@ -12,14 +12,13 @@
 namespace Blush\Content\Entry;
 
 // Abstracts.
-use Blush\Contracts\Content\Query as QueryContract;
 use Blush\Contracts\Content\Type;
 
 // Concretes.
-use Blush\{App, Config, Query, Url};
-use Blush\Tools\{Media, Str};
+use Blush\{App, Url};
+use Blush\Tools\Str;
 
-abstract class File extends Entry
+abstract class File extends Base
 {
 	/**
 	 * Entry path info.
