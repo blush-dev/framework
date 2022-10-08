@@ -32,48 +32,6 @@ interface Entry
 	public function name(): string;
 
 	/**
-	 * Returns the entry file path.
-	 *
-	 * @since 1.0.0
-	 */
-	public function filepath(): string;
-
-	/**
-	 * Returns the file's pathinfo or a specific value.
-	 *
-	 * @since  1.0.0
-	 */
-	public function pathinfo( string $key = '' ): array|string;
-
-	/**
-	 * Returns the file's directory name.
-	 *
-	 * @since 1.0.0
-	 */
-	public function dirname(): string;
-
-	/**
-	 * Returns the file's basename (includes extension).
-	 *
-	 * @since 1.0.0
-	 */
-	public function basename(): string;
-
-	/**
-	 * Returns the file's extension.
-	 *
-	 * @since 1.0.0
-	 */
-	public function extension(): string;
-
-	/**
-	 * Returns the filename without extension.
-	 *
-	 * @since 1.0.0
-	 */
-	public function filename(): string;
-
-	/**
 	 * Returns the entry's visibility.
 	 *
 	 * @since 1.0.0

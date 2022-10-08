@@ -257,7 +257,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function filepath(): string
+	protected function filepath(): string
 	{
 		return $this->filepath;
 	}
@@ -267,7 +267,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function pathinfo( string $key = '' ): array|string
+	protected function pathinfo( string $key = '' ): array|string
 	{
 		if ( $key ) {
 			return $this->pathinfo[ $key ] ?? '';
@@ -281,7 +281,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function dirname(): string
+	protected function dirname(): string
 	{
 		return $this->pathinfo( 'dirname' );
 	}
@@ -291,7 +291,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function basename(): string
+	protected function basename(): string
 	{
 		return $this->pathinfo( 'basename' );
 	}
@@ -301,7 +301,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function extension(): string
+	protected function extension(): string
 	{
 		return $this->pathinfo( 'extension' );
 	}
@@ -311,7 +311,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function filename(): string
+	protected function filename(): string
 	{
 		return $this->pathinfo( 'filename' );
 	}

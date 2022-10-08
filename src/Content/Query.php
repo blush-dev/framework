@@ -330,7 +330,8 @@ class Query implements Makeable, QueryContract, IteratorAggregate
 				'options'  => [ 'nocontent' => $this->nocontent ]
 			] );
 
-			$filename = $entry->pathinfo( 'filename' );
+			$pathinfo = pathinfo( $filepath );
+			$filename = $pathinfo['filename'];
 			$slug     = Str::afterLast( $filename, '.' );
 
 			$this->entries[] = $entry;
