@@ -36,7 +36,7 @@ interface Entry
 	 *
 	 * @since 1.0.0
 	 */
-	public function filePath(): string;
+	public function filepath(): string;
 
 	/**
 	 * Returns the file's pathinfo or a specific value.

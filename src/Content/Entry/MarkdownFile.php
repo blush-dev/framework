@@ -114,7 +114,7 @@ class MarkdownFile extends Entry
 		}
 
 		$markdown = App::make( 'markdown' )->convert(
-			file_get_contents( $this->filePath() )
+			file_get_contents( $this->filepath() )
 		);
 
 		$this->content         = $markdown->content();
@@ -136,7 +136,7 @@ class MarkdownFile extends Entry
 		}
 
 		$content = file_get_contents(
-			$this->filePath(), false, null, 0, 4 * 1024
+			$this->filepath(), false, null, 0, 4 * 1024
 		);
 
 		$this->yaml_parsed = true;

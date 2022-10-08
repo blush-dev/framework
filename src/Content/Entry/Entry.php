@@ -94,7 +94,7 @@ abstract class Entry implements EntryContract
 		// Strip the file basename and content path from the file path.
 		// This should give us the content type path, which we can match
 		// against registered content types.
-		$path = Str::beforeLast( $this->filePath(), basename( $this->filePath() ) );
+		$path = Str::beforeLast( $this->filepath(), basename( $this->filepath() ) );
 		$path = Str::afterLast( $path, App::get( 'path.content' ) );
 		$path = Str::trimSlashes( $path );
 
@@ -127,7 +127,7 @@ abstract class Entry implements EntryContract
 
 		// If the name is 'index', let's base it on the directory.
 		if ( 'index' === $name && Str::contains( $this->filepath(), '/' ) ) {
-			$path  = str_replace( content_path(), '', $this->filePath() );
+			$path  = str_replace( content_path(), '', $this->filepath() );
 			$_name = Str::trimSlashes( Str::beforeLast( $path, '/index' ) );
 			$name = $_name ?: $name;
 		}
@@ -257,7 +257,7 @@ abstract class Entry implements EntryContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function filePath(): string
+	public function filepath(): string
 	{
 		return $this->filepath;
 	}
@@ -447,7 +447,7 @@ abstract class Entry implements EntryContract
 		}
 
 		// Fall back to file's modified time.
-		return $this->date( filemtime( $this->filePath() ) );
+		return $this->date( filemtime( $this->filepath() ) );
 	}
 
 	/**
