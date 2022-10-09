@@ -12,23 +12,15 @@
 namespace Blush\Template;
 
 // Contracts.
-use Blush\Contracts\{Displayable, Renderable};
+use Stringable;
 use Blush\Contracts\Template\TemplateView;
 
 // Concretes.
 use Blush\App;
-use Blush\Tools\{Collection, Str};
+use Blush\Tools\Collection;
 
-class View implements TemplateView, Displayable, Renderable
+class View implements TemplateView, Stringable
 {
-	/**
-	 * Names for the view. This is primarily used as the folder name. However,
-	 * it can also be the filename as the final fallback if no folder exists.
-	 *
-	 * @since 1.0.0
-	 */
-	protected array $paths = [];
-
 	/**
 	 * An collection of data that is passed into the view template.
 	 *
@@ -48,56 +40,30 @@ class View implements TemplateView, Displayable, Renderable
 	 *
 	 * @since  1.0.0
 	 */
-	public function __construct( array|string $paths, array|Collection $data = [] )
+	public function __construct( protected string $name, array|Collection $data = [] )
 	{
+		$this->name = str_replace( '/', '.', $this->name );
+
 		if ( ! $data instanceof Collection ) {
 			$data = new Collection( (array) $data );
 		}
 
-		$this->paths = (array) $paths;
 		$this->data = $data;
 	}
 
 	/**
-	 * When attempting to use the object as a string, return the template
-	 * output.
+	 * Returns the located template.
 	 *
 	 * @since 1.0.0
 	 */
-	public function __toString(): string
+	public function template(): string
 	{
-		return $this->render();
-	}
+		if ( is_null( $this->template ) ) {
+			$filename       = str_replace( '.', '/', $this->name );
+			$this->template = view_path( "{$filename}.php" );
+		}
 
-	/**
-	 * Uses the array of template slugs to build a hierarchy of potential
-	 * templates that can be used.
-	 *
-	 * @since 1.0.0
-	 */
-	protected function hierarchy(): array
-	{
-		return array_map( fn( $file ) => "{$file}.php", $this->paths );
-	}
-
-	/**
-	 * Sets the view paths.
-	 *
-	 * @since 1.0.0
-	 */
-	public function setPaths( array $paths ): void
-	{
-		$this->paths = $paths;
-	}
-
-	/**
-	 * Gets the view paths.
-	 *
-	 * @since 1.0.0
-	 */
-	public function getPaths(): array
-	{
-		return $this->paths;
+		return $this->template;
 	}
 
 	/**
@@ -121,38 +87,6 @@ class View implements TemplateView, Displayable, Renderable
 	}
 
 	/**
-	 * Locates the template.
-	 *
-	 * @since 1.0.0
-	 */
-	protected function locate(): string
-	{
-		foreach ( $this->hierarchy() as $template ) {
-			$filepath = view_path( $template );
-
-			if ( file_exists( $filepath ) ) {
-				return $filepath;
-			}
-		}
-
-		return '';
-	}
-
-	/**
-	 * Returns the located template.
-	 *
-	 * @since 1.0.0
-	 */
-	public function template(): string
-	{
-		if ( is_null( $this->template ) ) {
-			$this->template = $this->locate();
-		}
-
-		return $this->template;
-	}
-
-	/**
 	 * Displays the view.
 	 *
 	 * @since 1.0.0
@@ -169,22 +103,31 @@ class View implements TemplateView, Displayable, Renderable
 	 */
 	public function render(): string
 	{
-		if ( ! $template = $this->template() ) {
+		if ( ! $this->template() ) {
 			return '';
 		}
 
 		// Extract the data into individual variables. Each of
 		// these variables will be available in the template.
-		if ( $this->data instanceof Collection ) {
-			extract( $this->data->all() );
-		}
+		extract( $this->data->all() );
 
 		// Make `$data` and `$view` variables available to templates.
 		$data = $this->data;
 		$view = $this;
 
 		ob_start();
-		include $template;
+		include $this->template();
 		return ob_get_clean();
+	}
+
+	/**
+	 * When attempting to use the object as a string, return the template
+	 * output.
+	 *
+	 * @since 1.0.0
+	 */
+	public function __toString(): string
+	{
+		return $this->render();
 	}
 }

@@ -42,7 +42,7 @@ abstract class Controller
 	 */
 	protected function view( string|array $names, Collection|array $data = [] ): TemplateView
 	{
-		return Engine::view( $names, $data );
+		return Engine::first( (array) $names, $data );
 	}
 
 	/**

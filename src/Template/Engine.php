@@ -33,18 +33,13 @@ class Engine implements TemplateEngine
 	protected Collection $shared;
 
 	/**
-	 * Whether the top-level page view has been booted.
+	 * Sets up the object properties.
 	 *
 	 * @since 1.0.0
 	 */
-	protected bool $view_booted = false;
-
-	/**
-	 * Sets up the object properties.
-	 *
-	 * @since  1.0.0
-	 */
-	public function __construct( protected TemplateTags $tags ) {}
+	public function __construct( protected TemplateTags $tags ) {
+		$this->shared = new Collection();
+	}
 
 	/**
 	 * Returns a template view. This should only be used for top-level views.
@@ -52,129 +47,154 @@ class Engine implements TemplateEngine
 	 * If including views within views, use `subview()` or one of its
 	 * several descendent methods included in this class.
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
-	public function view( array|string $paths, array|Collection $data = [] ): TemplateView
+	public function view( array|string $views, array|Collection $data = [] ): TemplateView
 	{
-		// If `view()` is called for a second time on a single page load
-		// dump and die.
-		if ( $this->view_booted ) {
-			Message::make(
-				'Cannot call <code>Engine::view()</code> twice. If this is a sub-view, try the <code>Engine::subview()</code> or <code>Engine::include()</code> method.'
-			)->dd();
+		// If an array is passed in, call `first()`.
+		if ( is_array( $views ) ) {
+			return $this->first( $views, $data );
 		}
+
+		// Assign the view name, which should be a string at this point.
+		$name = $views;
+
+		// @todo possible to assign this to $shared?
+		$data = array_merge(
+			$this->shared->all(),
+			$data instanceof Collection ? $data->all() : $data
+		);
 
 		// Always pass the engine back to the view.
 		$data['engine'] = $this;
 
-		// Make a new template view.
-		$view = App::make( 'template.view', compact( 'paths', 'data' ) );
+		$this->shared = new Collection( $data );
 
-		// Set object properties.
-		$this->shared      = $view->getData();
-		$this->view_booted = true;
+		// Make a new template view.
+		$view = App::make( 'template.view', [
+			'name' => $views,
+			'data' => $data
+		] );
 
 		// Return template view.
 		return $view;
 	}
 
 	/**
-	 * Returns a template view. Use for getting views inside of other views.
-	 * This makes sure shared data is passed down to the subview.
+	 * Checks if a view template exists.
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
-	public function subview( array|string $paths, array|Collection $data = [] ): TemplateView
+	public function exists( string $name ): bool
 	{
-		if ( $this->shared ) {
-			$data = array_merge(
-				$this->shared->all(),
-				$data instanceof Collection ? $data->all() : $data
-			);
-		}
+		$filename = str_replace( '.', '/', $name );
 
-		$data['engine'] = $this;
-
-		return App::make( 'template.view', compact( 'paths', 'data' ) );
+		return file_exists( view_path( "{$filename}.php" ) );
 	}
 
 	/**
-	 * Includes a subview.
+	 * Returns the first found view.
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
-	public function include( array|string $paths, array|Collection $data = [] ): void
+	public function first( array $views, array|Collection $data = [] ): TemplateView
 	{
-		$subview = $this->subview( $paths, $data );
+		foreach ( $views as $view ) {
+			if ( $this->exists( $view ) ) {
+				return $this->view( $view, $data );
+			}
+		}
 
-		if ( ! $subview->template() ) {
-			$templates = array_map(
+		Message::make( sprintf(
+			'<p>Notice: View templates not found:</p> <ul>%s</ul>',
+			implode( "\n", array_map(
 				fn( $name ) => "<li><code>{$name}.php</code></li>",
-				(array) $paths
-			);
-
-			Message::make( sprintf(
-				'<p>Notice: View templates not found:</p> <ul>%s</ul>',
-				implode( "\n", $templates )
-			) )->dump();
-		}
-
-		$subview->display();
+				$views
+			) )
+		) )->dd();
 	}
 
 	/**
-	 * Includes a subview only if it exists. No errors or warnings if no
-	 * view template is found.
+	 * Returns any found view.
+	 *
+	 * @since 1.0.0
+	 */
+	public function any( array $views, array|Collection $data = [] ): TemplateView|false
+	{
+		foreach ( (array) $views as $name ) {
+			if ( $this->exists( $name ) ) {
+				return $this->view( $name, $data );
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Includes a view.
+	 *
+	 * @since 1.0.0
+	 */
+	public function include( array|string $views, array|Collection $data = [] ): void
+	{
+		$this->first( (array) $views, $data )->display();
+	}
+
+	/**
+	 * Includes a view only if it exists. No errors or warnings if no view
+	 * template is found.
 	 *
 	 * @since  1.0.0
 	 */
-	public function includeIf( array|string $paths, array|Collection $data = [] ): void
+	public function includeIf( array|string $views, array|Collection $data = [] ): void
 	{
-		$this->subview( $paths, $data )->display();
+		if ( $view = $this->any( (array) $views, $data ) ) {
+			$view->display();
+		}
 	}
 
 	/**
-	 * Includes a subview when `$when` is `true`.
+	 * Includes a view when `$when` is `true`.
 	 *
 	 * @since  1.0.0
 	 */
 	public function includeWhen(
 		mixed $when,
-		array|string $paths,
+		array|string $views,
 		array|Collection $data = []
 	): void
 	{
 		if ( $when ) {
-			$this->include( $paths, $data );
+			$this->include( $views, $data );
 		}
 	}
 
 	/**
-	 * Includes a subview unless `$unless` is `true`.
+	 * Includes a view unless `$unless` is `true`.
 	 *
 	 * @since  1.0.0
 	 */
 	public function includeUnless(
 		mixed $unless,
-		array|string $paths,
+		array|string $views,
 		array|Collection $data = []
 	): void
 	{
 		if ( ! $unless ) {
-			$this->include( $paths, $data );
+			$this->include( $views, $data );
 		}
 	}
 
 	/**
-	 * Loops through an array of items and includes a subview for each.  Use
+	 * Loops through an array of items and includes a view for each.  Use
 	 * the `$var` variable to set a variable name for the item when passed
-	 * to the subview.  Pass a fallback view name via `$empty` to show if
+	 * to the view.  Pass a fallback view name via `$empty` to show if
 	 * the items array is empty.
 	 *
 	 * @since  1.0.0
 	 */
 	public function each(
-		array|string $paths,
+		array|string $views,
 		iterable $items = [],
 		string $var = '',
 		array|string $empty = []
@@ -187,10 +207,22 @@ class Engine implements TemplateEngine
 
 		foreach ( $items as $item ) {
 			$this->include(
-				$paths,
+				$views,
 				$var ? [ $var => $item ] : []
 			);
 		}
+	}
+
+	/**
+	 * Returns a template view. Use for getting views inside of other views.
+	 * This makes sure shared data is passed down to the subview.
+	 *
+	 * @since  1.0.0
+	 * @deprecated 1.0.0
+	 */
+	public function subview( array|string $views, array|Collection $data = [] ): TemplateView
+	{
+		return $this->view( $views, $data );
 	}
 
 	/**

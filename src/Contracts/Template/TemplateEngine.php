@@ -23,20 +23,36 @@ interface TemplateEngine
 	 * @since  1.0.0
 	 */
 	public function view(
-		array|string $paths,
+		array|string $views,
 		array|Collection $data = []
 	): TemplateView;
 
 	/**
-	 * Returns a View object. Use for getting views inside of other views.
-	 * This makes sure shared data is passed down to the subview.
+	 * Checks if a view template exists.
 	 *
-	 * @since  1.0.0
+	 * @since 1.0.0
 	 */
-	public function subview(
-		array|string $paths,
+	public function exists( string $name ): bool;
+
+	/**
+	 * Returns the first found view.
+	 *
+	 * @since 1.0.0
+	 */
+	public function first(
+		array $views,
 		array|Collection $data = []
 	): TemplateView;
+
+	/**
+	 * Returns any found view.
+	 *
+	 * @since 1.0.0
+	 */
+	public function any(
+		array $views,
+		array|Collection $data = []
+	): TemplateView|false;
 
 	/**
 	 * Includes a subview.
