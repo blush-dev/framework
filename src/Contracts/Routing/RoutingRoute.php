@@ -14,7 +14,7 @@ namespace Blush\Contracts\Routing;
 use Blush\Controllers\Controller;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
-interface Route
+interface RoutingRoute
 {
 	/**
 	 * Returns the route URI.

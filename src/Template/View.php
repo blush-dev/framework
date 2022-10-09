@@ -13,13 +13,13 @@ namespace Blush\Template;
 
 // Contracts.
 use Blush\Contracts\{Displayable, Renderable};
-use Blush\Contracts\Template\View as ViewContract;
+use Blush\Contracts\Template\TemplateView;
 
 // Concretes.
 use Blush\App;
 use Blush\Tools\{Collection, Str};
 
-class View implements ViewContract, Displayable, Renderable
+class View implements TemplateView, Displayable, Renderable
 {
 	/**
 	 * Names for the view. This is primarily used as the folder name. However,

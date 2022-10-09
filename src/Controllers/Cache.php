@@ -14,7 +14,7 @@ namespace Blush\Controllers;
 use Blush\{App, Config};
 use Blush\Cache as CacheRegistry;
 use Blush\Content\Entry\Virtual;
-use Blush\Template\Tags\DocumentTitle;
+use Blush\Template\Tag\DocumentTitle;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
 class Cache extends Controller

@@ -13,8 +13,8 @@ namespace Blush\Routing;
 
 // Contracts.
 use Blush\Contracts\Bootable;
-use Blush\Contracts\Content\Types;
-use Blush\Contracts\Routing\Routes;
+use Blush\Contracts\Content\ContentTypes;
+use Blush\Contracts\Routing\RoutingRoutes;
 
 // Classes.
 use Blush\Config;
@@ -28,8 +28,8 @@ class Component implements Bootable
 	 * @since 1.0.0
 	 */
 	public function __construct(
-		protected Routes $routes,
-		protected Types $types
+		protected RoutingRoutes $routes,
+		protected ContentTypes $types
 	) {}
 
 	/**

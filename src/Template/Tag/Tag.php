@@ -16,13 +16,14 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Template\Tags;
+namespace Blush\Template\Tag;
 
 use Stringable;
 use Blush\Contracts\{CastsToHtml, CastsToText};
+use Blush\Contracts\Template\TemplateTag;
 use Blush\Tools\Collection;
 
-abstract class Tag implements CastsToHtml, CastsToText, Stringable
+abstract class Tag implements CastsToHtml, CastsToText, Stringable, TemplateTag
 {
 	/**
 	 * Shared data passed in from a view.

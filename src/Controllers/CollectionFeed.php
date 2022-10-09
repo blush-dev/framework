@@ -13,7 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\{App, Config, Query};
 use Blush\Feed\Writer;
-use Blush\Template\Tags\{DocumentTitle, Pagination};
+use Blush\Template\Tag\{DocumentTitle, Pagination};
 use Blush\Tools\{Collection, Str};
 use Symfony\Component\HttpFoundation\{Request, Response};
 

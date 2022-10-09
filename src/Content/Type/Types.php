@@ -9,13 +9,13 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Content\Types;
+namespace Blush\Content\Type;
 
 use Blush\App;
-use Blush\Contracts\Content\{Type, Types};
+use Blush\Contracts\Content\{ContentType, ContentTypes};
 use Blush\Tools\Collection;
 
-class Registry extends Collection implements Types
+class Types extends Collection implements ContentTypes
 {
 	/**
 	 * Stores types by path.
@@ -36,10 +36,10 @@ class Registry extends Collection implements Types
 	 *
 	 * @since  1.0.0
 	 */
-	public function add( mixed $type, mixed $options = [] ): void
+	public function add( mixed $name, mixed $options = [] ): void
 	{
-		parent::add( $type, App::make( 'content.type', [
-			'type'    => $type,
+		parent::add( $name, App::make( 'content.type', [
+			'name'    => $name,
 			'options' => $options
 		] ) );
 	}
@@ -49,7 +49,7 @@ class Registry extends Collection implements Types
 	 *
 	 * @since  1.0.0
 	 */
-	public function getTypeFromPath( string $path ): Type|false
+	public function getTypeFromPath( string $path ): ContentType|false
 	{
 		// If there is no path, this is a page.
 		if ( '' === $path ) {
@@ -73,7 +73,7 @@ class Registry extends Collection implements Types
 	 *
 	 * @since  1.0.0
 	 */
-	public function getTypeFromUri( string $uri ): Type|false
+	public function getTypeFromUri( string $uri ): ContentType|false
 	{
 		// If there is no URI, this is a page.
 		if ( '' === $uri ) {

@@ -11,14 +11,16 @@
 
 namespace Blush\Core\Providers;
 
-use Blush\Contracts\Routing\Route as RouteContract;
-use Blush\Contracts\Routing\Router as RouterContract;
-use Blush\Contracts\Routing\Routes as RoutesContract;
-use Blush\Contracts\Routing\Url as UrlContract;
+use Blush\Contracts\Routing\{
+	RoutingRoute,
+	RoutingRouter,
+	RoutingRoutes,
+	RoutingUrl
+};
 
 use Blush\Core\ServiceProvider;
 use Blush\Routing\{Component, Router, Url};
-use Blush\Routing\Routes\{Route, Registry};
+use Blush\Routing\Route\{Route, Routes};
 
 class Routing extends ServiceProvider
 {
@@ -30,37 +32,34 @@ class Routing extends ServiceProvider
         public function register(): void
 	{
 		// Bind route.
-		$this->app->bind( RouteContract::class, Route::class );
+		$this->app->bind( RoutingRoute::class, Route::class );
 
-		// Bind route registry.
-		$this->app->singleton( RoutesContract::class, Registry::class );
+		// Bind routes.
+		$this->app->singleton( RoutingRoutes::class, Routes::class );
 
 		// Binds the router.
-                $this->app->singleton( RouterContract::class, function( $app ) {
-			return new Router( $app->make( RoutesContract::class ) );
+                $this->app->singleton( RoutingRouter::class, function( $app ) {
+			return new Router( $app->make( RoutingRoutes::class ) );
 		} );
 
 		// Binds the routing URL instance.
-                $this->app->singleton( UrlContract::class, function( $app ) {
-			return new Url( $app->make( RoutesContract::class ) );
+                $this->app->singleton( RoutingUrl::class, function( $app ) {
+			return new Url( $app->make( RoutingRoutes::class ) );
 		} );
 
 		// Binds the routing component.
 		$this->app->singleton( Component::class, function( $app ) {
 			return new Component(
-				$app->make( RoutesContract::class ),
+				$app->make( RoutingRoutes::class ),
 				$app->make( 'content.types' )
 			);
 		} );
 
 		// Add aliases.
-		$this->app->alias( RouteContract::class,  'routing.route'  );
-		$this->app->alias( RoutesContract::class, 'routing.routes' );
-		$this->app->alias( RouterContract::class, 'routing.router' );
-		$this->app->alias( UrlContract::class,    'routing.url'    );
-
-		// @deprecated 1.0.0
-		$this->app->alias( RouterContract::class, 'router' );
+		$this->app->alias( RoutingRoute::class,  'routing.route'  );
+		$this->app->alias( RoutingRoutes::class, 'routing.routes' );
+		$this->app->alias( RoutingRouter::class, 'routing.router' );
+		$this->app->alias( RoutingUrl::class,    'routing.url'    );
         }
 
 	/**

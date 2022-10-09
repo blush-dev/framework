@@ -11,14 +11,14 @@
 
 namespace Blush\Contracts\Routing;
 
-interface Routes
+interface RoutingRoutes
 {
 	/**
 	 * Returns route by name.
 	 *
 	 * @since  1.0.0
 	 */
-	public function getNamedRoute( string $name ): ?Route;
+	public function getNamedRoute( string $name ): ?RoutingRoute;
 
 	/**
 	 * Returns an array of all routes with their names as the keys and the

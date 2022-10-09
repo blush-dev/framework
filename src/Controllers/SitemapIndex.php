@@ -13,7 +13,7 @@ namespace Blush\Controllers;
 
 use Blush\{App, Config, Query};
 use Blush\Content\Entry\Virtual;
-use Blush\Template\Tags\{DocumentTitle};
+use Blush\Template\Tag\{DocumentTitle};
 use Blush\Tools\{Collection, Str};
 use Symfony\Component\HttpFoundation\{Request, Response};
 

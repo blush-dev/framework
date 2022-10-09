@@ -15,14 +15,14 @@ namespace Blush\Contracts\Content;
 
 use Blush\Tools\Media;
 
-interface Entry
+interface ContentEntry
 {
 	/**
 	 * Returns the entry type.
 	 *
 	 * @since 1.0.0
 	 */
-	public function type(): Type;
+	public function type(): ContentType;
 
 	/**
 	 * Returns the entry name/slug/ID.
@@ -93,7 +93,7 @@ interface Entry
 	 *
 	 * @since  1.0.0
 	 */
-	public function metaQuery( string $name, array $args = [] ): Query|false;
+	public function metaQuery( string $name, array $args = [] ): ContentQuery|false;
 
 	/**
 	 * Returns the entry title.
@@ -136,7 +136,7 @@ interface Entry
 	 *
 	 * @since  1.0.0
 	 */
-	public function author(): Entry|false;
+	public function author(): ContentEntry|false;
 
 	/**
 	 * Returns the entry authors.
@@ -186,7 +186,7 @@ interface Entry
 	 *
 	 * @since  1.0.0
 	 */
-	public function terms( string $taxonomy, array $args = [] ): Query|false;
+	public function terms( string $taxonomy, array $args = [] ): ContentQuery|false;
 
 	/**
 	 * Conditional check if the entry has a term from a specific taxonomy.

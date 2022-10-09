@@ -11,21 +11,22 @@
 
 namespace Blush\Contracts\Content;
 
-interface Type
+interface ContentType
 {
 	/**
 	 * Returns the content type name.
 	 *
 	 * @since 1.0.0
 	 */
-	public function type(): string;
+	public function name(): string;
 
 	/**
-	 * Returns the content type name (alias for `type()`).
+	 * Returns the content type name (alias for `name()`).
 	 *
 	 * @since 1.0.0
+	 * @deprecated 1.0.0
 	 */
-	public function name(): string;
+	public function type(): string;
 
 	/**
 	 * Conditional check if the typs is the homepage alias.

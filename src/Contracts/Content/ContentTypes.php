@@ -11,21 +11,21 @@
 
 namespace Blush\Contracts\Content;
 
-interface Types
+interface ContentTypes
 {
 	/**
 	 * Gets a custom content type by its path.
 	 *
 	 * @since  1.0.0
 	 */
-	public function getTypeFromPath( string $path ): Type|false;
+	public function getTypeFromPath( string $path ): ContentType|false;
 
 	/**
 	 * Gets a custom content type by its URI.
 	 *
 	 * @since  1.0.0
 	 */
-	public function getTypeFromUri( string $uri ): Type|false;
+	public function getTypeFromUri( string $uri ): ContentType|false;
 
 	/**
 	 * Sorts types by their path.

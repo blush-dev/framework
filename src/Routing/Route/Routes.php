@@ -9,13 +9,13 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Routing\Routes;
+namespace Blush\Routing\Route;
 
 use Blush\App;
-use Blush\Contracts\Routing\{Route, Routes};
+use Blush\Contracts\Routing\{RoutingRoute, RoutingRoutes};
 use Blush\Tools\Collection;
 
-class Registry extends Collection implements Routes
+class Routes extends Collection implements RoutingRoutes
 {
 	/**
 	 * Holds an array of the route objects by name.
@@ -44,7 +44,7 @@ class Registry extends Collection implements Routes
 	 *
 	 * @since  1.0.0
 	 */
-	public function getNamedRoute( string $name ): ?Route
+	public function getNamedRoute( string $name ): ?RoutingRoute
 	{
 		$routes = $this->getRoutesByName();
 		return $routes[ $name ] ?? null;

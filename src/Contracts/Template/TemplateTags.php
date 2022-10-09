@@ -12,15 +12,18 @@
 namespace Blush\Contracts\Template;
 
 // Concretes.
-use Blush\Template\Tags\Tag;
 use Blush\Tools\Collection;
 
-interface Tags
+interface TemplateTags
 {
 	/**
 	 * Creates a new tag object if it exists.
 	 *
 	 * @since 1.0.0
 	 */
-	public function callback( string $name, Collection $data, array $args = [] ): ?Tag;
+	public function callback(
+		string $name,
+		Collection $data,
+		array $args = []
+	): ?TemplateTag;
 }

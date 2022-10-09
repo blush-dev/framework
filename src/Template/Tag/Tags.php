@@ -9,20 +9,24 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Template\Tags;
+namespace Blush\Template\Tag;
 
 use Blush\App;
-use Blush\Contracts\Template\Tags;
+use Blush\Contracts\Template\{TemplateTag, TemplateTags};
 use Blush\Tools\Collection;
 
-class Registry extends Collection implements Tags
+class Tags extends Collection implements TemplateTags
 {
 	/**
 	 * Creates a new tag object if it exists.
 	 *
 	 * @since 1.0.0
 	 */
-	public function callback( string $name, Collection $data, array $args = [] ): ?Tag
+	public function callback(
+		string $name,
+		Collection $data,
+		array $args = []
+	): ?TemplateTag
 	{
 		// Check if the tag is registered and that its class exists.
 		if ( $this->has( $name ) && class_exists( $this->get( $name ) ) ) {

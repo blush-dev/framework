@@ -13,7 +13,7 @@ namespace Blush\Template;
 
 // Contracts.
 use Blush\Contracts\Bootable;
-use Blush\Contracts\Template\Tags;
+use Blush\Contracts\Template\TemplateTags;
 
 class Component implements Bootable
 {
@@ -23,7 +23,7 @@ class Component implements Bootable
 	 * @since 1.0.0
 	 */
 	public function __construct(
-		protected Tags $registry,
+		protected TemplateTags $registry,
 		protected array $tags
 	) {}
 

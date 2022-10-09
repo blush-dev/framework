@@ -16,19 +16,19 @@
 
 namespace Blush\Routing;
 
+use Stringable;
 use Blush\App;
 use Blush\Contracts\Makeable;
-use Blush\Contracts\Routing\Routes;
-use Blush\Contracts\Routing\Url as UrlContract;
+use Blush\Contracts\Routing\{RoutingRoutes, RoutingUrl};
 
-class Url implements Makeable, UrlContract
+class Url implements Makeable, RoutingUrl, Stringable
 {
 	/**
 	 * Sets up the object state.
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( protected Routes $routes ) {}
+	public function __construct( protected RoutingRoutes $routes ) {}
 
 	/**
 	 * Return the object instance.

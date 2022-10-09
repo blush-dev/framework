@@ -12,7 +12,7 @@
 namespace Blush\Feed;
 
 use Blush\Config;
-use Blush\Contracts\Content\{Entry, Query};
+use Blush\Contracts\Content\{ContentEntry, ContentQuery};
 use Blush\Tools\Collection;
 
 class Writer
@@ -103,8 +103,8 @@ class Writer
 	 * @since 1.0.0
 	 */
 	public function __construct(
-		protected Entry $single,
-		protected Query $collection,
+		protected ContentEntry $single,
+		protected ContentQuery $collection,
 		protected string $type = 'rss2'
 	)
 	{
@@ -222,7 +222,7 @@ class Writer
 	 *
 	 * @since 1.0.0
 	 */
-	public function collection(): Query
+	public function collection(): ContentQuery
 	{
 		return $this->collection;
 	}

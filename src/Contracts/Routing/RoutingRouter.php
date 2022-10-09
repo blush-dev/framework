@@ -13,7 +13,7 @@ namespace Blush\Contracts\Routing;
 
 use Symfony\Component\HttpFoundation\{Request, Response};
 
-interface Router
+interface RoutingRouter
 {
 	/**
 	 * Returns the HTTP request.

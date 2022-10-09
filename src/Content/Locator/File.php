@@ -12,14 +12,14 @@
 namespace Blush\Content\Locator;
 
 // Contracts.
-use Blush\Contracts\Content\Locator;
+use Blush\Contracts\Content\ContentLocator;
 
 // Classes.
 use Blush\{App, Cache, Config};
 use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 
-class File implements Locator
+class File implements ContentLocator
 {
 	/**
 	 * Full path to the folder to search for content.

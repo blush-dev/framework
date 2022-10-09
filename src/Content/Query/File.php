@@ -14,7 +14,7 @@ namespace Blush\Content\Query;
 // Interfaces.
 use IteratorAggregate;
 use Blush\Contracts\Makeable;
-use Blush\Contracts\Content\{Entry, Locator, Query};
+use Blush\Contracts\Content\{ContentEntry, ContentLocator, ContentQuery};
 
 // Classes.
 use ArrayIterator;
@@ -22,7 +22,7 @@ use Traversable;
 use Blush\App;
 use Blush\Tools\Str;
 
-class File implements IteratorAggregate, Makeable, Query
+class File implements IteratorAggregate, Makeable, ContentQuery
 {
 	/**
 	 * Path to the entries relative to the content folder.
@@ -32,7 +32,7 @@ class File implements IteratorAggregate, Makeable, Query
 	protected string $path = '';
 
 	/**
-	 * Array of `Entry` objects.
+	 * Array of `ContentEntry` objects.
 	 *
 	 * @since 1.0.0
 	 */
@@ -57,14 +57,14 @@ class File implements IteratorAggregate, Makeable, Query
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?Entry $first = null;
+	protected ?ContentEntry $first = null;
 
 	/**
 	 * Stores the last entry object.
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?Entry $last = null;
+	protected ?ContentEntry $last = null;
 
 	/**
 	 * Count of found entries.
@@ -208,7 +208,7 @@ class File implements IteratorAggregate, Makeable, Query
 	 *
 	 * @since 1.0.0
 	 */
-        public function __construct( protected Locator $locator ) {}
+        public function __construct( protected ContentLocator $locator ) {}
 
 	/**
 	 * Sets up the query options and makes the query.
@@ -376,7 +376,7 @@ class File implements IteratorAggregate, Makeable, Query
 	 *
 	 * @since 1.0.0
 	 */
-	public function single(): ?Entry
+	public function single(): ?ContentEntry
 	{
 		return $this->first();
 	}
@@ -386,7 +386,7 @@ class File implements IteratorAggregate, Makeable, Query
 	 *
 	 * @since 1.0.0
 	 */
-	public function first(): ?Entry
+	public function first(): ?ContentEntry
 	{
 		if ( ! $this->first && $all = $this->all() ) {
 			$this->first = array_shift( $all );
@@ -400,7 +400,7 @@ class File implements IteratorAggregate, Makeable, Query
 	 *
 	 * @since 1.0.0
 	 */
-	public function last(): ?Entry
+	public function last(): ?ContentEntry
 	{
 		if ( ! $this->last && $all = $this->all() ) {
 			$this->last = array_pop( $all );

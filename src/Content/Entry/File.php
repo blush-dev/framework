@@ -12,13 +12,13 @@
 namespace Blush\Content\Entry;
 
 // Abstracts.
-use Blush\Contracts\Content\Type;
+use Blush\Contracts\Content\ContentType;
 
 // Concretes.
 use Blush\{App, Url};
 use Blush\Tools\Str;
 
-abstract class File extends Base
+abstract class File extends Entry
 {
 	/**
 	 * Entry path info.
@@ -107,7 +107,7 @@ abstract class File extends Base
 	 *
 	 * @since 1.0.0
 	 */
-	public function type(): Type
+	public function type(): ContentType
 	{
 		// Return type if it's already set.
 		if ( $this->type ) {

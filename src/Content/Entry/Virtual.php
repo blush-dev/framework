@@ -17,9 +17,9 @@
 namespace Blush\Content\Entry;
 
 use Blush\App;
-use Blush\Contracts\Content\Type;
+use Blush\Contracts\Content\ContentType;
 
-class Virtual extends Base
+class Virtual extends Entry
 {
 	/**
 	 * Sets up the object state.
@@ -40,7 +40,7 @@ class Virtual extends Base
 	 *
 	 * @since 1.0.0
 	 */
-	public function type(): Type
+	public function type(): ContentType
 	{
 		return App::get( 'content.types' )->get( 'virtual' );
 	}

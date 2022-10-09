@@ -14,7 +14,7 @@ namespace Blush\Contracts\Template;
 // Concretes.
 use Blush\Tools\Collection;
 
-interface View
+interface TemplateView
 {
 	/**
 	 * Sets the view paths.

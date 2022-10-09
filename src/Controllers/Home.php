@@ -14,7 +14,7 @@ namespace Blush\Controllers;
 use Blush\{App, Config, Query};
 use Blush\Message;
 use Blush\Template\Hierarchy;
-use Blush\Template\Tags\{DocumentTitle, Pagination};
+use Blush\Template\Tag\{DocumentTitle, Pagination};
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 

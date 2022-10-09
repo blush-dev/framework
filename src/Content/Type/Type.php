@@ -9,14 +9,14 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Content\Types;
+namespace Blush\Content\Type;
 
-use Blush\Contracts\Content\Type as TypeContract;
+use Blush\Contracts\Content\ContentType;
 use Blush\{App, Config, Url};
 use Blush\Controllers;
 use Blush\Tools\Str;
 
-class Type implements TypeContract
+class Type implements ContentType
 {
 	/**
 	 * Content type path.
@@ -125,10 +125,10 @@ class Type implements TypeContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( protected string $type, array $options = [] )
+	public function __construct( protected string $name, array $options = [] )
 	{
 		// Set up the object properties based on parameters.
-		$this->path            = $options['path']            ?? $type;
+		$this->path            = $options['path']            ?? $name;
 		$this->public          = $options['public']          ?? true;
 		$this->collection      = $options['collection']      ?? [];
 		$this->routes          = $options['routes']          ?? [];
@@ -143,7 +143,7 @@ class Type implements TypeContract
 		// Unless the `collect` option is explicitly set to `false`,
 		// it should at least collect itself.
 		if ( ! isset( $options['collect'] ) || false !== $options['collect'] ) {
-			$this->collect = $options['collect'] ?? $type;
+			$this->collect = $options['collect'] ?? $name;
 		}
 
 		// Build the feed options.
@@ -208,23 +208,24 @@ class Type implements TypeContract
 	}
 
 	/**
-	 * Returns the content type name (alias for `type()`).
+	 * Returns the content type name.
 	 *
 	 * @since 1.0.0
 	 */
 	public function name(): string
 	{
-		return $this->type();
+		return $this->name;
 	}
 
 	/**
-	 * Returns the content type name.
+	 * Returns the content type name (alias for `name()`).
 	 *
 	 * @since 1.0.0
+	 * @deprecated 1.0.0
 	 */
 	public function type(): string
 	{
-		return $this->type;
+		return $this->name();
 	}
 
 	/**
@@ -234,7 +235,7 @@ class Type implements TypeContract
 	 */
 	public function isHomeAlias(): bool
 	{
-		return $this->type() === Config::get( 'app.home_alias' );
+		return $this->name() === Config::get( 'app.home_alias' );
 	}
 
 	/**
@@ -392,7 +393,7 @@ class Type implements TypeContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function feedTaxonomy(): TypeContract|null
+	public function feedTaxonomy(): ContentType|null
 	{
 		if ( ! $taxonomy = $this->feed['taxonomy'] ) {
 			return null;
@@ -475,7 +476,7 @@ class Type implements TypeContract
 	public function collectionArgs(): array
 	{
 		return array_merge( [
-			'type' => $this->collect() ?: $this->type()
+			'type' => $this->collect() ?: $this->name()
 		], $this->collection );
 	}
 
@@ -491,10 +492,10 @@ class Type implements TypeContract
 			return [];
 		}
 
-		$type = $this->termCollect() ?: $this->collect();
+		$name = $this->termCollect() ?: $this->collect();
 
 		return array_merge( [
-			'type' => $type ?: $this->type()
+			'type' => $name ?: $this->name()
 		], $this->term_collection );
 	}
 
@@ -511,7 +512,7 @@ class Type implements TypeContract
 		}
 
 		return array_merge( [
-			'type'    => $this->collect() ?: $this->type(),
+			'type'    => $this->collect() ?: $this->name(),
 			'order'   => 'desc',
 			'orderby' => 'filename'
 		], $this->feed['collection'] ?? [] );
@@ -544,12 +545,12 @@ class Type implements TypeContract
 			return $this->routes;
 		}
 
-		$type = $this->name();
+		$name = $this->name();
 
 		// Add paged type archive if not set as the homepage.
 		if ( ! $this->isHomeAlias() ) {
 			$this->routes[ $this->urlPath( 'collection.paged' ) ] = [
-				'name'       => "{$type}.collection.paged",
+				'name'       => "{$name}.collection.paged",
 				'controller' => Controllers\Collection::class
 			];
 		}
@@ -557,12 +558,12 @@ class Type implements TypeContract
 		// If the type supports a feed, add feed routes.
 		if ( $this->hasFeed() && ! $this->isHomeAlias() ) {
 			$this->routes[ $this->urlPath( 'collection.feed.atom' ) ] = [
-				'name'       => "{$type}.collection.feed.atom",
+				'name'       => "{$name}.collection.feed.atom",
 				'controller' => Controllers\CollectionFeedAtom::class
 			];
 
 			$this->routes[ $this->urlPath( 'collection.feed' ) ] = [
-				'name'       => "{$type}.collection.feed",
+				'name'       => "{$name}.collection.feed",
 				'controller' => Controllers\CollectionFeed::class
 			];
 		}
@@ -570,12 +571,12 @@ class Type implements TypeContract
 		// If the type supports time-based archives, add routes.
 		if ( $this->hasTimeArchives() ) {
 			$archives = [
-				"{$type}.collection.second.paged" => $this->urlPath( 'collection.second.paged' ),
-				"{$type}.collection.second"       => $this->urlPath( 'collection.second'       ),
-				"{$type}.collection.minute.paged" => $this->urlPath( 'collection.minute.paged' ),
-				"{$type}.collection.minute"       => $this->urlPath( 'collection.minute'       ),
-				"{$type}.collection.hour.paged"   => $this->urlPath( 'collection.hour.paged'   ),
-				"{$type}.collection.hour"         => $this->urlPath( 'collection.hour'         )
+				"{$name}.collection.second.paged" => $this->urlPath( 'collection.second.paged' ),
+				"{$name}.collection.second"       => $this->urlPath( 'collection.second'       ),
+				"{$name}.collection.minute.paged" => $this->urlPath( 'collection.minute.paged' ),
+				"{$name}.collection.minute"       => $this->urlPath( 'collection.minute'       ),
+				"{$name}.collection.hour.paged"   => $this->urlPath( 'collection.hour.paged'   ),
+				"{$name}.collection.hour"         => $this->urlPath( 'collection.hour'         )
 			];
 
 			foreach ( $archives as $name => $uri ) {
@@ -589,12 +590,12 @@ class Type implements TypeContract
 		// If the type supports date-based archives, add routes.
 		if ( $this->hasDateArchives() ) {
 			$archives = [
-				"{$type}.collection.day.paged"   => $this->urlPath( 'collection.day.paged'   ),
-				"{$type}.collection.day"         => $this->urlPath( 'collection.day'         ),
-				"{$type}.collection.month.paged" => $this->urlPath( 'collection.month.paged' ),
-				"{$type}.collection.month"       => $this->urlPath( 'collection.month'       ),
-				"{$type}.collection.year.paged"  => $this->urlPath( 'collection.year.paged'  ),
-				"{$type}.collection.year"        => $this->urlPath( 'collection.year'        )
+				"{$name}.collection.day.paged"   => $this->urlPath( 'collection.day.paged'   ),
+				"{$name}.collection.day"         => $this->urlPath( 'collection.day'         ),
+				"{$name}.collection.month.paged" => $this->urlPath( 'collection.month.paged' ),
+				"{$name}.collection.month"       => $this->urlPath( 'collection.month'       ),
+				"{$name}.collection.year.paged"  => $this->urlPath( 'collection.year.paged'  ),
+				"{$name}.collection.year"        => $this->urlPath( 'collection.year'        )
 			];
 
 			foreach ( $archives as $name => $uri ) {
@@ -608,12 +609,12 @@ class Type implements TypeContract
 		// If this is a taxonomy, add paged term archive and single route.
 		if ( $this->isTaxonomy() ) {
 			$this->routes[ $this->urlPath( 'single.paged' ) ] = [
-				'name'       => "{$type}.single.paged",
+				'name'       => "{$name}.single.paged",
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
 
 			$this->routes[ $this->urlPath( 'single' ) ] = [
-				'name'       => "{$type}.single",
+				'name'       => "{$name}.single",
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
 		}
@@ -621,7 +622,7 @@ class Type implements TypeContract
 		// Add single route if not a taxonomy.
 		if ( ! $this->isTaxonomy() ) {
 			$this->routes[ $this->urlPath( 'single' ) ] = [
-				'name'       => "{$type}.single",
+				'name'       => "{$name}.single",
 				'controller' => Controllers\Single::class
 			];
 		}
@@ -629,7 +630,7 @@ class Type implements TypeContract
 		// Add type archive route if not set as the homepage.
 		if ( ! $this->isHomeAlias() ) {
 			$this->routes[ $this->urlPath( 'collection' ) ] = [
-				'name'       => "{$type}.collection",
+				'name'       => "{$name}.collection",
 				'controller' => Controllers\Collection::class
 			];
 		}

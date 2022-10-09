@@ -11,15 +11,14 @@
 
 namespace Blush\Routing;
 
-use Blush\Contracts\Routing\Routes;
-use Blush\Contracts\Routing\Router as RouterContract;
+use Blush\Contracts\Routing\{RoutingRoutes, RoutingRouter};
 
 use Blush\{Cache, Config};
 use Blush\Controllers\Error404;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
-class Router implements RouterContract
+class Router implements RoutingRouter
 {
 	/**
 	 * HTTP Request.
@@ -33,7 +32,7 @@ class Router implements RouterContract
 	 *
 	 * @since 1.0.0
 	 */
-	public function __construct( protected Routes $routes )
+	public function __construct( protected RoutingRoutes $routes )
 	{
 		$this->request = Request::createFromGlobals();
 	}

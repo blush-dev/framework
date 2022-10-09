@@ -11,7 +11,7 @@
 
 namespace Blush\Contracts\Routing;
 
-interface Url
+interface RoutingUrl
 {
 	/**
 	 * Return the app URL and append an optional path.

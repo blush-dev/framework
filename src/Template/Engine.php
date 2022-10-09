@@ -12,15 +12,18 @@
 namespace Blush\Template;
 
 // Abstracts.
-use Blush\Contracts\Template\Engine as EngineContract;
-use Blush\Contracts\Template\{Tags, View};
+use Blush\Contracts\Template\{
+	TemplateEngine,
+	TemplateTag,
+	TemplateTags,
+	TemplateView
+};
 
 // Concretes.
 use Blush\{App, Message};
 use Blush\Tools\Collection;
-use Blush\Template\Tags\Tag;
 
-class Engine implements EngineContract
+class Engine implements TemplateEngine
 {
 	/**
 	 * Houses shared data to pass down to subviews.
@@ -41,17 +44,17 @@ class Engine implements EngineContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function __construct( protected Tags $tags ) {}
+	public function __construct( protected TemplateTags $tags ) {}
 
 	/**
-	 * Returns a View object. This should only be used for top-level views.
+	 * Returns a template view. This should only be used for top-level views.
 	 * Otherwise, an error message is dumped and the process is stalled.
 	 * If including views within views, use `subview()` or one of its
 	 * several descendent methods included in this class.
 	 *
 	 * @since  1.0.0
 	 */
-	public function view( array|string $paths, array|Collection $data = [] ): View
+	public function view( array|string $paths, array|Collection $data = [] ): TemplateView
 	{
 		// If `view()` is called for a second time on a single page load
 		// dump and die.
@@ -64,24 +67,24 @@ class Engine implements EngineContract
 		// Always pass the engine back to the view.
 		$data['engine'] = $this;
 
-		// Make a new `View`.
-		$view = App::make( View::class, compact( 'paths', 'data' ) );
+		// Make a new template view.
+		$view = App::make( 'template.view', compact( 'paths', 'data' ) );
 
 		// Set object properties.
 		$this->shared      = $view->getData();
 		$this->view_booted = true;
 
-		// Returns a `View` object.
+		// Return template view.
 		return $view;
 	}
 
 	/**
-	 * Returns a View object. Use for getting views inside of other views.
+	 * Returns a template view. Use for getting views inside of other views.
 	 * This makes sure shared data is passed down to the subview.
 	 *
 	 * @since  1.0.0
 	 */
-	public function subview( array|string $paths, array|Collection $data = [] ): View
+	public function subview( array|string $paths, array|Collection $data = [] ): TemplateView
 	{
 		if ( $this->shared ) {
 			$data = array_merge(
@@ -92,7 +95,7 @@ class Engine implements EngineContract
 
 		$data['engine'] = $this;
 
-		return App::make( View::class, compact( 'paths', 'data' ) );
+		return App::make( 'template.view', compact( 'paths', 'data' ) );
 	}
 
 	/**
@@ -195,7 +198,7 @@ class Engine implements EngineContract
 	 *
 	 * @since  1.0.0
 	 */
-	public function tag( string $name, mixed ...$args ): ?Tag
+	public function tag( string $name, mixed ...$args ): ?TemplateTag
 	{
 		return $this->tags->callback( $name, $this->shared, $args );
 	}

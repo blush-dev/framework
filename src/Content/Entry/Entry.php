@@ -12,22 +12,20 @@
 namespace Blush\Content\Entry;
 
 // Abstracts.
-use Blush\Contracts\Content\Entry;
-use Blush\Contracts\Content\Query as QueryContract;
-use Blush\Contracts\Content\Type;
+use Blush\Contracts\Content\{ContentEntry, ContentQuery, ContentType};
 
 // Concretes.
 use Blush\{App, Config, Query, Url};
 use Blush\Tools\{Media, Str};
 
-abstract class Base implements Entry
+abstract class Entry implements ContentEntry
 {
 	/**
 	 * Entry content type.
 	 *
 	 * @since 1.0.0
 	 */
-	protected ?Type $type = null;
+	protected ?ContentType $type = null;
 
 	/**
 	 * Entry content.
@@ -70,7 +68,7 @@ abstract class Base implements Entry
 	 *
 	 * @since 1.0.0
 	 */
-	abstract public function type(): Type;
+	abstract public function type(): ContentType;
 
 	/**
 	 * Returns the entry name (slug).
@@ -188,12 +186,12 @@ abstract class Base implements Entry
 	}
 
 	/**
-	 * Returns a Query for content type entries stored in the current
+	 * Returns a ContentQuery for content type entries stored in the current
 	 * entry's metadata.
 	 *
 	 * @since  1.0.0
 	 */
-	public function metaQuery( string $name, array $args = [] ): QueryContract|false
+	public function metaQuery( string $name, array $args = [] ): ContentQuery|false
 	{
 		if ( isset( $this->resolved_meta[ $name ] ) ) {
 			return $this->resolved_meta[ $name ];
@@ -395,7 +393,7 @@ abstract class Base implements Entry
 	 *
 	 * @since  1.0.0
 	 */
-	public function terms( string $taxonomy, array $args = [] ): QueryContract|false
+	public function terms( string $taxonomy, array $args = [] ): ContentQuery|false
 	{
 		return $this->hasTaxonomy( $taxonomy )
 		       ? $this->metaQuery( $taxonomy, $args )

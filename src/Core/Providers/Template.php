@@ -11,15 +11,16 @@
 
 namespace Blush\Core\Providers;
 
-// Abstracts.
-use Blush\Contracts\Template\Engine as EngineContract;
-use Blush\Contracts\Template\Tags;
-use Blush\Contracts\Template\View as ViewContract;
-use Blush\Core\ServiceProvider;
+use Blush\Contracts\Template\{
+	TemplateEngine,
+	TemplateTag,
+	TemplateTags,
+	TemplateView
+};
 
-// Concretes.
+use Blush\Core\ServiceProvider;
 use Blush\Template\{Component, Engine, View};
-use Blush\Template\Tags\{PoweredBy, Registry};
+use Blush\Template\Tag\{PoweredBy, Tag, Tags};
 use Blush\Tools\Collection;
 
 class Template extends ServiceProvider
@@ -32,16 +33,19 @@ class Template extends ServiceProvider
         public function register(): void
 	{
 		// Add template engine.
-		$this->app->singleton( EngineContract::class, Engine::class );
-                $this->app->bind(      ViewContract::class,   View::class   );
+		$this->app->singleton( TemplateEngine::class, Engine::class );
+                $this->app->bind(      TemplateView::class,   View::class   );
 
-		// Bind tag registry.
-		$this->app->singleton( Tags::class, Registry::class );
+		// Bind template tag.
+		$this->app->bind( TemplateTag::class, Tag::class );
+
+		// Bind template tags.
+		$this->app->singleton( TemplateTags::class, Tags::class );
 
 		// Binds the template component.
 		$this->app->singleton( Component::class, function( $app ) {
 			return new Component(
-				$app->make( Tags::class ),
+				$app->make( TemplateTags::class ),
 				$app->make( 'config' )->get( 'template.tags' )
 			);
 		} );
@@ -50,9 +54,10 @@ class Template extends ServiceProvider
 		$this->app->singleton( PoweredBy::class );
 
 		// Add aliases.
-		$this->app->alias( Tags::class,           'template.tags'   );
-		$this->app->alias( ViewContract::class,   'template.view'   );
-		$this->app->alias( EngineContract::class, 'template.engine' );
+		$this->app->alias( TemplateTag::class,    'template.tag'    );
+		$this->app->alias( TemplateTags::class,   'template.tags'   );
+		$this->app->alias( TemplateView::class,   'template.view'   );
+		$this->app->alias( TemplateEngine::class, 'template.engine' );
 		$this->app->alias( PoweredBy::class,      'poweredby'       );
 	}
 

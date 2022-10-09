@@ -13,7 +13,7 @@
 
 namespace Blush\Contracts\Content;
 
-interface Locator
+interface ContentLocator
 {
 	/**
 	 * Sets the locator path.

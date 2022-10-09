@@ -17,7 +17,7 @@
 namespace Blush\Controllers;
 
 // Abstracts.
-use Blush\Contracts\Template\View;
+use Blush\Contracts\Template\TemplateView;
 
 // Concretes.
 use Blush\Engine;
@@ -40,7 +40,7 @@ abstract class Controller
 	 *
 	 * @since  1.0.0
 	 */
-	protected function view( string|array $names, Collection|array $data = [] ): View
+	protected function view( string|array $names, Collection|array $data = [] ): TemplateView
 	{
 		return Engine::view( $names, $data );
 	}
@@ -50,7 +50,7 @@ abstract class Controller
 	 *
 	 * @since 1.0.0
 	 */
-	protected function response( View $view, int $status = 200, array $headers = [] ): Response
+	protected function response( TemplateView $view, int $status = 200, array $headers = [] ): Response
 	{
 		return new Response( $view->render(), $status, $headers );
 	}

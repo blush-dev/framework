@@ -16,7 +16,7 @@
 
 namespace Blush\Template;
 
-use Blush\Contracts\Content\{Entry, Type};
+use Blush\Contracts\Content\{ContentEntry, ContentType};
 use Blush\Template\Feed\Feed;
 
 class Hierarchy
@@ -26,7 +26,7 @@ class Hierarchy
 	 *
 	 * @since 1.0.0
 	 */
-	public static function single( Entry $entry ): array
+	public static function single( ContentEntry $entry ): array
 	{
 		$entry_name = $entry->name();
 		$type_name  = $entry->type()->name();
@@ -62,7 +62,7 @@ class Hierarchy
 	 *
 	 * @since 1.0.0
 	 */
-	public static function singleHome( Entry $entry ): array
+	public static function singleHome( ContentEntry $entry ): array
 	{
 		$entry_name = $entry->name();
 		$type_name  = $entry->type()->name();
@@ -83,7 +83,7 @@ class Hierarchy
 	 *
 	 * @since 1.0.0
 	 */
-	public static function collection( Entry $entry ): array
+	public static function collection( ContentEntry $entry ): array
 	{
 		$type_name  = $entry->type()->name();
 		$model_name = static::modelName( $entry->type() );
@@ -101,7 +101,7 @@ class Hierarchy
 	 *
 	 * @since 1.0.0
 	 */
-	public static function collectionHome( Entry $entry ): array
+	public static function collectionHome( ContentEntry $entry ): array
 	{
 		return array_merge( [
 			'collection-home'
@@ -113,7 +113,7 @@ class Hierarchy
 	 *
 	 * @since 1.0.0
 	 */
-	public static function collectionTerm( Entry $entry ): array
+	public static function collectionTerm( ContentEntry $entry ): array
 	{
 		$entry_name = $entry->name();
 		$type_name  = $entry->type()->name();
@@ -132,7 +132,7 @@ class Hierarchy
 	 *
 	 * @since 1.0.0
 	 */
-	public static function collectionDate( Type $type ): array
+	public static function collectionDate( ContentType $type ): array
 	{
 		$type_name = $type->name();
 
@@ -152,7 +152,7 @@ class Hierarchy
 	 *
 	 * @since 1.0.0
 	 */
-	protected static function modelName( Type $type ): string
+	protected static function modelName( ContentType $type ): string
 	{
 		return $type->isTaxonomy() ? 'taxonomy' : 'content';
 	}

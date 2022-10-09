@@ -9,7 +9,7 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Template\Tags;
+namespace Blush\Template\Tag;
 
 // Contracts.
 use Blush\Contracts\{Displayable, Renderable};

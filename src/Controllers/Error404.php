@@ -14,7 +14,7 @@ namespace Blush\Controllers;
 use Blush\{App, Query};
 use Blush\Content\Entry\Virtual;
 use Blush\Template\Hierarchy;
-use Blush\Template\Tags\DocumentTitle;
+use Blush\Template\Tag\DocumentTitle;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
 class Error404 extends Controller

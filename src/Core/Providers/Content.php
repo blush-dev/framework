@@ -12,16 +12,20 @@
 namespace Blush\Core\Providers;
 
 // Interfaces.
-use Blush\Contracts\Content\{Entry, Locator, Query};
-use Blush\Contracts\Content\Type as TypeContract;
-use Blush\Contracts\Content\Types as TypesContract;
+use Blush\Contracts\Content\{
+	ContentEntry,
+	ContentLocator,
+	ContentQuery,
+	ContentType,
+	ContentTypes
+};
 
 // Classes.
 use Blush\Core\ServiceProvider;
 use Blush\Content\Locator\File as FileLocator;
 use Blush\Content\Query\File as FileQuery;
 use Blush\Content\Entry\MarkdownFile;
-use Blush\Content\Types\{Component, Registry, Type};
+use Blush\Content\Type\{Component, Type, Types};
 
 class Content extends ServiceProvider
 {
@@ -33,13 +37,13 @@ class Content extends ServiceProvider
         public function register(): void
 	{
 		// Bind content entry.
-		$this->app->bind( Entry::class, MarkdownFile::class );
+		$this->app->bind( ContentEntry::class, MarkdownFile::class );
 
 		// Bind content type.
-		$this->app->bind( TypeContract::class, Type::class );
+		$this->app->bind( ContentType::class, Type::class );
 
 		// Bind content type registry singleton.
-                $this->app->singleton( TypesContract::class, Registry::class );
+                $this->app->singleton( ContentTypes::class, Types::class );
 
 		// Bind content types component and pass types and config in.
                 $this->app->singleton( Component::class, function( $app ) {
@@ -54,26 +58,23 @@ class Content extends ServiceProvider
 			] );
 
 			// Creates the content types component.
-                        return new Component(
-                                $app->make( TypesContract::class ),
-                                $types
-                        );
+                        return new Component( $app->make( ContentTypes::class ), $types );
                 } );
 
 		// Bind the content locator.
-		$this->app->bind( Locator::class, FileLocator::class );
+		$this->app->bind( ContentLocator::class, FileLocator::class );
 
 		// Bind the content query.
-		$this->app->bind( Query::class, function( $app ) {
-			return new FileQuery( $app->make( Locator::class ) );
+		$this->app->bind( ContentQuery::class, function( $app ) {
+			return new FileQuery( $app->make( ContentLocator::class ) );
 		} );
 
 		// Add aliases.
-		$this->app->alias( Entry::class,         'content.entry'   );
-		$this->app->alias( Locator::class,       'content.locator' );
-		$this->app->alias( Query::class,         'content.query'   );
-		$this->app->alias( TypeContract::class,  'content.type'    );
-		$this->app->alias( TypesContract::class, 'content.types'   );
+		$this->app->alias( ContentEntry::class,   'content.entry'   );
+		$this->app->alias( ContentLocator::class, 'content.locator' );
+		$this->app->alias( ContentQuery::class,   'content.query'   );
+		$this->app->alias( ContentType::class,    'content.type'    );
+		$this->app->alias( ContentTypes::class,   'content.types'   );
         }
 
 	/**

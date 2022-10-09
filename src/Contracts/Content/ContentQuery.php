@@ -13,7 +13,7 @@
 
 namespace Blush\Contracts\Content;
 
-interface Query
+interface ContentQuery
 {
 	/**
 	 * Returns the located entries as an array.
@@ -41,21 +41,21 @@ interface Query
 	 *
 	 * @since 1.0.0
 	 */
-	public function single(): ?Entry;
+	public function single(): ?ContentEntry;
 
 	/**
 	 * Returns the first entry.
 	 *
 	 * @since 1.0.0
 	 */
-	public function first(): ?Entry;
+	public function first(): ?ContentEntry;
 
 	/**
 	 * Returns the last entry.
 	 *
 	 * @since 1.0.0
 	 */
-	public function last(): ?Entry;
+	public function last(): ?ContentEntry;
 
 	/**
 	 * Returns the count for the current query.

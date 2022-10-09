@@ -11,10 +11,9 @@
 
 namespace Blush\Contracts\Template;
 
-use Blush\Template\Tags\Tag;
 use Blush\Tools\Collection;
 
-interface Engine
+interface TemplateEngine
 {
 	/**
 	 * Returns a View object. This should only be used for top-level views
@@ -23,7 +22,10 @@ interface Engine
 	 *
 	 * @since  1.0.0
 	 */
-	public function view( array|string $paths, array|Collection $data = [] ): View;
+	public function view(
+		array|string $paths,
+		array|Collection $data = []
+	): TemplateView;
 
 	/**
 	 * Returns a View object. Use for getting views inside of other views.
@@ -31,14 +33,20 @@ interface Engine
 	 *
 	 * @since  1.0.0
 	 */
-	public function subview( array|string $paths, array|Collection $data = [] ): View;
+	public function subview(
+		array|string $paths,
+		array|Collection $data = []
+	): TemplateView;
 
 	/**
 	 * Includes a subview.
 	 *
 	 * @since  1.0.0
 	 */
-	public function include( array|string $paths, array|Collection $data = [] ): void;
+	public function include(
+		array|string $paths,
+		array|Collection $data = []
+	): void;
 
 	/**
 	 * Includes a subview only if it exists. No errors or warnings if no
@@ -46,7 +54,10 @@ interface Engine
 	 *
 	 * @since  1.0.0
 	 */
-	public function includeIf( array|string $paths, array|Collection $data = [] ): void;
+	public function includeIf(
+		array|string $paths,
+		array|Collection $data = []
+	): void;
 
 	/**
 	 * Includes a subview when `$when` is `true`.
@@ -90,5 +101,5 @@ interface Engine
 	*
 	* @since  1.0.0
 	*/
-       public function tag( string $name, mixed ...$args ): ?Tag;
+       public function tag( string $name, mixed ...$args ): ?TemplateTag;
 }

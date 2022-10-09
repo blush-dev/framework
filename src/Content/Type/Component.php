@@ -9,10 +9,10 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-namespace Blush\Content\Types;
+namespace Blush\Content\Type;
 
 use Blush\Contracts\Bootable;
-use Blush\Contracts\Content\Types;
+use Blush\Contracts\Content\ContentTypes;
 
 class Component implements Bootable
 {
@@ -22,7 +22,7 @@ class Component implements Bootable
 	 * @since 1.0.0
 	 */
         public function __construct(
-		protected Types $registry,
+		protected ContentTypes $registry,
 		protected array $types
 	) {}
 
@@ -34,8 +34,8 @@ class Component implements Bootable
         public function boot(): void
 	{
 		// Registers user-configured content types.
-		foreach ( $this->types as $type => $options ) {
-			$this->registry->add( $type, $options );
+		foreach ( $this->types as $name => $options ) {
+			$this->registry->add( $name, $options );
 		}
 
 		// Registers the virtual content type.
