@@ -41,7 +41,7 @@ class Cache extends Controller
 				$title = 'Cache Store Flushed';
 				$content = sprintf(
 					'<p>Successfully flushed and purged all data from the <code>%s</code> cache store.</p>',
-					CacheRegistry::store( $store )->name()
+					CacheRegistry::store( $store )->store()
 				);
 			}
 		}
