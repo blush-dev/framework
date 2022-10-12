@@ -132,7 +132,7 @@ interface ContentType
 	 *
 	 * @since 1.0.0
 	 */
-	public function routing(): bool;
+	public function routing(): array|bool;
 
 	/**
 	 * Returns the type this content type collects.

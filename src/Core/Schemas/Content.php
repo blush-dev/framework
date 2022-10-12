@@ -31,14 +31,16 @@ class Content
 			'sitemap'         => Expect::bool( true ),
 			'date_archives'   => Expect::bool( false ),
 			'time_archives'   => Expect::bool( false ),
-			'url_paths'       => Expect::arrayOf( 'string', 'string' ),
-			'uri'             => Expect::string(),
-			'uri_single'      => Expect::string(),
-			'routing'         => Expect::bool( true ),
-			'routes'          => Expect::arrayOf( 'string', 'string' ),
 			'taxonomy'        => Expect::bool( false ),
 			'term_collect'    => Expect::string()->nullable(),
-			'term_collection' => Expect::array()
+			'term_collection' => Expect::array(),
+			'routing'         => Expect::type( 'false|array' )->default( [] ),
+
+			// deprecated
+			'url_paths'       => Expect::arrayOf( 'string', 'string' )->nullable(),
+			'uri'             => Expect::string()->nullable(),
+			'uri_single'      => Expect::string()->nullable(),
+			'routes'          => Expect::arrayOf( 'string', 'string' )
 		] ), 'string' );
 	}
 }

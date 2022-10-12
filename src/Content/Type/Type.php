@@ -40,12 +40,25 @@ class Type implements ContentType
 	protected array $routes = [];
 
 	/**
-	 * Whether routing should be enabled for this post type. Mostly for
-	 * internal use with pages.
+	 * Routing group prefix.
 	 *
 	 * @since 1.0.0
 	 */
-	protected bool $routing = true;
+	protected string $routing_prefix = '';
+
+	/**
+	 * Routing paths with named keys and a URI string.
+	 *
+	 * @since 1.0.0
+	 */
+	protected array $routing_paths = [];
+
+	/**
+	 * Whether routing is enabled for this content type.
+	 *
+	 * @since 1.0.0
+	 */
+	protected bool $has_routing = true;
 
 	/**
 	 * Whether the content type is a taxonomy.
@@ -114,13 +127,6 @@ class Type implements ContentType
 	protected bool $time_archives = false;
 
 	/**
-	 * Stores an array of the URL paths.
-	 *
-	 * @since 1.0.0
-	 */
-	protected array $url_paths = [];
-
-	/**
 	 * Sets up the object state.
 	 *
 	 * @since 1.0.0
@@ -132,13 +138,13 @@ class Type implements ContentType
 		$this->public          = $options['public']          ?? true;
 		$this->collection      = $options['collection']      ?? [];
 		$this->routes          = $options['routes']          ?? [];
-		$this->routing         = $options['routing']         ?? true;
 		$this->date_archives   = $options['date_archives']   ?? false;
 		$this->time_archives   = $options['time_archives']   ?? false;
 		$this->taxonomy        = $options['taxonomy']        ?? false;
 		$this->term_collect    = $options['term_collect']    ?? null;
 		$this->term_collection = $options['term_collection'] ?? [];
 		$this->sitemap         = $options['sitemap']         ?? true;
+		$this->has_routing     = isset( $options['routing'] ) && false !== $options['routing'];
 
 		// Unless the `collect` option is explicitly set to `false`,
 		// it should at least collect itself.
@@ -158,52 +164,30 @@ class Type implements ContentType
 			$this->feed = array_merge( $feed, $options['feed'] );
 		}
 
-		// Build the collection path.
-		$collection = $options['url_paths']['collection']
-			?? $options['uri']
-			?? $this->path;
+		// Sets up routing prefix and paths.
+		if ( $this->hasRouting() ) {
+			$this->routing_prefix = $options['routing']['prefix'] ?? $this->path;
 
-		// Build the single path.
-		$single = $options['url_paths']['single']
-			?? $options['uri_single']
-			?? "{$collection}/{name}";
-
-		// Merge the user-configured URL paths with the defaults.
-		$this->url_paths = array_merge( [
-			'collection'              => $collection,
-			'single'                  => $single,
-			'single.paged'            => "{$single}/page/{page}",
-			'collection.feed.atom'    => "{$collection}/feed/atom",
-			'collection.feed'         => "{$collection}/feed",
-			'collection.paged'        => "{$collection}/page/{page}",
-			'collection.second.paged' => "{$collection}/{year}/{month}/{day}/{hour}/{minute}/{second}/page/{page}",
-			'collection.second'       => "{$collection}/{year}/{month}/{day}/{hour}/{minute}/{second}",
-			'collection.minute.paged' => "{$collection}/{year}/{month}/{day}/{hour}/{minute}/page/{page}",
-			'collection.minute'       => "{$collection}/{year}/{month}/{day}/{hour}/{minute}",
-			'collection.hour.paged'   => "{$collection}/{year}/{month}/{day}/{hour}/page/{page}",
-			'collection.hour'         => "{$collection}/{year}/{month}/{day}/{hour}",
-			'collection.day.paged'    => "{$collection}/{year}/{month}/{day}/page/{page}",
-			'collection.day'          => "{$collection}/{year}/{month}/{day}",
-			'collection.month.paged'  => "{$collection}/{year}/{month}/page/{page}",
-			'collection.month'        => "{$collection}/{year}/{month}",
-			'collection.year.paged'   => "{$collection}/{year}/page/{page}",
-			'collection.year'         => "{$collection}/{year}"
-		], $options['url_paths'] ?? [] );
-
-		// Check if user passed in a set of custom routes.
-		if ( isset( $options['routes'] ) && is_array( $options['routes'] ) ) {
-
-			// Loop through each route and add it to routes array.
-			foreach ( $options['routes'] as $route => $args ) {
-
-				// If args is a string, make it the controller.
-				if ( is_string( $args ) ) {
-					$args = [ 'controller' => $args ];
-				}
-
-				// Add the route to the routes array.
-				$this->routes[ $route ] = $args;
-			}
+			$this->routing_paths = array_merge( [
+				'collection'              => '' ,
+				'single'                  => '{name}',
+				'single.paged'            => "page/{page}",
+				'collection.feed.atom'    => "feed/atom",
+				'collection.feed'         => "feed",
+				'collection.paged'        => "page/{page}",
+				'collection.second.paged' => "{year}/{month}/{day}/{hour}/{minute}/{second}/page/{page}",
+				'collection.second'       => "{year}/{month}/{day}/{hour}/{minute}/{second}",
+				'collection.minute.paged' => "{year}/{month}/{day}/{hour}/{minute}/page/{page}",
+				'collection.minute'       => "{year}/{month}/{day}/{hour}/{minute}",
+				'collection.hour.paged'   => "{year}/{month}/{day}/{hour}/page/{page}",
+				'collection.hour'         => "{year}/{month}/{day}/{hour}",
+				'collection.day.paged'    => "{year}/{month}/{day}/page/{page}",
+				'collection.day'          => "{year}/{month}/{day}",
+				'collection.month.paged'  => "{year}/{month}/page/{page}",
+				'collection.month'        => "{year}/{month}",
+				'collection.year.paged'   => "{year}/page/{page}",
+				'collection.year'         => "{year}"
+			], $options['routing']['paths'] ?? [] );
 		}
 	}
 
@@ -265,11 +249,12 @@ class Type implements ContentType
 	 */
 	public function urlPath( string $key = '' ): string
 	{
-		if ( ! $key ) {
-			return $this->url_paths['collection'];
+		if ( ! $key || 'collection' === $key ) {
+			$path = $this->routePath( 'collection' );
+			return $path ?: $this->routingPrefix();
 		}
 
-		return $this->url_paths[ $key ] ?? '';
+		return $this->routePath( $key );
 	}
 
 	/**
@@ -281,7 +266,7 @@ class Type implements ContentType
 	{
 		return $this->isHomeAlias()
 		       ? Url::route( '/' )
-		       : Url::route( $this->urlPath( 'collection' ) );
+		       : Url::route( $this->routeName( 'collection' ) );
 	}
 
 	/**
@@ -291,7 +276,7 @@ class Type implements ContentType
 	 */
 	public function singleUrl( array $params = [] ): string
 	{
-		return Url::route( $this->urlPath( 'single' ), $params );
+		return Url::route( $this->routeName( 'single' ), $params );
 	}
 
 	/**
@@ -313,7 +298,7 @@ class Type implements ContentType
 	{
 		return $this->isHomeAlias()
 		       ? Url::route( 'feed' )
-		       : Url::route( $this->urlPath( 'collection.feed' ) );
+		       : Url::route( $this->routeName( 'collection.feed' ) );
 	}
 
 	/**
@@ -325,7 +310,7 @@ class Type implements ContentType
 	{
 		return $this->isHomeAlias()
 		       ? Url::route( 'feed/atom' )
-		       : Url::route( $this->urlPath( 'collection.feed.atom' ) );
+		       : Url::route( $this->routeName( 'collection.feed.atom' ) );
 	}
 
 	/**
@@ -345,7 +330,7 @@ class Type implements ContentType
 	 */
 	public function yearUrl( string $year ): string
 	{
-		return Url::route( $this->urlPath( 'collection.year' ), [
+		return Url::route( $this->routeName( 'collection.year' ), [
 			'year' => $year
 		] );
 	}
@@ -357,7 +342,7 @@ class Type implements ContentType
 	 */
 	public function monthUrl( string $year, string $month ): string
 	{
-		return Url::route( $this->urlPath( 'collection.month' ), [
+		return Url::route( $this->routeName( 'collection.month' ), [
 			'year'  => $year,
 			'month' => $month
 		] );
@@ -370,7 +355,7 @@ class Type implements ContentType
 	 */
 	public function dayUrl( string $year, string $month, string $day ): string
 	{
-		return Url::route( $this->urlPath( 'collection.day' ), [
+		return Url::route( $this->routeName( 'collection.day' ), [
 			'year'  => $year,
 			'month' => $month,
 			'day'   => $day
@@ -442,9 +427,62 @@ class Type implements ContentType
 	 *
 	 * @since 1.0.0
 	 */
-	public function routing(): bool
+	public function hasRouting(): bool
 	{
-		return $this->routing && $this->isPublic();
+		return $this->has_routing;
+	}
+
+	/**
+	 * Returns the routing group prefix.
+	 *
+	 * @since 1.0.0
+	 */
+	public function routingPrefix(): string
+	{
+		return $this->routing_prefix;
+	}
+
+	/**
+	 * Returns a route name.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function routeName( string $key ): string
+	{
+		$name = $this->type();
+
+		return "{$name}.{$key}";
+	}
+
+	/**
+	 * Returns a route path.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function routePath( string $key = '' ): string
+	{
+		return $this->routing_paths[ $key ] ?? '';
+	}
+
+	/**
+	 * Returns the routing paths.
+	 *
+	 * @since 1.0.0
+	 */
+	public function routingPaths(): array
+	{
+		return $this->routing_paths;
+	}
+
+	/**
+	 * Whether routing is enabled.
+	 *
+	 * @since 1.0.0
+	 * @deprecated 1.0.0 No longer used.
+	 */
+	public function routing(): array|bool
+	{
+		return $this->hasRouting();
 	}
 
 	/**
@@ -536,7 +574,7 @@ class Type implements ContentType
 	public function routes(): array
 	{
 		// Return empty array if the content type doesn't support routes.
-		if ( ! $this->routing() ) {
+		if ( ! $this->hasRouting() ) {
 			return [];
 		}
 
@@ -549,7 +587,7 @@ class Type implements ContentType
 
 		// Add paged type archive if not set as the homepage.
 		if ( ! $this->isHomeAlias() ) {
-			$this->routes[ $this->urlPath( 'collection.paged' ) ] = [
+			$this->routes[ $this->routePath( 'collection.paged' ) ] = [
 				'name'       => "{$name}.collection.paged",
 				'controller' => Controllers\Collection::class
 			];
@@ -557,12 +595,12 @@ class Type implements ContentType
 
 		// If the type supports a feed, add feed routes.
 		if ( $this->hasFeed() && ! $this->isHomeAlias() ) {
-			$this->routes[ $this->urlPath( 'collection.feed.atom' ) ] = [
+			$this->routes[ $this->routePath( 'collection.feed.atom' ) ] = [
 				'name'       => "{$name}.collection.feed.atom",
 				'controller' => Controllers\CollectionFeedAtom::class
 			];
 
-			$this->routes[ $this->urlPath( 'collection.feed' ) ] = [
+			$this->routes[ $this->routePath( 'collection.feed' ) ] = [
 				'name'       => "{$name}.collection.feed",
 				'controller' => Controllers\CollectionFeed::class
 			];
@@ -571,17 +609,17 @@ class Type implements ContentType
 		// If the type supports time-based archives, add routes.
 		if ( $this->hasTimeArchives() ) {
 			$archives = [
-				"{$name}.collection.second.paged" => $this->urlPath( 'collection.second.paged' ),
-				"{$name}.collection.second"       => $this->urlPath( 'collection.second'       ),
-				"{$name}.collection.minute.paged" => $this->urlPath( 'collection.minute.paged' ),
-				"{$name}.collection.minute"       => $this->urlPath( 'collection.minute'       ),
-				"{$name}.collection.hour.paged"   => $this->urlPath( 'collection.hour.paged'   ),
-				"{$name}.collection.hour"         => $this->urlPath( 'collection.hour'         )
+				"{$name}.collection.second.paged" => $this->routePath( 'collection.second.paged' ),
+				"{$name}.collection.second"       => $this->routePath( 'collection.second'       ),
+				"{$name}.collection.minute.paged" => $this->routePath( 'collection.minute.paged' ),
+				"{$name}.collection.minute"       => $this->routePath( 'collection.minute'       ),
+				"{$name}.collection.hour.paged"   => $this->routePath( 'collection.hour.paged'   ),
+				"{$name}.collection.hour"         => $this->routePath( 'collection.hour'         )
 			];
 
-			foreach ( $archives as $name => $uri ) {
+			foreach ( $archives as $time => $uri ) {
 				$this->routes[$uri] = [
-					'name'       => $name,
+					'name'       => $time,
 					'controller' => Controllers\CollectionArchiveDate::class
 				];
 			}
@@ -590,17 +628,17 @@ class Type implements ContentType
 		// If the type supports date-based archives, add routes.
 		if ( $this->hasDateArchives() ) {
 			$archives = [
-				"{$name}.collection.day.paged"   => $this->urlPath( 'collection.day.paged'   ),
-				"{$name}.collection.day"         => $this->urlPath( 'collection.day'         ),
-				"{$name}.collection.month.paged" => $this->urlPath( 'collection.month.paged' ),
-				"{$name}.collection.month"       => $this->urlPath( 'collection.month'       ),
-				"{$name}.collection.year.paged"  => $this->urlPath( 'collection.year.paged'  ),
-				"{$name}.collection.year"        => $this->urlPath( 'collection.year'        )
+				"{$name}.collection.day.paged"   => $this->routePath( 'collection.day.paged'   ),
+				"{$name}.collection.day"         => $this->routePath( 'collection.day'         ),
+				"{$name}.collection.month.paged" => $this->routePath( 'collection.month.paged' ),
+				"{$name}.collection.month"       => $this->routePath( 'collection.month'       ),
+				"{$name}.collection.year.paged"  => $this->routePath( 'collection.year.paged'  ),
+				"{$name}.collection.year"        => $this->routePath( 'collection.year'        )
 			];
 
-			foreach ( $archives as $name => $uri ) {
+			foreach ( $archives as $date => $uri ) {
 				$this->routes[$uri] = [
-					'name'       => $name,
+					'name'       => $date,
 					'controller' => Controllers\CollectionArchiveDate::class
 				];
 			}
@@ -608,12 +646,12 @@ class Type implements ContentType
 
 		// If this is a taxonomy, add paged term archive and single route.
 		if ( $this->isTaxonomy() ) {
-			$this->routes[ $this->urlPath( 'single.paged' ) ] = [
+			$this->routes[ $this->routePath( 'single.paged' ) ] = [
 				'name'       => "{$name}.single.paged",
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
 
-			$this->routes[ $this->urlPath( 'single' ) ] = [
+			$this->routes[ $this->routePath( 'single' ) ] = [
 				'name'       => "{$name}.single",
 				'controller' => Controllers\CollectionTaxonomyTerm::class
 			];
@@ -621,7 +659,7 @@ class Type implements ContentType
 
 		// Add single route if not a taxonomy.
 		if ( ! $this->isTaxonomy() ) {
-			$this->routes[ $this->urlPath( 'single' ) ] = [
+			$this->routes[ $this->routePath( 'single' ) ] = [
 				'name'       => "{$name}.single",
 				'controller' => Controllers\Single::class
 			];
@@ -629,7 +667,7 @@ class Type implements ContentType
 
 		// Add type archive route if not set as the homepage.
 		if ( ! $this->isHomeAlias() ) {
-			$this->routes[ $this->urlPath( 'collection' ) ] = [
+			$this->routes[ $this->routePath( 'collection' ) ] = [
 				'name'       => "{$name}.collection",
 				'controller' => Controllers\Collection::class
 			];

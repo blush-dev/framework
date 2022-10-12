@@ -11,7 +11,7 @@
 
 namespace Blush\Routing;
 
-use Blush\Contracts\Routing\{RoutingRoutes, RoutingRouter};
+use Blush\Contracts\Routing\{RoutingRoute, RoutingRoutes, RoutingRouter};
 
 use Blush\{Cache, Config};
 use Blush\Controllers\Error404;
@@ -123,8 +123,7 @@ class Router implements RoutingRouter
 	 */
 	private function getResponse(): Response
 	{
-	        $path   = $this->path();
-	        $routes = $this->routes->all();
+	        $path = $this->path();
 
 	        // Trim slashes unless homepage.
 	        if ( '/' !== $path ) {
@@ -134,12 +133,48 @@ class Router implements RoutingRouter
 	        // Check for route that is an exact match for the request. This
 		// will match route URIs that do not have variables, so we can
 		// just return the matched route controller here.
-	        if ( isset( $routes[ $path ] ) ) {
-			return $routes[ $path ]->callback( [
+		if ( $this->routes->has( $path ) ) {
+			return $this->routes->get( $path )->callback( [
 				'path' => $path
 			], $this->request() );
-	        }
+		}
 
+		// Loops through the route groups first. This allows us to
+		// avoid any unnecessary pattern checks for routes that will
+		// never match, at least if the current request happens to match
+		// a registered group.
+		foreach ( $this->routes->groups() as $group => $grouped_routes ) {
+
+			if ( ! Str::startsWith( $path, "{$group}/" ) ) {
+				continue;
+			}
+
+			// We have a group match, so let's test to see if any of
+			// its routes match the current request.
+			if ( $response = $this->locateRoute( $grouped_routes, $path ) ) {
+				return $response;
+			}
+		}
+
+		// Test all routes for matches if we get to this point.
+		if ( $response = $this->locateRoute( $this->routes, $path ) ) {
+			return $response;
+		}
+
+	        // If nothing is found, send 404.
+		return ( new Error404() )->__invoke( [
+			'path' => $path
+		], $this->request() );
+	}
+
+	/**
+	 * Helper method for locating a route from an array of potential matches
+	 * when compared to a path string.
+	 *
+	 * @since 1.0.0
+	 */
+	private function locateRoute( iterable $routes, string $path ): Response|false
+	{
 	        // Loops through all routes and try to match them based on the
 	        // params contained in the route URI.
 	        foreach ( $routes as $route ) {
@@ -161,28 +196,25 @@ class Router implements RoutingRouter
 				// Removes the full match from the array, which
 				// matches the entire URI path.  The leftover
 				// matches are the parameter values.
-	                        array_shift( $matches );
+				array_shift( $matches );
 
-	                        // Combines the route vars as array keys and the
-	                        // matches as the values.
-	                        $params = array_combine(
-	                                $route->parameters(),
-	                                $matches
-	                        );
+				// Combines the route vars as array keys and the
+				// matches as the values.
+				$params = array_combine(
+					$route->parameters(),
+					$matches
+				);
 
-	                        // If no path set, pass the request path.
-	                        if ( ! isset( $params['path'] ) ) {
-	                                $params['path'] = $path;
-	                        }
+				// If no path set, pass the request path.
+				if ( ! isset( $params['path'] ) ) {
+					$params['path'] = $path;
+				}
 
 				// Invoke the route callback.
 				return $route->callback( $params, $this->request() );
-	                }
+			}
 	        }
 
-	        // If nothing is found, send 404.
-		return ( new Error404() )->__invoke( [
-			'path' => $path
-		], $this->request() );
+		return false;
 	}
 }

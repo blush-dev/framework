@@ -19,6 +19,7 @@ use Blush\Contracts\Routing\RoutingRoutes;
 // Classes.
 use Blush\Config;
 use Blush\Controllers;
+use Blush\Tools\Str;
 
 class Component implements Bootable
 {
@@ -49,7 +50,12 @@ class Component implements Bootable
 		foreach ( $types as $type ) {
 
 			// Skip if the content type doesn't support routing.
-			if ( ! $type->routing() ) {
+			if ( ! $type->hasRouting() ) {
+				continue;
+			}
+
+			if ( $prefix = $type->routingPrefix() ) {
+				$this->routes->addGroup( $prefix, $type->routes() );
 				continue;
 			}
 

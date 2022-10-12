@@ -13,9 +13,10 @@ namespace Blush\Feed;
 
 use Blush\Config;
 use Blush\Contracts\Content\{ContentEntry, ContentQuery};
+use Blush\Contracts\Feed\FeedWriter;
 use Blush\Tools\Collection;
 
-class Writer
+class Writer implements FeedWriter
 {
 	/**
 	 * Feed title.
