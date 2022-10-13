@@ -100,6 +100,7 @@ class Route implements Makeable, RoutingRoute
 			'author' => '[a-zA-Z0-9_-]+',
 			'type'   => '[a-zA-Z0-9_-]+',
 			'name'   => '[a-zA-Z0-9_-]+',
+			'key'    => '[a-zA-Z0-9_-]+',
 			'path'   => '.+',
 			'*'      => '.+'
 		], $options['wheres'] ?? [] );
