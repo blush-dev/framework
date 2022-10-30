@@ -171,7 +171,7 @@ class Type implements ContentType
 			$this->routing_paths = array_merge( [
 				'collection'              => '' ,
 				'single'                  => '{name}',
-				'single.paged'            => "page/{page}",
+				'single.paged'            => "{name}/page/{page}",
 				'collection.feed.atom'    => "feed/atom",
 				'collection.feed'         => "feed",
 				'collection.paged'        => "page/{page}",

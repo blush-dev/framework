@@ -113,29 +113,33 @@ class Route implements Makeable, RoutingRoute
 	 */
 	public function make(): self
 	{
+		// Find matches for parameter names set with `{param}`.
+		$params = Str::matchAll( '/\{(.*?)\}/', $this->uri() );
+
+		// If matches are found, loop through each `{param}` and add it
+		// to the parameters array. Also, if it has not been added to
+		// the wheres array, register it with the generic slug pattern,
+		// which matches alphanumeric, hyphen, and underscore characters.
+		foreach ( $params as $param ) {
+			$this->parameters[] = $param;
+
+			// Assign where if not set.
+			if ( ! $this->hasWhere( $param ) ) {
+				$this->whereSlug( $param );
+			}
+		}
+
 		// Trim and escape slashes for regex.
 		$regex = Str::trimSlashes( $this->uri() );
 		$regex = str_replace( '/', '\/', $regex );
 
-		// Switches the params with patterns from wheres array. Params
-		// should always be in the form of `{param}`, so this is a simple
-		// mapping to any `$where` that is registered.
+		// Switches the params with patterns from wheres array.
 		foreach ( $this->wheres() as $where => $pattern ) {
-
-			// Check if the `{where}` is defined in the route URI
-			// before processing.  We need this to know whether to
-			// set the `$where` slug in the routes parameters array.
-			// The router will later use this when matching to the
-			// path/URL.
-			if ( Str::contains( $regex, sprintf( '{%s}', $where ) ) ) {
-				$this->parameters[] = $where;
-
-				$regex = str_replace(
-					sprintf( '{%s}', $where   ),
-					sprintf( '(%s)', $pattern ),
-					$regex
-				);
-			}
+			$regex = str_replace(
+				sprintf( '{%s}', $where   ),
+				sprintf( '(%s)', $pattern ),
+				$regex
+			);
 		}
 
 		// Build final pattern for the full route URI.
