@@ -3,3 +3,4 @@
 /phpcs.xml
 /.phpcs.xml
 *.map
+.DS_Store
