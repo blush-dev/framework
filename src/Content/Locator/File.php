@@ -15,7 +15,7 @@ namespace Blush\Content\Locator;
 use Blush\Contracts\Content\ContentLocator;
 
 // Classes.
-use Blush\{App, Cache, Config};
+use Blush\Core\Proxies\{App, Cache, Config};
 use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 

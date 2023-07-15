@@ -20,7 +20,7 @@ use Blush\Contracts\Template\{
 };
 
 // Concretes.
-use Blush\{App, Message};
+use Blush\Core\Proxies\{App, Message};
 use Blush\Tools\Collection;
 
 class Engine implements TemplateEngine

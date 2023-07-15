@@ -11,7 +11,7 @@
 
 namespace Blush\Content\Type;
 
-use Blush\App;
+use Blush\Core\Proxies\App;
 use Blush\Contracts\Content\{ContentType, ContentTypes};
 use Blush\Tools\Collection;
 

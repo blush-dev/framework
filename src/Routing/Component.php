@@ -17,7 +17,7 @@ use Blush\Contracts\Content\ContentTypes;
 use Blush\Contracts\Routing\RoutingRoutes;
 
 // Classes.
-use Blush\Config;
+use Blush\Core\Proxies\Config;
 use Blush\Controllers;
 use Blush\Tools\Str;
 

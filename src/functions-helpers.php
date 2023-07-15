@@ -9,7 +9,7 @@
  * @license   https://opensource.org/licenses/MIT
  */
 
-use Blush\{App, Config, Url};
+use Blush\Core\Proxies\{App, Config, Url};
 use Blush\Tools\{Collection, Str};
 
 if ( ! function_exists( 'app' ) ) {

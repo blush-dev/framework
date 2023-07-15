@@ -19,7 +19,7 @@ use Blush\Contracts\Content\{ContentEntry, ContentLocator, ContentQuery};
 // Classes.
 use ArrayIterator;
 use Traversable;
-use Blush\App;
+use Blush\Core\Proxies\App;
 use Blush\Tools\Str;
 
 class File implements IteratorAggregate, Makeable, ContentQuery

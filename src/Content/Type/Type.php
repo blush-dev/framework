@@ -12,7 +12,7 @@
 namespace Blush\Content\Type;
 
 use Blush\Contracts\Content\ContentType;
-use Blush\{App, Config, Url};
+use Blush\Core\Proxies\{App, Config, Url};
 use Blush\Controllers;
 use Blush\Tools\Str;
 

@@ -11,7 +11,7 @@
 
 namespace Blush\Routing\Route;
 
-use Blush\App;
+use Blush\Core\Proxies\App;
 use Blush\Contracts\Routing\{RoutingRoute, RoutingRoutes};
 use Blush\Tools\Collection;
 

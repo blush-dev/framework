@@ -15,7 +15,7 @@ namespace Blush\Template\Tag;
 use Blush\Contracts\{Displayable, Renderable};
 
 // Concretes.
-use Blush\{App, Config};
+use Blush\Core\Proxies\{App, Config};
 use Blush\Tools\Str;
 
 class DocumentTitle implements Displayable, Renderable

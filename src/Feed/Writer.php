@@ -11,7 +11,7 @@
 
 namespace Blush\Feed;
 
-use Blush\Config;
+use Blush\Core\Proxies\Config;
 use Blush\Contracts\Content\{ContentEntry, ContentQuery};
 use Blush\Contracts\Feed\FeedWriter;
 use Blush\Tools\Collection;

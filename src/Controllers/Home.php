@@ -11,8 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\{App, Config, Query};
-use Blush\Message;
+use Blush\Core\Proxies\{App, Config, Message, Query};
 use Blush\Template\Hierarchy;
 use Blush\Template\Tag\{DocumentTitle, Pagination};
 use Blush\Tools\Str;

@@ -13,7 +13,7 @@ namespace Blush\Routing;
 
 use Blush\Contracts\Routing\{RoutingRoute, RoutingRoutes, RoutingRouter};
 
-use Blush\{Cache, Config};
+use Blush\Core\Proxies\{Cache, Config};
 use Blush\Controllers\Error404;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};

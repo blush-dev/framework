@@ -15,7 +15,7 @@ namespace Blush\Content\Entry;
 use Blush\Contracts\Content\{ContentEntry, ContentQuery, ContentType};
 
 // Concretes.
-use Blush\{App, Config, Query, Url};
+use Blush\Core\Proxies\{App, Config, Query, Url};
 use Blush\Tools\{Media, Str};
 
 abstract class Entry implements ContentEntry
@@ -307,7 +307,7 @@ abstract class Entry implements ContentEntry
 	 */
 	public function authors(): array
 	{
-		return (string) $this->metaArr( 'author' );
+		return $this->metaArr( 'author' );
 	}
 
 	/**
@@ -321,7 +321,7 @@ abstract class Entry implements ContentEntry
 		$meta  = $this->metaSingle( $name );
 		$media = $meta ? new Media( $meta ) : false;
 
-		return $media && $media->valid() ? $media : null;
+		return $media && $media->isValid() ? $media : null;
 	}
 
 	/**

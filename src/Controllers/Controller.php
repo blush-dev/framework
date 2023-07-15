@@ -20,7 +20,7 @@ namespace Blush\Controllers;
 use Blush\Contracts\Template\TemplateView;
 
 // Concretes.
-use Blush\Engine;
+use Blush\Core\Proxies\Engine;
 use Symfony\Component\HttpFoundation\{Request, Response};
 
 abstract class Controller

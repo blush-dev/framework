@@ -16,7 +16,7 @@
 
 namespace Blush\Content\Entry;
 
-use Blush\App;
+use Blush\Core\Proxies\App;
 use Blush\Contracts\Content\ContentType;
 
 class Virtual extends Entry

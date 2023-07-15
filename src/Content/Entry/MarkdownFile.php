@@ -11,7 +11,7 @@
 
 namespace Blush\Content\Entry;
 
-use Blush\{App, Cache, Config};
+use Blush\Core\Proxies\{App, Cache, Config};
 use Blush\Tools\Str;
 use Symfony\Component\Yaml\Yaml;
 

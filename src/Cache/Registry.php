@@ -21,7 +21,7 @@ use Blush\Contracts\Cache\Driver;
 use Blush\Contracts\Cache\Registry as CacheRegistry;
 
 use Closure;
-use Blush\Message;
+use Blush\Core\Proxies\Message;
 use Blush\Tools\Str;
 
 class Registry implements CacheRegistry
@@ -239,7 +239,7 @@ class Registry implements CacheRegistry
 	{
 		[ 'store' => $store, 'key' => $key ] = $this->parseDotName( $name );
 
-		return $this->store( $store )->remember( $key );
+		return $this->store( $store )->remember( $key, $seconds, $callback );
 	}
 
 	/**

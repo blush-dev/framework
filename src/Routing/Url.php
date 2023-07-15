@@ -17,7 +17,7 @@
 namespace Blush\Routing;
 
 use Stringable;
-use Blush\App;
+use Blush\Core\Proxies\App;
 use Blush\Contracts\Makeable;
 use Blush\Contracts\Routing\{RoutingRoutes, RoutingUrl};
 

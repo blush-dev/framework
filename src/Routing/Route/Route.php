@@ -16,7 +16,7 @@ use Blush\Contracts\Makeable;
 use Blush\Contracts\Routing\RoutingRoute;
 
 // Classes.
-use Blush\Message;
+use Blush\Core\Proxies\Message;
 use Blush\Controllers\Controller;
 use Blush\Tools\Str;
 use Symfony\Component\HttpFoundation\{Request, Response};

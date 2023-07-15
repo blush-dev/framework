@@ -15,7 +15,7 @@ namespace Blush\Content\Entry;
 use Blush\Contracts\Content\ContentType;
 
 // Concretes.
-use Blush\{App, Url};
+use Blush\Core\Proxies\{App, Url};
 use Blush\Tools\Str;
 
 abstract class File extends Entry

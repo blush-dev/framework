@@ -11,7 +11,7 @@
 
 namespace Blush\Controllers;
 
-use Blush\{App, Query};
+use Blush\Core\Proxies\{App, Query};
 use Blush\Template\Hierarchy;
 use Blush\Template\Tag\DocumentTitle;
 use Blush\Tools\Str;
