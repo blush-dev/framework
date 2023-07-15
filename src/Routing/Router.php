@@ -98,12 +98,18 @@ class Router implements RoutingRouter
 		// If no cached content, get a new response and cache it.
 		if ( ! $content ) {
 			$response = $this->getResponse();
-			$content  = $response->getContent();
-			Cache::put(
-				"global.{$cache_key}",
-				$content,
-				Config::get( 'cache.expires' )
-			);
+
+			// Only cache status 200 content.
+			// @todo Add cache config to for status to cache or not.
+			if ( $response->statusOk() ) {
+				$content = $response->getContent();
+
+				Cache::put(
+					"global.{$cache_key}",
+					$content,
+					Config::get( 'cache.expires' )
+				);
+			}
 		}
 
 		// If no response is set, add the cached content to new response.
