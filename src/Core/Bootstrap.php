@@ -20,6 +20,7 @@ use Blush\Container\Plan\PlanCache;
 use Blush\Container\Plan\Planner;
 use Blush\Container\Plan\ReflectionPlanner;
 use Blush\Container\ServiceContainer;
+use Blush\Content\Type\ContentConfig;
 use Blush\Env\Env;
 use Blush\Extension\ExtensionCache;
 use Blush\Extension\ExtensionConfig;
@@ -29,6 +30,7 @@ use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
 use Blush\Http\HttpConfig;
 use Blush\Log\LogConfig;
+use Blush\Markdown\MarkdownConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
 use Blush\Support\PhpArrayFile;
@@ -190,7 +192,9 @@ final readonly class Bootstrap
 			new LogConfig(),
 			new ExtensionConfig(),
 			new HttpConfig(),
-			new RouteConfig()
+			new RouteConfig(),
+			new MarkdownConfig(),
+			new ContentConfig()
 		);
 	}
 

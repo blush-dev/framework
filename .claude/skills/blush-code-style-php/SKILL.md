@@ -263,6 +263,16 @@ functions and `use` aren't allowed in constant expressions:
 
 ---
 
+## PHPCS gotchas
+
+- A control structure can't open a multi-line array
+  (`foreach ([` … `] as $x)`); PSR-12 rejects it. Assign the array to a
+  variable first: `$cases = [...];` then `foreach ($cases as $x)`.
+- A test that deliberately ignores a `#[\NoDiscard]` result (to assert
+  that it throws) casts it: `(void) $schema->with($field);`.
+
+---
+
 ## Line length
 
 Not enforced. Wrap only when it helps readability.

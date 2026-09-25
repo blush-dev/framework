@@ -94,7 +94,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   log, a queue for async work, or webhooks out to other services.
 - **Core events:**
   - `ApplicationBooted`, `RequestReceived`, `RouteMatched`, `ControllerResolved`
-  - `MarkdownEnvironmentBuilding`, `EntryParsed`, `ViewRendering`, `ResponseReady`
+  - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady`
   - `ContentIndexed`, `ContentWritten`, `ContentPublished`, `CacheCleared`
   - `ExportStarted`, `ExportFinished`
 
@@ -104,10 +104,13 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   User-editable data (theme settings and tokens, menus, redirects, authors,
   anything the admin writes) is data files under `user/data/`, and theme
   manifests and tokens are data files too.
-- **`DataLoader`:** reads a data file by name without its extension, through a
-  parser registry keyed by extension (enum + registry, D-019). JSON and YAML
-  are built in (D-032). If both exist, JSON wins and `doctor` warns. The admin
-  only writes JSON.
+- **`DataLoader`** (`Blush\Data`, M4a, D-085): reads a data file by name
+  without its extension, through `DataParserRegistry` (keyed by extension,
+  enum + registry, D-019). JSON, YAML, and YML are built in (D-032). If
+  several exist, JSON wins and `shadowed()` lists the others for `doctor`.
+  `loadAll()` reads a whole directory. The admin only writes JSON.
+- **`YamlParser`:** the Symfony adapter returns plain data only, with
+  timestamps as strings (D-080).
 - **Schema validation:** data files have schemas (the same field-type system as
   content). JSON Schemas are published for editor autocomplete.
 
@@ -211,10 +214,17 @@ Implemented in M3 (D-073 to D-077).
 
 ## Content
 
+Every content convention 1.x supports keeps working (D-078); the inventory
+is in that decision.
+
 ### Conventions (under `user/content/`)
 - Each folder is a collection of the type mapped to it. `index.md` is the
-  collection's landing page.
-- A `_` prefix means hidden, and an `NN.` prefix means manual order.
+  collection's landing page. A file belongs to the type whose path is the
+  nearest folder above it, or else to `page` (D-083).
+- Everything before the last `.` in a file name is organizational
+  (`01.about.md`, `2003-04-15.welcome.md`): it isn't part of the slug, and
+  it sets the default order.
+- A `_` prefix on a file name means hidden.
 - `_drafts/` or `status: draft` marks unpublished entries.
 - **Page bundles:** `slug/index.md` sits next to its own media, which resolves
   relative to the entry.
@@ -223,26 +233,44 @@ Implemented in M3 (D-073 to D-077).
 - `_errors/404.md` and `_errors/500.md` are error pages.
 
 ### Types and schemas
-- **`ContentType`:** name, path, routing (prefix and path patterns),
-  collection query, feed, sitemap, archive granularity (enum), taxonomy flag,
-  and the `collects` relation.
-- **Two sources, one model** (D-042): `ContentTypeDefinition` objects come from
-  developer PHP (`config/content.php`, extension providers), which are locked,
-  or from site data (`user/data/types/*.json|yaml`), which the admin can edit
-  later. A name collision is an error. Site config can disable data-defined
-  types or restrict what they're allowed to do.
-- **Built-in types:** `page` (the catch-all) and `author` (D-043), both
-  configurable. `author` can be disabled.
-- **`Schema`:** typed fields per type (`Text`, `Markdown`, `Date`, `Bool`,
-  `Number`, `Enum`, `ListOf`, `Reference(type)`, `Media`, `Slug`, `Object`).
-  Field types use the enum + registry pattern (D-019), so extensions can add
-  more.
+Implemented in M4a (D-083, D-084).
+
+- **`ContentType`** (`Blush\Content\Type`): name, path, `public`, routing
+  (`TypeRouting`: prefix plus per-key paths over 1.x's defaults, or
+  `false`), collection query, taxonomy flag and term field, `collect`,
+  `termCollect` and `termCollection`, feed (`TypeFeed`), sitemap, archive
+  granularity (`ArchiveGranularity`), and its own `Schema`. `fromArray()`
+  accepts the 1.x option names.
+- **Sources, one model** (D-042, D-083): built-ins, extension
+  `ContentTypeSource`s, `ContentConfig` (`config/content.php`, locked), and
+  data types (`user/data/types/*.json|yaml`, editable later).
+  `ContentTypeLoader` merges and checks them into `ContentTypes`, which
+  finds types by name, path, or file, and builds each type's full schema.
+  `ContentConfig` also holds the home alias, the data-type policy, and
+  `disabled` built-ins.
+- **Built-in types:** `page` (the catch-all, path `''`) and `author`
+  (D-043, path `authors`, term field `authors` with alias `author`). Both
+  can be redefined, and `author` can be disabled.
+- **`Schema`** (`Blush\Content\Schema`): field types `text`, `markdown`,
+  `date`, `bool`, `number`, `enum`, `list`, `reference`, `media`, `slug`,
+  and `object` (`FieldType` enum, `FieldRegistry`, `FieldFactory`,
+  `FieldRegistrar`, D-019), so extensions can add more. Fields normalize
+  raw values for the index and hydrate them for entries. Names win over
+  aliases, empty values count as missing, undeclared keys are kept
+  (D-081), and problems are `Violation`s with a `Severity`, never
+  exceptions.
+- **Built-in entry fields** (`EntryFields`): `title`, `subtitle`, `slug`,
+  `published` (alias `date`), `updated`, `status`, `visibility`, `summary`
+  (alias `excerpt`), `image`, `locale`, `template` (alias `view`),
+  `layout`, `stylesheet`, `class`, `tokens`, `redirect_from`, and
+  `collection`, plus each taxonomy's term field.
 - Schemas drive **validation/casting** (at index time and in `content:lint`),
   **typed entry fields**, and **admin form generation** later.
 
 ### Entry
 - A readonly value object: `id` (type plus relative path), `slug`, `type`,
-  `status` (enum `Published | Draft | Scheduled | Unlisted`),
+  `status` (enum `Published | Draft | Scheduled`), `visibility` (enum
+  `Public | Unlisted | Hidden`, D-082),
   `published`/`updated` (`DateTimeImmutable`, site timezone), `title`,
   `summary`, `fields`, `terms`, `media`, `template`, and `source` (path, mtime,
   hash).
@@ -252,14 +280,21 @@ Implemented in M3 (D-073 to D-077).
   records the next go-live time so cache invalidation happens automatically.
 
 ### Parsers
-- A registry keyed by extension. Built in: Markdown, HTML, and data (YAML,
-  JSON).
-- **Front matter:** YAML behind a `YamlParser` interface. It starts with a
-  temporary adapter (symfony/yaml, object parsing disabled); a small in-house
+Implemented in M4a (D-080, D-085, D-086).
+
+- **`DocumentParsers`** (`Blush\Content\Parser`): a registry keyed by
+  extension. Built in: Markdown (`.md`, `.markdown`), HTML, and data
+  entries (`.json`, `.yaml`, `.yml`, whose `body` key is Markdown). Each
+  parser returns a `Document` (front matter, unrendered body,
+  `BodyFormat`).
+- **Front matter:** YAML behind the `YamlParser` interface, split off by
+  `FrontMatter` (1.x's `---` rules). It starts with a temporary adapter
+  (symfony/yaml, objects refused, timestamps as strings); a small in-house
   YAML-subset parser is the long-term plan (D-006).
-- **Markdown:** behind a `MarkdownParser` interface. It starts with a
-  CommonMark adapter, with an in-house parser as the long-term goal. An event
-  lets extensions add syntax.
+- **Markdown:** behind the `MarkdownParser` interface (`Blush\Markdown`).
+  It starts with a CommonMark adapter configured by `MarkdownConfig`, with
+  an in-house parser as the long-term goal. The
+  `MarkdownEnvironmentBuilding` event lets extensions add syntax.
 - **Content components:** a Markdown directive syntax (for example
   `::: gallery`) rendered by theme or site components. See `theming.md`.
 - Raw HTML in Markdown is controlled by config (trusted authors by default).

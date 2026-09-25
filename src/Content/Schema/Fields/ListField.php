@@ -1,0 +1,113 @@
+<?php
+
+/**
+ * List field.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Content\Schema\Fields;
+
+use Override;
+use Blush\Content\Schema\Field;
+use Blush\Content\Schema\FieldContext;
+use Blush\Content\Schema\FieldFactory;
+use Blush\Content\Schema\InvalidField;
+use Blush\Content\Schema\InvalidSchema;
+
+/**
+ * A list of values of one field type:
+ *
+ *     new ListField('template', new TextField())->aliases('view')
+ *
+ * A single value counts as a list of one, as in 1.x (D-078), so
+ * `class: wide` and `class: [wide]` mean the same thing. Empty items are
+ * dropped.
+ */
+final class ListField extends Field
+{
+	public function __construct(string $name = '', public readonly Field $item = new TextField())
+	{
+		$this->name = $name;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function type(): string
+	{
+		return 'list';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function normalize(mixed $value, FieldContext $context): mixed
+	{
+		if (! is_array($value)) {
+			$value = [$value];
+		} elseif (! array_is_list($value)) {
+			throw $this->invalid('must be a list, not a map.');
+		}
+
+		$items = [];
+
+		foreach ($value as $index => $item) {
+			if ($item === null || $item === '') {
+				continue;
+			}
+
+			try {
+				$items[] = $this->item->normalize($item, $context);
+			} catch (InvalidField $e) {
+				throw $this->invalid(sprintf('item %d %s', $index + 1, $e->getMessage()));
+			}
+		}
+
+		return $items;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function hydrate(mixed $value, FieldContext $context): mixed
+	{
+		return is_array($value)
+			? array_map(fn (mixed $item): mixed => $this->item->hydrate($item, $context), $value)
+			: $value;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function fromArray(array $data, FieldFactory $factory): static
+	{
+		$definition = self::definition($data);
+		$item       = $definition->map('item');
+
+		return self::withShared(
+			new static($definition->string('name'), $item === [] ? new TextField() : $factory->fromArray($item)),
+			$definition
+		);
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * @throws InvalidSchema
+	 */
+	#[Override]
+	protected function options(): array
+	{
+		return ['item' => $this->item->toArray()];
+	}
+}

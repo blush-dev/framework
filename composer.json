@@ -18,6 +18,7 @@
 	},
 	"require": {
 		"php": ">=8.5",
+		"league/commonmark": "^2.10",
 		"psr/clock": "^1.0",
 		"psr/container": "^2.0",
 		"psr/event-dispatcher": "^1.0",
@@ -25,7 +26,8 @@
 		"psr/http-message": "^2.0",
 		"psr/http-server-handler": "^1.0",
 		"psr/http-server-middleware": "^1.0",
-		"psr/log": "^3.0"
+		"psr/log": "^3.0",
+		"symfony/yaml": "^8.1"
 	},
 	"require-dev": {
 		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",

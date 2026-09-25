@@ -56,7 +56,7 @@ Implemented in M2 (D-065, D-069).
 | `cache:clear [--config\|--extensions\|--container\|--routes]` | Clear compiled caches (no flags: all). Pages and the content version join later |
 | `cache:compile` | Compile config, extensions, routes, and container plans (D-060, D-066, D-077) |
 | `content:index [--full]` | Build or refresh the content index |
-| `content:lint` | Validate front matter against schemas |
+| `content:lint [--strict]` | Validate front matter against schemas; `--strict` adds notices for undeclared keys and 1.x aliases (D-081, D-084) |
 | `content:new <type> "<title>"` | Scaffold an entry |
 | `content:list [--type] [--status]` | Inspect content |
 | `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |

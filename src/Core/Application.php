@@ -20,12 +20,15 @@ use Blush\Console\ConsoleServiceProvider;
 use Blush\Container\Container;
 use Blush\Container\ContainerException;
 use Blush\Container\ServiceResolver;
+use Blush\Content\ContentServiceProvider;
 use Blush\Core\Events\ApplicationBooted;
+use Blush\Data\DataServiceProvider;
 use Blush\Error\ErrorServiceProvider;
 use Blush\Event\Dispatcher;
 use Blush\Event\EventServiceProvider;
 use Blush\Http\HttpServiceProvider;
 use Blush\Log\LogServiceProvider;
+use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
 
 /**
@@ -53,6 +56,9 @@ class Application implements Bootable
 		ClockServiceProvider::class,
 		LogServiceProvider::class,
 		ErrorServiceProvider::class,
+		DataServiceProvider::class,
+		MarkdownServiceProvider::class,
+		ContentServiceProvider::class,
 		HttpServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class

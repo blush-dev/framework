@@ -838,3 +838,165 @@ decision, add a new entry that supersedes it and mark the old one
   `cache:clear --routes` deletes it. Routes stay arrays in the table until
   one is matched. `routes:list` shows routes (method, path, name, handler,
   source), redirects, and shadowed routes.
+
+### D-078: Blush 1.x content behavior carries over
+- **Date:** 2026-09-25
+- **Decision:** 2.x keeps every content convention 1.x supports, because
+  jtcom's files and front matter won't change. The 2.x names are canonical,
+  and the 1.x names are accepted as aliases. The inventory, taken from
+  `master`:
+  - **File names:** everything before the last `.` of a file name is
+    organizational and not part of the slug (`01.about.md`,
+    `2003-04-15.welcome.md`, `2008-04-05-3.bay-bay.md` → `about`,
+    `welcome`, `bay-bay`). It isn't parsed as a date. The default order
+    is by file name.
+  - **`index.md`** is its directory's landing page: a type's collection
+    page, or the page at the directory's URL. Collection listings skip it.
+  - **Hidden:** a `_`-prefixed file name, or `visibility: hidden`. Hidden
+    entries aren't routed or listed, but a query by name finds them.
+  - **Front matter:** `published`, with `date` as the fallback (published
+    wins); `updated` falls back to `published`, then the file's mtime;
+    `author` (a scalar or a list) for authors; `excerpt` for the summary
+    (Markdown), with an automatic 50-word excerpt as the fallback;
+    `subtitle`; `image`; `template` and `view` (lists of view names);
+    `collection` (query arguments for a page's own listing); and one key
+    per taxonomy, named after the type, holding a scalar or a list of
+    slugs. Keys no schema declares are kept (see D-081).
+  - **Type options:** `path`, `public`, `collection`, `routing` (`false`, or
+    `prefix` plus named `paths`), `date_archives`, `time_archives`,
+    `taxonomy`, `collect`, `term_collect`, `term_collection`, `feed`
+    (`true`, or `taxonomy` plus `collection`), and `sitemap`. Route names
+    `{type}.single`, `{type}.collection`, `.paged`, `.feed`, `.feed.atom`,
+    and the date-archive names. Single URLs can use `{name}`, `{year}` …
+    `{second}`, `{author}`, and any taxonomy name.
+  - **Home alias:** the home page can show a type's collection, with
+    `/feed`, `/feed/atom`, and `/page/{page}`.
+  - **Query arguments:** `type`/`path`, `names` (`slug`), `names_exclude`,
+    `number` (≤ 0 means all), `offset`, `order`, `orderby` (`filename` by
+    default; `published`, `updated`, `title`, `author`, or a meta key),
+    `author`, `meta_key`/`meta_value`, `year` … `second`, and `noindex`.
+  - **Page catch-all:** `path/index.md`, then `parent/name.md`; `_`-prefixed
+    segments are private.
+  - **Markdown:** configurable CommonMark options, extensions, and inline
+    parsers. A lone image becomes a `<figure>` (its title is the
+    `<figcaption>`, and width and height come from the media file) that
+    isn't wrapped in `<p>`, and root-relative links become absolute.
+  - **Media:** an allowlist of image, audio, and video MIME types.
+- **Why:** the author asked that nothing 1.x supports be dropped.
+
+### D-079: M4 ships in three slices
+- **Date:** 2026-09-25
+- **Decision:** M4a (data files, the YAML and Markdown adapters, content
+  types, schemas, and field types), M4b (source, index, indexer,
+  repository, query, and `content:*` commands; jtcom indexes and lints),
+  and M4c (content routes, the page catch-all, `redirect_from`, data-file
+  redirects, media with Range support, and PHPBench). Each slice ends with
+  `composer check` passing, for review.
+
+### D-080: YAML and Markdown adapters
+- **Date:** 2026-09-25
+- **Decision:** Implements D-045's temporary libraries: `symfony/yaml`
+  ^8.1 and `league/commonmark` ^2.10, each behind a Blush interface.
+  - YAML is parsed with `PARSE_DATETIME` and
+    `PARSE_EXCEPTION_ON_INVALID_TYPE` (no objects). The adapter returns only
+    plain data: timestamps come back as ISO 8601 strings, and a timestamp
+    written without an offset comes back without one, so date fields read
+    it in the site timezone (D-045). Symfony marks those with a `UTC` zone
+    name, unlike an explicit `Z` or `+00:00`.
+
+### D-081: Undeclared front matter is kept
+- **Date:** 2026-09-25
+- **Decision:** Schemas are open. Keys a schema doesn't declare are kept as
+  untyped extra values on the entry, and `content:lint` reports them only
+  with `--strict`. A type can opt into a closed schema, which makes them
+  lint errors.
+
+### D-082: Status and visibility are separate
+- **Date:** 2026-09-25
+- **Decision:** An entry has a `status` (`Published`, `Draft`, or
+  `Scheduled`, which is derived from a future `published` date) and a
+  `visibility` (`Public`; `Unlisted`, routed but not listed; or `Hidden`,
+  1.x's `hidden`, neither routed nor listed but found by a query by name).
+  Front matter may set `status: published|draft` and
+  `visibility: public|unlisted|hidden`. This moves `Unlisted` out of the
+  status enum that `architecture.md` listed.
+
+### D-083: The content type model
+- **Date:** 2026-09-25
+- **Decision:** Implements D-042 and D-043 in `Blush\Content\Type`:
+  - One class, `ContentType`, is the definition from every source (there's
+    no separate `ContentTypeDefinition`). `fromArray()` takes the 2.x names
+    or the 1.x ones (D-078); `routing` is `TypeRouting` (prefix plus
+    per-key paths over 1.x's defaults) or `false`; `feed` is `TypeFeed` or
+    `false`; `archives` is an `ArchiveGranularity`.
+  - `ContentConfig` (`config/content.php`) holds the site's types, the
+    home alias (`home`, 1.x's `app.home_alias`), the data-type policy
+    (`dataTypes`, `dataTypeRouting`), and `disabled` built-ins (only
+    `author`; `page` can't be disabled).
+  - `ContentTypeLoader` merges, in order: built-ins, extension types
+    (tagged `ContentTypeSource::TAG`; two extensions with one name is an
+    error), config types (which replace either), then data types from
+    `user/data/types`. A data type may redefine a built-in type, but not an
+    extension or config type.
+  - A taxonomy's term field is named after the type unless `field` says
+    otherwise, and `fieldAliases` adds more keys. The built-in `author`
+    uses `authors`, with `author` as an alias.
+  - A file belongs to the type whose path is the nearest folder above it,
+    falling back to `page`, so page bundles and nested taxonomies
+    (`writing/forms`) resolve without extra rules.
+  - A type's schema is the built-in entry fields, then every term field
+    (which may not reuse a built-in name or alias), then the type's own
+    fields (which may replace either).
+  - Types load on first use. Caching them for production comes with the
+    index in M4b.
+
+### D-084: Schemas normalize for the index and hydrate for entries
+- **Date:** 2026-09-25
+- **Decision:** Implements the schema design in `Blush\Content\Schema`:
+  - A `Field` normalizes a raw value into exportable data for the index,
+    and hydrates that into the typed value entries expose. Dates are stored
+    as Unix timestamps and hydrated as `DateTimeImmutable` in the site
+    timezone. Relative dates (`tomorrow`) are refused.
+  - The shared settings (aliases, required, default, label, description)
+    are set with immutable fluent copies, such as
+    `new DateField('published')->aliases('date')`.
+  - `null`, `""`, and `[]` count as missing, as they did in 1.x
+    (`image: ""`). A single value counts as a list of one.
+  - Resolving never throws for bad content. It reports `Violation`s with a
+    `Severity`: errors (values that don't fit, missing required fields,
+    undeclared keys in a closed schema), warnings, and notices (undeclared
+    keys and aliases in use, for `content:lint --strict`).
+  - Reference values are turned into slugs with 1.x's rules
+    (`Support\Slug`).
+  - A field class that isn't the built-in for its type records its
+    `class` in `toArray()`, so compiled caches rebuild extension field
+    types without their registry.
+- **Checked:** all 1,183 jtcom content files resolve with no errors or
+  warnings.
+
+### D-085: Data files and document parsers
+- **Date:** 2026-09-25
+- **Decision:**
+  - `Data\DataLoader` reads files by name through the `DataParserRegistry`
+    (JSON, YAML, YML; JSON wins, D-032), reports shadowed files, confines
+    names to their directory, and parses whole directories (`loadAll()`).
+  - `Content\Parser\DocumentParsers` picks a `DocumentParser` by file
+    extension: Markdown (`.md`, `.markdown`) and HTML with YAML front
+    matter, and data entries (`.json`, `.yaml`, `.yml`, or any data format
+    an extension adds) whose optional `body` key holds Markdown. Files with
+    other extensions aren't content.
+  - Front matter follows 1.x: a block opened by `---` on the first line
+    and closed by `---` (or `...`). An unclosed block isn't front matter.
+  - Extensions add data formats, document formats, and field types by
+    registering on the registry in a `resolving()` callback; each registry
+    is seeded with the built-ins when it's built.
+
+### D-086: Markdown config details
+- **Date:** 2026-09-25
+- **Decision:** `MarkdownConfig` (`config/markdown.php`) holds CommonMark
+  `options`, `extensions`, and `inlineParsers` (1.x's `config` and
+  `inline_parsers` keys are accepted). The defaults are CommonMark plus
+  autolinks, strikethrough, tables, task lists, and footnotes, with raw
+  HTML allowed. The classes are checked when the converter is first built,
+  not in the constructor, so requests that don't render Markdown never load
+  CommonMark.

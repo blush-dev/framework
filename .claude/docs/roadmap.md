@@ -17,6 +17,70 @@
 
 ---
 
+## M4 (Content): in progress
+
+Started 2026-09-25. Three slices (D-079), each ending with `composer check`
+passing for review. Everything 1.x supports carries over (D-078); jtcom's
+files and front matter don't change.
+
+### M4a: data, parsers, types, schemas (done)
+
+Implemented 2026-09-25. See D-078 to D-086. Everything below is delivered
+and tested (478 tests). A smoke run over all 1,183 jtcom content files
+(parse, type, and schema resolution against jtcom's unchanged 1.x type
+config) reports no errors and no warnings, in about 200 ms uncached.
+Notices are the expected ones: 1.x aliases (`date`, `author`, `excerpt`,
+`view`) and undeclared keys (`format`, `tag`, `amazon`, …).
+
+Carried into M4b: caching the resolved content types for production, and
+YAML extension manifests (D-058), now that the data loader exists.
+
+
+- `symfony/yaml` ^8.1 and `league/commonmark` ^2.10 behind Blush
+  interfaces (D-080).
+- `Blush\Data`: `YamlParser` (+ Symfony adapter), `DataParser` with JSON and
+  YAML parsers, `DataFormat` enum, registry and registrar, and `DataLoader`
+  (by name, JSON wins, reports shadowed files) (D-032).
+- `Blush\Markdown`: `MarkdownParser` (+ CommonMark adapter), `MarkdownConfig`
+  (options, extensions, inline parsers), and the
+  `MarkdownEnvironmentBuilding` event.
+- `Blush\Content\Schema`: `Field` base, the built-in field types (`text`,
+  `markdown`, `date`, `bool`, `number`, `enum`, `list`, `reference`,
+  `media`, `slug`, `object`), `FieldType` enum, registry, factory, and
+  registrar. `Schema` resolves names and aliases (the canonical name wins),
+  coerces scalars into lists, keeps undeclared keys (D-081), and reports
+  violations.
+- `Blush\Content\Type`: `ContentType` (1.x options accepted, D-078),
+  `ContentConfig` (`config/content.php`: types, home alias, data-type
+  policy, disabled built-ins), the built-in `page` and `author` types
+  (D-043), data-defined types from `user/data/types` (D-042), and the
+  resolved `ContentTypes` (type by name, by path, and for a file).
+- `Blush\Content\Parser`: front matter splitting and document parsers by
+  extension (Markdown, HTML, JSON, YAML).
+
+### M4b: source, index, query, commands
+
+- `ContentSource` + `FilesystemSource`; `Entry` (lazy body), statuses and
+  visibility; `ContentIndex` + `PhpIndex`; `Indexer` (full and
+  incremental, per-file mtime/size/hash); `ContentRepository`; the query
+  builder (1.x arguments, D-078) with `EntryCollection` and `Paginator`;
+  terms, virtual terms, and relations.
+- `content:index` (with a progress bar), `content:lint [--strict]`,
+  `content:list`, and `content:new`.
+- **Exit:** jtcom's ~1,200 entries index and lint cleanly.
+
+### M4c: routes, media, benchmarks
+
+- Content-type routes (1.x route names and URL parameters), the home
+  alias, the page catch-all, `redirect_from`, and `user/data/redirects`.
+- Media: resolution, the MIME allowlist, `media:publish`, a streaming
+  controller, and `Response::file()` Range support. The 1.x Markdown
+  renderers (figures, absolute links).
+- PHPBench with a generated jtcom-sized fixture; baselines recorded.
+- **Exit:** query benchmarks are recorded.
+
+---
+
 ## M3 (Routing): done
 
 Implemented 2026-09-25. See D-073 to D-077. Delivered:
