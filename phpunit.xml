@@ -17,6 +17,11 @@
 	displayDetailsOnTestsThatTriggerNotices="true"
 	displayDetailsOnTestsThatTriggerWarnings="true"
 >
+	<php>
+		<ini name="error_reporting" value="-1"/>
+		<ini name="display_errors" value="1"/>
+	</php>
+
 	<testsuites>
 		<testsuite name="Blush">
 			<directory>tests</directory>

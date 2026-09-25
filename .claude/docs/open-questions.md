@@ -12,6 +12,17 @@ Move each item to `decisions.md` once it's answered.
 - **Empty-state page.** Proposal: a fresh site with no content renders a
   built-in welcome page from the framework default theme, instead of a 404.
 
+## M2
+- **Container plan warm-up** (D-052): `Bootstrap::compile()` plans what booting
+  resolves. Request-time services (controllers, middleware) also need plans.
+  Options: have the compile command dispatch a few representative requests
+  through the kernel, or plan every class tagged or bound by providers.
+- **Error handler timing:** should entry points register a minimal handler
+  before config loads, so a broken config file renders cleanly?
+- **Extension requirements** (D-058): what constraint syntax to support for
+  `extension:check`, likely a Composer semver subset (`^`, `~`, comparison
+  operators, `||`).
+
 ## Tooling
 - **PHPCS property-hook support** (D-048): when PHPCS ships it, remove the
   `phpcs:disable` comments around hooked properties and update the style

@@ -76,7 +76,8 @@ use Psr\Clock\ClockInterface;
 use Blush\Content\Index\ContentIndex;
 ```
 
-Group imports in this order: PHP built-ins → PSR → other vendors → Blush.
+Group imports in this order: PHP built-ins (including extension namespaces
+such as `Uri\` and `Dom\`) → PSR → other vendors → Blush.
 Put a blank line between groups only when a file has many imports; otherwise
 keep them compact. Never use a leading backslash in `use` statements. One
 class per `use` line (no grouped `{}` imports).
@@ -95,9 +96,12 @@ class per `use` line (no grouped `{}` imports).
   that return clones.
 - Prefer `readonly class` for value objects.
 - Empty constructors may be written as `{}` on the signature line.
-- Use `#[\Override]` on every method that overrides or implements a parent or
-  interface method.
-- Use typed class constants: `protected const array PROVIDERS = [];`.
+- Use `#[Override]` (with `use Override;`) on every method that overrides or
+  implements a parent or interface method.
+- Use typed class constants: `protected const array PROVIDERS = [];`. A
+  subclass that redefines a typed constant must type it too.
+- Every exception implements `Blush\Core\BlushException` and extends the SPL
+  base that fits (`LogicException`, `RuntimeException`, and so on).
 - Prefer enums over string constants for any closed set (status, order,
   granularity, exit codes). Use backed enums when the value is serialized.
 
@@ -160,6 +164,15 @@ public string $name {
 
 Every other 8.5 feature listed above passes PHPCS with no workaround.
 
+**Closures in attributes (D-061)** must be `static function` bodies. Arrow
+functions and `use` aren't allowed in constant expressions:
+
+```php
+#[ListenToUntil(static function (OrderPlaced $event): bool {
+	return $event->isFinal();
+})]
+```
+
 ---
 
 ## Naming
@@ -184,7 +197,9 @@ Every other 8.5 feature listed above passes PHPCS with no workaround.
 - **Only template escaping helpers may be global functions.**
 - Never read `$_GET`, `$_POST`, `$_SERVER`, and so on outside
   `RequestFactory`.
-- Configuration is typed, immutable config objects, not arrays.
+- Configuration is typed, immutable config objects, not arrays. Config
+  files get `$env` and `$paths` from the loader. Declare them at the top of
+  the file with `/** @var Env $env */` (and `Paths $paths` when used).
 - Throw specific exceptions that extend the subsystem's base exception, and
   never die or exit.
 - Extensible subsystems use the Type enum + Registry + Factory + Registrar
@@ -224,6 +239,23 @@ Every other 8.5 feature listed above passes PHPCS with no workaround.
 - Compare secrets with `hash_equals()`. Hash passwords with
   `password_hash()`.
 - Write files atomically (temp file + `rename()`).
+
+---
+
+## Tests
+
+- Test files get the standard file docblock and `#[CoversClass(...)]` for
+  each class under test. Test classes are `final` and extend
+  `PHPUnit\Framework\TestCase`.
+- Fixtures live in `tests/Fixtures/{Subsystem}/` (namespace
+  `Blush\Tests\Fixtures\{Subsystem}`). Fixture classes may skip docblocks.
+- The fixture site is `tests/Fixtures/site`. Use the `FixtureSite` trait to
+  work on a scratch copy, and `TemporaryDirectory` for any other files.
+  Never write inside `tests/Fixtures`.
+- Prefer small named test doubles in `tests/Fixtures` over anonymous
+  classes that capture by reference.
+- PHPUnit lowers `error_reporting` while its own error handler runs. Tests of
+  error handling must raise it themselves and restore it afterward.
 
 ---
 

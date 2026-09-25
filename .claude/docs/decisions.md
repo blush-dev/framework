@@ -447,3 +447,144 @@ decision, add a new entry that supersedes it and mark the old one
 - **Decision:** No 1.x worktree. M0 cleared 1.x from `2.x`, and jtcom's
   symlinked `vendor/blush-dev/framework` stays broken locally until the M8
   port. Resolves the "keep jtcom running" open question.
+
+### D-051: Where the M1 core lives
+- **Date:** 2026-09-25
+- **Decision:**
+  - `Blush\Container`: the container and its attributes. Resolution plans
+    are in `Blush\Container\Plan`.
+  - `Blush\Core`: `Application`, `ServiceProvider`, `Bootable`,
+    `BlushException`, `Paths`, `Environment`, `AppConfig`, `Bootstrap`, and
+    core events (`Core\Events\ApplicationBooted`).
+  - `Blush\Event`: the x3p0-event system, implementing PSR-14.
+  - `Blush\Support`: `Registry` (from x3p0-class-registry), `Filesystem`,
+    `PhpArrayFile`, and `Support\Attributes` (from x3p0-attributes).
+  - `Blush\Env`, `Blush\Config`, `Blush\Error`, `Blush\Log`, `Blush\Clock`,
+    and `Blush\Extension`.
+  - Each config class lives with its subsystem: `Core\AppConfig`,
+    `Log\LogConfig`, `Extension\ExtensionConfig`.
+- **Dropped from the x3p0 copies:** the WordPress `begin()` lifecycle,
+  `BroadcastsToHooks`, `esc_html()` calls, the PHP-version guard on the
+  `Until` listener attributes, and x3p0-attributes' PSR-16-shaped `Cache`
+  mirror. The attribute reader caches in memory only, because attribute
+  instances can hold closures in 8.5.
+
+### D-052: Compiled container resolution plans
+- **Date:** 2026-09-25
+- **Decision:** Implements the D-044 follow-up. The container builds classes
+  from `ClassPlan`/`ParameterPlan` data (types in DNF, defaults, and
+  container attributes recorded as class + arguments) instead of reflecting
+  on every build.
+  - `ReflectionPlanner` builds plans on demand; development uses it.
+  - `CompiledPlanner` reads `storage/cache/container.php` and falls back to
+    reflection for anything missing. It's used everywhere except
+    development.
+  - A plan holding a closure (an 8.5 closure attribute argument) or an
+    object default (`new` in an initializer) is never compiled. Object
+    defaults are evaluated fresh per build, as PHP would.
+  - `Bootstrap::compile()` gathers plans by booting a fresh application.
+    Which request-time classes to plan ahead of time is decided with the
+    M2 compile command (see `open-questions.md`).
+
+### D-053: Container behavior changes from x3p0
+- **Date:** 2026-09-25
+- **Decision:**
+  - `Container` extends PSR-11 `ContainerInterface`, and the exceptions
+    implement the PSR-11 exception interfaces.
+  - `make()` and `build()` verify that the result is an instance of the
+    requested class and throw `ContainerException` otherwise. Resolve
+    non-class identifiers with `get()`.
+  - A closure factory must return an object.
+  - `Application` binds itself plus the container under `Container`,
+    `ServiceResolver`, and `Psr\Container\ContainerInterface`.
+
+### D-054: Application lifecycle
+- **Date:** 2026-09-25
+- **Decision:** A single register-then-boot pass (`begin()` removed).
+  - `boot()` is idempotent. A provider registered after booting boots once
+    its batch is registered.
+  - The framework providers (events, clock, log, errors) always register
+    first, then a subclass's `PROVIDERS`, then those `Bootstrap` adds:
+    extensions, then the site's `AppConfig::$providers`. The theme chain's
+    providers slot in before the site's in M5.
+  - After the first boot pass, `ApplicationBooted` is dispatched when a
+    dispatcher is bound.
+  - The provider constants are typed (`protected const array`), so
+    subclasses must type theirs too.
+
+### D-055: One exception marker
+- **Date:** 2026-09-25
+- **Decision:** Every framework exception implements `Blush\Core\BlushException`
+  (a `Throwable` marker) and extends the SPL base that fits best. Subsystem
+  markers such as `EventException` extend `BlushException`.
+
+### D-056: `.env` format and behavior
+- **Date:** 2026-09-25
+- **Decision:** The in-house parser supports `NAME=value`, `export`,
+  comments, single quotes (literal), double quotes (escapes and `${VAR}`),
+  multi-line quoted values, and inline ` #` comments on unquoted values.
+  The process environment wins over `.env`. Nothing calls `putenv()`.
+  Error messages name variables but never include their values.
+
+### D-057: Config files, defaults, and caching
+- **Date:** 2026-09-25
+- **Decision:**
+  - Each `config/*.php` returns one `Config` object or a list of them,
+    with `$env` and `$paths` in scope. Files declare those with
+    `/** @var Env $env */` for IDEs and PHPStan.
+  - `Config` requires `fromArray()` and `toArray()`. `toArray()` returns only
+    exportable values, since it's also the compile format.
+  - Missing configs get defaults: `AppConfig::fromEnv()` (from the `APP_*`
+    variables), `LogConfig`, and `ExtensionConfig`.
+  - Every config object is bound in the container under its class, so
+    services type-hint `AppConfig` directly.
+  - The compiled config (`storage/cache/config.php`, with env values baked
+    in) is used whenever it exists, in any environment.
+  - `AppConfig::$providers` lists the site's own providers.
+
+### D-058: Extension discovery details
+- **Date:** 2026-09-25
+- **Decision:** Implements D-041.
+  - Composer extensions declare `extra.blush.provider` (and optional
+    `requires`).
+  - Local extensions declare an `extension.json` with `name`, `version`,
+    `description`, `provider`, `autoload.psr-4`, and `requires`. YAML
+    manifests (D-032) arrive with the data loader in M4.
+  - Every discovered extension is enabled by default. `ExtensionConfig`
+    narrows that with `enabled` (allow-list) and `disabled`.
+  - Enabling an extension that isn't installed is an error, and so is two
+    extensions sharing a name.
+  - `requires` is recorded but not yet enforced. `extension:check` and
+    `doctor` enforce it later.
+  - Discovery is cached in `storage/cache/extensions.php`, which is used
+    everywhere except development.
+
+### D-059: Errors and logging defaults
+- **Date:** 2026-09-25
+- **Decision:**
+  - `ErrorHandler` turns warnings and notices into `ErrorException`, logs
+    deprecations, honors `@` and `error_reporting`, and at shutdown catches
+    fatal errors along with PHP 8.5's fatal backtrace.
+  - Rendering is HTML (generic, or detailed when `AppConfig::$debug`) or
+    plain text on the CLI (to stderr). Entry points register the handler.
+  - The logger is in-house PSR-3: one line per record, with placeholder
+    interpolation, leftover context as JSON, and exception chains appended.
+  - `LogDriver` is `file` (default: `storage/logs/blush.log`), `stderr`, or
+    `null`. The default level is `warning`. A driver registry for custom
+    writers can come later.
+  - The clock is PSR-20 (`SystemClock` in the site timezone, or
+    `FrozenClock`).
+
+### D-060: Compiled cache files
+- **Date:** 2026-09-25
+- **Decision:** Everything compiled goes through `Support\PhpArrayFile`: a
+  PHP file returning an array, written atomically and invalidated in
+  opcache. M1 writes `storage/cache/config.php`, `extensions.php`, and
+  `container.php`, using `Bootstrap::compile()` and `clearCompiled()`. The M2
+  CLI wraps these as commands.
+
+### D-061: PHP 8.5 closures in attributes are `static function`
+- **Date:** 2026-09-25
+- **Decision:** 8.5 allows closures in constant expressions (attribute
+  arguments) only as `static function () { … }`, with no arrow functions
+  and no `use`. Recorded in the style skill.

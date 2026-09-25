@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Core;
 
-use Blush\Core\Framework;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Blush\Core\Framework;
 
 #[CoversClass(Framework::class)]
 final class FrameworkTest extends TestCase

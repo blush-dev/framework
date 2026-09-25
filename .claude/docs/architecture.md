@@ -27,12 +27,22 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   to 8.5. It covers autowiring, attribute injection (`#[Get]`, `#[Make]`,
   `#[Defer]`, `#[Tagged]`, `#[Param]`, `#[Singleton]`, …), contextual
   bindings, tagging, and `resolving()`/`decorate()` hooks. It implements
-  `Psr\Container\ContainerInterface`. Consider native lazy objects to back
-  `#[Defer]`.
+  `Psr\Container\ContainerInterface`. `make()`/`build()` verify the result's
+  type (D-053). Consider native lazy objects to back `#[Defer]`.
+- **Resolution plans** (`Blush\Container\Plan`, D-052): classes are built
+  from plain-data plans, not per-build reflection. `ReflectionPlanner` in
+  development; `CompiledPlanner` over `storage/cache/container.php`
+  elsewhere, falling back to reflection.
 - **Application** (`Blush\Core\Application`): the x3p0 application with a
-  single register-then-boot pass (the WordPress `begin()` phases are removed).
-  Providers are declared with typed class constants
-  (`protected const array PROVIDERS`).
+  single register-then-boot pass (D-054). The framework providers (events,
+  clock, log, errors) always register first. `boot()` is idempotent and
+  dispatches `ApplicationBooted`.
+- **`Bootstrap`** (`Blush\Core\Bootstrap`): builds a site's application from
+  its root. It loads `.env` and config (compiled or from files, with
+  defaults), picks the planner, and binds `Paths`, `Env`, and every config
+  object. It also discovers and autoloads extensions, then registers providers
+  in source order. `compile()`/`clearCompiled()` manage the
+  `storage/cache/*.php` files (D-060).
 - **Service providers** keep the declarative constants from x3p0
   (`SINGLETONS`, `TRANSIENTS`, `ALIASES`, `TAGS`, `BOOTABLE`).
 - **Provider sources**, in order:
@@ -42,22 +52,30 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   3. The active theme chain's providers
   4. The site's providers from config
 - **`Paths`:** a readonly value object for root, config, user, content, media,
-  data, themes, public, storage, cache, and so on.
-- **`Env`:** an in-house `.env` loader (read-only, no `putenv`) with typed
-  accessors: `string()`, `bool()`, `int()`, `list()`.
-- **Config** (D-017): `config/*.php` returns typed immutable objects, e.g.
-  `return new SiteConfig(title: '…', url: $env->string('APP_URL'), timezone: 'America/Chicago');`
-  Every config class also has `fromArray()`. The merged config is compiled to
-  `storage/cache/config.php`.
-- **Errors:**
-  - A `BlushException` hierarchy.
-  - A global handler that converts errors to exceptions.
-  - Renderers: a detailed page in dev; in production, a themed page from
-    `user/content/_errors/{status}.md`.
-  - 8.5 fatal-error backtraces are logged.
-- **Log:** in-house PSR-3 implementation with file, stderr, and null writers.
-- **Clock:** in-house PSR-20 implementation with system and frozen clocks.
-  Scheduled content and TTLs depend on it, which keeps them testable.
+  data, themes, extensions, public, resources, storage, cache, index, logs,
+  sessions, export, and vendor. Any path can be overridden (D-046), and
+  `join()` confines a relative path to its base.
+- **`Env`** (`Blush\Env`, D-056): an in-house `.env` loader (read-only, no
+  `putenv`; the process environment wins) with typed accessors: `string()`,
+  `bool()`, `int()`, `float()`, `list()`, `enum()`.
+- **Config** (`Blush\Config`, D-017, D-057): `config/*.php` returns typed
+  immutable objects (one or a list), with `$env` and `$paths` in scope, e.g.
+  `return new AppConfig(name: '…', url: $env->string('APP_URL'), timezone: 'America/Chicago');`
+  Every config class implements `fromArray()`/`toArray()`. The merged config
+  is compiled to `storage/cache/config.php`. Config objects are bound in the
+  container by class.
+- **Errors** (`Blush\Error`, D-059):
+  - Every exception implements `Blush\Core\BlushException` (D-055).
+  - `ErrorHandler` converts warnings to exceptions, logs deprecations, and
+    catches fatal errors at shutdown with 8.5's fatal backtrace.
+  - Renderers: HTML (generic, or detailed with `debug`) and plain text for the
+    CLI. A themed page from `user/content/_errors/{status}.md` comes with
+    views (M5).
+- **Log** (`Blush\Log`): in-house PSR-3 implementation with file, stderr, and
+  null writers (`LogDriver`), configured by `LogConfig`.
+- **Clock** (`Blush\Clock`): in-house PSR-20 implementation with system and
+  frozen clocks. Scheduled content and TTLs depend on it, which keeps them
+  testable.
 
 ## Events
 
@@ -65,7 +83,9 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   registry/provider, subscribers, attribute-declared listeners, priorities,
   once-listeners, stoppable events, named events, and **`BroadcastableEvent`**
   (D-007). `BroadcastsToHooks` is dropped.
-- It implements `Psr\EventDispatcher\*`.
+- It implements `Psr\EventDispatcher\*`. `EventServiceProvider` binds one
+  shared `ListenerRegistry` (listeners registered by class name are built
+  through the container) and the `EventDispatcher`.
 - **Broadcast targets** (implementations of `broadcast()`) could include the
   log, a queue for async work, or webhooks out to other services.
 - **Core events:**
@@ -337,8 +357,9 @@ summary below is the view core those features sit on.
   `extension.json|yaml` manifest declares name, version, a PSR-4 namespace and
   path, the provider, and requirements (Blush version, PHP extensions, other
   extensions). Blush registers the autoloader.
-- **Enabling:** extensions are enabled or disabled in site config. Discovery
-  results are compiled and cached.
+- **Enabling:** every discovered extension is enabled unless
+  `ExtensionConfig` narrows it (`enabled` allow-list, `disabled`). Discovery
+  results are compiled to `storage/cache/extensions.php` (D-058).
 - **CLI:** `extension:list`, `extension:new`, `extension:check`.
 
 ## Hosting (D-040)

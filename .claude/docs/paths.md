@@ -23,8 +23,10 @@
 blush-framework/
   bin/                  CLI entry for framework development
   src/
-    Core/               Application, ServiceProvider, Bootable, Kernel wiring
+    Core/               Application, ServiceProvider, Bootable, Bootstrap, Paths,
+                        Environment, AppConfig, BlushException, Kernel wiring
     Container/          DI container (from x3p0-framework)
+    Container/Plan/     Compiled resolution plans (D-052)
     Event/              Event system (from x3p0-event)
     Config/  Env/  Error/  Log/  Clock/
     Data/               DataLoader + JSON/YAML parser registry (D-032)
@@ -43,9 +45,11 @@ blush-framework/
     Publish/            Webhook, deployer, static export
     Console/            In-house console framework + built-in commands
     Admin/              (later milestone)
-    Support/            Str, Arr, Path helpers, Registry base, etc.
+    Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
+    Support/Attributes/ Cached attribute reader (from x3p0-attributes)
   resources/            Framework default views/theme
   tests/
+    Fixtures/site/      Fixture site: .env, config/, local + Composer extensions
   .claude/
     docs/               ← this folder
     skills/blush-code-style-php/
@@ -69,6 +73,7 @@ site/
   resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
   src/                  App\ namespace: providers, components, controllers
   storage/
-    cache/  index/  logs/  sessions/  export/
+    cache/              Compiled config.php, extensions.php, container.php (D-060)
+    index/  logs/  sessions/  export/
   tests/
 ```

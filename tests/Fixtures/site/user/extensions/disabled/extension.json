@@ -1,0 +1,4 @@
+{
+	"name": "acme/disabled",
+	"provider": "Acme\\Disabled\\DoesNotExistProvider"
+}

@@ -17,7 +17,11 @@
 		"issues": "https://github.com/blush-dev/framework/issues"
 	},
 	"require": {
-		"php": ">=8.5"
+		"php": ">=8.5",
+		"psr/clock": "^1.0",
+		"psr/container": "^2.0",
+		"psr/event-dispatcher": "^1.0",
+		"psr/log": "^3.0"
 	},
 	"require-dev": {
 		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",

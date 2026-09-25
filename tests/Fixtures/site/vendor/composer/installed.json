@@ -1,0 +1,27 @@
+{
+	"packages": [
+		{
+			"name": "acme/composer-ext",
+			"version": "2.1.0",
+			"type": "blush-extension",
+			"description": "A Composer-installed extension.",
+			"extra": {
+				"blush": {
+					"provider": "Blush\\Tests\\Fixtures\\Extension\\ComposerExtensionProvider",
+					"requires": {
+						"php": ">=8.5"
+					}
+				}
+			},
+			"install-path": "../acme/composer-ext"
+		},
+		{
+			"name": "acme/library",
+			"version": "1.0.0",
+			"type": "library",
+			"install-path": "../acme/library"
+		}
+	],
+	"dev": true,
+	"dev-package-names": []
+}

@@ -1,0 +1,14 @@
+{
+	"name": "fixture/hello",
+	"version": "1.2.0",
+	"description": "Says hello.",
+	"provider": "Fixture\\Hello\\HelloServiceProvider",
+	"autoload": {
+		"psr-4": {
+			"Fixture\\Hello\\": "src/"
+		}
+	},
+	"requires": {
+		"blush": "^2.0"
+	}
+}

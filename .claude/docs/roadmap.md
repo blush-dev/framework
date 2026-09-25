@@ -17,7 +17,27 @@
 
 ---
 
-## M0 checklist (setup) — done
+## M1 (core): done
+
+Completed 2026-09-25. See D-051 to D-061. Delivered:
+
+- Container (plan-based, compiled plans), `Application`, and `ServiceProvider`,
+  with the copied x3p0 tests passing under `Blush\`.
+- Events (PSR-14), `Support\Registry`, and `Support\Attributes`.
+- `Paths`, `Environment`, `Env`, the config system (`AppConfig`,
+  `LogConfig`, `ExtensionConfig`), error handling, the PSR-3 logger, and the
+  PSR-20 clock.
+- Extension discovery (Composer and local), with a local autoloader and cache.
+- `Core\Bootstrap` with `compile()`/`clearCompiled()`, tested against
+  `tests/Fixtures/site`.
+
+Carried into M2: the compile and cache-clear commands, and a plan warm-up
+strategy for request-time classes. Registering the error handler belongs
+in the front controller and `bin/blush`.
+
+---
+
+## M0 checklist (setup): done
 
 Completed 2026-09-25. See D-048 to D-050.
 
