@@ -23,6 +23,7 @@ use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\BootsScratchSite;
 use Blush\Theme\ThemeAssetController;
+use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
@@ -38,6 +39,7 @@ use Blush\Theme\ThemeServiceProvider;
 #[CoversClass(ThemeConfig::class)]
 #[CoversClass(ThemeResolver::class)]
 #[CoversClass(ThemeAssetController::class)]
+#[CoversClass(ThemeAssets::class)]
 #[CoversClass(ThemeRoutes::class)]
 #[CoversClass(ThemeServiceProvider::class)]
 #[CoversClass(ThemeException::class)]
@@ -67,7 +69,7 @@ final class ThemesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/themes/parent/theme.json', '{"name": "Parent", "version": "1.0.0", "styles": ["css/parent.css"]}');
 		$this->writeTemporaryFile('user/themes/parent/css/parent.css', 'body { color: red; }');
-		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: Child\nparent: parent\nstyles: [style.css, css/parent.css]\nsettings: {dark: true}\n");
+		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: Child\nparent: parent\nstyles: [style.css, css/parent.css]\nsettings: {dark: {type: bool, default: true}}\n");
 		$this->writeTemporaryFile('user/themes/child/style.css', 'body {}');
 	}
 
@@ -95,7 +97,7 @@ final class ThemesTest extends TestCase
 		$this->assertNotNull($child);
 		$this->assertSame('parent', $child->parent);
 		$this->assertSame(['style.css', 'css/parent.css'], $child->styles);
-		$this->assertSame(['dark' => true], $child->data['settings']);
+		$this->assertSame(['dark' => ['type' => 'bool', 'default' => true]], $child->settings());
 		$this->assertSame(['child', 'parent', 'default'], $chain->slugs());
 		$this->assertCount(3, $chain);
 		$this->assertSame('child', $chain->active()->slug);
@@ -110,13 +112,14 @@ final class ThemesTest extends TestCase
 	{
 		$this->writeThemes();
 
-		$chain = $this->themes()->chain('child');
+		$chain  = $this->themes()->chain('child');
+		$assets = new ThemeAssets($chain);
 		$mtime = filemtime($this->temporaryDirectory() . '/user/themes/parent/css/parent.css');
 
-		$this->assertSame("/themes/parent/css/parent.css?v={$mtime}", $chain->assetUrl('css/parent.css'));
-		$this->assertStringStartsWith('/themes/child/style.css?v=', (string) $chain->assetUrl('style.css'));
-		$this->assertNull($chain->assetUrl('missing.css'));
-		$this->assertNull($chain->assetUrl('theme.yaml'));
+		$this->assertSame("/themes/parent/css/parent.css?v={$mtime}", $assets->url('css/parent.css'));
+		$this->assertStringStartsWith('/themes/child/style.css?v=', (string) $assets->url('style.css'));
+		$this->assertNull($assets->url('missing.css'));
+		$this->assertNull($assets->url('theme.yaml'));
 		$this->assertNull($chain->asset('views/layouts/base.php'));
 		$this->assertTrue(ThemeChain::isServable('fonts/a.woff2'));
 		$this->assertFalse(ThemeChain::isServable('views/x.css'));
@@ -156,7 +159,7 @@ final class ThemesTest extends TestCase
 			'{"name": "X", "styles": "style.css"}' => '"styles" must be a list',
 			'{"name": "X", "styles": ["../x.css"]}' => 'paths inside the theme',
 			'{"name": "X", "version": 2}'          => '"version" must be a string',
-			'{broken'                              => 'manifest is invalid'
+			'{broken'                              => 'theme.json is invalid'
 		];
 
 		foreach ($cases as $json => $message) {

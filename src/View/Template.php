@@ -20,6 +20,8 @@ use Stringable;
 use Blush\Content\Entry\Entry;
 use Blush\Data\InvalidData;
 use Blush\Routing\UrlGenerationException;
+use Blush\Theme\ThemeException;
+use Blush\View\Component\PendingComponent;
 
 /**
  * `$this` inside a template: the small API templates use to build pages
@@ -139,6 +141,37 @@ final class Template
 	}
 
 	/**
+	 * Returns a component with named props, to print or to fill with
+	 * slots first (D-025):
+	 * `<?= $this->component('callout', tone: 'info')->content($html) ?>`.
+	 */
+	public function component(string $key, mixed ...$props): PendingComponent
+	{
+		return new PendingComponent($this->views, $this->context, $key, self::named($props));
+	}
+
+	/**
+	 * Returns a theme setting's value (from `user/data/theme.json`, or
+	 * the theme's default), or `$default` when no theme in the chain
+	 * declares it.
+	 */
+	public function setting(string $name, mixed $default = null): mixed
+	{
+		return $this->views->settings->get($name, $default);
+	}
+
+	/**
+	 * Returns a design token's value as CSS (`color.accent` → `#a3285b`),
+	 * with aliases followed, in the base mode or another, or `''`. In
+	 * stylesheets, use the custom property (`var(--color-accent)`)
+	 * instead, so modes apply.
+	 */
+	public function token(string $path, ?string $mode = null): string
+	{
+		return $this->views->tokens->value($path, $mode) ?? '';
+	}
+
+	/**
 	 * Translates a message from the theme's catalogs with named
 	 * parameters: `$this->t('reading_time', minutes: 5)` (D-028).
 	 *
@@ -158,12 +191,15 @@ final class Template
 	}
 
 	/**
-	 * Returns a theme asset's URL (versioned), resolved through the
-	 * theme chain, or `''` when no theme has it.
+	 * Returns a theme asset's URL (from a build manifest, or versioned by
+	 * mtime), resolved through the theme chain, or `''` when no theme
+	 * has it.
+	 *
+	 * @throws ThemeException When a build manifest is invalid.
 	 */
 	public function asset(string $path): string
 	{
-		return $this->views->chain->assetUrl($path) ?? '';
+		return $this->views->assets->url($path) ?? '';
 	}
 
 	/**
@@ -171,7 +207,7 @@ final class Template
 	 */
 	public function permalink(Entry $entry): string
 	{
-		return $this->views->urls->entry($entry) ?? '';
+		return $this->views->services->urls->entry($entry) ?? '';
 	}
 
 	/**
@@ -182,7 +218,7 @@ final class Template
 	 */
 	public function route(string $name, array $params = [], bool $absolute = false): string
 	{
-		return $this->views->router->to($name, $params, $absolute);
+		return $this->views->services->router->to($name, $params, $absolute);
 	}
 
 	/**
@@ -196,7 +232,7 @@ final class Template
 		$terms = [];
 
 		foreach ($entry->terms($taxonomy) as $slug) {
-			$term = $this->views->content->term($taxonomy, $slug);
+			$term = $this->views->services->content->term($taxonomy, $slug);
 
 			if ($term !== null && $term->isPublished() && $term->isRoutable()) {
 				$terms[] = $term;
@@ -217,7 +253,7 @@ final class Template
 			$this->views->translator->locale(),
 			$style ?? IntlDateFormatter::NONE,
 			IntlDateFormatter::NONE,
-			$this->views->app->timezone,
+			$this->views->services->app->timezone,
 			null,
 			$style === null ? $format : null
 		);

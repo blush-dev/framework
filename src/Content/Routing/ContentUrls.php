@@ -132,6 +132,32 @@ final readonly class ContentUrls
 	}
 
 	/**
+	 * Returns a feed's URL path: a type's collection feed, or with
+	 * `$term`, a taxonomy term's. `$key` is the route key (`collection.feed`,
+	 * `collection.feed.atom`, …; the `collection` part is swapped for
+	 * `single` for a term). The home type's collection feeds sit at the
+	 * site root (`/feed`, 1.x's home alias).
+	 */
+	public function feed(ContentType $type, string $key = 'collection.feed', ?string $term = null): ?string
+	{
+		if (! $type->hasFeed() || ! $type->public) {
+			return null;
+		}
+
+		if ($term !== null) {
+			return $type->taxonomy ? $this->build($type->routePattern(str_replace('collection.', 'single.', $key)), ['name' => $term]) : null;
+		}
+
+		if ($type->name === $this->types->home) {
+			$path = $type->routing === false ? null : $type->routing->path($key);
+
+			return $path === null ? null : $this->build('/' . $path, []);
+		}
+
+		return $this->build($type->routePattern($key), []);
+	}
+
+	/**
 	 * Returns a date archive's URL path, or a later page's. `$parts` are
 	 * the date parts from the year down, such as `['year' => 2008,
 	 * 'month' => 4]`, and must stop at a level the type archives.

@@ -1,13 +1,11 @@
 # Theming
 
-Decisions: D-009, D-010, D-020 through D-035, and D-102 through D-110 (M5).
+Decisions: D-009, D-010, D-020 through D-035, and D-102 through D-125 (M5).
 Unresolved items are listed at the bottom.
 
-**Status:** M5a (D-102) implemented the view engine, hierarchy, `Head`,
-escaping, translator, manifests and parent chains, the default theme, themed
-error and welcome pages, the asset route, and `?theme=`. Components,
-directives, context providers, theme providers, settings, tokens, asset
-publishing, and the `theme:*` commands are M5b; feeds and sitemaps are M5c.
+**Status:** M5a and M5b (D-102 to D-121) implemented everything here except
+image derivatives (`image()`), menus and regions, and `requires`
+enforcement. M5c (D-122 to D-124) added the feed and sitemap templates.
 
 ## Principles
 
@@ -70,7 +68,9 @@ exist (D-032).
 		"showReadingTime": { "type": "bool", "default": true, "label": "Show reading time" },
 		"archiveLayout": { "type": "enum", "options": ["grid", "list"], "default": "list" }
 	},
-	"provider": "Nova\\ThemeProvider"
+	"provider": "Nova\\ThemeProvider",
+	"autoload": { "psr-4": { "Nova\\": "src/" } },
+	"contrast": [["color.text", "color.background"]]
 }
 ```
 - Blush publishes a JSON Schema so editors autocomplete and validate it.
@@ -78,7 +78,15 @@ exist (D-032).
   through the chain. Ancestors' own lists aren't loaded automatically
   (D-105).
 - `settings` use the **same field types as content schemas**, so the future
-  admin renders both with one form system.
+  admin renders both with one form system. Definitions merge down the chain;
+  values come from `user/data/theme.json` (D-117).
+- `provider` registers after extensions' and before the site's, ancestors
+  first; `autoload.psr-4` is registered for local themes (D-116).
+- `contrast` lists the `[foreground, background]` token pairs `theme:check`
+  measures (D-121).
+- Themes may also be Composer packages of type `blush-theme` (slug from
+  `extra.blush.slug`, else the package name); a local theme with the same
+  slug wins (D-115).
 
 ## Resolution chain
 
@@ -135,9 +143,9 @@ The template API (kept deliberately small; D-103):
 | `layout($name, ...$data)` | Wrap this template in a layout (`layouts/{name}`) |
 | `start($section)` / `stop()` / `section($name, default: '')` / `hasSection($name)` | Define and output sections |
 | `insert($partial, ...$data)` | Include a partial (shared data plus what it's given) |
-| `component($name, ...$props)` | Render a component; `->slot($name, $content)` for named slots (M5b) |
+| `component($name, ...$props)` | Render a component; `->content($html)` and `->slot($name, $html)` fill slots |
 | `t($key, ...$params)` | Translate from the `theme` domain (D-028, D-107) |
-| `setting($key)` / `token($path)` | Theme setting and token values (M5b) |
+| `setting($key, $default)` / `token($path, $mode)` | Theme setting and concrete token values |
 | `asset($path)` / `image($media, $size)` | Versioned asset URLs; responsive `<img>` output (`image()` later) |
 | `head()` | The `Head` manager (title, meta, OpenGraph, and so on; D-109) |
 | `permalink($entry)` / `route($name, $params)` | Entry and named-route URLs |
@@ -166,19 +174,25 @@ aren't candidates (D-104).
 - **Errors:** `error-{status}` → `error`, filled from
   `user/content/_errors/{status}.md` (or 1.x's `_error/{status}.md`) when
   it exists (D-108).
-- **Feeds and sitemaps:** `feed-{format}`, `sitemap`, `sitemap-index`.
-  Framework-owned, overridable (D-029).
+- **Feeds and sitemaps:** `feed-{format}-{type}` → `feed-{format}` (`rss`,
+  `atom`, `json`; they get `$feed`), `sitemap-{type}` → `sitemap` (`$urls`),
+  and `sitemap-index` (`$sitemaps`). Framework-owned, overridable, and
+  rendered without a layout (D-029, D-122, D-123).
 - Themes can add candidates through their provider (for example by post
   format or by term).
 
-## Components (D-025)
+## Components (D-025, D-111)
 
 - **A template-only component** is just `views/components/{name}.php`, with its
-  props passed in as variables. That's the simple path.
-- **A class-backed component** is for props that need logic: typed props via
-  constructor promotion plus the same template.
+  props passed in as variables (and all of them as `$props`). That's the
+  simple path.
+- **A class-backed component** extends `View\Component\Component` for props
+  that need logic: typed props via constructor promotion (strings from
+  Markdown are cast to `int`/`float`/`bool`), services by autowiring,
+  `data()`, `template()`, and `shouldRender()`, plus the same template.
+  Register it with `ComponentRegistry::register($key, $class)` in a provider.
 - **Slots:** `$slot` holds the default slot and `$slots->name` holds named
-  slots.
+  slots (`''` when unfilled).
 - **Registry:** components are resolved by key through the chain. A site
   overrides a theme component by providing the same key.
 - **In Markdown** (D-026), the same components are available to content:
@@ -190,33 +204,42 @@ aren't candidates (D-104).
   This is :badge[new]{tone=info}.
   ```
   An unknown directive renders as plain content. The framework default theme
-  ships the core content components (D-033), so they work under any theme.
+  ships the core content components (D-033, D-113): `callout`, `gallery`,
+  `figure`, and `embed`, so they work under any theme. Directives render with
+  the request's theme; attributes are props, the `[label]` is `$slot` (and
+  the `label` prop), and a container's blocks are `$slot` (D-112).
 
 ## Context providers
 
 Classes attached to view names or patterns that supply data, e.g. a
 `PrimaryMenu` provider for `parts/header`. They keep queries out of templates.
-They are registered in the theme or site provider.
+They are registered in the theme or site provider:
+`ContextProviders::add('parts/*', PrimaryMenu::class)`. Their data are
+defaults; data given explicitly wins (D-114).
 
 ## Design tokens (D-023)
 
-- **Format:** W3C Design Tokens (DTCG) in `tokens.json`, with aliases
-  (`{color.brand}`), types, and groups.
-- **Modes:** a Blush extension (light/dark and more), compiled into
-  `prefers-color-scheme` and `[data-scheme]` blocks.
+- **Format:** W3C Design Tokens (DTCG) in `tokens.json` (or `.yaml`), with
+  aliases (`{color.brand}`, compiled to `var(--color-brand)`), types, and
+  groups. Scalar leaves are a shorthand for `$value` (D-118).
+- **Modes:** a Blush extension, `"$extensions": {"blush": {"modes": {"dark":
+  …}}}`, compiled into `prefers-color-scheme` and `[data-scheme]` blocks.
 - **Merge order:** default theme → ancestors → theme → `user/data/theme.json`
-  → entry front matter `tokens` (D-027).
-- **Output:** compiled CSS custom properties, cached per content version.
-  Per-entry overrides are emitted inline and scoped.
-- **Validation:** `theme:check` computes palette contrast from tokens.
+  → entry front matter `tokens` (D-027). An override replaces a token in
+  every mode unless it sets its own modes.
+- **Output:** CSS custom properties inlined in the head (`blush-tokens`),
+  built once per chain per process (caching per content version is M6's).
+  Per-entry overrides follow in their own block (`blush-entry-tokens`).
+- **Validation:** unsafe values are dropped; `theme:check` reports tokens
+  that don't compile or resolve, and computes palette contrast.
 
 ## Per-entry presentation (D-027)
 
 Built-in front matter: `layout`, `template`, `stylesheet`, `class`, `tokens`.
 These let a single post have its own design without a custom theme.
-`template`, `layout` (replaces the page template's layout, if it exists), and
-`class` (added to `<body>`) work since M5a (D-109); `stylesheet` and `tokens`
-come in M5b.
+`layout` replaces the page template's layout (if it exists), `class` is added
+to `<body>` (D-109), `stylesheet` is a URL or a theme asset path (D-119), and
+`tokens` override the theme's on that page (D-118).
 
 ## Assets (D-031)
 
@@ -225,10 +248,12 @@ come in M5b.
 - `Head` prints each asset once, in order.
 - **Serving:** the `theme.asset` route (`/themes/{slug}/{path}`) streams
   allowed files from any installed theme until they're published (D-105).
-- **Versioning:** from `dist/manifest.json` if present (M5b), otherwise the
-  file mtime (`?v=`).
-- **Publishing:** `theme:publish` copies or symlinks theme assets to
-  `public/themes/{slug}/`. Static export includes them.
+- **Versioning:** from a Vite-style `dist/.vite/manifest.json` or
+  `dist/manifest.json` if present (hashed files, their `css`, built scripts
+  as modules), otherwise the file mtime (`?v=`) (D-119).
+- **Publishing:** `theme:publish` copies servable theme assets (never PHP,
+  views, or manifests; never a symlink) to `public/themes/{slug}/`. Static
+  export includes them.
 
 ## Media and images
 
@@ -255,13 +280,13 @@ call `$this->t()`. A child theme overrides its ancestors message by message
 
 - The default theme targets WCAG 2.2 AA.
 - `theme:check` verifies: base layout landmarks and skip link, `lang` on
-  `<html>`, heading structure in the core templates, and token palette
-  contrast.
+  `<html>`, one `<h1>`, and token palette contrast in every mode (D-121).
 
 ## CLI
 
 `theme:list`, `theme:activate <slug>`, `theme:new <slug> [--parent=]`,
-`theme:check`, `theme:why <view>`, `theme:publish`.
+`theme:check [slug]`, `theme:why <view>`, `theme:publish [--all]` (D-120; see
+`cli.md`).
 
 ## Theme switching (D-035)
 
@@ -272,5 +297,3 @@ theme. Anything more (such as admin preview) comes later.
 
 - **Future template engine:** how would it coexist with PHP templates? (The
   current thinking is one `ViewEngine` interface chosen by file extension.)
-- **Which core content components ship first**, beyond gallery, figure,
-  callout, and embed?

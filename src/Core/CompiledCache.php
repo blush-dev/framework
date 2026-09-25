@@ -24,4 +24,5 @@ enum CompiledCache: string
 	case Container    = 'container';
 	case Routes       = 'routes';
 	case ContentTypes = 'content-types';
+	case Themes       = 'themes';
 }

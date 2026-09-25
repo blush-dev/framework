@@ -7,6 +7,12 @@ Move each item to `decisions.md` once it's answered.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 
 ## Later milestones
+- **Browser-friendly feeds and sitemaps** (D-125): XSL stylesheets won't
+  work in major browsers for much longer, so 1.x's approach (jtcom's
+  `xsl/feed.xsl`) can't carry over. Options: an HTML "about this feed" page
+  at a sibling URL, a CSS-only stylesheet (`<?xml-stylesheet
+  type="text/css"?>`, limited), or content negotiation that serves HTML
+  to browsers (`Accept: text/html`) and XML to feed readers.
 - **Subdirectory installs** (D-071): a site at `example.com/site/` needs a
   base path for routing and URL generation. Derive it from `AppConfig::$url`?
   The M3 router and `UrlGenerator` assume the site is at the host's root.

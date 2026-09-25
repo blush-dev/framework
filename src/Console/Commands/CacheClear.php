@@ -41,14 +41,16 @@ final readonly class CacheClear
 		#[Option('Clear the extension discovery cache.')] bool $extensions = false,
 		#[Option('Clear the compiled container plans.')] bool $container = false,
 		#[Option('Clear the compiled route table.')] bool $routes = false,
-		#[Option('Clear the compiled content types.')] bool $types = false
+		#[Option('Clear the compiled content types.')] bool $types = false,
+		#[Option('Clear the theme discovery cache.')] bool $themes = false
 	): ExitCode {
 		$caches = array_values(array_filter([
 			$config ? CompiledCache::Config : null,
 			$extensions ? CompiledCache::Extensions : null,
 			$container ? CompiledCache::Container : null,
 			$routes ? CompiledCache::Routes : null,
-			$types ? CompiledCache::ContentTypes : null
+			$types ? CompiledCache::ContentTypes : null,
+			$themes ? CompiledCache::Themes : null
 		]));
 
 		$caches = $caches === [] ? CompiledCache::cases() : $caches;

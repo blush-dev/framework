@@ -132,21 +132,22 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns an asset's URL path, versioned by the file's modification
-	 * time (`/themes/default/style.css?v=1700000000`), or `null` when no
-	 * theme has it.
+	 * Returns the service providers of the chain's themes, ancestors
+	 * first, so a child theme's bindings win.
+	 *
+	 * @return list<string>
 	 */
-	public function assetUrl(string $path): ?string
+	public function providers(): array
 	{
-		$asset = $this->asset($path);
+		$providers = [];
 
-		if ($asset === null) {
-			return null;
+		foreach (array_reverse($this->themes) as $theme) {
+			if ($theme->provider !== null) {
+				$providers[] = $theme->provider;
+			}
 		}
 
-		[$theme, $file] = $asset;
-
-		return sprintf('%s/%s/%s?v=%d', self::ASSET_URL, $theme->slug, $path, (int) filemtime($file));
+		return $providers;
 	}
 
 	/**

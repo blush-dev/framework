@@ -54,17 +54,20 @@ Implemented in M2 (D-065, D-069).
 | `list` | List the commands (the default) |
 | `help <command>` | Show a command's usage |
 | `serve [--host] [-p\|--port]` | Dev server (`php -S` + `resources/server.php`) |
-| `cache:clear [--config\|--extensions\|--container\|--routes\|--types]` | Clear compiled caches (no flags: all). Pages and the content version join later |
-| `cache:compile` | Compile config, extensions, routes, content types, and container plans (D-060, D-066, D-077, D-092) |
+| `cache:clear [--config\|--extensions\|--container\|--routes\|--types\|--themes]` | Clear compiled caches (no flags: all). Pages and the content version join later |
+| `cache:compile` | Compile config, extensions, themes, routes, content types, and container plans (D-060, D-066, D-077, D-092, D-115) |
 | `content:index [--full]` | Build or refresh the content index, with a progress bar; `-v` lists changes (M4b, D-087) |
 | `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry; `--strict` adds notices for undeclared keys, 1.x aliases, and virtual terms (D-081, D-084, D-091) |
 | `content:new <type> "<title>" [--slug] [--draft]` | Scaffold a Markdown entry (`Y-m-d.slug.md` for dated types) and refresh the index (D-091) |
 | `content:list [--type] [--status]` | List every indexed entry (M4b) |
 | `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |
 | `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099) |
-| `theme:list\|activate\|new\|publish` | Theme management |
-| `theme:check` | Validate the manifest, required templates, and accessibility basics (D-030) |
-| `theme:why <view>` | Show which file in the theme chain wins for a view |
+| `theme:list` | List installed themes (framework, Composer, local), the active one, and broken manifests (M5b, D-120) |
+| `theme:activate <slug>` | Set the active theme in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120) |
+| `theme:new <slug> [--parent] [--name]` | Create a minimal theme (manifest plus stylesheet) in `user/themes` (D-120) |
+| `theme:publish [--all]` | Copy servable theme assets to `public/themes/{slug}`, removing stale ones; the active chain, or every theme (D-119) |
+| `theme:check [slug] [--strict]` | Check the chain, manifests, provider, settings, tokens, WCAG AA contrast, and the base layout's landmarks and skip link (D-030, D-121) |
+| `theme:why <view> [--theme]` | Show which file in the view chain wins for a view, and what it shadows (D-120) |
 | `lang:missing [--locale]` | List untranslated message keys |
 | `build [--incremental] [--base-url]` | Static export |
 | `publish` | Pull content, reindex, and bump the content version (same as the webhook) |

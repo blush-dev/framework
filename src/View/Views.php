@@ -15,12 +15,12 @@ namespace Blush\View;
 
 use Closure;
 use Throwable;
-use Blush\Content\ContentRepository;
-use Blush\Content\Routing\ContentUrls;
-use Blush\Core\AppConfig;
-use Blush\Routing\UrlGenerator;
+use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
+use Blush\Theme\ThemeSettings;
+use Blush\Theme\Token\TokenSet;
 use Blush\Translation\Translator;
+use Blush\View\Component\Slots;
 
 /**
  * Renders plain PHP templates (D-009) for one theme chain.
@@ -30,22 +30,30 @@ use Blush\Translation\Translator;
  * template calls `layout()`, its output becomes the `content` section
  * and the layout renders next, with the same data plus the layout's own
  * (layouts may have layouts). Partials see the shared data plus what
- * they're given, not their caller's variables.
+ * they're given, not their caller's variables. Context providers attached
+ * to a view add their data under what the view is given.
  *
- * `ViewFactory` builds one `Views` per theme chain; the services templates
- * reach through `Template` hang off it.
+ * Components (D-025) render `components/{key}` with their props, `$slot`,
+ * and `$slots`; a class registered for the key builds the props first.
+ *
+ * `ViewFactory` builds one `Views` per theme chain, with the chain's
+ * assets, settings, and tokens; the services templates reach through
+ * `Template` hang off it.
  */
 final readonly class Views
 {
+	public ThemeChain $chain;
+
 	public function __construct(
 		public ViewFinder $finder,
-		public ThemeChain $chain,
+		public ThemeAssets $assets,
 		public Translator $translator,
-		public ContentUrls $urls,
-		public ContentRepository $content,
-		public UrlGenerator $router,
-		public AppConfig $app
-	) {}
+		public ViewServices $services,
+		public ThemeSettings $settings = new ThemeSettings(),
+		public TokenSet $tokens = new TokenSet()
+	) {
+		$this->chain = $assets->chain;
+	}
 
 	/**
 	 * Returns whether a view exists.
@@ -71,7 +79,7 @@ final readonly class Views
 		$names = (array) $names;
 		$found = $this->finder->first($names) ?? throw ViewNotFound::forNames($names);
 
-		return $this->renderFile($found[1], $data, $context, $context->layout);
+		return $this->renderFile($found[0], $found[1], $data, $context, $context->layout);
 	}
 
 	/**
@@ -84,7 +92,49 @@ final readonly class Views
 	{
 		$file = $this->finder->find($name) ?? throw ViewNotFound::forNames([$name]);
 
-		return $this->renderFile($file, $data, $context);
+		return $this->renderFile($name, $file, $data, $context);
+	}
+
+	/**
+	 * Returns whether a component exists: a class is registered for its
+	 * key, or the chain has its template.
+	 */
+	public function hasComponent(string $key): bool
+	{
+		return ViewFinder::isValidName($key)
+			&& ($this->services->components->isRegistered($key) || $this->finder->find("components/{$key}") !== null);
+	}
+
+	/**
+	 * Renders a component with its props and slots.
+	 *
+	 * @param  array<string, mixed> $props
+	 * @throws ViewException
+	 */
+	public function component(string $key, array $props, string $slot, Slots $slots, ViewContext $context): string
+	{
+		if (! ViewFinder::isValidName($key)) {
+			throw new ViewException(sprintf('"%s" is not a valid component key.', $key));
+		}
+
+		$class = $this->services->components->get($key);
+		$data  = [...$props, 'props' => $props, 'slot' => $slot, 'slots' => $slots];
+		$view  = "components/{$key}";
+
+		if ($class !== null) {
+			$component = $this->services->factory->make($class, $props);
+
+			if (! $component->shouldRender()) {
+				return '';
+			}
+
+			$view = $component->template() ?? $view;
+			$data = [...$props, ...$component->data(), 'component' => $component, 'props' => $props, 'slot' => $slot, 'slots' => $slots];
+		}
+
+		$file = $this->finder->find($view) ?? throw ViewNotFound::forNames([$view]);
+
+		return $this->renderFile($view, $file, $data, $context);
 	}
 
 	/**
@@ -93,10 +143,11 @@ final readonly class Views
 	 * @param  array<string, mixed> $data
 	 * @throws ViewException
 	 */
-	private function renderFile(string $file, array $data, ViewContext $context, ?string $layoutOverride = null): string
+	private function renderFile(string $name, string $file, array $data, ViewContext $context, ?string $layoutOverride = null): string
 	{
 		$template = new Template($this, $context);
-		$output   = $this->evaluate($template, $file, [...$context->shared, ...$data]);
+		$data     = [...$context->shared, ...$data];
+		$output   = $this->evaluate($template, $file, $this->services->providers->apply($name, $data));
 		$layout   = $template->requestedLayout();
 
 		if ($layout === null) {
@@ -114,7 +165,7 @@ final readonly class Views
 
 		$layoutFile = $this->finder->find($name) ?? throw ViewNotFound::forNames([$name]);
 
-		return $this->renderFile($layoutFile, [...$data, ...$layoutData], $context);
+		return $this->renderFile($name, $layoutFile, [...$data, ...$layoutData], $context);
 	}
 
 	/**

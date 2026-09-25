@@ -26,11 +26,13 @@ use Blush\Data\DataServiceProvider;
 use Blush\Error\ErrorServiceProvider;
 use Blush\Event\Dispatcher;
 use Blush\Event\EventServiceProvider;
+use Blush\Feed\FeedServiceProvider;
 use Blush\Http\HttpServiceProvider;
 use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
+use Blush\Sitemap\SitemapServiceProvider;
 use Blush\Theme\ThemeServiceProvider;
 use Blush\Translation\TranslationServiceProvider;
 use Blush\View\ViewServiceProvider;
@@ -67,6 +69,8 @@ class Application implements Bootable
 		TranslationServiceProvider::class,
 		ThemeServiceProvider::class,
 		ViewServiceProvider::class,
+		FeedServiceProvider::class,
+		SitemapServiceProvider::class,
 		HttpServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class

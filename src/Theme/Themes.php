@@ -13,22 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
-use DirectoryIterator;
-use Blush\Core\Framework;
-use Blush\Core\Paths;
-use Blush\Data\DataLoader;
-use Blush\Data\InvalidData;
-
 /**
- * The installed themes: each folder in `user/themes` with a `theme.json`
- * (or `theme.yaml`/`theme.yml`; JSON wins, D-032), plus the framework
- * default theme, `default`, which is always there and always last in a
- * chain. The framework's `default` can't be replaced by a site folder of
- * the same name.
- *
- * Manifests are read on first use and kept for the request.
+ * The installed themes, as `ThemeDiscovery` (or the theme cache) found
+ * them: valid manifests by slug, plus the themes whose manifests are
+ * broken, with the reason. The framework default theme, `default`, is
+ * always last in a chain.
  */
-final class Themes
+final readonly class Themes
 {
 	/**
 	 * The framework default theme's slug.
@@ -36,15 +27,12 @@ final class Themes
 	public const string DEFAULT = 'default';
 
 	/**
-	 * Manifests read so far, keyed by slug (`false` when missing).
-	 *
-	 * @var array<string, ThemeManifest|false>
+	 * @param array<string, ThemeManifest> $themes  Valid themes, by slug.
+	 * @param array<string, string>        $invalid Broken themes, by slug, with the reason.
 	 */
-	private array $manifests = [];
-
 	public function __construct(
-		private readonly Paths $paths,
-		private readonly DataLoader $loader
+		private array $themes,
+		private array $invalid = []
 	) {}
 
 	/**
@@ -58,70 +46,57 @@ final class Themes
 	/**
 	 * Returns a theme's manifest, or `null` when it isn't installed.
 	 *
-	 * @throws ThemeException When its manifest is invalid.
+	 * @throws ThemeException When its manifest is broken.
 	 */
 	public function find(string $slug): ?ThemeManifest
 	{
-		if (! self::isValidSlug($slug)) {
-			return null;
+		if (isset($this->invalid[$slug])) {
+			throw new ThemeException($this->invalid[$slug]);
 		}
 
-		if (! array_key_exists($slug, $this->manifests)) {
-			$this->manifests[$slug] = $this->read($slug) ?? false;
-		}
-
-		return $this->manifests[$slug] === false ? null : $this->manifests[$slug];
+		return $this->themes[$slug] ?? null;
 	}
 
 	/**
-	 * Returns whether a theme is installed.
-	 *
-	 * @throws ThemeException
+	 * Returns whether a theme is installed with a valid manifest.
 	 */
 	public function has(string $slug): bool
 	{
-		return $this->find($slug) !== null;
+		return isset($this->themes[$slug]);
 	}
 
 	/**
-	 * Returns every installed theme, by slug, the default theme first.
+	 * Returns every valid theme, by slug, the default theme first.
 	 *
 	 * @return array<string, ThemeManifest>
-	 * @throws ThemeException
 	 */
 	public function all(): array
 	{
-		$slugs = [];
+		$themes = $this->themes;
 
-		if (is_dir($this->paths->themes)) {
-			foreach (new DirectoryIterator($this->paths->themes) as $folder) {
-				if ($folder->isDir() && ! $folder->isDot() && self::isValidSlug($folder->getFilename())) {
-					$slugs[] = $folder->getFilename();
-				}
-			}
-		}
-
-		sort($slugs);
-
-		$themes = [];
-
-		foreach ([self::DEFAULT, ...$slugs] as $slug) {
-			$theme = $this->find($slug);
-
-			if ($theme !== null) {
-				$themes[$slug] = $theme;
-			}
+		if (isset($themes[self::DEFAULT])) {
+			$themes = [self::DEFAULT => $themes[self::DEFAULT], ...$themes];
 		}
 
 		return $themes;
 	}
 
 	/**
+	 * Returns the broken themes, by slug, with the reason.
+	 *
+	 * @return array<string, string>
+	 */
+	public function invalid(): array
+	{
+		return $this->invalid;
+	}
+
+	/**
 	 * Returns a theme's chain: the theme, its ancestors, then the default
 	 * theme.
 	 *
-	 * @throws ThemeException When a theme in the chain is missing or the
-	 *         chain loops.
+	 * @throws ThemeException When a theme in the chain is missing or
+	 *         broken, or the chain loops.
 	 */
 	public function chain(string $slug): ThemeChain
 	{
@@ -146,33 +121,5 @@ final class Themes
 		$default = $this->find(self::DEFAULT) ?? throw new ThemeException('The framework default theme is missing.');
 
 		return new ThemeChain([...array_values($themes), $default]);
-	}
-
-	/**
-	 * Returns the folder a theme lives in.
-	 */
-	public function path(string $slug): string
-	{
-		return $slug === self::DEFAULT
-			? Framework::path('resources/themes/' . self::DEFAULT)
-			: "{$this->paths->themes}/{$slug}";
-	}
-
-	/**
-	 * Reads a theme's manifest.
-	 *
-	 * @throws ThemeException
-	 */
-	private function read(string $slug): ?ThemeManifest
-	{
-		$path = $this->path($slug);
-
-		try {
-			$data = is_dir($path) ? $this->loader->load($path, 'theme') : null;
-		} catch (InvalidData $error) {
-			throw new ThemeException(sprintf('The "%s" theme\'s manifest is invalid: %s', $slug, $error->getMessage()), 0, $error);
-		}
-
-		return $data === null ? null : ThemeManifest::fromArray($slug, $path, $data);
 	}
 }

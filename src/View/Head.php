@@ -21,7 +21,8 @@ use Stringable;
  * (including OpenGraph properties), links (canonical, alternates,
  * pagination), stylesheets, and scripts. Templates and the renderer add
  * to it while the page renders, and the base layout prints it once with
- * `<?= $this->head() ?>`. Since layouts render after the templates they
+ * `<?= $this->head() ?>`. Inline style blocks (`inlineStyle()`) hold
+ * compiled design tokens. Since layouts render after the templates they
  * wrap, anything a template adds is in place by then.
  *
  * Each item is keyed, so adding it twice keeps one copy (the later value)
@@ -35,9 +36,10 @@ final class Head implements Stringable
 	private string $title = '';
 
 	/**
-	 * Tags by key, in the order they were added.
+	 * Tags by key, in the order they were added: the element, its
+	 * attributes, and its content (inline styles only).
 	 *
-	 * @var array<string, array{string, array<string, string|bool>}>
+	 * @var array<string, array{string, array<string, string|bool>, string}>
 	 */
 	private array $tags = [];
 
@@ -134,6 +136,20 @@ final class Head implements Stringable
 	}
 
 	/**
+	 * Adds an inline `<style>` block, once per id: compiled design tokens
+	 * and per-entry overrides. The CSS must come from a trusted compiler
+	 * (it isn't escaped); `</style` is refused.
+	 */
+	public function inlineStyle(string $id, string $css): self
+	{
+		if (str_contains(strtolower($css), '</style')) {
+			throw new ViewException(sprintf('Inline style "%s" can\'t contain "</style".', $id));
+		}
+
+		return $this->add("inline-style:{$id}", 'style', ['id' => $id], $css);
+	}
+
+	/**
 	 * Returns whether an item has been added, by its key (`meta:{name}`,
 	 * `property:{name}`, `link:canonical`, `style:{href}`, …).
 	 */
@@ -149,10 +165,10 @@ final class Head implements Stringable
 	{
 		$html = sprintf('<title>%s</title>', Escaper::html($this->documentTitle()));
 
-		foreach ($this->tags as [$element, $attributes]) {
+		foreach ($this->tags as [$element, $attributes, $content]) {
 			$html .= "\n" . match ($element) {
-				'script' => sprintf('<script%s></script>', self::attributes($attributes)),
-				default  => sprintf('<%s%s>', $element, self::attributes($attributes))
+				'script', 'style' => sprintf('<%1$s%2$s>%3$s</%1$s>', $element, self::attributes($attributes), $content === '' ? '' : "\n{$content}"),
+				default           => sprintf('<%s%s>', $element, self::attributes($attributes))
 			};
 		}
 
@@ -173,9 +189,9 @@ final class Head implements Stringable
 	 *
 	 * @param array<string, string|bool> $attributes
 	 */
-	private function add(string $key, string $element, array $attributes): self
+	private function add(string $key, string $element, array $attributes, string $content = ''): self
 	{
-		$this->tags[$key] = [$element, $attributes];
+		$this->tags[$key] = [$element, $attributes, $content];
 
 		return $this;
 	}

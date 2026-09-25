@@ -23,6 +23,7 @@ use League\CommonMark\Node\Block\Paragraph;
 use League\CommonMark\Parser\Inline\InlineParserInterface;
 use Blush\Core\AppConfig;
 use Blush\Event\Dispatcher;
+use Blush\Markdown\CommonMark\Directive\DirectiveExtension;
 use Blush\Markdown\CommonMark\FigureRenderer;
 use Blush\Markdown\CommonMark\ResolveLinks;
 use Blush\Markdown\Events\MarkdownEnvironmentBuilding;
@@ -30,7 +31,8 @@ use Blush\Media\MediaResolver;
 
 /**
  * The temporary `MarkdownParser` adapter over league/commonmark (D-045,
- * D-080). The converter is built on the first conversion, from
+ * D-080), with Blush's generic directives (D-026) rendered through the
+ * `DirectiveRenderer` when one is bound. The converter is built on the first conversion, from
  * `MarkdownConfig` and then any `MarkdownEnvironmentBuilding` listeners, and
  * reused after that.
  */
@@ -44,7 +46,8 @@ final class CommonMarkParser implements MarkdownParser
 		private readonly MarkdownConfig $config,
 		private readonly Dispatcher $events,
 		private readonly ?MediaResolver $media = null,
-		private readonly ?AppConfig $app = null
+		private readonly ?AppConfig $app = null,
+		private readonly ?DirectiveRenderer $directives = null
 	) {
 		$this->context = new MarkdownContext();
 	}
@@ -98,6 +101,10 @@ final class CommonMarkParser implements MarkdownParser
 				new ResolveLinks($this->context, $this->media, $this->app, $this->config->absoluteLinks),
 				-100
 			);
+
+			if ($this->config->directives) {
+				$environment->addExtension(new DirectiveExtension($this->directives));
+			}
 
 			if ($this->config->figures) {
 				$environment->addRenderer(Paragraph::class, new FigureRenderer(), 10);

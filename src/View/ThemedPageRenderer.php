@@ -20,6 +20,7 @@ use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Http\PageRenderer;
 use Blush\Core\AppConfig;
+use Blush\Feed\FeedLinks;
 use Blush\Http\Response;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
@@ -27,7 +28,8 @@ use Blush\Theme\ThemeResolver;
 /**
  * Renders content pages with the request's theme chain: the first view
  * in the page's `Hierarchy`, in a context whose `Head` already has the
- * title, canonical URL, OpenGraph basics, and pagination links.
+ * title, canonical URL, OpenGraph basics, pagination links, and feed
+ * links.
  *
  * Templates get `$page` (the `ContentPage`), `$entry`, `$entries` (a
  * `Paginator` or `null`), `$type`, and `$title`, plus the shared `$site`.
@@ -37,7 +39,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	public function __construct(
 		private ThemeResolver $themes,
 		private ViewFactory $views,
-		private AppConfig $app
+		private AppConfig $app,
+		private FeedLinks $feeds
 	) {}
 
 	/**
@@ -85,6 +88,10 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			if ($url !== null) {
 				$head->link($rel, $url);
 			}
+		}
+
+		foreach ($this->feeds->forPage($page) as [$url, $format, $title]) {
+			$head->link('alternate', $url, ['type' => $format->mediaType(), 'title' => $title]);
 		}
 
 		$context->addClass("is-{$page->kind->value}");

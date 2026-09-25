@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
-use JsonException;
 use Override;
-use Blush\Support\Filesystem;
+use Blush\Support\ComposerPackages;
+use Blush\Support\FilesystemException;
 
 /**
  * Finds extensions installed with Composer: packages of type `blush-extension`
@@ -49,34 +49,13 @@ final readonly class ComposerExtensionFinder implements ExtensionFinder
 	#[Override]
 	public function find(): array
 	{
-		$file = "{$this->vendorPath}/composer/installed.json";
-
-		if (! is_file($file)) {
-			return [];
-		}
-
 		try {
-			$installed = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
-		} catch (JsonException $e) {
-			throw new ExtensionException(sprintf('Unable to read "%s": %s', $file, $e->getMessage()), previous: $e);
+			$packages = new ComposerPackages($this->vendorPath)->ofType(self::PACKAGE_TYPE);
+		} catch (FilesystemException $e) {
+			throw new ExtensionException($e->getMessage(), previous: $e);
 		}
 
-		// Composer 2 wraps the list in `packages`; Composer 1 did not.
-		$packages = is_array($installed) && isset($installed['packages']) ? $installed['packages'] : $installed;
-
-		if (! is_array($packages)) {
-			return [];
-		}
-
-		$manifests = [];
-
-		foreach ($packages as $package) {
-			if (is_array($package) && ($package['type'] ?? null) === self::PACKAGE_TYPE) {
-				$manifests[] = $this->manifest($package);
-			}
-		}
-
-		return $manifests;
+		return array_map($this->manifest(...), $packages);
 	}
 
 	/**
@@ -99,18 +78,11 @@ final readonly class ComposerExtensionFinder implements ExtensionFinder
 			));
 		}
 
-		$installPath = is_string($package['install-path'] ?? null)
-			? $package['install-path']
-			: '../' . $name;
-
-		$path = realpath("{$this->vendorPath}/composer/{$installPath}")
-			?: new Filesystem()->normalize("{$this->vendorPath}/composer/{$installPath}");
-
 		return ExtensionManifest::fromArray([
 			'name'        => $name,
 			'provider'    => $blush['provider'],
 			'source'      => ExtensionSource::Composer,
-			'path'        => $path,
+			'path'        => is_string($package['path'] ?? null) ? $package['path'] : '',
 			'version'     => is_string($package['version'] ?? null) ? $package['version'] : '0.0.0',
 			'description' => is_string($package['description'] ?? null) ? $package['description'] : '',
 			'requires'    => $blush['requires'] ?? []

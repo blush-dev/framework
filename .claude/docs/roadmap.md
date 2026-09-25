@@ -17,10 +17,11 @@
 
 ---
 
-## M5 (Views + theming): in progress
+## M5 (Views + theming): done
 
-Started 2026-09-25, in three slices (D-102). Exit criterion: **the default
-theme renders every route type.**
+Started and finished 2026-09-25, in three slices (D-102). Exit criterion,
+**the default theme renders every route type:** done, checked by
+`DefaultThemeTest` (D-124), which fails when a route type has no sample.
 
 ### M5a: view engine, themes, default theme (done)
 
@@ -62,21 +63,73 @@ cache hides it entirely.
 Carried into M5b/M5c: see D-102. Also: compiling theme manifests for
 production, site and extension translation domains, and `image()`.
 
-### M5b: components, tokens, settings, assets, CLI (next)
+### M5b: components, tokens, settings, assets, CLI (done)
 
-Components and slots (D-025), Markdown directives and the core content
-components (D-026, D-033), context providers, theme providers and
-autoloading, Composer-installed themes (D-034), settings from
-`user/data/theme.json`, DTCG tokens compiled to CSS (D-023),
-`stylesheet`/`tokens` front matter (D-027), `manifest.json` versioning and
-`theme:publish` (D-031), and `theme:list`, `theme:activate`, `theme:new`,
-`theme:check`, and `theme:why`.
+Implemented 2026-09-25. See D-111 to D-121. Delivered and tested (630
+tests):
 
-### M5c: feeds and sitemaps
+- Components (`View\Component`): template-only and class-backed, slots,
+  `$this->component()`, the registry/factory/registrar, and `Embed`.
+- Markdown directives (an in-house CommonMark extension) rendered as
+  components with the request's theme, and the core content components
+  in the default theme: `callout`, `gallery`, `figure`, `embed`.
+- Context providers.
+- Theme discovery before boot (framework, Composer `blush-theme`, local),
+  broken manifests recorded instead of fatal, the compiled theme cache,
+  and theme providers with PSR-4 autoloading.
+- Settings (content field types, `user/data/theme.json`,
+  `$this->setting()`; the default theme's `excerpts`).
+- DTCG tokens with aliases, modes (light/dark), site and per-entry
+  overrides, sanitizing, inline CSS, and `$this->token()`; the default
+  theme's palette and scale are tokens.
+- `ThemeAssets` (Vite-style manifests or mtime), `stylesheet` front
+  matter, and `theme:publish`.
+- `theme:list`, `theme:activate`, `theme:new`, `theme:check` (contrast,
+  landmarks, skip link, and more), `theme:why`, and `theme:publish`.
 
-RSS, Atom, and JSON Feed per collection, term, and home (`.feed`,
-`.feed.atom`, `home.feed`, D-029), sitemaps (index plus per type), and
-`robots.txt`.
+Checked on https://blush.ddev.site: pages render with the compiled tokens,
+and `bin/blush theme:check` passes the default theme (0 errors, 0
+warnings). Request benchmarks: `benchRequestHome` 8.7 ms and
+`benchRequestSingle` 8.3 ms (M5a: 8.3 and 8.2), the difference being the
+token CSS.
+
+Carried forward: `image()` and derivatives, menus and regions, hierarchy
+candidates added by theme providers, `requires` enforcement (with
+`extension:check`), and caching compiled tokens and rendered bodies per
+content version (M6; the body cache must key on the theme, D-112).
+
+### M5c: feeds, sitemaps, robots.txt (done)
+
+Implemented 2026-09-25. See D-122 to D-124. Delivered and tested (643
+tests):
+
+- `Blush\Feed`: RSS, Atom, and JSON Feed per collection, home, and
+  taxonomy term, with 1.x's route names and paths plus `.feed.json`;
+  `FeedConfig`; `<link rel="alternate">` on pages; default theme
+  templates `feed-rss`, `feed-atom`, and `feed-json`.
+- `Blush\Sitemap`: `/sitemap` (and `/sitemap.xml`), `/sitemap/{type}`,
+  and `/robots.txt`, with `SitemapConfig`; templates `sitemap-index` and
+  `sitemap`.
+- `View\DocumentRenderer` for themed non-HTML documents.
+- The exit-criterion test (D-124).
+
+Checked on https://blush.ddev.site: `/sitemap` and `/sitemap/page` serve
+XML, and `/robots.txt` disallows everything (it's development). Request
+benchmarks are unchanged (8.5 ms and 8.2 ms).
+
+Carried forward: splitting sitemaps past 50,000 URLs, sitemap image
+entries, and a way to make feeds and sitemaps readable in a browser.
+jtcom's 1.x feeds used an XSL stylesheet, but major browsers are dropping
+XSLT, so that isn't the solution (D-125; see `open-questions.md`). Feed and sitemap URLs are
+checked against jtcom's live site in the M8 URL-parity crawl.
+
+### M5 carried forward
+
+To M6: caching compiled tokens and rendered bodies per content version
+(the body cache must key on the theme, D-112), and the page cache for
+themed pages. Later: `image()` and derivatives, menus and regions,
+hierarchy candidates from theme providers, `requires` enforcement,
+and site and extension translation domains.
 
 ---
 

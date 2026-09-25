@@ -37,22 +37,27 @@ blush-framework/
     Http/Middleware/
     Routing/            Route, compiler, matcher, UrlGenerator, attributes
     Content/            Source, Parser, Schema, Type, Index, Entry, Query, Lint, Writer
-    Markdown/           Parser interface + adapter
+    Markdown/           Parser interface + adapter; CommonMark/Directive/ (D-112)
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
     View/               Views, Template, ViewFinder, ViewFactory, Hierarchy, Head, Escaper,
-                        functions.php (the escaping helpers), themed renderers
-    Theme/              Themes, ThemeManifest, ThemeChain, ThemeConfig, ThemeResolver,
-                        the theme asset route; tokens (M5b)
+                        functions.php (the escaping helpers), themed renderers,
+                        context providers, ComponentDirectives
+    View/Component/     Component base, registry, factory, registrar, slots, Embed
+    Theme/              Themes, ThemeDiscovery, ThemeCache, ThemeManifest, ThemeChain,
+                        ThemeConfig, ThemeResolver, ThemeAssets, settings, ThemeChecker,
+                        the theme asset route
+    Theme/Token/        DTCG TokenSet, TokenResolver, Contrast
     Cache/              Stores, PageCache, CacheVersion
-    Feed/  Sitemap/
+    Feed/               Feed formats, config, builder, controller, routes, head links (D-122)
+    Sitemap/            Sitemap config, builder, controller, robots.txt, routes (D-123)
     Publish/            Webhook, deployer, static export
     Console/            In-house console framework + built-in commands
     Admin/              (later milestone)
     Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
   resources/            server.php (`serve` router); lang/ (the `blush` catalog domain)
-    themes/default/     The framework default theme (D-110): theme.json, style.css,
-                        lang/, views/
+    themes/default/     The framework default theme (D-110): theme.json, tokens.json,
+                        style.css, lang/, views/ (incl. components/)
   benchmarks/           PHPBench suite + the generated jtcom-sized site (D-101)
   tests/
     Fixtures/site/      Fixture site: .env, config/, local + Composer extensions
@@ -84,7 +89,7 @@ site/
   src/                  App\ namespace: providers, components, controllers
   storage/
     cache/              Compiled config.php, extensions.php, container.php, routes.php,
-                        content-types.php (D-060, D-077, D-092)
+                        content-types.php, themes.php (D-060, D-077, D-092, D-115)
     index/              content.php, the content index (D-087)
     logs/  sessions/  export/
   tests/

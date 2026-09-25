@@ -20,8 +20,11 @@ namespace Blush\Theme;
  * `["style.css"]`, so the smallest theme is a manifest and a stylesheet
  * (D-021).
  *
- * Keys this version doesn't read yet (settings, image sizes, menus,
- * regions, the provider) are kept in `$data`.
+ * A theme with PHP names a `provider` (a service provider, registered
+ * before the site's, D-054) and, for a local theme, the `autoload.psr-4`
+ * map Blush registers for it. Its `settings` are field definitions
+ * (D-022); keys this version doesn't read (image sizes, menus, regions)
+ * are kept in `$data`.
  */
 final readonly class ThemeManifest
 {
@@ -29,7 +32,9 @@ final readonly class ThemeManifest
 	 * @param string               $path    The theme's absolute folder.
 	 * @param list<string>         $styles  Stylesheet paths, relative to the theme (resolved through the chain).
 	 * @param list<string>         $scripts Script paths, relative to the theme.
-	 * @param array<string, mixed> $data    The whole manifest.
+	 * @param array<string, mixed>  $data     The whole manifest.
+	 * @param ?string               $provider A service provider class.
+	 * @param array<string, string> $autoload PSR-4 prefixes and their folders, relative to the theme.
 	 */
 	public function __construct(
 		public string $slug,
@@ -40,7 +45,10 @@ final readonly class ThemeManifest
 		public string $description = '',
 		public array $styles = ['style.css'],
 		public array $scripts = [],
-		public array $data = []
+		public array $data = [],
+		public ThemeSource $source = ThemeSource::Local,
+		public ?string $provider = null,
+		public array $autoload = []
 	) {}
 
 	/**
@@ -49,7 +57,7 @@ final readonly class ThemeManifest
 	 * @param  array<array-key, mixed> $data
 	 * @throws ThemeException When a value has the wrong type.
 	 */
-	public static function fromArray(string $slug, string $path, array $data): self
+	public static function fromArray(string $slug, string $path, array $data, ThemeSource $source = ThemeSource::Local): self
 	{
 		$name = $data['name'] ?? null;
 
@@ -63,6 +71,18 @@ final readonly class ThemeManifest
 			throw new ThemeException(sprintf('The "%s" theme\'s "parent" must be a theme slug.', $slug));
 		}
 
+		$provider = $data['provider'] ?? null;
+
+		if ($provider !== null && (! is_string($provider) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)*$/', $provider) !== 1)) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "provider" must be a class name.', $slug));
+		}
+
+		$settings = $data['settings'] ?? [];
+
+		if (! is_array($settings) || ($settings !== [] && array_is_list($settings)) || ! array_all($settings, static fn (mixed $item): bool => is_array($item))) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "settings" must map names to field definitions.', $slug));
+		}
+
 		/** @var array<string, mixed> $data */
 		return new self(
 			slug: $slug,
@@ -73,8 +93,32 @@ final readonly class ThemeManifest
 			description: self::string($slug, $data, 'description'),
 			styles: self::paths($slug, $data, 'styles', ['style.css']),
 			scripts: self::paths($slug, $data, 'scripts', []),
-			data: $data
+			data: $data,
+			source: $source,
+			provider: $provider,
+			autoload: self::autoload($slug, $data)
 		);
+	}
+
+	/**
+	 * Returns the manifest's setting definitions, by name.
+	 *
+	 * @return array<string, array<array-key, mixed>>
+	 */
+	public function settings(): array
+	{
+		/** @var array<string, array<array-key, mixed>> Checked by `fromArray()`. */
+		return $this->data['settings'] ?? [];
+	}
+
+	/**
+	 * Returns what the theme cache stores.
+	 *
+	 * @return array{path: string, source: string, data: array<string, mixed>}
+	 */
+	public function toArray(): array
+	{
+		return ['path' => $this->path, 'source' => $this->source->value, 'data' => $this->data];
 	}
 
 	/**
@@ -104,6 +148,35 @@ final readonly class ThemeManifest
 		$value = $data[$key] ?? '';
 
 		return is_string($value) ? $value : throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a string.', $slug, $key));
+	}
+
+	/**
+	 * Reads the `autoload.psr-4` map.
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @return array<string, string>
+	 * @throws ThemeException
+	 */
+	private static function autoload(string $slug, array $data): array
+	{
+		$autoload = $data['autoload'] ?? [];
+		$map      = is_array($autoload) ? ($autoload['psr-4'] ?? []) : null;
+
+		if (! is_array($map)) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "autoload" must be {"psr-4": {"Prefix\\\\": "src/"}}.', $slug));
+		}
+
+		$psr4 = [];
+
+		foreach ($map as $prefix => $directory) {
+			if (! is_string($prefix) || ! is_string($directory) || ! ThemeChain::isValidAssetPath(trim($directory, '/'))) {
+				throw new ThemeException(sprintf('The "%s" theme\'s "autoload.psr-4" must map namespace prefixes to folders inside the theme.', $slug));
+			}
+
+			$psr4[rtrim($prefix, '\\') . '\\'] = trim($directory, '/');
+		}
+
+		return $psr4;
 	}
 
 	/**

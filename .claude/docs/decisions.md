@@ -1468,3 +1468,279 @@ decision, add a new entry that supersedes it and mark the old one
   dark palette; they become compiled DTCG tokens in M5b. Strings are in
   `lang/en.json`. Templates are checked with `php -l`; PHPCS covers
   `src`, `tests`, and `benchmarks` only.
+
+### D-111: Components
+- **Date:** 2026-09-25
+- **Decision:** Implements D-025 in `Blush\View\Component`:
+  - A **template-only** component is `components/{key}.php` in the view
+    chain. Its template gets the props as variables, all of them as
+    `$props` (for names that aren't valid variables, such as `data-n`),
+    the default slot as `$slot`, and named slots as `$slots` (`Slots`:
+    `$slots->footer` is `''` when unfilled, `isset()` tells).
+  - A **class-backed** component extends `Component` (typed props by
+    constructor promotion). It's built through the container
+    (`ComponentFactory`), so it can ask for services; string props are
+    cast to `int`, `float`, or `bool` parameters, and props the
+    constructor doesn't take stay in `$props`. `data()` (public
+    properties by default) feeds the template, plus `$component`;
+    `template()` can pick another view and `shouldRender()` can skip it.
+  - Type enum + registry + factory + registrar (D-019):
+    `ComponentType` (built-ins: `embed`), `ComponentRegistry`,
+    `ComponentFactory`, `ComponentRegistrar`. Providers `register()` a
+    class by key (overwriting); templates override by key through the
+    chain, site views first.
+  - `$this->component('card', title: 'Hi')` returns a
+    `PendingComponent` that renders when printed, after `->content()`
+    and `->slot($name, $html)`. Components share the page's
+    `ViewContext`, so they can add to the `Head`.
+
+### D-112: Markdown directives
+- **Date:** 2026-09-25
+- **Decision:** Implements D-026 as an in-house CommonMark extension
+  (`Markdown\CommonMark\Directive`), on by default
+  (`MarkdownConfig::$directives`):
+  - Container `:::name[label]{attrs}` … `:::` (three or more colons;
+    closed by a fence at least as long, or the end of the document;
+    nest by giving the outer fence more colons). Leaf `::name[label]{attrs}`
+    on its own line (exactly two colons). Inline `:name[text]{attrs}`
+    (the `[text]` is required, and the colon can't follow a letter,
+    digit, or colon, so URLs and times stay text).
+  - Attributes: `key=value`, quoted values, `.class`, `#id`, and bare
+    `key` (`"true"`). Labels are plain text (escaped).
+  - `Markdown\DirectiveRenderer` is the seam; returning `null` means
+    unknown, which renders as plain content (a container's blocks, a
+    leaf's label as a paragraph, an inline directive's text).
+  - `View\ComponentDirectives` renders a directive as the component of
+    the same name with the request's theme chain
+    (`ThemeResolver::current()`): attributes are props, the label is
+    also the `label` prop, and the content is `$slot`. It gets a bare
+    context (its `Head` additions don't reach the page), and resolves
+    the view factory lazily (`#[Defer]`), since the factory depends on
+    the Markdown parser through the content repository.
+  - **Consequence for M6:** rendered bodies depend on the theme chain,
+    so the rendered-body cache must key on the active theme too.
+
+### D-113: The core content components
+- **Date:** 2026-09-25
+- **Decision:** Implements D-033 in the default theme: `callout`
+  (`[title]`, `tone` = note, info, tip, warning, danger; an
+  `<aside role="note">`), `gallery` (`columns`, 1–6, a CSS grid),
+  `figure` (`src`, `alt`, caption from the label), and `embed` (the class
+  `View\Component\Embed`: YouTube through `youtube-nocookie.com`, Vimeo
+  with `dnt=1`, anything else as a link, so content never frames an
+  unknown origin). `figure`'s `src` is used as written (a media URL);
+  page-bundle-relative paths aren't resolved yet. Answers the "which
+  core components ship first" question in `theming.md`.
+
+### D-114: Context providers
+- **Date:** 2026-09-25
+- **Decision:** `View\ContextProvider::provide($view, $data)` supplies
+  data for views matched by name or `fnmatch()` pattern (`*` stays in a
+  folder), registered on `View\ContextProviders` (`add($pattern,
+  $provider)`) in a theme or site provider. Providers apply to every
+  view rendered by name (pages, layouts, partials, components). Their
+  values are defaults: data given explicitly wins. Class names are
+  built through the container on first match and kept.
+
+### D-115: Theme discovery, Composer themes, and the theme cache
+- **Date:** 2026-09-25
+- **Decision:** Refines D-105.
+  - `ThemeDiscovery` runs before the container (theme providers register
+    at boot), reading manifests itself (`theme.json`, else `.yaml`/`.yml`).
+    It finds the framework `default`, Composer packages of type
+    `blush-theme` (slug from `extra.blush.slug`, or the package name
+    after `/`), and `user/themes`. A local theme replaces a Composer one
+    with the same slug; nothing replaces `default`.
+  - A broken manifest is recorded in `Themes::invalid()` instead of
+    failing discovery, so one bad folder can't take down the site or the
+    CLI. Using such a theme throws its error.
+  - Discovery compiles to `storage/cache/themes.php`
+    (`CompiledCache::Themes`, `ThemeCache`), read everywhere but
+    development; `cache:compile` writes it and `cache:clear --themes`
+    deletes it.
+  - `Support\ComposerPackages` reads `installed.json` for both
+    extensions and themes.
+
+### D-116: Theme providers and autoloading
+- **Date:** 2026-09-25
+- **Decision:** Implements the theme part of D-054:
+  - A manifest may name a `provider` and, for a local theme, an
+    `autoload.psr-4` map (folders inside the theme). Only the active
+    chain's local themes are autoloaded (by `LocalAutoloader`; Composer
+    themes are Composer's).
+  - The chain's providers register ancestors first, after extensions'
+    and before the site's. A chain that doesn't resolve registers none,
+    and a provider that isn't a `ServiceProvider` is skipped; both are
+    reported by `theme:check` (and a broken chain by rendering).
+  - `?theme=` (D-035) doesn't register the other theme's providers.
+  - D-020's limits (no routes, content types, or commands from themes)
+    are a documented rule, not enforced.
+
+### D-117: Theme settings
+- **Date:** 2026-09-25
+- **Decision:** Implements the settings part of D-022:
+  - A manifest's `settings` map names to field definitions with the
+    content field types (`type`, `default`, `label`, `options`, …).
+    Definitions merge down the chain (a child's replaces its
+    ancestor's). `SettingsResolver` resolves them per chain.
+  - Values come from `user/data/theme.json` (`SiteThemeData`):
+    `{"settings": {…}, "tokens": {…}}`, applying to whichever theme is
+    active. Undeclared values are ignored; a value that doesn't fit
+    falls back to the default and is reported (`theme:check`).
+  - Templates read `$this->setting('name', $default)`. The default theme
+    declares `excerpts` (default on), which turns listing excerpts off,
+    and with them the per-entry Markdown rendering (D-110's benchmark
+    cost).
+
+### D-118: Design tokens
+- **Date:** 2026-09-25
+- **Decision:** Implements D-023 and the `tokens` part of D-027 in
+  `Blush\Theme\Token`:
+  - `TokenSet` reads DTCG: groups, inherited `$type`, `$value` tokens,
+    and (a Blush shorthand for front matter and site data) plain scalar
+    leaves. Aliases (`{color.accent}`, alone or inside a value) compile
+    to `var(--color-accent)`, so modes flow through aliases. Values:
+    strings, numbers, dimensions/durations (`{value, unit}`), font
+    family lists, cubic Béziers, colors (`hex` or color-space
+    components), shadows (and lists of them), and borders.
+  - **Modes** are `$extensions.blush.modes` (or `blush.modes`): `dark`
+    compiles to a `prefers-color-scheme: dark` block (unless
+    `data-scheme="light"`) plus `:root[data-scheme="dark"]`; any other
+    mode to `:root[data-scheme="{mode}"]`.
+  - **Merge order:** default → ancestors → theme (`tokens.json|yaml`) →
+    `user/data/theme.json` tokens → entry `tokens` front matter. An
+    override replaces a token in every mode unless it gives its own
+    modes. The entry's set is printed as a second block
+    (`blush-entry-tokens`) with `over()`, which repeats its values in
+    the base's modes so it wins there too.
+  - Values that could escape a declaration (`;`, `{`, `}`, `<`, `>`,
+    `\`, line breaks) are dropped and reported, since tokens also come
+    from site data and front matter.
+  - The CSS is inlined in the head (`<style id="blush-tokens">`), not
+    served as a file, and built once per chain per process. Caching it
+    per content version is M6's.
+  - `$this->token('color.accent', $mode)` returns the concrete value
+    (aliases followed). The default theme's colors, fonts, spacing,
+    measure, and radius are tokens.
+
+### D-119: Theme assets: build manifests, `stylesheet`, and publishing
+- **Date:** 2026-09-25
+- **Decision:** Implements D-031 and the rest of D-034:
+  - `ThemeAssets` (per chain) resolves `asset()` and the manifest's
+    `styles`/`scripts`: for each theme, nearest first, a Vite-style
+    manifest (`dist/.vite/manifest.json` or `dist/manifest.json`) entry
+    gives its hashed file (and its `css` list, added as stylesheets;
+    built scripts load as `type="module"`); otherwise the file, versioned
+    by mtime. Replaces M5a's `ThemeChain::assetUrl()`.
+  - `stylesheet` front matter: an absolute or root-relative URL is used
+    as is; anything else is a theme asset through the chain.
+  - `theme:publish` copies servable files only (never links, since a
+    link would expose `views/` and PHP) to `public/themes/{slug}`,
+    recopies changed files, and removes published files whose source is
+    gone. The active chain by default, `--all` for every theme.
+
+### D-120: The `theme:*` commands
+- **Date:** 2026-09-25
+- **Decision:** `theme:list`, `theme:activate <slug>`, `theme:new <slug>
+  [--parent] [--name]`, `theme:check [slug] [--strict]`, `theme:why
+  <view> [--theme]`, and `theme:publish [--all]` (see `cli.md`).
+  `theme:activate` writes `config/theme.php` (developer config, D-039):
+  it creates the file, or edits a single plain `active` string literal,
+  and otherwise refuses with instructions, so hand-written config is
+  never mangled. It clears the compiled config and theme caches.
+
+### D-121: `theme:check`
+- **Date:** 2026-09-25
+- **Decision:** Implements D-030's checks in `Theme\ThemeChecker`
+  (`ThemeReport` of `Violation`s):
+  - **Errors:** an unresolvable chain; a provider that isn't a service
+    provider; invalid settings definitions or tokens; text contrast
+    below WCAG AA (4.5:1) in any mode; a base layout (the rendered
+    `welcome` page) without `lang` on `<html>`, exactly one `<main>`, or
+    a first in-page link that skips to the main content.
+  - **Warnings:** shadowed manifests; site setting values that don't
+    fit; tokens that don't compile or resolve; other broken themes; no
+    `<header>`/`<footer>` landmark (outside sectioning content); other
+    than one `<h1>`.
+  - **Notices** (`--strict`): colors whose contrast can't be measured
+    (formats other than hex and `rgb()`), and `requires`, which isn't
+    enforced yet.
+  - Contrast pairs are `[foreground, background]` token paths from the
+    nearest theme's `contrast` list; the default theme checks text,
+    muted, and accent on the background, and text on the surface.
+
+### D-122: Feeds
+- **Date:** 2026-09-25
+- **Decision:** Implements the feed part of D-029 in `Blush\Feed`:
+  - **Formats:** RSS 2.0, Atom, and JSON Feed 1.1 (`FeedFormat`), each
+    turned on or off by `FeedConfig` (`config/feed.php`: `formats`,
+    `content` for full bodies or excerpts only, and `limit`, default
+    10 as in 1.x).
+  - **Routes** (`FeedRoutes`, `Content` priority), for every public,
+    routed type with a `feed`, with 1.x's names and paths (D-078):
+    `{type}.collection.feed` (`{prefix}/feed`), `.feed.atom`
+    (`feed/atom`), and the new `.feed.json` (`feed/json`); the home
+    type's are `home.feed`, `home.feed.atom`, and `home.feed.json` at the
+    root. A taxonomy with a feed also gets a feed per term
+    (`{type}.single.feed`, `{name}/feed`, and the Atom and JSON
+    variants), which covers per-author feeds (D-043) when the author type
+    has `feed`. `TypeRouting` gained those default paths, so a type can
+    move them.
+  - **Contents** (`FeedBuilder`): 1.x's feed arguments (the type, or its
+    `collect` type; newest file first; then `feed.collection`); a term's
+    feed lists what its archive lists. The home feed is titled with the
+    site name, others `{title} | {site}`. Items carry absolute URLs,
+    published and updated dates, the body (with `content` on), the
+    excerpt, author term titles, and categories: the terms of
+    `feed.taxonomy` (1.x), or of every taxonomy but authors. An empty
+    feed is still a 200.
+  - **Templates:** `feed-{format}-{type}` → `feed-{format}` in the default
+    theme, rendered by `View\DocumentRenderer` (no layout). Content is
+    escaped rather than wrapped in CDATA, so no extra global helper is
+    needed.
+  - **Discovery:** every page links the home feed, plus its own
+    type's or term's feeds, with `<link rel="alternate">` (`FeedLinks`).
+
+### D-123: Sitemaps and `robots.txt`
+- **Date:** 2026-09-25
+- **Decision:** Implements the rest of D-029 in `Blush\Sitemap`:
+  - **Routes** (`System` priority): `sitemap` at `/sitemap` (1.x's
+    path; `/sitemap.xml` answers too), `sitemap.type` at
+    `/sitemap/{type}`, and `robots` at `/robots.txt`. `SitemapConfig`
+    (`config/sitemap.php`: `enabled`, `disallow`, `robots`) replaces
+    1.x's `app.sitemap`; each type's `sitemap` option still decides
+    whether it's included. The route names differ from 1.x's
+    (`sitemapindex`, `sitemap`); the URLs don't.
+  - **Contents** (`SitemapBuilder`): one sitemap per public type with
+    `sitemap` on, holding its collection page (only when it has a
+    landing page or lists something), then its listed entries with URLs
+    and `updated` as `lastmod`. A taxonomy's holds its terms that list
+    entries, by slug. The root `index.md`'s type holds `/` when the home
+    isn't a type's collection. The index lists each type's sitemap with
+    its latest change, leaving out empty ones. Sitemaps aren't split at
+    50,000 URLs yet.
+  - **Templates:** `sitemap-index` and `sitemap-{type}` → `sitemap`.
+  - **`robots.txt`:** `SitemapConfig::$robots` as written; otherwise, in
+    production, allow everything but `disallow` and point to the
+    sitemap; in any other environment, `Disallow: /`. A real
+    `public/robots.txt` file wins, since the web server serves it.
+
+### D-124: M5's exit criterion is a route-coverage test
+- **Date:** 2026-09-25
+- **Decision:** "The default theme renders every route type" is checked
+  by `tests/View/DefaultThemeTest`: it builds a jtcom-shaped site (every
+  date and time archive level, paged listings, terms, authors, feeds,
+  pages, media, theme assets, sitemaps, and `robots.txt`), requires a
+  sample URL for every named route in the compiled table (so a new
+  route type fails the test until it's covered), and checks each
+  response: HTML pages have `lang`, one `<main>`, one `<h1>`, and the
+  skip link; feeds and sitemaps are well-formed XML; JSON feeds decode.
+  Errors and the welcome page are checked too.
+
+### D-125: No XSL stylesheets for feeds or sitemaps
+- **Date:** 2026-09-25
+- **Decision:** Blush won't rely on XSLT (`<?xml-stylesheet type="text/xsl"?>`)
+  to make feeds or sitemaps readable in a browser, because major browsers
+  are removing XSLT support. jtcom's 1.x feed stylesheet (`xsl/feed.xsl`)
+  isn't carried over in the M8 port. A replacement is an open question
+  (`open-questions.md`).

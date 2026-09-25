@@ -21,7 +21,8 @@ use Blush\Core\AppConfig;
  * theme, or, in development only, an installed theme named by
  * `?theme={slug}` (D-035). An unknown `?theme=` is ignored.
  *
- * Chains are built once per slug and kept.
+ * Chains are built once per slug and kept. The chain a request picked is
+ * remembered as `current()`, which Markdown directives render with.
  */
 final class ThemeResolver
 {
@@ -31,6 +32,11 @@ final class ThemeResolver
 	 * @var array<string, ThemeChain>
 	 */
 	private array $chains = [];
+
+	/**
+	 * The chain the last request rendered with.
+	 */
+	private ?ThemeChain $current = null;
 
 	public function __construct(
 		private readonly Themes $themes,
@@ -57,9 +63,21 @@ final class ThemeResolver
 	{
 		$slug = $request->getQueryParams()['theme'] ?? null;
 
-		return $this->app->environment->isDevelopment() && is_string($slug) && $this->themes->has($slug)
+		return $this->current = $this->app->environment->isDevelopment() && is_string($slug) && $this->themes->has($slug)
 			? $this->chain($slug)
 			: $this->active();
+	}
+
+	/**
+	 * Returns the chain the current request renders with, for rendering
+	 * that doesn't see the request (Markdown directives inside entry
+	 * bodies), or the active chain before any request.
+	 *
+	 * @throws ThemeException
+	 */
+	public function current(): ThemeChain
+	{
+		return $this->current ?? $this->active();
 	}
 
 	/**

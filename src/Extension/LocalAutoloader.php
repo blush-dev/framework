@@ -14,10 +14,12 @@ declare(strict_types=1);
 namespace Blush\Extension;
 
 use Closure;
+use Blush\Theme\ThemeChain;
+use Blush\Theme\ThemeSource;
 
 /**
- * A PSR-4 autoloader for local extensions (Composer extensions are autoloaded
- * by Composer). Each prefix maps to a directory inside its extension, and a
+ * A PSR-4 autoloader for local extensions and themes (Composer packages
+ * are autoloaded by Composer). Each prefix maps to a directory inside its extension, and a
  * class file is only loaded from inside that directory.
  */
 final class LocalAutoloader
@@ -42,13 +44,34 @@ final class LocalAutoloader
 	public function addExtensions(Extensions $extensions): void
 	{
 		foreach ($extensions->all() as $manifest) {
-			if ($manifest->source !== ExtensionSource::Local) {
-				continue;
+			if ($manifest->source === ExtensionSource::Local) {
+				$this->addMap($manifest->path, $manifest->autoload);
 			}
+		}
+	}
 
-			foreach ($manifest->autoload as $prefix => $directory) {
-				$this->prefixes[$prefix][] = rtrim($manifest->path, '/') . '/' . trim($directory, '/');
+	/**
+	 * Adds the PSR-4 maps of a theme chain's local themes (Composer
+	 * autoloads its own themes).
+	 */
+	public function addThemes(ThemeChain $chain): void
+	{
+		foreach ($chain as $theme) {
+			if ($theme->source === ThemeSource::Local) {
+				$this->addMap($theme->path, $theme->autoload);
 			}
+		}
+	}
+
+	/**
+	 * Adds a PSR-4 map whose folders are relative to a base path.
+	 *
+	 * @param array<string, string> $map
+	 */
+	private function addMap(string $base, array $map): void
+	{
+		foreach ($map as $prefix => $directory) {
+			$this->prefixes[$prefix][] = rtrim($base, '/') . '/' . trim($directory, '/');
 		}
 
 		uksort($this->prefixes, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));

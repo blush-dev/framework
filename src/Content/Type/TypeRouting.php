@@ -20,7 +20,9 @@ namespace Blush\Content\Type;
  *
  *     new TypeRouting(prefix: 'archives', paths: ['single' => '{year}/{month}/{day}/{name}'])
  *
- * Routes are named `{type}.{key}`, such as `post.single`.
+ * Routes are named `{type}.{key}`, such as `post.single`. The feed keys
+ * (`collection.feed`, `.feed.atom`, `.feed.json`, and the `single.feed`
+ * ones for a taxonomy's terms) are used when the type has a feed.
  */
 final readonly class TypeRouting
 {
@@ -33,6 +35,10 @@ final readonly class TypeRouting
 		'collection'              => '',
 		'single'                  => '{name}',
 		'single.paged'            => '{name}/page/{page}',
+		'single.feed.json'        => '{name}/feed/json',
+		'single.feed.atom'        => '{name}/feed/atom',
+		'single.feed'             => '{name}/feed',
+		'collection.feed.json'    => 'feed/json',
 		'collection.feed.atom'    => 'feed/atom',
 		'collection.feed'         => 'feed',
 		'collection.paged'        => 'page/{page}',

@@ -17,6 +17,7 @@ use Blush\Config\ConfigRepository;
 use Blush\Container\ServiceContainer;
 use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
+use Blush\Theme\Themes;
 
 /**
  * What `Bootstrap` builds, kept together so `compile()` can reach the pieces
@@ -31,7 +32,8 @@ final readonly class BootstrapResult
 		public ServiceContainer $container,
 		public ConfigRepository $config,
 		public Extensions $extensions,
-		public LocalAutoloader $autoloader
+		public LocalAutoloader $autoloader,
+		public Themes $themes
 	) {
 	}
 }

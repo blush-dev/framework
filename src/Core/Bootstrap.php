@@ -29,14 +29,20 @@ use Blush\Extension\ExtensionDiscovery;
 use Blush\Extension\ExtensionManifest;
 use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
+use Blush\Feed\FeedConfig;
 use Blush\Http\HttpConfig;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
+use Blush\Sitemap\SitemapConfig;
 use Blush\Support\PhpArrayFile;
+use Blush\Theme\ThemeCache;
 use Blush\Theme\ThemeConfig;
+use Blush\Theme\ThemeDiscovery;
+use Blush\Theme\ThemeException;
+use Blush\Theme\Themes;
 
 /**
  * Builds a site's application from its project root. This is the one place
@@ -50,8 +56,12 @@ use Blush\Theme\ThemeConfig;
  *    every config object are bound in the container.
  * 5. Extensions are discovered (or read from cache), filtered by config, and
  *    local ones are autoloaded.
- * 6. Providers register in order: framework, extensions, then the site's.
- *    (The active theme chain's providers slot in before the site's in M5b.)
+ * 6. Themes are discovered (or read from cache), and the active theme
+ *    chain's local themes are autoloaded.
+ * 7. Providers register in order: framework, extensions, the active theme
+ *    chain's (ancestors first), then the site's (D-054). A broken theme
+ *    chain registers no theme providers, so the CLI still runs to fix it;
+ *    rendering reports the problem.
  *
  * The application is returned registered but not booted.
  */
@@ -86,7 +96,7 @@ final readonly class Bootstrap
 	}
 
 	/**
-	 * Compiles the config, extension, route, content type, and
+	 * Compiles the config, extension, theme, route, content type, and
 	 * container-plan caches. The routes, content types, and container
 	 * plans are gathered by booting a fresh application, so every
 	 * provider and bootable service gets planned, and then by planning
@@ -103,6 +113,7 @@ final readonly class Bootstrap
 
 		new ConfigCache($this->file(CompiledCache::Config))->write($built->config);
 		new ExtensionCache($this->file(CompiledCache::Extensions))->write($built->extensions->all());
+		new ThemeCache($this->file(CompiledCache::Themes))->write($built->themes);
 
 		$built->application->boot();
 
@@ -162,17 +173,37 @@ final readonly class Bootstrap
 			$config->get(ExtensionConfig::class)
 		);
 
-		$autoloader = new LocalAutoloader();
+		$themes         = $this->discoverThemes($app->environment);
+		$themeProviders = [];
+		$autoloader     = new LocalAutoloader();
 		$autoloader->addExtensions($extensions);
+
+		try {
+			$chain = $themes->chain($config->get(ThemeConfig::class)->active);
+			$autoloader->addThemes($chain);
+		} catch (ThemeException) {
+			// Reported when a page renders, and by `theme:check`.
+			$chain = null;
+		}
+
 		$autoloader->register();
 
+		// A provider that isn't a service provider is skipped here and
+		// reported by `theme:check`.
+		foreach ($chain?->providers() ?? [] as $provider) {
+			if (is_subclass_of($provider, ServiceProvider::class)) {
+				$themeProviders[] = $provider;
+			}
+		}
+
 		$container->instance(Extensions::class, $extensions);
+		$container->instance(Themes::class, $themes);
 		$container->instance(LocalAutoloader::class, $autoloader);
 
 		$application = new Application($container);
-		$application->register(...$extensions->providers(), ...$app->providers);
+		$application->register(...$extensions->providers(), ...$themeProviders, ...$app->providers);
 
-		return new BootstrapResult($application, $container, $config, $extensions, $autoloader);
+		return new BootstrapResult($application, $container, $config, $extensions, $autoloader, $themes);
 	}
 
 	/**
@@ -201,7 +232,9 @@ final readonly class Bootstrap
 			new MarkdownConfig(),
 			new ContentConfig(),
 			new MediaConfig(),
-			new ThemeConfig()
+			new ThemeConfig(),
+			new FeedConfig(),
+			new SitemapConfig()
 		);
 	}
 
@@ -229,6 +262,19 @@ final readonly class Bootstrap
 			: new ExtensionCache($this->file(CompiledCache::Extensions))->read();
 
 		return $cached ?? ExtensionDiscovery::forPaths($this->paths)->discover();
+	}
+
+	/**
+	 * Returns every installed theme: from the cache outside development
+	 * when it exists, otherwise by discovery.
+	 */
+	private function discoverThemes(Environment $environment): Themes
+	{
+		$cached = $environment->isDevelopment()
+			? null
+			: new ThemeCache($this->file(CompiledCache::Themes))->read();
+
+		return $cached ?? new ThemeDiscovery($this->paths)->discover();
 	}
 
 	/**

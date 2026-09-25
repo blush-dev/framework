@@ -37,8 +37,8 @@ use Blush\Routing\RouteSource;
  * order, so date archives match before a single entry. Date and page
  * parameters are constrained to digits (`ContentUrls::CONSTRAINTS`). The
  * home type (`ContentConfig::$home`) has no collection routes of its own;
- * `PageRoutes` serves its collection at `/`. Feed routes arrive with
- * feeds (M5c).
+ * `PageRoutes` serves its collection at `/`. Feed routes come from
+ * `Feed\FeedRoutes`.
  */
 final readonly class ContentRoutes implements RouteSource
 {

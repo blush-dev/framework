@@ -47,6 +47,8 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   entry point. It registers a bare error handler, builds and boots the
   application, then hands over to the configured `ErrorHandler`.
   `Http\HttpRunner` and `Console\ConsoleRunner` extend it.
+- **Theme providers** register between extensions' and the site's
+  (D-116).
 - **Service providers** keep the declarative constants from x3p0
   (`SINGLETONS`, `TRANSIENTS`, `ALIASES`, `TAGS`, `BOOTABLE`).
 - **Provider sources**, in order:
@@ -92,9 +94,10 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   through the container) and the `EventDispatcher`.
 - **Broadcast targets** (implementations of `broadcast()`) could include the
   log, a queue for async work, or webhooks out to other services.
-- **Core events:**
-  - `ApplicationBooted`, `RequestReceived`, `RouteMatched`, `ControllerResolved`
-  - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady`
+- **Core events** (the ones marked with a milestone exist; the rest are
+  planned):
+  - `ApplicationBooted` (M1), `RequestReceived` (M2), `RouteMatched` (M3), `ControllerResolved`
+  - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
   - `ContentIndexed` (M4b), `ContentWritten`, `ContentPublished`, `CacheCleared`
   - `ExportStarted`, `ExportFinished`
 
@@ -217,8 +220,8 @@ Implemented in M3 (D-073 to D-077).
   `RedirectSource`s, with pattern placeholders. They're checked only before a 404, including when a
   handler throws `NotFound`. `/public/...` URLs redirect to the canonical
   path (D-076).
-- **Route enumeration:** the router can list every concrete URL, which static
-  export and sitemaps need (M5/M7, with content).
+- **Route enumeration:** static export (M7) needs every concrete URL.
+  Sitemaps don't use it; they list URLs from content (D-123).
 - **Not yet:** the optional locale segment (D-036) and a base path for
   subdirectory installs (open question).
 
@@ -321,8 +324,10 @@ Implemented in M4a (D-080, D-085, D-086).
   absolute, and a lone image becomes a `<figure>` with its title as the
   caption. `toHtml($markdown, $base)` resolves bundle media against the
   entry's folder.
-- **Content components:** a Markdown directive syntax (for example
-  `::: gallery`) rendered by theme or site components. See `theming.md`.
+- **Content components:** generic directives (`:::name`, `::name`,
+  `:name[text]`, D-026) parsed by an in-house CommonMark extension and
+  rendered through `DirectiveRenderer` as theme or site components
+  (D-112). See `theming.md`.
 - Raw HTML in Markdown is controlled by config (trusted authors by default).
 
 ### Taxonomies and relations
@@ -407,7 +412,7 @@ Implemented in M4c (D-099), apart from image derivatives.
 Plain PHP templates (D-009). **The full theming design is in `theming.md`**
 (themes are presentation only, with a data-first manifest, parent chains,
 DTCG tokens, components with slots, and per-entry presentation fields). The
-view core was implemented in M5a (D-103 to D-110).
+view layer was implemented in M5 (D-103 to D-125).
 
 - **`Views`** (`Blush\View`): renders templates for one theme chain.
   A template runs in a closure bound to its `Template` with no class
@@ -429,9 +434,19 @@ view core was implemented in M5a (D-103 to D-110).
 - **Renderers:** `ThemedPageRenderer` (the `PageRenderer`) and
   `ThemedErrorPages` (the `ErrorPages`) pick the chain per request
   (`ThemeResolver`, `?theme=` in development) and fill in the head.
-- **Themes** (`Blush\Theme`, D-105): `Themes` (manifests from
-  `user/themes` plus the framework `default`), `ThemeChain`, `ThemeConfig`,
-  `ThemeResolver`, and the `theme.asset` route.
+- **Components** (`Blush\View\Component`, D-111): template-only or
+  class-backed, with slots; the registry, factory, and registrar; the
+  built-in `Embed`. `ComponentDirectives` renders Markdown directives as
+  components (D-112). **Context providers** (`ContextProviders`, D-114)
+  add data to views by name or pattern.
+- **Themes** (`Blush\Theme`, D-105, D-115 to D-121): `ThemeDiscovery`
+  (framework, Composer `blush-theme`, and `user/themes`, before the
+  container; cached in `storage/cache/themes.php`), `Themes`,
+  `ThemeChain` (with its providers, registered at boot), `ThemeConfig`,
+  `ThemeResolver`, `ThemeAssets` (build manifests or mtime), settings
+  (`SettingsResolver`, `SiteThemeData`), DTCG tokens (`Token\TokenSet`,
+  `TokenResolver`, `Contrast`), `ThemeChecker`, and the `theme.asset`
+  route.
 
 ## Built-in controllers and outputs
 
@@ -440,9 +455,13 @@ view core was implemented in M5a (D-103 to D-110).
   and the page catch-all. The controllers build a `ContentPage`; the
   `PageRenderer` (`ThemedPageRenderer` since M5a) renders it. Error pages
   are themed (D-108).
-- **Feeds:** RSS 2.0, Atom, and JSON Feed, per collection and per term, written
-  with `XMLWriter`.
-- **Sitemaps:** a sitemap index plus one per type, and `robots.txt`.
+- **Feeds** (`Blush\Feed`, M5c, D-122): RSS 2.0, Atom, and JSON Feed, per
+  collection, home, and term, built by `FeedBuilder` and rendered by theme
+  templates (`feed-{format}`) through `View\DocumentRenderer`; pages link
+  them with `<link rel="alternate">`.
+- **Sitemaps** (`Blush\Sitemap`, M5c, D-123): `/sitemap` (an index), one
+  per type at `/sitemap/{type}`, and `robots.txt` (which disallows
+  everything outside production).
 - **Search:** optional; needs `SqliteIndex`.
 
 ## Caching
