@@ -5,9 +5,9 @@ Guidance for agents working in this repository.
 ## Status
 
 The `2.x` branch is a **full rewrite** of Blush, a flat-file CMS, targeting
-PHP 8.5. Planning and milestones M0 (setup), M1 (core), and M2 (HTTP +
-Console) are **complete**. The next step is **milestone M3 (Routing)**; see
-`.claude/docs/roadmap.md`. The dev site is the `2.x` branch of `../blush`
+PHP 8.5. Planning and milestones M0 (setup), M1 (core), M2 (HTTP +
+Console), and M3 (Routing) are **complete**. The next step is **milestone M4
+(Content)**; see `.claude/docs/roadmap.md`. The dev site is the `2.x` branch of `../blush`
 (`ddev start`, https://blush.ddev.site). Code on
 `master` (1.x) is not a reference implementation. Only the general concepts of
 a flat-file CMS carry over.

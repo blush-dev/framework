@@ -26,11 +26,12 @@ use Blush\Event\Dispatcher;
 use Blush\Event\EventServiceProvider;
 use Blush\Http\HttpServiceProvider;
 use Blush\Log\LogServiceProvider;
+use Blush\Routing\RoutingServiceProvider;
 
 /**
  * Wires a project together around a dependency injection container and a set
  * of service providers. The framework's providers (events, clock, log,
- * errors, HTTP, and console) and any listed in a subclass's `PROVIDERS` constant are registered
+ * errors, HTTP, routing, and console) and any listed in a subclass's `PROVIDERS` constant are registered
  * on construction; more are registered at runtime (from extensions, the
  * theme chain, and site config, see `Bootstrap`). `boot()` then boots every
  * registered provider in one pass.
@@ -53,6 +54,7 @@ class Application implements Bootable
 		LogServiceProvider::class,
 		ErrorServiceProvider::class,
 		HttpServiceProvider::class,
+		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class
 	];
 

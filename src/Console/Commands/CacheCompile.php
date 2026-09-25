@@ -21,11 +21,11 @@ use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 
 /**
- * Compiles the config, extension discovery, and container plans into
- * `storage/cache` (D-060, D-066). Run it on deploy; the compiled files are
+ * Compiles the config, extension discovery, route table, and container
+ * plans into `storage/cache` (D-060, D-066). Run it on deploy; the compiled files are
  * used outside development until cleared.
  */
-#[Command('cache:compile', 'Compile config, extensions, and container plans.')]
+#[Command('cache:compile', 'Compile config, extensions, routes, and container plans.')]
 final readonly class CacheCompile
 {
 	public function __construct(

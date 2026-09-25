@@ -15,11 +15,14 @@ namespace Blush\Error;
 
 use Override;
 use Throwable;
+use Blush\Http\HttpError;
 
 /**
  * Renders an uncaught exception as a standalone HTML page. With `debug` on, the
  * page shows the exception chain with messages, locations, and traces;
- * otherwise it's a generic error page that reveals nothing. A themed error
+ * otherwise it's a generic error page that reveals nothing. An `HttpError`
+ * (such as a 404) gets a short status page instead, with its message only
+ * in debug. A themed error
  * page (`user/content/_errors/500.md`) replaces the generic one once views
  * exist (M5); this renderer remains the fallback when rendering that fails.
  */
@@ -44,9 +47,20 @@ final readonly class HtmlRenderer implements ExceptionRenderer
 	#[Override]
 	public function render(Throwable $exception): string
 	{
-		$body = $this->debug
-			? $this->details($exception)
-			: '<h1>Something went wrong</h1><p>The server hit an error and could not finish the request.</p>';
+		$title = 'Error';
+
+		if ($exception instanceof HttpError) {
+			$title = $this->escape("{$exception->status->value} {$exception->status->reasonPhrase()}");
+			$body  = "<h1>{$title}</h1>";
+
+			if ($this->debug && $exception->getMessage() !== $exception->status->reasonPhrase()) {
+				$body .= '<p>' . $this->escape($exception->getMessage()) . '</p>';
+			}
+		} else {
+			$body = $this->debug
+				? $this->details($exception)
+				: '<h1>Something went wrong</h1><p>The server hit an error and could not finish the request.</p>';
+		}
 
 		return <<<HTML
 			<!DOCTYPE html>
@@ -55,7 +69,7 @@ final readonly class HtmlRenderer implements ExceptionRenderer
 			<meta charset="utf-8">
 			<meta name="viewport" content="width=device-width, initial-scale=1">
 			<meta name="robots" content="noindex">
-			<title>Error</title>
+			<title>{$title}</title>
 			<style>
 			body { font: 16px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 70rem; padding: 2rem; color: #1a1a1a; }
 			h1 { font-size: 1.5rem; }

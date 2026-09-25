@@ -6,12 +6,14 @@ Move each item to `decisions.md` once it's answered.
 
 - **Empty-state page.** Proposal: a fresh site with no content renders a
   built-in welcome page from the framework default theme, instead of a 404.
-  (M2's `WelcomeHandler` is only a placeholder until the router exists.)
+  (Since M3, `WelcomeHandler` is a fallback route for `/` that any site
+  route replaces, D-073. It is still a placeholder page.)
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 
 ## Later milestones
 - **Subdirectory installs** (D-071): a site at `example.com/site/` needs a
   base path for routing and URL generation. Derive it from `AppConfig::$url`?
+  The M3 router and `UrlGenerator` assume the site is at the host's root.
 - **Extension requirements** (D-058): what constraint syntax to support for
   `extension:check`, likely a Composer semver subset (`^`, `~`, comparison
   operators, `||`).

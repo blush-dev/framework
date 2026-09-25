@@ -21,6 +21,7 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Blush\Error\ErrorHandler;
 use Blush\Error\ExceptionRenderer;
+use Blush\Http\HttpError;
 use Blush\Http\Response;
 use Blush\Http\Status;
 
@@ -30,10 +31,12 @@ use Blush\Http\Status;
  * `Kernel::handle()` returns a response instead of throwing, whether it
  * was called by the front controller, a test, or static export.
  *
+ * An `HttpError` (such as the router's `NotFound` and `MethodNotAllowed`)
+ * becomes a response with its own status and headers, and isn't logged:
+ * it's an answer, not a failure.
+ *
  * It renders HTML regardless of the SAPI (the kernel serves HTTP even when
- * called from the CLI). Themed error pages replace the generic page in M5,
- * and the router's not-found and method-not-allowed errors map to their own
- * statuses in M3.
+ * called from the CLI). Themed error pages replace the generic page in M5.
  */
 final readonly class HandleErrors implements MiddlewareInterface
 {
@@ -51,6 +54,16 @@ final readonly class HandleErrors implements MiddlewareInterface
 	{
 		try {
 			return $handler->handle($request);
+		} catch (HttpError $error) {
+			return new Response(
+				$error->status,
+				[
+					...$error->headers,
+					'Content-Type'  => $this->renderer->contentType(),
+					'Cache-Control' => 'no-store'
+				],
+				$this->renderer->render($error)
+			);
 		} catch (Throwable $exception) {
 			$this->errors->report($exception);
 

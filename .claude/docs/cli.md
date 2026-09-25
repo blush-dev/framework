@@ -53,13 +53,13 @@ Implemented in M2 (D-065, D-069).
 | `list` | List the commands (the default) |
 | `help <command>` | Show a command's usage |
 | `serve [--host] [-p\|--port]` | Dev server (`php -S` + `resources/server.php`) |
-| `cache:clear [--config\|--extensions\|--container]` | Clear compiled caches (no flags: all). Pages, routes, and the content version join later |
-| `cache:compile` | Compile config, extensions, and container plans (D-060, D-066) |
+| `cache:clear [--config\|--extensions\|--container\|--routes]` | Clear compiled caches (no flags: all). Pages and the content version join later |
+| `cache:compile` | Compile config, extensions, routes, and container plans (D-060, D-066, D-077) |
 | `content:index [--full]` | Build or refresh the content index |
 | `content:lint` | Validate front matter against schemas |
 | `content:new <type> "<title>"` | Scaffold an entry |
 | `content:list [--type] [--status]` | Inspect content |
-| `routes:list` | Show the compiled routes |
+| `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |
 | `media:publish` | Symlink or copy media into `public/` |
 | `theme:list\|activate\|new\|publish` | Theme management |
 | `theme:check` | Validate the manifest, required templates, and accessibility basics (D-030) |

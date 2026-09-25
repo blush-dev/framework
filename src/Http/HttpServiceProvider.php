@@ -20,7 +20,6 @@ use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Http\Message\UriFactoryInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use Blush\Container\Container;
 use Blush\Core\AppConfig;
 use Blush\Core\ServiceProvider;
@@ -40,8 +39,7 @@ final class HttpServiceProvider extends ServiceProvider
 	protected const array SINGLETONS = [
 		HttpFactory::class,
 		Kernel::class,
-		Emitter::class,
-		WelcomeHandler::class
+		Emitter::class
 	];
 
 	/**
@@ -64,16 +62,14 @@ final class HttpServiceProvider extends ServiceProvider
 	];
 
 	/**
-	 * Hands the kernel its handler (the router replaces `WelcomeHandler`
-	 * in M3), gives `HandleErrors` an HTML renderer whatever the SAPI, and
+	 * Gives `HandleErrors` an HTML renderer whatever the SAPI, and
 	 * registers the configured middleware so their plans are compiled
-	 * (D-066).
+	 * (D-066). The kernel's handler (the router) is bound by
+	 * `RoutingServiceProvider`.
 	 */
 	#[Override]
 	public function register(): void
 	{
-		$this->container->whenNeedsType(Kernel::class, RequestHandlerInterface::class, WelcomeHandler::class);
-
 		$this->container->whenNeedsType(
 			HandleErrors::class,
 			ExceptionRenderer::class,

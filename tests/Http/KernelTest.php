@@ -109,9 +109,9 @@ final class KernelTest extends TestCase
 		$listeners->listen(RequestReceived::class, $recorder->received(...));
 		$listeners->listen(ResponseReady::class, $recorder->ready(...));
 
-		$container->make(Kernel::class)->handle(Request::create('/about'));
+		$container->make(Kernel::class)->handle(Request::create('/missing'));
 
-		$this->assertSame(['received /about', 'ready 200'], $recorder->events);
+		$this->assertSame(['received /missing', 'ready 404'], $recorder->events);
 	}
 
 	public function testBindsThePsr17Factories(): void

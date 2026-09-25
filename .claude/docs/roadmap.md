@@ -17,6 +17,41 @@
 
 ---
 
+## M3 (Routing): done
+
+Implemented 2026-09-25. See D-073 to D-077. Delivered:
+
+- `Blush\Routing`: `Route`, `RoutePattern`, `Redirect`, `RouteConfig`
+  (`config/routes.php`), the routing attributes (`Route`, `Get`, `Post`,
+  `Put`, `Patch`, `Delete`, `Group`), `RouteSource`/`RedirectSource` with
+  `RoutePriority`, the config, controller, and fallback sources,
+  `RouteCompiler`, `RouteTable`, `RouteCache`, `Router`,
+  `ControllerHandler`, `UrlGenerator`, and the `RouteMatched` event.
+- `Http\HttpError`, `NotFound`, and `MethodNotAllowed`, mapped to their
+  statuses by `HandleErrors`.
+- Trailing-slash canonicalization, redirects before 404, and `/public/...`
+  redirects (the D-071 follow-up).
+- `routes:list`, `cache:clear --routes`, and route compilation in
+  `cache:compile`.
+
+Exit criteria:
+
+- **404, 405, and redirects are tested:** `RouterTest` (plus
+  `RouteCompilerTest`, `RoutePatternTest`, `UrlGeneratorTest`,
+  `RouteConfigTest`). Done.
+- **The route cache works:** `RouteCacheTest` (production serves the cached
+  table until it's cleared; development ignores it; `compile()` writes
+  it). Done.
+- Checked on https://blush.ddev.site: `/` → 200, `/nope` → 404,
+  `POST /` → 405 with `Allow: GET, HEAD`, `/public/x` → 301 `/x`.
+
+Carried forward: content-type routes, the page catch-all, `redirect_from`,
+and data-file redirects (M4); route enumeration for export and sitemaps
+(M5/M7); the locale segment (D-036); and subdirectory base paths (open
+question).
+
+---
+
 ## M2 (HTTP + Console): done
 
 Implemented 2026-09-25. See D-063 to D-070. Delivered:

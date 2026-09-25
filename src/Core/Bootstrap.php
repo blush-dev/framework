@@ -29,6 +29,8 @@ use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
 use Blush\Http\HttpConfig;
 use Blush\Log\LogConfig;
+use Blush\Routing\RouteCache;
+use Blush\Routing\RouteConfig;
 use Blush\Support\PhpArrayFile;
 
 /**
@@ -79,11 +81,12 @@ final readonly class Bootstrap
 	}
 
 	/**
-	 * Compiles the config, extension, and container-plan caches. The
-	 * container plans are gathered by booting a fresh application, so
-	 * every provider and bootable service gets planned, and then by
-	 * planning every class the booted container knows about, along with
-	 * their dependencies (D-066). Returns the number of plans compiled.
+	 * Compiles the config, extension, route, and container-plan caches.
+	 * The routes and container plans are gathered by booting a fresh
+	 * application, so every provider and bootable service gets planned,
+	 * and then by planning every class the booted container knows about
+	 * and every route's controller, along with their dependencies (D-066).
+	 * Returns the number of plans compiled.
 	 */
 	public function compile(): int
 	{
@@ -96,7 +99,10 @@ final readonly class Bootstrap
 		new ExtensionCache($this->file(CompiledCache::Extensions))->write($built->extensions->all());
 
 		$built->application->boot();
-		$planner->warm($built->container->knownClasses());
+
+		$routes = $built->container->make(RouteCache::class)->write();
+
+		$planner->warm([...$built->container->knownClasses(), ...$routes->controllers()]);
 		$built->autoloader->unregister();
 
 		return new PlanCache($this->file(CompiledCache::Container))->write($planner->plans());
@@ -183,7 +189,8 @@ final readonly class Bootstrap
 			AppConfig::fromEnv($env),
 			new LogConfig(),
 			new ExtensionConfig(),
-			new HttpConfig()
+			new HttpConfig(),
+			new RouteConfig()
 		);
 	}
 

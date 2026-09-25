@@ -31,9 +31,8 @@ use Blush\Http\Middleware\Pipeline;
  *
  * The request runs through `HandleErrors`, then the configured global
  * middleware (resolved through the container per request), then the
- * application's handler. Until the router arrives (M3), the handler is
- * `WelcomeHandler`. `RequestReceived` and `ResponseReady` are dispatched
- * around the pipeline.
+ * application's handler: the router (`RoutingServiceProvider` binds it).
+ * `RequestReceived` and `ResponseReady` are dispatched around the pipeline.
  */
 final readonly class Kernel implements RequestHandlerInterface
 {

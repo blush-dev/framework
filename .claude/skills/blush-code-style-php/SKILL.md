@@ -142,7 +142,11 @@ final readonly class Entry
   `$value |> (fn($x) => $x + 1)`.
 - **`Uri\Rfc3986\Uri`** for all URI parsing and building; never `parse_url()`.
 - **`array_first()`, `array_last()`, `array_find()`, `array_any()`,
-  `array_all()`** instead of hand-written loops.
+  `array_all()`** instead of hand-written loops. `array_find()`,
+  `array_any()`, and `array_all()` pass the value *and the key*, so a
+  first-class callable of a built-in that takes one argument
+  (`is_string(...)`) throws an `ArgumentCountError`. Wrap it:
+  `static fn (mixed $item): bool => is_string($item)`.
 - **`new` without wrapping parentheses** when chaining: `new Foo()->bar()`.
 - **`match`** instead of `switch`; **first-class callables** (`strlen(...)`).
 - **`Dom\HTMLDocument`** for HTML manipulation; never regex over HTML.

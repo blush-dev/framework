@@ -77,7 +77,7 @@ site/
   resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
   src/                  App\ namespace: providers, components, controllers
   storage/
-    cache/              Compiled config.php, extensions.php, container.php (D-060)
+    cache/              Compiled config.php, extensions.php, container.php, routes.php (D-060, D-077)
     index/  logs/  sessions/  export/
   tests/
 ```

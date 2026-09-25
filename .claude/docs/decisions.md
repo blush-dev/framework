@@ -750,3 +750,91 @@ decision, add a new entry that supersedes it and mark the old one
     configure is not supported. Such hosts are rare; cPanel hosts run
     Apache or LiteSpeed, which honor `.htaccess`.
 - **Resolves** the nginx follow-up in D-071.
+
+### D-073: The M3 router
+- **Date:** 2026-09-25
+- **Decision:** Implements the routing design in `Blush\Routing`:
+  - **Definitions:** `Route` is an immutable value object
+    (`Route::get('/archives/{year:\d{4}}', [Archive::class, 'year'])->named(…)`,
+    plus `where()`, `defaults()`, `middleware()`, and `Route::group()`).
+    Patterns use `{name}` or `{name:regex}`; constraints may nest braces
+    but not capture. Paths are written without a trailing slash.
+  - **Site routes** live in `config/routes.php` as a `RouteConfig` (routes,
+    attribute-routed `controllers`, `redirects`, `trailingSlash`), so they
+    compile with the rest of the config (D-057).
+  - **Sources:** each `RouteSource` has a `RoutePriority` (System, Content,
+    Controllers, Config, Fallback). Extensions tag sources with
+    `RouteSource::TAG`, controllers with `ControllerRoutes::TAG`, and
+    redirect sources with `RedirectSource::TAG`. Controllers are listed or
+    tagged, never scanned for. Themes can't add routes (D-020), which
+    corrects the architecture doc's "site, theme, or extensions".
+  - **Precedence:** static paths match before patterns. Among patterns,
+    priority then registration order decides. When two routes claim the
+    same method and pattern, the higher priority wins and the other is
+    recorded as shadowed (`routes:list` warns). Duplicate names are an
+    error.
+  - **Handlers:** an invokable class, a `[Class, 'method']` pair, or a
+    PSR-15 handler, called through `Container::call()`. Parameters are
+    filled by name from path parameters and defaults. Parameters typed as a
+    request get the request, and the container autowires the rest.
+    Parameters typed `int`, `float`, `bool`, or a backed enum are cast, and
+    unconstrained ones get a matching constraint automatically. The
+    compiler records all of this, so dispatch doesn't use reflection.
+    Handlers must return a `ResponseInterface`.
+  - **Attributes:** `#[Route]`, `#[Get]`, `#[Post]`, `#[Put]`, `#[Patch]`,
+    `#[Delete]` (repeatable, on classes or public methods) and a class-level
+    `#[Group(prefix, name, middleware)]`.
+  - **Matching:** a hash map for static paths, then per-method combined
+    regexes in chunks of 32 alternatives, using branch reset and
+    `(*MARK)`. `HEAD` falls back to `GET`. `OPTIONS` without a route gets a
+    204 with `Allow`.
+  - **Request data:** the `RouteMatch` and each parameter become request
+    attributes, and `RouteMatched` is dispatched before the route's
+    middleware runs.
+  - **`UrlGenerator::to(name, params, absolute)`:** extra values become
+    the query string, and absolute URLs use `AppConfig::$url`'s origin.
+  - `WelcomeHandler` is now a `Fallback` route for `/`, so any site route
+    for `/` replaces it. The empty-state question stays open.
+
+### D-074: Trailing slashes: one canonical form, configurable
+- **Date:** 2026-09-25
+- **Decision:** By default, canonical URLs have no trailing slash (jtcom's
+  URLs don't). `RouteConfig::$trailingSlash = true` flips that. The
+  non-canonical form redirects when the canonical one would match: 301 for
+  `GET`/`HEAD`, and 308 otherwise so the method and body are kept. The
+  query string carries over. `/` and paths whose last segment has a dot
+  (`/feed.xml`) never get a slash. Generated URLs follow the setting.
+
+### D-075: HTTP errors are exceptions with a status
+- **Date:** 2026-09-25
+- **Decision:** `Http\HttpError` (a `RuntimeException` with a `Status` and
+  headers) can be thrown by anything, with `NotFound` and
+  `MethodNotAllowed` (which sets `Allow`) as subclasses. `HandleErrors`
+  turns them into responses with that status and doesn't log them.
+  `HtmlRenderer` shows a short status page (with the message only in debug)
+  until themed error pages arrive in M5.
+
+### D-076: Redirects are the last resort before a 404
+- **Date:** 2026-09-25
+- **Decision:** Redirects (`Redirect(from, to, status = 301)`, from
+  `RouteConfig::$redirects` and any tagged `RedirectSource`) are checked
+  only when nothing answers: no route matches, or a handler throws
+  `NotFound`. So a redirect can never shadow a live page. `from` is a route
+  pattern whose parameters `to` can reuse (`/blog/{slug}` → `/archives/{slug}`).
+  `to` may be an absolute URL, the query string carries over unless `to`
+  has one, and the first redirect for a pattern wins. `redirect_from`
+  front matter and data-file redirects arrive with content (M4) as more
+  sources.
+  - `/public/...` URLs from a whole-project install (D-071) redirect to the
+    path without `public/`, when `public/` sits directly in the project
+    root. **Resolves** that D-071 follow-up.
+
+### D-077: The route table is a compiled cache
+- **Date:** 2026-09-25
+- **Decision:** The compiled table is `storage/cache/routes.php`
+  (`CompiledCache::Routes`), used everywhere except development, like the
+  other caches (D-060). Development compiles it on every request.
+  `cache:compile` writes it and plans every route's controller (D-066);
+  `cache:clear --routes` deletes it. Routes stay arrays in the table until
+  one is matched. `routes:list` shows routes (method, path, name, handler,
+  source), redirects, and shadowed routes.

@@ -21,9 +21,9 @@ use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 
 /**
- * The kernel's handler until the router arrives (M3): answers every request
- * with a small "hello" page naming the site. It proves the whole path from
- * the front controller through the kernel to the emitter.
+ * A small "hello" page naming the site. It's the fallback route for `/`
+ * (`FallbackRoutes`), so a fresh site answers its home page until the site
+ * or its content claims `/`.
  */
 final readonly class WelcomeHandler implements RequestHandlerInterface
 {

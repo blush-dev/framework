@@ -153,10 +153,11 @@ Implemented in M2 (D-067).
   - `ConditionalGet` (ETag, Last-Modified → 304), `PageCache`, `SecurityHeaders`
   - `StartSession`, `VerifyCsrf`, `Authenticate`, `RateLimit` (admin and
     webhooks only)
-  Only `HandleErrors` exists so far. The kernel always runs it outermost.
+  Only `HandleErrors` exists so far. The kernel always runs it outermost,
+  and it maps `HttpError`s to their status.
 - **`Kernel`** implements `RequestHandlerInterface`. It runs `HandleErrors`,
-  then the global middleware, then its handler (`WelcomeHandler` until the
-  M3 router), and dispatches `RequestReceived` and `ResponseReady`.
+  then the global middleware, then its handler (the `Router`), and
+  dispatches `RequestReceived` and `ResponseReady`.
 - **`Emitter`** sends status, headers, and body through a `Sapi`; skips the
   body for `HEAD` and 1xx/204/304; and calls `fastcgi_finish_request()`
   for deferred work.
@@ -165,25 +166,48 @@ Implemented in M2 (D-067).
 
 ## Routing
 
+Implemented in M3 (D-073 to D-077).
+
 - **`Route`:** methods, pattern (`/archives/{year:\d{4}}/{month}`), handler (an
-  invokable class or `[Class, 'method']`), name, defaults, constraints, and
-  middleware.
-- **Sources**, in precedence order:
+  invokable class, `[Class, 'method']`, or a PSR-15 handler), name, defaults,
+  constraints, and middleware. `Route::group()` shares a prefix, name
+  prefix, and middleware. Paths are written without a trailing slash.
+- **Sources** (`RouteSource`), in precedence order (`RoutePriority`):
   1. System routes (feeds, sitemap, robots, webhook, admin)
-  2. Routes generated from content types
-  3. Controllers with `#[Get]`, `#[Post]`, … attributes in site, theme, or
-     extensions
-  4. `config/routes.php`
-  5. The page catch-all
-- **Compiler and matcher:** a static hash map, then per-method combined regexes.
-  The compiled table is cached as a PHP file. Unmatched methods return 405 with
-  an `Allow` header.
+  2. Routes generated from content types (M4)
+  3. Controllers with `#[Get]`, `#[Post]`, … attributes, listed in
+     `RouteConfig::$controllers` or tagged `ControllerRoutes::TAG` by site or
+     extension providers. Themes can't add routes (D-020).
+  4. `config/routes.php` (`RouteConfig::$routes`)
+  5. Fallbacks: the welcome page at `/` and, later, the page catch-all
+  Static paths always match before patterns. When two routes claim the same
+  method and pattern, the higher priority wins and the other is reported as
+  shadowed.
+- **Compiler and table:** `RouteCompiler` resolves each handler, validates it
+  and its middleware, records how to fill its parameters (casts for `int`,
+  `float`, `bool`, and backed enums, which also constrain the segment, plus
+  which parameters take the request), and builds a `RouteTable`: a static
+  hash map, then per-method combined regexes (branch reset plus `(*MARK)`,
+  32 per chunk). `RouteCache` stores it in `storage/cache/routes.php`
+  outside development.
+- **`Router`** (the kernel's handler): canonical trailing-slash redirect,
+  match (`HEAD` falls back to `GET`; wrong method → 405 with `Allow`;
+  `OPTIONS` → 204), then the route's middleware and `ControllerHandler`. The
+  match and parameters become request attributes, and `RouteMatched` is
+  dispatched.
+- **Errors:** `Http\HttpError`, `NotFound`, and `MethodNotAllowed` become
+  status responses in `HandleErrors` (D-075).
 - **`UrlGenerator`:** turns a name plus params into relative or absolute URLs.
-  Entry and type URLs go through it.
-- **Redirects:** a map (config or `user/data/redirects.*`) plus `redirect_from:`
-  in front matter, checked before a 404 is returned.
+  Extra params become the query string. Entry and type URLs go through it.
+- **Redirects:** `RouteConfig::$redirects` and tagged `RedirectSource`s
+  (`redirect_from` front matter and `user/data/redirects.*` in M4), with
+  pattern placeholders. They're checked only before a 404, including when a
+  handler throws `NotFound`. `/public/...` URLs redirect to the canonical
+  path (D-076).
 - **Route enumeration:** the router can list every concrete URL, which static
-  export and sitemaps need.
+  export and sitemaps need (M5/M7, with content).
+- **Not yet:** the optional locale segment (D-036) and a base path for
+  subdirectory installs (open question).
 
 ## Content
 
@@ -315,7 +339,7 @@ summary below is the view core those features sit on.
 
 | Layer | Key / invalidation |
 |---|---|
-| Config, routes, providers | Compiled PHP files; cleared by `cache:clear` or deploy |
+| Config, routes, extensions, container plans | Compiled PHP files; cleared by `cache:clear` or deploy |
 | Content index | Per-file mtime/size/hash, incremental |
 | Rendered bodies | Content hash + renderer version |
 | Fragments | `$cache->remember($key, $ttl, fn() => …)` |

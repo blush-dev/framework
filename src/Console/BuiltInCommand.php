@@ -17,6 +17,7 @@ use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\ListCommands;
+use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\Serve;
 
 /**
@@ -30,6 +31,7 @@ enum BuiltInCommand: string
 	case Serve        = 'serve';
 	case CacheClear   = 'cache:clear';
 	case CacheCompile = 'cache:compile';
+	case RoutesList   = 'routes:list';
 
 	/**
 	 * Returns the command's class.
@@ -43,7 +45,8 @@ enum BuiltInCommand: string
 			self::Help         => Help::class,
 			self::Serve        => Serve::class,
 			self::CacheClear   => CacheClear::class,
-			self::CacheCompile => CacheCompile::class
+			self::CacheCompile => CacheCompile::class,
+			self::RoutesList   => RoutesList::class
 		};
 	}
 }
