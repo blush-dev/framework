@@ -17,6 +17,37 @@
 
 ---
 
+## M2 (HTTP + Console): done
+
+Implemented 2026-09-25. See D-063 to D-070. Delivered:
+
+- `Blush\Http`: PSR-7 messages (`Request`, `Response`, `Uri`, `Stream`,
+  `UploadedFile`), `Status`, `HttpFactory` (PSR-17), `RequestFactory`,
+  the PSR-15 `Pipeline`, `HandleErrors`, `Kernel`, `Emitter`, `HttpConfig`,
+  the `RequestReceived`/`ResponseReady` events, and `WelcomeHandler`.
+- `Blush\Console`: commands declared by attribute and `__invoke()`
+  parameters, argv parsing and binding, `Output`, `Prompt`, the registry
+  and registrar, `CommandTester`, and `list`, `help`, `serve`,
+  `cache:clear`, and `cache:compile`.
+- `Core\Runner`, `HttpRunner`, and `ConsoleRunner`, with two-stage error
+  handling (D-064).
+- Plan warm-up for everything the container knows (D-066).
+- `../blush` `2.x` branch with DDEV at PHP 8.5 (D-063).
+
+Exit criteria:
+
+- **Tests:** "Hello" through `Kernel::handle()` (`KernelTest`,
+  `RunnerTest`). Done.
+- **`bin/blush`:** `serve` returns the Hello page (checked with curl), and
+  `cache:*` works. Done.
+- **Browser (DDEV):** https://blush.ddev.site serves the Hello page on
+  PHP 8.5, after the 1.x leftovers were removed from `../blush`. Done.
+
+Deferred from M2: progress bars (M4), `Response::file()` Range support
+(M4), and the other built-in middleware (with their features).
+
+---
+
 ## M1 (core): done
 
 Completed 2026-09-25. See D-051 to D-061. Delivered:

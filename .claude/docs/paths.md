@@ -22,7 +22,7 @@
 
 ```
 blush-framework/
-  bin/                  CLI entry for framework development
+  bin/                  CLI entry for framework development (none yet; sites have bin/blush)
   src/
     Core/               Application, ServiceProvider, Bootable, Bootstrap, Paths,
                         Environment, AppConfig, BlushException, Kernel wiring
@@ -48,7 +48,7 @@ blush-framework/
     Admin/              (later milestone)
     Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
-  resources/            Framework default views/theme
+  resources/            Framework default views/theme; server.php (`serve` router)
   tests/
     Fixtures/site/      Fixture site: .env, config/, local + Composer extensions
   .claude/
@@ -61,6 +61,9 @@ blush-framework/
 
 ```
 site/
+  .htaccess             Forwards every request into public/, so the whole project can sit in
+                        a host's public_html with no setup (D-071)
+  nginx.conf.example    Sample nginx server block, root at public/ (D-072)
   bin/blush             Site CLI (name will follow the product name)
   config/               Typed config objects (app, content, cache, theme, …); never under user/ (D-039)
   user/

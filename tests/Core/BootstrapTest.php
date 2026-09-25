@@ -18,6 +18,7 @@ use Psr\Log\LoggerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\ConfigRepository;
+use Blush\Console\Commands\Serve;
 use Blush\Core\AppConfig;
 use Blush\Core\Bootstrap;
 use Blush\Core\Environment;
@@ -26,6 +27,9 @@ use Blush\Error\ErrorHandler;
 use Blush\Event\Dispatcher;
 use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
+use Blush\Http\Kernel;
+use Blush\Http\Middleware\HandleErrors;
+use Blush\Http\WelcomeHandler;
 use Blush\Log\Logger;
 use Blush\Tests\Fixtures\Extension\ComposerExtensionProvider;
 use Blush\Tests\Fixtures\Extension\SiteServiceProvider;
@@ -124,6 +128,16 @@ final class BootstrapTest extends TestCase
 		$plans = $bootstrap->compile();
 
 		$this->assertGreaterThan(0, $plans);
+
+		// Warm-up plans request-time classes the container knows about
+		// (D-066), along with their dependencies.
+		$compiled = require "{$root}/storage/cache/container.php";
+		$this->assertIsArray($compiled);
+		$this->assertArrayHasKey(Kernel::class, $compiled);
+		$this->assertArrayHasKey(WelcomeHandler::class, $compiled);
+		$this->assertArrayHasKey(Serve::class, $compiled);
+		$this->assertArrayHasKey(HandleErrors::class, $compiled);
+
 		$this->assertFileExists("{$root}/storage/cache/config.php");
 		$this->assertFileExists("{$root}/storage/cache/extensions.php");
 		$this->assertFileExists("{$root}/storage/cache/container.php");

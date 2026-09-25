@@ -16,6 +16,7 @@ namespace Blush\Core;
 use Override;
 use Psr\Container\ContainerInterface;
 use Blush\Clock\ClockServiceProvider;
+use Blush\Console\ConsoleServiceProvider;
 use Blush\Container\Container;
 use Blush\Container\ContainerException;
 use Blush\Container\ServiceResolver;
@@ -23,12 +24,13 @@ use Blush\Core\Events\ApplicationBooted;
 use Blush\Error\ErrorServiceProvider;
 use Blush\Event\Dispatcher;
 use Blush\Event\EventServiceProvider;
+use Blush\Http\HttpServiceProvider;
 use Blush\Log\LogServiceProvider;
 
 /**
  * Wires a project together around a dependency injection container and a set
- * of service providers. The framework's providers (events, clock, log, and
- * errors) and any listed in a subclass's `PROVIDERS` constant are registered
+ * of service providers. The framework's providers (events, clock, log,
+ * errors, HTTP, and console) and any listed in a subclass's `PROVIDERS` constant are registered
  * on construction; more are registered at runtime (from extensions, the
  * theme chain, and site config, see `Bootstrap`). `boot()` then boots every
  * registered provider in one pass.
@@ -49,7 +51,9 @@ class Application implements Bootable
 		EventServiceProvider::class,
 		ClockServiceProvider::class,
 		LogServiceProvider::class,
-		ErrorServiceProvider::class
+		ErrorServiceProvider::class,
+		HttpServiceProvider::class,
+		ConsoleServiceProvider::class
 	];
 
 	/**

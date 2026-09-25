@@ -43,6 +43,10 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   object. It also discovers and autoloads extensions, then registers providers
   in source order. `compile()`/`clearCompiled()` manage the
   `storage/cache/*.php` files (D-060).
+- **Runners** (D-064, D-068): `Core\Runner` is the shared start of every
+  entry point. It registers a bare error handler, builds and boots the
+  application, then hands over to the configured `ErrorHandler`.
+  `Http\HttpRunner` and `Console\ConsoleRunner` extend it.
 - **Service providers** keep the declarative constants from x3p0
   (`SINGLETONS`, `TRANSIENTS`, `ALIASES`, `TAGS`, `BOOTABLE`).
 - **Provider sources**, in order:
@@ -126,28 +130,38 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 
 ## HTTP (custom, D-005)
 
-- **`Uri`** implements `Psr\Http\Message\UriInterface` on top of 8.5's
-  `Uri\Rfc3986\Uri`.
+Implemented in M2 (D-067).
+
+- **`Uri`** implements `Psr\Http\Message\UriInterface`. It parses with 8.5's
+  `Uri\Rfc3986\Uri` and applies the PSR-7 rules itself.
 - **`Request`** implements `ServerRequestInterface`. It is immutable, and its
   `with*()` methods are built on `clone($this, [...])`.
   `RequestFactory::fromGlobals()` and `Request::create('/path')` are the
   constructors.
 - **`Response`** implements `ResponseInterface`. Named constructors:
-  `html()`, `xml()`, `json()`, `text()`, `redirect()`, `file()` (with Range
-  support for media), `notModified()`.
-- **Streams:** in-house string, file, and temp streams (PSR-7 requires them).
-- **Factories:** in-house PSR-17.
-- **Middleware:** PSR-15 `MiddlewareInterface` plus a `Pipeline`, attachable
-  globally, per route group, or per route. Built-ins:
+  `html()`, `xml()`, `json()`, `text()`, `redirect()`, `file()` (Range
+  support comes with media in M4), `notModified()`. `Status` is an enum of
+  the registered codes.
+- **Streams:** one `Stream` class over a resource, with `fromString()`
+  (`php://temp`) and `fromFile()`.
+- **Factories:** `HttpFactory` implements all of PSR-17 and is bound under
+  each interface.
+- **Middleware:** PSR-15 `MiddlewareInterface` plus a `Pipeline`. Global
+  middleware comes from `HttpConfig::$middleware`; per-group and per-route
+  middleware come with the router. Built-ins:
   - `HandleErrors`, `TrustProxies`, `CanonicalUrl` (scheme, host, trailing slash)
   - `ConditionalGet` (ETag, Last-Modified → 304), `PageCache`, `SecurityHeaders`
   - `StartSession`, `VerifyCsrf`, `Authenticate`, `RateLimit` (admin and
     webhooks only)
-- **`Kernel`** builds the pipeline, dispatches to the router, and returns a
-  `Response`.
-- **`Emitter`** sends status, headers, and body; handles `HEAD`; and calls
-  `fastcgi_finish_request()` for deferred work.
-- The front controller in `public/index.php` is about five lines.
+  Only `HandleErrors` exists so far. The kernel always runs it outermost.
+- **`Kernel`** implements `RequestHandlerInterface`. It runs `HandleErrors`,
+  then the global middleware, then its handler (`WelcomeHandler` until the
+  M3 router), and dispatches `RequestReceived` and `ResponseReady`.
+- **`Emitter`** sends status, headers, and body through a `Sapi`; skips the
+  body for `HEAD` and 1xx/204/304; and calls `fastcgi_finish_request()`
+  for deferred work.
+- The front controller in `public/index.php` is three lines:
+  `new HttpRunner($root)->run()`.
 
 ## Routing
 
@@ -365,10 +379,16 @@ summary below is the view core those features sit on.
 ## Hosting (D-040)
 
 - **Shared Apache hosting is a first-class target** (jtcom is on GoDaddy).
+- **Whole-project installs work out of the box** (D-071): uploading the
+  entire project into `public_html` needs no setup. A root `.htaccess`
+  rewrites every request into `public/` (and denies everything without
+  mod_rewrite).
 - **Blush ships:**
-  - An `.htaccess` (front controller, deny access to non-public paths, cache
-    headers for assets and page-cache files).
-  - Sample nginx config.
+  - A root `.htaccess` (forward into `public/`) and `public/.htaccess`
+    (front controller, only `index.php` runs as PHP; cache headers for
+    assets and page-cache files later).
+  - `nginx.conf.example` with `root` at `public/` (D-072). nginx can't use
+    the whole-project-in-web-root layout, because it ignores `.htaccess`.
 - **Relocatable web root** (D-046): only `index.php` (plus `.htaccess` and
   published assets) must be in the web root, e.g. cPanel's fixed
   `public_html`. `index.php` holds a single path to the project bootstrap.

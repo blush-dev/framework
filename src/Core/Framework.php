@@ -25,6 +25,11 @@ final class Framework
 	public const string NAME = 'Blush Framework';
 
 	/**
+	 * The command-line executable's name, as shown in usage lines.
+	 */
+	public const string BINARY = 'blush';
+
+	/**
 	 * The framework version.
 	 */
 	public const string VERSION = '2.0.0-dev';

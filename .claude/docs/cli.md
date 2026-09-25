@@ -5,19 +5,42 @@ The binary is `bin/blush` for now and will follow the final product name.
 
 ## Console framework (`Blush\Console`)
 
-- **Commands:** classes with an attribute:
-  `#[Command(name: 'cache:clear', description: '…')]`. Arguments and options
-  are declared as typed, promoted constructor properties (or `#[Argument]`/
-  `#[Option]` on an input DTO), so parsing, validation, and help text come
-  from types.
-- **Discovery:** framework, extension, theme, and site commands are
-  registered through the enum + registry pattern and resolved through the
-  container.
+Implemented in M2 (D-065, D-069).
+
+- **Commands:** invokable classes with an attribute:
+  `#[Command(name: 'cache:clear', description: '…')]`. The constructor takes
+  services. Input is declared as `__invoke()` parameters marked
+  `#[Argument]` or `#[Option(short: 'f')]`, so parsing, validation, and help
+  text come from their types and defaults. Supported types are string,
+  int, float, bool flags, backed enums, nullable types, a variadic argument,
+  and repeatable array options. Other parameters (`Output`, `Prompt`,
+  services) are resolved from the container. `__invoke()` returns
+  `ExitCode`.
+
+  ```php
+  #[Command('cache:clear', 'Clear the compiled caches.')]
+  final readonly class CacheClear
+  {
+  	public function __construct(private Bootstrap $bootstrap) {}
+
+  	public function __invoke(
+  		Output $output,
+  		#[Option('Clear the compiled config.')] bool $config = false
+  	): ExitCode {
+  		// ...
+  	}
+  }
+  ```
+- **Discovery:** extension and site commands are tagged with
+  `CommandRegistry::TAG` in a provider's `TAGS` constant. Built-ins come from
+  the `BuiltInCommand` enum through `CommandRegistrar` and never overwrite a
+  tagged command. Commands are resolved through the container only when
+  run.
 - **Input:** an argv parser (long and short options, `--opt=value`, flags,
   variadic arguments, `--` terminator).
 - **Output:** styled writer (ANSI with automatic detection, `NO_COLOR`),
-  verbosity levels, tables, progress bars, and prompts (confirm, ask,
-  choice, secret) with a non-interactive fallback.
+  verbosity levels, and tables. Progress bars come in M4. Prompts
+  (confirm, ask, choice, secret) have a non-interactive fallback.
 - **Exit codes:** an enum (`Success`, `Failure`, `Invalid`, …).
 - **Boots the same `Application`** as the web, so commands get the container,
   config, content, and `Kernel::handle()`.
@@ -27,8 +50,11 @@ The binary is `bin/blush` for now and will follow the final product name.
 
 | Command | Purpose |
 |---|---|
-| `serve` | Dev server (`php -S` + router script) |
-| `cache:clear [--pages\|--config\|--routes\|--all]` | Clear caches / bump the content version |
+| `list` | List the commands (the default) |
+| `help <command>` | Show a command's usage |
+| `serve [--host] [-p\|--port]` | Dev server (`php -S` + `resources/server.php`) |
+| `cache:clear [--config\|--extensions\|--container]` | Clear compiled caches (no flags: all). Pages, routes, and the content version join later |
+| `cache:compile` | Compile config, extensions, and container plans (D-060, D-066) |
 | `content:index [--full]` | Build or refresh the content index |
 | `content:lint` | Validate front matter against schemas |
 | `content:new <type> "<title>"` | Scaffold an entry |

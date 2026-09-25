@@ -597,3 +597,156 @@ decision, add a new entry that supersedes it and mark the old one
   (https://github.com/blush-dev/blush). It is the 1.x skeleton today. Blush 2's
   skeleton and M2's browser dev site are that repo, not a new `blush-dev/site`.
   Supersedes the skeleton name in D-045.
+
+### D-063: The M2 dev site is a `2.x` branch of `../blush` on DDEV
+- **Date:** 2026-09-25
+- **Decision:** `blush-dev/blush` (D-062) gets a `2.x` branch rewritten to
+  the new site layout (`paths.md`). It requires the framework through a
+  Composer path repository (`../blush-framework`), and runs on its own DDEV
+  project at PHP 8.5, with the framework mounted into the web container at
+  the same relative location (as jtcom does). It is the browser playground
+  and the future skeleton. Automated tests keep using `tests/Fixtures/site`.
+- **Resolves** the "dev site from M2 onward" open question.
+
+### D-064: Entry points handle errors in two stages
+- **Date:** 2026-09-25
+- **Decision:** `public/index.php` and `bin/blush` first register a bare
+  `ErrorHandler` (generic output, no logger; detailed only when `APP_DEBUG`
+  is set in the process environment) before anything loads. Once the
+  application is built, they swap it for the configured `ErrorHandler`. A
+  broken `.env` or config file still renders cleanly.
+- **Resolves** the "error handler timing" open question.
+
+### D-065: Console commands: attribute plus `__invoke()` parameters
+- **Date:** 2026-09-25
+- **Decision:** A command is an invokable class marked
+  `#[Command(name, description)]`. Its constructor takes services (autowired,
+  as anywhere else). Its input is declared as `__invoke()` parameters:
+  `#[Argument]` and `#[Option]` parameters are parsed from argv, with
+  parsing, validation, and help text driven by their types and defaults. Any
+  other parameter (such as `Output`) is resolved from the container.
+  `__invoke()` returns an `ExitCode`. Refines the input part of `cli.md`.
+
+### D-066: Container plan warm-up plans everything the container knows
+- **Date:** 2026-09-25
+- **Decision:** `Bootstrap::compile()` plans every class the booted
+  container knows about (bound concretes, alias targets, and tagged
+  abstracts, which include commands and middleware) plus their constructor
+  dependencies, recursively. No sample requests are dispatched. Anything
+  missed still falls back to reflection at runtime.
+- **Resolves** the "container plan warm-up" open question (D-052).
+
+### D-067: The M2 HTTP layer
+- **Date:** 2026-09-25
+- **Decision:** Implements D-005 in `Blush\Http`:
+  - One request class: `Request` implements `ServerRequestInterface` (and so
+    serves PSR-17's `createRequest()` too). `Response`, `Uri`, `Stream` (one
+    resource-backed class with `fromString()`/`fromFile()`), and
+    `UploadedFile`. Messages share the abstract `Message` base and are
+    `readonly`, with `with*()` built on `clone()` and marked `#[\NoDiscard]`.
+  - `Uri` parses with `Uri\Rfc3986\Uri` after percent-encoding characters
+    browsers send raw (spaces, brackets in queries), and applies PSR-7's
+    rules itself.
+  - A `Status` enum names the registered codes and supplies reason phrases.
+  - `HttpFactory` implements all six PSR-17 interfaces and is bound under
+    each one.
+  - `RequestFactory::fromGlobals()` is the only superglobal reader. It does
+    not trust forwarded headers; `TrustProxies` will.
+  - `Kernel` implements `RequestHandlerInterface`. It always runs
+    `HandleErrors` outermost (HTML output whatever the SAPI, logged through
+    `ErrorHandler::report()`), then `HttpConfig::$middleware`, then its
+    handler. It dispatches `RequestReceived` and `ResponseReady` for
+    listeners to observe; changing requests or responses is middleware's
+    job.
+  - Until the router (M3), the kernel's handler is `WelcomeHandler`, given
+    by a contextual binding. It isn't the "empty-state page" (still open).
+  - `Emitter` writes through a `Sapi` interface (`NativeSapi` by default),
+    skips the body for `HEAD` and 1xx/204/304, and calls
+    `fastcgi_finish_request()` when available.
+  - `Response::file()` has no Range support yet; that comes with media in
+    M4.
+  - Only `HandleErrors` ships in M2. The other built-in middleware land with
+    the features that need them.
+
+### D-068: Entry points are runners
+- **Date:** 2026-09-25
+- **Decision:** `Core\Runner` (abstract) holds the D-064 two-stage error
+  handling and builds and boots the application once. `Http\HttpRunner`
+  (`run()`, plus `handle()` for tests) and `Console\ConsoleRunner`
+  (`run($argv): int`) are the concrete entry points. `public/index.php` and
+  `bin/blush` are each about three lines. If the application can't launch,
+  `ConsoleRunner` prints the error and returns exit code 1 instead of
+  leaving PHP to exit with 0.
+
+### D-069: Console framework details
+- **Date:** 2026-09-25
+- **Decision:** Implements D-012 and D-065 in `Blush\Console`:
+  - `Console::run($argv)` is the runner. It applies the global options
+    (`-h`, `-q`, `-v…`, `--ansi`/`--no-ansi`, `-n`, `-V`), and binds the
+    per-run `Output` and `Prompt` into the container. Input errors exit
+    with `ExitCode::Invalid` (2). Other exceptions are logged, rendered to
+    stderr, and exit with `Failure` (1).
+  - `CommandRegistry` is its own class, not `Support\Registry`, because
+    commands have no interface. Commands register declaratively by tagging
+    them with `CommandRegistry::TAG` in a provider's `TAGS`. Tagged commands
+    win; `CommandRegistrar` then seeds the `BuiltInCommand` enum's classes
+    with `registerIf()`.
+  - `Testing\CommandTester` runs commands with in-memory streams.
+  - Progress bars are deferred to M4 (`content:index`).
+  - The executable name lives in `Framework::BINARY` (D-038).
+  - Built-in commands in M2: `list`, `help`, `serve`,
+    `cache:clear [--config] [--extensions] [--container]`, and
+    `cache:compile` (the M1 carry-over). `serve` runs `php -S` with the
+    framework's `resources/server.php` router, which, as an entry point, may
+    read superglobals.
+  - Processes start through a `ProcessRunner` interface
+    (`SystemProcessRunner` uses `proc_open` with an argument list, never a
+    shell).
+
+### D-070: The `2.x` skeleton is MIT licensed
+- **Date:** 2026-09-25
+- **Decision:** The `blush-dev/blush` `2.x` branch declares `MIT` in
+  `composer.json`, matching D-014. It is a new project, requires
+  `blush-dev/framework` `2.x-dev` from the `../blush-framework` path
+  repository, and serves `public/` on DDEV at https://blush.ddev.site.
+- **Needs confirmation:** the author should confirm the license change
+  and add a `LICENSE.md` to the skeleton.
+
+### D-071: A whole-project install in the web root works out of the box
+- **Date:** 2026-09-25
+- **Decision:** Most users will upload the entire project into
+  `public_html` (or whatever the host calls it), and that must work with no
+  setup. The site ships a root `.htaccess` that internally rewrites every
+  request into `public/`. So:
+  - `public/` stays the only servable directory (the security baseline
+    holds). `config/`, `.env`, `user/`, `vendor/`, and `storage/` are never
+    served; requests for them reach the front controller.
+  - URLs don't include `public/`.
+  - Without mod_rewrite, the root `.htaccess` denies every request (it fails
+    closed rather than exposing the project).
+  - Pointing the document root at `public/` (VPS, nginx, or a configurable
+    host) still works; the root `.htaccess` is then unused.
+  - The DDEV dev site runs this way (Apache, docroot = project root), so
+    the common case is what gets exercised.
+- **Refines** D-016 and D-046: `public/` is still the web root *inside*
+  the project, but the project root may itself be the host's document
+  root.
+- **Follow-ups:** `/public/...` URLs also resolve (duplicate URLs) and
+  should redirect to the canonical form (the `CanonicalUrl` middleware or
+  M3). Installing in a subdirectory (`example.com/site/`) needs a base
+  path, still to be designed. nginx is covered by D-072.
+
+### D-072: nginx is supported with `root` at `public/`
+- **Date:** 2026-09-25
+- **Decision:** nginx doesn't read `.htaccess`, and PHP can't stop a web
+  server from serving a static file such as `.env`. So on nginx the server
+  block's `root` must be the project's `public/` directory. The skeleton
+  ships `nginx.conf.example`: real files are served, everything else goes
+  to `index.php`, only `index.php` runs as PHP (other `.php` files return
+  404), and hidden files are denied.
+  - Verified under DDEV's nginx with the sample, and under DDEV's Apache
+    with the project root as the web root (D-071).
+  - A whole-project install into an nginx web root that the owner can't
+    configure is not supported. Such hosts are rare; cPanel hosts run
+    Apache or LiteSpeed, which honor `.htaccess`.
+- **Resolves** the nginx follow-up in D-071.

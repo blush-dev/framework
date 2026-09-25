@@ -27,6 +27,7 @@ use Blush\Extension\ExtensionDiscovery;
 use Blush\Extension\ExtensionManifest;
 use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
+use Blush\Http\HttpConfig;
 use Blush\Log\LogConfig;
 use Blush\Support\PhpArrayFile;
 
@@ -38,8 +39,8 @@ use Blush\Support\PhpArrayFile;
  * 2. Config comes from the compiled cache when present, otherwise from the
  *    `config/*.php` files, with defaults for anything unconfigured.
  * 3. Outside development, the container reads compiled resolution plans.
- * 4. `Paths`, `Env`, the config repository, and every config object are
- *    bound in the container.
+ * 4. The bootstrap itself, `Paths`, `Env`, the config repository, and
+ *    every config object are bound in the container.
  * 5. Extensions are discovered (or read from cache), filtered by config, and
  *    local ones are autoloaded.
  * 6. Providers register in order: framework, extensions, then the site's.
@@ -80,8 +81,9 @@ final readonly class Bootstrap
 	/**
 	 * Compiles the config, extension, and container-plan caches. The
 	 * container plans are gathered by booting a fresh application, so
-	 * every provider and bootable service gets planned. Returns the number
-	 * of plans compiled.
+	 * every provider and bootable service gets planned, and then by
+	 * planning every class the booted container knows about, along with
+	 * their dependencies (D-066). Returns the number of plans compiled.
 	 */
 	public function compile(): int
 	{
@@ -90,23 +92,33 @@ final readonly class Bootstrap
 		$planner = new ReflectionPlanner();
 		$built   = $this->build(static fn (): Planner => $planner);
 
-		new ConfigCache($this->file('config'))->write($built->config);
-		new ExtensionCache($this->file('extensions'))->write($built->extensions->all());
+		new ConfigCache($this->file(CompiledCache::Config))->write($built->config);
+		new ExtensionCache($this->file(CompiledCache::Extensions))->write($built->extensions->all());
 
 		$built->application->boot();
+		$planner->warm($built->container->knownClasses());
 		$built->autoloader->unregister();
 
-		return new PlanCache($this->file('container'))->write($planner->plans());
+		return new PlanCache($this->file(CompiledCache::Container))->write($planner->plans());
 	}
 
 	/**
-	 * Deletes every compiled cache.
+	 * Deletes the given compiled caches, or all of them when none are
+	 * given.
 	 */
-	public function clearCompiled(): void
+	public function clearCompiled(CompiledCache ...$caches): void
 	{
-		new ConfigCache($this->file('config'))->clear();
-		new ExtensionCache($this->file('extensions'))->clear();
-		new PlanCache($this->file('container'))->clear();
+		foreach ($caches === [] ? CompiledCache::cases() : $caches as $cache) {
+			$this->file($cache)->delete();
+		}
+	}
+
+	/**
+	 * Returns the path of a compiled cache file.
+	 */
+	public function compiledPath(CompiledCache $cache): string
+	{
+		return $this->file($cache)->path;
 	}
 
 	/**
@@ -123,6 +135,7 @@ final readonly class Bootstrap
 
 		$container = new ServiceContainer($planner($app->environment));
 
+		$container->instance(self::class, $this);
 		$container->instance(Paths::class, $this->paths);
 		$container->instance(Env::class, $env);
 		$container->instance(ConfigRepository::class, $config);
@@ -146,7 +159,7 @@ final readonly class Bootstrap
 		$application = new Application($container);
 		$application->register(...$extensions->providers(), ...$app->providers);
 
-		return new BootstrapResult($application, $config, $extensions, $autoloader);
+		return new BootstrapResult($application, $container, $config, $extensions, $autoloader);
 	}
 
 	/**
@@ -163,13 +176,14 @@ final readonly class Bootstrap
 	 */
 	private function config(Env $env): ConfigRepository
 	{
-		$config = new ConfigCache($this->file('config'))->read()
+		$config = new ConfigCache($this->file(CompiledCache::Config))->read()
 			?? new ConfigLoader($env, $this->paths)->load($this->paths->config);
 
 		return $config->withDefaults(
 			AppConfig::fromEnv($env),
 			new LogConfig(),
-			new ExtensionConfig()
+			new ExtensionConfig(),
+			new HttpConfig()
 		);
 	}
 
@@ -181,7 +195,7 @@ final readonly class Bootstrap
 	{
 		return $environment->isDevelopment()
 			? new ReflectionPlanner()
-			: new PlanCache($this->file('container'))->planner();
+			: new PlanCache($this->file(CompiledCache::Container))->planner();
 	}
 
 	/**
@@ -194,7 +208,7 @@ final readonly class Bootstrap
 	{
 		$cached = $environment->isDevelopment()
 			? null
-			: new ExtensionCache($this->file('extensions'))->read();
+			: new ExtensionCache($this->file(CompiledCache::Extensions))->read();
 
 		return $cached ?? ExtensionDiscovery::forPaths($this->paths)->discover();
 	}
@@ -202,8 +216,8 @@ final readonly class Bootstrap
 	/**
 	 * Returns a compiled cache file under `storage/cache`.
 	 */
-	private function file(string $name): PhpArrayFile
+	private function file(CompiledCache $cache): PhpArrayFile
 	{
-		return new PhpArrayFile("{$this->paths->cache}/{$name}.php");
+		return new PhpArrayFile("{$this->paths->cache}/{$cache->value}.php");
 	}
 }

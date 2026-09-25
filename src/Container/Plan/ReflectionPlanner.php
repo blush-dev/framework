@@ -72,6 +72,32 @@ final class ReflectionPlanner implements Planner
 	}
 
 	/**
+	 * Plans each class and, recursively, every instantiable class its
+	 * constructor depends on, so a compiled cache covers whole object
+	 * graphs rather than just their roots. Missing classes are skipped.
+	 *
+	 * @param iterable<string> $classes
+	 */
+	public function warm(iterable $classes): void
+	{
+		$pending = [...$classes];
+
+		while ($pending !== []) {
+			$class = array_pop($pending);
+
+			if (isset($this->plans[$class]) || ! class_exists($class)) {
+				continue;
+			}
+
+			foreach ($this->forClass($class)->parameters ?? [] as $parameter) {
+				foreach ($parameter->alternatives as $alternative) {
+					$pending = [...$pending, ...$alternative];
+				}
+			}
+		}
+	}
+
+	/**
 	 * Builds the plan for a reflected class.
 	 *
 	 * @param ReflectionClass<object> $class

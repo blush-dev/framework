@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Core;
 
 use Blush\Config\ConfigRepository;
+use Blush\Container\ServiceContainer;
 use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
 
@@ -27,6 +28,7 @@ final readonly class BootstrapResult
 {
 	public function __construct(
 		public Application $application,
+		public ServiceContainer $container,
 		public ConfigRepository $config,
 		public Extensions $extensions,
 		public LocalAutoloader $autoloader

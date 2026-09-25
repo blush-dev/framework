@@ -608,6 +608,29 @@ final class ServiceContainer implements Container
 	}
 
 	/**
+	 * Returns every class the container knows it may build: the class
+	 * names bound as concretes (or self-bound), alias targets, and tagged
+	 * abstracts. What a closure factory builds is opaque, so it isn't
+	 * included. `Bootstrap::compile()` plans these ahead of time (D-066).
+	 *
+	 * @return list<class-string>
+	 */
+	public function knownClasses(): array
+	{
+		$names = array_keys($this->bindings);
+
+		foreach ($this->bindings as $binding) {
+			if (is_string($binding['concrete'])) {
+				$names[] = $binding['concrete'];
+			}
+		}
+
+		$names = [...$names, ...array_values($this->aliases), ...array_merge([], ...array_values($this->tags))];
+
+		return array_values(array_filter(array_unique($names), class_exists(...)));
+	}
+
+	/**
 	 * Assert that a single abstract is a concrete class of the tag's
 	 * contract, throwing otherwise. Shared by every enforcement point.
 	 *
