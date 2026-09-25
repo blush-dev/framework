@@ -37,9 +37,9 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   (`SINGLETONS`, `TRANSIENTS`, `ALIASES`, `TAGS`, `BOOTABLE`).
 - **Provider sources**, in order:
   1. Framework defaults
-  2. Composer packages via `extra.blush.providers` (discovered automatically
-     and cached)
-  3. The active theme's provider
+  2. Enabled extensions (D-041), from Composer packages and from
+     `user/extensions`, discovered and cached
+  3. The active theme chain's providers
   4. The site's providers from config
 - **`Paths`:** a readonly value object for root, config, user, content, media,
   data, themes, public, storage, cache, and so on.
@@ -73,6 +73,36 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   - `MarkdownEnvironmentBuilding`, `EntryParsed`, `ViewRendering`, `ResponseReady`
   - `ContentIndexed`, `ContentWritten`, `ContentPublished`, `CacheCleared`
   - `ExportStarted`, `ExportFinished`
+
+## Data files
+
+- **Split (D-022):** developer config is typed PHP objects (D-017).
+  User-editable data (theme settings and tokens, menus, redirects, authors,
+  anything the admin writes) is data files under `user/data/`, and theme
+  manifests and tokens are data files too.
+- **`DataLoader`:** reads a data file by name without its extension, through a
+  parser registry keyed by extension (enum + registry, D-019). JSON and YAML
+  are built in (D-032). If both exist, JSON wins and `doctor` warns. The admin
+  only writes JSON.
+- **Schema validation:** data files have schemas (the same field-type system as
+  content). JSON Schemas are published for editor autocomplete.
+
+## Translation (D-028)
+
+- **`Translator`:** CMS-wide, in-house, using ICU MessageFormat via `ext-intl`
+  (`MessageFormatter`) for plurals, select, and number/date arguments.
+- **Catalogs:** per domain (`blush`, extension slugs, `theme`, `site`), per
+  locale, stored as data files (`lang/{locale}.json`). Resolved through the
+  same chains as views (site → theme chain → extension → framework).
+- **Locale fallback:** `en_US` → `en` → the default locale.
+- **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers
+  (`IntlDateFormatter`, `NumberFormatter`) use the site locale and timezone.
+- **Available in:** views (`$this->t()`), components, controllers, the CLI,
+  and later the admin.
+- **Multilingual content** (the same entry in several languages) is separate
+  from UI translation. It is architected for but not built yet (D-036): entries
+  carry a `locale`, IDs include it, and routes accept an optional locale
+  segment.
 
 ## HTTP (custom, D-005)
 
@@ -138,6 +168,13 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 - **`ContentType`:** name, path, routing (prefix and path patterns),
   collection query, feed, sitemap, archive granularity (enum), taxonomy flag,
   and the `collects` relation.
+- **Two sources, one model** (D-042): `ContentTypeDefinition` objects come from
+  developer PHP (`config/content.php`, extension providers), which are locked,
+  or from site data (`user/data/types/*.json|yaml`), which the admin can edit
+  later. A name collision is an error. Site config can disable data-defined
+  types or restrict what they're allowed to do.
+- **Built-in types:** `page` (the catch-all) and `author` (D-043), both
+  configurable. `author` can be disabled.
 - **`Schema`:** typed fields per type (`Text`, `Markdown`, `Date`, `Bool`,
   `Number`, `Enum`, `ListOf`, `Reference(type)`, `Media`, `Slug`, `Object`).
   Field types use the enum + registry pattern (D-019), so extensions can add
@@ -173,6 +210,9 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 - Terms are entries (`user/content/topics/art.md`). A term that is referenced
   but has no file gets a virtual term.
 - The index stores forward and reverse relations and term counts.
+- **Authors** (D-043) are entries of the built-in `author` type, referenced
+  through the `authors` field. They get archives and feeds like terms, and
+  structured data (`Person`).
 
 ## Source → Index → Repository
 
@@ -214,7 +254,10 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 
 ## Views
 
-Plain PHP templates (D-009). The full theming design is in `theming.md`.
+Plain PHP templates (D-009). **The full theming design is in `theming.md`**
+(themes are presentation only, with a data-first manifest, parent chains,
+DTCG tokens, components with slots, and per-entry presentation fields). The
+summary below is the view core those features sit on.
 
 - **Rendering:** isolated scope (a static closure include). Layouts and
   sections, partials, and components (a class plus a template).
@@ -282,9 +325,60 @@ Plain PHP templates (D-009). The full theming design is in `theming.md`.
 - **Admin constraints:** it lives in an `/admin` route group (path
   configurable) behind its own provider and is off by default.
 
+## Extensions (D-041)
+
+- **What an extension is:** a manifest plus a service provider. It can
+  register content types, routes, CLI commands, components, listeners,
+  parsers, field types, cache drivers, and translations.
+- **Composer extensions** (package type `blush-extension`): the manifest lives
+  in `composer.json` `extra.blush`. They're discovered from
+  `vendor/composer/installed.json`.
+- **Local extensions** live in `user/extensions/{slug}/`. Their
+  `extension.json|yaml` manifest declares name, version, a PSR-4 namespace and
+  path, the provider, and requirements (Blush version, PHP extensions, other
+  extensions). Blush registers the autoloader.
+- **Enabling:** extensions are enabled or disabled in site config. Discovery
+  results are compiled and cached.
+- **CLI:** `extension:list`, `extension:new`, `extension:check`.
+
+## Hosting (D-040)
+
+- **Shared Apache hosting is a first-class target** (jtcom is on GoDaddy).
+- **Blush ships:**
+  - An `.htaccess` (front controller, deny access to non-public paths, cache
+    headers for assets and page-cache files).
+  - Sample nginx config.
+- **Relocatable web root** (D-046): only `index.php` (plus `.htaccess` and
+  published assets) must be in the web root, e.g. cPanel's fixed
+  `public_html`. `index.php` holds a single path to the project bootstrap.
+  The public path, public URL, and asset and media publish targets all come
+  from config.
+- **Nothing needs a long-running process.** Scheduled go-live is handled by
+  checking at request time against the content version, with an optional cron
+  hitting `blush schedule:run`.
+- **Publishing without shell access:** upload by SFTP, then use the signed
+  webhook or the admin to reindex and bust caches. `git pull` is an optional
+  step for hosts with git.
+- **Media without symlinks:** `media:publish --copy`.
+
+## Performance (D-044)
+
+- **Goal:** as fast as possible.
+- **Precompiled** (opcache-friendly PHP files): config, routes, extension and
+  provider discovery, the content index, container resolution plans, and
+  compiled design tokens.
+- **Lazy:** services (deferred and lazy objects), entry bodies, and
+  Markdown rendering.
+- **Layers:** page cache (including files the web server can serve without
+  starting PHP), HTTP 304s, and static export.
+- **Measured:** a PHPBench suite (dev only) against a jtcom-sized fixture
+  runs in CI, with regression thresholds. Baselines are recorded in M4.
+
 ## Security baseline
 
-- The web root is `public/` only.
+- The web root is `public/` only (configurable name, D-040).
+- Nothing executable is ever written into `user/` by the admin, the writer, or
+  uploads (D-039).
 - Every user, view, and media path is resolved and checked to stay inside its
   root.
 - YAML is parsed without objects, and secrets live only in env.

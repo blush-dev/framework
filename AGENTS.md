@@ -5,23 +5,31 @@ Guidance for agents working in this repository.
 ## Status
 
 The `2.x` branch is a **full rewrite** of Blush, a flat-file CMS, targeting
-PHP 8.5. It is in the **planning stage** (milestone M0 has not started). Code on
+PHP 8.5. Planning is **complete**. The next step is **milestone M0 (setup)**; its task
+checklist is in `.claude/docs/roadmap.md`. Code on
 `master` (1.x) is not a reference implementation. Only the general concepts of
 a flat-file CMS carry over.
 
 "Blush" is a working name. Keep product-name references centralized so a rename
 stays mechanical.
 
+## Git
+
+**Never commit or push.** The user reviews and commits all changes. Leave work
+uncommitted and summarize what changed.
+
 ## Project knowledge lives in `.claude/docs/`
 
-Read these before making architectural changes, and **keep them current**:
+At the start of a session, read `roadmap.md` (current milestone) and skim
+`decisions.md`. Read the other docs before touching their subsystems, and
+**keep them all current**:
 
 | File | Purpose |
 |---|---|
 | [`.claude/docs/decisions.md`](.claude/docs/decisions.md) | Numbered decision log. Append a new entry for every decision; never silently change a past one (supersede it instead). |
 | [`.claude/docs/paths.md`](.claude/docs/paths.md) | Framework layout, site layout, and paths to related local repos. |
 | [`.claude/docs/architecture.md`](.claude/docs/architecture.md) | Subsystem-by-subsystem design. |
-| [`.claude/docs/theming.md`](.claude/docs/theming.md) | Theming system exploration (in progress). |
+| [`.claude/docs/theming.md`](.claude/docs/theming.md) | Theming system design. |
 | [`.claude/docs/cli.md`](.claude/docs/cli.md) | Custom CLI design. |
 | [`.claude/docs/roadmap.md`](.claude/docs/roadmap.md) | Milestones and exit criteria. |
 | [`.claude/docs/open-questions.md`](.claude/docs/open-questions.md) | Unresolved questions. Move each to `decisions.md` once answered. |
@@ -62,8 +70,7 @@ this section when it lands.
 ## Coding conventions
 
 Follow the `blush-code-style-php` skill (`.claude/skills/blush-code-style-php`).
-Where it conflicts with the general `x3p0-code-style-php` skill, the Blush skill
-wins. Key points:
+This project uses only its own skills (D-037). Key points:
 
 - PHP 8.5 minimum. Use modern features freely.
 - `declare(strict_types=1);` in every PHP file.

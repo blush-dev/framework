@@ -103,6 +103,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-015: Code style: x3p0 style via PHPCS + custom skill
 - **Date:** 2026-09-25
+- **Status:** Partially superseded by D-037 (no `x3p0-skills` dependency).
 - **Decision:** Drop WordPress-style spacing. Follow x3p0 PHP style, enforced
   by PHPCS with a ruleset modeled on x3p0-breadcrumbs' `.phpcs.xml`, minus the
   WordPress rules and with PHPCompatibility set for 8.5. Install `x3p0-skills`
@@ -135,3 +136,274 @@ decision, add a new entry that supersedes it and mark the old one
   - Abstract base + final concrete types
   - Immutable config objects
   - Context objects for pipelines
+
+### D-020: Themes are presentation only
+- **Date:** 2026-09-25
+- **Decision:** Themes may provide templates, layouts, components, context
+  providers, design tokens, a settings schema, image sizes, assets, menus and
+  regions, and template hierarchy candidates. Themes may **not** register
+  content types, routes, or CLI commands, or write content. Those belong to
+  the site or to extensions. A theme declares what it expects from the site in
+  its manifest (`requires`), and `theme:check` warns when the site doesn't
+  provide it.
+- **Why:** Switching themes must never break content or URLs.
+
+### D-021: Theme building favors simplicity above all
+- **Date:** 2026-09-25
+- **Decision:** Simplicity for theme authors is the top priority of the
+  theming system. The smallest valid theme is a manifest plus a stylesheet;
+  every template and component falls back through the theme chain to the
+  framework default theme. Complexity (inheritance, tokens, settings,
+  components) is opt-in.
+
+### D-022: Themes are data-first: manifest, tokens, and settings are data files
+- **Date:** 2026-09-25
+- **Decision:** A theme's manifest, tokens, and settings schema are data files
+  (`theme.json`), not PHP. Theme behavior (components, context providers)
+  lives in an optional theme service provider.
+- **Narrows D-017:** Developer-facing configuration stays typed PHP objects.
+  **User-editable data** (theme setting values, token overrides, menus,
+  anything the future admin writes) lives in data files under `user/data/`.
+
+### D-023: Design tokens use the W3C Design Tokens (DTCG) format
+- **Date:** 2026-09-25
+- **Decision:** Tokens follow the W3C Design Tokens Community Group format.
+  Blush adds support for modes (e.g. light/dark). Blush merges theme, parent,
+  and user tokens and compiles them to CSS custom properties.
+
+### D-024: Theme inheritance is a generic parent chain
+- **Date:** 2026-09-25
+- **Decision:** Build for layered themes. A theme may name a `parent`; the
+  loader resolves a chain of any depth (with cycle detection). Views,
+  components, assets, tokens, and settings all resolve through the same chain:
+  site overrides → active theme → its ancestors → framework default theme.
+
+### D-025: Layouts via inheritance, components via composition with slots
+- **Date:** 2026-09-25
+- **Decision:** Layouts (the page shell) use `layout()`, sections, and a
+  default section. Reusable pieces are components with typed props and slots
+  (a default slot plus named slots). Keep the template API small.
+
+### D-026: Content components use generic directive syntax (for now)
+- **Date:** 2026-09-25
+- **Decision:** Markdown uses the "generic directives" syntax for components:
+  container `:::name{attrs}`, leaf `::name{attrs}`, and inline
+  `:name[text]{attrs}`. These map one-to-one onto the component registry. An
+  unknown directive renders as plain content, never as an error.
+
+### D-027: Presentation controls are first-class front matter
+- **Date:** 2026-09-25
+- **Decision:** Entries can control their own presentation through built-in
+  front matter fields: `layout`, `template`, `stylesheet`, `class` (body/entry
+  classes), and `tokens` (per-entry token overrides). These are part of the
+  core entry schema, not ad-hoc meta.
+
+### D-028: CMS-wide translation system
+- **Date:** 2026-09-25
+- **Decision:** Blush has a proper, CMS-wide translator (not a theme feature).
+  It uses ICU MessageFormat via `ext-intl` (plurals, select, number/date
+  formatting) with message catalogs per domain (framework, extensions, theme,
+  site) and locale fallback. Themes and components use it through the view
+  API.
+
+### D-029: Framework owns feed, sitemap, and error templates; themes may override
+- **Date:** 2026-09-25
+- **Decision:** The framework ships feed (RSS, Atom, JSON Feed), sitemap, and
+  error templates. Themes and sites can override them through the normal
+  lookup chain.
+
+### D-030: Accessibility out of the box
+- **Date:** 2026-09-25
+- **Decision:** The default theme meets WCAG 2.2 AA. `theme:check` validates
+  accessibility basics: landmarks and skip link in the base layout, a `lang`
+  attribute, and palette contrast computed from tokens.
+
+### D-031: Build-free themes are supported; build tooling is the theme's concern
+- **Date:** 2026-09-25
+- **Decision:** Blush reads a Vite-style `manifest.json` if a theme has one and
+  otherwise versions assets by mtime. Blush does not prescribe a build tool.
+
+### D-032: Data files may be JSON or YAML; JSON wins
+- **Date:** 2026-09-25
+- **Decision:** Data files (theme manifests, tokens, `user/data/*`, message
+  catalogs) may be JSON or YAML, validated against the same schema. If both
+  `name.json` and `name.yaml`/`name.yml` exist, **JSON wins** (`doctor` and
+  `theme:check` warn about the shadowed file). NEON is not built in; an
+  extension could add it through the parser registry.
+- **Consequence:** the future admin writes JSON only. It can save next to a
+  hand-written YAML file without destroying its comments, and its values take
+  precedence.
+
+### D-033: The framework ships core content components
+- **Date:** 2026-09-25
+- **Decision:** The framework's default theme provides a core set of content
+  components (gallery, figure, callout, embed, at minimum) so content stays
+  portable across themes. Themes can restyle or override them by key.
+
+### D-034: Themes live in `user/themes`
+- **Date:** 2026-09-25
+- **Decision:** Local themes live in `user/themes/{slug}`. Themes installed
+  through Composer may also be read from `vendor/`. Theme assets are published
+  to `public/themes/{slug}`.
+
+### D-035: Per-request theme switching: `?theme=` in dev only
+- **Date:** 2026-09-25
+- **Decision:** In the dev environment only, `?theme={slug}` renders a request
+  with another theme. No other theme switching for now (admin preview comes
+  later). Focus is on getting the basic architecture in.
+
+### D-036: Multilingual content: architected for, not built yet
+- **Date:** 2026-09-25
+- **Decision:** Design the content model so multilingual content can be added
+  without rework, but don't implement it in early milestones. Concretely:
+  - Every entry has a `locale` (defaulting to the site locale).
+  - Entry IDs and index keys include the locale.
+  - The router and URL generator accept an optional locale segment.
+  - Entries can be linked as translations of each other.
+  The file convention (for example `post.fr.md` vs. `user/content/fr/…`) is
+  decided when the feature is built.
+
+### D-037: Our own skills only
+- **Date:** 2026-09-25
+- **Decision:** Don't install `x3p0-skills`. Blush keeps its own skills in
+  `.claude/skills/` (starting with `blush-code-style-php`). Supersedes the
+  `x3p0-skills` part of D-015.
+
+### D-038: Product name is "Blush Framework" for now
+- **Date:** 2026-09-25
+- **Decision:** Use "Blush Framework" (namespace `Blush\`) until the author
+  decides on a new name. Keep name references centralized so a rename stays
+  mechanical.
+
+### D-039: Site config lives at the project root; nothing executable is written into `user/`
+- **Date:** 2026-09-25
+- **Decision:** Site configuration stays in `config/` at the project root. It is
+  developer code (typed PHP, D-017) that ships with the site's code and varies
+  per environment through `.env`. `user/` holds the site owner's content and
+  data. It may be its own git repo, is pulled by the publish webhook, and is
+  written by the admin.
+- **Rule:** The admin, `ContentWriter`, and uploads never write executable
+  files into `user/`. They write only content, media, and data files, and
+  uploads go through an allowlist. (`user/themes` and `user/extensions` contain
+  PHP, but only people with repo or filesystem access change them.)
+
+### D-040: Shared hosting is a first-class target
+- **Date:** 2026-09-25
+- **Decision:** jtcom runs on GoDaddy, which supports PHP 8.5. Blush must run
+  fully on shared Apache hosting:
+  - It ships an `.htaccess`.
+  - The public directory name is configurable (e.g. `public_html`).
+  - Nothing requires a long-running process.
+  - Features that need shell access (`git pull` on publish) are optional and
+    have fallbacks: upload files by SFTP, then trigger reindex and cache bust
+    by webhook or the admin.
+  - nginx and VPS setups are supported too, with sample configs.
+
+### D-041: Extensions: Composer packages first, local folders too
+- **Date:** 2026-09-25
+- **Decision:** The end-user term is **extensions**. "Apps" was rejected because
+  it collides with the site's `App\` namespace and the idea of the site itself
+  being the app.
+  - **Composer packages** (type `blush-extension`) are discovered from
+    `vendor/composer/installed.json` and cached.
+  - **Local extensions** live in `user/extensions/{slug}/`. Each has an
+    `extension.json` (or `.yaml`, D-032) manifest declaring its name, version,
+    a PSR-4 namespace and path, a provider, and requirements. Blush registers
+    their autoloaders itself.
+  - Both kinds are the same thing: a manifest plus a service provider. An
+    extension may register content types, routes, CLI commands, components,
+    listeners, parsers, field types, and translations. (Unlike themes, D-020.)
+  - Extensions are enabled or disabled in site config.
+
+### D-042: Content types can be defined in PHP or in data, under developer control
+- **Date:** 2026-09-25
+- **Decision:** Content types and their schemas share one definition model
+  (`ContentTypeDefinition`, with `fromArray()`), loadable from two sources:
+  - **Developer (code):** typed PHP in `config/content.php` or extension
+    providers. These are authoritative and **locked**: read-only in the admin.
+  - **Site data:** `user/data/types/{type}.json|yaml`. Editable (later) in the
+    admin.
+  - Defining the same type name in both places is an error (at boot, and in
+    `doctor`).
+  - Site config controls the data source: allow data-defined types or not,
+    and optionally restrict what data types may do (e.g. no custom routing).
+- **Why:** "A strong system that's controllable either way."
+
+### D-043: Authors are a built-in content type
+- **Date:** 2026-09-25
+- **Decision:** The framework registers an `author` content type by default
+  (entries in `user/content/authors/{slug}.md`). Site config can rename,
+  reconfigure, or disable it.
+  - Entries reference authors through an `authors` Reference field.
+  - Author archives and per-author feeds work like taxonomy term archives.
+  - Author entries feed structured data (schema.org `Person`, OpenGraph).
+  - Future admin user accounts are separate from author entries but can link
+    to one.
+
+### D-044: Performance: as fast as possible, measured continuously
+- **Date:** 2026-09-25
+- **Decision:** Performance is a primary design goal. Principles:
+  - Anything that can be computed ahead of time is compiled to opcache-friendly
+    PHP files: config, routes, provider and extension discovery, the content
+    index, and container autowiring metadata.
+  - Everything else is lazy.
+  - Page cache and static export are built in.
+  - A benchmark suite (PHPBench, dev only) runs in CI against the jtcom-sized
+    fixture and fails on regressions beyond a threshold. Baselines are
+    recorded in M4.
+- **Follow-up:** add a compiled/cached resolution plan to the copied container
+  (reflection per request is too slow for this goal).
+
+### D-045: Adopted defaults
+- **Date:** 2026-09-25
+- **Decision:** Adopted without objection:
+  - **Names:** namespace `Blush\`, package `blush-dev/framework`, site skeleton
+    `blush-dev/site`.
+  - **Interfaces:** they live in their subsystem namespace. Only cross-cutting
+    contracts (e.g. `Bootable`) go in `Blush\Core`. There is no global
+    `Contracts\` namespace.
+  - **Testing and CI:** PHPUnit 12, PHPStan at max level, GitHub Actions, and a
+    fixture site in `tests/Fixtures/site`.
+  - **Temporary runtime libraries** (D-006), each behind a Blush interface:
+    `symfony/yaml` and `league/commonmark` (plus our own directive extension,
+    D-026).
+  - **Environments:** an `Environment` enum (`Development`, `Staging`,
+    `Production`) from `APP_ENV`, plus a separate `APP_DEBUG` flag.
+  - **Required PHP extensions:** `intl`, `dom`, `mbstring`, `fileinfo`, and
+    `gd` or `imagick`. Recommended: `opcache`, `apcu`. Optional: `pdo_sqlite`.
+  - **Built-in front matter fields:** `title`, `slug`, `published`, `updated`,
+    `status`, `summary`, `authors`, `image`, `locale`, `template`, `layout`,
+    `stylesheet`, `class`, `tokens`, `redirect_from`, plus one key per taxonomy.
+    Dates are ISO 8601; a date without an offset uses the site timezone.
+  - **Default theme:** plain modern CSS with no build step.
+  - **User-facing docs:** Markdown in `docs/`.
+  - **jtcom:** untouched until M8. Its separate `user/` repo stays.
+
+### D-046: The web root is relocatable: only `index.php` must be where the site lands
+- **Date:** 2026-09-25
+- **Decision:** jtcom is on GoDaddy cPanel shared hosting. SSH is available but
+  currently off; it can be enabled. The document root is probably a fixed
+  `public_html`. Blush must not care where the web root is:
+  - The project lives anywhere, for example one level above `public_html`.
+  - The web root needs only `index.php` (plus `.htaccess` and published
+    assets).
+  - `index.php` holds one path to the project's bootstrap. Everything else
+    (the public path and URL, and where assets and media are published)
+    comes from config.
+  - `publish`, the webhook, and the admin must all work without SSH. Git
+    pull is an optional extra when SSH or git is enabled.
+
+### D-047: Toolchain: Herd PHP 8.5 CLI for the framework, DDEV for sites
+- **Date:** 2026-09-25
+- **Decision:** The framework is a library with no site of its own. Framework
+  tooling (Composer, PHPCS, PHPStan, PHPUnit) runs on Herd's PHP 8.5 CLI,
+  `~/Library/Application Support/Herd/bin/php85`, which has 8.5.10 installed.
+  Herd's global PHP is now 8.5 (updated the same day), so plain `php` and
+  `composer` run on 8.5. All
+  browser-facing local sites use **DDEV** (the author's standard). The dev
+  site from M2 onward (see `open-questions.md`) gets its own DDEV project at
+  8.5. jtcom's DDEV stays below 8.5 until M8, because 8.5 breaks the 1.x
+  site.
+- **Verified:** `php85` has `intl`, `dom`, `mbstring`, `fileinfo`, `gd`,
+  `imagick`, `pdo_sqlite`, `uri`, and OPcache. The pipe operator and
+  `Uri\Rfc3986\Uri` work.

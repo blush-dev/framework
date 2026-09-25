@@ -2,31 +2,26 @@
 
 Move each item to `decisions.md` once it's answered.
 
-## Product
-- **Name.** "Blush" is a working name. Keep the name centralized (namespace,
-  binary, Composer vendor, `extra.blush.*` keys) so a rename is mechanical.
-  Candidates to check for Packagist/GitHub/domain availability: *Vellum*,
-  *Folio*, *Quire*, *Marginalia*, *Plinth*, *Inkwell*.
-- **Repo strategy after 2.x stabilizes:** keep it one package, or split it
-  (core, http, content, console…) as a monorepo?
+## Needs the author's call
+
+- **Dev site from M2 onward.** Proposal: build the site skeleton
+  (`blush-dev/site`, D-045) as its own repo next to this one, with its own
+  DDEV at 8.5 (D-047), requiring the framework via a Composer path repository. It
+  doubles as the browser playground. Automated tests keep using
+  `tests/Fixtures/site`.
+- **Empty-state page.** Proposal: a fresh site with no content renders a
+  built-in welcome page from the framework default theme, instead of a 404.
+- **Keep jtcom (1.x) running locally during the rewrite?** If yes, set up a 1.x
+  worktree before M0 clears `src/` (see the roadmap, M0 step 2).
 
 ## Tooling
 - **PHPCS and 8.5 syntax:** PHPCS/PHPCompatibility may not tokenize the pipe
   operator (`|>`) or `clone()` with properties yet. Verify in M0. If they
   can't, either hold off on those features in affected files or add a
   PHP-CS-Fixer check alongside.
-- **`x3p0-skills` scope:** its installer copies WordPress theme skills too.
-  Is that acceptable, or does it need a config option to install only some
-  skills?
 
-## Site layout
-- Should site `config/` live at the root (current plan) or under `user/`?
-- Should `themes/` live at the root or under `user/themes`?
-
-## Content
-- Markdown component syntax: directives vs. shortcodes vs. custom elements.
-  See `theming.md`.
-- Multilingual content: in scope for 2.x or later?
-
-## Theming
-See the open questions in `theming.md`.
+## Later
+- **Product name** (D-038): the author will decide.
+- **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
+- **Multilingual file convention** (D-036): decided when the feature is built.
+- **Theming:** see the open questions in `theming.md`.

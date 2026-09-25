@@ -36,8 +36,14 @@ The binary is `bin/blush` for now and will follow the final product name.
 | `routes:list` | Show the compiled routes |
 | `media:publish` | Symlink or copy media into `public/` |
 | `theme:list\|activate\|new\|publish` | Theme management |
+| `theme:check` | Validate the manifest, required templates, and accessibility basics (D-030) |
+| `theme:why <view>` | Show which file in the theme chain wins for a view |
+| `lang:missing [--locale]` | List untranslated message keys |
 | `build [--incremental] [--base-url]` | Static export |
 | `publish` | Pull content, reindex, and bump the content version (same as the webhook) |
+| `extension:list\|new\|check` | Extension management (D-041) |
+| `schedule:run` | Optional cron entry: process scheduled go-live times (D-040) |
+| `bench` | Run the performance suite (dev only, D-044) |
 | `doctor` | Check environment, permissions, extensions, and config |
 | `generate:{provider,component,controller,command,type}` | Scaffolding (not `make:`, D-008) |
 | `new <dir>` | Create a new site from the skeleton (may live in a global installer) |

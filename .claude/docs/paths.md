@@ -14,7 +14,7 @@
 | x3p0-asset | `/Applications/XAMPP/xamppfiles/htdocs/x3p0-asset` |
 | x3p0-hooks (WordPress-only; reference only) | `/Applications/XAMPP/xamppfiles/htdocs/x3p0-hooks` |
 | x3p0-prelude | `/Applications/XAMPP/xamppfiles/htdocs/x3p0-prelude` |
-| x3p0-skills | `/Applications/XAMPP/xamppfiles/htdocs/x3p0-skills` |
+| x3p0-skills (not used, D-037; reference only) | `/Applications/XAMPP/xamppfiles/htdocs/x3p0-skills` |
 | x3p0-breadcrumbs (reference for `.phpcs.xml`, AGENTS.md patterns) | `/Applications/XAMPP/xamppfiles/htdocs/wp/wp-content/plugins/x3p0-breadcrumbs` |
 
 ## Framework layout (planned)
@@ -27,6 +27,9 @@ blush-framework/
     Container/          DI container (from x3p0-framework)
     Event/              Event system (from x3p0-event)
     Config/  Env/  Error/  Log/  Clock/
+    Data/               DataLoader + JSON/YAML parser registry (D-032)
+    Extension/          Extension manifests, discovery, local autoloading (D-041)
+    Translation/        Translator, catalogs, formatters (D-028)
     Http/               Request, Response, Uri, Headers, factories, Emitter
     Http/Middleware/
     Routing/            Route, compiler, matcher, UrlGenerator, attributes
@@ -54,13 +57,16 @@ blush-framework/
 ```
 site/
   bin/blush             Site CLI (name will follow the product name)
-  config/               Typed config objects (app, content, cache, theme, …)
+  config/               Typed config objects (app, content, cache, theme, …); never under user/ (D-039)
   user/
     content/            Markdown, HTML, and data entries
     media/              Uploaded and co-located media
-    data/               Other user data (menus, authors, …)
-  themes/               Local themes (installed themes may come via Composer)
-  public/               Web root: index.php + built/published assets ONLY
+    data/               Other user data: menus, redirects, theme.json, types/ (D-042); JSON or YAML
+    themes/             Local themes (Composer-installed themes may live in vendor/)
+    extensions/         Local extensions (Composer extensions live in vendor/)
+  public/               Web root: index.php, .htaccess, and published assets ONLY
+                        (themes/, media/). Relocatable (e.g. cPanel public_html, D-046)
+  resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
   src/                  App\ namespace: providers, components, controllers
   storage/
     cache/  index/  logs/  sessions/  export/

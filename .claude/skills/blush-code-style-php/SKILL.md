@@ -3,15 +3,13 @@ name: blush-code-style-php
 description: >
   PHP coding standards for Blush (the flat-file CMS framework) and sites built
   on it. Use before writing, editing, or reviewing any PHP in this project:
-  classes, templates, config files, tests, CLI commands. Takes precedence over
-  x3p0-code-style-php wherever they conflict (PHP version, WordPress rules).
+  classes, templates, config files, tests, CLI commands.
 ---
 
 # Blush PHP style guide
 
 This is based on the x3p0 PHP style, adapted for a **non-WordPress, PHP 8.5**
-codebase. When it conflicts with `x3p0-code-style-php`, this skill wins.
-PHPCS (`.phpcs.xml`) enforces the mechanical rules.
+codebase. PHPCS (`.phpcs.xml`) enforces the mechanical rules.
 
 ---
 
@@ -136,6 +134,8 @@ final readonly class Entry
 - **Pipe operator** (`|>`) for linear transformations when it reads better
   than nesting:
   `$slug = $title |> trim(...) |> strtolower(...) |> $this->slugify(...);`
+  Arrow functions on the right-hand side must be parenthesized:
+  `$value |> (fn($x) => $x + 1)`.
 - **`Uri\Rfc3986\Uri`** for all URI parsing and building; never `parse_url()`.
 - **`array_first()`, `array_last()`, `array_find()`, `array_any()`,
   `array_all()`** instead of hand-written loops.
