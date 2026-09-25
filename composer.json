@@ -1,36 +1,58 @@
 {
-	"name"        : "blush-dev/framework",
-	"description" : "Blush Framework: Foundation of the Blush CMS, a flat-file CMS.",
-	"keywords"    : [ "cms" ],
-	"homepage"    : "https://github.com/blush-dev/framework",
-	"license"     : "GPL-2.0-or-later",
-	"authors"     : [
+	"name": "blush-dev/framework",
+	"description": "Blush Framework: the core of Blush, a flat-file CMS.",
+	"type": "library",
+	"keywords": ["cms", "flat-file"],
+	"homepage": "https://github.com/blush-dev/framework",
+	"license": "MIT",
+	"authors": [
 		{
-			"name"     : "Justin Tadlock",
-			"email"    : "justintadlock@gmail.com",
-			"homepage" : "http://justintadlock.com",
-			"role"     : "Developer"
+			"name": "Justin Tadlock",
+			"email": "justintadlock@gmail.com",
+			"homepage": "https://justintadlock.com",
+			"role": "Developer"
 		}
 	],
-	"support"     : {
-		"issues" : "https://github.com/blush-dev/framework/issues"
-	},
-	"autoload"    : {
-		"psr-4" : {
-			"Blush\\" : "src/"
-		},
-		"files" : [
-			"src/functions-helpers.php",
-			"src/functions-deprecated.php"
-		]
+	"support": {
+		"issues": "https://github.com/blush-dev/framework/issues"
 	},
 	"require": {
-                "php": ">=8.0",
-		"symfony/http-foundation": "5.4.x-dev",
-		"symfony/yaml": "^3.0",
-		"league/commonmark": "^2.2",
-		"symfony/var-dumper": "^5.4",
-		"vlucas/phpdotenv": "^5.4",
-		"league/config": "^1.1"
+		"php": ">=8.5"
+	},
+	"require-dev": {
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"phpcompatibility/php-compatibility": "^10.0@alpha",
+		"phpstan/phpstan": "^2.2",
+		"phpunit/phpunit": "^12.5",
+		"squizlabs/php_codesniffer": "^4.0.4"
+	},
+	"autoload": {
+		"psr-4": {
+			"Blush\\": "src/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"Blush\\Tests\\": "tests/"
+		}
+	},
+	"minimum-stability": "stable",
+	"prefer-stable": true,
+	"config": {
+		"sort-packages": true,
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	},
+	"scripts": {
+		"lint": "phpcs",
+		"fix": "phpcbf",
+		"analyse": "phpstan analyse --memory-limit=1G",
+		"test": "phpunit",
+		"check": [
+			"@lint",
+			"@analyse",
+			"@test"
+		]
 	}
 }

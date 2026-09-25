@@ -145,9 +145,20 @@ final readonly class Entry
 - **Named arguments** for constructors with many parameters and for config
   objects.
 
-Check PHPCS tokenizer support for `|>` and `clone()` with properties (see
-open questions). If PHPCS can't parse them, follow the decision recorded in
-`decisions.md`.
+**Property hooks and PHPCS (D-048).** PHPCS can't parse property hooks yet.
+Wrap each group of hooked properties in a disable/enable pair:
+
+```php
+// phpcs:disable PSR2.Classes.PropertyDeclaration, PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess -- PHPCS can't parse property hooks yet.
+public string $name {
+	set(string $value) {
+		$this->name = trim($value);
+	}
+}
+// phpcs:enable
+```
+
+Every other 8.5 feature listed above passes PHPCS with no workaround.
 
 ---
 

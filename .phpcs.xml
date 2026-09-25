@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<ruleset name="Blush">
+
+	<description>Coding standards for the Blush Framework.</description>
+
+	<!-- What to check. -->
+	<file>src</file>
+	<file>tests</file>
+
+	<!-- Only check the PHP files. -->
+	<arg name="extensions" value="php"/>
+
+	<!-- Show sniff codes, use colors, and cache results. -->
+	<arg value="sp"/>
+	<arg name="colors"/>
+	<arg name="cache" value=".phpcs.cache"/>
+	<arg name="parallel" value="8"/>
+
+	<!-- Exclude files and folders. -->
+	<exclude-pattern>*/(node_modules|storage|vendor)/*</exclude-pattern>
+
+	<!--
+	########################################################################
+	Check PHP compatibility.
+	########################################################################
+	-->
+	<rule ref="PHPCompatibility">
+		<include-pattern>*\.php$</include-pattern>
+	</rule>
+
+	<!-- Configure PHP version to test. -->
+	<config name="testVersion" value="8.5-"/>
+
+	<!--
+	########################################################################
+	Include PSR12 rules.
+	########################################################################
+	-->
+	<rule ref="PSR12">
+		<!-- Tabs forever. -->
+		<exclude name="Generic.WhiteSpace.DisallowTabIndent"/>
+
+		<!-- Disabling line length checks for long strings. -->
+		<exclude name="Generic.Files.LineLength"/>
+
+		<!-- Allow nicer even spacing for method parameters. -->
+		<exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing.SpaceBeforeEquals"/>
+		<exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingAfterHint"/>
+		<exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingAfterVisbility"/>
+		<exclude name="Squiz.WhiteSpace.ScopeKeywordSpacing.Incorrect"/>
+
+		<!-- This is excluded because it catches empty constructors. -->
+		<exclude name="Squiz.WhiteSpace.ScopeClosingBrace.ContentBefore"/>
+	</rule>
+
+	<!-- Enforce tabbed indentation. -->
+	<rule ref="Generic.WhiteSpace.DisallowSpaceIndent"/>
+
+	<!-- Require strict type declarations. -->
+	<rule ref="Generic.PHP.RequireStrictTypes"/>
+
+	<!-- Disallow long arrays. -->
+	<rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+
+</ruleset>

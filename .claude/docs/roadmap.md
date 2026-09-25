@@ -17,7 +17,9 @@
 
 ---
 
-## M0 checklist (setup)
+## M0 checklist (setup) — done
+
+Completed 2026-09-25. See D-048 to D-050.
 
 Work on the `2.x` branch. **Never commit** (the user reviews and commits).
 

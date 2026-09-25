@@ -1,6 +1,10 @@
 /node_modules
 /vendor
+/composer.lock
 *.map
 .DS_Store
 /.claude/settings.local.json
 /.idea
+/.phpcs.cache
+/.phpstan.cache
+/.phpunit.cache

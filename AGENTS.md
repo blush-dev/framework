@@ -5,8 +5,8 @@ Guidance for agents working in this repository.
 ## Status
 
 The `2.x` branch is a **full rewrite** of Blush, a flat-file CMS, targeting
-PHP 8.5. Planning is **complete**. The next step is **milestone M0 (setup)**; its task
-checklist is in `.claude/docs/roadmap.md`. Code on
+PHP 8.5. Planning and milestone M0 (setup) are **complete**. The next step is
+**milestone M1 (core)**; see `.claude/docs/roadmap.md`. Code on
 `master` (1.x) is not a reference implementation. Only the general concepts of
 a flat-file CMS carry over.
 
@@ -39,8 +39,18 @@ When the user makes a decision in conversation, record it in `decisions.md`
 
 ## Commands
 
-None yet. Tooling (PHPCS, PHPStan, PHPUnit) is set up in milestone M0. Update
-this section when it lands.
+Run on PHP 8.5 (`php -v`). Run `composer check` before handing work back.
+
+| Command | What it does |
+|---|---|
+| `composer install` | Install dev tools |
+| `composer check` | Lint, analyse, and test (all three) |
+| `composer lint` | PHPCS (`.phpcs.xml`) |
+| `composer fix` | PHPCBF auto-fix |
+| `composer analyse` | PHPStan, level max (`phpstan.neon`) |
+| `composer test` | PHPUnit 12 (`phpunit.xml`) |
+
+Single test: `vendor/bin/phpunit --filter FrameworkTest`.
 
 ## Architecture patterns
 

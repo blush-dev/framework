@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [2.x]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.5']
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: intl, dom, mbstring, fileinfo, gd
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Lint
+        run: composer lint
+
+      - name: Analyse
+        run: composer analyse
+
+      - name: Test
+        run: composer test

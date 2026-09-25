@@ -407,3 +407,43 @@ decision, add a new entry that supersedes it and mark the old one
 - **Verified:** `php85` has `intl`, `dom`, `mbstring`, `fileinfo`, `gd`,
   `imagick`, `pdo_sqlite`, `uri`, and OPcache. The pipe operator and
   `Uri\Rfc3986\Uri` work.
+
+### D-048: PHP 8.5 syntax under PHPCS: property hooks need a disable comment
+- **Date:** 2026-09-25
+- **Decision:** Verified in M0 against PHPCS 4.0.4, PHPCompatibility
+  10.0.0-alpha2, PHPStan 2.2, and PHPUnit 12.5:
+  - The pipe operator, `clone()` with properties, asymmetric visibility,
+    `#[\NoDiscard]`, `new` without parentheses, `array_first()`/`array_find()`,
+    and `Uri\Rfc3986\Uri` pass all three tools.
+  - **Property hooks** pass PHPStan and PHPUnit, but PHPCS can't tokenize them
+    yet (upstream: PHPCSStandards/PHP_CodeSniffer#731, #1443). It reports false
+    errors from `PSR2.Classes.PropertyDeclaration` and
+    `PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess`.
+  - Hooks are **allowed**. Wrap each group of hooked properties in
+    `// phpcs:disable PSR2.Classes.PropertyDeclaration, PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess -- PHPCS can't parse property hooks yet.`
+    and `// phpcs:enable`. `phpcbf` leaves hooked code alone inside that block.
+    Remove the comments once PHPCS supports hooks.
+- **Resolves** the "PHPCS and 8.5 syntax" open question.
+
+### D-049: Dev tool versions and repo housekeeping
+- **Date:** 2026-09-25
+- **Decision:**
+  - `squizlabs/php_codesniffer` ^4.0.4 (the latest release; always track
+    the newest PHPCS), `phpstan/phpstan` ^2.2, and
+    `phpunit/phpunit` ^12.5 (PHPUnit 13 exists; D-045 chose 12, revisit
+    later if needed).
+  - `phpcompatibility/php-compatibility` `^10.0@alpha`. The last stable
+    release (9.3.5) predates PHP 8 and doesn't support PHPCS 4. The root
+    `@alpha` flag keeps `minimum-stability: stable` for everything else.
+  - `composer.lock` is not committed (the framework is a library). It is
+    listed in `.gitignore`.
+  - Tool caches (`.phpcs.cache`, `.phpstan.cache`, `.phpunit.cache`) are
+    ignored.
+  - `Blush\Core\Framework` holds the product name and version as typed
+    constants, so there's one place to read the name from (D-038).
+
+### D-050: jtcom may break locally during the rewrite
+- **Date:** 2026-09-25
+- **Decision:** No 1.x worktree. M0 cleared 1.x from `2.x`, and jtcom's
+  symlinked `vendor/blush-dev/framework` stays broken locally until the M8
+  port. Resolves the "keep jtcom running" open question.

@@ -11,14 +11,13 @@ Move each item to `decisions.md` once it's answered.
   `tests/Fixtures/site`.
 - **Empty-state page.** Proposal: a fresh site with no content renders a
   built-in welcome page from the framework default theme, instead of a 404.
-- **Keep jtcom (1.x) running locally during the rewrite?** If yes, set up a 1.x
-  worktree before M0 clears `src/` (see the roadmap, M0 step 2).
 
 ## Tooling
-- **PHPCS and 8.5 syntax:** PHPCS/PHPCompatibility may not tokenize the pipe
-  operator (`|>`) or `clone()` with properties yet. Verify in M0. If they
-  can't, either hold off on those features in affected files or add a
-  PHP-CS-Fixer check alongside.
+- **PHPCS property-hook support** (D-048): when PHPCS ships it, remove the
+  `phpcs:disable` comments around hooked properties and update the style
+  skill.
+- **PHPCompatibility 10 stable** (D-049): drop the `@alpha` flag once it's
+  released.
 
 ## Later
 - **Product name** (D-038): the author will decide.

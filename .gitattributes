@@ -1,8 +1,24 @@
 # Handle line endings.
 # See https://help.github.com/articles/dealing-with-line-endings/
 
-* text auto
+* text=auto eol=lf
 *.gif binary
 *.ico binary
 *.jpg binary
 *.png binary
+*.webp binary
+
+# Exclude development files from Composer dist archives.
+/.claude            export-ignore
+/.github            export-ignore
+/.idea              export-ignore
+/.vscode            export-ignore
+/tests              export-ignore
+/.editorconfig      export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/.phpcs.xml         export-ignore
+/AGENTS.md          export-ignore
+/CLAUDE.md          export-ignore
+/phpstan.neon       export-ignore
+/phpunit.xml        export-ignore
