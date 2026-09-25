@@ -39,8 +39,9 @@ Implemented in M2 (D-065, D-069).
 - **Input:** an argv parser (long and short options, `--opt=value`, flags,
   variadic arguments, `--` terminator).
 - **Output:** styled writer (ANSI with automatic detection, `NO_COLOR`),
-  verbosity levels, and tables. Progress bars come in M4. Prompts
-  (confirm, ask, choice, secret) have a non-interactive fallback.
+  verbosity levels, tables, and progress bars (`Output::progress()`,
+  drawn only on an ANSI terminal, D-091). Prompts (confirm, ask, choice,
+  secret) have a non-interactive fallback.
 - **Exit codes:** an enum (`Success`, `Failure`, `Invalid`, …).
 - **Boots the same `Application`** as the web, so commands get the container,
   config, content, and `Kernel::handle()`.
@@ -53,14 +54,14 @@ Implemented in M2 (D-065, D-069).
 | `list` | List the commands (the default) |
 | `help <command>` | Show a command's usage |
 | `serve [--host] [-p\|--port]` | Dev server (`php -S` + `resources/server.php`) |
-| `cache:clear [--config\|--extensions\|--container\|--routes]` | Clear compiled caches (no flags: all). Pages and the content version join later |
-| `cache:compile` | Compile config, extensions, routes, and container plans (D-060, D-066, D-077) |
-| `content:index [--full]` | Build or refresh the content index |
-| `content:lint [--strict]` | Validate front matter against schemas; `--strict` adds notices for undeclared keys and 1.x aliases (D-081, D-084) |
-| `content:new <type> "<title>"` | Scaffold an entry |
-| `content:list [--type] [--status]` | Inspect content |
+| `cache:clear [--config\|--extensions\|--container\|--routes\|--types]` | Clear compiled caches (no flags: all). Pages and the content version join later |
+| `cache:compile` | Compile config, extensions, routes, content types, and container plans (D-060, D-066, D-077, D-092) |
+| `content:index [--full]` | Build or refresh the content index, with a progress bar; `-v` lists changes (M4b, D-087) |
+| `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry; `--strict` adds notices for undeclared keys, 1.x aliases, and virtual terms (D-081, D-084, D-091) |
+| `content:new <type> "<title>" [--slug] [--draft]` | Scaffold a Markdown entry (`Y-m-d.slug.md` for dated types) and refresh the index (D-091) |
+| `content:list [--type] [--status]` | List every indexed entry (M4b) |
 | `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |
-| `media:publish` | Symlink or copy media into `public/` |
+| `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099) |
 | `theme:list\|activate\|new\|publish` | Theme management |
 | `theme:check` | Validate the manifest, required templates, and accessibility basics (D-030) |
 | `theme:why <view>` | Show which file in the theme chain wins for a view |
@@ -69,7 +70,7 @@ Implemented in M2 (D-065, D-069).
 | `publish` | Pull content, reindex, and bump the content version (same as the webhook) |
 | `extension:list\|new\|check` | Extension management (D-041) |
 | `schedule:run` | Optional cron entry: process scheduled go-live times (D-040) |
-| `bench` | Run the performance suite (dev only, D-044) |
+| `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
 | `doctor` | Check environment, permissions, extensions, and config |
 | `generate:{provider,component,controller,command,type}` | Scaffolding (not `make:`, D-008) |
 | `new <dir>` | Create a new site from the skeleton (may live in a global installer) |

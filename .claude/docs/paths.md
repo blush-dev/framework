@@ -36,9 +36,9 @@ blush-framework/
     Http/               Request, Response, Uri, Headers, factories, Emitter
     Http/Middleware/
     Routing/            Route, compiler, matcher, UrlGenerator, attributes
-    Content/            Source, Parser, Schema, Index, Entry, Query, Writer
+    Content/            Source, Parser, Schema, Type, Index, Entry, Query, Lint, Writer
     Markdown/           Parser interface + adapter
-    Media/              Media resolution, image derivatives
+    Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
     View/               Engine, View, Hierarchy, Components, Head, Escaper
     Theme/              Theme manifest, loader, inheritance, tokens
     Cache/              Stores, PageCache, CacheVersion
@@ -49,12 +49,13 @@ blush-framework/
     Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
   resources/            Framework default views/theme; server.php (`serve` router)
+  benchmarks/           PHPBench suite + the generated jtcom-sized site (D-101)
   tests/
     Fixtures/site/      Fixture site: .env, config/, local + Composer extensions
   .claude/
     docs/               ← this folder
     skills/blush-code-style-php/
-  AGENTS.md  CLAUDE.md  .phpcs.xml  phpstan.neon  phpunit.xml
+  AGENTS.md  CLAUDE.md  .phpcs.xml  phpstan.neon  phpunit.xml  phpbench.json
 ```
 
 ## Site layout (planned; jtcom follows this)
@@ -73,11 +74,14 @@ site/
     themes/             Local themes (Composer-installed themes may live in vendor/)
     extensions/         Local extensions (Composer extensions live in vendor/)
   public/               Web root: index.php, .htaccess, and published assets ONLY
-                        (themes/, media/). Relocatable (e.g. cPanel public_html, D-046)
+                        (themes/, and media at MediaConfig::$url, D-099). Relocatable
+                        (e.g. cPanel public_html, D-046)
   resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
   src/                  App\ namespace: providers, components, controllers
   storage/
-    cache/              Compiled config.php, extensions.php, container.php, routes.php (D-060, D-077)
-    index/  logs/  sessions/  export/
+    cache/              Compiled config.php, extensions.php, container.php, routes.php,
+                        content-types.php (D-060, D-077, D-092)
+    index/              content.php, the content index (D-087)
+    logs/  sessions/  export/
   tests/
 ```

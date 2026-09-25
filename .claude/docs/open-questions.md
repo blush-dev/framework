@@ -19,6 +19,10 @@ Move each item to `decisions.md` once it's answered.
   operators, `||`).
 
 ## Tooling
+- **Benchmark regressions in CI** (D-044, D-101): CI machines differ from
+  the author's, so absolute baselines don't transfer. Options: compare
+  against a baseline measured in the same CI run (the base branch), or
+  gate on ratios between subjects.
 - **PHPCS property-hook support** (D-048): when PHPCS ships it, remove the
   `phpcs:disable` comments around hooked properties and update the style
   skill.

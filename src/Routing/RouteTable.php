@@ -79,20 +79,30 @@ final readonly class RouteTable
 
 	/**
 	 * Returns the methods some route answers for a path, in table order.
+	 * With `$fallbacks` off, methods only a fallback route (such as the
+	 * page catch-all) answers are left out.
 	 *
 	 * @return list<string>
 	 */
-	public function methodsFor(string $path): array
+	public function methodsFor(string $path, bool $fallbacks = true): array
 	{
-		$methods = array_keys($this->data['static'][$path] ?? []);
+		$methods = [];
 
-		foreach ($this->data['dynamic'] as $method => $regexes) {
-			if (! in_array($method, $methods, true) && array_any($regexes, static fn (string $regex): bool => preg_match($regex, $path) === 1)) {
+		foreach ([...array_keys($this->data['static'][$path] ?? []), ...array_keys($this->data['dynamic'])] as $method) {
+			$method = (string) $method;
+
+			if (in_array($method, $methods, true)) {
+				continue;
+			}
+
+			$match = $this->find($method, $path);
+
+			if ($match !== null && ($fallbacks || $match->route->priority !== RoutePriority::Fallback)) {
 				$methods[] = $method;
 			}
 		}
 
-		return array_map(strval(...), $methods);
+		return $methods;
 	}
 
 	/**

@@ -29,7 +29,8 @@ use Blush\Http\NotFound;
  * the parameters typed for it. The container autowires the rest.
  *
  * A path value that can't be cast (such as an out-of-range integer) means
- * the URL doesn't exist, so it's a 404.
+ * the URL doesn't exist, so it's a 404. Integers may have leading zeros
+ * (`/archives/2024/05`).
  */
 final readonly class ControllerHandler implements RequestHandlerInterface
 {
@@ -80,12 +81,21 @@ final readonly class ControllerHandler implements RequestHandlerInterface
 	{
 		$result = match ($cast) {
 			null    => $value,
-			'int'   => filter_var($value, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE),
+			'int'   => filter_var(self::withoutLeadingZeros($value), FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE),
 			'float' => filter_var($value, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE),
 			'bool'  => filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE),
 			default => array_find($cast::cases(), static fn (BackedEnum $case): bool => (string) $case->value === $value)
 		};
 
 		return $result ?? throw new NotFound(sprintf('"%s" is not a valid value here.', $value));
+	}
+
+	/**
+	 * Strips leading zeros from an integer's digits, so `05` (a month in
+	 * a date archive URL) casts to 5.
+	 */
+	private static function withoutLeadingZeros(string $value): string
+	{
+		return preg_replace('/^([+-]?)0+(?=\d)/', '$1', $value) ?? $value;
 	}
 }

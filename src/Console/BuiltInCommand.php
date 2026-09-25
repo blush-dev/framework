@@ -15,8 +15,13 @@ namespace Blush\Console;
 
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
+use Blush\Console\Commands\CreateContent;
 use Blush\Console\Commands\Help;
+use Blush\Console\Commands\IndexContent;
+use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListCommands;
+use Blush\Console\Commands\ListContent;
+use Blush\Console\Commands\PublishMedia;
 use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\Serve;
 
@@ -32,6 +37,11 @@ enum BuiltInCommand: string
 	case CacheClear   = 'cache:clear';
 	case CacheCompile = 'cache:compile';
 	case RoutesList   = 'routes:list';
+	case ContentIndex = 'content:index';
+	case ContentLint  = 'content:lint';
+	case ContentList  = 'content:list';
+	case ContentNew   = 'content:new';
+	case MediaPublish = 'media:publish';
 
 	/**
 	 * Returns the command's class.
@@ -46,7 +56,12 @@ enum BuiltInCommand: string
 			self::Serve        => Serve::class,
 			self::CacheClear   => CacheClear::class,
 			self::CacheCompile => CacheCompile::class,
-			self::RoutesList   => RoutesList::class
+			self::RoutesList   => RoutesList::class,
+			self::ContentIndex => IndexContent::class,
+			self::ContentLint  => LintContent::class,
+			self::ContentList  => ListContent::class,
+			self::ContentNew   => CreateContent::class,
+			self::MediaPublish => PublishMedia::class
 		};
 	}
 }

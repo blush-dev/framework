@@ -17,12 +17,14 @@ use RuntimeException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Console\Output;
+use Blush\Console\ProgressBar;
 use Blush\Console\Style;
 use Blush\Console\Verbosity;
 
 #[CoversClass(Output::class)]
 #[CoversClass(Style::class)]
 #[CoversClass(Verbosity::class)]
+#[CoversClass(ProgressBar::class)]
 final class OutputTest extends TestCase
 {
 	/** @var resource */
@@ -109,5 +111,38 @@ final class OutputTest extends TestCase
 			'| b     |     |',
 			'+-------+-----+'
 		]) . PHP_EOL, $this->read($this->stdout));
+	}
+
+	public function testDrawsProgressBarsOnlyWithAnsi(): void
+	{
+		$plain = new Output($this->stdout, $this->stderr)->progress(10);
+		$plain->advance(5);
+		$plain->finish();
+
+		$this->assertSame('', $this->read($this->stdout));
+
+		$bar = new Output($this->stdout, $this->stderr)->withAnsi(true)->progress();
+		$bar->update(1, 4);
+		$bar->update(1, 4);
+		$bar->advance();
+		$bar->update(10);
+		$bar->finish();
+
+		$this->assertSame(
+			"\r\033[2K[=======>                      ] 1/4  25%"
+			. "\r\033[2K[===============>              ] 2/4  50%"
+			. "\r\033[2K[==============================] 4/4 100%"
+			. "\r\033[2K",
+			$this->read($this->stdout)
+		);
+	}
+
+	public function testQuietOutputHidesProgressBars(): void
+	{
+		$bar = new Output($this->stdout, $this->stderr, true, Verbosity::Quiet)->progress(2);
+		$bar->advance();
+
+		$this->assertSame('', $this->read($this->stdout));
+		$this->assertSame('[===============>              ] 1/2  50%', $bar->render());
 	}
 }

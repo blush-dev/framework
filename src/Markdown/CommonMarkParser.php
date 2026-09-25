@@ -16,11 +16,17 @@ namespace Blush\Markdown;
 use Override;
 use Throwable;
 use League\CommonMark\Environment\Environment;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\MarkdownConverter;
+use League\CommonMark\Node\Block\Paragraph;
 use League\CommonMark\Parser\Inline\InlineParserInterface;
+use Blush\Core\AppConfig;
 use Blush\Event\Dispatcher;
+use Blush\Markdown\CommonMark\FigureRenderer;
+use Blush\Markdown\CommonMark\ResolveLinks;
 use Blush\Markdown\Events\MarkdownEnvironmentBuilding;
+use Blush\Media\MediaResolver;
 
 /**
  * The temporary `MarkdownParser` adapter over league/commonmark (D-045,
@@ -32,23 +38,33 @@ final class CommonMarkParser implements MarkdownParser
 {
 	private ?MarkdownConverter $converter = null;
 
+	private readonly MarkdownContext $context;
+
 	public function __construct(
 		private readonly MarkdownConfig $config,
-		private readonly Dispatcher $events
-	) {}
+		private readonly Dispatcher $events,
+		private readonly ?MediaResolver $media = null,
+		private readonly ?AppConfig $app = null
+	) {
+		$this->context = new MarkdownContext();
+	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function toHtml(string $markdown): string
+	public function toHtml(string $markdown, string $base = ''): string
 	{
+		$this->context->base = trim($base, '/');
+
 		try {
 			return $this->converter()->convert($markdown)->getContent();
 		} catch (MarkdownException $e) {
 			throw $e;
 		} catch (Throwable $e) {
 			throw new MarkdownException(sprintf('Unable to convert Markdown: %s', $e->getMessage()), previous: $e);
+		} finally {
+			$this->context->base = '';
 		}
 	}
 
@@ -75,6 +91,16 @@ final class CommonMarkParser implements MarkdownParser
 
 			foreach ($this->config->inlineParsers as $parser) {
 				$environment->addInlineParser(new $parser());
+			}
+
+			$environment->addEventListener(
+				DocumentParsedEvent::class,
+				new ResolveLinks($this->context, $this->media, $this->app, $this->config->absoluteLinks),
+				-100
+			);
+
+			if ($this->config->figures) {
+				$environment->addRenderer(Paragraph::class, new FigureRenderer(), 10);
 			}
 		} catch (Throwable $e) {
 			throw new MarkdownException(sprintf('Unable to build the Markdown environment: %s', $e->getMessage()), previous: $e);

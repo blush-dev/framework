@@ -3,4 +3,5 @@ parameters:
 	paths:
 		- src
 		- tests
+		- benchmarks
 	tmpDir: .phpstan.cache

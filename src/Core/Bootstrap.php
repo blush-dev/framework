@@ -21,6 +21,7 @@ use Blush\Container\Plan\Planner;
 use Blush\Container\Plan\ReflectionPlanner;
 use Blush\Container\ServiceContainer;
 use Blush\Content\Type\ContentConfig;
+use Blush\Content\Type\ContentTypeCache;
 use Blush\Env\Env;
 use Blush\Extension\ExtensionCache;
 use Blush\Extension\ExtensionConfig;
@@ -31,6 +32,7 @@ use Blush\Extension\LocalAutoloader;
 use Blush\Http\HttpConfig;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
+use Blush\Media\MediaConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
 use Blush\Support\PhpArrayFile;
@@ -83,11 +85,12 @@ final readonly class Bootstrap
 	}
 
 	/**
-	 * Compiles the config, extension, route, and container-plan caches.
-	 * The routes and container plans are gathered by booting a fresh
-	 * application, so every provider and bootable service gets planned,
-	 * and then by planning every class the booted container knows about
-	 * and every route's controller, along with their dependencies (D-066).
+	 * Compiles the config, extension, route, content type, and
+	 * container-plan caches. The routes, content types, and container
+	 * plans are gathered by booting a fresh application, so every
+	 * provider and bootable service gets planned, and then by planning
+	 * every class the booted container knows about and every route's
+	 * controller, along with their dependencies (D-066).
 	 * Returns the number of plans compiled.
 	 */
 	public function compile(): int
@@ -103,6 +106,7 @@ final readonly class Bootstrap
 		$built->application->boot();
 
 		$routes = $built->container->make(RouteCache::class)->write();
+		$built->container->make(ContentTypeCache::class)->write();
 
 		$planner->warm([...$built->container->knownClasses(), ...$routes->controllers()]);
 		$built->autoloader->unregister();
@@ -194,7 +198,8 @@ final readonly class Bootstrap
 			new HttpConfig(),
 			new RouteConfig(),
 			new MarkdownConfig(),
-			new ContentConfig()
+			new ContentConfig(),
+			new MediaConfig()
 		);
 	}
 

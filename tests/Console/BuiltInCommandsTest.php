@@ -109,6 +109,7 @@ final class BuiltInCommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('/Compiled \d+ container plan\(s\)\./', $compiled->output);
 		$this->assertFileExists("{$root}/storage/cache/container.php");
 		$this->assertFileExists("{$root}/storage/cache/routes.php");
+		$this->assertFileExists("{$root}/storage/cache/content-types.php");
 
 		$partial = $tester->run('cache:clear --config -v');
 
@@ -119,9 +120,10 @@ final class BuiltInCommandsTest extends TestCase
 
 		$all = $tester->run('cache:clear');
 
-		$this->assertStringContainsString('Cleared 4 compiled cache(s).', $all->output);
+		$this->assertStringContainsString('Cleared 5 compiled cache(s).', $all->output);
 		$this->assertFileDoesNotExist("{$root}/storage/cache/extensions.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/container.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/routes.php");
+		$this->assertFileDoesNotExist("{$root}/storage/cache/content-types.php");
 	}
 }

@@ -29,7 +29,7 @@ enum RoutePriority: int
 	case System = 0;
 
 	/**
-	 * Routes generated from content types (M4).
+	 * Routes generated from content types.
 	 */
 	case Content = 1;
 

@@ -17,11 +17,17 @@
 
 ---
 
-## M4 (Content): in progress
+## M4 (Content): done
 
-Started 2026-09-25. Three slices (D-079), each ending with `composer check`
-passing for review. Everything 1.x supports carries over (D-078); jtcom's
-files and front matter don't change.
+Started and finished 2026-09-25, in three slices (D-079). Everything 1.x
+supports carries over (D-078); jtcom's files and front matter don't
+change.
+
+Exit criteria:
+
+- **jtcom's ~1,200 entries index and lint cleanly:** done in M4b (all
+  1,183 files; 0 errors, 0 warnings).
+- **Query benchmarks are recorded:** done in M4c (below).
 
 ### M4a: data, parsers, types, schemas (done)
 
@@ -58,26 +64,106 @@ YAML extension manifests (D-058), now that the data loader exists.
 - `Blush\Content\Parser`: front matter splitting and document parsers by
   extension (Markdown, HTML, JSON, YAML).
 
-### M4b: source, index, query, commands
+### M4b: source, index, query, commands (done)
 
-- `ContentSource` + `FilesystemSource`; `Entry` (lazy body), statuses and
-  visibility; `ContentIndex` + `PhpIndex`; `Indexer` (full and
-  incremental, per-file mtime/size/hash); `ContentRepository`; the query
-  builder (1.x arguments, D-078) with `EntryCollection` and `Paginator`;
-  terms, virtual terms, and relations.
-- `content:index` (with a progress bar), `content:lint [--strict]`,
-  `content:list`, and `content:new`.
-- **Exit:** jtcom's ~1,200 entries index and lint cleanly.
+Implemented 2026-09-25. See D-087 to D-092. Delivered and tested (525
+tests):
 
-### M4c: routes, media, benchmarks
+- `Content\Source`: `ContentSource`, `FilesystemSource`, `SourceFile`.
+- `Content\Index`: `ContentIndex`, `PhpIndex` (`storage/index/content.php`),
+  `IndexSnapshot` (records plus derived keys, term relations, labels,
+  conflicts, the next scheduled time, and a fingerprint), `IndexRecord`,
+  `RecordBuilder` (1.x file conventions, D-088), `Indexer` (full and
+  incremental by mtime/size, then hash), `IndexReport`, `ArraySelector`,
+  and the `ContentIndexed` event.
+- `Content\Entry`: `Entry` (lazy `Body` ghost, `excerpt()`) and
+  `EntryHydrator` (virtual terms included).
+- `Content\Query`: `Query` (fluent and 1.x arguments, D-089), `Order`,
+  `EntryCollection`, `Paginator`, `QueryRunner`, `Selection`.
+- `ContentRepository` + `IndexedRepository` (index on first use, dev
+  auto-index, `term()`, `termCounts()`, D-090).
+- `Content\Lint`: `Linter` and `LintReport` (D-091).
+- `content:index [--full]` (with `Console\ProgressBar`), `content:lint
+  [--strict]`, `content:list [--type] [--status]`, and `content:new`.
+- The M4a carry-overs: the compiled content-type cache
+  (`storage/cache/content-types.php`, `cache:clear --types`) and YAML
+  extension manifests (D-092).
 
-- Content-type routes (1.x route names and URL parameters), the home
-  alias, the page catch-all, `redirect_from`, and `user/data/redirects`.
-- Media: resolution, the MIME allowlist, `media:publish`, a streaming
-  controller, and `Response::file()` Range support. The 1.x Markdown
-  renderers (figures, absolute links).
-- PHPBench with a generated jtcom-sized fixture; baselines recorded.
-- **Exit:** query benchmarks are recorded.
+Exit criterion, **jtcom's ~1,200 entries index and lint cleanly:** done.
+Against jtcom's unchanged content and 1.x type config, `content:index`
+indexes all 1,183 files in about 200 ms (a no-op incremental run takes
+about 20 ms), and `content:lint` reports 0 errors and 0 warnings. With
+`--strict` there are 3,459 notices, all expected: 1.x aliases (`date`,
+`author`, `excerpt`, `view`), undeclared keys (`format`, `tag`, …), and
+virtual terms (jtcom has no author files). The index file is about
+2 MB. The `../blush` dev site indexes and lints too.
+
+Carried into M4c: entry URLs (they need the content routes), and
+reverse relations for non-taxonomy reference fields if a feature needs
+them.
+
+### M4c: routes, media, benchmarks (done)
+
+Implemented 2026-09-25. See D-093 to D-101. Delivered and tested (554
+tests):
+
+- Content routes with 1.x's names and URL parameters (`ContentRoutes`),
+  the home page and home alias, and the page catch-all (`PageRoutes`,
+  fallback priority, so a site's `/` wins). `FallbackRoutes` is gone; the
+  home controller shows the welcome page on an empty site.
+- Content controllers (home, collection, date archive, single, term,
+  page) over a `PageRenderer` seam, with `BasicPageRenderer` standing in
+  until M5. Canonical redirects for `/page/1` and misdated singles.
+- `ContentUrls` (entry, collection, term, and date-archive URLs from type
+  routing), and `AppConfig::origin()`/`absoluteUrl()`.
+- Redirects from `user/data/redirects.*` and `redirect_from`, after the
+  config's, kept current in a compiled route table by
+  `RefreshRouteCache`.
+- The router treats fallback routes as soft (D-095), and `int` route
+  casts accept leading zeros.
+- A stale index (other types, timezone, or locale) is rebuilt on first
+  use in any environment (`IndexFingerprint`, D-098).
+- `Blush\Media`: `MediaConfig`, `MediaResolver` (user media, 1.x
+  `/user/media` paths, and page bundle files), `MediaController` and the
+  `media` route, `media:publish [--copy]`, and `Response::file()` Range
+  support over `LimitedStream`.
+- 1.x Markdown rendering: media URLs and image dimensions, absolute
+  root-relative links, and lone images as `<figure>`s (D-100).
+- PHPBench (`composer bench`) with the generated jtcom-sized site
+  (D-101).
+
+Checked against jtcom's real content (served through `Kernel::handle()`
+with its 1.x type config and `MediaConfig(url: '/user/media')`): the home
+page and `/page/N`, `/archives/2008` and `/archives/2008/04`,
+`/archives/2003/04/15/welcome-to-my-site` (and a misdated URL → 301),
+`/topics`, `/topics/art`, `/writing`, `/writing/forms/essay`, `/about`,
+`/about/biography`, `/archives/years`, `/authors/justintadlock`, and
+media with ranges all answer as expected; `/_error/404`, `/__drafts/...`,
+and unknown paths are 404s. The `../blush` dev site serves its pages on
+DDEV.
+
+**Baselines** (2026-09-25; the author's Mac, PHP 8.5.10, opcache on in
+the CLI; mode of 5 iterations; the generated 1,183-file site):
+
+| Subject | What it measures | Time |
+|---|---|---|
+| `benchIndexFull` | Parse and index every file | 112 ms |
+| `benchIndexUnchanged` | Incremental run with nothing changed | 5.9 ms |
+| `benchLoadIndex` | Load the index file (from opcache) | 0.020 ms |
+| `benchHomePage` | 940 posts by published date, page 1 of 10 | 2.1 ms |
+| `benchDeepPage` | The same, page 80 | 2.0 ms |
+| `benchDateArchive` | Posts in one month | 0.32 ms |
+| `benchTermArchive` | One category's posts, page 1 | 1.3 ms |
+| `benchNamedLookup` | One entry by type and key | 0.004 ms |
+| `benchTermCounts` | Listed entries per category | 0.48 ms |
+| `benchRequestHome` | `/` through the kernel (home type) | 0.71 ms |
+| `benchRequestSingle` | A term archive through the kernel, bodies rendered | 1.7 ms |
+
+Carried forward: feed and sitemap routes (M5), themed rendering
+replacing `BasicPageRenderer` (M5), reverse relations for non-taxonomy
+reference fields if a feature needs them, data-file redirects in a
+compiled table refreshing on publish (M6), and gating CI on benchmark
+regressions (open question).
 
 ---
 

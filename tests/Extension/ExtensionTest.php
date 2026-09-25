@@ -150,6 +150,38 @@ final class ExtensionTest extends TestCase
 		}
 	}
 
+	public function testReadsYamlManifestsAndJsonWins(): void
+	{
+		$this->writeTemporaryFile('extensions/gallery/extension.yaml', <<<'YAML'
+			name: acme/gallery
+			version: 1.0.0
+			provider: Acme\Gallery\GalleryServiceProvider
+			autoload:
+			  psr-4:
+			    Acme\Gallery\: src/
+			YAML);
+		$this->writeTemporaryFile('extensions/both/extension.json', '{"name": "acme/json", "provider": "A\\\\B"}');
+		$this->writeTemporaryFile('extensions/both/extension.yml', "name: acme/yaml\nprovider: A\\B\n");
+		$this->writeTemporaryFile('extensions/none/readme.md', 'No manifest.');
+
+		$manifests = new LocalExtensionFinder($this->temporaryDirectory() . '/extensions')->find();
+
+		$this->assertSame(['acme/json', 'acme/gallery'], array_map(
+			static fn (ExtensionManifest $manifest): string => $manifest->name,
+			$manifests
+		));
+		$this->assertSame(['Acme\Gallery\\' => 'src/'], $manifests[1]->autoload);
+	}
+
+	public function testInvalidYamlManifestsAreRejected(): void
+	{
+		$this->writeTemporaryFile('bad/ext/extension.yaml', "- a list\n- not a map\n");
+
+		$this->expectException(ExtensionException::class);
+
+		new LocalExtensionFinder($this->temporaryDirectory() . '/bad')->find();
+	}
+
 	public function testEnabledFiltersByConfig(): void
 	{
 		$discovered = $this->discover();

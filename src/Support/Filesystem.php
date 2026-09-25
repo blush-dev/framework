@@ -110,4 +110,22 @@ final class Filesystem
 
 		return $absolute ? '/' . $normalized : ($normalized === '' ? '.' : $normalized);
 	}
+
+	/**
+	 * Returns the relative path from one absolute directory to an
+	 * absolute path, such as `../user/media` from `public` to
+	 * `user/media`, for relative symlinks.
+	 */
+	public function relative(string $from, string $to): string
+	{
+		$from = explode('/', trim($this->normalize($from), '/'));
+		$to   = explode('/', trim($this->normalize($to), '/'));
+
+		while ($from !== [] && $to !== [] && $from[0] === $to[0]) {
+			array_shift($from);
+			array_shift($to);
+		}
+
+		return implode('/', [...array_fill(0, count($from), '..'), ...$to]) ?: '.';
+	}
 }

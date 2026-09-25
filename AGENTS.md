@@ -6,8 +6,8 @@ Guidance for agents working in this repository.
 
 The `2.x` branch is a **full rewrite** of Blush, a flat-file CMS, targeting
 PHP 8.5. Planning and milestones M0 (setup), M1 (core), M2 (HTTP +
-Console), and M3 (Routing) are **complete**. **Milestone M4 (Content)** is
-in progress, in three slices (M4a, M4b, M4c); see `.claude/docs/roadmap.md`.
+Console), M3 (Routing), and M4 (Content) are **complete**. **Milestone M5
+(Views + theming)** is next; see `.claude/docs/roadmap.md`.
 The dev site is the `2.x` branch of `../blush`
 (`ddev start`, https://blush.ddev.site). Code on
 `master` (1.x) is not a reference implementation, with one exception:
@@ -53,6 +53,7 @@ Run on PHP 8.5 (`php -v`). Run `composer check` before handing work back.
 | `composer fix` | PHPCBF auto-fix |
 | `composer analyse` | PHPStan, level max (`phpstan.neon`) |
 | `composer test` | PHPUnit 12 (`phpunit.xml`) |
+| `composer bench` | PHPBench against the generated jtcom-sized site (`benchmarks/`, D-101) |
 
 Single test: `vendor/bin/phpunit --filter FrameworkTest`.
 

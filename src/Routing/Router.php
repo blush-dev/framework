@@ -32,13 +32,16 @@ use Blush\Routing\Events\RouteMatched;
  * The kernel's handler: matches the request to a route and runs it.
  *
  * 1. A non-canonical path (trailing slash, per `RouteConfig`) that would
- *    match redirects to the canonical one.
+ *    match redirects to the canonical one. When only a fallback route
+ *    matches, it's run first, so paths that lead nowhere stay 404s.
  * 2. The route table is searched. `HEAD` falls back to `GET`. A path that
  *    matches only other methods is a 405 with an `Allow` header, except
  *    `OPTIONS`, which gets a 204 listing them.
  * 3. The match and its parameters become request attributes,
  *    `RouteMatched` is dispatched, and the route's middleware and handler
  *    run.
+ *    A fallback route that finds nothing, on a path other routes answer
+ *    with other methods, is a 405.
  * 4. On a 404 (no route, or a handler throwing `NotFound`), redirects are
  *    checked: the redirect map, then `/public/...` URLs from a
  *    whole-project install (D-071), which redirect to the path without it.
@@ -62,7 +65,7 @@ final readonly class Router implements RequestHandlerInterface
 		$path      = $this->pathOf($request);
 		$canonical = $this->config->canonicalPath($path);
 
-		if ($canonical !== $path && $this->routes->methodsFor($this->lookupPath($canonical)) !== []) {
+		if ($canonical !== $path && $this->answers($request, $canonical)) {
 			return $this->redirect($request, $canonical);
 		}
 
@@ -74,7 +77,39 @@ final readonly class Router implements RequestHandlerInterface
 	}
 
 	/**
+	 * Returns whether something answers a path. When only a fallback route
+	 * does, it's asked, so a non-canonical URL that leads nowhere is a 404
+	 * rather than a redirect to one.
+	 */
+	private function answers(ServerRequestInterface $request, string $path): bool
+	{
+		$lookup = $this->lookupPath($path);
+
+		if ($this->routes->methodsFor($lookup, fallbacks: false) !== []) {
+			return true;
+		}
+
+		if ($this->routes->methodsFor($lookup) === []) {
+			return false;
+		}
+
+		try {
+			$this->dispatch($request->withUri($request->getUri()->withPath($path)), $lookup);
+		} catch (NotFound) {
+			return false;
+		} catch (MethodNotAllowed) {
+			return true;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Matches and runs a route.
+	 *
+	 * A fallback route (such as the page catch-all) answers `GET` for any
+	 * path, so when one finds nothing but other routes answer the path
+	 * with other methods, the request is a 405 rather than a 404.
 	 *
 	 * @throws NotFound
 	 * @throws MethodNotAllowed
@@ -85,25 +120,48 @@ final readonly class Router implements RequestHandlerInterface
 		$match  = $this->routes->find($method, $path)
 			?? ($method === 'HEAD' ? $this->routes->find('GET', $path) : null);
 
+		if ($match !== null && $match->route->priority === RoutePriority::Fallback) {
+			try {
+				return $this->run($request, $match);
+			} catch (NotFound $notFound) {
+				$allowed = $this->routes->methodsFor($path, fallbacks: false);
+
+				throw $allowed === [] ? $notFound : new MethodNotAllowed(self::withHead($allowed));
+			}
+		}
+
 		if ($match !== null) {
 			return $this->run($request, $match);
 		}
 
-		$allowed = $this->routes->methodsFor($path);
+		$allowed = $this->routes->methodsFor($path, fallbacks: false) ?: $this->routes->methodsFor($path);
 
 		if ($allowed === []) {
 			throw new NotFound(sprintf('No route matches "%s".', $path));
 		}
 
-		if (in_array('GET', $allowed, true) && ! in_array('HEAD', $allowed, true)) {
-			$allowed[] = 'HEAD';
-		}
+		$allowed = self::withHead($allowed);
 
 		if ($method === 'OPTIONS') {
 			return new Response(Status::NoContent, ['Allow' => implode(', ', [...$allowed, 'OPTIONS'])]);
 		}
 
 		throw new MethodNotAllowed($allowed);
+	}
+
+	/**
+	 * Adds `HEAD` to allowed methods that include `GET`.
+	 *
+	 * @param  list<string> $allowed
+	 * @return list<string>
+	 */
+	private static function withHead(array $allowed): array
+	{
+		if (in_array('GET', $allowed, true) && ! in_array('HEAD', $allowed, true)) {
+			$allowed[] = 'HEAD';
+		}
+
+		return $allowed;
 	}
 
 	/**

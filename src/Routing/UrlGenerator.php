@@ -15,7 +15,6 @@ namespace Blush\Routing;
 
 use BackedEnum;
 use Stringable;
-use Uri\Rfc3986\Uri;
 use Blush\Core\AppConfig;
 
 /**
@@ -75,12 +74,7 @@ final readonly class UrlGenerator
 	 */
 	public function absolute(string $path): string
 	{
-		$url    = Uri::parse($this->app->url);
-		$origin = $url === null
-			? rtrim($this->app->url, '/')
-			: $url->getScheme() . '://' . $url->getHost() . ($url->getPort() === null ? '' : ':' . $url->getPort());
-
-		return $origin . '/' . ltrim($path, '/');
+		return $this->app->absoluteUrl($path);
 	}
 
 	/**

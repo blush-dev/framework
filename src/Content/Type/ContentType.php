@@ -117,6 +117,18 @@ final readonly class ContentType
 	}
 
 	/**
+	 * Returns the full route pattern for a route key, such as
+	 * `/archives/{year}/{month}/{day}/{name}` for `single`, or `null` when
+	 * the type has no routing or no such key.
+	 */
+	public function routePattern(string $key): ?string
+	{
+		$path = $this->routing === false ? null : $this->routing->path($key);
+
+		return $path === null ? null : '/' . trim($this->prefix() . '/' . $path, '/');
+	}
+
+	/**
 	 * Returns whether the type has routes of its own.
 	 */
 	public function hasRouting(): bool

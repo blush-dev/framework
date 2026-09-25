@@ -27,7 +27,6 @@ use Blush\Routing\RoutingServiceProvider;
 use Blush\Routing\Sources\ConfigRedirects;
 use Blush\Routing\Sources\ConfigRoutes;
 use Blush\Routing\Sources\ControllerRoutes;
-use Blush\Routing\Sources\FallbackRoutes;
 
 #[CoversClass(Router::class)]
 #[CoversClass(ControllerHandler::class)]
@@ -36,7 +35,6 @@ use Blush\Routing\Sources\FallbackRoutes;
 #[CoversClass(ConfigRoutes::class)]
 #[CoversClass(ConfigRedirects::class)]
 #[CoversClass(ControllerRoutes::class)]
-#[CoversClass(FallbackRoutes::class)]
 #[CoversClass(HttpError::class)]
 #[CoversClass(NotFound::class)]
 #[CoversClass(MethodNotAllowed::class)]

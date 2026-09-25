@@ -95,7 +95,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 - **Core events:**
   - `ApplicationBooted`, `RequestReceived`, `RouteMatched`, `ControllerResolved`
   - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady`
-  - `ContentIndexed`, `ContentWritten`, `ContentPublished`, `CacheCleared`
+  - `ContentIndexed` (M4b), `ContentWritten`, `ContentPublished`, `CacheCleared`
   - `ExportStarted`, `ExportFinished`
 
 ## Data files
@@ -142,9 +142,9 @@ Implemented in M2 (D-067).
   `RequestFactory::fromGlobals()` and `Request::create('/path')` are the
   constructors.
 - **`Response`** implements `ResponseInterface`. Named constructors:
-  `html()`, `xml()`, `json()`, `text()`, `redirect()`, `file()` (Range
-  support comes with media in M4), `notModified()`. `Status` is an enum of
-  the registered codes.
+  `html()`, `xml()`, `json()`, `text()`, `redirect()`, `file()` (with
+  single byte ranges over a `LimitedStream`: 206, or 416 past the end,
+  D-099), `notModified()`. `Status` is an enum of the registered codes.
 - **Streams:** one `Stream` class over a resource, with `fromString()`
   (`php://temp`) and `fromFile()`.
 - **Factories:** `HttpFactory` implements all of PSR-17 and is bound under
@@ -177,12 +177,17 @@ Implemented in M3 (D-073 to D-077).
   prefix, and middleware. Paths are written without a trailing slash.
 - **Sources** (`RouteSource`), in precedence order (`RoutePriority`):
   1. System routes (feeds, sitemap, robots, webhook, admin)
-  2. Routes generated from content types (M4)
+  2. Routes generated from content types (`ContentRoutes`, D-093)
   3. Controllers with `#[Get]`, `#[Post]`, … attributes, listed in
      `RouteConfig::$controllers` or tagged `ControllerRoutes::TAG` by site or
      extension providers. Themes can't add routes (D-020).
   4. `config/routes.php` (`RouteConfig::$routes`)
-  5. Fallbacks: the welcome page at `/` and, later, the page catch-all
+  5. Fallbacks (`PageRoutes`): the home page at `/` (and `/page/{page}`
+     with a home type) and the page catch-all. Fallbacks are soft: one
+     that finds nothing doesn't hide other methods' 405, `Allow` lists
+     other routes' methods first, and a trailing-slash redirect to a
+     fallback happens only if it finds something (D-095).
+  The media route (`{media url}/{path}`) is a system route (D-099).
   Static paths always match before patterns. When two routes claim the same
   method and pattern, the higher priority wins and the other is reported as
   shadowed.
@@ -201,10 +206,12 @@ Implemented in M3 (D-073 to D-077).
 - **Errors:** `Http\HttpError`, `NotFound`, and `MethodNotAllowed` become
   status responses in `HandleErrors` (D-075).
 - **`UrlGenerator`:** turns a name plus params into relative or absolute URLs.
-  Extra params become the query string. Entry and type URLs go through it.
-- **Redirects:** `RouteConfig::$redirects` and tagged `RedirectSource`s
-  (`redirect_from` front matter and `user/data/redirects.*` in M4), with
-  pattern placeholders. They're checked only before a 404, including when a
+  Extra params become the query string. Entry, collection, term, and
+  date-archive URLs come from `ContentUrls`, which builds them from type
+  routing without the route table (D-096).
+- **Redirects:** `RouteConfig::$redirects`, then `user/data/redirects.*`,
+  then `redirect_from` front matter (D-097), and any tagged
+  `RedirectSource`s, with pattern placeholders. They're checked only before a 404, including when a
   handler throws `NotFound`. `/public/...` URLs redirect to the canonical
   path (D-076).
 - **Route enumeration:** the router can list every concrete URL, which static
@@ -224,10 +231,12 @@ is in that decision.
 - Everything before the last `.` in a file name is organizational
   (`01.about.md`, `2003-04-15.welcome.md`): it isn't part of the slug, and
   it sets the default order.
-- A `_` prefix on a file name means hidden.
-- `_drafts/` or `status: draft` marks unpublished entries.
-- **Page bundles:** `slug/index.md` sits next to its own media, which resolves
-  relative to the entry.
+- A `_` prefix on a file name, or on a folder between the type's folder
+  and the file, means hidden (D-088).
+- A `_drafts/` folder or `status: draft` marks unpublished entries.
+- **Page bundles:** `slug/index.md` is the entry `slug`, listed in the
+  folder above, next to its own media, which resolves relative to the
+  entry. `index` directly in a type's folder is the landing page instead.
 - **Data-only entries** (`.yaml`, `.json`) and other user data (menus,
   authors, redirects) live in `user/data/`.
 - `_errors/404.md` and `_errors/500.md` are error pages.
@@ -246,8 +255,9 @@ Implemented in M4a (D-083, D-084).
   data types (`user/data/types/*.json|yaml`, editable later).
   `ContentTypeLoader` merges and checks them into `ContentTypes`, which
   finds types by name, path, or file, and builds each type's full schema.
-  `ContentConfig` also holds the home alias, the data-type policy, and
-  `disabled` built-ins.
+  `ContentConfig` also holds the home alias, the data-type policy,
+  `disabled` built-ins, and `autoIndex`. The resolved types compile to
+  `storage/cache/content-types.php` outside development (D-092).
 - **Built-in types:** `page` (the catch-all, path `''`) and `author`
   (D-043, path `authors`, term field `authors` with alias `author`). Both
   can be redefined, and `author` can be disabled.
@@ -268,16 +278,23 @@ Implemented in M4a (D-083, D-084).
   **typed entry fields**, and **admin form generation** later.
 
 ### Entry
-- A readonly value object: `id` (type plus relative path), `slug`, `type`,
-  `status` (enum `Published | Draft | Scheduled`), `visibility` (enum
-  `Public | Unlisted | Hidden`, D-082),
-  `published`/`updated` (`DateTimeImmutable`, site timezone), `title`,
-  `summary`, `fields`, `terms`, `media`, `template`, and `source` (path, mtime,
-  hash).
-- The body is a **lazy ghost**: the file is parsed and rendered only when the
-  body is read.
-- **Scheduling:** a future `published` date means `Scheduled`. The index
-  records the next go-live time so cache invalidation happens automatically.
+Implemented in M4b (D-088).
+
+- `Content\Entry\Entry`, a readonly value object: `id` (the source path),
+  `type`, `slug`, `key` (the slug with any folders below the type's),
+  `title`, `status` (`Published | Draft | Scheduled`), `visibility`
+  (`Public | Unlisted | Hidden`, D-082), `published`/`updated`
+  (`DateTimeImmutable`, site timezone), `locale`, `fields` (typed by the
+  schema), `extra` (undeclared keys), `terms`, `landing`, and `source`
+  (path, mtime, size). Helpers: `field()`, `summary()`, `excerpt()`,
+  `templates()`, `terms()`, `hasTerm()`, `isListed()`, `isRoutable()`.
+- The `Body` is a **lazy ghost** (`EntryHydrator`): the file is read,
+  parsed, and rendered only when `body()` is called.
+- **Virtual entries** stand in for referenced terms with no file.
+- **Scheduling:** a future `published` date means `Scheduled`, decided
+  against the clock at read time. The index records the next go-live time
+  so cache invalidation can happen automatically (M6).
+- Entry URLs come from `ContentUrls` (D-096).
 
 ### Parsers
 Implemented in M4a (D-080, D-085, D-086).
@@ -295,52 +312,88 @@ Implemented in M4a (D-080, D-085, D-086).
   It starts with a CommonMark adapter configured by `MarkdownConfig`, with
   an in-house parser as the long-term goal. The
   `MarkdownEnvironmentBuilding` event lets extensions add syntax.
+  1.x's rendering is built in (D-100): local media links point at the
+  media URL and images get their dimensions, root-relative links become
+  absolute, and a lone image becomes a `<figure>` with its title as the
+  caption. `toHtml($markdown, $base)` resolves bundle media against the
+  entry's folder.
 - **Content components:** a Markdown directive syntax (for example
   `::: gallery`) rendered by theme or site components. See `theming.md`.
 - Raw HTML in Markdown is controlled by config (trusted authors by default).
 
 ### Taxonomies and relations
 - Terms are entries (`user/content/topics/art.md`). A term that is referenced
-  but has no file gets a virtual term.
-- The index stores forward and reverse relations and term counts.
+  but has no file gets a virtual term, titled as first written (D-090).
+- The index stores each entry's terms (forward) and the entries per term
+  (reverse); `termCounts()` counts listed entries. Other reference fields
+  are forward-only for now.
 - **Authors** (D-043) are entries of the built-in `author` type, referenced
   through the `authors` field. They get archives and feeds like terms, and
   structured data (`Person`).
 
 ## Source → Index → Repository
 
-- **`ContentSource`** reads raw documents: `list()`, `read()`, `stat()`. The
-  default is `FilesystemSource`. Git, S3, or a database could follow later.
-- **`ContentIndex`** is the queryable metadata store.
-  - `PhpIndex` (default): a `var_export`'d array kept in opcache shared memory,
-    with no per-request parsing.
-  - `SqliteIndex` (optional): for large sites and FTS5 search.
+Implemented in M4b (D-087, D-090).
+
+- **`ContentSource`** (`Content\Source`) reads raw documents: `files()`,
+  `stat()`, `read()`. The default is `FilesystemSource` (content files by
+  parser extension, dotfiles skipped, paths confined). Git, S3, or a
+  database could follow later.
+- **`ContentIndex`** (`Content\Index`) is the queryable metadata store.
+  - `PhpIndex` (default): `storage/index/content.php`, a `var_export`'d
+    `IndexSnapshot` kept in opcache shared memory. Records stay arrays;
+    queries are array filters (`ArraySelector`).
+  - `SqliteIndex` (optional, later): for large sites and FTS5 search.
+- **`RecordBuilder`** turns a file into an `IndexRecord` (the 1.x file
+  conventions, D-088) and its schema violations.
 - **`Indexer`:**
-  - A full scan, or an incremental scan that compares **per-file** mtime, size,
-    and hash.
-  - In dev, a throttled auto-check. In production, reindexing is triggered by
-    CLI, webhook, or admin save.
-  - Emits `ContentIndexed` with the changed IDs.
-- **`ContentRepository`** is the facade: `find()`, `byUrl()`, `query()`.
+  - A full scan, or an incremental one that skips files whose mtime and
+    size match and keeps records whose hash matches. A changed
+    fingerprint (content types, timezone, locale) forces a full scan.
+  - The index is built on first use if missing; in development each
+    request's first use refreshes it (`ContentConfig::$autoIndex`). In
+    production, reindexing is triggered by CLI, webhook, or admin save.
+  - Emits `ContentIndexed` with the `IndexReport` when it writes.
+- **`ContentRepository`** is the facade: `query()`, `find(id)`,
+  `named(type, key)`, `term()`, `termCounts()`, plus `get()`,
+  `paginate()`, and `count()` for queries, plus `redirects()` for
+  `redirect_from`. URLs are resolved by the router's content routes, not
+  the repository. A stale index (another fingerprint) is rebuilt on first
+  use in any environment (D-098).
+- **`Linter`** checks every file for `content:lint` (D-091).
 - **`ContentWriter`:** `create`, `update`, `move`, `delete`. Writes are atomic
   (temp file + rename), use file locks, are confined to the content root, and
   trigger incremental reindexing.
 
 ## Query
 
+Implemented in M4b (D-089).
+
 - An immutable fluent builder built on `clone()` with properties and marked
   `#[\NoDiscard]`:
   `$content->query()->type('post')->whereTerm('category', 'art')->orderBy('published', Order::Desc)->paginate(perPage: 10, page: $page)`
+- `Query::fromArray()` reads 1.x query arguments (a type's `collection`,
+  a page's `collection` front matter) plus `status`, `visibility`,
+  `terms`, and `locale`.
 - Returns an `EntryCollection` or a `Paginator`. Hydration is lazy, so
   listings never render bodies.
 - Compiled per index: array filters for `PhpIndex`, SQL for `SqliteIndex`.
 
 ## Media
 
+Implemented in M4c (D-099), apart from image derivatives.
+
 - Originals live in `user/media` and in page bundles.
-- **Serving** (web root is `public/`): the CLI command `media:publish` creates
-  a symlink (or copies files on hosts that can't symlink) to `public/media`. A
-  streaming `MediaController` is the fallback.
+- **`MediaConfig`:** the media URL (`/media` by default; jtcom uses
+  `/user/media`) and the MIME allowlist (1.x's images, audio, and video).
+- **`MediaResolver`:** turns front matter and Markdown references into
+  `MediaFile`s (path, URL, MIME, size, dimensions): media URL paths and
+  1.x `/user/media/...` paths into `user/media`, and relative paths into
+  the entry's page bundle (served at `{url}/_content/...`).
+- **Serving** (web root is `public/`): `media:publish` links `public{url}`
+  to `user/media` (or copies the allowed files with `--copy`). The
+  `MediaController` streams anything unpublished, with ranges, `nosniff`,
+  and sandboxed SVGs.
 - **Image derivatives:** in-house GD/Imagick adapter. Sizes are declared by the
   theme, generated on demand or at export, and cached in `public/_media/`.
   Output includes `srcset`/`sizes` helpers.
@@ -363,8 +416,11 @@ summary below is the view core those features sit on.
 
 ## Built-in controllers and outputs
 
-- **Pages:** single, collection (paged), term (paged), date archives, home
-  (alias to a collection or a page), page catch-all, and errors.
+- **Pages** (M4c, D-094): single, collection (paged), term (paged), date
+  archives, home (a type's collection, `index.md`, or the welcome page),
+  and the page catch-all. The controllers build a `ContentPage`; a
+  `PageRenderer` renders it. `BasicPageRenderer` is a plain stand-in until
+  the view layer (M5) binds a themed one. Error pages come with views.
 - **Feeds:** RSS 2.0, Atom, and JSON Feed, per collection and per term, written
   with `XMLWriter`.
 - **Sitemaps:** a sitemap index plus one per type, and `robots.txt`.
@@ -374,7 +430,7 @@ summary below is the view core those features sit on.
 
 | Layer | Key / invalidation |
 |---|---|
-| Config, routes, extensions, container plans | Compiled PHP files; cleared by `cache:clear` or deploy |
+| Config, routes, extensions, content types, container plans | Compiled PHP files; cleared by `cache:clear` or deploy |
 | Content index | Per-file mtime/size/hash, incremental |
 | Rendered bodies | Content hash + renderer version |
 | Fragments | `$cache->remember($key, $ttl, fn() => …)` |
@@ -471,8 +527,9 @@ summary below is the view core those features sit on.
   Markdown rendering.
 - **Layers:** page cache (including files the web server can serve without
   starting PHP), HTTP 304s, and static export.
-- **Measured:** a PHPBench suite (dev only) against a jtcom-sized fixture
-  runs in CI, with regression thresholds. Baselines are recorded in M4.
+- **Measured:** a PHPBench suite (dev only, `composer bench`) against a
+  generated jtcom-sized site. Baselines are recorded in `roadmap.md` (M4c,
+  D-101); gating CI on regressions is an open question.
 
 ## Security baseline
 

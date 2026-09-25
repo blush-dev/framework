@@ -21,9 +21,11 @@ namespace Blush\Markdown;
 interface MarkdownParser
 {
 	/**
-	 * Converts a Markdown string to HTML.
+	 * Converts a Markdown string to HTML. `$base` is the folder under
+	 * `user/content` that relative media paths resolve against (an
+	 * entry's folder, for page bundles).
 	 *
 	 * @throws MarkdownException
 	 */
-	public function toHtml(string $markdown): string;
+	public function toHtml(string $markdown, string $base = ''): string;
 }

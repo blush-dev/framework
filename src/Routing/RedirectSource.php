@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Routing;
 
 /**
- * Supplies redirects to the route table: `config/routes.php` now, and
- * `redirect_from` front matter and data files with content (M4). An
+ * Supplies redirects to the route table: `config/routes.php`, then
+ * `user/data/redirects.*`, then `redirect_from` front matter (D-097). An
  * extension adds redirects by tagging its source with `RedirectSource::TAG`.
  * Earlier sources win when two redirect the same path.
  */

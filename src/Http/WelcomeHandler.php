@@ -21,9 +21,9 @@ use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 
 /**
- * A small "hello" page naming the site. It's the fallback route for `/`
- * (`FallbackRoutes`), so a fresh site answers its home page until the site
- * or its content claims `/`.
+ * A small "hello" page naming the site. The home page controller shows it
+ * while a site has no home page (no `index.md` and no home type), so a
+ * fresh site still answers `/`.
  */
 final readonly class WelcomeHandler implements RequestHandlerInterface
 {

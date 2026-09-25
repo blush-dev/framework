@@ -21,7 +21,6 @@ use Blush\Http\Kernel;
 use Blush\Routing\Sources\ConfigRedirects;
 use Blush\Routing\Sources\ConfigRoutes;
 use Blush\Routing\Sources\ControllerRoutes;
-use Blush\Routing\Sources\FallbackRoutes;
 
 /**
  * Wires the router in as the kernel's handler, along with the route table,
@@ -50,8 +49,7 @@ final class RoutingServiceProvider extends ServiceProvider
 		RouteCompiler::class,
 		ConfigRoutes::class,
 		ConfigRedirects::class,
-		ControllerRoutes::class,
-		FallbackRoutes::class
+		ControllerRoutes::class
 	];
 
 	/**
@@ -60,8 +58,7 @@ final class RoutingServiceProvider extends ServiceProvider
 	protected const array TAGS = [
 		RouteSource::TAG    => [
 			ConfigRoutes::class,
-			ControllerRoutes::class,
-			FallbackRoutes::class
+			ControllerRoutes::class
 		],
 		RedirectSource::TAG => [
 			ConfigRedirects::class

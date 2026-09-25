@@ -6,6 +6,7 @@
 	<!-- What to check. -->
 	<file>src</file>
 	<file>tests</file>
+	<file>benchmarks</file>
 
 	<!-- Only check the PHP files. -->
 	<arg name="extensions" value="php"/>

@@ -70,11 +70,15 @@ final readonly class MarkdownConfig implements Config
 	 * @param array<string, mixed>                       $options       CommonMark configuration.
 	 * @param list<class-string<ExtensionInterface>>    $extensions    Extensions to add, in order.
 	 * @param list<class-string<InlineParserInterface>> $inlineParsers Inline parsers to add.
+	 * @param bool                                      $figures       Whether a lone image renders as a `<figure>`.
+	 * @param bool                                      $absoluteLinks Whether root-relative links become absolute.
 	 */
 	public function __construct(
 		public array $options = [],
 		public array $extensions = self::DEFAULT_EXTENSIONS,
-		public array $inlineParsers = []
+		public array $inlineParsers = [],
+		public bool $figures = true,
+		public bool $absoluteLinks = true
 	) {}
 
 	/**
@@ -86,7 +90,7 @@ final readonly class MarkdownConfig implements Config
 		$data = self::renamed($data, ['config' => 'options', 'inline_parsers' => 'inlineParsers']);
 
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['options', 'extensions', 'inlineParsers']);
+		$values->assertKnownKeys(['options', 'extensions', 'inlineParsers', 'figures', 'absoluteLinks']);
 
 		$options = $data['options'] ?? [];
 
@@ -101,7 +105,13 @@ final readonly class MarkdownConfig implements Config
 		/** @var list<class-string<InlineParserInterface>> $inlineParsers Checked by `CommonMarkParser`. */
 		$inlineParsers = $values->stringList('inlineParsers');
 
-		return new static(options: $options, extensions: $extensions, inlineParsers: $inlineParsers);
+		return new static(
+			options: $options,
+			extensions: $extensions,
+			inlineParsers: $inlineParsers,
+			figures: $values->bool('figures', true),
+			absoluteLinks: $values->bool('absoluteLinks', true)
+		);
 	}
 
 	/**
@@ -113,7 +123,9 @@ final readonly class MarkdownConfig implements Config
 		return [
 			'options'       => $this->options,
 			'extensions'    => $this->extensions,
-			'inlineParsers' => $this->inlineParsers
+			'inlineParsers' => $this->inlineParsers,
+			'figures'       => $this->figures,
+			'absoluteLinks' => $this->absoluteLinks
 		];
 	}
 

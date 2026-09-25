@@ -21,8 +21,7 @@ use NoDiscard;
  * ANSI escape codes only when enabled, and each write can name the
  * verbosity it needs, so `-q` and `-v` work without commands checking.
  * Errors and warnings go to the error stream and ignore verbosity.
- *
- * Progress bars are planned for when a command needs one (M4's indexing).
+ * `progress()` starts a progress bar, which draws only on a terminal.
  */
 final readonly class Output
 {
@@ -161,6 +160,15 @@ final readonly class Output
 	public function style(string $text, Style ...$styles): string
 	{
 		return $this->ansi ? Style::apply($text, ...$styles) : $text;
+	}
+
+	/**
+	 * Starts a progress bar over `$total` steps (which `update()` can
+	 * change once it's known).
+	 */
+	public function progress(int $total = 0): ProgressBar
+	{
+		return new ProgressBar($this, $total);
 	}
 
 	/**

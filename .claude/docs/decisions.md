@@ -254,6 +254,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-036: Multilingual content: architected for, not built yet
 - **Date:** 2026-09-25
+- **Status:** ID part refined by D-088 (IDs are source paths; lookup keys
+  carry the locale).
 - **Decision:** Design the content model so multilingual content can be added
   without rework, but don't implement it in early milestones. Concretely:
   - Every entry has a `locale` (defaulting to the site locale).
@@ -545,6 +547,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-058: Extension discovery details
 - **Date:** 2026-09-25
+- **Status:** YAML manifests delivered by D-092.
 - **Decision:** Implements D-041.
   - Composer extensions declare `extra.blush.provider` (and optional
     `requires`).
@@ -795,6 +798,7 @@ decision, add a new entry that supersedes it and mark the old one
     the query string, and absolute URLs use `AppConfig::$url`'s origin.
   - `WelcomeHandler` is now a `Fallback` route for `/`, so any site route
     for `/` replaces it. The empty-state question stays open.
+    (Superseded by D-093: the home page controller shows it instead.)
 
 ### D-074: Trailing slashes: one canonical form, configurable
 - **Date:** 2026-09-25
@@ -1000,3 +1004,297 @@ decision, add a new entry that supersedes it and mark the old one
   HTML allowed. The classes are checked when the converter is first built,
   not in the constructor, so requests that don't render Markdown never load
   CommonMark.
+
+### D-087: Source, index, and indexer
+- **Date:** 2026-09-25
+- **Decision:** Implements the storage half of D-003 in M4b:
+  - `Content\Source\ContentSource` has `files()` (sorted `SourceFile`s:
+    relative path, mtime, size), `stat()`, and `read()`.
+    `FilesystemSource` reads `user/content`: any file a document parser
+    handles, skipping dotfiles and dot-folders, with every path confined
+    to the root.
+  - `Content\Index\ContentIndex` has `exists()`, `snapshot()`, `save()`,
+    `clear()`, and `select(Query, now)`. `PhpIndex` stores
+    `storage/index/content.php` through `PhpArrayFile` and answers queries
+    with array filters (`ArraySelector`). It's a data file, used in every
+    environment (not a compiled cache).
+  - An `IndexSnapshot` holds the records (arrays, keyed by ID, in ID
+    order; only returned entries become objects), plus lookups derived at
+    build time: keys by locale/type/key, reverse term relations, term
+    labels, key conflicts, the earliest scheduled time, and a fingerprint.
+  - `Indexer::index($full, $progress)`: a file whose mtime and size match
+    its record isn't read; one whose hash (xxh128) matches keeps its
+    record (a touch doesn't change `updated`); anything else is parsed.
+    A different fingerprint (index format, content types, timezone,
+    locale) forces a full run. Files that fail to parse are left out and
+    reported. The index is written only when something changed, and then
+    `ContentIndexed` is dispatched with the `IndexReport`.
+
+### D-088: Entry identity and file conventions
+- **Date:** 2026-09-25
+- **Decision:** Implements D-078's file rules in `RecordBuilder`:
+  - An entry's **ID is its source path** (`_posts/2003-04-15.welcome.md`).
+    **Refines D-036:** IDs don't carry a locale, since each translation
+    will be its own file; the lookup keys (locale/type/key) carry it.
+  - **Slug:** the file name after its last `.`, the folder name for a
+    bundle (`hello/index.md`), `index` for a landing page, or `slug:`.
+  - **Landing page:** `index` directly in its type's folder (key `''`).
+    Anywhere else, `name/index.md` is a bundle, listed in the folder
+    above (so `about/index.md` is the page `about`).
+  - **Key:** the slug prefixed by the folders between the type's folder
+    and the entry (`about/biography`), which the page catch-all (M4c) can
+    look up directly. When two files claim a key (`about.md` and
+    `about/index.md`), the bundle wins (1.x's order) and `content:lint`
+    warns.
+  - **Hidden:** a `_`-prefixed file name, or a `_`-prefixed folder
+    between the type's folder and the file (including a bundle's own
+    folder), whatever front matter says. A `_drafts` folder makes entries
+    drafts. (jtcom's `__drafts/` and `_error/` are hidden.)
+  - **Status** is stored as declared (`published`/`draft`); `Scheduled` is
+    decided against the clock when a record is read or queried.
+  - Dates are stored as timestamps plus a `YmdHis` string in the site
+    timezone, for date archives.
+  - `Entry` is a readonly value (ID, type, slug, key, title, status,
+    visibility, dates, locale, typed `fields`, raw `extra`, `terms`,
+    `landing`, `source`) whose `Body` is a lazy ghost. `excerpt()` renders
+    the summary, or takes the body's first 50 words without figure
+    captions (1.x). Entry URLs come with content routes in M4c.
+
+### D-089: Query semantics
+- **Date:** 2026-09-25
+- **Decision:** One immutable `Content\Query\Query` is both the criteria and
+  the fluent builder. A query made by the repository's `query()` carries
+  its `QueryRunner`, so `get()`, `first()`, `count()`, and `paginate()`
+  end a chain; results are an `EntryCollection` (lazily hydrated) or a
+  `Paginator`.
+  - `fromArray()` takes 1.x's arguments (D-078) plus `status`,
+    `visibility`, `terms`, and `locale`. Unknown arguments are an
+    `InvalidQuery`. It defaults to 1.x's 10 entries; the builder defaults
+    to all.
+  - **Changes from 1.x:** without `type` or `path`, a query spans every
+    type (1.x read the content root only); `year` through `second` all
+    filter (1.x filtered only year, month, and day); title sorting is
+    natural and case-insensitive.
+  - Defaults: published, public, no landing pages, file-name order.
+    Naming entries also finds unlisted and hidden ones; naming `index`
+    finds landing pages.
+  - `whereTerm(taxonomy, ...slugs)` matches any of the slugs (slugified)
+    and each call must hold; `author` adds one condition per author (all
+    must match, as in 1.x). A taxonomy that isn't a type falls back to a
+    field of that name. `meta_value` is compared as a slug.
+  - Sorting puts missing values lowest and keeps file-name order for
+    ties.
+
+### D-090: The repository and index freshness
+- **Date:** 2026-09-25
+- **Status:** Refined by D-098 (a stale index is rebuilt in any
+  environment).
+- **Decision:** `ContentRepository` (interface) extends `QueryRunner` and
+  adds `query()`, `find(id)`, `named(type, key, locale)`, `term()`, and
+  `termCounts()`. `IndexedRepository` is the default.
+  - The index is built on first use if none exists, in any environment,
+    so a new site works before `content:index` runs.
+  - In development, the first use per request runs an incremental index
+    (`ContentConfig::$autoIndex`, on by default). No throttle: a no-op
+    run over jtcom's 1,183 files takes about 20 ms on the CLI without
+    opcache. Elsewhere, reindexing is explicit (CLI, webhook, admin).
+  - Reverse relations are kept for taxonomy terms only (authors
+    included), keyed by taxonomy name. A referenced term without a file
+    is a virtual entry titled with the term as first written
+    (`Book Reviews`). Other reference fields are forward-only for now.
+  - `termCounts()` counts listed entries (published and public).
+
+### D-091: Lint severities and the `content:*` commands
+- **Date:** 2026-09-25
+- **Decision:**
+  - `Content\Lint\Linter` reads files fresh (not the index). Errors:
+    unparseable files, values that don't fit fields, and `collection`
+    front matter that isn't a valid query. Warnings: two files claiming
+    one entry. Notices (`--strict`): undeclared keys, 1.x aliases, and
+    virtual terms. Any error fails `content:lint`.
+  - `content:index [--full]` shows a progress bar, lists changes with
+    `-v`, and fails when a file can't be indexed. `content:list [--type]
+    [--status]` shows every entry whatever its status or visibility.
+  - `content:new <type> <title> [--slug] [--draft]` writes
+    `{type path}/{slug}.md`; types with date archives get jtcom's
+    `Y-m-d.{slug}.md` name and a `published` time. It never overwrites,
+    and refreshes the index.
+  - `Console\ProgressBar` (from `Output::progress()`) draws only on an
+    ANSI terminal at normal verbosity, redraws when the percentage
+    changes, and clears itself when finished. Resolves the progress-bar
+    deferral in D-069.
+
+### D-092: Content types are a compiled cache; YAML extension manifests
+- **Date:** 2026-09-25
+- **Decision:** Resolves the two M4a carry-overs.
+  - The resolved content types compile to
+    `storage/cache/content-types.php` (`CompiledCache::ContentTypes`,
+    via `ContentTypeCache`), read everywhere except development.
+    `cache:compile` writes it; `cache:clear --types` deletes it.
+  - Local extensions may use `extension.yaml` or `extension.yml`; JSON
+    wins when a folder has several (D-032). Discovery runs before the
+    container exists, so the finder uses `SymfonyYamlParser` directly.
+    Resolves the YAML part of D-058.
+
+### D-093: Content routes
+- **Date:** 2026-09-25
+- **Decision:** Implements the content half of the M3 router (D-078's
+  route names and URL parameters):
+  - `Content\Routing\ContentRoutes` (priority `Content`) registers every
+    public, routed type: `{type}.collection(.paged)`, the date archives
+    the type's granularity allows (`.collection.{level}(.paged)`), and
+    `{type}.single` (plus `.single.paged` for a taxonomy). Types go
+    deepest path first and routes in 1.x's order, so date archives match
+    before singles. `{year}` is constrained to four digits, `{month}`
+    through `{second}` to two, and `{page}` to digits.
+  - The home type (`ContentConfig::$home`) has no collection routes of
+    its own. `PageRoutes` (priority `Fallback`) holds `home` (`/`),
+    `home.paged` (`/page/{page}`, with a home type), and the page
+    catch-all `page.single` (`/{path:.+}`). Being fallbacks, a site's
+    own `/` route in `config/routes.php` replaces the home page.
+  - The routing layer's `FallbackRoutes` is gone. `HomeController`
+    shows `WelcomeHandler` when a site has no `index.md` and no home
+    type. **Supersedes** the welcome-route part of D-073.
+  - Feed and sitemap routes (`.feed`, `.feed.atom`, `home.feed`) arrive
+    with feeds and sitemaps in M5.
+
+### D-094: Content controllers and the page renderer
+- **Date:** 2026-09-25
+- **Decision:**
+  - The controllers (`Content\Http`: `HomeController`,
+    `CollectionController`, `DateArchiveController`, `SingleController`,
+    `TermController`, `PageController`, on an abstract
+    `ContentController`) decide what a URL shows and build a
+    `ContentPage` (kind, title, entry, type, `Paginator`, date parts, and
+    a page-URL callback). A `PageRenderer` turns it into a response.
+    `BasicPageRenderer` is a plain HTML stand-in until M5 binds a themed
+    renderer.
+  - Listings use 1.x's arguments: the type's `collection` (or the
+    taxonomy's `termCollection`), then the landing page's or term's own
+    `collection` front matter.
+  - **Canonical URLs:** `/page/1` redirects to the first page, and a
+    single reached by a URL that isn't its own (such as a wrong date)
+    redirects to its URL. A page past the last is a 404.
+  - **Changes from 1.x:** a collection doesn't need a landing page, and
+    page 1 of an empty collection or term still renders (1.x 404'd);
+    empty date archives are still 404s. Virtual terms have archives. A
+    term lists its taxonomy's `termCollect` type, or every type when
+    unset (D-083). The page catch-all serves only entries of types
+    without routing, so a routed entry isn't also reachable at its
+    folder path (1.x served both).
+  - The router's `int` casts accept leading zeros (`/archives/2024/05`).
+
+### D-095: Fallback routes are soft
+- **Date:** 2026-09-25
+- **Decision:** The page catch-all answers `GET` for every path, so the
+  router treats `Fallback`-priority matches specially:
+  - When a fallback finds nothing (throws `NotFound`) but other routes
+    answer the path with other methods, the request is a 405.
+  - `Allow` and `OPTIONS` list the methods non-fallback routes answer,
+    when there are any.
+  - A non-canonical path (trailing slash) that only a fallback matches
+    redirects only if the fallback finds something at the canonical
+    path, so unknown URLs stay 404s instead of redirecting first.
+  - `RouteTable::methodsFor($path, $fallbacks)` can leave fallbacks out.
+
+### D-096: Content URLs come from type routing
+- **Date:** 2026-09-25
+- **Decision:** `Content\Routing\ContentUrls` builds entry, collection,
+  term, and date-archive URLs from the same `TypeRouting` that
+  `ContentRoutes` registers (`ContentType::routePattern()`), not from the
+  route table, so redirect sources can use it while the table compiles.
+  - A routed entry fills `{name}` with its key, the date parts from its
+    published date, and each taxonomy parameter (such as `{author}` or
+    `{category}`) with its first term. An entry in a subfolder of a
+    routed type's folder has no URL, since `{name}` is one segment.
+  - Unrouted types' entries live at their folder path; landing pages
+    are their type's collection; hidden entries have no URL.
+  - `AppConfig::origin()` and `absoluteUrl()` make paths absolute, for
+    the URL generator, content URLs, and Markdown.
+
+### D-097: Redirect sources and order
+- **Date:** 2026-09-25
+- **Decision:** Redirect sources are consulted in tag order, and the
+  first redirect for a path wins:
+  1. `config/routes.php` (and extension sources tagged at register
+     time).
+  2. `user/data/redirects.json|yaml` (`DataRedirects`): a map of paths
+     to targets (a target may be a map with `to` and `status`), or a list
+     of `from`/`to`/`status` maps. Paths are route patterns.
+  3. `redirect_from` front matter (`ContentRedirects`): paths or full
+     URLs (their path is used) to the entry's URL. Values with `{` or `}`
+     are skipped; entries without a URL redirect nowhere.
+  - The content provider tags 2 and 3 in `boot()`, which is what puts
+    them after the config's.
+  - `RefreshRouteCache` rewrites an existing compiled route table (outside
+    development) whenever the index changes, so `redirect_from` takes
+    effect without `cache:compile`. Data-file redirects still need a
+    recompile (or publish, M6).
+
+### D-098: A stale index is rebuilt
+- **Date:** 2026-09-25
+- **Decision:** `IndexFingerprint` (the index format, content types,
+  timezone, and locale) is shared by the indexer and the repository. The
+  repository rebuilds the index on first use in any environment when the
+  stored index's fingerprint doesn't match, so changing content types in
+  production can't serve records of types that no longer exist.
+  **Refines D-090.**
+
+### D-099: Media
+- **Date:** 2026-09-25
+- **Decision:** `Blush\Media`, configured by `MediaConfig`
+  (`config/media.php`):
+  - `url` (default `/media`) is where `user/media` is served; jtcom sets
+    `/user/media` to keep its 1.x URLs. `types` is the MIME allowlist,
+    1.x's images, audio, and video by default.
+  - `MediaResolver` turns a reference into a `MediaFile` (path, URL,
+    MIME, size, and raster dimensions): a path under the media URL, or
+    under `user/media`'s own site path (1.x's `/user/media/...`), is in
+    `user/media`; a relative path is a page bundle file next to the
+    entry, served at `{url}/_content/{content path}`. Files must exist,
+    be allowed, not be hidden, and stay in their root. SVGs are
+    recognized by extension when they sniff as XML or text.
+  - `MediaController` (the `media` route, `{url}/{path:.+}`, at `System`
+    priority) streams files with `X-Content-Type-Options: nosniff`, and
+    SVGs with `Content-Security-Policy: sandbox`.
+  - `Response::file()` takes the `Range` header: one range gives a 206
+    over a `LimitedStream`; a range starting past the end gives a 416;
+    several ranges or a malformed header give the whole file (RFC 9110
+    allows it). Always `Accept-Ranges: bytes`.
+  - `media:publish` links `{public}{url}` to `user/media` with a relative
+    symlink; `--copy` copies allowed files that changed instead (for
+    hosts without symlinks). Linking exposes the whole folder, so only
+    `index.php` may run as PHP in `public/` (D-072). Bundle files aren't
+    published; the controller (and static export) serves them.
+
+### D-100: 1.x Markdown rendering
+- **Date:** 2026-09-25
+- **Decision:** The CommonMark adapter adds 1.x's renderers (D-078):
+  - `ResolveLinks` (a `DocumentParsedEvent` listener, after the
+    attributes extension): links and images to local media point at the
+    media URL, and images get `width` and `height` from the file unless
+    set. With `MarkdownConfig::$absoluteLinks` (default on), root-relative
+    URLs become absolute.
+  - `FigureRenderer`: a paragraph holding only an image (or a link
+    around one) renders as a `<figure>`; the title is the escaped
+    `<figcaption>`, and the image's (or else the link's) attributes move
+    to the figure, except `<img>` ones such as `src` and `srcset`.
+    `MarkdownConfig::$figures` (default on) turns it off. **Change from
+    1.x:** inline images stay plain `<img>` elements (1.x wrapped every
+    image in a `<figure>`, even inside a paragraph).
+  - `MarkdownParser::toHtml($markdown, $base)` takes the entry's folder,
+    for bundle media; entry bodies pass it.
+
+### D-101: PHPBench baselines
+- **Date:** 2026-09-25
+- **Decision:** Implements D-044's benchmark suite:
+  - `phpbench/phpbench` ^1.7 is a dev dependency; benchmarks live in
+    `benchmarks/` (`Blush\Benchmarks\`, analysed and linted with the
+    rest) and run with `composer bench`. `phpbench.json` enables opcache
+    in the CLI with `file_update_protection` off, so the index file is
+    measured as production serves it.
+  - `JtcomSizedSite` generates, once per version and deterministically,
+    a site in the system temp folder with jtcom's seven types and 1,183
+    files (940 posts over 23 years).
+  - Baselines are recorded in `roadmap.md`. Gating CI on regressions is
+    still open, since CI machines differ from the author's.

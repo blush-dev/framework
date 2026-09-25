@@ -8,3 +8,4 @@
 /.phpcs.cache
 /.phpstan.cache
 /.phpunit.cache
+/.phpbench

@@ -36,6 +36,10 @@ use Blush\Content\Schema\FieldRegistry;
  * extension types of the same name. Types may also be defined as data in
  * `user/data/types` unless `dataTypes` is off; with `dataTypeRouting` off,
  * data types can't set their own routing (D-042).
+ *
+ * With `autoIndex` on (the default), development requests refresh the
+ * content index incrementally on first use; elsewhere, `content:index`
+ * (or publishing) refreshes it.
  */
 final readonly class ContentConfig implements Config
 {
@@ -45,6 +49,7 @@ final readonly class ContentConfig implements Config
 	 * @param  bool              $dataTypes       Whether `user/data/types` is read.
 	 * @param  bool              $dataTypeRouting Whether data types may set `routing`.
 	 * @param  list<string>      $disabled        Built-in types to leave out.
+	 * @param  bool              $autoIndex       Whether development requests refresh the index.
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
@@ -52,7 +57,8 @@ final readonly class ContentConfig implements Config
 		public ?string $home = null,
 		public bool $dataTypes = true,
 		public bool $dataTypeRouting = true,
-		public array $disabled = []
+		public array $disabled = [],
+		public bool $autoIndex = true
 	) {
 		$names = [];
 
@@ -86,7 +92,7 @@ final readonly class ContentConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['types', 'home', 'dataTypes', 'dataTypeRouting', 'disabled']);
+		$values->assertKnownKeys(['types', 'home', 'dataTypes', 'dataTypeRouting', 'disabled', 'autoIndex']);
 
 		$types = $data['types'] ?? [];
 
@@ -117,7 +123,8 @@ final readonly class ContentConfig implements Config
 			home: $values->nullableString('home'),
 			dataTypes: $values->bool('dataTypes', true),
 			dataTypeRouting: $values->bool('dataTypeRouting', true),
-			disabled: $values->stringList('disabled')
+			disabled: $values->stringList('disabled'),
+			autoIndex: $values->bool('autoIndex', true)
 		);
 	}
 
@@ -132,7 +139,8 @@ final readonly class ContentConfig implements Config
 			'home'            => $this->home,
 			'dataTypes'       => $this->dataTypes,
 			'dataTypeRouting' => $this->dataTypeRouting,
-			'disabled'        => $this->disabled
+			'disabled'        => $this->disabled,
+			'autoIndex'       => $this->autoIndex
 		];
 	}
 }

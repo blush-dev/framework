@@ -15,10 +15,12 @@ namespace Blush\Extension;
 
 use JsonException;
 use Override;
+use Blush\Data\InvalidData;
+use Blush\Data\SymfonyYamlParser;
 
 /**
  * Finds local extensions: folders in `user/extensions/` holding an
- * `extension.json` manifest:
+ * `extension.json` (or `extension.yaml`/`.yml`) manifest:
  *
  *     {
  *         "name": "acme/gallery",
@@ -29,15 +31,24 @@ use Override;
  *         "requires": { "blush": "^2.0" }
  *     }
  *
- * Blush autoloads the `psr-4` map itself (see `LocalAutoloader`). YAML
- * manifests (D-032) arrive with the data loader.
+ * Blush autoloads the `psr-4` map itself (see `LocalAutoloader`). When a
+ * folder has manifests in several formats, JSON wins (D-032). YAML is read
+ * with the framework's parser directly, since extensions are discovered
+ * before the container exists.
  */
 final readonly class LocalExtensionFinder implements ExtensionFinder
 {
 	/**
-	 * The manifest file name.
+	 * The manifest file name, without its extension.
 	 */
-	public const string MANIFEST = 'extension.json';
+	public const string MANIFEST = 'extension';
+
+	/**
+	 * The manifest formats, in precedence order.
+	 *
+	 * @var list<string>
+	 */
+	public const array FORMATS = ['json', 'yaml', 'yml'];
 
 	public function __construct(private string $extensionsPath)
 	{
@@ -49,7 +60,18 @@ final readonly class LocalExtensionFinder implements ExtensionFinder
 	#[Override]
 	public function find(): array
 	{
-		$files = glob($this->extensionsPath . '/*/' . self::MANIFEST) ?: [];
+		$files = [];
+
+		foreach (glob($this->extensionsPath . '/*', GLOB_ONLYDIR) ?: [] as $directory) {
+			$file = array_find(
+				array_map(static fn (string $format): string => "{$directory}/" . self::MANIFEST . ".{$format}", self::FORMATS),
+				static fn (string $file): bool => is_file($file)
+			);
+
+			if ($file !== null) {
+				$files[] = $file;
+			}
+		}
 
 		sort($files);
 
@@ -63,14 +85,18 @@ final readonly class LocalExtensionFinder implements ExtensionFinder
 	 */
 	private function manifest(string $file): ExtensionManifest
 	{
+		$contents = (string) file_get_contents($file);
+
 		try {
-			$data = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
-		} catch (JsonException $e) {
+			$data = str_ends_with($file, '.json')
+				? json_decode($contents, true, 512, JSON_THROW_ON_ERROR)
+				: new SymfonyYamlParser()->parse($contents);
+		} catch (JsonException | InvalidData $e) {
 			throw new ExtensionException(sprintf('Invalid extension manifest "%s": %s', $file, $e->getMessage()), previous: $e);
 		}
 
-		if (! is_array($data)) {
-			throw new ExtensionException(sprintf('Extension manifest "%s" must be a JSON object.', $file));
+		if (! is_array($data) || array_is_list($data)) {
+			throw new ExtensionException(sprintf('Extension manifest "%s" must be a map of keys to values.', $file));
 		}
 
 		$autoload = is_array($data['autoload'] ?? null) ? $data['autoload'] : [];

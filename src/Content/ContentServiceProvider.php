@@ -16,6 +16,22 @@ namespace Blush\Content;
 use Override;
 use Blush\Container\Container;
 use Blush\Container\ServiceResolver;
+use Blush\Content\Entry\EntryHydrator;
+use Blush\Content\Events\ContentIndexed;
+use Blush\Content\Http\BasicPageRenderer;
+use Blush\Content\Http\CollectionController;
+use Blush\Content\Http\DateArchiveController;
+use Blush\Content\Http\HomeController;
+use Blush\Content\Http\PageController;
+use Blush\Content\Http\PageRenderer;
+use Blush\Content\Http\SingleController;
+use Blush\Content\Http\TermController;
+use Blush\Content\Index\ContentIndex;
+use Blush\Content\Index\IndexFingerprint;
+use Blush\Content\Index\Indexer;
+use Blush\Content\Index\PhpIndex;
+use Blush\Content\Index\RecordBuilder;
+use Blush\Content\Lint\Linter;
 use Blush\Content\Parser\DataDocumentParser;
 use Blush\Content\Parser\DocumentParserRegistrar;
 use Blush\Content\Parser\DocumentParserRegistry;
@@ -23,21 +39,35 @@ use Blush\Content\Parser\DocumentParsers;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\HtmlDocumentParser;
 use Blush\Content\Parser\MarkdownDocumentParser;
+use Blush\Content\Routing\ContentRedirects;
+use Blush\Content\Routing\ContentRoutes;
+use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Routing\DataRedirects;
+use Blush\Content\Routing\PageRoutes;
+use Blush\Content\Routing\RefreshRouteCache;
 use Blush\Content\Schema\FieldContext;
 use Blush\Content\Schema\FieldFactory;
 use Blush\Content\Schema\FieldRegistrar;
 use Blush\Content\Schema\FieldRegistry;
+use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\FilesystemSource;
+use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\ServiceProvider;
+use Blush\Event\Listener\ListenerRegistry;
+use Blush\Routing\RedirectSource;
+use Blush\Routing\RouteSource;
 
 /**
- * Binds the content layer: field types, content types, and document
- * parsers. Everything is built on first use. The field and parser
- * registries start with the built-ins; an extension adds to them in a
- * `resolving()` callback, and adds content types by tagging a
- * `ContentTypeSource` with `ContentTypeSource::TAG`.
+ * Binds the content layer: field types, content types, document parsers,
+ * the source, the index, and the repository. Everything is built on first
+ * use. The field and parser registries start with the built-ins; an
+ * extension adds to them in a `resolving()` callback, and adds content
+ * types by tagging a `ContentTypeSource` with `ContentTypeSource::TAG`.
+ * The source, index, and repository are defaults an extension can replace
+ * by binding its own (D-003).
  */
 final class ContentServiceProvider extends ServiceProvider
 {
@@ -47,7 +77,23 @@ final class ContentServiceProvider extends ServiceProvider
 	protected const array SINGLETONS = [
 		FieldFactory::class,
 		FrontMatter::class,
-		DocumentParsers::class
+		DocumentParsers::class,
+		ContentTypeCache::class,
+		RecordBuilder::class,
+		EntryHydrator::class,
+		Indexer::class,
+		IndexFingerprint::class,
+		ContentUrls::class
+	];
+
+	/**
+	 * @inheritDoc
+	 */
+	protected const array SINGLETONS_IF = [
+		ContentSource::class     => FilesystemSource::class,
+		ContentIndex::class      => PhpIndex::class,
+		ContentRepository::class => IndexedRepository::class,
+		PageRenderer::class      => BasicPageRenderer::class
 	];
 
 	/**
@@ -57,7 +103,29 @@ final class ContentServiceProvider extends ServiceProvider
 		ContentTypeLoader::class,
 		MarkdownDocumentParser::class,
 		HtmlDocumentParser::class,
-		DataDocumentParser::class
+		DataDocumentParser::class,
+		Linter::class,
+		ContentRoutes::class,
+		PageRoutes::class,
+		ContentRedirects::class,
+		DataRedirects::class,
+		RefreshRouteCache::class,
+		HomeController::class,
+		CollectionController::class,
+		DateArchiveController::class,
+		SingleController::class,
+		TermController::class,
+		PageController::class
+	];
+
+	/**
+	 * @inheritDoc
+	 */
+	protected const array TAGS = [
+		RouteSource::TAG => [
+			ContentRoutes::class,
+			PageRoutes::class
+		]
 	];
 
 	/**
@@ -93,7 +161,23 @@ final class ContentServiceProvider extends ServiceProvider
 
 		$this->container->singleton(
 			ContentTypes::class,
-			static fn (Container $container): ContentTypes => $container->make(ContentTypeLoader::class)->load()
+			static fn (Container $container): ContentTypes => $container->make(ContentTypeCache::class)->load()
 		);
+	}
+
+	/**
+	 * Adds the content redirect sources, after the ones providers declared
+	 * so `config/routes.php` redirects win, then data-file redirects, then
+	 * `redirect_from` front matter. Also keeps a compiled route table's
+	 * redirects current as content changes.
+	 */
+	#[Override]
+	public function boot(): void
+	{
+		$this->container->tag([DataRedirects::class, ContentRedirects::class], RedirectSource::TAG);
+
+		if ($this->container->has(ListenerRegistry::class)) {
+			$this->container->make(ListenerRegistry::class)->listen(ContentIndexed::class, RefreshRouteCache::class);
+		}
 	}
 }

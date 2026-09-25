@@ -16,14 +16,17 @@ namespace Blush\Tests\Http;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Http\InvalidMessage;
+use Blush\Http\LimitedStream;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Http\Stream;
 use Blush\Http\StreamException;
 use Blush\Http\Uri;
 use Blush\Tests\TemporaryDirectory;
 
 #[CoversClass(Response::class)]
 #[CoversClass(Status::class)]
+#[CoversClass(LimitedStream::class)]
 final class ResponseTest extends TestCase
 {
 	use TemporaryDirectory;
@@ -113,5 +116,72 @@ final class ResponseTest extends TestCase
 		$this->assertTrue(Status::NotModified->isEmpty());
 		$this->assertTrue(Status::Continue->isEmpty());
 		$this->assertFalse(Status::Ok->isEmpty());
+	}
+
+	public function testFileResponsesServeByteRanges(): void
+	{
+		$path  = $this->writeTemporaryFile('digits.txt', '0123456789');
+		$cases = [
+			// Range header => [status, Content-Range, body]
+			''                => [200, '', '0123456789'],
+			'bytes=2-4'       => [206, 'bytes 2-4/10', '234'],
+			'bytes=7-'        => [206, 'bytes 7-9/10', '789'],
+			'bytes=-3'        => [206, 'bytes 7-9/10', '789'],
+			'bytes=-30'       => [206, 'bytes 0-9/10', '0123456789'],
+			'bytes=8-100'     => [206, 'bytes 8-9/10', '89'],
+			'bytes=10-'       => [416, 'bytes */10', ''],
+			'bytes=-0'        => [416, 'bytes */10', ''],
+			'bytes=5-2'       => [200, '', '0123456789'],
+			'bytes=0-1,4-5'   => [200, '', '0123456789'],
+			'items=0-1'       => [200, '', '0123456789']
+		];
+
+		foreach ($cases as $range => [$status, $contentRange, $body]) {
+			$response = Response::file($path, 'text/plain', range: $range);
+
+			$this->assertSame($status, $response->getStatusCode(), $range);
+			$this->assertSame($contentRange, $response->getHeaderLine('Content-Range'), $range);
+			$this->assertSame($body, (string) $response->getBody(), $range);
+			$this->assertSame('bytes', $response->getHeaderLine('Accept-Ranges'), $range);
+
+			if ($status !== 416) {
+				$this->assertSame((string) strlen($body), $response->getHeaderLine('Content-Length'), $range);
+			}
+		}
+	}
+
+	public function testLimitedStreamsReadOnlyTheirWindow(): void
+	{
+		$stream = new LimitedStream(Stream::fromString('0123456789'), 3, 4);
+
+		$this->assertSame(4, $stream->getSize());
+		$this->assertSame('34', $stream->read(2));
+		$this->assertSame(2, $stream->tell());
+		$this->assertSame('56', $stream->read(10));
+		$this->assertTrue($stream->eof());
+		$this->assertSame('', $stream->read(1));
+
+		$stream->seek(-1, SEEK_END);
+		$this->assertSame('6', $stream->getContents());
+
+		$stream->seek(1);
+		$stream->seek(1, SEEK_CUR);
+		$this->assertSame('56', $stream->getContents());
+		$this->assertSame('3456', (string) $stream);
+		$this->assertTrue($stream->isSeekable());
+		$this->assertTrue($stream->isReadable());
+		$this->assertFalse($stream->isWritable());
+		$this->assertIsArray($stream->getMetadata());
+
+		try {
+			$stream->seek(5);
+			$this->fail('Seeking past the window should fail.');
+		} catch (StreamException) {
+			$this->addToAssertionCount(1);
+		}
+
+		$this->expectException(StreamException::class);
+
+		$stream->write('x');
 	}
 }

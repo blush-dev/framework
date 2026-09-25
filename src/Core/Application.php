@@ -29,6 +29,7 @@ use Blush\Event\EventServiceProvider;
 use Blush\Http\HttpServiceProvider;
 use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
+use Blush\Media\MediaServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
 
 /**
@@ -59,6 +60,7 @@ class Application implements Bootable
 		DataServiceProvider::class,
 		MarkdownServiceProvider::class,
 		ContentServiceProvider::class,
+		MediaServiceProvider::class,
 		HttpServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class

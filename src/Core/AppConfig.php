@@ -79,6 +79,27 @@ final readonly class AppConfig implements Config
 	}
 
 	/**
+	 * Returns the site's origin: the scheme, host, and port of `$url`,
+	 * without its path.
+	 */
+	public function origin(): string
+	{
+		$url = Uri::parse($this->url);
+
+		return $url === null || $url->getHost() === null
+			? rtrim($this->url, '/')
+			: $url->getScheme() . '://' . $url->getHost() . ($url->getPort() === null ? '' : ':' . $url->getPort());
+	}
+
+	/**
+	 * Returns a path as an absolute URL on the site's origin.
+	 */
+	public function absoluteUrl(string $path): string
+	{
+		return $this->origin() . '/' . ltrim($path, '/');
+	}
+
+	/**
 	 * Returns the timezone as an object.
 	 */
 	public function timezone(): DateTimeZone

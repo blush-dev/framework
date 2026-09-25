@@ -27,7 +27,7 @@ use Blush\Routing\RoutePriority;
 use Blush\Routing\RouteTable;
 use Blush\Routing\Sources\ConfigRedirects;
 use Blush\Routing\Sources\ConfigRoutes;
-use Blush\Routing\Sources\FallbackRoutes;
+use Blush\Tests\Fixtures\Routing\FallbackRoutes;
 use Blush\Tests\Fixtures\Routing\Archive;
 use Blush\Tests\Fixtures\Routing\Color;
 use Blush\Tests\Fixtures\Routing\Page;

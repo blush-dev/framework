@@ -31,6 +31,7 @@
 	},
 	"require-dev": {
 		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"phpbench/phpbench": "^1.7",
 		"phpcompatibility/php-compatibility": "^10.0@alpha",
 		"phpstan/phpstan": "^2.2",
 		"phpunit/phpunit": "^12.5",
@@ -43,6 +44,7 @@
 	},
 	"autoload-dev": {
 		"psr-4": {
+			"Blush\\Benchmarks\\": "benchmarks/",
 			"Blush\\Tests\\": "tests/"
 		}
 	},
@@ -59,6 +61,7 @@
 		"fix": "phpcbf",
 		"analyse": "phpstan analyse --memory-limit=1G",
 		"test": "phpunit",
+		"bench": "phpbench run --report=aggregate",
 		"check": [
 			"@lint",
 			"@analyse",

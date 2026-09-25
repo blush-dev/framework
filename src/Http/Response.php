@@ -135,32 +135,78 @@ final readonly class Response extends Message implements ResponseInterface
 	/**
 	 * Creates a response streaming a file, with its type, length, and
 	 * modification time. The type is detected from the file's contents
-	 * unless given. (Range requests arrive with media serving in M4.)
+	 * unless given.
+	 *
+	 * Byte ranges are supported (`Accept-Ranges: bytes`): pass the
+	 * request's `Range` header to get a 206 with just that part, or a 416
+	 * when the range starts past the end. A range that can't be parsed, or
+	 * several ranges at once, get the whole file, as RFC 9110 allows.
 	 *
 	 * @param array<string, string|list<string>> $headers
 	 * @throws StreamException When the file can't be read.
 	 */
-	public static function file(string $path, ?string $contentType = null, array $headers = []): self
+	public static function file(string $path, ?string $contentType = null, array $headers = [], string $range = ''): self
 	{
 		if (! is_file($path) || ! is_readable($path)) {
 			throw new StreamException(sprintf('Unable to read "%s".', $path));
 		}
 
 		$type     = $contentType ?? (mime_content_type($path) ?: 'application/octet-stream');
-		$size     = filesize($path);
+		$size     = (int) filesize($path);
 		$modified = filemtime($path);
 
-		$defaults = ['Content-Type' => $type];
-
-		if ($size !== false) {
-			$defaults['Content-Length'] = (string) $size;
-		}
+		$defaults = ['Content-Type' => $type, 'Accept-Ranges' => 'bytes'];
 
 		if ($modified !== false) {
 			$defaults['Last-Modified'] = gmdate('D, d M Y H:i:s', $modified) . ' GMT';
 		}
 
-		return new self(Status::Ok, [...$defaults, ...$headers], Stream::fromFile($path));
+		$bytes = self::range($range, $size);
+
+		if ($bytes === false) {
+			return new self(Status::RangeNotSatisfiable, [...$defaults, 'Content-Range' => "bytes */{$size}", ...$headers]);
+		}
+
+		if ($bytes === null) {
+			return new self(Status::Ok, [...$defaults, 'Content-Length' => (string) $size, ...$headers], Stream::fromFile($path));
+		}
+
+		[$start, $end] = $bytes;
+
+		return new self(
+			Status::PartialContent,
+			[...$defaults, 'Content-Length' => (string) ($end - $start + 1), 'Content-Range' => "bytes {$start}-{$end}/{$size}", ...$headers],
+			new LimitedStream(Stream::fromFile($path), $start, $end - $start + 1)
+		);
+	}
+
+	/**
+	 * Reads a single `Range` header range for a file of `$size` bytes:
+	 * the first and last byte, `null` to send the whole file, or `false`
+	 * when the range can't be satisfied.
+	 *
+	 * @return array{int, int}|false|null
+	 */
+	private static function range(string $header, int $size): array|false|null
+	{
+		if (preg_match('/^\s*bytes\s*=\s*(\d*)\s*-\s*(\d*)\s*$/i', $header, $matches) !== 1 || ($matches[1] === '' && $matches[2] === '')) {
+			return null;
+		}
+
+		if ($matches[1] === '') {
+			$suffix = (int) $matches[2];
+
+			return $suffix === 0 || $size === 0 ? false : [max(0, $size - $suffix), $size - 1];
+		}
+
+		$start = (int) $matches[1];
+		$end   = $matches[2] === '' ? $size - 1 : min((int) $matches[2], $size - 1);
+
+		if ($start >= $size) {
+			return false;
+		}
+
+		return $end < $start ? null : [$start, $end];
 	}
 
 	/**
