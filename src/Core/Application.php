@@ -31,6 +31,9 @@ use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
+use Blush\Theme\ThemeServiceProvider;
+use Blush\Translation\TranslationServiceProvider;
+use Blush\View\ViewServiceProvider;
 
 /**
  * Wires a project together around a dependency injection container and a set
@@ -61,6 +64,9 @@ class Application implements Bootable
 		MarkdownServiceProvider::class,
 		ContentServiceProvider::class,
 		MediaServiceProvider::class,
+		TranslationServiceProvider::class,
+		ThemeServiceProvider::class,
+		ViewServiceProvider::class,
 		HttpServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class

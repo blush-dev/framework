@@ -1298,3 +1298,173 @@ decision, add a new entry that supersedes it and mark the old one
     files (940 posts over 23 years).
   - Baselines are recorded in `roadmap.md`. Gating CI on regressions is
     still open, since CI machines differ from the author's.
+
+### D-102: M5 ships in three slices
+- **Date:** 2026-09-25
+- **Decision:** Like M4 (D-079), each slice ends with `composer check`
+  passing, for review:
+  - **M5a:** the view engine (template API, layouts, sections,
+    partials), the template hierarchy, `Head`, the escaping helpers, the
+    translator, theme manifests and parent chains, the framework default
+    theme, themed content, error, and welcome pages, the theme asset
+    route, `layout`/`class` front matter, and `?theme=` in development.
+  - **M5b:** components and slots, Markdown directives and the core
+    content components, context providers, theme providers and
+    autoloading, Composer-installed themes, settings, DTCG tokens,
+    `stylesheet`/`tokens` front matter, asset manifests and
+    `theme:publish`, and the `theme:*` commands.
+  - **M5c:** feeds, sitemaps, and `robots.txt`.
+
+### D-103: The view engine
+- **Date:** 2026-09-25
+- **Decision:** Implements D-009 and D-025 in `Blush\View`:
+  - `Views` renders plain PHP templates for one theme chain. A template
+    runs in a closure bound to its `Template` with **no class scope**, so
+    `$this` exposes only `Template`'s public API; its data become
+    variables (`extract`, skipping `this`, `__file`, and `__data`).
+  - A template's `layout('base', ...$data)` (`layouts/{name}` unless the
+    name has a folder) renders after it, with the template's output as
+    the `content` section and the data plus the layout's own. Layouts
+    may have layouts. `start()`/`stop()` capture sections; sections, the
+    `Head`, the shared data (`$site`), and the `<body>` classes live in a
+    per-render `ViewContext`.
+  - `insert('parts/x', ...$data)` renders a partial with the shared data
+    plus what it's given, not the caller's variables. Data is always
+    passed by name.
+  - Any exception in a template closes the output buffers it opened and
+    is rethrown as a `ViewException` naming the file; so is a section
+    left open. `ViewNotFound` is thrown when no candidate exists.
+  - View names are `/`-separated segments of letters, digits, `_`, and
+    `-`, so front matter can't name files outside the view folders.
+  - `ViewFinder` searches, in order: `resources/views/themes/{active}`,
+    `resources/views`, then each theme's `views/` in the chain.
+  - The template API adds, beyond `theming.md`'s list: `hasSection()`,
+    `permalink($entry)`, `route($name, $params)`, `terms($entry,
+    $taxonomy)` (published term entries), `date($date, $format)`
+    (`IntlDateFormatter`, site locale and timezone), and `bodyClass()`.
+    `component()`, `setting()`, `token()`, and `image()` arrive in M5b.
+
+### D-104: Template hierarchy uses 2.x names only
+- **Date:** 2026-09-25
+- **Decision:** `View\Hierarchy` builds the candidates in `theming.md`,
+  with an entry's `template` front matter (1.x's `view`) always first.
+  1.x's view names (`collection-datetime`, `collection-taxonomy`,
+  `collection-home`, `single-home`, `index`) are **not** candidates;
+  views are theme code, not content, so D-078 doesn't cover them, and
+  jtcom's views are renamed in the M8 port.
+  - The home page tries `home`, then the hierarchy of what it shows:
+    `ContentPage::$base` is `Collection` (the home type) or `Page`
+    (`index.md`).
+  - A new `PageKind::Welcome` renders `welcome`.
+
+### D-105: Themes (M5a)
+- **Date:** 2026-09-25
+- **Decision:** Implements the core of D-021, D-024, D-034, and D-035 in
+  `Blush\Theme`:
+  - A theme is a folder in `user/themes/{slug}` with `theme.json` (or
+    `.yaml`/`.yml`, JSON wins, D-032). Only `name` is required;
+    `parent`, `version`, `description`, `styles` (default
+    `["style.css"]`), and `scripts` are read, and the whole manifest is
+    kept for later keys. Slugs are `[a-z0-9][a-z0-9_-]*`.
+  - The framework default theme is `resources/themes/default`, slug
+    `default`. It's always installed, always last in a chain, and a site
+    folder named `default` can't replace it.
+  - `ThemeConfig` (`config/theme.php`) names the active theme (default
+    `default`). `Themes::chain()` builds the chain, failing on a missing
+    theme or ancestor and on loops. `ThemeResolver` picks the chain per
+    request: `?theme={slug}` in development only, ignored when unknown.
+  - **Stylesheets:** a page loads the *active* theme's `styles` and
+    `scripts`, each resolved through the chain (so a child's missing
+    `style.css` falls back to its parent's). Ancestors' own lists aren't
+    loaded automatically; a child lists what it wants.
+  - **Assets** are served by the `theme.asset` system route,
+    `/themes/{slug}/{path}`, from any installed theme's folder: only
+    allowed extensions (CSS, JS, source maps, fonts, images), never under
+    `views/`, `lang/`, `src/`, `vendor/`, or `node_modules/`, and no
+    dot-segments. SVGs are sandboxed. URLs are versioned by mtime
+    (`?v=`). Publishing and `manifest.json` versioning come in M5b.
+  - Manifests are read per request (a few small files). Compiling them,
+    theme providers, and Composer-installed themes come in M5b.
+
+### D-106: The escaping helpers are global functions
+- **Date:** 2026-09-25
+- **Decision:** `e()`, `attr()`, `url()`, `js()`, `css()`, and `raw()` are
+  defined in `src/View/functions.php`, loaded by Composer's `files`
+  autoload, and delegate to `View\Escaper`. They are the only global
+  functions (architecture principles). They aren't wrapped in
+  `function_exists()`: a conflicting definition fails loudly instead of
+  silently changing how output is escaped.
+  - `null` and `false` print as `''`. `url()` passes relative URLs and a
+    scheme allowlist (`http`, `https`, `mailto`, `tel`, …), ignoring
+    control characters and whitespace when reading the scheme, and
+    returns `''` for anything else (`javascript:`, `data:`). `js()` is
+    JSON with `<`, `>`, `&`, and quotes hex-escaped. `css()` hex-escapes
+    everything but ASCII letters and digits.
+
+### D-107: The translator (M5a)
+- **Date:** 2026-09-25
+- **Decision:** Implements D-028's core in `Blush\Translation\Translator`:
+  - ICU MessageFormat through `MessageFormatter`, with named
+    parameters. Messages without `{` skip ICU.
+  - Catalogs are data files named by locale (`en_US.json`, `en.yaml`) in
+    an ordered list of directories per domain; the first directory with
+    a key wins, key by key. Nested objects flatten into dotted keys.
+  - Locale fallback: the locale, its language, then the site locale
+    and its language. A missing key returns the key, formatted.
+  - Domains so far: `blush` (`resources/lang` in the framework) and
+    `theme` (each chain theme's `lang/`, via `withDirectories()` in
+    `ViewFactory`). `$this->t()` reads `theme`. Site and extension
+    domains, and `DateFormatter`/`NumberFormatter` services, come when
+    something needs them.
+
+### D-108: Themed error pages and the welcome page
+- **Date:** 2026-09-25
+- **Decision:**
+  - `Http\ErrorPages` is the seam: `HandleErrors` asks it for the
+    response first, and falls back to the generic `ExceptionRenderer`
+    page when it returns `null` or throws (the failure is reported).
+    Error headers and `Cache-Control: no-store` are always applied.
+  - `View\ThemedErrorPages` renders `error-{status}` → `error`, with
+    `<meta name="robots" content="noindex">`. It uses the site's
+    published entry `user/content/_errors/{status}.md`, falling back to
+    1.x's `_error/{status}.md` (the author's call), for the title and
+    body; without one, the theme's messages (`error.{status}.title`,
+    `error.{status}.message`). With debug on, server errors aren't
+    themed, so the detailed page shows; HTTP errors are, with the
+    message available to the template.
+  - **Empty state (resolves the open question):** a site with no
+    `index.md` and no home type renders the theme's `welcome` view.
+    `WelcomeHandler` and `BasicPageRenderer` are removed; the view layer
+    binds `PageRenderer` to `ThemedPageRenderer`.
+
+### D-109: Page head, body classes, and presentation front matter
+- **Date:** 2026-09-25
+- **Decision:**
+  - `View\Head` keys every item (`meta:{name}`, `property:{name}`,
+    `link:{rel}:{href}`, `link:canonical`, `style:{href}`,
+    `script:{src}`), so each prints once, in first-added order, with the
+    last value. Scripts are deferred unless given a `type`. The title is
+    `{page} | {site}`, or the site name alone.
+  - `ThemedPageRenderer` sets the title (none on the home and welcome
+    pages), the canonical URL (the request path on the site origin),
+    `og:site_name`, `og:title`, `og:type` (`article` for singles), and
+    `og:url`, plus `rel=prev`/`next` links for paged listings.
+  - `<body>` classes: the entry's `class` front matter, `is-{kind}`,
+    `type-{type}`, `is-paged`, and on errors `is-error` and
+    `is-error-{status}`. Invalid class names are dropped.
+  - `layout` front matter replaces the layout the page's own template
+    asks for, if that layout exists. `stylesheet` and `tokens` come in
+    M5b (D-027).
+
+### D-110: The framework default theme
+- **Date:** 2026-09-25
+- **Decision:** `resources/themes/default` (D-045: plain CSS, no build
+  step; D-030: WCAG 2.2 AA): `layouts/base` (`lang`, skip link,
+  `<header>`, `<main id="main">`, `<footer>` landmarks), `single`,
+  `collection` (every listing kind), `error`, `welcome`, and the parts
+  `header`, `footer`, `entries`, `entry-summary` (linked title, byline,
+  excerpt), `entry-meta` (date and term links), and `pagination`. The
+  stylesheet uses CSS custom properties with a `prefers-color-scheme`
+  dark palette; they become compiled DTCG tokens in M5b. Strings are in
+  `lang/en.json`. Templates are checked with `php -l`; PHPCS covers
+  `src`, `tests`, and `benchmarks` only.

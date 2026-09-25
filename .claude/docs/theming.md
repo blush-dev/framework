@@ -1,7 +1,13 @@
 # Theming
 
-Decisions: D-009, D-010, D-020 through D-035. Unresolved items are listed at the
-bottom.
+Decisions: D-009, D-010, D-020 through D-035, and D-102 through D-110 (M5).
+Unresolved items are listed at the bottom.
+
+**Status:** M5a (D-102) implemented the view engine, hierarchy, `Head`,
+escaping, translator, manifests and parent chains, the default theme, themed
+error and welcome pages, the asset route, and `?theme=`. Components,
+directives, context providers, theme providers, settings, tokens, asset
+publishing, and the `theme:*` commands are M5b; feeds and sitemaps are M5c.
 
 ## Principles
 
@@ -18,7 +24,8 @@ bottom.
 
 ## Anatomy
 
-The smallest valid theme:
+The smallest valid theme (only `name` is required; `styles` defaults to
+`["style.css"]`, D-105):
 ```
 user/themes/minimal/
   theme.json        { "name": "Minimal", "version": "1.0.0" }
@@ -67,6 +74,9 @@ exist (D-032).
 }
 ```
 - Blush publishes a JSON Schema so editors autocomplete and validate it.
+- A page loads the **active** theme's `styles` and `scripts`, each resolved
+  through the chain. Ancestors' own lists aren't loaded automatically
+  (D-105).
 - `settings` use the **same field types as content schemas**, so the future
   admin renders both with one form system.
 
@@ -76,8 +86,11 @@ exist (D-032).
 site overrides (resources/views, config, user/data)
   → active theme
     → its parent(s) (any depth, cycle-checked)
-      → framework default theme (includes the core content components, D-033)
+      → framework default theme (`resources/themes/default`, slug `default`;
+        includes the core content components, D-033)
 ```
+- Views resolve through `resources/views/themes/{active}`, then
+  `resources/views`, then each theme's `views/` (D-103).
 - The chain applies to views, components, assets, tokens, settings defaults,
   and message catalogs.
 - Theme-scoped site overrides go in `resources/views/themes/{slug}/…` and apply
@@ -116,29 +129,43 @@ $this->layout('base', title: $entry->title);
 </article>
 ```
 
-The template API (kept deliberately small):
+The template API (kept deliberately small; D-103):
 | Method | Purpose |
 |---|---|
-| `layout($name, ...$data)` | Wrap this template in a layout |
-| `start($section)` / `stop()` / `section($name, default: '')` | Define and output sections |
-| `insert($partial, ...$data)` | Include a partial |
-| `component($name, ...$props)` | Render a component; `->slot($name, $content)` for named slots |
-| `t($key, ...$params)` | Translate (D-028) |
-| `setting($key)` / `token($path)` | Theme setting and token values |
-| `asset($path)` / `image($media, $size)` | Asset URLs; responsive `<img>` output |
-| `head()` | The `Head` manager (title, meta, OpenGraph, and so on) |
+| `layout($name, ...$data)` | Wrap this template in a layout (`layouts/{name}`) |
+| `start($section)` / `stop()` / `section($name, default: '')` / `hasSection($name)` | Define and output sections |
+| `insert($partial, ...$data)` | Include a partial (shared data plus what it's given) |
+| `component($name, ...$props)` | Render a component; `->slot($name, $content)` for named slots (M5b) |
+| `t($key, ...$params)` | Translate from the `theme` domain (D-028, D-107) |
+| `setting($key)` / `token($path)` | Theme setting and token values (M5b) |
+| `asset($path)` / `image($media, $size)` | Versioned asset URLs; responsive `<img>` output (`image()` later) |
+| `head()` | The `Head` manager (title, meta, OpenGraph, and so on; D-109) |
+| `permalink($entry)` / `route($name, $params)` | Entry and named-route URLs |
+| `terms($entry, $taxonomy)` | An entry's published term entries |
+| `date($date, $format)` | A localized date (`long`, or an ICU pattern) |
+| `bodyClass()` | The `<body>` classes |
 
-Global escaping helpers: `e()`, `attr()`, `url()`, `js()`, `css()`, `raw()`.
+Every template also gets `$site` (name, URL, locale, `lang`). Content
+pages get `$page`, `$entry`, `$entries`, `$type`, and `$title`; error pages
+get `$status`, `$reason`, `$title`, `$entry`, `$description`, and
+`$message` (debug only).
+
+Global escaping helpers (D-106): `e()`, `attr()`, `url()`, `js()`,
+`css()`, `raw()`.
 
 ### Template hierarchy
-- **Single entry:** front matter `template` → `single-{type}-{slug}` →
-  `single-{type}` → `single`.
+Front matter `template` (1.x's `view`) always comes first. 1.x's view names
+aren't candidates (D-104).
+- **Single entry:** `single-{type}-{slug}` → `single-{type}` → `single`.
 - **Collection:** `collection-{type}` → `collection`.
 - **Term:** `term-{taxonomy}-{slug}` → `term-{taxonomy}` → `term` →
   `collection`.
 - **Date archive:** `archive-date-{type}` → `archive-date` → `collection`.
 - **Home:** `home` → then the hierarchy of whatever it aliases.
-- **Errors:** `error-{status}` → `error`.
+- **Welcome:** `welcome` (a site with no home page yet, D-108).
+- **Errors:** `error-{status}` → `error`, filled from
+  `user/content/_errors/{status}.md` (or 1.x's `_error/{status}.md`) when
+  it exists (D-108).
 - **Feeds and sitemaps:** `feed-{format}`, `sitemap`, `sitemap-index`.
   Framework-owned, overridable (D-029).
 - Themes can add candidates through their provider (for example by post
@@ -187,14 +214,19 @@ They are registered in the theme or site provider.
 
 Built-in front matter: `layout`, `template`, `stylesheet`, `class`, `tokens`.
 These let a single post have its own design without a custom theme.
+`template`, `layout` (replaces the page template's layout, if it exists), and
+`class` (added to `<body>`) work since M5a (D-109); `stylesheet` and `tokens`
+come in M5b.
 
 ## Assets (D-031)
 
 - A theme lists its stylesheets and scripts in `theme.json`, and templates and
   components can request more.
 - `Head` prints each asset once, in order.
-- **Versioning:** from `dist/manifest.json` if present, otherwise the file
-  mtime.
+- **Serving:** the `theme.asset` route (`/themes/{slug}/{path}`) streams
+  allowed files from any installed theme until they're published (D-105).
+- **Versioning:** from `dist/manifest.json` if present (M5b), otherwise the
+  file mtime (`?v=`).
 - **Publishing:** `theme:publish` copies or symlinks theme assets to
   `public/themes/{slug}/`. Static export includes them.
 
@@ -215,7 +247,8 @@ These let a single post have its own design without a custom theme.
 ## Translation (D-028)
 
 Themes ship `lang/{locale}.json` catalogs in the `theme` domain, and templates
-call `$this->t()`. The translator itself is CMS-wide; see
+call `$this->t()`. A child theme overrides its ancestors message by message
+(D-107). The translator itself is CMS-wide; see
 `architecture.md` → Translation.
 
 ## Accessibility (D-030)

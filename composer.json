@@ -40,7 +40,10 @@
 	"autoload": {
 		"psr-4": {
 			"Blush\\": "src/"
-		}
+		},
+		"files": [
+			"src/View/functions.php"
+		]
 	},
 	"autoload-dev": {
 		"psr-4": {

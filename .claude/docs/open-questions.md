@@ -4,10 +4,6 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
-- **Empty-state page.** Proposal: a fresh site with no content renders a
-  built-in welcome page from the framework default theme, instead of a 404.
-  (Since M3, `WelcomeHandler` is a fallback route for `/` that any site
-  route replaces, D-073. It is still a placeholder page.)
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 
 ## Later milestones

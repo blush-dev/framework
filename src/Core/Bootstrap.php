@@ -36,6 +36,7 @@ use Blush\Media\MediaConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
 use Blush\Support\PhpArrayFile;
+use Blush\Theme\ThemeConfig;
 
 /**
  * Builds a site's application from its project root. This is the one place
@@ -50,7 +51,7 @@ use Blush\Support\PhpArrayFile;
  * 5. Extensions are discovered (or read from cache), filtered by config, and
  *    local ones are autoloaded.
  * 6. Providers register in order: framework, extensions, then the site's.
- *    (The active theme chain's providers slot in before the site's in M5.)
+ *    (The active theme chain's providers slot in before the site's in M5b.)
  *
  * The application is returned registered but not booted.
  */
@@ -199,7 +200,8 @@ final readonly class Bootstrap
 			new RouteConfig(),
 			new MarkdownConfig(),
 			new ContentConfig(),
-			new MediaConfig()
+			new MediaConfig(),
+			new ThemeConfig()
 		);
 	}
 

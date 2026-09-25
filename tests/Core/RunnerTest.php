@@ -51,7 +51,7 @@ final class RunnerTest extends TestCase
 		$response = $this->runner->handle(Request::create('/'));
 
 		$this->assertSame(200, $response->getStatusCode());
-		$this->assertStringContainsString('Hello from Fixture Site', (string) $response->getBody());
+		$this->assertStringContainsString('Welcome to Fixture Site', (string) $response->getBody());
 		$this->assertTrue($this->runner->application()->isBooted());
 		$this->assertSame($this->runner->application(), $this->runner->application());
 	}

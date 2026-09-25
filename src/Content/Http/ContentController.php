@@ -80,7 +80,8 @@ abstract class ContentController
 			entry: $landing,
 			type: $type,
 			entries: $this->paginate($query, $page),
-			pageUrl: fn (int $number): ?string => $this->urls->collection($type, $number)
+			pageUrl: fn (int $number): ?string => $this->urls->collection($type, $number),
+			base: $kind === PageKind::Home ? PageKind::Collection : null
 		);
 	}
 

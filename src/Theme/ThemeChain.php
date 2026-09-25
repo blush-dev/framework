@@ -1,0 +1,191 @@
+<?php
+
+/**
+ * Theme chain.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Theme;
+
+use ArrayIterator;
+use Countable;
+use IteratorAggregate;
+use Override;
+
+/**
+ * The active theme, its ancestors, and the framework default theme, in
+ * lookup order (D-024). Views, message catalogs, and assets resolve
+ * through it: the first theme that has a file wins, so a child theme
+ * overrides only what it provides.
+ *
+ * @implements IteratorAggregate<int, ThemeManifest>
+ */
+final readonly class ThemeChain implements IteratorAggregate, Countable
+{
+	/**
+	 * The URL path theme assets are served under.
+	 */
+	public const string ASSET_URL = '/themes';
+
+	/**
+	 * Extensions of files a theme may serve, with their MIME types.
+	 * Everything else in a theme folder (views, PHP, manifests, catalogs)
+	 * stays private.
+	 *
+	 * @var array<string, string>
+	 */
+	public const array ASSET_TYPES = [
+		'css'   => 'text/css',
+		'js'    => 'text/javascript',
+		'mjs'   => 'text/javascript',
+		'map'   => 'application/json',
+		'woff2' => 'font/woff2',
+		'woff'  => 'font/woff',
+		'ttf'   => 'font/ttf',
+		'otf'   => 'font/otf',
+		'png'   => 'image/png',
+		'jpg'   => 'image/jpeg',
+		'jpeg'  => 'image/jpeg',
+		'gif'   => 'image/gif',
+		'webp'  => 'image/webp',
+		'avif'  => 'image/avif',
+		'svg'   => 'image/svg+xml',
+		'ico'   => 'image/x-icon'
+	];
+
+	/**
+	 * Top-level theme folders that are never served.
+	 *
+	 * @var list<string>
+	 */
+	private const array PRIVATE_FOLDERS = ['views', 'lang', 'src', 'vendor', 'node_modules'];
+
+	/**
+	 * @param non-empty-list<ThemeManifest> $themes The active theme first, the framework default theme last.
+	 */
+	public function __construct(public array $themes)
+	{}
+
+	/**
+	 * Returns the active theme.
+	 */
+	public function active(): ThemeManifest
+	{
+		return $this->themes[0];
+	}
+
+	/**
+	 * Returns the theme slugs, in lookup order.
+	 *
+	 * @return list<string>
+	 */
+	public function slugs(): array
+	{
+		return array_map(static fn (ThemeManifest $theme): string => $theme->slug, $this->themes);
+	}
+
+	/**
+	 * Returns every theme's views folder, in lookup order.
+	 *
+	 * @return list<string>
+	 */
+	public function viewDirectories(): array
+	{
+		return array_map(static fn (ThemeManifest $theme): string => $theme->viewsPath(), $this->themes);
+	}
+
+	/**
+	 * Returns every theme's message catalog folder, in lookup order.
+	 *
+	 * @return list<string>
+	 */
+	public function langDirectories(): array
+	{
+		return array_map(static fn (ThemeManifest $theme): string => $theme->langPath(), $this->themes);
+	}
+
+	/**
+	 * Returns the theme that provides an asset and the file's path, or
+	 * `null` when no theme does or the path isn't a servable asset.
+	 *
+	 * @return ?array{ThemeManifest, string}
+	 */
+	public function asset(string $path): ?array
+	{
+		if (! self::isServable($path)) {
+			return null;
+		}
+
+		foreach ($this->themes as $theme) {
+			if (is_file("{$theme->path}/{$path}")) {
+				return [$theme, "{$theme->path}/{$path}"];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Returns an asset's URL path, versioned by the file's modification
+	 * time (`/themes/default/style.css?v=1700000000`), or `null` when no
+	 * theme has it.
+	 */
+	public function assetUrl(string $path): ?string
+	{
+		$asset = $this->asset($path);
+
+		if ($asset === null) {
+			return null;
+		}
+
+		[$theme, $file] = $asset;
+
+		return sprintf('%s/%s/%s?v=%d', self::ASSET_URL, $theme->slug, $path, (int) filemtime($file));
+	}
+
+	/**
+	 * Returns whether a path is a safe relative path inside a theme:
+	 * segments of letters, digits, `.`, `_`, and `-` that don't start
+	 * with a dot.
+	 */
+	public static function isValidAssetPath(string $path): bool
+	{
+		return preg_match('#^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$#', $path) === 1;
+	}
+
+	/**
+	 * Returns whether a theme may serve a path: a valid asset path, with
+	 * an allowed extension, outside the private folders.
+	 */
+	public static function isServable(string $path): bool
+	{
+		return self::isValidAssetPath($path)
+			&& isset(self::ASSET_TYPES[strtolower(pathinfo($path, PATHINFO_EXTENSION))])
+			&& ! in_array(explode('/', $path)[0], self::PRIVATE_FOLDERS, true);
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return ArrayIterator<int, ThemeManifest>
+	 */
+	#[Override]
+	public function getIterator(): ArrayIterator
+	{
+		return new ArrayIterator($this->themes);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function count(): int
+	{
+		return count($this->themes);
+	}
+}

@@ -57,7 +57,7 @@ final class RouterTest extends TestCase
 
 	public function testWelcomePageIsTheFallbackForTheHomePage(): void
 	{
-		$this->assertStringContainsString('Hello from Fixture Site', (string) $this->request('GET', '/')->getBody());
+		$this->assertStringContainsString('Welcome to Fixture Site', (string) $this->request('GET', '/')->getBody());
 
 		$this->boot($this->routesConfig(routes: "Route::get('/', Page::class)"));
 
@@ -95,7 +95,7 @@ final class RouterTest extends TestCase
 		$response = $this->request('GET', '/nowhere');
 
 		$this->assertSame(404, $response->getStatusCode());
-		$this->assertStringContainsString('404 Not Found', (string) $response->getBody());
+		$this->assertStringContainsString('Page not found', (string) $response->getBody());
 	}
 
 	public function testWrongMethodIsNotAllowed(): void

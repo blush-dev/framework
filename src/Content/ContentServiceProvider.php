@@ -18,12 +18,10 @@ use Blush\Container\Container;
 use Blush\Container\ServiceResolver;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Events\ContentIndexed;
-use Blush\Content\Http\BasicPageRenderer;
 use Blush\Content\Http\CollectionController;
 use Blush\Content\Http\DateArchiveController;
 use Blush\Content\Http\HomeController;
 use Blush\Content\Http\PageController;
-use Blush\Content\Http\PageRenderer;
 use Blush\Content\Http\SingleController;
 use Blush\Content\Http\TermController;
 use Blush\Content\Index\ContentIndex;
@@ -92,8 +90,7 @@ final class ContentServiceProvider extends ServiceProvider
 	protected const array SINGLETONS_IF = [
 		ContentSource::class     => FilesystemSource::class,
 		ContentIndex::class      => PhpIndex::class,
-		ContentRepository::class => IndexedRepository::class,
-		PageRenderer::class      => BasicPageRenderer::class
+		ContentRepository::class => IndexedRepository::class
 	];
 
 	/**

@@ -15,12 +15,8 @@ namespace Blush\Content\Http;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\Content\ContentRepository;
 use Blush\Content\Query\InvalidQuery;
-use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Type\ContentTypes;
 use Blush\Http\NotFound;
-use Blush\Http\WelcomeHandler;
 
 /**
  * Serves `/` (`home`) and, with a home type, `/page/{page}`
@@ -29,20 +25,11 @@ use Blush\Http\WelcomeHandler;
  * 1. With `ContentConfig::$home` set, the home type's collection (1.x's
  *    home alias).
  * 2. Otherwise the root `index.md`, with any `collection` it asks for.
- * 3. Otherwise, on a site with no home page yet, the welcome page.
+ * 3. Otherwise, on a site with no home page yet, the welcome page (the
+ *    theme's `welcome` view).
  */
 final class HomeController extends ContentController
 {
-	public function __construct(
-		ContentRepository $content,
-		ContentTypes $types,
-		ContentUrls $urls,
-		PageRenderer $renderer,
-		private readonly WelcomeHandler $welcome
-	) {
-		parent::__construct($content, $types, $urls, $renderer);
-	}
-
 	/**
 	 * @throws NotFound
 	 * @throws InvalidQuery
@@ -62,7 +49,7 @@ final class HomeController extends ContentController
 		$index = $this->visible($this->content->named($this->types->forFile('index.md')->name, ''));
 
 		if ($index === null) {
-			return $this->welcome->handle($request);
+			return $this->renderer->render(new ContentPage(kind: PageKind::Welcome, title: ''), $request);
 		}
 
 		return $this->renderer->render(new ContentPage(
@@ -70,7 +57,8 @@ final class HomeController extends ContentController
 			title: $index->title,
 			entry: $index,
 			type: $index->type,
-			entries: $this->ownCollection($index)
+			entries: $this->ownCollection($index),
+			base: PageKind::Page
 		), $request);
 	}
 }

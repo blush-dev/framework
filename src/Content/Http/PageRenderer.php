@@ -19,8 +19,7 @@ use Psr\Http\Message\ServerRequestInterface;
 /**
  * Turns what a content controller found into a response. The content
  * controllers decide what a URL shows; the renderer decides how it looks.
- * `BasicPageRenderer` is the stand-in until the view layer (M5) binds a
- * themed renderer.
+ * The view layer binds `View\ThemedPageRenderer`.
  */
 interface PageRenderer
 {

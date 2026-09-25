@@ -16,7 +16,6 @@ namespace Blush\Tests\Routing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Http\Status;
-use Blush\Http\WelcomeHandler;
 use Blush\Routing\CompiledRoute;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\Redirect;
@@ -27,6 +26,7 @@ use Blush\Routing\RoutePriority;
 use Blush\Routing\RouteTable;
 use Blush\Routing\Sources\ConfigRedirects;
 use Blush\Routing\Sources\ConfigRoutes;
+use Blush\Tests\Fixtures\Http\EchoHandler;
 use Blush\Tests\Fixtures\Routing\FallbackRoutes;
 use Blush\Tests\Fixtures\Routing\Archive;
 use Blush\Tests\Fixtures\Routing\Color;
@@ -63,7 +63,7 @@ final class RouteCompilerTest extends TestCase
 		$table = $this->compile([
 			Route::get('/{year}', [Archive::class, 'year'])->named('year'),
 			Route::get('/color/{color}', [Archive::class, 'color'])->named('color'),
-			Route::get('/', WelcomeHandler::class)->named('home')
+			Route::get('/', EchoHandler::class)->named('home')
 		]);
 
 		$year = $table->named('year');

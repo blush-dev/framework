@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Http;
 
 /**
- * What a content page shows, which decides its template hierarchy in M5.
+ * What a content page shows, which decides its template hierarchy (`View\Hierarchy`).
  */
 enum PageKind: string
 {
@@ -47,4 +47,9 @@ enum PageKind: string
 	 * A date archive.
 	 */
 	case Date = 'date';
+
+	/**
+	 * The welcome page of a site with no home page yet.
+	 */
+	case Welcome = 'welcome';
 }

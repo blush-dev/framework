@@ -21,6 +21,7 @@ use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Blush\Error\ErrorHandler;
 use Blush\Error\ExceptionRenderer;
+use Blush\Http\ErrorPages;
 use Blush\Http\HttpError;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -35,14 +36,19 @@ use Blush\Http\Status;
  * becomes a response with its own status and headers, and isn't logged:
  * it's an answer, not a failure.
  *
- * It renders HTML regardless of the SAPI (the kernel serves HTTP even when
- * called from the CLI). Themed error pages replace the generic page in M5.
+ * The site's `ErrorPages` (themed error pages) render the response when
+ * they can. The generic `ExceptionRenderer` page is the fallback: when
+ * there are no error pages, when they decline (a 500 in debug, which
+ * shows the details instead), or when rendering them fails too, which is
+ * reported. The generic page is HTML regardless of the SAPI (the kernel
+ * serves HTTP even when called from the CLI).
  */
 final readonly class HandleErrors implements MiddlewareInterface
 {
 	public function __construct(
 		private ErrorHandler $errors,
-		private ExceptionRenderer $renderer
+		private ExceptionRenderer $renderer,
+		private ?ErrorPages $pages = null
 	) {
 	}
 
@@ -55,26 +61,55 @@ final readonly class HandleErrors implements MiddlewareInterface
 		try {
 			return $handler->handle($request);
 		} catch (HttpError $error) {
-			return new Response(
-				$error->status,
-				[
-					...$error->headers,
-					'Content-Type'  => $this->renderer->contentType(),
-					'Cache-Control' => 'no-store'
-				],
-				$this->renderer->render($error)
-			);
+			return $this->respond($error, $error->status, $request, $error->headers);
 		} catch (Throwable $exception) {
 			$this->errors->report($exception);
 
-			return new Response(
-				Status::InternalServerError,
-				[
-					'Content-Type'  => $this->renderer->contentType(),
-					'Cache-Control' => 'no-store'
-				],
-				$this->renderer->render($exception)
-			);
+			return $this->respond($exception, Status::InternalServerError, $request);
+		}
+	}
+
+	/**
+	 * Returns the error page for an error: the site's own, or else the
+	 * generic one.
+	 *
+	 * @param array<string, string|list<string>> $headers
+	 */
+	private function respond(Throwable $error, Status $status, ServerRequestInterface $request, array $headers = []): ResponseInterface
+	{
+		$page = $this->page($error, $status, $request);
+
+		if ($page !== null) {
+			foreach ([...$headers, 'Cache-Control' => 'no-store'] as $name => $value) {
+				$page = $page->withHeader($name, $value);
+			}
+
+			return $page->withStatus($status->value);
+		}
+
+		return new Response(
+			$status,
+			[
+				...$headers,
+				'Content-Type'  => $this->renderer->contentType(),
+				'Cache-Control' => 'no-store'
+			],
+			$this->renderer->render($error)
+		);
+	}
+
+	/**
+	 * Returns the site's error page, or `null`. A failure while rendering
+	 * it is reported, and the generic page is used instead.
+	 */
+	private function page(Throwable $error, Status $status, ServerRequestInterface $request): ?ResponseInterface
+	{
+		try {
+			return $this->pages?->render($error, $status, $request);
+		} catch (Throwable $failure) {
+			$this->errors->report($failure);
+
+			return null;
 		}
 	}
 }

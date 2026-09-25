@@ -73,8 +73,8 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   - `ErrorHandler` converts warnings to exceptions, logs deprecations, and
     catches fatal errors at shutdown with 8.5's fatal backtrace.
   - Renderers: HTML (generic, or detailed with `debug`) and plain text for the
-    CLI. A themed page from `user/content/_errors/{status}.md` comes with
-    views (M5).
+    CLI. HTTP errors render as themed pages first (`Http\ErrorPages`,
+    `View\ThemedErrorPages`, D-108), with the generic page as the fallback.
 - **Log** (`Blush\Log`): in-house PSR-3 implementation with file, stderr, and
   null writers (`LogDriver`), configured by `LogConfig`.
 - **Clock** (`Blush\Clock`): in-house PSR-20 implementation with system and
@@ -115,6 +115,8 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   content). JSON Schemas are published for editor autocomplete.
 
 ## Translation (D-028)
+
+Implemented in M5a for the `blush` and `theme` domains (D-107).
 
 - **`Translator`:** CMS-wide, in-house, using ICU MessageFormat via `ext-intl`
   (`MessageFormatter`) for plurals, select, and number/date arguments.
@@ -157,7 +159,8 @@ Implemented in M2 (D-067).
   - `StartSession`, `VerifyCsrf`, `Authenticate`, `RateLimit` (admin and
     webhooks only)
   Only `HandleErrors` exists so far. The kernel always runs it outermost,
-  and it maps `HttpError`s to their status.
+  and it maps `HttpError`s to their status. It asks `ErrorPages` (the
+  themed error pages) for the response first (D-108).
 - **`Kernel`** implements `RequestHandlerInterface`. It runs `HandleErrors`,
   then the global middleware, then its handler (the `Router`), and
   dispatches `RequestReceived` and `ResponseReady`.
@@ -239,7 +242,8 @@ is in that decision.
   entry. `index` directly in a type's folder is the landing page instead.
 - **Data-only entries** (`.yaml`, `.json`) and other user data (menus,
   authors, redirects) live in `user/data/`.
-- `_errors/404.md` and `_errors/500.md` are error pages.
+- `_errors/404.md` and `_errors/500.md` are error pages (1.x's `_error/`
+  folder works too, D-108).
 
 ### Types and schemas
 Implemented in M4a (D-083, D-084).
@@ -403,24 +407,39 @@ Implemented in M4c (D-099), apart from image derivatives.
 Plain PHP templates (D-009). **The full theming design is in `theming.md`**
 (themes are presentation only, with a data-first manifest, parent chains,
 DTCG tokens, components with slots, and per-entry presentation fields). The
-summary below is the view core those features sit on.
+view core was implemented in M5a (D-103 to D-110).
 
-- **Rendering:** isolated scope (a static closure include). Layouts and
-  sections, partials, and components (a class plus a template).
+- **`Views`** (`Blush\View`): renders templates for one theme chain.
+  A template runs in a closure bound to its `Template` with no class
+  scope, so `$this` exposes only the template API. Layouts (which may
+  nest), sections, and partials (shared data plus their own). Failures
+  close their output buffers and become `ViewException`s.
+- **`ViewFinder`:** view names (`single-post`, `layouts/base`) resolve
+  through `resources/views/themes/{active}`, `resources/views`, then the
+  theme chain. `ViewFactory` builds one `Views` per chain and the per-page
+  `ViewContext` (the `Head`, sections, shared `$site`, body classes, and
+  the front matter `layout`).
 - **`Escaper`:** `e()`, `attr()`, `url()`, `js()`, `css()`, and `raw()` are the
-  only global functions.
+  only global functions (D-106).
 - **`Head` manager:** collects title, meta, OpenGraph, canonical, alternates,
-  and preloads, and renders them once.
-- **Template hierarchy:** a value object that front matter `template:` can
-  override.
+  stylesheets, and scripts, each once, and renders them in the base layout
+  (D-109).
+- **`Hierarchy`:** the candidate view names for a content page or error,
+  with front matter `template:` first (D-104).
+- **Renderers:** `ThemedPageRenderer` (the `PageRenderer`) and
+  `ThemedErrorPages` (the `ErrorPages`) pick the chain per request
+  (`ThemeResolver`, `?theme=` in development) and fill in the head.
+- **Themes** (`Blush\Theme`, D-105): `Themes` (manifests from
+  `user/themes` plus the framework `default`), `ThemeChain`, `ThemeConfig`,
+  `ThemeResolver`, and the `theme.asset` route.
 
 ## Built-in controllers and outputs
 
 - **Pages** (M4c, D-094): single, collection (paged), term (paged), date
   archives, home (a type's collection, `index.md`, or the welcome page),
-  and the page catch-all. The controllers build a `ContentPage`; a
-  `PageRenderer` renders it. `BasicPageRenderer` is a plain stand-in until
-  the view layer (M5) binds a themed one. Error pages come with views.
+  and the page catch-all. The controllers build a `ContentPage`; the
+  `PageRenderer` (`ThemedPageRenderer` since M5a) renders it. Error pages
+  are themed (D-108).
 - **Feeds:** RSS 2.0, Atom, and JSON Feed, per collection and per term, written
   with `XMLWriter`.
 - **Sitemaps:** a sitemap index plus one per type, and `robots.txt`.

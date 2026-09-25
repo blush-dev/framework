@@ -16,7 +16,6 @@ namespace Blush\Tests\Content\Routing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Content\Http\BasicPageRenderer;
 use Blush\Content\Http\CollectionController;
 use Blush\Content\Http\ContentController;
 use Blush\Content\Http\ContentPage;
@@ -41,6 +40,8 @@ use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Routing\RouteTable;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\View\Hierarchy;
+use Blush\View\ThemedPageRenderer;
 
 #[CoversClass(ContentRoutes::class)]
 #[CoversClass(PageRoutes::class)]
@@ -56,7 +57,8 @@ use Blush\Tests\Content\BuildsContentSite;
 #[CoversClass(PageController::class)]
 #[CoversClass(ContentPage::class)]
 #[CoversClass(PageKind::class)]
-#[CoversClass(BasicPageRenderer::class)]
+#[CoversClass(ThemedPageRenderer::class)]
+#[CoversClass(Hierarchy::class)]
 final class ContentRoutingTest extends TestCase
 {
 	use BuildsContentSite;
@@ -92,8 +94,9 @@ final class ContentRoutingTest extends TestCase
 	}
 
 	/**
-	 * Asserts a response's status and, for a page, its `<h1>` and listed
-	 * entries; for a redirect, its target.
+	 * Asserts a response's status and, for a page, its `<h1>` and the
+	 * URLs of its listed entries (`''` for one without a URL); for a
+	 * redirect, its target.
 	 *
 	 * @param list<string> $listed
 	 */
@@ -111,8 +114,8 @@ final class ContentRoutingTest extends TestCase
 		}
 
 		if ($status === 200) {
-			$this->assertStringContainsString("<h1>{$title}</h1>", $body, $uri);
-			preg_match_all('/<li>(?:<a href="([^"]*)">)?/', $body, $links);
+			$this->assertMatchesRegularExpression('#<h1 class="[^"]*">' . preg_quote($title, '#') . '</h1>#', $body, $uri);
+			preg_match_all('#<h2 class="entry__title">\s*(?:<a href="([^"]*)">)?#', $body, $links);
 			$this->assertSame($listed, $links[1], $uri);
 		}
 	}
@@ -142,9 +145,9 @@ final class ContentRoutingTest extends TestCase
 	public function testServesTheHomeTypesCollection(): void
 	{
 		$this->assertPage('/', 200, 'Blog', ['/archives/2010/01/01/hello', '/archives/2008/04/05/spring']);
-		$this->assertStringContainsString('<a rel="next" href="/page/2">', (string) $this->get('/')->getBody());
+		$this->assertStringContainsString('rel="next" href="/page/2"', (string) $this->get('/')->getBody());
 		$this->assertPage('/page/2', 200, 'Blog', ['/archives/2003/04/15/welcome']);
-		$this->assertStringContainsString('<a rel="prev" href="/">', (string) $this->get('/page/2')->getBody());
+		$this->assertStringContainsString('rel="prev" href="/"', (string) $this->get('/page/2')->getBody());
 		$this->assertPage('/page/1', 301, '/');
 		$this->assertPage('/page/3', 404);
 	}

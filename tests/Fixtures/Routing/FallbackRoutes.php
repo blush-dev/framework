@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Routing;
 
 use Override;
-use Blush\Http\WelcomeHandler;
 use Blush\Routing\Route;
 use Blush\Routing\RoutePriority;
 use Blush\Routing\RouteSource;
+use Blush\Tests\Fixtures\Http\EchoHandler;
 
 final readonly class FallbackRoutes implements RouteSource
 {
@@ -30,6 +30,6 @@ final readonly class FallbackRoutes implements RouteSource
 	#[Override]
 	public function routes(): iterable
 	{
-		return [Route::get('/', WelcomeHandler::class)];
+		return [Route::get('/', EchoHandler::class)];
 	}
 }

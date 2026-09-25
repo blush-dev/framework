@@ -22,9 +22,9 @@ use Blush\Http\HttpError;
  * page shows the exception chain with messages, locations, and traces;
  * otherwise it's a generic error page that reveals nothing. An `HttpError`
  * (such as a 404) gets a short status page instead, with its message only
- * in debug. A themed error
- * page (`user/content/_errors/500.md`) replaces the generic one once views
- * exist (M5); this renderer remains the fallback when rendering that fails.
+ * in debug. For HTTP responses, the themed error pages
+ * (`View\ThemedErrorPages`) come first; this renderer is the fallback
+ * when they decline or fail.
  */
 final readonly class HtmlRenderer implements ExceptionRenderer
 {

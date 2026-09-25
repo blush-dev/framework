@@ -39,8 +39,10 @@ blush-framework/
     Content/            Source, Parser, Schema, Type, Index, Entry, Query, Lint, Writer
     Markdown/           Parser interface + adapter
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
-    View/               Engine, View, Hierarchy, Components, Head, Escaper
-    Theme/              Theme manifest, loader, inheritance, tokens
+    View/               Views, Template, ViewFinder, ViewFactory, Hierarchy, Head, Escaper,
+                        functions.php (the escaping helpers), themed renderers
+    Theme/              Themes, ThemeManifest, ThemeChain, ThemeConfig, ThemeResolver,
+                        the theme asset route; tokens (M5b)
     Cache/              Stores, PageCache, CacheVersion
     Feed/  Sitemap/
     Publish/            Webhook, deployer, static export
@@ -48,7 +50,9 @@ blush-framework/
     Admin/              (later milestone)
     Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
-  resources/            Framework default views/theme; server.php (`serve` router)
+  resources/            server.php (`serve` router); lang/ (the `blush` catalog domain)
+    themes/default/     The framework default theme (D-110): theme.json, style.css,
+                        lang/, views/
   benchmarks/           PHPBench suite + the generated jtcom-sized site (D-101)
   tests/
     Fixtures/site/      Fixture site: .env, config/, local + Composer extensions

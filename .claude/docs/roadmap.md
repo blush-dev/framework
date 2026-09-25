@@ -17,6 +17,69 @@
 
 ---
 
+## M5 (Views + theming): in progress
+
+Started 2026-09-25, in three slices (D-102). Exit criterion: **the default
+theme renders every route type.**
+
+### M5a: view engine, themes, default theme (done)
+
+Implemented 2026-09-25. See D-103 to D-110. Delivered and tested (594
+tests):
+
+- `Blush\View`: `Views` (isolated-scope PHP templates, layouts, sections,
+  partials), `Template` (the `$this` API), `ViewContext`, `ViewFinder`
+  (site overrides, then the theme chain), `ViewFactory`, `Hierarchy`,
+  `Head`, `Site`, `Escaper` and the global `e()`/`attr()`/`url()`/`js()`/
+  `css()`/`raw()` helpers.
+- `ThemedPageRenderer` replaces `BasicPageRenderer`; `ThemedErrorPages`
+  renders HTTP errors through `Http\ErrorPages` (from `_errors/` or 1.x's
+  `_error/` entries), falling back to the generic page. The `welcome`
+  view replaces `WelcomeHandler` (resolves the empty-state question).
+- `Blush\Theme`: `ThemeManifest` (`theme.json|yaml`), `Themes`
+  (`user/themes` plus the framework `default`), `ThemeChain` (parents,
+  loop detection), `ThemeConfig` (`config/theme.php`), `ThemeResolver`
+  (`?theme=` in development), and the `theme.asset` route.
+- `Blush\Translation\Translator`: ICU messages, per-domain catalogs with
+  key-by-key overrides, locale fallback (`blush` and `theme` domains).
+- The framework default theme, `resources/themes/default`: base layout
+  with landmarks and a skip link, `single`, `collection`, `error`,
+  `welcome`, parts, a light/dark stylesheet, and `lang/en.json`.
+- `layout` and `class` front matter; `template` first in every hierarchy.
+
+Checked on https://blush.ddev.site (after `composer update
+blush-dev/framework` in `../blush` to pick up the helpers' `files`
+autoload): `/`, `/about`, `/blog`, and `/themes/default/style.css` → 200;
+`/nowhere` → 404 with the site's `_errors/404.md`.
+
+**Benchmarks:** the request subjects now render themed pages. Listings
+show excerpts, which renders each listed entry's Markdown body
+(about 0.7 ms per 3 KB body with CommonMark), so `benchRequestHome` is
+8.3 ms (was 0.71 ms with the title-only stand-in) and `benchRequestSingle`
+8.2 ms (was 1.7 ms). The rendered-body cache (M6) is the fix; the page
+cache hides it entirely.
+
+Carried into M5b/M5c: see D-102. Also: compiling theme manifests for
+production, site and extension translation domains, and `image()`.
+
+### M5b: components, tokens, settings, assets, CLI (next)
+
+Components and slots (D-025), Markdown directives and the core content
+components (D-026, D-033), context providers, theme providers and
+autoloading, Composer-installed themes (D-034), settings from
+`user/data/theme.json`, DTCG tokens compiled to CSS (D-023),
+`stylesheet`/`tokens` front matter (D-027), `manifest.json` versioning and
+`theme:publish` (D-031), and `theme:list`, `theme:activate`, `theme:new`,
+`theme:check`, and `theme:why`.
+
+### M5c: feeds and sitemaps
+
+RSS, Atom, and JSON Feed per collection, term, and home (`.feed`,
+`.feed.atom`, `home.feed`, D-029), sitemaps (index plus per type), and
+`robots.txt`.
+
+---
+
 ## M4 (Content): done
 
 Started and finished 2026-09-25, in three slices (D-079). Everything 1.x

@@ -28,7 +28,6 @@ use Blush\Http\HttpFactory;
 use Blush\Http\HttpServiceProvider;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
-use Blush\Http\WelcomeHandler;
 use Blush\Tests\Fixtures\Http\AddHeader;
 use Blush\Tests\Fixtures\Http\Failing;
 use Blush\Tests\Fixtures\Http\ResponseRecorder;
@@ -36,7 +35,6 @@ use Blush\Tests\FixtureSite;
 
 #[CoversClass(Kernel::class)]
 #[CoversClass(HttpServiceProvider::class)]
-#[CoversClass(WelcomeHandler::class)]
 final class KernelTest extends TestCase
 {
 	use FixtureSite;
@@ -72,7 +70,7 @@ final class KernelTest extends TestCase
 
 		$this->assertSame(200, $response->getStatusCode());
 		$this->assertSame('text/html; charset=UTF-8', $response->getHeaderLine('Content-Type'));
-		$this->assertStringContainsString('<h1>Hello from Fixture Site</h1>', (string) $response->getBody());
+		$this->assertStringContainsString('<h1 class="entry__title">Welcome to Fixture Site</h1>', (string) $response->getBody());
 	}
 
 	public function testRunsConfiguredMiddleware(): void

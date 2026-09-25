@@ -38,7 +38,7 @@ use Blush\Routing\RouteSource;
  * parameters are constrained to digits (`ContentUrls::CONSTRAINTS`). The
  * home type (`ContentConfig::$home`) has no collection routes of its own;
  * `PageRoutes` serves its collection at `/`. Feed routes arrive with
- * feeds (M5).
+ * feeds (M5c).
  */
 final readonly class ContentRoutes implements RouteSource
 {

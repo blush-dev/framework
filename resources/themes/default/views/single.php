@@ -1,0 +1,37 @@
+<?php
+
+/**
+ * A single entry, with any listing its `collection` front matter asks
+ * for.
+ *
+ * @var Blush\View\Template                  $this
+ * @var Blush\Content\Http\ContentPage       $page
+ * @var Blush\Content\Entry\Entry            $entry
+ * @var ?Blush\Content\Query\Paginator       $entries
+ * @var string                               $title
+ */
+
+declare(strict_types=1);
+
+$this->layout('base');
+
+?>
+<article class="entry entry--single">
+	<header class="entry__header">
+		<h1 class="entry__title"><?= e($title !== '' ? $title : $entry->slug) ?></h1>
+
+		<?php if ($entry->subtitle() !== '') : ?>
+			<p class="entry__subtitle"><?= e($entry->subtitle()) ?></p>
+		<?php endif ?>
+
+		<?= $this->insert('parts/entry-meta', entry: $entry) ?>
+	</header>
+
+	<div class="entry__content">
+		<?= raw($entry->body()) ?>
+	</div>
+</article>
+
+<?php if ($entries !== null) : ?>
+	<?= $this->insert('parts/entries', page: $page) ?>
+<?php endif ?>

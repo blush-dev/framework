@@ -1,0 +1,34 @@
+{
+	"skip_to_content": "Skip to content",
+	"site_navigation": "Site",
+	"powered_by": "Powered by {generator}",
+	"no_entries": "Nothing has been published here yet.",
+	"read_more": "Continue reading {title}",
+	"published_on": "Published on {date}",
+	"pagination": {
+		"label": "Pagination",
+		"previous": "Previous page",
+		"next": "Next page",
+		"page": "Page {page} of {pages}"
+	},
+	"terms": {
+		"label": "Filed under"
+	},
+	"welcome": {
+		"title": "Welcome to {site}",
+		"running": "{generator} is running.",
+		"start": "Add a home page at {path} to replace this page."
+	},
+	"error": {
+		"home": "Go to the home page",
+		"message": "The server couldn’t complete the request.",
+		"404": {
+			"title": "Page not found",
+			"message": "Sorry, nothing was found here."
+		},
+		"500": {
+			"title": "Something went wrong",
+			"message": "The server hit an error and couldn’t finish the request. Please try again later."
+		}
+	}
+}

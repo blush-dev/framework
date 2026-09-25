@@ -29,11 +29,11 @@ use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
 use Blush\Http\Kernel;
 use Blush\Http\Middleware\HandleErrors;
-use Blush\Http\WelcomeHandler;
 use Blush\Log\Logger;
 use Blush\Tests\Fixtures\Extension\ComposerExtensionProvider;
 use Blush\Tests\Fixtures\Extension\SiteServiceProvider;
 use Blush\Tests\FixtureSite;
+use Blush\View\ThemedPageRenderer;
 
 #[CoversClass(Bootstrap::class)]
 final class BootstrapTest extends TestCase
@@ -134,7 +134,7 @@ final class BootstrapTest extends TestCase
 		$compiled = require "{$root}/storage/cache/container.php";
 		$this->assertIsArray($compiled);
 		$this->assertArrayHasKey(Kernel::class, $compiled);
-		$this->assertArrayHasKey(WelcomeHandler::class, $compiled);
+		$this->assertArrayHasKey(ThemedPageRenderer::class, $compiled);
 		$this->assertArrayHasKey(Serve::class, $compiled);
 		$this->assertArrayHasKey(HandleErrors::class, $compiled);
 

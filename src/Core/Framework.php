@@ -33,4 +33,15 @@ final class Framework
 	 * The framework version.
 	 */
 	public const string VERSION = '2.0.0-dev';
+
+	/**
+	 * Returns a path inside the framework's own folder, such as its
+	 * `resources/themes/default`.
+	 */
+	public static function path(string $relative = ''): string
+	{
+		$root = dirname(__DIR__, 2);
+
+		return $relative === '' ? $root : $root . '/' . ltrim($relative, '/');
+	}
 }
