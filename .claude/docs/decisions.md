@@ -358,7 +358,8 @@ decision, add a new entry that supersedes it and mark the old one
 - **Date:** 2026-09-25
 - **Decision:** Adopted without objection:
   - **Names:** namespace `Blush\`, package `blush-dev/framework`, site skeleton
-    `blush-dev/site`.
+    `blush-dev/site`. (Superseded by D-062: the skeleton already exists as
+    `blush-dev/blush`.)
   - **Interfaces:** they live in their subsystem namespace. Only cross-cutting
     contracts (e.g. `Bootable`) go in `Blush\Core`. There is no global
     `Contracts\` namespace.
@@ -588,3 +589,11 @@ decision, add a new entry that supersedes it and mark the old one
 - **Decision:** 8.5 allows closures in constant expressions (attribute
   arguments) only as `static function () { … }`, with no arrow functions
   and no `use`. Recorded in the style skill.
+
+### D-062: The site skeleton is the existing `blush-dev/blush`
+- **Date:** 2026-09-25
+- **Decision:** The default install (the "forkable project package") already
+  exists: `blush-dev/blush`, at `../blush`
+  (https://github.com/blush-dev/blush). It is the 1.x skeleton today. Blush 2's
+  skeleton and M2's browser dev site are that repo, not a new `blush-dev/site`.
+  Supersedes the skeleton name in D-045.

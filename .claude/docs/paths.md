@@ -5,6 +5,7 @@
 | What | Path |
 |---|---|
 | Blush framework (this repo, `2.x` branch) | `/Applications/XAMPP/xamppfiles/htdocs/blush-framework` |
+| Blush site skeleton, `blush-dev/blush` (default install; 1.x on `master`) | `/Applications/XAMPP/xamppfiles/htdocs/blush` |
 | jtcom (first site built on Blush) | `/Applications/XAMPP/xamppfiles/htdocs/jtcom` |
 | jtcom content (separate git repo) | `/Applications/XAMPP/xamppfiles/htdocs/jtcom/user` |
 | x3p0-framework (container, application) | `/Applications/XAMPP/xamppfiles/htdocs/wp/wp-content/x3p0-framework` |

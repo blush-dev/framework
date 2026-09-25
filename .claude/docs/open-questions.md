@@ -4,9 +4,10 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
-- **Dev site from M2 onward.** Proposal: build the site skeleton
-  (`blush-dev/site`, D-045) as its own repo next to this one, with its own
-  DDEV at 8.5 (D-047), requiring the framework via a Composer path repository. It
+- **Dev site from M2 onward.** The skeleton is `blush-dev/blush` at `../blush`
+  (D-062), currently 1.x on `master`. Proposal: give it a `2.x` branch
+  rewritten to the new site layout (`paths.md`), requiring the framework
+  through a Composer path repository, with its own DDEV at 8.5 (D-047). It
   doubles as the browser playground. Automated tests keep using
   `tests/Fixtures/site`.
 - **Empty-state page.** Proposal: a fresh site with no content renders a
