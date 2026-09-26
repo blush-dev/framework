@@ -81,6 +81,9 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<title>spring | Blush</title>', $single);
 		$this->assertStringContainsString('<meta property="og:type" content="article">', $single);
 		$this->assertStringContainsString('<h1 class="entry__title">spring</h1>', $single);
+		$this->assertStringContainsString('<meta name="description" content="Spring is here.">', $single);
+		$this->assertStringContainsString('<meta property="og:description" content="Spring is here.">', $single);
+		$this->assertStringNotContainsString('og:image', $single);
 
 		$this->assertStringContainsString('<h1 class="archive-header__title">Art</h1>', $this->body('/topics/art', $app));
 		$this->assertStringContainsString('<body class="is-date type-post">', $this->body('/archives/2008/04', $app));
@@ -122,6 +125,35 @@ final class ThemedRenderingTest extends TestCase
 		unlink($this->temporaryDirectory() . '/resources/views/themes/child/single-post.php');
 
 		$this->assertSame('site override', $this->body('/archives/spring'));
+	}
+
+	public function testAnEntrysImageBecomesTheSharingImage(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/content/about/photo.md', "---\ntitle: Photo\nimage: /user/media/me.jpg\nsummary: A *photo* of me.\n---\nBody");
+		$this->writeTemporaryFile('user/content/about/remote.md', "---\ntitle: Remote\nimage: https://cdn.example.com/me.jpg\n---\nBody");
+
+		$app   = $this->site();
+		$photo = $this->body('/about/photo', $app);
+
+		$this->assertStringContainsString('<meta name="description" content="A photo of me.">', $photo);
+		$this->assertStringContainsString('<meta property="og:image" content="http://localhost/user/media/me.jpg">', $photo);
+		$this->assertStringContainsString('<meta name="twitter:card" content="summary_large_image">', $photo);
+		$this->assertStringContainsString('<meta property="og:image" content="https://cdn.example.com/me.jpg">', $this->body('/about/remote', $app));
+	}
+
+	public function testPartialsSeeThePageAndTaxonomyListingsShareATemplate(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('resources/views/collection-taxonomy.php', '<?php $this->layout(\'base\') ?><?= $this->insert(\'parts/terms-title\') ?>');
+		$this->writeTemporaryFile('resources/views/parts/terms-title.php', '<p class="terms"><?= e($title) ?>: <?= e($type->name) ?>, <?= count($page->entries ?? []) ?></p>');
+		$this->writeTemporaryFile('resources/views/parts/footer.php', '<footer><?= e($entry?->title ?? "none") ?></footer>');
+
+		$app = $this->site();
+
+		$this->assertStringContainsString('<p class="terms">Topics: category, 1</p>', $this->body('/topics', $app));
+		$this->assertStringContainsString('<footer>Biography</footer>', $this->body('/about/biography', $app));
+		$this->assertStringNotContainsString('class="terms"', $this->body('/archives', $app));
 	}
 
 	public function testFrontMatterControlsPresentation(): void

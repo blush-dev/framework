@@ -29,7 +29,8 @@ use Blush\View\Component\Slots;
  * `$this` is a `Template`, which exposes only its public API. When a
  * template calls `layout()`, its output becomes the `content` section
  * and the layout renders next, with the same data plus the layout's own
- * (layouts may have layouts). Partials see the shared data plus what
+ * (layouts may have layouts). Partials see the shared data (the site,
+ * and on content and error pages the page's data, D-146) plus what
  * they're given, not their caller's variables. Context providers attached
  * to a view add their data under what the view is given.
  *

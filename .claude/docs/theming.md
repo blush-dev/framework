@@ -48,8 +48,10 @@ user/themes/nova/
   screenshot.webp
 ```
 
-Themes live in `user/themes/{slug}`. Composer-installed themes may live in
-`vendor/` (D-034). Any data file may be JSON or YAML, and **JSON wins** if both
+Themes live in `user/themes/{slug}`, or in the site's
+`resources/themes/{slug}` (D-144). Composer-installed themes may live in
+`vendor/` (D-034). With the same slug, `user/themes` beats
+`resources/themes`, which beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
 exist (D-032).
 
 ### `theme.json`
@@ -147,6 +149,9 @@ The template API (kept deliberately small; D-103):
 | `t($key, ...$params)` | Translate from the `theme` domain (D-028, D-107) |
 | `setting($key, $default)` / `token($path, $mode)` | Theme setting and concrete token values |
 | `asset($path)` / `image($media, $size)` | Versioned asset URLs; responsive `<img>` output (`image()` later) |
+| `inline($path)` | A servable theme asset's contents, such as an SVG (D-151) |
+| `widont($text)` | Escaped text with its last two words joined by `&nbsp;` (1.x's `runt()`, D-153) |
+| `cache($key, $render)` | A fragment kept per content version and active theme (D-152) |
 | `head()` | The `Head` manager (title, meta, OpenGraph, and so on; D-109) |
 | `permalink($entry)` / `route($name, $params)` | Entry and named-route URLs |
 | `terms($entry, $taxonomy)` | An entry's published term entries |
@@ -157,6 +162,10 @@ Every template also gets `$site` (name, URL, locale, `lang`). Content
 pages get `$page`, `$entry`, `$entries`, `$type`, and `$title`; error pages
 get `$status`, `$reason`, `$title`, `$entry`, `$description`, and
 `$message` (debug only).
+This page data is shared (D-146): layouts, partials, and components see
+it without it being passed, and what a template passes wins. On an
+entry's page the head also gets its description and, from its `image`
+field, `og:image` and a Twitter card (D-149).
 
 Global escaping helpers (D-106): `e()`, `attr()`, `url()`, `js()`,
 `css()`, `raw()`.
@@ -165,7 +174,8 @@ Global escaping helpers (D-106): `e()`, `attr()`, `url()`, `js()`,
 Front matter `template` (1.x's `view`) always comes first. 1.x's view names
 aren't candidates (D-104).
 - **Single entry:** `single-{type}-{slug}` → `single-{type}` → `single`.
-- **Collection:** `collection-{type}` → `collection`.
+- **Collection:** `collection-{type}` → `collection-taxonomy` (a
+  taxonomy's listing only, D-147) → `collection`.
 - **Term:** `term-{taxonomy}-{slug}` → `term-{taxonomy}` → `term` →
   `collection`.
 - **Date archive:** `archive-date-{type}` → `archive-date` → `collection`.
@@ -225,7 +235,9 @@ defaults; data given explicitly wins (D-114).
 - **Modes:** a Blush extension, `"$extensions": {"blush": {"modes": {"dark":
   …}}}`, compiled into `prefers-color-scheme` and `[data-scheme]` blocks.
 - **Merge order:** default theme → ancestors → theme → `user/data/theme.json`
-  → entry front matter `tokens` (D-027). An override replaces a token in
+  → entry front matter `tokens` (D-027). A theme with `"inheritTokens":
+  false` starts the chain itself: the default's and its ancestors' tokens
+  are left out (D-148). An override replaces a token in
   every mode unless it sets its own modes.
 - **Output:** CSS custom properties inlined in the head (`blush-tokens`),
   built once per chain per process, and kept per content version in the

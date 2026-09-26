@@ -10,10 +10,80 @@
 | M5 | **Views + theming.** Engine, hierarchy, components, `Head`, tokens, theme loader, default theme, built-in controllers, feeds, and sitemaps. | The default theme renders every route type |
 | M6 | **Caching + publishing.** Cache layers, content version, `PageCache`, webhook, and `publish`. | One-command publish and cache clear |
 | M7 | **Static export.** `build` plus incremental mode. | jtcom exports and serves from static files |
-| M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed |
+| M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed (dynamically, D-142) |
 | M9 | **Admin stage 2:** operations dashboard. | Publish, clear, reindex, and export from a browser |
 | M10 | **Admin stage 3:** editor and media library. | Create and edit entries in a browser |
 | Later | `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine | — |
+
+---
+
+## M8 (Port jtcom): next
+
+Approach (D-142): jtcom runs dynamically; its theme keeps SCSS; the port
+lives on jtcom's `2.x` branch. First, a trial port on a test branch of
+`blush-dev/blush` against jtcom's real content, to find framework gaps
+before jtcom changes. Skeleton fixes done first (D-143).
+
+The trial branch is `jtcom-trial` in `../blush`. Its `user/` holds an
+uncommitted subset of jtcom's content (hidden by the local
+`.git/info/exclude`): all non-post content, the newest 55 posts, and
+the 289 media files they reference (87 MB). The skeleton's own sample
+files show as deleted there; don't commit them.
+
+What the trial covers, from jtcom 1.x (`app/`, `config/`,
+`public/views/`):
+
+- **Types** (`config/content.php`): `post` (`_posts`, singles at
+  `/archives/{year}/{month}/{day}/{name}`, date archives, feeds by
+  category), the `category` (`topics`) and `era` taxonomies,
+  `literature` (`writing`) and its `literary_form`, `literary_genre`, and
+  `literary_technique` taxonomies.
+- **Archive pages** (`Plugins/YearArchives`, `MonthArchives`,
+  `SiteArchives`; `single-page-years`/`-months`/`-archives` views).
+- **Controllers** (`SinglePost`, `ArchivePost`) and the `EntryTerms`
+  block.
+- **Head meta** (`Plugins/OpenGraph/*`, `Content/EntryOpenGraph`):
+  canonical, description, Open Graph, and Twitter tags.
+- **Markdown** (`config/markdown.php`, `Plugins/MarkdownCite`).
+- **Views** (about 20 in `public/views/`), with jtcom's CSS as-is; the
+  SCSS build question waits for the jtcom theme.
+
+### Trial progress
+
+Working on `jtcom-trial` (all uncommitted): `config/content.php` (the
+seven types, typed objects, `home: 'post'`), `config/media.php`
+(`/user/media`), `config/markdown.php` (jtcom's extensions and options),
+`App\SiteServiceProvider`, and the `App\View\PostArchives` component
+(the year, month, and full archive lists). The theme is
+`resources/themes/jtcom` (D-144) with jtcom's compiled CSS, fonts,
+icons, and `manifest.webmanifest` (D-145), and views for every page kind:
+singles (post, literature, page), the home page and listings, date
+archives, taxonomy lists, the art/drawing/painting image grids, the three
+archive pages, errors, 1.x's numbered pagination markup, head meta
+(description, OpenGraph, Twitter, theme color, icons, font preloads,
+print styles), and an `entry-terms` component. `theme:check` passes, and
+`build` crawls 421 pages with no failures; its 54 broken links are posts
+outside the subset, jtcom's old `/warehouse` files, and relative links.
+
+Findings, and what was done:
+
+- **Fixed:** partials see the page's data (D-146); `collection-taxonomy`
+  covers taxonomy listings (D-147); `inheritTokens: false` drops the
+  default theme's tokens (D-148); the head gets the entry's description
+  and `og:image` (D-149); `excerpt()` takes an HTML `$more` (D-150);
+  `readingTime()`, `wordCount()`, and `inline()` for theme SVGs (D-151);
+  site themes (D-144) and web app manifests (D-145). The jtcom theme
+  uses all of them.
+- **Also fixed:** the archive lists are cached per content version and
+  theme with the new `$this->cache()` fragment helper (D-152), and
+  titles use `$this->widont()`, 1.x's `runt()` (D-153).
+- **Not ported:** `MarkdownCite` (unused in jtcom's content, and its
+  `:tag[...]` syntax collides with inline components). jtcom's own
+  `style` front matter is handled in its theme.
+- **Content issues** (for the redirect map): 7 media references that
+  don't exist in jtcom either.
+
+Carried from M7: the 114 dead links in old posts feed the redirect map.
 
 ---
 
@@ -165,7 +235,8 @@ signed webhook request → 200 with the report, the same request again →
 ### M6 carried forward
 
 Page-cache files the web server serves without PHP (`try_files`), a
-template `cache()` helper for fragments, tagged invalidation, rate
+template `cache()` helper for fragments (done in the M8 trial, D-152),
+tagged invalidation, rate
 limiting for the webhook (with the admin's middleware, M9), and
 `CacheCleared`. To M7: static export can reuse the content version for
 incremental builds.

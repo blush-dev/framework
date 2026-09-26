@@ -121,7 +121,8 @@ final readonly class Entry implements Stringable
 	/**
 	 * Returns the excerpt as HTML: the rendered summary, or else the
 	 * body's first `$words` words (leaving out figure captions) in a
-	 * paragraph, as 1.x did.
+	 * paragraph, as 1.x did, ending with `$more` (HTML) when the body is
+	 * longer.
 	 *
 	 * @throws MarkdownException
 	 */
@@ -134,6 +135,26 @@ final readonly class Entry implements Stringable
 		}
 
 		return $this->body->excerpt($words, $more);
+	}
+
+	/**
+	 * Returns how many words the body has, leaving out figure captions.
+	 *
+	 * @throws MarkdownException
+	 */
+	public function wordCount(): int
+	{
+		return $this->body->wordCount();
+	}
+
+	/**
+	 * Returns the body's reading time in whole minutes, at least 1.
+	 *
+	 * @throws MarkdownException
+	 */
+	public function readingTime(int $wordsPerMinute = 200): int
+	{
+		return max(1, (int) ceil($this->wordCount() / max(1, $wordsPerMinute)));
 	}
 
 	/**

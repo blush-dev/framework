@@ -88,11 +88,16 @@ final class ThemeSystemTest extends TestCase
 			['name' => 'acme/nova-theme', 'type' => 'blush-theme', 'install-path' => '../acme/nova-theme'],
 			['name' => 'acme/renamed', 'type' => 'blush-theme', 'install-path' => '../acme/renamed', 'extra' => ['blush' => ['slug' => 'dusk']]],
 			['name' => 'acme/local-wins', 'type' => 'blush-theme', 'install-path' => '../acme/local-wins'],
+			['name' => 'acme/site-wins', 'type' => 'blush-theme', 'install-path' => '../acme/site-wins'],
 			['name' => 'acme/library', 'type' => 'library']
 		]], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('vendor/acme/nova-theme/theme.json', '{"name": "Nova"}');
 		$this->writeTemporaryFile('vendor/acme/renamed/theme.yaml', 'name: Dusk');
 		$this->writeTemporaryFile('vendor/acme/local-wins/theme.json', '{"name": "From Composer"}');
+		$this->writeTemporaryFile('vendor/acme/site-wins/theme.json', '{"name": "From Composer"}');
+		$this->writeTemporaryFile('resources/themes/site-wins/theme.json', '{"name": "From resources/themes"}');
+		$this->writeTemporaryFile('resources/themes/local-wins/theme.json', '{"name": "From resources/themes"}');
+		$this->writeTemporaryFile('resources/themes/studio/theme.json', '{"name": "Studio"}');
 		$this->writeTemporaryFile('user/themes/local-wins/theme.json', '{"name": "From user/themes"}');
 		$this->writeTemporaryFile('user/themes/default/theme.json', '{"name": "Not the default"}');
 		$this->writeTemporaryFile('user/themes/broken/theme.json', '{"name": 5}');
@@ -105,13 +110,16 @@ final class ThemeSystemTest extends TestCase
 		$themes = new ThemeDiscovery(Paths::fromRoot($this->temporaryDirectory()))->discover();
 		$all    = $themes->all();
 
-		$this->assertSame(['default', 'dusk', 'local-wins', 'nova-theme'], array_keys($all));
+		$this->assertSame(['default', 'dusk', 'local-wins', 'nova-theme', 'site-wins', 'studio'], array_keys($all));
 		$this->assertSame(ThemeSource::Framework, $all['default']->source);
 		$this->assertSame('Default', $all['default']->name);
 		$this->assertSame(ThemeSource::Composer, $all['nova-theme']->source);
 		$this->assertSame('Dusk', $all['dusk']->name);
 		$this->assertSame('From user/themes', $all['local-wins']->name);
 		$this->assertSame(ThemeSource::Local, $all['local-wins']->source);
+		$this->assertSame('From resources/themes', $all['site-wins']->name);
+		$this->assertSame(ThemeSource::Site, $all['site-wins']->source);
+		$this->assertSame(ThemeSource::Site, $all['studio']->source);
 		$this->assertStringContainsString('"name"', $themes->invalid()['broken']);
 		$this->assertFalse($themes->has('broken'));
 
@@ -130,7 +138,7 @@ final class ThemeSystemTest extends TestCase
 		$themes = $cache->read();
 
 		$this->assertNotNull($themes);
-		$this->assertSame(['default', 'dusk', 'local-wins', 'nova-theme'], array_keys($themes->all()));
+		$this->assertSame(['default', 'dusk', 'local-wins', 'nova-theme', 'site-wins', 'studio'], array_keys($themes->all()));
 		$this->assertArrayHasKey('broken', $themes->invalid());
 
 		$this->writeTemporaryFile('user/themes/later/theme.json', '{"name": "Later"}');
@@ -264,6 +272,34 @@ final class ThemeSystemTest extends TestCase
 		// The theme's accent has no dark value, so the entry's needs none.
 		$this->assertStringContainsString("<style id=\"blush-entry-tokens\">\n:root {\n\t--color-accent: #123456;\n}\n</style>", $html);
 		$this->assertStringContainsString('#0a6640|#000000|', $html);
+	}
+
+	public function testAThemeCanStopInheritingTokens(): void
+	{
+		$this->writeTemporaryFile('user/themes/base/theme.json', '{"name": "Base"}');
+		$this->writeTemporaryFile('user/themes/base/tokens.json', '{"color": {"base": {"$value": "#111111"}}}');
+		$this->writeTemporaryFile('user/themes/own/theme.json', '{"name": "Own", "parent": "base", "inheritTokens": false}');
+		$this->writeTemporaryFile('user/themes/own/tokens.json', '{"color": {"$type": "color", "accent": {"$value": "#0a6640"}}}');
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\nHi");
+		$this->activeTheme('own');
+
+		$html = $this->get('/');
+
+		$this->assertStringContainsString("<style id=\"blush-tokens\">\n:root {\n\t--color-accent: #0a6640;\n}\n</style>", $html);
+		$this->assertStringNotContainsString('--color-base', $html);
+		$this->assertStringNotContainsString('--color-background', $html);
+
+		$this->expectException(ThemeException::class);
+		ThemeManifest::fromArray('bad', '/tmp', ['name' => 'Bad', 'inheritTokens' => 'no']);
+	}
+
+	public function testAThemeWithoutTokensPrintsNone(): void
+	{
+		$this->writeTemporaryFile('user/themes/bare/theme.json', '{"name": "Bare", "inheritTokens": false}');
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\nHi");
+		$this->activeTheme('bare');
+
+		$this->assertStringNotContainsString('blush-tokens', $this->get('/'));
 	}
 
 	public function testBuildManifestsResolveAssets(): void

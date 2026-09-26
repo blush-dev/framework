@@ -41,22 +41,23 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 	 * @var array<string, string>
 	 */
 	public const array ASSET_TYPES = [
-		'css'   => 'text/css',
-		'js'    => 'text/javascript',
-		'mjs'   => 'text/javascript',
-		'map'   => 'application/json',
-		'woff2' => 'font/woff2',
-		'woff'  => 'font/woff',
-		'ttf'   => 'font/ttf',
-		'otf'   => 'font/otf',
-		'png'   => 'image/png',
-		'jpg'   => 'image/jpeg',
-		'jpeg'  => 'image/jpeg',
-		'gif'   => 'image/gif',
-		'webp'  => 'image/webp',
-		'avif'  => 'image/avif',
-		'svg'   => 'image/svg+xml',
-		'ico'   => 'image/x-icon'
+		'css'         => 'text/css',
+		'js'          => 'text/javascript',
+		'mjs'         => 'text/javascript',
+		'map'         => 'application/json',
+		'webmanifest' => 'application/manifest+json',
+		'woff2'       => 'font/woff2',
+		'woff'        => 'font/woff',
+		'ttf'         => 'font/ttf',
+		'otf'         => 'font/otf',
+		'png'         => 'image/png',
+		'jpg'         => 'image/jpeg',
+		'jpeg'        => 'image/jpeg',
+		'gif'         => 'image/gif',
+		'webp'        => 'image/webp',
+		'avif'        => 'image/avif',
+		'svg'         => 'image/svg+xml',
+		'ico'         => 'image/x-icon'
 	];
 
 	/**

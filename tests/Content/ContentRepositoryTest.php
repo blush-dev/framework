@@ -263,6 +263,11 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertNotNull($figure);
 
 		$this->assertSame('<p>One two three…</p>', $figure->excerpt(3));
+		$this->assertSame('<p>One two three <a href="/more">More&nbsp;&rarr;</a></p>', $figure->excerpt(3, ' <a href="/more">More&nbsp;&rarr;</a>'));
+		$this->assertSame('<p>One two three four five.</p>', $figure->excerpt(10, ' <a href="/more">More</a>'));
+		$this->assertSame(5, $figure->wordCount());
+		$this->assertSame(1, $figure->readingTime());
+		$this->assertSame(3, $figure->readingTime(2));
 		$this->assertSame('<p>One two three four five.</p>', $figure->excerpt());
 		$this->assertSame('', $this->content->named('page', '')?->excerpt());
 	}

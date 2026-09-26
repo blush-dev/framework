@@ -77,7 +77,9 @@ final class Body
 	/**
 	 * Returns the body's first `$words` words (leaving out figure
 	 * captions) in a paragraph, as 1.x's excerpts did, or `''` for an
-	 * empty body.
+	 * empty body. When the body is longer, `$more` is appended inside the
+	 * paragraph; it's HTML (D-150), such as a "Continue reading" link, so
+	 * escape any text in it.
 	 *
 	 * @throws MarkdownException
 	 */
@@ -85,13 +87,7 @@ final class Body
 	{
 		$words   = max(1, $words);
 		$extract = function () use ($words, $more): string {
-			$document = HTMLDocument::createFromString('<!DOCTYPE html><meta charset="utf-8"><body>' . $this->html() . '</body>', LIBXML_NOERROR);
-
-			foreach ($document->querySelectorAll('figcaption') as $caption) {
-				$caption->remove();
-			}
-
-			$text = preg_split('/\s+/u', trim($document->body->textContent ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+			$text = $this->words();
 
 			if ($text === []) {
 				return '';
@@ -99,12 +95,42 @@ final class Body
 
 			$excerpt = implode(' ', array_slice($text, 0, $words));
 
-			return '<p>' . htmlspecialchars($excerpt . (count($text) > $words ? $more : ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+			return '<p>' . htmlspecialchars($excerpt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . (count($text) > $words ? $more : '') . '</p>';
 		};
 
 		return $this->cache === null || $this->hash === ''
 			? $extract()
 			: $this->cache->remember("excerpt.{$this->hash}.{$words}." . hash('xxh32', $more), $extract);
+	}
+
+	/**
+	 * Returns how many words the rendered body has, leaving out figure
+	 * captions.
+	 *
+	 * @throws MarkdownException
+	 */
+	public function wordCount(): int
+	{
+		$count = fn (): string => (string) count($this->words());
+
+		return (int) ($this->cache === null || $this->hash === '' ? $count() : $this->cache->remember("words.{$this->hash}", $count));
+	}
+
+	/**
+	 * Returns the rendered body's words, leaving out figure captions.
+	 *
+	 * @return list<string>
+	 * @throws MarkdownException
+	 */
+	private function words(): array
+	{
+		$document = HTMLDocument::createFromString('<!DOCTYPE html><meta charset="utf-8"><body>' . $this->html() . '</body>', LIBXML_NOERROR);
+
+		foreach ($document->querySelectorAll('figcaption') as $caption) {
+			$caption->remove();
+		}
+
+		return preg_split('/\s+/u', trim($document->body->textContent ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 	}
 
 	/**

@@ -29,6 +29,11 @@ enum ThemeSource: string
 	case Local = 'local';
 
 	/**
+	 * A folder in the site's `resources/themes` (D-144).
+	 */
+	case Site = 'site';
+
+	/**
 	 * A Composer package of type `blush-theme`.
 	 */
 	case Composer = 'composer';

@@ -14,9 +14,12 @@ declare(strict_types=1);
 namespace Blush\View;
 
 use BackedEnum;
+use Closure;
 use DateTimeInterface;
 use IntlDateFormatter;
 use Stringable;
+use Blush\Cache\CacheException;
+use Blush\Cache\CacheNamespace;
 use Blush\Content\Entry\Entry;
 use Blush\Data\InvalidData;
 use Blush\Routing\UrlGenerationException;
@@ -200,6 +203,65 @@ final class Template
 	public function asset(string $path): string
 	{
 		return $this->views->assets->url($path) ?? '';
+	}
+
+	/**
+	 * Returns a theme asset's contents, resolved through the theme chain,
+	 * or `''` when no theme has it: `<?= raw($this->inline('svg/github.svg')) ?>`
+	 * (D-151). Only servable assets can be read, never views or PHP.
+	 */
+	public function inline(string $path): string
+	{
+		$found = $this->views->chain->asset($path);
+
+		return $found === null ? '' : (string) file_get_contents($found[1]);
+	}
+
+	/**
+	 * Returns a fragment of HTML, rendering it only when the cache doesn't
+	 * have it (D-152). It's kept per content version and active theme, so
+	 * publishing or switching themes renders it again; with caching off
+	 * (development), it always renders. The key names the fragment and
+	 * anything it varies by:
+	 *
+	 *     <?= $this->cache("archives.{$by}", fn () => $this->component('post-archives', by: $by)) ?>
+	 *
+	 * Only the returned HTML is kept, so a fragment shouldn't add to the
+	 * head or the `<body>` classes.
+	 *
+	 * @param Closure(): (string|Stringable) $render
+	 * @throws CacheException When the fragment store can't be built.
+	 */
+	public function cache(string $key, Closure $render): string
+	{
+		$html = static fn (): string => (string) $render();
+
+		return $this->views->services->cache?->remember(
+			CacheNamespace::Fragments,
+			$this->views->chain->active()->slug . '.' . $key,
+			$html
+		) ?? $html();
+	}
+
+	/**
+	 * Escapes text and joins its last two words with a non-breaking space,
+	 * so a title doesn't end with one word alone on its last line (a
+	 * "runt"; the fix is known as "widont"). 1.x's `runt()` (D-153). Text
+	 * of three words or fewer is only escaped. Print the result as is:
+	 * `<?= $this->widont($title) ?>`.
+	 */
+	public function widont(string $text): string
+	{
+		$html  = e($text);
+		$words = preg_split('/ +/', trim($html), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+		if (count($words) <= 3) {
+			return $html;
+		}
+
+		$last = array_pop($words);
+
+		return implode(' ', $words) . '&nbsp;' . $last;
 	}
 
 	/**

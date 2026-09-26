@@ -75,14 +75,16 @@ final readonly class ThemedErrorPages implements ErrorPages
 		$context->head->title($title)->meta('robots', 'noindex');
 		$context->addClass('is-error', "is-error-{$status->value}");
 
-		$html = $views->render(Hierarchy::forError($status->value, $entry)->names, [
+		$context->share([
 			'status'      => $status->value,
 			'reason'      => $reason,
 			'title'       => $title,
 			'entry'       => $entry,
 			'description' => self::message($views, "error.{$status->value}.message", self::message($views, 'error.message', '')),
 			'message'     => $this->app->debug ? $error->getMessage() : ''
-		], $context);
+		]);
+
+		$html = $views->render(Hierarchy::forError($status->value, $entry)->names, [], $context);
 
 		return Response::html($html, $status);
 	}

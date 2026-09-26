@@ -2138,3 +2138,144 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the design docs had grown too heavy for someone who just
   wants to install Blush and write; the author asked for a simplified
   guide before M8.
+
+### D-142: M8 approach: a dynamic jtcom, trialed on the skeleton first
+- **Date:** 2026-09-26
+- **Decision:**
+  - **jtcom runs dynamically** (PHP on the host). Static deployment of
+    jtcom is tabled; `build` stays as built in M7.
+  - **jtcom's theme keeps SCSS.** How a theme's SCSS build fits the
+    theming system (D-110 onward) is explored when the theme is ported.
+  - **jtcom's port lives on a `2.x` branch** of the jtcom repo.
+  - **Trial run first:** before touching jtcom, port as much of what
+    jtcom does as possible (its types, archives, controllers, head
+    meta, Markdown additions, and views) to a test branch of
+    `blush-dev/blush`, running against jtcom's real content. That
+    shakes out framework gaps with real data while jtcom stays as it is.
+- **Why:** the author wants the port tested separately with real data
+  before jtcom itself changes.
+
+### D-143: Skeleton fixes before M8
+- **Date:** 2026-09-26
+- **Decision:**
+  - The framework requires `ext-intl` (`MessageFormatter`,
+    `IntlDateFormatter`) and `ext-mbstring` in `composer.json`; the
+    installation docs list both.
+  - `blush-dev/blush`'s `config/app.php` passes
+    `locale: $env->string('APP_LOCALE', 'en_US')`, and `.env.example`
+    lists `APP_LOCALE`.
+  - `blush-dev/blush` ships `config/markdown.php` adding
+    `AttributesExtension` to the defaults, since its sample post uses
+    `{.alignwide}`. The framework's `DEFAULT_EXTENSIONS` stay as they
+    are; attribute syntax is a site's choice.
+- **Why:** closes the skeleton gaps found while writing `docs/` (D-141),
+  before jtcom's trial starts from the skeleton.
+
+### D-144: Site themes in `resources/themes`
+- **Date:** 2026-09-26
+- **Decision:** `ThemeDiscovery` also finds themes in the site's
+  `resources/themes/{slug}` (the new `Paths::$siteThemes`), with the new
+  `ThemeSource::Site`. Precedence for a shared slug: `user/themes`, then
+  `resources/themes`, then Composer; nothing replaces `default`. Site
+  themes' `autoload` maps are loaded like local themes'. `theme:new`
+  still writes to `user/themes`.
+- **Why:** jtcom's `user/` is its content repo, and its theme is code
+  that belongs in the site repo. **Provisional:** the author wants to
+  revisit where themes (and site code generally) live, relative to
+  `user/`, later; see `open-questions.md`.
+
+### D-145: Themes can serve web app manifests
+- **Date:** 2026-09-26
+- **Decision:** `ThemeChain::ASSET_TYPES` adds `webmanifest`
+  (`application/manifest+json`), so a theme can ship
+  `manifest.webmanifest` and link it with `$this->asset()`. `.json`
+  stays private (theme and token manifests live in theme folders).
+- **Why:** jtcom links a web app manifest; found in the M8 trial.
+
+### D-146: Page data is shared with every template
+- **Date:** 2026-09-26
+- **Decision:** `ViewContext::share()` adds data every template sees.
+  `ThemedPageRenderer` shares `$page`, `$entry`, `$entries`, `$type`, and
+  `$title`, and `ThemedErrorPages` its error data, instead of passing
+  them to the top template only. Layouts, partials, and components see
+  them; data a template passes (`insert('part', entry: $item)`) wins.
+  This narrows D-009's scope isolation: partials still don't see their
+  caller's local variables.
+- **Why:** in the M8 trial, every part needed `page:`, `entry:`, and
+  `title:` passed by hand, the port's most repeated friction.
+
+### D-147: `collection-taxonomy` in the hierarchy
+- **Date:** 2026-09-26
+- **Decision:** a taxonomy type's listing (its terms) tries
+  `collection-{type}` → `collection-taxonomy` → `collection`.
+- **Why:** jtcom lists five taxonomies the same way and needed five
+  identical templates.
+
+### D-148: `inheritTokens` in `theme.json`
+- **Date:** 2026-09-26
+- **Decision:** `"inheritTokens": false` (default `true`) makes a theme
+  the start of its token chain: the default theme's and its ancestors'
+  tokens are left out, and a theme without its own tokens prints no
+  `blush-tokens` block. Site and entry overrides still apply on top. A
+  theme that opts out declares its own `$type`s (they were inherited
+  from the default's groups).
+- **Why:** jtcom's CSS doesn't use tokens, but every page carried about
+  50 lines of the default theme's. Inferring it (from whether the
+  default's styles load) would break themes that copy the default's
+  stylesheet, so it's explicit.
+
+### D-149: Entry description and image in the head
+- **Date:** 2026-09-26
+- **Decision:** on a page showing a (non-virtual) entry,
+  `ThemedPageRenderer` adds `description` and `og:description` (the
+  excerpt, 30 words, as text: the summary when there is one) and, when
+  the entry has an `image` field, `og:image` (made absolute unless it's
+  already an `http(s)` URL) and `twitter:card` =
+  `summary_large_image`. Themes replace or extend them through `Head`
+  (a later value for the same key wins in place).
+- **Why:** generic sharing metadata; jtcom's 1.x plugins did it in site
+  code.
+
+### D-150: `excerpt()`'s `$more` is HTML
+- **Date:** 2026-09-26
+- **Decision:** `Entry::excerpt($words, $more)` appends `$more` as HTML,
+  inside the paragraph, only when the body is cut short (the excerpt
+  text is still escaped). A summary is returned without it.
+- **Why:** 1.x themes (jtcom) pass a "Continue reading" link; as plain
+  text it was escaped.
+
+### D-151: Reading time and inline theme assets
+- **Date:** 2026-09-26
+- **Decision:**
+  - `Entry::wordCount()` (cached per body hash, figure captions left
+    out) and `Entry::readingTime(int $wordsPerMinute = 200)` (whole
+    minutes, at least 1).
+  - `Template::inline($path)` returns a theme asset's contents through
+    the chain, for inline SVG icons. Only servable assets
+    (`ThemeChain::isServable()`) can be read, so views, PHP, and
+    manifests stay out of reach.
+- **Why:** jtcom's writing shows reading time, and its header and social
+  menu inline SVGs; both needed workarounds in the trial.
+
+### D-152: Template fragment cache
+- **Date:** 2026-09-26
+- **Decision:** `Template::cache(string $key, Closure $render): string`
+  keeps rendered HTML in the `fragments` namespace through
+  `ContentCache`, keyed by the active theme's slug and the key, so a
+  publish (a new content version) or a theme switch renders it again.
+  With caching off (development) it always renders. Only the returned
+  HTML is kept, so a fragment mustn't add to the head or `<body>`
+  classes. `ViewServices` gets the optional `ContentCache`. `cache:clear`
+  already clears fragments.
+- **Why:** the M6 carried-forward item; jtcom's archive pages list every
+  post on each request.
+
+### D-153: `widont()` for titles
+- **Date:** 2026-09-26
+- **Decision:** `Template::widont(string $text): string` escapes text
+  and, when it has four or more words, joins the last two with
+  `&nbsp;`, so a title can't end with one word alone on its line (a
+  "runt"). It's 1.x's `runt()` under the name web typography tools use
+  for the fix. It's a `Template` method, not a global function (global
+  functions stay limited to escaping, D-106).
+- **Why:** jtcom's titles used `e|runt` in 1.x.

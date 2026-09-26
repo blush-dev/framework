@@ -18,6 +18,8 @@
 	},
 	"require": {
 		"php": ">=8.5",
+		"ext-intl": "*",
+		"ext-mbstring": "*",
 		"league/commonmark": "^2.10",
 		"psr/clock": "^1.0",
 		"psr/container": "^2.0",

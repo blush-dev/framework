@@ -194,4 +194,22 @@ final class ViewsTest extends TestCase
 		$this->assertSame('Helpers | Test Site', $context->head->documentTitle());
 		$this->assertTrue($context->head->has('meta:robots'));
 	}
+
+	public function testWidontJoinsTheLastTwoWords(): void
+	{
+		$this->writeTemporaryFile('resources/views/widont.php', <<<'PHP'
+			<?= $this->widont('Tom & Jerry go  home') ?>|<?= $this->widont('Three short words') ?>|<?= $this->widont('') ?>
+			PHP);
+
+		$this->assertSame('Tom &amp; Jerry go&nbsp;home|Three short words|', trim($this->render('widont')));
+	}
+
+	public function testInlineReadsOnlyServableThemeAssets(): void
+	{
+		$this->writeTemporaryFile('resources/views/inline.php', <<<'PHP'
+			<?= strlen($this->inline('style.css')) > 0 ? 'css' : '' ?>|<?= $this->inline('views/single.php') ?>|<?= $this->inline('theme.json') ?>|<?= $this->inline('../../../composer.json') ?>|<?= $this->inline('nope.svg') ?>
+			PHP);
+
+		$this->assertSame('css||||', trim($this->render('inline')));
+	}
 }

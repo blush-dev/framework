@@ -93,6 +93,7 @@ site/
   public/               Web root: index.php, .htaccess, and published assets ONLY
                         (themes/, and media at MediaConfig::$url, D-099). Relocatable
                         (e.g. cPanel public_html, D-046)
+  resources/themes/     The site's own themes (D-144), kept with its code, not its content
   resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
   src/                  App\ namespace: providers, components, controllers
   storage/

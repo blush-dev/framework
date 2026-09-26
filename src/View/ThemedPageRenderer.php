@@ -29,7 +29,10 @@ use Blush\Theme\ThemeResolver;
  * Renders content pages with the request's theme chain: the first view
  * in the page's `Hierarchy`, in a context whose `Head` already has the
  * title, canonical URL, OpenGraph basics, pagination links, and feed
- * links.
+ * links. When the page shows an entry, the head also gets its
+ * description (its summary, or the start of its body) and its `image`
+ * field as `og:image`, with a Twitter card (D-149). Themes can replace
+ * any of them, since a later value for the same tag wins.
  *
  * Templates get `$page` (the `ContentPage`), `$entry`, `$entries` (a
  * `Paginator` or `null`), `$type`, and `$title`, plus the shared `$site`.
@@ -57,13 +60,15 @@ final readonly class ThemedPageRenderer implements PageRenderer
 
 		$this->describe($context, $page, $request);
 
-		return Response::html($views->render(Hierarchy::forPage($page)->names, [
+		$context->share([
 			'page'    => $page,
 			'entry'   => $page->entry,
 			'entries' => $page->entries,
 			'type'    => $page->type,
 			'title'   => $page->title
-		], $context));
+		]);
+
+		return Response::html($views->render(Hierarchy::forPage($page)->names, [], $context));
 	}
 
 	/**
@@ -79,6 +84,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			->property('og:title', $isFront || $page->title === '' ? $this->app->name : $page->title)
 			->property('og:type', $page->kind === PageKind::Single ? 'article' : 'website')
 			->property('og:url', $canonical);
+
+		$this->describeEntry($head, $page);
 
 		$entries = $page->entries;
 
@@ -102,6 +109,32 @@ final readonly class ThemedPageRenderer implements PageRenderer
 
 		if ($entries !== null && $entries->page > 1) {
 			$context->addClass('is-paged');
+		}
+	}
+
+	/**
+	 * Adds the page entry's description and image to the head.
+	 */
+	private function describeEntry(Head $head, ContentPage $page): void
+	{
+		$entry = $page->entry;
+
+		if ($entry === null || $entry->isVirtual()) {
+			return;
+		}
+
+		$description = trim(html_entity_decode(strip_tags($entry->excerpt(30)), ENT_QUOTES | ENT_HTML5));
+
+		if ($description !== '') {
+			$head->meta('description', $description)->property('og:description', $description);
+		}
+
+		$image = $entry->field('image');
+
+		if (is_string($image) && $image !== '') {
+			$url = preg_match('#^https?://#i', $image) === 1 ? $image : $this->app->absoluteUrl($image);
+
+			$head->property('og:image', $url)->meta('twitter:card', 'summary_large_image');
 		}
 	}
 }

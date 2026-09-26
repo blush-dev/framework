@@ -34,6 +34,7 @@ final class PathsTest extends TestCase
 		$this->assertSame('/srv/site/public', $paths->public);
 		$this->assertSame('/srv/site/storage/cache', $paths->cache);
 		$this->assertSame('/srv/site/user/extensions', $paths->extensions);
+		$this->assertSame('/srv/site/resources/themes', $paths->siteThemes);
 	}
 
 	public function testRelocatesThePublicDirectory(): void

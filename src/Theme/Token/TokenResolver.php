@@ -54,15 +54,26 @@ final class TokenResolver
 	}
 
 	/**
-	 * Returns only the chain's own tokens, without the site's.
+	 * Returns only the chain's own tokens, without the site's. A theme
+	 * with `inheritTokens: false` cuts off the tokens of the themes it
+	 * builds on, the default theme's included (D-148).
 	 *
 	 * @throws ThemeException
 	 */
 	public function themeTokens(ThemeChain $chain): TokenSet
 	{
-		$set = new TokenSet();
+		$set    = new TokenSet();
+		$themes = [];
 
-		foreach (array_reverse($chain->themes) as $theme) {
+		foreach ($chain->themes as $theme) {
+			$themes[] = $theme;
+
+			if (! $theme->inheritTokens) {
+				break;
+			}
+		}
+
+		foreach (array_reverse($themes) as $theme) {
 			try {
 				$data = $this->loader->load($theme->path, 'tokens');
 			} catch (InvalidData $error) {

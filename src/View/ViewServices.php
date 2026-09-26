@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use Blush\Cache\ContentCache;
 use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Core\AppConfig;
@@ -34,6 +35,7 @@ final readonly class ViewServices
 		public AppConfig $app,
 		public ContextProviders $providers,
 		public ComponentRegistry $components,
-		public ComponentFactory $factory
+		public ComponentFactory $factory,
+		public ?ContentCache $cache = null
 	) {}
 }

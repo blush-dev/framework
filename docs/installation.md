@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **PHP 8.5** or newer, with the `intl` extension
+- **PHP 8.5** or newer, with the `intl` and `mbstring` extensions
 - **Composer**
 - A web server: Apache (including most shared hosting), nginx, or PHP's
   built-in server for local work

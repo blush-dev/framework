@@ -22,8 +22,11 @@ bin/blush theme:list              # installed themes, and which is active
 bin/blush theme:activate notebook # switch themes
 ```
 
-Themes live in `user/themes/{slug}/`. They can also be installed with
-Composer (package type `blush-theme`). The active theme is set in
+Themes live in `user/themes/{slug}/`, or in your site's
+`resources/themes/{slug}/` when you'd rather keep a theme with your site's
+code than with your content. They can also be installed with Composer
+(package type `blush-theme`). If two share a slug, `user/themes/` wins,
+then `resources/themes/`, then Composer. The active theme is set in
 `config/theme.php`, which `theme:activate` writes for you.
 
 In development, add `?theme=notebook` to any URL to preview another theme.
@@ -146,7 +149,8 @@ user/themes/notebook/
 			"label": "Show the date on posts"
 		}
 	},
-	"contrast": [["color.text", "color.background"]]
+	"contrast": [["color.text", "color.background"]],
+	"inheritTokens": true
 }
 ```
 
@@ -154,6 +158,10 @@ Only `name` is required.
 
 - **`parent`:** build on another theme instead of starting from the
   default. Anything this theme doesn't include comes from its parent.
+- **`inheritTokens`:** set it to `false` when your styles don't use the
+  default theme's (or your parent's) [design tokens](#design-tokens).
+  Only your own `tokens.json` is used, and a theme without one prints
+  none.
 - **`settings`:** options site owners set in `user/data/theme.json`. They
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`contrast`:** pairs of color tokens that `theme:check` tests against
@@ -201,15 +209,49 @@ What a template can use:
 | `$this->setting('name')` | A theme setting |
 | `$this->token('color.accent')` | A design token's value |
 | `$this->asset('app.js')` | A theme file's URL, versioned |
+| `$this->inline('svg/logo.svg')` | A theme file's contents, such as an SVG icon to print with `raw()` |
+| `$this->widont($title)` | Escaped text whose last two words won't split across lines, so a title never ends with one word alone |
+| `$this->cache('key', fn () => ...)` | Keep a piece of HTML that's slow to build (see below) |
 | `$this->t('key')` | A translated string from `lang/` |
 | `$this->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
 | `$this->bodyClass()` | The `<body>` classes |
 
 Every template gets `$site` (name, URL, and language). Content pages also
-get `$entry` (the entry), `$entries` (a listing, when there is one),
-`$type`, and `$title`. An entry offers `title`, `slug`, `published`,
-`updated`, `body()`, `summary()`, `excerpt()`, `subtitle()`, and
-`field('name')` for anything in its front matter.
+get `$page`, `$entry` (the entry), `$entries` (a listing, when there is
+one), `$type`, and `$title`, and so do their layouts, parts, and
+components, so you don't have to pass them along. Anything you pass to
+`insert()` wins, so `$this->insert('parts/summary', entry: $item)` shows
+that entry instead.
+
+An entry offers `title`, `slug`, `published`, `updated`, `body()`,
+`summary()`, `excerpt()`, `subtitle()`, `wordCount()`, `readingTime()`
+(in minutes), and `field('name')` for anything in its front matter.
+`excerpt(50, $more)` takes the number of words and HTML to end with when
+the body is cut short, such as a "Continue reading" link:
+
+```php
+<?= raw($entry->excerpt(40, ' <a href="' . url($this->permalink($entry)) . '">Continue reading</a>')) ?>
+```
+
+Blush fills in the `<head>` for you: the title, the canonical URL,
+OpenGraph tags, feed links, and on an entry's page, a description (its
+`summary`, or the start of its text) and, when the entry has an `image`
+field, `og:image` and a Twitter card. Add or replace any tag with
+`$this->head()`.
+
+### Caching slow parts
+
+Some parts of a page are slow to build, such as a list of every post.
+Wrap them in `$this->cache()` and they're built once, then reused until
+your content changes (a publish) or you switch themes:
+
+```php
+<?= $this->cache('archives.years', fn () => $this->component('post-archives', by: 'year')) ?>
+```
+
+The key names the piece, so give each variation its own key. Only the
+HTML is kept, so don't add to the head inside it. In development,
+nothing is cached, so your changes always show.
 
 ### Which template is used
 
@@ -218,7 +260,7 @@ Blush picks the most specific template your theme (or its parents) has:
 | Page | Templates tried, in order |
 |---|---|
 | An entry | `single-{type}-{slug}`, `single-{type}`, `single` |
-| A listing | `collection-{type}`, `collection` |
+| A listing | `collection-{type}`, `collection-taxonomy` (a taxonomy's listing), `collection` |
 | A term | `term-{taxonomy}-{slug}`, `term-{taxonomy}`, `term`, `collection` |
 | A date archive | `archive-date-{type}`, `archive-date`, `collection` |
 | The home page | `home`, then whatever it shows |

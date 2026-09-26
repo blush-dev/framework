@@ -443,7 +443,8 @@ view layer was implemented in M5 (D-103 to D-125).
   components (D-112). **Context providers** (`ContextProviders`, D-114)
   add data to views by name or pattern.
 - **Themes** (`Blush\Theme`, D-105, D-115 to D-121): `ThemeDiscovery`
-  (framework, Composer `blush-theme`, and `user/themes`, before the
+  (framework, Composer `blush-theme`, the site's `resources/themes`
+  (D-144), and `user/themes`, before the
   container; cached in `storage/cache/themes.php`), `Themes`,
   `ThemeChain` (with its providers, registered at boot), `ThemeConfig`,
   `ThemeResolver`, `ThemeAssets` (build manifests or mtime), settings
@@ -477,7 +478,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 | Content index | Per-file mtime/size/hash, incremental |
 | Rendered bodies, summaries, excerpts | Content version + theme + rendering settings + content hash (`RenderedBodies`) |
 | Token CSS | Content version + theme chain (`ViewFactory`) |
-| Fragments | `ContentCache::remember(namespace, key, fn)`, per content version |
+| Fragments | `ContentCache::remember(namespace, key, fn)`, per content version; in templates, `$this->cache($key, fn)` (per active theme too, D-152) |
 | Full pages | `PageCache` middleware; content version + path |
 | HTTP | `ConditionalGet`: ETag or Last-Modified → 304; `Cache-Control` on cached pages |
 

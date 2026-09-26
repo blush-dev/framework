@@ -22,7 +22,8 @@ use Blush\Content\Http\PageKind;
  * An entry's `template` front matter (1.x's `view`) always comes first.
  *
  * - **Single:** `single-{type}-{slug}` → `single-{type}` → `single`.
- * - **Collection:** `collection-{type}` → `collection`.
+ * - **Collection:** `collection-{type}` → `collection-taxonomy` (a
+ *   taxonomy's listing only) → `collection`.
  * - **Term:** `term-{taxonomy}-{slug}` → `term-{taxonomy}` → `term` →
  *   `collection`.
  * - **Date archive:** `archive-date-{type}` → `archive-date` →
@@ -47,13 +48,15 @@ final readonly class Hierarchy
 	 */
 	public static function forPage(ContentPage $page): self
 	{
-		$entry = $page->entry;
-		$type  = ($page->type ?? $entry?->type)->name ?? 'page';
+		$entry    = $page->entry;
+		$type     = $page->type ?? $entry?->type;
+		$name     = $type->name ?? 'page';
+		$taxonomy = $type->taxonomy ?? false;
 
 		$names = match ($page->kind) {
 			PageKind::Welcome    => ['welcome'],
-			PageKind::Home       => ['home', ...self::forKind($page->base ?? PageKind::Page, $type, $entry)],
-			default              => self::forKind($page->kind, $type, $entry)
+			PageKind::Home       => ['home', ...self::forKind($page->base ?? PageKind::Page, $name, $taxonomy, $entry)],
+			default              => self::forKind($page->kind, $name, $taxonomy, $entry)
 		};
 
 		return self::withTemplates($entry, $names);
@@ -68,16 +71,17 @@ final readonly class Hierarchy
 	}
 
 	/**
-	 * Returns the names for a kind of page.
+	 * Returns the names for a kind of page. A taxonomy's listing (its
+	 * terms) tries `collection-taxonomy` before `collection` (D-147).
 	 *
 	 * @return list<string>
 	 */
-	private static function forKind(PageKind $kind, string $type, ?Entry $entry): array
+	private static function forKind(PageKind $kind, string $type, bool $taxonomy, ?Entry $entry): array
 	{
 		$slug = $entry?->slug;
 
 		return match ($kind) {
-			PageKind::Collection => ["collection-{$type}", 'collection'],
+			PageKind::Collection => ["collection-{$type}", ...($taxonomy ? ['collection-taxonomy'] : []), 'collection'],
 			PageKind::Term       => [...($slug === null ? [] : ["term-{$type}-{$slug}"]), "term-{$type}", 'term', 'collection'],
 			PageKind::Date       => ["archive-date-{$type}", 'archive-date', 'collection'],
 			default              => [...($slug === null ? [] : ["single-{$type}-{$slug}"]), "single-{$type}", 'single']

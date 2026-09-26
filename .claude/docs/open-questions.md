@@ -7,6 +7,11 @@ Move each item to `decisions.md` once it's answered.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 
 ## Later milestones
+- **Where site code and themes live** (D-144, provisional): with `user/`
+  as a separate content repo (jtcom), a site's theme sits in
+  `resources/themes/` for now. Revisit the split between the site repo
+  and `user/` (themes, extensions, `data/`), and whether `theme:new`
+  should offer a location.
 - **Browser-friendly feeds and sitemaps** (D-125): XSL stylesheets won't
   work in major browsers for much longer, so 1.x's approach (jtcom's
   `xsl/feed.xsl`) can't carry over. Options: an HTML "about this feed" page
@@ -28,12 +33,9 @@ Move each item to `decisions.md` once it's answered.
   default settings the site lags by `opcache.revalidate_freq` (about 2 s,
   observed); with `opcache.validate_timestamps=0` it never sees the change
   until PHP restarts. The webhook is unaffected (it runs in the web
-  server). Options: document it (done for now), have `publish` ping the
+  server). Now relevant to M8, since jtcom runs dynamically (D-142).
+  Options: document it (done for now), have `publish` ping the
   site to invalidate, or version the index file names.
-- **Skeleton gaps** (found while writing `docs/`): `blush-dev/blush`'s
-  sample post uses `{.alignwide}`, but `AttributesExtension` isn't a
-  default; its `config/app.php` doesn't pass `APP_LOCALE`; and the
-  framework needs `ext-intl` but `composer.json` doesn't require it.
 
 ## Tooling
 - **Benchmark regressions in CI** (D-044, D-101): CI machines differ from

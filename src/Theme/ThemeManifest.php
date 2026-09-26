@@ -35,6 +35,7 @@ final readonly class ThemeManifest
 	 * @param array<string, mixed>  $data     The whole manifest.
 	 * @param ?string               $provider A service provider class.
 	 * @param array<string, string> $autoload PSR-4 prefixes and their folders, relative to the theme.
+	 * @param bool                  $inheritTokens Whether its parents' and the default theme's tokens apply (D-148).
 	 */
 	public function __construct(
 		public string $slug,
@@ -48,7 +49,8 @@ final readonly class ThemeManifest
 		public array $data = [],
 		public ThemeSource $source = ThemeSource::Local,
 		public ?string $provider = null,
-		public array $autoload = []
+		public array $autoload = [],
+		public bool $inheritTokens = true
 	) {}
 
 	/**
@@ -77,6 +79,12 @@ final readonly class ThemeManifest
 			throw new ThemeException(sprintf('The "%s" theme\'s "provider" must be a class name.', $slug));
 		}
 
+		$inheritTokens = $data['inheritTokens'] ?? true;
+
+		if (! is_bool($inheritTokens)) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "inheritTokens" must be true or false.', $slug));
+		}
+
 		$settings = $data['settings'] ?? [];
 
 		if (! is_array($settings) || ($settings !== [] && array_is_list($settings)) || ! array_all($settings, static fn (mixed $item): bool => is_array($item))) {
@@ -96,7 +104,8 @@ final readonly class ThemeManifest
 			data: $data,
 			source: $source,
 			provider: $provider,
-			autoload: self::autoload($slug, $data)
+			autoload: self::autoload($slug, $data),
+			inheritTokens: $inheritTokens
 		);
 	}
 

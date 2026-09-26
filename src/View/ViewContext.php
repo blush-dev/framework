@@ -43,9 +43,21 @@ final class ViewContext
 	 */
 	public function __construct(
 		public readonly Head $head = new Head(),
-		public readonly array $shared = [],
+		public private(set) array $shared = [],
 		public readonly ?string $layout = null
 	) {}
+
+	/**
+	 * Adds data every template sees: the page's own data, so partials,
+	 * layouts, and components can use it without it being passed along
+	 * (D-146). A template's own data wins over it.
+	 *
+	 * @param array<string, mixed> $data
+	 */
+	public function share(array $data): void
+	{
+		$this->shared = [...$this->shared, ...$data];
+	}
 
 	/**
 	 * Sets a section's content.
