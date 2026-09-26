@@ -1910,3 +1910,207 @@ decision, add a new entry that supersedes it and mark the old one
   time, and prunes expired cache entries. Requests handle go-live by
   themselves; the command is the optional cron entry (D-040) for a go-live
   on time on a quiet site, and for pruning.
+
+### D-134: M7 ships in two slices
+- **Date:** 2026-09-26
+- **Decision:** Like M4 to M6 (D-079, D-102, D-126), each slice ends
+  with `composer check` passing, for review:
+  - **M7a (export):** the export application, URL sources, the crawler,
+    the output layout, assets, the manifest (unchanged files kept,
+    stale ones removed), `build [--base-url] [--no-crawl]`, and
+    `serve --static`.
+  - **M7b (incremental and hosts):** `build --incremental` (skip
+    rendering when the content version and the site's templates,
+    config, and data are unchanged), redirects in the export, host
+    files (`.htaccess`, `_redirects`, `_headers`), and the exit
+    criterion checked against jtcom.
+
+### D-135: Static export renders with a production export application
+- **Date:** 2026-09-26
+- **Decision:** `Export\ExportSite` boots a second application from the
+  site's `Bootstrap` for every export, rather than rendering through the
+  command's own application:
+  - **Production, always.** `AppConfig` gets the production environment
+    whatever the site runs in, so drafts, `?theme=`, development's
+    auto-indexing, and development's `Disallow: /` `robots.txt` never
+    reach the output.
+  - **The export's origin.** `AppConfig::$url` becomes the export URL
+    (`build --base-url`, then `ExportConfig::$url`, then the site's
+    origin), so every absolute URL (canonical links, feeds, sitemaps,
+    Markdown's absolute links) uses it. Only an origin works; a path
+    would need subdirectory support (open question).
+  - **Caching in memory.** `CacheConfig` is on with the `array` driver
+    and no page cache: a body rendered for its page is reused by the
+    listings and feeds that show it, and the site's own store isn't
+    touched.
+  - **Fresh compiled state.** Its cache path is `storage/cache/export`,
+    which nothing compiles into, so config, routes, content types,
+    themes, extensions, and container plans are read from the site's
+    files, never a stale `cache:compile`.
+  - It shares the site's clock, so both agree on what's scheduled.
+  - `Bootstrap` gained `withConfig(Config ...)` (objects that replace
+    the loaded or compiled config of their class) and `withPaths()`.
+
+### D-136: Export URLs come from sources, paging, and crawling
+- **Date:** 2026-09-26
+- **Decision:** `Export\Crawler` (in the export application) renders
+  every URL through `Kernel::handle()`:
+  - **Sources:** `Export\UrlSource`s tagged `UrlSource::TAG`, like route
+    sources. The framework's are `Content\Routing\ContentExportUrls`
+    (the home page, collections, terms with files or listed entries,
+    every date archive level of every period a listed entry was
+    published in, and every published entry with a URL, unlisted ones
+    included), `Feed\FeedExportUrls` (collection feeds, and per-term
+    feeds of terms with listed entries, in every configured format),
+    and `Sitemap\SitemapExportUrls` (`robots.txt`, `/sitemap`,
+    `/sitemap.xml`, and each sitemap the index lists). Plus
+    `ExportConfig::$paths`.
+  - **Paging by asking:** a listing's `ExportUrl` carries a closure for
+    its later pages, and page N+1 is requested only after page N
+    answers 200, so the page count is always the controller's, without
+    repeating its queries. The 404 that ends the paging isn't reported.
+  - **Crawling** (`ExportConfig::$crawl`, on by default; `build
+    --no-crawl`): links on exported HTML pages (`<a>`, `<area>`, and
+    `<link>` with `rel` `alternate`, `canonical`, `next`, or `prev`) on
+    the export's origin are queued, and so are internal redirect
+    targets. It finds pages no source lists (an extension's, or a
+    config route's) and reports broken links with the page linking to
+    them.
+  - Each path is rendered once. Paths under the media URL and
+    `/themes/` are never requested (their files are copied), and
+    `ExportConfig::$exclude` globs are skipped.
+  - **Outcomes:** 200s are written; redirects are recorded (written in
+    M7b); a 4xx is "skipped" when a source listed it (an empty date
+    archive) or "broken" when a page linked to it; anything else is a
+    failure, which fails `build`.
+  - Checked on jtcom's content: 2,795 pages, 4,261 media files, no
+    failures, in 12 s; the 114 broken links are real dead links in old
+    posts (input for M8's redirect map). The generated benchmark site
+    exports 2,920 pages in about 9 s at 34 MB peak.
+
+### D-137: The export's layout, assets, and manifest
+- **Date:** 2026-09-26
+- **Decision:**
+  - **Layout** (`Export\ExportLayout`): a URL whose last segment has an
+    extension its content type uses is a file (`/robots.txt`,
+    `/sitemap.xml`); any other URL is a folder with an index file named
+    for its content type: `index.html`, `.rss`, `.atom`, `.json`,
+    `.xml`, or `.txt` (`/feed` → `feed/index.rss`). URLs keep their
+    exact form (no `.html`, no forced trailing slash), and a host
+    learns the content type from the index's extension; the lookup
+    order is `ExportLayout::INDEXES`. A content type with no known
+    extension at an extensionless path is a failure. The 404 page is
+    `404.html`.
+  - **Assets** (`Export\ExportAssets`), at the URLs the live site serves
+    them from: `public/`'s files first (except PHP, dotfiles, symlinks,
+    and the published theme and media folders), so a real file such as
+    `public/robots.txt` wins over a rendered URL, as it does live; the
+    active chain's servable theme files at `/themes/{slug}/…`; and what
+    the media route would serve, resolved by `MediaResolver`: allowed
+    files in `user/media` at the media URL and page bundle files at
+    `{media URL}/_content/…`.
+  - **Writing** (`Export\ExportWriter`): the first write of a file in a
+    run claims it. Unchanged files are left alone (rendered ones by
+    xxh128, copied ones by size and mtime), so deploy tools that sync by
+    mtime or checksum only move what changed. Rendered files are
+    written atomically.
+  - **Manifest** (`Export\ExportManifest`, `storage/cache/export/manifest.json`,
+    outside the output so it's never deployed): the output folder,
+    origin, and each file's fingerprint. The next export removes the
+    files the last one wrote and this one didn't (and folders that
+    leaves empty); files it never wrote (`.git`, `CNAME`) are never
+    touched.
+  - **Safety:** the output folder (`Paths::$export`, `storage/export` by
+    default) can't be, hold, or sit inside the site's own folders
+    (`storage/export` or a folder outside the project is fine). One
+    export at a time (`storage/cache/export.lock`).
+  - `ExportStarted` and `ExportFinished` are dispatched around it.
+
+### D-138: `build` and `serve --static`
+- **Date:** 2026-09-26
+- **Decision:**
+  - `build [--base-url=] [--no-crawl]` reindexes, exports with a
+    progress bar, and prints a summary. Failures (a URL that errors, a
+    file that can't be written, a content file that can't be indexed)
+    are errors and fail the command; broken links are warnings. `-v`
+    lists redirects, skipped URLs, and removed files. `--incremental`
+    comes in M7b.
+  - `serve --static` previews the export with PHP's built-in server and
+    `resources/static-server.php`, which answers as a static host would:
+    a file as is, a folder by its first `ExportLayout::INDEXES` file with
+    the content type its extension gives, dotfiles never, and anything
+    else as `404.html` with a 404. It runs without the framework, so the
+    preview shows only what's in the export.
+  - `Support\Filesystem::files()` lists a folder's files (skipping
+    dotfiles, and optionally symlinks); `theme:publish` and
+    `media:publish` use it too.
+
+### D-139: Incremental export, and redirects in the export
+- **Date:** 2026-09-26
+- **Decision:**
+  - **`build --incremental`** keeps the last export's rendered files, and
+    renders nothing, when the manifest shows the same output folder,
+    origin, content version (D-128, after the reindex), and
+    `Export\ExportFingerprint`, and every file it rendered is still in
+    place. Otherwise it renders everything, as a full build does. Theme
+    assets, media, and `public/` are synced either way. Pages aren't
+    re-rendered selectively: a listing, feed, or term count can depend
+    on any entry, and a full render is about 10 s for jtcom.
+  - **The fingerprint** covers what isn't content, by stat (path, size,
+    mtime): the origin, crawl setting, `ExportConfig`, framework
+    version, `.env`, `config/`, `user/data`, `user/media` (Markdown
+    reads image dimensions), `user/themes`, `user/extensions`,
+    `public/`, `resources/`, the site's `src/`, Composer's
+    `installed.json`, and the framework's own `src/` and `resources/`.
+  - **Redirects:** `Routing\RedirectExportUrls` lists the route table's
+    redirects without parameters as export URLs, so rendering confirms
+    each one (a redirect applies only before a 404, so a path a page
+    answers stays a page). Every redirect the crawl meets (these, and
+    canonical ones such as a misdated single) is exported as a literal
+    `ExportRedirect`; redirects with parameters are exported as
+    patterns, after them. `ExportConfig::$redirectPages` (default on)
+    writes a page at each literal path that redirects in the browser
+    (meta refresh, `noindex`, canonical link), unless a file has the
+    path.
+  - Measured on jtcom: an incremental build with nothing changed takes
+    about 1.3 s (the media sync and fingerprint), against about 10 s.
+
+### D-140: Host files
+- **Date:** 2026-09-26
+- **Decision:** An export tells its host what it needs through host
+  files, an extensible subsystem (enum + registry + factory +
+  registrar, D-019): `Export\Host\HostFormat`, `HostFilesRegistry`,
+  `HostFilesFactory`, `HostFilesRegistrar`, and the abstract
+  `HostFiles`, which turns a `HostContext` (redirects, non-HTML index
+  folders, trailing-slash setting, 404 file) into a `HostOutput` (files
+  and notices). `ExportConfig::$hosts` picks formats (default both
+  built-ins); an unknown name fails the export. A `public/` file with
+  the same name wins, with a notice.
+  - **`apache`** (`.htaccess`, for jtcom's shared hosting):
+    `DirectoryIndex` with `ExportLayout::INDEXES`; types for `.rss`,
+    `.atom`, `.json`, and `.xml` (a host's MIME list may lack them);
+    UTF-8; no listings or MultiViews; `ErrorDocument 404`; the host
+    files denied. Literal redirects as unconditional anchored
+    `RewriteRule`s, patterns (regexes with their constraints, `$n` in
+    the target) only where no file or folder exists. Without trailing
+    slashes (the default): `DirectorySlash Off`, a 301 from `/about/`
+    to `/about`, and folders served by their index file, so URLs keep
+    their exact form. Needs `mod_rewrite`.
+  - **`netlify`** (`_redirects` and `_headers`, which Cloudflare Pages
+    reads too): redirects as `from to status`, a whole-segment
+    parameter as `:name` (its constraint dropped) and a trailing
+    slash-spanning one as `*`/`:splat`; anything else gets a notice.
+    These hosts apply a rule only where no file exists, so a literal
+    redirect with a redirect page serves the page (which still
+    redirects); turn `redirectPages` off there for true 301s. Folders
+    whose index isn't `index.html` are rewritten to it (`/feed
+    /feed/index.rss 200`) and get their content type in `_headers`.
+    Untested against the real hosts.
+  - `serve --static` applies `_redirects` (redirects and 200 rewrites,
+    only where no file exists) and never serves the host files.
+  - **Exit criterion checked on Apache** (XAMPP's 2.4.53, a private
+    instance with `AllowOverride All`, the export at the root): all
+    2,798 of jtcom's rendered URLs answer 200 (or 301 at redirected
+    paths), redirects and trailing slashes 301, feeds and sitemaps
+    carry their content types, unknown paths get the themed 404, and
+    the host files are 403s.

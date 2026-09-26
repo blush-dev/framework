@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Core;
 
 use Blush\Cache\CacheConfig;
+use Blush\Config\Config;
 use Blush\Config\ConfigCache;
 use Blush\Config\ConfigLoader;
 use Blush\Config\ConfigRepository;
@@ -24,6 +25,7 @@ use Blush\Container\ServiceContainer;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Env\Env;
+use Blush\Export\ExportConfig;
 use Blush\Extension\ExtensionCache;
 use Blush\Extension\ExtensionConfig;
 use Blush\Extension\ExtensionDiscovery;
@@ -65,17 +67,38 @@ use Blush\Theme\Themes;
  *    chain registers no theme providers, so the CLI still runs to fix it;
  *    rendering reports the problem.
  *
- * The application is returned registered but not booted.
+ * The application is returned registered but not booted. `withConfig()`
+ * and `withPaths()` return a bootstrap for a variant of the site, such as
+ * the production application static export renders with (D-135).
  */
 final readonly class Bootstrap
 {
 	/**
 	 * @param array<string, string> $environment The process environment.
+	 * @param list<Config>          $overrides   Config objects that replace the site's.
 	 */
 	public function __construct(
 		private Paths $paths,
-		private array $environment = []
+		private array $environment = [],
+		private array $overrides = []
 	) {
+	}
+
+	/**
+	 * Returns a copy whose applications use these config objects in place
+	 * of the site's (or the compiled cache's) of the same class.
+	 */
+	public function withConfig(Config ...$configs): self
+	{
+		return new self($this->paths, $this->environment, [...$this->overrides, ...array_values($configs)]);
+	}
+
+	/**
+	 * Returns a copy for other paths.
+	 */
+	public function withPaths(Paths $paths): self
+	{
+		return new self($paths, $this->environment, $this->overrides);
 	}
 
 	/**
@@ -218,7 +241,7 @@ final readonly class Bootstrap
 
 	/**
 	 * Returns the compiled config, or loads the config files, filling in
-	 * defaults for anything unconfigured.
+	 * defaults for anything unconfigured and applying the overrides.
 	 */
 	private function config(Env $env): ConfigRepository
 	{
@@ -238,8 +261,9 @@ final readonly class Bootstrap
 			new FeedConfig(),
 			new SitemapConfig(),
 			new CacheConfig(),
-			PublishConfig::fromEnv($env)
-		);
+			PublishConfig::fromEnv($env),
+			new ExportConfig()
+		)->with(...$this->overrides);
 	}
 
 	/**

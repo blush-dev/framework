@@ -51,13 +51,18 @@ blush-framework/
                         ContentCache, RenderedBodies, PageCache (D-127 to D-130)
     Feed/               Feed formats, config, builder, controller, routes, head links (D-122)
     Sitemap/            Sitemap config, builder, controller, robots.txt, routes (D-123)
-    Publish/            Publisher, PublishConfig, Puller + GitPuller, webhook (D-131, D-132);
-                        static export (M7)
+    Publish/            Publisher, PublishConfig, Puller + GitPuller, webhook (D-131, D-132)
+    Export/             Static export: Exporter, ExportSite, Crawler, UrlSource, ExportLayout,
+                        ExportWriter, ExportAssets, ExportManifest, ExportFingerprint,
+                        ExportRedirect (D-135 to D-139)
+    Export/Host/        Host file formats: HostFormat, HostFiles, registry, factory,
+                        registrar, ApacheFiles, NetlifyFiles (D-140)
     Console/            In-house console framework + built-in commands
     Admin/              (later milestone)
     Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
-  resources/            server.php (`serve` router); lang/ (the `blush` catalog domain)
+  resources/            server.php (`serve` router); static-server.php (`serve --static`,
+                        D-138); lang/ (the `blush` catalog domain)
     themes/default/     The framework default theme (D-110): theme.json, tokens.json,
                         style.css, lang/, views/ (incl. components/)
   benchmarks/           PHPBench suite + the generated jtcom-sized site (D-101)
@@ -93,8 +98,10 @@ site/
     cache/              Compiled config.php, extensions.php, container.php, routes.php,
                         content-types.php, themes.php (D-060, D-077, D-092, D-115);
                         content-version.json (D-128); store/{namespace}/ (D-127);
-                        publish.lock (D-131)
+                        publish.lock (D-131); export/ (the export application's cache
+                        and manifest.json) and export.lock (D-135, D-137)
     index/              content.php, the content index (D-087)
-    logs/  sessions/  export/
+    export/             Static export output (`build`, D-137)
+    logs/  sessions/
   tests/
 ```

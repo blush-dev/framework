@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Sitemap;
 
 use Blush\Core\ServiceProvider;
+use Blush\Export\UrlSource;
 use Blush\Routing\RouteSource;
 
 /**
@@ -34,13 +35,15 @@ final class SitemapServiceProvider extends ServiceProvider
 	protected const array TRANSIENTS = [
 		SitemapController::class,
 		RobotsController::class,
-		SitemapRoutes::class
+		SitemapRoutes::class,
+		SitemapExportUrls::class
 	];
 
 	/**
 	 * @inheritDoc
 	 */
 	protected const array TAGS = [
-		RouteSource::TAG => [SitemapRoutes::class]
+		RouteSource::TAG => [SitemapRoutes::class],
+		UrlSource::TAG   => [SitemapExportUrls::class]
 	];
 }

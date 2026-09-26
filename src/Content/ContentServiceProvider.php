@@ -37,6 +37,7 @@ use Blush\Content\Parser\DocumentParsers;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\HtmlDocumentParser;
 use Blush\Content\Parser\MarkdownDocumentParser;
+use Blush\Content\Routing\ContentExportUrls;
 use Blush\Content\Routing\ContentRedirects;
 use Blush\Content\Routing\ContentRoutes;
 use Blush\Content\Routing\ContentUrls;
@@ -55,6 +56,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\ServiceProvider;
 use Blush\Event\Listener\ListenerRegistry;
+use Blush\Export\UrlSource;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 
@@ -104,6 +106,7 @@ final class ContentServiceProvider extends ServiceProvider
 		Linter::class,
 		ContentRoutes::class,
 		PageRoutes::class,
+		ContentExportUrls::class,
 		ContentRedirects::class,
 		DataRedirects::class,
 		RefreshRouteCache::class,
@@ -122,7 +125,8 @@ final class ContentServiceProvider extends ServiceProvider
 		RouteSource::TAG => [
 			ContentRoutes::class,
 			PageRoutes::class
-		]
+		],
+		UrlSource::TAG => [ContentExportUrls::class]
 	];
 
 	/**

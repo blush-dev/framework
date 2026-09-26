@@ -13,9 +13,15 @@ declare(strict_types=1);
 
 namespace Blush\Support;
 
+use FilesystemIterator;
+use RecursiveCallbackFilterIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
+
 /**
- * Small, safe filesystem operations shared by the framework: atomic writes and
- * path confinement. Stateless, so it can be created wherever it's needed or
+ * Small, safe filesystem operations shared by the framework: atomic writes,
+ * path confinement, and listing files. Stateless, so it can be created wherever it's needed or
  * injected where a test needs to observe it.
  */
 final class Filesystem
@@ -127,5 +133,30 @@ final class Filesystem
 		}
 
 		return implode('/', [...array_fill(0, count($from), '..'), ...$to]) ?: '.';
+	}
+
+	/**
+	 * Returns the files under a folder, by path relative to it, skipping
+	 * dotfiles and dot-folders. With `$links` off, symlinks (files and
+	 * folders) are skipped too. A missing folder has no files.
+	 *
+	 * @return iterable<string, SplFileInfo>
+	 */
+	public function files(string $root, bool $links = true): iterable
+	{
+		if (! is_dir($root)) {
+			return;
+		}
+
+		$files = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(
+			new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
+			static fn (SplFileInfo $file): bool => ! str_starts_with($file->getFilename(), '.') && ($links || ! $file->isLink())
+		));
+
+		foreach ($files as $file) {
+			if ($file instanceof SplFileInfo && $file->isFile()) {
+				yield substr($file->getPathname(), strlen($root) + 1) => $file;
+			}
+		}
 	}
 }

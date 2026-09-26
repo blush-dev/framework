@@ -13,11 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use FilesystemIterator;
-use RecursiveCallbackFilterIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use SplFileInfo;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
@@ -101,20 +96,14 @@ final readonly class PublishMedia
 	 */
 	private function copy(Output $output, string $source, string $target): ExitCode
 	{
-		$files = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(
-			new RecursiveDirectoryIterator($source, FilesystemIterator::SKIP_DOTS),
-			static fn (SplFileInfo $file): bool => ! str_starts_with($file->getFilename(), '.')
-		));
-
 		$copied  = 0;
 		$current = 0;
 
-		foreach ($files as $file) {
-			if (! $file instanceof SplFileInfo || ! $file->isFile() || ! $this->config->allows(mime_content_type($file->getPathname()) ?: '')) {
+		foreach ($this->filesystem->files($source) as $relative => $file) {
+			if (! $this->config->allows(mime_content_type($file->getPathname()) ?: '')) {
 				continue;
 			}
 
-			$relative    = substr($file->getPathname(), strlen($source) + 1);
 			$destination = "{$target}/{$relative}";
 
 			if (is_file($destination) && filesize($destination) === $file->getSize() && filemtime($destination) === $file->getMTime()) {

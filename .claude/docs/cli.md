@@ -53,7 +53,7 @@ Implemented in M2 (D-065, D-069).
 |---|---|
 | `list` | List the commands (the default) |
 | `help <command>` | Show a command's usage |
-| `serve [--host] [-p\|--port]` | Dev server (`php -S` + `resources/server.php`) |
+| `serve [--host] [-p\|--port] [--static]` | Dev server (`php -S` + `resources/server.php`); `--static` previews the static export through `resources/static-server.php`, applying its `_redirects` (D-138, D-140) |
 | `cache:clear [--config\|--extensions\|--container\|--routes\|--types\|--themes\|--store]` | Clear compiled caches and the cache store, bumping the content version (no flags: all; `--store`: only the store, D-128) |
 | `cache:compile` | Compile config, extensions, themes, routes, content types, and container plans, then clear the cache store and bump the content version (D-060, D-066, D-077, D-092, D-115, D-128) |
 | `content:index [--full]` | Build or refresh the content index, with a progress bar; `-v` lists changes (M4b, D-087) |
@@ -69,7 +69,7 @@ Implemented in M2 (D-065, D-069).
 | `theme:check [slug] [--strict]` | Check the chain, manifests, provider, settings, tokens, WCAG AA contrast, and the base layout's landmarks and skip link (D-030, D-121) |
 | `theme:why <view> [--theme]` | Show which file in the view chain wins for a view, and what it shadows (D-120) |
 | `lang:missing [--locale]` | List untranslated message keys |
-| `build [--incremental] [--base-url]` | Static export |
+| `build [--base-url] [--no-crawl] [--incremental]` | Export the site to static files in `storage/export`, rendered as production for the export's origin, with redirects and host files; `--incremental` keeps the last export's pages when nothing changed; broken links and host-file notices are warnings, failed URLs fail it (M7, D-135 to D-140) |
 | `publish [--pull\|--no-pull]` | Pull `user/` (with `PublishConfig::$git`), recompile the content types and routes, reindex, clear the store, and bump the content version, as the webhook does (D-131) |
 | `extension:list\|new\|check` | Extension management (D-041) |
 | `schedule:run` | Optional cron entry: move the content version on at go-live times and prune the store (D-040, D-133) |

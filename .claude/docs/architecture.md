@@ -99,7 +99,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   - `ApplicationBooted` (M1), `RequestReceived` (M2), `RouteMatched` (M3), `ControllerResolved`
   - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
   - `ContentIndexed` (M4b; the content version listens, M6a), `ContentWritten`, `ContentPublished`, `CacheCleared`
-  - `ExportStarted`, `ExportFinished`
+  - `ExportStarted`, `ExportFinished` (M7a)
 
 ## Data files
 
@@ -499,13 +499,42 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 
 ## Static export (D-011)
 
-- `build` enumerates every URL (routes × entries × pagination × feeds ×
-  sitemaps), then calls `Kernel::handle()` for each one.
-- Output goes to `storage/export/` (configurable), along with assets, media,
-  and image derivatives.
-- Options: base URL rewrite, pretty URLs (`/about/index.html`), incremental
-  export based on the content version, and a `_redirects` file for hosts that
-  support one.
+Implemented in M7 (D-135 to D-140).
+
+- **`Exporter`** (`Blush\Export`): reindexes, boots the export
+  application, copies `public/`'s files, renders every URL the crawler
+  finds, writes the 404 page, copies theme assets and media, removes what
+  the last export wrote and this one didn't, and records the manifest.
+  One export at a time; the output folder (`Paths::$export`,
+  `storage/export`) can't overlap the site's own folders.
+- **`ExportSite`:** a second application booted from the site's
+  `Bootstrap` (`withConfig()`, `withPaths()`): production, the export's
+  origin as `AppConfig::$url`, in-memory caching without the page cache,
+  and compiled caches in `storage/cache/export` (so always fresh).
+- **`Crawler`:** tagged `UrlSource`s (content, feeds, sitemaps, and
+  extensions'), `ExportConfig::$paths`, paging by asking for the next
+  page until one isn't a 200, and link crawling (`ExportConfig::$crawl`)
+  that also reports broken links.
+- **`ExportLayout`:** `/about` → `about/index.html`, `/feed` →
+  `feed/index.rss`, `/robots.txt` → `robots.txt`; index names give hosts
+  the content type (`ExportLayout::INDEXES`).
+- **`ExportWriter`** + **`ExportManifest`** (`storage/cache/export/manifest.json`):
+  unchanged files are left alone, stale ones removed, others never
+  touched.
+- **Incremental** (`build --incremental`, D-139): nothing is rendered
+  when the content version and `ExportFingerprint` (a stat of config,
+  data, media, themes, extensions, `public/`, and code) match the
+  manifest; the previous pages are kept and assets synced.
+- **Redirects** (D-139): the table's literal redirects are export URLs
+  (rendering confirms them); every redirect met is exported, with a
+  page that redirects in the browser; patterns go to host files.
+- **Host files** (`Export\Host`, D-140; enum + registry + factory +
+  registrar): `apache` (`.htaccess`: indexes, types, redirects,
+  extensionless URLs without `DirectorySlash`, the 404) and `netlify`
+  (`_redirects`, `_headers`), chosen by `ExportConfig::$hosts`.
+- **Preview:** `serve --static` with `resources/static-server.php`, which
+  applies `_redirects`.
+- **Later:** image derivatives in the export (with `image()`).
 
 ## Publishing and admin (D-013)
 

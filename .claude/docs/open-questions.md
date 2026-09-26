@@ -15,7 +15,9 @@ Move each item to `decisions.md` once it's answered.
   to browsers (`Accept: text/html`) and XML to feed readers.
 - **Subdirectory installs** (D-071): a site at `example.com/site/` needs a
   base path for routing and URL generation. Derive it from `AppConfig::$url`?
-  The M3 router and `UrlGenerator` assume the site is at the host's root.
+  The M3 router and `UrlGenerator` assume the site is at the host's root,
+  and so does static export: `build --base-url` takes only an origin
+  (D-135).
 - **Extension requirements** (D-058): what constraint syntax to support for
   `extension:check`, likely a Composer semver subset (`^`, `~`, comparison
   operators, `||`).

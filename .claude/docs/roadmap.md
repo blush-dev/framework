@@ -17,6 +17,82 @@
 
 ---
 
+## M7 (Static export): done
+
+Started and finished 2026-09-26, in two slices (D-134). Exit criterion,
+**jtcom exports and serves from static files:** done (M7b, on Apache).
+
+### M7a: export (done)
+
+Implemented 2026-09-26. See D-135 to D-138. Delivered and tested (703
+tests):
+
+- `Blush\Export`: `Exporter` (reindex, export application, public files,
+  crawl, 404 page, theme and media files, prune, manifest, events, lock,
+  output-folder safety), `ExportSite` (the production export
+  application, D-135), `Crawler` (sources, paging by asking, link
+  crawling, broken links), `UrlSource` + `ExportUrl`, `ExportLayout`,
+  `ExportWriter`, `ExportAssets`, `ExportManifest`, `ExportReport`,
+  `ExportConfig` (`config/export.php`), and `ExportStarted`/`ExportFinished`.
+- URL sources: `ContentExportUrls`, `FeedExportUrls`, `SitemapExportUrls`.
+- `Bootstrap::withConfig()` and `withPaths()`.
+- `build [--base-url] [--no-crawl]`, `serve --static` with
+  `resources/static-server.php`, and `Filesystem::files()`.
+
+Checked:
+
+- https://blush.ddev.site's `../blush` site builds (13 pages) and
+  `serve --static` serves every page, sitemap, `robots.txt`, media,
+  the theme stylesheet, and the 404 page with the right statuses and
+  content types.
+- **jtcom's real content** (a scratch site with its 1.x type config,
+  `home` `post`, and `MediaConfig(url: '/user/media')`, as in M4c):
+  2,795 pages and 4,261 media files in 12 s, no failures; served from
+  the static files, the home page and `/page/2`, singles, year and month
+  archives, terms, `/writing` and its forms, pages, the RSS, Atom, and
+  JSON feeds, sitemaps, `robots.txt`, `/user/media/…`, and the 404 page
+  all answer as expected. The crawl reports 114 broken links, all real
+  dead links in old posts (input for M8's redirect map), and 4
+  misdated-link redirects.
+- The generated jtcom-sized site: 2,920 pages in about 9 s, 34 MB peak;
+  a second run leaves every file unchanged.
+
+### M7b: incremental mode and hosts (done)
+
+Implemented 2026-09-26. See D-139 and D-140. Delivered and tested (708
+tests):
+
+- `build --incremental` with `ExportFingerprint` and the content version
+  in the manifest.
+- Redirects: `Routing\RedirectExportUrls` (the table's literal redirects,
+  confirmed by rendering), `ExportRedirect`, pattern redirects, and
+  redirect pages (`ExportConfig::$redirectPages`).
+- Host files (`Export\Host`): `HostFormat`, `HostFiles`, the registry,
+  factory, and registrar, `HostContext`, `HostOutput`, `ApacheFiles`
+  (`.htaccess`), and `NetlifyFiles` (`_redirects`, `_headers`);
+  `ExportConfig::$hosts`.
+- `serve --static` applies `_redirects` and hides the host files.
+
+**Exit criterion, checked on Apache** (a private XAMPP 2.4.53 instance,
+`AllowOverride All`, the jtcom export at its root): all 2,798 rendered
+URLs answer 200 (301 at redirected paths); the 4 redirects the crawl met
+and trailing slashes answer 301; `/feed`, `/feed/atom`, `/feed/json`,
+`/sitemap`, and `robots.txt` carry their content types; media are
+served; unknown paths get the themed 404; `.htaccess` and `_redirects`
+are 403s. A rebuild wrote only the changed `.htaccess`, and an
+incremental build with nothing changed takes about 1.3 s (a full one
+about 10 s).
+
+### M7 carried forward
+
+To M8: the 114 broken links the crawl found in jtcom's old posts feed
+the redirect map, and the URL-parity crawl can run against a static
+export too. Later: image derivatives in the export (with `image()`),
+testing the Netlify files on Netlify and Cloudflare Pages, and a
+subdirectory base path (open question).
+
+---
+
 ## M6 (Caching + publishing): done
 
 Started and finished 2026-09-25, in two slices (D-126). Exit criterion,

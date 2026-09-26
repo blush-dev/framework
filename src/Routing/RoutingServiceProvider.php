@@ -17,6 +17,7 @@ use Override;
 use Psr\Http\Server\RequestHandlerInterface;
 use Blush\Container\Container;
 use Blush\Core\ServiceProvider;
+use Blush\Export\UrlSource;
 use Blush\Http\Kernel;
 use Blush\Routing\Sources\ConfigRedirects;
 use Blush\Routing\Sources\ConfigRoutes;
@@ -49,7 +50,8 @@ final class RoutingServiceProvider extends ServiceProvider
 		RouteCompiler::class,
 		ConfigRoutes::class,
 		ConfigRedirects::class,
-		ControllerRoutes::class
+		ControllerRoutes::class,
+		RedirectExportUrls::class
 	];
 
 	/**
@@ -62,7 +64,8 @@ final class RoutingServiceProvider extends ServiceProvider
 		],
 		RedirectSource::TAG => [
 			ConfigRedirects::class
-		]
+		],
+		UrlSource::TAG      => [RedirectExportUrls::class]
 	];
 
 	/**

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Console;
 
 use Blush\Console\Commands\ActivateTheme;
+use Blush\Console\Commands\Build;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
 use Blush\Console\Commands\CheckTheme;
@@ -58,6 +59,7 @@ enum BuiltInCommand: string
 	case ThemePublish  = 'theme:publish';
 	case Publish       = 'publish';
 	case ScheduleRun   = 'schedule:run';
+	case Build         = 'build';
 
 	/**
 	 * Returns the command's class.
@@ -85,7 +87,8 @@ enum BuiltInCommand: string
 			self::ThemeWhy      => ExplainView::class,
 			self::ThemePublish  => PublishThemes::class,
 			self::Publish       => Publish::class,
-			self::ScheduleRun   => RunSchedule::class
+			self::ScheduleRun   => RunSchedule::class,
+			self::Build         => Build::class
 		};
 	}
 }

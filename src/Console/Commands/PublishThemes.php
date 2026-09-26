@@ -13,11 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use FilesystemIterator;
-use RecursiveCallbackFilterIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use SplFileInfo;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
@@ -25,6 +20,7 @@ use Blush\Console\InvalidInput;
 use Blush\Console\Output;
 use Blush\Console\Verbosity;
 use Blush\Core\Paths;
+use Blush\Support\Filesystem;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
@@ -49,7 +45,8 @@ final readonly class PublishThemes
 	public function __construct(
 		private Themes $themes,
 		private ThemeConfig $config,
-		private Paths $paths
+		private Paths $paths,
+		private Filesystem $filesystem
 	) {}
 
 	/**
@@ -89,7 +86,7 @@ final readonly class PublishThemes
 		$current = 0;
 		$kept    = [];
 
-		foreach (self::files($theme->path) as $relative => $file) {
+		foreach ($this->filesystem->files($theme->path) as $relative => $file) {
 			if (! ThemeChain::isServable($relative)) {
 				continue;
 			}
@@ -115,7 +112,7 @@ final readonly class PublishThemes
 
 		$removed = 0;
 
-		foreach (is_dir($target) ? self::files($target) : [] as $relative => $file) {
+		foreach ($this->filesystem->files($target) as $relative => $file) {
 			if (! isset($kept[$relative])) {
 				unlink($file->getPathname());
 				$removed++;
@@ -123,25 +120,5 @@ final readonly class PublishThemes
 		}
 
 		return [$copied, $current, $removed];
-	}
-
-	/**
-	 * Returns the files under a folder by relative path, skipping dotfiles
-	 * and dot-folders.
-	 *
-	 * @return iterable<string, SplFileInfo>
-	 */
-	private static function files(string $root): iterable
-	{
-		$files = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(
-			new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),
-			static fn (SplFileInfo $file): bool => ! str_starts_with($file->getFilename(), '.')
-		));
-
-		foreach ($files as $file) {
-			if ($file instanceof SplFileInfo && $file->isFile()) {
-				yield substr($file->getPathname(), strlen($root) + 1) => $file;
-			}
-		}
 	}
 }
