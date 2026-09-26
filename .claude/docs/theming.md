@@ -228,7 +228,8 @@ defaults; data given explicitly wins (D-114).
   → entry front matter `tokens` (D-027). An override replaces a token in
   every mode unless it sets its own modes.
 - **Output:** CSS custom properties inlined in the head (`blush-tokens`),
-  built once per chain per process (caching per content version is M6's).
+  built once per chain per process, and kept per content version in the
+  cache store (D-130).
   Per-entry overrides follow in their own block (`blush-entry-tokens`).
 - **Validation:** unsafe values are dropped; `theme:check` reports tokens
   that don't compile or resolve, and computes palette contrast.

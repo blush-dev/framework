@@ -16,6 +16,7 @@ namespace Blush\Tests\Theme;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Blush\Cache\ContentVersion;
 use Blush\Content\Schema\Severity;
 use Blush\Core\Application;
 use Blush\Core\Bootstrap;
@@ -232,6 +233,11 @@ final class ThemeSystemTest extends TestCase
 		$this->assertStringContainsString('The excerpt text.', $this->get('/'));
 
 		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"excerpts": false}}');
+
+		// Site data reaches a cached site on publish, which moves the
+		// content version on.
+		$this->assertStringContainsString('The excerpt text.', $this->get('/'));
+		$this->app?->container()->make(ContentVersion::class)->bump();
 		$this->app = null;
 
 		$this->assertStringNotContainsString('The excerpt text.', $this->get('/'));

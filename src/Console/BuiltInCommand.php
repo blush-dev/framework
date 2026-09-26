@@ -26,9 +26,11 @@ use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListCommands;
 use Blush\Console\Commands\ListContent;
 use Blush\Console\Commands\ListThemes;
+use Blush\Console\Commands\Publish;
 use Blush\Console\Commands\PublishMedia;
 use Blush\Console\Commands\PublishThemes;
 use Blush\Console\Commands\RoutesList;
+use Blush\Console\Commands\RunSchedule;
 use Blush\Console\Commands\Serve;
 
 /**
@@ -54,6 +56,8 @@ enum BuiltInCommand: string
 	case ThemeCheck    = 'theme:check';
 	case ThemeWhy      = 'theme:why';
 	case ThemePublish  = 'theme:publish';
+	case Publish       = 'publish';
+	case ScheduleRun   = 'schedule:run';
 
 	/**
 	 * Returns the command's class.
@@ -79,7 +83,9 @@ enum BuiltInCommand: string
 			self::ThemeNew      => CreateTheme::class,
 			self::ThemeCheck    => CheckTheme::class,
 			self::ThemeWhy      => ExplainView::class,
-			self::ThemePublish  => PublishThemes::class
+			self::ThemePublish  => PublishThemes::class,
+			self::Publish       => Publish::class,
+			self::ScheduleRun   => RunSchedule::class
 		};
 	}
 }

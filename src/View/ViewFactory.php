@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use Blush\Cache\CacheNamespace;
+use Blush\Cache\ContentCache;
 use Blush\Content\Entry\Entry;
 use Blush\Core\Paths;
 use Blush\Data\InvalidData;
@@ -46,7 +48,8 @@ final class ViewFactory
 		private readonly Translator $translator,
 		private readonly ViewServices $services,
 		private readonly SettingsResolver $settings,
-		private readonly TokenResolver $tokens
+		private readonly TokenResolver $tokens,
+		private readonly ?ContentCache $cache = null
 	) {}
 
 	/**
@@ -83,7 +86,7 @@ final class ViewFactory
 
 	/**
 	 * Builds the context for a page: the `Head` with the site name, the
-	 * compiled design tokens, and the active theme's stylesheets and
+	 * compiled design tokens (kept per content version), and the active theme's stylesheets and
 	 * scripts (with any stylesheets a build manifest pairs with them;
 	 * built scripts load as modules),
 	 * `$site`, and the entry's presentation front matter (`layout`,
@@ -95,7 +98,7 @@ final class ViewFactory
 	{
 		$head  = new Head($this->services->app->name);
 		$theme = $views->chain->active();
-		$css   = $views->tokens->css();
+		$css   = $this->tokenCss($views);
 
 		if ($css !== '') {
 			$head->inlineStyle('blush-tokens', $css);
@@ -138,6 +141,17 @@ final class ViewFactory
 		}
 
 		return $context;
+	}
+
+	/**
+	 * Returns a chain's compiled token CSS, kept per content version
+	 * (site tokens are site data, which a publish changes).
+	 */
+	private function tokenCss(Views $views): string
+	{
+		$compile = static fn (): string => $views->tokens->css();
+
+		return $this->cache?->remember(CacheNamespace::Tokens, 'css.' . $views->chain->active()->slug, $compile) ?? $compile();
 	}
 
 	/**

@@ -113,6 +113,10 @@ final class ThemedRenderingTest extends TestCase
 		$this->writeTemporaryFile('resources/views/themes/child/single-post.php', 'child-scoped override');
 		$this->writeTemporaryFile('resources/views/themes/other/single.php', 'other-scoped override');
 
+		// Template changes reach a cached site on deploy (`cache:clear`);
+		// this test changes them between requests.
+		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");
+
 		$this->assertSame('child-scoped override', $this->body('/archives/spring'));
 
 		unlink($this->temporaryDirectory() . '/resources/views/themes/child/single-post.php');

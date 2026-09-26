@@ -15,6 +15,7 @@ namespace Blush\Benchmarks;
 
 use PhpBench\Attributes as Bench;
 use Blush\Benchmarks\Fixture\JtcomSizedSite;
+use Blush\Cache\CacheConfig;
 use Blush\Content\ContentRepository;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\PhpIndex;
@@ -30,7 +31,8 @@ use Blush\Http\Request;
  * (D-044). Each iteration boots a fresh application with the index
  * already built, so a subject measures its own work: the index snapshot
  * is loaded on a subject's first use and then shared, as within one
- * request.
+ * request. Caching is off, so the request subjects measure rendering;
+ * `CacheBench` measures the caches.
  */
 #[Bench\BeforeMethods('setUp')]
 #[Bench\Warmup(1)]
@@ -46,6 +48,7 @@ final class ContentBench
 	public function setUp(): void
 	{
 		$this->app = new Bootstrap(Paths::fromRoot(JtcomSizedSite::root()))->createApplication();
+		$this->app->container()->instance(CacheConfig::class, new CacheConfig(enabled: false));
 		$this->app->boot();
 
 		$indexer = $this->app->container()->make(Indexer::class);

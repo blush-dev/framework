@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Blush\Content\Entry;
 
 use DateTimeImmutable;
-use Dom\HTMLDocument;
 use Stringable;
 use Override;
 use Blush\Content\Source\SourceFile;
@@ -78,7 +77,7 @@ final readonly class Entry implements Stringable
 	 */
 	public function raw(): string
 	{
-		return $this->body->source;
+		return $this->body->source();
 	}
 
 	/**
@@ -134,21 +133,7 @@ final readonly class Entry implements Stringable
 			return $this->body->markdown($summary);
 		}
 
-		$document = HTMLDocument::createFromString('<!DOCTYPE html><meta charset="utf-8"><body>' . $this->body() . '</body>', LIBXML_NOERROR);
-
-		foreach ($document->querySelectorAll('figcaption') as $caption) {
-			$caption->remove();
-		}
-
-		$text = preg_split('/\s+/u', trim($document->body->textContent ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-		if ($text === []) {
-			return '';
-		}
-
-		$excerpt = implode(' ', array_slice($text, 0, max(1, $words)));
-
-		return '<p>' . htmlspecialchars($excerpt . (count($text) > $words ? $more : ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+		return $this->body->excerpt($words, $more);
 	}
 
 	/**

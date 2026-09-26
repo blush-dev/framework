@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Core;
 
+use Blush\Cache\CacheConfig;
 use Blush\Config\ConfigCache;
 use Blush\Config\ConfigLoader;
 use Blush\Config\ConfigRepository;
@@ -34,6 +35,7 @@ use Blush\Http\HttpConfig;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
+use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
 use Blush\Sitemap\SitemapConfig;
@@ -234,7 +236,9 @@ final readonly class Bootstrap
 			new MediaConfig(),
 			new ThemeConfig(),
 			new FeedConfig(),
-			new SitemapConfig()
+			new SitemapConfig(),
+			new CacheConfig(),
+			PublishConfig::fromEnv($env)
 		);
 	}
 

@@ -16,8 +16,9 @@ namespace Blush\Content\Events;
 use Blush\Content\Index\IndexReport;
 
 /**
- * Dispatched after the indexer stores the index, with what changed. Caches
- * listen for it to invalidate pages (M6).
+ * Dispatched after the indexer stores the index, with what changed. The
+ * content version moves on (`Cache\BumpContentVersion`), which
+ * invalidates every derived cache.
  */
 final readonly class ContentIndexed
 {

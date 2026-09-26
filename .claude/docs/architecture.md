@@ -98,7 +98,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   planned):
   - `ApplicationBooted` (M1), `RequestReceived` (M2), `RouteMatched` (M3), `ControllerResolved`
   - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
-  - `ContentIndexed` (M4b), `ContentWritten`, `ContentPublished`, `CacheCleared`
+  - `ContentIndexed` (M4b; the content version listens, M6a), `ContentWritten`, `ContentPublished`, `CacheCleared`
   - `ExportStarted`, `ExportFinished`
 
 ## Data files
@@ -161,12 +161,14 @@ Implemented in M2 (D-067).
   - `ConditionalGet` (ETag, Last-Modified → 304), `PageCache`, `SecurityHeaders`
   - `StartSession`, `VerifyCsrf`, `Authenticate`, `RateLimit` (admin and
     webhooks only)
-  Only `HandleErrors` exists so far. The kernel always runs it outermost,
-  and it maps `HttpError`s to their status. It asks `ErrorPages` (the
-  themed error pages) for the response first (D-108).
+  `HandleErrors`, `ConditionalGet`, and `PageCache` exist so far. The
+  kernel always runs `HandleErrors` outermost, and it maps `HttpError`s
+  to their status. It asks `ErrorPages` (the themed error pages) for the
+  response first (D-108).
 - **`Kernel`** implements `RequestHandlerInterface`. It runs `HandleErrors`,
-  then the global middleware, then its handler (the `Router`), and
-  dispatches `RequestReceived` and `ResponseReady`.
+  then the middleware tagged `Kernel::MIDDLEWARE` (`ConditionalGet`, then
+  `PageCache`, D-129), then the global middleware, then its handler (the
+  `Router`), and dispatches `RequestReceived` and `ResponseReady`.
 - **`Emitter`** sends status, headers, and body through a `Sapi`; skips the
   body for `HEAD` and 1xx/204/304; and calls `fastcgi_finish_request()`
   for deferred work.
@@ -295,12 +297,13 @@ Implemented in M4b (D-088).
   schema), `extra` (undeclared keys), `terms`, `landing`, and `source`
   (path, mtime, size). Helpers: `field()`, `summary()`, `excerpt()`,
   `templates()`, `terms()`, `hasTerm()`, `isListed()`, `isRoutable()`.
-- The `Body` is a **lazy ghost** (`EntryHydrator`): the file is read,
-  parsed, and rendered only when `body()` is called.
+- The `Body`'s source is a **lazy ghost** (`EntryHydrator`): the file is
+  read, parsed, and rendered only when `body()` is called, and not at all
+  when the `BodyCache` has the rendering (D-130).
 - **Virtual entries** stand in for referenced terms with no file.
 - **Scheduling:** a future `published` date means `Scheduled`, decided
-  against the clock at read time. The index records the next go-live time
-  so cache invalidation can happen automatically (M6).
+  against the clock at read time. The index records the next go-live time,
+  and the content version moves on by itself when it passes (D-128).
 - Entry URLs come from `ContentUrls` (D-096).
 
 ### Parsers
@@ -466,22 +469,33 @@ view layer was implemented in M5 (D-103 to D-125).
 
 ## Caching
 
+Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
+
 | Layer | Key / invalidation |
 |---|---|
 | Config, routes, extensions, content types, container plans | Compiled PHP files; cleared by `cache:clear` or deploy |
 | Content index | Per-file mtime/size/hash, incremental |
-| Rendered bodies | Content hash + renderer version |
-| Fragments | `$cache->remember($key, $ttl, fn() => …)` |
-| Full pages | `PageCache` middleware; the key includes the **content version** |
-| HTTP | ETag, Last-Modified, Cache-Control |
+| Rendered bodies, summaries, excerpts | Content version + theme + rendering settings + content hash (`RenderedBodies`) |
+| Token CSS | Content version + theme chain (`ViewFactory`) |
+| Fragments | `ContentCache::remember(namespace, key, fn)`, per content version |
+| Full pages | `PageCache` middleware; content version + path |
+| HTTP | `ConditionalGet`: ETag or Last-Modified → 304; `Cache-Control` on cached pages |
 
-- **Content version:** a single stored value that goes up on publish, reindex,
-  or the next scheduled go-live time. Clearing the whole cache is one write;
-  stale files are garbage-collected later.
-- **Store:** in-house PSR-16 with PhpFile, File, APCu, Array, and Null drivers
-  (enum + registry). Tagged invalidation comes later.
-- **Optional:** page-cache files written so nginx/Apache `try_files` can serve
-  them without starting PHP.
+- **Content version** (`ContentVersion`): a random value in
+  `storage/cache/content-version.json` that changes when the index is
+  stored, on `cache:clear`/`cache:compile`, on publish, and by itself at
+  the next scheduled go-live time. Clearing every derived cache is one
+  write; `cache:clear` (and publish) delete the stale entries.
+- **Store** (`Store`, an in-house PSR-16 base): `file` (default), `php`,
+  `apcu`, `array`, and `null` drivers (enum + registry + factory +
+  registrar), one store per namespace (`pages`, `bodies`, `tokens`,
+  `fragments`, or an extension's). Values are plain data. `Caches` hands
+  out stores, null ones when caching is off (in development, by
+  default). Tagged invalidation comes later.
+- **`CacheConfig`** (`config/cache.php`): `enabled`, `driver`, `stores`,
+  `pages`, `maxAge`.
+- **Later:** page-cache files written so nginx/Apache `try_files` can
+  serve them without starting PHP.
 
 ## Static export (D-011)
 
@@ -495,11 +509,18 @@ view layer was implemented in M5 (D-103 to D-125).
 
 ## Publishing and admin (D-013)
 
-- **Stage 1: no UI (ships with core)**
-  - A signed webhook: `POST /_blush/publish` with HMAC + timestamp.
-  - It optionally runs `git pull` in `user/`, reindexes incrementally, and
-    bumps the content version.
-  - `publish` on the CLI does the same over SSH.
+- **Stage 1: no UI (ships with core; M6b, D-131 to D-133)**
+  - `Publisher` (`Blush\Publish`): an optional `git pull` in `user/`
+    (`Puller`, `GitPuller`), the compiled content types and route table
+    rewritten if present, an incremental reindex, the cache store
+    cleared, a new content version, and `ContentPublished`. One at a
+    time (a lock file).
+  - A signed webhook, `POST /_blush/publish` (only with
+    `PublishConfig::$secret`): HMAC-SHA256 over timestamp and body,
+    a time window, and seen signatures kept in the persistent
+    `webhooks` store.
+  - `publish` on the CLI does the same over SSH; `schedule:run` is the
+    optional cron entry.
 - **Stage 2: operations dashboard**
   - Auth (password hashes in env or config; passkeys later), sessions, CSRF,
     and rate limiting.
@@ -577,6 +598,7 @@ view layer was implemented in M5 (D-103 to D-125).
 - Every user, view, and media path is resolved and checked to stay inside its
   root.
 - YAML is parsed without objects, and secrets live only in env.
-- The webhook uses HMAC with replay protection.
+- The webhook uses HMAC with a time window and replay protection, and
+  exists only when a secret is configured.
 - Admin uses CSRF protection and SameSite=Strict cookies.
 - CSP and security headers, plus an upload allowlist.

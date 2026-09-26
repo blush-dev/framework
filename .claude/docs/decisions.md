@@ -1744,3 +1744,169 @@ decision, add a new entry that supersedes it and mark the old one
   are removing XSLT support. jtcom's 1.x feed stylesheet (`xsl/feed.xsl`)
   isn't carried over in the M8 port. A replacement is an open question
   (`open-questions.md`).
+
+### D-126: M6 ships in two slices
+- **Date:** 2026-09-25
+- **Decision:** Like M4 and M5 (D-079, D-102), each slice ends with
+  `composer check` passing, for review:
+  - **M6a (caching):** the PSR-16 store and drivers, the content
+    version, the page cache, conditional GETs, cached bodies, excerpts,
+    and token CSS, and `cache:clear`/`cache:compile` clearing the store.
+  - **M6b (publishing):** the publisher (optional `git pull`, reindex,
+    route and content-type caches, version bump, store cleanup), the
+    `publish` command, the signed webhook, `schedule:run`, and the
+    `ContentPublished` event.
+
+### D-127: The cache store
+- **Date:** 2026-09-25
+- **Decision:** Implements the architecture's store in `Blush\Cache`:
+  - `Store` is an abstract, in-house PSR-16 base (`psr/simple-cache`
+    ^3.0, D-006) for one **namespace**; drivers implement read, write,
+    remove, and flush, and it adds key checks (PSR-16's reserved
+    characters), TTLs as expiry times from the PSR-20 clock, the
+    multiple-key methods, `remember()`, and `prune()`.
+  - **Values are plain data** (scalars, `null`, arrays of them). Objects
+    and resources are an `InvalidCacheValue`, so the file driver never
+    unserializes an object (`allowed_classes: false`).
+  - **Drivers** (enum + registry + factory + registrar, D-019):
+    `file` (the default; one file per entry under
+    `storage/cache/store/{namespace}`, sharded by hash, expiry on the
+    first line), `php` (`PhpArrayFile` per entry, in opcache; for small
+    hot values), `apcu` (prefixed by site and namespace; needs the
+    extension), `array`, and `null`. The factory builds a driver through
+    the container with its `$namespace`.
+  - **Namespaces** (`CacheNamespace`): `pages`, `bodies`, `tokens`,
+    `fragments`; extensions may use others.
+  - **`CacheConfig`** (`config/cache.php`): `enabled` (`null` means on
+    everywhere but development), `driver`, `stores` (a driver per
+    namespace), `pages`, and `maxAge`.
+  - **`Caches`** hands out stores (a `NullStore` when caching is off, so
+    callers never check), `persistent()` stores that ignore `enabled`,
+    and `clear()`/`prune()` over the framework's, the configured, and
+    the used namespaces.
+  - Tagged invalidation and the web-server-served page files stay
+    later.
+
+### D-128: The content version
+- **Date:** 2026-09-25
+- **Decision:** `Cache\ContentVersion` is one random value in
+  `storage/cache/content-version.json` (JSON, not a PHP file, so a CLI
+  write is seen by the web server without opcache invalidation), with
+  the index's next scheduled time (`IndexSnapshot::nextScheduled()`).
+  - It moves on (`bump()`) when the index is stored (`ContentIndexed`),
+    on `cache:clear` and `cache:compile`, and (M6b) on publish.
+  - When the scheduled time passes, the next read moves it to a hash of
+    the old version and that time, so concurrent requests agree, and
+    looks up the following scheduled time in the index. No cron needed.
+  - A missing or damaged file gets a new version.
+  - Every derived cache keys on it, so invalidation is one write; the
+    stale entries are deleted by `cache:clear` (and publish).
+  - **`cache:clear`** also clears the store and bumps the version;
+    `--store` does only that, and any compiled-cache flag skips it.
+    **`cache:compile`** clears the store and bumps the version too,
+    since it's the deploy step and a deploy can change templates.
+  - **Consequence:** in production, template, config, and site-data
+    (`user/data`) changes reach cached pages only after `cache:clear`,
+    `cache:compile`, or publish.
+
+### D-129: The page cache and conditional GETs
+- **Date:** 2026-09-25
+- **Decision:**
+  - The kernel runs `HandleErrors`, then middleware tagged
+    `Kernel::MIDDLEWARE` in tag order, then `HttpConfig::$middleware`.
+    The framework tags `Http\Middleware\ConditionalGet` (HTTP provider)
+    and then `Cache\PageCache` (cache provider, registered after it).
+  - **`PageCache`** (on when caching is and `CacheConfig::$pages`)
+    stores whole responses in `pages`, keyed by the content version and
+    the path. Only `GET`/`HEAD` without a query string or
+    `Authorization`, answered 200, with no `Set-Cookie`, no
+    `private`/`no-store`/`no-cache`, no `Vary: *`, no byte ranges
+    (files), and at most 2 MB. Feeds, sitemaps, and `robots.txt` are
+    cached too; errors and redirects aren't. Stored pages get
+    `Cache-Control: public, max-age={maxAge}` (`0` adds
+    `must-revalidate`) unless they set one. `X-Page-Cache: hit|miss`
+    (no product name in the header).
+  - **`ConditionalGet`** gives 200s a strong `ETag` (xxh128 of the body)
+    unless they have one or are files (which have `Last-Modified`), and
+    answers `If-None-Match` (weak comparison, `*`) or else
+    `If-Modified-Since` with a 304 that keeps the caching headers.
+    It's on in every environment.
+
+### D-130: Rendered bodies, excerpts, and token CSS are cached
+- **Date:** 2026-09-25
+- **Decision:**
+  - `Content\Entry\BodyCache` is the seam; `Cache\RenderedBodies` (bound
+    by the cache provider) keeps bodies, summaries, and 1.x word
+    excerpts in `bodies`, through `Cache\ContentCache` (a value per
+    content version).
+  - Keys: the content version, the request's theme (D-112), a
+    fingerprint of the rendering settings (framework version, site URL,
+    Markdown and media config), and the body's own key (the record's
+    content hash; a hash of the Markdown for summaries).
+  - **The content version is in the key** (the architecture said only
+    "content hash + renderer version"), because a directive's component
+    may read other content or site data. A publish re-renders bodies
+    lazily.
+  - `Body` now holds a lazy `BodySource` ghost, so a cached body never
+    reads its file; word excerpts moved from `Entry` into `Body`.
+  - `ViewFactory` keeps each chain's compiled token CSS in `tokens`
+    per content version (site tokens are site data).
+  - Benchmarks (D-101): a themed home page drops from 8.5 ms to 1.7 ms
+    with bodies cached, and a page cache hit takes 0.05 ms.
+
+### D-131: The publisher and `publish`
+- **Date:** 2026-09-25
+- **Decision:** Implements stage 1 of D-013 in `Blush\Publish`:
+  - `Publisher::publish(?bool $pull)` is what the CLI, the webhook, and
+    later the admin all run: an optional pull of `user/` (a failed pull
+    stops the publish with nothing changed); outside development, the
+    compiled content types and route table rewritten if they exist (so
+    `user/data/types` and data-file redirects take effect, D-097; a
+    changed type set makes the next request rebuild the index, D-098);
+    an incremental reindex; the cache store cleared and pruned; a new
+    content version; then `ContentPublished` with the `PublishReport`.
+  - One publish at a time: an `flock` on `storage/cache/publish.lock`
+    (`PublishInProgress` otherwise).
+  - **`Puller`** is the seam for bringing files up to date; `GitPuller`
+    runs `git -C user pull --ff-only [remote [branch]]` as an argument
+    list, with terminal prompts off and SSH in batch mode (so a webhook
+    can't hang on a credential), its output captured, and a clear
+    failure when `proc_open()` is disabled (shared hosts).
+  - **`PublishConfig`** (`config/publish.php`, or `fromEnv()` from
+    `PUBLISH_SECRET`, `PUBLISH_GIT`, `PUBLISH_REMOTE`, `PUBLISH_BRANCH`):
+    `secret` (at least 32 characters), `git`, `remote`, `branch` (plain
+    git names only, so they can't become options), `path` (default
+    `/_blush/publish`, built from `Framework::BINARY`), `tolerance`
+    (300 s), and `gitBinary`.
+  - **`publish [--pull] [--no-pull]`** overrides `git` either way, and
+    fails when the pull or any file's indexing does.
+
+### D-132: The publish webhook
+- **Date:** 2026-09-25
+- **Decision:**
+  - `POST {PublishConfig::$path}` (`publish.webhook`, a system route)
+    exists only when a secret is set.
+  - **Signature** (`WebhookSignature`): `X-Publish-Signature:
+    sha256={HMAC-SHA256 of "{timestamp}.{raw body}"}` with
+    `X-Publish-Timestamp` (Unix seconds), compared with `hash_equals()`.
+    Header names are neutral (no product name).
+  - **Replay protection:** a request outside `tolerance` seconds is
+    refused, and each accepted signature is kept (hashed) in the
+    `webhooks` namespace for twice that. `webhooks` is a persistent
+    namespace: `Caches::clear()` (so `cache:clear` and every publish)
+    never clears it, and it's kept even when caching is off.
+  - **Body:** empty or a JSON object; `{"pull": bool}` overrides `git`.
+  - **Answers** (JSON, `Cache-Control: no-store`): 200 with the report,
+    500 when the pull failed, 401 for a bad, missing, or stale
+    signature, 409 for a replay or a publish already running, 400 for
+    another body.
+  - Rate limiting waits for the admin's middleware (M9); the signature
+    already gates any work.
+
+### D-133: `schedule:run`
+- **Date:** 2026-09-25
+- **Decision:** `schedule:run` reads the content version (which moves it
+  on if a go-live time has passed, D-128), reports the next go-live
+  time, and prunes expired cache entries. Requests handle go-live by
+  themselves; the command is the optional cron entry (D-040) for a go-live
+  on time on a quiet site, and for pruning.

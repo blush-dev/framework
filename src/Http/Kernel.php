@@ -16,7 +16,9 @@ namespace Blush\Http;
 use Override;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Blush\Container\Attributes\TaggedAbstracts;
 use Blush\Container\ServiceResolver;
 use Blush\Event\Dispatcher;
 use Blush\Http\Events\RequestReceived;
@@ -29,18 +31,30 @@ use Blush\Http\Middleware\Pipeline;
  * The web front controller, tests, the CLI, static export, and admin
  * previews all call `handle()`, and nothing in it reads PHP's globals.
  *
- * The request runs through `HandleErrors`, then the configured global
- * middleware (resolved through the container per request), then the
- * application's handler: the router (`RoutingServiceProvider` binds it).
- * `RequestReceived` and `ResponseReady` are dispatched around the pipeline.
+ * The request runs through `HandleErrors`, then the framework's and
+ * extensions' middleware (tagged `Kernel::MIDDLEWARE`, in tag order:
+ * `ConditionalGet`, then the page cache), then the site's global
+ * middleware from `HttpConfig`, then the application's handler: the
+ * router (`RoutingServiceProvider` binds it). Middleware are resolved
+ * through the container per request. `RequestReceived` and
+ * `ResponseReady` are dispatched around the pipeline.
  */
 final readonly class Kernel implements RequestHandlerInterface
 {
+	/**
+	 * The tag for middleware that runs before the site's own.
+	 */
+	public const string MIDDLEWARE = 'http.middleware';
+
+	/**
+	 * @param array<mixed, class-string<MiddlewareInterface>> $middleware Tagged middleware classes.
+	 */
 	public function __construct(
 		private ServiceResolver $resolver,
 		private HttpConfig $config,
 		private RequestHandlerInterface $handler,
-		private Dispatcher $events
+		private Dispatcher $events,
+		#[TaggedAbstracts(self::MIDDLEWARE)] private array $middleware = []
 	) {
 	}
 
@@ -54,7 +68,7 @@ final readonly class Kernel implements RequestHandlerInterface
 
 		$middleware = array_map(
 			$this->resolver->make(...),
-			[HandleErrors::class, ...$this->config->middleware]
+			[HandleErrors::class, ...array_values($this->middleware), ...$this->config->middleware]
 		);
 
 		$response = new Pipeline($middleware, $this->handler)->handle($request);

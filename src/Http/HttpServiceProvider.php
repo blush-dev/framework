@@ -25,10 +25,12 @@ use Blush\Core\AppConfig;
 use Blush\Core\ServiceProvider;
 use Blush\Error\ExceptionRenderer;
 use Blush\Error\HtmlRenderer;
+use Blush\Http\Middleware\ConditionalGet;
 use Blush\Http\Middleware\HandleErrors;
 
 /**
- * Wires the HTTP layer: the PSR-17 factories, the kernel, and the emitter.
+ * Wires the HTTP layer: the PSR-17 factories, the kernel, the emitter,
+ * and conditional GETs.
  * Nothing is built until a request is handled.
  */
 final class HttpServiceProvider extends ServiceProvider
@@ -47,6 +49,21 @@ final class HttpServiceProvider extends ServiceProvider
 	 */
 	protected const array SINGLETONS_IF = [
 		Sapi::class => NativeSapi::class
+	];
+
+	/**
+	 * @inheritDoc
+	 */
+	protected const array TRANSIENTS = [
+		ConditionalGet::class
+	];
+
+	/**
+	 * `ConditionalGet` runs first among the kernel's middleware, outside
+	 * the page cache.
+	 */
+	protected const array TAGS = [
+		Kernel::MIDDLEWARE => [ConditionalGet::class]
 	];
 
 	/**

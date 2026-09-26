@@ -106,7 +106,8 @@ final class BuiltInCommandsTest extends TestCase
 
 		$this->assertTrue($compiled->isSuccessful());
 		$this->assertStringContainsString('Wrote storage/cache/config.php', $compiled->output);
-		$this->assertMatchesRegularExpression('/Compiled \d+ container plan\(s\)\./', $compiled->output);
+		$this->assertMatchesRegularExpression('/Compiled \d+ container plan\(s\), and cleared the cache store\./', $compiled->output);
+		$this->assertFileExists("{$root}/storage/cache/content-version.json");
 		$this->assertFileExists("{$root}/storage/cache/container.php");
 		$this->assertFileExists("{$root}/storage/cache/routes.php");
 		$this->assertFileExists("{$root}/storage/cache/content-types.php");
@@ -115,15 +116,24 @@ final class BuiltInCommandsTest extends TestCase
 
 		$this->assertTrue($partial->isSuccessful());
 		$this->assertStringContainsString('Cleared storage/cache/config.php', $partial->output);
+		$this->assertStringNotContainsString('cache store', $partial->output);
 		$this->assertFileDoesNotExist("{$root}/storage/cache/config.php");
 		$this->assertFileExists("{$root}/storage/cache/extensions.php");
 
 		$all = $tester->run('cache:clear');
 
 		$this->assertStringContainsString('Cleared 6 compiled cache(s).', $all->output);
+		$this->assertStringContainsString('Cleared the cache store (pages, bodies, tokens, fragments); the content version is now', $all->output);
 		$this->assertFileDoesNotExist("{$root}/storage/cache/extensions.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/container.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/routes.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/content-types.php");
+
+		$version = (string) file_get_contents("{$root}/storage/cache/content-version.json");
+		$store   = $tester->run('cache:clear --store');
+
+		$this->assertStringNotContainsString('compiled', $store->output);
+		$this->assertStringContainsString('Cleared the cache store', $store->output);
+		$this->assertNotSame($version, file_get_contents("{$root}/storage/cache/content-version.json"));
 	}
 }

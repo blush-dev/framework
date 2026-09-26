@@ -15,6 +15,7 @@ namespace Blush\Core;
 
 use Override;
 use Psr\Container\ContainerInterface;
+use Blush\Cache\CacheServiceProvider;
 use Blush\Clock\ClockServiceProvider;
 use Blush\Console\ConsoleServiceProvider;
 use Blush\Container\Container;
@@ -31,6 +32,7 @@ use Blush\Http\HttpServiceProvider;
 use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
+use Blush\Publish\PublishServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
 use Blush\Sitemap\SitemapServiceProvider;
 use Blush\Theme\ThemeServiceProvider;
@@ -72,6 +74,8 @@ class Application implements Bootable
 		FeedServiceProvider::class,
 		SitemapServiceProvider::class,
 		HttpServiceProvider::class,
+		CacheServiceProvider::class,
+		PublishServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class
 	];

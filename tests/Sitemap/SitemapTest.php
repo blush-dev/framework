@@ -43,6 +43,10 @@ final class SitemapTest extends TestCase
 
 	private function boot(?string $sitemapConfig = null, string $environment = 'production'): void
 	{
+		// Config changes reach a cached site on deploy (`cache:clear`);
+		// these tests change config between boots.
+		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");
+
 		if ($sitemapConfig !== null) {
 			$this->writeTemporaryFile('config/sitemap.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn {$sitemapConfig};\n");
 		}

@@ -17,7 +17,6 @@ use DateTimeImmutable;
 use ReflectionClass;
 use Psr\Clock\ClockInterface;
 use Blush\Content\Index\IndexRecord;
-use Blush\Content\Parser\BodyFormat;
 use Blush\Content\Parser\DocumentParsers;
 use Blush\Content\Schema\FieldContext;
 use Blush\Content\Source\ContentSource;
@@ -30,8 +29,10 @@ use Blush\Markdown\MarkdownParser;
 /**
  * Turns index records into entries. Front matter is hydrated through the
  * type's schema (dates become `DateTimeImmutable` in the site timezone),
- * the status is decided against the clock, and the body is a lazy ghost
- * that reads and parses the file only when it's first used.
+ * the status is decided against the clock, and the body's source is a
+ * lazy ghost that reads and parses the file only when it's first used.
+ * With a `BodyCache` (bound outside development by the cache layer), a
+ * rendering cached under the file's content hash skips even that.
  */
 final readonly class EntryHydrator
 {
@@ -41,7 +42,8 @@ final readonly class EntryHydrator
 		private ContentSource $source,
 		private DocumentParsers $parsers,
 		private MarkdownParser $markdown,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private ?BodyCache $cache = null
 	) {}
 
 	/**
@@ -65,7 +67,7 @@ final readonly class EntryHydrator
 			terms: $record->terms,
 			landing: $record->landing,
 			source: $record->source(),
-			body: $this->lazyBody($record->id)
+			body: $this->body($record)
 		);
 	}
 
@@ -92,21 +94,25 @@ final readonly class EntryHydrator
 			terms: [],
 			landing: false,
 			source: null,
-			body: new Body('', BodyFormat::Markdown, $this->markdown)
+			body: new Body(new BodySource(), $this->markdown)
 		);
 	}
 
 	/**
-	 * Returns a body that parses its file on first use.
+	 * Returns a record's body, whose source parses the file on first use.
 	 */
-	private function lazyBody(string $path): Body
+	private function body(IndexRecord $record): Body
 	{
-		return new ReflectionClass(Body::class)->newLazyGhost(function (Body $body) use ($path): void {
-			$document  = $this->parsers->parse($path, $this->source->read($path));
-			$directory = dirname($path);
+		$path   = $record->id;
+		$source = new ReflectionClass(BodySource::class)->newLazyGhost(function (BodySource $source) use ($path): void {
+			$document = $this->parsers->parse($path, $this->source->read($path));
 
-			$body->__construct($document->body, $document->format, $this->markdown, $directory === '.' ? '' : $directory);
+			$source->__construct($document->body, $document->format);
 		});
+
+		$directory = dirname($path);
+
+		return new Body($source, $this->markdown, $directory === '.' ? '' : $directory, $this->cache, $record->hash);
 	}
 
 	/**

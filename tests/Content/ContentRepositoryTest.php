@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Body;
+use Blush\Content\Entry\BodySource;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Index\ArraySelector;
@@ -233,12 +234,15 @@ final class ContentRepositoryTest extends TestCase
 
 		$body = new ReflectionClass(Entry::class)->getProperty('body')->getValue($entry);
 		$this->assertInstanceOf(Body::class, $body);
-		$this->assertTrue(new ReflectionClass(Body::class)->isUninitializedLazyObject($body));
+
+		$source = new ReflectionClass(Body::class)->getProperty('source')->getValue($body);
+		$this->assertInstanceOf(BodySource::class, $source);
+		$this->assertTrue(new ReflectionClass(BodySource::class)->isUninitializedLazyObject($source));
 
 		$this->assertSame("<p>Hello and welcome to my site.</p>\n", $entry->body());
 		$this->assertSame('Hello and welcome to my site.', $entry->raw());
-		$this->assertSame(BodyFormat::Markdown, $body->format);
-		$this->assertFalse(new ReflectionClass(Body::class)->isUninitializedLazyObject($body));
+		$this->assertSame(BodyFormat::Markdown, $source->format);
+		$this->assertFalse(new ReflectionClass(BodySource::class)->isUninitializedLazyObject($source));
 		$this->assertSame("<p>Some <em>notes</em>.</p>\n", $this->content->named('page', 'notes')?->body());
 	}
 

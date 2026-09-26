@@ -17,6 +17,85 @@
 
 ---
 
+## M6 (Caching + publishing): done
+
+Started and finished 2026-09-25, in two slices (D-126). Exit criterion,
+**one-command publish and cache clear:** done. `bin/blush publish`
+(or a signed webhook request) pulls, reindexes, recompiles what depends
+on site data, clears the store, and moves the content version on;
+`bin/blush cache:clear` clears everything.
+
+### M6a: caching (done)
+
+Implemented 2026-09-25. See D-127 to D-130. Delivered and tested (677
+tests):
+
+- `Blush\Cache`: the PSR-16 `Store` base with the `file`, `php`,
+  `apcu`, `array`, and `null` drivers (enum + registry + factory +
+  registrar), namespaces, `CacheConfig` (`config/cache.php`; on outside
+  development), and `Caches`.
+- `ContentVersion` (`storage/cache/content-version.json`): bumped when
+  the index is stored and on `cache:clear`/`cache:compile`, and moved on
+  by itself at the next scheduled go-live time.
+- `PageCache` and `Http\Middleware\ConditionalGet` (ETag, 304s), run by
+  the kernel through the new `Kernel::MIDDLEWARE` tag.
+- Rendered bodies, summaries, and excerpts (`BodyCache`,
+  `RenderedBodies`; bodies read their file only on a miss) and compiled
+  token CSS, per content version and theme (the M5 carry-overs).
+- `cache:clear` clears the store and bumps the version (`--store` for
+  only that); `cache:compile` does too.
+
+Checked on https://blush.ddev.site (after `composer update
+blush-dev/framework` in `../blush` for `psr/simple-cache`): pages, the
+theme stylesheet, and the sitemap → 200, `/nowhere` → 404, a matching
+`If-None-Match` → 304, and with caching turned on, `X-Page-Cache: miss`
+then `hit`. `bin/blush cache:clear` clears the store.
+
+**Benchmarks** (`CacheBench`, new; `ContentBench` now runs with caching
+off, so its numbers stay comparable):
+
+| Subject | What it measures | Time |
+|---|---|---|
+| `benchRequestHome` | `/`, caching off | 8.5 ms |
+| `benchRequestSingle` | A term archive, caching off | 8.3 ms |
+| `benchRequestHomeCachedBodies` | `/`, page cache off, bodies and tokens warm | 1.7 ms |
+| `benchRequestSingleCachedBodies` | The term archive, the same | 2.5 ms |
+| `benchRequestHomeCachedPage` | `/`, a page cache hit | 0.048 ms |
+| `benchRequestSingleCachedPage` | The term archive, a page cache hit | 0.047 ms |
+
+Carried into M6b: publishing (D-126).
+
+### M6b: publishing (done)
+
+Implemented 2026-09-25. See D-131 to D-133. Delivered and tested (688
+tests):
+
+- `Blush\Publish`: `Publisher` (optional pull, compiled content types
+  and routes, reindex, store clear and prune, new content version, one
+  at a time), `PublishReport`, `PublishConfig` (`config/publish.php` or
+  `PUBLISH_*`), the `Puller` seam with `GitPuller`, and the
+  `ContentPublished` event.
+- The webhook: `POST /_blush/publish` (only with a secret),
+  `WebhookSignature` (HMAC-SHA256 over timestamp and body), replay
+  protection in the persistent `webhooks` namespace, and JSON answers.
+- `publish [--pull] [--no-pull]` and `schedule:run`.
+
+Checked on https://blush.ddev.site: `bin/blush publish -v` and
+`bin/blush schedule:run` work, and with a secret set temporarily, a
+signed webhook request → 200 with the report, the same request again →
+409, and an unsigned one → 401. A real `git pull` is covered by
+`PublishTest` (a bare origin, an author clone, and `user/` as a clone).
+
+### M6 carried forward
+
+Page-cache files the web server serves without PHP (`try_files`), a
+template `cache()` helper for fragments, tagged invalidation, rate
+limiting for the webhook (with the admin's middleware, M9), and
+`CacheCleared`. To M7: static export can reuse the content version for
+incremental builds.
+
+---
+
 ## M5 (Views + theming): done
 
 Started and finished 2026-09-25, in three slices (D-102). Exit criterion,

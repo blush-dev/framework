@@ -73,6 +73,14 @@ final readonly class ContentTypeCache
 	}
 
 	/**
+	 * Returns the cache file's path.
+	 */
+	public function path(): string
+	{
+		return $this->file()->path;
+	}
+
+	/**
 	 * Returns the cache file.
 	 */
 	private function file(): PhpArrayFile
