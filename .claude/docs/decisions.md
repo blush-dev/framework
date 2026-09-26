@@ -2114,3 +2114,27 @@ decision, add a new entry that supersedes it and mark the old one
     paths), redirects and trailing slashes 301, feeds and sitemaps
     carry their content types, unknown paths get the themed 404, and
     the host files are 403s.
+
+### D-141: User documentation in `docs/`
+- **Date:** 2026-09-26
+- **Decision:** The framework ships user-facing documentation in `docs/`
+  (Markdown, in the repo, included in Composer archives): an index
+  (`README.md`), installation, writing content, media, content types,
+  themes, configuration, going live (publishing, caching, static
+  export), the command line, extending, and coming from 1.x. It's for
+  people installing and running a site, so it's task-first and plain,
+  and it documents only what's implemented (planned features such as
+  `image()`, menus, the admin, and `extension:*`/`doctor` are left out
+  until they land). `.claude/docs/` stays the design record for
+  contributors.
+  - Every example was checked against a scratch copy of the dev site
+    (types, taxonomies, the home alias, data types and fields,
+    redirects, theme settings and tokens, components, overrides, a
+    site provider with a controller, command, and class-backed
+    component, production publishing, and `build`).
+  - **Keep it current:** a change to user-facing behavior (config
+    options, front matter, CLI commands, theming API) updates `docs/`
+    in the same session, like the `.claude/docs/` files.
+- **Why:** the design docs had grown too heavy for someone who just
+  wants to install Blush and write; the author asked for a simplified
+  guide before M8.

@@ -65,6 +65,7 @@ blush-framework/
                         D-138); lang/ (the `blush` catalog domain)
     themes/default/     The framework default theme (D-110): theme.json, tokens.json,
                         style.css, lang/, views/ (incl. components/)
+  docs/                 User documentation: installing, content, themes, config, CLI (D-141)
   benchmarks/           PHPBench suite + the generated jtcom-sized site (D-101)
   tests/
     Fixtures/site/      Fixture site: .env, config/, local + Composer extensions

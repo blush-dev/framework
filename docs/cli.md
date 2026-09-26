@@ -1,0 +1,45 @@
+# Command line
+
+Blush comes with a command-line tool. Run it from your site's folder:
+
+```sh
+bin/blush                   # list every command
+bin/blush help content:new  # how to use one command
+```
+
+Options that work with every command: `-v` for more detail (`-vv`, `-vvv`
+for even more), `-q` for errors only, `-n` to never ask questions, and
+`--no-ansi` to turn off colors.
+
+## Everyday
+
+| Command | What it does |
+|---|---|
+| `serve` | Run the site at http://127.0.0.1:8000. `--port=8080` and `--host=0.0.0.0` change where. `--static` previews the [static export](going-live.md#static-export) instead. |
+| `content:new <type> "<title>"` | Create an entry. `--slug=` sets its URL name; `--draft` makes it a draft. Dated types get a date in the file name. |
+| `content:list` | List every entry. `--type=post` and `--status=draft` (or `published`, `scheduled`) narrow it down. |
+| `content:lint` | Check front matter for problems. `--strict` also reports unknown keys and 1.x names. |
+| `routes:list` | Show every URL pattern and redirect, and which one wins when two overlap |
+
+## Publishing and caches
+
+| Command | What it does |
+|---|---|
+| `publish` | Put content changes live: reindex, refresh, and clear the caches. `--pull` runs `git pull` in `user/` first; `--no-pull` skips it. See [Going live](going-live.md#publishing-changes). |
+| `cache:compile` | Precompile config, routes, content types, themes, and extensions for speed |
+| `cache:clear` | Clear every compiled file and cache. Flags clear just one: `--config`, `--extensions`, `--container`, `--routes`, `--types`, `--themes`, `--store`. |
+| `content:index` | Update the content index. `--full` rebuilds it from scratch. (`publish` does this for you.) |
+| `schedule:run` | For cron: puts scheduled posts live on time and prunes the cache |
+| `build` | Export the site to static files in `storage/export/`. Takes `--base-url=`, `--incremental`, and `--no-crawl`. |
+| `media:publish` | Link `user/media` into `public/` so the web server serves it. `--copy` copies instead, for hosts without symlinks. |
+
+## Themes
+
+| Command | What it does |
+|---|---|
+| `theme:list` | List installed themes, and which is active |
+| `theme:activate <slug>` | Switch themes |
+| `theme:new <slug>` | Create a theme in `user/themes/`. `--name=` names it; `--parent=` builds it on another theme. |
+| `theme:check [slug]` | Check a theme's manifest, tokens, color contrast, and accessibility basics. `--strict` shows notices too. |
+| `theme:why <view>` | Show which file a template name uses, such as `theme:why single-post` |
+| `theme:publish` | Copy the active theme's files (and its parents') into `public/`. `--all` copies every theme's. |

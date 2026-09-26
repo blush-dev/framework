@@ -6,6 +6,11 @@ core that sites (and the `blush-dev/site` skeleton) are built on.
 The `2.x` branch is a ground-up rewrite and is under heavy development. There
 are no stability guarantees yet, so don't run it in production.
 
+## Documentation
+
+Start with the [documentation](docs/README.md): installing a site, writing
+content, themes, configuration, and going live.
+
 ## Requirements
 
 - PHP 8.5 or newer

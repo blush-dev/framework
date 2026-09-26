@@ -22,6 +22,19 @@ Move each item to `decisions.md` once it's answered.
   `extension:check`, likely a Composer semver subset (`^`, `~`, comparison
   operators, `||`).
 
+- **CLI publishing and opcache** (found while writing `docs/`, D-141):
+  `publish` from the CLI rewrites the index and compiled caches, but its
+  `opcache_invalidate()` can't reach the web server's opcache. With
+  default settings the site lags by `opcache.revalidate_freq` (about 2 s,
+  observed); with `opcache.validate_timestamps=0` it never sees the change
+  until PHP restarts. The webhook is unaffected (it runs in the web
+  server). Options: document it (done for now), have `publish` ping the
+  site to invalidate, or version the index file names.
+- **Skeleton gaps** (found while writing `docs/`): `blush-dev/blush`'s
+  sample post uses `{.alignwide}`, but `AttributesExtension` isn't a
+  default; its `config/app.php` doesn't pass `APP_LOCALE`; and the
+  framework needs `ext-intl` but `composer.json` doesn't require it.
+
 ## Tooling
 - **Benchmark regressions in CI** (D-044, D-101): CI machines differ from
   the author's, so absolute baselines don't transfer. Options: compare

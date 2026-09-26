@@ -42,6 +42,14 @@ At the start of a session, read `roadmap.md` (current milestone) and skim
 When the user makes a decision in conversation, record it in `decisions.md`
 (and update any affected doc) in the same session.
 
+## User documentation lives in `docs/`
+
+`docs/` is the documentation for people installing and using Blush (D-141).
+Keep it plain and task-first, and document only what's implemented. When
+you change user-facing behavior (config options, front matter, content
+conventions, CLI commands, the theming API), update `docs/` in the same
+session.
+
 ## Commands
 
 Run on PHP 8.5 (`php -v`). Run `composer check` before handing work back.
