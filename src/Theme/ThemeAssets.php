@@ -19,9 +19,10 @@ use JsonException;
  * Resolves asset URLs for a theme chain (D-031). For each theme, nearest
  * first:
  *
- * 1. A Vite-style manifest (`dist/.vite/manifest.json` or
- *    `dist/manifest.json`) that lists the path as an entry gives its
- *    built, hashed file: `src/main.js` → `/themes/nova/dist/assets/main-4f2a.js`.
+ * 1. A Vite-style manifest (`public/.vite/manifest.json`, D-155, or
+ *    `dist/.vite/manifest.json`, or either without `.vite/`) that lists
+ *    the path gives its built, hashed file:
+ *    `resources/js/app.js` → `/themes/nova/public/assets/app-4f2a.js`.
  * 2. Otherwise a file at the path gives its URL, versioned by mtime:
  *    `/themes/nova/style.css?v=1700000000`.
  *
@@ -37,8 +38,10 @@ final class ThemeAssets
 	 * @var array<string, string>
 	 */
 	public const array MANIFESTS = [
-		'dist/.vite/manifest.json' => 'dist',
-		'dist/manifest.json'       => 'dist'
+		'public/.vite/manifest.json' => 'public',
+		'public/manifest.json'       => 'public',
+		'dist/.vite/manifest.json'   => 'dist',
+		'dist/manifest.json'         => 'dist'
 	];
 
 	/**

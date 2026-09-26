@@ -5,7 +5,7 @@
 | What | Path |
 |---|---|
 | Blush framework (this repo, `2.x` branch) | `/Applications/XAMPP/xamppfiles/htdocs/blush-framework` |
-| Blush site skeleton, `blush-dev/blush` (default install; 1.x on `master`) | `/Applications/XAMPP/xamppfiles/htdocs/blush` |
+| Blush site skeleton, `blush-dev/blush` (default install; 1.x on `master`; the M8 trial on `jtcom-trial`, D-142) | `/Applications/XAMPP/xamppfiles/htdocs/blush` |
 | jtcom (first site built on Blush) | `/Applications/XAMPP/xamppfiles/htdocs/jtcom` |
 | jtcom content (separate git repo) | `/Applications/XAMPP/xamppfiles/htdocs/jtcom/user` |
 | x3p0-framework (container, application) | `/Applications/XAMPP/xamppfiles/htdocs/wp/wp-content/x3p0-framework` |
@@ -93,9 +93,13 @@ site/
   public/               Web root: index.php, .htaccess, and published assets ONLY
                         (themes/, and media at MediaConfig::$url, D-099). Relocatable
                         (e.g. cPanel public_html, D-046)
-  resources/themes/     The site's own themes (D-144), kept with its code, not its content
+  resources/themes/     The site's own themes (D-144), kept with its code, not its content.
+                        A built theme keeps sources in {slug}/resources/ (never served) and
+                        its build in {slug}/public/ (D-155)
   resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
   src/                  App\ namespace: providers, components, controllers
+  package.json          Optional: asset build scripts (jtcom: Vite, `npm run build`/`dev`)
+  vite.config.js        Optional: the theme build (jtcom's builds resources/themes/jtcom, D-155)
   storage/
     cache/              Compiled config.php, extensions.php, container.php, routes.php,
                         content-types.php, themes.php (D-060, D-077, D-092, D-115);

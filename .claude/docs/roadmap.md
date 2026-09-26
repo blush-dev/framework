@@ -13,11 +13,11 @@
 | M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed (dynamically, D-142) |
 | M9 | **Admin stage 2:** operations dashboard. | Publish, clear, reindex, and export from a browser |
 | M10 | **Admin stage 3:** editor and media library. | Create and edit entries in a browser |
-| Later | `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine | — |
+| Later | `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
 
 ---
 
-## M8 (Port jtcom): next
+## M8 (Port jtcom): in progress
 
 Approach (D-142): jtcom runs dynamically; its theme keeps SCSS; the port
 lives on jtcom's `2.x` branch. First, a trial port on a test branch of
@@ -30,33 +30,20 @@ uncommitted subset of jtcom's content (hidden by the local
 the 289 media files they reference (87 MB). The skeleton's own sample
 files show as deleted there; don't commit them.
 
-What the trial covers, from jtcom 1.x (`app/`, `config/`,
-`public/views/`):
-
-- **Types** (`config/content.php`): `post` (`_posts`, singles at
-  `/archives/{year}/{month}/{day}/{name}`, date archives, feeds by
-  category), the `category` (`topics`) and `era` taxonomies,
-  `literature` (`writing`) and its `literary_form`, `literary_genre`, and
-  `literary_technique` taxonomies.
-- **Archive pages** (`Plugins/YearArchives`, `MonthArchives`,
-  `SiteArchives`; `single-page-years`/`-months`/`-archives` views).
-- **Controllers** (`SinglePost`, `ArchivePost`) and the `EntryTerms`
-  block.
-- **Head meta** (`Plugins/OpenGraph/*`, `Content/EntryOpenGraph`):
-  canonical, description, Open Graph, and Twitter tags.
-- **Markdown** (`config/markdown.php`, `Plugins/MarkdownCite`).
-- **Views** (about 20 in `public/views/`), with jtcom's CSS as-is; the
-  SCSS build question waits for the jtcom theme.
+The trial covers everything jtcom 1.x does (`app/`, `config/`,
+`public/views/`, `resources/scss/`): its seven types, the archive pages,
+its controllers and `EntryTerms` block (as built-in routing and a
+component), head meta, Markdown setup, every view, and the SCSS build.
 
 ### Trial progress
 
-Working on `jtcom-trial` (all uncommitted): `config/content.php` (the
-seven types, typed objects, `home: 'post'`), `config/media.php`
-(`/user/media`), `config/markdown.php` (jtcom's extensions and options),
-`App\SiteServiceProvider`, and the `App\View\PostArchives` component
-(the year, month, and full archive lists). The theme is
-`resources/themes/jtcom` (D-144) with jtcom's compiled CSS, fonts,
-icons, and `manifest.webmanifest` (D-145), and views for every page kind:
+Done on `jtcom-trial` (the site files are uncommitted until the author
+commits them): `config/content.php` (the seven types, typed objects,
+`home: 'post'`), `config/media.php` (`/user/media`), `config/markdown.php`
+(jtcom's extensions and options), `App\SiteServiceProvider`, and the
+`App\View\PostArchives` component (the year, month, and full archive
+lists). The theme is `resources/themes/jtcom` (D-144), built with Vite
+(D-155; `npm run build` at the site root), with views for every page kind:
 singles (post, literature, page), the home page and listings, date
 archives, taxonomy lists, the art/drawing/painting image grids, the three
 archive pages, errors, 1.x's numbered pagination markup, head meta
@@ -77,6 +64,17 @@ Findings, and what was done:
 - **Also fixed:** the archive lists are cached per content version and
   theme with the new `$this->cache()` fragment helper (D-152), and
   titles use `$this->widont()`, 1.x's `runt()` (D-153).
+- **Custom 1.x views:** `template-canvas` (/plugindevbook, with its
+  `style` sheet mapped from `/public/...` to the theme) and the
+  standalone React tic-tac-toe page (`Head::remove()` drops the theme's
+  styles, D-154).
+- **Theme build (D-155):** Vite builds the jtcom theme. Sources are in
+  the theme's `resources/` (SCSS migrated from `@import` to `@use` with
+  `sass-migrator`; the compiled CSS matched the old output byte for byte),
+  and the built, hashed files and manifest are in its `public/`
+  (committed). `vite.config.js` and `package.json` are at the site root.
+  The feed and sitemap SCSS are kept but not built (the sitemap file
+  didn't compile in 1.x either).
 - **Not ported:** `MarkdownCite` (unused in jtcom's content, and its
   `:tag[...]` syntax collides with inline components). jtcom's own
   `style` front matter is handled in its theme.
@@ -84,6 +82,23 @@ Findings, and what was done:
   don't exist in jtcom either.
 
 Carried from M7: the 114 dead links in old posts feed the redirect map.
+
+### Remaining for M8
+
+1. **Author testing** on `jtcom-trial`, and commits of the framework and
+   trial work.
+2. **jtcom's `2.x` branch:** start it from the skeleton plus the trial's
+   `config/`, `src/`, theme, `package.json`, and `vite.config.js`, with
+   jtcom's full content (about 1,183 entries, 4,279 media files) in its
+   own `user/` repo.
+3. **URL parity:** crawl the live site's URLs (its sitemap and feeds,
+   plus the M7 crawl's links) against the 2.x site; every old URL must
+   answer 200 or 301. Build the redirect map (`user/data/redirects`)
+   from the differences, the 114 dead links, and the 7 missing media
+   references.
+4. **Production:** `APP_ENV=production`, the page cache, `publish` and
+   the webhook on the host, and the CLI-publish opcache question
+   (`open-questions.md`). Then deploy.
 
 ---
 

@@ -2279,3 +2279,35 @@ decision, add a new entry that supersedes it and mark the old one
   for the fix. It's a `Template` method, not a global function (global
   functions stay limited to escaping, D-106).
 - **Why:** jtcom's titles used `e|runt` in 1.x.
+
+### D-154: `Head::remove()`
+- **Date:** 2026-09-26
+- **Decision:** `Head::remove(string $key)` drops an item by the key
+  `has()` takes (`style:{href}`, `meta:{name}`, and so on).
+- **Why:** jtcom's standalone React page renders without the theme's
+  stylesheets, which the head adds to every page.
+
+### D-155: Themes build from `resources/` into `public/`
+- **Date:** 2026-09-26
+- **Decision:**
+  - The theme build convention is sources in the theme's `resources/`
+    and built files in its `public/`: the author's folder names.
+    `ThemeAssets` reads `public/.vite/manifest.json` (or
+    `public/manifest.json`) first, then the `dist/` locations, which stay
+    supported.
+  - `resources/` joins the private theme folders, so build sources
+    (SCSS, unbundled JavaScript) are never served, published, or
+    exported.
+  - jtcom's theme builds with **Vite** (8.x, `sass-embedded`): one tool
+    for SCSS, JavaScript, fonts, and images, with hashed file names and a
+    manifest Blush already read (D-119). `resources/static/` is Vite's
+    `publicDir`, copied to `public/` as is for files templates reach by
+    name (favicons, inline SVG icons, the web app manifest). Built files
+    are committed; hosts don't need Node.
+  - jtcom's SCSS moved from `@import` to `@use`/`@forward` with
+    `sass-migrator`, checked byte for byte against the old output.
+  - Vite's development server isn't integrated; `vite build --watch`
+    works as is.
+- **Why:** the author wants one simple, modern build tool for CSS,
+  JavaScript, and media, with `resources/` for sources and `public/` for
+  builds.

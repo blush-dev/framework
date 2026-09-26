@@ -237,7 +237,9 @@ Blush fills in the `<head>` for you: the title, the canonical URL,
 OpenGraph tags, feed links, and on an entry's page, a description (its
 `summary`, or the start of its text) and, when the entry has an `image`
 field, `og:image` and a Twitter card. Add or replace any tag with
-`$this->head()`.
+`$this->head()`, or drop one with `remove()`, such as your stylesheet on
+a page that stands alone:
+`$this->head()->remove('style:' . $this->asset('style.css'))`.
 
 ### Caching slow parts
 
@@ -322,6 +324,54 @@ a { color: var(--color-link); }
 Because they're tokens, site owners can change them in
 `user/data/theme.json` and single entries in front matter, without editing
 your CSS.
+
+### Building assets with Vite
+
+A theme that uses Sass, bundles JavaScript, or wants hashed file names can
+build its assets with [Vite](https://vite.dev/). Keep sources in the
+theme's `resources/` folder (Blush never serves it) and build into its
+`public/` folder:
+
+```
+user/themes/notebook/
+  theme.json      "styles": ["resources/scss/style.scss"], "scripts": ["resources/js/app.js"]
+  resources/
+    scss/  js/  fonts/    sources
+    static/               copied to public/ as is (favicons, icons)
+  public/                 the build: hashed files and .vite/manifest.json
+```
+
+List your source files in `theme.json`. Blush reads Vite's manifest and
+links the built files, and `$this->asset('resources/fonts/body.woff2')`
+finds a built font the same way. Files copied from `static/` are
+reached by their path: `$this->asset('public/img/icon.png')`.
+
+A `vite.config.js` at your site's root (install `vite`, plus
+`sass-embedded` for Sass):
+
+```js
+import { resolve } from 'node:path';
+import { defineConfig } from 'vite';
+
+const theme = resolve(import.meta.dirname, 'user/themes/notebook');
+
+export default defineConfig({
+	root: theme,
+	base: './',
+	publicDir: 'resources/static',
+	build: {
+		outDir: 'public',
+		emptyOutDir: true,
+		manifest: true,
+		rolldownOptions: {
+			input: ['resources/scss/style.scss', 'resources/js/app.js'].map((file) => resolve(theme, file))
+		}
+	}
+});
+```
+
+Run `npx vite build` (or `vite build --watch` while you work) and commit
+the built `public/` folder, so your server never needs Node.
 
 ### Check your theme
 

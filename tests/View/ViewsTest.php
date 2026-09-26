@@ -193,6 +193,11 @@ final class ViewsTest extends TestCase
 		$this->assertSame('Page 2 of 9|no.such.key|January 5, 2026|January 2026|asset||one two three', trim($html));
 		$this->assertSame('Helpers | Test Site', $context->head->documentTitle());
 		$this->assertTrue($context->head->has('meta:robots'));
+
+		$context->head->remove('meta:robots')->remove('meta:nope');
+
+		$this->assertFalse($context->head->has('meta:robots'));
+		$this->assertStringNotContainsString('robots', $context->head->render());
 	}
 
 	public function testWidontJoinsTheLastTwoWords(): void

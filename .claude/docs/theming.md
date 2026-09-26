@@ -44,7 +44,8 @@ user/themes/nova/
     single.php  collection.php  …   (template hierarchy files)
   src/              Optional PHP: ThemeProvider, component classes, context providers
   lang/             Message catalogs (D-028)
-  assets/  dist/    Source and built assets (build tool is the theme's choice)
+  resources/        Build sources (never served, D-155): scss/, js/, fonts/, …
+  public/           Built assets and the build's manifest (build tool is the theme's choice)
   screenshot.webp
 ```
 
@@ -261,9 +262,11 @@ to `<body>` (D-109), `stylesheet` is a URL or a theme asset path (D-119), and
 - `Head` prints each asset once, in order.
 - **Serving:** the `theme.asset` route (`/themes/{slug}/{path}`) streams
   allowed files from any installed theme until they're published (D-105).
-- **Versioning:** from a Vite-style `dist/.vite/manifest.json` or
-  `dist/manifest.json` if present (hashed files, their `css`, built scripts
-  as modules), otherwise the file mtime (`?v=`) (D-119).
+- **Versioning:** from a Vite-style manifest if present:
+  `public/.vite/manifest.json` (D-155), `dist/.vite/manifest.json`, or
+  either without `.vite/` (hashed files, their `css`, built scripts as
+  modules), otherwise the file mtime (`?v=`) (D-119). A theme's
+  `resources/` and `src/` folders are never served.
 - **Publishing:** `theme:publish` copies servable theme assets (never PHP,
   views, or manifests; never a symlink) to `public/themes/{slug}/`. Static
   export includes them.

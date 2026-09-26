@@ -159,6 +159,18 @@ final class Head implements Stringable
 	}
 
 	/**
+	 * Removes an item by its key (see `has()`), such as a theme stylesheet
+	 * a standalone page doesn't want:
+	 * `$this->head()->remove('style:' . $this->asset('style.css'))` (D-154).
+	 */
+	public function remove(string $key): self
+	{
+		unset($this->tags[$key]);
+
+		return $this;
+	}
+
+	/**
 	 * Renders the title and every tag.
 	 */
 	public function render(): string

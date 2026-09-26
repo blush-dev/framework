@@ -33,6 +33,7 @@ use Blush\Theme\SiteThemeData;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeCache;
 use Blush\Theme\ThemeDiscovery;
+use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\ThemeResolver;
@@ -300,6 +301,29 @@ final class ThemeSystemTest extends TestCase
 		$this->activeTheme('bare');
 
 		$this->assertStringNotContainsString('blush-tokens', $this->get('/'));
+	}
+
+	public function testPublicManifestsBuildFromResources(): void
+	{
+		$this->writeTemporaryFile('user/themes/vite/theme.json', '{"name": "Vite", "styles": ["resources/scss/style.scss"], "scripts": ["resources/js/app.js"]}');
+		$this->writeTemporaryFile('user/themes/vite/public/.vite/manifest.json', json_encode([
+			'resources/js/app.js'         => ['file' => 'assets/app-4f2a.js'],
+			'resources/scss/style.scss'   => ['file' => 'assets/style-77aa.css'],
+			'resources/fonts/karla.woff2' => ['file' => 'assets/karla-1b2c.woff2']
+		], JSON_THROW_ON_ERROR));
+		$this->writeTemporaryFile('user/themes/vite/resources/js/app.js', 'source');
+		$this->writeTemporaryFile('user/themes/vite/public/img/icon.png', 'png');
+		$this->activeTheme('vite');
+
+		$html   = $this->get('/');
+		$assets = new ThemeAssets($this->app?->container()->make(Themes::class)->chain('vite') ?? throw new LogicException());
+
+		$this->assertStringContainsString('<link rel="stylesheet" href="/themes/vite/public/assets/style-77aa.css">', $html);
+		$this->assertStringContainsString('<script src="/themes/vite/public/assets/app-4f2a.js" type="module"></script>', $html);
+		$this->assertSame('/themes/vite/public/assets/karla-1b2c.woff2', $assets->url('resources/fonts/karla.woff2'));
+		$this->assertStringStartsWith('/themes/vite/public/img/icon.png?v=', (string) $assets->url('public/img/icon.png'));
+		$this->assertFalse(ThemeChain::isServable('resources/js/app.js'));
+		$this->assertTrue(ThemeChain::isServable('public/assets/app-4f2a.js'));
 	}
 
 	public function testBuildManifestsResolveAssets(): void

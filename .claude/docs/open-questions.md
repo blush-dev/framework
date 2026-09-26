@@ -37,6 +37,12 @@ Move each item to `decisions.md` once it's answered.
   Options: document it (done for now), have `publish` ping the
   site to invalidate, or version the index file names.
 
+- **Vite dev-server integration** (D-155, deferred by the author): live
+  reload needs asset URLs pointed at Vite's dev server while it runs,
+  typically through a "hot" file the dev server writes (Laravel's
+  approach) that `ThemeAssets` checks in development. `vite build
+  --watch` covers it until then.
+
 ## Tooling
 - **Benchmark regressions in CI** (D-044, D-101): CI machines differ from
   the author's, so absolute baselines don't transfer. Options: compare

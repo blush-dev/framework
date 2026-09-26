@@ -61,11 +61,12 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 	];
 
 	/**
-	 * Top-level theme folders that are never served.
+	 * Top-level theme folders that are never served: views, catalogs, PHP,
+	 * and build sources (`resources/`, D-155; `src/`).
 	 *
 	 * @var list<string>
 	 */
-	private const array PRIVATE_FOLDERS = ['views', 'lang', 'src', 'vendor', 'node_modules'];
+	private const array PRIVATE_FOLDERS = ['views', 'lang', 'src', 'resources', 'vendor', 'node_modules'];
 
 	/**
 	 * @param non-empty-list<ThemeManifest> $themes The active theme first, the framework default theme last.
