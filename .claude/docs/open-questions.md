@@ -43,7 +43,19 @@ Move each item to `decisions.md` once it's answered.
   approach) that `ThemeAssets` checks in development. `vite build
   --watch` covers it until then.
 
+- **Design tokens as an add-on** (D-160): the M5b token system (DTCG
+  tokens, modes, site and entry overrides, `theme:check` contrast) was
+  removed so themes can design however they like. If it comes back,
+  probably as an extension, and opt-in per theme. Notes on the old
+  design and what it taught are in `theming.md` → Design.
+
 ## Tooling
+- **Shared path-encoding helper** (noted 2026-09-27):
+  `implode('/', array_map(rawurlencode(...), explode('/', $path)))`
+  appears in `MediaResolver`, `RoutePattern`, `ExportAssets`,
+  `NetlifyFiles`, and `Exporter` (and the standalone
+  `resources/static-server.php`, which can't share it). Extract it to
+  one helper (such as a `Support` URL-path method).
 - **Benchmark regressions in CI** (D-044, D-101): CI machines differ from
   the author's, so absolute baselines don't transfer. Options: compare
   against a baseline measured in the same CI run (the base branch), or

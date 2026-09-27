@@ -8,9 +8,10 @@ The `2.x` branch is a **full rewrite** of Blush, a flat-file CMS, targeting
 PHP 8.5. Planning and milestones M0 (setup), M1 (core), M2 (HTTP +
 Console), M3 (Routing), M4 (Content), M5 (Views + theming), M6 (Caching +
 publishing), and M7 (Static export) are **complete**. **Milestone M8
-(Port jtcom)** is in progress: a trial port runs on the `jtcom-trial`
-branch of `../blush` against a subset of jtcom's real content; see
-`.claude/docs/roadmap.md` for its state and next steps.
+(Port jtcom)** is on hold after a trial port on the `jtcom-trial` branch
+of `../blush` (a test bed the author uses; never commit its site files).
+**The current focus is setup DX/UX** (D-156); see
+`.claude/docs/roadmap.md`.
 The dev site is `../blush` (`ddev start`, https://blush.ddev.site), on
 `jtcom-trial` for now (the skeleton itself is its `2.x` branch). Code on
 `master` (1.x) is not a reference implementation, with one exception:

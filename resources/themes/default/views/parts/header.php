@@ -3,7 +3,7 @@
 /**
  * Site header.
  *
- * @var Blush\View\Template $this
+ * @var Blush\View\Template $template
  * @var Blush\View\Site     $site
  */
 

@@ -70,10 +70,10 @@ final class HeadTest extends TestCase
 
 	public function testPrintsInlineStylesOncePerId(): void
 	{
-		$head = new Head()->inlineStyle('tokens', ":root {}\n")->style('/a.css')->inlineStyle('tokens', ":root { --a: 1; }\n");
+		$head = new Head()->inlineStyle('palette', ":root {}\n")->style('/a.css')->inlineStyle('palette', ":root { --a: 1; }\n");
 
-		$this->assertSame("<title></title>\n<style id=\"tokens\">\n:root { --a: 1; }\n</style>\n<link rel=\"stylesheet\" href=\"/a.css\">", $head->render());
-		$this->assertTrue($head->has('inline-style:tokens'));
+		$this->assertSame("<title></title>\n<style id=\"palette\">\n:root { --a: 1; }\n</style>\n<link rel=\"stylesheet\" href=\"/a.css\">", $head->render());
+		$this->assertTrue($head->has('inline-style:palette'));
 
 		$this->expectException(ViewException::class);
 		$head->inlineStyle('x', 'a</STYLE><script>');

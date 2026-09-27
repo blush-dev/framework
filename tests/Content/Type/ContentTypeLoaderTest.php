@@ -97,8 +97,8 @@ final class ContentTypeLoaderTest extends TestCase
 			$this->assertSame($type, $types->forFile($file)->name, $file);
 		}
 
-		$this->assertSame('category', $types->byPath('/topics/')?->name);
-		$this->assertNull($types->byPath('nowhere'));
+		$this->assertSame('category', $types->byFolder('/topics/')?->name);
+		$this->assertNull($types->byFolder('nowhere'));
 	}
 
 	public function testSchemasIncludeTheBuiltInAndTermFields(): void
@@ -128,7 +128,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 		$this->assertSame(TypeOrigin::Extension, $types->origin('recipe'));
 		$this->assertSame(TypeOrigin::Config, $types->origin('ingredient'));
-		$this->assertSame('pantry', $types->get('ingredient')->path);
+		$this->assertSame('pantry', $types->get('ingredient')->folder);
 	}
 
 	public function testTwoExtensionsCantDefineOneType(): void
@@ -160,7 +160,7 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(TypeOrigin::Data, $types->origin('movie'));
 		$this->assertTrue(TypeOrigin::Data->isEditable());
 		$this->assertSame('number', $types->get('movie')->schema->fields['rating']->type());
-		$this->assertSame('people', $types->get('author')->path);
+		$this->assertSame('people', $types->get('author')->folder);
 		$this->assertSame(TypeOrigin::Data, $types->origin('author'));
 	}
 
@@ -182,10 +182,10 @@ final class ContentTypeLoaderTest extends TestCase
 
 		$this->assertFalse($this->types()->has('movie'));
 
-		$this->contentConfig("['dataTypeRouting' => false]");
+		$this->contentConfig("['dataTypeUrls' => false]");
 
 		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('The "movie" data type sets "routing", which ContentConfig "dataTypeRouting" doesn\'t allow.');
+		$this->expectExceptionMessage('The "movie" data type sets "routing", which ContentConfig "dataTypeUrls" doesn\'t allow.');
 
 		$this->types();
 	}
@@ -213,11 +213,11 @@ final class ContentTypeLoaderTest extends TestCase
 	public function testChecksThatTypesFitTogether(): void
 	{
 		$cases = [
-			"['types' => ['post' => ['path' => 'authors']]]"                 => 'The "author" and "post" content types share the path "authors".',
-			"['types' => ['post' => ['collect' => 'nope']]]"                 => 'Content type "post" collect names "nope", which doesn\'t exist.',
-			"['types' => ['tag' => ['taxonomy' => true, 'term_collect' => 'nope']]]" => 'Content type "tag" termCollect names "nope"',
-			"['types' => ['post' => ['feed' => ['taxonomy' => 'nope']]]]"   => 'Content type "post" feed taxonomy names "nope"',
-			"['types' => ['post' => ['feed' => ['taxonomy' => 'page']]]]"   => 'Content type "post" feed taxonomy "page" isn\'t a taxonomy.',
+			"['types' => ['post' => ['path' => 'authors']]]"                 => 'The "author" and "post" content types share the folder "authors".',
+			"['types' => ['post' => ['collect' => 'nope']]]"                 => 'Content type "post" listing type names "nope", which doesn\'t exist.',
+			"['types' => ['tag' => ['taxonomy' => true, 'term_collect' => 'nope']]]" => 'Content type "tag" types names "nope"',
+			"['types' => ['post' => ['feed' => ['taxonomy' => 'nope']]]]"   => 'Content type "post" feed categories names "nope"',
+			"['types' => ['post' => ['feed' => ['taxonomy' => 'page']]]]"   => 'Content type "post" feed categories "page" isn\'t a taxonomy.',
 			"['types' => ['page' => ['path' => 'pages']]]"                   => 'No content type claims the content root',
 			"['home' => 'post']"                                              => 'ContentConfig "home" names "post", which isn\'t a content type.',
 			"['types' => ['title' => ['taxonomy' => true]]]"                 => 'Content type "page" has clashing fields: Schema key "title"'

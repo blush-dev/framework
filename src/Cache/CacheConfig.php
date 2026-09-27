@@ -24,7 +24,7 @@ use Blush\Core\Environment;
  *
  *     return new CacheConfig(driver: 'apcu', stores: ['pages' => 'file']);
  *
- * - `enabled` turns the caches on (pages, rendered bodies, tokens, and
+ * - `enabled` turns the caches on (pages, rendered bodies, and
  *   fragments). `null`, the default, means on everywhere but
  *   development, where templates and content change constantly.
  * - `driver` is the store every namespace uses (`file`, `php`, `apcu`,

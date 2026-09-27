@@ -104,9 +104,9 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 ## Data files
 
 - **Split (D-022):** developer config is typed PHP objects (D-017).
-  User-editable data (theme settings and tokens, menus, redirects, authors,
+  User-editable data (theme settings, menus, redirects, authors,
   anything the admin writes) is data files under `user/data/`, and theme
-  manifests and tokens are data files too.
+  manifests are data files too.
 - **`DataLoader`** (`Blush\Data`, M4a, D-085): reads a data file by name
   without its extension, through `DataParserRegistry` (keyed by extension,
   enum + registry, D-019). JSON, YAML, and YML are built in (D-032). If
@@ -129,7 +129,7 @@ Implemented in M5a for the `blush` and `theme` domains (D-107).
 - **Locale fallback:** `en_US` → `en` → the default locale.
 - **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers
   (`IntlDateFormatter`, `NumberFormatter`) use the site locale and timezone.
-- **Available in:** views (`$this->t()`), components, controllers, the CLI,
+- **Available in:** views (`$template->t()`), components, controllers, the CLI,
   and later the admin.
 - **Multilingual content** (the same entry in several languages) is separate
   from UI translation. It is architected for but not built yet (D-036): entries
@@ -251,24 +251,31 @@ is in that decision.
   folder works too, D-108).
 
 ### Types and schemas
-Implemented in M4a (D-083, D-084).
+Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 
-- **`ContentType`** (`Blush\Content\Type`): name, path, `public`, routing
-  (`TypeRouting`: prefix plus per-key paths over 1.x's defaults, or
-  `false`), collection query, taxonomy flag and term field, `collect`,
-  `termCollect` and `termCollection`, feed (`TypeFeed`), sitemap, archive
-  granularity (`ArchiveGranularity`), and its own `Schema`. `fromArray()`
-  accepts the 1.x option names.
+- **`ContentType`** (`Blush\Content\Type`): an abstract base with the
+  final kinds `Collection`, `Taxonomy`, and `Pages` (`TypeKind` names
+  them in data). Shared: name, `folder`, `public`, `urls` (`TypeUrls`:
+  prefix plus per-key paths over 1.x's defaults, with `single` and
+  `collection` shortcuts, or `false`), `listing` (`Listing`: typed `type`,
+  `orderBy`, `order`, `perPage`, plus 1.x `query` arguments), `feed`
+  (`TypeFeed`: `categories` taxonomy and a `listing`), `sitemap`, and its
+  own `Schema` (`fields`, `closed`). `Collection` adds `dateArchives`
+  (`DateArchives`); `Taxonomy` adds `types`, `field`, `aliases`, and
+  `termListing`; `Pages` has no URLs, listing, or feed. `fromArray()`
+  dispatches on `kind` (or 1.x's `taxonomy: true`) and accepts the 1.x
+  option names.
 - **Sources, one model** (D-042, D-083): built-ins, extension
   `ContentTypeSource`s, `ContentConfig` (`config/content.php`, locked), and
   data types (`user/data/types/*.json|yaml`, editable later).
   `ContentTypeLoader` merges and checks them into `ContentTypes`, which
-  finds types by name, path, or file, and builds each type's full schema.
+  finds types by name, folder, or file, and builds each type's full schema.
   `ContentConfig` also holds the home alias, the data-type policy,
   `disabled` built-ins, and `autoIndex`. The resolved types compile to
   `storage/cache/content-types.php` outside development (D-092).
-- **Built-in types:** `page` (the catch-all, path `''`) and `author`
-  (D-043, path `authors`, term field `authors` with alias `author`). Both
+- **Built-in types:** `page` (`Pages`, the catch-all, folder `''`) and
+  `author` (D-043, a `Taxonomy`, folder `authors`, term field `authors`
+  with alias `author`). Both
   can be redefined, and `author` can be disabled.
 - **`Schema`** (`Blush\Content\Schema`): field types `text`, `markdown`,
   `date`, `bool`, `number`, `enum`, `list`, `reference`, `media`, `slug`,
@@ -281,7 +288,7 @@ Implemented in M4a (D-083, D-084).
 - **Built-in entry fields** (`EntryFields`): `title`, `subtitle`, `slug`,
   `published` (alias `date`), `updated`, `status`, `visibility`, `summary`
   (alias `excerpt`), `image`, `locale`, `template` (alias `view`),
-  `layout`, `stylesheet`, `class`, `tokens`, `redirect_from`, and
+  `layout`, `stylesheet`, `class`, `redirect_from`, and
   `collection`, plus each taxonomy's term field.
 - Schemas drive **validation/casting** (at index time and in `content:lint`),
   **typed entry fields**, and **admin form generation** later.
@@ -414,13 +421,14 @@ Implemented in M4c (D-099), apart from image derivatives.
 
 Plain PHP templates (D-009). **The full theming design is in `theming.md`**
 (themes are presentation only, with a data-first manifest, parent chains,
-DTCG tokens, components with slots, and per-entry presentation fields). The
+components with slots, and per-entry presentation fields; no design
+token system, D-160). The
 view layer was implemented in M5 (D-103 to D-125).
 
 - **`Views`** (`Blush\View`): renders templates for one theme chain.
-  A template runs in a closure bound to its `Template` with no class
-  scope, so `$this` exposes only the template API. Layouts (which may
-  nest), sections, and partials (shared data plus their own). Failures
+  A template runs in a static closure with its `Template` as `$template`
+  and no object or class scope, so it reaches only the template API
+  (D-158). Layouts (which may nest), sections, and partials (shared data plus their own). Failures
   close their output buffers and become `ViewException`s.
 - **`ViewFinder`:** view names (`single-post`, `layouts/base`) resolve
   through `resources/views/themes/{active}`, `resources/views`, then the
@@ -448,9 +456,8 @@ view layer was implemented in M5 (D-103 to D-125).
   container; cached in `storage/cache/themes.php`), `Themes`,
   `ThemeChain` (with its providers, registered at boot), `ThemeConfig`,
   `ThemeResolver`, `ThemeAssets` (build manifests or mtime), settings
-  (`SettingsResolver`, `SiteThemeData`), DTCG tokens (`Token\TokenSet`,
-  `TokenResolver`, `Contrast`), `ThemeChecker`, and the `theme.asset`
-  route.
+  (`SettingsResolver`, `SiteThemeData`), `ThemeChecker`, and the
+  `theme.asset` route.
 
 ## Built-in controllers and outputs
 
@@ -477,8 +484,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 | Config, routes, extensions, content types, container plans | Compiled PHP files; cleared by `cache:clear` or deploy |
 | Content index | Per-file mtime/size/hash, incremental |
 | Rendered bodies, summaries, excerpts | Content version + theme + rendering settings + content hash (`RenderedBodies`) |
-| Token CSS | Content version + theme chain (`ViewFactory`) |
-| Fragments | `ContentCache::remember(namespace, key, fn)`, per content version; in templates, `$this->cache($key, fn)` (per active theme too, D-152) |
+| Fragments | `ContentCache::remember(namespace, key, fn)`, per content version; in templates, `$template->cache($key, fn)` (per active theme too, D-152) |
 | Full pages | `PageCache` middleware; content version + path |
 | HTTP | `ConditionalGet`: ETag or Last-Modified → 304; `Cache-Control` on cached pages |
 
@@ -489,7 +495,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   write; `cache:clear` (and publish) delete the stale entries.
 - **Store** (`Store`, an in-house PSR-16 base): `file` (default), `php`,
   `apcu`, `array`, and `null` drivers (enum + registry + factory +
-  registrar), one store per namespace (`pages`, `bodies`, `tokens`,
+  registrar), one store per namespace (`pages`, `bodies`,
   `fragments`, or an extension's). Values are plain data. `Caches` hands
   out stores, null ones when caching is off (in development, by
   default). Tagged invalidation comes later.
@@ -610,8 +616,7 @@ Implemented in M7 (D-135 to D-140).
 
 - **Goal:** as fast as possible.
 - **Precompiled** (opcache-friendly PHP files): config, routes, extension and
-  provider discovery, the content index, container resolution plans, and
-  compiled design tokens.
+  provider discovery, the content index, and container resolution plans.
 - **Lazy:** services (deferred and lazy objects), entry bodies, and
   Markdown rendering.
 - **Layers:** page cache (including files the web server can serve without

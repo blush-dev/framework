@@ -14,9 +14,10 @@ declare(strict_types=1);
 namespace Blush\Content\Routing;
 
 use Blush\Content\Entry\Entry;
-use Blush\Content\Type\ArchiveGranularity;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\DateArchives;
+use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\RouteConfig;
@@ -37,7 +38,7 @@ use Blush\Routing\UrlGenerationException;
  * - A taxonomy's terms use `single` with the term's slug, and are paged
  *   with `single.paged`.
  * - Entries of types without routing (pages, and types with
- *   `routing: false`) live at their folder path: `/about/biography`.
+ *   `urls: false`) live at their folder path: `/about/biography`.
  * - A landing page is its type's collection. The home type's collection
  *   is `/`, paged as `/page/{page}`.
  *
@@ -92,15 +93,15 @@ final readonly class ContentUrls
 			return null;
 		}
 
-		if (! $type->hasRouting()) {
-			return $this->routes->canonicalPath('/' . trim("{$type->path}/{$entry->key}", '/'));
+		if (! $type->hasUrls()) {
+			return $this->routes->canonicalPath('/' . trim("{$type->folder}/{$entry->key}", '/'));
 		}
 
 		if ($entry->landing) {
 			return $this->collection($type);
 		}
 
-		if ($type->taxonomy) {
+		if ($type instanceof Taxonomy) {
 			return $this->term($type, $entry->key);
 		}
 
@@ -145,11 +146,11 @@ final readonly class ContentUrls
 		}
 
 		if ($term !== null) {
-			return $type->taxonomy ? $this->build($type->routePattern(str_replace('collection.', 'single.', $key)), ['name' => $term]) : null;
+			return $type instanceof Taxonomy ? $this->build($type->routePattern(str_replace('collection.', 'single.', $key)), ['name' => $term]) : null;
 		}
 
 		if ($type->name === $this->types->home) {
-			$path = $type->routing === false ? null : $type->routing->path($key);
+			$path = $type->urls === false ? null : $type->urls->path($key);
 
 			return $path === null ? null : $this->build('/' . $path, []);
 		}
@@ -167,7 +168,7 @@ final readonly class ContentUrls
 	public function date(ContentType $type, array $parts, int $page = 1): ?string
 	{
 		$level  = array_key_last($parts);
-		$levels = array_map(static fn (ArchiveGranularity $granularity): string => $granularity->value, $type->archives->levels());
+		$levels = array_map(static fn (DateArchives $granularity): string => $granularity->value, $type->dateArchives->levels());
 
 		if ($level === null || ! in_array($level, $levels, true)) {
 			return null;

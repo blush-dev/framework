@@ -29,7 +29,7 @@ use Blush\Content\Visibility;
  *   name for `slug/index.md`, `index` for a landing page, or the `slug`
  *   front matter.
  * - `key` finds the entry within its type: the slug, prefixed by any
- *   folders between the type's path and the entry (`about/biography` for
+ *   folders between the type's folder and the entry (`about/biography` for
  *   a page). A landing page's key is `''`.
  * - `directory` is the folder the entry is listed in; a bundle is listed
  *   in its folder's parent.

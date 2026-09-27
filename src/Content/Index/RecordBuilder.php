@@ -70,7 +70,7 @@ final readonly class RecordBuilder
 
 		$directory = self::directoryOf($file->path);
 		$filename  = pathinfo($file->path, PATHINFO_FILENAME);
-		$landing   = $filename === 'index' && $directory === $type->path;
+		$landing   = $filename === 'index' && $directory === $type->folder;
 		$bundle    = $filename === 'index' && ! $landing;
 		$listedIn  = $bundle ? self::directoryOf($directory) : $directory;
 		$segments  = self::segmentsBelow($type, $listedIn);
@@ -146,7 +146,7 @@ final readonly class RecordBuilder
 			$terms[$taxonomy->name] = array_values(array_map(static fn (mixed $slug): string => (string) $slug, array_filter($slugs, is_scalar(...))));
 
 			$raw = array_find(
-				[$frontMatter[$taxonomy->field] ?? null, ...array_map(static fn (string $alias): mixed => $frontMatter[$alias] ?? null, $taxonomy->fieldAliases)],
+				[$frontMatter[$taxonomy->field] ?? null, ...array_map(static fn (string $alias): mixed => $frontMatter[$alias] ?? null, $taxonomy->aliases)],
 				static fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []
 			);
 
@@ -200,7 +200,7 @@ final readonly class RecordBuilder
 	 */
 	private static function segmentsBelow(ContentType $type, string $directory): array
 	{
-		$relative = $type->path === '' ? $directory : substr($directory, strlen($type->path) + 1);
+		$relative = $type->folder === '' ? $directory : substr($directory, strlen($type->folder) + 1);
 
 		return $relative === '' ? [] : explode('/', $relative);
 	}

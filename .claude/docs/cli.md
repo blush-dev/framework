@@ -66,7 +66,7 @@ Implemented in M2 (D-065, D-069).
 | `theme:activate <slug>` | Set the active theme in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120) |
 | `theme:new <slug> [--parent] [--name]` | Create a minimal theme (manifest plus stylesheet) in `user/themes` (D-120) |
 | `theme:publish [--all]` | Copy servable theme assets to `public/themes/{slug}`, removing stale ones; the active chain, or every theme (D-119) |
-| `theme:check [slug] [--strict]` | Check the chain, manifests, provider, settings, tokens, WCAG AA contrast, and the base layout's landmarks and skip link (D-030, D-121) |
+| `theme:check [slug] [--strict]` | Check the chain, manifests, provider, settings, and the base layout's landmarks and skip link (D-030, D-121, D-160) |
 | `theme:why <view> [--theme]` | Show which file in the view chain wins for a view, and what it shadows (D-120) |
 | `lang:missing [--locale]` | List untranslated message keys |
 | `build [--base-url] [--no-crawl] [--incremental]` | Export the site to static files in `storage/export`, rendered as production for the export's origin, with redirects and host files; `--incremental` keeps the last export's pages when nothing changed; broken links and host-file notices are warnings, failed URLs fail it (M7, D-135 to D-140) |

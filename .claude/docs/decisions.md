@@ -158,6 +158,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-022: Themes are data-first: manifest, tokens, and settings are data files
 - **Date:** 2026-09-25
+- **Status:** Partially superseded by D-160 (no token files or site token overrides).
 - **Decision:** A theme's manifest, tokens, and settings schema are data files
   (`theme.json`), not PHP. Theme behavior (components, context providers)
   lives in an optional theme service provider.
@@ -167,6 +168,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-023: Design tokens use the W3C Design Tokens (DTCG) format
 - **Date:** 2026-09-25
+- **Status:** Superseded by D-160 (no design token system for now).
 - **Decision:** Tokens follow the W3C Design Tokens Community Group format.
   Blush adds support for modes (e.g. light/dark). Blush merges theme, parent,
   and user tokens and compiles them to CSS custom properties.
@@ -193,6 +195,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-027: Presentation controls are first-class front matter
 - **Date:** 2026-09-25
+- **Status:** Partially superseded by D-160 (no `tokens` front matter).
 - **Decision:** Entries can control their own presentation through built-in
   front matter fields: `layout`, `template`, `stylesheet`, `class` (body/entry
   classes), and `tokens` (per-entry token overrides). These are part of the
@@ -1594,6 +1597,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-118: Design tokens
 - **Date:** 2026-09-25
+- **Status:** Superseded by D-160.
 - **Decision:** Implements D-023 and the `tokens` part of D-027 in
   `Blush\Theme\Token`:
   - `TokenSet` reads DTCG: groups, inherited `$type`, `$value` tokens,
@@ -1651,6 +1655,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-121: `theme:check`
 - **Date:** 2026-09-25
+- **Status:** Partially superseded by D-160 (no token or contrast checks).
 - **Decision:** Implements D-030's checks in `Theme\ThemeChecker`
   (`ThemeReport` of `Violation`s):
   - **Errors:** an unresolvable chain; a provider that isn't a service
@@ -1834,6 +1839,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-130: Rendered bodies, excerpts, and token CSS are cached
 - **Date:** 2026-09-25
+- **Status:** Partially superseded by D-160 (no token CSS).
 - **Decision:**
   - `Content\Entry\BodyCache` is the seam; `Cache\RenderedBodies` (bound
     by the cache provider) keeps bodies, summaries, and 1.x word
@@ -2213,6 +2219,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-148: `inheritTokens` in `theme.json`
 - **Date:** 2026-09-26
+- **Status:** Superseded by D-160.
 - **Decision:** `"inheritTokens": false` (default `true`) makes a theme
   the start of its token chain: the default theme's and its ancestors'
   tokens are left out, and a theme without its own tokens prints no
@@ -2311,3 +2318,118 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author wants one simple, modern build tool for CSS,
   JavaScript, and media, with `resources/` for sources and `public/` for
   builds.
+
+### D-156: M8 on hold; setup DX/UX next
+- **Date:** 2026-09-26
+- **Decision:**
+  - The `jtcom-trial` branch of `../blush` is the author's test bed, not
+    work to commit. Its site files (`config/`, `src/`, the jtcom theme,
+    `package.json`, `vite.config.js`) and its copied `user/` content stay
+    uncommitted.
+  - jtcom's `2.x` branch waits until the author says jtcom can change.
+    URL parity, the redirect map, production settings, and deployment
+    wait until the author is ready to go live.
+  - The next focus is the developer and user experience of setting up a
+    Blush site (installing, first run, checking an install, the first
+    look, local development), to be scoped with the author. See
+    `roadmap.md`.
+- **Why:** the trial did its job (D-144 to D-155 came from it); the
+  author wants setup polished before the jtcom port resumes.
+
+### D-157: Content type kinds and option names
+- **Date:** 2026-09-26
+- **Decision:** The first setup DX/UX slice (D-156) is how content types
+  are defined. Supersedes D-083's single `ContentType` class and its
+  option names.
+  - `ContentType` is an abstract base. The kinds are final classes:
+    `Collection` (listed entries, such as posts), `Taxonomy` (entries that
+    are terms grouping other entries), and `Pages` (the built-in `page`
+    type that claims the content root). Code checks
+    `$type instanceof Taxonomy` instead of a `taxonomy` flag, and each
+    kind takes only the options that mean something for it. Data types
+    pick one with `kind:` (`collection` by default).
+  - Renames: `path` is `folder`; `routing` (`TypeRouting`) is `urls`
+    (`TypeUrls`, with `single:` and `collection:` shortcuts); `collect`
+    and the `collection` array are `listing` (a typed `Listing`: `type`,
+    `orderBy`, `order`, `perPage`, and other 1.x `query` arguments);
+    `termCollect` is a taxonomy's `types` (a list); `termCollection` is
+    `termListing`; `fieldAliases` is `aliases`; `feed`'s `taxonomy` and
+    `collection` are `categories` and `listing`; `archives`
+    (`ArchiveGranularity`) is `dateArchives` (`DateArchives`); `schema`
+    is `fields` plus `closed`, as in data. `ContentConfig`'s
+    `dataTypeRouting` is `dataTypeUrls`.
+  - `fromArray()` still reads every 1.x option name (D-078), and
+    `taxonomy: true` makes a `Taxonomy`. 1.x's `collect: false` had no
+    effect beyond listing the type itself, so it's read and dropped.
+  - A taxonomy's `types` only chooses what its term pages and feeds list;
+    every taxonomy's term field is still in every type's schema, so no
+    content changes.
+  - "Blueprint" is reserved for field definitions (the admin editor's
+    forms, M10), as in Kirby, Grav, and Statamic, not for kinds.
+- **Why:** the `taxonomy` flag switched behavior in a dozen places and
+  gated four options, and the 1.x names collided (`collect`/`collection`,
+  `path`/routing paths). The author asked for a clearer structure for
+  setting up types.
+
+### D-158: Templates use `$template`, not `$this`
+- **Date:** 2026-09-27
+- **Decision:** Supersedes the `$this` binding in D-103 (the template
+  runs in a closure bound to `Template`). A template file runs in a
+  static closure with its `Template` in scope as `$template`, and no
+  object or class scope. Using `$this` in a view fails with a
+  `ViewException` saying views use `$template`. A data key or component
+  prop named `template` is ignored (like `__data` and `__file`). Arrow
+  functions in views capture `$template` on their own; a `function ()`
+  closure needs `use ($template)`. The default theme, the test views,
+  the docs, and the `jtcom-trial` theme use `$template`.
+- **Why:** the author doesn't want `$this` in theme views: it reads as
+  if a view file were a class method. `$template` is explicit, matches
+  the class name, and can be typed with `@var` for editors.
+
+### D-159: 1.x's include helpers return
+- **Date:** 2026-09-27
+- **Decision:** Refines D-103's template API with 1.x's names (its
+  `Engine`):
+  - `insert()` is renamed `include()`. It takes a view name or a list,
+    rendering the first that exists (a single invalid name is an error; a
+    list skips invalid names, like hierarchies).
+  - `includeIf($views, ...$data)` renders `''` when no view exists.
+  - `includeWhen($when, $views, ...$data)` and
+    `includeUnless($unless, $views, ...$data)` render on a truthy or
+    falsy condition.
+  - `each($views, $items, as: 'item', empty: null, ...$data)` renders a
+    partial per item, passing the item as `$as` and its position as
+    `$index`, plus the other data; with no items it renders `empty`, when
+    given.
+  - Every helper returns a string (printed with `<?= ?>`), unlike 1.x's,
+    which echoed. 1.x's template tags (`__call`, `tag()`) stay out:
+    components, context providers, and `Head` cover them, and magic
+    methods would lose `$template`'s typing.
+- **Why:** the author relied on these in 1.x; D-103 kept the API small
+  after Plates' shape and dropped them without a decision.
+
+### D-160: No design token system (for now)
+- **Date:** 2026-09-27
+- **Decision:** Supersedes D-023, D-118, and D-148, and the token parts
+  of D-022 (token files and site token overrides), D-027 (the `tokens`
+  front matter), D-121 (contrast checks), and D-130 (cached token CSS).
+  Blush sets no design rules for themes: a theme's styles are plain CSS
+  and nothing is compiled into the head.
+  - Removed: `Blush\Theme\Token` (`TokenSet`, `TokenResolver`,
+    `Contrast`), `tokens.json|yaml` in themes, `inheritTokens` and
+    `contrast` in `theme.json`, `tokens` in `user/data/theme.json`, the
+    `tokens` front matter field, `$template->token()`, the
+    `blush-tokens`/`blush-entry-tokens` style blocks, the `tokens`
+    cache namespace, and `theme:check`'s token and contrast checks.
+    Old keys in manifests and data files are ignored; a `tokens` key in
+    front matter is now an ordinary custom field.
+  - The default theme's palette and scale are custom properties in
+    `style.css`; dark mode uses `light-dark()`, driven by the
+    `color-scheme` the stylesheet already sets (system preference, or
+    `data-scheme` on `<html>`). The palette's values are unchanged.
+  - `Head::inlineStyle()` stays as a general API.
+  - A token system may return later as an add-on (open question);
+    `theming.md` → Design keeps notes on the old design.
+- **Why:** the author wants themes to design however they like without
+  framework rules about design for now. jtcom didn't use tokens, and
+  their main payoff (site-owner overrides) waits on the admin.

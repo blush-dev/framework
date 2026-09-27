@@ -7,7 +7,7 @@
  *     ![](a.jpg) ![](b.jpg) ![](c.jpg)
  *     :::
  *
- * @var Blush\View\Template $this
+ * @var Blush\View\Template $template
  * @var string              $slot
  * @var array<string, mixed> $props
  */

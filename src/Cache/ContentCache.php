@@ -17,7 +17,7 @@ use Closure;
 
 /**
  * Keeps values derived from content and site data (rendered bodies,
- * compiled tokens, fragments) under the content version, so they're
+ * fragments) under the content version, so they're
  * computed once per version and never read after it changes. With
  * caching off, the value is computed every time.
  *

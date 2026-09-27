@@ -16,6 +16,7 @@ namespace Blush\View;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
+use Blush\Content\Type\Taxonomy;
 
 /**
  * The view names a page tries, most specific first (see `theming.md`).
@@ -51,7 +52,7 @@ final readonly class Hierarchy
 		$entry    = $page->entry;
 		$type     = $page->type ?? $entry?->type;
 		$name     = $type->name ?? 'page';
-		$taxonomy = $type->taxonomy ?? false;
+		$taxonomy = $type instanceof Taxonomy;
 
 		$names = match ($page->kind) {
 			PageKind::Welcome    => ['welcome'],

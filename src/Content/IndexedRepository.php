@@ -28,6 +28,7 @@ use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 
 /**
@@ -132,7 +133,7 @@ final class IndexedRepository implements ContentRepository
 	{
 		$type = $this->types->find($taxonomy);
 
-		if ($type === null || ! $type->taxonomy) {
+		if (! $type instanceof Taxonomy) {
 			return null;
 		}
 

@@ -25,10 +25,9 @@ use Blush\Theme\ThemeConfig;
 
 /**
  * Checks a theme (the active one by default) with `ThemeChecker`: its
- * chain and manifests, settings, tokens and palette contrast, and the
- * base layout's accessibility landmarks (D-030). Errors fail the command.
+ * chain and manifests, settings, and the base layout's accessibility landmarks (D-030). Errors fail the command.
  */
-#[Command('theme:check', 'Check a theme\'s manifest, tokens, contrast, and layout.')]
+#[Command('theme:check', 'Check a theme\'s manifest, settings, and layout.')]
 final readonly class CheckTheme
 {
 	public function __construct(

@@ -19,18 +19,16 @@ use Blush\Data\InvalidData;
 
 /**
  * The site owner's theme data, `user/data/theme.json` (or `.yaml`,
- * D-022): setting values and token overrides, which the future admin
- * edits.
+ * D-022): setting values, which the future admin edits.
  *
  * ```json
  * {
- *     "settings": { "excerpts": false },
- *     "tokens": { "color": { "accent": { "$value": "#0a6" } } }
+ *     "settings": { "excerpts": false }
  * }
  * ```
  *
- * Both apply to whichever theme is active: a setting a theme doesn't
- * declare is ignored, and so is a token nothing uses.
+ * They apply to whichever theme is active: a setting a theme doesn't
+ * declare is ignored.
  */
 final class SiteThemeData
 {
@@ -57,19 +55,6 @@ final class SiteThemeData
 		$settings = $this->data()['settings'] ?? [];
 
 		return is_array($settings) ? $settings : throw new InvalidData('user/data/theme "settings" must be an object.');
-	}
-
-	/**
-	 * Returns the token overrides (DTCG).
-	 *
-	 * @return array<array-key, mixed>
-	 * @throws InvalidData
-	 */
-	public function tokens(): array
-	{
-		$tokens = $this->data()['tokens'] ?? [];
-
-		return is_array($tokens) ? $tokens : throw new InvalidData('user/data/theme "tokens" must be an object.');
 	}
 
 	/**

@@ -18,6 +18,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\ContentRepository;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 use Blush\Http\NotFound;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -61,7 +62,7 @@ final readonly class FeedController
 		if ($name === null) {
 			$feed = $this->builder->collection($contentType, $feedFormat);
 		} else {
-			$term = $contentType->taxonomy ? $this->content->term($contentType->name, $name) : null;
+			$term = $contentType instanceof Taxonomy ? $this->content->term($contentType->name, $name) : null;
 
 			if ($term === null || ! $term->isPublished() || ! $term->isRoutable()) {
 				throw new NotFound(sprintf('There is no "%s" term "%s".', $type, $name));

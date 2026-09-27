@@ -46,7 +46,6 @@ blush-framework/
     Theme/              Themes, ThemeDiscovery, ThemeCache, ThemeManifest, ThemeChain,
                         ThemeConfig, ThemeResolver, ThemeAssets, settings, ThemeChecker,
                         the theme asset route
-    Theme/Token/        DTCG TokenSet, TokenResolver, Contrast
     Cache/              Store base + drivers, registry, CacheConfig, Caches, ContentVersion,
                         ContentCache, RenderedBodies, PageCache (D-127 to D-130)
     Feed/               Feed formats, config, builder, controller, routes, head links (D-122)
@@ -63,8 +62,8 @@ blush-framework/
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
   resources/            server.php (`serve` router); static-server.php (`serve --static`,
                         D-138); lang/ (the `blush` catalog domain)
-    themes/default/     The framework default theme (D-110): theme.json, tokens.json,
-                        style.css, lang/, views/ (incl. components/)
+    themes/default/     The framework default theme (D-110): theme.json, style.css,
+                        lang/, views/ (incl. components/)
   docs/                 User documentation: installing, content, themes, config, CLI (D-141)
   benchmarks/           PHPBench suite + the generated jtcom-sized site (D-101)
   tests/

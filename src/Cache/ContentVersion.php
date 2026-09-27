@@ -23,7 +23,7 @@ use Blush\Support\Filesystem;
  * One stored value that changes whenever what the site shows might have:
  * after the index changes, on publish, on `cache:clear`, and when a
  * scheduled entry's time comes. Every derived cache (pages, bodies,
- * tokens) keys on it, so invalidating them all is one small write, and
+ * fragments) keys on it, so invalidating them all is one small write, and
  * stale entries are simply never read again (`publish` and `cache:clear`
  * delete them).
  *

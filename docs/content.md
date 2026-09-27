@@ -68,7 +68,6 @@ Front matter is YAML between two `---` lines at the top of the file. Only
 | `layout` | The theme layout to use |
 | `class` | Extra CSS classes for the page's `<body>` |
 | `stylesheet` | An extra stylesheet for this page |
-| `tokens` | Design token overrides for this page (see [Themes](themes.md#design-tokens)) |
 | `collection` | List other entries on this page (see [Content types](content-types.md#listing-entries)) |
 
 Any other key you add is kept and available to your theme. [Taxonomies](content-types.md#taxonomies) add

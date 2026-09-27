@@ -14,15 +14,16 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Content;
 
 use Override;
-use Blush\Content\Type\ContentType;
+use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentTypeSource;
+use Blush\Content\Type\Taxonomy;
 
 final class RecipeTypes implements ContentTypeSource
 {
 	#[Override]
 	public function types(): iterable
 	{
-		yield new ContentType('recipe', path: 'recipes');
-		yield new ContentType('ingredient', taxonomy: true, termCollect: 'recipe');
+		yield new Collection('recipe', folder: 'recipes');
+		yield new Taxonomy('ingredient', types: ['recipe']);
 	}
 }

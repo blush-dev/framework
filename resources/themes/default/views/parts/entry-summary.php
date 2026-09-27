@@ -4,13 +4,13 @@
  * One entry in a listing: its linked title, byline, and excerpt (unless
  * the `excerpts` setting is off).
  *
- * @var Blush\View\Template        $this
- * @var Blush\Content\Entry\Entry  $entry
+ * @var Blush\View\Template       $template
+ * @var Blush\Content\Entry\Entry $entry
  */
 
 declare(strict_types=1);
 
-$link  = $this->permalink($entry);
+$link  = $template->permalink($entry);
 $title = $entry->title !== '' ? $entry->title : $entry->slug;
 
 ?>
@@ -23,9 +23,9 @@ $title = $entry->title !== '' ? $entry->title : $entry->slug;
 		<?php endif ?>
 	</h2>
 
-	<?= $this->insert('parts/entry-meta', entry: $entry) ?>
+	<?= $template->include('parts/entry-meta', entry: $entry) ?>
 
-	<?php if ($this->setting('excerpts', true)) : ?>
+	<?php if ($template->setting('excerpts', true)) : ?>
 		<div class="entry__excerpt">
 			<?= raw($entry->excerpt()) ?>
 		</div>

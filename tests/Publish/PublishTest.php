@@ -135,7 +135,7 @@ final class PublishTest extends TestCase
 		$this->assertTrue($report->isSuccessful());
 		$this->assertNull($report->pull);
 		$this->assertSame(['_posts/2009-01-01.fresh.md'], $report->index?->added);
-		$this->assertSame(['pages', 'bodies', 'tokens', 'fragments'], $report->cleared);
+		$this->assertSame(['pages', 'bodies', 'fragments'], $report->cleared);
 		$this->assertNotSame($before, $report->version);
 		$this->assertSame($report->version, $app->container()->make(ContentVersion::class)->current());
 		$this->assertCount(1, $published);
@@ -329,7 +329,7 @@ final class PublishTest extends TestCase
 		$this->assertSame('no-store', $response->getHeaderLine('Cache-Control'));
 		$this->assertTrue($report['published']);
 		$this->assertSame([], $puller->pulled);
-		$this->assertSame(['pages', 'bodies', 'tokens', 'fragments'], $report['cleared']);
+		$this->assertSame(['pages', 'bodies', 'fragments'], $report['cleared']);
 
 		$this->assertSame(409, $this->webhook($app, '{"pull": false}')->getStatusCode());
 

@@ -16,14 +16,15 @@ namespace Blush\Content\Http;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\Query\InvalidQuery;
+use Blush\Content\Type\Taxonomy;
 use Blush\Http\NotFound;
 
 /**
  * Serves a taxonomy term's archive (`{type}.single` and
  * `{type}.single.paged` of a taxonomy): the term, real or virtual, with
  * the entries that reference it. The entries are those of the
- * taxonomy's `termCollect` type (every type when unset), queried with its
- * `termCollection` arguments and the term's own `collection`.
+ * taxonomy's `types` (every type when empty), listed by its `termListing`
+ * and the term's own `collection` front matter.
  */
 final class TermController extends ContentController
 {
@@ -34,7 +35,7 @@ final class TermController extends ContentController
 	public function __invoke(ServerRequestInterface $request, string $type, string $name, int $page = 1): ResponseInterface
 	{
 		$taxonomy = $this->type($type);
-		$term     = $taxonomy->taxonomy ? $this->visible($this->content->term($taxonomy->name, $name)) : null;
+		$term     = $taxonomy instanceof Taxonomy ? $this->visible($this->content->term($taxonomy->name, $name)) : null;
 
 		if ($term === null) {
 			throw new NotFound(sprintf('There is no "%s" term "%s".', $type, $name));
@@ -44,11 +45,7 @@ final class TermController extends ContentController
 			return self::redirect($request, $this->urls->term($taxonomy, $term->slug) ?? '/');
 		}
 
-		$query = $this->query(
-			$taxonomy->termCollect === null ? [] : ['type' => $taxonomy->termCollect],
-			$taxonomy->termCollection,
-			self::collectionArguments($term)
-		)->whereTerm($taxonomy->name, $term->slug);
+		$query = $this->query($taxonomy->termArguments(), self::collectionArguments($term))->whereTerm($taxonomy->name, $term->slug);
 
 		return $this->renderer->render(new ContentPage(
 			kind: PageKind::Term,

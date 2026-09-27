@@ -27,7 +27,7 @@ use Blush\Support\PhpArrayFile;
  * Keeps each entry in a PHP file that returns it (`PhpArrayFile`), under
  * `storage/cache/store/{namespace}`, so opcache holds hot entries in
  * shared memory and reading one costs no parsing. Suited to small values
- * read on every request (compiled design tokens); large ones (whole
+ * read on every request; large ones (whole
  * pages) are better in the `file` driver, which doesn't fill opcache.
  */
 final class PhpFileStore extends Store

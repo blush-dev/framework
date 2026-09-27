@@ -49,6 +49,8 @@ final readonly class RenderedUrl
 	 */
 	public function isHtml(): bool
 	{
-		return strtolower(trim(explode(';', $this->contentType)[0])) === 'text/html';
+		return (explode(';', $this->contentType)[0]
+			|> trim(...)
+			|> strtolower(...)) === 'text/html';
 	}
 }

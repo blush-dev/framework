@@ -18,10 +18,9 @@ use Blush\Container\ServiceResolver;
 use Blush\Core\Paths;
 use Blush\Core\ServiceProvider;
 use Blush\Routing\RouteSource;
-use Blush\Theme\Token\TokenResolver;
 
 /**
- * Binds the per-request theme resolver, settings and token resolution,
+ * Binds the per-request theme resolver, settings,
  * and the theme asset route. `Bootstrap` binds the installed `Themes`
  * (it needs them to register theme providers); an application built
  * without it discovers them on first use.
@@ -34,8 +33,7 @@ final class ThemeServiceProvider extends ServiceProvider
 	protected const array SINGLETONS = [
 		ThemeResolver::class,
 		SiteThemeData::class,
-		SettingsResolver::class,
-		TokenResolver::class
+		SettingsResolver::class
 	];
 
 	/**

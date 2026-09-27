@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Blush\Content\Schema\Definition;
+use Blush\Content\Schema\Field;
 use Blush\Content\Schema\FieldFactory;
 use Blush\Content\Schema\Fields\ReferenceField;
 use Blush\Content\Schema\InvalidSchema;
@@ -21,79 +22,54 @@ use Blush\Content\Schema\Schema;
 
 /**
  * A content type: the entries in one folder of `user/content`, how they're
- * routed, listed, and fed, and the fields they have. One model serves
- * types from code and from data (D-042):
+ * routed, listed, and fed, and the fields they have. The kinds are final
+ * classes (D-157): `Collection` for listed entries such as posts,
+ * `Taxonomy` for terms that group other entries, and `Pages` for the
+ * built-in type that claims the content root. One model serves types
+ * from code and from data (D-042).
  *
- *     new ContentType(
- *         'post',
- *         path: '_posts',
- *         routing: new TypeRouting('archives', ['single' => '{year}/{month}/{day}/{name}']),
- *         collection: ['order' => 'desc'],
- *         feed: new TypeFeed(taxonomy: 'category'),
- *         archives: ArchiveGranularity::Day
- *     );
- *
- * `fromArray()` also accepts every 1.x option name (D-078), such as
- * `date_archives` and `term_collect`.
- *
- * A **taxonomy**'s entries are terms that other entries reference through
- * the taxonomy's field (its name by default, or `$field` and its
- * aliases). Terms collect the entries of `$termCollect`, or of every type
- * when that's unset.
+ * `fromArray()` builds any kind from a definition array (its `kind`, or
+ * 1.x's `taxonomy: true`) and also accepts every 1.x option name
+ * (D-078), such as `path`, `routing`, `date_archives`, and
+ * `term_collect`.
  */
-final readonly class ContentType
+abstract readonly class ContentType
 {
 	/**
 	 * The folder under `user/content`, without slashes. The page type's
 	 * is `''`, the content root.
 	 */
-	public string $path;
+	public string $folder;
 
 	/**
-	 * The front matter key entries use to reference this taxonomy's terms.
+	 * The type's own fields, beyond the built-in ones.
 	 */
-	public string $field;
+	public Schema $schema;
 
 	/**
-	 * The type whose entries this type's collection lists, or `false` for
-	 * none. Defaults to the type itself.
-	 */
-	public string|false $collect;
-
-	/**
-	 * @param  string               $name           Lowercase letters, digits, and underscores.
-	 * @param  ?string              $path           Defaults to the name.
-	 * @param  bool                 $public         Whether the type is public at all.
-	 * @param  TypeRouting|false    $routing        URL settings, or `false` for no routes.
-	 * @param  array<string, mixed> $collection     Query arguments for the collection.
-	 * @param  bool                 $taxonomy       Whether entries are terms.
-	 * @param  ?string              $field          A taxonomy's term field; defaults to the name.
-	 * @param  list<string>         $fieldAliases   Other keys the term field is read from.
-	 * @param  string|false|null    $collect        See `$collect`.
-	 * @param  ?string              $termCollect    The type a term's archive lists.
-	 * @param  array<string, mixed> $termCollection Query arguments for term archives.
-	 * @param  TypeFeed|false       $feed           Feed settings, or `false` for no feed.
-	 * @param  bool                 $sitemap        Whether entries are in the sitemap.
-	 * @param  ArchiveGranularity   $archives       How finely date archives go.
-	 * @param  Schema               $schema         Fields beyond the built-in ones.
+	 * @param  string            $name         Lowercase letters, digits, and underscores.
+	 * @param  ?string           $folder       Defaults to the name.
+	 * @param  bool              $public       Whether the type is public at all.
+	 * @param  TypeUrls|false    $urls         URL settings, or `false` for no routes.
+	 * @param  Listing           $listing      How the type's listing page lists entries.
+	 * @param  TypeFeed|false    $feed         Feed settings, or `false` for no feed.
+	 * @param  bool              $sitemap      Whether entries are in the sitemap.
+	 * @param  DateArchives      $dateArchives How finely date archives go.
+	 * @param  iterable<Field>   $fields       Fields beyond the built-in ones.
+	 * @param  bool              $closed       Whether undeclared front matter is an error.
 	 * @throws InvalidContentType
 	 */
-	public function __construct(
+	protected function __construct(
 		public string $name,
-		?string $path = null,
-		public bool $public = true,
-		public TypeRouting|false $routing = new TypeRouting(),
-		public array $collection = [],
-		public bool $taxonomy = false,
-		?string $field = null,
-		public array $fieldAliases = [],
-		string|false|null $collect = null,
-		public ?string $termCollect = null,
-		public array $termCollection = [],
-		public TypeFeed|false $feed = false,
-		public bool $sitemap = true,
-		public ArchiveGranularity $archives = ArchiveGranularity::None,
-		public Schema $schema = new Schema()
+		?string $folder,
+		public bool $public,
+		public TypeUrls|false $urls,
+		public Listing $listing,
+		public TypeFeed|false $feed,
+		public bool $sitemap,
+		public DateArchives $dateArchives,
+		iterable $fields,
+		bool $closed
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -102,28 +78,37 @@ final readonly class ContentType
 			));
 		}
 
-		$this->path    = self::normalizePath($path ?? $name, $name);
-		$this->field   = $field ?? $name;
-		$this->collect = $collect ?? $name;
+		try {
+			$this->schema = new Schema($fields, $closed);
+		} catch (InvalidSchema $e) {
+			throw new InvalidContentType(sprintf('Content type "%s" has invalid fields: %s', $name, $e->getMessage()), previous: $e);
+		}
+
+		$this->folder = self::normalizeFolder($folder ?? $name, $name);
 	}
 
 	/**
-	 * Returns the URL prefix, without slashes: the routing prefix, or the
-	 * path when there isn't one. Types without routing have none.
+	 * Returns the type's kind.
+	 */
+	abstract public function kind(): TypeKind;
+
+	/**
+	 * Returns the URL prefix, without slashes: the URLs' prefix, or the
+	 * folder when there isn't one. Types without URLs have none.
 	 */
 	public function prefix(): string
 	{
-		return $this->routing === false ? '' : ($this->routing->prefix ?? $this->path);
+		return $this->urls === false ? '' : ($this->urls->prefix ?? $this->folder);
 	}
 
 	/**
 	 * Returns the full route pattern for a route key, such as
 	 * `/archives/{year}/{month}/{day}/{name}` for `single`, or `null` when
-	 * the type has no routing or no such key.
+	 * the type has no URLs or no such key.
 	 */
 	public function routePattern(string $key): ?string
 	{
-		$path = $this->routing === false ? null : $this->routing->path($key);
+		$path = $this->urls === false ? null : $this->urls->path($key);
 
 		return $path === null ? null : '/' . trim($this->prefix() . '/' . $path, '/');
 	}
@@ -131,9 +116,9 @@ final readonly class ContentType
 	/**
 	 * Returns whether the type has routes of its own.
 	 */
-	public function hasRouting(): bool
+	public function hasUrls(): bool
 	{
-		return $this->routing !== false;
+		return $this->urls !== false;
 	}
 
 	/**
@@ -145,21 +130,40 @@ final readonly class ContentType
 	}
 
 	/**
-	 * Returns the field other entries reference this taxonomy's terms
+	 * Returns the type the listing page lists: the listing's `type`, or the
+	 * type itself.
+	 */
+	public function listedType(): string
+	{
+		return $this->listing->type ?? $this->name;
+	}
+
+	/**
+	 * Returns the listing page's 1.x query arguments, for
+	 * `Query::fromArray()`.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function listingArguments(): array
+	{
+		return [...$this->listing->arguments(), 'type' => $this->listedType()];
+	}
+
+	/**
+	 * Returns the field other entries reference this type's entries
 	 * through, or `null` for a type that isn't a taxonomy.
 	 */
 	public function termField(): ?ReferenceField
 	{
-		return $this->taxonomy
-			? new ReferenceField($this->field, $this->name)->aliases(...$this->fieldAliases)
-			: null;
+		return null;
 	}
 
 	/**
-	 * Builds a type from a definition array. Keys are the constructor's
-	 * parameter names or the 1.x option names; `routing` may be `false` or
-	 * a map of `prefix` and `paths`, `feed` may be a boolean or a map of
-	 * `taxonomy` and `collection`, `archives` names an `ArchiveGranularity`,
+	 * Builds a type from a definition array. Keys are the kind's
+	 * constructor parameter names or the 1.x option names; `urls` may be
+	 * `false` or a map (`TypeUrls::fromArray()`), `listing` a map
+	 * (`Listing::fromArray()`), `feed` a boolean or a map
+	 * (`TypeFeed::fromArray()`), `dateArchives` names a `DateArchives`,
 	 * and `fields` (with `closed`) defines the schema.
 	 *
 	 * @param  array<array-key, mixed> $data
@@ -167,49 +171,54 @@ final readonly class ContentType
 	 */
 	public static function fromArray(array $data, FieldFactory $fields): self
 	{
-		$data = self::renamed($data);
 		$name = $data['name'] ?? null;
 
 		if (! is_string($name)) {
 			throw new InvalidContentType('A content type definition needs a "name".');
 		}
 
-		$unknown = array_diff(array_keys($data), [
-			'name', 'path', 'public', 'routing', 'collection', 'taxonomy', 'field', 'fieldAliases', 'collect',
-			'termCollect', 'termCollection', 'feed', 'sitemap', 'archives', 'dateArchives', 'timeArchives',
-			'fields', 'closed'
-		]);
+		$data    = self::renamed($data, $name);
+		$kind    = self::kindOf($data, $name);
+		$unknown = array_diff(array_map(strval(...), array_keys($data)), ['name', 'kind', ...$kind->options()]);
 
 		if ($unknown !== []) {
-			throw new InvalidContentType(sprintf('Content type "%s" has unknown options: %s.', $name, implode(', ', $unknown)));
+			throw new InvalidContentType(sprintf('Content type "%s" (%s) has unknown options: %s.', $name, $kind->value, implode(', ', $unknown)));
 		}
 
 		$definition = new Definition($data, sprintf('Content type "%s"', $name));
 
 		try {
-			$collect = $data['collect'] ?? null;
+			$schema = $fields->schema($definition->maps('fields'), $definition->bool('closed'));
+			$common = [
+				'name'    => $name,
+				'folder'  => $definition->nullableString('folder'),
+				'public'  => $definition->bool('public', true),
+				'sitemap' => $definition->bool('sitemap', true),
+				'fields'  => array_values($schema->fields),
+				'closed'  => $schema->closed
+			];
 
-			if ($collect !== null && $collect !== false && ! is_string($collect)) {
-				throw new InvalidSchema(sprintf('Content type "%s" "collect" must be a type name or false.', $name));
+			if ($kind === TypeKind::Pages) {
+				return new Pages(...[...$common, 'folder' => $common['folder'] ?? '']);
 			}
 
-			return new self(
-				name: $name,
-				path: $definition->nullableString('path'),
-				public: $definition->bool('public', true),
-				routing: self::routing($data['routing'] ?? [], $name),
-				collection: self::stringMap($definition->map('collection')),
-				taxonomy: $definition->bool('taxonomy'),
-				field: $definition->nullableString('field'),
-				fieldAliases: $definition->strings('fieldAliases'),
-				collect: $collect,
-				termCollect: $definition->nullableString('termCollect'),
-				termCollection: self::stringMap($definition->map('termCollection')),
-				feed: self::feed($data['feed'] ?? false, $name),
-				sitemap: $definition->bool('sitemap', true),
-				archives: self::archives($definition, $name),
-				schema: $fields->schema($definition->maps('fields'), $definition->bool('closed'))
-			);
+			$common = [
+				...$common,
+				'urls'    => self::urls($data['urls'] ?? [], $name),
+				'listing' => Listing::fromArray($definition->map('listing'), sprintf('Content type "%s" listing', $name)),
+				'feed'    => self::feed($data['feed'] ?? false, $name)
+			];
+
+			return match ($kind) {
+				TypeKind::Collection => new Collection(...[...$common, 'dateArchives' => self::dateArchives($definition, $name)]),
+				TypeKind::Taxonomy   => new Taxonomy(...[
+					...$common,
+					'types'       => $definition->strings('types'),
+					'field'       => $definition->nullableString('field'),
+					'aliases'     => $definition->strings('aliases'),
+					'termListing' => Listing::fromArray($definition->map('termListing'), sprintf('Content type "%s" termListing', $name))
+				])
+			};
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
@@ -224,40 +233,48 @@ final readonly class ContentType
 	public function toArray(): array
 	{
 		$data = [
-			'name'           => $this->name,
-			'path'           => $this->path === $this->name ? null : $this->path,
-			'public'         => $this->public ? null : false,
-			'routing'        => $this->routing === false ? false : ($this->routing->toArray() ?: null),
-			'collection'     => $this->collection,
-			'taxonomy'       => $this->taxonomy ?: null,
-			'field'          => $this->field === $this->name ? null : $this->field,
-			'fieldAliases'   => $this->fieldAliases,
-			'collect'        => $this->collect === $this->name ? null : $this->collect,
-			'termCollect'    => $this->termCollect,
-			'termCollection' => $this->termCollection,
-			'feed'           => $this->feed === false ? null : ($this->feed->toArray() ?: true),
-			'sitemap'        => $this->sitemap ? null : false,
-			'archives'       => $this->archives === ArchiveGranularity::None ? null : $this->archives->value,
+			'name'    => $this->name,
+			'kind'    => $this->kind()->value,
+			'folder'  => $this->folder === $this->name ? null : $this->folder,
+			'urls'    => $this->urls === false ? false : ($this->urls->toArray() ?: null),
+			'listing' => $this->listing->toArray(),
+			'feed'    => $this->feed === false ? null : ($this->feed->toArray() ?: true),
+			'public'  => $this->public ? null : false,
+			'sitemap' => $this->sitemap ? null : false,
+			...$this->options(),
 			...$this->schema->toArray()
 		];
+
+		$data = array_intersect_key($data, array_flip(['name', 'kind', ...$this->kind()->options()]));
 
 		return array_filter($data, static fn (mixed $value): bool => $value !== null && $value !== []);
 	}
 
 	/**
-	 * Moves 1.x snake_case option names to their 2.x names.
+	 * Returns the kind's own settings for `toArray()`.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function options(): array
+	{
+		return [];
+	}
+
+	/**
+	 * Moves 1.x option names to their 2.x names.
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @return array<array-key, mixed>
+	 * @throws InvalidContentType
 	 */
-	private static function renamed(array $data): array
+	private static function renamed(array $data, string $name): array
 	{
 		$renames = [
-			'field_aliases'   => 'fieldAliases',
-			'term_collect'    => 'termCollect',
-			'term_collection' => 'termCollection',
-			'date_archives'   => 'dateArchives',
-			'time_archives'   => 'timeArchives'
+			'path'            => 'folder',
+			'routing'         => 'urls',
+			'collection'      => 'listing',
+			'field_aliases'   => 'aliases',
+			'term_collection' => 'termListing'
 		];
 
 		foreach ($renames as $old => $new) {
@@ -267,108 +284,137 @@ final readonly class ContentType
 			}
 		}
 
+		if (array_key_exists('collect', $data)) {
+			$collect = $data['collect'];
+			unset($data['collect']);
+
+			if (is_string($collect)) {
+				$data['listing'] = [...(is_array($data['listing'] ?? null) ? $data['listing'] : []), 'type' => $collect];
+			} elseif ($collect !== false && $collect !== null) {
+				throw new InvalidContentType(sprintf('Content type "%s" "collect" must be a type name or false.', $name));
+			}
+		}
+
+		if (array_key_exists('term_collect', $data)) {
+			$data['types'] ??= $data['term_collect'];
+			unset($data['term_collect']);
+		}
+
+		if (array_key_exists('date_archives', $data) || array_key_exists('time_archives', $data)) {
+			$flags = new Definition($data, sprintf('Content type "%s"', $name));
+
+			try {
+				$data['dateArchives'] ??= DateArchives::fromFlags($flags->bool('date_archives'), $flags->bool('time_archives'))->value;
+			} catch (InvalidSchema $e) {
+				throw new InvalidContentType($e->getMessage(), previous: $e);
+			}
+
+			unset($data['date_archives'], $data['time_archives']);
+		}
+
 		return $data;
 	}
 
 	/**
-	 * Reads the `routing` option.
+	 * Returns the kind a definition names with `kind`, or with 1.x's
+	 * `taxonomy` flag, and drops the flag.
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @throws InvalidContentType
+	 */
+	private static function kindOf(array &$data, string $name): TypeKind
+	{
+		$taxonomy = $data['taxonomy'] ?? null;
+		$kind     = $data['kind'] ?? null;
+		unset($data['taxonomy']);
+
+		if ($taxonomy !== null && ! is_bool($taxonomy)) {
+			throw new InvalidContentType(sprintf('Content type "%s" "taxonomy" must be true or false.', $name));
+		}
+
+		if ($kind === null) {
+			return $taxonomy === true ? TypeKind::Taxonomy : TypeKind::Collection;
+		}
+
+		$case = is_string($kind) ? TypeKind::tryFrom($kind) : null;
+
+		if ($case === null) {
+			throw new InvalidContentType(sprintf(
+				'Content type "%s" "kind" must be one of %s.',
+				$name,
+				implode(', ', array_column(TypeKind::cases(), 'value'))
+			));
+		}
+
+		if ($taxonomy !== null && $taxonomy !== ($case === TypeKind::Taxonomy)) {
+			throw new InvalidContentType(sprintf('Content type "%s" sets "kind: %s" and "taxonomy: %s".', $name, $case->value, $taxonomy ? 'true' : 'false'));
+		}
+
+		return $case;
+	}
+
+	/**
+	 * Reads the `urls` option.
 	 *
 	 * @throws InvalidSchema
 	 */
-	private static function routing(mixed $value, string $name): TypeRouting|false
+	private static function urls(mixed $value, string $name): TypeUrls|false
 	{
 		if ($value === false) {
 			return false;
 		}
 
 		if (! is_array($value)) {
-			throw new InvalidSchema(sprintf('Content type "%s" "routing" must be false or a map.', $name));
+			throw new InvalidSchema(sprintf('Content type "%s" "urls" must be false or a map.', $name));
 		}
 
-		$routing = new Definition($value, sprintf('Content type "%s" routing', $name));
-		$paths   = $routing->map('paths');
-
-		if (! array_all($paths, static fn (mixed $path, mixed $key): bool => is_string($key) && is_string($path))) {
-			throw new InvalidSchema(sprintf('Content type "%s" routing "paths" must map route keys to paths.', $name));
-		}
-
-		/** @var array<string, string> $paths */
-		return new TypeRouting($routing->nullableString('prefix'), $paths);
+		return TypeUrls::fromArray($value, sprintf('Content type "%s" urls', $name));
 	}
 
 	/**
 	 * Reads the `feed` option.
 	 *
 	 * @throws InvalidSchema
+	 * @throws InvalidContentType
 	 */
 	private static function feed(mixed $value, string $name): TypeFeed|false
 	{
-		if ($value === false) {
-			return false;
-		}
-
-		if ($value === true) {
-			return new TypeFeed();
-		}
-
-		if (! is_array($value)) {
-			throw new InvalidSchema(sprintf('Content type "%s" "feed" must be true, false, or a map.', $name));
-		}
-
-		$feed = new Definition($value, sprintf('Content type "%s" feed', $name));
-
-		return new TypeFeed($feed->nullableString('taxonomy'), self::stringMap($feed->map('collection')));
+		return match (true) {
+			$value === false => false,
+			$value === true  => new TypeFeed(),
+			is_array($value) => TypeFeed::fromArray($value, sprintf('Content type "%s" feed', $name)),
+			default          => throw new InvalidSchema(sprintf('Content type "%s" "feed" must be true, false, or a map.', $name))
+		};
 	}
 
 	/**
-	 * Reads the `archives` option, or the 1.x flags.
+	 * Reads the `dateArchives` option.
 	 *
 	 * @throws InvalidSchema
 	 */
-	private static function archives(Definition $definition, string $name): ArchiveGranularity
+	private static function dateArchives(Definition $definition, string $name): DateArchives
 	{
-		if (! $definition->has('archives')) {
-			return ArchiveGranularity::fromFlags($definition->bool('dateArchives'), $definition->bool('timeArchives'));
-		}
-
-		return ArchiveGranularity::tryFrom($definition->string('archives'))
+		return DateArchives::tryFrom($definition->string('dateArchives', DateArchives::None->value))
 			?? throw new InvalidSchema(sprintf(
-				'Content type "%s" "archives" must be one of %s.',
+				'Content type "%s" "dateArchives" must be one of %s.',
 				$name,
-				implode(', ', array_column(ArchiveGranularity::cases(), 'value'))
+				implode(', ', array_column(DateArchives::cases(), 'value'))
 			));
 	}
 
 	/**
-	 * Checks that a map is keyed by strings.
-	 *
-	 * @param  array<array-key, mixed> $map
-	 * @return array<string, mixed>
-	 * @throws InvalidSchema
-	 */
-	private static function stringMap(array $map): array
-	{
-		if (! array_all($map, static fn (mixed $value, mixed $key): bool => is_string($key))) {
-			throw new InvalidSchema('Query arguments must be keyed by name.');
-		}
-
-		/** @var array<string, mixed> $map */
-		return $map;
-	}
-
-	/**
-	 * Trims a type path's slashes and rejects unsafe segments.
+	 * Trims a type folder's slashes and rejects unsafe segments.
 	 *
 	 * @throws InvalidContentType
 	 */
-	private static function normalizePath(string $path, string $name): string
+	private static function normalizeFolder(string $folder, string $name): string
 	{
-		$path = trim(str_replace('\\', '/', $path), '/');
+		$folder = trim(str_replace('\\', '/', $folder), '/');
 
-		if ($path !== '' && array_any(explode('/', $path), static fn (string $segment): bool => in_array($segment, ['', '.', '..'], true))) {
-			throw new InvalidContentType(sprintf('Content type "%s" has an invalid path "%s".', $name, $path));
+		if ($folder !== '' && array_any(explode('/', $folder), static fn (string $segment): bool => in_array($segment, ['', '.', '..'], true))) {
+			throw new InvalidContentType(sprintf('Content type "%s" has an invalid folder "%s".', $name, $folder));
 		}
 
-		return $path;
+		return $folder;
 	}
 }

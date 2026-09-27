@@ -92,7 +92,7 @@ final class ExportLayout
 			$segments[] = $segment;
 		}
 
-		$type       = strtolower(trim(explode(';', $contentType)[0]));
+		$type       = explode(';', $contentType)[0] |> trim(...) |> strtolower(...);
 		$extensions = self::EXTENSIONS[$type] ?? null;
 		$last       = array_last($segments);
 		$extension  = $last !== null && str_contains($last, '.') ? strtolower(pathinfo($last, PATHINFO_EXTENSION)) : null;

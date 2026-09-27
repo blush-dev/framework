@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Rendered body and token cache tests.
+ * Rendered body and fragment cache tests.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -95,33 +95,13 @@ final class RenderedBodiesTest extends TestCase
 		$this->assertSame(0, $this->stored('bodies'));
 	}
 
-	public function testTokenCssIsKeptPerVersion(): void
-	{
-		$this->standardContent();
-		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(pages: false);\n");
-		$this->writeTemporaryFile('user/data/theme.json', '{"tokens": {"color": {"accent": "#111111"}}}');
-
-		$get = fn (): string => (string) $this->site()->container()->make(Kernel::class)->handle(Request::create('/about'))->getBody();
-
-		$this->assertStringContainsString('--color-accent: #111111;', $get());
-		$this->assertSame(1, $this->stored('tokens'));
-
-		$this->writeTemporaryFile('user/data/theme.json', '{"tokens": {"color": {"accent": "#222222"}}}');
-
-		$this->assertStringContainsString('--color-accent: #111111;', $get());
-
-		$this->site()->container()->make(ContentVersion::class)->bump();
-
-		$this->assertStringContainsString('--color-accent: #222222;', $get());
-	}
-
 	public function testFragmentsAreKeptPerVersion(): void
 	{
 		$this->standardContent();
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(pages: false);\n");
 		$this->writeTemporaryFile('fragment.txt', 'first');
 		$this->writeTemporaryFile('resources/views/single.php', sprintf(
-			'<?php $this->layout("base") ?>[<?= $this->cache("note", fn () => file_get_contents(%s)) ?>]',
+			'<?php $template->layout("base") ?>[<?= $template->cache("note", fn () => file_get_contents(%s)) ?>]',
 			var_export($this->temporaryDirectory() . '/fragment.txt', true)
 		));
 

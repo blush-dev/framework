@@ -14,11 +14,11 @@ declare(strict_types=1);
 namespace Blush\View;
 
 use Closure;
+use Error;
 use Throwable;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeSettings;
-use Blush\Theme\Token\TokenSet;
 use Blush\Translation\Translator;
 use Blush\View\Component\Slots;
 
@@ -26,7 +26,8 @@ use Blush\View\Component\Slots;
  * Renders plain PHP templates (D-009) for one theme chain.
  *
  * A template runs in an isolated scope: its data become variables, and
- * `$this` is a `Template`, which exposes only its public API. When a
+ * `$template` is a `Template`, which exposes only its public API (D-158);
+ * `$this` isn't available. When a
  * template calls `layout()`, its output becomes the `content` section
  * and the layout renders next, with the same data plus the layout's own
  * (layouts may have layouts). Partials see the shared data (the site,
@@ -38,7 +39,7 @@ use Blush\View\Component\Slots;
  * and `$slots`; a class registered for the key builds the props first.
  *
  * `ViewFactory` builds one `Views` per theme chain, with the chain's
- * assets, settings, and tokens; the services templates reach through
+ * assets and settings; the services templates reach through
  * `Template` hang off it.
  */
 final readonly class Views
@@ -50,20 +51,9 @@ final readonly class Views
 		public ThemeAssets $assets,
 		public Translator $translator,
 		public ViewServices $services,
-		public ThemeSettings $settings = new ThemeSettings(),
-		public TokenSet $tokens = new TokenSet()
+		public ThemeSettings $settings = new ThemeSettings()
 	) {
 		$this->chain = $assets->chain;
-	}
-
-	/**
-	 * Returns whether a view exists.
-	 *
-	 * @throws ViewException When the name isn't valid.
-	 */
-	public function exists(string $name): bool
-	{
-		return $this->finder->find($name) !== null;
 	}
 
 	/**
@@ -84,16 +74,49 @@ final readonly class Views
 	}
 
 	/**
-	 * Renders a partial with the shared data plus its own.
+	 * Renders a partial, the first of `$names` that exists, with the
+	 * shared data plus its own.
 	 *
+	 * @param  string|list<string>  $names
 	 * @param  array<string, mixed> $data
 	 * @throws ViewException
 	 */
-	public function partial(string $name, array $data, ViewContext $context): string
+	public function partial(string|array $names, array $data, ViewContext $context): string
 	{
-		$file = $this->finder->find($name) ?? throw ViewNotFound::forNames([$name]);
+		[$name, $file] = $this->findPartial($names) ?? throw ViewNotFound::forNames((array) $names);
 
 		return $this->renderFile($name, $file, $data, $context);
+	}
+
+	/**
+	 * Returns whether any of `$names` has a view.
+	 *
+	 * @param  string|list<string> $names
+	 * @throws ViewException When a single name isn't valid.
+	 */
+	public function exists(string|array $names): bool
+	{
+		return $this->findPartial($names) !== null;
+	}
+
+	/**
+	 * Returns the first of `$names` that has a view, with its file. A
+	 * single invalid name is an error; lists skip invalid names, since
+	 * they're often built from type names and slugs.
+	 *
+	 * @param  string|list<string> $names
+	 * @return ?array{string, string}
+	 * @throws ViewException
+	 */
+	private function findPartial(string|array $names): ?array
+	{
+		if (is_string($names)) {
+			$file = $this->finder->find($names);
+
+			return $file === null ? null : [$names, $file];
+		}
+
+		return $this->finder->first($names);
 	}
 
 	/**
@@ -190,6 +213,10 @@ final readonly class Views
 				ob_end_clean();
 			}
 
+			if ($exception instanceof Error && str_contains($exception->getMessage(), 'Using $this')) {
+				throw new ViewException(sprintf('Views use $template, not $this, in view %s', $file), 0, $exception);
+			}
+
 			throw $exception instanceof ViewException
 				? $exception
 				: new ViewException(sprintf('%s in view %s', $exception->getMessage(), $file), 0, $exception);
@@ -211,27 +238,21 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns a function that includes a template file with `$this` bound
-	 * to the template and no class scope, so the file sees its data and
-	 * `Template`'s public API only. (`$__file` stays in scope, and a data
-	 * key named `__data` or `__file` is ignored.)
+	 * Returns a function that includes a template file with the template
+	 * as `$template` and no object or class scope, so the file sees its
+	 * data and `Template`'s public API only (D-158). A data key named
+	 * `template` is ignored; so are `__data` and `__file`, and `$__file`
+	 * stays in scope.
 	 *
 	 * @return Closure(string, array<string, mixed>): void
 	 */
 	private static function includer(Template $template): Closure
 	{
-		$include = Closure::bind(
-			function (string $__file, array $__data): void {
-				extract($__data, EXTR_SKIP);
-				unset($__data);
+		return static function (string $__file, array $__data) use ($template): void {
+			extract($__data, EXTR_SKIP);
+			unset($__data);
 
-				include func_get_arg(0);
-			},
-			$template,
-			null
-		);
-
-		/** @var Closure(string, array<string, mixed>): void $include */
-		return $include;
+			include func_get_arg(0);
+		};
 	}
 }

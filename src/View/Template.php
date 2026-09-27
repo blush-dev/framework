@@ -27,12 +27,13 @@ use Blush\Theme\ThemeException;
 use Blush\View\Component\PendingComponent;
 
 /**
- * `$this` inside a template: the small API templates use to build pages
- * (see `theming.md`). A template file runs in an isolated scope with its
- * data as variables, and can reach only this class's public methods.
+ * `$template` inside a template file: the small API templates use to build
+ * pages (see `theming.md`). A template file runs in an isolated scope with
+ * its data as variables, and can reach only this class's public methods
+ * (D-158).
  *
  * ```php
- * <?php $this->layout('base') ?>
+ * <?php $template->layout('base') ?>
  *
  * <article class="entry">
  *     <h1><?= e($entry->title) ?></h1>
@@ -118,7 +119,7 @@ final class Template
 
 	/**
 	 * Returns a section's content, or a default. Sections hold rendered
-	 * HTML, so print them as they are: `<?= $this->section('content') ?>`.
+	 * HTML, so print them as they are: `<?= $template->section('content') ?>`.
 	 */
 	public function section(string $name, string $default = ''): string
 	{
@@ -135,18 +136,81 @@ final class Template
 
 	/**
 	 * Renders a partial (`parts/header`) with named data and returns it.
+	 * Given a list, it renders the first that exists, so a template can
+	 * offer a specific partial with a fallback:
+	 * `<?= $template->include(["parts/summary-{$type}", 'parts/summary'], entry: $entry) ?>`.
 	 *
+	 * @param  string|list<string> $views
+	 * @throws ViewException When none exists.
+	 */
+	public function include(string|array $views, mixed ...$data): string
+	{
+		return $this->views->partial($views, self::named($data), $this->context);
+	}
+
+	/**
+	 * Renders a partial like `include()`, or returns `''` when none of
+	 * the views exists.
+	 *
+	 * @param  string|list<string> $views
 	 * @throws ViewException
 	 */
-	public function insert(string $name, mixed ...$data): string
+	public function includeIf(string|array $views, mixed ...$data): string
 	{
-		return $this->views->partial($name, self::named($data), $this->context);
+		return $this->views->exists($views) ? $this->include($views, ...$data) : '';
+	}
+
+	/**
+	 * Renders a partial like `include()` when `$when` is truthy, or
+	 * returns `''`.
+	 *
+	 * @param  string|list<string> $views
+	 * @throws ViewException
+	 */
+	public function includeWhen(mixed $when, string|array $views, mixed ...$data): string
+	{
+		return $when ? $this->include($views, ...$data) : '';
+	}
+
+	/**
+	 * Renders a partial like `include()` unless `$unless` is truthy.
+	 *
+	 * @param  string|list<string> $views
+	 * @throws ViewException
+	 */
+	public function includeUnless(mixed $unless, string|array $views, mixed ...$data): string
+	{
+		return $unless ? '' : $this->include($views, ...$data);
+	}
+
+	/**
+	 * Renders a partial once per item, passing the item as `$as` (and
+	 * its position, from zero, as `$index`), with any other named data.
+	 * With no items, it renders `$empty` instead, when given:
+	 * `<?= $template->each('parts/summary', $entries, as: 'entry', empty: 'parts/none') ?>`.
+	 *
+	 * @param  string|list<string>       $views
+	 * @param  iterable<mixed>           $items
+	 * @param  string|list<string>|null  $empty
+	 * @throws ViewException
+	 */
+	public function each(string|array $views, iterable $items, string $as = 'item', string|array|null $empty = null, mixed ...$data): string
+	{
+		$data   = self::named($data);
+		$output = '';
+		$index  = 0;
+
+		foreach ($items as $item) {
+			$output .= $this->views->partial($views, [...$data, $as => $item, 'index' => $index++], $this->context);
+		}
+
+		return $index === 0 && $empty !== null ? $this->include($empty, ...$data) : $output;
 	}
 
 	/**
 	 * Returns a component with named props, to print or to fill with
 	 * slots first (D-025):
-	 * `<?= $this->component('callout', tone: 'info')->content($html) ?>`.
+	 * `<?= $template->component('callout', tone: 'info')->content($html) ?>`.
 	 */
 	public function component(string $key, mixed ...$props): PendingComponent
 	{
@@ -164,19 +228,8 @@ final class Template
 	}
 
 	/**
-	 * Returns a design token's value as CSS (`color.accent` → `#a3285b`),
-	 * with aliases followed, in the base mode or another, or `''`. In
-	 * stylesheets, use the custom property (`var(--color-accent)`)
-	 * instead, so modes apply.
-	 */
-	public function token(string $path, ?string $mode = null): string
-	{
-		return $this->views->tokens->value($path, $mode) ?? '';
-	}
-
-	/**
 	 * Translates a message from the theme's catalogs with named
-	 * parameters: `$this->t('reading_time', minutes: 5)` (D-028).
+	 * parameters: `$template->t('reading_time', minutes: 5)` (D-028).
 	 *
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
@@ -207,7 +260,7 @@ final class Template
 
 	/**
 	 * Returns a theme asset's contents, resolved through the theme chain,
-	 * or `''` when no theme has it: `<?= raw($this->inline('svg/github.svg')) ?>`
+	 * or `''` when no theme has it: `<?= raw($template->inline('svg/github.svg')) ?>`
 	 * (D-151). Only servable assets can be read, never views or PHP.
 	 */
 	public function inline(string $path): string
@@ -224,7 +277,7 @@ final class Template
 	 * (development), it always renders. The key names the fragment and
 	 * anything it varies by:
 	 *
-	 *     <?= $this->cache("archives.{$by}", fn () => $this->component('post-archives', by: $by)) ?>
+	 *     <?= $template->cache("archives.{$by}", fn () => $template->component('post-archives', by: $by)) ?>
 	 *
 	 * Only the returned HTML is kept, so a fragment shouldn't add to the
 	 * head or the `<body>` classes.
@@ -248,7 +301,7 @@ final class Template
 	 * so a title doesn't end with one word alone on its last line (a
 	 * "runt"; the fix is known as "widont"). 1.x's `runt()` (D-153). Text
 	 * of three words or fewer is only escaped. Print the result as is:
-	 * `<?= $this->widont($title) ?>`.
+	 * `<?= $template->widont($title) ?>`.
 	 */
 	public function widont(string $text): string
 	{
@@ -345,7 +398,7 @@ final class Template
 	{
 		foreach (array_keys($data) as $key) {
 			if (! is_string($key)) {
-				throw new ViewException('Pass view data by name, such as insert(\'parts/card\', entry: $entry).');
+				throw new ViewException('Pass view data by name, such as include(\'parts/card\', entry: $entry).');
 			}
 		}
 

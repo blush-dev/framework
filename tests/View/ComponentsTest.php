@@ -72,7 +72,7 @@ final class ComponentsTest extends TestCase
 	public function testTemplateOnlyComponentsGetPropsAndSlots(): void
 	{
 		$this->view('components/box', '<div class="<?= attr($tone ?? "plain") ?>" data-n="<?= attr($props["data-n"] ?? "") ?>"><?= $slot ?>|<?= $slots->footer ?>|<?= isset($slots->header) ? "has header" : "no header" ?></div>');
-		$this->view('page', '<?= $this->component("box", tone: "info")->content("<p>Body</p>")->slot("footer", "<small>Foot</small>") ?>');
+		$this->view('page', '<?= $template->component("box", tone: "info")->content("<p>Body</p>")->slot("footer", "<small>Foot</small>") ?>');
 
 		$views = $this->boot();
 

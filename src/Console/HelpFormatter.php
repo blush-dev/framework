@@ -100,7 +100,10 @@ final readonly class HelpFormatter
 
 		ksort($groups);
 
-		$width = max(0, ...array_map(mb_strwidth(...), array_keys(array_merge(...array_values($groups)))));
+		$width = array_merge(...array_values($groups))
+			|> array_keys(...)
+			|> (static fn (array $labels): array => array_map(mb_strwidth(...), $labels))
+			|> (static fn (array $widths): int => max(0, ...$widths));
 
 		foreach ($groups as $group => $rows) {
 			if ($group !== '') {

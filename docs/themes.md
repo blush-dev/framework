@@ -10,7 +10,7 @@ include what it changes.
 There are three ways to change how your site looks, from least to most
 work:
 
-1. [Adjust the active theme's settings and colors](#settings-and-colors)
+1. [Adjust the active theme's settings](#settings)
    with a data file.
 2. [Override a few templates](#overriding-templates) from your site.
 3. [Build your own theme](#building-a-theme).
@@ -31,7 +31,7 @@ then `resources/themes/`, then Composer. The active theme is set in
 
 In development, add `?theme=notebook` to any URL to preview another theme.
 
-## Settings and colors
+## Settings
 
 Create `user/data/theme.json` to adjust the active theme without touching
 its files:
@@ -40,41 +40,18 @@ its files:
 {
 	"settings": {
 		"excerpts": false
-	},
-	"tokens": {
-		"color": {
-			"accent": "#0a6640"
-		}
 	}
 }
 ```
 
-- **`settings`** are the options a theme offers. The default theme has one:
-  `excerpts` (show summaries in listings; on by default).
-- **`tokens`** override the theme's [design tokens](#design-tokens): its
-  colors, fonts, and spacing.
-
-An overridden color is used in dark mode too, unless you give it a dark
-value of its own:
-
-```json
-"accent": {
-	"$value": "#0a6640",
-	"$extensions": { "blush": { "modes": { "dark": "#7fd6a8" } } }
-}
-```
-
-Run `bin/blush theme:check` afterward: it warns you when a color doesn't
-have enough contrast to read.
+**`settings`** are the options a theme offers. The default theme has one:
+`excerpts` (show summaries in listings; on by default).
 
 A single entry can change its own look too, with front matter:
 
 ```yaml
 class: wide-page             # extra classes on <body>
 stylesheet: /media/zine.css  # an extra stylesheet
-tokens:
-  color:
-    accent: "#b3261e"
 ```
 
 ## Overriding templates
@@ -122,7 +99,6 @@ A full theme can have:
 user/themes/notebook/
   theme.json      The manifest
   style.css       Styles (list more in "styles")
-  tokens.json     Design tokens
   views/
     layouts/      base.php, and any others
     parts/        header.php, footer.php, and other pieces
@@ -148,9 +124,7 @@ user/themes/notebook/
 			"default": true,
 			"label": "Show the date on posts"
 		}
-	},
-	"contrast": [["color.text", "color.background"]],
-	"inheritTokens": true
+	}
 }
 ```
 
@@ -158,14 +132,8 @@ Only `name` is required.
 
 - **`parent`:** build on another theme instead of starting from the
   default. Anything this theme doesn't include comes from its parent.
-- **`inheritTokens`:** set it to `false` when your styles don't use the
-  default theme's (or your parent's) [design tokens](#design-tokens).
-  Only your own `tokens.json` is used, and a theme without one prints
-  none.
 - **`settings`:** options site owners set in `user/data/theme.json`. They
   use the same field types as [custom fields](content-types.md#custom-fields).
-- **`contrast`:** pairs of color tokens that `theme:check` tests against
-  WCAG AA.
 
 ### Templates
 
@@ -176,18 +144,29 @@ Templates are plain PHP. Here's a simplified `single.php`:
 
 declare(strict_types=1);
 
-$this->layout('base');
+$template->layout('base');
 
 ?>
 <article class="entry">
 	<h1><?= e($entry->title) ?></h1>
 
-	<?php if ($this->setting('showDate')) : ?>
-		<p><?= e($this->date($entry->published)) ?></p>
+	<?php if ($template->setting('showDate')) : ?>
+		<p><?= e($template->date($entry->published)) ?></p>
 	<?php endif ?>
 
 	<?= raw($entry->body()) ?>
 </article>
+```
+
+`$template` is the template itself: it's how a template reaches the calls
+below. Its data (such as `$entry`, `$page`, and `$site`) are plain
+variables. For editor autocomplete, list them at the top of the file:
+
+```php
+/**
+ * @var Blush\View\Template       $template
+ * @var Blush\Content\Entry\Entry $entry
+ */
 ```
 
 **Always escape output.** Use `e()` for text, `attr()` for attributes,
@@ -198,30 +177,43 @@ What a template can use:
 
 | Call | What it does |
 |---|---|
-| `$this->layout('base')` | Wrap this template in `layouts/base.php` |
-| `$this->section('content')` | In a layout, print the wrapped template |
-| `$this->start('name')` … `$this->stop()` | Capture a named section |
-| `$this->insert('parts/header', key: $value)` | Include another template |
-| `$this->component('card', title: '...')` | Render a component |
-| `$this->permalink($entry)` | An entry's URL |
-| `$this->terms($entry, 'tag')` | An entry's terms in a taxonomy |
-| `$this->date($entry->published)` | A date, formatted for the site's locale |
-| `$this->setting('name')` | A theme setting |
-| `$this->token('color.accent')` | A design token's value |
-| `$this->asset('app.js')` | A theme file's URL, versioned |
-| `$this->inline('svg/logo.svg')` | A theme file's contents, such as an SVG icon to print with `raw()` |
-| `$this->widont($title)` | Escaped text whose last two words won't split across lines, so a title never ends with one word alone |
-| `$this->cache('key', fn () => ...)` | Keep a piece of HTML that's slow to build (see below) |
-| `$this->t('key')` | A translated string from `lang/` |
-| `$this->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
-| `$this->bodyClass()` | The `<body>` classes |
+| `$template->layout('base')` | Wrap this template in `layouts/base.php` |
+| `$template->section('content')` | In a layout, print the wrapped template |
+| `$template->start('name')` … `$template->stop()` | Capture a named section |
+| `$template->include('parts/header', key: $value)` | Include another template |
+| `$template->include(['parts/card-post', 'parts/card'])` | Include the first of these that exists |
+| `$template->includeIf('parts/sidebar')` | Include it only if it exists |
+| `$template->includeWhen($condition, 'parts/x')` | Include it only when the condition is true |
+| `$template->includeUnless($condition, 'parts/x')` | Include it unless the condition is true |
+| `$template->each('parts/card', $entries, as: 'entry', empty: 'parts/none')` | Include a template once per item (see below) |
+| `$template->component('card', title: '...')` | Render a component |
+| `$template->permalink($entry)` | An entry's URL |
+| `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
+| `$template->date($entry->published)` | A date, formatted for the site's locale |
+| `$template->setting('name')` | A theme setting |
+| `$template->asset('app.js')` | A theme file's URL, versioned |
+| `$template->inline('svg/logo.svg')` | A theme file's contents, such as an SVG icon to print with `raw()` |
+| `$template->widont($title)` | Escaped text whose last two words won't split across lines, so a title never ends with one word alone |
+| `$template->cache('key', fn () => ...)` | Keep a piece of HTML that's slow to build (see below) |
+| `$template->t('key')` | A translated string from `lang/` |
+| `$template->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
+| `$template->bodyClass()` | The `<body>` classes |
 
 Every template gets `$site` (name, URL, and language). Content pages also
 get `$page`, `$entry` (the entry), `$entries` (a listing, when there is
 one), `$type`, and `$title`, and so do their layouts, parts, and
 components, so you don't have to pass them along. Anything you pass to
-`insert()` wins, so `$this->insert('parts/summary', entry: $item)` shows
+`include()` wins, so `$template->include('parts/summary', entry: $item)` shows
 that entry instead.
+
+`each()` saves writing a loop around `include()`. Each item reaches the
+partial as the variable you name with `as` (`$item` if you don't), along
+with `$index` (its position, from `0`) and anything else you pass. With no
+items, it includes the `empty` template, if you gave one:
+
+```php
+<?= $template->each('parts/entry-summary', $entries, as: 'entry', empty: 'parts/no-entries') ?>
+```
 
 An entry offers `title`, `slug`, `published`, `updated`, `body()`,
 `summary()`, `excerpt()`, `subtitle()`, `wordCount()`, `readingTime()`
@@ -230,25 +222,25 @@ An entry offers `title`, `slug`, `published`, `updated`, `body()`,
 the body is cut short, such as a "Continue reading" link:
 
 ```php
-<?= raw($entry->excerpt(40, ' <a href="' . url($this->permalink($entry)) . '">Continue reading</a>')) ?>
+<?= raw($entry->excerpt(40, ' <a href="' . url($template->permalink($entry)) . '">Continue reading</a>')) ?>
 ```
 
 Blush fills in the `<head>` for you: the title, the canonical URL,
 OpenGraph tags, feed links, and on an entry's page, a description (its
 `summary`, or the start of its text) and, when the entry has an `image`
 field, `og:image` and a Twitter card. Add or replace any tag with
-`$this->head()`, or drop one with `remove()`, such as your stylesheet on
+`$template->head()`, or drop one with `remove()`, such as your stylesheet on
 a page that stands alone:
-`$this->head()->remove('style:' . $this->asset('style.css'))`.
+`$template->head()->remove('style:' . $template->asset('style.css'))`.
 
 ### Caching slow parts
 
 Some parts of a page are slow to build, such as a list of every post.
-Wrap them in `$this->cache()` and they're built once, then reused until
+Wrap them in `$template->cache()` and they're built once, then reused until
 your content changes (a publish) or you switch themes:
 
 ```php
-<?= $this->cache('archives.years', fn () => $this->component('post-archives', by: 'year')) ?>
+<?= $template->cache('archives.years', fn () => $template->component('post-archives', by: 'year')) ?>
 ```
 
 The key names the piece, so give each variation its own key. Only the
@@ -288,42 +280,10 @@ $tone = $props['tone'] ?? 'info';
 <span class="badge badge--<?= attr($tone) ?>"><?= raw($slot) ?></span>
 ```
 
-Use it in a template with `<?= $this->component('badge', tone: 'new')->content('New') ?>`,
+Use it in a template with `<?= $template->component('badge', tone: 'new')->content('New') ?>`,
 or in Markdown with `:badge[New]{tone=new}`. Each prop is also its own
 variable, and `$slot` holds the content (in Markdown, the `[label]` or the
 wrapped block).
-
-### Design tokens
-
-Tokens are your theme's colors, fonts, sizes, and spacing, kept in
-`tokens.json` in the [W3C design tokens](https://www.designtokens.org/)
-format. Blush turns them into CSS custom properties:
-
-```json
-{
-	"color": {
-		"$type": "color",
-		"background": {
-			"$value": "#fdfcfb",
-			"$extensions": { "blush": { "modes": { "dark": "#141312" } } }
-		},
-		"accent": { "$value": "#a3285b" },
-		"link": { "$value": "{color.accent}" }
-	}
-}
-```
-
-becomes `--color-background`, `--color-accent`, and `--color-link` (which
-follows `--color-accent`), with a dark-mode value used automatically. Use
-them in your stylesheet:
-
-```css
-a { color: var(--color-link); }
-```
-
-Because they're tokens, site owners can change them in
-`user/data/theme.json` and single entries in front matter, without editing
-your CSS.
 
 ### Building assets with Vite
 
@@ -342,9 +302,9 @@ user/themes/notebook/
 ```
 
 List your source files in `theme.json`. Blush reads Vite's manifest and
-links the built files, and `$this->asset('resources/fonts/body.woff2')`
+links the built files, and `$template->asset('resources/fonts/body.woff2')`
 finds a built font the same way. Files copied from `static/` are
-reached by their path: `$this->asset('public/img/icon.png')`.
+reached by their path: `$template->asset('public/img/icon.png')`.
 
 A `vite.config.js` at your site's root (install `vite`, plus
 `sass-embedded` for Sass):
@@ -379,9 +339,8 @@ the built `public/` folder, so your server never needs Node.
 bin/blush theme:check
 ```
 
-It checks the manifest, settings, and tokens; measures color contrast in
-light and dark modes; and makes sure the base layout has the landmarks and
-skip link screen reader users rely on.
+It checks the manifest and settings, and makes sure the base layout has
+the landmarks and skip link screen reader users rely on.
 
 ### Going live with a theme
 

@@ -5,17 +5,17 @@
  * the home page's. The landing page or term entry, when there is one,
  * introduces it.
  *
- * @var Blush\View\Template                  $this
- * @var Blush\View\Site                      $site
- * @var Blush\Content\Http\ContentPage       $page
- * @var ?Blush\Content\Entry\Entry           $entry
- * @var ?Blush\Content\Type\ContentType      $type
- * @var string                               $title
+ * @var Blush\View\Template             $template
+ * @var Blush\View\Site                 $site
+ * @var Blush\Content\Http\ContentPage  $page
+ * @var ?Blush\Content\Entry\Entry      $entry
+ * @var ?Blush\Content\Type\ContentType $type
+ * @var string                          $title
  */
 
 declare(strict_types=1);
 
-$this->layout('base');
+$template->layout('base');
 
 $heading = match (true) {
 	$title !== ''                   => $title,
@@ -34,4 +34,4 @@ $heading = match (true) {
 	<?php endif ?>
 </header>
 
-<?= $this->insert('parts/entries', page: $page) ?>
+<?= $template->include('parts/entries', page: $page) ?>

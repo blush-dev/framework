@@ -33,11 +33,6 @@ enum CacheNamespace: string
 	case Bodies = 'bodies';
 
 	/**
-	 * Compiled design-token CSS, per theme chain.
-	 */
-	case Tokens = 'tokens';
-
-	/**
 	 * Anything else a site, theme, or extension computes.
 	 */
 	case Fragments = 'fragments';

@@ -9,8 +9,8 @@
  *     Back up your site first.
  *     :::
  *
- * @var Blush\View\Template  $this
- * @var string               $slot
+ * @var Blush\View\Template $template
+ * @var string              $slot
  * @var array<string, mixed> $props
  */
 

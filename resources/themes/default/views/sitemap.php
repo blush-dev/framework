@@ -4,7 +4,7 @@
  * One content type's sitemap. Themes may override it, or add
  * `sitemap-{type}`.
  *
- * @var Blush\View\Template            $this
+ * @var Blush\View\Template            $template
  * @var list<Blush\Sitemap\SitemapUrl> $urls
  */
 

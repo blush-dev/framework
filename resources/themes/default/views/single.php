@@ -4,16 +4,16 @@
  * A single entry, with any listing its `collection` front matter asks
  * for.
  *
- * @var Blush\View\Template                  $this
- * @var Blush\Content\Http\ContentPage       $page
- * @var Blush\Content\Entry\Entry            $entry
- * @var ?Blush\Content\Query\Paginator       $entries
- * @var string                               $title
+ * @var Blush\View\Template            $template
+ * @var Blush\Content\Http\ContentPage $page
+ * @var Blush\Content\Entry\Entry      $entry
+ * @var ?Blush\Content\Query\Paginator $entries
+ * @var string                         $title
  */
 
 declare(strict_types=1);
 
-$this->layout('base');
+$template->layout('base');
 
 ?>
 <article class="entry entry--single">
@@ -24,7 +24,7 @@ $this->layout('base');
 			<p class="entry__subtitle"><?= e($entry->subtitle()) ?></p>
 		<?php endif ?>
 
-		<?= $this->insert('parts/entry-meta', entry: $entry) ?>
+		<?= $template->include('parts/entry-meta', entry: $entry) ?>
 	</header>
 
 	<div class="entry__content">
@@ -33,5 +33,5 @@ $this->layout('base');
 </article>
 
 <?php if ($entries !== null) : ?>
-	<?= $this->insert('parts/entries', page: $page) ?>
+	<?= $template->include('parts/entries', page: $page) ?>
 <?php endif ?>

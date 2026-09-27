@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Content;
 
 use Override;
-use Blush\Content\Type\ContentType;
+use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentTypeSource;
 
 final class MoreRecipeTypes implements ContentTypeSource
@@ -22,6 +22,6 @@ final class MoreRecipeTypes implements ContentTypeSource
 	#[Override]
 	public function types(): iterable
 	{
-		yield new ContentType('recipe', path: 'cookbook');
+		yield new Collection('recipe', folder: 'cookbook');
 	}
 }

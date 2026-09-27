@@ -52,6 +52,22 @@ return ContentConfig::fromArray([
 ]);
 ```
 
+In 2.x, each kind of type is its own class, and some options have new
+names. When you're ready, you can move to them (see
+[Content types](content-types.md)):
+
+| 1.x | 2.x |
+|---|---|
+| `taxonomy: true` | `new Taxonomy(...)`, or `kind: taxonomy` in YAML |
+| `path` | `folder` |
+| `routing` (`prefix`, `paths`) | `urls` (`prefix`, `single`, `collection`, `paths`) |
+| `collection` and `collect` | `listing` (`type`, `orderBy`, `order`, `perPage`, `query`) |
+| `term_collect` | `types` (a list) |
+| `term_collection` | `termListing` |
+| `field_aliases` | `aliases` |
+| `date_archives`, `time_archives` | `dateArchives` (`day`, `second`, and others) |
+| `feed` `taxonomy` and `collection` | `feed` `categories` and `listing` |
+
 **Markdown** (`config/markdown.php`) works the same way, with
 `MarkdownConfig::fromArray()`, and accepts 1.x's `config`,
 `extensions`, and `inline_parsers` keys. If your content uses attribute

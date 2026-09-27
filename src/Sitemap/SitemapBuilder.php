@@ -19,6 +19,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 
 /**
  * Lists the site's URLs for sitemaps: one sitemap per public type whose
@@ -96,7 +97,7 @@ final readonly class SitemapBuilder
 			$urls[$collection] = new SitemapUrl($this->urls->absolute($collection), $landing?->updated);
 		}
 
-		if ($type->taxonomy) {
+		if ($type instanceof Taxonomy) {
 			$slugs = array_map(strval(...), array_keys($this->content->termCounts($type->name)));
 			sort($slugs);
 

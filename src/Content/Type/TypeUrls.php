@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Content type routing.
+ * Content type URLs.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -13,18 +13,22 @@ declare(strict_types=1);
 
 namespace Blush\Content\Type;
 
+use Blush\Content\Schema\Definition;
+use Blush\Content\Schema\InvalidSchema;
+
 /**
- * How a content type's URLs are built: a prefix (the type's path when
+ * How a content type's URLs are built: a prefix (the type's folder when
  * unset) and a path pattern per route key, relative to the prefix. Paths
- * default to 1.x's (D-078); a type overrides only the keys it needs:
+ * default to 1.x's (D-078); a type overrides only the keys it needs, with
+ * `single` and `collection` as shortcuts for the two most common:
  *
- *     new TypeRouting(prefix: 'archives', paths: ['single' => '{year}/{month}/{day}/{name}'])
+ *     new TypeUrls(prefix: 'archives', single: '{year}/{month}/{day}/{name}')
  *
  * Routes are named `{type}.{key}`, such as `post.single`. The feed keys
  * (`collection.feed`, `.feed.atom`, `.feed.json`, and the `single.feed`
  * ones for a taxonomy's terms) are used when the type has a feed.
  */
-final readonly class TypeRouting
+final readonly class TypeUrls
 {
 	/**
 	 * The default path for each route key.
@@ -57,7 +61,7 @@ final readonly class TypeRouting
 	];
 
 	/**
-	 * The prefix, without slashes, or `null` to use the type's path.
+	 * The prefix, without slashes, or `null` to use the type's folder.
 	 */
 	public ?string $prefix;
 
@@ -69,15 +73,46 @@ final readonly class TypeRouting
 	public array $paths;
 
 	/**
-	 * @param array<string, string> $paths Paths that replace or add to the defaults.
+	 * @param ?string               $prefix     The URL prefix; defaults to the type's folder.
+	 * @param ?string               $single     The `single` path, such as `{year}/{name}`.
+	 * @param ?string               $collection The `collection` path.
+	 * @param array<string, string> $paths      Paths for any route key, replacing or adding to the defaults.
 	 */
-	public function __construct(?string $prefix = null, array $paths = [])
+	public function __construct(?string $prefix = null, ?string $single = null, ?string $collection = null, array $paths = [])
 	{
+		$shortcuts = array_filter(['single' => $single, 'collection' => $collection], static fn (?string $path): bool => $path !== null);
+
 		$this->prefix = $prefix === null ? null : trim($prefix, '/');
 		$this->paths  = [
 			...self::DEFAULT_PATHS,
-			...array_map(static fn (string $path): string => trim($path, '/'), $paths)
+			...array_map(static fn (string $path): string => trim($path, '/'), [...$paths, ...$shortcuts])
 		];
+	}
+
+	/**
+	 * Builds URLs from a map of `prefix`, `single`, `collection`, and
+	 * `paths`, as data types and 1.x's `routing` write them.
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @throws InvalidSchema
+	 */
+	public static function fromArray(array $data, string $label): self
+	{
+		$urls  = new Definition($data, $label);
+		$paths = $urls->map('paths');
+
+		$unknown = array_diff(array_map(strval(...), array_keys($data)), ['prefix', 'single', 'collection', 'paths']);
+
+		if ($unknown !== []) {
+			throw new InvalidSchema(sprintf('%s has unknown options: %s.', $label, implode(', ', $unknown)));
+		}
+
+		if (! array_all($paths, static fn (mixed $path, mixed $key): bool => is_string($key) && is_string($path))) {
+			throw new InvalidSchema(sprintf('%s "paths" must map route keys to paths.', $label));
+		}
+
+		/** @var array<string, string> $paths */
+		return new self($urls->nullableString('prefix'), $urls->nullableString('single'), $urls->nullableString('collection'), $paths);
 	}
 
 	/**
@@ -89,7 +124,7 @@ final readonly class TypeRouting
 	}
 
 	/**
-	 * Returns the routing as an array: the prefix and only the paths that
+	 * Returns the URLs as an array: the prefix and only the paths that
 	 * differ from the defaults.
 	 *
 	 * @return array{prefix?: string, paths?: array<string, string>}

@@ -10,11 +10,5 @@
 			"label": "Show excerpts in listings",
 			"description": "Listings show each entry's summary, or the start of its body. Turn this off to list titles only."
 		}
-	},
-	"contrast": [
-		["color.text", "color.background"],
-		["color.muted", "color.background"],
-		["color.accent", "color.background"],
-		["color.text", "color.surface"]
-	]
+	}
 }

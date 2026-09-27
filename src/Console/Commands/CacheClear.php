@@ -26,7 +26,7 @@ use Blush\Core\Paths;
 
 /**
  * Deletes the compiled caches in `storage/cache` (D-060) and clears the
- * cache store (pages, rendered bodies, tokens, and fragments), moving the
+ * cache store (pages, rendered bodies, and fragments), moving the
  * content version on: all of them, or only those named by flags (D-128).
  */
 #[Command('cache:clear', 'Clear the compiled caches and the cache store.')]

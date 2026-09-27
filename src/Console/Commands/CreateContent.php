@@ -21,8 +21,8 @@ use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
 use Blush\Content\Index\Indexer;
-use Blush\Content\Type\ArchiveGranularity;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\DateArchives;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
@@ -67,9 +67,9 @@ final readonly class CreateContent
 		}
 
 		$now      = $this->clock->now();
-		$dated    = $contentType->archives !== ArchiveGranularity::None;
+		$dated    = $contentType->dateArchives !== DateArchives::None;
 		$filename = ($dated ? $now->format('Y-m-d') . '.' : '') . "{$slug}.md";
-		$relative = ltrim("{$contentType->path}/{$filename}", '/');
+		$relative = ltrim("{$contentType->folder}/{$filename}", '/');
 		$path     = $this->paths->join($this->paths->content, $relative);
 
 		if (file_exists($path)) {

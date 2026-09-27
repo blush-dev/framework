@@ -5,8 +5,8 @@
  *
  *     ::figure[A caption]{src="/media/photo.jpg" alt="Describe the photo"}
  *
- * @var Blush\View\Template  $this
- * @var string               $slot
+ * @var Blush\View\Template $template
+ * @var string              $slot
  * @var array<string, mixed> $props
  */
 

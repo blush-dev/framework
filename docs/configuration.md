@@ -100,7 +100,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | `home` | `null` | A type whose listing is the home page |
 | `disabled` | `[]` | Built-in types to turn off (`'author'`) |
 | `dataTypes` | `true` | Whether types in `user/data/types/` are read |
-| `dataTypeRouting` | `true` | Whether those types may set their own URLs |
+| `dataTypeUrls` | `true` | Whether those types may set their own `urls` |
 | `autoIndex` | `true` | Whether development requests pick up content changes |
 
 ### Theme

@@ -37,8 +37,8 @@ component), head meta, Markdown setup, every view, and the SCSS build.
 
 ### Trial progress
 
-Done on `jtcom-trial` (the site files are uncommitted until the author
-commits them): `config/content.php` (the seven types, typed objects,
+Done on `jtcom-trial` (a test bed; its site files are never committed,
+D-156): `config/content.php` (the seven types, typed objects,
 `home: 'post'`), `config/media.php` (`/user/media`), `config/markdown.php`
 (jtcom's extensions and options), `App\SiteServiceProvider`, and the
 `App\View\PostArchives` component (the year, month, and full archive
@@ -83,22 +83,51 @@ Findings, and what was done:
 
 Carried from M7: the 114 dead links in old posts feed the redirect map.
 
-### Remaining for M8
+### Remaining for M8 (on hold, D-156)
 
-1. **Author testing** on `jtcom-trial`, and commits of the framework and
-   trial work.
-2. **jtcom's `2.x` branch:** start it from the skeleton plus the trial's
-   `config/`, `src/`, theme, `package.json`, and `vite.config.js`, with
-   jtcom's full content (about 1,183 entries, 4,279 media files) in its
-   own `user/` repo.
-3. **URL parity:** crawl the live site's URLs (its sitemap and feeds,
-   plus the M7 crawl's links) against the 2.x site; every old URL must
-   answer 200 or 301. Build the redirect map (`user/data/redirects`)
-   from the differences, the 114 dead links, and the 7 missing media
-   references.
-4. **Production:** `APP_ENV=production`, the page cache, `publish` and
-   the webhook on the host, and the CLI-publish opcache question
-   (`open-questions.md`). Then deploy.
+- **The trial is a test bed, not a commit.** The author tests on
+  `jtcom-trial`; its site files stay uncommitted. Framework changes found
+  through it are committed in this repo as usual.
+- **jtcom's `2.x` branch** (the skeleton plus the trial's site files,
+  with jtcom's full content): waits until the author says jtcom can
+  change.
+- **URL parity and the redirect map** (every old URL answers 200 or
+  301; the 114 dead links and 7 missing media references), and
+  **production and deploy** (`APP_ENV=production`, the page cache,
+  `publish` and the webhook on the host, the CLI-publish opcache
+  question): wait until the author is ready to go live.
+
+## Next: setup DX/UX (D-156)
+
+The current focus: the experience of setting up a Blush site.
+
+### Done
+
+- **Defining content types (D-157):** kinds as classes (`Collection`,
+  `Taxonomy`, `Pages`; `kind:` in data), clearer option names (`folder`,
+  `urls`, `listing`/`termListing`, `types`, `aliases`, `dateArchives`,
+  feed `categories`), and a typed `Listing`. 1.x names still read. The
+  `jtcom-trial` config uses the new classes; it builds the same 421
+  pages.
+- **Removed the design token system (D-160):** themes style themselves
+  with plain CSS; the default theme's palette is custom properties in
+  `style.css` with `light-dark()`. Tokens may return as an add-on.
+
+### Still to scope
+
+Other starting points the author may pick up (none decided):
+
+- Creating a site: `composer create-project`, first-run steps (`.env`
+  from `.env.example`, the storage folders, secrets such as
+  `PUBLISH_SECRET`), and whether an `init`/`install` command guides it.
+- Checking an install: the planned `doctor` command (PHP version and
+  extensions, writable paths, web server rewrites, opcache).
+- The first look: the welcome page, the skeleton's sample content (its
+  `blog/` isn't a content type, so the sample post is a plain page), and
+  the default theme.
+- Local development: `serve`, DDEV, and theme builds (Vite, D-155).
+- The docs' installation guide (`docs/installation.md`) as the script
+  for all of it.
 
 ---
 

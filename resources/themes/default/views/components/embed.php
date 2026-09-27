@@ -7,7 +7,7 @@
  *
  *     ::embed[A caption]{url="https://youtu.be/…" title="Video title"}
  *
- * @var Blush\View\Template $this
+ * @var Blush\View\Template $template
  * @var string              $url
  * @var string              $title
  * @var string              $provider

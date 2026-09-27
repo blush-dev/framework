@@ -35,14 +35,8 @@ enum BuiltInType: string
 	public function type(): ContentType
 	{
 		return match ($this) {
-			self::Page   => new ContentType('page', path: '', routing: false, collect: false),
-			self::Author => new ContentType(
-				'author',
-				path: 'authors',
-				taxonomy: true,
-				field: 'authors',
-				fieldAliases: ['author']
-			)
+			self::Page   => new Pages(),
+			self::Author => new Taxonomy('author', folder: 'authors', field: 'authors', aliases: ['author'])
 		};
 	}
 

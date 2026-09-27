@@ -53,7 +53,7 @@ final readonly class FeedLinks
 		if ($type !== null && $page->kind !== PageKind::Home) {
 			if ($page->kind === PageKind::Term && $page->entry !== null) {
 				$this->add($links, $type, $page->title, $page->entry->slug);
-			} elseif ($type->hasRouting()) {
+			} elseif ($type->hasUrls()) {
 				$this->add($links, $type, $page->kind === PageKind::Collection && $page->title !== '' ? $page->title : ucfirst($type->name));
 			}
 		}

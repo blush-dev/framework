@@ -20,13 +20,13 @@ use Blush\View\ViewException;
 use Blush\View\Views;
 
 /**
- * What `$this->component()` returns: a component waiting for its slots.
+ * What `$template->component()` returns: a component waiting for its slots.
  * It renders when printed, so slots chain on first:
  *
  * ```php
- * <?= $this->component('card', title: 'Hi')
+ * <?= $template->component('card', title: 'Hi')
  *     ->content('<p>Body</p>')
- *     ->slot('footer', $this->section('card-footer')) ?>
+ *     ->slot('footer', $template->section('card-footer')) ?>
  * ```
  */
 final class PendingComponent implements Stringable

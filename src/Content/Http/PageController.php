@@ -22,7 +22,7 @@ use Blush\Http\NotFound;
 
 /**
  * The page catch-all (`page.single`): serves entries of types without
- * routing (pages, and types with `routing: false`) at their folder path,
+ * routing (pages, and types with `urls: false`) at their folder path,
  * as 1.x did. `/about` is `about/index.md` or `about.md` (the bundle
  * wins), and `/about/biography` is `about/biography.md`. A path with a
  * `_`-prefixed segment is private, and so a 404.
@@ -59,9 +59,9 @@ final class PageController extends ContentController
 	 */
 	private function find(string $path): ?Entry
 	{
-		$type = $this->types->byPath($path);
+		$type = $this->types->byFolder($path);
 
-		if ($type !== null && ! $type->hasRouting() && $path !== '') {
+		if ($type !== null && ! $type->hasUrls() && $path !== '') {
 			return $this->visible($this->content->named($type->name, ''));
 		}
 
@@ -73,7 +73,7 @@ final class PageController extends ContentController
 
 		return array_find(
 			$query->get()->all(),
-			fn (Entry $entry): bool => ! $entry->type->hasRouting() && $this->visible($entry) !== null
+			fn (Entry $entry): bool => ! $entry->type->hasUrls() && $this->visible($entry) !== null
 		);
 	}
 }

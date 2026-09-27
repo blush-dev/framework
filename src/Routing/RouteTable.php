@@ -190,7 +190,9 @@ final readonly class RouteTable
 	 */
 	public function controllers(): array
 	{
-		return array_values(array_unique(array_column($this->data['routes'], 'controller')));
+		return array_column($this->data['routes'], 'controller')
+			|> array_unique(...)
+			|> array_values(...);
 	}
 
 	/**

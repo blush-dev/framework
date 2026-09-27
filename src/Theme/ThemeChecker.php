@@ -21,26 +21,19 @@ use Blush\Content\Http\PageKind;
 use Blush\Content\Schema\Severity;
 use Blush\Content\Schema\Violation;
 use Blush\Core\ServiceProvider;
-use Blush\Theme\Token\Contrast;
-use Blush\Theme\Token\TokenResolver;
 use Blush\View\ViewFactory;
 
 /**
  * Checks a theme for `theme:check` (D-020, D-030, D-032):
  *
  * - **Errors:** a chain that doesn't resolve; a provider that isn't a
- *   service provider; invalid setting definitions or tokens files; text
- *   colors below WCAG AA contrast (4.5:1) in any mode; a base layout
+ *   service provider; invalid setting definitions; a base layout
  *   without `lang` on `<html>`, one `<main>`, or a skip link to it.
  * - **Warnings:** shadowed manifests (JSON wins); site setting values
- *   that don't fit; tokens that can't compile or whose aliases don't
- *   resolve; other broken themes; a layout without `<header>` or
+ *   that don't fit; other broken themes; a layout without `<header>` or
  *   `<footer>`, or with other than one `<h1>`.
- * - **Notices:** colors whose contrast can't be measured, and
- *   `requires` entries, which aren't enforced yet.
+ * - **Notices:** `requires` entries, which aren't enforced yet.
  *
- * Contrast pairs are `[foreground, background]` token paths: the
- * default theme's list, or the nearest `contrast` list in the chain.
  * The layout is checked by rendering the `welcome` page.
  */
 final readonly class ThemeChecker
@@ -48,7 +41,6 @@ final readonly class ThemeChecker
 	public function __construct(
 		private Themes $themes,
 		private SettingsResolver $settings,
-		private TokenResolver $tokens,
 		private ViewFactory $views
 	) {}
 
@@ -75,7 +67,7 @@ final readonly class ThemeChecker
 			$problems = [...$problems, ...$this->manifest($theme)];
 		}
 
-		$problems = [...$problems, ...$this->settings($chain), ...$this->tokens($chain), ...$this->layout($chain)];
+		$problems = [...$problems, ...$this->settings($chain), ...$this->layout($chain)];
 
 		return new ThemeReport($slug, $problems);
 	}
@@ -119,75 +111,6 @@ final readonly class ThemeChecker
 		} catch (Throwable $error) {
 			return [new Violation('settings', $error->getMessage())];
 		}
-	}
-
-	/**
-	 * Checks the chain's tokens and their contrast.
-	 *
-	 * @return list<Violation>
-	 */
-	private function tokens(ThemeChain $chain): array
-	{
-		try {
-			$set = $this->tokens->for($chain);
-		} catch (Throwable $error) {
-			return [new Violation('tokens', $error->getMessage())];
-		}
-
-		$problems = array_map(
-			static fn (string $problem): Violation => new Violation('tokens', $problem, Severity::Warning),
-			[...$set->problems, ...$set->compileProblems()]
-		);
-
-		foreach (self::pairs($chain) as [$foreground, $background]) {
-			foreach ([null, ...$set->modes()] as $mode) {
-				$fg = $set->value($foreground, $mode);
-				$bg = $set->value($background, $mode);
-
-				if ($fg === null || $bg === null) {
-					continue;
-				}
-
-				$ratio = Contrast::ratio($fg, $bg);
-				$where = sprintf('%s on %s%s', $foreground, $background, $mode === null ? '' : " ({$mode})");
-
-				if ($ratio === null) {
-					$problems[] = new Violation('contrast', sprintf('%s: can\'t measure %s on %s.', $where, $fg, $bg), Severity::Notice);
-				} elseif ($ratio < Contrast::AA) {
-					$problems[] = new Violation('contrast', sprintf('%s is %.2f:1; WCAG AA needs %.1f:1.', $where, $ratio, Contrast::AA));
-				}
-			}
-		}
-
-		return $problems;
-	}
-
-	/**
-	 * Returns the contrast pairs: the nearest theme's `contrast` list.
-	 *
-	 * @return list<array{string, string}>
-	 */
-	private static function pairs(ThemeChain $chain): array
-	{
-		foreach ($chain as $theme) {
-			$pairs = $theme->data['contrast'] ?? null;
-
-			if (! is_array($pairs)) {
-				continue;
-			}
-
-			$valid = [];
-
-			foreach ($pairs as $pair) {
-				if (is_array($pair) && is_string($pair[0] ?? null) && is_string($pair[1] ?? null)) {
-					$valid[] = [$pair[0], $pair[1]];
-				}
-			}
-
-			return $valid;
-		}
-
-		return [];
 	}
 
 	/**

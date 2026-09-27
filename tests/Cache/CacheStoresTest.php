@@ -200,14 +200,14 @@ final class CacheStoresTest extends TestCase
 		$this->assertNull($store->get('home'));
 		$this->assertSame(1, $store->prune());
 
-		$php = $this->store('php', 'tokens');
+		$php = $this->store('php', 'fragments');
 		$this->assertInstanceOf(PhpFileStore::class, $php);
 		$php->set('css', 'a{}');
-		$this->assertCount(1, glob($this->temporaryDirectory() . '/storage/cache/store/tokens/*/*.php') ?: []);
-		$this->assertSame($this->temporaryDirectory() . '/storage/cache/store/tokens', $php->directory());
+		$this->assertCount(1, glob($this->temporaryDirectory() . '/storage/cache/store/fragments/*/*.php') ?: []);
+		$this->assertSame($this->temporaryDirectory() . '/storage/cache/store/fragments', $php->directory());
 
 		$php->clear();
-		$this->assertSame([], glob($this->temporaryDirectory() . '/storage/cache/store/tokens/*') ?: []);
+		$this->assertSame([], glob($this->temporaryDirectory() . '/storage/cache/store/fragments/*') ?: []);
 	}
 
 	public function testKeysAndValuesFollowTheRules(): void
@@ -259,16 +259,16 @@ final class CacheStoresTest extends TestCase
 
 	public function testConfigPicksDriversPerNamespace(): void
 	{
-		$config = CacheConfig::fromArray(['driver' => 'array', 'stores' => ['tokens' => 'php'], 'maxAge' => 60]);
+		$config = CacheConfig::fromArray(['driver' => 'array', 'stores' => ['fragments' => 'php'], 'maxAge' => 60]);
 
 		$this->assertSame('array', $config->driverFor('pages'));
-		$this->assertSame('php', $config->driverFor('tokens'));
+		$this->assertSame('php', $config->driverFor('fragments'));
 		$this->assertNull($config->enabled);
 		$this->assertTrue($config->isEnabled(Environment::Production));
 		$this->assertTrue($config->isEnabled(Environment::Staging));
 		$this->assertFalse($config->isEnabled(Environment::Development));
 		$this->assertTrue(new CacheConfig(enabled: true)->isEnabled(Environment::Development));
-		$this->assertSame(['enabled' => null, 'driver' => 'array', 'stores' => ['tokens' => 'php'], 'pages' => true, 'maxAge' => 60], $config->toArray());
+		$this->assertSame(['enabled' => null, 'driver' => 'array', 'stores' => ['fragments' => 'php'], 'pages' => true, 'maxAge' => 60], $config->toArray());
 	}
 
 	public function testConfigIsValidated(): void
@@ -310,7 +310,7 @@ final class CacheStoresTest extends TestCase
 		$this->clock->advance('PT1M');
 
 		$this->assertSame(1, $live->prune());
-		$this->assertSame(['pages', 'bodies', 'tokens', 'fragments', 'custom', 'extension'], $live->clear());
+		$this->assertSame(['pages', 'bodies', 'fragments', 'custom', 'extension'], $live->clear());
 		$this->assertNull($live->store('custom')->get('b'));
 	}
 }

@@ -32,9 +32,9 @@ use Blush\Data\InvalidData;
  *    They may redefine a built-in type, but redefining an extension or
  *    config type is an error.
  *
- * Then: paths must be unique, one type must claim the content root, the
- * types named by `collect`, `termCollect`, feeds, and the home page must
- * exist, and every type's fields must fit together.
+ * Then: folders must be unique, one type must claim the content root, the
+ * types named by listings, taxonomies' `types`, feed categories, and the
+ * home page must exist, and every type's fields must fit together.
  */
 final readonly class ContentTypeLoader
 {
@@ -159,10 +159,13 @@ final readonly class ContentTypeLoader
 				));
 			}
 
-			if (! $this->config->dataTypeRouting && array_key_exists('routing', $definition)) {
+			$urls = array_find(['urls', 'routing'], static fn (string $key): bool => array_key_exists($key, $definition));
+
+			if (! $this->config->dataTypeUrls && $urls !== null) {
 				throw new InvalidContentType(sprintf(
-					'The "%s" data type sets "routing", which ContentConfig "dataTypeRouting" doesn\'t allow.',
-					$name
+					'The "%s" data type sets "%s", which ContentConfig "dataTypeUrls" doesn\'t allow.',
+					$name,
+					$urls
 				));
 			}
 
@@ -179,40 +182,48 @@ final readonly class ContentTypeLoader
 	 */
 	private function check(ContentTypes $types): void
 	{
-		$paths = [];
+		$folders = [];
 
 		foreach ($types as $name => $type) {
-			if (isset($paths[$type->path])) {
+			if (isset($folders[$type->folder])) {
 				throw new InvalidContentType(sprintf(
-					'The "%s" and "%s" content types share the path "%s".',
-					$paths[$type->path],
+					'The "%s" and "%s" content types share the folder "%s".',
+					$folders[$type->folder],
 					$name,
-					$type->path
+					$type->folder
 				));
 			}
 
-			$paths[$type->path] = $name;
+			$folders[$type->folder] = $name;
 
 			$references = [
-				'collect'       => $type->collect === false ? null : $type->collect,
-				'termCollect'   => $type->termCollect,
-				'feed taxonomy' => $type->feed === false ? null : $type->feed->taxonomy
+				['listing type', $type->listing->type],
+				['feed categories', $type->feed === false ? null : $type->feed->categories],
+				['feed listing type', $type->feed === false ? null : $type->feed->listing?->type]
 			];
 
-			foreach ($references as $option => $reference) {
+			if ($type instanceof Taxonomy) {
+				$references[] = ['termListing type', $type->termListing->type];
+
+				foreach ($type->types as $reference) {
+					$references[] = ['types', $reference];
+				}
+			}
+
+			foreach ($references as [$option, $reference]) {
 				if ($reference !== null && ! $types->has($reference)) {
 					throw new InvalidContentType(sprintf('Content type "%s" %s names "%s", which doesn\'t exist.', $name, $option, $reference));
 				}
 			}
 
-			if ($type->feed !== false && $type->feed->taxonomy !== null && ! $types->get($type->feed->taxonomy)->taxonomy) {
-				throw new InvalidContentType(sprintf('Content type "%s" feed taxonomy "%s" isn\'t a taxonomy.', $name, $type->feed->taxonomy));
+			if ($type->feed !== false && $type->feed->categories !== null && ! $types->get($type->feed->categories) instanceof Taxonomy) {
+				throw new InvalidContentType(sprintf('Content type "%s" feed categories "%s" isn\'t a taxonomy.', $name, $type->feed->categories));
 			}
 
 			$types->schema($name);
 		}
 
-		if (! isset($paths[''])) {
+		if (! isset($folders[''])) {
 			throw new InvalidContentType('No content type claims the content root; the "page" type normally does.');
 		}
 

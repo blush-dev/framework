@@ -40,7 +40,6 @@ use Blush\Theme\ThemeResolver;
 use Blush\Theme\Themes;
 use Blush\Theme\ThemeSettings;
 use Blush\Theme\ThemeSource;
-use Blush\Theme\Token\TokenResolver;
 
 #[CoversClass(ThemeDiscovery::class)]
 #[CoversClass(ThemeCache::class)]
@@ -50,7 +49,6 @@ use Blush\Theme\Token\TokenResolver;
 #[CoversClass(SettingsResolver::class)]
 #[CoversClass(ThemeSettings::class)]
 #[CoversClass(SiteThemeData::class)]
-#[CoversClass(TokenResolver::class)]
 #[CoversClass(ComposerPackages::class)]
 #[CoversClass(Bootstrap::class)]
 #[CoversClass(LocalAutoloader::class)]
@@ -252,55 +250,14 @@ final class ThemeSystemTest extends TestCase
 		$this->assertStringNotContainsString('The excerpt text.', $this->get('/'));
 	}
 
-	public function testTokensReachThePage(): void
+	public function testAnEntryStylesheetReachesThePage(): void
 	{
 		$this->writeTemporaryFile('user/themes/tinted/theme.json', '{"name": "Tinted"}');
-		$this->writeTemporaryFile('user/themes/tinted/tokens.yaml', "color:\n  accent: '#0a6640'\n  brand: '{color.accent}'\n");
-		$this->writeTemporaryFile('user/data/theme.json', '{"tokens": {"color": {"text": "#000000"}}}');
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\ntokens:\n  color:\n    accent: '#123456'\nstylesheet: extra.css\n---\n<?= 1 ?>");
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\nstylesheet: extra.css\n---\nHi");
 		$this->writeTemporaryFile('user/themes/tinted/extra.css', '');
-		$this->writeTemporaryFile('resources/views/single.php', '<?php $this->layout("base") ?><?= e($this->token("color.brand")) ?>|<?= e($this->token("color.text", "dark")) ?>|<?= e($this->token("nope")) ?>');
 		$this->activeTheme('tinted');
 
-		$html = $this->get('/');
-
-		$this->assertStringContainsString("<style id=\"blush-tokens\">\n:root {\n\t--color-background: #fdfcfb;", $html);
-		$this->assertStringContainsString("\t--color-accent: #0a6640;", $html);
-		$this->assertStringContainsString("\t--color-brand: var(--color-accent);", $html);
-		$this->assertStringContainsString("\t--color-text: #000000;", $html);
-		$this->assertStringNotContainsString('--color-text: #ece9e5', $html);
-		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="/themes/tinted/extra.css\?v=\d+">#', $html);
-		// The theme's accent has no dark value, so the entry's needs none.
-		$this->assertStringContainsString("<style id=\"blush-entry-tokens\">\n:root {\n\t--color-accent: #123456;\n}\n</style>", $html);
-		$this->assertStringContainsString('#0a6640|#000000|', $html);
-	}
-
-	public function testAThemeCanStopInheritingTokens(): void
-	{
-		$this->writeTemporaryFile('user/themes/base/theme.json', '{"name": "Base"}');
-		$this->writeTemporaryFile('user/themes/base/tokens.json', '{"color": {"base": {"$value": "#111111"}}}');
-		$this->writeTemporaryFile('user/themes/own/theme.json', '{"name": "Own", "parent": "base", "inheritTokens": false}');
-		$this->writeTemporaryFile('user/themes/own/tokens.json', '{"color": {"$type": "color", "accent": {"$value": "#0a6640"}}}');
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\nHi");
-		$this->activeTheme('own');
-
-		$html = $this->get('/');
-
-		$this->assertStringContainsString("<style id=\"blush-tokens\">\n:root {\n\t--color-accent: #0a6640;\n}\n</style>", $html);
-		$this->assertStringNotContainsString('--color-base', $html);
-		$this->assertStringNotContainsString('--color-background', $html);
-
-		$this->expectException(ThemeException::class);
-		ThemeManifest::fromArray('bad', '/tmp', ['name' => 'Bad', 'inheritTokens' => 'no']);
-	}
-
-	public function testAThemeWithoutTokensPrintsNone(): void
-	{
-		$this->writeTemporaryFile('user/themes/bare/theme.json', '{"name": "Bare", "inheritTokens": false}');
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\nHi");
-		$this->activeTheme('bare');
-
-		$this->assertStringNotContainsString('blush-tokens', $this->get('/'));
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="/themes/tinted/extra.css\?v=\d+">#', $this->get('/'));
 	}
 
 	public function testPublicManifestsBuildFromResources(): void

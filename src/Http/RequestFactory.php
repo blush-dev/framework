@@ -209,7 +209,9 @@ final class RequestFactory
 	 */
 	private static function isFormContent(array $headers): bool
 	{
-		$type = strtolower(trim(explode(';', $headers['Content-Type'] ?? '')[0]));
+		$type = explode(';', $headers['Content-Type'] ?? '')[0]
+			|> trim(...)
+			|> strtolower(...);
 
 		return in_array($type, ['application/x-www-form-urlencoded', 'multipart/form-data'], true);
 	}

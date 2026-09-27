@@ -40,6 +40,6 @@ for even more), `-q` for errors only, `-n` to never ask questions, and
 | `theme:list` | List installed themes, and which is active |
 | `theme:activate <slug>` | Switch themes |
 | `theme:new <slug>` | Create a theme in `user/themes/`. `--name=` names it; `--parent=` builds it on another theme. |
-| `theme:check [slug]` | Check a theme's manifest, tokens, color contrast, and accessibility basics. `--strict` shows notices too. |
+| `theme:check [slug]` | Check a theme's manifest, settings, and accessibility basics. `--strict` shows notices too. |
 | `theme:why <view>` | Show which file a template name uses, such as `theme:why single-post` |
 | `theme:publish` | Copy the active theme's files (and its parents') into `public/`. `--all` copies every theme's. |

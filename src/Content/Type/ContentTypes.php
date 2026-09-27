@@ -25,9 +25,9 @@ use Blush\Content\Schema\Schema;
 
 /**
  * The site's resolved content types, from every source (`ContentTypeLoader`
- * builds and checks them). Types are found by name, by path, or for a file
- * under `user/content`: a file belongs to the type whose path is the
- * nearest folder above it, and anything else is a page. So
+ * builds and checks them). Types are found by name, by folder, or for a
+ * file under `user/content`: a file belongs to the type whose folder is
+ * the nearest one above it, and anything else is a page. So
  * `writing/forms/essay.md` is a `literary_form` even though `writing`
  * belongs to `literature`, and a bundle's `_posts/hello/index.md` is a
  * post.
@@ -41,11 +41,11 @@ use Blush\Content\Schema\Schema;
 final class ContentTypes implements IteratorAggregate, Countable
 {
 	/**
-	 * Type names keyed by path.
+	 * Type names keyed by folder.
 	 *
 	 * @var array<string, string>
 	 */
-	private array $paths = [];
+	private array $folders = [];
 
 	/**
 	 * Full schemas built so far, keyed by type name.
@@ -65,7 +65,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 		public readonly ?string $home = null
 	) {
 		foreach ($types as $name => $type) {
-			$this->paths[$type->path] = $name;
+			$this->folders[$type->folder] = $name;
 		}
 	}
 
@@ -124,19 +124,19 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns the taxonomies, keyed by name.
 	 *
-	 * @return array<string, ContentType>
+	 * @return array<string, Taxonomy>
 	 */
 	public function taxonomies(): array
 	{
-		return array_filter($this->types, static fn (ContentType $type): bool => $type->taxonomy);
+		return array_filter($this->types, static fn (ContentType $type): bool => $type instanceof Taxonomy);
 	}
 
 	/**
-	 * Returns the type whose path is exactly `$path`.
+	 * Returns the type whose folder is exactly `$folder`.
 	 */
-	public function byPath(string $path): ?ContentType
+	public function byFolder(string $folder): ?ContentType
 	{
-		$name = $this->paths[trim($path, '/')] ?? null;
+		$name = $this->folders[trim($folder, '/')] ?? null;
 
 		return $name === null ? null : $this->types[$name];
 	}
@@ -153,7 +153,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 		$directory = $directory === '.' ? '' : $directory;
 
 		while (true) {
-			$type = $this->byPath($directory);
+			$type = $this->byFolder($directory);
 
 			if ($type !== null) {
 				return $type;
@@ -182,10 +182,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 		$type = $this->get($name);
 
 		try {
-			$terms = array_values(array_filter(
-				array_map(static fn (ContentType $taxonomy): ?Field => $taxonomy->termField(), $this->taxonomies()),
-				static fn (?Field $field): bool => $field !== null
-			));
+			$terms = array_values(array_map(static fn (Taxonomy $taxonomy): Field => $taxonomy->termField(), $this->taxonomies()));
 
 			$schema = new Schema([...array_values(EntryFields::schema()->fields), ...$terms])->merge($type->schema);
 		} catch (InvalidSchema $e) {

@@ -130,10 +130,10 @@ final class DefaultThemeTest extends TestCase
 
 	public function testRendersEveryRouteType(): void
 	{
-		$names = array_values(array_filter(array_map(
+		$names = array_map(
 			static fn (CompiledRoute $route): ?string => $route->name,
 			$this->app->container()->make(RouteTable::class)->routes()
-		)));
+		) |> array_filter(...) |> array_values(...);
 
 		sort($names);
 

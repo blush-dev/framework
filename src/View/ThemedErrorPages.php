@@ -104,7 +104,7 @@ final readonly class ThemedErrorPages implements ErrorPages
 	{
 		foreach (self::FOLDERS as $folder) {
 			$type  = $this->types->forFile("{$folder}/{$status}.md");
-			$key   = ltrim(substr("{$folder}/{$status}", strlen($type->path)), '/');
+			$key   = ltrim(substr("{$folder}/{$status}", strlen($type->folder)), '/');
 			$entry = $this->content->named($type->name, $key);
 
 			if ($entry !== null && $entry->isPublished()) {

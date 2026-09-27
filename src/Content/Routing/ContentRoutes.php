@@ -20,6 +20,7 @@ use Blush\Content\Http\SingleController;
 use Blush\Content\Http\TermController;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 use Blush\Routing\Route;
 use Blush\Routing\RoutePattern;
 use Blush\Routing\RoutePriority;
@@ -31,7 +32,7 @@ use Blush\Routing\RouteSource;
  * archives the type's granularity allows (`.collection.year` …
  * `.collection.second`, each with `.paged`), and `{type}.single` (plus
  * `.single.paged` for a taxonomy's term archives). Paths come from the
- * type's `TypeRouting` under its prefix.
+ * type's `TypeUrls` under its prefix.
  *
  * Types register deepest path first, and each type's routes in 1.x's
  * order, so date archives match before a single entry. Date and page
@@ -61,9 +62,9 @@ final readonly class ContentRoutes implements RouteSource
 	#[Override]
 	public function routes(): iterable
 	{
-		$types = array_filter($this->types->all(), static fn (ContentType $type): bool => $type->public && $type->hasRouting());
+		$types = array_filter($this->types->all(), static fn (ContentType $type): bool => $type->public && $type->hasUrls());
 
-		uasort($types, static fn (ContentType $a, ContentType $b): int => strcmp($b->path, $a->path));
+		uasort($types, static fn (ContentType $a, ContentType $b): int => strcmp($b->folder, $a->folder));
 
 		$routes = [];
 
@@ -83,12 +84,12 @@ final readonly class ContentRoutes implements RouteSource
 	{
 		$controllers = $home ? [] : ['collection.paged' => CollectionController::class];
 
-		foreach (array_reverse($type->archives->levels()) as $level) {
+		foreach (array_reverse($type->dateArchives->levels()) as $level) {
 			$controllers["collection.{$level->value}.paged"] = DateArchiveController::class;
 			$controllers["collection.{$level->value}"]       = DateArchiveController::class;
 		}
 
-		if ($type->taxonomy) {
+		if ($type instanceof Taxonomy) {
 			$controllers['single.paged'] = TermController::class;
 			$controllers['single']       = TermController::class;
 		} else {

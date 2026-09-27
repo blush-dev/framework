@@ -16,9 +16,10 @@ namespace Blush\Content\Routing;
 use Override;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Type\ArchiveGranularity;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\DateArchives;
+use Blush\Content\Type\Taxonomy;
 use Blush\Content\Visibility;
 use Blush\Export\ExportUrl;
 use Blush\Export\UrlSource;
@@ -61,7 +62,7 @@ final readonly class ContentExportUrls implements UrlSource
 			? new ExportUrl('/')
 			: new ExportUrl((string) $this->urls->collection($home), fn (int $page): ?string => $this->urls->collection($home, $page));
 
-		$types = array_filter($this->types->all(), static fn (ContentType $type): bool => $type->public && $type->hasRouting());
+		$types = array_filter($this->types->all(), static fn (ContentType $type): bool => $type->public && $type->hasUrls());
 
 		foreach ($types as $type) {
 			$path = $this->urls->collection($type);
@@ -72,13 +73,13 @@ final readonly class ContentExportUrls implements UrlSource
 		}
 
 		foreach ($types as $type) {
-			if ($type->taxonomy) {
+			if ($type instanceof Taxonomy) {
 				yield from $this->terms($type);
 			}
 		}
 
 		foreach ($types as $type) {
-			if ($type->archives !== ArchiveGranularity::None) {
+			if ($type->dateArchives !== DateArchives::None) {
 				yield from $this->dates($type);
 			}
 		}
@@ -123,17 +124,16 @@ final readonly class ContentExportUrls implements UrlSource
 	 */
 	private function dates(ContentType $type): iterable
 	{
-		$collect = $type->collect === false ? $type->name : $type->collect;
-		$seen    = [];
+		$seen = [];
 
-		foreach ($this->content->query()->type($collect)->get() as $entry) {
+		foreach ($this->content->query()->type($type->listedType())->get() as $entry) {
 			if ($entry->published === null) {
 				continue;
 			}
 
 			$parts = [];
 
-			foreach ($type->archives->levels() as $level) {
+			foreach ($type->dateArchives->levels() as $level) {
 				$parts[$level->value] = (int) $entry->published->format(self::PARTS[$level->value] ?? 'Y');
 				$key                  = implode('-', $parts);
 

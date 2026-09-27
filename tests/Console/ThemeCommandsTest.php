@@ -147,17 +147,10 @@ final class ThemeCommandsTest extends TestCase
 			'name'     => 'Rough',
 			'provider' => 'Nope\\Provider',
 			'requires' => ['blush' => '^2.0'],
-			'contrast' => [['color.text', 'color.background'], ['color.odd', 'color.background']],
 			'settings' => ['size' => ['type' => 'number', 'default' => 1]]
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('user/themes/rough/theme.yaml', 'name: Shadowed');
-		$this->writeTemporaryFile('user/themes/rough/tokens.json', json_encode(['color' => [
-			'text'       => ['$value' => '#999999', '$extensions' => ['blush' => ['modes' => ['dark' => '#222222']]]],
-			'background' => ['$value' => '#ffffff', '$extensions' => ['blush' => ['modes' => ['dark' => '#111111']]]],
-			'odd'        => 'oklch(50% 0.1 20)',
-			'loop'       => '{color.loop}'
-		]], JSON_THROW_ON_ERROR));
-		$this->writeTemporaryFile('user/themes/rough/views/layouts/base.php', '<!DOCTYPE html><html><body><div><?= $this->section("content") ?></div></body></html>');
+		$this->writeTemporaryFile('user/themes/rough/views/layouts/base.php', '<!DOCTYPE html><html><body><div><?= $template->section("content") ?></div></body></html>');
 		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"size": "big"}}');
 		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": 1}');
 
@@ -172,10 +165,6 @@ final class ThemeCommandsTest extends TestCase
 			'error   provider: The "rough" theme\'s provider Nope\\Provider isn\'t a service provider class',
 			'notice  requires:',
 			'warning setting size:',
-			'warning tokens: Token "color.loop" refers to a missing token, or to itself.',
-			'error   contrast: color.text on color.background is 2.85:1; WCAG AA needs 4.5:1.',
-			'error   contrast: color.text on color.background (dark) is 1.19:1',
-			'notice  contrast: color.odd on color.background: can\'t measure',
 			'error   layout: The base layout\'s <html> has no lang attribute.',
 			'error   layout: The base layout needs one <main> landmark; it has 0.',
 			'error   layout: The base layout needs a skip link',

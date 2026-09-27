@@ -22,16 +22,17 @@ use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 use Blush\Markdown\MarkdownException;
 
 /**
- * Builds feeds from content (D-029), with 1.x's arguments (D-078): a
- * type's feed lists its entries (or its `collect` type's) newest file
- * first, then the type's `feed.collection` arguments apply; a term's feed
- * lists what its archive lists (`termCollect`), with the same arguments.
+ * Builds feeds from content (D-029), with 1.x's defaults (D-078): a
+ * type's feed lists the type its listing lists, newest file first, then
+ * the feed's own `listing` applies; a term's feed lists the taxonomy's
+ * `types`, the same way.
  *
- * Item categories are the terms of the type's `feed.taxonomy` (1.x), or
+ * Item categories are the terms of the feed's `categories` taxonomy, or
  * of every taxonomy but authors when it has none; authors are the item's
  * author terms.
  */
@@ -65,7 +66,7 @@ final readonly class FeedBuilder
 			$this->urls->collection($type) ?? '/',
 			$this->urls->feed($type, 'collection.feed' . $format->routeSuffix()) ?? '/',
 			$landing,
-			$this->query($type, ['type' => $type->collect === false ? $type->name : $type->collect])
+			$this->query($type, ['type' => $type->listedType()])
 		);
 	}
 
@@ -75,9 +76,9 @@ final readonly class FeedBuilder
 	 * @throws InvalidQuery
 	 * @throws MarkdownException
 	 */
-	public function term(ContentType $taxonomy, Entry $term, FeedFormat $format): Feed
+	public function term(Taxonomy $taxonomy, Entry $term, FeedFormat $format): Feed
 	{
-		$query = $this->query($taxonomy, $taxonomy->termCollect === null ? [] : ['type' => $taxonomy->termCollect])
+		$query = $this->query($taxonomy, $taxonomy->types === [] ? [] : ['type' => $taxonomy->types])
 			->whereTerm($taxonomy->name, $term->slug);
 
 		return $this->feed(
@@ -98,7 +99,7 @@ final readonly class FeedBuilder
 	 */
 	private function query(ContentType $type, array $base): Query
 	{
-		$arguments = $type->feed === false ? [] : $type->feed->collection;
+		$arguments = $type->feed === false ? [] : ($type->feed->listing?->arguments() ?? []);
 
 		return Query::fromArray([...$base, 'order' => 'desc', 'orderby' => 'filename', 'number' => $this->config->limit, ...$arguments], $this->content);
 	}
@@ -148,8 +149,8 @@ final readonly class FeedBuilder
 		}
 
 		$feed       = $entry->type->feed;
-		$taxonomies = $feed !== false && $feed->taxonomy !== null
-			? [$feed->taxonomy]
+		$taxonomies = $feed !== false && $feed->categories !== null
+			? [$feed->categories]
 			: array_values(array_filter(array_keys($entry->terms), static fn (string $taxonomy): bool => $taxonomy !== 'author'));
 
 		return new FeedItem(

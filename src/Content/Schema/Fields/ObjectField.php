@@ -25,7 +25,7 @@ use Blush\Content\Schema\Violation;
 /**
  * A map of named values with a schema of its own. Undeclared keys are kept
  * unless the object is closed, so an object with no fields holds any map,
- * such as `tokens` or a page's `collection` query.
+ * such as a page's `collection` query.
  */
 final class ObjectField extends Field
 {

@@ -143,7 +143,7 @@ final class BuiltInCommandsTest extends TestCase
 		$all = $tester->run('cache:clear');
 
 		$this->assertStringContainsString('Cleared 6 compiled cache(s).', $all->output);
-		$this->assertStringContainsString('Cleared the cache store (pages, bodies, tokens, fragments); the content version is now', $all->output);
+		$this->assertStringContainsString('Cleared the cache store (pages, bodies, fragments); the content version is now', $all->output);
 		$this->assertFileDoesNotExist("{$root}/storage/cache/extensions.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/container.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/routes.php");

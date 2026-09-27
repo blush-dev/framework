@@ -25,6 +25,7 @@ use Blush\Content\Schema\Violation;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 
 /**
  * Checks every content file, as `content:lint` reports it. It reads the
@@ -132,7 +133,8 @@ final readonly class Linter
 		$notices = [];
 
 		foreach ($record->terms as $taxonomy => $slugs) {
-			$field = $this->types->find($taxonomy)->field ?? $taxonomy;
+			$type  = $this->types->find($taxonomy);
+			$field = $type instanceof Taxonomy ? $type->field : $taxonomy;
 
 			foreach ($slugs as $slug) {
 				if ($snapshot->find($record->locale, $taxonomy, $slug) === null) {

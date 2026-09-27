@@ -139,7 +139,9 @@ final readonly class Route
 		[$controller, $action] = is_array($handler) ? $handler : [$handler, null];
 
 		return new self(
-			methods: array_values(array_unique(array_map(strtoupper(...), $methods))),
+			methods: array_map(strtoupper(...), $methods)
+				|> array_unique(...)
+				|> array_values(...),
 			path: $path,
 			controller: $controller,
 			action: $action

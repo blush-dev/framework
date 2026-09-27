@@ -13,7 +13,7 @@ enforcement. M5c (D-122 to D-124) added the feed and sitemap templates.
    behavior. Switching themes never breaks content or URLs.
 2. **Simplicity for theme authors above all** (D-021). Everything beyond a
    manifest and a stylesheet is opt-in.
-3. **Data-first** (D-022). Manifest, tokens, and settings are data. PHP is
+3. **Data-first** (D-022). Manifest and settings are data. PHP is
    only for presentation logic.
 4. **Layered** (D-024). Any part of a theme can be overridden without forking
    it.
@@ -36,7 +36,6 @@ A full theme:
 ```
 user/themes/nova/
   theme.json        Manifest, settings schema, image sizes, menus, regions
-  tokens.json       Design tokens (DTCG format)
   views/
     layouts/        base.php, …
     parts/          header.php, footer.php, pagination.php, …
@@ -72,8 +71,7 @@ exist (D-032).
 		"archiveLayout": { "type": "enum", "options": ["grid", "list"], "default": "list" }
 	},
 	"provider": "Nova\\ThemeProvider",
-	"autoload": { "psr-4": { "Nova\\": "src/" } },
-	"contrast": [["color.text", "color.background"]]
+	"autoload": { "psr-4": { "Nova\\": "src/" } }
 }
 ```
 - Blush publishes a JSON Schema so editors autocomplete and validate it.
@@ -85,8 +83,6 @@ exist (D-032).
   values come from `user/data/theme.json` (D-117).
 - `provider` registers after extensions' and before the site's, ancestors
   first; `autoload.psr-4` is registered for local themes (D-116).
-- `contrast` lists the `[foreground, background]` token pairs `theme:check`
-  measures (D-121).
 - Themes may also be Composer packages of type `blush-theme` (slug from
   `extra.blush.slug`, else the package name); a local theme with the same
   slug wins (D-115).
@@ -102,7 +98,7 @@ site overrides (resources/views, config, user/data)
 ```
 - Views resolve through `resources/views/themes/{active}`, then
   `resources/views`, then each theme's `views/` (D-103).
-- The chain applies to views, components, assets, tokens, settings defaults,
+- The chain applies to views, components, assets, settings defaults,
   and message catalogs.
 - Theme-scoped site overrides go in `resources/views/themes/{slug}/…` and apply
   only while that theme is active.
@@ -113,30 +109,31 @@ site overrides (resources/views, config, user/data)
 
 | Layer | Where | Who edits |
 |---|---|---|
-| Theme defaults | `user/themes/{slug}/theme.json`, `tokens.json` | Theme author |
+| Theme defaults | `user/themes/{slug}/theme.json` | Theme author |
 | Site code config | `config/theme.php` → `ThemeConfig` (active theme, component overrides) | Developer |
-| Site data | `user/data/theme.json` (setting values, token overrides) | Site owner, later the admin |
+| Site data | `user/data/theme.json` (setting values) | Site owner, later the admin |
 
 ## Templates
 
-Plain PHP (D-009) in an isolated scope. `$this` is the template API.
+Plain PHP (D-009) in an isolated scope. `$template` is the template API
+(D-158); `$this` isn't available.
 
 ```php
 <?php declare(strict_types=1);
 
-$this->layout('base', title: $entry->title);
+$template->layout('base', title: $entry->title);
 ?>
 
 <article class="entry">
 	<h1><?= e($entry->title) ?></h1>
 
-	<?php if ($this->setting('showReadingTime')) : ?>
-		<p><?= e($this->t('reading_time', minutes: $entry->readingTime)) ?></p>
+	<?php if ($template->setting('showReadingTime')) : ?>
+		<p><?= e($template->t('reading_time', minutes: $entry->readingTime)) ?></p>
 	<?php endif ?>
 
 	<?= raw($entry->body()) ?>
 
-	<?= $this->component('entry-terms', entry: $entry, taxonomy: 'category') ?>
+	<?= $template->component('entry-terms', entry: $entry, taxonomy: 'category') ?>
 </article>
 ```
 
@@ -145,10 +142,12 @@ The template API (kept deliberately small; D-103):
 |---|---|
 | `layout($name, ...$data)` | Wrap this template in a layout (`layouts/{name}`) |
 | `start($section)` / `stop()` / `section($name, default: '')` / `hasSection($name)` | Define and output sections |
-| `insert($partial, ...$data)` | Include a partial (shared data plus what it's given) |
+| `include($views, ...$data)` | Include a partial (shared data plus what it's given); a list tries each in turn (D-159) |
+| `includeIf()` / `includeWhen($when, ...)` / `includeUnless($unless, ...)` | Include only if a view exists, or on a condition (1.x's names, D-159) |
+| `each($views, $items, as:, empty:, ...$data)` | Include a partial per item (with `$index`), or `empty` when there are none (D-159) |
 | `component($name, ...$props)` | Render a component; `->content($html)` and `->slot($name, $html)` fill slots |
 | `t($key, ...$params)` | Translate from the `theme` domain (D-028, D-107) |
-| `setting($key, $default)` / `token($path, $mode)` | Theme setting and concrete token values |
+| `setting($key, $default)` | A theme setting's value |
 | `asset($path)` / `image($media, $size)` | Versioned asset URLs; responsive `<img>` output (`image()` later) |
 | `inline($path)` | A servable theme asset's contents, such as an SVG (D-151) |
 | `widont($text)` | Escaped text with its last two words joined by `&nbsp;` (1.x's `runt()`, D-153) |
@@ -228,32 +227,44 @@ They are registered in the theme or site provider:
 `ContextProviders::add('parts/*', PrimaryMenu::class)`. Their data are
 defaults; data given explicitly wins (D-114).
 
-## Design tokens (D-023)
+## Design (no token system, D-160)
+
+Blush sets no rules for how a theme styles itself: a theme's stylesheets
+are plain CSS, and the framework compiles nothing into the head. The
+default theme keeps its palette and scale as custom properties in
+`style.css`, with `light-dark()` for dark mode.
+
+A design token system (D-023, D-118, D-148) was built in M5b and removed
+in D-160. It may return as an add-on; notes on the old design:
 
 - **Format:** W3C Design Tokens (DTCG) in `tokens.json` (or `.yaml`), with
   aliases (`{color.brand}`, compiled to `var(--color-brand)`), types, and
-  groups. Scalar leaves are a shorthand for `$value` (D-118).
+  groups. Scalar leaves were a shorthand for `$value`.
 - **Modes:** a Blush extension, `"$extensions": {"blush": {"modes": {"dark":
   …}}}`, compiled into `prefers-color-scheme` and `[data-scheme]` blocks.
 - **Merge order:** default theme → ancestors → theme → `user/data/theme.json`
-  → entry front matter `tokens` (D-027). A theme with `"inheritTokens":
-  false` starts the chain itself: the default's and its ancestors' tokens
-  are left out (D-148). An override replaces a token in
-  every mode unless it sets its own modes.
-- **Output:** CSS custom properties inlined in the head (`blush-tokens`),
-  built once per chain per process, and kept per content version in the
-  cache store (D-130).
-  Per-entry overrides follow in their own block (`blush-entry-tokens`).
-- **Validation:** unsafe values are dropped; `theme:check` reports tokens
-  that don't compile or resolve, and computes palette contrast.
+  `tokens` → entry front matter `tokens`. `"inheritTokens": false` in
+  `theme.json` started the chain at that theme. An override replaced a
+  token in every mode unless it set its own modes.
+- **Output:** CSS custom properties inlined in the head (`blush-tokens`,
+  per-entry `blush-entry-tokens`), cached per content version in a
+  `tokens` cache namespace; `$template->token($path, $mode)` returned a
+  concrete value.
+- **Validation:** unsafe values were dropped; `theme:check` reported
+  tokens that didn't compile or resolve, and measured WCAG AA contrast
+  for `[foreground, background]` pairs listed in `theme.json` `contrast`.
+- **Lessons:** jtcom's CSS didn't use tokens, so every page carried an
+  unused block until `inheritTokens` (D-148); a token layer imposes a
+  design vocabulary before the site-owner admin exists to benefit from it.
+  If it returns, it should be opt-in per theme (no default-theme tokens
+  leaking into children).
 
 ## Per-entry presentation (D-027)
 
-Built-in front matter: `layout`, `template`, `stylesheet`, `class`, `tokens`.
+Built-in front matter: `layout`, `template`, `stylesheet`, `class`.
 These let a single post have its own design without a custom theme.
 `layout` replaces the page template's layout (if it exists), `class` is added
-to `<body>` (D-109), `stylesheet` is a URL or a theme asset path (D-119), and
-`tokens` override the theme's on that page (D-118).
+to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
 
 ## Assets (D-031)
 
@@ -275,7 +286,7 @@ to `<body>` (D-109), `stylesheet` is a URL or a theme asset path (D-119), and
 
 - The theme declares image sizes, and Blush generates derivatives (see
   `architecture.md` → Media).
-- `$this->image($media, 'card')` outputs `<img>` with `srcset`, `sizes`,
+- `$template->image($media, 'card')` outputs `<img>` with `srcset`, `sizes`,
   `width`/`height`, and `loading`.
 
 ## Navigation and regions
@@ -288,7 +299,7 @@ to `<body>` (D-109), `stylesheet` is a URL or a theme asset path (D-119), and
 ## Translation (D-028)
 
 Themes ship `lang/{locale}.json` catalogs in the `theme` domain, and templates
-call `$this->t()`. A child theme overrides its ancestors message by message
+call `$template->t()`. A child theme overrides its ancestors message by message
 (D-107). The translator itself is CMS-wide; see
 `architecture.md` → Translation.
 
@@ -296,7 +307,8 @@ call `$this->t()`. A child theme overrides its ancestors message by message
 
 - The default theme targets WCAG 2.2 AA.
 - `theme:check` verifies: base layout landmarks and skip link, `lang` on
-  `<html>`, one `<h1>`, and token palette contrast in every mode (D-121).
+  `<html>`, and one `<h1>` (D-121). Contrast checking went with tokens
+  (D-160).
 
 ## CLI
 

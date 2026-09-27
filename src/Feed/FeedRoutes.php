@@ -17,6 +17,7 @@ use Override;
 use Blush\Content\Routing\ContentRoutes;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 use Blush\Routing\Route;
 use Blush\Routing\RoutePriority;
 use Blush\Routing\RouteSource;
@@ -32,7 +33,7 @@ use Blush\Routing\RouteSource;
  * - for a taxonomy, `{type}.single.feed` (`{prefix}/{name}/feed`) and the
  *   Atom and JSON variants, one feed per term.
  *
- * Paths come from the type's `TypeRouting`, so a type can move them.
+ * Paths come from the type's `TypeUrls`, so a type can move them.
  */
 final readonly class FeedRoutes implements RouteSource
 {
@@ -60,7 +61,7 @@ final readonly class FeedRoutes implements RouteSource
 		$routes = [];
 
 		foreach ($this->types->all() as $type) {
-			if (! $type->public || ! $type->hasRouting() || ! $type->hasFeed()) {
+			if (! $type->public || ! $type->hasUrls() || ! $type->hasFeed()) {
 				continue;
 			}
 
@@ -82,7 +83,7 @@ final readonly class FeedRoutes implements RouteSource
 		$suffix   = $format->routeSuffix();
 		$defaults = ['type' => $type->name, 'format' => $format->value];
 		$routes   = [];
-		$path     = $type->routing === false ? null : $type->routing->path("collection.feed{$suffix}");
+		$path     = $type->urls === false ? null : $type->urls->path("collection.feed{$suffix}");
 
 		if ($type->name === $this->types->home) {
 			if ($path !== null) {
@@ -96,7 +97,7 @@ final readonly class FeedRoutes implements RouteSource
 			}
 		}
 
-		$single = $type->taxonomy ? $type->routePattern("single.feed{$suffix}") : null;
+		$single = $type instanceof Taxonomy ? $type->routePattern("single.feed{$suffix}") : null;
 
 		if ($single !== null) {
 			$routes[] = ContentRoutes::route($single, FeedController::class, "{$type->name}.single.feed{$suffix}", $defaults);

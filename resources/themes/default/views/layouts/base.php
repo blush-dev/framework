@@ -5,7 +5,7 @@
  * a skip link, the site header and footer, and the page's `content`
  * section in the `<main>` landmark.
  *
- * @var Blush\View\Template $this
+ * @var Blush\View\Template $template
  * @var Blush\View\Site     $site
  */
 
@@ -18,18 +18,18 @@ declare(strict_types=1);
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="<?= attr($site->generator) ?>">
-<?= $this->head() ?>
+<?= $template->head() ?>
 
 </head>
-<body class="<?= attr($this->bodyClass()) ?>">
-<a class="skip-link" href="#main"><?= e($this->t('skip_to_content')) ?></a>
+<body class="<?= attr($template->bodyClass()) ?>">
+<a class="skip-link" href="#main"><?= e($template->t('skip_to_content')) ?></a>
 
-<?= $this->insert('parts/header') ?>
+<?= $template->include('parts/header') ?>
 
 <main id="main" class="site-main" tabindex="-1">
-<?= $this->section('content') ?>
+<?= $template->section('content') ?>
 </main>
 
-<?= $this->insert('parts/footer') ?>
+<?= $template->include('parts/footer') ?>
 </body>
 </html>

@@ -3,7 +3,7 @@
 /**
  * Atom feed. Themes may override it, or add `feed-atom-{type}`.
  *
- * @var Blush\View\Template $this
+ * @var Blush\View\Template $template
  * @var Blush\View\Site     $site
  * @var Blush\Feed\Feed     $feed
  */

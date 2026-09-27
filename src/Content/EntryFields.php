@@ -51,7 +51,6 @@ final class EntryFields
 			new TextField('layout'),
 			new TextField('stylesheet'),
 			new ListField('class'),
-			new ObjectField('tokens'),
 			new ListField('redirect_from'),
 			new ObjectField('collection')
 		]);

@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
-use Blush\Cache\CacheNamespace;
-use Blush\Cache\ContentCache;
 use Blush\Content\Entry\Entry;
 use Blush\Core\Paths;
 use Blush\Data\InvalidData;
@@ -22,7 +20,6 @@ use Blush\Theme\SettingsResolver;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeException;
-use Blush\Theme\Token\TokenResolver;
 use Blush\Translation\Translator;
 
 /**
@@ -47,15 +44,13 @@ final class ViewFactory
 		private readonly Paths $paths,
 		private readonly Translator $translator,
 		private readonly ViewServices $services,
-		private readonly SettingsResolver $settings,
-		private readonly TokenResolver $tokens,
-		private readonly ?ContentCache $cache = null
+		private readonly SettingsResolver $settings
 	) {}
 
 	/**
 	 * Returns the views for a theme chain.
 	 *
-	 * @throws ThemeException When the chain's settings or tokens are invalid.
+	 * @throws ThemeException When the chain's settings are invalid.
 	 * @throws InvalidData When the site's theme data can't be read.
 	 */
 	public function forChain(ThemeChain $chain): Views
@@ -65,8 +60,7 @@ final class ViewFactory
 			new ThemeAssets($chain),
 			$this->translator->withDirectories('theme', $chain->langDirectories()),
 			$this->services,
-			$this->settings->for($chain),
-			$this->tokens->for($chain)
+			$this->settings->for($chain)
 		);
 	}
 
@@ -85,12 +79,11 @@ final class ViewFactory
 	}
 
 	/**
-	 * Builds the context for a page: the `Head` with the site name, the
-	 * compiled design tokens (kept per content version), and the active theme's stylesheets and
-	 * scripts (with any stylesheets a build manifest pairs with them;
-	 * built scripts load as modules),
+	 * Builds the context for a page: the `Head` with the site name and
+	 * the active theme's stylesheets and scripts (with any stylesheets a
+	 * build manifest pairs with them; built scripts load as modules),
 	 * `$site`, and the entry's presentation front matter (`layout`,
-	 * `class`, `stylesheet`, and `tokens`, D-027).
+	 * `class`, and `stylesheet`, D-027).
 	 *
 	 * @throws ThemeException When a build manifest is invalid.
 	 */
@@ -98,11 +91,6 @@ final class ViewFactory
 	{
 		$head  = new Head($this->services->app->name);
 		$theme = $views->chain->active();
-		$css   = $this->tokenCss($views);
-
-		if ($css !== '') {
-			$head->inlineStyle('blush-tokens', $css);
-		}
 
 		foreach ([...$theme->styles, ...$theme->scripts] as $asset) {
 			foreach ($views->assets->css($asset) as $url) {
@@ -144,17 +132,6 @@ final class ViewFactory
 	}
 
 	/**
-	 * Returns a chain's compiled token CSS, kept per content version
-	 * (site tokens are site data, which a publish changes).
-	 */
-	private function tokenCss(Views $views): string
-	{
-		$compile = static fn (): string => $views->tokens->css();
-
-		return $this->cache?->remember(CacheNamespace::Tokens, 'css.' . $views->chain->active()->slug, $compile) ?? $compile();
-	}
-
-	/**
 	 * Builds a bare context for a fragment rendered outside a page, such
 	 * as a component in Markdown.
 	 */
@@ -164,7 +141,7 @@ final class ViewFactory
 	}
 
 	/**
-	 * Adds an entry's own stylesheet and tokens to the head.
+	 * Adds an entry's own stylesheet to the head.
 	 *
 	 * @throws ThemeException
 	 */
@@ -178,12 +155,6 @@ final class ViewFactory
 			if ($url !== null) {
 				$head->style($url);
 			}
-		}
-
-		$css = $this->tokens->forEntry($entry)?->over($views->tokens)->css() ?? '';
-
-		if ($css !== '') {
-			$head->inlineStyle('blush-entry-tokens', $css);
 		}
 	}
 }

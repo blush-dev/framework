@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Archive granularity.
+ * Date archives.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -18,7 +18,7 @@ namespace Blush\Content\Type;
  * it: `Day` gives year, month, and day archives. 1.x's `date_archives` is
  * `Day`, and its `time_archives` is `Second` (D-078).
  */
-enum ArchiveGranularity: string
+enum DateArchives: string
 {
 	case None   = 'none';
 	case Year   = 'year';

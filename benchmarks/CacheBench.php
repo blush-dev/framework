@@ -26,7 +26,7 @@ use Blush\Http\Request;
 /**
  * Whole requests against the jtcom-sized site with the caches warm
  * (M6): with the page cache off, so pages render but reuse cached
- * bodies and token CSS, and with it on, so a request is a page cache
+ * bodies, and with it on, so a request is a page cache
  * hit. Compare with `ContentBench`'s uncached request subjects.
  */
 #[Bench\BeforeMethods('setUp')]

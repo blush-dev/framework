@@ -21,8 +21,7 @@ use Stringable;
  * (including OpenGraph properties), links (canonical, alternates,
  * pagination), stylesheets, and scripts. Templates and the renderer add
  * to it while the page renders, and the base layout prints it once with
- * `<?= $this->head() ?>`. Inline style blocks (`inlineStyle()`) hold
- * compiled design tokens. Since layouts render after the templates they
+ * `<?= $template->head() ?>`. Since layouts render after the templates they
  * wrap, anything a template adds is in place by then.
  *
  * Each item is keyed, so adding it twice keeps one copy (the later value)
@@ -136,9 +135,8 @@ final class Head implements Stringable
 	}
 
 	/**
-	 * Adds an inline `<style>` block, once per id: compiled design tokens
-	 * and per-entry overrides. The CSS must come from a trusted compiler
-	 * (it isn't escaped); `</style` is refused.
+	 * Adds an inline `<style>` block, once per id. The CSS must be
+	 * trusted (it isn't escaped); `</style` is refused.
 	 */
 	public function inlineStyle(string $id, string $css): self
 	{
@@ -161,7 +159,7 @@ final class Head implements Stringable
 	/**
 	 * Removes an item by its key (see `has()`), such as a theme stylesheet
 	 * a standalone page doesn't want:
-	 * `$this->head()->remove('style:' . $this->asset('style.css'))` (D-154).
+	 * `$template->head()->remove('style:' . $template->asset('style.css'))` (D-154).
 	 */
 	public function remove(string $key): self
 	{

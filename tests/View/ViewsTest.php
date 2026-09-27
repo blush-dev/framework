@@ -72,9 +72,9 @@ final class ViewsTest extends TestCase
 
 	public function testRendersLayoutsSectionsAndData(): void
 	{
-		$this->view('layouts/shell', '<html><?= $this->section(\'content\') ?>|<?= $this->section(\'aside\', \'no aside\') ?>|<?= e($title) ?>|<?= e($site->name) ?></html>');
-		$this->view('layouts/page', '<?php $this->layout(\'shell\', title: \'From page\') ?><main><?= $this->section(\'content\') ?></main>');
-		$this->view('page', '<?php $this->layout(\'page\') ?><?php $this->start(\'aside\') ?>Aside for <?= e($name) ?><?php $this->stop() ?>Hello, <?= e($name) ?>.<?= $this->hasSection(\'aside\') ? \'!\' : \'?\' ?>');
+		$this->view('layouts/shell', '<html><?= $template->section(\'content\') ?>|<?= $template->section(\'aside\', \'no aside\') ?>|<?= e($title) ?>|<?= e($site->name) ?></html>');
+		$this->view('layouts/page', '<?php $template->layout(\'shell\', title: \'From page\') ?><main><?= $template->section(\'content\') ?></main>');
+		$this->view('page', '<?php $template->layout(\'page\') ?><?php $template->start(\'aside\') ?>Aside for <?= e($name) ?><?php $template->stop() ?>Hello, <?= e($name) ?>.<?= $template->hasSection(\'aside\') ? \'!\' : \'?\' ?>');
 
 		$this->assertSame(
 			'<html><main>Hello, Ada &lt;3.!</main>|Aside for Ada &lt;3|From page|Test Site</html>',
@@ -85,14 +85,14 @@ final class ViewsTest extends TestCase
 	public function testPartialsSeeOnlyTheirDataAndSharedData(): void
 	{
 		$this->view('card', '[<?= e($label ?? \'no label\') ?>|<?= isset($secret) ? \'leak\' : \'sealed\' ?>|<?= e($site->name) ?>]');
-		$this->view('list', '<?php $secret = 1 ?><?= $this->insert(\'card\', label: \'One\') ?><?= $this->insert(\'card\') ?>');
+		$this->view('list', '<?php $secret = 1 ?><?= $template->include(\'card\', label: \'One\') ?><?= $template->include(\'card\') ?>');
 
 		$this->assertSame('[One|sealed|Test Site][no label|sealed|Test Site]', $this->render('list'));
 	}
 
 	public function testTemplatesCanOnlyUseThePublicApi(): void
 	{
-		$this->view('snoop', '<?= get_class($this) ?>:<?= $this->views->app->name ?>');
+		$this->view('snoop', '<?= get_class($template) ?>:<?= $template->views->app->name ?>');
 
 		try {
 			$this->render('snoop');
@@ -103,13 +103,58 @@ final class ViewsTest extends TestCase
 		}
 	}
 
+	public function testIncludeHelpers(): void
+	{
+		$this->view('card', '[<?= e($label ?? \'-\') ?>]');
+		$this->view('row', '<?= $index ?>:<?= e($entry) ?>:<?= e($label) ?>;');
+		$this->view('none', 'none');
+		$this->view('page', implode('|', [
+			'<?= $template->include([\'card-special\', \'bad name!\', \'card\'], label: \'first\') ?>',
+			'<?= $template->includeIf(\'sidebar\') ?>',
+			'<?= $template->includeIf([\'sidebar\', \'card\']) ?>',
+			'<?= $template->includeWhen(1, \'card\', label: \'when\') ?><?= $template->includeWhen([], \'card\') ?>',
+			'<?= $template->includeUnless(false, \'card\', label: \'unless\') ?><?= $template->includeUnless(true, \'card\') ?>',
+			'<?= $template->each(\'row\', [\'a\', \'b\'], as: \'entry\', empty: \'none\', label: \'x\') ?>',
+			'<?= $template->each(\'row\', [], as: \'entry\', empty: \'none\') ?>',
+			'<?= $template->each(\'row\', []) ?>'
+		]));
+
+		$this->assertSame('[first]||[-]|[when]|[unless]|0:a:x;1:b:x;|none|', $this->render('page'));
+	}
+
+	public function testIncludeThrowsWhenNoViewExists(): void
+	{
+		$this->view('page', '<?= $template->include([\'missing\', \'gone\']) ?>');
+
+		$this->expectException(ViewNotFound::class);
+
+		$this->render('page');
+	}
+
+	public function testTemplatesUseTemplateNotThis(): void
+	{
+		$this->view('named', '<?= get_class($template) ?>|<?= e($title) ?>');
+
+		$this->assertSame('Blush\View\Template|Hi', $this->render('named', ['title' => 'Hi', 'template' => 'ignored']));
+
+		$this->view('old', '<?= $this->section(\'content\') ?>');
+
+		try {
+			$this->render('old');
+			$this->fail('A template should not have $this.');
+		} catch (ViewException $error) {
+			$this->assertStringStartsWith('Views use $template, not $this, in view ', $error->getMessage());
+			$this->assertStringContainsString('old.php', $error->getMessage());
+		}
+	}
+
 	public function testFailuresCloseTheirOutputBuffers(): void
 	{
 		$level = ob_get_level();
 
-		$this->view('open-section', '<?php $this->start(\'a\') ?>never stopped');
-		$this->view('throws', '<?php $this->start(\'a\') ?>partial output<?php throw new RuntimeException(\'Boom\') ?>');
-		$this->view('positional', '<?= $this->insert(\'throws\', \'value\') ?>');
+		$this->view('open-section', '<?php $template->start(\'a\') ?>never stopped');
+		$this->view('throws', '<?php $template->start(\'a\') ?>partial output<?php throw new RuntimeException(\'Boom\') ?>');
+		$this->view('positional', '<?= $template->include(\'throws\', \'value\') ?>');
 
 		$cases = [
 			'open-section' => 'Section "a" was never stopped',
@@ -128,7 +173,7 @@ final class ViewsTest extends TestCase
 			$this->assertSame($level, ob_get_level(), $name);
 		}
 
-		$this->view('stray-stop', '<?php $this->stop() ?>');
+		$this->view('stray-stop', '<?php $template->stop() ?>');
 		$this->expectExceptionMessage('stop() was called without start().');
 		$this->render('stray-stop');
 	}
@@ -168,9 +213,9 @@ final class ViewsTest extends TestCase
 
 	public function testTheContextLayoutReplacesThePagesLayout(): void
 	{
-		$this->view('layouts/wide', 'wide:<?= $this->section(\'content\') ?>');
-		$this->view('layouts/narrow', 'narrow:<?= $this->section(\'content\') ?>');
-		$this->view('page', '<?php $this->layout(\'narrow\') ?>body');
+		$this->view('layouts/wide', 'wide:<?= $template->section(\'content\') ?>');
+		$this->view('layouts/narrow', 'narrow:<?= $template->section(\'content\') ?>');
+		$this->view('page', '<?php $template->layout(\'narrow\') ?>body');
 
 		$this->assertSame('narrow:body', $this->render('page'));
 		$this->assertSame('wide:body', $this->render('page', [], new ViewContext(layout: 'wide')));
@@ -181,8 +226,8 @@ final class ViewsTest extends TestCase
 	public function testHelpers(): void
 	{
 		$this->writeTemporaryFile('resources/views/helpers.php', <<<'PHP'
-			<?php $this->head()->title('Helpers'); $this->head()->meta('robots', 'noindex') ?>
-			<?= $this->t('pagination.page', page: 2, pages: 9) ?>|<?= $this->t('no.such.key') ?>|<?= $this->date($when) ?>|<?= $this->date($when, 'MMMM y') ?>|<?= $this->asset('style.css') !== '' ? 'asset' : '' ?>|<?= $this->asset('nope.css') ?>|<?= $this->bodyClass() ?>
+			<?php $template->head()->title('Helpers'); $template->head()->meta('robots', 'noindex') ?>
+			<?= $template->t('pagination.page', page: 2, pages: 9) ?>|<?= $template->t('no.such.key') ?>|<?= $template->date($when) ?>|<?= $template->date($when, 'MMMM y') ?>|<?= $template->asset('style.css') !== '' ? 'asset' : '' ?>|<?= $template->asset('nope.css') ?>|<?= $template->bodyClass() ?>
 			PHP);
 
 		$context = new ViewContext(new Head('Test Site'));
@@ -203,7 +248,7 @@ final class ViewsTest extends TestCase
 	public function testWidontJoinsTheLastTwoWords(): void
 	{
 		$this->writeTemporaryFile('resources/views/widont.php', <<<'PHP'
-			<?= $this->widont('Tom & Jerry go  home') ?>|<?= $this->widont('Three short words') ?>|<?= $this->widont('') ?>
+			<?= $template->widont('Tom & Jerry go  home') ?>|<?= $template->widont('Three short words') ?>|<?= $template->widont('') ?>
 			PHP);
 
 		$this->assertSame('Tom &amp; Jerry go&nbsp;home|Three short words|', trim($this->render('widont')));
@@ -212,7 +257,7 @@ final class ViewsTest extends TestCase
 	public function testInlineReadsOnlyServableThemeAssets(): void
 	{
 		$this->writeTemporaryFile('resources/views/inline.php', <<<'PHP'
-			<?= strlen($this->inline('style.css')) > 0 ? 'css' : '' ?>|<?= $this->inline('views/single.php') ?>|<?= $this->inline('theme.json') ?>|<?= $this->inline('../../../composer.json') ?>|<?= $this->inline('nope.svg') ?>
+			<?= strlen($template->inline('style.css')) > 0 ? 'css' : '' ?>|<?= $template->inline('views/single.php') ?>|<?= $template->inline('theme.json') ?>|<?= $template->inline('../../../composer.json') ?>|<?= $template->inline('nope.svg') ?>
 			PHP);
 
 		$this->assertSame('css||||', trim($this->render('inline')));

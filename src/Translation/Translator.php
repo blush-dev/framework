@@ -125,7 +125,9 @@ final class Translator
 			$locales[] = Locale::getPrimaryLanguage($name) ?? $name;
 		}
 
-		return array_values(array_unique(array_filter($locales, static fn (string $name): bool => $name !== '')));
+		return array_filter($locales, static fn (string $name): bool => $name !== '')
+			|> array_unique(...)
+			|> array_values(...);
 	}
 
 	/**

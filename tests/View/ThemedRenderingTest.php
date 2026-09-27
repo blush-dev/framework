@@ -54,7 +54,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->writeTemporaryFile('user/themes/child/extra.css', '');
 		$this->writeTemporaryFile('user/themes/child/app.js', '');
 		$this->writeTemporaryFile('user/themes/child/lang/en.json', '{"powered_by": "Made with {generator}"}');
-		$this->writeTemporaryFile('user/themes/child/views/single-post.php', '<?php $this->layout(\'base\') ?><h1 class="post">Post: <?= e($title) ?></h1>');
+		$this->writeTemporaryFile('user/themes/child/views/single-post.php', '<?php $template->layout(\'base\') ?><h1 class="post">Post: <?= e($title) ?></h1>');
 	}
 
 	public function testRendersEveryKindOfPage(): void
@@ -145,7 +145,7 @@ final class ThemedRenderingTest extends TestCase
 	public function testPartialsSeeThePageAndTaxonomyListingsShareATemplate(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('resources/views/collection-taxonomy.php', '<?php $this->layout(\'base\') ?><?= $this->insert(\'parts/terms-title\') ?>');
+		$this->writeTemporaryFile('resources/views/collection-taxonomy.php', '<?php $template->layout(\'base\') ?><?= $template->include(\'parts/terms-title\') ?>');
 		$this->writeTemporaryFile('resources/views/parts/terms-title.php', '<p class="terms"><?= e($title) ?>: <?= e($type->name) ?>, <?= count($page->entries ?? []) ?></p>');
 		$this->writeTemporaryFile('resources/views/parts/footer.php', '<footer><?= e($entry?->title ?? "none") ?></footer>');
 
@@ -160,8 +160,8 @@ final class ThemedRenderingTest extends TestCase
 	{
 		$this->standardContent();
 		$this->entry('about/index.md', "title: About\ntemplate: [about-page]\nlayout: plain\nclass: [wide, 'dark mode']");
-		$this->writeTemporaryFile('resources/views/about-page.php', '<?php $this->layout(\'base\') ?>custom about');
-		$this->writeTemporaryFile('resources/views/layouts/plain.php', '<body class="<?= attr($this->bodyClass()) ?>"><?= $this->section(\'content\') ?></body>');
+		$this->writeTemporaryFile('resources/views/about-page.php', '<?php $template->layout(\'base\') ?>custom about');
+		$this->writeTemporaryFile('resources/views/layouts/plain.php', '<body class="<?= attr($template->bodyClass()) ?>"><?= $template->section(\'content\') ?></body>');
 
 		$this->assertSame('<body class="wide dark mode is-page type-page">custom about</body>', $this->body('/about'));
 	}
@@ -205,7 +205,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<h1 class="entry__title">404</h1>', $this->body('/nowhere', $app));
 
 		$this->entry('_errors/404.md', "title: Lost?\ntemplate: lost", 'Try the *archives*.');
-		$this->writeTemporaryFile('resources/views/lost.php', '<?php $this->layout(\'base\') ?>lost view');
+		$this->writeTemporaryFile('resources/views/lost.php', '<?php $template->layout(\'base\') ?>lost view');
 
 		$html = $this->body('/nowhere', $this->site('development'));
 

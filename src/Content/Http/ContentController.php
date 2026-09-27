@@ -68,11 +68,7 @@ abstract class ContentController
 	protected function collectionPage(ContentType $type, int $page, PageKind $kind): ContentPage
 	{
 		$landing = $this->visible($this->content->named($type->name, ''));
-		$query   = $this->query(
-			['type' => $type->collect === false ? $type->name : $type->collect],
-			$type->collection,
-			self::collectionArguments($landing)
-		);
+		$query   = $this->query($type->listingArguments(), self::collectionArguments($landing));
 
 		return new ContentPage(
 			kind: $kind,
