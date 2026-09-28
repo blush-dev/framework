@@ -25,6 +25,7 @@ use Blush\Container\ServiceContainer;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Env\Env;
+use Blush\Embed\EmbedConfig;
 use Blush\Export\ExportConfig;
 use Blush\Extension\ExtensionCache;
 use Blush\Extension\ExtensionConfig;
@@ -262,7 +263,8 @@ final readonly class Bootstrap
 			new SitemapConfig(),
 			new CacheConfig(),
 			PublishConfig::fromEnv($env),
-			new ExportConfig()
+			new ExportConfig(),
+			new EmbedConfig()
 		)->with(...$this->overrides);
 	}
 

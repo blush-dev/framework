@@ -15,8 +15,10 @@ namespace Blush\Markdown\CommonMark\Directive;
 
 use Override;
 use League\CommonMark\Environment\EnvironmentBuilderInterface;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\ExtensionInterface;
 use Blush\Markdown\DirectiveRenderer;
+use Blush\Markdown\MarkdownContext;
 
 /**
  * Adds generic directives (D-026) to CommonMark: container
@@ -26,8 +28,10 @@ use Blush\Markdown\DirectiveRenderer;
  */
 final readonly class DirectiveExtension implements ExtensionInterface
 {
-	public function __construct(private ?DirectiveRenderer $renderer = null)
-	{}
+	public function __construct(
+		private ?DirectiveRenderer $renderer = null,
+		private ?MarkdownContext $context = null
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -35,7 +39,7 @@ final readonly class DirectiveExtension implements ExtensionInterface
 	#[Override]
 	public function register(EnvironmentBuilderInterface $environment): void
 	{
-		$renderer = new DirectiveNodeRenderer($this->renderer);
+		$renderer = new DirectiveNodeRenderer($this->renderer, $this->context);
 
 		$environment
 			->addBlockStartParser(new ContainerDirectiveStartParser(), 80)
@@ -43,6 +47,7 @@ final readonly class DirectiveExtension implements ExtensionInterface
 			->addInlineParser(new InlineDirectiveParser(), 40)
 			->addRenderer(ContainerDirective::class, $renderer)
 			->addRenderer(LeafDirective::class, $renderer)
-			->addRenderer(InlineDirective::class, $renderer);
+			->addRenderer(InlineDirective::class, $renderer)
+			->addEventListener(DocumentParsedEvent::class, new CollectOutline(), -200);
 	}
 }

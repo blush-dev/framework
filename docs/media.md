@@ -36,10 +36,15 @@ user/content/blog/trip-to-rome/
 
 The entry is still `trip-to-rome`, and Blush serves the image for you.
 
+Media paths in Markdown work with or without the first `/`: a path that
+isn't a file next to the entry is looked for from the site's root, so
+`user/media/photo.jpg` and `/user/media/photo.jpg` are the same file.
+
 ## Allowed file types
 
 Only common image, audio, and video types are served: AVIF, GIF, JPEG, PNG,
-SVG, WebP, APNG, MP3, WAV, Ogg, MP4, and WebM. You can change the list, or
+SVG, WebP, APNG, MP3, WAV, Ogg, MP4, and WebM, plus WebVTT caption files
+(`.vtt`) for videos. You can change the list, or
 the `/media` URL, in [`config/media.php`](configuration.md#media).
 
 ## Faster media on a live site

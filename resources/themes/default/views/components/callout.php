@@ -20,9 +20,9 @@ $tone  = in_array($props['tone'] ?? null, ['note', 'info', 'tip', 'warning', 'da
 $title = is_string($props['label'] ?? null) ? $props['label'] : (is_string($props['title'] ?? null) ? $props['title'] : '');
 
 ?>
-<aside class="callout callout--<?= attr($tone) ?>" role="note">
+<aside class="component-callout component-callout--<?= attr($tone) ?>" role="note">
 	<?php if ($title !== '') : ?>
-		<p class="callout__title"><?= e($title) ?></p>
+		<p class="component-callout__title"><?= e($title) ?></p>
 	<?php endif ?>
 	<?= raw($slot) ?>
 </aside>

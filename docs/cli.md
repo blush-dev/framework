@@ -42,5 +42,6 @@ for even more), `-q` for errors only, `-n` to never ask questions, and
 | `theme:new <slug>` | Create a theme in `user/themes/`. `--name=` names it; `--parent=` builds it on another theme. |
 | `theme:check [slug]` | Check a theme's manifest, settings, components, and accessibility basics. `--strict` shows notices too. |
 | `theme:why <view>` | Show which file a template name uses, such as `theme:why single-post` |
+| `icon:list` | List the icons your theme can use: each one's full name, its label, and the file that draws it. `--theme=` lists another theme's. |
 | `component:list` | List the components your theme can use: each one's full name, its label, whether it's registered, its class (if it has one), and the file that draws it. Also points out files in `components/` that aren't named for a component. `--theme=` lists another theme's. |
 | `theme:publish` | Copy the active theme's files (and its parents') into `public/`. `--all` copies every theme's. |

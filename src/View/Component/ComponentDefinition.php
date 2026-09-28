@@ -20,6 +20,7 @@ use ReflectionParameter;
 use Blush\Content\Schema\Field;
 use Blush\Content\Schema\Fields\BoolField;
 use Blush\Content\Schema\Fields\EnumField;
+use Blush\Content\Schema\Fields\MediaField;
 use Blush\Content\Schema\Fields\NumberField;
 use Blush\Content\Schema\Fields\TextField;
 
@@ -32,7 +33,8 @@ use Blush\Content\Schema\Fields\TextField;
  * A class component's props and content default to what its class says:
  * the constructor's scalar and backed-enum parameters (a public or
  * unpromoted parameter; services and private state are left out), and
- * its `CONTENT` constant.
+ * its `CONTENT` constant. A string parameter marked `#[MediaProp]` is a
+ * `media` field.
  */
 final readonly class ComponentDefinition
 {
@@ -80,6 +82,29 @@ final readonly class ComponentDefinition
 	}
 
 	/**
+	 * Returns the names of the props its class marks as links
+	 * (`#[LinkProp]`).
+	 *
+	 * @return list<string>
+	 */
+	public function links(): array
+	{
+		if ($this->class === null) {
+			return [];
+		}
+
+		$links = [];
+
+		foreach (new ReflectionClass($this->class)->getConstructor()?->getParameters() ?? [] as $parameter) {
+			if ($parameter->getAttributes(LinkProp::class) !== []) {
+				$links[] = $parameter->getName();
+			}
+		}
+
+		return $links;
+	}
+
+	/**
 	 * Returns the field for a constructor parameter, or `null` when it
 	 * isn't a prop.
 	 */
@@ -94,7 +119,7 @@ final readonly class ComponentDefinition
 		$name  = $parameter->getName();
 		$class = $type->getName();
 		$field = match (true) {
-			$class === 'string'                   => new TextField($name),
+			$class === 'string'                   => $parameter->getAttributes(MediaProp::class) === [] ? new TextField($name) : new MediaField($name),
 			$class === 'int'                      => new NumberField($name, integer: true),
 			$class === 'float'                    => new NumberField($name),
 			$class === 'bool'                     => new BoolField($name),

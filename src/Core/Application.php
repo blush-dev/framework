@@ -27,7 +27,9 @@ use Blush\Data\DataServiceProvider;
 use Blush\Error\ErrorServiceProvider;
 use Blush\Event\Dispatcher;
 use Blush\Event\EventServiceProvider;
+use Blush\Embed\EmbedServiceProvider;
 use Blush\Export\ExportServiceProvider;
+use Blush\Icon\IconServiceProvider;
 use Blush\Feed\FeedServiceProvider;
 use Blush\Http\HttpServiceProvider;
 use Blush\Log\LogServiceProvider;
@@ -78,6 +80,8 @@ class Application implements Bootable
 		CacheServiceProvider::class,
 		PublishServiceProvider::class,
 		ExportServiceProvider::class,
+		EmbedServiceProvider::class,
+		IconServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class
 	];

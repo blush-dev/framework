@@ -1,0 +1,1107 @@
+{
+	"arrow-down": [
+		"backwards",
+		"reverse",
+		"direction",
+		"south"
+	],
+	"arrow-left": [
+		"previous",
+		"back",
+		"direction",
+		"west",
+		"<-"
+	],
+	"arrow-right": [
+		"forward",
+		"next",
+		"direction",
+		"east",
+		"->"
+	],
+	"arrow-up": [
+		"forward",
+		"direction",
+		"north"
+	],
+	"arrow-up-right": [
+		"direction",
+		"north-east",
+		"diagonal"
+	],
+	"at-sign": [
+		"mention",
+		"at",
+		"email",
+		"message",
+		"@"
+	],
+	"award": [
+		"achievement",
+		"badge",
+		"rosette",
+		"prize",
+		"winner"
+	],
+	"bell": [
+		"alarm",
+		"notification",
+		"sound",
+		"reminder"
+	],
+	"book": [
+		"reading",
+		"paperback",
+		"booklet",
+		"magazine",
+		"leaflet",
+		"pamphlet",
+		"tome",
+		"library",
+		"writing",
+		"written",
+		"writer",
+		"author",
+		"story",
+		"script",
+		"fiction",
+		"novel",
+		"information",
+		"knowledge",
+		"education",
+		"high school",
+		"university",
+		"college",
+		"academy",
+		"student",
+		"study",
+		"learning",
+		"homework",
+		"research",
+		"documentation"
+	],
+	"book-open": [
+		"reading",
+		"pages",
+		"booklet",
+		"magazine",
+		"leaflet",
+		"pamphlet",
+		"library",
+		"writing",
+		"written",
+		"writer",
+		"author",
+		"story",
+		"script",
+		"screenplay",
+		"fiction",
+		"novel",
+		"information",
+		"knowledge",
+		"education",
+		"high school",
+		"university",
+		"college",
+		"academy",
+		"student",
+		"study",
+		"learning",
+		"homework",
+		"research",
+		"documentation",
+		"revealed",
+		"blank",
+		"plain"
+	],
+	"bookmark": [
+		"save",
+		"favorite",
+		"mark",
+		"label",
+		"attachment",
+		"file",
+		"stick",
+		"pin",
+		"read",
+		"clip",
+		"marker",
+		"tag"
+	],
+	"briefcase": [
+		"work",
+		"bag",
+		"baggage",
+		"folder"
+	],
+	"brush": [
+		"clean",
+		"sweep",
+		"refactor",
+		"remove",
+		"draw",
+		"paint",
+		"color",
+		"artist"
+	],
+	"calendar": [
+		"date",
+		"month",
+		"year",
+		"event",
+		"birthday",
+		"birthdate"
+	],
+	"calendar-days": [
+		"date",
+		"month",
+		"year",
+		"event"
+	],
+	"camera": [
+		"photography",
+		"lens",
+		"focus",
+		"capture",
+		"shot",
+		"visual",
+		"image",
+		"device",
+		"equipment",
+		"photo",
+		"webcam",
+		"video"
+	],
+	"check": [
+		"done",
+		"todo",
+		"tick",
+		"complete",
+		"task"
+	],
+	"chevron-down": [
+		"backwards",
+		"reverse",
+		"slow",
+		"dropdown"
+	],
+	"chevron-left": [
+		"back",
+		"previous",
+		"less than",
+		"fewer",
+		"menu",
+		"<"
+	],
+	"chevron-right": [
+		"forward",
+		"next",
+		"more than",
+		"greater",
+		"menu",
+		"code",
+		"coding",
+		"command line",
+		"terminal",
+		"prompt",
+		"shell",
+		">"
+	],
+	"chevron-up": [
+		"caret",
+		"keyboard",
+		"mac",
+		"control",
+		"ctrl",
+		"superscript",
+		"exponential",
+		"power",
+		"ahead",
+		"fast",
+		"^",
+		"dropdown"
+	],
+	"chevrons-left": [
+		"turn",
+		"corner"
+	],
+	"chevrons-right": [
+		"turn",
+		"corner"
+	],
+	"circle-alert": [
+		"warning",
+		"alert",
+		"danger",
+		"exclamation mark"
+	],
+	"circle-check": [
+		"done",
+		"todo",
+		"tick",
+		"complete",
+		"task"
+	],
+	"circle-help": [],
+	"circle-play": [
+		"music",
+		"start",
+		"run"
+	],
+	"circle-user": [
+		"person",
+		"account",
+		"contact"
+	],
+	"circle-x": [
+		"cancel",
+		"close",
+		"delete",
+		"remove",
+		"times",
+		"clear",
+		"error",
+		"incorrect",
+		"wrong",
+		"mistake",
+		"failure",
+		"linter",
+		"multiply",
+		"multiplication"
+	],
+	"clipboard": [
+		"copy",
+		"paste"
+	],
+	"clock": [
+		"time",
+		"watch",
+		"alarm"
+	],
+	"cloud": [
+		"weather"
+	],
+	"code": [
+		"source",
+		"programming",
+		"html",
+		"xml"
+	],
+	"coffee": [
+		"drink",
+		"cup",
+		"mug",
+		"tea",
+		"cafe",
+		"hot",
+		"beverage"
+	],
+	"compass": [
+		"direction",
+		"north",
+		"east",
+		"south",
+		"west",
+		"browser"
+	],
+	"copy": [
+		"clone",
+		"duplicate",
+		"multiple"
+	],
+	"corner-down-right": [
+		"arrow",
+		"indent",
+		"tab"
+	],
+	"credit-card": [
+		"bank",
+		"purchase",
+		"payment",
+		"cc"
+	],
+	"download": [
+		"import",
+		"export",
+		"save"
+	],
+	"ellipsis": [
+		"et cetera",
+		"etc",
+		"loader",
+		"loading",
+		"progress",
+		"pending",
+		"throbber",
+		"menu",
+		"options",
+		"operator",
+		"code",
+		"coding",
+		"spread",
+		"rest",
+		"more",
+		"further",
+		"extra",
+		"overflow",
+		"dots",
+		"\u2026",
+		"..."
+	],
+	"external-link": [
+		"outbound",
+		"open",
+		"share"
+	],
+	"eye": [
+		"view",
+		"watch",
+		"see",
+		"show",
+		"expose",
+		"reveal",
+		"display",
+		"visible",
+		"visibility",
+		"vision",
+		"preview",
+		"read"
+	],
+	"file": [
+		"document"
+	],
+	"file-text": [
+		"data",
+		"txt",
+		"pdf",
+		"document"
+	],
+	"files": [
+		"multiple",
+		"copy",
+		"documents"
+	],
+	"film": [
+		"movie",
+		"video",
+		"reel",
+		"camera",
+		"cinema",
+		"entertainment"
+	],
+	"filter": [],
+	"flag": [
+		"report",
+		"marker",
+		"notification",
+		"warning",
+		"milestone",
+		"goal",
+		"notice",
+		"signal",
+		"attention",
+		"banner"
+	],
+	"flame": [
+		"heat",
+		"burn",
+		"light",
+		"glow",
+		"ignite",
+		"passion",
+		"ember",
+		"fire",
+		"lit",
+		"burning",
+		"spark",
+		"embers",
+		"smoke",
+		"firefighter",
+		"fireman",
+		"department",
+		"brigade",
+		"station",
+		"emergency"
+	],
+	"folder": [
+		"directory"
+	],
+	"folder-open": [
+		"directory"
+	],
+	"gift": [
+		"present",
+		"box",
+		"birthday",
+		"party"
+	],
+	"globe": [
+		"world",
+		"browser",
+		"language",
+		"translate"
+	],
+	"graduation-cap": [
+		"school",
+		"university",
+		"learn",
+		"study",
+		"mortarboard",
+		"education",
+		"ceremony",
+		"academic",
+		"hat",
+		"diploma",
+		"bachelor's",
+		"master's",
+		"doctorate"
+	],
+	"hash": [
+		"hashtag",
+		"number",
+		"pound"
+	],
+	"headphones": [
+		"music",
+		"audio",
+		"sound"
+	],
+	"heart": [
+		"like",
+		"love",
+		"emotion",
+		"suit",
+		"playing",
+		"cards"
+	],
+	"history": [],
+	"house": [
+		"home",
+		"living",
+		"building",
+		"residence",
+		"architecture"
+	],
+	"image": [
+		"picture",
+		"photo"
+	],
+	"images": [
+		"picture",
+		"photo",
+		"multiple",
+		"copy",
+		"gallery",
+		"album",
+		"collection",
+		"slideshow",
+		"showcase"
+	],
+	"info": [
+		"about",
+		"advice",
+		"clue",
+		"details",
+		"help",
+		"hint",
+		"indicator",
+		"information",
+		"knowledge",
+		"notice",
+		"status",
+		"support",
+		"tooltip"
+	],
+	"key-round": [
+		"password",
+		"login",
+		"authentication",
+		"secure",
+		"unlock"
+	],
+	"laptop": [
+		"computer",
+		"screen",
+		"remote"
+	],
+	"layout-grid": [
+		"app",
+		"home",
+		"start"
+	],
+	"leaf": [
+		"sustainability",
+		"nature",
+		"energy",
+		"plant",
+		"autumn"
+	],
+	"library": [
+		"books",
+		"reading",
+		"written",
+		"authors",
+		"stories",
+		"fiction",
+		"novels",
+		"information",
+		"knowledge",
+		"education",
+		"high school",
+		"university",
+		"college",
+		"academy",
+		"learning",
+		"study",
+		"research",
+		"collection",
+		"vinyl",
+		"records",
+		"albums",
+		"music",
+		"package"
+	],
+	"lightbulb": [
+		"idea",
+		"bright",
+		"lights"
+	],
+	"link": [
+		"chain",
+		"url"
+	],
+	"list": [
+		"options"
+	],
+	"list-ordered": [
+		"number",
+		"order",
+		"queue"
+	],
+	"lock": [
+		"security",
+		"password",
+		"secure",
+		"admin"
+	],
+	"lock-open": [
+		"security"
+	],
+	"log-in": [
+		"sign in",
+		"arrow",
+		"enter",
+		"auth"
+	],
+	"log-out": [
+		"sign out",
+		"arrow",
+		"exit",
+		"auth"
+	],
+	"mail": [
+		"email",
+		"message",
+		"letter",
+		"unread"
+	],
+	"map": [
+		"location",
+		"navigation",
+		"travel"
+	],
+	"map-pin": [
+		"location",
+		"waypoint",
+		"marker",
+		"drop"
+	],
+	"menu": [
+		"bars",
+		"navigation",
+		"hamburger",
+		"options"
+	],
+	"message-circle": [
+		"comment",
+		"chat",
+		"conversation",
+		"dialog",
+		"feedback",
+		"speech bubble"
+	],
+	"message-square": [
+		"comment",
+		"chat",
+		"conversation",
+		"dialog",
+		"feedback",
+		"speech bubble"
+	],
+	"mic": [
+		"record",
+		"sound",
+		"listen",
+		"radio",
+		"podcast",
+		"microphone"
+	],
+	"minus": [
+		"subtract",
+		"remove",
+		"decrease",
+		"decrement",
+		"reduce",
+		"negative",
+		"calculate",
+		"line",
+		"divider",
+		"separator",
+		"horizontal rule",
+		"hr",
+		"html",
+		"markup",
+		"markdown",
+		"---",
+		"toolbar",
+		"operator",
+		"code",
+		"coding",
+		"minimum",
+		"downgrade"
+	],
+	"monitor": [
+		"tv",
+		"computer",
+		"desktop",
+		"screen",
+		"display",
+		"external display",
+		"screen sharing",
+		"virtual machine",
+		"vm"
+	],
+	"moon": [
+		"dark",
+		"night"
+	],
+	"music": [
+		"note",
+		"quaver",
+		"eighth note"
+	],
+	"newspaper": [
+		"news",
+		"feed",
+		"home",
+		"magazine",
+		"article",
+		"headline"
+	],
+	"notebook-pen": [
+		"pencil",
+		"notepad",
+		"notes",
+		"noted",
+		"stationery",
+		"sketchbook",
+		"organizer",
+		"organiser",
+		"planner",
+		"diary",
+		"journal",
+		"writing",
+		"write",
+		"written",
+		"reading",
+		"high school",
+		"university",
+		"college",
+		"academy",
+		"student",
+		"study",
+		"research",
+		"homework",
+		"eraser",
+		"rubber"
+	],
+	"paintbrush": [
+		"brush",
+		"paintbrush",
+		"design",
+		"color",
+		"colour",
+		"decoration",
+		"diy"
+	],
+	"palette": [
+		"colors",
+		"colours",
+		"theme",
+		"scheme",
+		"paint",
+		"watercolor",
+		"watercolour",
+		"artist"
+	],
+	"pause": [
+		"music",
+		"stop"
+	],
+	"pen-line": [
+		"pencil",
+		"change",
+		"create",
+		"draw",
+		"writer",
+		"writing",
+		"biro",
+		"ink",
+		"marker",
+		"felt tip",
+		"stationery",
+		"artist"
+	],
+	"pen-tool": [
+		"vector",
+		"drawing",
+		"path"
+	],
+	"pencil": [
+		"rubber",
+		"edit",
+		"create",
+		"draw",
+		"sketch",
+		"draft",
+		"writer",
+		"writing",
+		"stationery",
+		"artist"
+	],
+	"phone": [
+		"call"
+	],
+	"play": [
+		"music",
+		"audio",
+		"video",
+		"start",
+		"run"
+	],
+	"plus": [
+		"add",
+		"new",
+		"increase",
+		"increment",
+		"positive",
+		"calculate",
+		"toolbar",
+		"crosshair",
+		"aim",
+		"target",
+		"scope",
+		"sight",
+		"reticule",
+		"maximum",
+		"upgrade",
+		"extra",
+		"+"
+	],
+	"podcast": [],
+	"printer": [
+		"fax",
+		"office",
+		"device"
+	],
+	"quote": [
+		"quotation"
+	],
+	"rocket": [
+		"release",
+		"boost",
+		"launch",
+		"space",
+		"version"
+	],
+	"rows-3": [
+		"lines",
+		"list",
+		"queue",
+		"preview",
+		"paragraphs",
+		"parallel",
+		"series",
+		"split",
+		"vertical",
+		"horizontal",
+		"half",
+		"center",
+		"middle",
+		"even",
+		"drawers"
+	],
+	"rss": [
+		"feed",
+		"subscribe",
+		"news",
+		"updates",
+		"notifications",
+		"content",
+		"blog",
+		"articles",
+		"broadcast",
+		"syndication",
+		"reader",
+		"channels",
+		"posts",
+		"publishing",
+		"digest",
+		"alert",
+		"following",
+		"inbox",
+		"newsletter",
+		"weblog",
+		"podcast"
+	],
+	"search": [
+		"find",
+		"scan",
+		"magnifier",
+		"magnifying glass",
+		"lens",
+		"locate",
+		"explore",
+		"discover",
+		"enlarge",
+		"zoom"
+	],
+	"send": [
+		"email",
+		"message",
+		"mail",
+		"paper airplane",
+		"paper aeroplane",
+		"submit"
+	],
+	"settings": [
+		"cog",
+		"edit",
+		"gear",
+		"preferences"
+	],
+	"share": [
+		"network",
+		"connections"
+	],
+	"share-2": [
+		"network",
+		"connections"
+	],
+	"shield": [
+		"cybersecurity",
+		"secure",
+		"safety",
+		"protection",
+		"guardian",
+		"armored",
+		"armoured",
+		"defense",
+		"defence",
+		"defender",
+		"block",
+		"threat",
+		"prevention",
+		"antivirus",
+		"vigilance",
+		"vigilant",
+		"detection",
+		"scan",
+		"find",
+		"strength",
+		"strong",
+		"tough",
+		"invincible",
+		"invincibility",
+		"invulnerable",
+		"undamaged",
+		"audit",
+		"admin",
+		"verification",
+		"crest",
+		"bravery",
+		"knight",
+		"foot soldier",
+		"infantry",
+		"trooper",
+		"pawn",
+		"battle",
+		"war",
+		"military",
+		"army",
+		"cadet",
+		"scout"
+	],
+	"shopping-cart": [
+		"trolley",
+		"cart",
+		"basket",
+		"e-commerce",
+		"store",
+		"purchase",
+		"products",
+		"items",
+		"ingredients"
+	],
+	"sliders-horizontal": [
+		"settings",
+		"filters",
+		"controls"
+	],
+	"smartphone": [
+		"phone",
+		"cellphone",
+		"device",
+		"mobile",
+		"screen",
+		"display",
+		"touchscreen",
+		"portable",
+		"responsive"
+	],
+	"sparkles": [
+		"stars",
+		"effect",
+		"filter",
+		"night",
+		"magic"
+	],
+	"star": [
+		"bookmark",
+		"favorite",
+		"like",
+		"review",
+		"rating"
+	],
+	"sun": [
+		"brightness",
+		"weather",
+		"light",
+		"summer"
+	],
+	"tag": [
+		"label",
+		"badge",
+		"ticket",
+		"mark"
+	],
+	"tags": [
+		"labels",
+		"badges",
+		"tickets",
+		"marks",
+		"copy",
+		"multiple"
+	],
+	"terminal": [
+		"code",
+		"command line",
+		"prompt",
+		"shell"
+	],
+	"thumbs-up": [
+		"like",
+		"good",
+		"emotion"
+	],
+	"tree-pine": [
+		"tree",
+		"pine",
+		"forest",
+		"park",
+		"nature"
+	],
+	"triangle-alert": [
+		"warning",
+		"alert",
+		"danger",
+		"exclamation mark",
+		"linter"
+	],
+	"trophy": [
+		"prize",
+		"sports",
+		"winner",
+		"achievement",
+		"award",
+		"champion",
+		"celebration",
+		"victory",
+		"competition",
+		"tournament",
+		"leaderboard",
+		"ranking",
+		"success",
+		"reward",
+		"cup",
+		"first",
+		"gold"
+	],
+	"umbrella": [
+		"rain",
+		"weather"
+	],
+	"upload": [
+		"file"
+	],
+	"user": [
+		"person",
+		"account",
+		"contact"
+	],
+	"user-round": [
+		"person",
+		"account",
+		"contact"
+	],
+	"users": [
+		"group",
+		"people"
+	],
+	"video": [
+		"camera",
+		"movie",
+		"film",
+		"recording",
+		"motion picture",
+		"camcorder",
+		"reel"
+	],
+	"volume-2": [
+		"music",
+		"sound",
+		"speaker"
+	],
+	"x": [
+		"cancel",
+		"close",
+		"cross",
+		"delete",
+		"ex",
+		"remove",
+		"times",
+		"clear",
+		"math",
+		"multiply",
+		"multiplication"
+	],
+	"zap": [
+		"flash",
+		"camera",
+		"lightning",
+		"electricity",
+		"energy",
+		"power",
+		"quick"
+	]
+}

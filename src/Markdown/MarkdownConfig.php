@@ -16,8 +16,10 @@ namespace Blush\Markdown;
 use Override;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\DescriptionList\DescriptionListExtension;
 use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\Extension\Footnote\FootnoteExtension;
+use League\CommonMark\Extension\Highlight\HighlightExtension;
 use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\Extension\TaskList\TaskListExtension;
@@ -50,7 +52,8 @@ final readonly class MarkdownConfig implements Config
 {
 	/**
 	 * The extensions used when none are configured: CommonMark plus the
-	 * GitHub-flavored extras and footnotes.
+	 * GitHub-flavored extras, footnotes, definition lists, and
+	 * highlighting (`==text==`, D-175).
 	 *
 	 * @var list<class-string<ExtensionInterface>>
 	 */
@@ -60,7 +63,9 @@ final readonly class MarkdownConfig implements Config
 		StrikethroughExtension::class,
 		TableExtension::class,
 		TaskListExtension::class,
-		FootnoteExtension::class
+		FootnoteExtension::class,
+		DescriptionListExtension::class,
+		HighlightExtension::class
 	];
 
 	/**

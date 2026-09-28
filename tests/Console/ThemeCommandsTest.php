@@ -227,6 +227,19 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringNotContainsString('loose', $check->output);
 	}
 
+	public function testAnotherThemesComponentsAreLeftOut(): void
+	{
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\View\\NovaProvider::class]);\n");
+		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova"}');
+
+		$missing = 'The "nova/badge" component (no class) has no components/nova-badge.php template in the chain.';
+
+		$this->assertStringNotContainsString('nova/badge', $this->command(['theme:check', 'default'])->output);
+		$this->assertStringNotContainsString('nova/badge', $this->command(['component:list', '--theme=default'])->output);
+		$this->assertStringContainsString($missing, $this->command(['theme:check', 'nova'])->output);
+		$this->assertStringContainsString('nova/badge', $this->command(['component:list', '--theme=nova'])->output);
+	}
+
 	public function testThemeCheckNotesRegisteredComponentsWithoutALabel(): void
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\View\\NovaProvider::class]);\n");

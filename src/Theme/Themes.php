@@ -82,6 +82,17 @@ final readonly class Themes
 	}
 
 	/**
+	 * Returns whether a slug is an installed theme outside a chain. A
+	 * component in such a theme's namespace (D-171) belongs to that
+	 * theme, so it can't render in the chain; its provider may still
+	 * have registered it when that theme is the active one.
+	 */
+	public function isOutside(string $slug, ThemeChain $chain): bool
+	{
+		return isset($this->themes[$slug]) && ! in_array($slug, $chain->slugs(), true);
+	}
+
+	/**
 	 * Returns the broken themes, by slug, with the reason.
 	 *
 	 * @return array<string, string>

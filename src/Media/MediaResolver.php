@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Media;
 
+use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
@@ -26,8 +27,12 @@ use Blush\Support\FilesystemException;
  *   `user/media`.
  * - A relative path (`photo.jpg`) is a file next to the entry, in a page
  *   bundle: `$base` is the entry's folder under `user/content`. Bundle
- *   files are served at `{url}/_content/{path}`.
- * - Anything else (absolute URLs, other site paths) isn't local media.
+ *   files are served at `{url}/_content/{path}`. One that isn't there is
+ *   tried from the site root, so `user/media/a.mp3` is `/user/media/a.mp3`
+ *   (D-190).
+ * - A full URL on the site's own origin (`https://example.com/media/a.jpg`)
+ *   is its path (D-190), so a URL that was made absolute resolves again.
+ * - Anything else (other sites' URLs, other site paths) isn't local media.
  *
  * Only existing files of an allowed MIME type resolve, never hidden ones,
  * and every path is confined to its root.
@@ -43,7 +48,8 @@ final readonly class MediaResolver
 
 	public function __construct(
 		private Paths $paths,
-		private MediaConfig $config
+		private MediaConfig $config,
+		private ?AppConfig $app = null
 	) {
 		$this->filesystem = new Filesystem();
 	}
@@ -55,6 +61,11 @@ final readonly class MediaResolver
 	public function resolve(string $reference, string $base = ''): ?MediaFile
 	{
 		$reference = trim($reference);
+		$origin    = $this->app?->origin();
+
+		if ($origin !== null && $origin !== '' && str_starts_with($reference, "{$origin}/")) {
+			$reference = substr($reference, strlen($origin));
+		}
 
 		if ($reference === '' || str_starts_with($reference, '//') || str_starts_with($reference, '#') || preg_match('/^[A-Za-z][A-Za-z0-9+.-]*:/', $reference) === 1) {
 			return null;
@@ -65,7 +76,8 @@ final readonly class MediaResolver
 		if (! str_starts_with($path, '/')) {
 			$relative = ltrim(trim($base, '/') . '/' . $path, '/');
 
-			return $this->file($this->paths->content, $relative, $this->config->url . '/' . self::CONTENT);
+			return $this->file($this->paths->content, $relative, $this->config->url . '/' . self::CONTENT)
+				?? $this->resolve('/' . $reference);
 		}
 
 		foreach ($this->prefixes() as $prefix) {
@@ -146,16 +158,18 @@ final readonly class MediaResolver
 
 	/**
 	 * Returns a file's MIME type from its contents, reading SVGs (which
-	 * sniff as XML or text) by their extension.
+	 * sniff as XML or text) and WebVTT tracks (text, until they have a
+	 * cue) by their extension.
 	 */
 	private static function mime(string $path): string
 	{
-		$mime = strtolower(mime_content_type($path) ?: 'application/octet-stream');
+		$mime      = strtolower(mime_content_type($path) ?: 'application/octet-stream');
+		$extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
-		if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'svg' && in_array($mime, ['image/svg', 'text/xml', 'application/xml', 'text/plain'], true)) {
-			return 'image/svg+xml';
-		}
-
-		return $mime;
+		return match (true) {
+			$extension === 'svg' && in_array($mime, ['image/svg', 'text/xml', 'application/xml', 'text/plain'], true) => 'image/svg+xml',
+			$extension === 'vtt' && $mime === 'text/plain'                                                          => 'text/vtt',
+			default                                                                                                  => $mime
+		};
 	}
 }

@@ -461,7 +461,14 @@ view layer was implemented in M5 (D-103 to D-125).
 - **Components** (`Blush\View\Component`, D-111): template-only or
   class-backed, with slots; `ComponentName`, `ComponentDefinition`, and
   `ComponentContent` (D-171 to D-173); the registry, factory, and
-  registrar; the built-in `Embed`. `ComponentDirectives` renders Markdown directives as
+  registrar; the built-in `Embed` and the layout components in
+  `Component\Layout` (`Group`, `Grid`, `Row`, `CssLength`, D-177) and
+  `Component\Media` (`Audio`, `Video`, `File`, `MediaPreload`, D-179),
+  `Component\Inline` (`Kbd`, `Time`, D-180), `Toc` (D-183, fed the
+  outline by the Markdown layer's `CollectOutline`), `Progress` and
+  `Meter` (D-188), and `Button` (D-189);
+  `MediaProp` marks media props, which directives resolve against the
+  entry's folder. `ComponentDirectives` renders Markdown directives as
   components (D-112). **Context providers** (`ContextProviders`, D-114)
   add data to views by name or pattern.
 - **Themes** (`Blush\Theme`, D-105, D-115 to D-121): `ThemeDiscovery`
@@ -555,6 +562,30 @@ Implemented in M7 (D-135 to D-140).
 - **Preview:** `serve --static` with `resources/static-server.php`, which
   applies `_redirects`.
 - **Later:** image derivatives in the export (with `image()`).
+
+## Embeds (D-184)
+
+- **Providers:** `EmbedProvider` (name, label, oembed.com-style schemes,
+  HTTPS endpoint; `request()`, `frame()`, `allowsScripts()`). Built in:
+  `YouTube` and `Vimeo` (enum + registry + factory + registrar); sites
+  add `OEmbedProvider`s in `config/embed.php` or classes in
+  `ProviderRegistry`. `EmbedProviders` matches a URL to the first
+  provider (configured ones first). Unmatched URLs are never framed.
+- **Lookups:** `Embeds::lookup()` asks the provider through `Fetcher`
+  (`StreamFetcher` by default) on first render and keeps the answer
+  (`EmbedData`) in the persistent `embeds` store: 30 days, failures an
+  hour. `EmbedConfig` sets the providers, `fetch`, timeout, and TTLs.
+- **Rendering:** the `embed` component frames `provider->frame()` with
+  the answer's size (as `--embed-ratio`) and title; the theme owns the
+  markup. Script-based rich embeds render as links for now.
+
+## Icons (D-187)
+
+- `IconName` (`{namespace}/{name}`, short names are core), `Icons` (finds
+  a name's SVG for a theme chain: site, themes, `IconRegistry` folders,
+  then the framework's Lucide subset in `resources/icons/blush`), and
+  the `icon` component (inline SVG, `1em`, `currentColor`, decorative
+  or labeled). Labels are catalog text (`icons.{name}.label`).
 
 ## Publishing and admin (D-013)
 

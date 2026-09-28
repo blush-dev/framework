@@ -19,6 +19,7 @@ use Throwable;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeSettings;
+use Blush\Icon\IconName;
 use Blush\Translation\Translator;
 use Blush\View\Component\ComponentListing;
 use Blush\View\Component\ComponentName;
@@ -205,13 +206,35 @@ final readonly class Views
 	 */
 	public function componentText(ComponentName $name, string $key, array $params = []): ?string
 	{
-		$domain = match (true) {
-			$name->isCore()                                         => 'blush',
-			in_array($name->namespace, $this->chain->slugs(), true) => 'theme',
-			default                                                 => $name->namespace
-		};
+		return $this->namespaceText($name->namespace, "components.{$name->name}.{$key}", $params);
+	}
 
-		$message = "components.{$name->name}.{$key}";
+	/**
+	 * Returns an icon's translated text, such as its `label`, or `null`
+	 * when no catalog has it (D-187): `icons.{name}.{key}` in the
+	 * namespace's domain, as for components.
+	 *
+	 * @param array<string, mixed> $params
+	 */
+	public function iconText(IconName $name, string $key, array $params = []): ?string
+	{
+		return $this->namespaceText($name->namespace, "icons.{$name->name}.{$key}", $params);
+	}
+
+	/**
+	 * Returns a message from a namespace's catalog domain: `blush` for
+	 * core, `theme` for the chain's themes, and otherwise the namespace
+	 * itself (`app`, or an extension's vendor).
+	 *
+	 * @param array<string, mixed> $params
+	 */
+	private function namespaceText(string $namespace, string $message, array $params): ?string
+	{
+		$domain = match (true) {
+			$namespace === ComponentName::CORE                => 'blush',
+			in_array($namespace, $this->chain->slugs(), true) => 'theme',
+			default                                           => $namespace
+		};
 
 		return $this->translator->has($message, $domain) ? $this->translator->translate($message, $params, $domain) : null;
 	}

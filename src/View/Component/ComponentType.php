@@ -18,6 +18,14 @@ use Blush\Content\Schema\Fields\EnumField;
 use Blush\Content\Schema\Fields\MediaField;
 use Blush\Content\Schema\Fields\NumberField;
 use Blush\Content\Schema\Fields\TextField;
+use Blush\View\Component\Inline\Kbd;
+use Blush\View\Component\Inline\Time;
+use Blush\View\Component\Layout\Grid;
+use Blush\View\Component\Layout\Group;
+use Blush\View\Component\Layout\Row;
+use Blush\View\Component\Media\Audio;
+use Blush\View\Component\Media\File;
+use Blush\View\Component\Media\Video;
 
 /**
  * The core content components (the "Type enum" of D-019): the ones
@@ -28,10 +36,24 @@ use Blush\Content\Schema\Fields\TextField;
  */
 enum ComponentType: string
 {
-	case Callout = 'callout';
-	case Embed   = 'embed';
-	case Figure  = 'figure';
-	case Gallery = 'gallery';
+	case Abbr     = 'abbr';
+	case Audio    = 'audio';
+	case Button   = 'button';
+	case Callout  = 'callout';
+	case Embed    = 'embed';
+	case Figure   = 'figure';
+	case File     = 'file';
+	case Gallery  = 'gallery';
+	case Grid     = 'grid';
+	case Group    = 'group';
+	case Icon     = 'icon';
+	case Kbd      = 'kbd';
+	case Meter    = 'meter';
+	case Progress = 'progress';
+	case Row      = 'row';
+	case Time     = 'time';
+	case Toc      = 'toc';
+	case Video    = 'video';
 
 	/**
 	 * Returns the component's class, or `null` for a template-only one.
@@ -41,7 +63,20 @@ enum ComponentType: string
 	public function className(): ?string
 	{
 		return match ($this) {
-			self::Embed => Embed::class,
+			self::Audio    => Audio::class,
+			self::Button   => Button::class,
+			self::Embed    => Embed::class,
+			self::File     => File::class,
+			self::Grid     => Grid::class,
+			self::Group    => Group::class,
+			self::Icon     => Icon::class,
+			self::Kbd      => Kbd::class,
+			self::Meter    => Meter::class,
+			self::Progress => Progress::class,
+			self::Row      => Row::class,
+			self::Time     => Time::class,
+			self::Toc      => Toc::class,
+			self::Video    => Video::class,
 			default     => null
 		};
 	}
@@ -62,8 +97,8 @@ enum ComponentType: string
 	{
 		return match ($this) {
 			self::Callout, self::Gallery => ComponentContent::Blocks,
-			self::Figure                 => ComponentContent::Text,
-			self::Embed                  => null
+			self::Abbr, self::Figure     => ComponentContent::Text,
+			default                      => null
 		};
 	}
 
@@ -76,10 +111,11 @@ enum ComponentType: string
 	public function props(): ?array
 	{
 		return match ($this) {
+			self::Abbr    => [new TextField('title')],
 			self::Callout => [new EnumField('tone', ['note', 'info', 'tip', 'warning', 'danger'])->default('note')],
 			self::Figure  => [new MediaField('src')->required(), new TextField('alt')],
 			self::Gallery => [new NumberField('columns', integer: true, min: 1, max: 6)->default(3)],
-			self::Embed   => null
+			default       => null
 		};
 	}
 }

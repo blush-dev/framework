@@ -44,11 +44,17 @@ enum CacheNamespace: string
 	case Webhooks = 'webhooks';
 
 	/**
+	 * oEmbed answers (D-184), which expire on their own. Never cleared with
+	 * the others, so publishing doesn't ask every provider again.
+	 */
+	case Embeds = 'embeds';
+
+	/**
 	 * Returns whether the namespace holds derived values that clearing
 	 * the caches removes.
 	 */
 	public function isDerived(): bool
 	{
-		return $this !== self::Webhooks;
+		return $this !== self::Webhooks && $this !== self::Embeds;
 	}
 }

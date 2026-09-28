@@ -48,7 +48,9 @@ blush-framework/
                         the theme asset route
     Cache/              Store base + drivers, registry, CacheConfig, Caches, ContentVersion,
                         ContentCache, RenderedBodies, PageCache (D-127 to D-130)
+    Embed/              oEmbed providers, registry, EmbedData, Embeds, Fetcher, EmbedConfig (D-184)
     Feed/               Feed formats, config, builder, controller, routes, head links (D-122)
+    Icon/               IconName, Icons (lookup through site, themes, extensions, core), IconRegistry (D-187)
     Sitemap/            Sitemap config, builder, controller, robots.txt, routes (D-123)
     Publish/            Publisher, PublishConfig, Puller + GitPuller, webhook (D-131, D-132)
     Export/             Static export: Exporter, ExportSite, Crawler, UrlSource, ExportLayout,
@@ -61,7 +63,8 @@ blush-framework/
     Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
   resources/            server.php (`serve` router); static-server.php (`serve --static`,
-                        D-138); lang/ (the `blush` catalog domain)
+                        D-138); lang/ (the `blush` catalog domain); icons/blush/ (the core
+                        Lucide subset, D-187)
     themes/default/     The framework default theme (D-110): theme.json, style.css,
                         lang/, views/ (incl. components/)
   docs/                 User documentation: installing, content, themes, config, CLI (D-141)
@@ -99,6 +102,7 @@ site/
                         (e.g. cPanel public_html, D-046)
   resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
   resources/lang/       The site's `app` translation domain, e.g. its components' text (D-173)
+  resources/icons/      The site's own icons (`app/{name}`), and `{ns}/{name}.svg` overrides (D-187)
   src/                  App\ namespace: providers, components, controllers
   storage/
     cache/              Compiled config.php, extensions.php, container.php, routes.php,

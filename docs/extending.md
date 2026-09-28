@@ -132,6 +132,26 @@ and any classes are registered by your provider. They work with every
 theme, in templates and in Markdown. See [Components](components.md) for writing one, with or
 without a PHP class.
 
+## Embed providers
+
+A provider that needs code, such as one that rewrites its frame's URL,
+is a class that extends `Blush\Embed\EmbedProvider`. Register it in
+your provider's `boot()`:
+
+```php
+use Blush\Embed\ProviderRegistry;
+
+public function boot(): void
+{
+	$this->container->get(ProviderRegistry::class)->register('peertube', App\Embed\PeerTube::class);
+}
+```
+
+Its constructor passes the name, label, URL schemes, and oEmbed address
+to the parent's; override `frame()` to change the URL that's framed. A
+plain provider needs no code: list it in
+[`config/embed.php`](configuration.md#embeds).
+
 ## Extensions
 
 An extension packages the same kind of code for reuse across sites. It's a
@@ -170,6 +190,23 @@ namespace: `acme/hello` registers `acme/tabs`, not `tabs`. Their text
 (labels, descriptions) goes in the extension's `lang/en.json`, under
 `components.tabs`. Extensions can't ship component templates yet, so the
 theme or site provides `views/components/acme-tabs.php`.
+
+### Icons from an extension
+
+An extension's icons use its vendor as their namespace. Add its folder
+of SVG files in the provider's `boot()`:
+
+```php
+use Blush\Icon\IconRegistry;
+
+public function boot(): void
+{
+	$this->container->get(IconRegistry::class)->add('acme', __DIR__ . '/../icons');
+}
+```
+
+Each `icons/{name}.svg` is then `acme/{name}`, with its label in the
+extension's `lang/en.json` under `icons.{name}.label`.
 
 ### Content types from an extension
 

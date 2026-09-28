@@ -307,19 +307,30 @@ hr {
 
 /* Content components */
 
-.gallery {
+.component-group,
+.component-grid,
+.component-row {
+	margin-block: var(--space-l);
+}
+
+.component-grid > *,
+.component-row > * {
+	margin-block: 0;
+}
+
+.component-gallery {
 	display: grid;
 	grid-template-columns: repeat(var(--gallery-columns, 3), minmax(0, 1fr));
 	gap: var(--space-s);
 	margin-block: var(--space-l);
 }
 
-.gallery > p {
+.component-gallery > p {
 	display: contents;
 }
 
-.gallery img,
-.gallery figure {
+.component-gallery img,
+.component-gallery figure {
 	width: 100%;
 	margin: 0;
 	border-radius: var(--radius);
@@ -327,16 +338,130 @@ hr {
 }
 
 @media (max-width: 40rem) {
-	.gallery {
+	.component-gallery {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
-.figure img {
+.component-figure img {
 	border-radius: var(--radius);
 }
 
-.callout {
+.component-audio,
+.component-video {
+	margin-block: var(--space-l);
+}
+
+.component-audio audio {
+	width: 100%;
+}
+
+.component-video video {
+	width: 100%;
+	height: auto;
+	border-radius: var(--radius);
+}
+
+.component-file__details {
+	color: var(--color-muted);
+}
+
+.component-toc {
+	margin-block: var(--space-l);
+	padding: var(--space-m);
+	border-radius: var(--radius);
+	background: var(--color-surface);
+}
+
+.component-toc__title {
+	margin-block: 0 var(--space-s);
+	font-weight: 700;
+}
+
+.component-toc__list {
+	margin: 0;
+	padding-inline-start: var(--space-m);
+}
+
+.component-toc__list .component-toc__list {
+	margin-block-start: var(--space-xs);
+}
+
+.component-icon {
+	display: inline-block;
+	vertical-align: -0.125em;
+}
+
+.component-progress,
+.component-meter {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-xs) var(--space-s);
+	max-inline-size: 100%;
+}
+
+.component-progress__bar,
+.component-meter__gauge {
+	inline-size: 12rem;
+	max-inline-size: 100%;
+	accent-color: var(--color-accent);
+}
+
+.component-progress__value,
+.component-meter__value {
+	color: var(--color-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.component-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5em;
+	padding: 0.5em 1em;
+	border: 2px solid var(--color-accent);
+	border-radius: var(--radius);
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+}
+
+.component-button--primary {
+	background: var(--color-accent);
+	color: var(--color-background);
+}
+
+.component-button--secondary {
+	background: transparent;
+	color: var(--color-accent);
+}
+
+.component-button:hover,
+.component-button:focus-visible {
+	border-color: var(--color-accent-hover);
+}
+
+.component-button--primary:hover,
+.component-button--primary:focus-visible {
+	background: var(--color-accent-hover);
+}
+
+.component-button--icon-only {
+	padding: 0.5em;
+}
+
+.component-kbd {
+	padding: 0.1em 0.4em;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	font-size: 0.875em;
+}
+
+.component-kbd kbd {
+	font: inherit;
+}
+
+.component-callout {
 	margin-block: var(--space-l);
 	padding: var(--space-m);
 	border-inline-start: 4px solid var(--callout-color, var(--color-muted));
@@ -344,35 +469,37 @@ hr {
 	background: var(--color-surface);
 }
 
-.callout > :last-child {
+.component-callout > :last-child {
 	margin-block-end: 0;
 }
 
-.callout__title {
+.component-callout__title {
 	margin-block: 0 var(--space-s);
 	font-weight: 700;
 }
 
-.callout--info { --callout-color: var(--color-info); }
-.callout--tip { --callout-color: var(--color-success); }
-.callout--warning { --callout-color: var(--color-warning); }
-.callout--danger { --callout-color: var(--color-danger); }
+.component-callout--info { --callout-color: var(--color-info); }
+.component-callout--tip { --callout-color: var(--color-success); }
+.component-callout--warning { --callout-color: var(--color-warning); }
+.component-callout--danger { --callout-color: var(--color-danger); }
 
-.embed {
+.component-embed {
 	margin-inline: 0;
 	margin-block: var(--space-l);
 }
 
-.embed__frame {
-	position: relative;
-	aspect-ratio: 16 / 9;
-}
-
-.embed__frame iframe {
-	position: absolute;
-	inset: 0;
+/* The frame keeps the embed's shape (its provider's ratio, or 16:9). */
+.component-embed__frame iframe {
+	display: block;
 	width: 100%;
-	height: 100%;
+	height: auto;
+	aspect-ratio: var(--embed-ratio, 16 / 9);
 	border: 0;
 	border-radius: var(--radius);
+}
+
+/* A tall embed (a 9:16 short) is never taller than 80% of the screen. */
+.component-embed--portrait iframe {
+	max-width: calc(80svh * (var(--embed-ratio)));
+	margin-inline: auto;
 }

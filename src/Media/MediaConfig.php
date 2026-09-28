@@ -27,12 +27,13 @@ use Blush\Config\InvalidConfig;
  *   links (or copies) into the public folder. jtcom's 1.x URLs use
  *   `/user/media`.
  * - `types` is the MIME allowlist: only these files are resolved, served,
- *   or published. The default is 1.x's images, audio, and video (D-078).
+ *   or published. The default is 1.x's images, audio, and video (D-078),
+ *   plus WebVTT caption tracks for videos (D-179).
  */
 final readonly class MediaConfig implements Config
 {
 	/**
-	 * The MIME types allowed by default, as in 1.x.
+	 * The MIME types allowed by default: 1.x's, plus `text/vtt`.
 	 *
 	 * @var list<string>
 	 */
@@ -49,7 +50,8 @@ final readonly class MediaConfig implements Config
 		'audio/ogg',
 		'video/mp4',
 		'video/ogg',
-		'video/webm'
+		'video/webm',
+		'text/vtt'
 	];
 
 	/**

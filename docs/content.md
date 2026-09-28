@@ -158,6 +158,15 @@ lists, autolinks, and footnotes. On top of that:
 
 - Images from your media folder get their `width` and `height`
   automatically.
+- **Definition lists:** a term, then its definition on the next line
+  after a `:`:
+
+  ```markdown
+  Blush
+  : A flat-file CMS.
+  ```
+
+- **Highlighting:** `==text==` marks text as highlighted (`<mark>`).
 - Links that start with `/` become full URLs, so they still work in feeds.
 - Raw HTML is allowed.
 

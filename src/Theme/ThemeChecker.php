@@ -117,9 +117,10 @@ final readonly class ThemeChecker
 	}
 
 	/**
-	 * Checks the theme's components. A component with a registered class
-	 * but no template in the chain (and no other view of its own) fails
-	 * whenever it's used; a template in the theme's `components/` that
+	 * Checks the theme's components, skipping another theme's (its
+	 * provider registers them when it's the active theme). A component
+	 * with a registered class but no template in the chain (and no other
+	 * view of its own) fails whenever it's used; a template in the theme's `components/` that
 	 * isn't named for a component (`{slug}-{name}.php`, or a core
 	 * component's name) is never rendered (D-171); and the theme's
 	 * registered components should have a translated label for the
@@ -143,6 +144,10 @@ final readonly class ThemeChecker
 
 		foreach ($components as $component) {
 			$name = (string) $component->name;
+
+			if ($this->themes->isOutside($component->name->namespace, $chain)) {
+				continue;
+			}
 
 			if ($component->isMissingTemplate()) {
 				$problems[] = new Violation("component {$name}", sprintf('The "%s" component (%s) has no %s.php template in the chain.', $name, $component->className() ?? 'no class', array_last($component->name->views())), Severity::Warning);

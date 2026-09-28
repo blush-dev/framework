@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 $src   = is_string($props['src'] ?? null) ? $props['src'] : '';
 $alt   = is_string($props['alt'] ?? null) ? $props['alt'] : '';
-$class = trim('figure ' . (is_string($props['class'] ?? null) ? $props['class'] : ''));
+$class = trim('component-figure ' . (is_string($props['class'] ?? null) ? $props['class'] : ''));
 
 ?>
 <?php if ($src !== '') : ?>

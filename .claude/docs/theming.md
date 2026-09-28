@@ -209,6 +209,11 @@ aren't candidates (D-104).
   Markdown are cast to `int`/`float`/`bool` or a backed enum, whose unknown
   values fall back to the default), services by autowiring, `data()`,
   `template()`, `shouldRender()`, and `CONTENT`, plus the same template.
+- **Classes (D-182):** a component's classes are BEM-style with a
+  `component-` prefix (`component-callout`, `component-callout--warning`,
+  `component-callout__title`); the default theme's core components use
+  it. Planned: registered variants for any component, as
+  `component-{name}--{variant}` modifiers (D-191).
 - **Slots:** `$slot` holds the default slot and `$slots->name` holds named
   slots (`''` when unfilled).
 - **Registry (D-172, D-173):** `ComponentRegistry::register($name, $class,
@@ -242,7 +247,14 @@ aren't candidates (D-104).
   An unknown directive, or a short name that isn't core, renders as plain
   content. The framework default theme
   ships the core content components (D-033, D-113): `callout`, `gallery`,
-  `figure`, and `embed`, so they work under any theme. Directives render with
+  `figure`, and `embed`, plus the layout components `group`, `grid`, and
+  `row` (D-177, which set their structural CSS inline and read
+  `--layout-gap`), and the media components `audio`, `video`, and
+  `file` (D-179), and the inline components `abbr`, `kbd`, and `time`
+  (D-180), `toc` (D-183), `icon` (D-187), `progress` and `meter`
+  (D-188), and `button` (D-189), so they work under any theme. A registered
+  component's `media` props (`#[MediaProp]` on a class parameter) are
+  resolved against the entry's folder, like images (D-179). Directives render with
   the request's theme; attributes are props, the `[label]` is `$slot` (and
   the `label` prop), and a container's blocks are `$slot` (D-112).
 

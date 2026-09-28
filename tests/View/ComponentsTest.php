@@ -19,6 +19,8 @@ use Blush\Core\Application;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\BootsScratchSite;
+use Blush\Embed\Fetcher;
+use Blush\Tests\Fixtures\Embed\FixtureFetcher;
 use Blush\Tests\Fixtures\View\Card;
 use Blush\Tests\Fixtures\View\Greeting;
 use Blush\Tests\Fixtures\View\Orphan;
@@ -79,6 +81,7 @@ final class ComponentsTest extends TestCase
 		$this->app->boot();
 
 		$container = $this->app->container();
+		$container->instance(Fetcher::class, new FixtureFetcher());
 
 		return $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
 	}
@@ -215,7 +218,7 @@ final class ComponentsTest extends TestCase
 			$components[(string) $component->name] = $component;
 		}
 
-		$this->assertSame(['app/box', 'app/card', 'app/orphan', 'blush/callout', 'blush/embed', 'blush/figure', 'blush/gallery'], array_keys($components));
+		$this->assertSame(['app/box', 'app/card', 'app/orphan', 'blush/abbr', 'blush/audio', 'blush/button', 'blush/callout', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/kbd', 'blush/meter', 'blush/progress', 'blush/row', 'blush/time', 'blush/toc', 'blush/video'], array_keys($components));
 		$this->assertTrue($components['blush/callout']->isCore());
 		$this->assertFalse($components['app/box']->isCore());
 		$this->assertSame(Embed::class, $components['blush/embed']->className());
@@ -266,7 +269,7 @@ final class ComponentsTest extends TestCase
 
 		$registry = $this->app->container()->make(ComponentRegistry::class);
 
-		$this->assertSame(['blush/callout', 'blush/embed', 'blush/figure', 'blush/gallery'], array_keys($registry->all()));
+		$this->assertSame(['blush/abbr', 'blush/audio', 'blush/button', 'blush/callout', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/kbd', 'blush/meter', 'blush/progress', 'blush/row', 'blush/time', 'blush/toc', 'blush/video'], array_keys($registry->all()));
 		$embed   = $registry->get('embed');
 		$callout = $registry->get('callout');
 
@@ -340,29 +343,6 @@ final class ComponentsTest extends TestCase
 		$views->component('../x', [], '', new Slots(), new ViewContext());
 	}
 
-	public function testEmbedsKnownVideoServices(): void
-	{
-		$cases = [
-			'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1' => ['youtube', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'],
-			'https://youtu.be/dQw4w9WgXcQ'                   => ['youtube', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'],
-			'https://youtube.com/shorts/dQw4w9WgXcQ'         => ['youtube', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'],
-			'https://vimeo.com/76979871'                     => ['vimeo', 'https://player.vimeo.com/video/76979871?dnt=1'],
-			'https://example.com/video'                      => ['', null],
-			'javascript:alert(1)'                            => ['', null],
-			'https://youtu.be/bad"id'                        => ['', null]
-		];
-
-		foreach ($cases as $url => [$provider, $src]) {
-			$embed = new Embed($url);
-
-			$this->assertSame($provider, $embed->provider, $url);
-			$this->assertSame($src, $embed->src, $url);
-		}
-
-		$this->assertFalse(new Embed()->shouldRender());
-		$this->assertSame(['provider' => '', 'src' => null, 'url' => 'x', 'title' => 't'], new Embed('x', 't')->data());
-	}
-
 	public function testContextProvidersAddDefaults(): void
 	{
 		$this->view('parts/hello', '<?= e($greeting) ?>/<?= e($name) ?>');
@@ -407,6 +387,10 @@ final class ComponentsTest extends TestCase
 
 			::embed{url="https://example.com/talk"}
 
+			::embed[Our launch]{url="https://vimeo.com/76979871"}
+
+			::embed{url="https://youtu.be/dQw4w9WgXcQ"}
+
 			:::callout{tone=bogus}
 			Plain note.
 			:::
@@ -427,12 +411,16 @@ final class ComponentsTest extends TestCase
 
 		$html = (string) $this->app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertStringContainsString("<aside class=\"callout callout--warning\" role=\"note\">\n\t\t\t<p class=\"callout__title\">Heads up</p>\n\t\t<p>Back up <em>first</em>.</p></aside>", $html);
-		$this->assertStringContainsString('<div class="gallery wide" style="--gallery-columns: 6">', $html);
-		$this->assertStringContainsString('<img src="/media/p.jpg" alt="A lake" loading="lazy">', $html);
+		$this->assertStringContainsString("<aside class=\"component-callout component-callout--warning\" role=\"note\">\n\t\t\t<p class=\"component-callout__title\">Heads up</p>\n\t\t<p>Back up <em>first</em>.</p></aside>", $html);
+		$this->assertStringContainsString('<div class="component-gallery wide" style="--gallery-columns: 6">', $html);
+		$this->assertStringContainsString('<img src="http://localhost/media/p.jpg" alt="A lake" loading="lazy">', $html);
 		$this->assertStringContainsString('<figcaption>A photo</figcaption>', $html);
 		$this->assertStringContainsString('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Rick"', $html);
-		$this->assertStringContainsString('<p class="embed embed--link"><a href="https://example.com/talk">https://example.com/talk</a></p>', $html);
+		$this->assertStringContainsString('<p class="component-embed component-embed--link"><a href="https://example.com/talk">https://example.com/talk</a></p>', $html);
+
+		// Without a title, the frame is named by its caption or provider.
+		$this->assertStringContainsString('<iframe src="https://player.vimeo.com/video/76979871?dnt=1" title="Our launch"', $html);
+		$this->assertStringContainsString('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Embedded content from YouTube"', $html);
 		$this->assertStringContainsString('callout--note', $html);
 		$this->assertStringContainsString('<p>Kept as text</p>', $html);
 		$this->assertStringContainsString('<span class="badge badge--new">Site badge</span>', $html);

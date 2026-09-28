@@ -30,5 +30,26 @@
 			"title": "Something went wrong",
 			"message": "The server hit an error and couldn’t finish the request. Please try again later."
 		}
+	},
+	"media": {
+		"audio_fallback": "Download the audio",
+		"video_fallback": "Download the video",
+		"captions": "Captions",
+		"file_details": "{format}, {size}"
+	},
+	"embed": {
+		"title": "Embedded content from {provider}"
+	},
+	"toc": {
+		"label": "Table of contents"
+	},
+	"progress": {
+		"label": "Progress"
+	},
+	"meter": {
+		"label": "Measurement"
+	},
+	"measure": {
+		"value": "{value} of {max}"
 	}
 }

@@ -211,12 +211,24 @@ final class Template
 	 * Returns a component with named props, to print or to fill with
 	 * slots first (D-025):
 	 * `<?= $template->component('callout', tone: 'info')->content($html) ?>`.
-	 * `$name` is a full name (`acme/tabs`) or a core component's short
-	 * name (D-171).
+	 * `$component` is a full name (`acme/tabs`) or a core component's
+	 * short name (D-171). (It isn't called `$name`, so a component can
+	 * have a `name` prop; `$component` is taken in component templates
+	 * anyway.)
 	 */
-	public function component(string $name, mixed ...$props): PendingComponent
+	public function component(string $component, mixed ...$props): PendingComponent
 	{
-		return new PendingComponent($this->views, $this->context, $name, self::named($props));
+		return new PendingComponent($this->views, $this->context, $component, self::named($props));
+	}
+
+	/**
+	 * Returns an icon (D-187), to print: `<?= $template->icon('house') ?>`
+	 * for decoration, or `<?= $template->icon('jtcom/github', 'GitHub') ?>`
+	 * for one named by its label.
+	 */
+	public function icon(string $name, string $label = ''): PendingComponent
+	{
+		return $this->component('icon', name: $name, label: $label);
 	}
 
 	/**

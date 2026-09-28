@@ -103,6 +103,7 @@ user/themes/notebook/
     parts/        header.php, footer.php, and other pieces
     components/   Components for templates and Markdown
     single.php  collection.php  ...
+  icons/          SVG icons, such as badge.svg (see Components)
   lang/           Translations, such as en.json
   src/            Optional PHP classes
 ```
@@ -186,6 +187,7 @@ What a template can use:
 | `$template->includeUnless($condition, 'parts/x')` | Include it unless the condition is true |
 | `$template->each('parts/card', $entries, as: 'entry', empty: 'parts/none')` | Include a template once per item (see below) |
 | `$template->component('notebook/card', title: '...')` | Render a component (see [Components](components.md)) |
+| `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](components.md#icons)) |
 | `$template->permalink($entry)` | An entry's URL |
 | `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
 | `$template->date($entry->published)` | A date, formatted for the site's locale |
@@ -330,8 +332,11 @@ a file in `views/components/` named `{slug}-{name}.php`, such as
 `<?= $template->component('notebook/badge', tone: 'new')->content('New') ?>`,
 or in Markdown with `:notebook/badge[New]{tone=new}`.
 
-Four **core components** work in every theme, because the default theme
-provides them: `callout`, `embed`, `figure`, and `gallery`. They're the
+The **core components** work in every theme, because the default theme
+provides them: `callout`, `embed`, `figure`, and `gallery`; the layout
+components `group`, `grid`, and `row`; the media components `audio`,
+`video`, and `file`; the inline components `abbr`, `kbd`, and `time`; `toc`, a table of
+contents; `icon`; `button`; and `progress` and `meter`. They're the
 only components with short names. To change how one looks, add your own
 `views/components/callout.php` (or `blush-callout.php`, and so on); yours
 wins.

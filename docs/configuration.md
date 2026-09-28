@@ -120,7 +120,52 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | Option | Default | What it does |
 |---|---|---|
 | `url` | `'/media'` | The URL `user/media` is served from |
-| `types` | Images, audio, video | The MIME types that may be served |
+| `types` | Images, audio, video, and WebVTT captions | The MIME types that may be served |
+
+### Embeds
+
+`config/embed.php` · `Blush\Embed\EmbedConfig`
+
+The [`embed` component](components.md#built-in-components) asks each
+video's site for its size and title (over [oEmbed](https://oembed.com)),
+once a month per URL. YouTube and Vimeo are built in; add other sites
+here:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Blush\Embed\EmbedConfig;
+use Blush\Embed\OEmbedProvider;
+
+return new EmbedConfig(providers: [
+	new OEmbedProvider(
+		'dailymotion',
+		'Dailymotion',
+		['https://www.dailymotion.com/video/*'],
+		'https://www.dailymotion.com/services/oembed'
+	)
+]);
+```
+
+A provider has a name, a label, the URLs it embeds (`*` matches
+anything), and its oEmbed address, which must be `https://`. Find these
+on the site's developer pages or in [oembed.com's list](https://oembed.com/providers.json).
+Only URLs a provider matches are embedded; others are links. Embeds
+that need the site's own script to work (such as posts on X or
+Instagram) show as links for now.
+
+| Option | Default | What it does |
+|---|---|---|
+| `providers` | `[]` | oEmbed providers to add; one named `youtube` or `vimeo` replaces the built-in |
+| `fetch` | `true` | Ask providers for sizes and titles; `false` never does (YouTube and Vimeo still embed, at 16:9) |
+| `timeout` | `3` | Seconds to wait for a provider |
+| `ttl` | `2592000` | Seconds to keep an answer (30 days) |
+| `failureTtl` | `3600` | Seconds before asking again after a provider didn't answer |
+
+Answers are kept in `storage/cache/store/embeds`, which publishing and
+`cache:clear` leave alone. Delete that folder to ask every provider again.
 
 ### Markdown
 
@@ -129,13 +174,14 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | Option | Default | What it does |
 |---|---|---|
 | `options` | `[]` | [CommonMark options](https://commonmark.thephpleague.com/2.x/configuration/) |
-| `extensions` | CommonMark and GitHub extras, footnotes | The [CommonMark extensions](https://commonmark.thephpleague.com/2.x/extensions/overview/) to use |
+| `extensions` | CommonMark and GitHub extras, footnotes, definition lists, highlighting | The [CommonMark extensions](https://commonmark.thephpleague.com/2.x/extensions/overview/) to use |
 | `inlineParsers` | `[]` | Extra inline parsers |
 | `figures` | `true` | Turn a lone image into a `<figure>` |
 | `absoluteLinks` | `true` | Turn links starting with `/` into full URLs |
 | `directives` | `true` | Render [components](components.md) in Markdown |
 
-To add extensions, list the defaults along with yours. For example, to
+To add extensions, list the defaults along with yours (listing one twice
+is fine). For example, to
 allow attributes such as `{.alignwide}`:
 
 ```php

@@ -13,16 +13,25 @@ declare(strict_types=1);
 
 namespace Blush\View\Component;
 
-use Uri\Rfc3986\Uri;
+use Override;
+use Blush\Embed\Embeds;
 
 /**
- * Embeds a video by its page URL: `::embed[Caption]{url="https://youtu.be/…"}`.
- * YouTube (through `youtube-nocookie.com`) and Vimeo (with `dnt=1`) become
- * an `<iframe>`; any other URL renders as a link, so content never loads
- * a frame from an unknown origin.
+ * Embeds a page by its URL (D-113, D-184):
+ * `::embed[Caption]{url="https://youtu.be/…"}`. Only URLs a registered
+ * provider matches are framed (YouTube and Vimeo are built in, and sites
+ * add more), so content never frames an unknown site; any other URL, or
+ * one its provider can't frame, renders as a link.
  *
- * Its template gets `$url`, `$title`, `$provider` (`youtube`, `vimeo`, or
- * `''`), and `$src` (the frame URL, or `null`).
+ * The provider is asked about the URL over oEmbed (cached), for the
+ * embed's real size and title. Its template gets `$url`, `$title`,
+ * `$provider` (the provider's name, or `''`), `$providerLabel` (such as
+ * `YouTube`), `$src` (the frame URL, or `null`), `$width` and `$height`
+ * (or `null`), `$ratio` (such as `16 / 9`, or `null`), `$portrait`
+ * (taller than wide), `$embedTitle`
+ * (the provider's title for it, or `''`), and `$thumbnail`. The frame's
+ * accessible name is `$title`, else `$embedTitle`, else the label, else
+ * the theme's `embed.title` text.
  */
 final class Embed extends Component
 {
@@ -32,66 +41,76 @@ final class Embed extends Component
 	public const ComponentContent CONTENT = ComponentContent::Text;
 
 	/**
-	 * The service the URL belongs to, or `''`.
+	 * The provider's name, or `''`.
 	 */
 	public readonly string $provider;
 
 	/**
-	 * The frame URL, or `null` when the URL isn't embeddable.
+	 * The provider's display name, or `''`.
+	 */
+	public readonly string $providerLabel;
+
+	/**
+	 * The frame URL, or `null` when the URL renders as a link.
 	 */
 	public readonly ?string $src;
 
+	/**
+	 * The embed's width, from its provider.
+	 */
+	public readonly ?int $width;
+
+	/**
+	 * The embed's height, from its provider.
+	 */
+	public readonly ?int $height;
+
+	/**
+	 * The embed's aspect ratio for CSS (`560 / 315`), or `null`.
+	 */
+	public readonly ?string $ratio;
+
+	/**
+	 * Whether the embed is taller than it is wide (such as a 9:16 short).
+	 */
+	public readonly bool $portrait;
+
+	/**
+	 * The provider's title for the embed, or `''`.
+	 */
+	public readonly string $embedTitle;
+
+	/**
+	 * The provider's thumbnail URL, or `null`.
+	 */
+	public readonly ?string $thumbnail;
+
 	public function __construct(
+		Embeds $embeds,
 		public readonly string $url = '',
 		public readonly string $title = ''
 	) {
-		[$this->provider, $this->src] = self::frame($url);
+		$provider = $url === '' ? null : $embeds->provider($url);
+		$data     = $provider === null ? null : $embeds->lookup($provider, $url);
+		$sized    = $data?->width !== null && $data->height !== null;
+
+		$this->provider      = $provider === null ? '' : $provider->name;
+		$this->providerLabel = $provider === null ? '' : $provider->label;
+		$this->src           = $provider?->frame($url, $data);
+		$this->width         = $sized ? $data->width : null;
+		$this->height        = $sized ? $data->height : null;
+		$this->ratio         = $sized ? "{$data->width} / {$data->height}" : null;
+		$this->portrait      = $sized && $data->height > $data->width;
+		$this->embedTitle    = $data === null ? '' : $data->title;
+		$this->thumbnail     = $data?->thumbnail;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
+	#[Override]
 	public function shouldRender(): bool
 	{
 		return $this->url !== '';
-	}
-
-	/**
-	 * Returns the provider and frame URL for a page URL.
-	 *
-	 * @return array{string, ?string}
-	 */
-	private static function frame(string $url): array
-	{
-		$uri = Uri::parse($url);
-
-		if ($uri === null || ! in_array($uri->getScheme(), ['http', 'https'], true)) {
-			return ['', null];
-		}
-
-		$host = strtolower((string) $uri->getHost());
-		$host = str_starts_with($host, 'www.') ? substr($host, 4) : $host;
-		$path = $uri->getPath();
-		$id   = null;
-
-		if ($host === 'youtu.be') {
-			$id = trim($path, '/');
-		} elseif (in_array($host, ['youtube.com', 'm.youtube.com', 'youtube-nocookie.com'], true)) {
-			parse_str((string) $uri->getQuery(), $query);
-
-			$id = preg_match('#^/(?:embed|shorts|live)/([^/]+)#', $path, $match) === 1
-				? $match[1]
-				: (is_string($query['v'] ?? null) ? $query['v'] : null);
-		}
-
-		if ($id !== null && preg_match('/^[A-Za-z0-9_-]{6,20}$/', $id) === 1) {
-			return ['youtube', "https://www.youtube-nocookie.com/embed/{$id}"];
-		}
-
-		if (in_array($host, ['vimeo.com', 'player.vimeo.com'], true) && preg_match('#/(\d+)(?:/|$)#', $path, $match) === 1) {
-			return ['vimeo', "https://player.vimeo.com/video/{$match[1]}?dnt=1"];
-		}
-
-		return ['', null];
 	}
 }

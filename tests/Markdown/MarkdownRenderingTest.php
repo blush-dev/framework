@@ -16,6 +16,7 @@ namespace Blush\Tests\Markdown;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use League\CommonMark\Extension\Attributes\AttributesExtension;
+use League\CommonMark\Extension\Highlight\HighlightExtension;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Event\EventDispatcher;
@@ -60,6 +61,25 @@ final class MarkdownRenderingTest extends TestCase
 			new MediaResolver(Paths::fromRoot($this->temporaryDirectory()), new MediaConfig()),
 			new AppConfig(url: 'https://example.com/blog')
 		);
+	}
+
+	public function testDefinitionListsAndHighlightingAreOn(): void
+	{
+		$html = $this->parser()->toHtml("Blush\n: A flat-file CMS.\n\nIt's ==fast==.");
+
+		$this->assertSame("<dl>\n<dt>Blush</dt>\n<dd>A flat-file CMS.</dd>\n</dl>\n<p>It's <mark>fast</mark>.</p>\n", $html);
+	}
+
+	public function testAnExtensionListedTwiceIsAddedOnce(): void
+	{
+		$parser = new CommonMarkParser(
+			new MarkdownConfig(extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, HighlightExtension::class]),
+			new EventDispatcher(new ListenerRegistry()),
+			new MediaResolver(Paths::fromRoot($this->temporaryDirectory()), new MediaConfig()),
+			new AppConfig(url: 'https://example.com')
+		);
+
+		$this->assertSame("<p><mark>once</mark></p>\n", $parser->toHtml('==once=='));
 	}
 
 	public function testALoneImageIsAFigure(): void

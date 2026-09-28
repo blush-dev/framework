@@ -15,7 +15,7 @@
 declare(strict_types=1);
 
 $columns = max(1, min(6, (int) ($props['columns'] ?? 3)));
-$class   = trim('gallery ' . (is_string($props['class'] ?? null) ? $props['class'] : ''));
+$class   = trim('component-gallery ' . (is_string($props['class'] ?? null) ? $props['class'] : ''));
 
 ?>
 <div class="<?= attr($class) ?>" style="--gallery-columns: <?= $columns ?>">

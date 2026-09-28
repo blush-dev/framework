@@ -46,7 +46,8 @@ my-site/
     extensions/   Extensions you've made or installed
   resources/
     views/        Template overrides for whatever theme is active
-    lang/         Translations for your own components (the `app` namespace)
+    lang/         Translations for your own components and icons (the `app` namespace)
+    icons/        Your own SVG icons (see Components)
   public/         The web root: index.php and published files only
   storage/        Caches, the content index, logs, and exports (never commit)
   src/            Your own PHP classes (the App\ namespace)

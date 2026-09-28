@@ -4,6 +4,67 @@
 		"page": "Page {page}"
 	},
 	"components": {
+		"abbr": {
+			"label": "Abbreviation",
+			"description": "An abbreviation, with what it stands for.",
+			"props": {
+				"title": {
+					"label": "Stands for"
+				}
+			}
+		},
+		"audio": {
+			"label": "Audio",
+			"description": "An audio file with play controls.",
+			"props": {
+				"src": {
+					"label": "Audio file"
+				},
+				"preload": {
+					"label": "Preload",
+					"choices": {
+						"none": "Nothing",
+						"metadata": "Details only",
+						"auto": "The whole file"
+					}
+				},
+				"loop": {
+					"label": "Loop"
+				}
+			}
+		},
+		"button": {
+			"label": "Button",
+			"description": "A link that looks like a button, with an optional icon.",
+			"props": {
+				"url": {
+					"label": "Link"
+				},
+				"label": {
+					"label": "Text"
+				},
+				"variant": {
+					"label": "Style",
+					"choices": {
+						"primary": "Primary",
+						"secondary": "Secondary"
+					}
+				},
+				"icon": {
+					"label": "Icon"
+				},
+				"iconPosition": {
+					"label": "Icon position",
+					"choices": {
+						"start": "Before the text",
+						"end": "After the text"
+					}
+				},
+				"iconOnly": {
+					"label": "Show only the icon"
+				}
+			}
+		},
 		"callout": {
 			"label": "Callout",
 			"description": "A note set apart from the text, with an optional title.",
@@ -44,6 +105,15 @@
 				}
 			}
 		},
+		"file": {
+			"label": "File",
+			"description": "A download link, with the file's type and size.",
+			"props": {
+				"src": {
+					"label": "File"
+				}
+			}
+		},
 		"gallery": {
 			"label": "Gallery",
 			"description": "Images in a grid.",
@@ -52,6 +122,582 @@
 					"label": "Columns"
 				}
 			}
+		},
+		"grid": {
+			"label": "Grid",
+			"description": "Blocks in columns that wrap on narrow screens.",
+			"props": {
+				"columns": {
+					"label": "Columns"
+				},
+				"min": {
+					"label": "Minimum column width"
+				},
+				"gap": {
+					"label": "Gap"
+				}
+			}
+		},
+		"group": {
+			"label": "Group",
+			"description": "Blocks wrapped together, to style as one.",
+			"props": {
+				"tag": {
+					"label": "Element",
+					"choices": {
+						"div": "Division",
+						"section": "Section"
+					}
+				},
+				"label": {
+					"label": "Section name"
+				}
+			}
+		},
+		"icon": {
+			"label": "Icon",
+			"description": "A small picture, such as an arrow or a heart, inside text.",
+			"props": {
+				"name": {
+					"label": "Icon"
+				},
+				"label": {
+					"label": "Text for screen readers"
+				}
+			}
+		},
+		"kbd": {
+			"label": "Keyboard key",
+			"description": "A key or key combination to press, such as Ctrl+S.",
+			"props": {
+				"label": {
+					"label": "Keys"
+				}
+			}
+		},
+		"meter": {
+			"label": "Meter",
+			"description": "A measurement within a range, such as a score or how full something is.",
+			"props": {
+				"value": {
+					"label": "Value"
+				},
+				"min": {
+					"label": "Minimum"
+				},
+				"max": {
+					"label": "Maximum"
+				},
+				"low": {
+					"label": "Low point"
+				},
+				"high": {
+					"label": "High point"
+				},
+				"optimum": {
+					"label": "Best value"
+				},
+				"label": {
+					"label": "Label"
+				}
+			}
+		},
+		"progress": {
+			"label": "Progress bar",
+			"description": "How far along something is, such as a goal or a task.",
+			"props": {
+				"value": {
+					"label": "Value"
+				},
+				"max": {
+					"label": "Maximum"
+				},
+				"label": {
+					"label": "Label"
+				}
+			}
+		},
+		"row": {
+			"label": "Row",
+			"description": "Blocks side by side, wrapping when they don't fit.",
+			"props": {
+				"justify": {
+					"label": "Justify",
+					"choices": {
+						"start": "Start",
+						"center": "Center",
+						"end": "End",
+						"between": "Space between"
+					}
+				},
+				"align": {
+					"label": "Align",
+					"choices": {
+						"start": "Start",
+						"center": "Center",
+						"end": "End",
+						"stretch": "Stretch",
+						"baseline": "Baseline"
+					}
+				},
+				"wrap": {
+					"label": "Wrap"
+				},
+				"gap": {
+					"label": "Gap"
+				}
+			}
+		},
+		"time": {
+			"label": "Time",
+			"description": "A date, time, or duration that software can read.",
+			"props": {
+				"datetime": {
+					"label": "Date or time"
+				}
+			}
+		},
+		"toc": {
+			"label": "Table of contents",
+			"description": "Links to the headings on the page.",
+			"props": {
+				"min": {
+					"label": "Top heading level"
+				},
+				"max": {
+					"label": "Deepest heading level"
+				}
+			}
+		},
+		"video": {
+			"label": "Video",
+			"description": "A video file with play controls.",
+			"props": {
+				"src": {
+					"label": "Video file"
+				},
+				"poster": {
+					"label": "Poster image"
+				},
+				"captions": {
+					"label": "Captions file"
+				},
+				"width": {
+					"label": "Width"
+				},
+				"height": {
+					"label": "Height"
+				},
+				"preload": {
+					"label": "Preload",
+					"choices": {
+						"none": "Nothing",
+						"metadata": "Details only",
+						"auto": "The whole file"
+					}
+				},
+				"loop": {
+					"label": "Loop"
+				},
+				"muted": {
+					"label": "Muted"
+				}
+			}
+		}
+	},
+	"icons": {
+		"arrow-down": {
+			"label": "Arrow down"
+		},
+		"arrow-left": {
+			"label": "Arrow left"
+		},
+		"arrow-right": {
+			"label": "Arrow right"
+		},
+		"arrow-up": {
+			"label": "Arrow up"
+		},
+		"arrow-up-right": {
+			"label": "Arrow up and right"
+		},
+		"at-sign": {
+			"label": "At sign"
+		},
+		"award": {
+			"label": "Award"
+		},
+		"bell": {
+			"label": "Bell"
+		},
+		"book": {
+			"label": "Book"
+		},
+		"book-open": {
+			"label": "Open book"
+		},
+		"bookmark": {
+			"label": "Bookmark"
+		},
+		"briefcase": {
+			"label": "Briefcase"
+		},
+		"brush": {
+			"label": "Brush"
+		},
+		"calendar": {
+			"label": "Calendar"
+		},
+		"calendar-days": {
+			"label": "Calendar with days"
+		},
+		"camera": {
+			"label": "Camera"
+		},
+		"check": {
+			"label": "Check mark"
+		},
+		"chevron-down": {
+			"label": "Chevron down"
+		},
+		"chevron-left": {
+			"label": "Chevron left"
+		},
+		"chevron-right": {
+			"label": "Chevron right"
+		},
+		"chevron-up": {
+			"label": "Chevron up"
+		},
+		"chevrons-left": {
+			"label": "Double chevron left"
+		},
+		"chevrons-right": {
+			"label": "Double chevron right"
+		},
+		"circle-alert": {
+			"label": "Alert"
+		},
+		"circle-check": {
+			"label": "Success"
+		},
+		"circle-help": {
+			"label": "Help"
+		},
+		"circle-play": {
+			"label": "Play button"
+		},
+		"circle-user": {
+			"label": "Account"
+		},
+		"circle-x": {
+			"label": "Error"
+		},
+		"clipboard": {
+			"label": "Clipboard"
+		},
+		"clock": {
+			"label": "Clock"
+		},
+		"cloud": {
+			"label": "Cloud"
+		},
+		"code": {
+			"label": "Code"
+		},
+		"coffee": {
+			"label": "Coffee"
+		},
+		"compass": {
+			"label": "Compass"
+		},
+		"copy": {
+			"label": "Copy"
+		},
+		"corner-down-right": {
+			"label": "Reply arrow"
+		},
+		"credit-card": {
+			"label": "Credit card"
+		},
+		"download": {
+			"label": "Download"
+		},
+		"ellipsis": {
+			"label": "More"
+		},
+		"external-link": {
+			"label": "External link"
+		},
+		"eye": {
+			"label": "Eye"
+		},
+		"file": {
+			"label": "File"
+		},
+		"file-text": {
+			"label": "Document"
+		},
+		"files": {
+			"label": "Files"
+		},
+		"film": {
+			"label": "Film"
+		},
+		"filter": {
+			"label": "Filter"
+		},
+		"flag": {
+			"label": "Flag"
+		},
+		"flame": {
+			"label": "Flame"
+		},
+		"folder": {
+			"label": "Folder"
+		},
+		"folder-open": {
+			"label": "Open folder"
+		},
+		"gift": {
+			"label": "Gift"
+		},
+		"globe": {
+			"label": "Globe"
+		},
+		"graduation-cap": {
+			"label": "Graduation cap"
+		},
+		"hash": {
+			"label": "Hashtag"
+		},
+		"headphones": {
+			"label": "Headphones"
+		},
+		"heart": {
+			"label": "Heart"
+		},
+		"history": {
+			"label": "History"
+		},
+		"house": {
+			"label": "Home"
+		},
+		"image": {
+			"label": "Image"
+		},
+		"images": {
+			"label": "Images"
+		},
+		"info": {
+			"label": "Info"
+		},
+		"key-round": {
+			"label": "Key"
+		},
+		"laptop": {
+			"label": "Laptop"
+		},
+		"layout-grid": {
+			"label": "Grid"
+		},
+		"leaf": {
+			"label": "Leaf"
+		},
+		"library": {
+			"label": "Library"
+		},
+		"lightbulb": {
+			"label": "Lightbulb"
+		},
+		"link": {
+			"label": "Link"
+		},
+		"list": {
+			"label": "List"
+		},
+		"list-ordered": {
+			"label": "Numbered list"
+		},
+		"lock": {
+			"label": "Lock"
+		},
+		"lock-open": {
+			"label": "Unlocked"
+		},
+		"log-in": {
+			"label": "Sign in"
+		},
+		"log-out": {
+			"label": "Sign out"
+		},
+		"mail": {
+			"label": "Mail"
+		},
+		"map": {
+			"label": "Map"
+		},
+		"map-pin": {
+			"label": "Location"
+		},
+		"menu": {
+			"label": "Menu"
+		},
+		"message-circle": {
+			"label": "Comment"
+		},
+		"message-square": {
+			"label": "Message"
+		},
+		"mic": {
+			"label": "Mic"
+		},
+		"minus": {
+			"label": "Remove"
+		},
+		"monitor": {
+			"label": "Monitor"
+		},
+		"moon": {
+			"label": "Moon"
+		},
+		"music": {
+			"label": "Music"
+		},
+		"newspaper": {
+			"label": "Newspaper"
+		},
+		"notebook-pen": {
+			"label": "Journal"
+		},
+		"paintbrush": {
+			"label": "Paintbrush"
+		},
+		"palette": {
+			"label": "Palette"
+		},
+		"pause": {
+			"label": "Pause"
+		},
+		"pen-line": {
+			"label": "Write"
+		},
+		"pen-tool": {
+			"label": "Pen tool"
+		},
+		"pencil": {
+			"label": "Pencil"
+		},
+		"phone": {
+			"label": "Phone"
+		},
+		"play": {
+			"label": "Play"
+		},
+		"plus": {
+			"label": "Add"
+		},
+		"podcast": {
+			"label": "Podcast"
+		},
+		"printer": {
+			"label": "Printer"
+		},
+		"quote": {
+			"label": "Quote"
+		},
+		"rocket": {
+			"label": "Rocket"
+		},
+		"rows-3": {
+			"label": "Rows"
+		},
+		"rss": {
+			"label": "RSS feed"
+		},
+		"search": {
+			"label": "Search"
+		},
+		"send": {
+			"label": "Send"
+		},
+		"settings": {
+			"label": "Settings"
+		},
+		"share": {
+			"label": "Share"
+		},
+		"share-2": {
+			"label": "Share network"
+		},
+		"shield": {
+			"label": "Shield"
+		},
+		"shopping-cart": {
+			"label": "Shopping cart"
+		},
+		"sliders-horizontal": {
+			"label": "Settings sliders"
+		},
+		"smartphone": {
+			"label": "Smartphone"
+		},
+		"sparkles": {
+			"label": "Sparkles"
+		},
+		"star": {
+			"label": "Star"
+		},
+		"sun": {
+			"label": "Sun"
+		},
+		"tag": {
+			"label": "Tag"
+		},
+		"tags": {
+			"label": "Tags"
+		},
+		"terminal": {
+			"label": "Terminal"
+		},
+		"thumbs-up": {
+			"label": "Thumbs up"
+		},
+		"tree-pine": {
+			"label": "Pine tree"
+		},
+		"triangle-alert": {
+			"label": "Warning"
+		},
+		"trophy": {
+			"label": "Trophy"
+		},
+		"umbrella": {
+			"label": "Umbrella"
+		},
+		"upload": {
+			"label": "Upload"
+		},
+		"user": {
+			"label": "User"
+		},
+		"user-round": {
+			"label": "Person"
+		},
+		"users": {
+			"label": "Users"
+		},
+		"video": {
+			"label": "Video"
+		},
+		"volume-2": {
+			"label": "Volume"
+		},
+		"x": {
+			"label": "Close"
+		},
+		"zap": {
+			"label": "Zap"
 		}
 	}
 }

@@ -88,7 +88,8 @@ final class CommonMarkParser implements MarkdownParser
 		try {
 			$environment = new Environment($this->config->options);
 
-			foreach ($this->config->extensions as $extension) {
+			// A config that spreads the defaults may list one again.
+			foreach (array_unique($this->config->extensions) as $extension) {
 				$environment->addExtension(new $extension());
 			}
 
@@ -103,7 +104,7 @@ final class CommonMarkParser implements MarkdownParser
 			);
 
 			if ($this->config->directives) {
-				$environment->addExtension(new DirectiveExtension($this->directives));
+				$environment->addExtension(new DirectiveExtension($this->directives, $this->context));
 			}
 
 			if ($this->config->figures) {

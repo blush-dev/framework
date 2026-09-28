@@ -13,7 +13,7 @@
 | M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed (dynamically, D-142) |
 | M9 | **Admin stage 2:** operations dashboard. | Publish, clear, reindex, and export from a browser |
 | M10 | **Admin stage 3:** editor and media library. | Create and edit entries in a browser |
-| Later | `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
+| Later | Extension views in the view chain (D-174); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
 
 ---
 
@@ -127,11 +127,34 @@ The current focus: the experience of setting up a Blush site.
   text by namespace (the new `app` and extension vendor domains), labels
   in `component:list`, and `theme:check` checks. The trial's components
   are `jtcom/post-archives` and `jtcom/entry-terms`; it builds the same
-  421 pages. The core component set is still open.
+  421 pages.
+- **Component docs and classes:** `docs/components.md` (D-170);
+  component classes are `component-{name}` BEM blocks (D-182); checking
+  a theme leaves out other themes' components (D-178).
+- **The core component set (D-175):** definition lists and highlighting
+  in Markdown (D-176); `group`, `grid`, and `row` (D-177); `audio`,
+  `video`, and `file` (D-179); `abbr`, `kbd`, and `time` (D-180); `toc`
+  (D-183); `icon`, with a 131-icon Lucide subset (D-187); `progress` and
+  `meter` (D-188); and `button` (D-189). Media props resolve against the
+  entry's bundle (D-179), and media and link props render as full URLs
+  for feeds (D-190).
+- **Embeds (D-181, D-184 to D-186):** start times and accessible names;
+  oEmbed providers (YouTube, Vimeo, config, and classes) with cached
+  lookups, real sizes and titles; frames sized with `aspect-ratio`,
+  with a height cap for portrait video.
+- **The jtcom trial's theme** styles every new component in its
+  hand-drawn look (not committed; D-156).
 
 ### Still to scope
 
 Other starting points the author may pick up (none decided):
+
+- **Component variants (D-191):** planned (one per use, BEM modifier
+  classes, a registry with translatable labels, fallback to the
+  default); where themes declare them is still open. The next step.
+- **Later for components:** captioned quotes and tables, a `<button>`
+  component, rich script embeds and an embed refresh command, extension
+  views (D-174), more icons and brand logos (see `open-questions.md`).
 
 - Creating a site: `composer create-project`, first-run steps (`.env`
   from `.env.example`, the storage folders, secrets such as

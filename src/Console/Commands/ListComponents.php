@@ -22,6 +22,7 @@ use Blush\Core\Paths;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
+use Blush\View\Component\ComponentListing;
 use Blush\View\ViewFactory;
 
 /**
@@ -49,11 +50,18 @@ final readonly class ListComponents
 		#[Option('The theme to list for; defaults to the active theme.')] ?string $theme = null
 	): ExitCode {
 		try {
-			$views      = $this->views->forChain($this->themes->chain($theme ?? $this->config->active));
-			$components = $views->components();
+			$chain = $this->themes->chain($theme ?? $this->config->active);
+			$views = $this->views->forChain($chain);
 		} catch (ThemeException $error) {
 			throw new InvalidInput($error->getMessage(), 0, $error);
 		}
+
+		// Another theme's components (its provider registers them when
+		// it's active) can't render in this chain.
+		$components = array_values(array_filter(
+			$views->components(),
+			fn (ComponentListing $component): bool => ! $this->themes->isOutside($component->name->namespace, $chain)
+		));
 
 		$rows = [];
 

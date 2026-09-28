@@ -2693,3 +2693,433 @@ decision, add a new entry that supersedes it and mark the old one
 - **Not done:** extensions can't ship component templates (they have no
   view directory in the chain); see `open-questions.md`. The inserter
   itself is M10.
+
+### D-174: Extensions will get views in the chain (later)
+- **Date:** 2026-09-28
+- **Decision:** Each enabled extension's `views/` will join the view
+  chain, so an extension can ship its components' templates (and other
+  views). Not scheduled yet; the likely place is below the site and
+  themes and above the default theme, so themes can still override.
+  Until then, the theme or site supplies an extension component's
+  template (D-173).
+- **Why:** components are meant to be the main extension point
+  (D-171), and an extension that registers one should be able to ship
+  how it looks.
+
+### D-175: The planned core component set
+- **Date:** 2026-09-28
+- **Decision:** Core components exist only where Markdown (with its
+  CommonMark extensions) can't do the job well. Core short names are
+  reserved for good (D-171), so the set grows deliberately. Nothing
+  below is built yet.
+  - **Layout:** `group` (a `<div>`/`<section>` wrapper for a class, id,
+    or alignment), `grid` (CSS grid: `columns=`, or auto-fit with a
+    minimum width), and `row` (flexbox, wrapping). `gallery` stays (it
+    carries image meaning: captions, a later lightbox) and may be built
+    on `grid`. No `columns`/`column` for now, and no `flex` or `stack`.
+  - **Media:** `audio`, `video` (poster, caption track, dimensions from
+    the media folder), and `file` (a download link with its size and
+    type), alongside `figure`, `gallery`, and `embed`.
+  - **Inline:** `abbr` (`title`), `kbd`, and `time` (`datetime`).
+  - **Planned, later:** `toc` (a table of contents; weigh CommonMark's
+    `TableOfContents` extension first), `icon` (SVG icons from a
+    registry), and `progress` and `meter`.
+  - **Markdown extensions:** support definition lists
+    (`DescriptionList`) and highlighting (`Highlight`, `==text==` →
+    `<mark>`).
+  - **Not now:** quotes with a source and credit, and table captions.
+    Blockquotes already work; the direction may be improving the
+    existing quote, or a general figure wrapper that captions a quote,
+    table, or code block. Buttons: undecided; a link with a class may be
+    enough.
+- **Why:** the author reviewed a proposed inventory (layout, blocks,
+  media, actions, inline, logic) against what Markdown already covers.
+
+### D-176: Definition lists and highlighting are on by default
+- **Date:** 2026-09-28
+- **Decision:** Implements D-175's Markdown part: `DescriptionListExtension`
+  and `HighlightExtension` join `MarkdownConfig::DEFAULT_EXTENSIONS`.
+  `CommonMarkParser` adds each configured extension once
+  (`array_unique`), so a config that spreads the defaults and lists one
+  again keeps working.
+- **Why:** the author wants both. Without the dedupe, CommonMark throws
+  on a duplicate (a second `==` delimiter processor), which jtcom's
+  config (it already added `DescriptionListExtension`) would have hit.
+
+### D-177: Layout components: `group`, `grid`, and `row`
+- **Date:** 2026-09-28
+- **Decision:** Implements D-175's layout set as core components, class
+  backed in `Blush\View\Component\Layout`, with templates in the default
+  theme:
+  - `group` (`Group`): a `<div>`, or a `<section>` (`tag=section`) whose
+    label becomes its `aria-label`.
+  - `grid` (`Grid`): `columns` (most columns, 1 to 12, default 2),
+    `min` (narrowest column before it drops one, default `12rem`; `0`
+    keeps them all), `gap`. One `grid-template-columns` does it:
+    `repeat(auto-fill, minmax(max(min(MIN, 100%), calc((100% - (N - 1)
+    * GAP) / N)), 1fr))`, so it's responsive without media queries.
+  - `row` (`Row`): flexbox with `justify` (`RowJustify`), `align`
+    (`RowAlign`), `wrap`, and `gap`.
+  - **Layout is inline styles.** Unlike the other core components, whose
+    look comes from theme CSS, these set their structural CSS inline, so
+    they work under any theme (jtcom doesn't load the default theme's
+    stylesheet). Themes style the `group`, `grid`, and `row` classes, and
+    set spacing with the `--layout-gap` custom property, which the inline
+    styles read (a component's own `gap` sets it on the element).
+  - **Lengths are checked** (`CssLength`): a prop that goes into `style`
+    must be `0` or a number with a length unit or `%`; anything else
+    falls back to the default, so a prop can't carry other CSS.
+  - `class` and `id` come from the directive's `.class`/`#id` (read from
+    `$props` in the templates), not constructor props, so they aren't
+    listed as inserter fields.
+- **Why:** the author picked these three (D-175). Inline structure keeps
+  core layout working in every theme, which is the promise of core
+  components.
+
+### D-178: Checking a theme leaves out other themes' components
+- **Date:** 2026-09-28
+- **Decision:** `theme:check` and `component:list` skip components in the
+  namespace of an installed theme outside the chain being checked
+  (`Themes::isOutside()`). The active theme's provider registers its
+  components on every boot, so checking another theme (`theme:check
+  default` with jtcom active) wrongly warned that `jtcom/post-archives`
+  had no template.
+- **Why:** such a component belongs to its own theme (D-171) and can't
+  render in another chain; it isn't that chain's problem.
+
+### D-179: Media components: `audio`, `video`, and `file`
+- **Date:** 2026-09-28
+- **Decision:** Implements D-175's media set as core components, class
+  backed in `Blush\View\Component\Media`, with templates in the default
+  theme:
+  - `audio` (`Audio`): `src`, `preload` (`MediaPreload`, `metadata` by
+    default), `loop`; the label is the caption.
+  - `video` (`Video`): `src`, `poster`, `captions` (a WebVTT track whose
+    `srclang` is the site locale's language), `width`/`height` (the
+    poster's when neither is given, so the page doesn't shift),
+    `preload`, `loop`, `muted`; always `playsinline`.
+  - `file` (`File`): a `download` link; the label or the file's name;
+    `$format` (the extension) and, for local media, `$size` (1,024 to a
+    unit, in the site's number format). Its joining text is the default
+    theme's `media.file_details`.
+  - **Media props resolve like images.** A directive now carries its
+    entry's base folder (`Directive::$base`, from `MarkdownContext`), and
+    `ComponentDirectives` resolves every `media` prop of a registered
+    component through `MediaResolver` against it, so `src=clip.mp4` in a
+    page bundle becomes `/media/_content/…/clip.mp4`. Unresolved values
+    pass through as written. A class marks a string parameter as media
+    with `#[MediaProp]` (a `MediaField` in its definition). This also
+    fixes `figure`'s `src` in bundles.
+  - **`text/vtt` is allowed by default**, so caption tracks are served; a
+    `.vtt` file that sniffs as `text/plain` (no cue yet) counts as
+    `text/vtt`, as SVGs are read by extension.
+  - Video dimensions come from the poster only; reading them from the
+    video file would need a media probe.
+- **Why:** the author picked these (D-175). Resolving by field type keeps
+  bundle media working for any component, not just these.
+- **Open:** documents (such as PDFs) aren't allowed media types, so a
+  local `file` of that type has no size and isn't served unless a site
+  adds the type.
+
+### D-180: Inline components: `abbr`, `kbd`, and `time`
+- **Date:** 2026-09-28
+- **Decision:** Implements D-175's inline set as core components, with
+  templates in the default theme:
+  - `abbr`: template-only; `title` is the expansion.
+  - `kbd` (`Inline\Kbd`): a label joined with `+` is a combination, each
+    key in its own `<kbd>` inside the outer one (HTML's recommendation);
+    a `+` with nothing on one side doesn't split (`Ctrl++`).
+  - `time` (`Inline\Time`): `datetime` must be one of HTML's forms (year,
+    month, date, local or global date and time, time, or ISO duration)
+    and a real date, or the element gets no `datetime`. Without a label
+    it's shown with `IntlDatePatternGenerator` skeletons in the site's
+    locale and time zone; a duration or invalid value shows as written.
+  - `ComponentDirectives` trims an inline directive's HTML, so a
+    template's line breaks don't turn into spaces in the sentence.
+- **Why:** the author picked these (D-175).
+
+### D-181: Embeds keep their start time and name their frame
+- **Date:** 2026-09-28
+- **Decision:** Refines D-113's `embed`:
+  - A start time carries over: YouTube's `t` (`90`, `90s`, `1m30s`,
+    `1h2m3s`) or `start` becomes `?start={seconds}` on the no-cookie
+    frame, and Vimeo's `#t=` becomes `#t={seconds}s`. Other query
+    parameters (such as YouTube's `si` share ID) are still dropped.
+  - The iframe's `title` (its accessible name) is the `title` prop, else
+    the label (the caption), else the theme's `embed.{provider}` text
+    ("YouTube video"), never the URL. A link to a non-embeddable URL
+    still shows the URL as its text.
+  - No-cookie mode stays the only mode; a setting to use `youtube.com`
+    was considered and skipped.
+- **Why:** the author compared an `::embed` with jtcom's hand-written
+  1.x iframes on a trial post; start times were being lost and the
+  frame was named by its URL.
+
+### D-182: Component classes start with `component-`
+- **Date:** 2026-09-28
+- **Decision:** A component's CSS classes are BEM-style and named after
+  it with a `component-` prefix: `component-callout`,
+  `component-callout--warning`, `component-callout__title`. The default
+  theme's core components use it (supersedes the bare `callout`, `grid`,
+  `embed`, … of D-113, D-177, and D-179; `abbr` and `time` gain
+  `component-abbr` and `component-time`), and the docs recommend it for
+  every component. Classes that aren't components keep their names
+  (jtcom's `block-heading__permalink`, `block-table-of-contents`, and the
+  byline's `block-row`).
+  - The jtcom trial's theme follows it: `component-callout`,
+    `component-embed` (was `block-embed`), `component-figure`,
+    `component-gallery`, `component-entry-terms`, and
+    `component-post-archives` with `--post`, `--month`, and `--year`
+    modifiers (was three blocks, `archives-site`, `archives-monthly`,
+    `archives-yearly`, plus the unstyled `block-month-archives__year`,
+    now `__year`).
+  - jtcom's SCSS keeps its 1.x names as aliases for HTML written in
+    posts, which don't change (D-078): `.block-embed`,
+    `.block-embed__wrapper`, and `.embed-wrap`, `.gallery` (with
+    `--flex`, `--grid`, and stacked galleries via `& + &`), and `.box`.
+- **Why:** the author's convention (jtcom used 1.x's `block-` prefix);
+  one prefix marks component markup in any theme.
+
+### D-183: The `toc` component
+- **Date:** 2026-09-28
+- **Decision:** A core `toc` component (`View\Component\Toc`) rather than
+  relying on CommonMark's `TableOfContents` extension (D-175 said weigh
+  it first): a component can be placed anywhere with `::toc`, styled and
+  overridden like any other, and works without heading permalinks.
+  - **Outline at parse time.** A directive renders in document order, so
+    a `::toc` at the top can't see later headings. `CollectOutline` (a
+    `DocumentParsedEvent` listener at -200, after permalinks and
+    CommonMark's table of contents, before the slug history resets at
+    -1000) runs only when a document has a `toc` or `blush/toc`
+    directive. It gives every heading a link target (its `id`, its
+    permalink's `fragment_prefix`-slug, or a new `id` from the
+    environment's slug normalizer, which keeps ids unique alongside
+    permalinks) and sets the outline (`level`, plain `text`, `id`) on the
+    directive node. `Directive::$outline` carries it, and
+    `ComponentDirectives` passes it as the `headings` prop.
+  - `Toc` takes `min`/`max` (2 and 3 by default, clamped and swapped if
+    reversed) and nests the headings in range: a deeper heading goes
+    under the item before it, a skipped level nests with the level below,
+    and a deeper heading with nothing before it joins the top level.
+    Nothing renders without headings in range. The label is the title
+    and the `<nav>`'s name (else the theme's `toc.label`).
+  - Excerpts and word counts leave out `<nav>` (with figure captions),
+    so a table of contents never becomes a post's excerpt or its reading
+    time.
+  - Pages without a table of contents are unchanged: no heading ids are
+    added.
+- **Why:** the author asked for it (D-175). Checked against jtcom's
+  config: the component's links match its permalinks and CommonMark's
+  table of contents exactly.
+
+### D-184: oEmbed providers for embeds
+- **Date:** 2026-09-28
+- **Decision:** Embeds use oEmbed, through a new `Blush\Embed` subsystem,
+  so each embed gets its real size and title and sites can add any
+  number of providers. Supersedes D-113's hard-coded YouTube/Vimeo
+  parsing (kept as those providers' URL-only fallback).
+  - **Providers are registered, never discovered** (D-113's rule stands:
+    content never frames an unknown site). `EmbedProvider` (abstract):
+    name, label, oembed.com-style schemes (`*` wildcards; `http://`
+    matches as `https://`), and an HTTPS endpoint; `request()` (the
+    oEmbed URL to ask), `frame()` (the URL to frame), and
+    `allowsScripts()`. Built in (enum + registry + factory + registrar):
+    `YouTube` (always `youtube-nocookie.com` with the start time, asking
+    oEmbed about the plain watch or short URL) and `Vimeo` (`dnt=1`, the
+    start time, and a private link's hash, now also taken from oEmbed's
+    frame). Sites add plain providers in `config/embed.php`
+    (`OEmbedProvider`, or arrays) and ones that need code as classes in
+    `ProviderRegistry`. Configured providers come first and replace a
+    registered one of the same name.
+  - **Blush builds the markup.** `EmbedData` keeps the checked response
+    (type, title, provider name, positive integer sizes, HTTPS
+    thumbnail); `frame()` reads the HTTPS iframe URL from the provider's
+    HTML with `Dom\HTMLDocument`, and the theme renders its own iframe.
+  - **Fetching** happens on first render (`Embeds::lookup()`), through the
+    `Fetcher` interface (`StreamFetcher`: HTTPS only, a timeout, three
+    redirects, 1 MB, a 200 status). Answers are kept for 30 days and
+    failures for an hour (`EmbedConfig` `ttl`/`failureTtl`) in the new
+    `embeds` cache namespace, which isn't derived (publishing and
+    `cache:clear` leave it) and is used through `persistent()`, so it
+    works with caching off. `fetch: false` never asks.
+  - **The component** gets `$width`, `$height`, `$ratio` (for
+    `--embed-ratio`, which the default theme's frame uses as its
+    `aspect-ratio`), `$embedTitle`, `$thumbnail`, and `$providerLabel`.
+    The frame's name is `title`, else the provider's title, else the
+    label, else the theme's `embed.title` ("Embedded content from
+    {provider}"); a link's text prefers the provider's title to the URL.
+  - **Rich embeds** that need the provider's script (X, Instagram,
+    TikTok, Mastodon) render as links for now; the design for them is in
+    `open-questions.md`.
+- **Why:** the author wants oEmbed as the general mechanism, with many
+  providers. Checked live on the jtcom trial: YouTube answers set each
+  frame's ratio and title.
+
+### D-185: Embed frames use `aspect-ratio` on the iframe
+- **Date:** 2026-09-28
+- **Decision:** The default theme (and the jtcom trial's theme) size an
+  embed's iframe directly: `display: block; width: 100%; height: auto;
+  aspect-ratio: var(--embed-ratio, 16 / 9)`, replacing an absolutely
+  positioned iframe in a sized wrapper (and jtcom's 1.x
+  `padding-bottom: 56.25%` technique, whose extra `padding-top: 30px`
+  made every frame taller than 16:9). `height: auto` also covers 1.x's
+  hand-written iframes with `width`/`height` attributes. A tall embed
+  (a 9:16 short) is capped at 80% of the small viewport height with
+  `max-width: calc(80svh * (var(--embed-ratio)))` and centered. jtcom
+  drops the unused `.embed-wrap` alias (no post in its full content uses
+  it) and the wrapper's `margin-bottom`, which `o-flow` and the caption's
+  padding cover.
+- **Why:** the author asked for a modern review of the old wrapper;
+  `aspect-ratio` is supported in every current browser, and with real
+  ratios from oEmbed (D-184) vertical videos need a height cap.
+
+### D-186: Only portrait embeds get the height cap
+- **Date:** 2026-09-28
+- **Decision:** Corrects D-185. Its `max-width: calc(80svh * ratio)` cap
+  applied to every embed, so on a short window a 16:9 video in jtcom's
+  `stretch-wide` figure (1024px) stopped filling it. The cap now applies
+  only to portrait embeds: `Embed::$portrait` (the provider says it's
+  taller than wide) adds `component-embed--portrait`, and only that
+  class gets the cap and centering. Checked in headless Chrome at
+  1440×800, 1440×1200, and narrow widths: landscape iframes match their
+  wrapper's width at 16:9 (1024×579).
+- **Why:** the author saw the old-men post's videos stop stretching.
+
+### D-187: Icons: a Lucide subset, named like components
+- **Date:** 2026-09-28
+- **Decision:** Blush ships icons and a core `icon` component.
+  - **The core set** is a front-end subset of Lucide 1.48.0 (ISC): 131
+    icons (arrows and navigation, people, files and writing, messages and
+    sharing, media, alerts, actions, devices, and a few objects), in
+    `resources/icons/blush/` with Lucide's license, its search tags
+    (`tags.json`, for the future inserter), and a README on updating.
+    Each SVG keeps Lucide's name, drops its license comment and `class`,
+    and is one line. All of Lucide may be bundled later. Brand logos
+    aren't in core; a future social menu will need some basics (jtcom
+    uses social brands), likely from Simple Icons.
+  - **Names** follow D-171: `{namespace}/{name}` (`IconName`), with short
+    names only for core (`house` is `blush/house`); the name part is
+    lowercase letters, digits, and hyphens.
+  - **Lookup** (`Blush\Icon\Icons`, per theme chain), first found wins:
+    the site's `resources/icons/{ns}/{name}.svg` (its own `app` icons at
+    `resources/icons/{name}.svg`); each theme, active first,
+    `icons/{name}.svg` for its own namespace or `icons/{ns}/{name}.svg`
+    to restyle another's (`icons/blush/house.svg`); folders extensions
+    add to `IconRegistry` for their vendor; then core.
+  - **Output** is inline SVG (`View\Component\Icon`, `:icon[Label]{name=…}`
+    or `:icon[]{name=…}`; `$template->icon($name, $label)`): `1em`
+    square, `class="component-icon"` plus any directive classes,
+    `focusable="false"`, and `aria-hidden="true"` without a label or
+    `role="img"` with `aria-label` from it. The SVG is edited with
+    `Dom\XMLDocument`, so labels and classes are escaped; a file that
+    isn't well-formed SVG renders nothing, as does an unknown icon.
+  - **Labels** are translatable: `icons.{name}.label` in the namespace's
+    domain (`Views::iconText()`, sharing the component text's domain
+    rules); the `blush` catalog has English labels for the core set,
+    plainer than some Lucide names (`triangle-alert` is "Warning").
+  - `icon:list [--theme]` lists every icon a chain can show, with its
+    label and file.
+  - `Template::component()`'s first parameter is now `$component` (it
+    was `$name`, D-173), so a component can take a `name` prop from PHP.
+- **Why:** the author chose a Lucide subset for the front end, names
+  like components, inline SVG, and translatable labels for the future
+  admin editor.
+
+### D-188: `progress` and `meter` components
+- **Date:** 2026-09-28
+- **Decision:** Core `progress` (`View\Component\Progress`) and `meter`
+  (`View\Component\Meter`), the last of D-175's planned set.
+  - `progress`: `value` and `max`; without `value` the bar is
+    indeterminate. `meter`: `value`, `min`, `max`, and optional `low`,
+    `high`, and `optimum`.
+  - **`max` is 100 by default** for both (HTML's default is 1), so a
+    plain `value` reads as a percentage when written by hand. Values are
+    clamped to the range; an invalid `max` (progress: not above 0; meter:
+    not above `min`) falls back to 100 (and 0–100); `low` and `high` are
+    swapped if reversed.
+  - **Accessible names without ids:** both elements are labelable, so the
+    template wraps them in a `<label>` with the label text; without a
+    label they get `aria-label` from the theme's `progress.label` or
+    `meter.label`. The value is also shown as text beside the bar (and as
+    the element's fallback content): the percentage when the range is
+    0–100, otherwise the theme's `measure.value` ("12 of 50").
+  - `MeasureNumbers` writes attribute values as plain decimals and text
+    in the site's locale (`NumberFormatter`).
+- **Why:** the author asked for them (D-175). The planned core set is now
+  built.
+
+### D-189: The `button` component
+- **Date:** 2026-09-28
+- **Decision:** Answers D-175's buttons question with a core `button`
+  component (`View\Component\Button`), not a link with a class: an icon
+  inside a class-styled link would need a directive nested in link text
+  and the Attributes extension, which is hard to write and to insert.
+  - **It's an `<a>`**, since a button in content goes somewhere. Props:
+    `url` (required, and must pass the `url()` escaper's scheme rules, or
+    nothing renders), `variant` (`ButtonVariant`: `primary`, the default,
+    or `secondary`), `icon` (any icon name), `iconPosition`
+    (`IconPosition`: `start` or `end`), and `iconOnly`. The label is its
+    text and is required.
+  - **The icon** renders through the `icon` component and is decorative.
+    An **icon-only** button is named by its label with `aria-label` (and
+    `title` for a tooltip) rather than visually hidden text, so it's
+    named in any theme, even one without the component's CSS. If the
+    icon doesn't exist, `iconOnly` is ignored and the text shows.
+  - Several buttons go in a `row`, one `::button` per line; no separate
+    group component.
+  - Classes: `component-button`, `--primary`/`--secondary`,
+    `--icon-only`, and `__text`.
+- **Why:** the author wants buttons with icons, a fixed primary and
+  secondary for now, and icon-only buttons. Planned: a variant system
+  any component can register, and a real `<button>` for scripts (see
+  `open-questions.md`).
+
+### D-190: Component media and links become full URLs
+- **Date:** 2026-09-28
+- **Decision:** A component's media and link props render as full URLs,
+  like Markdown's own links and images (`ResolveLinks`), so they work in
+  feeds.
+  - `ComponentDirectives` makes a resolved `media` prop's URL (and any
+    other `media` or `#[LinkProp]` value starting with `/`, not `//`)
+    absolute with `AppConfig::absoluteUrl()`, following
+    `MarkdownConfig::$absoluteLinks`. The new `#[LinkProp]` attribute
+    (read by `ComponentDefinition::links()`) marks link props; `Button`'s
+    `url` is one.
+  - `MediaResolver` tries a relative path that isn't a bundle file from
+    the site root, so `user/media/a.mp3` resolves like
+    `/user/media/a.mp3` (in Markdown images too), and treats a full URL on
+    the site's own origin as its path, so an absolute URL resolves again
+    (for `File`'s size and `Video`'s poster size). It takes an optional
+    `AppConfig` for that.
+- **Why:** the author's `::audio{src=user/media/audio/…}` rendered as a
+  relative path, which breaks in feeds and on other pages.
+
+### D-191: Component variants (planned)
+- **Date:** 2026-09-28
+- **Decision:** A variant system for all components, planned and not yet
+  built. A variant is a named visual style of a component.
+  - **One variant per use** (`variant=ghost`), like WordPress's block
+    styles. Extra looks come from classes (`.class`).
+  - **The class is a BEM modifier:** `component-{name}--{variant}`
+    (`component-button--ghost`), per D-182.
+  - **Planned shape** (not settled in detail): a `VariantRegistry` maps a
+    component's full name to its variants, each with its registrant (core,
+    a theme's slug, `app`, or a vendor), whose catalog holds its label
+    (`components.{name}.variants.{variant}.label`). Components declare
+    built-in variants and a default (`button`: `primary`, the default, and
+    `secondary`, replacing `ButtonVariant`). A theme's variants apply only
+    while it (or a child) is active. The framework handles `variant` for
+    every component: it checks the value against what the current chain
+    offers, falls back to the default for an unknown one (so content
+    written for another theme stays plain rather than broken), and gives
+    the template `$variant` and the modifier class. `component:list` and
+    the future inserter list the variants; `theme:check` warns about
+    variants declared for unknown components.
+  - **Variants are for looks only.** Props with meaning stay props:
+    callout `tone`, gallery `columns`.
+- **Open:** where themes declare their variants. The working assumption
+  is `theme.json` (no PHP needed) plus PHP registration for extensions
+  and the site; the author isn't sure yet (see `open-questions.md`).
+- **Why:** the author wants variants any component can have, registered
+  by core, themes, and extensions, rather than per-component enums
+  (D-189).
