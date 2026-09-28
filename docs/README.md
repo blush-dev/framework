@@ -41,8 +41,8 @@ my-site/
     content/      Your pages and posts (Markdown, HTML, JSON, or YAML)
     media/        Images, audio, and video
     data/         Editable data: redirects, theme settings, content types
-    themes/       Your own themes
-    extensions/   Your own extensions
+    themes/       Themes you've made or installed
+    extensions/   Extensions you've made or installed
   resources/
     views/        Template overrides for whatever theme is active
   public/         The web root: index.php and published files only
@@ -53,3 +53,13 @@ my-site/
 
 The short version: **you write in `user/`, and you configure in `config/`
 and `.env`.** Everything in `storage/` is generated and safe to delete.
+
+`user/` holds everything that's yours: what you write, and the themes and
+extensions you add. Each theme and extension can be its own git
+repository. If you keep `user/` itself in git, ignore those two folders
+there so each repository stays separate:
+
+```gitignore
+/themes/
+/extensions/
+```

@@ -69,6 +69,12 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 	private const array PRIVATE_FOLDERS = ['views', 'lang', 'src', 'resources', 'vendor', 'node_modules'];
 
 	/**
+	 * Build tool config files (`vite.config.js`, `postcss.config.mjs`),
+	 * which a theme keeps in its own folder (D-168), are never served.
+	 */
+	private const string PRIVATE_FILES = '#(^|/)[^/]+\.config\.[cm]?js$#i';
+
+	/**
 	 * @param non-empty-list<ThemeManifest> $themes The active theme first, the framework default theme last.
 	 */
 	public function __construct(public array $themes)
@@ -164,13 +170,15 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 
 	/**
 	 * Returns whether a theme may serve a path: a valid asset path, with
-	 * an allowed extension, outside the private folders.
+	 * an allowed extension, outside the private folders, and not a build
+	 * tool config file.
 	 */
 	public static function isServable(string $path): bool
 	{
 		return self::isValidAssetPath($path)
 			&& isset(self::ASSET_TYPES[strtolower(pathinfo($path, PATHINFO_EXTENSION))])
-			&& ! in_array(explode('/', $path)[0], self::PRIVATE_FOLDERS, true);
+			&& ! in_array(explode('/', $path)[0], self::PRIVATE_FOLDERS, true)
+			&& preg_match(self::PRIVATE_FILES, $path) !== 1;
 	}
 
 	/**

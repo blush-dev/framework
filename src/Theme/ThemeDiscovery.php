@@ -22,14 +22,14 @@ use Blush\Support\ComposerPackages;
 
 /**
  * Finds every installed theme (D-034): the framework `default` theme,
- * Composer packages of type `blush-theme`, folders in the site's
- * `resources/themes` (D-144), and folders in `user/themes`.
+ * Composer packages of type `blush-theme`, and folders in `user/themes`
+ * (D-166).
  * It runs before the container exists (theme providers register at boot),
  * so it reads manifests itself: `theme.json`, else `theme.yaml` or
  * `theme.yml` (D-032).
  *
- * With the same slug, a site theme replaces a Composer theme, and a
- * `user/themes` theme replaces both; nothing replaces `default`. A theme whose manifest is broken is recorded as
+ * With the same slug, a `user/themes` theme replaces a Composer theme;
+ * nothing replaces `default`. A theme whose manifest is broken is recorded as
  * invalid instead of failing discovery, so one bad folder can't take the
  * site (or the CLI that would fix it) down.
  *
@@ -77,14 +77,10 @@ final readonly class ThemeDiscovery
 			$invalid['composer'] = $error->getMessage();
 		}
 
-		foreach ([$this->paths->siteThemes => ThemeSource::Site, $this->paths->themes => ThemeSource::Local] as $directory => $source) {
-			if (! is_dir($directory)) {
-				continue;
-			}
-
-			foreach (new DirectoryIterator($directory) as $folder) {
+		if (is_dir($this->paths->themes)) {
+			foreach (new DirectoryIterator($this->paths->themes) as $folder) {
 				if ($folder->isDir() && ! $folder->isDot()) {
-					$found[$folder->getFilename()] = [$folder->getPathname(), $source];
+					$found[$folder->getFilename()] = [$folder->getPathname(), ThemeSource::Local];
 				}
 			}
 		}

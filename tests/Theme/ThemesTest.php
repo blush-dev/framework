@@ -126,6 +126,9 @@ final class ThemesTest extends TestCase
 		$this->assertFalse(ThemeChain::isServable('../x.css'));
 		$this->assertFalse(ThemeChain::isServable('.hidden/x.css'));
 		$this->assertFalse(ThemeChain::isServable('style.php'));
+		$this->assertFalse(ThemeChain::isServable('vite.config.js'));
+		$this->assertFalse(ThemeChain::isServable('tools/postcss.config.mjs'));
+		$this->assertTrue(ThemeChain::isServable('config.js'));
 	}
 
 	public function testBrokenChainsThrow(): void

@@ -22,11 +22,10 @@ bin/blush theme:list              # installed themes, and which is active
 bin/blush theme:activate notebook # switch themes
 ```
 
-Themes live in `user/themes/{slug}/`, or in your site's
-`resources/themes/{slug}/` when you'd rather keep a theme with your site's
-code than with your content. They can also be installed with Composer
-(package type `blush-theme`). If two share a slug, `user/themes/` wins,
-then `resources/themes/`, then Composer. The active theme is set in
+Themes live in `user/themes/{slug}/`, and each can be its own git
+repository. They can also be installed with Composer (package type
+`blush-theme`). If two share a slug, `user/themes/` wins. The active theme
+is set in
 `config/theme.php`, which `theme:activate` writes for you.
 
 In development, add `?theme=notebook` to any URL to preview another theme.
@@ -355,6 +354,8 @@ theme's `resources/` folder (Blush never serves it) and build into its
 ```
 user/themes/notebook/
   theme.json      "styles": ["resources/scss/style.scss"], "scripts": ["resources/js/app.js"]
+  package.json    vite, plus sass-embedded for Sass
+  vite.config.js
   resources/
     scss/  js/  fonts/    sources
     static/               copied to public/ as is (favicons, icons)
@@ -366,14 +367,15 @@ links the built files, and `$template->asset('resources/fonts/body.woff2')`
 finds a built font the same way. Files copied from `static/` are
 reached by their path: `$template->asset('public/img/icon.png')`.
 
-A `vite.config.js` at your site's root (install `vite`, plus
-`sass-embedded` for Sass):
+The build lives in the theme, so it travels with the theme's repository.
+Blush never serves `package.json`, `node_modules/`, or `*.config.js`
+files. Its `vite.config.js`:
 
 ```js
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
-const theme = resolve(import.meta.dirname, 'user/themes/notebook');
+const theme = import.meta.dirname;
 
 export default defineConfig({
 	root: theme,
@@ -390,8 +392,8 @@ export default defineConfig({
 });
 ```
 
-Run `npx vite build` (or `vite build --watch` while you work) and commit
-the built `public/` folder, so your server never needs Node.
+Run `npx vite build` in the theme's folder (or `vite build --watch` while
+you work) and commit the built `public/` folder, so your server never needs Node.
 
 ### Check your theme
 

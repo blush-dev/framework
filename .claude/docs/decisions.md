@@ -2525,3 +2525,47 @@ decision, add a new entry that supersedes it and mark the old one
   find the site it's run in; the author wants that, plus site creation,
   as a real product feature rather than a script users copy.
 
+
+### D-166: `user/` is everything the site owner owns or installs
+- **Date:** 2026-09-27
+- **Decision:** `user/` is the site's `wp-content`: the content, media,
+  and data the owner writes, plus the themes and extensions they
+  install. The defaults stay `user/themes/{slug}` (D-034) and
+  `user/extensions/{slug}` (D-041). Each theme or extension may be its
+  own git repository nested there. When `user/` is itself a repository
+  (jtcom's content repo holds `content/` and `media/` at its root), it
+  ignores `themes/` and `extensions/`, so the nested repositories are
+  independent of it. D-039's rule stands: the admin and uploads never
+  write executable files into `user/`, and only people with repo or
+  filesystem access change themes and extensions.
+- **Why:** the author wants content in one repo and each theme and
+  extension in its own, all under `user/`. Publishing's `git pull`
+  (D-131) runs in `user/` and so updates only the content repository;
+  git doesn't descend into ignored nested repos, so a content push never
+  deploys code. Clarifies D-016 and D-039's "content and data", and
+  answers the open question D-144 raised about where themes live.
+
+### D-167: `resources/themes` is removed; a theme carries its own build
+- **Date:** 2026-09-27
+- **Decision:** Supersedes D-144. `Paths::$siteThemes` and
+  `ThemeSource::Site` are gone; local themes come only from
+  `user/themes` (D-166), and a same-slug `user/themes` theme beats a
+  Composer one. A built theme keeps its build config (`package.json`,
+  `vite.config.js`) in its own folder rather than at the site root, so
+  it travels with the theme's repository. The jtcom trial's theme moved
+  to `user/themes/jtcom`, with its Vite build.
+- **Why:** `resources/themes` was a workaround for keeping jtcom's theme
+  out of its content repo; D-166 makes each theme its own repo under
+  `user/themes` instead. One local location keeps discovery and
+  precedence simple.
+
+### D-168: Build tool config files in a theme are private
+- **Date:** 2026-09-27
+- **Decision:** `ThemeChain::isServable()` refuses any `*.config.js`,
+  `*.config.mjs`, or `*.config.cjs` file, at any depth, alongside the
+  private folders (D-155). So a theme's `vite.config.js` (D-167) is never
+  served, published, or exported. `package.json` was already private
+  (`.json` isn't an asset type), and so was `node_modules/`.
+- **Why:** moving the build into the theme put a `.js` file at its root,
+  which the asset route would otherwise serve. A built asset is never
+  named `*.config.js`, so the rule costs nothing.

@@ -42,8 +42,8 @@ D-156): `config/content.php` (the seven types, typed objects,
 `home: 'post'`), `config/media.php` (`/user/media`), `config/markdown.php`
 (jtcom's extensions and options), `App\SiteServiceProvider`, and the
 `App\View\PostArchives` component (the year, month, and full archive
-lists). The theme is `resources/themes/jtcom` (D-144), built with Vite
-(D-155; `npm run build` at the site root), with views for every page kind:
+lists). The theme is `user/themes/jtcom` (D-167), built with Vite
+(D-155; `npm run build` in the theme's folder), with views for every page kind:
 singles (post, literature, page), the home page and listings, date
 archives, taxonomy lists, the art/drawing/painting image grids, the three
 archive pages, errors, 1.x's numbered pagination markup, head meta
@@ -59,7 +59,7 @@ Findings, and what was done:
   default theme's tokens (D-148); the head gets the entry's description
   and `og:image` (D-149); `excerpt()` takes an HTML `$more` (D-150);
   `readingTime()`, `wordCount()`, and `inline()` for theme SVGs (D-151);
-  site themes (D-144) and web app manifests (D-145). The jtcom theme
+  site themes (D-144, since removed by D-167) and web app manifests (D-145). The jtcom theme
   uses all of them.
 - **Also fixed:** the archive lists are cached per content version and
   theme with the new `$this->cache()` fragment helper (D-152), and

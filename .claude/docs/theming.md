@@ -45,13 +45,13 @@ user/themes/nova/
   lang/             Message catalogs (D-028)
   resources/        Build sources (never served, D-155): scss/, js/, fonts/, …
   public/           Built assets and the build's manifest (build tool is the theme's choice)
+  package.json  vite.config.js   Optional build config, kept with the theme (D-167; private, D-168)
   screenshot.webp
 ```
 
-Themes live in `user/themes/{slug}`, or in the site's
-`resources/themes/{slug}` (D-144). Composer-installed themes may live in
-`vendor/` (D-034). With the same slug, `user/themes` beats
-`resources/themes`, which beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
+Themes live in `user/themes/{slug}`, each optionally its own repo
+(D-166, D-167). Composer-installed themes may live in `vendor/` (D-034).
+With the same slug, `user/themes` beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
 exist (D-032).
 
 ### `theme.json`
@@ -284,7 +284,8 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
   `public/.vite/manifest.json` (D-155), `dist/.vite/manifest.json`, or
   either without `.vite/` (hashed files, their `css`, built scripts as
   modules), otherwise the file mtime (`?v=`) (D-119). A theme's
-  `resources/` and `src/` folders are never served.
+  `resources/`, `src/`, `vendor/`, and `node_modules/` folders and its
+  `*.config.js` files (D-168) are never served.
 - **Publishing:** `theme:publish` copies servable theme assets (never PHP,
   views, or manifests; never a symlink) to `public/themes/{slug}/`. Static
   export includes them.

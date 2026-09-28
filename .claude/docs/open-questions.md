@@ -7,11 +7,6 @@ Move each item to `decisions.md` once it's answered.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 
 ## Later milestones
-- **Where site code and themes live** (D-144, provisional): with `user/`
-  as a separate content repo (jtcom), a site's theme sits in
-  `resources/themes/` for now. Revisit the split between the site repo
-  and `user/` (themes, extensions, `data/`), and whether `theme:new`
-  should offer a location.
 - **Browser-friendly feeds and sitemaps** (D-125): XSL stylesheets won't
   work in major browsers for much longer, so 1.x's approach (jtcom's
   `xsl/feed.xsl`) can't carry over. Options: an HTML "about this feed" page

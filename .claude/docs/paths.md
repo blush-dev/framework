@@ -83,22 +83,22 @@ site/
   nginx.conf.example    Sample nginx server block, root at public/ (D-072)
   bin/blush             Site CLI (name will follow the product name)
   config/               Typed config objects (app, content, cache, theme, …); never under user/ (D-039)
-  user/
+  user/                 What the owner writes or installs, like wp-content (D-166). May be
+                        its own repo that ignores themes/ and extensions/
     content/            Markdown, HTML, and data entries
     media/              Uploaded and co-located media
     data/               Other user data: menus, redirects, theme.json, types/ (D-042); JSON or YAML
-    themes/             Local themes (Composer-installed themes may live in vendor/)
-    extensions/         Local extensions (Composer extensions live in vendor/)
+    themes/             Local themes, each optionally its own repo (Composer themes may
+                        live in vendor/). A built theme keeps sources in {slug}/resources/
+                        (never served), its build in {slug}/public/, and its build
+                        config (package.json, vite.config.js) in {slug}/ (D-155, D-167)
+    extensions/         Local extensions, each optionally its own repo (Composer
+                        extensions live in vendor/)
   public/               Web root: index.php, .htaccess, and published assets ONLY
                         (themes/, and media at MediaConfig::$url, D-099). Relocatable
                         (e.g. cPanel public_html, D-046)
-  resources/themes/     The site's own themes (D-144), kept with its code, not its content.
-                        A built theme keeps sources in {slug}/resources/ (never served) and
-                        its build in {slug}/public/ (D-155)
   resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
   src/                  App\ namespace: providers, components, controllers
-  package.json          Optional: asset build scripts (jtcom: Vite, `npm run build`/`dev`)
-  vite.config.js        Optional: the theme build (jtcom's builds resources/themes/jtcom, D-155)
   storage/
     cache/              Compiled config.php, extensions.php, container.php, routes.php,
                         content-types.php, themes.php (D-060, D-077, D-092, D-115);

@@ -51,13 +51,13 @@ final class LocalAutoloader
 	}
 
 	/**
-	 * Adds the PSR-4 maps of a theme chain's site and local themes
+	 * Adds the PSR-4 maps of a theme chain's local themes
 	 * (Composer autoloads its own themes).
 	 */
 	public function addThemes(ThemeChain $chain): void
 	{
 		foreach ($chain as $theme) {
-			if ($theme->source === ThemeSource::Local || $theme->source === ThemeSource::Site) {
+			if ($theme->source === ThemeSource::Local) {
 				$this->addMap($theme->path, $theme->autoload);
 			}
 		}
