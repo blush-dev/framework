@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Grid component (`View\Component\Layout\Grid`): each block inside is a
+ * Grid component (`Component\Layout\Grid`): each block inside is a
  * cell, in up to `columns` columns that wrap on narrow screens.
  *
  *     :::grid{columns=3}

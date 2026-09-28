@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Button component (`View\Component\Button`): a link styled as a button,
+ * Button component (`Component\Button`): a link styled as a button,
  * with an optional icon before or after its text, or only an icon (named
  * by the label).
  *
@@ -9,19 +9,19 @@
  *     ::button[Share]{url=/share icon=share-2 iconOnly variant=secondary}
  *
  * @var Blush\View\Template                       $template
- * @var Blush\View\Component\Button               $component
+ * @var Blush\Component\Button               $component
  * @var string                                    $url
  * @var string                                    $label
- * @var Blush\View\Component\ButtonVariant        $variant
+ * @var Blush\Component\ButtonVariant        $variant
  * @var string                                    $icon
- * @var Blush\View\Component\IconPosition         $iconPosition
+ * @var Blush\Component\IconPosition         $iconPosition
  * @var bool                                      $hasIcon
  * @var array<string, mixed>                      $props
  */
 
 declare(strict_types=1);
 
-use Blush\View\Component\IconPosition;
+use Blush\Component\IconPosition;
 
 $iconOnly = $component->isIconOnly();
 $class    = implode(' ', array_filter([

@@ -1,14 +1,14 @@
 <?php
 
 /**
- * Progress component (`View\Component\Progress`): a `<progress>` bar
+ * Progress component (`Component\Progress`): a `<progress>` bar
  * named by its label (the `<label>` around it), with its value as text.
  * Without a value, the bar is indeterminate.
  *
  *     ::progress[Reading challenge]{value=12 max=50}
  *
  * @var Blush\View\Template            $template
- * @var Blush\View\Component\Progress $component
+ * @var Blush\Component\Progress $component
  * @var ?string                         $valueAttribute
  * @var string                          $maxAttribute
  * @var string                          $percent

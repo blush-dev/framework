@@ -21,10 +21,10 @@ use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeSettings;
 use Blush\Icon\IconName;
 use Blush\Translation\Translator;
-use Blush\View\Component\ComponentListing;
-use Blush\View\Component\ComponentName;
-use Blush\View\Component\ComponentType;
-use Blush\View\Component\Slots;
+use Blush\Component\ComponentListing;
+use Blush\Component\ComponentName;
+use Blush\Component\ComponentType;
+use Blush\Component\Slots;
 
 /**
  * Renders plain PHP templates (D-009) for one theme chain.

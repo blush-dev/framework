@@ -370,7 +370,7 @@ declare(strict_types=1);
 namespace Notebook;
 
 use Blush\Core\ServiceProvider;
-use Blush\View\Component\ComponentRegistry;
+use Blush\Component\ComponentRegistry;
 
 final class ThemeProvider extends ServiceProvider
 {

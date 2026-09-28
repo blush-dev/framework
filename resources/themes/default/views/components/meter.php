@@ -1,13 +1,13 @@
 <?php
 
 /**
- * Meter component (`View\Component\Meter`): a `<meter>` gauge named by
+ * Meter component (`Component\Meter`): a `<meter>` gauge named by
  * its label (the `<label>` around it), with its value as text.
  *
  *     ::meter[Battery]{value=62 low=20 high=80 optimum=100}
  *
  * @var Blush\View\Template         $template
- * @var Blush\View\Component\Meter $component
+ * @var Blush\Component\Meter $component
  * @var string                       $valueAttribute
  * @var string                       $minAttribute
  * @var string                       $maxAttribute

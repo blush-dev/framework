@@ -450,27 +450,17 @@ view layer was implemented in M5 (D-103 to D-125).
   stylesheets, and scripts, each once, and renders them in the base layout
   (D-109). `ThemedPageRenderer` adds the page number to the title on later
   pages of a listing (D-162).
-- **Components:** `ComponentType` lists the core content components;
-  `Views::components()` discovers every component a chain can render
-  (D-164), by namespaced name (D-171, D-173).
+- **Components** render through `Views` (`component()`,
+  `hasComponent()`), and `Views::components()` discovers every component
+  a chain can render (D-164), by namespaced name (D-171, D-173). The
+  component system itself is its own subsystem (see Components, D-192).
 - **`Hierarchy`:** the candidate view names for a content page or error,
   with front matter `template:` first (D-104).
 - **Renderers:** `ThemedPageRenderer` (the `PageRenderer`) and
   `ThemedErrorPages` (the `ErrorPages`) pick the chain per request
   (`ThemeResolver`, `?theme=` in development) and fill in the head.
-- **Components** (`Blush\View\Component`, D-111): template-only or
-  class-backed, with slots; `ComponentName`, `ComponentDefinition`, and
-  `ComponentContent` (D-171 to D-173); the registry, factory, and
-  registrar; the built-in `Embed` and the layout components in
-  `Component\Layout` (`Group`, `Grid`, `Row`, `CssLength`, D-177) and
-  `Component\Media` (`Audio`, `Video`, `File`, `MediaPreload`, D-179),
-  `Component\Inline` (`Kbd`, `Time`, D-180), `Toc` (D-183, fed the
-  outline by the Markdown layer's `CollectOutline`), `Progress` and
-  `Meter` (D-188), and `Button` (D-189);
-  `MediaProp` marks media props, which directives resolve against the
-  entry's folder. `ComponentDirectives` renders Markdown directives as
-  components (D-112). **Context providers** (`ContextProviders`, D-114)
-  add data to views by name or pattern.
+- **Context providers** (`ContextProviders`, D-114) add data to views by
+  name or pattern.
 - **Themes** (`Blush\Theme`, D-105, D-115 to D-121): `ThemeDiscovery`
   (framework, Composer `blush-theme`, and `user/themes` (D-166), before the
   container; cached in `storage/cache/themes.php`), `Themes`,
@@ -478,6 +468,27 @@ view layer was implemented in M5 (D-103 to D-125).
   `ThemeResolver`, `ThemeAssets` (build manifests or mtime), settings
   (`SettingsResolver`, `SiteThemeData`), `ThemeChecker`, and the
   `theme.asset` route.
+
+## Components
+
+`Blush\Component` (D-111, D-192), bound by `ComponentServiceProvider`.
+Views use components, but the system is its own subsystem.
+
+- **Components:** template-only or class-backed, with slots;
+  `ComponentName`, `ComponentDefinition`, and `ComponentContent` (D-171
+  to D-173); `ComponentType` lists the core content components; the
+  registry, factory, and registrar; `PendingComponent` (the fluent
+  `$template->component()` builder).
+- **Built-ins:** `Embed`; the layout components in `Component\Layout`
+  (`Group`, `Grid`, `Row`, `CssLength`, D-177); `Component\Media`
+  (`Audio`, `Video`, `File`, `MediaPreload`, D-179); `Component\Inline`
+  (`Kbd`, `Time`, D-180); `Toc` (D-183, fed the outline by the Markdown
+  layer's `CollectOutline`); `Progress` and `Meter` (D-188); and `Button`
+  (D-189).
+- **Props:** `MediaProp` marks media props, which directives resolve
+  against the entry's folder; `LinkProp` marks link props (D-190).
+- **Directives:** `ComponentDirectives` (the default `DirectiveRenderer`)
+  renders Markdown directives as components (D-112).
 
 ## Built-in controllers and outputs
 

@@ -26,7 +26,7 @@ use Blush\Icon\IconRegistry;
 use Blush\Icon\Icons;
 use Blush\Tests\BootsScratchSite;
 use Blush\Theme\ThemeResolver;
-use Blush\View\Component\Icon;
+use Blush\Component\Icon;
 use Blush\View\ViewFactory;
 
 #[CoversClass(IconName::class)]

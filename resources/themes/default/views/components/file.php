@@ -1,7 +1,7 @@
 <?php
 
 /**
- * File component (`View\Component\Media\File`): a download link with the
+ * File component (`Component\Media\File`): a download link with the
  * file's format and size. The label is the link text; without one, it's
  * the file's name.
  *

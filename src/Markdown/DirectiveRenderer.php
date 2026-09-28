@@ -15,7 +15,7 @@ namespace Blush\Markdown;
 
 /**
  * Renders Markdown directives (D-026). The view layer binds
- * `View\ComponentDirectives`, which maps each directive to the component
+ * `Component\ComponentDirectives`, which maps each directive to the component
  * of the same name. Returning `null` means the directive is unknown, and
  * it renders as plain content, never as an error.
  */

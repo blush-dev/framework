@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Table of contents component (`View\Component\Toc`): the entry's
+ * Table of contents component (`Component\Toc`): the entry's
  * headings, nested by level, each linking to its heading. The label is
  * shown as a title and names the navigation.
  *

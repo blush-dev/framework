@@ -387,7 +387,7 @@ production, site and extension translation domains, and `image()`.
 Implemented 2026-09-25. See D-111 to D-121. Delivered and tested (630
 tests):
 
-- Components (`View\Component`): template-only and class-backed, slots,
+- Components (`Component`): template-only and class-backed, slots,
   `$this->component()`, the registry/factory/registrar, and `Embed`.
 - Markdown directives (an in-house CommonMark extension) rendered as
   components with the request's theme, and the core content components

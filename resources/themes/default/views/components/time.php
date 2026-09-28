@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Time component (`View\Component\Inline\Time`): a date, time, or
+ * Time component (`Component\Inline\Time`): a date, time, or
  * duration with its machine-readable `datetime`. Without a label, the
  * date is shown in the site's language.
  *

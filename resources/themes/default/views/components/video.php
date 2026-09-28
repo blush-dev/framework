@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Video component (`View\Component\Media\Video`): a video file with the
+ * Video component (`Component\Media\Video`): a video file with the
  * browser's controls, an optional poster and captions track, and the
  * label as its caption.
  *
@@ -14,7 +14,7 @@
  * @var string                                    $captionsLang
  * @var ?int                                      $width
  * @var ?int                                      $height
- * @var Blush\View\Component\Media\MediaPreload $preload
+ * @var Blush\Component\Media\MediaPreload $preload
  * @var bool                                      $loop
  * @var bool                                      $muted
  * @var string                                    $slot

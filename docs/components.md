@@ -372,7 +372,7 @@ namespace App\View;
 
 use Blush\Content\ContentRepository;
 use Blush\Content\Query\Order;
-use Blush\View\Component\Component;
+use Blush\Component\Component;
 
 final class RecentPosts extends Component
 {
@@ -410,7 +410,7 @@ final class RecentPosts extends Component
   a full URL when it starts with `/`.
 
   ```php
-  use Blush\View\Component\MediaProp;
+  use Blush\Component\MediaProp;
 
   public function __construct(#[MediaProp] public string $src = '') {}
   ```
@@ -419,7 +419,7 @@ The class still needs its template, `views/components/app-recent-posts.php`,
 and a name. Register it in a service provider's `boot()` method:
 
 ```php
-use Blush\View\Component\ComponentRegistry;
+use Blush\Component\ComponentRegistry;
 
 public function boot(): void
 {
@@ -439,7 +439,7 @@ wraps and which props it takes, using the same field types as
 
 ```php
 use Blush\Content\Schema\Fields\EnumField;
-use Blush\View\Component\ComponentContent;
+use Blush\Component\ComponentContent;
 
 $components->register(
 	'app/badge',

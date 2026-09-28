@@ -192,14 +192,14 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertMatchesRegularExpression('#\| app/badge\s*\| Badge\s*\|\s*\|\s*\| resources/views/components/app-badge\.php#', $result->output);
 		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\|\s*\| .*themes/default/views/components/callout\.php#', $result->output);
-		$this->assertMatchesRegularExpression('#\| blush/embed\s*\| Embed\s*\| yes\s*\| Blush\\\\View\\\\Component\\\\Embed#', $result->output);
+		$this->assertMatchesRegularExpression('#\| blush/embed\s*\| Embed\s*\| yes\s*\| Blush\\\\Component\\\\Embed#', $result->output);
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
 		$this->assertStringContainsString('resources/views/components/loose.php isn\'t named for a component, so nothing renders it. Name it {namespace}-loose.php.', $result->output . $result->errors);
 	}
 
 	public function testComponentsWithoutTemplatesAreFlagged(): void
 	{
-		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\View\\OrphanProvider::class]);\n");
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\OrphanProvider::class]);\n");
 
 		$list = $this->command('component:list');
 
@@ -208,7 +208,7 @@ final class ThemeCommandsTest extends TestCase
 
 		$check = $this->command('theme:check');
 
-		$this->assertStringContainsString('warning component app/orphan: The "app/orphan" component (Blush\\Tests\\Fixtures\\View\\Orphan) has no components/app-orphan.php template in the chain.', $check->output);
+		$this->assertStringContainsString('warning component app/orphan: The "app/orphan" component (Blush\\Tests\\Fixtures\\Component\\Orphan) has no components/app-orphan.php template in the chain.', $check->output);
 	}
 
 	public function testThemeCheckFlagsComponentTemplatesNotNamedForAComponent(): void
@@ -229,7 +229,7 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testAnotherThemesComponentsAreLeftOut(): void
 	{
-		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\View\\NovaProvider::class]);\n");
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");
 		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova"}');
 
 		$missing = 'The "nova/badge" component (no class) has no components/nova-badge.php template in the chain.';
@@ -242,7 +242,7 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testThemeCheckNotesRegisteredComponentsWithoutALabel(): void
 	{
-		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\View\\NovaProvider::class]);\n");
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");
 		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova"}');
 		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'badge');
 

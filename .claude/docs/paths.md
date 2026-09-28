@@ -41,8 +41,9 @@ blush-framework/
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
     View/               Views, Template, ViewFinder, ViewFactory, Hierarchy, Head, Escaper,
                         functions.php (the escaping helpers), themed renderers,
-                        context providers, ComponentDirectives
-    View/Component/     Component base, registry, factory, registrar, slots, Embed
+                        context providers
+    Component/          Component base, registry, factory, registrar, slots,
+                        ComponentDirectives, built-ins (Layout/, Media/, Inline/) (D-192)
     Theme/              Themes, ThemeDiscovery, ThemeCache, ThemeManifest, ThemeChain,
                         ThemeConfig, ThemeResolver, ThemeAssets, settings, ThemeChecker,
                         the theme asset route

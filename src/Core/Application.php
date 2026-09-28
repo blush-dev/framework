@@ -21,6 +21,7 @@ use Blush\Console\ConsoleServiceProvider;
 use Blush\Container\Container;
 use Blush\Container\ContainerException;
 use Blush\Container\ServiceResolver;
+use Blush\Component\ComponentServiceProvider;
 use Blush\Content\ContentServiceProvider;
 use Blush\Core\Events\ApplicationBooted;
 use Blush\Data\DataServiceProvider;
@@ -74,6 +75,7 @@ class Application implements Bootable
 		TranslationServiceProvider::class,
 		ThemeServiceProvider::class,
 		ViewServiceProvider::class,
+		ComponentServiceProvider::class,
 		FeedServiceProvider::class,
 		SitemapServiceProvider::class,
 		HttpServiceProvider::class,

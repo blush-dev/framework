@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Embed component (`View\Component\Embed`): a page from a known provider
+ * Embed component (`Component\Embed`): a page from a known provider
  * (YouTube and Vimeo in privacy-friendly frames) at its real aspect
  * ratio, or a link for any other URL. The label is the caption.
  *

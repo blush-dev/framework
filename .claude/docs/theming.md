@@ -204,7 +204,7 @@ aren't candidates (D-104).
 - **A template-only component** is just its template, with its props
   passed in as variables (and all of them as `$props`). That's the simple
   path; it renders without being registered.
-- **A class-backed component** extends `View\Component\Component` for props
+- **A class-backed component** extends `Component\Component` for props
   that need logic: typed props via constructor promotion (strings from
   Markdown are cast to `int`/`float`/`bool` or a backed enum, whose unknown
   values fall back to the default), services by autowiring, `data()`,

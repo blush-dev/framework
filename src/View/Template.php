@@ -24,7 +24,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Data\InvalidData;
 use Blush\Routing\UrlGenerationException;
 use Blush\Theme\ThemeException;
-use Blush\View\Component\PendingComponent;
+use Blush\Component\PendingComponent;
 
 /**
  * `$template` inside a template file: the small API templates use to build

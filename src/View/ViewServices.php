@@ -18,8 +18,8 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Core\AppConfig;
 use Blush\Routing\UrlGenerator;
-use Blush\View\Component\ComponentFactory;
-use Blush\View\Component\ComponentRegistry;
+use Blush\Component\ComponentFactory;
+use Blush\Component\ComponentRegistry;
 
 /**
  * The services every `Views` shares, whatever its theme chain: what

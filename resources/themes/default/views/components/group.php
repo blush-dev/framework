@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Group component (`View\Component\Layout\Group`): blocks wrapped in a
+ * Group component (`Component\Layout\Group`): blocks wrapped in a
  * `<div>`, or a `<section>` named by the label, so they can be styled
  * together.
  *
@@ -10,7 +10,7 @@
  *     :::
  *
  * @var Blush\View\Template                   $template
- * @var Blush\View\Component\Layout\GroupTag $tag
+ * @var Blush\Component\Layout\GroupTag $tag
  * @var string                                $label
  * @var string                                $slot
  * @var array<string, mixed>                  $props
@@ -18,7 +18,7 @@
 
 declare(strict_types=1);
 
-use Blush\View\Component\Layout\GroupTag;
+use Blush\Component\Layout\GroupTag;
 
 $class = trim('component-group ' . (is_string($props['class'] ?? null) ? $props['class'] : ''));
 $id    = is_string($props['id'] ?? null) ? $props['id'] : '';

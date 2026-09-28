@@ -3123,3 +3123,17 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author wants variants any component can have, registered
   by core, themes, and extensions, rather than per-component enums
   (D-189).
+
+### D-192: Components are a top-level subsystem
+- **Date:** 2026-09-28
+- **Decision:** Components move from `View\Component` to their own
+  top-level namespace, `Blush\Component` (`src/Component/`), with their
+  own `ComponentServiceProvider` (the registry, factory, and the default
+  `DirectiveRenderer`). `ComponentDirectives` moves with them. `Views`
+  and `Template` still render components; the dependency runs both ways
+  (components render through `Views`). Tests and fixtures move to
+  `tests/Component/` and `tests/Fixtures/Component/`. Earlier entries
+  that name `View\Component` refer to the old location.
+- **Why:** the component system has grown into its own subsystem (names,
+  namespaces, definitions, built-ins, directives, and planned variants,
+  D-191) that views use, and it will keep growing.

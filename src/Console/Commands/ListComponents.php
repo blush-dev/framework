@@ -22,7 +22,7 @@ use Blush\Core\Paths;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
-use Blush\View\Component\ComponentListing;
+use Blush\Component\ComponentListing;
 use Blush\View\ViewFactory;
 
 /**

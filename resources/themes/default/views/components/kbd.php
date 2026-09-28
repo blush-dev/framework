@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Keyboard input component (`View\Component\Inline\Kbd`): a key, or a
+ * Keyboard input component (`Component\Inline\Kbd`): a key, or a
  * key combination with each key in its own `<kbd>`.
  *
  *     Save with :kbd[Ctrl+S].

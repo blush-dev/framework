@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Row component (`View\Component\Layout\Row`): each block inside is an
+ * Row component (`Component\Layout\Row`): each block inside is an
  * item, side by side, wrapping when they don't fit.
  *
  *     :::row{justify=between}
