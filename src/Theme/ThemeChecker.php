@@ -21,21 +21,26 @@ use Blush\Content\Http\PageKind;
 use Blush\Content\Schema\Severity;
 use Blush\Content\Schema\Violation;
 use Blush\Core\ServiceProvider;
+use Blush\Menu\Menus;
+use Blush\Region\Regions;
 use Blush\View\ViewFactory;
 
 /**
  * Checks a theme for `theme:check` (D-020, D-030, D-032):
  *
  * - **Errors:** a chain that doesn't resolve; a provider that isn't a
- *   service provider; invalid setting definitions; a base layout
- *   without `lang` on `<html>`, one `<main>`, or a skip link to it.
+ *   service provider; invalid setting definitions; invalid menu or
+ *   region location declarations; a base layout without `lang` on
+ *   `<html>`, one `<main>`, or a skip link to it.
  * - **Warnings:** shadowed manifests (JSON wins); site setting values
  *   that don't fit; other broken themes; a component with a class but no
  *   template to render; a component template not named for a component;
- *   a layout without `<header>` or `<footer>`, or with other than one
- *   `<h1>`.
+ *   site menu and region files or items that are invalid or don't
+ *   resolve (D-199, D-201); a layout without `<header>` or `<footer>`,
+ *   or with other than one `<h1>`.
  * - **Notices:** `requires` entries, which aren't enforced yet; the
- *   theme's registered components without a translated label.
+ *   theme's registered components without a translated label; site
+ *   menus and regions no location shows.
  *
  * The layout is checked by rendering the `welcome` page.
  */
@@ -44,7 +49,9 @@ final readonly class ThemeChecker
 	public function __construct(
 		private Themes $themes,
 		private SettingsResolver $settings,
-		private ViewFactory $views
+		private ViewFactory $views,
+		private Menus $menus,
+		private Regions $regions
 	) {}
 
 	/**
@@ -70,7 +77,14 @@ final readonly class ThemeChecker
 			$problems = [...$problems, ...$this->manifest($theme)];
 		}
 
-		$problems = [...$problems, ...$this->settings($chain), ...$this->components($chain), ...$this->layout($chain)];
+		$problems = [
+			...$problems,
+			...$this->settings($chain),
+			...$this->components($chain),
+			...$this->menus->check($chain),
+			...$this->regions->check($chain),
+			...$this->layout($chain)
+		];
 
 		return new ThemeReport($slug, $problems);
 	}

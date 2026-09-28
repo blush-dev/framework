@@ -68,7 +68,7 @@ final readonly class ThemedErrorPages implements ErrorPages
 
 		$views   = $this->views->forChain($this->themes->forRequest($request));
 		$entry   = $this->entry($status->value);
-		$context = $this->views->context($views, $entry);
+		$context = $this->views->context($views, $entry, $request->getUri()->getPath());
 		$reason  = $status->reasonPhrase();
 		$title   = $entry !== null && $entry->title !== '' ? $entry->title : self::message($views, "error.{$status->value}.title", $reason);
 

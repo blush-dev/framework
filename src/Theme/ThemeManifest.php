@@ -23,8 +23,9 @@ namespace Blush\Theme;
  * A theme with PHP names a `provider` (a service provider, registered
  * before the site's, D-054) and, for a local theme, the `autoload.psr-4`
  * map Blush registers for it. Its `settings` are field definitions
- * (D-022); keys this version doesn't read (image sizes, menus, regions)
- * are kept in `$data`.
+ * (D-022), and its `menus` and `regions` declare the locations the site
+ * fills (D-199, D-201), each a label or an object. Keys this version
+ * doesn't read (image sizes) are kept in `$data`.
  */
 final readonly class ThemeManifest
 {
@@ -83,6 +84,18 @@ final readonly class ThemeManifest
 			throw new ThemeException(sprintf('The "%s" theme\'s "settings" must map names to field definitions.', $slug));
 		}
 
+		foreach (['menus', 'regions'] as $key) {
+			$locations = $data[$key] ?? [];
+
+			if (
+				! is_array($locations)
+				|| ($locations !== [] && array_is_list($locations))
+				|| ! array_all($locations, static fn (mixed $value, int|string $name): bool => (is_string($value) || is_array($value)) && preg_match('/^[a-z0-9][a-z0-9_-]*$/', (string) $name) === 1)
+			) {
+				throw new ThemeException(sprintf('The "%s" theme\'s "%s" must map location names (lowercase letters, digits, hyphens, underscores) to labels or objects.', $slug, $key));
+			}
+		}
+
 		/** @var array<string, mixed> $data */
 		return new self(
 			slug: $slug,
@@ -109,6 +122,30 @@ final readonly class ThemeManifest
 	{
 		/** @var array<string, array<array-key, mixed>> Checked by `fromArray()`. */
 		return $this->data['settings'] ?? [];
+	}
+
+	/**
+	 * Returns the manifest's menu location declarations, by name: labels
+	 * or objects (see `Menu\MenuLocation`).
+	 *
+	 * @return array<string, string|array<array-key, mixed>>
+	 */
+	public function menus(): array
+	{
+		/** @var array<string, string|array<array-key, mixed>> Checked by `fromArray()`. */
+		return $this->data['menus'] ?? [];
+	}
+
+	/**
+	 * Returns the manifest's region location declarations, by name:
+	 * labels or objects (see `Region\RegionLocation`).
+	 *
+	 * @return array<string, string|array<array-key, mixed>>
+	 */
+	public function regions(): array
+	{
+		/** @var array<string, string|array<array-key, mixed>> Checked by `fromArray()`. */
+		return $this->data['regions'] ?? [];
 	}
 
 	/**

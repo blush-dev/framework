@@ -118,6 +118,8 @@ user/themes/notebook/
 	"parent": "default",
 	"styles": ["style.css"],
 	"scripts": ["app.js"],
+	"menus": { "primary": "Primary", "social": "Social" },
+	"regions": { "sidebar": "Sidebar" },
 	"settings": {
 		"showDate": {
 			"type": "bool",
@@ -134,6 +136,8 @@ Only `name` is required.
   default. Anything this theme doesn't include comes from its parent.
 - **`settings`:** options site owners set in `user/data/theme.json`. They
   use the same field types as [custom fields](content-types.md#custom-fields).
+- **`menus` and `regions`:** the places your theme shows the site's menus
+  and regions. See [Menus and regions](menus.md#for-theme-authors).
 
 ### Templates
 
@@ -510,8 +514,9 @@ folder, so your server never needs Node. A build that hashes file names
 bin/blush theme:check
 ```
 
-It checks the manifest and settings, and makes sure the base layout has
-the landmarks and skip link screen reader users rely on.
+It checks the manifest and settings, the site's menus and regions, and
+makes sure the base layout has the landmarks and skip link screen reader
+users rely on.
 
 ### Going live with a theme
 

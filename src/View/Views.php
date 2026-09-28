@@ -255,7 +255,7 @@ final readonly class Views
 		$class     = $this->services->components->get($name)?->class;
 		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props);
 
-		$component->attach($parsed, $props, $slot, $slots, $this->translator);
+		$component->attach($parsed, $props, $slot, $slots, $this->translator, $context);
 
 		if (! $component->shouldRender()) {
 			return '';

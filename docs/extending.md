@@ -152,6 +152,29 @@ to the parent's; override `frame()` to change the URL that's framed. A
 plain provider needs no code: list it in
 [`config/embed.php`](configuration.md#embeds).
 
+## Menu links and region items
+
+A new kind of [menu](menus.md) link is a class that extends
+`Blush\Menu\Link\MenuLink`. Its `resolve()` returns a `LinkTarget` (a URL
+and the label it brings) or throws `UnresolvedLink` to leave the item out;
+`validate()` checks the value's shape. Register it under the item key it
+answers to:
+
+```php
+use Blush\Menu\Link\MenuLinkRegistry;
+
+public function boot(): void
+{
+	$this->container->get(MenuLinkRegistry::class)->register('product', App\Menu\ProductLink::class);
+}
+```
+
+Then a menu item can say `product: blue-mug`. A new kind of region item
+extends `Blush\Region\Item\RegionItem`, whose `render()` returns HTML, and
+is registered with `Blush\Region\Item\RegionItemRegistry` the same way.
+Both are built through the container, so their constructors can ask for
+services.
+
 ## Extensions
 
 An extension packages the same kind of code for reuse across sites. It's a

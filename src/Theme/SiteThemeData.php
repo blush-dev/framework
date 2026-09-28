@@ -19,16 +19,20 @@ use Blush\Data\InvalidData;
 
 /**
  * The site owner's theme data, `user/data/theme.json` (or `.yaml`,
- * D-022): setting values, which the future admin edits.
+ * D-022): setting values, which the future admin edits, and which site
+ * menu or region fills a theme location whose name differs (D-199,
+ * D-201).
  *
  * ```json
  * {
- *     "settings": { "excerpts": false }
+ *     "settings": { "excerpts": false },
+ *     "menus": { "main": "primary" },
+ *     "regions": { "aside": "sidebar" }
  * }
  * ```
  *
  * They apply to whichever theme is active: a setting a theme doesn't
- * declare is ignored.
+ * declare is ignored, and so is a location it doesn't have.
  */
 final class SiteThemeData
 {
@@ -55,6 +59,47 @@ final class SiteThemeData
 		$settings = $this->data()['settings'] ?? [];
 
 		return is_array($settings) ? $settings : throw new InvalidData('user/data/theme "settings" must be an object.');
+	}
+
+	/**
+	 * Returns the site menus that fill theme menu locations, by location.
+	 *
+	 * @return array<string, string>
+	 * @throws InvalidData
+	 */
+	public function menus(): array
+	{
+		return $this->locations('menus');
+	}
+
+	/**
+	 * Returns the site regions that fill theme region locations, by
+	 * location.
+	 *
+	 * @return array<string, string>
+	 * @throws InvalidData
+	 */
+	public function regions(): array
+	{
+		return $this->locations('regions');
+	}
+
+	/**
+	 * Reads a map of location names to site data names.
+	 *
+	 * @return array<string, string>
+	 * @throws InvalidData
+	 */
+	private function locations(string $key): array
+	{
+		$map = $this->data()[$key] ?? [];
+
+		if (! is_array($map) || ($map !== [] && array_is_list($map)) || ! array_all($map, static fn (mixed $name): bool => is_string($name) && $name !== '')) {
+			throw new InvalidData(sprintf('user/data/theme "%s" must map location names to names.', $key));
+		}
+
+		/** @var array<string, string> $map */
+		return $map;
 	}
 
 	/**

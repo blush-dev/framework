@@ -17,6 +17,8 @@ use Blush\Cache\ContentCache;
 use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Core\AppConfig;
+use Blush\Menu\Menus;
+use Blush\Region\Regions;
 use Blush\Routing\UrlGenerator;
 use Blush\Component\ComponentFactory;
 use Blush\Component\ComponentRegistry;
@@ -24,7 +26,7 @@ use Blush\Component\ComponentRegistry;
 /**
  * The services every `Views` shares, whatever its theme chain: what
  * templates reach through `Template` (URLs, content, routes, the app
- * config), context providers, and components.
+ * config, menus, regions), context providers, and components.
  */
 final readonly class ViewServices
 {
@@ -36,6 +38,8 @@ final readonly class ViewServices
 		public ContextProviders $providers,
 		public ComponentRegistry $components,
 		public ComponentFactory $factory,
+		public Menus $menus,
+		public Regions $regions,
 		public ?ContentCache $cache = null
 	) {}
 }

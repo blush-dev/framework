@@ -134,6 +134,15 @@ Only the [file types your site allows](media.md#allowed-file-types) are
 served, so check the list before offering other kinds of files for
 download.
 
+### Menus
+
+`::menu{name=social}` shows one of your site's [menus](menus.md), by the
+theme location that shows it. `label` names the navigation for screen
+readers. In content, no link is marked as the current page, since the
+same content is shown on every page. Themes usually print menus from
+their templates instead:
+`<?= $template->component('menu', name: 'primary') ?>`.
+
 ### Table of contents
 
 `::toc` lists the page's headings, nested by level, each linking to its

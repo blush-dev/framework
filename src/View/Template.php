@@ -22,6 +22,9 @@ use Blush\Cache\CacheException;
 use Blush\Cache\CacheNamespace;
 use Blush\Content\Entry\Entry;
 use Blush\Data\InvalidData;
+use Blush\Menu\Menu;
+use Blush\Menu\MenuException;
+use Blush\Region\RegionException;
 use Blush\Routing\UrlGenerationException;
 use Blush\Theme\ThemeException;
 use Blush\Component\PendingComponent;
@@ -229,6 +232,62 @@ final class Template
 	public function icon(string $name, string $label = ''): PendingComponent
 	{
 		return $this->component('icon', name: $name, label: $label);
+	}
+
+	/**
+	 * Returns the menu a theme location shows (D-199), with the page's
+	 * item marked current, or `null` when it shows none, for markup of
+	 * the theme's own. The `menu` component prints one with the default
+	 * markup: `<?= $template->component('menu', name: 'primary') ?>`.
+	 *
+	 * ```php
+	 * <?php if ($menu = $template->menu('social')) : ?>
+	 *     <ul>
+	 *         <?php foreach ($menu->items as $item) : ?>
+	 *             <li><a href="<?= url($item->url) ?>"><?= e($item->label) ?></a></li>
+	 *         <?php endforeach ?>
+	 *     </ul>
+	 * <?php endif ?>
+	 * ```
+	 *
+	 * @throws MenuException When the theme's location declaration is invalid.
+	 * @throws InvalidData When a menu file can't be read.
+	 */
+	public function menu(string $location): ?Menu
+	{
+		return $this->views->services->menus
+			->forLocation($this->views->chain, $location, $this->context->locale)
+			?->forPath($this->context->path, $this->views->services->app->origin());
+	}
+
+	/**
+	 * Returns the HTML of the region a theme location shows (D-201), or
+	 * `''`: its items rendered in order. Wrap it in the theme's own markup,
+	 * guarded by `hasRegion()`:
+	 *
+	 * ```php
+	 * <?php if ($template->hasRegion('sidebar')) : ?>
+	 *     <aside class="sidebar"><?= $template->region('sidebar') ?></aside>
+	 * <?php endif ?>
+	 * ```
+	 *
+	 * @throws RegionException When the theme's location declaration is invalid.
+	 * @throws InvalidData When a region file can't be read.
+	 */
+	public function region(string $location): string
+	{
+		return $this->views->services->regions->render($this->views, $this->context, $location);
+	}
+
+	/**
+	 * Returns whether a theme location shows a region with any items.
+	 *
+	 * @throws RegionException
+	 * @throws InvalidData
+	 */
+	public function hasRegion(string $location): bool
+	{
+		return $this->views->services->regions->has($this->views->chain, $location);
 	}
 
 	/**

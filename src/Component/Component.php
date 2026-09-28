@@ -15,6 +15,7 @@ namespace Blush\Component;
 
 use Blush\Translation\Translator;
 use Blush\View\Escaper;
+use Blush\View\ViewContext;
 
 /**
  * A component (D-025, D-195): typed props through constructor promotion,
@@ -91,6 +92,11 @@ abstract class Component
 	private ?Translator $translator = null;
 
 	/**
+	 * The render it's part of.
+	 */
+	private ?ViewContext $viewContext = null;
+
+	/**
 	 * The main content's HTML.
 	 */
 	private string $content = '';
@@ -112,8 +118,9 @@ abstract class Component
 	// phpcs:enable
 
 	/**
-	 * Gives the component its name, its props, its content and slots, and
-	 * the theme's translator. Called by `Views` when it renders one.
+	 * Gives the component its name, its props, its content and slots, the
+	 * theme's translator, and the render it's part of. Called by `Views`
+	 * when it renders one.
 	 *
 	 * @internal
 	 * @param array<string, mixed> $props
@@ -123,7 +130,8 @@ abstract class Component
 		array $props,
 		string $content = '',
 		?Slots $slots = null,
-		?Translator $translator = null
+		?Translator $translator = null,
+		?ViewContext $context = null
 	): void {
 		$this->componentName = $name;
 		$this->props         = $props;
@@ -132,6 +140,7 @@ abstract class Component
 		$this->content       = $content;
 		$this->namedSlots    = $slots;
 		$this->translator    = $translator;
+		$this->viewContext   = $context;
 	}
 
 	/**
@@ -266,6 +275,16 @@ abstract class Component
 	protected function rootAttributes(): array
 	{
 		return [];
+	}
+
+	/**
+	 * Returns the render the component is part of: the page's path and
+	 * locale, and its `Head`. `null` for a component built outside
+	 * `Views`.
+	 */
+	protected function context(): ?ViewContext
+	{
+		return $this->viewContext;
 	}
 
 	/**

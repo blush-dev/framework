@@ -3317,3 +3317,212 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author's calls: "wrapper" for the wrapper, the gallery's
   layout prop is needed, and a clearer name for the captions file.
 
+
+### D-199: Menus (planned)
+- **Date:** 2026-09-28
+- **Status:** Implemented in D-204, which refines it.
+- **Decision:** A menu system, designed and not yet built.
+  - **Storage:** one data file per menu, `user/data/menus/{name}.yaml`
+    (or `.json`; JSON wins, D-032), read through `DataLoader`. This
+    replaces the single `user/data/menus.*` file that `theming.md` and
+    `paths.md` planned.
+  - **Locations:** a theme declares its menu locations in `theme.json`
+    `menus`. A location shows the site menu of the same name. An
+    optional map in `user/data/theme.json` (`"menus": {"main":
+    "primary"}`) points a location at another menu, so switching to a
+    theme with different names doesn't mean renaming files. There is no
+    WordPress-style assignment step.
+  - **Items:** a list under `items`, each with at most one link source:
+    `entry: {type}/{key}` (label and URL from the entry, so menus follow
+    slug and permalink changes, and drafts and scheduled entries stay
+    out until they go live), `term: {taxonomy}/{slug}`,
+    `collection: {type}`, `route: {name}` (with `params`), or `url`. An
+    item with only a `label` is a heading or group. Items may have
+    `label` (overrides the derived one), `children`, `icon` (a
+    namespaced icon name, D-187), `class`, and `rel`; there is no
+    `target`. The menu may have its own `label` (the `<nav>`'s
+    accessible name; else the theme's location label).
+  - **Link kinds** follow D-019: a `MenuLinkType` enum, registry,
+    factory, and registrar, with an abstract `MenuLink` and final kinds,
+    so extensions can add their own.
+  - **Runtime:** `Blush\Menu`, a top-level subsystem (like `Component`,
+    D-192). A loader validates files into immutable `Menu` and
+    `MenuItem` objects; `Menus` resolves links and caches the resolved
+    tree (URLs and labels, not HTML) per content version in a `menus`
+    namespace. The current item is marked at render time from the
+    request path (`aria-current="page"` on the match, an ancestor
+    modifier on its parents), so the view context needs the current
+    path, which templates can't see today. A link that doesn't resolve
+    is left out and logged.
+  - **Template API:** a core `menu` component
+    (`$template->component('menu', name: 'primary')`, and `::menu{name=…}`
+    in content) with a `<nav>` and nested `<ul>` default template and
+    `component-menu__*` classes (D-182); plus `$template->menu($name)`,
+    which returns the `Menu` (or `null` when the location has none) for
+    themes that write their own markup. Looks come from variants
+    (D-191).
+  - **Tooling:** `menu:list` (menus, locations, item counts, broken
+    links), `menu:show {name}` (the resolved tree), and `theme:check`
+    warnings for unfilled locations and menus no location uses.
+  - **Later:** entries adding themselves from front matter (Hugo-style
+    `menu:` and `weight:`).
+- **Why:** the author's calls, walking through the design. jtcom's
+  primary and social menus are hard-coded in its theme today.
+
+### D-200: Mega menus: rich items now, panels later (planned)
+- **Date:** 2026-09-28
+- **Status:** Implemented in D-204, which refines it.
+- **Decision:** Part of D-199.
+  - **Rich items:** built-in optional `description`, `image`, `icon`,
+    and `badge`.
+  - **Theme-declared locations:** a `theme.json` `menus` entry is a label
+    string or an object with `label`, `depth` (the deepest nesting the
+    location shows), and `fields`: extra per-item fields in the content
+    schema field types (as theme settings, D-117), validated by the
+    loader and later used by the admin's item form. Layout values (such
+    as panel columns) live there, not in core's item model.
+  - **Markup:** items with children use the disclosure pattern (a
+    `<button aria-expanded>` next to the parent's real link), never ARIA
+    `role="menu"`. The framework ships markup and state hooks only;
+    opening, closing, and focus behavior are the theme's.
+  - **Later:** `panel: {entry}`, a Markdown entry (such as
+    `_menus/tutorials.md`) rendered with components inside the
+    dropdown, once a site needs it. Its links wouldn't get the current
+    state, since the body is cached for every page.
+- **Why:** rich items cover most mega menus for little cost; jtcom
+  doesn't need panels.
+
+### D-201: Regions, designed with menus (planned)
+- **Date:** 2026-09-28
+- **Status:** Implemented in D-204, which refines it.
+- **Decision:** Replaces the regions plan in `theming.md` (contents in
+  site config).
+  - **Storage:** one data file per region, `user/data/regions/{name}.*`,
+    matched to the theme's `regions` locations by name, with the same
+    optional map in `user/data/theme.json` (`"regions": {…}`).
+  - **Items:** a list under `items` (not "blocks"), each one of:
+    `component: {name}` with its props as sibling keys; `markdown:`
+    inline text; `entry: {type}/{key}`, an entry's rendered body (such
+    as `_regions/about.md`); or `view: {name}`, a site or theme partial,
+    with sibling keys as its data. Kinds follow D-019 (an enum,
+    registry, factory, and registrar).
+  - **Theme defaults:** a `theme.json` `regions` entry is a label string
+    or an object with `label` and default `items`, shown when the site
+    has no file for that region (a site file replaces them; no merge).
+    Menus get no theme defaults: an unfilled menu renders nothing.
+  - **Template API:** `$template->region($name)` returns the HTML
+    (`''` when empty) and `$template->hasRegion($name)` guards
+    wrappers. Markdown items render through the body cache per content
+    version and theme; components render per request, so a menu in a
+    region still marks its current item.
+  - **Later:** per-page conditions (a sidebar only on posts). Until
+    then, a theme's templates choose which regions they print.
+- **Why:** the author wanted regions designed together with menus so
+  both share one site-data and theme-declaration shape.
+
+### D-202: Text in user data may be a locale map (planned)
+- **Date:** 2026-09-28
+- **Status:** Implemented in D-204, which refines it.
+- **Decision:** In menus and regions (and any later user data), a text
+  value is a string or a `{locale: text}` map (`label: {en: About,
+  fr_CA: À propos}`). It's picked by the page's locale (the entry's,
+  else the site's), falling back like message catalogs: the locale, its
+  language, the site locale, then the first value. `entry:` references
+  resolve to that locale's translation when one exists
+  (`ContentRepository::named()` already takes a locale). Blush has no
+  per-request locale yet; this rule applies once it does.
+- **Why:** the author chose locale maps from the start, for every text
+  value, so data files don't change shape when multilingual sites
+  arrive.
+
+### D-203: Brand icons come from themes
+- **Date:** 2026-09-28
+- **Decision:** Refines D-187's open item. Neither core nor the default
+  theme ships brand logos. A theme that needs a social menu includes its
+  brand SVGs in its own icon namespace (`jtcom/github`), which menu
+  items reference by `icon`.
+- **Why:** the author's call; brand logos carry usage rules and go
+  stale, and they belong with the design that uses them.
+
+### D-204: Menus and regions, implemented
+- **Date:** 2026-09-28
+- **Decision:** D-199 to D-203 are built, with these refinements:
+  - **`Blush\Menu`:** `MenuLoader` (`user/data/menus/`; a file is
+    `{label, items}` or a bare list of items), `MenuLocation`,
+    `MenuFile`, `Menus` (resolves a location for a chain and locale,
+    `locations()`, `menuName()`, `check()`), and the resolved `Menu` and
+    `MenuItem` (`label`, `url`, `icon`, `description`, `image`, `badge`,
+    `class`, `rel`, `fields`, `children`, `current`, `ancestor`;
+    `Menu::forPath()` marks the current item). Link kinds:
+    `Link\MenuLinkType` (`entry`, `term`, `collection`, `route`, `url`),
+    the abstract `MenuLink` (`validate()`, `resolve()` → `LinkTarget`,
+    throwing `UnresolvedLink`; `keys()` for extra keys such as a route's
+    `params`), registry, factory, and registrar.
+  - **`Blush\Region`:** `RegionLoader`, `RegionLocation`, `RegionFile`,
+    `Regions` (`render()`, `has()`, `items()`, `check()`), and
+    `Item\RegionItemType` (`component`, `entry`, `markdown`, `view`),
+    the abstract `RegionItem`, registry, factory, and registrar. Items
+    render with a `RegionRender` (the views, the page's context, and
+    the locale).
+  - **Caching:** resolved menus are kept per theme, location, and
+    locale for the process only, not in a `menus` cache namespace as
+    D-199 planned; resolving is a few index lookups, and the page cache
+    keeps whole pages. Region `markdown` items use the body cache.
+  - **Problems don't break pages:** an item that doesn't resolve or
+    render is left out and logged (warning), and `menu:list`,
+    `menu:show`, and `theme:check` report the same problems. Invalid
+    location declarations are errors (`MenuException`,
+    `RegionException`, and `ThemeManifest` checks that `menus` and
+    `regions` map names to labels or objects).
+  - **`theme:check`** reports menu and region problems and site menus
+    and regions no location shows (notices), but not unfilled locations
+    (an empty location is normal); `menu:list` shows those.
+  - **Item keys:** a key that isn't a built-in option, the link, the
+    link's own keys, or a field the location declares is a problem.
+    Declared fields resolve through a content `Schema`; a value that
+    doesn't fit gets the default.
+  - **Entry references** are `{type}/{key}`; `{type}/` (or `{type}`) is
+    the landing page. Region text for longer content lives in a hidden
+    `_regions/` folder (`entry: page/_regions/about`).
+  - **The page's path and locale** are on `ViewContext` (`path`,
+    `locale`: the entry's, else the site's), set by the page and error
+    renderers; `ViewFactory::context()` takes the path. Components get
+    the render's context through `attach()` and read it with the
+    protected `Component::context()`.
+  - **Template API:** `$template->menu($location)` (a `Menu` marked for
+    the page, or `null`), `$template->region($location)`, and
+    `$template->hasRegion($location)`. `ViewServices` carries `Menus`
+    and `Regions`.
+  - **The `menu` component** is core (`ComponentType::Menu`, class
+    `Component\Menu`): props `name` (the location), `label`, and `menu`
+    (a `Menu` object, from templates). Its root is
+    `component-menu component-menu--{location}` with `aria-label`;
+    attribute methods `listAttributes()`, `itemAttributes()`
+    (`--current`, `--ancestor`, `--parent`), `linkAttributes()`
+    (`aria-current="page"`; a heading `<span>` for items without a
+    link), and `toggleAttributes()` (a `hidden` disclosure button with
+    `aria-expanded` and `aria-controls`, and the theme's `menu.toggle`
+    text). In Markdown it renders once for every page, so nothing is
+    marked current.
+  - **Location labels name the `<nav>`**, so they should be short and
+    leave out "navigation" ("Primary", not "Primary navigation").
+  - **Locale maps (`Translation\LocaleMap`):** a map counts as one when
+    every key looks like a locale and every value is a string; keys are
+    normalized (`fr-CA` → `fr_CA`); `resolve()` replaces maps at any
+    depth in props and view data.
+  - **The default theme** declares a `primary` menu (in its header) and
+    a `footer` region (above the credit), with plain CSS for menus
+    (submenus open, no script).
+  - **CLI:** `menu:list [--theme]` and `menu:show <location> [--theme]
+    [--locale]`. No region command yet; `theme:check` covers regions.
+  - **The jtcom trial** uses `primary` and `social` menus in
+    `user/data/menus/`, printed with the core `menu` component and its
+    default markup (the primary menu gets `class: 'hidden'` for its
+    toggle script); its SCSS targets `component-menu--primary` and
+    `component-menu--social` and their `__list`, `__item`, `__link`,
+    and `component-icon` elements, with each item's `class`
+    (`is-github`) setting its brand color. Its brand SVGs are in
+    `resources/svg/icon/`, added to the `jtcom` icon namespace by its
+    `ThemeProvider` through `IconRegistry` (`jtcom/github`, D-203); the
+    `menu-social` partial is gone. Its build still makes 421 pages.
+- **Why:** the author asked to build the D-199 to D-203 design.

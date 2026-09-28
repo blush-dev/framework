@@ -4,8 +4,8 @@ Decisions: D-009, D-010, D-020 through D-035, and D-102 through D-125 (M5).
 Unresolved items are listed at the bottom.
 
 **Status:** M5a and M5b (D-102 to D-121) implemented everything here except
-image derivatives (`image()`), menus and regions, and `requires`
-enforcement. M5c (D-122 to D-124) added the feed and sitemap templates.
+image derivatives (`image()`) and `requires` enforcement. Menus and
+regions came later (D-199 to D-204). M5c (D-122 to D-124) added the feed and sitemap templates.
 
 ## Principles
 
@@ -64,8 +64,11 @@ exist (D-032).
 	"requires": { "blush": "^2.0", "features": ["search"] },
 	"styles": ["style.css"],
 	"imageSizes": { "card": [640, 360, "crop"], "wide": [1600, 0] },
-	"menus": { "primary": "Primary navigation", "social": "Social links" },
-	"regions": { "sidebar": "Sidebar" },
+	"menus": {
+		"primary": { "label": "Primary", "depth": 2, "fields": { "columns": { "type": "number", "integer": true, "default": 1 } } },
+		"social": "Social"
+	},
+	"regions": { "sidebar": { "label": "Sidebar", "items": [{ "component": "menu", "name": "social" }] } },
 	"settings": {
 		"showReadingTime": { "type": "bool", "default": true, "label": "Show reading time" },
 		"archiveLayout": { "type": "enum", "options": ["grid", "list"], "default": "list" }
@@ -111,7 +114,7 @@ site overrides (resources/views, config, user/data)
 |---|---|---|
 | Theme defaults | `user/themes/{slug}/theme.json` | Theme author |
 | Site code config | `config/theme.php` → `ThemeConfig` (active theme, component overrides) | Developer |
-| Site data | `user/data/theme.json` (setting values) | Site owner, later the admin |
+| Site data | `user/data/theme.json` (setting values, location maps), `user/data/menus/`, `user/data/regions/` | Site owner, later the admin |
 
 ## Templates
 
@@ -342,10 +345,36 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
 
 ## Navigation and regions
 
-- **Menus** are site data (`user/data/menus.*`) validated against the menus the
-  theme declares.
-- **Regions** are filled with components configured in site config (later,
-  editable in the admin).
+D-199 to D-204; the user guide is `docs/menus.md`.
+
+- **Locations:** `theme.json` `menus` and `regions` declare locations,
+  each a label string or an object. A menu location may set `depth` and
+  extra per-item `fields` (content schema field types, D-200); a region
+  location may list default `items`, shown when the site has no file for
+  it (D-201).
+- **Site data:** `user/data/menus/{name}.*` and `user/data/regions/{name}.*`
+  fill the locations of the same name. `user/data/theme.json` may map a
+  location to another name (`"menus": {"main": "primary"}`).
+- **Menu items** link to an `entry` (`{type}/{key}`), `term`,
+  `collection`, `route`, or `url`, with optional `label`, `children`,
+  `icon`, `description`, `image`, `badge`, `class`, and `rel`. Links are
+  resolved and cached per content version; the current item gets
+  `aria-current="page"` at render time. Dropdowns use the disclosure
+  pattern, never `role="menu"`; the theme owns the behavior.
+- **Region items** are a `component` (props as sibling keys),
+  `markdown`, an `entry`'s body, or a `view`.
+- **Text values** may be locale maps (`{en: About, fr_CA: À propos}`,
+  D-202).
+- **Templates:** the core `menu` component, `$template->menu($name)` for
+  custom markup, and `$template->region($name)` / `hasRegion()`.
+- **Location labels** name the menu's `<nav>`: short, without
+  "navigation".
+- **Problems** (unresolved links, unknown keys) leave the item out, are
+  logged, and show in `menu:list`, `menu:show`, and `theme:check`.
+- **Brand icons** (for social menus) come from the theme's own icon
+  namespace, not core (D-203).
+- **Later:** front matter menu entries, mega-menu `panel` entries, and
+  per-page region conditions.
 
 ## Translation (D-028)
 

@@ -69,6 +69,8 @@ Implemented in M2 (D-065, D-069).
 | `theme:check [slug] [--strict]` | Check the chain, manifests, provider, settings, components without a template (D-164), component files not named for a component, registered components without a label (notice; D-173), and the base layout's landmarks and skip link (D-030, D-121, D-160) |
 | `theme:why <view> [--theme]` | Show which file in the view chain wins for a view, and what it shadows (D-120) |
 | `icon:list [--theme]` | List every icon the chain can show: full name, label, and winning file (D-187) |
+| `menu:list [--theme]` | List the chain's menu locations, the site menu each shows, resolved item counts, and files; site menus no location shows; problems (D-204) |
+| `menu:show <location> [--theme] [--locale]` | Print a location's menu resolved as a page sees it (labels and URLs, nested), with its problems; fails when it shows none (D-204) |
 | `component:list [--theme]` | List every component the chain can render: full name, label, registered or not, class, and winning template; warn when one can't render (D-164) and about files not named for a component (D-173) |
 | `lang:missing [--locale]` | List untranslated message keys |
 | `build [--base-url] [--no-crawl] [--incremental]` | Export the site to static files in `storage/export`, rendered as production for the export's origin, with redirects and host files; `--incremental` keeps the last export's pages when nothing changed; broken links and host-file notices are warnings, failed URLs fail it (M7, D-135 to D-140) |

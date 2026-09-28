@@ -149,10 +149,21 @@ The current focus: the experience of setting up a Blush site.
   named for their role (`caption()`, `text()`; D-196).
 - **The jtcom trial's theme** styles every new component in its
   hand-drawn look (not committed; D-156).
+- **Menus and regions (D-199 to D-204):** site data in
+  `user/data/menus/` and `user/data/regions/` filling theme locations;
+  entry, term, collection, route, and URL links; rich items and
+  theme-declared item fields; locale maps for text; the core `menu`
+  component, `$template->menu()`, `region()`, and `hasRegion()`;
+  `menu:list`, `menu:show`, and `theme:check` reports. The default theme
+  shows a `primary` menu and a `footer` region; the jtcom trial's
+  primary and social menus are data now, and it builds the same 421
+  pages. User guide: `docs/menus.md`. More design work on how menus and
+  regions relate is still to come (see `open-questions.md`).
 
 ### Still to scope
 
 Other starting points the author may pick up (none decided):
+
 
 - **Component variants (D-191):** planned (one per use, BEM modifier
   classes, a registry with translatable labels, fallback to the

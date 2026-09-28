@@ -43,6 +43,10 @@
 	"toc": {
 		"label": "Table of contents"
 	},
+	"menu": {
+		"label": "Menu",
+		"toggle": "{label} submenu"
+	},
 	"progress": {
 		"label": "Progress"
 	},

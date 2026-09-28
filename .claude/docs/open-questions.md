@@ -11,6 +11,17 @@ Move each item to `decisions.md` once it's answered.
   extension in `user/extensions/` (WordPress-style, with site PHP such as
   a future blog extension).
 
+- **Menus and regions need more design work** (D-199 to D-204, noted
+  2026-09-28). The author wants to revisit how the two relate. Today a
+  menu is link data shown in a menu location (by the `menu` component
+  or `$template->menu()`), and a region is an ordered list of items
+  (component, Markdown, entry, view) shown in a region location; the
+  only link is a region item that's the `menu` component. Open: whether
+  menu locations and region locations should stay separate (or menus
+  become mostly something placed in regions), how the future admin
+  splits a menu editor from a region editor, and what a theme should
+  reach for in each case.
+
 ## Later milestones
 - **Rich (script) embeds** (D-184): providers such as X, Instagram,
   TikTok, and Mastodon answer oEmbed with HTML that needs their own
@@ -26,9 +37,7 @@ Move each item to `decisions.md` once it's answered.
   export should snapshot them. Until then they render as links named by
   their title.
 - **More icons** (D-187): bundle all of Lucide (about 2,100) rather than
-  the front-end subset, and add brand logos (a social menu will need
-  basics such as GitHub, Mastodon, and RSS; Simple Icons, CC0, with each
-  brand's usage rules) in their own namespace.
+  the front-end subset. Brand logos are the theme's (D-203).
 - **Refreshing embeds**: `storage/cache/store/embeds` is only emptied by
   hand; a `cache:clear --embeds` or `embed:refresh` command may help.
 - **Component namespace clashes** (D-171): a theme's namespace is its
@@ -119,3 +128,24 @@ Move each item to `decisions.md` once it's answered.
 - **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
 - **Multilingual file convention** (D-036): decided when the feature is built.
 - **Theming:** see the open questions in `theming.md`.
+- **Menus and regions, later** (D-199 to D-204): entries adding
+  themselves to menus from front matter (`menu:`, `weight:`); mega-menu
+  `panel` entries; per-page region conditions (a sidebar only on posts).
+  Smaller follow-ups from building them:
+  - A region command (`region:list`/`region:show`); `theme:check` only
+    checks item shapes, since it doesn't render items, so a missing
+    component or view in a region is caught only in the log.
+  - The default theme ships no script for submenu toggles (they stay
+    `hidden`, and submenus stay open); decide whether it should.
+  - The default `components/menu/list.php` leaves template whitespace
+    inside each link; tighten it if it causes spacing issues.
+  - A `menu` in an entry body (`::menu`) renders once for every page, so
+    nothing is marked current there.
+  - Resolved menus are kept per process only (no cache namespace);
+    revisit if `composer bench` (not run for D-204) shows menus cost
+    much per request.
+  - `LocaleMap` treats a map as a locale map when every key looks like
+    a locale and every value is a string, so a view's data such as
+    `{id: "x", to: "y"}` would be read as one.
+  - A location's label is both the admin's name for it and the
+    `<nav>`'s accessible name; they may need to be separate.

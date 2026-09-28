@@ -82,12 +82,13 @@ final class ViewFactory
 	 * Builds the context for a page: the `Head` with the site name and
 	 * the active theme's stylesheets and scripts (with any stylesheets a
 	 * build manifest pairs with them; built scripts load as modules),
-	 * `$site`, and the entry's presentation front matter (`layout`,
-	 * `class`, and `stylesheet`, D-027).
+	 * `$site`, the entry's presentation front matter (`layout`,
+	 * `class`, and `stylesheet`, D-027), and the page's URL path and
+	 * locale (the entry's, else the site's).
 	 *
 	 * @throws ThemeException When a build manifest is invalid.
 	 */
-	public function context(Views $views, ?Entry $entry = null): ViewContext
+	public function context(Views $views, ?Entry $entry = null, string $path = ''): ViewContext
 	{
 		$head  = new Head($this->services->app->name, origin: $this->services->app->origin());
 		$theme = $views->chain->active();
@@ -119,7 +120,13 @@ final class ViewFactory
 		}
 
 		$layout  = $entry?->field('layout');
-		$context = new ViewContext($head, ['site' => Site::fromConfig($this->services->app)], is_string($layout) ? $layout : null);
+		$context = new ViewContext(
+			$head,
+			['site' => Site::fromConfig($this->services->app)],
+			is_string($layout) ? $layout : null,
+			$path,
+			$entry->locale ?? $this->services->app->locale
+		);
 		$classes = $entry?->field('class');
 
 		foreach (is_array($classes) ? $classes : [] as $class) {
@@ -137,7 +144,11 @@ final class ViewFactory
 	 */
 	public function fragment(): ViewContext
 	{
-		return new ViewContext(new Head($this->services->app->name, origin: $this->services->app->origin()), ['site' => Site::fromConfig($this->services->app)]);
+		return new ViewContext(
+			new Head($this->services->app->name, origin: $this->services->app->origin()),
+			['site' => Site::fromConfig($this->services->app)],
+			locale: $this->services->app->locale
+		);
 	}
 
 	/**

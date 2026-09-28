@@ -46,6 +46,7 @@ enum ComponentType: string
 	case Group    = 'group';
 	case Icon     = 'icon';
 	case Kbd      = 'kbd';
+	case Menu     = 'menu';
 	case Meter    = 'meter';
 	case Progress = 'progress';
 	case Row      = 'row';
@@ -73,6 +74,7 @@ enum ComponentType: string
 			self::Group    => Group::class,
 			self::Icon     => Icon::class,
 			self::Kbd      => Kbd::class,
+			self::Menu     => Menu::class,
 			self::Meter    => Meter::class,
 			self::Progress => Progress::class,
 			self::Row      => Row::class,

@@ -26,6 +26,7 @@ you can edit, copy, and keep in git.
 | [Content types](content-types.md) | Blogs, taxonomies, custom fields, feeds, and archives |
 | [Components](components.md) | Callouts, galleries, and your own components, in Markdown and templates |
 | [Themes](themes.md) | Choosing, customizing, and building themes |
+| [Menus and regions](menus.md) | Navigation menus, and the sidebar and footer areas themes offer |
 | [Configuration](configuration.md) | `.env` and every `config/` option |
 | [Going live](going-live.md) | Caching, publishing, webhooks, and static export |
 | [Command line](cli.md) | Every `bin/blush` command |
@@ -41,7 +42,7 @@ my-site/
   user/
     content/      Your pages and posts (Markdown, HTML, JSON, or YAML)
     media/        Images, audio, and video
-    data/         Editable data: redirects, theme settings, content types
+    data/         Editable data: menus, regions, redirects, theme settings, content types
     themes/       Themes you've made or installed
     extensions/   Extensions you've made or installed
   resources/

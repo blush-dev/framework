@@ -58,7 +58,7 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	public function render(ContentPage $page, ServerRequestInterface $request): ResponseInterface
 	{
 		$views   = $this->views->forChain($this->themes->forRequest($request));
-		$context = $this->views->context($views, $page->entry);
+		$context = $this->views->context($views, $page->entry, $request->getUri()->getPath());
 
 		$this->describe($views, $context, $page, $request);
 

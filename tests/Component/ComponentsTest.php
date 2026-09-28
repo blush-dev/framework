@@ -219,7 +219,7 @@ final class ComponentsTest extends TestCase
 			$components[(string) $component->name] = $component;
 		}
 
-		$this->assertSame(['app/box', 'app/card', 'app/orphan', 'blush/abbr', 'blush/audio', 'blush/button', 'blush/callout', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/kbd', 'blush/meter', 'blush/progress', 'blush/row', 'blush/time', 'blush/toc', 'blush/video'], array_keys($components));
+		$this->assertSame(['app/box', 'app/card', 'app/orphan', 'blush/abbr', 'blush/audio', 'blush/button', 'blush/callout', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/progress', 'blush/row', 'blush/time', 'blush/toc', 'blush/video'], array_keys($components));
 		$this->assertTrue($components['blush/callout']->isCore());
 		$this->assertFalse($components['app/box']->isCore());
 		$this->assertSame(Embed::class, $components['blush/embed']->className());
@@ -270,7 +270,7 @@ final class ComponentsTest extends TestCase
 
 		$registry = $this->app->container()->make(ComponentRegistry::class);
 
-		$this->assertSame(['blush/abbr', 'blush/audio', 'blush/button', 'blush/callout', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/kbd', 'blush/meter', 'blush/progress', 'blush/row', 'blush/time', 'blush/toc', 'blush/video'], array_keys($registry->all()));
+		$this->assertSame(['blush/abbr', 'blush/audio', 'blush/button', 'blush/callout', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/progress', 'blush/row', 'blush/time', 'blush/toc', 'blush/video'], array_keys($registry->all()));
 		$embed   = $registry->get('embed');
 		$callout = $registry->get('callout');
 

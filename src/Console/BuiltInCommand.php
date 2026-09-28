@@ -27,6 +27,7 @@ use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListCommands;
 use Blush\Console\Commands\ListComponents;
 use Blush\Console\Commands\ListIcons;
+use Blush\Console\Commands\ListMenus;
 use Blush\Console\Commands\ListContent;
 use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\Publish;
@@ -35,6 +36,7 @@ use Blush\Console\Commands\PublishThemes;
 use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\RunSchedule;
 use Blush\Console\Commands\Serve;
+use Blush\Console\Commands\ShowMenu;
 
 /**
  * The framework's own commands, keyed by name (the "Type enum" of the
@@ -61,6 +63,8 @@ enum BuiltInCommand: string
 	case ThemePublish  = 'theme:publish';
 	case ComponentList = 'component:list';
 	case IconList      = 'icon:list';
+	case MenuList      = 'menu:list';
+	case MenuShow      = 'menu:show';
 	case Publish       = 'publish';
 	case ScheduleRun   = 'schedule:run';
 	case Build         = 'build';
@@ -92,6 +96,8 @@ enum BuiltInCommand: string
 			self::ThemePublish  => PublishThemes::class,
 			self::ComponentList => ListComponents::class,
 			self::IconList      => ListIcons::class,
+			self::MenuList      => ListMenus::class,
+			self::MenuShow      => ShowMenu::class,
 			self::Publish       => Publish::class,
 			self::ScheduleRun   => RunSchedule::class,
 			self::Build         => Build::class

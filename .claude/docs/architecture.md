@@ -117,6 +117,26 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 - **Schema validation:** data files have schemas (the same field-type system as
   content). JSON Schemas are published for editor autocomplete.
 
+## Menus and regions (D-199 to D-204)
+
+- `Blush\Menu`: `MenuLoader` reads `user/data/menus/{name}.*`; `Menus`
+  resolves a location's menu for a chain and locale into immutable
+  `Menu`/`MenuItem` objects, kept per process (the page cache keeps
+  pages). Link kinds (`entry`, `term`, `collection`, `route`, `url`)
+  are `Link\MenuLinkType` + registry + factory + registrar.
+  `Menu::forPath()` marks the current item from `ViewContext::$path`.
+- `Blush\Region`: `RegionLoader` reads `user/data/regions/{name}.*`;
+  `Regions` renders a location's items (site file, else the theme's
+  defaults). Item kinds (`component`, `markdown`, `entry`, `view`) are
+  `Item\RegionItemType` + registry + factory + registrar. Markdown
+  renders through the body cache; components render per request.
+- Unresolved links and items that fail are left out and logged;
+  `check()` on each feeds `menu:list` and `theme:check`.
+- Locations come from the theme manifest; same-name matching, with an
+  optional map in `user/data/theme.json`.
+- Text values in these files may be locale maps, resolved by the page's
+  locale with catalog-style fallback (D-202).
+
 ## Translation (D-028)
 
 Implemented in M5a for the `blush` and `theme` domains (D-107).

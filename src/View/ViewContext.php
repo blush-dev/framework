@@ -16,8 +16,11 @@ namespace Blush\View;
 /**
  * The state of one page render, shared by every template it takes: the
  * `Head`, the sections templates define for their layouts, the data every
- * template sees (such as `$site`), the `<body>` classes, and the layout
- * an entry asks for in front matter (D-027).
+ * template sees (such as `$site`), the `<body>` classes, the layout
+ * an entry asks for in front matter (D-027), and the page's URL path and
+ * locale, which menus read to mark the current item and pick their text
+ * (D-199, D-202). A fragment rendered outside a page (a component in
+ * Markdown) has no path.
  *
  * A context lives for one render; renderers build a new one per page.
  */
@@ -40,11 +43,15 @@ final class ViewContext
 	/**
 	 * @param array<string, mixed> $shared Data every template sees.
 	 * @param ?string              $layout A layout that replaces the one the page's template asks for.
+	 * @param string               $path   The page's URL path, or `''` outside a page.
+	 * @param string               $locale The page's locale (its entry's, else the site's), or `''` for the site's.
 	 */
 	public function __construct(
 		public readonly Head $head = new Head(),
 		public private(set) array $shared = [],
-		public readonly ?string $layout = null
+		public readonly ?string $layout = null,
+		public readonly string $path = '',
+		public readonly string $locale = ''
 	) {}
 
 	/**
