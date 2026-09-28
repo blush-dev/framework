@@ -26,6 +26,10 @@ use Stringable;
  *
  * Each item is keyed, so adding it twice keeps one copy (the later value)
  * in the place it was first added.
+ *
+ * Root-relative `href` and `src` values (`/feed`, a theme asset) print as
+ * full URLs on the site's origin, so the head never has relative URLs.
+ * Keys keep the value as given, so `remove('style:' . $url)` still works.
  */
 final class Head implements Stringable
 {
@@ -42,9 +46,14 @@ final class Head implements Stringable
 	 */
 	private array $tags = [];
 
+	/**
+	 * @param string $origin The site's origin (`https://example.com`), for
+	 *                       resolving root-relative URLs. Empty leaves them.
+	 */
 	public function __construct(
 		private readonly string $siteName = '',
-		private readonly string $separator = ' | '
+		private readonly string $separator = ' | ',
+		private readonly string $origin = ''
 	) {}
 
 	/**
@@ -177,8 +186,8 @@ final class Head implements Stringable
 
 		foreach ($this->tags as [$element, $attributes, $content]) {
 			$html .= "\n" . match ($element) {
-				'script', 'style' => sprintf('<%1$s%2$s>%3$s</%1$s>', $element, self::attributes($attributes), $content === '' ? '' : "\n{$content}"),
-				default           => sprintf('<%s%s>', $element, self::attributes($attributes))
+				'script', 'style' => sprintf('<%1$s%2$s>%3$s</%1$s>', $element, $this->attributes($attributes), $content === '' ? '' : "\n{$content}"),
+				default           => sprintf('<%s%s>', $element, $this->attributes($attributes))
 			};
 		}
 
@@ -212,7 +221,7 @@ final class Head implements Stringable
 	 *
 	 * @param array<string, string|bool> $attributes
 	 */
-	private static function attributes(array $attributes): string
+	private function attributes(array $attributes): string
 	{
 		$html = '';
 
@@ -221,10 +230,21 @@ final class Head implements Stringable
 				continue;
 			}
 
-			$escaped = in_array($name, ['href', 'src'], true) ? Escaper::url($value === true ? '' : $value) : Escaper::attr($value);
+			$escaped = in_array($name, ['href', 'src'], true) ? Escaper::url($this->absolute($value === true ? '' : $value)) : Escaper::attr($value);
 			$html   .= $value === true ? " {$name}" : sprintf(' %s="%s"', $name, $escaped);
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Returns a root-relative URL on the site's origin. Anything else
+	 * (full URLs, protocol-relative ones, and fragments) is left alone.
+	 */
+	private function absolute(string $url): string
+	{
+		return $this->origin !== '' && str_starts_with($url, '/') && ! str_starts_with($url, '//')
+			? rtrim($this->origin, '/') . $url
+			: $url;
 	}
 }

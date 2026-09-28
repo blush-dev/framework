@@ -173,7 +173,7 @@ final class FeedsTest extends TestCase
 
 		$html = (string) $this->get('/')->getBody();
 
-		$this->assertStringContainsString('<link rel="alternate" href="/feed/json" type="application/feed+json" title="Blush (JSON Feed)">', $html);
+		$this->assertStringContainsString('<link rel="alternate" href="http://localhost/feed/json" type="application/feed+json" title="Blush (JSON Feed)">', $html);
 		$this->assertStringNotContainsString('application/rss+xml', $html);
 	}
 
@@ -183,10 +183,10 @@ final class FeedsTest extends TestCase
 
 		$term = (string) $this->get('/topics/art')->getBody();
 
-		$this->assertStringContainsString('<link rel="alternate" href="/feed" type="application/rss+xml" title="Blush (RSS)">', $term);
-		$this->assertStringContainsString('<link rel="alternate" href="/topics/art/feed/atom" type="application/atom+xml" title="Art (Atom)">', $term);
-		$this->assertStringContainsString('<link rel="alternate" href="/feed" type="application/rss+xml" title="Blush (RSS)">', (string) $this->get('/archives/spring')->getBody());
-		$this->assertStringContainsString('<link rel="alternate" href="/topics/feed" type="application/rss+xml" title="Topics (RSS)">', (string) $this->get('/topics')->getBody());
+		$this->assertStringContainsString('<link rel="alternate" href="http://localhost/feed" type="application/rss+xml" title="Blush (RSS)">', $term);
+		$this->assertStringContainsString('<link rel="alternate" href="http://localhost/topics/art/feed/atom" type="application/atom+xml" title="Art (Atom)">', $term);
+		$this->assertStringContainsString('<link rel="alternate" href="http://localhost/feed" type="application/rss+xml" title="Blush (RSS)">', (string) $this->get('/archives/spring')->getBody());
+		$this->assertStringContainsString('<link rel="alternate" href="http://localhost/topics/feed" type="application/rss+xml" title="Topics (RSS)">', (string) $this->get('/topics')->getBody());
 	}
 
 	public function testThemesCanOverrideFeedTemplates(): void

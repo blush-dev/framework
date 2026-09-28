@@ -89,7 +89,7 @@ final class ViewFactory
 	 */
 	public function context(Views $views, ?Entry $entry = null): ViewContext
 	{
-		$head  = new Head($this->services->app->name);
+		$head  = new Head($this->services->app->name, origin: $this->services->app->origin());
 		$theme = $views->chain->active();
 
 		foreach ([...$theme->styles, ...$theme->scripts] as $asset) {
@@ -137,7 +137,7 @@ final class ViewFactory
 	 */
 	public function fragment(): ViewContext
 	{
-		return new ViewContext(new Head($this->services->app->name), ['site' => Site::fromConfig($this->services->app)]);
+		return new ViewContext(new Head($this->services->app->name, origin: $this->services->app->origin()), ['site' => Site::fromConfig($this->services->app)]);
 	}
 
 	/**

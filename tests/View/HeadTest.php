@@ -63,6 +63,30 @@ final class HeadTest extends TestCase
 		$this->assertFalse($head->has('meta:robots'));
 	}
 
+	public function testPrintsRootRelativeUrlsOnTheOrigin(): void
+	{
+		$head = new Head('Site', origin: 'https://example.com')
+			->style('/theme/style.css')
+			->script('/theme/app.js', ['type' => 'module'])
+			->link('next', '/page/2')
+			->link('icon', '//cdn.example.org/icon.png')
+			->canonical('https://example.com/about');
+
+		$this->assertSame(
+			implode("\n", [
+				'<title>Site</title>',
+				'<link rel="stylesheet" href="https://example.com/theme/style.css">',
+				'<script src="https://example.com/theme/app.js" type="module"></script>',
+				'<link rel="next" href="https://example.com/page/2">',
+				'<link rel="icon" href="//cdn.example.org/icon.png">',
+				'<link rel="canonical" href="https://example.com/about">'
+			]),
+			$head->render()
+		);
+		$this->assertTrue($head->remove('style:/theme/style.css')->has('script:/theme/app.js'));
+		$this->assertStringNotContainsString('style.css', $head->render());
+	}
+
 	public function testDropsUnsafeUrls(): void
 	{
 		$this->assertStringContainsString('<link rel="canonical" href="">', new Head()->canonical('javascript:alert(1)')->render());

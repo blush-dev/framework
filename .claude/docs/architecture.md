@@ -448,7 +448,8 @@ view layer was implemented in M5 (D-103 to D-125).
   only global functions (D-106).
 - **`Head` manager:** collects title, meta, OpenGraph, canonical, alternates,
   stylesheets, and scripts, each once, and renders them in the base layout
-  (D-109). `ThemedPageRenderer` adds the page number to the title on later
+  (D-109), with root-relative `href`s and `src`s as full URLs on the
+  site's origin (D-193). `ThemedPageRenderer` adds the page number to the title on later
   pages of a listing (D-162).
 - **Components** render through `Views` (`component()`,
   `hasComponent()`), and `Views::components()` discovers every component

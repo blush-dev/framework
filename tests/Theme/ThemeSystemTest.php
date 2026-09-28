@@ -249,7 +249,7 @@ final class ThemeSystemTest extends TestCase
 		$this->writeTemporaryFile('user/themes/tinted/extra.css', '');
 		$this->activeTheme('tinted');
 
-		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="/themes/tinted/extra.css\?v=\d+">#', $this->get('/'));
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/tinted/extra.css\?v=\d+">#', $this->get('/'));
 	}
 
 	public function testPublicManifestsBuildFromResources(): void
@@ -267,8 +267,8 @@ final class ThemeSystemTest extends TestCase
 		$html   = $this->get('/');
 		$assets = new ThemeAssets($this->app?->container()->make(Themes::class)->chain('vite') ?? throw new LogicException());
 
-		$this->assertStringContainsString('<link rel="stylesheet" href="/themes/vite/public/assets/style-77aa.css">', $html);
-		$this->assertStringContainsString('<script src="/themes/vite/public/assets/app-4f2a.js" type="module"></script>', $html);
+		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/vite/public/assets/style-77aa.css">', $html);
+		$this->assertStringContainsString('<script src="http://localhost/themes/vite/public/assets/app-4f2a.js" type="module"></script>', $html);
 		$this->assertSame('/themes/vite/public/assets/karla-1b2c.woff2', $assets->url('resources/fonts/karla.woff2'));
 		$this->assertStringStartsWith('/themes/vite/public/img/icon.png?v=', (string) $assets->url('public/img/icon.png'));
 		$this->assertFalse(ThemeChain::isServable('resources/js/app.js'));
@@ -288,9 +288,9 @@ final class ThemeSystemTest extends TestCase
 		$html   = $this->get('/');
 		$assets = new ThemeAssets($this->app?->container()->make(Themes::class)->chain('built') ?? throw new LogicException());
 
-		$this->assertStringContainsString('<link rel="stylesheet" href="/themes/built/dist/assets/main-9c1b.css">', $html);
-		$this->assertStringContainsString('<link rel="stylesheet" href="/themes/built/dist/assets/style-77aa.css">', $html);
-		$this->assertStringContainsString('<script src="/themes/built/dist/assets/main-4f2a.js" type="module"></script>', $html);
+		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/built/dist/assets/main-9c1b.css">', $html);
+		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/built/dist/assets/style-77aa.css">', $html);
+		$this->assertStringContainsString('<script src="http://localhost/themes/built/dist/assets/main-4f2a.js" type="module"></script>', $html);
 		$this->assertStringNotContainsString('escape.css', $html);
 		$this->assertTrue($assets->isBuilt('src/main.js'));
 		$this->assertFalse($assets->isBuilt('logo.svg'));

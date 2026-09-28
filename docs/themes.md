@@ -233,6 +233,10 @@ field, `og:image` and a Twitter card. Add or replace any tag with
 `$template->head()`, or drop one with `remove()`, such as your stylesheet on
 a page that stands alone:
 `$template->head()->remove('style:' . $template->asset('style.css'))`.
+The head prints root-relative links and scripts (`/feed`,
+`$template->asset(...)`) as full URLs on your site's `url`, so pass
+paths as they are. Meta tag values print as given, so give `og:image`
+and the like a full URL.
 
 On later pages of a listing, the title gets the page number: "Blog:
 Page 2", or "Page 2" on the front page. To word it differently, add

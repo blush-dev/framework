@@ -145,9 +145,9 @@ final class ContentRoutingTest extends TestCase
 	public function testServesTheHomeTypesCollection(): void
 	{
 		$this->assertPage('/', 200, 'Blog', ['/archives/2010/01/01/hello', '/archives/2008/04/05/spring']);
-		$this->assertStringContainsString('rel="next" href="/page/2"', (string) $this->get('/')->getBody());
+		$this->assertStringContainsString('rel="next" href="http://localhost/page/2"', (string) $this->get('/')->getBody());
 		$this->assertPage('/page/2', 200, 'Blog', ['/archives/2003/04/15/welcome']);
-		$this->assertStringContainsString('rel="prev" href="/"', (string) $this->get('/page/2')->getBody());
+		$this->assertStringContainsString('rel="prev" href="http://localhost/"', (string) $this->get('/page/2')->getBody());
 		$this->assertPage('/page/1', 301, '/');
 		$this->assertPage('/page/3', 404);
 	}

@@ -3137,3 +3137,16 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the component system has grown into its own subsystem (names,
   namespaces, definitions, built-ins, directives, and planned variants,
   D-191) that views use, and it will keep growing.
+
+### D-193: The head prints full URLs
+- **Date:** 2026-09-28
+- **Decision:** `Head` takes the site's origin (`AppConfig::origin()`,
+  passed by `ViewFactory`) and prints every root-relative `href` and
+  `src` (`/feed`, `/page/2`, theme assets) as a full URL on it. Full,
+  protocol-relative, and other URLs print as given. It happens at render
+  time, so an item's key keeps the URL as added and
+  `remove('style:' . $template->asset(...))` still works. Meta `content`
+  (such as `og:image`) is left alone; whoever adds it passes a full URL.
+- **Why:** the author wants no relative URLs in `<head>`. Doing it in
+  `Head` covers the framework's tags, theme assets, and theme-added tags
+  in one place.
