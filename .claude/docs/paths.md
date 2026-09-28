@@ -98,6 +98,7 @@ site/
                         (themes/, and media at MediaConfig::$url, D-099). Relocatable
                         (e.g. cPanel public_html, D-046)
   resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
+  resources/lang/       The site's `app` translation domain, e.g. its components' text (D-173)
   src/                  App\ namespace: providers, components, controllers
   storage/
     cache/              Compiled config.php, extensions.php, container.php, routes.php,

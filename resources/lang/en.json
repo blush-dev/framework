@@ -2,5 +2,56 @@
 	"document_title": {
 		"paged": "{title}: Page {page}",
 		"page": "Page {page}"
+	},
+	"components": {
+		"callout": {
+			"label": "Callout",
+			"description": "A note set apart from the text, with an optional title.",
+			"props": {
+				"tone": {
+					"label": "Tone",
+					"choices": {
+						"note": "Note",
+						"info": "Info",
+						"tip": "Tip",
+						"warning": "Warning",
+						"danger": "Danger"
+					}
+				}
+			}
+		},
+		"embed": {
+			"label": "Embed",
+			"description": "A YouTube or Vimeo video, or a link to any other page.",
+			"props": {
+				"url": {
+					"label": "URL"
+				},
+				"title": {
+					"label": "Title"
+				}
+			}
+		},
+		"figure": {
+			"label": "Figure",
+			"description": "An image with a caption.",
+			"props": {
+				"src": {
+					"label": "Image"
+				},
+				"alt": {
+					"label": "Alternative text"
+				}
+			}
+		},
+		"gallery": {
+			"label": "Gallery",
+			"description": "Images in a grid.",
+			"props": {
+				"columns": {
+					"label": "Columns"
+				}
+			}
+		}
 	}
 }

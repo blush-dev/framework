@@ -133,7 +133,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | `inlineParsers` | `[]` | Extra inline parsers |
 | `figures` | `true` | Turn a lone image into a `<figure>` |
 | `absoluteLinks` | `true` | Turn links starting with `/` into full URLs |
-| `directives` | `true` | Render [components](content.md#components) in Markdown |
+| `directives` | `true` | Render [components](components.md) in Markdown |
 
 To add extensions, list the defaults along with yours. For example, to
 allow attributes such as `{.alignwide}`:

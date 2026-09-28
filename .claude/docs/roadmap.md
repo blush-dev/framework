@@ -62,7 +62,10 @@ Findings, and what was done:
   site themes (D-144, since removed by D-167) and web app manifests (D-145). The jtcom theme
   uses all of them.
 - **Also fixed:** the archive lists are cached per content version and
-  theme with the new `$this->cache()` fragment helper (D-152), and
+  theme (first with the new `$this->cache()` fragment helper, D-152;
+  now as `::post-archives{by=…}` directives in the three pages' content,
+  cached with the rendered body, so the theme needs no `single-page-*`
+  views for them), and
   titles use `$this->widont()`, 1.x's `runt()` (D-153).
 - **Custom 1.x views:** `template-canvas` (/plugindevbook, with its
   `style` sheet mapped from `/public/...` to the theme) and the
@@ -118,6 +121,13 @@ The current focus: the experience of setting up a Blush site.
 - **Component discovery (D-164):** the four core components declared in
   `ComponentType`, `component:list`, and a `theme:check` warning for
   components with no template.
+- **Component names and metadata (D-171 to D-173):** namespaced names
+  (short names only for core), `{namespace}-{name}.php` templates,
+  registered definitions with props from constructors, translatable
+  text by namespace (the new `app` and extension vendor domains), labels
+  in `component:list`, and `theme:check` checks. The trial's components
+  are `jtcom/post-archives` and `jtcom/entry-terms`; it builds the same
+  421 pages. The core component set is still open.
 
 ### Still to scope
 

@@ -24,9 +24,11 @@ use Blush\View\Component\Slots;
 /**
  * Renders Markdown directives as the components of the same name (D-026),
  * with the theme chain of the request being rendered: `:::callout{tone=info}`
- * is the `callout` component with `tone` and the block's HTML as `$slot`.
- * A directive's `[label]` is also given as the `label` prop. An unknown
- * name returns `null`, so the directive renders as plain content.
+ * is the `blush/callout` component with `tone` and the block's HTML as
+ * `$slot`, and `::acme/tabs` is `acme/tabs`. Only core components have
+ * short names (D-171). A directive's `[label]` is also given as the
+ * `label` prop. An unknown name returns `null`, so the directive renders
+ * as plain content.
  *
  * Components rendered this way get a bare context: what they add to the
  * `Head` doesn't reach the page.

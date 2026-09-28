@@ -124,42 +124,13 @@ Tag it with `CommandRegistry::TAG` in your provider (as above), then run
 `bin/blush stats --type=page`. Options and arguments come from the
 method's parameters, so `bin/blush help stats` is written for you.
 
-## Components with logic
+## Components
 
-A [template-only component](themes.md#components) is enough most of the
-time. When props need logic or services, back it with a class:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\View;
-
-use Blush\View\Component\Component;
-
-final class Card extends Component
-{
-	public function __construct(
-		public string $title,
-		public int $columns = 2
-	) {}
-}
-```
-
-It renders the same `views/components/card.php` template, with its public
-properties as variables. Props from Markdown (`::card{title="Hi"
-columns=3}`) are converted to the types you declare. Register it in your
-provider's `boot()`:
-
-```php
-use Blush\View\Component\ComponentRegistry;
-
-public function boot(): void
-{
-	$this->container->get(ComponentRegistry::class)->register('card', Card::class);
-}
-```
+Your site's own components are in the `app` namespace (`app/badge`).
+Their templates go in `resources/views/components/` (`app-badge.php`),
+and any classes are registered by your provider. They work with every
+theme, in templates and in Markdown. See [Components](components.md) for writing one, with or
+without a PHP class.
 
 ## Extensions
 
@@ -191,6 +162,14 @@ Every installed extension is on. Turn one off in
 
 Each extension can be its own git repository. If `user/` is one too,
 ignore `extensions/` there (see [the site layout](README.md#how-a-blush-site-is-laid-out)).
+
+### Components from an extension
+
+An extension's [components](components.md) use its vendor as their
+namespace: `acme/hello` registers `acme/tabs`, not `tabs`. Their text
+(labels, descriptions) goes in the extension's `lang/en.json`, under
+`components.tabs`. Extensions can't ship component templates yet, so the
+theme or site provides `views/components/acme-tabs.php`.
 
 ### Content types from an extension
 

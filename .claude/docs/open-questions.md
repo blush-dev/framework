@@ -12,6 +12,22 @@ Move each item to `decisions.md` once it's answered.
   a future blog extension).
 
 ## Later milestones
+- **Extension component templates** (D-173): an extension can register
+  a component in its vendor namespace, but the view chain has no
+  extension directories, so the theme or site must supply its template.
+  Options: add each enabled extension's `views/` to the chain (below the
+  site and themes, above the default theme), or let a component class
+  point at a file. Needed before extensions are a real component source.
+- **Component namespace clashes** (D-171): a theme's namespace is its
+  slug and an extension's is its vendor, so the two could collide.
+  Decide whether Blush checks or reserves namespaces.
+- **The core component set** (D-171): the author wants core components
+  to cover the full range of HTML plus layout helpers. The inventory is
+  open, including whether `gallery` becomes general layout components
+  (`blush/grid`, `blush/flex`). Candidates to weigh: layout (grid, flex
+  or stack, columns, group), text (callout, details, quote with cite,
+  code with a file name), media (figure, audio, video, embed), and
+  actions (button). Settle it before content depends on the names.
 - **Browser-friendly feeds and sitemaps** (D-125): XSL stylesheets won't
   work in major browsers for much longer, so 1.x's approach (jtcom's
   `xsl/feed.xsl`) can't carry over. Options: an HTML "about this feed" page

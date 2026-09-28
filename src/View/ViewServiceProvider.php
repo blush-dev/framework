@@ -28,10 +28,10 @@ use Blush\View\Component\ComponentRegistry;
  * directives. The renderers are defaults an extension can replace by
  * binding its own.
  *
- * A theme or site provider adds a class-backed component or a context
+ * A theme or site provider registers a component or adds a context
  * provider in `boot()`:
  *
- *     $this->container->make(ComponentRegistry::class)->register('card', Card::class);
+ *     $this->container->make(ComponentRegistry::class)->register('app/card', Card::class);
  *     $this->container->make(ContextProviders::class)->add('parts/header', PrimaryMenu::class);
  */
 final class ViewServiceProvider extends ServiceProvider

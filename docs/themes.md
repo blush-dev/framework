@@ -185,7 +185,7 @@ What a template can use:
 | `$template->includeWhen($condition, 'parts/x')` | Include it only when the condition is true |
 | `$template->includeUnless($condition, 'parts/x')` | Include it unless the condition is true |
 | `$template->each('parts/card', $entries, as: 'entry', empty: 'parts/none')` | Include a template once per item (see below) |
-| `$template->component('card', title: '...')` | Render a component |
+| `$template->component('notebook/card', title: '...')` | Render a component (see [Components](components.md)) |
 | `$template->permalink($entry)` | An entry's URL |
 | `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
 | `$template->date($entry->published)` | A date, formatted for the site's locale |
@@ -288,12 +288,16 @@ Wrap them in `$template->cache()` and they're built once, then reused until
 your content changes (a publish) or you switch themes:
 
 ```php
-<?= $template->cache('archives.years', fn () => $template->component('post-archives', by: 'year')) ?>
+<?= $template->cache('archives.years', fn () => $template->component('notebook/post-archives', by: 'year')) ?>
 ```
 
 The key names the piece, so give each variation its own key. Only the
 HTML is kept, so don't add to the head inside it. In development,
 nothing is cached, so your changes always show.
+
+A component used in an entry's Markdown (`::notebook/post-archives{by=year}`)
+needs no `cache()`: it's kept with the entry's rendered content, on the
+same terms.
 
 ### Which template is used
 
@@ -314,30 +318,28 @@ An entry's `template` front matter is always tried first. Feeds
 
 ### Components
 
-A component is a reusable piece of a template, and the same components can
-be used in Markdown. The simplest is a file in `views/components/`:
+A component is a reusable piece of a template, and every component your
+theme has can also be used in Markdown, by the same name.
+[Components](components.md) covers writing them; this section covers
+where they go in a theme.
 
-```php
-<?php // views/components/badge.php
-
-declare(strict_types=1);
-
-$tone = $props['tone'] ?? 'info';
-
-?>
-<span class="badge badge--<?= attr($tone) ?>"><?= raw($slot) ?></span>
-```
-
-Use it in a template with `<?= $template->component('badge', tone: 'new')->content('New') ?>`,
-or in Markdown with `:badge[New]{tone=new}`. Each prop is also its own
-variable, and `$slot` holds the content (in Markdown, the `[label]` or the
-wrapped block).
+A theme's components are in its namespace, which is its slug: the
+`notebook` theme's badge is `notebook/badge`. A template-only component is
+a file in `views/components/` named `{slug}-{name}.php`, such as
+`views/components/notebook-badge.php`. Use it in a template with
+`<?= $template->component('notebook/badge', tone: 'new')->content('New') ?>`,
+or in Markdown with `:notebook/badge[New]{tone=new}`.
 
 Four **core components** work in every theme, because the default theme
-provides them: `callout`, `embed`, `figure`, and `gallery`. Content can
-use them no matter which theme is active (see [Content](content.md)). To
-change how one looks, add your own `views/components/callout.php` (and
-so on); yours wins.
+provides them: `callout`, `embed`, `figure`, and `gallery`. They're the
+only components with short names. To change how one looks, add your own
+`views/components/callout.php` (or `blush-callout.php`, and so on); yours
+wins.
+
+Content that uses one of your theme's own components shows it as plain
+text under any other theme. If a site's content depends on a component,
+it may belong in the site rather than the theme (see
+[Where components live](components.md#where-components-live)).
 
 A component that needs data, such as a list of posts, can have a PHP
 class. Keep it in the theme's `src/`, and name a provider and autoload
@@ -352,7 +354,8 @@ map in `theme.json`:
 ```
 
 The provider registers the class in its `boot()` method, and the
-template in `views/components/` draws it:
+template in `views/components/` (here, `notebook-recent-posts.php`) draws
+it:
 
 ```php
 <?php // src/ThemeProvider.php
@@ -368,17 +371,20 @@ final class ThemeProvider extends ServiceProvider
 {
 	public function boot(): void
 	{
-		$this->container->get(ComponentRegistry::class)->register('recent-posts', View\RecentPosts::class);
+		$this->container->get(ComponentRegistry::class)->register('notebook/recent-posts', View\RecentPosts::class);
 	}
 }
 ```
 
-See [Components with logic](extending.md#components-with-logic) for writing the component class.
+See [A component with a PHP class](components.md#a-component-with-a-php-class) for writing the component class.
 
 To see every component your theme can use, and which file draws each,
 run `bin/blush component:list`. `bin/blush theme:why components/callout`
 shows what a file overrides. `theme:check` warns about a component with
-a PHP class but no template.
+a PHP class but no template, and about a file in `components/` that isn't
+named for a component. With `--strict`, it also notes registered
+components without a translated label (see
+[Labels and translations](components.md#labels-and-translations)).
 
 ### Building assets with Vite
 

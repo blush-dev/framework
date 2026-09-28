@@ -2581,3 +2581,115 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** config is PHP loaded with `$env` in scope, and `user/` is
   what the publish webhook pulls and the admin writes (D-039); boot reads
   config before any extension loads, so extensions can't hold it either.
+
+### D-170: Components get their own user doc
+- **Date:** 2026-09-28
+- **Decision:** `docs/components.md` is the one place users learn about
+  components: the directive syntax, the core components, using them in
+  templates, template-only and class-backed components, and where they
+  live (theme or site). It says plainly that every component the active
+  theme can draw works in Markdown with no extra registration, that
+  content using a theme's own component falls back to plain text under
+  another theme, that Markdown components can't add to the head, and
+  that they're cached with the rendered body (D-130). `content.md`,
+  `themes.md`, and `extending.md` keep short sections that link to it.
+- **Why:** the component-to-directive connection (D-026, D-112) was only
+  implied across three docs. The jtcom trial's archive pages moved from
+  `single-page-*` views to `::post-archives{by=…}` in their content,
+  which relies on exactly these rules.
+
+### D-171: Component names are namespaced; short names are core only
+- **Date:** 2026-09-28
+- **Decision:** Every component has a namespaced name, `{namespace}/{name}`
+  (`blush/callout`, `acme/tabs`, `jtcom/post-archives`), and the directive
+  syntax allows the `/` (`::acme/tabs{…}`).
+  - **Short names are only for core components.** `::callout` is
+    `blush/callout`. Third-party components (extensions and themes) are
+    always written with their namespace; a short name that isn't a core
+    component renders as plain text, like any unknown directive.
+  - **Template files use the namespace with a hyphen:**
+    `components/acme-gallery.php` draws `acme/gallery`. A core
+    component's template may be `components/gallery.php` or
+    `components/blush-gallery.php`, so today's overrides (such as jtcom's
+    own `callout.php`) keep working.
+  - The inserter (M10) always writes the full name.
+- **Why:** components are meant to be the main extension point for
+  developers, so extension and theme names mustn't collide. Only one
+  theme chain is active at a time, and the site and themes already win
+  over core by precedence, so the real risk is between extensions and
+  between an extension and a theme. Reserving short names for core keeps
+  everyday writing (`::callout`, `:::gallery`) easy.
+- **Namespaces:** core is `blush`, a theme's is its slug
+  (`jtcom/post-archives`), and the site's own components (registered
+  from its `src/`) use `app`, after the `App\` PHP namespace. An
+  extension uses its vendor. Whether theme slugs and extension vendors
+  may clash is decided later (see `open-questions.md`).
+
+### D-172: Component metadata lives with the registration, and is translatable
+- **Date:** 2026-09-28
+- **Decision:** What the inserter shows about a component (its label,
+  description, keywords, what it wraps, and its props with their labels
+  and choices) comes from where the component is registered, not from a
+  file beside its template in `views/`. Every piece of user-facing text
+  in it is translatable. Only registered components appear in the
+  inserter; unregistered template-only components still render but are
+  hidden.
+  - **No metadata file.** Structure comes from the component: a class
+    component's props from its constructor (types and defaults; a
+    backed-enum prop gives its choices), and a template-only
+    component's props and what it wraps (`none`, `text`, or `blocks`)
+    from a small typed definition given at registration. Both reuse
+    the content schema's field types.
+  - **Text comes from the translation catalogs by convention.** The
+    namespace is the domain (`blush`, the theme's, an extension's, the
+    site's), and keys follow the name: `components.tabs.label`,
+    `.description`, `.keywords`, `.props.tone.label`, and
+    `.props.tone.choices.warning`. A missing key falls back to a label
+    made from the name, and `theme:check` and `extension:check` warn
+    about it. This needs the extension and site translation domains
+    (carried forward from M5).
+- **Why:** the registration is the component's source of truth (the
+  view chain only decides how it looks, and a theme may override the
+  template), and the admin and its inserter must work in the site's
+  language.
+
+### D-173: Component names and metadata, implemented
+- **Date:** 2026-09-28
+- **Decision:** Implements D-171 and D-172 in `Blush\View\Component`:
+  - `ComponentName` parses `{namespace}/{name}` or a core short name
+    (anything else is `null`), gives the template view names
+    (`components/{namespace}-{name}`, plus `components/{name}` for core),
+    and maps a file name back to a name using the known namespaces
+    (longest prefix wins). Directive names allow one `/`
+    (`DirectiveAttributes::NAME`).
+  - `ViewFinder::nearest()` and `allOf()` resolve a view with several
+    allowed names by directory precedence, so a theme's
+    `blush-callout.php` beats the default theme's `callout.php`.
+  - `ComponentRegistry` no longer extends `Support\Registry`: it stores
+    `ComponentDefinition`s (name, optional class, `ComponentContent`,
+    props as schema `Field`s) by full name, since template-only
+    components can be registered. It refuses short third-party names and
+    new `blush/*` names. The registrar seeds all four core components
+    with their definitions (`ComponentType::content()`/`props()`).
+  - A class component's props come from its constructor: `string`,
+    `int`, `float`, `bool`, and backed-enum parameters that are public
+    or unpromoted (services and private state are skipped), with
+    defaults, or `required()` when there's none. `Component::CONTENT`
+    says what it wraps. `ComponentFactory` casts string props to backed
+    enums; an unknown value falls back to the parameter's default.
+  - Text: `Views::componentText()` reads `components.{name}.{key}` from
+    the namespace's domain. The translator gains the `app` domain
+    (`resources/lang`) and one per extension vendor (each enabled
+    extension's `lang/`); a theme namespace maps to the `theme` domain.
+    The framework catalog has the core components' text.
+  - `component:list` shows the full name, label, and whether it's
+    registered, and reports stray files; `theme:check` warns about a
+    theme's stray component files and notes (with `--strict`) its
+    registered components without a label.
+  - Subfolders of `components/` are no longer components.
+- **Why:** the naming and metadata rules of D-171 and D-172. The jtcom
+  trial moved to `jtcom/post-archives` and `jtcom/entry-terms` and
+  builds the same 421 pages.
+- **Not done:** extensions can't ship component templates (they have no
+  view directory in the chain); see `open-questions.md`. The inserter
+  itself is M10.

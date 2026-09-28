@@ -33,6 +33,13 @@ final class ViewFinder
 	private array $found = [];
 
 	/**
+	 * `nearest()` results so far, keyed by the names joined with `|`.
+	 *
+	 * @var array<string, array{string, string}|false>
+	 */
+	private array $nearest = [];
+
+	/**
 	 * @param list<string> $directories Absolute directories, highest precedence first.
 	 */
 	public function __construct(private readonly array $directories)
@@ -87,6 +94,58 @@ final class ViewFinder
 		}
 
 		return null;
+	}
+
+	/**
+	 * Returns the file of whichever name is in the highest-precedence
+	 * directory, with that name, or `null`. Within a directory, earlier
+	 * names win. This is how a view with more than one allowed name
+	 * resolves (a core component's `components/callout` or
+	 * `components/blush-callout`): the directory decides, not the name.
+	 *
+	 * @param  list<string> $names
+	 * @return ?array{string, string} The name and the file.
+	 * @throws ViewException When a name isn't valid.
+	 */
+	public function nearest(array $names): ?array
+	{
+		$key = implode('|', $names);
+
+		if (! array_key_exists($key, $this->nearest)) {
+			$files               = $this->allOf($names);
+			$this->nearest[$key] = $files === [] ? false : array_first($files);
+		}
+
+		return $this->nearest[$key] === false ? null : $this->nearest[$key];
+	}
+
+	/**
+	 * Returns every file for any of the names, by directory precedence
+	 * and then name order, winner first, with each file's name.
+	 *
+	 * @param  list<string> $names
+	 * @return list<array{string, string}> Names and files.
+	 * @throws ViewException When a name isn't valid.
+	 */
+	public function allOf(array $names): array
+	{
+		foreach ($names as $name) {
+			if (! self::isValidName($name)) {
+				throw new ViewException(sprintf('"%s" is not a valid view name.', $name));
+			}
+		}
+
+		$files = [];
+
+		foreach ($this->directories as $directory) {
+			foreach ($names as $name) {
+				if (is_file("{$directory}/{$name}.php")) {
+					$files[] = [$name, "{$directory}/{$name}.php"];
+				}
+			}
+		}
+
+		return $files;
 	}
 
 	/**

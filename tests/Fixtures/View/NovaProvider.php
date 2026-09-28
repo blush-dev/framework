@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Orphan component provider fixture.
+ * Nova component provider fixture.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -17,11 +17,11 @@ use Override;
 use Blush\Core\ServiceProvider;
 use Blush\View\Component\ComponentRegistry;
 
-final class OrphanProvider extends ServiceProvider
+final class NovaProvider extends ServiceProvider
 {
 	#[Override]
 	public function boot(): void
 	{
-		$this->container->make(ComponentRegistry::class)->register('app/orphan', Orphan::class);
+		$this->container->make(ComponentRegistry::class)->register('nova/badge');
 	}
 }

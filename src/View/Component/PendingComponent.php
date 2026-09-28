@@ -49,7 +49,7 @@ final class PendingComponent implements Stringable
 	public function __construct(
 		private readonly Views $views,
 		private readonly ViewContext $context,
-		private readonly string $key,
+		private readonly string $name,
 		private readonly array $props
 	) {}
 
@@ -80,7 +80,7 @@ final class PendingComponent implements Stringable
 	 */
 	public function render(): string
 	{
-		return $this->views->component($this->key, $this->props, $this->content, new Slots($this->slots), $this->context);
+		return $this->views->component($this->name, $this->props, $this->content, new Slots($this->slots), $this->context);
 	}
 
 	/**

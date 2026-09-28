@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\View\Component;
 
+use BackedEnum;
 use ReflectionClass;
 use ReflectionNamedType;
 use TypeError;
@@ -23,9 +24,10 @@ use Blush\View\ViewException;
 /**
  * Builds class-backed components through the container. Props that match
  * constructor parameters are passed by name; string props are cast to a
- * parameter's `int`, `float`, or `bool` type, since Markdown directive
- * attributes are always strings. Props the constructor doesn't take are
- * left for the template (as `$props`).
+ * parameter's `int`, `float`, `bool`, or backed enum type, since Markdown
+ * directive attributes are always strings. A value the enum doesn't have
+ * is dropped, so the parameter's default applies. Props the constructor
+ * doesn't take are left for the template (as `$props`).
  */
 final readonly class ComponentFactory
 {
@@ -51,10 +53,18 @@ final readonly class ComponentFactory
 				continue;
 			}
 
-			$type              = $parameter->getType();
-			$parameters[$name] = $type instanceof ReflectionNamedType && is_string($props[$name])
-				? self::cast($props[$name], $type->getName())
-				: $props[$name];
+			$type  = $parameter->getType();
+			$value = $props[$name];
+
+			if ($type instanceof ReflectionNamedType && is_string($value)) {
+				$value = self::cast($value, $type->getName());
+
+				if ($value === null && $parameter->isDefaultValueAvailable()) {
+					continue;
+				}
+			}
+
+			$parameters[$name] = $value;
 		}
 
 		try {
@@ -65,15 +75,27 @@ final readonly class ComponentFactory
 	}
 
 	/**
-	 * Casts a string to a scalar type.
+	 * Casts a string to a scalar or backed enum type. An enum value that
+	 * doesn't exist is `null`.
 	 */
 	private static function cast(string $value, string $type): mixed
 	{
-		return match ($type) {
-			'int'   => is_numeric($value) ? (int) $value : $value,
-			'float' => is_numeric($value) ? (float) $value : $value,
-			'bool'  => ! in_array(strtolower($value), ['', '0', 'false', 'no', 'off'], true),
-			default => $value
+		return match (true) {
+			$type === 'int'                      => is_numeric($value) ? (int) $value : $value,
+			$type === 'float'                    => is_numeric($value) ? (float) $value : $value,
+			$type === 'bool'                     => ! in_array(strtolower($value), ['', '0', 'false', 'no', 'off'], true),
+			is_a($type, BackedEnum::class, true) => self::enumCase($type, $value),
+			default                              => $value
 		};
+	}
+
+	/**
+	 * Returns a backed enum's case for a string, or `null`.
+	 *
+	 * @param class-string<BackedEnum> $enum
+	 */
+	private static function enumCase(string $enum, string $value): ?BackedEnum
+	{
+		return array_find($enum::cases(), static fn (BackedEnum $case): bool => (string) $case->value === $value);
 	}
 }

@@ -31,7 +31,7 @@ final class InlineDirectiveParser implements InlineParserInterface
 	#[Override]
 	public function getMatchDefinition(): InlineParserMatch
 	{
-		return InlineParserMatch::regex(':([A-Za-z][A-Za-z0-9_-]*)\[([^\]\n]*)\](?:\{([^}\n]*)\})?');
+		return InlineParserMatch::regex(':' . DirectiveAttributes::NAME . '\[([^\]\n]*)\](?:\{([^}\n]*)\})?');
 	}
 
 	/**

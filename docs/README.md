@@ -24,6 +24,7 @@ you can edit, copy, and keep in git.
 | [Writing content](content.md) | Files and folders, front matter, drafts, scheduling, and Markdown extras |
 | [Media](media.md) | Images, audio, and video |
 | [Content types](content-types.md) | Blogs, taxonomies, custom fields, feeds, and archives |
+| [Components](components.md) | Callouts, galleries, and your own components, in Markdown and templates |
 | [Themes](themes.md) | Choosing, customizing, and building themes |
 | [Configuration](configuration.md) | `.env` and every `config/` option |
 | [Going live](going-live.md) | Caching, publishing, webhooks, and static export |
@@ -45,6 +46,7 @@ my-site/
     extensions/   Extensions you've made or installed
   resources/
     views/        Template overrides for whatever theme is active
+    lang/         Translations for your own components (the `app` namespace)
   public/         The web root: index.php and published files only
   storage/        Caches, the content index, logs, and exports (never commit)
   src/            Your own PHP classes (the App\ namespace)

@@ -39,7 +39,7 @@ user/themes/nova/
   views/
     layouts/        base.php, …
     parts/          header.php, footer.php, pagination.php, …
-    components/     card.php, gallery.php, …
+    components/     {slug}-card.php, gallery.php (core overrides), … (D-171)
     single.php  collection.php  …   (template hierarchy files)
   src/              Optional PHP: ThemeProvider, component classes, context providers
   lang/             Message catalogs (D-028)
@@ -133,7 +133,7 @@ $template->layout('base', title: $entry->title);
 
 	<?= raw($entry->body()) ?>
 
-	<?= $template->component('entry-terms', entry: $entry, taxonomy: 'category') ?>
+	<?= $template->component('notebook/entry-terms', entry: $entry, taxonomy: 'category') ?>
 </article>
 ```
 
@@ -193,34 +193,54 @@ aren't candidates (D-104).
 
 ## Components (D-025, D-111)
 
-- **A template-only component** is just `views/components/{name}.php`, with its
-  props passed in as variables (and all of them as `$props`). That's the
-  simple path.
+- **Names (D-171, D-173):** `{namespace}/{name}` (`ComponentName`):
+  `blush` for core, a theme's slug, `app` for the site, an extension's
+  vendor. Only core components have short names (`callout` is
+  `blush/callout`). The template is `components/{namespace}-{name}.php`;
+  a core component's may also be `components/{name}.php`, and the
+  highest-precedence directory wins whichever name it uses
+  (`ViewFinder::nearest()`). Subfolders of `components/` aren't
+  components.
+- **A template-only component** is just its template, with its props
+  passed in as variables (and all of them as `$props`). That's the simple
+  path; it renders without being registered.
 - **A class-backed component** extends `View\Component\Component` for props
   that need logic: typed props via constructor promotion (strings from
-  Markdown are cast to `int`/`float`/`bool`), services by autowiring,
-  `data()`, `template()`, and `shouldRender()`, plus the same template.
-  Register it with `ComponentRegistry::register($key, $class)` in a provider.
+  Markdown are cast to `int`/`float`/`bool` or a backed enum, whose unknown
+  values fall back to the default), services by autowiring, `data()`,
+  `template()`, `shouldRender()`, and `CONTENT`, plus the same template.
 - **Slots:** `$slot` holds the default slot and `$slots->name` holds named
   slots (`''` when unfilled).
-- **Registry:** components are resolved by key through the chain. A site
-  overrides a theme component by providing the same key. Only classes are
-  registered; a template-only component's file is its registration.
-- **Discovery (D-164):** `ComponentType` declares the core components
-  (`className()` is `null` for template-only ones; the registrar seeds
-  only classes). `Views::components()` lists every key the chain can
-  render as `ComponentListing`s (core keys, registered classes, and every
-  `components/**.php` in the view directories), which `component:list`
-  prints and `theme:check` uses to warn about a class with no template.
+- **Registry (D-172, D-173):** `ComponentRegistry::register($name, $class,
+  $content, $props)` stores a `ComponentDefinition` by full name: a
+  class, or none for a template-only component, plus what it wraps
+  (`ComponentContent`) and its props as schema `Field`s (read from the
+  constructor and `CONTENT` when not given). Registering is what puts a
+  component in the admin's inserter later. Short names must be core; new
+  `blush/*` names are refused; a provider may replace a core component.
+- **Text (D-172, D-173):** `Views::componentText($name, 'label')` reads
+  `components.{name}.{key}` from the namespace's catalog domain: `blush`,
+  `theme` (the chain's slugs), `app` (`resources/lang`), or the vendor
+  (enabled extensions' `lang/`). Missing text falls back to
+  `ComponentName::label()`.
+- **Discovery (D-164, D-173):** `ComponentType` declares the core
+  components and their definitions (the registrar seeds all four).
+  `Views::components()` lists every name the chain can render as
+  `ComponentListing`s (core, registered, and every `components/*.php`
+  named for a component), with labels; `strayComponentFiles()` returns
+  the rest. `component:list` prints both; `theme:check` warns about a
+  class with no template and a stray file in the theme, and notes the
+  theme's registered components without a label.
 - **In Markdown** (D-026), the same components are available to content:
   ```
   :::gallery{columns=3}
   ![](a.jpg) ![](b.jpg)
   :::
 
-  This is :badge[new]{tone=info}.
+  This is :notebook/badge[new]{tone=info}.
   ```
-  An unknown directive renders as plain content. The framework default theme
+  An unknown directive, or a short name that isn't core, renders as plain
+  content. The framework default theme
   ships the core content components (D-033, D-113): `callout`, `gallery`,
   `figure`, and `embed`, so they work under any theme. Directives render with
   the request's theme; attributes are props, the `[label]` is `$slot` (and

@@ -26,9 +26,10 @@ use Blush\View\ViewFactory;
 
 /**
  * Lists the components a theme can render (the active theme by default):
- * each key, whether it's a core content component, its class, and the
- * file that renders it. `theme:why components/{key}` shows what that
- * file shadows.
+ * each full name, its label, whether it's registered (and so offered in
+ * the admin's inserter), its class, and the file that renders it.
+ * `theme:why components/{file}` shows what that file shadows. Templates
+ * in `components/` that aren't named for a component are reported.
  */
 #[Command('component:list', 'List the components a theme can render.')]
 final readonly class ListComponents
@@ -48,7 +49,8 @@ final readonly class ListComponents
 		#[Option('The theme to list for; defaults to the active theme.')] ?string $theme = null
 	): ExitCode {
 		try {
-			$components = $this->views->forChain($this->themes->chain($theme ?? $this->config->active))->components();
+			$views      = $this->views->forChain($this->themes->chain($theme ?? $this->config->active));
+			$components = $views->components();
 		} catch (ThemeException $error) {
 			throw new InvalidInput($error->getMessage(), 0, $error);
 		}
@@ -58,19 +60,24 @@ final readonly class ListComponents
 		foreach ($components as $component) {
 			$file   = $component->file();
 			$rows[] = [
-				$component->key,
-				$component->isCore ? 'yes' : '',
-				$component->class ?? '',
+				(string) $component->name,
+				$component->displayLabel(),
+				$component->isRegistered() ? 'yes' : '',
+				$component->className() ?? '',
 				$file === null ? '(none)' : $this->paths->relative($file)
 			];
 		}
 
-		$output->table(['Key', 'Core', 'Class', 'Template'], $rows);
+		$output->table(['Name', 'Label', 'Registered', 'Class', 'Template'], $rows);
 
 		foreach ($components as $component) {
 			if ($component->isMissingTemplate()) {
-				$output->warning(sprintf('"%s" has no components/%s.php template, so it can\'t render.', $component->key, $component->key));
+				$output->warning(sprintf('"%s" has no %s.php template, so it can\'t render.', $component->name, implode('.php or ', $component->name->views())));
 			}
+		}
+
+		foreach ($views->strayComponentFiles() as $file) {
+			$output->warning(sprintf('%s isn\'t named for a component, so nothing renders it. Name it {namespace}-%s.php.', $this->paths->relative($file), basename($file, '.php')));
 		}
 
 		return ExitCode::Success;

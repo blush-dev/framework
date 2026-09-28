@@ -21,10 +21,17 @@ namespace Blush\Markdown\CommonMark\Directive;
 final class DirectiveAttributes
 {
 	/**
+	 * A directive's name, captured: a word, optionally namespaced
+	 * (`callout`, `acme/tabs`, D-171). The `/` is escaped for patterns
+	 * delimited by `/`.
+	 */
+	public const string NAME = '([A-Za-z][A-Za-z0-9_-]*(?:\/[A-Za-z][A-Za-z0-9_-]*)?)';
+
+	/**
 	 * The shared syntax of the three directive forms: a name, an optional
 	 * `[label]`, and optional `{attributes}`.
 	 */
-	public const string SYNTAX = '([A-Za-z][A-Za-z0-9_-]*)(?:\[([^\]\n]*)\])?(?:\{([^}\n]*)\})?';
+	public const string SYNTAX = self::NAME . '(?:\[([^\]\n]*)\])?(?:\{([^}\n]*)\})?';
 
 	/**
 	 * Returns the attributes in a `{…}` body (without the braces).

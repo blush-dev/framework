@@ -31,9 +31,11 @@ use Blush\View\ViewFactory;
  *   without `lang` on `<html>`, one `<main>`, or a skip link to it.
  * - **Warnings:** shadowed manifests (JSON wins); site setting values
  *   that don't fit; other broken themes; a component with a class but no
- *   template to render; a layout without `<header>` or `<footer>`, or
- *   with other than one `<h1>`.
- * - **Notices:** `requires` entries, which aren't enforced yet.
+ *   template to render; a component template not named for a component;
+ *   a layout without `<header>` or `<footer>`, or with other than one
+ *   `<h1>`.
+ * - **Notices:** `requires` entries, which aren't enforced yet; the
+ *   theme's registered components without a translated label.
  *
  * The layout is checked by rendering the `welcome` page.
  */
@@ -115,26 +117,46 @@ final readonly class ThemeChecker
 	}
 
 	/**
-	 * Checks that every component has a template to render: one with a
-	 * registered class but no `components/{key}.php` in the chain (and no
-	 * other view of its own) fails whenever it's used.
+	 * Checks the theme's components. A component with a registered class
+	 * but no template in the chain (and no other view of its own) fails
+	 * whenever it's used; a template in the theme's `components/` that
+	 * isn't named for a component (`{slug}-{name}.php`, or a core
+	 * component's name) is never rendered (D-171); and the theme's
+	 * registered components should have a translated label for the
+	 * admin's inserter (a notice, D-172).
 	 *
 	 * @return list<Violation>
 	 */
 	private function components(ThemeChain $chain): array
 	{
 		try {
-			$components = $this->views->forChain($chain)->components();
+			$views      = $this->views->forChain($chain);
+			$components = $views->components();
+			$stray      = $views->strayComponentFiles();
 		} catch (Throwable) {
 			// The layout check reports views that can't be built.
 			return [];
 		}
 
+		$theme    = $chain->active();
 		$problems = [];
 
 		foreach ($components as $component) {
+			$name = (string) $component->name;
+
 			if ($component->isMissingTemplate()) {
-				$problems[] = new Violation("component {$component->key}", sprintf('The "%s" component (%s) has no components/%s.php template in the chain.', $component->key, $component->class ?? 'no class', $component->key), Severity::Warning);
+				$problems[] = new Violation("component {$name}", sprintf('The "%s" component (%s) has no %s.php template in the chain.', $name, $component->className() ?? 'no class', array_last($component->name->views())), Severity::Warning);
+			}
+
+			if ($component->isRegistered() && $component->label === null && $component->name->namespace === $theme->slug) {
+				$problems[] = new Violation("component {$name}", sprintf('The "%s" component has no label; add "components.%s.label" to the theme\'s lang/ catalog.', $name, $component->name->name), Severity::Notice);
+			}
+		}
+
+		foreach ($stray as $file) {
+			if (str_starts_with($file, $theme->viewsPath() . '/')) {
+				$fileName   = basename($file, '.php');
+				$problems[] = new Violation("component {$fileName}", sprintf('components/%s.php isn\'t named for a component, so it never renders; name it components/%s-%s.php.', $fileName, $theme->slug, $fileName), Severity::Warning);
 			}
 		}
 

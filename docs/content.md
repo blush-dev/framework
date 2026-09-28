@@ -167,33 +167,19 @@ You can add more CommonMark extensions, such as attributes
 
 ### Components
 
-Components add richer blocks to your writing. The default theme includes
-these, and they work in every theme:
+Components add richer blocks to your writing:
 
 ```markdown
 :::callout[Heads up]{tone=warning}
 Back up your site before updating.
 :::
 
-:::gallery{columns=3}
-![](one.jpg) ![](two.jpg) ![](three.jpg)
-:::
-
-::figure[A caption]{src="/media/photo.jpg" alt="Describe the photo"}
-
 ::embed[Our launch video]{url="https://youtu.be/..." title="Launch video"}
 ```
 
-- `callout` tones: `note` (default), `info`, `tip`, `warning`, `danger`.
-- `gallery` takes 1 to 6 `columns`.
-- `embed` shows YouTube and Vimeo videos in a privacy-friendly player, and
-  any other URL as a link.
-
-The syntax: `:::name` wraps a block of content and ends with `:::`;
-`::name` is a single line; `:name[text]` works inside a sentence. The text
-in `[brackets]` is the label, and `{key=value}` settings go in braces.
-Themes can add their own components. An unknown component shows as plain
-text.
+`callout`, `gallery`, `figure`, and `embed` work in every theme, and themes
+can add their own. See [Components](components.md) for the syntax, every
+built-in component, and making your own.
 
 ## Other formats
 

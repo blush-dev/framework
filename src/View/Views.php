@@ -15,16 +15,13 @@ namespace Blush\View;
 
 use Closure;
 use Error;
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use SplFileInfo;
 use Throwable;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeSettings;
 use Blush\Translation\Translator;
 use Blush\View\Component\ComponentListing;
+use Blush\View\Component\ComponentName;
 use Blush\View\Component\ComponentType;
 use Blush\View\Component\Slots;
 
@@ -41,8 +38,9 @@ use Blush\View\Component\Slots;
  * they're given, not their caller's variables. Context providers attached
  * to a view add their data under what the view is given.
  *
- * Components (D-025) render `components/{key}` with their props, `$slot`,
- * and `$slots`; a class registered for the key builds the props first.
+ * Components (D-025) render their template (`components/{namespace}-{name}`,
+ * D-171) with their props, `$slot`, and `$slots`; a registered class builds
+ * the props first.
  *
  * `ViewFactory` builds one `Views` per theme chain, with the chain's
  * assets and settings; the services templates reach through
@@ -126,59 +124,111 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns whether a component exists: a class is registered for its
-	 * key, or the chain has its template.
+	 * Returns whether a component exists: it's registered, or the chain
+	 * has its template. `$name` is a full name or a core component's
+	 * short name (D-171).
 	 */
-	public function hasComponent(string $key): bool
+	public function hasComponent(string $name): bool
 	{
-		return ViewFinder::isValidName($key)
-			&& ($this->services->components->isRegistered($key) || $this->finder->find("components/{$key}") !== null);
+		$parsed = ComponentName::parse($name);
+
+		return $parsed !== null
+			&& ($this->services->components->isRegistered($name) || $this->finder->nearest($parsed->views()) !== null);
 	}
 
 	/**
-	 * Returns every component the chain can render, by key: the core
-	 * components, those with a registered class, and every
-	 * `components/{key}.php` in the view directories.
+	 * Returns every component the chain can render, by name: the core
+	 * components, the registered ones, and every template in a
+	 * `components/` folder named for a component (see
+	 * `strayComponentFiles()` for the rest).
 	 *
 	 * @return list<ComponentListing>
 	 */
 	public function components(): array
 	{
-		$keys = [
-			...array_map(static fn (ComponentType $type): string => $type->value, ComponentType::cases()),
-			...array_keys($this->services->components->all())
-		];
+		$names = [];
 
-		foreach ($this->finder->directories() as $directory) {
-			$keys = [...$keys, ...self::templateKeys("{$directory}/components")];
+		foreach (ComponentType::cases() as $type) {
+			$names[(string) $type->componentName()] = $type->componentName();
 		}
 
-		$keys = array_unique($keys);
-		sort($keys, SORT_STRING);
+		foreach ($this->services->components->all() as $key => $definition) {
+			$names[$key] = $definition->name;
+		}
 
-		return array_map(fn (string $key): ComponentListing => new ComponentListing(
-			$key,
-			$this->services->components->get($key),
-			$this->finder->all("components/{$key}"),
-			ComponentType::tryFrom($key) !== null
-		), $keys);
+		foreach ($this->componentFiles() as [$fileName]) {
+			$name = ComponentName::fromFileName($fileName, $this->componentNamespaces());
+
+			if ($name !== null) {
+				$names[(string) $name] ??= $name;
+			}
+		}
+
+		ksort($names, SORT_STRING);
+
+		return array_values(array_map(fn (ComponentName $name): ComponentListing => new ComponentListing(
+			$name,
+			$this->services->components->get((string) $name),
+			array_column($this->finder->allOf($name->views()), 1),
+			$this->componentText($name, 'label'),
+			$this->componentText($name, 'description')
+		), $names));
 	}
 
 	/**
-	 * Renders a component with its props and slots.
+	 * Returns the templates in the chain's `components/` folders that
+	 * aren't named for any component, such as a theme's `card.php` that
+	 * should be `{slug}-card.php`. Nothing can render them.
+	 *
+	 * @return list<string>
+	 */
+	public function strayComponentFiles(): array
+	{
+		$namespaces = $this->componentNamespaces();
+
+		return array_values(array_map(
+			static fn (array $file): string => $file[1],
+			array_filter($this->componentFiles(), static fn (array $file): bool => ComponentName::fromFileName($file[0], $namespaces) === null)
+		));
+	}
+
+	/**
+	 * Returns a component's translated text, such as its `label` or
+	 * `description`, or `null` when no catalog has it (D-172). Text is
+	 * keyed `components.{name}.{key}` in the namespace's domain: `blush`
+	 * for core components, `theme` for the chain's themes, and otherwise
+	 * the namespace itself (`app` for the site, a vendor for an
+	 * extension). Prop text is `props.{prop}.label` and
+	 * `props.{prop}.choices.{value}`.
+	 *
+	 * @param array<string, mixed> $params
+	 */
+	public function componentText(ComponentName $name, string $key, array $params = []): ?string
+	{
+		$domain = match (true) {
+			$name->isCore()                                         => 'blush',
+			in_array($name->namespace, $this->chain->slugs(), true) => 'theme',
+			default                                                 => $name->namespace
+		};
+
+		$message = "components.{$name->name}.{$key}";
+
+		return $this->translator->has($message, $domain) ? $this->translator->translate($message, $params, $domain) : null;
+	}
+
+	/**
+	 * Renders a component with its props and slots. `$name` is a full
+	 * name or a core component's short name.
 	 *
 	 * @param  array<string, mixed> $props
 	 * @throws ViewException
 	 */
-	public function component(string $key, array $props, string $slot, Slots $slots, ViewContext $context): string
+	public function component(string $name, array $props, string $slot, Slots $slots, ViewContext $context): string
 	{
-		if (! ViewFinder::isValidName($key)) {
-			throw new ViewException(sprintf('"%s" is not a valid component key.', $key));
-		}
-
-		$class = $this->services->components->get($key);
-		$data  = [...$props, 'props' => $props, 'slot' => $slot, 'slots' => $slots];
-		$view  = "components/{$key}";
+		$parsed = ComponentName::parse($name) ?? throw $this->invalidComponent($name);
+		$class  = $this->services->components->get($name)?->class;
+		$data   = [...$props, 'props' => $props, 'slot' => $slot, 'slots' => $slots];
+		$views  = $parsed->views();
 
 		if ($class !== null) {
 			$component = $this->services->factory->make($class, $props);
@@ -187,13 +237,71 @@ final readonly class Views
 				return '';
 			}
 
-			$view = $component->template() ?? $view;
-			$data = [...$props, ...$component->data(), 'component' => $component, 'props' => $props, 'slot' => $slot, 'slots' => $slots];
+			$view  = $component->template();
+			$views = $view === null ? $views : [$view];
+			$data  = [...$props, ...$component->data(), 'component' => $component, 'props' => $props, 'slot' => $slot, 'slots' => $slots];
 		}
 
-		$file = $this->finder->find($view) ?? throw ViewNotFound::forNames([$view]);
+		[$view, $file] = $this->finder->nearest($views) ?? throw ViewNotFound::forNames($views);
 
 		return $this->renderFile($view, $file, $data, $context);
+	}
+
+	/**
+	 * Returns the error for a string that isn't a component name.
+	 */
+	private function invalidComponent(string $name): ViewException
+	{
+		if (preg_match('#^' . ComponentName::SYNTAX . '$#', $name) === 1 && ! str_contains($name, '/')) {
+			return new ViewException(sprintf(
+				'"%s" isn\'t a core component, so it needs its namespace, such as "%s/%s" (D-171).',
+				$name,
+				$this->chain->active()->slug,
+				$name
+			));
+		}
+
+		return new ViewException(sprintf('"%s" is not a valid component name.', $name));
+	}
+
+	/**
+	 * Returns the namespaces a component template's file name may start
+	 * with: core, the site, the chain's themes, and every registered one.
+	 *
+	 * @return list<string>
+	 */
+	private function componentNamespaces(): array
+	{
+		return array_values(array_unique([
+			ComponentName::CORE,
+			ComponentName::SITE,
+			...$this->chain->slugs(),
+			...$this->services->components->namespaces()
+		]));
+	}
+
+	/**
+	 * Returns the templates directly in each view directory's
+	 * `components/` folder, as file names (without `.php`) and paths.
+	 * Subfolders aren't components.
+	 *
+	 * @return list<array{string, string}>
+	 */
+	private function componentFiles(): array
+	{
+		$files = [];
+
+		foreach ($this->finder->directories() as $directory) {
+			foreach (glob("{$directory}/components/*.php") ?: [] as $path) {
+				$fileName = basename($path, '.php');
+
+				if (is_file($path) && ViewFinder::isValidName($fileName)) {
+					$files[] = [$fileName, $path];
+				}
+			}
+		}
+
+		return $files;
 	}
 
 	/**
@@ -289,32 +397,5 @@ final readonly class Views
 
 			include func_get_arg(0);
 		};
-	}
-
-	/**
-	 * Returns the component keys of the templates in a folder, including
-	 * subfolders (`cards/post`).
-	 *
-	 * @return list<string>
-	 */
-	private static function templateKeys(string $folder): array
-	{
-		if (! is_dir($folder)) {
-			return [];
-		}
-
-		$keys = [];
-
-		foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($folder, FilesystemIterator::SKIP_DOTS)) as $file) {
-			if ($file instanceof SplFileInfo && $file->isFile() && $file->getExtension() === 'php') {
-				$key = str_replace('\\', '/', substr($file->getPathname(), strlen($folder) + 1, -4));
-
-				if (ViewFinder::isValidName($key)) {
-					$keys[] = $key;
-				}
-			}
-		}
-
-		return $keys;
 	}
 }

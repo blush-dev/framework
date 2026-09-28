@@ -184,15 +184,17 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testListsComponents(): void
 	{
-		$this->writeTemporaryFile('resources/views/components/badge.php', 'badge');
+		$this->writeTemporaryFile('resources/views/components/app-badge.php', 'badge');
+		$this->writeTemporaryFile('resources/views/components/loose.php', 'loose');
 
 		$result = $this->command('component:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertMatchesRegularExpression('#\| badge\s*\|\s*\|\s*\| resources/views/components/badge\.php#', $result->output);
-		$this->assertMatchesRegularExpression('#\| callout\s*\| yes\s*\|\s*\| .*themes/default/views/components/callout\.php#', $result->output);
-		$this->assertMatchesRegularExpression('#\| embed\s*\| yes\s*\| Blush\\\\View\\\\Component\\\\Embed#', $result->output);
+		$this->assertMatchesRegularExpression('#\| app/badge\s*\| Badge\s*\|\s*\|\s*\| resources/views/components/app-badge\.php#', $result->output);
+		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\|\s*\| .*themes/default/views/components/callout\.php#', $result->output);
+		$this->assertMatchesRegularExpression('#\| blush/embed\s*\| Embed\s*\| yes\s*\| Blush\\\\View\\\\Component\\\\Embed#', $result->output);
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
+		$this->assertStringContainsString('resources/views/components/loose.php isn\'t named for a component, so nothing renders it. Name it {namespace}-loose.php.', $result->output . $result->errors);
 	}
 
 	public function testComponentsWithoutTemplatesAreFlagged(): void
@@ -201,12 +203,43 @@ final class ThemeCommandsTest extends TestCase
 
 		$list = $this->command('component:list');
 
-		$this->assertMatchesRegularExpression('#\| orphan\s*\|\s*\| .*Orphan\s*\| \(none\)#', $list->output);
-		$this->assertStringContainsString('"orphan" has no components/orphan.php template, so it can\'t render.', $list->output . $list->errors);
+		$this->assertMatchesRegularExpression('#\| app/orphan\s*\| Orphan\s*\| yes\s*\| .*Orphan\s*\| \(none\)#', $list->output);
+		$this->assertStringContainsString('"app/orphan" has no components/app-orphan.php template, so it can\'t render.', $list->output . $list->errors);
 
 		$check = $this->command('theme:check');
 
-		$this->assertStringContainsString('warning component orphan: The "orphan" component (Blush\\Tests\\Fixtures\\View\\Orphan) has no components/orphan.php template in the chain.', $check->output);
+		$this->assertStringContainsString('warning component app/orphan: The "app/orphan" component (Blush\\Tests\\Fixtures\\View\\Orphan) has no components/app-orphan.php template in the chain.', $check->output);
+	}
+
+	public function testThemeCheckFlagsComponentTemplatesNotNamedForAComponent(): void
+	{
+		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova"}');
+		$this->writeTemporaryFile('user/themes/nova/views/components/card.php', 'card');
+		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'badge');
+		$this->writeTemporaryFile('user/themes/nova/views/components/blush-callout.php', 'callout');
+		$this->writeTemporaryFile('resources/views/components/loose.php', 'not the theme\'s');
+
+		$check = $this->command(['theme:check', 'nova']);
+
+		$this->assertStringContainsString('warning component card: components/card.php isn\'t named for a component, so it never renders; name it components/nova-card.php.', $check->output);
+		$this->assertStringNotContainsString('nova-badge', $check->output);
+		$this->assertStringNotContainsString('blush-callout', $check->output);
+		$this->assertStringNotContainsString('loose', $check->output);
+	}
+
+	public function testThemeCheckNotesRegisteredComponentsWithoutALabel(): void
+	{
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\View\\NovaProvider::class]);\n");
+		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova"}');
+		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'badge');
+
+		$notice = 'notice  component nova/badge: The "nova/badge" component has no label; add "components.badge.label" to the theme\'s lang/ catalog.';
+
+		$this->assertStringContainsString($notice, $this->command(['theme:check', 'nova', '--strict'])->output);
+
+		$this->writeTemporaryFile('user/themes/nova/lang/en.json', '{"components": {"badge": {"label": "Badge"}}}');
+
+		$this->assertStringNotContainsString('nova/badge', $this->command(['theme:check', 'nova', '--strict'])->output);
 	}
 
 	public function testExplainsWhichViewWins(): void

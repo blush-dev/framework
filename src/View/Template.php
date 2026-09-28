@@ -211,10 +211,12 @@ final class Template
 	 * Returns a component with named props, to print or to fill with
 	 * slots first (D-025):
 	 * `<?= $template->component('callout', tone: 'info')->content($html) ?>`.
+	 * `$name` is a full name (`acme/tabs`) or a core component's short
+	 * name (D-171).
 	 */
-	public function component(string $key, mixed ...$props): PendingComponent
+	public function component(string $name, mixed ...$props): PendingComponent
 	{
-		return new PendingComponent($this->views, $this->context, $key, self::named($props));
+		return new PendingComponent($this->views, $this->context, $name, self::named($props));
 	}
 
 	/**

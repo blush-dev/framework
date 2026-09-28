@@ -39,6 +39,12 @@ use ReflectionProperty;
 abstract class Component
 {
 	/**
+	 * What the component wraps, which decides how the admin's inserter
+	 * writes it in Markdown (D-172).
+	 */
+	public const ComponentContent CONTENT = ComponentContent::None;
+
+	/**
 	 * Returns the view the component renders, or `null` for
 	 * `components/{key}`.
 	 */

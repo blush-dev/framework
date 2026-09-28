@@ -27,6 +27,11 @@ use Uri\Rfc3986\Uri;
 final class Embed extends Component
 {
 	/**
+	 * @inheritDoc
+	 */
+	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
 	 * The service the URL belongs to, or `''`.
 	 */
 	public readonly string $provider;

@@ -452,15 +452,16 @@ view layer was implemented in M5 (D-103 to D-125).
   pages of a listing (D-162).
 - **Components:** `ComponentType` lists the core content components;
   `Views::components()` discovers every component a chain can render
-  (D-164).
+  (D-164), by namespaced name (D-171, D-173).
 - **`Hierarchy`:** the candidate view names for a content page or error,
   with front matter `template:` first (D-104).
 - **Renderers:** `ThemedPageRenderer` (the `PageRenderer`) and
   `ThemedErrorPages` (the `ErrorPages`) pick the chain per request
   (`ThemeResolver`, `?theme=` in development) and fill in the head.
 - **Components** (`Blush\View\Component`, D-111): template-only or
-  class-backed, with slots; the registry, factory, and registrar; the
-  built-in `Embed`. `ComponentDirectives` renders Markdown directives as
+  class-backed, with slots; `ComponentName`, `ComponentDefinition`, and
+  `ComponentContent` (D-171 to D-173); the registry, factory, and
+  registrar; the built-in `Embed`. `ComponentDirectives` renders Markdown directives as
   components (D-112). **Context providers** (`ContextProviders`, D-114)
   add data to views by name or pattern.
 - **Themes** (`Blush\Theme`, D-105, D-115 to D-121): `ThemeDiscovery`
@@ -577,6 +578,8 @@ Implemented in M7 (D-135 to D-140).
 - **Stage 3: editor**
   - Forms generated from schemas.
   - A Markdown editor with live preview through `Kernel::handle()`.
+  - A component inserter for dropping components into content: only
+    registered components, always written by full name (D-171, D-172).
   - A media library, and git-backed revisions.
 - **Admin constraints:** it lives in an `/admin` route group (path
   configurable) behind its own provider and is off by default.
