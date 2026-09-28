@@ -2569,3 +2569,15 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** moving the build into the theme put a `.js` file at its root,
   which the asset route would otherwise serve. A built asset is never
   named `*.config.js`, so the rule costs nothing.
+
+### D-169: Site config stays at the root, not under `user/`
+- **Date:** 2026-09-28
+- **Decision:** Reaffirms D-039 after considering moving config under
+  `user/` (D-166). `config/*.php` stays at the project root, and
+  environment values and secrets stay in `.env`. No settings data layer
+  in `user/` for now. Where jtcom's content types live (data types or an
+  extension) is still being weighed; extension-defined types (D-083) are
+  now documented for users.
+- **Why:** config is PHP loaded with `$env` in scope, and `user/` is
+  what the publish webhook pulls and the admin writes (D-039); boot reads
+  config before any extension loads, so extensions can't hold it either.

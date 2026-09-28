@@ -189,6 +189,55 @@ same manifest in its `composer.json` under `extra.blush`.
 Every installed extension is on. Turn one off in
 [`config/extensions.php`](configuration.md#extensions-and-middleware).
 
+Each extension can be its own git repository. If `user/` is one too,
+ignore `extensions/` there (see [the site layout](README.md#how-a-blush-site-is-laid-out)).
+
+### Content types from an extension
+
+An extension can define [content types](content-types.md), much like a
+WordPress plugin registering post types. Write a class that implements
+`ContentTypeSource` and returns the types:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Acme\Recipes;
+
+use Blush\Content\Query\Order;
+use Blush\Content\Type\Collection;
+use Blush\Content\Type\ContentTypeSource;
+use Blush\Content\Type\Listing;
+use Blush\Content\Type\Taxonomy;
+
+final class ContentTypes implements ContentTypeSource
+{
+	public function types(): iterable
+	{
+		yield new Collection(
+			'recipe',
+			folder: 'recipes',
+			listing: new Listing(orderBy: 'published', order: Order::Desc)
+		);
+
+		yield new Taxonomy('cuisine', folder: 'recipes/cuisines', types: ['recipe']);
+	}
+}
+```
+
+Tag it in the extension's provider:
+
+```php
+protected const array TAGS = [
+	ContentTypeSource::TAG => [ContentTypes::class]
+];
+```
+
+The kinds and options are the same as in `config/content.php`. A site can
+still redefine one of your types in its `config/content.php`, but not in
+`user/data/types/`. Two extensions can't define the same type.
+
 ## Events
 
 Blush announces what it's doing through events you can listen for, such as

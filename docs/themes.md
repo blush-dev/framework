@@ -339,6 +339,42 @@ use them no matter which theme is active (see [Content](content.md)). To
 change how one looks, add your own `views/components/callout.php` (and
 so on); yours wins.
 
+A component that needs data, such as a list of posts, can have a PHP
+class. Keep it in the theme's `src/`, and name a provider and autoload
+map in `theme.json`:
+
+```json
+{
+	"name": "Notebook",
+	"provider": "Notebook\\ThemeProvider",
+	"autoload": { "psr-4": { "Notebook\\": "src/" } }
+}
+```
+
+The provider registers the class in its `boot()` method, and the
+template in `views/components/` draws it:
+
+```php
+<?php // src/ThemeProvider.php
+
+declare(strict_types=1);
+
+namespace Notebook;
+
+use Blush\Core\ServiceProvider;
+use Blush\View\Component\ComponentRegistry;
+
+final class ThemeProvider extends ServiceProvider
+{
+	public function boot(): void
+	{
+		$this->container->get(ComponentRegistry::class)->register('recent-posts', View\RecentPosts::class);
+	}
+}
+```
+
+See [Components with logic](extending.md#components-with-logic) for writing the component class.
+
 To see every component your theme can use, and which file draws each,
 run `bin/blush component:list`. `bin/blush theme:why components/callout`
 shows what a file overrides. `theme:check` warns about a component with

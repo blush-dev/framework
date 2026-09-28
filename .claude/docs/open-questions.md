@@ -5,6 +5,11 @@ Move each item to `decisions.md` once it's answered.
 ## Needs the author's call
 
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
+- **Where jtcom's content types live** (D-166, D-169): `config/content.php`
+  today. Options: data types in `user/data/types/` (travel with the
+  content repo; a checked sketch matches the config exactly), or an
+  extension in `user/extensions/` (WordPress-style, with site PHP such as
+  a future blog extension).
 
 ## Later milestones
 - **Browser-friendly feeds and sitemaps** (D-125): XSL stylesheets won't

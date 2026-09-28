@@ -40,9 +40,9 @@ component), head meta, Markdown setup, every view, and the SCSS build.
 Done on `jtcom-trial` (a test bed; its site files are never committed,
 D-156): `config/content.php` (the seven types, typed objects,
 `home: 'post'`), `config/media.php` (`/user/media`), `config/markdown.php`
-(jtcom's extensions and options), `App\SiteServiceProvider`, and the
-`App\View\PostArchives` component (the year, month, and full archive
-lists). The theme is `user/themes/jtcom` (D-167), built with Vite
+(jtcom's extensions and options). The theme is `user/themes/jtcom`
+(D-167), with the `Jtcom\View\PostArchives` component (the year, month,
+and full archive lists) and its `Jtcom\ThemeProvider`, built with Vite
 (D-155; `npm run build` in the theme's folder), with views for every page kind:
 singles (post, literature, page), the home page and listings, date
 archives, taxonomy lists, the art/drawing/painting image grids, the three

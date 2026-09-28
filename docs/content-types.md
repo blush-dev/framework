@@ -29,7 +29,7 @@ Every content type is one of three kinds:
   at `/authors/jane`. You don't need an author file; Blush makes a
   stand-in from the slug until you write one.
 
-## Two ways to define a type
+## Three ways to define a type
 
 **In YAML or JSON** (no PHP needed): create a file in `user/data/types/`
 named after the type. Use `kind` to pick the kind; it's `collection` if
@@ -59,9 +59,27 @@ return new ContentConfig(
 );
 ```
 
-Both do the same thing, and every option below works in either one. (In
+**In an extension**, with the same classes, when the types belong with
+code you install, like a plugin registering post types in WordPress. See
+[Content types from an extension](extending.md#content-types-from-an-extension).
+
+All three do the same thing, and every option below works in each. (In
 YAML, use the option names as keys.) A type's name uses lowercase letters,
 digits, and underscores.
+
+If two places define the same type, `config/content.php` replaces an
+extension's type, and both replace a built-in one. A YAML type may
+replace a built-in type, but not one from an extension or
+`config/content.php`; that's an error. Two extensions can't define the
+same type.
+
+Which to pick:
+
+- **YAML** keeps a type with your content, so a copy of `user/` carries
+  it along. It's the only kind a future admin screen can edit.
+- **`config/content.php`** keeps it with your site's code.
+- **An extension** keeps it with a feature you can reuse or version on its
+  own.
 
 ## Example: a blog
 
