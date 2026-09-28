@@ -20,6 +20,7 @@ use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Http\PageRenderer;
 use Blush\Core\AppConfig;
+use Blush\Data\InvalidData;
 use Blush\Feed\FeedLinks;
 use Blush\Http\Response;
 use Blush\Theme\ThemeException;
@@ -29,7 +30,8 @@ use Blush\Theme\ThemeResolver;
  * Renders content pages with the request's theme chain: the first view
  * in the page's `Hierarchy`, in a context whose `Head` already has the
  * title, canonical URL, OpenGraph basics, pagination links, and feed
- * links. When the page shows an entry, the head also gets its
+ * links. Later pages of a listing add the page number to the title.
+ * When the page shows an entry, the head also gets its
  * description (its summary, or the start of its body) and its `image`
  * field as `og:image`, with a Twitter card (D-149). Themes can replace
  * any of them, since a later value for the same tag wins.
@@ -58,7 +60,7 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		$views   = $this->views->forChain($this->themes->forRequest($request));
 		$context = $this->views->context($views, $page->entry);
 
-		$this->describe($context, $page, $request);
+		$this->describe($views, $context, $page, $request);
 
 		$context->share([
 			'page'    => $page,
@@ -74,11 +76,11 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	/**
 	 * Fills in the head and the `<body>` classes for a page.
 	 */
-	private function describe(ViewContext $context, ContentPage $page, ServerRequestInterface $request): void
+	private function describe(Views $views, ViewContext $context, ContentPage $page, ServerRequestInterface $request): void
 	{
 		$isFront   = $page->kind === PageKind::Home || $page->kind === PageKind::Welcome;
 		$canonical = $this->app->absoluteUrl($request->getUri()->getPath());
-		$head      = $context->head->title($isFront ? '' : $page->title)->canonical($canonical);
+		$head      = $context->head->title($this->title($views, $page, $isFront))->canonical($canonical);
 
 		$head->property('og:site_name', $this->app->name)
 			->property('og:title', $isFront || $page->title === '' ? $this->app->name : $page->title)
@@ -110,6 +112,30 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		if ($entries !== null && $entries->page > 1) {
 			$context->addClass('is-paged');
 		}
+	}
+
+	/**
+	 * Returns the page's title for the head: none on the front page, and
+	 * the page number on later pages of a listing ("Blog: Page 2", or
+	 * "Page 2" on the front page), so each page's `<title>` is its own.
+	 * The wording is the `blush` catalog's `document_title.paged` and
+	 * `document_title.page`, which a theme's catalog can override.
+	 *
+	 * @throws InvalidData When a catalog can't be parsed.
+	 */
+	private function title(Views $views, ContentPage $page, bool $isFront): string
+	{
+		$title  = $isFront ? '' : $page->title;
+		$number = $page->entries->page ?? 1;
+
+		if ($number < 2) {
+			return $title;
+		}
+
+		$key    = $title === '' ? 'document_title.page' : 'document_title.paged';
+		$domain = $views->translator->has($key, 'theme') ? 'theme' : 'blush';
+
+		return $views->translator->translate($key, ['title' => $title, 'page' => $number], $domain);
 	}
 
 	/**

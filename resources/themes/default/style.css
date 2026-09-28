@@ -261,20 +261,38 @@ hr {
 /* Pagination */
 
 .pagination {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-m);
 	margin-block-start: var(--space-xl);
 	font-size: 0.9375rem;
 }
 
-.pagination__status {
+.pagination__items {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-s);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.pagination__link {
+	display: inline-block;
+	min-inline-size: 2.25em;
+	padding: var(--space-xs) var(--space-s);
+	border-radius: var(--radius);
+	text-align: center;
+}
+
+.pagination__item--current .pagination__link {
+	background: var(--color-surface);
+	font-weight: 600;
+}
+
+.pagination__item--dots .pagination__link {
 	color: var(--color-muted);
 }
 
-.pagination__link--next {
+.pagination__item--next {
 	margin-inline-start: auto;
 }
 

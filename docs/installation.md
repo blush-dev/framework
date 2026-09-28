@@ -90,6 +90,10 @@ project includes a ready-made `nginx.conf.example`. nginx ignores
 The site project works with DDEV: run `ddev start`. DDEV serves the project
 root with Apache, just like shared hosting.
 
+On a Mac, DDEV usually syncs your files into its container with Mutagen,
+which can take a moment. If a page you just created shows "not found",
+reload after a second.
+
 ## Subdirectories aren't supported yet
 
 Blush expects to be at the root of its domain (`https://example.com/`), not

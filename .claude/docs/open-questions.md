@@ -68,6 +68,11 @@ Move each item to `decisions.md` once it's answered.
 
 ## Later
 - **Product name** (D-038): the author will decide.
+- **1.x's "Powered by" lines** (noted 2026-09-27): 1.x's footer picked a
+  random line ("Powered by coffee.", "Powered by an old mixtape and
+  memories of lost love.", …; `Template/Tag/PoweredBy.php` on `master`).
+  The default theme says "Powered by Blush". Maybe bring the lines back
+  in the default theme or the welcome page, for personality.
 - **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
 - **Multilingual file convention** (D-036): decided when the feature is built.
 - **Theming:** see the open questions in `theming.md`.

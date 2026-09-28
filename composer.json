@@ -38,7 +38,8 @@
 		"phpcompatibility/php-compatibility": "^10.0@alpha",
 		"phpstan/phpstan": "^2.2",
 		"phpunit/phpunit": "^12.5",
-		"squizlabs/php_codesniffer": "^4.0.4"
+		"squizlabs/php_codesniffer": "^4.0.4",
+		"symfony/var-dumper": "^8.1"
 	},
 	"autoload": {
 		"psr-4": {

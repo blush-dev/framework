@@ -97,6 +97,12 @@ default theme (`bin/blush theme:new mytheme`) and bring your styles
 across. See [Themes](themes.md). Your entries' `view` front matter still
 picks a template, but by the 2.x template's name.
 
+1.x's `$pagination->display([...])` becomes `$page->pageLinks()`, which
+gives the same numbered links (first and last pages, the pages around
+the current one, and dots) for your template to mark up; see
+[Pagination](themes.md#pagination). Later pages of a listing still get
+"Page 2" in their title.
+
 ## Small behavior changes
 
 - Only an image **on its own line** becomes a `<figure>`. Images inside a

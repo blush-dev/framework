@@ -204,7 +204,14 @@ aren't candidates (D-104).
 - **Slots:** `$slot` holds the default slot and `$slots->name` holds named
   slots (`''` when unfilled).
 - **Registry:** components are resolved by key through the chain. A site
-  overrides a theme component by providing the same key.
+  overrides a theme component by providing the same key. Only classes are
+  registered; a template-only component's file is its registration.
+- **Discovery (D-164):** `ComponentType` declares the core components
+  (`className()` is `null` for template-only ones; the registrar seeds
+  only classes). `Views::components()` lists every key the chain can
+  render as `ComponentListing`s (core keys, registered classes, and every
+  `components/**.php` in the view directories), which `component:list`
+  prints and `theme:check` uses to warn about a class with no template.
 - **In Markdown** (D-026), the same components are available to content:
   ```
   :::gallery{columns=3}

@@ -15,11 +15,17 @@ namespace Blush\View;
 
 use Closure;
 use Error;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 use Throwable;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeSettings;
 use Blush\Translation\Translator;
+use Blush\View\Component\ComponentListing;
+use Blush\View\Component\ComponentType;
 use Blush\View\Component\Slots;
 
 /**
@@ -127,6 +133,35 @@ final readonly class Views
 	{
 		return ViewFinder::isValidName($key)
 			&& ($this->services->components->isRegistered($key) || $this->finder->find("components/{$key}") !== null);
+	}
+
+	/**
+	 * Returns every component the chain can render, by key: the core
+	 * components, those with a registered class, and every
+	 * `components/{key}.php` in the view directories.
+	 *
+	 * @return list<ComponentListing>
+	 */
+	public function components(): array
+	{
+		$keys = [
+			...array_map(static fn (ComponentType $type): string => $type->value, ComponentType::cases()),
+			...array_keys($this->services->components->all())
+		];
+
+		foreach ($this->finder->directories() as $directory) {
+			$keys = [...$keys, ...self::templateKeys("{$directory}/components")];
+		}
+
+		$keys = array_unique($keys);
+		sort($keys, SORT_STRING);
+
+		return array_map(fn (string $key): ComponentListing => new ComponentListing(
+			$key,
+			$this->services->components->get($key),
+			$this->finder->all("components/{$key}"),
+			ComponentType::tryFrom($key) !== null
+		), $keys);
 	}
 
 	/**
@@ -254,5 +289,32 @@ final readonly class Views
 
 			include func_get_arg(0);
 		};
+	}
+
+	/**
+	 * Returns the component keys of the templates in a folder, including
+	 * subfolders (`cards/post`).
+	 *
+	 * @return list<string>
+	 */
+	private static function templateKeys(string $folder): array
+	{
+		if (! is_dir($folder)) {
+			return [];
+		}
+
+		$keys = [];
+
+		foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($folder, FilesystemIterator::SKIP_DOTS)) as $file) {
+			if ($file instanceof SplFileInfo && $file->isFile() && $file->getExtension() === 'php') {
+				$key = str_replace('\\', '/', substr($file->getPathname(), strlen($folder) + 1, -4));
+
+				if (ViewFinder::isValidName($key)) {
+					$keys[] = $key;
+				}
+			}
+		}
+
+		return $keys;
 	}
 }

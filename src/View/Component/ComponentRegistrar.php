@@ -16,7 +16,7 @@ namespace Blush\View\Component;
 use Blush\Support\RegistrationException;
 
 /**
- * Seeds the component registry with the built-in classes, leaving any key
+ * Seeds the component registry with the core components' classes, leaving any key
  * a provider has already registered alone.
  */
 final readonly class ComponentRegistrar
@@ -32,7 +32,11 @@ final readonly class ComponentRegistrar
 	public function register(): void
 	{
 		foreach (ComponentType::cases() as $type) {
-			$this->registry->registerIf($type->value, $type->className());
+			$class = $type->className();
+
+			if ($class !== null) {
+				$this->registry->registerIf($type->value, $class);
+			}
 		}
 	}
 }

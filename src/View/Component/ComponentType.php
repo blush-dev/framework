@@ -14,23 +14,28 @@ declare(strict_types=1);
 namespace Blush\View\Component;
 
 /**
- * The framework's class-backed components, keyed by name (the "Type
- * enum" of D-019). The other core content components (`gallery`,
- * `figure`, `callout`) are template-only, in the default theme (D-033).
+ * The core content components (the "Type enum" of D-019): the ones
+ * content can use in any theme (D-033), since the default theme, at the
+ * end of every chain, has their templates. Most are template-only; a
+ * case with a class has it seeded into the `ComponentRegistry`.
  */
 enum ComponentType: string
 {
-	case Embed = 'embed';
+	case Callout = 'callout';
+	case Embed   = 'embed';
+	case Figure  = 'figure';
+	case Gallery = 'gallery';
 
 	/**
-	 * Returns the component's class.
+	 * Returns the component's class, or `null` for a template-only one.
 	 *
-	 * @return class-string<Component>
+	 * @return ?class-string<Component>
 	 */
-	public function className(): string
+	public function className(): ?string
 	{
 		return match ($this) {
-			self::Embed => Embed::class
+			self::Embed => Embed::class,
+			default     => null
 		};
 	}
 }

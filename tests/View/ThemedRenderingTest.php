@@ -91,6 +91,51 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<h1 class="archive-header__title">Blog</h1>', $home);
 	}
 
+	public function testLaterPagesOfAListingAreNumberedAndTitledByPage(): void
+	{
+		$this->standardContent();
+		$this->contentConfig([
+			'types' => [
+				'post' => [
+					'path'          => '_posts',
+					'collection'    => ['order' => 'desc', 'number' => 1],
+					'date_archives' => true,
+					'routing'       => ['prefix' => 'archives']
+				]
+			],
+			'home' => 'post'
+		]);
+		$this->entry('_posts/2008-04-10.showers.md', "title: Showers\npublished: 2008-04-10 09:00:00");
+
+		$app  = $this->site();
+		$home = $this->body('/page/2', $app);
+
+		$this->assertStringContainsString('<title>Page 2 | Blush</title>', $home);
+		$this->assertStringContainsString('<li class="pagination__item pagination__item--prev">', $home);
+		$this->assertStringContainsString('<a class="pagination__link" href="/">Previous page</a>', $home);
+		$this->assertStringContainsString('<span class="pagination__link" aria-current="page">2</span>', $home);
+		$this->assertStringContainsString('<a class="pagination__link" href="/page/4">4</a>', $home);
+		$this->assertStringContainsString('<a class="pagination__link" href="/page/3">Next page</a>', $home);
+
+		$this->assertStringContainsString('<title>Blush</title>', $this->body('/', $app));
+		$this->assertMatchesRegularExpression('#<title>April 2008: Page 2 \| Blush</title>#', $this->body('/archives/2008/04/page/2', $app));
+		$this->assertStringNotContainsString('pagination', $this->body('/archives/spring', $app));
+	}
+
+	public function testAThemeCanRewordThePagedTitle(): void
+	{
+		$this->standardContent();
+		$this->contentConfig([
+			'types' => ['post' => ['path' => '_posts', 'collection' => ['number' => 1], 'routing' => ['prefix' => 'archives']]],
+			'home'  => 'post'
+		]);
+		$this->childTheme();
+		$this->writeTemporaryFile('user/themes/child/lang/en.json', '{"document_title": {"page": "Page {page} of the archives"}}');
+		$this->activeTheme('child');
+
+		$this->assertStringContainsString('<title>Page 2 of the archives | Blush</title>', $this->body('/page/2'));
+	}
+
 	public function testAChildThemeOverridesOnlyWhatItProvides(): void
 	{
 		$this->standardContent();

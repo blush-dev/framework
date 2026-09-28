@@ -19,6 +19,7 @@ use Blush\Console\Commands\ActivateTheme;
 use Blush\Console\Commands\CheckTheme;
 use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
+use Blush\Console\Commands\ListComponents;
 use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\PublishThemes;
 use Blush\Console\Console;
@@ -38,6 +39,7 @@ use Blush\Theme\ThemeReport;
 #[CoversClass(CreateTheme::class)]
 #[CoversClass(CheckTheme::class)]
 #[CoversClass(ExplainView::class)]
+#[CoversClass(ListComponents::class)]
 #[CoversClass(PublishThemes::class)]
 #[CoversClass(ThemeChecker::class)]
 #[CoversClass(ThemeReport::class)]
@@ -178,6 +180,33 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->assertStringNotContainsString('notice', $this->command(['theme:check', 'rough'])->output);
 		$this->assertStringContainsString('error   manifest: The "missing" theme is not installed.', $this->command(['theme:check', 'missing'])->output);
+	}
+
+	public function testListsComponents(): void
+	{
+		$this->writeTemporaryFile('resources/views/components/badge.php', 'badge');
+
+		$result = $this->command('component:list');
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertMatchesRegularExpression('#\| badge\s*\|\s*\|\s*\| resources/views/components/badge\.php#', $result->output);
+		$this->assertMatchesRegularExpression('#\| callout\s*\| yes\s*\|\s*\| .*themes/default/views/components/callout\.php#', $result->output);
+		$this->assertMatchesRegularExpression('#\| embed\s*\| yes\s*\| Blush\\\\View\\\\Component\\\\Embed#', $result->output);
+		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
+	}
+
+	public function testComponentsWithoutTemplatesAreFlagged(): void
+	{
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\View\\OrphanProvider::class]);\n");
+
+		$list = $this->command('component:list');
+
+		$this->assertMatchesRegularExpression('#\| orphan\s*\|\s*\| .*Orphan\s*\| \(none\)#', $list->output);
+		$this->assertStringContainsString('"orphan" has no components/orphan.php template, so it can\'t render.', $list->output . $list->errors);
+
+		$check = $this->command('theme:check');
+
+		$this->assertStringContainsString('warning component orphan: The "orphan" component (Blush\\Tests\\Fixtures\\View\\Orphan) has no components/orphan.php template in the chain.', $check->output);
 	}
 
 	public function testExplainsWhichViewWins(): void

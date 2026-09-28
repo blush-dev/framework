@@ -21,10 +21,12 @@ use Blush\Http\Request;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\Fixtures\View\Card;
 use Blush\Tests\Fixtures\View\Greeting;
+use Blush\Tests\Fixtures\View\Orphan;
 use Blush\Theme\ThemeResolver;
 use Blush\View\Component\Component;
 use Blush\View\Component\ComponentFactory;
 use Blush\View\Component\ComponentRegistrar;
+use Blush\View\Component\ComponentListing;
 use Blush\View\Component\ComponentRegistry;
 use Blush\View\Component\ComponentType;
 use Blush\View\Component\Embed;
@@ -43,6 +45,7 @@ use Blush\View\Views;
 #[CoversClass(ComponentRegistrar::class)]
 #[CoversClass(ComponentRegistry::class)]
 #[CoversClass(ComponentType::class)]
+#[CoversClass(ComponentListing::class)]
 #[CoversClass(Embed::class)]
 #[CoversClass(PendingComponent::class)]
 #[CoversClass(Slots::class)]
@@ -99,6 +102,50 @@ final class ComponentsTest extends TestCase
 
 		$this->expectException(ViewException::class);
 		$views->component('card', ['title' => ['not', 'a', 'string']], '', new Slots(), new ViewContext());
+	}
+
+	public function testListsEveryComponentTheChainCanRender(): void
+	{
+		$this->view('components/box', 'box');
+		$this->view('components/cards/post', 'post card');
+		$this->view('components/callout', 'site callout');
+
+		$views    = $this->boot();
+		$registry = $this->app->container()->make(ComponentRegistry::class);
+		$registry->register('card', Card::class);
+		$registry->register('orphan', Orphan::class);
+
+		$components = [];
+
+		foreach ($views->components() as $component) {
+			$components[$component->key] = $component;
+		}
+
+		$this->assertSame(['box', 'callout', 'card', 'cards/post', 'embed', 'figure', 'gallery', 'orphan'], array_keys($components));
+		$this->assertSame([true, true, true, true], [$components['callout']->isCore, $components['embed']->isCore, $components['figure']->isCore, $components['gallery']->isCore]);
+		$this->assertFalse($components['box']->isCore);
+		$this->assertSame(Embed::class, $components['embed']->class);
+		$this->assertNull($components['callout']->class);
+		$this->assertCount(2, $components['callout']->files);
+		$this->assertStringEndsWith('resources/views/components/callout.php', (string) $components['callout']->file());
+		$this->assertStringEndsWith('themes/default/views/components/gallery.php', (string) $components['gallery']->file());
+		$this->assertNull($components['card']->file());
+
+		// A class that picks its own view isn't missing a template; one
+		// that relies on components/{key} is.
+		$this->assertFalse($components['card']->isMissingTemplate());
+		$this->assertTrue($components['orphan']->isMissingTemplate());
+		$this->assertFalse($components['box']->isMissingTemplate());
+	}
+
+	public function testOnlyCoreComponentsWithClassesAreRegistered(): void
+	{
+		$this->boot();
+
+		$registry = $this->app->container()->make(ComponentRegistry::class);
+
+		$this->assertSame(['embed' => Embed::class], $registry->all());
+		$this->assertNull(ComponentType::Callout->className());
 	}
 
 	public function testMissingAndInvalidComponentsThrow(): void

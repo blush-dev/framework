@@ -112,6 +112,12 @@ The current focus: the experience of setting up a Blush site.
 - **Removed the design token system (D-160):** themes style themselves
   with plain CSS; the default theme's palette is custom properties in
   `style.css` with `light-dark()`. Tokens may return as an add-on.
+- **1.x features restored:** numbered pagination as `PageLink`s
+  (D-161), page numbers in paged titles (D-162), and `dump()`/`dd()`
+  with stray output kept in the page (D-163).
+- **Component discovery (D-164):** the four core components declared in
+  `ComponentType`, `component:list`, and a `theme:check` warning for
+  components with no template.
 
 ### Still to scope
 
@@ -120,8 +126,18 @@ Other starting points the author may pick up (none decided):
 - Creating a site: `composer create-project`, first-run steps (`.env`
   from `.env.example`, the storage folders, secrets such as
   `PUBLISH_SECRET`), and whether an `init`/`install` command guides it.
+- **A global installer (D-165):** a separately installed `blush` command
+  (like `laravel/installer`, via `composer global require`) that creates
+  sites (`blush new mysite`) and, inside a site, runs that site's
+  `bin/blush`. Until then, the docs can show the small launcher script
+  that finds the nearest `bin/blush` (the author uses one in
+  `~/.local/bin/blush`).
 - Checking an install: the planned `doctor` command (PHP version and
   extensions, writable paths, web server rewrites, opcache).
+- Friendly setup notices (1.x's `Message`): setup problems (no `.env`,
+  unwritable `storage/`, no content yet) should show a plain page that
+  says what to do, not a stack trace. Keep in mind for first-run and
+  `doctor` work.
 - The first look: the welcome page, the skeleton's sample content (its
   `blog/` isn't a content type, so the sample post is a plain page), and
   the default theme.

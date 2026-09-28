@@ -2433,3 +2433,95 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author wants themes to design however they like without
   framework rules about design for now. jtcom didn't use tokens, and
   their main payoff (site-owner overrides) waits on the admin.
+
+### D-161: Numbered pagination returns (1.x's `Pagination`)
+- **Date:** 2026-09-27
+- **Decision:** `Paginator::links(?Closure $url, int $endSize = 1,
+  int $midSize = 1, bool $adjacent = true)` returns a `list<PageLink>`
+  for numbered pagination, 1.x's layout: the first and last `$endSize`
+  pages, `$midSize` on each side of the current page, and dots between.
+  `ContentPage::pageLinks()` calls it with the page's URL builder.
+  - `PageLink` is a readonly value: `kind` (`PageLinkKind`), `?number`,
+    `?url` (none for the current page or the dots), `isCurrent()`, and
+    `padded($width)` for 1.x's leading zeros.
+  - `PageLinkKind` is `Previous`, `Number`, `Current`, `Dots`, `Next`,
+    backed by 1.x's class suffixes (`prev`, `number`, `current`, `dots`,
+    `next`) so they work as class names.
+  - Unlike 1.x, a gap of one page shows that page instead of dots.
+  - Themes own the markup and the labels; the framework has no
+    pagination renderer (1.x's HTML options array is gone). A listing
+    with one page, or a page past the last, has no links.
+  - The default theme's `parts/pagination.php` uses it (numbered links
+    instead of "Page X of Y"), and so does the `jtcom-trial` theme.
+- **Why:** 1.x drew these links for themes; 2.x left every theme to
+  write the windowing loop itself (about 40 lines in the jtcom trial).
+  Theme authors shouldn't need that logic.
+
+### D-162: Later pages of a listing get the page number in the title
+- **Date:** 2026-09-27
+- **Decision:** `ThemedPageRenderer` sets the head title of page 2 and
+  later to the `blush` catalog's `document_title.paged`
+  (`"{title}: Page {page}"`), or `document_title.page` (`"Page {page}"`)
+  when the page has no title of its own (the front page). A theme's
+  catalog overrides either key. `og:title` stays unnumbered. This adds
+  the framework's first catalog, `resources/lang/en.json`.
+- **Why:** 1.x's `DocumentTitle` did this; without it every page of a
+  listing shares one `<title>`, which hurts search results and browser
+  history.
+
+### D-163: `dump()` and `dd()` through Symfony VarDumper; stray output is kept
+- **Date:** 2026-09-27
+- **Decision:** Debug dumps are Symfony VarDumper's `dump()` and `dd()`,
+  a development dependency of sites (and of the framework), per D-006.
+  Blush doesn't wrap or restyle them. The skeleton's `composer.json`
+  should list `symfony/var-dumper` in `require-dev` (not done yet: the
+  skeleton's `2.x` branch isn't checked out).
+  - `HttpRunner::run()` buffers output printed while the kernel runs and
+    `StrayOutput::insert()` adds it just inside `<body>` (or before
+    another body), dropping `Content-Length`. Without it, a dump outside
+    a view sent headers early and the `Emitter` threw.
+  - The calls are the stable surface. A nicer in-house dumper or debug
+    toolbar can come later by replacing VarDumper's handler
+    (`VarDumper::setHandler()`) or taking over from `StrayOutput`,
+    without changing `dump()` calls.
+- **Why:** 1.x shipped a styled dumper; 2.x had none. The author wants a
+  dumper now and may build a nicer one later.
+
+### D-164: Core components are declared; components are discoverable
+- **Date:** 2026-09-27
+- **Decision:** Components stay registered by file: a template-only
+  component is just `views/components/{key}.php`, and only classes go in
+  the `ComponentRegistry`. Discovery comes from three pieces instead:
+  - `ComponentType` declares all four core content components
+    (`callout`, `embed`, `figure`, `gallery`), the contract content can
+    rely on in any theme (D-033). `className()` returns `null` for the
+    template-only ones, and the registrar seeds only classes (still just
+    `embed`).
+  - `Views::components()` lists every component a chain can render, as
+    `ComponentListing`s: the core keys, the registered classes, and every
+    `components/**.php` in the view directories (nested keys such as
+    `cards/post` included), each with its class, its files (winner
+    first), and whether it's core. `isMissingTemplate()` is true when
+    there's no file and no class that picks another view by overriding
+    `template()`.
+  - A `component:list [--theme]` command prints them and warns about
+    components that can't render; `theme:check` warns about the same.
+- **Why:** the author wants developers to know which components exist.
+  Requiring registration for template-only components would add a step
+  that drifts from the files and would loosen the registry's class
+  contract; listing from the chain shows what actually renders.
+
+### D-165: A global installer is planned
+- **Date:** 2026-09-27
+- **Decision:** Blush will get a global installer: a small package
+  installed once per machine (`composer global require`, like
+  `laravel/installer`) that provides a `blush` command. It creates new
+  sites (`blush new mysite`, wrapping `composer create-project` and the
+  first-run steps) and, inside a site, hands off to that site's
+  `bin/blush`, found by walking up from the current folder. It's part of
+  the setup DX work (D-156) and not scheduled yet. Until it exists, a
+  launcher script that finds the nearest `bin/blush` does the hand-off.
+- **Why:** `bin/blush` belongs to each site, so a global command has to
+  find the site it's run in; the author wants that, plus site creation,
+  as a real product feature rather than a script users copy.
+

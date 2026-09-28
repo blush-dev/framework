@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Query;
 
 use ArrayIterator;
+use Closure;
 use Countable;
 use IteratorAggregate;
 use Override;
@@ -101,6 +102,65 @@ final readonly class Paginator implements IteratorAggregate, Countable
 	public function previous(): ?int
 	{
 		return $this->hasPrevious() ? min($this->page - 1, $this->pages()) : null;
+	}
+
+	/**
+	 * Returns numbered pagination for the listing, 1.x's style: the first
+	 * and last `$endSize` pages, `$midSize` pages on each side of the
+	 * current one, and dots for the pages left out. A gap of one page
+	 * shows that page instead of dots. With `$adjacent`, the list starts
+	 * with a previous link and ends with a next link, when there are
+	 * such pages.
+	 *
+	 * `$url` builds each page's URL (a `ContentPage` passes its own, see
+	 * `ContentPage::pageLinks()`). A listing with one page, or a page past
+	 * the last, has no links.
+	 *
+	 * @param  ?Closure(int): ?string $url
+	 * @return list<PageLink>
+	 */
+	public function links(?Closure $url = null, int $endSize = 1, int $midSize = 1, bool $adjacent = true): array
+	{
+		$pages = $this->pages();
+
+		if ($pages < 2 || $this->isOutOfRange()) {
+			return [];
+		}
+
+		$endSize = max(0, $endSize);
+		$midSize = max(0, $midSize);
+		$current = $this->page;
+		$urlFor  = static fn (int $number): ?string => $url === null ? null : $url($number);
+		$isShown = static fn (int $number): bool => $number <= $endSize
+			|| $number > $pages - $endSize
+			|| abs($number - $current) <= $midSize;
+
+		$links    = [];
+		$previous = $this->previous();
+
+		if ($adjacent && $previous !== null) {
+			$links[] = new PageLink(PageLinkKind::Previous, $previous, $urlFor($previous));
+		}
+
+		for ($number = 1; $number <= $pages; $number++) {
+			$fillsGap = $number > 1 && $number < $pages && $isShown($number - 1) && $isShown($number + 1);
+
+			if ($number === $current) {
+				$links[] = new PageLink(PageLinkKind::Current, $number);
+			} elseif ($isShown($number) || $fillsGap) {
+				$links[] = new PageLink(PageLinkKind::Number, $number, $urlFor($number));
+			} elseif (array_last($links)?->kind !== PageLinkKind::Dots) {
+				$links[] = new PageLink(PageLinkKind::Dots);
+			}
+		}
+
+		$next = $this->next();
+
+		if ($adjacent && $next !== null) {
+			$links[] = new PageLink(PageLinkKind::Next, $next, $urlFor($next));
+		}
+
+		return $links;
 	}
 
 	/**

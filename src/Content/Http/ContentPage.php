@@ -15,6 +15,7 @@ namespace Blush\Content\Http;
 
 use Closure;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Query\PageLink;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Type\ContentType;
 
@@ -53,5 +54,17 @@ final readonly class ContentPage
 	public function pageUrl(int $page): ?string
 	{
 		return $this->pageUrl === null ? null : ($this->pageUrl)($page);
+	}
+
+	/**
+	 * Returns the listing's numbered pagination, with each page's URL
+	 * (see `Paginator::links()`). A page that lists nothing, or lists
+	 * one page, has none.
+	 *
+	 * @return list<PageLink>
+	 */
+	public function pageLinks(int $endSize = 1, int $midSize = 1, bool $adjacent = true): array
+	{
+		return $this->entries?->links($this->pageUrl(...), $endSize, $midSize, $adjacent) ?? [];
 	}
 }

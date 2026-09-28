@@ -25,6 +25,7 @@ use Blush\Console\Commands\Help;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListCommands;
+use Blush\Console\Commands\ListComponents;
 use Blush\Console\Commands\ListContent;
 use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\Publish;
@@ -57,6 +58,7 @@ enum BuiltInCommand: string
 	case ThemeCheck    = 'theme:check';
 	case ThemeWhy      = 'theme:why';
 	case ThemePublish  = 'theme:publish';
+	case ComponentList = 'component:list';
 	case Publish       = 'publish';
 	case ScheduleRun   = 'schedule:run';
 	case Build         = 'build';
@@ -86,6 +88,7 @@ enum BuiltInCommand: string
 			self::ThemeCheck    => CheckTheme::class,
 			self::ThemeWhy      => ExplainView::class,
 			self::ThemePublish  => PublishThemes::class,
+			self::ComponentList => ListComponents::class,
 			self::Publish       => Publish::class,
 			self::ScheduleRun   => RunSchedule::class,
 			self::Build         => Build::class

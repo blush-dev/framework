@@ -30,8 +30,9 @@ use Blush\View\ViewFactory;
  *   service provider; invalid setting definitions; a base layout
  *   without `lang` on `<html>`, one `<main>`, or a skip link to it.
  * - **Warnings:** shadowed manifests (JSON wins); site setting values
- *   that don't fit; other broken themes; a layout without `<header>` or
- *   `<footer>`, or with other than one `<h1>`.
+ *   that don't fit; other broken themes; a component with a class but no
+ *   template to render; a layout without `<header>` or `<footer>`, or
+ *   with other than one `<h1>`.
  * - **Notices:** `requires` entries, which aren't enforced yet.
  *
  * The layout is checked by rendering the `welcome` page.
@@ -67,7 +68,7 @@ final readonly class ThemeChecker
 			$problems = [...$problems, ...$this->manifest($theme)];
 		}
 
-		$problems = [...$problems, ...$this->settings($chain), ...$this->layout($chain)];
+		$problems = [...$problems, ...$this->settings($chain), ...$this->components($chain), ...$this->layout($chain)];
 
 		return new ThemeReport($slug, $problems);
 	}
@@ -111,6 +112,33 @@ final readonly class ThemeChecker
 		} catch (Throwable $error) {
 			return [new Violation('settings', $error->getMessage())];
 		}
+	}
+
+	/**
+	 * Checks that every component has a template to render: one with a
+	 * registered class but no `components/{key}.php` in the chain (and no
+	 * other view of its own) fails whenever it's used.
+	 *
+	 * @return list<Violation>
+	 */
+	private function components(ThemeChain $chain): array
+	{
+		try {
+			$components = $this->views->forChain($chain)->components();
+		} catch (Throwable) {
+			// The layout check reports views that can't be built.
+			return [];
+		}
+
+		$problems = [];
+
+		foreach ($components as $component) {
+			if ($component->isMissingTemplate()) {
+				$problems[] = new Violation("component {$component->key}", sprintf('The "%s" component (%s) has no components/%s.php template in the chain.', $component->key, $component->class ?? 'no class', $component->key), Severity::Warning);
+			}
+		}
+
+		return $problems;
 	}
 
 	/**

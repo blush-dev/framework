@@ -174,6 +174,12 @@ Implemented in M2 (D-067).
   for deferred work.
 - The front controller in `public/index.php` is three lines:
   `new HttpRunner($root)->run()`.
+- **Stray output (D-163):** `HttpRunner::run()` buffers anything printed
+  while the kernel handles the request (a `dump()`, an `echo`) and
+  `StrayOutput::insert()` puts it just inside the response's `<body>`
+  (or before a non-HTML body), so it can't send headers early. If the
+  kernel throws, the buffer is printed before the exception goes on.
+  `Kernel::handle()` itself doesn't buffer.
 
 ## Routing
 
@@ -396,6 +402,9 @@ Implemented in M4b (D-089).
   `terms`, and `locale`.
 - Returns an `EntryCollection` or a `Paginator`. Hydration is lazy, so
   listings never render bodies.
+- `Paginator::links($url, endSize, midSize, adjacent)` builds numbered
+  pagination as `PageLink`s (kind, number, URL; D-161);
+  `ContentPage::pageLinks()` passes the page's URL builder.
 - Compiled per index: array filters for `PhpIndex`, SQL for `SqliteIndex`.
 
 ## Media
@@ -439,7 +448,11 @@ view layer was implemented in M5 (D-103 to D-125).
   only global functions (D-106).
 - **`Head` manager:** collects title, meta, OpenGraph, canonical, alternates,
   stylesheets, and scripts, each once, and renders them in the base layout
-  (D-109).
+  (D-109). `ThemedPageRenderer` adds the page number to the title on later
+  pages of a listing (D-162).
+- **Components:** `ComponentType` lists the core content components;
+  `Views::components()` discovers every component a chain can render
+  (D-164).
 - **`Hierarchy`:** the candidate view names for a content page or error,
   with front matter `template:` first (D-104).
 - **Renderers:** `ThemedPageRenderer` (the `PageRenderer`) and

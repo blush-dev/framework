@@ -233,6 +233,55 @@ field, `og:image` and a Twitter card. Add or replace any tag with
 a page that stands alone:
 `$template->head()->remove('style:' . $template->asset('style.css'))`.
 
+On later pages of a listing, the title gets the page number: "Blog:
+Page 2", or "Page 2" on the front page. To word it differently, add
+`document_title.paged` (`"{title}: Page {page}"`) and
+`document_title.page` (`"Page {page}"`) to your theme's `lang/` files.
+
+### Pagination
+
+`$page->pageLinks()` gives a listing's numbered page links, ready to
+loop over: previous, the page numbers, and next. It shows the first and
+last pages and one on each side of the current page, with dots for the
+rest, so a long listing reads `← 1 … 4 5 6 … 20 →`. A listing with one
+page has no links.
+
+```php
+<?php
+
+use Blush\Content\Query\PageLinkKind;
+
+?>
+<?php if ($links = $page->pageLinks()) : ?>
+	<nav class="pagination" aria-label="Pagination">
+		<?php foreach ($links as $link) : ?>
+			<?php if ($link->url !== null) : ?>
+				<a href="<?= url($link->url) ?>"><?= e(match ($link->kind) {
+					PageLinkKind::Previous => 'Previous',
+					PageLinkKind::Next     => 'Next',
+					default                => (string) $link->number
+				}) ?></a>
+			<?php else : ?>
+				<span<?= $link->isCurrent() ? ' aria-current="page"' : '' ?>><?= e($link->isCurrent() ? (string) $link->number : '…') ?></span>
+			<?php endif ?>
+		<?php endforeach ?>
+	</nav>
+<?php endif ?>
+```
+
+Each link has a `kind`, a `number` (none for the dots), and a `url`
+(none for the current page or the dots). The kinds are `Previous`,
+`Number`, `Current`, `Dots`, and `Next`; `$link->kind->value` (`prev`,
+`number`, `current`, `dots`, `next`) works as a class name.
+`$link->padded(2)` gives the number with leading zeros, such as `02`.
+
+Change how many pages show with `$page->pageLinks(endSize: 2, midSize:
+2)`, or leave out previous and next with `adjacent: false`. For just
+"Previous" and "Next" links, `$entries->previous()` and
+`$entries->next()` give the page numbers, and `$page->pageUrl($number)`
+their URLs. The default theme's `parts/pagination.php` is a full
+example.
+
 ### Caching slow parts
 
 Some parts of a page are slow to build, such as a list of every post.
@@ -284,6 +333,17 @@ Use it in a template with `<?= $template->component('badge', tone: 'new')->conte
 or in Markdown with `:badge[New]{tone=new}`. Each prop is also its own
 variable, and `$slot` holds the content (in Markdown, the `[label]` or the
 wrapped block).
+
+Four **core components** work in every theme, because the default theme
+provides them: `callout`, `embed`, `figure`, and `gallery`. Content can
+use them no matter which theme is active (see [Content](content.md)). To
+change how one looks, add your own `views/components/callout.php` (and
+so on); yours wins.
+
+To see every component your theme can use, and which file draws each,
+run `bin/blush component:list`. `bin/blush theme:why components/callout`
+shows what a file overrides. `theme:check` warns about a component with
+a PHP class but no template.
 
 ### Building assets with Vite
 
