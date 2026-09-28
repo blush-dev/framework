@@ -54,6 +54,30 @@ Move each item to `decisions.md` once it's answered.
   default). Working assumption: themes list them in `theme.json`
   (`"variants": {"blush/button": ["ghost"]}`), and extensions and the
   site register them in PHP; the author isn't sure yet.
+- **Array and map props in directives** (D-112, D-205): the
+  `key=value` attribute syntax stays, not JSON. Today every attribute is
+  a string, cast to the prop's scalar or enum type. When a component needs an `array` prop (a
+  breadcrumbs component with `icons` and `taxonomies` maps, for
+  example), two additive changes are the likely path:
+  - **Dotted keys** nest: `icons.home=house icons.date=calendar` becomes
+    `icons: {home, date}`, and perhaps `items[]=a items[]=b` for lists.
+    Keys already allow `.`, so this is a parser change only. Leaf and
+    inline directives have no body, so they need nesting on the
+    attribute line itself.
+  - **Multi-line attributes**: `{…}` may span lines (today `SYNTAX`
+    stops at a newline), so a long option list reads like config:
+    ```md
+    ::breadcrumbs{
+      showIcons=all
+      taxonomies.product=product-categories
+      taxonomies.post=tags
+    }
+    ```
+  The attribute scan should also become quote-aware, so a `}` inside a
+  quoted value doesn't end the braces. Heavier options, if ever needed:
+  comma lists cast by an `array` prop type, a JSON value for an `array`
+  prop, a YAML options block at the top of a container (MyST-style),
+  child directives as list items, or a prop naming a data file.
 - **A `<button>` component** (D-189): a real `<button>` for actions that
   need a script (toggles, dialogs), alongside the link-based `button`;
   what it runs, and how, is open.

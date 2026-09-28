@@ -3526,3 +3526,18 @@ decision, add a new entry that supersedes it and mark the old one
     `ThemeProvider` through `IconRegistry` (`jtcom/github`, D-203); the
     `menu-social` partial is gone. Its build still makes 421 pages.
 - **Why:** the author asked to build the D-199 to D-203 design.
+
+### D-205: Directive attributes stay `key=value`, not JSON
+- **Date:** 2026-09-28
+- **Decision:** Directive attributes keep the D-112 syntax
+  (`{columns=3 .stretch-wide}`) rather than JSON
+  (`{"columns": 3, "class": "stretch-wide"}`). Types come from the
+  component's props (`ComponentFactory` casts strings to scalars and
+  enums), not from the author's punctuation. Richer props (arrays and
+  maps) will come through additive changes to this syntax, most likely
+  dotted keys and multi-line attributes (see `open-questions.md`).
+- **Why:** the author prefers the current syntax. It's the common
+  generic-directives and attributes form (remark-directive, Pandoc,
+  MyST), easy to write by hand, and a sketch of a complex component (a
+  breadcrumbs block with `icons` and `taxonomies` maps) fit it with
+  dotted keys, so nothing forces a switch.
