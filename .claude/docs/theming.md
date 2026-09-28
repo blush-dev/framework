@@ -312,10 +312,12 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
 - `Head` prints each asset once, in order.
 - **Serving:** the `theme.asset` route (`/themes/{slug}/{path}`) streams
   allowed files from any installed theme until they're published (D-105).
-- **Versioning:** from a Vite-style manifest if present:
+- **Resolving:** from a Vite-style manifest if present:
   `public/.vite/manifest.json` (D-155), `dist/.vite/manifest.json`, or
-  either without `.vite/` (hashed files, their `css`, built scripts as
-  modules), otherwise the file mtime (`?v=`) (D-119). A theme's
+  either without `.vite/` (built files, their `css`, built scripts as
+  modules), otherwise the file itself (D-119).
+- **Versioning:** every URL gets `?v=` and a CRC32 of the file's
+  contents (D-194). A theme's
   `resources/`, `src/`, `vendor/`, and `node_modules/` folders and its
   `*.config.js` files (D-168) are never served.
 - **Publishing:** `theme:publish` copies servable theme assets (never PHP,

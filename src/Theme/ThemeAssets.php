@@ -21,10 +21,13 @@ use JsonException;
  *
  * 1. A Vite-style manifest (`public/.vite/manifest.json`, D-155, or
  *    `dist/.vite/manifest.json`, or either without `.vite/`) that lists
- *    the path gives its built, hashed file:
- *    `resources/js/app.js` → `/themes/nova/public/assets/app-4f2a.js`.
- * 2. Otherwise a file at the path gives its URL, versioned by mtime:
- *    `/themes/nova/style.css?v=1700000000`.
+ *    the path gives its built file:
+ *    `resources/js/app.js` → `/themes/nova/public/js/app.js?v=4f2a9c1b`.
+ * 2. Otherwise a file at the path gives its URL:
+ *    `/themes/nova/style.css?v=77aa03de`.
+ *
+ * Either way, `?v=` is a hash of the file's contents (D-194), so a URL
+ * changes only when its file does.
  *
  * Build tooling is the theme's choice; a theme without a build step never
  * has a manifest.
@@ -51,6 +54,13 @@ final class ThemeAssets
 	 */
 	private array $manifests = [];
 
+	/**
+	 * File versions computed so far, by absolute path.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $versions = [];
+
 	public function __construct(public readonly ThemeChain $chain)
 	{}
 
@@ -65,11 +75,11 @@ final class ThemeAssets
 			[$entry, $base] = $this->entry($theme, $path);
 
 			if (is_string($entry['file'] ?? null) && ThemeChain::isServable("{$base}/{$entry['file']}")) {
-				return sprintf('%s/%s/%s/%s', ThemeChain::ASSET_URL, $theme->slug, $base, $entry['file']);
+				return $this->versioned($theme, "{$base}/{$entry['file']}");
 			}
 
 			if (ThemeChain::isServable($path) && is_file("{$theme->path}/{$path}")) {
-				return sprintf('%s/%s/%s?v=%d', ThemeChain::ASSET_URL, $theme->slug, $path, (int) filemtime("{$theme->path}/{$path}"));
+				return $this->versioned($theme, $path);
 			}
 		}
 
@@ -112,13 +122,31 @@ final class ThemeAssets
 				$files = is_array($entry['css'] ?? null) ? $entry['css'] : [];
 
 				return array_values(array_map(
-					static fn (string $file): string => sprintf('%s/%s/%s/%s', ThemeChain::ASSET_URL, $theme->slug, $base, $file),
+					fn (string $file): string => $this->versioned($theme, "{$base}/{$file}"),
 					array_filter($files, static fn (mixed $file): bool => is_string($file) && ThemeChain::isServable("{$base}/{$file}"))
 				));
 			}
 		}
 
 		return [];
+	}
+
+	/**
+	 * Returns a theme file's URL with its version, a CRC32 of its
+	 * contents (eight hex characters). A missing file has no version.
+	 */
+	private function versioned(ThemeManifest $theme, string $path): string
+	{
+		$url  = sprintf('%s/%s/%s', ThemeChain::ASSET_URL, $theme->slug, $path);
+		$file = "{$theme->path}/{$path}";
+
+		if (! is_file($file)) {
+			return $url;
+		}
+
+		$this->versions[$file] ??= (string) hash_file('crc32b', $file);
+
+		return "{$url}?v={$this->versions[$file]}";
 	}
 
 	/**

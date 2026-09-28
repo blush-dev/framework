@@ -114,9 +114,9 @@ final class ThemesTest extends TestCase
 
 		$chain  = $this->themes()->chain('child');
 		$assets = new ThemeAssets($chain);
-		$mtime = filemtime($this->temporaryDirectory() . '/user/themes/parent/css/parent.css');
+		$hash   = hash_file('crc32b', $this->temporaryDirectory() . '/user/themes/parent/css/parent.css');
 
-		$this->assertSame("/themes/parent/css/parent.css?v={$mtime}", $assets->url('css/parent.css'));
+		$this->assertSame("/themes/parent/css/parent.css?v={$hash}", $assets->url('css/parent.css'));
 		$this->assertStringStartsWith('/themes/child/style.css?v=', (string) $assets->url('style.css'));
 		$this->assertNull($assets->url('missing.css'));
 		$this->assertNull($assets->url('theme.yaml'));

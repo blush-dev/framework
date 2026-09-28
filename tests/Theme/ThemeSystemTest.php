@@ -249,7 +249,7 @@ final class ThemeSystemTest extends TestCase
 		$this->writeTemporaryFile('user/themes/tinted/extra.css', '');
 		$this->activeTheme('tinted');
 
-		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/tinted/extra.css\?v=\d+">#', $this->get('/'));
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/tinted/extra.css\?v=[0-9a-f]{8}">#', $this->get('/'));
 	}
 
 	public function testPublicManifestsBuildFromResources(): void
@@ -261,6 +261,7 @@ final class ThemeSystemTest extends TestCase
 			'resources/fonts/karla.woff2' => ['file' => 'assets/karla-1b2c.woff2']
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('user/themes/vite/resources/js/app.js', 'source');
+		$this->writeTemporaryFile('user/themes/vite/public/assets/app-4f2a.js', 'built');
 		$this->writeTemporaryFile('user/themes/vite/public/img/icon.png', 'png');
 		$this->activeTheme('vite');
 
@@ -268,9 +269,9 @@ final class ThemeSystemTest extends TestCase
 		$assets = new ThemeAssets($this->app?->container()->make(Themes::class)->chain('vite') ?? throw new LogicException());
 
 		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/vite/public/assets/style-77aa.css">', $html);
-		$this->assertStringContainsString('<script src="http://localhost/themes/vite/public/assets/app-4f2a.js" type="module"></script>', $html);
+		$this->assertStringContainsString('<script src="http://localhost/themes/vite/public/assets/app-4f2a.js?v=' . hash('crc32b', 'built') . '" type="module"></script>', $html);
 		$this->assertSame('/themes/vite/public/assets/karla-1b2c.woff2', $assets->url('resources/fonts/karla.woff2'));
-		$this->assertStringStartsWith('/themes/vite/public/img/icon.png?v=', (string) $assets->url('public/img/icon.png'));
+		$this->assertSame('/themes/vite/public/img/icon.png?v=' . hash('crc32b', 'png'), $assets->url('public/img/icon.png'));
 		$this->assertFalse(ThemeChain::isServable('resources/js/app.js'));
 		$this->assertTrue(ThemeChain::isServable('public/assets/app-4f2a.js'));
 	}

@@ -68,7 +68,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<title>Blush</title>', $home);
 		$this->assertStringContainsString('<body class="is-home type-post">', $home);
 		$this->assertStringContainsString('<a class="skip-link" href="#main">Skip to content</a>', $home);
-		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/default/style.css\?v=\d+">#', $home);
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/default/style.css\?v=[0-9a-f]{8}">#', $home);
 		$this->assertStringContainsString('<link rel="canonical" href="http://localhost/">', $home);
 		$this->assertStringContainsString('<a href="/archives/spring">spring</a>', $home);
 		$this->assertStringContainsString('<time datetime="2008-04-05T09:00:00-05:00">April 5, 2008</time>', $home);
@@ -147,8 +147,8 @@ final class ThemedRenderingTest extends TestCase
 
 		$this->assertStringContainsString('<h1 class="post">Post: spring</h1>', $single);
 		$this->assertStringContainsString('Made with Blush Framework', $single);
-		$this->assertMatchesRegularExpression('#href="http://localhost/themes/default/style.css\?v=\d+">\n<link rel="stylesheet" href="http://localhost/themes/child/extra.css\?v=\d+">#', $single);
-		$this->assertMatchesRegularExpression('#<script src="http://localhost/themes/child/app.js\?v=\d+" defer></script>#', $single);
+		$this->assertMatchesRegularExpression('#href="http://localhost/themes/default/style.css\?v=[0-9a-f]{8}">\n<link rel="stylesheet" href="http://localhost/themes/child/extra.css\?v=[0-9a-f]{8}">#', $single);
+		$this->assertMatchesRegularExpression('#<script src="http://localhost/themes/child/app.js\?v=[0-9a-f]{8}" defer></script>#', $single);
 		$this->assertStringContainsString('<h1 class="entry__title">Biography</h1>', $this->body('/about/biography', $app));
 	}
 

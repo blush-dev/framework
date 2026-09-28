@@ -1629,6 +1629,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-119: Theme assets: build manifests, `stylesheet`, and publishing
 - **Date:** 2026-09-25
+- **Status:** Partially superseded by D-194 (versions are content
+  hashes, not mtimes, and built files are versioned too).
 - **Decision:** Implements D-031 and the rest of D-034:
   - `ThemeAssets` (per chain) resolves `asset()` and the manifest's
     `styles`/`scripts`: for each theme, nearest first, a Vite-style
@@ -2296,6 +2298,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-155: Themes build from `resources/` into `public/`
 - **Date:** 2026-09-26
+- **Status:** Partially superseded by D-194 (no `resources/static/`, no
+  hashed file names).
 - **Decision:**
   - The theme build convention is sources in the theme's `resources/`
     and built files in its `public/`: the author's folder names.
@@ -3150,3 +3154,23 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author wants no relative URLs in `<head>`. Doing it in
   `Head` covers the framework's tags, theme assets, and theme-added tags
   in one place.
+
+### D-194: Flat `resources/`, plain built names, `?v={hash}` versions
+- **Date:** 2026-09-28
+- **Decision:** Supersedes parts of D-119 and D-155.
+  - `ThemeAssets` versions every theme asset URL, manifest-built or not,
+    with `?v=` and a CRC32 of the file's contents (`hash_file('crc32b')`,
+    eight hex characters), memoized per instance. A file the manifest
+    names that doesn't exist gets no version. mtimes are no longer used:
+    they change on checkout and deploy when contents don't.
+  - The recommended Vite build (docs, and jtcom's theme) keeps
+    `resources/` flat: `scss/` and `js/` are built, and every other entry
+    in `resources/` is copied to `public/` by a small inline plugin
+    (`publicDir: false`). Built files keep plain names (`css/[name].css`,
+    `js/[name].js`), and assets the CSS pulls in keep their
+    `resources/`-relative path, so they land on their copies.
+  - The same plugin adds `?v=` to the `url()`s in built CSS, with
+    Node's `zlib.crc32` (Node 22.2+), which matches PHP's `crc32b`. So a
+    preloaded font's URL is the same as the CSS's, and it downloads once.
+- **Why:** the author wants a flat `resources/` and no hashed names in
+  `public/`, with query-string cache busting instead.
