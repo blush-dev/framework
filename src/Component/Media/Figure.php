@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Audio component.
+ * Figure component.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -19,13 +19,11 @@ use Blush\Component\ComponentContent;
 use Blush\Component\MediaProp;
 
 /**
- * Plays an audio file with the browser's controls (D-175, D-179):
- * `::audio[A caption]{src=episode.mp3}`. `src` is resolved like an
- * image's (a file next to the entry, or in the media folder), and the
- * label is the caption. `preload` is `metadata` by default; `loop`
- * repeats it.
+ * An image with a caption (the label) (D-113, D-195):
+ * `::figure[A caption]{src=photo.jpg alt="Describe the photo"}`. `src`
+ * is resolved like an image's; without it, nothing renders.
  */
-final class Audio extends Component
+final class Figure extends Component
 {
 	/**
 	 * @inheritDoc
@@ -34,8 +32,7 @@ final class Audio extends Component
 
 	public function __construct(
 		#[MediaProp] public readonly string $src = '',
-		public readonly MediaPreload $preload = MediaPreload::Metadata,
-		public readonly bool $loop = false,
+		public readonly string $alt = '',
 		public readonly string $label = ''
 	) {}
 
@@ -54,21 +51,5 @@ final class Audio extends Component
 	public function caption(): string
 	{
 		return $this->contentOr($this->label);
-	}
-
-	/**
-	 * Returns the `<audio>` element's attributes, escaped: its class
-	 * (`component-audio__player`), `src`, the browser's controls,
-	 * `preload`, and `loop`.
-	 */
-	public function playerAttributes(): string
-	{
-		return self::html([
-			'class'    => $this->block() . '__player',
-			'src'      => $this->src,
-			'controls' => true,
-			'preload'  => $this->preload->value,
-			'loop'     => $this->loop
-		]);
 	}
 }

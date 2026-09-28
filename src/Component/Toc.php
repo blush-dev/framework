@@ -23,7 +23,8 @@ use Override;
  * (`CollectOutline`); used from a template, pass `headings` yourself.
  * Nothing renders when there are no headings in range.
  *
- * `$items` is the tree: each item's `text`, `id`, and `children`.
+ * `items` is the tree of `TocItem`s. The label is shown as a title and
+ * names the navigation (the theme's `toc.label` text without one).
  */
 final class Toc extends Component
 {
@@ -35,7 +36,7 @@ final class Toc extends Component
 	/**
 	 * The headings in range, nested.
 	 *
-	 * @var list<array{text: string, id: string, children: list<mixed>}>
+	 * @var list<TocItem>
 	 */
 	public readonly array $items;
 
@@ -45,7 +46,8 @@ final class Toc extends Component
 	public function __construct(
 		public readonly int $min = 2,
 		public readonly int $max = 3,
-		public readonly array $headings = []
+		public readonly array $headings = [],
+		public readonly string $label = ''
 	) {
 		$low  = max(1, min(6, min($min, $max)));
 		$high = max(1, min(6, max($min, $max)));
@@ -69,6 +71,33 @@ final class Toc extends Component
 	}
 
 	/**
+	 * Returns the title shown above the list, as HTML: the content, else
+	 * the label escaped, or `''`.
+	 */
+	public function heading(): string
+	{
+		return $this->contentOr($this->label);
+	}
+
+	/**
+	 * Returns the navigation's name: the label, else the theme's
+	 * `toc.label` text.
+	 */
+	public function navLabel(): string
+	{
+		return trim($this->label) !== '' ? trim($this->label) : $this->t('toc.label');
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function rootAttributes(): array
+	{
+		return ['aria-label' => $this->navLabel()];
+	}
+
+	/**
 	 * Returns the items at a level, starting at `$index`, with deeper
 	 * headings nested under the item before them. A heading deeper than
 	 * the level with no item before it (an h3 before any h2) joins this
@@ -76,7 +105,7 @@ final class Toc extends Component
 	 * the level below.
 	 *
 	 * @param  list<array{level: int, text: string, id: string}> $headings
-	 * @return list<array{text: string, id: string, children: list<mixed>}>
+	 * @return list<TocItem>
 	 */
 	private static function branch(array $headings, int &$index, int $level): array
 	{
@@ -90,13 +119,13 @@ final class Toc extends Component
 			}
 
 			if ($heading['level'] > $level && $items !== []) {
-				$last                     = count($items) - 1;
-				$items[$last]['children'] = [...$items[$last]['children'], ...self::branch($headings, $index, $heading['level'])];
+				$last         = count($items) - 1;
+				$items[$last] = $items[$last]->withChildren(self::branch($headings, $index, $heading['level']));
 
 				continue;
 			}
 
-			$items[] = ['text' => $heading['text'], 'id' => $heading['id'], 'children' => []];
+			$items[] = new TocItem($heading['text'], $heading['id']);
 			$index++;
 		}
 

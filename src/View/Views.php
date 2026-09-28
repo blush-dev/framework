@@ -25,6 +25,7 @@ use Blush\Component\ComponentListing;
 use Blush\Component\ComponentName;
 use Blush\Component\ComponentType;
 use Blush\Component\Slots;
+use Blush\Component\TemplateComponent;
 
 /**
  * Renders plain PHP templates (D-009) for one theme chain.
@@ -241,33 +242,31 @@ final readonly class Views
 
 	/**
 	 * Renders a component with its props and slots. `$name` is a full
-	 * name or a core component's short name.
+	 * name or a core component's short name. Its template gets
+	 * `$component` (its class, or a `TemplateComponent`), which holds its
+	 * content and slots (D-195, D-196).
 	 *
 	 * @param  array<string, mixed> $props
 	 * @throws ViewException
 	 */
 	public function component(string $name, array $props, string $slot, Slots $slots, ViewContext $context): string
 	{
-		$parsed = ComponentName::parse($name) ?? throw $this->invalidComponent($name);
-		$class  = $this->services->components->get($name)?->class;
-		$data   = [...$props, 'props' => $props, 'slot' => $slot, 'slots' => $slots];
-		$views  = $parsed->views();
+		$parsed    = ComponentName::parse($name) ?? throw $this->invalidComponent($name);
+		$class     = $this->services->components->get($name)?->class;
+		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props);
 
-		if ($class !== null) {
-			$component = $this->services->factory->make($class, $props);
+		$component->attach($parsed, $props, $slot, $slots, $this->translator);
 
-			if (! $component->shouldRender()) {
-				return '';
-			}
-
-			$view  = $component->template();
-			$views = $view === null ? $views : [$view];
-			$data  = [...$props, ...$component->data(), 'component' => $component, 'props' => $props, 'slot' => $slot, 'slots' => $slots];
+		if (! $component->shouldRender()) {
+			return '';
 		}
+
+		$view  = $component->template();
+		$views = $view === null ? $parsed->views() : [$view];
 
 		[$view, $file] = $this->finder->nearest($views) ?? throw ViewNotFound::forNames($views);
 
-		return $this->renderFile($view, $file, $data, $context);
+		return $this->renderFile($view, $file, ['component' => $component], $context);
 	}
 
 	/**

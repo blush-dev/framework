@@ -3174,3 +3174,146 @@ decision, add a new entry that supersedes it and mark the old one
     preloaded font's URL is the same as the CSS's, and it downloads once.
 - **Why:** the author wants a flat `resources/` and no hashed names in
   `public/`, with query-string cache busting instead.
+
+### D-195: Component templates get one `$component` object
+- **Date:** 2026-09-28
+- **Decision:** A component's template gets `$component`, `$slot`,
+  `$slots`, and `$template`, and nothing else. Props are no longer spread
+  into variables, and `$props` and `Component::data()` are gone.
+  Supersedes those parts of D-025, D-111, and the template-variable
+  lists of D-179 to D-190.
+  - **Props are the class's public properties** (`$component->tone`),
+    typed by the constructor as before. Computed values are methods
+    (`Embed::frameTitle()`, `File::details()`, `Meter::text()`), so the
+    template does only markup. `@var Blush\Component\Callout $component`
+    gives editors autocomplete.
+  - **Every core component has a class.** The template-only four gained
+    one: `Callout` (with `CalloutTone`), `Inline\Abbr`, `Media\Figure`,
+    and `Media\Gallery`. `ComponentType::className()` is never `null`,
+    and its `content()` and `props()` are gone. `Toc::$items` is a tree
+    of `TocItem`s, drawn by the partial `components/toc/list.php`.
+  - **The base `Component` handles the root element.** `Views` calls
+    `attach()` with the name, every prop, and the chain's translator.
+    Every component has the `class` and `id` props.
+    `attributes(array $extra = [])` prints the escaped `class` (the
+    `component-{name}` block, `modifiers()` as BEM modifiers, and the
+    `class` prop), `id`, and `rootAttributes()` (such as a callout's
+    `role`), plus any given (a given `class` is added to the rest;
+    `null`, `false`, and `''` are left out; `true` prints the name).
+    `classes()` and `block()` return the parts, `prop()` returns any
+    prop as given, and `t()` translates from the theme's catalog as
+    `$template->t()` does. `Component::html()` renders an attribute
+    array; `Meter::gaugeAttributes()` and `Progress::barAttributes()`
+    use it for their inner elements.
+  - **Template-only components stay** for now. Their `$component` is a
+    `TemplateComponent` (no props of its own), read with
+    `$component->prop('tone', 'note')`. Whether every component should
+    need a class is open (see `open-questions.md`).
+  - Variants (D-191) will follow the same path: the base class will
+    hold the checked `variant` and add its modifier in `classes()`.
+  - The default theme's templates and the jtcom trial's use it. The
+    trial's `jtcom/entry-terms` became a class (`Jtcom\View\EntryTerms`),
+    and `PostArchives` has `groups()` and `count()` in place of
+    `data()`. It builds the same 421 pages; the only change in the markup
+    is the order of a gallery's classes.
+- **Why:** the author wants editor autocomplete in component templates,
+  and templates that are about markup, not logic. Loose variables,
+  `$props` lookups with type checks, and fallback chains had crept into
+  every template.
+
+### D-196: Content and slots are on `$component`, named for their role
+- **Date:** 2026-09-28
+- **Decision:** Extends D-195. A component's template gets only
+  `$component` and `$template`; `$slot` and `$slots` are gone.
+  - **`content()`** returns the main content's HTML, matching how
+    `PendingComponent` fills it (`->content()`). Named slots are
+    **`$component->slots`**, a get-only property hook returning the
+    `Slots` (`->footer`, `->has('footer')`), or an empty one before
+    `attach()`. `attach()` takes them, as `(name, props, content,
+    slots, translator)`.
+  - **The language sets the rules, not the tools.** PHPCS 4.0.4 can't
+    tokenize property hooks, so the hook sits between `phpcs:disable`
+    and `phpcs:enable` with the reason (as `ListenerPriority` does for
+    an enum). PHPStan reads `Slots` as an object crate
+    (`universalObjectCratesClasses`), since slot names are dynamic.
+  - **Content with a role gets a method named for the role**, not the
+    element: `caption()` (`figure`, `embed`, `audio`, `video`), `text()`
+    (`button`, `file`, `abbr`, `kbd`, `time`), `heading()` (`callout`,
+    `toc`), and `Embed::linkText()`. Block components use `content()`.
+    Themes choose the markup (`<figcaption>` or not).
+  - **The label and the content are interchangeable for text.** A
+    directive's label is plain text, and a `::`/`:` directive's content
+    is that label escaped, so they always matched in Markdown; from a
+    template, some components read `label:` and others `->content()`.
+    Now each role method returns the content, else the `label` prop
+    escaped (`Component::contentOr()`). `figure`, `audio`, `video`,
+    `file`, `abbr`, and `time` gained a `label` prop for it. `Time`'s
+    `text` property became `formatted`, and `text()` is the method.
+  - **Rule for templates:** props are plain (print with `e()` or
+    `attr()`); `content()`, slots, and role methods return HTML (print
+    with `raw()`). Methods for attributes (`Embed::frameTitle()`,
+    `Toc::navLabel()`) return plain text.
+  - The jtcom trial builds byte-for-byte the same as with D-195.
+- **Why:** the author asked why `$slot` wasn't on the component (it was
+  the last loose variable, and nothing tied it to the component), and
+  whether content should be named for its purpose, such as a caption.
+
+### D-197: Sub-element attribute methods; `html()` escapes URLs
+- **Date:** 2026-09-28
+- **Decision:** Extends D-195.
+  - **A component's inner elements can have attribute methods**, like
+    the root's `attributes()`: `Embed::frameAttributes()` (the
+    `component-embed__frame` class and `--embed-ratio`) and
+    `Embed::iframeAttributes()` (`src`, size, `title` from
+    `frameTitle()`, `loading`, `allow`, `allowfullscreen`,
+    `referrerpolicy`), `Audio::playerAttributes()`,
+    `Video::playerAttributes()` and `Video::captionsAttributes()` (the
+    `<track>`), plus `Meter::gaugeAttributes()` and
+    `Progress::barAttributes()`. Methods are named for the element's
+    role (`frame`, `player`, `captions`), matching its BEM element. Each includes its BEM element class
+    (`{block}__{element}`), so a template writes
+    `<div <?= $component->wrapperAttributes() ?>>` with no stray space
+    when the rest is empty. (As first written, the wrapper was
+    `frameAttributes()`/`__frame` and the iframe `iframeAttributes()`
+    with no class; D-198 renamed them.)
+  - **`Component::html()` escapes URL attributes as URLs** (`action`,
+    `cite`, `data`, `formaction`, `href`, `poster`, `src`, through
+    `Escaper::url()`), and leaves out one with an unsafe scheme, so
+    attribute methods can carry links safely.
+  - **The jtcom trial uses the default `callout`, `embed`, `figure`, and
+    `gallery` templates**; its copies are gone. Its SCSS follows:
+    `.component-embed__wrapper` became `__frame`, and
+    `.component-gallery` is a flex gallery sized by `--gallery-columns`
+    (up to 2, 3, then all per row at its breakpoints), while 1.x's
+    hand-written `.gallery` keeps its `--flex`/`--grid` and
+    `.columns-{n}` rules. Its gallery's `layout` prop is dropped (no
+    content used `layout=grid`). The build changes only the one gallery
+    (a `<div>` with `--gallery-columns: 3`) and the embed frame's class.
+- **Why:** the author asked for the embed template to be as simple as
+  progress's, and for the trial theme to rely on the core templates
+  rather than copies.
+
+### D-198: Embed wrapper and frame, gallery layouts, the video's `track`
+- **Date:** 2026-09-28
+- **Decision:** Supersedes parts of D-197.
+  - **Embed:** the `<div>` around the iframe is the wrapper,
+    `wrapperAttributes()` with `component-embed__wrapper` (the name
+    jtcom and 1.x's `.block-embed__wrapper` used), and the `<iframe>` is
+    the frame, `frameAttributes()` with `component-embed__frame` (it had
+    no class before). The default theme's and jtcom's CSS style
+    `.component-embed__frame` itself.
+  - **Gallery:** a `layout` prop, `GalleryLayout` (`flex`, the default,
+    or `grid`), as the `component-gallery--flex`/`--grid` modifier.
+    `flex` rows grow to fill the width; `grid` keeps even columns. Both
+    read `--gallery-columns` through `--gallery-per-row`, which the
+    default theme caps at 2 on narrow screens (jtcom: 2, 3, then all, at
+    its breakpoints). Flex is the default because jtcom's template made
+    it so and its one gallery relies on it; the default theme's plain
+    galleries change from grid to flex.
+  - **Video:** the WebVTT file prop is `track` (was `captions`, which
+    read too much like the `caption()` method), with `trackLang` and
+    `trackAttributes()` (`component-video__track`). The track stays
+    `kind="captions"`, so `subtitles` would have named it wrongly.
+- **Why:** the author's calls: "wrapper" for the wrapper, the gallery's
+  layout prop is needed, and a clearer name for the captions file.
+

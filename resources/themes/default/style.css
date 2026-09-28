@@ -318,11 +318,30 @@ hr {
 	margin-block: 0;
 }
 
+/*
+ * Galleries show up to `--gallery-columns` (set on the element) per row:
+ * `--flex` rows grow to fill the width, and `--grid` keeps even columns.
+ */
 .component-gallery {
-	display: grid;
-	grid-template-columns: repeat(var(--gallery-columns, 3), minmax(0, 1fr));
-	gap: var(--space-s);
+	--gallery-gap: var(--space-s);
+	--gallery-per-row: var(--gallery-columns, 3);
+	gap: var(--gallery-gap);
 	margin-block: var(--space-l);
+}
+
+.component-gallery--flex {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.component-gallery--flex :is(img, figure) {
+	flex: 1 1 calc((100% - (var(--gallery-per-row) - 1) * var(--gallery-gap)) / var(--gallery-per-row));
+	min-width: 0;
+}
+
+.component-gallery--grid {
+	display: grid;
+	grid-template-columns: repeat(var(--gallery-per-row), minmax(0, 1fr));
 }
 
 .component-gallery > p {
@@ -339,7 +358,7 @@ hr {
 
 @media (max-width: 40rem) {
 	.component-gallery {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		--gallery-per-row: min(var(--gallery-columns, 3), 2);
 	}
 }
 
@@ -489,7 +508,7 @@ hr {
 }
 
 /* The frame keeps the embed's shape (its provider's ratio, or 16:9). */
-.component-embed__frame iframe {
+.component-embed__frame {
 	display: block;
 	width: 100%;
 	height: auto;

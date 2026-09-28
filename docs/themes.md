@@ -385,7 +385,7 @@ final class ThemeProvider extends ServiceProvider
 }
 ```
 
-See [A component with a PHP class](components.md#a-component-with-a-php-class) for writing the component class.
+See [The class](components.md#the-class) for writing the component class, and [The template](components.md#the-template) for what its template gets.
 
 To see every component your theme can use, and which file draws each,
 run `bin/blush component:list`. `bin/blush theme:why components/callout`

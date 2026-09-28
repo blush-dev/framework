@@ -201,21 +201,30 @@ aren't candidates (D-104).
   highest-precedence directory wins whichever name it uses
   (`ViewFinder::nearest()`). Subfolders of `components/` aren't
   components.
-- **A template-only component** is just its template, with its props
-  passed in as variables (and all of them as `$props`). That's the simple
-  path; it renders without being registered.
-- **A class-backed component** extends `Component\Component` for props
-  that need logic: typed props via constructor promotion (strings from
-  Markdown are cast to `int`/`float`/`bool` or a backed enum, whose unknown
-  values fall back to the default), services by autowiring, `data()`,
-  `template()`, `shouldRender()`, and `CONTENT`, plus the same template.
+- **Templates get `$component` (D-195, D-196):** a component's template
+  gets `$component` and `$template`; content is `content()`, named slots
+  `$component->slots->name`, and role methods (`caption()`, `text()`,
+  `heading()`) return the content or else the escaped `label`. Props are the
+  class's public properties (`$component->tone`), computed values are
+  methods, and `$component->attributes()` prints the root element's
+  `class` (block, `modifiers()`, the `class` prop), `id`, and
+  `rootAttributes()`. `$component->prop()` reads any prop as given.
+- **A class-backed component** extends `Component\Component`: typed props
+  via constructor promotion (strings from Markdown are cast to
+  `int`/`float`/`bool` or a backed enum, whose unknown values fall back
+  to the default), services by autowiring, `template()`,
+  `shouldRender()`, `modifiers()`, `rootAttributes()`, `t()`, and
+  `CONTENT`, plus its template. Every core component has one.
+- **A template-only component** is just its template; its `$component`
+  is a `TemplateComponent`, read with `prop()`. It renders without being
+  registered. Whether to require a class for every component is open.
 - **Classes (D-182):** a component's classes are BEM-style with a
   `component-` prefix (`component-callout`, `component-callout--warning`,
   `component-callout__title`); the default theme's core components use
   it. Planned: registered variants for any component, as
   `component-{name}--{variant}` modifiers (D-191).
-- **Slots:** `$slot` holds the default slot and `$slots->name` holds named
-  slots (`''` when unfilled).
+- **Slots:** `$component->content()` holds the default slot and
+  `$component->slots->name` named slots (`''` when unfilled).
 - **Registry (D-172, D-173):** `ComponentRegistry::register($name, $class,
   $content, $props)` stores a `ComponentDefinition` by full name: a
   class, or none for a template-only component, plus what it wraps
@@ -229,7 +238,7 @@ aren't candidates (D-104).
   (enabled extensions' `lang/`). Missing text falls back to
   `ComponentName::label()`.
 - **Discovery (D-164, D-173):** `ComponentType` declares the core
-  components and their definitions (the registrar seeds all four).
+  components and their classes (the registrar seeds them all).
   `Views::components()` lists every name the chain can render as
   `ComponentListing`s (core, registered, and every `components/*.php`
   named for a component), with labels; `strayComponentFiles()` returns

@@ -25,9 +25,9 @@ use Blush\Component\MediaProp;
  * A download link for a file (D-175, D-179):
  * `::file[The annual report]{src=report.pdf}`. `src` is resolved like an
  * image's; the label is the link text, or the file's name without one.
- * The template gets the file's `$format` (its extension, such as `PDF`)
- * and, for a file in the media folder or the entry's bundle, its `$size`
- * (such as `1.2 MB`, in the site's number format).
+ * It knows the file's `format` (its extension, such as `PDF`) and, for a
+ * file in the media folder or the entry's bundle, its `size` (such as
+ * `1.2 MB`, in the site's number format); `details()` joins them.
  *
  * Only the media types the site allows are served (`MediaConfig`), so a
  * local file of another type has no size and won't download.
@@ -57,7 +57,8 @@ final class File extends Component
 	public function __construct(
 		MediaResolver $media,
 		AppConfig $app,
-		#[MediaProp] public readonly string $src = ''
+		#[MediaProp] public readonly string $src = '',
+		public readonly string $label = ''
 	) {
 		$path = (string) preg_replace('/[?#].*$/s', '', $src);
 		$file = $src === '' ? null : $media->resolve($src);
@@ -74,6 +75,27 @@ final class File extends Component
 	public function shouldRender(): bool
 	{
 		return $this->src !== '';
+	}
+
+	/**
+	 * Returns the link's text, as HTML: the content, else the label, else
+	 * the file's name.
+	 */
+	public function text(): string
+	{
+		return $this->contentOr($this->label !== '' ? $this->label : $this->name);
+	}
+
+	/**
+	 * Returns the file's format and size for people ("PDF, 1.2 MB", from
+	 * the theme's `media.file_details` text), either one alone, or `''`.
+	 */
+	public function details(): string
+	{
+		return match (true) {
+			$this->format !== '' && $this->size !== '' => $this->t('media.file_details', format: $this->format, size: $this->size),
+			default                                    => $this->format . $this->size
+		};
 	}
 
 	/**

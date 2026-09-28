@@ -32,7 +32,7 @@ final readonly class ComponentRegistrar
 	public function register(): void
 	{
 		foreach (ComponentType::cases() as $type) {
-			$this->registry->registerIf((string) $type->componentName(), $type->className(), $type->content(), $type->props());
+			$this->registry->registerIf((string) $type->componentName(), $type->className());
 		}
 	}
 }

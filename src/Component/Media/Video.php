@@ -23,10 +23,10 @@ use Blush\Component\MediaProp;
 
 /**
  * Plays a video file with the browser's controls (D-175, D-179):
- * `::video[A caption]{src=clip.mp4 poster=clip.jpg captions=clip.vtt}`.
- * `src`, `poster` (an image shown before it plays), and `captions` (a
- * WebVTT track, in the site's language) are resolved like an image's, and
- * the label is the caption.
+ * `::video[A caption]{src=clip.mp4 poster=clip.jpg track=clip.vtt}`.
+ * `src`, `poster` (an image shown before it plays), and `track` (a WebVTT
+ * captions file, in the site's language) are resolved like an image's,
+ * and the label is the caption (D-198).
  *
  * Without `width` and `height`, the poster's size is used, so the page
  * doesn't shift while the video loads. `preload` is `metadata` by
@@ -50,27 +50,28 @@ final class Video extends Component
 	public readonly ?int $height;
 
 	/**
-	 * The captions' language: the site locale's language.
+	 * The track's language: the site locale's language.
 	 */
-	public readonly string $captionsLang;
+	public readonly string $trackLang;
 
 	public function __construct(
 		MediaResolver $media,
 		AppConfig $app,
 		#[MediaProp] public readonly string $src = '',
 		#[MediaProp] public readonly string $poster = '',
-		#[MediaProp] public readonly string $captions = '',
+		#[MediaProp] public readonly string $track = '',
 		?int $width = null,
 		?int $height = null,
 		public readonly MediaPreload $preload = MediaPreload::Metadata,
 		public readonly bool $loop = false,
-		public readonly bool $muted = false
+		public readonly bool $muted = false,
+		public readonly string $label = ''
 	) {
 		$image = $width === null && $height === null && $poster !== '' ? $media->resolve($poster) : null;
 
 		$this->width        = $width ?? $image?->width;
 		$this->height       = $height ?? $image?->height;
-		$this->captionsLang = Locale::getPrimaryLanguage($app->locale) ?? 'en';
+		$this->trackLang    = Locale::getPrimaryLanguage($app->locale) ?? 'en';
 	}
 
 	/**
@@ -80,5 +81,53 @@ final class Video extends Component
 	public function shouldRender(): bool
 	{
 		return $this->src !== '';
+	}
+
+	/**
+	 * Returns the caption, as HTML: the content, else the label escaped.
+	 */
+	public function caption(): string
+	{
+		return $this->contentOr($this->label);
+	}
+
+	/**
+	 * Returns the `<video>` element's attributes, escaped: its class
+	 * (`component-video__player`), `src`, the browser's controls, inline
+	 * playback on phones, `preload`, `poster`, its size (when known),
+	 * `loop`, and `muted`.
+	 */
+	public function playerAttributes(): string
+	{
+		return self::html([
+			'class'       => $this->block() . '__player',
+			'src'         => $this->src,
+			'controls'    => true,
+			'playsinline' => true,
+			'preload'     => $this->preload->value,
+			'poster'      => $this->poster,
+			'width'       => $this->width,
+			'height'      => $this->height,
+			'loop'        => $this->loop,
+			'muted'       => $this->muted
+		]);
+	}
+
+	/**
+	 * Returns the `<track>` element's attributes, escaped: its class
+	 * (`component-video__track`), `kind="captions"`, `src`, the site's
+	 * language, and the theme's `media.captions` text as its label. It's
+	 * on by default.
+	 */
+	public function trackAttributes(): string
+	{
+		return self::html([
+			'class'   => $this->block() . '__track',
+			'kind'    => 'captions',
+			'src'     => $this->track,
+			'srclang' => $this->trackLang,
+			'label'   => $this->t('media.captions'),
+			'default' => true
+		]);
 	}
 }

@@ -191,7 +191,7 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertMatchesRegularExpression('#\| app/badge\s*\| Badge\s*\|\s*\|\s*\| resources/views/components/app-badge\.php#', $result->output);
-		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\|\s*\| .*themes/default/views/components/callout\.php#', $result->output);
+		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\| Blush\\\\Component\\\\Callout\s*\| .*themes/default/views/components/callout\.php#', $result->output);
 		$this->assertMatchesRegularExpression('#\| blush/embed\s*\| Embed\s*\| yes\s*\| Blush\\\\Component\\\\Embed#', $result->output);
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
 		$this->assertStringContainsString('resources/views/components/loose.php isn\'t named for a component, so nothing renders it. Name it {namespace}-loose.php.', $result->output . $result->errors);

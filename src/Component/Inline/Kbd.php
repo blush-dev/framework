@@ -60,4 +60,21 @@ final class Kbd extends Component
 
 		return count($keys) > 1 && ! in_array('', $keys, true) ? $keys : [$label];
 	}
+
+	/**
+	 * Returns a single key's text, as HTML: the content, else the label
+	 * escaped. (A combination is `keys`.)
+	 */
+	public function text(): string
+	{
+		return $this->contentOr($this->label);
+	}
+
+	/**
+	 * Returns whether it's a key combination, with each key in `keys`.
+	 */
+	public function isCombination(): bool
+	{
+		return count($this->keys) > 1;
+	}
 }

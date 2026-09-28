@@ -75,7 +75,7 @@ These work in every theme, because the default theme provides them:
 | Component | Example                                                | Props                                                                                                                                                                                                                                                                  |
 |-----------|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `callout` | `:::callout[Title]{tone=info}` … `:::`                 | `tone`: `note` (default), `info`, `tip`, `warning`, or `danger`. The label is the title.                                                                                                                                                                               |
-| `gallery` | `:::gallery{columns=3}` … `:::`                        | `columns`: 1 to 6 (default 3). Wrap images in it.                                                                                                                                                                                                                      |
+| `gallery` | `:::gallery{columns=3}` … `:::`                        | `columns`: 1 to 6 (default 3). `layout`: `flex` (default; rows that grow to fill the width) or `grid` (even columns). Wrap images in it.                                                                                                                               |
 | `figure`  | `::figure[Caption]{src="/media/a.jpg" alt="…"}`        | `src`, `alt`. The label is the caption.                                                                                                                                                                                                                                |
 | `embed`   | `::embed[Caption]{url="https://youtu.be/…" title="…"}` | `url`, `title`. YouTube and Vimeo (and [providers you add](configuration.md#embeds)) play in a frame at the video's real shape, named by its own title; YouTube and Vimeo in privacy-friendly mode, from the URL's start time (`?t=90`). Any other URL becomes a link. |
 
@@ -127,7 +127,7 @@ so they still work in feeds.
 | Component | Example                                                                     | Props                                                                                                                                                                                                             |
 |-----------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `audio`   | `::audio[Episode 12]{src=episode.mp3}`                                      | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption.                                                                                                                      |
-| `video`   | `::video[Launch day]{src=launch.mp4 poster=launch.jpg captions=launch.vtt}` | `src`, `poster` (an image shown before it plays), `captions` (a WebVTT file, in your site's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
+| `video`   | `::video[Launch day]{src=launch.mp4 poster=launch.jpg track=launch.vtt}`    | `src`, `poster` (an image shown before it plays), `track` (a WebVTT captions file, in your site's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
 | `file`    | `::file[The annual report]{src=report.pdf}`                                 | `src`. The label is the link text (the file's name without one). It shows the file's type, and its size when it's in your media folder or bundle.                                                                 |
 
 Only the [file types your site allows](media.md#allowed-file-types) are
@@ -306,103 +306,97 @@ Markdown, the wrapped block or the label). A component can also have
 ```
 
 Named slots are for templates only; Markdown fills just the main
-content.
+content. The component's template reads them back as
+`$component->content()` and `$component->slots->footer`.
+
+When the content is text, such as a figure's caption or a button's
+text, you can pass it as `label` instead, and it's escaped for you:
+`$template->component('figure', src: '/media/lake.jpg', label: 'Lake & hills')`.
 
 ## Making a component
 
-### A template
+A component is a PHP class for its props and logic, plus a template that
+draws it. (A component can also be [just a template](#a-template-only-component).)
 
-The simplest component is one file in `views/components/`, named
-`{namespace}-{name}.php`:
+### The class
 
-```php
-<?php // resources/views/components/app-badge.php
-
-declare(strict_types=1);
-
-$tone = $props['tone'] ?? 'info';
-
-?>
-<span class="component-badge component-badge--<?= attr($tone) ?>"><?= raw($slot) ?></span>
-```
-
-That's it: `:app/badge[New]{tone=new}` works in Markdown, and
-`$template->component('app/badge', tone: 'new')->content('New')` in a
-template. In a theme named `notebook`, the same file would be
-`views/components/notebook-badge.php`, for `notebook/badge`.
-
-Name a component's classes after it, starting with `component-`: the
-built-in ones use `component-callout`, `component-callout--warning`, and
-`component-callout__title`, and so on. That keeps them apart from the
-rest of a theme's classes.
-
-The file gets:
-
-| Variable  | What it holds                                                                                           |
-|-----------|---------------------------------------------------------------------------------------------------------|
-| each prop | As its own variable (`$tone`), when the name is a valid one                                             |
-| `$props`  | Every prop, including names like `data-id`                                                              |
-| `$slot`   | The main content, as HTML (`''` when there's none)                                                      |
-| `$slots`  | Named slots: `$slots->footer` is `''` when not filled, and `isset($slots->footer)` tells whether it was |
-
-Props from Markdown are always strings, so check or convert them, as
-`$tone` does above.
-
-To change how a built-in component looks, add your own file with its name,
-`views/components/callout.php` or `views/components/blush-callout.php`.
-Yours wins.
-
-A file in `views/components/` that isn't named for a component (such as a
-theme's `badge.php` instead of `notebook-badge.php`) is never drawn;
-`component:list` and `theme:check` point it out. Files in subfolders of
-`components/` aren't components, so you can keep partials there.
-
-### A component with a PHP class
-
-When a component needs data or logic, such as a list of recent posts, back
-it with a class. Its constructor declares the props, and it can also ask
+The constructor declares the props as public properties, and can also ask
 for any of Blush's services:
 
 ```php
-<?php
+<?php // src/View/RecentPosts.php
 
 declare(strict_types=1);
 
 namespace App\View;
 
 use Blush\Content\ContentRepository;
+use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Order;
 use Blush\Component\Component;
+use Blush\Component\ComponentContent;
 
 final class RecentPosts extends Component
 {
+	public const ComponentContent CONTENT = ComponentContent::Text;
+
 	public function __construct(
 		private readonly ContentRepository $content,
-		public int $limit = 5
+		public readonly int $limit = 5,
+		public readonly string $label = ''
 	) {}
 
-	public function data(): array
+	/**
+	 * The title, as HTML: the content, or else the label.
+	 */
+	public function heading(): string
 	{
-		return [
-			'posts' => $this->content->query()->type('post')
-				->orderBy('published', Order::Desc)->limit($this->limit)->get()
-		];
+		return $this->contentOr($this->label);
+	}
+
+	/**
+	 * @return list<Entry>
+	 */
+	public function posts(): array
+	{
+		return $this->content->query()->type('post')
+			->orderBy('published', Order::Desc)->limit($this->limit)->get();
 	}
 }
 ```
 
-- **Public properties become the template's variables.** Props from
-  Markdown are converted to the types you declare, so `{limit=3}` arrives
-  as the integer `3`. A prop typed as a PHP backed enum gets the matching
-  case, and a value the enum doesn't have falls back to the default.
-  Props the constructor doesn't take stay in `$props`.
-- **`data()`** sets the template's variables yourself, as above.
-  `$component` is the object itself.
+- **Props are typed.** Props from Markdown are always strings, so Blush
+  converts them to the types you declare: `{limit=3}` arrives as the
+  integer `3`. A prop typed as a PHP backed enum gets the matching case,
+  and a value the enum doesn't have falls back to the default.
+- **`label`** gets the Markdown label (`::app/recent-posts[Latest]`), if
+  the constructor takes it.
+- **Name the content for its role.** A component's main content is
+  `$this->content()`: a `:::` block's HTML, or the escaped label for `::`
+  and `:`. When it has a role, such as a caption or a title, add a method
+  with that name. `$this->contentOr($this->label)` returns the content,
+  or else the label escaped, so it works whether a template passes
+  `->content()` or `label:`.
+- **Methods do the work**, such as `posts()` above, so the template doesn't
+  have to.
+- **`shouldRender()`** returns `false` to draw nothing.
 - **`template()`** returns another view to draw with, instead of
   `components/{namespace}-{name}`.
-- **`shouldRender()`** returns `false` to draw nothing.
 - **`CONTENT`** says what the component wraps: `ComponentContent::None`
   (the default), `Text` (a label), or `Blocks` (a `:::` block).
+- **`modifiers()`** returns BEM modifiers for the root element, such as
+  `['warning']` for `component-callout--warning`.
+- **`rootAttributes()`** returns other attributes for the root element,
+  such as `['role' => 'note']`.
+- **Inner elements can have attribute methods too**, such as the embed's
+  `frameAttributes()` for its `<iframe>`. Build them with `self::html([...])`, which
+  escapes each value (URL attributes such as `src` and `href` as URLs,
+  leaving out unsafe ones), leaves out `null`, `false`, and `''`, and
+  prints `true` as the name alone. Include the element's class
+  (`$this->block() . '__wrapper'`), so the template is just
+  `<div <?= $component->wrapperAttributes() ?>>`.
+- **`$this->t('key', name: 'value')`** translates text from the theme's
+  catalog, as `$template->t()` does.
 - **`#[MediaProp]`** on a string parameter makes it a media reference:
   in Markdown, `src=photo.jpg` is found like an image's (next to the
   entry, or in the media folder) and arrives as its full URL.
@@ -412,11 +406,10 @@ final class RecentPosts extends Component
   ```php
   use Blush\Component\MediaProp;
 
-  public function __construct(#[MediaProp] public string $src = '') {}
+  public function __construct(#[MediaProp] public readonly string $src = '') {}
   ```
 
-The class still needs its template, `views/components/app-recent-posts.php`,
-and a name. Register it in a service provider's `boot()` method:
+Register the class in a service provider's `boot()` method:
 
 ```php
 use Blush\Component\ComponentRegistry;
@@ -427,7 +420,110 @@ public function boot(): void
 }
 ```
 
+### The template
+
+The template is a file in `views/components/` named
+`{namespace}-{name}.php`: here, `resources/views/components/app-recent-posts.php`.
+In a theme named `notebook`, a `notebook/recent-posts` component's
+would be `views/components/notebook-recent-posts.php`.
+
+```php
+<?php
+
+/**
+ * @var Blush\View\Template   $template
+ * @var App\View\RecentPosts  $component
+ */
+
+declare(strict_types=1);
+
+?>
+<nav <?= $component->attributes() ?>>
+	<?php if ($component->heading() !== '') : ?>
+		<h2 class="component-recent-posts__title"><?= raw($component->heading()) ?></h2>
+	<?php endif ?>
+	<ul class="component-recent-posts__list">
+		<?php foreach ($component->posts() as $post) : ?>
+			<li><a href="<?= url($template->permalink($post)) ?>"><?= e($post->title) ?></a></li>
+		<?php endforeach ?>
+	</ul>
+</nav>
+```
+
+The `@var` lines are for your editor: with them, it can suggest
+`$component->limit` and `$component->posts()` as you type.
+
+The template gets `$component` and `$template` (the
+[template helpers](themes.md#templates), as in any template).
+Everything about the component is on `$component`:
+
+| On `$component`             | What it holds                                                          |
+|-----------------------------|------------------------------------------------------------------------|
+| Props (`->limit`)           | Plain values, as the constructor typed them                            |
+| `->content()`               | The main content, as HTML (`''` when there's none)                     |
+| `->slots->footer`           | A named slot, as HTML (`''` when it wasn't filled)                     |
+| `->slots->has('footer')`    | Whether a named slot was filled                                        |
+| Methods (`->heading()`)     | Whatever the class adds                                                |
+| `->attributes()`            | The root element's attributes (below)                                  |
+| `->prop('data-id')`         | Any prop as given, including ones the constructor doesn't take         |
+
+Props are plain text, so print them with `e()` or `attr()`. Content is
+HTML, so print `content()`, slots, and methods that return content
+(`caption()`, `text()`, `heading()`) with `raw()`.
+
+`$component->attributes()` prints the root element's attributes:
+
+- its classes, named after the component: `component-recent-posts`, plus
+  any modifiers (`component-callout--warning`) and the `class` prop
+  (`.wide` in Markdown);
+- its `id`, from the `id` prop (`#latest` in Markdown);
+- and the component's own, such as a callout's `role="note"`.
+
+Pass more to add them: `$component->attributes(['data-open' => true])`.
+Name the rest of a component's classes after it, BEM-style, as the
+built-in ones do (`component-callout__title`). That keeps them apart from
+the rest of a theme's classes.
+
+To change how a built-in component looks, add your own template with its
+name, `views/components/callout.php` or `views/components/blush-callout.php`.
+Yours wins. The built-in components' classes are in `Blush\Component`, so
+your template gets the same `$component`: see the default theme's
+templates in `resources/themes/default/views/components/` for what each one
+uses.
+
+A file in `views/components/` that isn't named for a component (such as a
+theme's `badge.php` instead of `notebook-badge.php`) is never drawn;
+`component:list` and `theme:check` point it out. Files in subfolders of
+`components/` aren't components, so you can keep partials there (the
+default theme's `toc` draws its nested lists with
+`components/toc/list.php`).
+
 `theme:check` warns about a registered class with no template.
+
+### A template-only component
+
+A simple component can be just its template, with no class:
+
+```php
+<?php // resources/views/components/app-badge.php
+
+/**
+ * @var Blush\Component\TemplateComponent $component
+ */
+
+declare(strict_types=1);
+
+?>
+<span <?= $component->attributes() ?>><?= raw($component->content()) ?></span>
+```
+
+That's it: `:app/badge[New]` works in Markdown, and
+`$template->component('app/badge')->content('New')` in a template.
+
+Its `$component` has no props of its own, so read them with
+`$component->prop('tone', 'info')`, which returns the prop as given (in
+Markdown, always a string) or the default. Check what you get, or give the
+component a class once it needs typed props.
 
 ### Registering a component
 

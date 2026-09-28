@@ -237,9 +237,9 @@ final class EmbedsTest extends TestCase
 
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertStringContainsString('<div class="component-embed__frame" style="--embed-ratio: 200 / 113">', $html);
-		$this->assertStringContainsString('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" width="200" height="113" title="Never Gonna Give You Up"', $html);
-		$this->assertStringContainsString('<iframe src="https://player.example.com/v/1" width="640" height="480" title="Given title"', $html);
+		$this->assertStringContainsString('<div class="component-embed__wrapper" style="--embed-ratio: 200 / 113">', $html);
+		$this->assertStringContainsString('<iframe class="component-embed__frame" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" width="200" height="113" title="Never Gonna Give You Up"', $html);
+		$this->assertStringContainsString('<iframe class="component-embed__frame" src="https://player.example.com/v/1" width="640" height="480" title="Given title"', $html);
 
 		// A script-based rich embed isn't run; it's a link, named by its title.
 		$this->assertStringContainsString('<p class="component-embed component-embed--link"><a href="https://social.example.com/post/1">A post</a></p>', $html);

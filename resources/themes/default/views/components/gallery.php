@@ -1,23 +1,20 @@
 <?php
 
 /**
- * Gallery component: its content (usually images) in a grid.
+ * Gallery component (`Component\Media\Gallery`): its content (usually
+ * images) in rows that fill the width (`flex`) or an even grid (`grid`).
  *
- *     :::gallery{columns=3}
+ *     :::gallery{columns=3 layout=grid}
  *     ![](a.jpg) ![](b.jpg) ![](c.jpg)
  *     :::
  *
- * @var Blush\View\Template $template
- * @var string              $slot
- * @var array<string, mixed> $props
+ * @var Blush\View\Template            $template
+ * @var Blush\Component\Media\Gallery  $component
  */
 
 declare(strict_types=1);
 
-$columns = max(1, min(6, (int) ($props['columns'] ?? 3)));
-$class   = trim('component-gallery ' . (is_string($props['class'] ?? null) ? $props['class'] : ''));
-
 ?>
-<div class="<?= attr($class) ?>" style="--gallery-columns: <?= $columns ?>">
-<?= raw($slot) ?>
+<div <?= $component->attributes() ?>>
+<?= raw($component->content()) ?>
 </div>

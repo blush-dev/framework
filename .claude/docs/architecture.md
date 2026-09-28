@@ -475,15 +475,18 @@ view layer was implemented in M5 (D-103 to D-125).
 `Blush\Component` (D-111, D-192), bound by `ComponentServiceProvider`.
 Views use components, but the system is its own subsystem.
 
-- **Components:** template-only or class-backed, with slots;
+- **Components:** class-backed (every core one) or template-only
+  (`TemplateComponent`), with slots; templates get one `$component`,
+  which holds the content and slots too (D-195, D-196);
   `ComponentName`, `ComponentDefinition`, and `ComponentContent` (D-171
   to D-173); `ComponentType` lists the core content components; the
   registry, factory, and registrar; `PendingComponent` (the fluent
   `$template->component()` builder).
-- **Built-ins:** `Embed`; the layout components in `Component\Layout`
+- **Built-ins:** `Callout` (D-195), `Embed`; the layout components in
+  `Component\Layout`
   (`Group`, `Grid`, `Row`, `CssLength`, D-177); `Component\Media`
-  (`Audio`, `Video`, `File`, `MediaPreload`, D-179); `Component\Inline`
-  (`Kbd`, `Time`, D-180); `Toc` (D-183, fed the outline by the Markdown
+  (`Audio`, `Video`, `File`, `Figure`, `Gallery`, `MediaPreload`, D-179); `Component\Inline`
+  (`Abbr`, `Kbd`, `Time`, D-180); `Toc` (D-183, fed the outline by the Markdown
   layer's `CollectOutline`); `Progress` and `Meter` (D-188); and `Button`
   (D-189).
 - **Props:** `MediaProp` marks media props, which directives resolve

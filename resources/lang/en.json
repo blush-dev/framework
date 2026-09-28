@@ -116,10 +116,17 @@
 		},
 		"gallery": {
 			"label": "Gallery",
-			"description": "Images in a grid.",
+			"description": "Images in rows or a grid.",
 			"props": {
 				"columns": {
 					"label": "Columns"
+				},
+				"layout": {
+					"label": "Layout",
+					"choices": {
+						"flex": "Rows that fill the width",
+						"grid": "Even grid"
+					}
 				}
 			}
 		},
@@ -279,7 +286,7 @@
 				"poster": {
 					"label": "Poster image"
 				},
-				"captions": {
+				"track": {
 					"label": "Captions file"
 				},
 				"width": {

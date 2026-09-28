@@ -22,8 +22,10 @@ use Blush\Http\Request;
 use Blush\Markdown\CommonMark\Directive\CollectOutline;
 use Blush\Tests\BootsScratchSite;
 use Blush\Component\Toc;
+use Blush\Component\TocItem;
 
 #[CoversClass(Toc::class)]
+#[CoversClass(TocItem::class)]
 #[CoversClass(CollectOutline::class)]
 final class TocTest extends TestCase
 {
@@ -70,20 +72,15 @@ final class TocTest extends TestCase
 	/**
 	 * Returns a tree's ids, with children under their parent's id.
 	 *
-	 * @param  array<mixed> $items
+	 * @param  list<TocItem> $items
 	 * @return list<mixed>
 	 */
 	private static function shape(array $items): array
 	{
-		$shape = [];
-
-		foreach ($items as $item) {
-			if (is_array($item) && is_string($item['id'] ?? null) && is_array($item['children'] ?? null)) {
-				$shape[] = $item['children'] === [] ? $item['id'] : [$item['id'] => self::shape($item['children'])];
-			}
-		}
-
-		return $shape;
+		return array_map(
+			static fn (TocItem $item): mixed => $item->children === [] ? $item->id : [$item->id => self::shape($item->children)],
+			$items
+		);
 	}
 
 	public function testHeadingsNestByLevel(): void
@@ -106,7 +103,7 @@ final class TocTest extends TestCase
 
 	public function testItLinksToHeadingsItGivesIds(): void
 	{
-		$html = $this->page($this->app(), '/guide');
+		$html = (string) preg_replace('/>\s+</', '><', $this->page($this->app(), '/guide'));
 
 		$this->assertStringContainsString('<nav class="component-toc" aria-label="On this page">', $html);
 		$this->assertStringContainsString('<p class="component-toc__title">On this page</p>', $html);

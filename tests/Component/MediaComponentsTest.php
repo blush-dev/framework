@@ -102,7 +102,7 @@ final class MediaComponentsTest extends TestCase
 		$video = new Video($this->media(), new AppConfig(locale: 'fr_CA'), '/media/clip.mp4', '/media/poster.png');
 
 		$this->assertSame([16, 9], [$video->width, $video->height]);
-		$this->assertSame('fr', $video->captionsLang);
+		$this->assertSame('fr', $video->trackLang);
 		$this->assertSame([640, null], [new Video($this->media(), new AppConfig(), '/media/clip.mp4', '/media/poster.png', width: 640)->width, new Video($this->media(), new AppConfig(), '/media/clip.mp4', '/media/poster.png', width: 640)->height]);
 		$this->assertSame([null, null], [new Video($this->media(), new AppConfig(), '/media/clip.mp4')->width, new Video($this->media(), new AppConfig(), '/media/clip.mp4')->height]);
 		$this->assertFalse(new Video($this->media(), new AppConfig())->shouldRender());
@@ -119,7 +119,7 @@ final class MediaComponentsTest extends TestCase
 
 		// The services aren't props.
 		$this->assertSame(
-			['src' => 'media', 'poster' => 'media', 'captions' => 'media', 'width' => 'number', 'height' => 'number', 'preload' => 'enum', 'loop' => 'bool', 'muted' => 'bool'],
+			['src' => 'media', 'poster' => 'media', 'track' => 'media', 'width' => 'number', 'height' => 'number', 'preload' => 'enum', 'loop' => 'bool', 'muted' => 'bool', 'label' => 'text'],
 			$types
 		);
 		$this->assertInstanceOf(MediaField::class, $props[0]);
@@ -131,7 +131,7 @@ final class MediaComponentsTest extends TestCase
 			---
 			title: Trip
 			---
-			::video[Launch]{src=clip.mp4 poster=poster.png captions=clip.vtt muted}
+			::video[Launch]{src=clip.mp4 poster=poster.png track=clip.vtt muted}
 
 			::audio{src=/media/song.mp3 preload=none loop}
 
@@ -153,11 +153,11 @@ final class MediaComponentsTest extends TestCase
 
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/trip'))->getBody();
 
-		$this->assertStringContainsString('<video src="http://localhost/media/_content/trip/clip.mp4" controls playsinline preload="metadata" poster="http://localhost/media/_content/trip/poster.png" width="32" height="18" muted>', $html);
-		$this->assertStringContainsString('<track kind="captions" src="http://localhost/media/_content/trip/clip.vtt" srclang="en" label="Captions" default>', $html);
+		$this->assertStringContainsString('<video class="component-video__player" src="http://localhost/media/_content/trip/clip.mp4" controls playsinline preload="metadata" poster="http://localhost/media/_content/trip/poster.png" width="32" height="18" muted>', $html);
+		$this->assertStringContainsString('<track class="component-video__track" kind="captions" src="http://localhost/media/_content/trip/clip.vtt" srclang="en" label="Captions" default>', $html);
 		$this->assertStringContainsString('<a href="http://localhost/media/_content/trip/clip.mp4">Download the video</a>', $html);
 		$this->assertStringContainsString('<figcaption>Launch</figcaption>', $html);
-		$this->assertStringContainsString('<audio src="http://localhost/media/song.mp3" controls preload="none" loop>', $html);
+		$this->assertStringContainsString('<audio class="component-audio__player" src="http://localhost/media/song.mp3" controls preload="none" loop>', $html);
 		$this->assertStringContainsString('<a class="component-file__link" href="http://localhost/media/_content/trip/clip.vtt" download>The notes</a>', $html);
 		$this->assertStringContainsString('<span class="component-file__details">(VTT, 7 B)</span>', $html);
 		$this->assertStringContainsString('<a class="component-file__link" href="https://example.com/report.pdf" download>report.pdf</a>', $html);
@@ -165,7 +165,7 @@ final class MediaComponentsTest extends TestCase
 		$this->assertStringContainsString('<img src="http://localhost/media/_content/trip/poster.png" alt="A poster" loading="lazy">', $html);
 
 		// A file that isn't there stays as written.
-		$this->assertStringContainsString('<video src="missing.mp4"', $html);
+		$this->assertStringContainsString('<video class="component-video__player" src="missing.mp4"', $html);
 	}
 
 	public function testMediaAndLinksBecomeFullUrlsForFeeds(): void
@@ -196,7 +196,7 @@ final class MediaComponentsTest extends TestCase
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/songs'))->getBody();
 		$full = 'https://example.com/user/media/audio/novas-anthem-001.mp3';
 
-		$this->assertSame(2, substr_count($html, "<audio src=\"{$full}\""));
+		$this->assertSame(2, substr_count($html, "<audio class=\"component-audio__player\" src=\"{$full}\""));
 
 		// A full URL on the site is still found, so its size shows.
 		$this->assertStringContainsString("href=\"{$full}\" download>Full</a>", $html);
@@ -214,6 +214,6 @@ final class MediaComponentsTest extends TestCase
 
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/songs'))->getBody();
 
-		$this->assertStringContainsString('<audio src="/user/media/audio/novas-anthem-001.mp3"', $html);
+		$this->assertStringContainsString('<audio class="component-audio__player" src="/user/media/audio/novas-anthem-001.mp3"', $html);
 	}
 }

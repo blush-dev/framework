@@ -7,13 +7,11 @@
  *
  *     The launch is :time[next Tuesday]{datetime=2026-10-06}.
  *
- * @var Blush\View\Template $template
- * @var ?string             $machine
- * @var string              $text
- * @var string              $slot
+ * @var Blush\View\Template          $template
+ * @var Blush\Component\Inline\Time  $component
  */
 
 declare(strict_types=1);
 
 ?>
-<time class="component-time"<?php if ($machine !== null) : ?> datetime="<?= attr($machine) ?>"<?php endif ?>><?= $slot !== '' ? raw($slot) : e($text) ?></time>
+<time <?= $component->attributes() ?>><?= raw($component->text()) ?></time>

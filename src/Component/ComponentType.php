@@ -13,26 +13,24 @@ declare(strict_types=1);
 
 namespace Blush\Component;
 
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\Fields\EnumField;
-use Blush\Content\Schema\Fields\MediaField;
-use Blush\Content\Schema\Fields\NumberField;
-use Blush\Content\Schema\Fields\TextField;
+use Blush\Component\Inline\Abbr;
 use Blush\Component\Inline\Kbd;
 use Blush\Component\Inline\Time;
 use Blush\Component\Layout\Grid;
 use Blush\Component\Layout\Group;
 use Blush\Component\Layout\Row;
 use Blush\Component\Media\Audio;
+use Blush\Component\Media\Figure;
 use Blush\Component\Media\File;
+use Blush\Component\Media\Gallery;
 use Blush\Component\Media\Video;
 
 /**
  * The core content components (the "Type enum" of D-019): the ones
  * content can use in any theme (D-033), since the default theme, at the
  * end of every chain, has their templates. They're in the `blush`
- * namespace, and the only components with short names (D-171). Each is
- * seeded into the `ComponentRegistry`, most as template-only.
+ * namespace, and the only components with short names (D-171). Each has a
+ * class (D-195) and is seeded into the `ComponentRegistry`.
  */
 enum ComponentType: string
 {
@@ -56,17 +54,21 @@ enum ComponentType: string
 	case Video    = 'video';
 
 	/**
-	 * Returns the component's class, or `null` for a template-only one.
+	 * Returns the component's class.
 	 *
-	 * @return ?class-string<Component>
+	 * @return class-string<Component>
 	 */
-	public function className(): ?string
+	public function className(): string
 	{
 		return match ($this) {
+			self::Abbr     => Abbr::class,
 			self::Audio    => Audio::class,
 			self::Button   => Button::class,
+			self::Callout  => Callout::class,
 			self::Embed    => Embed::class,
+			self::Figure   => Figure::class,
 			self::File     => File::class,
+			self::Gallery  => Gallery::class,
 			self::Grid     => Grid::class,
 			self::Group    => Group::class,
 			self::Icon     => Icon::class,
@@ -76,8 +78,7 @@ enum ComponentType: string
 			self::Row      => Row::class,
 			self::Time     => Time::class,
 			self::Toc      => Toc::class,
-			self::Video    => Video::class,
-			default     => null
+			self::Video    => Video::class
 		};
 	}
 
@@ -87,35 +88,5 @@ enum ComponentType: string
 	public function componentName(): ComponentName
 	{
 		return new ComponentName(ComponentName::CORE, $this->value);
-	}
-
-	/**
-	 * Returns what a template-only component wraps, or `null` to use its
-	 * class's.
-	 */
-	public function content(): ?ComponentContent
-	{
-		return match ($this) {
-			self::Callout, self::Gallery => ComponentContent::Blocks,
-			self::Abbr, self::Figure     => ComponentContent::Text,
-			default                      => null
-		};
-	}
-
-	/**
-	 * Returns a template-only component's props, or `null` to read them
-	 * from its class.
-	 *
-	 * @return ?list<Field>
-	 */
-	public function props(): ?array
-	{
-		return match ($this) {
-			self::Abbr    => [new TextField('title')],
-			self::Callout => [new EnumField('tone', ['note', 'info', 'tip', 'warning', 'danger'])->default('note')],
-			self::Figure  => [new MediaField('src')->required(), new TextField('alt')],
-			self::Gallery => [new NumberField('columns', integer: true, min: 1, max: 6)->default(3)],
-			default       => null
-		};
 	}
 }

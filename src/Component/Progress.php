@@ -23,10 +23,11 @@ use Blush\Core\AppConfig;
  * is indeterminate (work under way, amount unknown). The value is kept
  * between 0 and `max`, and an invalid `max` is 100.
  *
- * The template gets the attribute values (`$valueAttribute`, or `null`
- * when indeterminate, and `$maxAttribute`) and text for people:
- * `$percent` ("24%"), `$valueText`, and `$maxText`, in the site's number
- * format.
+ * Its template prints the bar's attributes with `barAttributes()` and
+ * its value for people with `text()`. The attribute values
+ * (`valueAttribute`, `null` when indeterminate, and `maxAttribute`) and
+ * text (`percent`, such as "24%", `valueText`, and `maxText`, in the
+ * site's number format) are also properties.
  */
 final class Progress extends Component
 {
@@ -84,5 +85,34 @@ final class Progress extends Component
 	public function isPercent(): bool
 	{
 		return $this->maxAttribute === '100';
+	}
+
+	/**
+	 * Returns the value for people: `''` when indeterminate, a
+	 * percentage when out of 100, else the theme's `measure.value` text
+	 * ("12 of 50").
+	 */
+	public function text(): string
+	{
+		return match (true) {
+			$this->valueAttribute === null => '',
+			$this->isPercent()             => $this->percent,
+			default                        => $this->t('measure.value', value: $this->valueText, max: $this->maxText)
+		};
+	}
+
+	/**
+	 * Returns the `<progress>` element's attributes, escaped: its class
+	 * (`component-progress__bar`), `max`, `value` (unless indeterminate),
+	 * and the theme's `progress.label` as its name when there's no label.
+	 */
+	public function barAttributes(): string
+	{
+		return self::html([
+			'class'      => $this->block() . '__bar',
+			'max'        => $this->maxAttribute,
+			'value'      => $this->valueAttribute,
+			'aria-label' => trim($this->label) === '' ? $this->t('progress.label') : null
+		]);
 	}
 }

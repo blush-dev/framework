@@ -26,6 +26,7 @@ use Blush\Icon\IconRegistry;
 use Blush\Icon\Icons;
 use Blush\Tests\BootsScratchSite;
 use Blush\Theme\ThemeResolver;
+use Blush\Component\ComponentName;
 use Blush\Component\Icon;
 use Blush\View\ViewFactory;
 
@@ -109,10 +110,14 @@ final class IconsTest extends TestCase
 
 		$app   = $this->app();
 		$icon  = static fn (string $name, string $label = ''): Icon => $app->container()->build(Icon::class, ['name' => $name, 'label' => $label]);
-		$plain = $icon('house')->markup('extra');
+		$house = $icon('house');
+
+		$house->attach(new ComponentName('blush', 'icon'), ['class' => 'extra', 'id' => 'home-icon']);
+
+		$plain = $house->markup();
 
 		$this->assertStringStartsWith('<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"', $plain);
-		$this->assertStringContainsString('class="component-icon extra"', $plain);
+		$this->assertStringContainsString('class="component-icon extra" id="home-icon"', $plain);
 		$this->assertStringContainsString('aria-hidden="true"', $plain);
 		$this->assertStringContainsString('focusable="false"', $plain);
 		$this->assertStringNotContainsString('role=', $plain);

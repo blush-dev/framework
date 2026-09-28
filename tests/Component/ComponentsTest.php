@@ -41,6 +41,7 @@ use Blush\Component\ComponentRegistrar;
 use Blush\Component\ComponentListing;
 use Blush\Component\ComponentRegistry;
 use Blush\Component\ComponentType;
+use Blush\Component\Callout;
 use Blush\Component\Embed;
 use Blush\Component\PendingComponent;
 use Blush\Component\Slots;
@@ -115,13 +116,13 @@ final class ComponentsTest extends TestCase
 
 	public function testTemplateOnlyComponentsGetPropsAndSlots(): void
 	{
-		$this->view('components/app-box', '<div class="<?= attr($tone ?? "plain") ?>" data-n="<?= attr($props["data-n"] ?? "") ?>"><?= $slot ?>|<?= $slots->footer ?>|<?= isset($slots->header) ? "has header" : "no header" ?></div>');
+		$this->view('components/app-box', '<div <?= $component->attributes(["data-tone" => $component->prop("tone", "plain")]) ?> data-n="<?= attr($component->prop("data-n", "")) ?>"><?= $component->content() ?>|<?= $component->slots->footer ?>|<?= $component->slots->has("header") ? "has header" : "no header" ?></div>');
 		$this->view('page', '<?= $template->component("app/box", tone: "info")->content("<p>Body</p>")->slot("footer", "<small>Foot</small>") ?>');
 
 		$views = $this->boot();
 
-		$this->assertSame('<div class="info" data-n=""><p>Body</p>|<small>Foot</small>|no header</div>', $views->render('page'));
-		$this->assertSame('<div class="plain" data-n="3">|' . '|no header</div>', $views->component('app/box', ['data-n' => '3'], '', new Slots(), new ViewContext()));
+		$this->assertSame('<div class="component-box" data-tone="info" data-n=""><p>Body</p>|<small>Foot</small>|no header</div>', $views->render('page'));
+		$this->assertSame('<div class="component-box extra" id="b" data-tone="plain" data-n="3">|' . '|no header</div>', $views->component('app/box', ['data-n' => '3', 'class' => 'extra', 'id' => 'b'], '', new Slots(), new ViewContext()));
 		$this->assertTrue($views->hasComponent('app/box'));
 		$this->assertTrue($views->hasComponent('callout'));
 		$this->assertTrue($views->hasComponent('blush/callout'));
@@ -134,7 +135,7 @@ final class ComponentsTest extends TestCase
 	{
 		// The site's blush-callout.php beats the default theme's
 		// callout.php, whichever name it uses.
-		$this->view('components/blush-callout', 'site: <?= $slot ?>');
+		$this->view('components/blush-callout', 'site: <?= $component->content() ?>');
 
 		$views = $this->boot();
 
@@ -144,8 +145,8 @@ final class ComponentsTest extends TestCase
 
 	public function testClassBackedComponentsBuildTheirProps(): void
 	{
-		$this->view('components/app-card', '<?= e($heading) ?>:<?= $columns + 1 ?>:<?= isset($secret) ? "leak" : "sealed" ?>:<?= e($component->secret()) ?>:<?= e($props["extra"] ?? "") ?>');
-		$this->view('components/card-wide', 'wide <?= e($title) ?>');
+		$this->view('components/app-card', '<?= e($component->heading) ?>:<?= $component->columns + 1 ?>:<?= isset($heading) ? "leak" : "sealed" ?>:<?= e($component->secret()) ?>:<?= e($component->prop("extra")) ?>');
+		$this->view('components/card-wide', 'wide <?= e($component->title) ?>');
 
 		$views = $this->boot();
 		$this->app->container()->make(ComponentRegistry::class)->register('app/card', Card::class);
@@ -161,7 +162,7 @@ final class ComponentsTest extends TestCase
 
 	public function testBackedEnumPropsAreCastAndFallBackToTheirDefault(): void
 	{
-		$this->view('components/app-toned', '<?= e($heading) ?>:<?= e($tone->value) ?>:<?= $level ?>:<?= $open ? "open" : "shut" ?>');
+		$this->view('components/app-toned', '<?= e($component->heading) ?>:<?= e($component->tone->value) ?>:<?= $component->level ?>:<?= $component->open ? "open" : "shut" ?>');
 
 		$views = $this->boot();
 		$this->app->container()->make(ComponentRegistry::class)->register('app/toned', Toned::class);
@@ -222,7 +223,7 @@ final class ComponentsTest extends TestCase
 		$this->assertTrue($components['blush/callout']->isCore());
 		$this->assertFalse($components['app/box']->isCore());
 		$this->assertSame(Embed::class, $components['blush/embed']->className());
-		$this->assertNull($components['blush/callout']->className());
+		$this->assertSame(Callout::class, $components['blush/callout']->className());
 		$this->assertTrue($components['blush/callout']->isRegistered());
 		$this->assertFalse($components['app/box']->isRegistered());
 		$this->assertCount(2, $components['blush/callout']->files);
@@ -277,10 +278,10 @@ final class ComponentsTest extends TestCase
 		$this->assertNotNull($callout);
 		$this->assertSame(Embed::class, $embed->class);
 		$this->assertSame(ComponentContent::Text, $embed->content());
-		$this->assertSame(['url', 'title'], array_map(static fn ($field): string => $field->name, $embed->props()));
+		$this->assertSame(['url', 'title', 'label'], array_map(static fn ($field): string => $field->name, $embed->props()));
 		$this->assertSame(ComponentContent::Blocks, $callout->content());
 		$this->assertSame('note', $callout->props()[0]->default);
-		$this->assertNull(ComponentType::Callout->className());
+		$this->assertSame(Callout::class, ComponentType::Callout->className());
 	}
 
 	public function testRegistrationEnforcesNamespaces(): void
@@ -381,6 +382,10 @@ final class ComponentsTest extends TestCase
 			![](/a.jpg) ![](/b.jpg)
 			:::
 
+			:::gallery{columns=2 layout=grid}
+			![](/c.jpg)
+			:::
+
 			::figure[A photo]{src="/media/p.jpg" alt="A lake"}
 
 			::embed[My video]{url="https://youtu.be/dQw4w9WgXcQ" title="Rick"}
@@ -405,22 +410,23 @@ final class ComponentsTest extends TestCase
 
 			Read the :app/badge[inline]{tone=tip} notes at https://example.com or 10:30.
 			MD);
-		$this->view('components/app-badge', '<span class="badge badge--<?= attr($tone) ?>"><?= $slot ?></span>');
+		$this->view('components/app-badge', '<span class="badge badge--<?= attr($component->prop("tone")) ?>"><?= $component->content() ?></span>');
 
 		$this->boot();
 
 		$html = (string) $this->app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
 		$this->assertStringContainsString("<aside class=\"component-callout component-callout--warning\" role=\"note\">\n\t\t\t<p class=\"component-callout__title\">Heads up</p>\n\t\t<p>Back up <em>first</em>.</p></aside>", $html);
-		$this->assertStringContainsString('<div class="component-gallery wide" style="--gallery-columns: 6">', $html);
+		$this->assertStringContainsString('<div class="component-gallery component-gallery--flex wide" style="--gallery-columns: 6">', $html);
+		$this->assertStringContainsString('<div class="component-gallery component-gallery--grid" style="--gallery-columns: 2">', $html);
 		$this->assertStringContainsString('<img src="http://localhost/media/p.jpg" alt="A lake" loading="lazy">', $html);
 		$this->assertStringContainsString('<figcaption>A photo</figcaption>', $html);
-		$this->assertStringContainsString('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Rick"', $html);
+		$this->assertStringContainsString('<iframe class="component-embed__frame" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Rick"', $html);
 		$this->assertStringContainsString('<p class="component-embed component-embed--link"><a href="https://example.com/talk">https://example.com/talk</a></p>', $html);
 
 		// Without a title, the frame is named by its caption or provider.
-		$this->assertStringContainsString('<iframe src="https://player.vimeo.com/video/76979871?dnt=1" title="Our launch"', $html);
-		$this->assertStringContainsString('<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Embedded content from YouTube"', $html);
+		$this->assertStringContainsString('<iframe class="component-embed__frame" src="https://player.vimeo.com/video/76979871?dnt=1" title="Our launch"', $html);
+		$this->assertStringContainsString('<iframe class="component-embed__frame" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Embedded content from YouTube"', $html);
 		$this->assertStringContainsString('callout--note', $html);
 		$this->assertStringContainsString('<p>Kept as text</p>', $html);
 		$this->assertStringContainsString('<span class="badge badge--new">Site badge</span>', $html);
@@ -431,7 +437,7 @@ final class ComponentsTest extends TestCase
 	public function testDirectivesUseTheRequestsTheme(): void
 	{
 		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "Alt"}');
-		$this->writeTemporaryFile('user/themes/alt/views/components/callout.php', 'alt callout: <?= $slot ?>');
+		$this->writeTemporaryFile('user/themes/alt/views/components/callout.php', 'alt callout: <?= $component->content() ?>');
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n:::callout\nHi\n:::\n");
 
 		$this->boot('development');

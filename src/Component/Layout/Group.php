@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Component\Layout;
 
+use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 
@@ -33,4 +34,14 @@ final class Group extends Component
 		public readonly GroupTag $tag = GroupTag::Div,
 		public readonly string $label = ''
 	) {}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function rootAttributes(): array
+	{
+		// Only a section is named by the label.
+		return $this->tag === GroupTag::Section ? ['aria-label' => trim($this->label)] : [];
+	}
 }

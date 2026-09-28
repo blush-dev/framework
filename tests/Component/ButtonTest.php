@@ -68,7 +68,7 @@ final class ButtonTest extends TestCase
 			::button[Unknown icon]{url=/x icon=nope iconOnly}
 			MD);
 
-		$this->assertStringContainsString('<a class="component-button component-button--primary component-button--icon-only" href="http://localhost/share" aria-label="Share this post" title="Share this post">[icon]</a>', $html);
+		$this->assertStringContainsString('<a class="component-button component-button--primary component-button--icon-only" aria-label="Share this post" title="Share this post" href="http://localhost/share">[icon]</a>', $html);
 
 		// Without its icon, it shows its text.
 		$this->assertStringContainsString('<a class="component-button component-button--primary" href="http://localhost/x"><span class="component-button__text">Unknown icon</span></a>', $html);

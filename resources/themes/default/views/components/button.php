@@ -8,28 +8,11 @@
  *     ::button[Get started]{url=/start icon=arrow-right iconPosition=end}
  *     ::button[Share]{url=/share icon=share-2 iconOnly variant=secondary}
  *
- * @var Blush\View\Template                       $template
- * @var Blush\Component\Button               $component
- * @var string                                    $url
- * @var string                                    $label
- * @var Blush\Component\ButtonVariant        $variant
- * @var string                                    $icon
- * @var Blush\Component\IconPosition         $iconPosition
- * @var bool                                      $hasIcon
- * @var array<string, mixed>                      $props
+ * @var Blush\View\Template     $template
+ * @var Blush\Component\Button  $component
  */
 
 declare(strict_types=1);
 
-use Blush\Component\IconPosition;
-
-$iconOnly = $component->isIconOnly();
-$class    = implode(' ', array_filter([
-	'component-button',
-	"component-button--{$variant->value}",
-	$iconOnly ? 'component-button--icon-only' : '',
-	is_string($props['class'] ?? null) ? $props['class'] : ''
-]));
-
 ?>
-<a class="<?= attr($class) ?>" href="<?= url($url) ?>"<?php if ($iconOnly) : ?> aria-label="<?= attr($label) ?>" title="<?= attr($label) ?>"<?php endif ?>><?php if ($hasIcon && ($iconOnly || $iconPosition === IconPosition::Start)) : ?><?= $template->icon($icon) ?><?php endif ?><?php if (! $iconOnly) : ?><span class="component-button__text"><?= e($label) ?></span><?php endif ?><?php if ($hasIcon && ! $iconOnly && $iconPosition === IconPosition::End) : ?><?= $template->icon($icon) ?><?php endif ?></a>
+<a <?= $component->attributes() ?> href="<?= url($component->url) ?>"><?php if ($component->showsIconBefore()) : ?><?= $template->icon($component->icon) ?><?php endif ?><?php if ($component->showsText()) : ?><span class="component-button__text"><?= raw($component->text()) ?></span><?php endif ?><?php if ($component->showsIconAfter()) : ?><?= $template->icon($component->icon) ?><?php endif ?></a>

@@ -142,6 +142,11 @@ The current focus: the experience of setting up a Blush site.
   oEmbed providers (YouTube, Vimeo, config, and classes) with cached
   lookups, real sizes and titles; frames sized with `aspect-ratio`,
   with a height cap for portrait video.
+- **Component templates get one `$component` (D-195):** typed props as
+  properties, logic in methods, `attributes()` for the root element,
+  and a class for every core component (template-only ones get a
+  `TemplateComponent`). Content and slots are on it too, with methods
+  named for their role (`caption()`, `text()`; D-196).
 - **The jtcom trial's theme** styles every new component in its
   hand-drawn look (not committed; D-156).
 

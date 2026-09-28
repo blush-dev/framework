@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Component\Layout;
 
+use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 
@@ -54,6 +55,15 @@ final class Row extends Component
 		public readonly string $gap = ''
 	) {
 		$this->style = $this->styles();
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function rootAttributes(): array
+	{
+		return ['style' => $this->style];
 	}
 
 	/**

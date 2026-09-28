@@ -18,6 +18,7 @@ use DateTimeZone;
 use Exception;
 use IntlDateFormatter;
 use IntlDatePatternGenerator;
+use Override;
 use Blush\Core\AppConfig;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
@@ -27,11 +28,11 @@ use Blush\Component\ComponentContent;
  * `:time[next Tuesday]{datetime=2026-10-06}`. `datetime` is checked
  * against the forms HTML accepts: a year, month, date, local or global
  * date and time, time, or ISO duration (`PT2H30M`). A valid one is
- * `$machine`; otherwise the element has no `datetime`.
+ * `machine`; otherwise the element has no `datetime`.
  *
- * Without a label (`::time{datetime=2026-10-06}`), `$text` shows it in the
- * site's language and time zone ("October 6, 2026" in `en_US`), or as
- * written for a duration or an invalid value.
+ * Without a label (`::time{datetime=2026-10-06}`), `text()` shows it in
+ * the site's language and time zone ("October 6, 2026" in `en_US`), or
+ * as written for a duration or an invalid value (`formatted`).
  */
 final class Time extends Component
 {
@@ -61,12 +62,15 @@ final class Time extends Component
 	public readonly ?string $machine;
 
 	/**
-	 * The text shown without a label.
+	 * The date as people read it, shown without a label.
 	 */
-	public readonly string $text;
+	public readonly string $formatted;
 
-	public function __construct(AppConfig $app, public readonly string $datetime = '')
-	{
+	public function __construct(
+		AppConfig $app,
+		public readonly string $datetime = '',
+		public readonly string $label = ''
+	) {
 		$value    = trim($datetime);
 		$skeleton = false;
 
@@ -79,8 +83,26 @@ final class Time extends Component
 
 		$date = is_string($skeleton) ? self::date($value, $app->timezone) : null;
 
-		$this->machine = $skeleton === null || $date !== null ? $value : null;
-		$this->text    = is_string($skeleton) && $date !== null ? self::format($date, $skeleton, $app) : $value;
+		$this->machine   = $skeleton === null || $date !== null ? $value : null;
+		$this->formatted = is_string($skeleton) && $date !== null ? self::format($date, $skeleton, $app) : $value;
+	}
+
+	/**
+	 * Returns the text shown, as HTML: the content, else the label, else
+	 * the formatted date, escaped.
+	 */
+	public function text(): string
+	{
+		return $this->contentOr($this->label !== '' ? $this->label : $this->formatted);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function rootAttributes(): array
+	{
+		return ['datetime' => $this->machine];
 	}
 
 	/**

@@ -59,10 +59,10 @@ final class InlineComponentsTest extends TestCase
 			$time  = new Time($app, $value);
 
 			$this->assertSame($machine, $time->machine, $value);
-			$this->assertSame($text, str_replace("\u{202F}", ' ', $time->text), $value);
+			$this->assertSame($text, str_replace("\u{202F}", ' ', $time->formatted), $value);
 		}
 
-		$this->assertSame('6. Oktober 2026', new Time(new AppConfig(locale: 'de_DE'), '2026-10-06')->text);
+		$this->assertSame('6. Oktober 2026', new Time(new AppConfig(locale: 'de_DE'), '2026-10-06')->formatted);
 	}
 
 	public function testTheyRenderInsideSentences(): void

@@ -34,6 +34,11 @@ Move each item to `decisions.md` once it's answered.
 - **Component namespace clashes** (D-171): a theme's namespace is its
   slug and an extension's is its vendor, so the two could collide.
   Decide whether Blush checks or reserves namespaces.
+- **Require a class for every component?** (D-195): template-only
+  components remain, with a generic `TemplateComponent` read through
+  `prop()` (untyped, no autocomplete). Requiring a class would make every
+  template typed and let the admin's inserter read props from
+  constructors, at the cost of PHP for the simplest component.
 - **Where themes declare component variants** (D-191): the rest of the
   variant plan is set (one per use, `component-{name}--{variant}`, a
   registry with registrants and translatable labels, fallback to the

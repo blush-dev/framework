@@ -7,31 +7,19 @@
  *
  *     ::progress[Reading challenge]{value=12 max=50}
  *
- * @var Blush\View\Template            $template
- * @var Blush\Component\Progress $component
- * @var ?string                         $valueAttribute
- * @var string                          $maxAttribute
- * @var string                          $percent
- * @var string                          $valueText
- * @var string                          $maxText
- * @var string                          $label
+ * @var Blush\View\Template       $template
+ * @var Blush\Component\Progress  $component
  */
 
 declare(strict_types=1);
 
-$text = match (true) {
-	$valueAttribute === null => '',
-	$component->isPercent()  => $percent,
-	default                  => $template->t('measure.value', value: $valueText, max: $maxText)
-};
-
 ?>
-<label class="component-progress">
-	<?php if ($label !== '') : ?>
-		<span class="component-progress__label"><?= e($label) ?></span>
+<label <?= $component->attributes() ?>>
+	<?php if ($component->label !== '') : ?>
+		<span class="component-progress__label"><?= e($component->label) ?></span>
 	<?php endif ?>
-	<progress class="component-progress__bar" max="<?= attr($maxAttribute) ?>"<?php if ($valueAttribute !== null) : ?> value="<?= attr($valueAttribute) ?>"<?php endif ?><?php if ($label === '') : ?> aria-label="<?= attr($template->t('progress.label')) ?>"<?php endif ?>><?= e($text) ?></progress>
-	<?php if ($text !== '') : ?>
-		<span class="component-progress__value"><?= e($text) ?></span>
+	<progress <?= $component->barAttributes() ?>><?= e($component->text()) ?></progress>
+	<?php if ($component->text() !== '') : ?>
+		<span class="component-progress__value"><?= e($component->text()) ?></span>
 	<?php endif ?>
 </label>

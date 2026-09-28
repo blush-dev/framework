@@ -30,7 +30,8 @@ use Blush\Theme\ThemeResolver;
  * It's `1em` square and drawn in the text color. Without a label it's
  * hidden from screen readers (`aria-hidden`); with one it's an image
  * named by the label (`role="img"`, `aria-label`). Nothing renders for
- * an unknown icon. The template prints `$component->markup($class)`.
+ * an unknown icon. The template prints `$component->markup()`, with the
+ * block class, the `class` prop, and the `id`.
  */
 final class Icon extends Component
 {
@@ -76,7 +77,7 @@ final class Icon extends Component
 	 * any others), its size, and its accessibility attributes, or `''`
 	 * when it wasn't found or isn't an SVG.
 	 */
-	public function markup(string $class = ''): string
+	public function markup(): string
 	{
 		if ($this->svg === null) {
 			return '';
@@ -98,7 +99,12 @@ final class Icon extends Component
 
 		$root->setAttribute('width', '1em');
 		$root->setAttribute('height', '1em');
-		$root->setAttribute('class', trim('component-icon ' . $class));
+		$root->setAttribute('class', $this->classes());
+
+		if ($this->id !== '') {
+			$root->setAttribute('id', $this->id);
+		}
+
 		$root->setAttribute('focusable', 'false');
 
 		if ($label === '') {

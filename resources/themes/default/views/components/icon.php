@@ -7,12 +7,11 @@
  *     :icon[Home]{name=house}
  *     :icon[]{name=heart .loved}
  *
- * @var Blush\View\Template            $template
- * @var Blush\Component\Icon      $component
- * @var array<string, mixed>           $props
+ * @var Blush\View\Template   $template
+ * @var Blush\Component\Icon  $component
  */
 
 declare(strict_types=1);
 
 ?>
-<?= raw($component->markup(is_string($props['class'] ?? null) ? $props['class'] : '')) ?>
+<?= raw($component->markup()) ?>

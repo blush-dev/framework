@@ -82,4 +82,56 @@ final class Button extends Component
 	{
 		return $this->iconOnly && $this->hasIcon;
 	}
+
+	/**
+	 * Returns the button's text, as HTML: the content, else the label
+	 * escaped.
+	 */
+	public function text(): string
+	{
+		return $this->contentOr($this->label);
+	}
+
+	/**
+	 * Returns whether the text is shown (it is unless only the icon is).
+	 */
+	public function showsText(): bool
+	{
+		return ! $this->isIconOnly();
+	}
+
+	/**
+	 * Returns whether the icon is shown before the text, or alone.
+	 */
+	public function showsIconBefore(): bool
+	{
+		return $this->hasIcon && ($this->isIconOnly() || $this->iconPosition === IconPosition::Start);
+	}
+
+	/**
+	 * Returns whether the icon is shown after the text.
+	 */
+	public function showsIconAfter(): bool
+	{
+		return $this->hasIcon && ! $this->isIconOnly() && $this->iconPosition === IconPosition::End;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function modifiers(): array
+	{
+		return $this->isIconOnly() ? [$this->variant->value, 'icon-only'] : [$this->variant->value];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function rootAttributes(): array
+	{
+		// With only the icon, the label names the link.
+		return $this->isIconOnly() ? ['aria-label' => $this->label, 'title' => $this->label] : [];
+	}
 }

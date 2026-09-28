@@ -23,10 +23,10 @@ use Blush\Core\AppConfig;
  * can color the gauge. Values are kept inside `min`–`max`, `low` is never
  * above `high`, and a `max` not above `min` makes the range 0–100.
  *
- * The template gets each attribute (`$valueAttribute`, `$minAttribute`,
- * `$maxAttribute`, and `$lowAttribute`, `$highAttribute`, and
- * `$optimumAttribute`, or `null`) and text for people: `$percent` (of the
- * range), `$valueText`, and `$maxText`.
+ * Its template prints the gauge's attributes with `gaugeAttributes()`
+ * and its value for people with `text()`. Each attribute
+ * (`valueAttribute`, and so on) and text (`percent`, `valueText`, and
+ * `maxText`) is also a property.
  */
 final class Meter extends Component
 {
@@ -121,5 +121,33 @@ final class Meter extends Component
 	public function isPercent(): bool
 	{
 		return $this->minAttribute === '0' && $this->maxAttribute === '100';
+	}
+
+	/**
+	 * Returns the value for people: a percentage when the range is 0–100,
+	 * else the theme's `measure.value` text ("62 of 80").
+	 */
+	public function text(): string
+	{
+		return $this->isPercent() ? $this->percent : $this->t('measure.value', value: $this->valueText, max: $this->maxText);
+	}
+
+	/**
+	 * Returns the `<meter>` element's attributes, escaped: its class
+	 * (`component-meter__gauge`), its range, and the theme's
+	 * `meter.label` as its name when there's no label.
+	 */
+	public function gaugeAttributes(): string
+	{
+		return self::html([
+			'class'      => $this->block() . '__gauge',
+			'value'      => $this->valueAttribute,
+			'min'        => $this->minAttribute,
+			'max'        => $this->maxAttribute,
+			'low'        => $this->lowAttribute,
+			'high'       => $this->highAttribute,
+			'optimum'    => $this->optimumAttribute,
+			'aria-label' => trim($this->label) === '' ? $this->t('meter.label') : null
+		]);
 	}
 }

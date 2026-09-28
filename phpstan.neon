@@ -5,3 +5,6 @@ parameters:
 		- tests
 		- benchmarks
 	tmpDir: .phpstan.cache
+	# Named slots are read as properties (`$slots->footer`) through `__get()`.
+	universalObjectCratesClasses:
+		- Blush\Component\Slots
