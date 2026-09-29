@@ -67,6 +67,7 @@ Run on PHP 8.5 (`php -v`). Run `composer check` before handing work back.
 | `composer analyse` | PHPStan, level max (`phpstan.neon`) |
 | `composer test` | PHPUnit 12 (`phpunit.xml`) |
 | `composer bench` | PHPBench against the generated jtcom-sized site (`benchmarks/`, D-101) |
+| `composer schemas` | Regenerate the editor JSON Schemas in `resources/schemas/` (D-206) |
 
 Single test: `vendor/bin/phpunit --filter FrameworkTest`.
 

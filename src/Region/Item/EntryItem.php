@@ -39,6 +39,19 @@ final class EntryItem extends RegionItem
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [$key => [
+			'type'        => 'string',
+			'pattern'     => '^[a-z][a-z0-9_]*/[^/].*$',
+			'description' => 'Shows an entry\'s content, as {type}/{key}, such as page/_regions/about.'
+		]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function validate(mixed $value, array $item): ?string
 	{
 		return is_string($value) && preg_match('#^[a-z][a-z0-9_]*/[^/].*$#', trim($value)) === 1

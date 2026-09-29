@@ -89,6 +89,30 @@ final class ListField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function definitionSchema(array $field): array
+	{
+		return [
+			'item'    => [...$field, 'description' => 'A field definition for each value; text by default.'],
+			'default' => ['type' => 'array']
+		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function valueType(): array
+	{
+		$item = $this->item->valueSchema();
+
+		// A single value counts as a list of one.
+		return ['anyOf' => [['type' => 'array', 'items' => $item], $item]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

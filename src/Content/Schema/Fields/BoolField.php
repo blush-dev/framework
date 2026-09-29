@@ -61,6 +61,24 @@ final class BoolField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function definitionSchema(array $field): array
+	{
+		return ['default' => ['type' => 'boolean']];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function valueType(): array
+	{
+		return ['anyOf' => [['type' => 'boolean'], ['enum' => [0, 1, '0', '1', 'true', 'false', 'yes', 'no', 'on', 'off']]]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

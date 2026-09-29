@@ -26,6 +26,20 @@ namespace Blush\Menu\Link;
 abstract class MenuLink
 {
 	/**
+	 * Returns JSON Schemas for the item keys this kind reads (its own key
+	 * and any in `keys()`), by key, for the editor schemas (D-206). `$key`
+	 * is the name it's registered under, and `$text` a schema for text or
+	 * a locale map of it.
+	 *
+	 * @param  array<string, mixed> $text
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [$key => ['type' => 'string', 'minLength' => 1]];
+	}
+
+	/**
 	 * Returns the other item keys this kind reads, such as a route's
 	 * `params`, so they aren't taken for theme-declared fields.
 	 *

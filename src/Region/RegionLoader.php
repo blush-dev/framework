@@ -29,8 +29,9 @@ use Blush\Data\InvalidData;
  *   - markdown: "Powered by **Blush**."
  * ```
  *
- * The files are read once. A file with the wrong shape loads as an empty
- * region, with its problems kept.
+ * A `$schema` key, for editors (D-207), is allowed. The files are read
+ * once. A file with the wrong shape loads as an empty region, with its
+ * problems kept.
  */
 final class RegionLoader
 {
@@ -104,7 +105,7 @@ final class RegionLoader
 
 		$problems = [];
 
-		foreach (array_keys(array_diff_key($data, ['items' => true])) as $key) {
+		foreach (array_keys(array_diff_key($data, ['items' => true, '$schema' => true])) as $key) {
 			$problems[] = sprintf('"%s" isn\'t a region key; a region has "items".', $key);
 		}
 

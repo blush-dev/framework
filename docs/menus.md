@@ -125,6 +125,33 @@ A theme can fill a region with defaults, such as a search box in its
 sidebar. Your file replaces the theme's items, so an empty
 `items: []` clears them.
 
+## Autocomplete in your editor
+
+Blush ships JSON Schemas for menu and region files, so editors such as
+VS Code and PhpStorm can suggest keys and flag mistakes, like a typo in a
+key or an entry written as a URL. A new site's `.vscode/settings.json`
+already maps `user/data/menus/` and `user/data/regions/` to them. For
+other editors, point a file at its schema. In YAML, that's a comment on
+the first line:
+
+```yaml
+# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/menu.schema.json
+items:
+  - entry: page/about
+```
+
+In JSON, it's a `$schema` key (`region.schema.json` for regions):
+
+```json
+{
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/menu.schema.json",
+	"items": [{ "entry": "page/about" }]
+}
+```
+
+Options a theme adds to its menu items, and a component's props, aren't
+in the schema, so the editor won't suggest them.
+
 ## Using another name
 
 If you switch to a theme that calls its locations something else, point

@@ -21,13 +21,15 @@ use Blush\Console\InvalidInput;
 use Blush\Console\Output;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
+use Blush\JsonSchema\JsonSchemas;
 use Blush\Support\Filesystem;
 use Blush\Theme\Themes;
 
 /**
  * Starts a theme in `user/themes/{slug}`: the smallest valid theme, a
  * manifest and a stylesheet (D-021). Everything else falls back to its
- * parent, or to the default theme.
+ * parent, or to the default theme. The manifest points editors at the
+ * framework's `theme.json` schema in `vendor` (D-206).
  */
 #[Command('theme:new', 'Create a theme in user/themes.')]
 final readonly class CreateTheme
@@ -64,7 +66,8 @@ final readonly class CreateTheme
 		}
 
 		$name   ??= ucwords(str_replace(['-', '_'], ' ', $slug));
-		$manifest = ['name' => $name, 'version' => '1.0.0', ...($parent === null ? [] : ['parent' => $parent]), 'styles' => ['style.css']];
+		$schema   = $this->filesystem->relative($folder, sprintf('%s/%s/%s/theme.schema.json', $this->paths->vendor, Framework::PACKAGE, JsonSchemas::DIRECTORY));
+		$manifest = ['$schema' => $schema, 'name' => $name, 'version' => '1.0.0', ...($parent === null ? [] : ['parent' => $parent]), 'styles' => ['style.css']];
 
 		$this->filesystem->writeAtomic("{$folder}/theme.json", json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
 		$this->filesystem->writeAtomic("{$folder}/style.css", "/**\n * {$name} theme styles.\n */\n");

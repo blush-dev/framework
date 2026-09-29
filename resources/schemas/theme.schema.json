@@ -1,0 +1,446 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework theme manifest",
+	"description": "A theme's theme.json: its name, assets, settings, and the menu and region locations it shows.",
+	"type": "object",
+	"required": [
+		"name"
+	],
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
+		},
+		"name": {
+			"type": "string",
+			"minLength": 1,
+			"description": "The theme's name."
+		},
+		"version": {
+			"type": "string",
+			"description": "The theme's version, such as 1.0.0."
+		},
+		"description": {
+			"type": "string",
+			"description": "What the theme is for."
+		},
+		"parent": {
+			"type": "string",
+			"pattern": "^[a-z0-9][a-z0-9_-]*$",
+			"description": "The slug of the theme this one builds on. Anything this theme doesn't include comes from its parent."
+		},
+		"styles": {
+			"type": "array",
+			"items": {
+				"type": "string",
+				"pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$"
+			},
+			"default": [
+				"style.css"
+			],
+			"description": "Stylesheets every page loads, relative to the theme. Defaults to [\"style.css\"]."
+		},
+		"scripts": {
+			"type": "array",
+			"items": {
+				"type": "string",
+				"pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$"
+			},
+			"description": "Scripts every page loads, relative to the theme."
+		},
+		"provider": {
+			"type": "string",
+			"description": "The class name of the theme's service provider, registered before the site's."
+		},
+		"autoload": {
+			"type": "object",
+			"description": "Classes to autoload.",
+			"properties": {
+				"psr-4": {
+					"type": "object",
+					"description": "Namespace prefixes and the folders inside the theme their classes are in, such as {\"Notebook\\\\\": \"src/\"}.",
+					"additionalProperties": {
+						"type": "string",
+						"pattern": "^/?[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+					}
+				}
+			}
+		},
+		"settings": {
+			"type": "object",
+			"description": "Options site owners set in user/data/theme.json, by name. They use the same field types as custom fields.",
+			"additionalProperties": {
+				"$ref": "#/definitions/field"
+			}
+		},
+		"menus": {
+			"type": "object",
+			"description": "The places the theme shows the site's menus, by name: a label, or an object.",
+			"propertyNames": {
+				"pattern": "^[a-z0-9][a-z0-9_-]*$"
+			},
+			"additionalProperties": {
+				"anyOf": [
+					{
+						"type": "string",
+						"description": "The location's label."
+					},
+					{
+						"type": "object",
+						"properties": {
+							"label": {
+								"type": "string",
+								"description": "The location's name, which also names its <nav>. Keep it short, such as \"Primary\"."
+							},
+							"depth": {
+								"type": "integer",
+								"minimum": 1,
+								"description": "The deepest level shown (1 is the top level). Deeper items are left out."
+							},
+							"fields": {
+								"type": "object",
+								"description": "Extra keys menu items may have, as field definitions by name.",
+								"additionalProperties": {
+									"$ref": "#/definitions/field"
+								}
+							}
+						}
+					}
+				]
+			}
+		},
+		"regions": {
+			"type": "object",
+			"description": "The places the theme shows the site's regions, by name: a label, or an object.",
+			"propertyNames": {
+				"pattern": "^[a-z0-9][a-z0-9_-]*$"
+			},
+			"additionalProperties": {
+				"anyOf": [
+					{
+						"type": "string",
+						"description": "The location's label."
+					},
+					{
+						"type": "object",
+						"properties": {
+							"label": {
+								"type": "string",
+								"description": "The location's name."
+							},
+							"items": {
+								"type": "array",
+								"description": "What the region shows until the site has a region file for it.",
+								"items": {
+									"$ref": "#/definitions/regionItem"
+								}
+							}
+						}
+					}
+				]
+			}
+		},
+		"requires": {
+			"type": "object",
+			"description": "What the theme needs, such as {\"blush\": \"^2.0\"}. Not checked yet.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		}
+	},
+	"definitions": {
+		"field": {
+			"type": "object",
+			"description": "A field definition.",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The key the value is read from. Fields in a map are named by their key."
+				},
+				"type": {
+					"description": "The field type. Extensions may add others.",
+					"default": "text",
+					"anyOf": [
+						{
+							"const": "text",
+							"description": "A line of text."
+						},
+						{
+							"const": "markdown",
+							"description": "Formatted text."
+						},
+						{
+							"const": "date",
+							"description": "A date and time."
+						},
+						{
+							"const": "bool",
+							"description": "true or false."
+						},
+						{
+							"const": "number",
+							"description": "A number."
+						},
+						{
+							"const": "enum",
+							"description": "One of a set of values."
+						},
+						{
+							"const": "list",
+							"description": "Several values."
+						},
+						{
+							"const": "reference",
+							"description": "Other entries, by slug."
+						},
+						{
+							"const": "media",
+							"description": "A media file."
+						},
+						{
+							"const": "slug",
+							"description": "A URL-safe name."
+						},
+						{
+							"const": "object",
+							"description": "A group of fields."
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"required": {
+					"type": "boolean",
+					"description": "Whether a value must be present."
+				},
+				"default": {
+					"description": "The value used when none is given."
+				},
+				"aliases": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Other keys the value may be read from."
+				},
+				"label": {
+					"type": "string",
+					"description": "A human-readable name."
+				},
+				"description": {
+					"type": "string",
+					"description": "Help text."
+				}
+			},
+			"allOf": [
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "bool"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"default": {
+								"type": "boolean"
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "number"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"integer": {
+								"type": "boolean",
+								"description": "Whether the value must be a whole number."
+							},
+							"min": {
+								"type": "number",
+								"description": "The smallest value allowed."
+							},
+							"max": {
+								"type": "number",
+								"description": "The largest value allowed."
+							},
+							"default": {
+								"type": "number"
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "enum"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"options": {
+								"type": "array",
+								"description": "The values allowed.",
+								"items": {
+									"type": "string"
+								},
+								"minItems": 1
+							},
+							"default": {
+								"type": "string"
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "list"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"item": {
+								"$ref": "#/definitions/field",
+								"description": "A field definition for each value; text by default."
+							},
+							"default": {
+								"type": "array"
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "reference"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"to": {
+								"type": "string",
+								"description": "The content type the entries are of."
+							},
+							"multiple": {
+								"type": "boolean",
+								"description": "Whether the field holds several entries.",
+								"default": true
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "object"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"fields": {
+								"type": "array",
+								"description": "The fields in the group.",
+								"items": {
+									"allOf": [
+										{
+											"$ref": "#/definitions/field"
+										},
+										{
+											"required": [
+												"name"
+											]
+										}
+									]
+								}
+							},
+							"closed": {
+								"type": "boolean",
+								"description": "Whether keys the group doesn't declare are errors."
+							},
+							"default": {
+								"type": "object"
+							}
+						}
+					}
+				}
+			]
+		},
+		"regionItem": {
+			"type": "object",
+			"description": "One thing a region shows. An item is one kind: component, entry, markdown, view.",
+			"properties": {
+				"component": {
+					"type": "string",
+					"pattern": "^[A-Za-z][A-Za-z0-9_-]*(?:/[A-Za-z][A-Za-z0-9_-]*)?$",
+					"description": "Shows a component, such as menu or acme/card. The item's other keys are its props."
+				},
+				"entry": {
+					"type": "string",
+					"pattern": "^[a-z][a-z0-9_]*/[^/].*$",
+					"description": "Shows an entry's content, as {type}/{key}, such as page/_regions/about."
+				},
+				"markdown": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "Shows Markdown text, with components, or a map of locales to it."
+				},
+				"view": {
+					"type": "string",
+					"pattern": "^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$",
+					"description": "Shows a template part from the site or theme, such as parts/newsletter. The item's other keys are its data."
+				}
+			}
+		},
+		"localeText": {
+			"type": "object",
+			"description": "Text by locale, such as {\"en\": \"About\", \"fr\": \"À propos\"}.",
+			"propertyNames": {
+				"pattern": "^[a-zA-Z]{2,3}([_-][a-zA-Z0-9]{2,8})*$"
+			},
+			"additionalProperties": {
+				"type": "string"
+			}
+		}
+	}
+}

@@ -85,6 +85,17 @@ final class DateField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	protected function valueType(): array
+	{
+		// YAML dates arrive as text in editors. The pattern sits with its
+		// own type, not a type list, or PhpStorm skips it (D-212).
+		return ['anyOf' => [['type' => 'string', 'pattern' => '^\\s*\\d{4}-\\d{2}-\\d{2}'], ['type' => 'integer']]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

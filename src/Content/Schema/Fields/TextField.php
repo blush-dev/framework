@@ -59,6 +59,15 @@ final class TextField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	protected function valueType(): array
+	{
+		return ['type' => ['string', 'number']];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

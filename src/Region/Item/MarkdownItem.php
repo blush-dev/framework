@@ -41,6 +41,15 @@ final class MarkdownItem extends RegionItem
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [$key => [...$text, 'description' => 'Shows Markdown text, with components, or a map of locales to it.']];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function validate(mixed $value, array $item): ?string
 	{
 		return is_string($value) || LocaleMap::isMap($value) ? null : 'must be Markdown text, or a map of locales to it.';

@@ -38,7 +38,7 @@ final class LocaleMap
 	 * What a locale key looks like: a language, then optional script,
 	 * region, or variant parts.
 	 */
-	private const string LOCALE = '/^[a-zA-Z]{2,3}([_-][a-zA-Z0-9]{2,8})*$/';
+	public const string LOCALE = '/^[a-zA-Z]{2,3}([_-][a-zA-Z0-9]{2,8})*$/';
 
 	/**
 	 * Returns whether a value is a locale map.

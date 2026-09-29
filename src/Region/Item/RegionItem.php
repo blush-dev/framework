@@ -30,6 +30,19 @@ use Blush\View\ViewException;
 abstract class RegionItem
 {
 	/**
+	 * Returns JSON Schemas for the item keys this kind reads (its own key), by key, for the editor schemas (D-206). `$key`
+	 * is the name it's registered under, and `$text` a schema for text or
+	 * a locale map of it.
+	 *
+	 * @param  array<string, mixed> $text
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [$key => ['type' => 'string', 'minLength' => 1]];
+	}
+
+	/**
 	 * Returns what's wrong with an item, or `null` when it has the right
 	 * shape.
 	 *

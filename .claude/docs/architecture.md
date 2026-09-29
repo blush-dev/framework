@@ -116,6 +116,18 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   timestamps as strings (D-080).
 - **Schema validation:** data files have schemas (the same field-type system as
   content). JSON Schemas are published for editor autocomplete.
+- **Editor JSON Schemas (D-206):** `Blush\JsonSchema\JsonSchemas` builds
+  `resources/schemas/{theme,extension,menu,region}.schema.json`
+  (`composer schemas`; a test fails when they're stale). Field definitions
+  come from each built-in type's `Field::definitionSchema()`, checked with
+  `if`/`then` on `type`; menu items and region items from each kind's
+  static `MenuLink::itemSchema()` and `RegionItem::itemSchema()` (D-207).
+  Manifests and items are open; menu and region files are closed, like
+  their loaders. `entry.schema.json` is the built-in front matter, from
+  `Field::valueSchema()` and `Schema::jsonSchema()` (D-211). Sites reach
+  them through `vendor/` (a `$schema` key or
+  YAML comment, or the skeleton's `.vscode/settings.json`). Other data
+  files come later.
 
 ## Menus and regions (D-199 to D-204)
 

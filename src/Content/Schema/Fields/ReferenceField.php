@@ -93,6 +93,29 @@ final class ReferenceField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function definitionSchema(array $field): array
+	{
+		return [
+			'to'       => ['type' => 'string', 'description' => 'The content type the entries are of.'],
+			'multiple' => ['type' => 'boolean', 'description' => 'Whether the field holds several entries.', 'default' => true]
+		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function valueType(): array
+	{
+		$slug = ['type' => ['string', 'integer']];
+
+		return $this->multiple ? ['anyOf' => [['type' => 'array', 'items' => $slug], $slug]] : $slug;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

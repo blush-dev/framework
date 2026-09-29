@@ -1,0 +1,180 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework menu",
+	"description": "A site menu in user/data/menus/, shown by the theme location with the same name.",
+	"anyOf": [
+		{
+			"type": "object",
+			"properties": {
+				"$schema": {
+					"type": "string",
+					"description": "The JSON Schema editors check this file with."
+				},
+				"label": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "Names the navigation for screen readers. Defaults to the theme's name for the location."
+				},
+				"items": {
+					"type": "array",
+					"description": "The menu's items, in order.",
+					"items": {
+						"$ref": "#/definitions/menuItem"
+					}
+				}
+			},
+			"additionalProperties": false
+		},
+		{
+			"type": "array",
+			"description": "The menu's items, in order.",
+			"items": {
+				"$ref": "#/definitions/menuItem"
+			}
+		}
+	],
+	"definitions": {
+		"menuItem": {
+			"type": "object",
+			"description": "A menu item: one link (or none, for a heading over children) and its options. A theme may accept more keys.",
+			"properties": {
+				"collection": {
+					"type": "string",
+					"pattern": "^[a-z][a-z0-9_]*$",
+					"description": "Links to a content type's listing, such as post. Its landing page's title is the label, if it has one."
+				},
+				"entry": {
+					"type": "string",
+					"pattern": "^[a-z][a-z0-9_]*(/[^/].*|/)?$",
+					"description": "Links to an entry, as {type}/{key}, such as page/about; {type}/ is its landing page. Its title is the label."
+				},
+				"route": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Links to a named route, such as home.feed (bin/blush routes:list lists them). Needs a label."
+				},
+				"params": {
+					"type": "object",
+					"description": "The route's parameters, by name.",
+					"additionalProperties": {
+						"type": [
+							"string",
+							"number",
+							"boolean"
+						]
+					}
+				},
+				"term": {
+					"type": "string",
+					"pattern": "^[a-z][a-z0-9_]*/[^/]+$",
+					"description": "Links to a taxonomy term's archive, as {taxonomy}/{slug}, such as category/art. Its title is the label."
+				},
+				"url": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Links to a URL, as written, such as https://example.org/ or /about. Needs a label."
+				},
+				"label": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "The text shown. Needed for route and url links; for the others it replaces the title."
+				},
+				"children": {
+					"type": "array",
+					"description": "Items shown under this one. An item with children and no link is a heading for them.",
+					"items": {
+						"$ref": "#/definitions/menuItem"
+					}
+				},
+				"icon": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "An icon shown with the label, such as house or mytheme/github."
+				},
+				"description": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "A short line of text under the label, for larger dropdown menus."
+				},
+				"image": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "The URL of a small image shown with the label."
+				},
+				"badge": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "A short tag, such as New."
+				},
+				"class": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "A CSS class for the item."
+				},
+				"rel": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "The link's rel, such as me for your own profiles."
+				}
+			}
+		},
+		"localeText": {
+			"type": "object",
+			"description": "Text by locale, such as {\"en\": \"About\", \"fr\": \"À propos\"}.",
+			"propertyNames": {
+				"pattern": "^[a-zA-Z]{2,3}([_-][a-zA-Z0-9]{2,8})*$"
+			},
+			"additionalProperties": {
+				"type": "string"
+			}
+		}
+	}
+}

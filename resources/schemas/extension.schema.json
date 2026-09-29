@@ -1,0 +1,55 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework extension manifest",
+	"description": "A local extension's extension.json: its name, service provider, and the classes autoloaded for it.",
+	"type": "object",
+	"required": [
+		"name",
+		"provider"
+	],
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
+		},
+		"name": {
+			"type": "string",
+			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*(/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*)?$",
+			"description": "The extension's name: a lowercase slug, or vendor/name."
+		},
+		"version": {
+			"type": "string",
+			"default": "0.0.0",
+			"description": "The extension's version, such as 1.0.0."
+		},
+		"description": {
+			"type": "string",
+			"description": "What the extension does."
+		},
+		"provider": {
+			"type": "string",
+			"description": "The class name of the extension's service provider."
+		},
+		"autoload": {
+			"type": "object",
+			"description": "Classes to autoload.",
+			"properties": {
+				"psr-4": {
+					"type": "object",
+					"description": "Namespace prefixes, each ending in a backslash, and the folders inside the extension their classes are in, such as {\"Acme\\\\Gallery\\\\\": \"src/\"}.",
+					"additionalProperties": {
+						"type": "string",
+						"pattern": "^(?!/)(?!.*\\.\\.).+$"
+					}
+				}
+			}
+		},
+		"requires": {
+			"type": "object",
+			"description": "What the extension needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other extensions.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		}
+	}
+}

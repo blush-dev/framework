@@ -36,6 +36,26 @@ final class RouteLink extends MenuLink
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [
+			$key     => [
+				'type'        => 'string',
+				'minLength'   => 1,
+				'description' => 'Links to a named route, such as home.feed (bin/blush routes:list lists them). Needs a label.'
+			],
+			'params' => [
+				'type'                 => 'object',
+				'description'          => 'The route\'s parameters, by name.',
+				'additionalProperties' => ['type' => ['string', 'number', 'boolean']]
+			]
+		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function keys(): array
 	{
 		return ['params'];

@@ -4,6 +4,7 @@ parameters:
 		- src
 		- tests
 		- benchmarks
+		- scripts
 	tmpDir: .phpstan.cache
 	# Named slots are read as properties (`$slots->footer`) through `__get()`.
 	universalObjectCratesClasses:

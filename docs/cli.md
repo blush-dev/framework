@@ -39,7 +39,7 @@ for even more), `-q` for errors only, `-n` to never ask questions, and
 |---|---|
 | `theme:list` | List installed themes, and which is active |
 | `theme:activate <slug>` | Switch themes |
-| `theme:new <slug>` | Create a theme in `user/themes/`. `--name=` names it; `--parent=` builds it on another theme. |
+| `theme:new <slug>` | Create a theme in `user/themes/`. `--name=` names it; `--parent=` builds it on another theme. Its `theme.json` points editors at the [schema](themes.md#autocomplete-in-your-editor). |
 | `theme:check [slug]` | Check a theme's manifest, settings, components, menus and regions, and accessibility basics. `--strict` shows notices too. |
 | `theme:why <view>` | Show which file a template name uses, such as `theme:why single-post` |
 | `menu:list` | List your theme's menu locations, the [menu](menus.md) each shows, and any items that can't be shown. `--theme=` lists another theme's. |

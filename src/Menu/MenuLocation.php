@@ -21,7 +21,7 @@ namespace Blush\Menu;
  *
  * ```json
  * "menus": {
- *     "primary": { "label": "Primary navigation", "depth": 2, "fields": { "columns": { "type": "int" } } },
+ *     "primary": { "label": "Primary navigation", "depth": 2, "fields": { "columns": { "type": "number", "integer": true } } },
  *     "social": "Social links"
  * }
  * ```

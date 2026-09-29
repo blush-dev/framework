@@ -1,4 +1,5 @@
 {
+	"$schema": "../../schemas/theme.schema.json",
 	"name": "Default",
 	"version": "1.0.0",
 	"description": "The Blush framework default theme: plain, accessible, modern CSS with no build step. Every theme falls back to it.",

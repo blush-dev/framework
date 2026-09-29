@@ -64,7 +64,7 @@ Implemented in M2 (D-065, D-069).
 | `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099) |
 | `theme:list` | List installed themes (framework, Composer, local), the active one, and broken manifests (M5b, D-120) |
 | `theme:activate <slug>` | Set the active theme in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120) |
-| `theme:new <slug> [--parent] [--name]` | Create a minimal theme (manifest plus stylesheet) in `user/themes` (D-120) |
+| `theme:new <slug> [--parent] [--name]` | Create a minimal theme (manifest plus stylesheet) in `user/themes` (D-120); the manifest has a `$schema` key (D-206) |
 | `theme:publish [--all]` | Copy servable theme assets to `public/themes/{slug}`, removing stale ones; the active chain, or every theme (D-119) |
 | `theme:check [slug] [--strict]` | Check the chain, manifests, provider, settings, components without a template (D-164), component files not named for a component, registered components without a label (notice; D-173), and the base layout's landmarks and skip link (D-030, D-121, D-160) |
 | `theme:why <view> [--theme]` | Show which file in the view chain wins for a view, and what it shadows (D-120) |

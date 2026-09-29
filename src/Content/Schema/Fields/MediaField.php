@@ -57,6 +57,15 @@ final class MediaField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	protected function valueType(): array
+	{
+		return ['type' => 'string'];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

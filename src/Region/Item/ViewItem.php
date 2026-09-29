@@ -34,6 +34,19 @@ final class ViewItem extends RegionItem
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [$key => [
+			'type'        => 'string',
+			'pattern'     => '^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$',
+			'description' => 'Shows a template part from the site or theme, such as parts/newsletter. The item\'s other keys are its data.'
+		]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function validate(mixed $value, array $item): ?string
 	{
 		return is_string($value) && ViewFinder::isValidName(trim($value))

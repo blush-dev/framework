@@ -197,6 +197,19 @@ manifest plus a service provider.
 
 Blush finds it and loads its classes; no Composer step needed.
 
+For autocomplete in your editor, add a `$schema` key pointing at the
+schema Blush ships (the path is relative to `extension.json`):
+
+```json
+{
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/extension.schema.json",
+	"name": "acme/hello"
+}
+```
+
+In `extension.yaml`, use a first-line comment instead:
+`# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/extension.schema.json`.
+
 **A Composer extension** is a package of type `blush-extension`, with the
 same manifest in its `composer.json` under `extra.blush`.
 

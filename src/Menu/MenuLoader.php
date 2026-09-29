@@ -31,8 +31,9 @@ use Blush\Data\InvalidData;
  *     label: Feed
  * ```
  *
- * The files are read once. A file with the wrong shape loads as an empty
- * menu, with its problems kept.
+ * A `$schema` key, for editors (D-207), is allowed. The files are read
+ * once. A file with the wrong shape loads as an empty menu, with its
+ * problems kept.
  */
 final class MenuLoader
 {
@@ -115,7 +116,7 @@ final class MenuLoader
 			return new MenuFile($name, $path, null, $data, $problems);
 		}
 
-		foreach (array_keys(array_diff_key($data, ['label' => true, 'items' => true])) as $key) {
+		foreach (array_keys(array_diff_key($data, ['label' => true, 'items' => true, '$schema' => true])) as $key) {
 			$problems[] = sprintf('"%s" isn\'t a menu key; a menu has "label" and "items".', $key);
 		}
 

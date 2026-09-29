@@ -27,6 +27,19 @@ final class UrlLink extends MenuLink
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [$key => [
+			'type'        => 'string',
+			'minLength'   => 1,
+			'description' => 'Links to a URL, as written, such as https://example.org/ or /about. Needs a label.'
+		]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function validate(mixed $value, array $item): ?string
 	{
 		$problem = parent::validate($value, $item);

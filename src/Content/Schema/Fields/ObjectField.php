@@ -76,6 +76,32 @@ final class ObjectField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function definitionSchema(array $field): array
+	{
+		return [
+			'fields'  => [
+				'type'        => 'array',
+				'description' => 'The fields in the group.',
+				'items'       => ['allOf' => [$field, ['required' => ['name']]]]
+			],
+			'closed'  => ['type' => 'boolean', 'description' => 'Whether keys the group doesn\'t declare are errors.'],
+			'default' => ['type' => 'object']
+		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function valueType(): array
+	{
+		return $this->schema->jsonSchema();
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

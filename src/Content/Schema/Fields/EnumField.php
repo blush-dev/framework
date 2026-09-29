@@ -72,6 +72,32 @@ final class EnumField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function definitionSchema(array $field): array
+	{
+		return [
+			'options' => [
+				'type'        => 'array',
+				'description' => 'The values allowed.',
+				'items'       => ['type' => 'string'],
+				'minItems'    => 1
+			],
+			'default' => ['type' => 'string']
+		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function valueType(): array
+	{
+		return ['enum' => $this->options];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

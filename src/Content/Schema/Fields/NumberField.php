@@ -87,6 +87,33 @@ final class NumberField extends Field
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function definitionSchema(array $field): array
+	{
+		return [
+			'integer' => ['type' => 'boolean', 'description' => 'Whether the value must be a whole number.'],
+			'min'     => ['type' => 'number', 'description' => 'The smallest value allowed.'],
+			'max'     => ['type' => 'number', 'description' => 'The largest value allowed.'],
+			'default' => ['type' => 'number']
+		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function valueType(): array
+	{
+		return [
+			'type' => $this->integer ? 'integer' : 'number',
+			...($this->min === null ? [] : ['minimum' => $this->min]),
+			...($this->max === null ? [] : ['maximum' => $this->max])
+		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public static function fromArray(array $data, FieldFactory $factory): static
 	{
 		$definition = self::definition($data);

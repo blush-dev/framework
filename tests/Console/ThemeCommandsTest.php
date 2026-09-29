@@ -88,7 +88,13 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertSame(
-			['name' => 'Nova Theme', 'version' => '1.0.0', 'parent' => 'default', 'styles' => ['style.css']],
+			[
+				'$schema' => '../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json',
+				'name'    => 'Nova Theme',
+				'version' => '1.0.0',
+				'parent'  => 'default',
+				'styles'  => ['style.css']
+			],
 			json_decode((string) file_get_contents($this->root() . '/user/themes/nova/theme.json'), true)
 		);
 		$this->assertFileExists($this->root() . '/user/themes/nova/style.css');

@@ -1,0 +1,203 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework entry",
+	"description": "An entry's front matter: the fields every entry understands. Content types and taxonomies add their own.",
+	"type": "object",
+	"properties": {
+		"title": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "The entry's title."
+		},
+		"subtitle": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "A line shown under the title."
+		},
+		"slug": {
+			"type": [
+				"string",
+				"integer"
+			],
+			"description": "The URL name, instead of the file name."
+		},
+		"published": {
+			"anyOf": [
+				{
+					"type": "string",
+					"pattern": "^\\s*\\d{4}-\\d{2}-\\d{2}"
+				},
+				{
+					"type": "integer"
+				}
+			],
+			"description": "The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
+		},
+		"date": {
+			"anyOf": [
+				{
+					"type": "string",
+					"pattern": "^\\s*\\d{4}-\\d{2}-\\d{2}"
+				},
+				{
+					"type": "integer"
+				}
+			],
+			"description": "Same as published. The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry."
+		},
+		"updated": {
+			"anyOf": [
+				{
+					"type": "string",
+					"pattern": "^\\s*\\d{4}-\\d{2}-\\d{2}"
+				},
+				{
+					"type": "integer"
+				}
+			],
+			"description": "When it last changed; defaults to published, then the file's modified time."
+		},
+		"status": {
+			"enum": [
+				"published",
+				"draft"
+			],
+			"description": "published (the default) or draft."
+		},
+		"visibility": {
+			"enum": [
+				"public",
+				"unlisted",
+				"hidden"
+			],
+			"description": "public (the default), unlisted, or hidden."
+		},
+		"summary": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "A short Markdown summary for listings and feeds. Without one, the first 50 words are used."
+		},
+		"excerpt": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "Same as summary. A short Markdown summary for listings and feeds. Without one, the first 50 words are used."
+		},
+		"image": {
+			"type": "string",
+			"description": "A featured image."
+		},
+		"locale": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "The entry's locale, such as fr_CA, when it isn't the site's."
+		},
+		"template": {
+			"anyOf": [
+				{
+					"type": "array",
+					"items": {
+						"type": [
+							"string",
+							"number"
+						]
+					}
+				},
+				{
+					"type": [
+						"string",
+						"number"
+					]
+				}
+			],
+			"description": "The theme template to use, such as single-wide."
+		},
+		"view": {
+			"anyOf": [
+				{
+					"type": "array",
+					"items": {
+						"type": [
+							"string",
+							"number"
+						]
+					}
+				},
+				{
+					"type": [
+						"string",
+						"number"
+					]
+				}
+			],
+			"description": "Same as template. The theme template to use, such as single-wide."
+		},
+		"layout": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "The theme layout to use."
+		},
+		"stylesheet": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "An extra stylesheet for this page."
+		},
+		"class": {
+			"anyOf": [
+				{
+					"type": "array",
+					"items": {
+						"type": [
+							"string",
+							"number"
+						]
+					}
+				},
+				{
+					"type": [
+						"string",
+						"number"
+					]
+				}
+			],
+			"description": "Extra CSS classes for the page's <body>."
+		},
+		"redirect_from": {
+			"anyOf": [
+				{
+					"type": "array",
+					"items": {
+						"type": [
+							"string",
+							"number"
+						]
+					}
+				},
+				{
+					"type": [
+						"string",
+						"number"
+					]
+				}
+			],
+			"description": "Old URLs that should redirect here."
+		},
+		"collection": {
+			"type": "object",
+			"description": "Lists other entries on this page."
+		}
+	}
+}

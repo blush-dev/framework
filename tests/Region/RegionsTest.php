@@ -129,7 +129,7 @@ final class RegionsTest extends TestCase
 			  entry: page/about
 			- nothing: here
 			YAML);
-		$this->writeTemporaryFile('user/data/regions/aside.yaml', '{"items": [], "title": "x"}');
+		$this->writeTemporaryFile('user/data/regions/aside.yaml', '{"$schema": "region.schema.json", "items": [], "title": "x"}');
 
 		$app      = $this->app();
 		$problems = $app->container()->make(Regions::class)->check($app->container()->make(ThemeResolver::class)->active());

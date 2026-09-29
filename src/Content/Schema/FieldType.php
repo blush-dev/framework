@@ -64,4 +64,24 @@ enum FieldType: string
 			self::Object    => ObjectField::class
 		};
 	}
+
+	/**
+	 * Describes what the type holds, for the editor schemas (D-206).
+	 */
+	public function description(): string
+	{
+		return match ($this) {
+			self::Text      => 'A line of text.',
+			self::Markdown  => 'Formatted text.',
+			self::Date      => 'A date and time.',
+			self::Bool      => 'true or false.',
+			self::Number    => 'A number.',
+			self::Enum      => 'One of a set of values.',
+			self::List      => 'Several values.',
+			self::Reference => 'Other entries, by slug.',
+			self::Media     => 'A media file.',
+			self::Slug      => 'A URL-safe name.',
+			self::Object    => 'A group of fields.'
+		};
+	}
 }

@@ -1,4 +1,5 @@
 {
+	"$schema": "https://getcomposer.org/schema.json",
 	"name": "blush-dev/framework",
 	"description": "Blush Framework: the core of Blush, a flat-file CMS.",
 	"type": "library",
@@ -69,6 +70,7 @@
 		"analyse": "phpstan analyse --memory-limit=1G",
 		"test": "phpunit",
 		"bench": "phpbench run --report=aggregate",
+		"schemas": "@php scripts/build-schemas.php",
 		"check": [
 			"@lint",
 			"@analyse",

@@ -3541,3 +3541,164 @@ decision, add a new entry that supersedes it and mark the old one
   MyST), easy to write by hand, and a sketch of a complex component (a
   breadcrumbs block with `icons` and `taxonomies` maps) fit it with
   dotted keys, so nothing forces a switch.
+
+### D-206: Editor JSON Schemas for `theme.json` and `extension.json`
+- **Date:** 2026-09-28
+- **Decision:** The framework ships JSON Schemas so editors autocomplete
+  and check manifests, starting with `theme.json` and `extension.json`.
+  - **Generated, not hand-written:** `Blush\JsonSchema\JsonSchemas`
+    builds them, `composer schemas` (`scripts/build-schemas.php`) writes
+    them to `resources/schemas/`, and they're committed. A test fails
+    when a committed file is stale, and another when a built-in field
+    type has an option its schema doesn't describe.
+  - **Field definitions** (theme `settings`, menu location `fields`) come
+    from the field types: `Field::definitionSchema()` (static, default
+    `[]`) returns a type's own keys, applied with `if`/`then` on `type`;
+    `FieldType::description()` describes each type. `type` also accepts
+    any string, for extension field types, whose options aren't
+    described.
+  - **Open, like the manifests:** keys a schema doesn't describe are
+    allowed (both manifests ignore or keep them). Draft 7, for the widest
+    editor support. `$schema` is a described key; the manifests already
+    accept it, so no loader change was needed.
+  - **How sites find them:** through `vendor/` (`Framework::PACKAGE`,
+    `blush-dev/framework`), so they work offline and match the installed
+    version. `theme:new` writes a relative `$schema` key; the default
+    theme's points at `../../schemas/`. YAML manifests use a
+    `# yaml-language-server: $schema=…` comment. The skeleton's
+    `.vscode/settings.json` maps `user/themes/*/theme.*` and
+    `user/extensions/*/extension.*` by glob.
+  - **Later:** schemas for other data files (menus, regions, content
+    types, redirects, site theme settings), site-generated schemas that
+    know the active theme's settings and an extension's field types, and
+    public URLs (and SchemaStore) once the product name is final (D-038).
+- **Why:** the author asked for editor autocomplete. Generating from the
+  PHP definitions keeps the schemas from drifting from the field-type
+  system.
+
+### D-207: Editor JSON Schemas for menu and region files
+- **Date:** 2026-09-28
+- **Decision:** Extends D-206 to the site's `user/data/menus/*` and
+  `user/data/regions/*` files (`menu.schema.json`,
+  `region.schema.json`).
+  - **The generator is `Blush\JsonSchema\JsonSchemas`**, renamed from
+    `ManifestSchemas` now that it covers more than manifests.
+  - **Kinds describe themselves**, as field types do: static
+    `MenuLink::itemSchema($key, $text)` and
+    `RegionItem::itemSchema($key, $text)` return schemas for the item
+    keys a kind reads (its own key, plus `keys()` for links, such as a
+    route's `params`), keyed by the name it's registered under. The
+    default is a non-empty string. `$text` is the schema for text or a
+    locale map (a `localeText` definition, from the now-public
+    `LocaleMap::LOCALE`). Tests check each built-in kind's schema keys
+    against the keys it reads.
+  - **Shape:** a file is an object with `label` (menus) and `items`, or
+    the list on its own. The object is closed, like the loaders, which
+    now also allow a `$schema` key. Items are open: a menu item's other
+    keys are the theme's fields, and a region item's are a component's
+    props or a view's data. "One link per item" and "one kind per region
+    item" are left to `menu:list` and `theme:check`, since extension kinds
+    can't be listed.
+  - `theme.schema.json`'s region items (`regions.*.items`) now use the
+    same generated definition.
+  - The skeleton's `.vscode/settings.json` maps both folders. The jtcom
+    trial references the schemas in its `theme.json` and menu files.
+- **Why:** the author asked for menus and regions next.
+
+
+### D-208: Schema patterns write a backslash as `\x5C`
+- **Date:** 2026-09-28
+- **Status:** Superseded by D-209.
+- **Decision:** A JSON Schema `pattern` that matches a literal backslash
+  (class names, PSR-4 prefixes) writes it as `\x5C`, never `\\`. A test
+  checks every pattern in the generated schemas.
+- **Why:** PhpStorm's `adaptSchemaPattern()` replaces every `\\` in a
+  pattern with `\` before compiling it, so `^\\?[A-Za-z_]…` became
+  `^\?[A-Za-z_]…` and rejected jtcom's valid `"provider":
+  "Jtcom\\ThemeProvider"`. `\x5C` means a backslash in both ECMAScript
+  and Java regexes, and PhpStorm leaves it alone (checked against its
+  bundled JSON plugin).
+
+### D-209: Schema patterns match one backslash or two
+- **Date:** 2026-09-28
+- **Status:** Superseded by D-210.
+- **Decision:** Supersedes D-208. A pattern that matches a literal
+  backslash writes it as `\x5C{1,2}` (`JsonSchemas::BACKSLASH`): one
+  backslash, as standard validators see the decoded value, or two, as
+  PhpStorm sees it. The test that no pattern contains `\\` stays.
+- **Why:** D-208's `\x5C` still failed in PhpStorm. Its string check
+  (`StringValidation`) reads a value's raw JSON text with
+  `unquoteString`, which strips the quotes but not the escapes, so
+  `"Jtcom\\ThemeProvider"` is checked as `Jtcom\\ThemeProvider`.
+  Checked by running PhpStorm's own `compilePattern()` and
+  `matchPattern()` on the raw values: the D-208 pattern fails there, and
+  this one matches while still rejecting names that aren't classes. The
+  cost is that a doubled backslash (`Acme\\\\Gallery` in JSON) also passes
+  in other editors; the manifest classes still reject it.
+
+### D-210: No patterns for class names or namespace prefixes
+- **Date:** 2026-09-28
+- **Decision:** Supersedes D-208 and D-209. The schemas describe
+  `provider` and `autoload.psr-4` (theme and extension) as plain strings
+  and objects, with descriptions and examples, but no `pattern` or
+  `propertyNames`, as Composer's own schema does for `autoload`. The
+  manifest classes (and so `theme:check` and discovery) still reject
+  bad class names and prefixes. The test that no pattern contains `\\`
+  stays, so a backslash pattern doesn't come back by accident.
+- **Why:** the author pointed out that Composer's schema has no trouble
+  with backslashes in PhpStorm. It avoids backslash patterns entirely,
+  and PhpStorm reads both patterns (`\\` becomes `\`) and values (raw
+  JSON text, escapes kept) differently from other validators. Working
+  around both was fragile, and it loosened the check anyway.
+
+### D-211: A front matter schema for the built-in entry fields (trial)
+- **Date:** 2026-09-28
+- **Decision:** `resources/schemas/entry.schema.json` describes the
+  built-in entry fields (`EntryFields`), to find out whether editors can
+  check front matter. It's open, since types and taxonomies add fields.
+  - **Fields describe their values:** `Field::valueSchema()` (the
+    field's label, description, and default over the protected
+    `valueType()`, which defaults to anything). A value schema may be
+    looser than `normalize()`, never stricter: text takes numbers, a list
+    or reference takes one value or a list, a date is text starting
+    `YYYY-MM-DD` or a timestamp, a bool takes the words Blush accepts, and
+    media and slugs are plain strings (Blush treats `''` as missing, and
+    slugs may be Unicode). `Schema::jsonSchema()` lists each field by
+    name and alias, and is closed when the schema is.
+  - `EntryFields` now describes each field (the `docs/content.md`
+    wording), for the schema and the future admin.
+  - Checked against all 300 jtcom trial entries: none are flagged.
+  - **Result: not reliable, so on hold.** On the trial's test page,
+    PhpStorm seemed to apply it (it flagged `status: pending` and
+    `published: yesterday`, after D-212). Added to every trial entry, it
+    didn't appear to apply, and a `category` error came from another
+    schema (most likely WordPress's `block.json`, which PhpStorm had
+    cached). The comments were removed from the trial's content, and
+    there are no user docs. `entry.schema.json`, `Field::valueSchema()`,
+    and `Schema::jsonSchema()` stay, for data entries and per-site
+    schemas later. Not tried: a PhpStorm path mapping
+    (`user/content/**/*.md`).
+  - **Was open:** whether PhpStorm applies a `# yaml-language-server:
+    $schema=…` comment inside Markdown front matter (it reads that
+    comment in YAML files, and its Markdown plugin injects YAML into
+    front matter). The trial has `user/content/_scratch/schema-test.md`
+    to check. User docs wait until that's known. Per-site schemas (a
+    type's fields and term fields) and content type definitions come
+    after.
+- **Why:** the author asked to see whether front matter can be handled.
+
+
+### D-212: Type-specific keywords never sit beside a type list
+- **Date:** 2026-09-28
+- **Decision:** A schema that pairs a keyword for one type (`pattern`,
+  `minLength`, `minimum`, `items`, `properties`, and the like) with a
+  type list writes an `anyOf` with one branch per type instead. A date
+  is `anyOf: [{type: string, pattern}, {type: integer}]`, not `type:
+  [string, integer]` plus `pattern`. A test walks every generated schema
+  for type lists with such keywords.
+- **Why:** in the D-211 trial, PhpStorm applied the entry schema in
+  Markdown front matter (it flagged `status: pending` and autocompleted
+  keys) but didn't flag `published: yesterday`. PhpStorm's own regex
+  code rejects `yesterday` with that pattern, so the check never ran:
+  its validators are picked by a single type
+  (`getTypeValidations(JsonSchemaType)`), and a type list has none.

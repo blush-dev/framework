@@ -35,6 +35,19 @@ final class TermLink extends MenuLink
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [$key => [
+			'type'        => 'string',
+			'pattern'     => '^[a-z][a-z0-9_]*/[^/]+$',
+			'description' => 'Links to a taxonomy term\'s archive, as {taxonomy}/{slug}, such as category/art. Its title is the label.'
+		]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function validate(mixed $value, array $item): ?string
 	{
 		return is_string($value) && preg_match('#^[a-z][a-z0-9_]*/[^/]+$#', trim($value)) === 1

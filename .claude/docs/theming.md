@@ -57,7 +57,7 @@ exist (D-032).
 ### `theme.json`
 ```json
 {
-	"$schema": "https://…/theme.schema.json",
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json",
 	"name": "Nova",
 	"version": "1.0.0",
 	"parent": null,
@@ -77,7 +77,8 @@ exist (D-032).
 	"autoload": { "psr-4": { "Nova\\": "src/" } }
 }
 ```
-- Blush publishes a JSON Schema so editors autocomplete and validate it.
+- Blush ships a JSON Schema (`resources/schemas/theme.schema.json`, D-206)
+  so editors autocomplete and validate it.
 - A page loads the **active** theme's `styles` and `scripts`, each resolved
   through the chain. Ancestors' own lists aren't loaded automatically
   (D-105).

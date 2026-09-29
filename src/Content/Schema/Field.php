@@ -97,6 +97,50 @@ abstract class Field
 	abstract public static function fromArray(array $data, FieldFactory $factory): static;
 
 	/**
+	 * Returns a JSON Schema for the values this field accepts, for the
+	 * editor schemas (D-211): the type's `valueType()` with the field's
+	 * label, description, and default.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function valueSchema(): array
+	{
+		$description = trim($this->label . ($this->label !== '' && $this->description !== '' ? ': ' : '') . $this->description);
+
+		return [
+			...$this->valueType(),
+			...($description === '' ? [] : ['description' => $description]),
+			...($this->default === null ? [] : ['default' => $this->default])
+		];
+	}
+
+	/**
+	 * Returns the JSON Schema for the type's values, without the shared
+	 * settings. It may be looser than `normalize()`, never stricter. The
+	 * default accepts anything.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function valueType(): array
+	{
+		return [];
+	}
+
+	/**
+	 * Returns JSON Schemas for the type's own definition keys (`options`,
+	 * `min`), by key, for the editor schemas in `resources/schemas`
+	 * (D-206). The shared keys are described once for every type. A type
+	 * may also narrow `default`.
+	 *
+	 * @param  array<string, mixed> $field A schema for a whole field definition, for types that nest fields.
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function definitionSchema(array $field): array
+	{
+		return [];
+	}
+
+	/**
 	 * Returns the field as a definition array that `fromArray()` accepts.
 	 * Unset shared settings are left out. A field class that isn't the
 	 * built-in for its type also records its `class`, so a compiled cache

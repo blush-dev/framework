@@ -37,6 +37,19 @@ final class ComponentItem extends RegionItem
 	 * @inheritDoc
 	 */
 	#[Override]
+	public static function itemSchema(string $key, array $text): array
+	{
+		return [$key => [
+			'type'        => 'string',
+			'pattern'     => '^' . ComponentName::SYNTAX . '$',
+			'description' => 'Shows a component, such as menu or acme/card. The item\'s other keys are its props.'
+		]];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function validate(mixed $value, array $item): ?string
 	{
 		return is_string($value) && ComponentName::parse(trim($value)) !== null

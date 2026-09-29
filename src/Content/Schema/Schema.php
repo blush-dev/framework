@@ -238,6 +238,34 @@ final readonly class Schema
 	}
 
 	/**
+	 * Returns a JSON Schema for the data this schema reads, for the editor
+	 * schemas (D-211): each field by name and by alias. A closed schema
+	 * allows no other keys.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function jsonSchema(): array
+	{
+		$properties = [];
+
+		foreach ($this->fields as $field) {
+			$value = $field->valueSchema();
+
+			$properties[$field->name] = $value;
+
+			foreach ($field->aliases as $alias) {
+				$properties[$alias] ??= [...$value, 'description' => trim("Same as {$field->name}. {$field->description}")];
+			}
+		}
+
+		return [
+			'type' => 'object',
+			...($properties === [] ? [] : ['properties' => $properties]),
+			...($this->closed ? ['additionalProperties' => false] : [])
+		];
+	}
+
+	/**
 	 * Returns whether a raw value counts as missing.
 	 */
 	private static function isEmpty(mixed $value): bool

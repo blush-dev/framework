@@ -245,7 +245,7 @@ final class MenusTest extends TestCase
 			  - label: Empty
 			  - just text
 			YAML);
-		$this->writeTemporaryFile('user/data/menus/extra.yaml', '{"items": "x", "title": "x"}');
+		$this->writeTemporaryFile('user/data/menus/extra.yaml', '{"$schema": "menu.schema.json", "items": "x", "title": "x"}');
 
 		$app      = $this->app();
 		$problems = $app->container()->make(Menus::class)->check($app->container()->make(ThemeResolver::class)->active());

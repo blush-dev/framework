@@ -25,6 +25,11 @@ final class Framework
 	public const string NAME = 'Blush Framework';
 
 	/**
+	 * The framework's Composer package name.
+	 */
+	public const string PACKAGE = 'blush-dev/framework';
+
+	/**
 	 * The command-line executable's name, as shown in usage lines.
 	 */
 	public const string BINARY = 'blush';

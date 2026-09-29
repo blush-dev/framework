@@ -83,7 +83,7 @@ That makes the smallest valid theme:
 
 ```
 user/themes/notebook/
-  theme.json    {"name": "Notebook", "version": "1.0.0", "styles": ["style.css"]}
+  theme.json    {"$schema": "…", "name": "Notebook", "version": "1.0.0", "styles": ["style.css"]}
   style.css
 ```
 
@@ -138,6 +138,33 @@ Only `name` is required.
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`menus` and `regions`:** the places your theme shows the site's menus
   and regions. See [Menus and regions](menus.md#for-theme-authors).
+
+#### Autocomplete in your editor
+
+Blush ships a JSON Schema for `theme.json`, so editors such as VS Code and
+PhpStorm can suggest keys, show what each one does, and flag mistakes.
+`theme:new` points the manifest at it with a `$schema` key:
+
+```json
+{
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json",
+	"name": "Notebook"
+}
+```
+
+The path is relative to `theme.json`. In a YAML manifest, put it in a
+comment on the first line instead:
+
+```yaml
+# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json
+name: Notebook
+```
+
+A new site's `.vscode/settings.json` also maps every `user/themes/*/theme.json`
+(and `.yaml`) to the schema, so VS Code finds it even without `$schema`.
+
+The schema covers the built-in field types. A field type from an extension
+is allowed, but the editor can't suggest its options.
 
 ### Templates
 
