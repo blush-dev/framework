@@ -60,6 +60,7 @@ Implemented in M2 (D-065, D-069).
 | `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry; `--strict` adds notices for undeclared keys, 1.x aliases, and virtual terms (D-081, D-084, D-091) |
 | `content:new <type> "<title>" [--slug] [--draft]` | Scaffold a Markdown entry (`Y-m-d.slug.md` for dated types) and refresh the index (D-091) |
 | `content:list [--type] [--status]` | List every indexed entry (M4b) |
+| `content:preview <type> <name> [--hours]` | Print a signed preview link to an entry, whatever its status (D-226) |
 | `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |
 | `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099) |
 | `theme:list` | List installed themes (framework, Composer, local), the active one, and broken manifests (M5b, D-120) |

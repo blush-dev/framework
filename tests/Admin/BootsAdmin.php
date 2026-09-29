@@ -39,15 +39,22 @@ trait BootsAdmin
 
 	/**
 	 * Boots a scratch site with the admin on (or off) and an editor
-	 * account, `jane`. `$config` is more arguments for `AdminConfig`.
+	 * account, `jane`. `$config` is more arguments for `AdminConfig`, and
+	 * `$environment` replaces or adds variables (`null` removes one).
 	 *
-	 * @param list<string> $roles
+	 * @param list<string>                $roles
+	 * @param array<string, ?string>      $environment
 	 */
-	private function boot(bool $enabled = true, string $config = '', array $roles = ['editor']): void
+	private function boot(bool $enabled = true, string $config = '', array $roles = ['editor'], array $environment = []): void
 	{
 		$this->writeTemporaryFile('config/admin.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\AdminConfig(enabled: " . ($enabled ? 'true' : 'false') . "{$config});\n");
 
-		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test']);
+		$environment = array_filter(
+			[...['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)], ...$environment],
+			static fn (?string $value): bool => $value !== null
+		);
+
+		$this->app = $this->scratchApplication($environment);
 		$this->app->boot();
 		$this->app->container()->make(Accounts::class)->create('jane', self::PASSWORD, $roles, 'jane');
 	}

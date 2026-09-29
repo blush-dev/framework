@@ -40,6 +40,7 @@ use Blush\Http\HttpConfig;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
+use Blush\Preview\PreviewConfig;
 use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
@@ -270,7 +271,8 @@ final readonly class Bootstrap
 			new EmbedConfig(),
 			new SessionConfig(),
 			new AuthConfig(),
-			new AdminConfig()
+			new AdminConfig(),
+			PreviewConfig::fromEnv($env)
 		)->with(...$this->overrides);
 	}
 

@@ -420,9 +420,17 @@ Implemented in M4b (D-087, D-090).
   the repository. A stale index (another fingerprint) is rebuilt on first
   use in any environment (D-098).
 - **`Linter`** checks every file for `content:lint` (D-091).
-- **`ContentWriter`:** `create`, `update`, `move`, `delete`. Writes are atomic
-  (temp file + rename), use file locks, are confined to the content root, and
-  trigger incremental reindexing.
+- **`ContentWriter`** (D-228; `Blush\Content\Writer`, `FilesystemWriter`
+  by default): `load` (raw front matter, body, and a revision hash),
+  `create`, `update` (`EntryChanges`: set, remove, body), `rename` (a
+  new slug; date prefixes kept, bundles move their folder), and
+  `delete` (to `storage/trash/{time}/`). Writes are atomic, serialized
+  by a lock file, checked against the caller's revision (`WriteConflict`),
+  confined to the content root and content formats, and followed by an
+  incremental reindex and a content version bump. `DocumentEditor`
+  edits Markdown and HTML front matter and YAML entries key by key
+  (`YamlMap`, keeping formatting and aliases), rewrites JSON entries,
+  and parses every result to confirm only the intended values changed.
 
 ## Query
 
@@ -671,8 +679,12 @@ Implemented in M7 (D-135 to D-140).
     rate limiting.
   - The admin is a JavaScript single-page application (D-215).
   - Actions: clear caches, reindex, publish (git), export.
-  - Content health (lint), drafts and scheduled lists, and signed preview URLs.
+  - Content health (lint), drafts and scheduled lists, and signed preview
+    URLs (built: D-225, D-226; `Blush\Preview`, signed with `APP_SECRET`).
 - **Stage 3: editor**
+  - The editing API (built, D-229): load, create, change (with the
+    status shortcut and renames), and delete entries through
+    `ContentWriter`, with permissions judged on the change.
   - Forms generated from schemas.
   - A Markdown editor with live preview through `Kernel::handle()`.
   - A component inserter for dropping components into content: only
@@ -703,8 +715,9 @@ Implemented in M7 (D-135 to D-140).
   URLs versioned `?v={crc32}` (`AdminApp::url()`) and a JSON start-up
   block; `AssetController` serves the build's files at
   `{path}/assets/{file}` (immutable with `?v=`, `no-cache` without). `AdminConfig::$app` swaps
-  in another build. Screens so far: sign-in and the dashboard (entry
-  counts and actions). Extension pieces are described in PHP and drawn
+  in another build. Screens so far: sign-in, the dashboard (entry
+  counts and actions), drafts and scheduled entries, and content health
+  (D-225). Extension pieces are described in PHP and drawn
   generically (D-222): `AdminAction`s (label, description, capability,
   optional confirmation, `run()` → `ActionResult`) in
   `AdminActionRegistry`, with `publish`, `reindex`, and `clear-caches`

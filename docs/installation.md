@@ -23,12 +23,13 @@ bin/blush init
 
 `init` sets up the site. It asks for the site's name, address (use
 `http://127.0.0.1:8000` for now), timezone, and environment, and writes
-them to a new `.env` file. It also asks whether to turn on the
+them to a new `.env` file, with a secret for signing
+[preview links](admin.md#previewing-drafts). It also asks whether to turn on the
 [publish webhook](going-live.md#publishing-without-a-shell), and creates the
 `storage/` folders Blush writes to, and offers to create an administrator
 account for the admin (see [Accounts and roles](accounts.md)). It's safe
-to run again: it never changes a `.env` you already have, except to add a
-missing webhook secret.
+to run again: it never changes a `.env` you already have, except to add
+missing secrets.
 
 Pick the `development` environment while you build the site. It shows
 content changes right away and gives you detailed error pages. Switch to

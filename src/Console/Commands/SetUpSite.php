@@ -40,10 +40,11 @@ use Blush\Support\FilesystemException;
  *
  * 1. Creates `.env` from `.env.example` when there's none. In a terminal,
  *    it asks for the site's name, URL, timezone, and environment first.
- *    An existing `.env` is never changed, except to add a secret it lacks.
- * 2. With `--webhook` (or a yes when asked), adds a random
- *    `PUBLISH_SECRET`, which turns on the publish webhook. The webhook
- *    stays off otherwise, since it's a public endpoint.
+ *    An existing `.env` is never changed, except to add secrets it lacks.
+ * 2. Adds a random `APP_SECRET` when there's none, which signs preview
+ *    links (D-226). With `--webhook` (or a yes when asked), also adds a
+ *    random `PUBLISH_SECRET`, which turns on the publish webhook. The
+ *    webhook stays off otherwise, since it runs publishing on request.
  * 3. Creates the storage folders and reports any Blush can't write to.
  * 4. In a terminal, while there are no accounts, offers to create an
  *    administrator (D-217).
@@ -87,6 +88,13 @@ final readonly class SetUpSite
 		}
 
 		$changed = $created;
+
+		if (! $file->filled('APP_SECRET')) {
+			$file    = $file->with('APP_SECRET', bin2hex(random_bytes(32)));
+			$changed = true;
+
+			$output->info('Added an APP_SECRET, which signs preview links.');
+		}
 
 		if (! $file->filled('PUBLISH_SECRET')) {
 			if ($webhook || ($prompt->interactive && $prompt->confirm('Turn on the publish webhook?'))) {

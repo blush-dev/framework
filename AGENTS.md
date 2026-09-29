@@ -10,9 +10,14 @@ Console), M3 (Routing), M4 (Content), M5 (Views + theming), M6 (Caching +
 publishing), and M7 (Static export) are **complete**. **Milestone M8
 (Port jtcom)** is on hold after a trial port on the `jtcom-trial` branch
 of `../blush` (a test bed the author uses; never commit its site files).
-**The current focus is setup DX/UX** (D-156), which has lately been
-first-run setup (D-218) and the admin's auth groundwork (D-215 to D-219;
-next, the admin itself, a JavaScript SPA); see `.claude/docs/roadmap.md`.
+**The current focus is the admin** (M9 and M10), grown out of the setup
+DX/UX work (D-156): first-run setup (D-218), accounts and auth (D-215 to
+D-219), the Vue admin app with its dashboard, drafts, content health, and
+preview links (D-220 to D-227), and the editor's write path and editing
+API (D-228, D-229). Next: the editor screens (forms from content schemas,
+a Markdown editor with live preview); see `.claude/docs/roadmap.md`.
+Admin app sources are in `resources/admin/`; rebuild with
+`npm run admin:build` (D-221, D-224).
 The dev site is `../blush` (`ddev start`, https://blush.ddev.site), on
 `jtcom-trial` for now (the skeleton itself is its `2.x` branch). Code on
 `master` (1.x) is not a reference implementation, with one exception:

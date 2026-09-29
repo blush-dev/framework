@@ -53,6 +53,9 @@ use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\DocumentEditor;
+use Blush\Content\Writer\FilesystemWriter;
 use Blush\Core\AppConfig;
 use Blush\Core\ServiceProvider;
 use Blush\Event\Listener\ListenerRegistry;
@@ -83,7 +86,8 @@ final class ContentServiceProvider extends ServiceProvider
 		EntryHydrator::class,
 		Indexer::class,
 		IndexFingerprint::class,
-		ContentUrls::class
+		ContentUrls::class,
+		DocumentEditor::class
 	];
 
 	/**
@@ -92,7 +96,8 @@ final class ContentServiceProvider extends ServiceProvider
 	protected const array SINGLETONS_IF = [
 		ContentSource::class     => FilesystemSource::class,
 		ContentIndex::class      => PhpIndex::class,
-		ContentRepository::class => IndexedRepository::class
+		ContentRepository::class => IndexedRepository::class,
+		ContentWriter::class     => FilesystemWriter::class
 	];
 
 	/**

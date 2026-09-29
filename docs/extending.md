@@ -175,6 +175,41 @@ is registered with `Blush\Region\Item\RegionItemRegistry` the same way.
 Both are built through the container, so their constructors can ask for
 services.
 
+## Changing content from code
+
+`Blush\Content\Writer\ContentWriter` creates and edits entries, the
+same way `content:new` and the admin do. Ask for it in a constructor:
+
+```php
+use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\EntryChanges;
+
+$entry = $writer->load('_posts/2026-09-29.hello.md');
+
+$writer->update($entry->id, new EntryChanges(
+	set: ['status' => 'draft', 'tags' => ['news']],
+	remove: ['summary']
+), $entry->revision);
+```
+
+- **Only what you change changes.** Other front matter keeps its order,
+  comments, and spacing, and a key the file writes by an older name
+  (`date` for `published`) is updated under that name.
+- **Values** are plain data: text, numbers, `true`/`false`, `null`, and
+  lists or maps of them. Write dates as text, such as
+  `2026-09-29 09:00:00 -05:00`.
+- **`$entry->revision`** protects against lost edits: if the file changed
+  since you loaded it, `update()` throws `WriteConflict` and writes
+  nothing. Leave it out to skip the check.
+- `create()`, `rename()` (a new slug; a dated file keeps its date, and a
+  bundle's folder moves with its media), and `delete()` (the file moves
+  to `storage/trash/`) work the same way.
+- Every change reindexes content and refreshes cached pages.
+
+The writer only writes content files inside `user/content`, and refuses
+any edit it can't make without changing something else (it throws
+`WriteException`, and the file is left as it was).
+
 ## Admin actions
 
 An action is a button on [the admin's](admin.md) dashboard, written in

@@ -38,6 +38,41 @@ export interface Dashboard {
 	actions: ActionDescription[];
 }
 
+export interface EntrySummary {
+	id: string;
+	title: string;
+	type: string;
+	status: 'draft' | 'scheduled';
+	published: string | null;
+	updated: string;
+	path: string | null;
+	authors: string[];
+	own: boolean;
+}
+
+export interface EntryList {
+	status: 'draft' | 'scheduled';
+	entries: EntrySummary[];
+}
+
+export interface Violation {
+	field: string;
+	message: string;
+	severity: 'error' | 'warning' | 'notice';
+}
+
+export interface Health {
+	checked: number;
+	strict: boolean;
+	counts: { error: number; warning: number; notice: number | null };
+	files: { path: string; violations: Violation[] }[];
+}
+
+export interface PreviewLink {
+	url: string;
+	expires: string;
+}
+
 export class ApiError extends Error {
 	constructor(message: string, public readonly status: number) {
 		super(message);

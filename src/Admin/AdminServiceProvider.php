@@ -43,6 +43,10 @@ final class AdminServiceProvider extends ServiceProvider
 		ActionController::class,
 		AssetController::class,
 		DashboardController::class,
+		EntriesController::class,
+		EntryController::class,
+		HealthController::class,
+		PreviewLinkController::class,
 		SessionController::class,
 		ShellController::class
 	];

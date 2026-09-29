@@ -102,6 +102,31 @@ final readonly class Linter
 	}
 
 	/**
+	 * Checks one file on its own, for an editor that just saved it: its
+	 * front matter against its type's schema and its `collection` query.
+	 * Checks that need every file (two files claiming one entry, terms
+	 * without entries) are `lint()`'s.
+	 *
+	 * @return list<Violation>
+	 */
+	public function lintFile(string $path): array
+	{
+		$file = $this->source->stat($path);
+
+		if ($file === null) {
+			return [new Violation(self::FILE, 'doesn\'t exist.')];
+		}
+
+		try {
+			$parsed = $this->builder->build($file, $this->source->read($path));
+
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record)];
+		} catch (InvalidDocument | UnreadableSource $e) {
+			return [new Violation(self::FILE, $e->getMessage())];
+		}
+	}
+
+	/**
 	 * Checks that a `collection` front matter value is a valid query.
 	 *
 	 * @return list<Violation>

@@ -20,14 +20,15 @@ to change.
 | `APP_URL` | `http://localhost` | The site's full URL, such as `https://example.com` |
 | `APP_TIMEZONE` | `UTC` | The site's timezone, such as `America/Chicago` |
 | `APP_LOCALE` | `en_US` | The site's language and region (see the note below) |
+| `APP_SECRET` | | Signs [preview links](admin.md#previewing-drafts); they're off without it. At least 32 characters. `bin/blush init` writes one. |
 | `PUBLISH_SECRET` | | Turns on the [publish webhook](going-live.md#publishing-without-a-shell). At least 32 characters. |
 | `PUBLISH_GIT` | `false` | Run `git pull` in `user/` when publishing |
 | `PUBLISH_REMOTE`, `PUBLISH_BRANCH` | | The git remote and branch to pull |
 
 Real environment variables (set by your host or server) win over `.env`.
 
-The `APP_*` values reach Blush through `config/app.php`, which reads them
-with `$env`. If your `config/app.php` doesn't pass `locale`, add
+The `APP_*` values (except `APP_SECRET`) reach Blush through
+`config/app.php`, which reads them with `$env`. If your `config/app.php` doesn't pass `locale`, add
 `locale: $env->string('APP_LOCALE', 'en_US')` to it.
 
 ### What development changes
@@ -271,6 +272,19 @@ Without this file, the `PUBLISH_*` variables are used. Keep the secret in
 | `enabled` | `false` | Turn the admin on; none of its URLs exist while it's off |
 | `path` | `'/admin'` | Where the admin lives |
 | `app` | `null` | The folder of your own built admin front end; see [The admin](admin.md#your-own-admin) |
+
+### Preview links
+
+`config/preview.php` · `Blush\Preview\PreviewConfig`
+
+| Option | Default | What it does |
+|---|---|---|
+| `secret` | `null` | Signs preview links; they're off without one |
+| `lifetime` | `604800` | How many seconds a link works (a week) |
+| `path` | `'/_blush/preview'` | The preview URL |
+
+Without this file, `APP_SECRET` is used. Keep the secret in `.env`
+either way.
 
 ### Accounts and sessions
 

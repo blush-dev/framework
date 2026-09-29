@@ -7,6 +7,8 @@
  */
 
 import { onMounted, ref } from 'vue';
+import { RouterLink } from 'vue-router';
+import { can } from '../session';
 import { ApiError, request, type ActionDescription, type ActionResult, type Dashboard } from '../api';
 
 const dashboard = ref<Dashboard | null>(null);
@@ -58,8 +60,20 @@ onMounted(load);
 			<dl class="stats">
 				<div><dt>Entries</dt><dd>{{ dashboard.content.total }}</dd></div>
 				<div><dt>Published</dt><dd>{{ dashboard.content.published }}</dd></div>
-				<div><dt>Drafts</dt><dd>{{ dashboard.content.draft }}</dd></div>
-				<div><dt>Scheduled</dt><dd>{{ dashboard.content.scheduled }}</dd></div>
+				<div>
+					<dt>Drafts</dt>
+					<dd>
+						<RouterLink v-if="can('content.edit')" :to="{ name: 'drafts' }">{{ dashboard.content.draft }}</RouterLink>
+						<template v-else>{{ dashboard.content.draft }}</template>
+					</dd>
+				</div>
+				<div>
+					<dt>Scheduled</dt>
+					<dd>
+						<RouterLink v-if="can('content.edit')" :to="{ name: 'drafts', hash: '#scheduled' }">{{ dashboard.content.scheduled }}</RouterLink>
+						<template v-else>{{ dashboard.content.scheduled }}</template>
+					</dd>
+				</div>
 				<div><dt>Environment</dt><dd>{{ dashboard.site.environment }}</dd></div>
 			</dl>
 		</section>

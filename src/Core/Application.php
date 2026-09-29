@@ -40,6 +40,7 @@ use Blush\Http\HttpServiceProvider;
 use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
+use Blush\Preview\PreviewServiceProvider;
 use Blush\Publish\PublishServiceProvider;
 use Blush\Session\SessionServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
@@ -94,6 +95,7 @@ class Application implements Bootable
 		SessionServiceProvider::class,
 		AuthServiceProvider::class,
 		AdminServiceProvider::class,
+		PreviewServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class
 	];

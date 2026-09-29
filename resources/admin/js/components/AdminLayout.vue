@@ -8,7 +8,7 @@ import { ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { ApiError } from '../api';
 import { config } from '../config';
-import { session, signOut } from '../session';
+import { can, session, signOut } from '../session';
 
 const router  = useRouter();
 const leaving = ref(false);
@@ -38,6 +38,8 @@ async function leave(): Promise<void> {
 		<nav class="masthead__nav" aria-label="Admin">
 			<ul>
 				<li><RouterLink :to="{ name: 'dashboard' }">Dashboard</RouterLink></li>
+				<li v-if="can('content.edit')"><RouterLink :to="{ name: 'drafts' }">Drafts</RouterLink></li>
+				<li v-if="can('content.edit.others')"><RouterLink :to="{ name: 'health' }">Content health</RouterLink></li>
 			</ul>
 		</nav>
 		<div class="masthead__account">

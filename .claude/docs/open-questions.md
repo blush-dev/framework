@@ -107,6 +107,9 @@ Move each item to `decisions.md` once it's answered.
   design and what it taught are in `theming.md` → Design.
 
 ## Tooling
+- **Lint zero months and days** (D-227, held by the author for later):
+  placeholder dates such as `2019-00-00` roll back to a real date
+  (`2018-11-30`) without a `content:lint` warning.
 - **Shared path-encoding helper** (noted 2026-09-27):
   `implode('/', array_map(rawurlencode(...), explode('/', $path)))`
   appears in `MediaResolver`, `RoutePattern`, `ExportAssets`,

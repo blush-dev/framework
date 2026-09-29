@@ -35,6 +35,11 @@ use Blush\Session\StartSession;
  *   - `GET  dashboard`: the site, content counts, and the actions the
  *     account may run.
  *   - `POST actions/{action}`: runs an action.
+ *   - `GET  entries?status=…`: drafts or scheduled entries.
+ *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
+ *     the editing API (`EntryController`).
+ *   - `GET  health`: the content's lint problems.
+ *   - `POST previews`: a signed preview link to an entry.
  */
 final readonly class AdminRoutes implements RouteSource
 {
@@ -66,7 +71,14 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/login', [SessionController::class, 'login'])->named('login'),
 			Route::post('/logout', [SessionController::class, 'logout'])->named('logout')->middleware(Authenticate::class),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
-			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class)
+			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
+			Route::get('/entries', EntriesController::class)->named('entries')->middleware(Authenticate::class),
+			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
+			Route::get('/entries/{id:.+}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
+			Route::patch('/entries/{id:.+}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),
+			Route::delete('/entries/{id:.+}', [EntryController::class, 'delete'])->named('entry.delete')->middleware(Authenticate::class),
+			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
+			Route::post('/previews', PreviewLinkController::class)->named('preview')->middleware(Authenticate::class)
 		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class]);
 
 		$app = Route::group($this->config->path, [

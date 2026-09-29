@@ -4020,3 +4020,185 @@ decision, add a new entry that supersedes it and mark the old one
     docs recommend plain names.
 - **Why:** the author's rule: scripts and assets built with Vite always
   use `?v={hash}`, never hashed file names.
+
+### D-225: Admin screens for drafts and content health
+- **Date:** 2026-09-29
+- **Decision:** The next M9 pieces (D-013's "content health (lint),
+  drafts and scheduled lists").
+  - **`GET {path}/api/entries?status=draft|scheduled`**
+    (`EntriesController`): entries with that status that
+    `Permissions::can($account, 'content.edit', $entry)` allows, so an
+    author or contributor sees their own drafts and an editor everyone's;
+    a contributor sees no scheduled entries, since they aren't drafts
+    (D-219's live-entry rule). Drafts sort by `updated` descending,
+    scheduled entries by `published` ascending. Each entry: id, title,
+    type name, status, `published` and `updated` (ISO 8601), source
+    path, authors (`AuthConfig::$authorTaxonomy` terms), and `own`. Any
+    other status is a 400 (published entries wait for the editor).
+  - **`GET {path}/api/health`** (`HealthController`): the `Linter`'s
+    report, warnings and errors by default and notices with
+    `?strict=1`, as `{checked, strict, counts, files: [{path,
+    violations: [{field, message, severity}]}]}`. It needs
+    `content.edit.others`, since it lists every file. It lints on each
+    request (about 0.2 s for the trial's 300 files), so the dashboard
+    doesn't run it.
+  - **The app:** "Drafts" (two tables, drafts and scheduled, with a
+    "Yours" tag, `<time>` dates in the browser's locale) and "Content
+    health" (runs on opening, "Check again", an "Include notices"
+    checkbox, the summary in a polite live region, severity written as
+    text as well as color). Navigation and routes show only what the
+    account's capabilities allow (`meta.capability`; a screen it can't
+    use sends it to the dashboard); the API checks every request anyway.
+    The dashboard's draft and scheduled counts link to the Drafts screen.
+  - Checked on the jtcom trial in headless Chrome with three temporary
+    entries (removed afterward).
+- **Open:** links from a draft to its preview (signed preview URLs, next)
+  and to its editor (M10).
+- **Why:** the author asked for content health and drafts next.
+
+### D-226: Signed preview links
+- **Date:** 2026-09-29
+- **Decision:** D-013's "signed preview URLs", in `Blush\Preview`.
+  - **The secret is `APP_SECRET`**, read by `PreviewConfig::fromEnv()`
+    (`config/preview.php` overrides, as `PublishConfig` does), not an
+    `AppConfig` option: sites build `AppConfig` in their own
+    `config/app.php`, which wouldn't pass a new option. At least 32
+    characters; without it, preview links are off (no route, the admin
+    endpoint answers 503, the command fails). `init` always adds one
+    when it's missing (unlike `PUBLISH_SECRET`, it opens nothing by
+    itself). Changing it ends every link.
+  - **Links** (`PreviewLinks::make()`): `{path}?entry={id}&expires={unix}
+    &signature={hmac}`, absolute on the site's origin; the signature is
+    HMAC-SHA256 over `"preview\n{id}\n{expires}"`, checked with
+    `hash_equals`. `path` defaults to `/_blush/preview`, `lifetime` to a
+    week. Anyone with a link sees the entry until it expires; no account
+    is needed, so drafts can be shared with reviewers.
+  - **The page** (`PreviewController`) renders the entry through
+    `PageRenderer` as its own page would (a routed type's entry as a
+    single, others as a page), whatever its status, with
+    `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`, and
+    `Referrer-Policy: no-referrer` (so the link doesn't leak through
+    outbound links). A bad, changed, or expired link is a plain 403;
+    a genuine link to an entry that's gone is a 404.
+  - **Admin:** `POST {path}/api/previews` with `{"entry": id}` (201 `{url,
+    expires}`; 400, 403 unless the account may edit the entry, 404, 503).
+    The Drafts screen has a "Get link" control per entry: then "Open"
+    (new tab) and "Copy", the expiry, and a polite announcement.
+  - **CLI:** `content:preview <type> <name> [--hours=]` prints a link and
+    when it expires.
+  - **The jtcom trial** has `APP_SECRET` in `.env` (from `init`) and an
+    empty line in `.env.example`. Checked in headless Chrome: a link
+    made in the admin opened signed out and rendered the draft with the
+    jtcom theme; a changed signature was refused.
+- **Open:** a visible "preview" marker on the page (themes decide their
+  markup, so it may need a template hook); revoking one link without
+  changing the secret.
+- **Why:** the author asked for signed preview links next.
+
+### D-227: jtcom's drafts become `_posts` drafts
+- **Date:** 2026-09-29
+- **Decision:** jtcom's `__drafts/` folder was 1.x's stand-in for a
+  drafts system: to Blush it's a hidden folder (D-088), so its files
+  were indexed as published, hidden pages, and the admin's Drafts screen
+  (D-225) showed none of them. The author chose to make them real
+  drafts rather than teach Blush the old folder: each dated file moves
+  to `_posts/` (same file name) with `status: draft` added under its
+  title, and becomes a draft post (the post template when previewed).
+  `__drafts/template.md`, a starter for new posts rather than a draft,
+  stays where it is. The Drafts screen shows "(Untitled)" for drafts
+  without a title.
+  - Done in the jtcom trial (8 files; `content:lint` clean). For jtcom's
+    real `2.x` port (M8), the same move is a content change to make then.
+- **Noticed:** several of these drafts use placeholder dates such as
+  `2019-00-00`, which PHP rolls back to a real date (`2018-11-30`), and
+  `content:lint` doesn't flag. A lint warning for a zero month or day
+  may be worth adding.
+- **Why:** the author's call: the old folder only existed because 1.x
+  had no true drafts.
+
+### D-228: Writing content back to files
+- **Date:** 2026-09-29
+- **Decision:** The first piece of M10 (the editor): `ContentWriter`
+  (`Blush\Content\Writer`), bound to `FilesystemWriter`.
+  - **Only the edit changes the file.** Markdown and HTML front matter,
+    and YAML entries, are edited key by key (`YamlMap`), not re-dumped:
+    comments, key order, blank lines, aligned colons (`title     :`),
+    and other keys' quoting stay. A key's entry is its line plus the
+    indented or `- ` lines under it. A field is written under whichever
+    of its name and aliases the file already uses (a jtcom `date` stays
+    `date`); new keys go at the end under the field's name. Values are
+    dumped by Symfony's YAML dumper, with dates (YAML timestamps)
+    unquoted and text that needs quotes in double quotes (JSON strings),
+    as people write them; multi-line text is a literal block. JSON
+    entries are decoded and re-encoded pretty-printed. The body is
+    replaced exactly as given; a file that ends at its closing `---`
+    keeps doing so.
+  - **Every edit proves itself** (`DocumentEditor`): the result is parsed
+    with the same parsers the indexer uses; each set key must read back
+    as given (dates as the same moment), removed keys must be gone,
+    every other key must read exactly as before, and the body must be
+    the given one. Otherwise it's a `WriteException` and nothing is
+    written. Checked against all 300 jtcom trial files in memory
+    (setting a title and a date): no refusals, and only those lines
+    changed.
+  - **Safety:** ids (paths) are confined to `user/content` and content
+    formats (never PHP, D-039); writes are atomic and serialized by
+    `storage/cache/content-write.lock`; a `revision` (SHA-256 of the
+    file, from `load()`) guards against lost edits (`WriteConflict`).
+    Values must be plain data (`EntryChanges`).
+  - **Operations:** `load`, `create` (`{folder}/{slug}.{format}`, dated
+    types `{Y-m-d}.{slug}`, never overwriting), `update`, `rename` (a new
+    slug; a dated file keeps its date; a bundle renames its folder with
+    its media; landing pages can't), and `delete` (moves the file, or a
+    bundle's folder, to `storage/trash/{Ymd-His}/`). Each write
+    reindexes incrementally and bumps the content version.
+  - `content:new` now creates through the writer: a title that needs no
+    quotes is written bare (`title: Colophon`), others double-quoted.
+- **Open:** git-backed revisions (D-013); restoring from the trash (by
+  hand for now); YAML entries' multi-line flow values can't be edited
+  in place (the self-check refuses them).
+- **Why:** the author asked to start the editor with the write path.
+
+### D-229: The admin's editing API
+- **Date:** 2026-09-29
+- **Decision:** M10's second piece, over `ContentWriter` (D-228), in
+  `Admin\EntryController`:
+  - `GET entries/{id}` (the id is the source path, `{id:.+}`): `values`
+    by field name (read from the first of a field's name and aliases in
+    the file, as parsed, so dates are ISO 8601), `extra` (undeclared
+    keys), `body`, `revision`, `title`, `status`, `own`, `url` (when
+    published), `type` (name, kind, dated, and each field's
+    `toArray()` without `class`, for forms), `can` (edit, publish,
+    delete), and `violations` from the new `Linter::lintFile()` (one
+    file's schema and `collection` checks; checks across files stay
+    `lint()`'s).
+  - `POST entries` (`type`, `title`, optional `slug` (else from the
+    title), `set`, `body`, `status`): drafts by default; the account's
+    author in the author taxonomy's term field unless given (not for
+    the author type itself); dated types get `published` now. 201.
+  - `PATCH entries/{id}`: `revision` required (428 without; 409 when
+    stale), then `set`, `remove`, `body`, the `status` shortcut, and
+    `slug` (a rename after the update). The answer is the reloaded
+    entry.
+  - `DELETE entries/{id}?revision=…`: to the trash (428, 409 as above).
+  - **The status shortcut:** `draft` sets `status: draft`; `published`
+    removes `status` and sets `published` to now when the entry has no
+    date or a future one; `scheduled` removes `status` and sets
+    `published` to the given future date (400 otherwise). Dates are
+    read in the site's timezone and written `Y-m-d H:i:s P`.
+  - **Permissions from the change:** `content.edit` for the entry
+    (D-219's ownership and live-entry rules), `content.publish` when the
+    result isn't a draft, `content.edit.others` to change the authors
+    so the account's own author is gone (adding co-authors is fine),
+    `content.create` to create, `content.delete` for the entry to
+    delete.
+  - Errors: 400 for a malformed request (`InvalidEdit`), 403, 404, 409,
+    422 for a `WriteException`, 428.
+  - Checked on the jtcom trial over HTTP: a no-op save of a real draft
+    left it byte-identical; a post was created (a draft credited to
+    `justintadlock`), renamed, and deleted to the trash.
+- **Open:** notices for 1.x names show on nearly every jtcom file, so the
+  editor should hide notices by default; validating `set` values
+  against field types before writing (the file's violations report
+  them after).
+- **Why:** the author asked for the editing API after the writer.

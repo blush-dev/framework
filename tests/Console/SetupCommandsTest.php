@@ -58,7 +58,8 @@ final class SetupCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('Created .env.', $result->output);
-		$this->assertSame("# Name.\nAPP_NAME=\"Example\"\n", $this->env()->contents);
+		$this->assertStringStartsWith("# Name.\nAPP_NAME=\"Example\"\n", $this->env()->contents);
+		$this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $this->env()->get('APP_SECRET') ?? '', 'Every site gets a secret for signed links.');
 
 		foreach (SetupChecks::STORAGE as $name) {
 			$this->assertDirectoryExists($this->temporaryDirectory() . '/' . ($name === 'storage' ? 'storage' : "storage/{$name}"));
@@ -110,13 +111,14 @@ final class SetupCommandsTest extends TestCase
 
 	public function testLeavesAnExistingEnvAlone(): void
 	{
-		$this->writeTemporaryFile('.env', "APP_NAME=Mine\n");
+		$env = "APP_NAME=Mine\nAPP_SECRET=" . str_repeat('a', 64) . "\n";
+		$this->writeTemporaryFile('.env', $env);
 
 		$result = $this->command('init', ['no', 'no']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('.env already exists; left as it is.', $result->output);
-		$this->assertSame("APP_NAME=Mine\n", $this->env()->contents);
+		$this->assertSame($env, $this->env()->contents);
 	}
 
 	public function testReportsStorageItCantCreate(): void

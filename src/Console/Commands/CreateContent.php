@@ -20,12 +20,12 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
-use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
+use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\EntryChanges;
+use Blush\Content\Writer\WriteException;
 use Blush\Core\Paths;
-use Blush\Support\Filesystem;
-use Blush\Support\FilesystemException;
 use Blush\Support\Slug;
 
 /**
@@ -42,13 +42,11 @@ final readonly class CreateContent
 		private ContentTypes $types,
 		private Paths $paths,
 		private ClockInterface $clock,
-		private Indexer $indexer,
-		private Filesystem $filesystem
+		private ContentWriter $writer
 	) {}
 
 	/**
 	 * @throws InvalidInput
-	 * @throws FilesystemException
 	 */
 	public function __invoke(
 		Output $output,
@@ -66,32 +64,24 @@ final readonly class CreateContent
 			throw new InvalidInput($slug === '' ? 'The title has no characters to make a slug from; pass --slug.' : sprintf('"%s" is not a slug; try "%s".', $slug, Slug::from($slug)));
 		}
 
-		$now      = $this->clock->now();
-		$dated    = $contentType->dateArchives !== DateArchives::None;
-		$filename = ($dated ? $now->format('Y-m-d') . '.' : '') . "{$slug}.md";
-		$relative = ltrim("{$contentType->folder}/{$filename}", '/');
-		$path     = $this->paths->join($this->paths->content, $relative);
+		$now   = $this->clock->now();
+		$dated = $contentType->dateArchives !== DateArchives::None;
 
-		if (file_exists($path)) {
-			$output->error(sprintf('%s already exists.', $this->paths->relative($path)));
+		$changes = new EntryChanges(set: [
+			'title' => $title,
+			...($dated ? ['published' => $now->format('Y-m-d H:i:s P')] : []),
+			...($draft ? ['status' => 'draft'] : [])
+		], body: "\n");
+
+		try {
+			$result = $this->writer->create($contentType, $slug, $changes, $now);
+		} catch (WriteException $e) {
+			$output->error($e->getMessage());
 
 			return ExitCode::Failure;
 		}
 
-		$frontMatter = ['title: ' . json_encode($title, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)];
-
-		if ($dated) {
-			$frontMatter[] = 'published: ' . $now->format('Y-m-d H:i:s P');
-		}
-
-		if ($draft) {
-			$frontMatter[] = 'status: draft';
-		}
-
-		$this->filesystem->writeAtomic($path, "---\n" . implode("\n", $frontMatter) . "\n---\n\n");
-		$this->indexer->index();
-
-		$output->success(sprintf('Created %s', $this->paths->relative($path)));
+		$output->success(sprintf('Created %s', $this->paths->relative("{$this->paths->content}/{$result->id}")));
 
 		return ExitCode::Success;
 	}

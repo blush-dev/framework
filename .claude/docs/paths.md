@@ -36,7 +36,8 @@ blush-framework/
     Http/               Request, Response, Uri, Headers, factories, Emitter
     Http/Middleware/
     Routing/            Route, compiler, matcher, UrlGenerator, attributes
-    Content/            Source, Parser, Schema, Type, Index, Entry, Query, Lint, Writer
+    Content/            Source, Parser, Schema, Type, Index, Entry, Query, Lint, Writer (ContentWriter,
+                        FilesystemWriter, DocumentEditor, YamlMap, EntryChanges, D-228)
     Markdown/           Parser interface + adapter; CommonMark/Directive/ (D-112)
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
     View/               Views, Template, ViewFinder, ViewFactory, Hierarchy, Head, Escaper,
@@ -59,8 +60,12 @@ blush-framework/
     Auth/               Account, AccountStore + FileAccountStore, Accounts, Passwords, Roles,
                         Role, BuiltInRole, Capabilities, Capability, Permissions, Authenticator,
                         LoginThrottle, AuthConfig; Middleware/ (VerifyCsrf, Authenticate) (D-219)
+    Preview/            PreviewConfig, PreviewLinks, PreviewLink, PreviewController,
+                        PreviewRoutes (signed preview links, D-226)
     Admin/              AdminConfig, AdminRoutes, AdminApp (the built front end), ShellController,
-                        AssetController, SessionController, DashboardController, ActionController;
+                        AssetController, SessionController, DashboardController, ActionController,
+                        EntriesController, HealthController, PreviewLinkController,
+                        EntryController (the editing API, D-229), InvalidEdit;
                         Action/ (AdminAction, ActionResult, AdminActionType, registry,
                         AdminActions, the built-ins) (D-219, D-223)
     Export/             Static export: Exporter, ExportSite, Crawler, UrlSource, ExportLayout,
@@ -136,5 +141,6 @@ site/
     logs/
     sessions/           One JSON file per session, named by the id's SHA-256 (D-219)
     accounts/           {username}.json admin accounts (D-217, D-219); never cleared
+    trash/              {Ymd-His}/user/content/... deleted entries (D-228); never cleared
   tests/
 ```

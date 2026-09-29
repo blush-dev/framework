@@ -134,7 +134,7 @@ final class ContentCommandsTest extends TestCase
 
 		$tester->run(['content:new', 'page', 'Colophon', '--slug=credits', '--draft']);
 
-		$this->assertSame("---\ntitle: \"Colophon\"\nstatus: draft\n---\n\n", file_get_contents("{$content}/credits.md"));
+		$this->assertSame("---\ntitle: Colophon\nstatus: draft\n---\n\n", file_get_contents("{$content}/credits.md"));
 
 		$tester->run(['content:new', 'category', 'Life']);
 

@@ -93,7 +93,8 @@ Carried from M7: the 114 dead links in old posts feed the redirect map.
   through it are committed in this repo as usual.
 - **jtcom's `2.x` branch** (the skeleton plus the trial's site files,
   with jtcom's full content): waits until the author says jtcom can
-  change.
+  change. Content changes to make then: `__drafts/` files move to
+  `_posts/` as `status: draft` (D-227).
 - **URL parity and the redirect map** (every old URL answers 200 or
   301; the 114 dead links and 7 missing media references), and
   **production and deploy** (`APP_ENV=production`, the page cache,
@@ -178,13 +179,15 @@ The current focus: the experience of setting up a Blush site.
 
 Done: the Vue app's shell, sign-in, and dashboard (entry counts, and
 the `publish`, `reindex`, and `clear-caches` actions, which extensions
-extend in PHP). Docs: `docs/admin.md`.
+extend in PHP); drafts and scheduled entries, and content health
+(D-225); signed preview links (D-226). Docs: `docs/admin.md`.
 
-Next, per D-222 (pieces described in PHP, drawn by the app):
-content health (lint results), drafts and scheduled entries, signed
-preview URLs, and export as a background-safe action; then M10's
-editor (forms from content schemas, the Markdown editor with live
-preview, the component inserter, media).
+M10 has started: writing content back to files (`ContentWriter`,
+D-228) and the editing API (D-229). Next: the editor screens: forms
+from content schemas, the
+Markdown editor with live preview, the component inserter, and media.
+Export as a background-safe action is deferred (jtcom runs
+dynamically).
 
 ### Still to scope
 
