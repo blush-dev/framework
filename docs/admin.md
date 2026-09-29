@@ -114,7 +114,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST logout` | Sign out |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
-| `GET entries?status=draft` | Drafts the account may edit (`status=scheduled` for scheduled entries): title, type, status, dates, file, authors, and whether it's the account's own |
+| `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
 | `GET entries/{id}` | An entry for editing (see below) |
@@ -125,6 +125,26 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 Once signed in, send the token from `session` or `login` in an
 `X-CSRF-Token` header with every `POST`, `PATCH`, and `DELETE`. Errors are JSON too:
 `{"error": "…"}`, with a 400, 401, 403, 404, or 429 status.
+
+### Listing entries
+
+`GET entries` lists the entries the account may edit: an author's own,
+or everyone's for an editor. Narrow it with:
+
+| Parameter | What it does |
+|---|---|
+| `status` | `draft`, `scheduled`, `published`, or `any` (the default) |
+| `type` | A content type's name |
+| `search` | Text the title or file path must contain, in any case |
+| `page` | The page, from 1 |
+| `per` | Entries per page: 20 by default, at most 100 |
+
+Drafts and the whole list come most recently changed first, scheduled
+entries soonest first, and published entries newest first. The answer
+has `status`, `type`, `search`, `total`, `page`, `pages`, `per`, and
+`entries`, each with its id, title, type, status, dates, file, authors,
+and whether it's the account's own. A page past the last has no
+entries.
 
 ### Editing entries
 

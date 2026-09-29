@@ -42,7 +42,7 @@ export interface EntrySummary {
 	id: string;
 	title: string;
 	type: string;
-	status: 'draft' | 'scheduled';
+	status: EntryStatus;
 	published: string | null;
 	updated: string;
 	path: string | null;
@@ -50,8 +50,16 @@ export interface EntrySummary {
 	own: boolean;
 }
 
+export type EntryStatus = 'draft' | 'scheduled' | 'published';
+
 export interface EntryList {
-	status: 'draft' | 'scheduled';
+	status: EntryStatus | 'any';
+	type: string | null;
+	search: string;
+	total: number;
+	page: number;
+	pages: number;
+	per: number;
 	entries: EntrySummary[];
 }
 

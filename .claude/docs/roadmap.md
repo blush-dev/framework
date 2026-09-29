@@ -180,7 +180,8 @@ The current focus: the experience of setting up a Blush site.
 Done: the Vue app's shell, sign-in, and dashboard (entry counts, and
 the `publish`, `reindex`, and `clear-caches` actions, which extensions
 extend in PHP); drafts and scheduled entries, and content health
-(D-225); signed preview links (D-226). Docs: `docs/admin.md`.
+(D-225); signed preview links (D-226); the paged, filterable entry
+list API (D-230). Docs: `docs/admin.md`.
 
 M10 has started: writing content back to files (`ContentWriter`,
 D-228) and the editing API (D-229). Next: the editor screens: forms

@@ -288,6 +288,16 @@ To check it, ask `Blush\Auth\Permissions`:
 argument to check that entry, which also applies ownership (see
 [Accounts and roles](accounts.md#authors)).
 
+To list the entries an account may use a capability on, let
+`restrict()` narrow a query instead of checking each entry. The same
+rules then run in the index, so paging stays quick on large sites:
+
+```php
+$page = $permissions->restrict($account, 'content.edit', $content->query()->any())
+	->orderBy('updated', Order::Desc)
+	->paginate(20, $number);
+```
+
 A route that needs a signed-in account runs three middleware, in this
 order: `Blush\Session\StartSession`, `Blush\Auth\Middleware\VerifyCsrf`,
 and `Blush\Auth\Middleware\Authenticate`. The controller then reads the

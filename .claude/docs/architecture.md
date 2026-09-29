@@ -442,12 +442,20 @@ Implemented in M4b (D-089).
 - `Query::fromArray()` reads 1.x query arguments (a type's `collection`,
   a page's `collection` front matter) plus `status`, `visibility`,
   `terms`, and `locale`.
+- `search()` matches the title or source path in any case, and
+  `either()` takes alternatives (each built from `Query::condition()`,
+  which matches everything) of which an entry must match one: the OR
+  that `Permissions::restrict()` needs (D-230).
 - Returns an `EntryCollection` or a `Paginator`. Hydration is lazy, so
   listings never render bodies.
 - `Paginator::links($url, endSize, midSize, adjacent)` builds numbered
   pagination as `PageLink`s (kind, number, URL; D-161);
   `ContentPage::pageLinks()` passes the page's URL builder.
-- Compiled per index: array filters for `PhpIndex`, SQL for `SqliteIndex`.
+- Compiled per index: array filters for `PhpIndex` (`ArraySelector`,
+  with a `RecordMatcher` per query and per alternative), SQL for
+  `SqliteIndex`. `PhpIndex` scans every record for each query, so a
+  query's cost grows with the site (about 2 ms per 1,200 entries,
+  D-230); `SqliteIndex` is the answer for much larger sites.
 
 ## Media
 
@@ -701,7 +709,8 @@ Implemented in M7 (D-135 to D-140).
     `Accounts` (create and change, with checks), `Passwords` (Argon2id),
     `Roles` (built-ins plus `AuthConfig::$roles`), `Capabilities` (the
     registry), `Permissions` (roles, ownership through the author link,
-    and the live-entry rule), `Authenticator` (throttled sign-in, session
+    and the live-entry rule, as statuses per own/others' entries that
+    both `can()` and the query filter `restrict()` use), `Authenticator` (throttled sign-in, session
     login with a new id, a CSRF token, and a password fingerprint), and
     the `VerifyCsrf` and `Authenticate` middleware.
   - `Blush\Admin`: `AdminConfig` and the JSON API under

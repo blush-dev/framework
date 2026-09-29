@@ -120,12 +120,93 @@ final class AdminContentTest extends TestCase
 		$this->assertSame([], $this->entries('scheduled'), 'A scheduled entry isn\'t a draft, so a contributor can\'t edit it.');
 	}
 
-	public function testAsksForAKnownStatus(): void
+	/**
+	 * Returns a page of the entry list.
+	 *
+	 * @return array<mixed>
+	 */
+	private function list(string $query = ''): array
+	{
+		$response = $this->send('GET', "/entries{$query}");
+
+		$this->assertSame(200, $response->getStatusCode());
+
+		return self::json($response);
+	}
+
+	/**
+	 * Returns a page of the entry list's entries.
+	 *
+	 * @return list<array<mixed>>
+	 */
+	private function listed(string $query = ''): array
+	{
+		$entries = $this->list($query)['entries'] ?? null;
+		$this->assertIsArray($entries);
+
+		/** @var list<array<mixed>> $entries */
+		return $entries;
+	}
+
+	public function testListsEveryEntryTheAccountMayEdit(): void
 	{
 		$this->site(['editor']);
 
-		$this->assertSame(400, $this->send('GET', '/entries?status=published')->getStatusCode());
-		$this->assertSame(400, $this->send('GET', '/entries')->getStatusCode());
+		$list = $this->list();
+
+		$this->assertSame('any', $list['status']);
+		$this->assertSame(5, $list['total']);
+		$this->assertSame(1, $list['pages']);
+		$this->assertIsArray($list['entries']);
+		$this->assertEqualsCanonicalizing(["Jane's draft", "Sam's draft", 'Soon', 'Live', 'Broken'], array_column($list['entries'], 'title'));
+
+
+		$this->assertEqualsCanonicalizing(['Live', 'Broken'], array_column($this->listed('?status=published'), 'title'));
+	}
+
+	public function testListsAnAuthorsOwnEntries(): void
+	{
+		$this->site(['author']);
+
+		$this->assertEqualsCanonicalizing(["Jane's draft", 'Soon', 'Live'], array_column($this->listed(), 'title'));
+	}
+
+	public function testSearchesTitlesAndPaths(): void
+	{
+		$this->site(['editor']);
+
+		$this->assertSame(["Jane's draft", "Sam's draft"], array_column($this->listed('?search=DRAFT&status=draft'), 'title'), 'In any case.');
+		$this->assertSame(['Soon'], array_column($this->listed('?search=soon.md'), 'title'));
+		$this->assertSame(0, $this->list('?search=nothing')['total']);
+	}
+
+	public function testFiltersByType(): void
+	{
+		$this->site(['editor']);
+
+		$this->assertSame(5, $this->list('?type=page')['total']);
+		$this->assertSame(400, $this->send('GET', '/entries?type=missing')->getStatusCode());
+	}
+
+	public function testPagesThroughEntries(): void
+	{
+		$this->site(['editor']);
+
+		$first = $this->list('?per=2');
+
+		$this->assertSame([5, 3, 2], [$first['total'], $first['pages'], $first['per']]);
+		$this->assertCount(2, $this->listed('?per=2'));
+		$this->assertCount(1, $this->listed('?per=2&page=3'));
+		$this->assertSame([], $this->listed('?per=2&page=4'));
+	}
+
+	public function testRefusesMalformedLists(): void
+	{
+		$this->site(['editor']);
+
+		foreach (['?status=pending', '?page=0', '?page=two', '?per=101', '?search[]=x'] as $query) {
+			$this->assertSame(400, $this->send('GET', "/entries{$query}")->getStatusCode(), $query);
+		}
 	}
 
 	public function testReportsContentHealth(): void

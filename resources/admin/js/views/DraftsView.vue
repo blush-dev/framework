@@ -16,8 +16,8 @@ const error     = ref('');
 onMounted(async () => {
 	try {
 		const [draftList, scheduledList] = await Promise.all([
-			request<EntryList>('GET', '/entries?status=draft'),
-			request<EntryList>('GET', '/entries?status=scheduled')
+			request<EntryList>('GET', '/entries?status=draft&per=100'),
+			request<EntryList>('GET', '/entries?status=scheduled&per=100')
 		]);
 
 		drafts.value    = draftList.entries;

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Query;
 
+use Closure;
 use NoDiscard;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Status;
@@ -34,6 +35,15 @@ use Blush\Content\Visibility;
  * leaving out landing pages (a type folder's `index` file), in file-name
  * order. Naming entries also finds unlisted and hidden ones, as 1.x did,
  * and naming `index` finds landing pages.
+ *
+ * Every condition must hold. For "this or that", `either()` takes
+ * alternatives, each built from `Query::condition()`, and an entry must
+ * match at least one of them:
+ *
+ *     $query->either(
+ *         static fn (Query $q): Query => $q->status(Status::Draft),
+ *         static fn (Query $q): Query => $q->whereTerm('author', 'jane')
+ *     );
  *
  * A query made by a runner (the repository's `query()`) can run itself
  * with `get()`, `first()`, `count()`, and `paginate()`.
@@ -81,6 +91,8 @@ final readonly class Query
 	 * @param ?list<Visibility>                $visibilities  Visibilities to find; `null` for the default.
 	 * @param bool                             $landing       Whether landing pages are found.
 	 * @param ?string                          $locale        A locale to limit entries to.
+	 * @param ?string                          $search        Text the title or source path must contain, in any case.
+	 * @param list<list<Query>>                $alternatives  Groups of alternatives; an entry must match one in each group.
 	 */
 	public function __construct(
 		public array $types = [],
@@ -99,8 +111,20 @@ final readonly class Query
 		public ?array $visibilities = null,
 		public bool $landing = false,
 		public ?string $locale = null,
+		public ?string $search = null,
+		public array $alternatives = [],
 		private ?QueryRunner $runner = null
 	) {}
+
+	/**
+	 * Returns a query that matches every entry, whatever its status,
+	 * visibility, or type, landing pages included: the base an
+	 * `either()` alternative adds its conditions to.
+	 */
+	public static function condition(): self
+	{
+		return new self()->any();
+	}
 
 	/**
 	 * Builds a query from 1.x query arguments: `type`, `path`, `names` (or
@@ -377,6 +401,36 @@ final readonly class Query
 	public function locale(?string $locale): self
 	{
 		return clone($this, ['locale' => $locale]);
+	}
+
+	/**
+	 * Returns a copy limited to entries whose title or source path
+	 * contains the text, in any case. Empty text (after trimming) matches
+	 * everything.
+	 */
+	#[NoDiscard]
+	public function search(?string $text): self
+	{
+		$text = $text === null ? '' : trim($text);
+
+		return clone($this, ['search' => $text === '' ? null : $text]);
+	}
+
+	/**
+	 * Returns a copy limited to entries that match at least one of the
+	 * alternatives. Each alternative gets `Query::condition()` and returns
+	 * it with conditions added; only its conditions count, not its order,
+	 * limit, or offset. Each call adds a group every entry must match one
+	 * of, so no alternatives at all match nothing.
+	 *
+	 * @param Closure(Query): Query ...$alternatives
+	 */
+	#[NoDiscard]
+	public function either(Closure ...$alternatives): self
+	{
+		$group = array_map(static fn (Closure $alternative): self => $alternative(self::condition()), array_values($alternatives));
+
+		return clone($this, ['alternatives' => [...$this->alternatives, $group]]);
 	}
 
 	/**

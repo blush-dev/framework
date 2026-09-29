@@ -14,7 +14,10 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 use Blush\Content\Entry\Entry;
+use Blush\Content\Query\Query;
 use Blush\Content\Status;
+use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 
 /**
  * Answers whether an account may do something (D-217). An account can do
@@ -28,13 +31,19 @@ use Blush\Content\Status;
  * - **Live entries:** editing or deleting an entry that isn't a draft
  *   changes the live site, so it also needs `content.publish` for that
  *   entry. That's what keeps contributors to drafts.
+ *
+ * Both rules come down to which statuses an account may act on, for its
+ * own entries and for others' (`statuses()`). `can()` checks one entry
+ * against them, and `restrict()` turns them into query conditions, so a
+ * list of entries is filtered and paged in the index (D-230).
  */
 final readonly class Permissions
 {
 	public function __construct(
 		private Roles $roles,
 		private Capabilities $capabilities,
-		private AuthConfig $config
+		private AuthConfig $config,
+		private ContentTypes $types
 	) {}
 
 	/**
@@ -48,18 +57,62 @@ final readonly class Permissions
 			return false;
 		}
 
-		if ($entry === null) {
-			return true;
+		return $entry === null
+			|| in_array($entry->status, $this->statuses($account, $capability, others: ! $this->owns($account, $entry)), true);
+	}
+
+	/**
+	 * Returns a copy of a query limited to the entries the account may use
+	 * a capability on, by the same rules as `can()`: others' entries with
+	 * the statuses `statuses()` allows, or the account's own (entries with
+	 * its author's term) with theirs. An account that may use it on
+	 * every entry gets the query back as it was, and one that may use it
+	 * on none gets a query that finds nothing.
+	 */
+	public function restrict(Account $account, string|Capability $capability, Query $query): Query
+	{
+		$capability   = $capability instanceof Capability ? $capability->value : $capability;
+		$others       = $this->statuses($account, $capability, others: true);
+		$own          = $this->statuses($account, $capability, others: false);
+		$taxonomy     = $this->config->authorTaxonomy;
+		$author       = $account->author;
+		$alternatives = [];
+
+		if ($others === Status::cases()) {
+			return $query;
 		}
 
-		if (! $this->owns($account, $entry) && ! $this->grants($account, "{$capability}.others")) {
-			return false;
+		if ($others !== []) {
+			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$others);
 		}
 
-		$changesLive = in_array($capability, [Capability::ContentEdit->value, Capability::ContentDelete->value], true)
-			&& $entry->status !== Status::Draft;
+		if ($own !== [] && $author !== null && $this->types->find($taxonomy) instanceof Taxonomy) {
+			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->whereTerm($taxonomy, $author);
+		}
 
-		return ! $changesLive || $this->can($account, Capability::ContentPublish, $entry);
+		return $query->either(...$alternatives);
+	}
+
+	/**
+	 * Returns the statuses of entries the account may use a capability
+	 * on: its own entries', or others'. Others' need the capability's
+	 * `.others` form. When acting changes the live site (editing or
+	 * deleting), entries that aren't drafts also need `content.publish`
+	 * for them.
+	 *
+	 * @return list<Status>
+	 */
+	private function statuses(Account $account, string $capability, bool $others): array
+	{
+		if (! $this->grants($account, $capability) || ($others && ! $this->grants($account, "{$capability}.others"))) {
+			return [];
+		}
+
+		$changesLive = in_array($capability, [Capability::ContentEdit->value, Capability::ContentDelete->value], true);
+
+		return ! $changesLive || $this->statuses($account, Capability::ContentPublish->value, $others) !== []
+			? Status::cases()
+			: [Status::Draft];
 	}
 
 	/**

@@ -24,6 +24,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Index\ArraySelector;
 use Blush\Content\Index\ContentIndex;
+use Blush\Content\Index\RecordMatcher;
 use Blush\Content\IndexedRepository;
 use Blush\Content\Parser\BodyFormat;
 use Blush\Content\Query\EntryCollection;
@@ -36,6 +37,7 @@ use Blush\Content\Visibility;
 
 #[CoversClass(IndexedRepository::class)]
 #[CoversClass(ArraySelector::class)]
+#[CoversClass(RecordMatcher::class)]
 #[CoversClass(EntryHydrator::class)]
 #[CoversClass(Entry::class)]
 #[CoversClass(Body::class)]
@@ -133,6 +135,31 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame([], self::slugs($query->date(year: 1999)->get()));
 		$this->assertSame(['hello'], self::slugs($query->type('post')->locale('en_US')->date(2010)->get()));
 		$this->assertSame([], self::slugs($query->locale('fr_FR')->get()));
+	}
+
+	public function testSearchesTitlesAndPaths(): void
+	{
+		$posts = $this->content->query()->type('post')->any();
+
+		$this->assertSame(['welcome'], self::slugs($posts->search('WELCOME')->get()), 'Titles, in any case.');
+		$this->assertSame(['hello'], self::slugs($posts->search('hello/index')->get()), 'Paths.');
+		$this->assertSame(['spring', 'rainy'], self::slugs($posts->search('2008-')->get()));
+		$this->assertCount(7, $posts->search('  ')->get(), 'Blank text matches everything.');
+		$this->assertSame([], self::slugs($posts->search('nothing')->get()));
+	}
+
+	public function testEitherMatchesAnyAlternative(): void
+	{
+		$posts = $this->content->query()->type('post')->any();
+		$draft = static fn (Query $query): Query => $query->status(Status::Draft);
+		$art   = static fn (Query $query): Query => $query->whereTerm('category', 'art');
+
+		$this->assertSame(['spring', 'rainy', 'unfinished'], self::slugs($posts->either($draft, $art)->get()));
+		$this->assertSame(['spring'], self::slugs($posts->either($draft, $art)->search('spring')->get()), 'The query\'s own conditions still hold.');
+		$this->assertSame(['spring'], self::slugs($posts->either($draft, $art)->either(static fn (Query $query): Query => $query->whereAuthor('guest'))->get()), 'Each group must match.');
+		$this->assertSame([], self::slugs($posts->either()->get()), 'No alternatives match nothing.');
+		$this->assertSame([], self::slugs($this->content->query()->type('post')->either(static fn (Query $query): Query => $query->status(Status::Scheduled))->get()), 'Alternatives narrow the query; they never widen it (it finds only published entries).');
+		$this->assertSame(1, $posts->either($draft)->count());
 	}
 
 	public function testQueriesSortLimitAndOffset(): void

@@ -4202,3 +4202,56 @@ decision, add a new entry that supersedes it and mark the old one
   against field types before writing (the file's violations report
   them after).
 - **Why:** the author asked for the editing API after the writer.
+
+### D-230: The admin's entry list
+- **Date:** 2026-09-29
+- **Decision:** `GET entries` (`Admin\EntriesController`) lists every
+  entry the account may edit (`content.edit` on the entry, D-219), not
+  only drafts and scheduled ones (D-225), for the editor's list
+  screens. Query parameters: `status` (`draft`, `scheduled`,
+  `published`, or `any`, the default), `type` (400 when unknown),
+  `search` (a case-insensitive match on the title or source path),
+  `page` (from 1), and `per` (20 by default, 1 to 100). The answer adds
+  `type`, `search`, `total`, `page`, `pages`, and `per` to `status` and
+  `entries`; each entry is described as before. Order: drafts and `any`
+  by `updated` descending, scheduled by `published` ascending,
+  published by `published` descending. Virtual entries (no source file)
+  never appear, since the index holds only files.
+  - **Everything runs in the index as one query**, so only the page's
+    entries are built. Three additions make that possible:
+    - `Query::search()`: a case-insensitive match on the title or
+      source path.
+    - `Query::either(...)`: groups of alternatives (closures that add
+      conditions to `Query::condition()`, a query matching everything);
+      an entry must match one alternative in each group, and no
+      alternatives match nothing. Alternatives only narrow the query.
+    - `Permissions::restrict($account, $capability, $query)`: the
+      permission rules as query conditions. The rules are now stated
+      once, as the statuses an account may act on for its own entries
+      and for others' (`statuses()`); `can()` checks an entry against
+      them and `restrict()` becomes `either(others' statuses, own
+      statuses + the author's term)`. An account that may act on every
+      entry gets the query unchanged. Ownership needs the author
+      taxonomy to be a taxonomy type, as `owns()` does. A test checks
+      that `restrict()` finds exactly what `can()` allows for every
+      built-in role, two custom roles (one that edits others' drafts but
+      only publishes its own), and accounts with and without an author.
+  - `ArraySelector`'s filters moved to `RecordMatcher` (one per query
+    and per alternative, with its comparisons worked out once,
+    including term slugs, which were slugged per record before).
+  - **Measured** (`benchmarks/AdminBench.php`, and a copy of the bench
+    site with ten times the posts): the first version built and
+    checked every entry, 9.4 ms at 1,183 entries and 94 ms at 9,643,
+    growing with the site at four times a plain query's cost. Now, at
+    1,183 entries: the whole list 2.4 ms (page 1 or 40), an author's
+    3.2 ms, a contributor's 1.0 ms, a search 0.9 ms, against 2.4 ms for
+    a plain index query. At 9,643 entries: an editor's list 26 ms, an author's (about 9,400 of
+    their own, sorted) 33 ms, a contributor's 10 ms, a search 8 ms,
+    against 26 ms for a plain index query. What's left is `PhpIndex`
+    scanning every record for any query, public ones included;
+    `SqliteIndex` (later) is the answer for sites that size.
+  - The Drafts screen asks for `per=100`.
+- **Why:** the author asked for the quickest admin win while the admin
+  UI design is in progress; every design needs an entry list. Paging in
+  the index came after benchmarking, because the author plans sites
+  several times jtcom's size.

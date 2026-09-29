@@ -39,6 +39,21 @@ final class QueryTest extends TestCase
 		$this->assertFalse($query->findsLanding());
 	}
 
+	public function testSearchAndAlternatives(): void
+	{
+		$query  = new Query();
+		$either = $query->either(static fn (Query $condition): Query => $condition->type('post'));
+
+		$this->assertSame('spring', $query->search('  spring ')->search);
+		$this->assertNull($query->search('  ')->search);
+		$this->assertSame([], $query->alternatives);
+		$this->assertCount(1, $either->alternatives);
+		$this->assertSame(['post'], $either->alternatives[0][0]->types);
+		$this->assertSame(Status::cases(), $either->alternatives[0][0]->statuses, 'Alternatives start from a condition that matches everything.');
+		$this->assertTrue(Query::condition()->findsLanding());
+		$this->assertSame([[]], $query->either()->alternatives);
+	}
+
 	public function testBuildersReturnCopies(): void
 	{
 		$query  = new Query();
