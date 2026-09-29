@@ -36,13 +36,19 @@ use Blush\Session\StartSession;
  *   - `GET  dashboard`: the site, content counts, and the actions the
  *     account may run.
  *   - `POST actions/{action}`: runs an action.
- *   - `GET  types`: the site's content types.
+ *   - `GET  types`: the site's content types, and `GET types/{name}` one.
+ *   - `GET  components`: the components the editor's inserter offers.
+ *   - `GET  icons`: the icons the editor's icon picker offers.
+ *   - `GET  media`: the media files an entry can use, a page at a time,
+ *     and `GET media/{path}` one library file.
  *   - `GET  entries`: the entries the account may edit, a page at a time.
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
  *     the editing API (`EntryController`).
  *   - `GET  trash`, and `POST trash/restore`, `trash/delete`, and
  *     `trash/empty`: the trash (`TrashController`).
  *   - `GET  health`: the content's lint problems.
+ *   - `GET  roles` and `GET accounts`: the site's roles and accounts, to
+ *     show (`PeopleController`).
  *   - `POST previews`: a signed preview link to an entry.
  */
 final readonly class AdminRoutes implements RouteSource
@@ -78,6 +84,11 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
 			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),
+			Route::get('/types/{name:[a-z0-9_-]+}', [TypesController::class, 'show'])->named('type')->middleware(Authenticate::class),
+			Route::get('/components', ComponentsController::class)->named('components')->middleware(Authenticate::class),
+			Route::get('/icons', IconsController::class)->named('icons')->middleware(Authenticate::class),
+			Route::get('/media', MediaListController::class)->named('media')->middleware(Authenticate::class),
+			Route::get('/media/{path:.+}', [MediaListController::class, 'show'])->named('media.file')->middleware(Authenticate::class),
 			Route::get('/entries', EntriesController::class)->named('entries')->middleware(Authenticate::class),
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
 			Route::get('/entries/{id:.+}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
@@ -88,6 +99,8 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/trash/delete', [TrashController::class, 'delete'])->named('trash.delete')->middleware(Authenticate::class),
 			Route::post('/trash/empty', [TrashController::class, 'empty'])->named('trash.empty')->middleware(Authenticate::class),
 			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
+			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
+			Route::get('/accounts', [PeopleController::class, 'accounts'])->named('accounts')->middleware(Authenticate::class),
 			Route::post('/previews', PreviewLinkController::class)->named('preview')->middleware(Authenticate::class)
 		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class]);
 

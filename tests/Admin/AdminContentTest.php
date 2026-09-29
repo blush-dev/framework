@@ -16,12 +16,18 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
+use Blush\Admin\ComponentsController;
 use Blush\Admin\EntriesController;
 use Blush\Admin\HealthController;
 use Blush\Admin\PreviewLinkController;
 use Blush\Admin\TypesController;
+use Blush\Component\Callout;
+use Blush\Component\ComponentContent;
+use Blush\Component\ComponentRegistry;
 use Blush\Content\ContentRepository;
+use Blush\Content\Schema\Fields\TextField;
 
+#[CoversClass(ComponentsController::class)]
 #[CoversClass(EntriesController::class)]
 #[CoversClass(HealthController::class)]
 #[CoversClass(PreviewLinkController::class)]
@@ -207,17 +213,103 @@ final class AdminContentTest extends TestCase
 
 	public function testDescribesTheContentTypes(): void
 	{
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"taxonomy": true, "types": ["page"]}');
 		$this->site(['author']);
 
 		$types = self::json($this->send('GET', '/types'))['types'] ?? null;
 
 		$this->assertIsArray($types);
-		$this->assertContains(['name' => 'page', 'label' => 'Pages', 'singular' => 'Page', 'kind' => 'pages', 'dated' => false], $types);
+
+		$described = array_map(static fn (mixed $type): array => is_array($type) ? array_intersect_key($type, array_flip(['name', 'label', 'singular', 'kind', 'dated', 'types'])) : [], $types);
+
+		$this->assertContains(['name' => 'page', 'label' => 'Pages', 'singular' => 'Page', 'kind' => 'pages', 'dated' => false], $described, 'Only taxonomies name types.');
+		$this->assertContains(['name' => 'genre', 'label' => 'Genres', 'singular' => 'Genre', 'kind' => 'taxonomy', 'dated' => false, 'types' => ['page']], $described);
+		$this->assertContains(['name' => 'author', 'label' => 'Authors', 'singular' => 'Author', 'kind' => 'taxonomy', 'dated' => false, 'types' => []], $described, 'An author groups every type.');
+
+		$genre = array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === 'genre');
+
+		$this->assertIsArray($genre);
+		$this->assertSame(['data', 'genre', '/genre'], [$genre['origin'] ?? null, $genre['folder'] ?? null, $genre['prefix'] ?? null]);
 
 		$last = end($types);
 
 		$this->assertIsArray($last);
 		$this->assertSame('taxonomy', $last['kind'] ?? null, 'Taxonomies come last.');
+	}
+
+	public function testDescribesTheComponentsTheInserterOffers(): void
+	{
+		$this->site(['author']);
+
+		$registry = $this->app->container()->make(ComponentRegistry::class);
+		$registry->register('app/note', Callout::class);
+		$registry->register('acme/panel', Callout::class);
+		$registry->register('acme/tabs', content: ComponentContent::Blocks, props: [new TextField('title')]);
+
+		$components = self::json($this->send('GET', '/components'))['components'] ?? null;
+
+		$this->assertIsArray($components);
+
+		$callout = $this->component($components, 'blush/callout');
+
+		$this->assertSame(
+			['label' => 'Callout', 'content' => 'blocks', 'kind' => 'container', 'category' => 'text', 'source' => null],
+			array_intersect_key($callout, array_flip(['label', 'content', 'kind', 'category', 'source'])),
+			'The inserter writes full names.'
+		);
+		$this->assertSame('inline', $this->component($components, 'blush/kbd')['kind'] ?? null);
+		$this->assertSame('leaf', $this->component($components, 'blush/figure')['kind'] ?? null);
+
+		$props = $callout['props'] ?? null;
+		$this->assertIsArray($props);
+
+		$tone = array_find($props, static fn (mixed $prop): bool => is_array($prop) && ($prop['name'] ?? null) === 'tone');
+		$this->assertIsArray($tone);
+		$this->assertSame('Tone', $tone['label'] ?? null);
+
+		$choices = $tone['choices'] ?? null;
+		$this->assertIsArray($choices);
+		$this->assertSame('Warning', $choices['warning'] ?? null);
+
+		$note = $this->component($components, 'app/note');
+
+		$this->assertSame(['kind' => 'site', 'label' => 'This site'], $note['source'] ?? null);
+		$this->assertArrayHasKey('category', $note);
+		$this->assertNull($note['category']);
+		$this->assertSame(['kind' => 'extension', 'label' => 'acme'], $this->component($components, 'acme/panel')['source'] ?? null);
+		$this->assertNotContains('acme/tabs', array_column($components, 'name'), 'Only components with a class are offered.');
+	}
+
+	/**
+	 * Returns a component from `GET components`, by name.
+	 *
+	 * @param  array<mixed> $components
+	 * @return array<mixed>
+	 */
+	private function component(array $components, string $name): array
+	{
+		$component = array_find($components, static fn (mixed $item): bool => is_array($item) && ($item['name'] ?? null) === $name);
+		$this->assertIsArray($component, $name);
+
+		return $component;
+	}
+
+	public function testDescribesOneContentType(): void
+	{
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"taxonomy": true, "types": ["page"], "fields": [{"name": "color", "type": "text"}]}');
+		$this->site(['author']);
+
+		$page = self::json($this->send('GET', '/types/page'));
+
+		$this->assertSame('page', $page['name'] ?? null);
+		$this->assertContains('genre', is_array($page['taxonomies'] ?? null) ? $page['taxonomies'] : [], 'A taxonomy grouping it.');
+		$this->assertContains('author', is_array($page['taxonomies'] ?? null) ? $page['taxonomies'] : [], 'Authors group every type.');
+
+		$genre = self::json($this->send('GET', '/types/genre'));
+
+		$this->assertTrue($genre['editable'] ?? null, 'Types in user/data/types will be editable.');
+		$this->assertSame(['color'], array_column(is_array($genre['fields'] ?? null) ? $genre['fields'] : [], 'name'));
+		$this->assertSame(404, $this->send('GET', '/types/missing')->getStatusCode());
 	}
 
 	public function testPagesThroughEntries(): void

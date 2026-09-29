@@ -1,8 +1,25 @@
 <script setup lang="ts">
 /**
- * Edits an entry (D-229, D-233): the title and the Markdown body, and in
- * the sidebar its publishing (status, date, preview), its schema fields
- * as a form (`fields.ts`), other front matter, and its problems.
+ * Edits an entry (D-229, D-233), as a writing surface (admin.md §8,
+ * D-245): one centered column with the title as part of the document and
+ * the Markdown body under it (`MarkdownEditor`, D-241); a header with
+ * where you are, the save state, the status, and the actions; and a
+ * footer that's the status line. Settings are a drawer that pushes the
+ * column aside (⌘/), closed at first, with two tabs: **Document** (its
+ * publishing, schema fields as a form, the components it uses, other
+ * front matter, and its problems) and **Component**, the options of the
+ * component the caret is in (`ComponentOptions`). With the drawer closed,
+ * the footer names that component instead of opening anything.
+ *
+ * The header's left half has the three ways to put something in (D-247):
+ * components, in a panel that slides in from the left and stays open
+ * (also opened by typing `/`); media, in the media picker's modal; and
+ * icons, in a popover. Its right half says what the entry is and what
+ * happens to it.
+ *
+ * While keys move, the header and footer fade back; any pointer movement
+ * brings them back. Focus mode (⌘⇧F) leaves only the column; Escape
+ * returns.
  *
  * A save sends only what changed, so untouched keys stay exactly as the
  * file has them, with the revision it was loaded at. Ctrl+S (⌘S) saves.
@@ -25,17 +42,28 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, request, type EntryDetail, type EntryStatus, type FieldDescription } from '../api';
+import { ApiError, entryPath, request, type EntryDetail, type EntryStatus, type FieldDescription, type MediaItem } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
+import ComponentOptions from '../components/ComponentOptions.vue';
+import ComponentPanel from '../components/ComponentPanel.vue';
 import FieldControl from '../components/FieldControl.vue';
+import IconPicker from '../components/IconPicker.vue';
+import MarkdownEditor from '../components/MarkdownEditor.vue';
+import MediaPicker from '../components/MediaPicker.vue';
+import MenuButton from '../components/MenuButton.vue';
 import PreviewLinkControl from '../components/PreviewLinkControl.vue';
 import StatusPill from '../components/StatusPill.vue';
+import { componentIcon, loadComponents, type ComponentDescription, type ComponentProp } from '../components';
 import { online } from '../connection';
 import { diffLines, type DiffLine } from '../diff';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
 import { formatDate, plural } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
-import { screenTitle } from '../screen';
+import { attributeText, attributesOf, directiveAt, directiveHead, outline, wordCount, withAttribute, withoutDirective, type Directive, type Edit } from '../markdown';
+import type { SiteIcon } from '../site-icons';
+import { focusMode, screenTitle } from '../screen';
+import { toast } from '../toast';
+import { useCommands, type Command } from '../commands';
 import { currentType, findType, loadTypes } from '../types';
 
 // Fields the editor shows in their own places rather than the form.
@@ -294,8 +322,7 @@ async function save(status?: EntryStatus): Promise<void> {
 
 	if (publishes(status) && missing.value.length > 0) {
 		attempted.value = true;
-		await nextTick();
-		document.getElementById(missing.value[0]?.control ?? '')?.focus();
+		await showMissing();
 
 		return;
 	}
@@ -359,6 +386,11 @@ async function save(status?: EntryStatus): Promise<void> {
 		keptHere.value  = false;
 		attempted.value = false;
 		savedAt.value   = new Date();
+
+		// A plain save shows in the save state; a change of status says so.
+		if (status !== undefined && status !== detail.status) {
+			toast(status === 'published' ? 'Published' : (status === 'scheduled' ? 'Scheduled' : 'Switched to draft'));
+		}
 	} catch (caught) {
 		if (caught instanceof ApiError && caught.status === 409) {
 			void openConflict(status);
@@ -523,6 +555,7 @@ async function trash(): Promise<void> {
 		forget(detail.id);
 		initial.value = null;
 		await router.push({ name: 'type', params: { type: detail.type.name } });
+		toast(`Moved “${detail.title || detail.id}” to the trash`);
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be moved to the trash.`;
 	}
@@ -587,10 +620,433 @@ const saveState = computed<{ text: string; tone?: 'warn' | 'danger' }>(() => {
 // Where the changes are while they aren't saved.
 const safe = computed(() => keptHere.value ? 'Your changes are kept in this browser' : 'Your changes are still here');
 
+/**
+ * Focuses the first required field left empty, opening the settings when
+ * it's there rather than the title.
+ */
+async function showMissing(): Promise<void> {
+	const first = missing.value[0];
+
+	if (first === undefined) {
+		return;
+	}
+
+	if (first.control !== 'editor-title') {
+		sideOpen.value = true;
+		tab.value      = 'document';
+	}
+
+	await nextTick();
+	document.getElementById(first.control)?.focus();
+}
+
+// The writing surface.
+
+const bodyEditor = ref<InstanceType<typeof MarkdownEditor> | null>(null);
+const titleField = ref<HTMLTextAreaElement | null>(null);
+const sideOpen   = ref(false);
+const tab        = ref<'document' | 'component'>('document');
+const caret      = ref(0);
+const writing    = ref(false);
+const available  = ref<ComponentDescription[]>([]);
+
+const componentsFailed = ref(false);
+
+loadComponents().then((components) => {
+	available.value = components;
+}, () => {
+	componentsFailed.value = true;
+});
+
+// The component panel: open from its button, or for a slash typed at the
+// start of a line (then the query is in the text, and it closes once a
+// component replaces it).
+const panel      = ref<InstanceType<typeof ComponentPanel> | null>(null);
+const panelOpen  = ref(false);
+const panelSlash = ref(false);
+const panelQuery = ref('');
+
+async function togglePanel(): Promise<void> {
+	if (panelOpen.value) {
+		closePanel();
+
+		return;
+	}
+
+	panelSlash.value = false;
+	panelQuery.value = '';
+	panelOpen.value  = true;
+	await nextTick();
+	panel.value?.focus();
+}
+
+function closePanel(refocus = true): void {
+	if (!panelOpen.value) {
+		return;
+	}
+
+	panelOpen.value = false;
+
+	if (panelSlash.value) {
+		bodyEditor.value?.dismissSlash();
+	}
+
+	panelSlash.value = false;
+
+	if (refocus) {
+		bodyEditor.value?.focusAt(caret.value);
+	}
+}
+
+function slashed(query: string | null): void {
+	if (query === null) {
+		if (panelSlash.value) {
+			panelOpen.value  = false;
+			panelSlash.value = false;
+		}
+
+		return;
+	}
+
+	panelSlash.value = true;
+	panelQuery.value = query;
+	panelOpen.value  = true;
+}
+
+function slashKey(key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'): void {
+	if (key === 'Escape') {
+		panelOpen.value  = false;
+		panelSlash.value = false;
+	} else if (key === 'Enter') {
+		panel.value?.choose();
+	} else {
+		panel.value?.move(key === 'ArrowDown' ? 1 : -1);
+	}
+}
+
+// "a callout", "an embed".
+function article(name: string): string {
+	return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${inSentence(name)}`;
+}
+
+function chooseComponent(component: ComponentDescription): void {
+	bodyEditor.value?.insert(component);
+	toast(`Inserted ${article(component.label)}`);
+
+	// A slash's panel has done its job; one opened from its button stays.
+	if (panelSlash.value) {
+		panelOpen.value  = false;
+		panelSlash.value = false;
+	}
+}
+
+// The icon popover, under its button.
+const iconAnchor = ref<{ left: number; top: number; bottom: number } | null>(null);
+
+const iconButton = ref<HTMLButtonElement | null>(null);
+
+function toggleIcons(): void {
+	if (iconAnchor.value !== null) {
+		iconAnchor.value = null;
+
+		return;
+	}
+
+	const rect = iconButton.value?.getBoundingClientRect();
+
+	if (rect !== undefined) {
+		iconAnchor.value = { left: rect.left, top: rect.top, bottom: rect.bottom };
+	}
+}
+
+const iconComponent = computed(() => componentFor('icon'));
+
+function iconPreview(icon: SiteIcon): string {
+	return `:${iconComponent.value?.name ?? 'blush/icon'}[]{${attributeText('name', icon.name)}}`;
+}
+
+function chooseIcon(icon: SiteIcon): void {
+	iconAnchor.value = null;
+
+	if (iconComponent.value === undefined) {
+		bodyEditor.value?.insertText(iconPreview(icon));
+	} else {
+		bodyEditor.value?.insert(iconComponent.value, { name: icon.name });
+	}
+
+	toast(`Inserted the ${inSentence(icon.label)} icon`);
+}
+
+function closeIcons(): void {
+	iconAnchor.value = null;
+	bodyEditor.value?.focusAt(caret.value);
+}
+
+// The media picker: inserting a file, or choosing one for a field or a
+// component's option.
+const picking = ref<{ title: string; action: string; use: (file: MediaItem) => void } | null>(null);
+
+function pickMedia(): void {
+	picking.value = {
+		title: 'Insert media',
+		action: 'Insert',
+		use: (file) => {
+			// An image is a figure, a video a video, a sound audio, and
+			// anything else a download.
+			const name      = file.kind === 'image' ? 'figure' : (file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file'));
+			const component = componentFor(name);
+
+			if (component === undefined) {
+				bodyEditor.value?.insertText(`::blush/${name}{${attributeText('src', file.reference)}}`);
+			} else {
+				bodyEditor.value?.insert(component, { src: file.reference });
+			}
+
+			tab.value = 'component';
+			toast(`Inserted ${file.name}`);
+		}
+	};
+}
+
+function pickForField(field: FieldDescription): void {
+	picking.value = {
+		title: `Choose ${label(field).toLowerCase()}`,
+		action: 'Choose',
+		use: (file) => {
+			form.value[field.name] = file.reference;
+		}
+	};
+}
+
+function pickForOption(prop: ComponentProp): void {
+	const item = directive.value;
+
+	if (item === undefined) {
+		return;
+	}
+
+	picking.value = {
+		title: `Choose ${label(prop).toLowerCase()}`,
+		action: 'Choose',
+		use: (file) => {
+			const edit = withAttribute(body.value, item, prop.name, file.reference);
+
+			if (edit !== null) {
+				applyOption(edit);
+			}
+		}
+	};
+}
+
+function picked(file: MediaItem): void {
+	const current = picking.value;
+
+	picking.value = null;
+	current?.use(file);
+}
+
+// The editor's own commands in the palette (D-248).
+useCommands(() => {
+	const detail = entry.value;
+
+	if (detail === null) {
+		return [];
+	}
+
+	const found: Command[] = [
+		{ id: 'editor-focus', label: focusMode.value ? 'Leave focus mode' : 'Focus mode', icon: 'maximize-2', keywords: 'writing zen distraction', shortcut: '⌘⇧F', run: toggleFocus },
+		{ id: 'editor-settings', label: sideOpen.value ? 'Hide the settings' : 'Show the settings', icon: 'panel-right', keywords: 'document fields sidebar', shortcut: '⌘/', run: toggleSide },
+		{ id: 'editor-component', label: 'Insert a component', icon: 'plus', keywords: 'callout figure block', shortcut: '/', run: () => void togglePanel() },
+		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file', run: pickMedia },
+		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: () => void nextTick(toggleIcons) },
+		{ id: 'editor-save', label: 'Save', icon: 'file-text', shortcut: '⌘S', run: () => void save() }
+	];
+
+	if (primary.value !== null && primary.value.status !== undefined) {
+		const next = primary.value;
+
+		found.push({ id: 'editor-primary', label: next.label, icon: 'circle-check', keywords: 'publish go live', run: () => void save(next.status) });
+	}
+
+	if (secondary.value !== null && secondary.value.status !== undefined) {
+		const next = secondary.value;
+
+		found.push({ id: 'editor-secondary', label: next.label, icon: 'file-text', keywords: 'unpublish draft', run: () => void save(next.status) });
+	}
+
+	if (detail.can.delete) {
+		found.push({ id: 'editor-trash', label: 'Move to trash', icon: 'trash-2', keywords: 'delete remove', run: () => void trash() });
+	}
+
+	return found;
+});
+
+const markdown  = computed(() => outline(body.value));
+const directive = computed<Directive | undefined>(() => markdown.value.directives[directiveAt(markdown.value.directives, caret.value)]);
+const words     = computed(() => wordCount(markdown.value));
+
+/**
+ * The inserter's description of a directive's component, by its full or
+ * core short name.
+ */
+function componentFor(name: string): ComponentDescription | undefined {
+	return available.value.find((component) => component.name === name || component.name === `blush/${name}`);
+}
+
+function componentLabel(item: Directive): string {
+	return componentFor(item.name)?.label ?? humanize(item.name.replace(/^.*\//, ''));
+}
+
+const selected = computed(() => directive.value === undefined ? undefined : componentFor(directive.value.name));
+
+// Each component in the body, with a hint of which one it is.
+const used = computed(() => markdown.value.directives.map((item, index) => {
+	const values = attributesOf(body.value, item);
+	const known  = componentFor(item.name);
+
+	return {
+		index,
+		item,
+		label: componentLabel(item),
+		icon: known === undefined ? 'code' as const : componentIcon(known),
+		hint: directiveHead(body.value, item).label?.text || values.title || values.caption || values.src || values.url || values.name || ''
+	};
+}));
+
+function jumpTo(item: Directive): void {
+	bodyEditor.value?.focusAt(directiveHead(body.value, item).end);
+}
+
+function openComponent(item: Directive): void {
+	tab.value = 'component';
+	jumpTo(item);
+}
+
+/**
+ * Applies an option's edit to the body directly (so typing in the
+ * settings keeps its focus), keeping the caret on the same text.
+ */
+function applyOption(edit: Edit): void {
+	const delta = edit.text.length - (edit.to - edit.from);
+
+	body.value = body.value.slice(0, edit.from) + edit.text + body.value.slice(edit.to);
+
+	if (caret.value >= edit.to) {
+		caret.value += delta;
+	} else if (caret.value > edit.from) {
+		caret.value = edit.from + edit.text.length;
+	}
+}
+
+function removeComponent(): void {
+	const item = directive.value;
+
+	if (item !== undefined) {
+		bodyEditor.value?.apply(withoutDirective(body.value, item));
+		toast(`Removed the ${inSentence(componentLabel(item))}`);
+	}
+}
+
+function toggleSide(): void {
+	sideOpen.value = !sideOpen.value;
+}
+
+function showOptions(): void {
+	tab.value      = 'component';
+	sideOpen.value = true;
+}
+
+// Arrow keys move between the two tabs.
+function tabKey(event: KeyboardEvent): void {
+	if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+		return;
+	}
+
+	event.preventDefault();
+
+	const next = tab.value === 'document' && directive.value !== undefined ? 'component' : 'document';
+
+	tab.value = next;
+	document.getElementById(`editor-tab-${next}`)?.focus();
+}
+
+// The title wraps to as many lines as it needs: by CSS where the browser
+// sizes fields to their content, else measured whenever its text or
+// width changes.
+const sizesItself = typeof CSS !== 'undefined' && CSS.supports('field-sizing', 'content');
+let titleWidth: ResizeObserver | null = null;
+
+function sizeTitle(): void {
+	const element = titleField.value;
+
+	if (element !== null && !sizesItself) {
+		element.style.height = 'auto';
+		element.style.height = `${element.scrollHeight}px`;
+	}
+}
+
+watch(title, () => void nextTick(sizeTitle));
+
+watch(titleField, (element) => {
+	titleWidth?.disconnect();
+	titleWidth = null;
+
+	if (element !== null && !sizesItself) {
+		titleWidth = new ResizeObserver(sizeTitle);
+		titleWidth.observe(element);
+	}
+});
+
+// Enter in the title moves to the body.
+function titleKey(event: KeyboardEvent): void {
+	if (event.key === 'Enter' && !event.isComposing) {
+		event.preventDefault();
+		bodyEditor.value?.focusAt(0);
+	}
+}
+
+// The chrome recedes while keys move, and comes back on any pointer move.
+let quiet: ReturnType<typeof setTimeout> | undefined;
+
+function typed(): void {
+	writing.value = true;
+	clearTimeout(quiet);
+	quiet = setTimeout(() => {
+		writing.value = false;
+	}, 2600);
+}
+
+function moved(): void {
+	if (writing.value) {
+		clearTimeout(quiet);
+		writing.value = false;
+	}
+}
+
+function toggleFocus(): void {
+	focusMode.value = !focusMode.value;
+}
+
 function keydown(event: KeyboardEvent): void {
-	if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+	const command = event.metaKey || event.ctrlKey;
+
+	if (command && event.key.toLowerCase() === 's') {
 		event.preventDefault();
 		void save();
+	} else if (command && event.key === '/') {
+		event.preventDefault();
+		toggleSide();
+	} else if (command && event.shiftKey && event.key.toLowerCase() === 'f') {
+		event.preventDefault();
+		toggleFocus();
+	} else if (event.key === 'Escape' && !event.defaultPrevented) {
+		if (focusMode.value) {
+			focusMode.value = false;
+		} else if (panelOpen.value) {
+			closePanel();
+		} else if (sideOpen.value) {
+			sideOpen.value = false;
+		}
 	}
 }
 
@@ -617,6 +1073,8 @@ onBeforeRouteLeave(() => {
 
 onMounted(() => {
 	document.addEventListener('keydown', keydown);
+	document.addEventListener('pointermove', moved, { passive: true });
+	document.addEventListener('pointerdown', moved, { passive: true });
 	window.addEventListener('beforeunload', beforeUnload);
 
 	// The "just created" notice shows once.
@@ -627,11 +1085,21 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
 	clearTimeout(keeping);
+	clearTimeout(quiet);
+	focusMode.value = false;
 	document.removeEventListener('keydown', keydown);
+	document.removeEventListener('pointermove', moved);
+	document.removeEventListener('pointerdown', moved);
 	window.removeEventListener('beforeunload', beforeUnload);
+	titleWidth?.disconnect();
 });
 
 watch(id, load, { immediate: true });
+
+// Counts are exact, with the locale's digit grouping: "1,204 words".
+function count(value: number, one: string): string {
+	return `${value.toLocaleString()} ${value === 1 ? one : `${one}s`}`;
+}
 
 function fieldKey(field: FieldDescription): string {
 	return `${entry.value?.revision ?? ''}-${field.name}`;
@@ -639,310 +1107,777 @@ function fieldKey(field: FieldDescription): string {
 </script>
 
 <template>
-	<header class="page-header">
-		<div class="page-header__text">
-			<p class="editor__crumb">
-				<RouterLink v-if="entry" :to="{ name: 'type', params: { type: entry.type.name } }">{{ typeInfo?.label ?? humanize(entry.type.name) }}</RouterLink>
-				<span v-else class="skeleton" />
-			</p>
-			<h1 tabindex="-1">Edit {{ noun }}</h1>
-			<p v-if="entry" class="page-header__hint mono">{{ entry.id }}</p>
-		</div>
-		<div v-if="entry" class="page-header__actions editor__actions">
-			<span class="editor__state" :class="saveState.tone ? `editor__state--${saveState.tone}` : undefined" aria-live="polite">{{ saveState.text }}</span>
-			<StatusPill :status="entry.status" />
-			<button v-if="secondary" type="button" class="button" :disabled="blocked" @click="save(secondary.status)">{{ secondary.label }}</button>
-			<button v-if="primary" type="button" class="button button--primary" :disabled="blocked" @click="save(primary.status)">{{ primary.label }}</button>
-		</div>
-	</header>
+	<section class="editor" :class="{ 'is-side-open': sideOpen, 'is-writing': writing, 'is-focus': focusMode }" aria-labelledby="editor-heading">
+		<h1 id="editor-heading" class="visually-hidden" tabindex="-1">Edit {{ noun }}</h1>
 
-	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-	<p v-if="created" class="notice notice--success" role="status">Created. It's a draft until you publish it.</p>
-
-	<div v-if="offer" class="notice notice--warn notice--actions" role="status">
-		<p>This browser kept changes to this {{ noun }} that weren't saved, from {{ formatDate(offer.kept) }}.</p>
-		<p class="notice__buttons">
-			<button type="button" class="button button--small button--primary" @click="restore">Restore them</button>
-			<button type="button" class="button button--small" @click="discard">Throw them away</button>
-		</p>
-	</div>
-
-	<div v-if="failure" class="notice notice--error notice--actions" role="alert">
-		<p>{{ safe }}, but they weren't saved. {{ failure.message }}</p>
-		<p class="notice__buttons">
-			<button type="button" class="button button--small" @click="retry">Try again</button>
-		</p>
-	</div>
-
-	<div v-if="attempted && missing.length" class="notice notice--error" role="alert">
-		<p>{{ plural(missing.length, 'required field is', 'required fields are') }} empty, so it wasn't published: {{ missing.map((item) => item.label).join(', ') }}. Fill {{ missing.length === 1 ? 'it' : 'them' }} in, or save it as a draft.</p>
-	</div>
-
-	<section v-if="conflict" class="panel conflict" aria-labelledby="conflict-heading">
-		<header class="panel__header">
-			<h2 id="conflict-heading">This {{ noun }} changed while you were editing</h2>
+		<header class="editor__head">
+			<template v-if="entry">
+				<RouterLink class="button button--ghost button--icon" :to="{ name: 'type', params: { type: entry.type.name } }">
+					<AdminIcon name="arrow-left" />
+					<span class="visually-hidden">Back to {{ typeInfo?.label ?? humanize(entry.type.name) }}</span>
+				</RouterLink>
+				<span class="editor__where">{{ typeInfo?.label ?? humanize(entry.type.name) }}</span>
+				<span class="editor__divider" aria-hidden="true" />
+				<button type="button" class="button button--ghost button--icon" :class="{ 'is-on': panelOpen }" title="Components ( / )" aria-controls="editor-components" :aria-expanded="panelOpen" @click="togglePanel">
+					<AdminIcon name="plus" />
+					<span class="visually-hidden">Insert a component</span>
+				</button>
+				<button type="button" class="button button--ghost button--icon" title="Media" aria-haspopup="dialog" @click="pickMedia">
+					<AdminIcon name="image" />
+					<span class="visually-hidden">Insert media</span>
+				</button>
+				<button ref="iconButton" type="button" class="button button--ghost button--icon" :class="{ 'is-on': iconAnchor }" title="Icon" data-icon-toggle aria-haspopup="dialog" :aria-expanded="iconAnchor !== null" @click="toggleIcons">
+					<AdminIcon name="shapes" />
+					<span class="visually-hidden">Insert an icon</span>
+				</button>
+			</template>
+			<span v-else class="skeleton editor__where-skeleton" />
+			<span class="editor__grow" />
+			<span class="editor__save" :class="saveState.tone ? `editor__save--${saveState.tone}` : undefined" aria-live="polite">
+				<span v-if="saveState.text" class="editor__save-dot" aria-hidden="true" /><span class="editor__save-text">{{ saveState.text }}</span>
+			</span>
+			<template v-if="entry">
+				<StatusPill :status="entry.status" />
+				<button type="button" class="button button--ghost button--icon" :class="{ 'is-on': sideOpen }" title="Settings (⌘/)" aria-controls="editor-settings" :aria-expanded="sideOpen" @click="toggleSide">
+					<AdminIcon name="panel-right" />
+					<span class="visually-hidden">Settings</span>
+				</button>
+				<MenuButton button-class="button button--ghost button--icon" label="More actions">
+					<template #button>
+						<AdminIcon name="ellipsis" />
+					</template>
+					<button v-if="secondary" type="button" class="menu-item" :disabled="blocked" @click="save(secondary.status)">
+						<AdminIcon name="file-text" />{{ secondary.label }}
+					</button>
+					<a v-if="entry.url" class="menu-item" :href="entry.url" target="_blank" rel="noopener">
+						<AdminIcon name="external-link" />View<span class="visually-hidden"> the live {{ noun }} (new tab)</span>
+					</a>
+					<button type="button" class="menu-item" @click="toggleFocus">
+						<AdminIcon name="maximize-2" />{{ focusMode ? 'Leave focus mode' : 'Focus mode' }}<kbd class="menu-kbd">⌘⇧F</kbd>
+					</button>
+					<template v-if="entry.can.delete">
+						<div class="menu-divider" />
+						<button type="button" class="menu-item menu-item--danger" @click="trash">
+							<AdminIcon name="trash-2" />Move to trash
+						</button>
+					</template>
+				</MenuButton>
+				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked" @click="save(primary.status)">{{ primary.label }}</button>
+			</template>
 		</header>
-		<div class="panel__body">
-			<p>
-				<template v-if="conflict.theirs?.modified">Its file was saved at {{ formatDate(conflict.theirs.modified) }}, </template>
-				<template v-else>Its file was saved again, </template>
-				from the admin or by editing the file itself. {{ safe }}; nothing has been saved over.
+
+		<div v-if="error" class="editor__notice editor__notice--danger" role="alert">
+			<AdminIcon name="triangle-alert" /><p>{{ error }}</p>
+		</div>
+		<div v-if="created" class="editor__notice editor__notice--good" role="status">
+			<AdminIcon name="circle-check" /><p>Created. It's a draft until you publish it.</p>
+		</div>
+
+		<div v-if="offer" class="editor__notice" role="status">
+			<AdminIcon name="triangle-alert" />
+			<p>This browser kept changes to this {{ noun }} that weren't saved, from {{ formatDate(offer.kept) }}.</p>
+			<p class="editor__notice-buttons">
+				<button type="button" class="button button--small" @click="discard">Throw them away</button>
+				<button type="button" class="button button--small button--primary" @click="restore">Restore them</button>
 			</p>
-			<p v-if="!conflict.loading && conflict.theirs === null" class="field__error">The saved version couldn't be loaded. Check your connection, then try again.</p>
-			<div class="conflict__buttons">
-				<template v-if="conflict.theirs">
-					<button type="button" class="button" @click="keepTheirs">Keep theirs</button>
-					<button type="button" class="button" :aria-expanded="comparing" aria-controls="conflict-compare" @click="comparing = !comparing">Compare</button>
-					<button type="button" class="button button--primary" @click="keepMine">Keep mine</button>
-				</template>
-				<button v-else type="button" class="button" :disabled="conflict.loading" @click="fetchTheirs">{{ conflict.loading ? 'Loading the saved version…' : 'Try again' }}</button>
-			</div>
-			<p class="field__help">Keep theirs throws away your changes here. Keep mine saves your version of every field shown here over theirs.</p>
 		</div>
 
-		<div v-if="comparing && differences" id="conflict-compare" class="compare">
-			<table v-if="differences.rows.length" class="table compare__fields">
-				<thead>
-					<tr>
-						<th scope="col">Field</th>
-						<th scope="col">Theirs</th>
-						<th scope="col">Mine</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="row in differences.rows" :key="row.label">
-						<th scope="row">{{ row.label }}</th>
-						<td>{{ row.theirs }}</td>
-						<td>{{ row.mine }}</td>
-					</tr>
-				</tbody>
-			</table>
-			<div v-if="differences.body" class="compare__body">
-				<p class="compare__label">Body <span class="compare__key"><span class="compare__mark compare__mark--theirs">−</span> theirs <span class="compare__mark compare__mark--mine">+</span> mine</span></p>
-				<pre class="compare__lines"><template v-for="(line, index) in differences.body" :key="index"><span v-if="line.kind === 'skip'" class="compare__skip">{{ plural(line.count, 'unchanged line') }}</span><span v-else class="compare__line" :class="`compare__line--${line.kind}`"><span class="compare__sign" aria-hidden="true">{{ line.kind === 'theirs' ? '−' : (line.kind === 'mine' ? '+' : ' ') }}</span><span v-if="line.kind !== 'same'" class="visually-hidden">{{ line.kind === 'theirs' ? 'Theirs: ' : 'Mine: ' }}</span>{{ line.text }}</span></template></pre>
-			</div>
-			<p v-if="!differences.rows.length && !differences.body" class="panel__body field__help">Your changes and theirs match in everything the editor shows.</p>
+		<div v-if="failure" class="editor__notice editor__notice--danger" role="alert">
+			<AdminIcon name="triangle-alert" />
+			<p>{{ safe }}, but they weren't saved. {{ failure.message }}</p>
+			<p class="editor__notice-buttons">
+				<button type="button" class="button button--small" @click="retry">Try again</button>
+			</p>
 		</div>
+
+		<div v-if="attempted && missing.length" class="editor__notice editor__notice--danger" role="alert">
+			<AdminIcon name="triangle-alert" />
+			<p>{{ plural(missing.length, 'required field is', 'required fields are') }} empty, so it wasn't published: {{ missing.map((item) => item.label).join(', ') }}. Fill {{ missing.length === 1 ? 'it' : 'them' }} in, or save it as a draft.</p>
+			<p class="editor__notice-buttons">
+				<button type="button" class="button button--small" @click="showMissing">Show me</button>
+			</p>
+		</div>
+
+		<section v-if="conflict" class="editor__conflict" aria-labelledby="conflict-heading">
+			<div class="editor__notice editor__notice--conflict">
+				<AdminIcon name="triangle-alert" />
+				<div class="editor__conflict-text">
+					<h2 id="conflict-heading">This {{ noun }} changed while you were editing</h2>
+					<p>
+						<template v-if="conflict.theirs?.modified">Its file was saved at {{ formatDate(conflict.theirs.modified) }}, </template>
+						<template v-else>Its file was saved again, </template>
+						from the admin or by editing the file itself. {{ safe }}; nothing has been saved over. Keep theirs throws away your changes here; Keep mine saves your version of every field shown here over theirs.
+					</p>
+					<p v-if="!conflict.loading && conflict.theirs === null" class="field__error">The saved version couldn't be loaded. Check your connection, then try again.</p>
+				</div>
+				<p class="editor__notice-buttons">
+					<template v-if="conflict.theirs">
+						<button type="button" class="button button--small" @click="keepTheirs">Keep theirs</button>
+						<button type="button" class="button button--small" :aria-expanded="comparing" aria-controls="conflict-compare" @click="comparing = !comparing">Compare</button>
+						<button type="button" class="button button--small button--primary" @click="keepMine">Keep mine</button>
+					</template>
+					<button v-else type="button" class="button button--small" :disabled="conflict.loading" @click="fetchTheirs">{{ conflict.loading ? 'Loading the saved version…' : 'Try again' }}</button>
+				</p>
+			</div>
+
+			<div v-if="comparing && differences" id="conflict-compare" class="compare">
+				<table v-if="differences.rows.length" class="table compare__fields">
+					<thead>
+						<tr>
+							<th scope="col">Field</th>
+							<th scope="col">Theirs</th>
+							<th scope="col">Mine</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="row in differences.rows" :key="row.label">
+							<th scope="row">{{ row.label }}</th>
+							<td>{{ row.theirs }}</td>
+							<td>{{ row.mine }}</td>
+						</tr>
+					</tbody>
+				</table>
+				<div v-if="differences.body" class="compare__body">
+					<p class="compare__label">Body <span class="compare__key"><span class="compare__mark compare__mark--theirs">−</span> theirs <span class="compare__mark compare__mark--mine">+</span> mine</span></p>
+					<pre class="compare__lines"><template v-for="(line, index) in differences.body" :key="index"><span v-if="line.kind === 'skip'" class="compare__skip">{{ plural(line.count, 'unchanged line') }}</span><span v-else class="compare__line" :class="`compare__line--${line.kind}`"><span class="compare__sign" aria-hidden="true">{{ line.kind === 'theirs' ? '−' : (line.kind === 'mine' ? '+' : ' ') }}</span><span v-if="line.kind !== 'same'" class="visually-hidden">{{ line.kind === 'theirs' ? 'Theirs: ' : 'Mine: ' }}</span>{{ line.text }}</span></template></pre>
+				</div>
+				<p v-if="!differences.rows.length && !differences.body" class="compare__same">Your changes and theirs match in everything the editor shows.</p>
+			</div>
+		</section>
+
+		<div class="editor__body">
+			<aside id="editor-components" class="editor__inserter" aria-labelledby="component-panel-heading" :inert="!panelOpen">
+				<ComponentPanel
+					ref="panel"
+					v-model:query="panelQuery"
+					:components="available"
+					:failed="componentsFailed"
+					:slash="panelSlash"
+					@choose="chooseComponent"
+					@close="closePanel()"
+				/>
+			</aside>
+
+			<div class="editor__main">
+				<div class="editor__scroll" data-scroller>
+					<div v-if="entry" class="editor__doc">
+						<label class="visually-hidden" for="editor-title">Title</label>
+						<textarea
+							id="editor-title"
+							ref="titleField"
+							v-model="title"
+							class="editor__title"
+							rows="1"
+							placeholder="Untitled"
+							autocomplete="off"
+							spellcheck="true"
+							:aria-invalid="errorFor('title') ? 'true' : undefined"
+							:aria-describedby="errorFor('title') ? 'editor-title-error' : undefined"
+							@keydown="titleKey"
+							@input="typed"
+						/>
+						<p v-if="errorFor('title')" id="editor-title-error" class="field__error">{{ errorFor('title') }}</p>
+						<p class="editor__path mono">{{ entry.id }}</p>
+
+						<MarkdownEditor
+							id="editor-body"
+							ref="bodyEditor"
+							v-model="body"
+							v-model:caret="caret"
+							label="Body (Markdown)"
+							placeholder="Write in Markdown…"
+							:slash-open="panelOpen && panelSlash"
+							@typed="typed"
+							@slash="slashed"
+							@slash-key="slashKey"
+						/>
+					</div>
+
+					<div v-else-if="!error" class="editor__doc" aria-hidden="true">
+						<span class="skeleton editor__title-skeleton" />
+						<div class="editor__body-skeleton">
+							<span v-for="line in 8" :key="line" class="skeleton" :style="{ width: `${55 + (line * 23) % 40}%` }" />
+						</div>
+						<p class="visually-hidden" role="status">Loading the {{ noun }}…</p>
+					</div>
+				</div>
+
+				<footer v-if="entry" class="editor__foot">
+					<span>{{ count(words, 'word') }}</span>
+					<span class="editor__sep" aria-hidden="true">·</span>
+					<span>{{ Math.max(1, Math.round(words / 220)) }} min read</span>
+					<button v-if="directive && !(sideOpen && tab === 'component')" type="button" class="editor__chip" @click="showOptions">
+						<AdminIcon :name="selected ? componentIcon(selected) : 'code'" />{{ componentLabel(directive) }} options
+					</button>
+					<span class="editor__foot-end">
+						<button v-if="focusMode" type="button" class="editor__chip" @click="focusMode = false">
+							<AdminIcon name="x" />Leave focus mode
+						</button>
+						<span class="editor__hide-small">Type <kbd>/</kbd> to insert</span>
+						<span class="editor__hide-small"><kbd>⌘/</kbd> settings</span>
+					</span>
+				</footer>
+			</div>
+
+			<aside id="editor-settings" class="editor__side" aria-label="Settings" :inert="!sideOpen">
+				<div class="editor__side-inner">
+					<div class="editor__tabs" role="tablist" aria-label="Settings" @keydown="tabKey">
+						<button id="editor-tab-document" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-document" :aria-selected="tab === 'document'" :tabindex="tab === 'document' ? 0 : -1" @click="tab = 'document'">
+							<AdminIcon name="file-text" />Document
+						</button>
+						<button id="editor-tab-component" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-component" :aria-selected="tab === 'component'" :tabindex="tab === 'component' ? 0 : -1" :disabled="!directive" @click="tab = 'component'">
+							<AdminIcon :name="selected ? componentIcon(selected) : 'code'" />
+							<template v-if="directive">{{ componentLabel(directive) }}<span class="editor__tab-kind mono">{{ directive.kind }}</span></template>
+							<template v-else>Component</template>
+						</button>
+					</div>
+
+					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" role="tabpanel" aria-labelledby="editor-tab-document">
+						<div class="editor__group">
+							<p class="editor__group-heading">Publishing</p>
+							<div v-if="dateField" class="field">
+								<label for="editor-date">Publish date</label>
+								<input id="editor-date" v-model="date" type="datetime-local" :aria-invalid="errorFor('published') ? 'true' : undefined" :aria-describedby="errorFor('published') ? 'editor-date-help editor-date-error' : 'editor-date-help'">
+								<p id="editor-date-help" class="field__help">A date in the future schedules it.</p>
+								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
+							</div>
+							<p v-if="entry.url" class="editor__link">
+								<a class="button button--small" :href="entry.url" target="_blank" rel="noopener">
+									<AdminIcon name="external-link" />View<span class="visually-hidden"> the live {{ noun }} (new tab)</span>
+								</a>
+							</p>
+							<div v-else class="editor__preview">
+								<span class="field__help">Preview</span>
+								<PreviewLinkControl :entry="{ id: entry.id, title: entry.title, path: entry.id }" />
+							</div>
+						</div>
+
+						<div v-if="fields.length" class="editor__group">
+							<p class="editor__group-heading">{{ typeInfo?.singular ?? humanize(entry.type.name) }} fields</p>
+							<FieldControl v-for="field in fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
+						</div>
+
+						<div class="editor__group">
+							<p class="editor__group-heading">Components in this {{ noun }}</p>
+							<p v-if="!used.length" class="field__help">None yet. Type <kbd>/</kbd> on an empty line, or use <strong>+</strong> in the header.</p>
+							<ul v-else class="editor__used">
+								<li v-for="item in used" :key="`${item.index}-${item.item.start}`">
+									<button type="button" class="editor__used-item" @click="openComponent(item.item)">
+										<AdminIcon :name="item.icon" />
+										<span class="editor__used-name">{{ item.label }}</span>
+										<span class="editor__used-hint">{{ item.hint }}</span>
+									</button>
+								</li>
+							</ul>
+						</div>
+
+						<div v-if="Object.keys(entry.extra).length" class="editor__group">
+							<p class="editor__group-heading">Other front matter <span class="editor__group-hint">Kept as it is</span></p>
+							<dl class="editor__extra">
+								<div v-for="(value, key) in entry.extra" :key="key">
+									<dt class="mono">{{ key }}</dt>
+									<dd class="mono">{{ typeof value === 'string' ? value : JSON.stringify(value) }}</dd>
+								</div>
+							</dl>
+						</div>
+
+						<div v-if="entry.violations.length" class="editor__group">
+							<p class="editor__group-heading">Problems <span class="editor__group-hint">As last saved</span></p>
+							<ul v-if="shown.length" class="editor__problems">
+								<li v-for="(violation, index) in shown" :key="index">
+									<span class="pill" :class="{ 'pill--danger': violation.severity === 'error', 'pill--warn': violation.severity === 'warning' }">{{ humanize(violation.severity) }}</span>
+									<span><code>{{ violation.field }}</code>: {{ violation.message }}</span>
+								</li>
+							</ul>
+							<label v-if="noticeCount" class="checkbox">
+								<input v-model="notices" type="checkbox">
+								Show {{ plural(noticeCount, 'notice') }}
+							</label>
+						</div>
+					</div>
+
+					<div v-show="tab === 'component'" id="editor-panel-component" role="tabpanel" aria-labelledby="editor-tab-component">
+						<ComponentOptions
+							v-if="directive"
+							:source="body"
+							:directive="directive"
+							:component="selected"
+							@edit="applyOption"
+							@jump="jumpTo(directive)"
+							@remove="removeComponent"
+							@pick="pickForOption"
+						/>
+						<div v-else class="empty">
+							<AdminIcon name="code" />
+							<p class="empty__heading">No component selected</p>
+							<p class="empty__text">Put the cursor inside a component in the text, or pick one under Components on the Document tab.</p>
+						</div>
+					</div>
+				</div>
+			</aside>
+		</div>
+
+		<IconPicker v-if="iconAnchor" :anchor="iconAnchor" :preview="iconPreview" @choose="chooseIcon" @close="closeIcons" />
+		<MediaPicker v-if="picking" :entry="entry?.id" :title="picking.title" :action="picking.action" @choose="picked" @close="picking = null" />
 	</section>
-
-	<div v-if="entry" class="editor">
-		<div class="editor__main">
-			<div class="editor__title-field">
-				<label class="visually-hidden" for="editor-title">Title</label>
-				<input id="editor-title" v-model="title" class="editor__title" placeholder="Title" autocomplete="off" :aria-invalid="errorFor('title') ? 'true' : undefined" :aria-describedby="errorFor('title') ? 'editor-title-error' : undefined">
-				<p v-if="errorFor('title')" id="editor-title-error" class="field__error">{{ errorFor('title') }}</p>
-			</div>
-
-			<label class="visually-hidden" for="editor-body">Body (Markdown)</label>
-			<textarea id="editor-body" v-model="body" class="editor__body" spellcheck="true" placeholder="Write in Markdown…" />
-		</div>
-
-		<aside class="editor__side" aria-label="Entry settings">
-			<section class="panel" aria-labelledby="publish-heading">
-				<header class="panel__header">
-					<h2 id="publish-heading">Publishing</h2>
-				</header>
-				<div class="panel__body">
-					<div v-if="dateField" class="field">
-						<label for="editor-date">Publish date</label>
-						<input id="editor-date" v-model="date" type="datetime-local" :aria-invalid="errorFor('published') ? 'true' : undefined" :aria-describedby="errorFor('published') ? 'editor-date-help editor-date-error' : 'editor-date-help'">
-						<p id="editor-date-help" class="field__help">A date in the future schedules it.</p>
-						<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
-					</div>
-					<p v-if="entry.url" class="editor__link">
-						<a class="button button--small" :href="entry.url" target="_blank" rel="noopener">
-							<AdminIcon name="external-link" />View<span class="visually-hidden"> the live {{ noun }} (new tab)</span>
-						</a>
-					</p>
-					<div v-else class="editor__preview">
-						<span class="field__help">Preview</span>
-						<PreviewLinkControl :entry="{ id: entry.id, title: entry.title, path: entry.id }" />
-					</div>
-					<p v-if="entry.can.delete" class="editor__trash">
-						<button type="button" class="button button--danger button--small" @click="trash">Move to trash</button>
-					</p>
-				</div>
-			</section>
-
-			<section v-if="fields.length" class="panel" aria-labelledby="fields-heading">
-				<header class="panel__header">
-					<h2 id="fields-heading">Fields</h2>
-				</header>
-				<div class="panel__body">
-					<FieldControl v-for="field in fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" @update:model-value="form[field.name] = $event" />
-				</div>
-			</section>
-
-			<section v-if="Object.keys(entry.extra).length" class="panel" aria-labelledby="extra-heading">
-				<header class="panel__header">
-					<h2 id="extra-heading">Other front matter</h2>
-					<p class="panel__hint">Kept as it is</p>
-				</header>
-				<dl class="panel__body editor__extra">
-					<div v-for="(value, key) in entry.extra" :key="key">
-						<dt class="mono">{{ key }}</dt>
-						<dd class="mono">{{ typeof value === 'string' ? value : JSON.stringify(value) }}</dd>
-					</div>
-				</dl>
-			</section>
-
-			<section v-if="entry.violations.length" class="panel" aria-labelledby="problems-heading">
-				<header class="panel__header">
-					<h2 id="problems-heading">Problems</h2>
-					<p class="panel__hint">As last saved</p>
-				</header>
-				<div class="panel__body">
-					<ul v-if="shown.length" class="editor__problems">
-						<li v-for="(violation, index) in shown" :key="index">
-							<span class="pill" :class="{ 'pill--danger': violation.severity === 'error', 'pill--warn': violation.severity === 'warning' }">{{ humanize(violation.severity) }}</span>
-							<span><code>{{ violation.field }}</code>: {{ violation.message }}</span>
-						</li>
-					</ul>
-					<label v-if="noticeCount" class="checkbox">
-						<input v-model="notices" type="checkbox">
-						Show {{ plural(noticeCount, 'notice') }}
-					</label>
-				</div>
-			</section>
-		</aside>
-	</div>
-
-	<div v-else-if="!error" class="editor" aria-hidden="true">
-		<div class="editor__main">
-			<span class="skeleton editor__title-skeleton" />
-			<div class="editor__body editor__body-skeleton">
-				<span v-for="line in 8" :key="line" class="skeleton" :style="{ width: `${55 + (line * 23) % 40}%` }" />
-			</div>
-		</div>
-		<div class="editor__side">
-			<div v-for="panel in 2" :key="panel" class="panel">
-				<div class="panel__body">
-					<span class="skeleton" style="width: 40%" />
-					<span class="skeleton skeleton--field" />
-					<span class="skeleton skeleton--small" style="width: 70%" />
-				</div>
-			</div>
-		</div>
-		<p class="visually-hidden" role="status">Loading the {{ noun }}…</p>
-	</div>
 </template>
 
 <style scoped>
-.editor__crumb {
-	font-size: var(--text-sm);
-}
-
-.editor__crumb a {
-	color: var(--fg-2);
-}
-
-.editor__crumb .skeleton {
-	width: 4rem;
-	margin-block: 4px;
-}
-
-.editor__actions {
-	align-items: center;
-}
-
-.editor__state {
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-}
-
-.editor__state--warn {
-	color: var(--warn);
-	font-weight: 500;
-}
-
-.editor__state--danger {
-	color: var(--danger);
-	font-weight: 500;
-}
+/*
+ * Writing first: one centered column, chrome that gets out of the way
+ * while typing, and settings on demand rather than always beside the
+ * text (admin.md §8).
+ */
 
 .editor {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 20rem;
-	align-items: start;
-	gap: 20px;
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
 }
 
-.editor__main {
-	display: grid;
-	gap: 12px;
+.editor__head {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 14px;
+	border-bottom: 1px solid var(--border);
+	background: var(--surface);
+	transition: opacity 250ms ease;
 }
 
-.editor__title-field {
-	display: grid;
+.editor__head .is-on {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
+.editor__where {
+	max-width: 22ch;
+	overflow: hidden;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.editor__where-skeleton {
+	width: 5rem;
+}
+
+.editor__save {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: 4px;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	white-space: nowrap;
+}
+
+.editor__save-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--good-dot);
+}
+
+.editor__save--warn {
+	color: var(--warn);
+}
+
+.editor__save--warn .editor__save-dot {
+	background: var(--warn-dot);
+}
+
+.editor__save--danger {
+	color: var(--danger);
+}
+
+.editor__save--danger .editor__save-dot {
+	background: var(--danger-dot);
+}
+
+.editor__divider {
+	flex: none;
+	width: 1px;
+	height: 18px;
+	margin: 0 2px;
+	background: var(--border);
+}
+
+.editor__grow {
+	flex: 1;
+	min-width: 0;
+}
+
+.menu-kbd {
+	margin-left: auto;
+	padding-left: 12px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+/* Notices: one bar each, under the header. */
+
+.editor__notice {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 14px;
+	border-bottom: 1px solid var(--border);
+	background: var(--warn-soft);
+	color: var(--warn);
+	font-size: var(--text-sm);
+}
+
+.editor__notice > svg {
+	flex: none;
+	width: 16px;
+	height: 16px;
+}
+
+.editor__notice > p:first-of-type {
+	flex: 1;
+	min-width: 0;
+}
+
+.editor__notice-buttons {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
 	gap: 6px;
 }
 
-.editor__title {
-	width: 100%;
-	padding: 8px 12px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
+.editor__notice--danger {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+.editor__notice--good {
+	background: var(--good-soft);
+	color: var(--good);
+}
+
+.editor__notice--conflict {
+	align-items: flex-start;
+	padding-block: 11px;
+	border-bottom-color: var(--border-strong);
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.editor__notice--conflict > svg {
+	margin-top: 2px;
+	color: var(--warn);
+}
+
+.editor__conflict-text {
+	display: grid;
+	flex: 1;
+	gap: 3px;
+	min-width: 0;
+}
+
+.editor__conflict-text h2 {
+	font-size: var(--text-sm);
+	font-weight: 500;
+}
+
+.editor__conflict-text p {
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+.editor__conflict {
+	flex: none;
+}
+
+/* The column, and the drawer that pushes it aside. */
+
+.editor__body {
+	position: relative;
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.editor__main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
 	background: var(--surface);
+}
+
+.editor__scroll {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+}
+
+.editor__doc {
+	max-width: 100%;
+	padding: 38px max(20px, calc((100% - var(--measure)) / 2)) 40vh;
+}
+
+.editor__title {
+	display: block;
+	field-sizing: content;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	border: 0;
+	background: none;
 	color: var(--fg);
 	font-family: var(--font-display);
-	font-size: var(--h1);
+	font-size: var(--doc-title);
 	font-weight: 600;
-	letter-spacing: var(--h1-track);
+	letter-spacing: -.026em;
+	line-height: 1.18;
+	overflow-wrap: break-word;
+	resize: none;
+	white-space: pre-wrap;
+}
+
+.editor__title::placeholder {
+	color: var(--fg-3);
+	opacity: .6;
+}
+
+.editor__title:focus-visible {
+	outline: none;
 }
 
 .editor__title[aria-invalid="true"] {
-	border-color: var(--danger-dot);
+	text-decoration: underline wavy var(--danger-dot);
+	text-decoration-skip-ink: none;
+	text-underline-offset: .2em;
 }
 
-.editor__body {
-	width: 100%;
-	min-height: 60vh;
-	padding: 14px 16px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-3);
-	background: var(--surface);
-	box-shadow: var(--shadow-1);
-	color: var(--fg);
-	font-family: var(--font-mono);
-	font-size: var(--base);
-	line-height: 1.65;
-	resize: vertical;
-	tab-size: 4;
-}
-
-.editor__title:hover,
-.editor__body:hover {
-	border-color: var(--border-strong);
-}
-
-.editor__title:focus-visible,
-.editor__body:focus-visible {
-	border-color: var(--accent);
-	outline-offset: 0;
+.editor__path {
+	margin: 7px 0 30px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	transition: opacity 250ms ease;
 }
 
 .editor__title-skeleton {
-	height: 46px;
-	border-radius: var(--r-2);
+	display: block;
+	width: 60%;
+	height: 36px;
+	margin-bottom: 36px;
 }
 
 .editor__body-skeleton {
 	display: grid;
-	align-content: start;
 	gap: 14px;
 }
 
-.editor__body-skeleton:hover {
-	border-color: var(--border);
+.editor__foot {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 14px;
+	border-top: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	transition: opacity 250ms ease;
 }
 
-.skeleton--field {
-	height: 32px;
+.editor__sep {
+	opacity: .5;
 }
+
+.editor__foot-end {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-left: auto;
+}
+
+.editor__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: 8px;
+	padding: 2px 8px;
+	border: 1px solid var(--accent-line);
+	border-radius: 99px;
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-size: var(--text-xs);
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.editor__chip:hover {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: var(--accent-fg);
+}
+
+.editor__chip svg {
+	width: 11px;
+	height: 11px;
+}
+
+/* The chrome recedes while keys move. */
+
+.is-writing .editor__head,
+.is-writing .editor__foot {
+	opacity: .32;
+}
+
+.is-writing .editor__path {
+	opacity: .4;
+}
+
+.is-focus .editor__head {
+	border-bottom-color: transparent;
+	background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.editor__head,
+	.editor__foot,
+	.editor__path,
+	.editor__side,
+	.editor__inserter {
+		transition: none;
+	}
+}
+
+/*
+ * The component panel slides in from the left and pushes the column
+ * aside, so it never covers the sentence being written.
+ */
+
+.editor__inserter {
+	flex: none;
+	width: 0;
+	min-height: 0;
+	overflow: hidden;
+	background: var(--surface);
+	transition: width 180ms ease;
+}
+
+.editor__inserter:not([inert]) {
+	width: var(--inserter);
+	border-right: 1px solid var(--border);
+}
+
+/* Settings push the column aside, so nothing is hidden behind them. */
 
 .editor__side {
+	flex: none;
+	width: 0;
+	min-height: 0;
+	overflow: hidden;
+	background: var(--surface);
+	transition: width 180ms ease;
+}
+
+.is-side-open .editor__side {
+	width: var(--drawer);
+	border-left: 1px solid var(--border);
+}
+
+.editor__side-inner {
+	width: var(--drawer);
+	max-width: 100vw;
+	height: 100%;
+	overflow-y: auto;
+}
+
+.editor__tabs {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	display: flex;
+	gap: 2px;
+	padding: 0 8px;
+	border-bottom: 1px solid var(--border);
+	background: var(--surface);
+}
+
+.editor__tab {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-width: 0;
+	margin-bottom: -1px;
+	padding: 10px 8px 8px;
+	border: 0;
+	border-bottom: 2px solid transparent;
+	background: none;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.editor__tab svg {
+	flex: none;
+	width: 13px;
+	height: 13px;
+}
+
+.editor__tab:hover:not(:disabled) {
+	color: var(--fg);
+}
+
+.editor__tab[aria-selected="true"] {
+	border-bottom-color: var(--accent);
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.editor__tab:disabled {
+	color: var(--fg-3);
+	opacity: .55;
+	cursor: default;
+}
+
+.editor__tab-kind {
+	padding: 0 4px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-weight: 400;
+}
+
+.editor__group {
 	display: grid;
-	gap: 16px;
+	gap: 11px;
+	padding: 13px 14px;
+	border-bottom: 1px solid var(--border);
+}
+
+.editor__group-heading {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+}
+
+.editor__group-hint {
+	font-weight: 400;
+	letter-spacing: normal;
+	text-transform: none;
 }
 
 .editor__preview {
@@ -952,12 +1887,59 @@ function fieldKey(field: FieldDescription): string {
 	gap: 8px;
 }
 
-.editor__trash {
-	padding-top: 12px;
-	border-top: 1px solid var(--border);
+.editor__used {
+	display: grid;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.editor__used-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 5px 7px;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	text-align: left;
+	cursor: pointer;
+}
+
+.editor__used-item:hover {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.editor__used-item svg {
+	flex: none;
+	width: 14px;
+	height: 14px;
+}
+
+.editor__used-name {
+	color: var(--accent);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.editor__used-hint {
+	min-width: 0;
+	margin-left: auto;
+	overflow: hidden;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .editor__extra {
+	display: grid;
+	gap: 6px;
 	margin: 0;
 }
 
@@ -995,20 +1977,13 @@ function fieldKey(field: FieldDescription): string {
 	overflow-wrap: anywhere;
 }
 
-/* The conflict: what happened, three ways out, and the comparison. */
-
-.conflict {
-	border-color: var(--danger-dot);
-}
-
-.conflict__buttons {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-}
+/* The comparison, under the conflict's bar. */
 
 .compare {
-	border-top: 1px solid var(--border);
+	max-height: 40vh;
+	overflow: auto;
+	border-bottom: 1px solid var(--border-strong);
+	background: var(--surface);
 }
 
 .compare__fields td {
@@ -1020,7 +1995,12 @@ function fieldKey(field: FieldDescription): string {
 	display: grid;
 	gap: 8px;
 	padding: 12px var(--pad-x) 16px;
-	border-top: 1px solid var(--border);
+}
+
+.compare__same {
+	padding: 12px var(--pad-x);
+	color: var(--fg-2);
+	font-size: var(--text-sm);
 }
 
 .compare__label {
@@ -1056,9 +2036,7 @@ function fieldKey(field: FieldDescription): string {
 
 .compare__lines {
 	display: grid;
-	max-height: 28rem;
 	margin: 0;
-	overflow: auto;
 	border: 1px solid var(--border);
 	border-radius: var(--r-2);
 	background: var(--surface-2);
@@ -1099,9 +2077,62 @@ function fieldKey(field: FieldDescription): string {
 	font-size: var(--text-xs);
 }
 
-@media (width <= 1100px) {
-	.editor {
-		grid-template-columns: minmax(0, 1fr);
+/* No room to push: the drawer lies over the column. */
+
+@media (width <= 980px) {
+	.editor__side {
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 20;
+		max-width: 100%;
+	}
+
+	.is-side-open .editor__side {
+		box-shadow: var(--shadow-3);
+	}
+
+	.editor__inserter {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		z-index: 20;
+		max-width: 100%;
+	}
+
+	.editor__inserter:not([inert]) {
+		box-shadow: var(--shadow-3);
+	}
+}
+
+@media (width <= 760px) {
+	.editor__doc {
+		padding: 26px 16px 40vh;
+	}
+
+	.editor__where,
+	.editor__hide-small {
+		display: none;
+	}
+
+	.editor__head {
+		gap: 2px;
+		padding-inline: 8px;
+	}
+}
+
+/* A phone keeps the save state's dot; its words are still read out. */
+
+@media (width <= 480px) {
+	.editor__save-text {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 }
 </style>

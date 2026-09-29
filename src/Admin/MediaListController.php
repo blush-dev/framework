@@ -1,0 +1,280 @@
+<?php
+
+/**
+ * Admin media list controller.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Admin;
+
+use SplFileInfo;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Blush\Auth\Account;
+use Blush\Auth\Capability;
+use Blush\Auth\Permissions;
+use Blush\Content\ContentRepository;
+use Blush\Core\Paths;
+use Blush\Http\Response;
+use Blush\Http\Status;
+use Blush\Media\MediaConfig;
+use Blush\Media\MediaFile;
+use Blush\Media\MediaResolver;
+use Blush\Support\Filesystem;
+
+/**
+ * Answers `GET {path}/api/media` (D-246): the media files an entry can use,
+ * for the editor's media picker. It needs `content.edit`.
+ *
+ * - `files`: the library (`user/media`), newest first, a page at a time
+ *   (`page`, and `per`, 48 by default, at most 100), narrowed by `search`
+ *   (text the path must contain) and `kind` (`image`, `video`, `audio`,
+ *   or `any`, the default).
+ * - `beside`: with `entry` (an id the account may edit) in a page bundle
+ *   (`name/index.md`), the media files in its folder, which it refers to
+ *   by name; otherwise `null`.
+ *
+ * `GET {path}/api/media/{path}` (`show()`) describes one library file, by
+ * its path under `user/media`.
+ *
+ * Each file has its `reference` (what to write: the library's URL path,
+ * or a bundle file's name), `name`, `folder`, `url`, `mime`, `kind`,
+ * `size`, `width` and `height` (images), and `modified`. Only the types
+ * the site allows (`MediaConfig::$types`) are listed, without caption
+ * tracks, and never hidden files.
+ */
+final readonly class MediaListController
+{
+	private const int PER = 48;
+
+	private const int MAX_PER = 100;
+
+	private const int MAX_BESIDE = 200;
+
+	/**
+	 * MIME types by extension, to narrow a large library before reading
+	 * any file; the page's files are then checked by their contents.
+	 */
+	private const array EXTENSIONS = [
+		'apng' => 'image/apng',
+		'avif' => 'image/avif',
+		'gif'  => 'image/gif',
+		'jpeg' => 'image/jpeg',
+		'jpg'  => 'image/jpeg',
+		'png'  => 'image/png',
+		'svg'  => 'image/svg+xml',
+		'webp' => 'image/webp',
+		'mp3'  => 'audio/mpeg',
+		'oga'  => 'audio/ogg',
+		'ogg'  => 'audio/ogg',
+		'wav'  => 'audio/wav',
+		'm4v'  => 'video/mp4',
+		'mp4'  => 'video/mp4',
+		'ogv'  => 'video/ogg',
+		'webm' => 'video/webm'
+	];
+
+	private const array KINDS = ['any', 'image', 'video', 'audio'];
+
+	public function __construct(
+		private Paths $paths,
+		private MediaConfig $config,
+		private MediaResolver $resolver,
+		private ContentRepository $content,
+		private Permissions $permissions
+	) {}
+
+	public function __invoke(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::ContentEdit)) {
+			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
+		}
+
+		$query  = $request->getQueryParams();
+		$search = $query['search'] ?? '';
+		$kind   = $query['kind'] ?? 'any';
+		$page   = $query['page'] ?? '1';
+		$per    = $query['per'] ?? (string) self::PER;
+		$entry  = $query['entry'] ?? '';
+
+		if (! is_string($search) || ! is_string($entry) || ! is_string($kind) || ! in_array($kind, self::KINDS, true) || ! self::counts($page, 1_000_000) || ! self::counts($per, self::MAX_PER)) {
+			return self::error('That isn\'t a valid media list.', Status::BadRequest);
+		}
+
+		$beside = null;
+
+		if ($entry !== '') {
+			$found = $this->content->find($entry);
+
+			if ($found === null || ! $this->permissions->can($account, Capability::ContentEdit, $found)) {
+				return self::error(sprintf('There\'s no "%s" entry you may edit.', $entry), Status::NotFound);
+			}
+
+			$beside = $this->beside($entry);
+		}
+
+		$candidates = $this->library(trim($search), $kind);
+		$per        = (int) $per;
+		$page       = (int) $page;
+		$files      = [];
+
+		foreach (array_slice($candidates, ($page - 1) * $per, $per) as $relative => $reference) {
+			$file = $this->resolver->resolve($reference);
+
+			if ($file !== null) {
+				$files[] = self::describe($file, $reference, (string) $relative);
+			}
+		}
+
+		return Response::json([
+			'search' => $search,
+			'kind'   => $kind,
+			'total'  => count($candidates),
+			'page'   => $page,
+			'pages'  => max(1, (int) ceil(count($candidates) / $per)),
+			'per'    => $per,
+			'files'  => $files,
+			'beside' => $beside
+		], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	public function show(ServerRequestInterface $request, string $path): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::ContentEdit)) {
+			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
+		}
+
+		$reference = $this->config->url . '/' . implode('/', array_map(rawurlencode(...), explode('/', trim($path, '/'))));
+		$file      = $this->guess(new SplFileInfo($path)) === null ? null : $this->resolver->resolve($reference);
+
+		if ($file === null || ! str_starts_with($file->path, $this->paths->media . '/')) {
+			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+		}
+
+		return Response::json(self::describe($file, $reference, trim($path, '/')), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * The library's files that may match, newest first, as relative path
+	 * => reference.
+	 *
+	 * @return array<string, string>
+	 */
+	private function library(string $search, string $kind): array
+	{
+		$found = [];
+
+		foreach (new Filesystem()->files($this->paths->media) as $relative => $file) {
+			$relative = (string) $relative;
+			$mime     = $this->guess($file);
+
+			if ($mime === null || ($kind !== 'any' && ! str_starts_with($mime, "{$kind}/"))) {
+				continue;
+			}
+
+			if ($search !== '' && ! str_contains(mb_strtolower($relative), mb_strtolower($search))) {
+				continue;
+			}
+
+			$found[$relative] = $file->getMTime();
+		}
+
+		uksort($found, static fn (string $a, string $b): int => [$found[$b], $a] <=> [$found[$a], $b]);
+
+		$references = [];
+
+		foreach (array_keys($found) as $relative) {
+			$references[$relative] = $this->config->url . '/' . implode('/', array_map(rawurlencode(...), explode('/', $relative)));
+		}
+
+		return $references;
+	}
+
+	/**
+	 * The media files in a page bundle's folder, or `null` when the entry
+	 * isn't a bundle.
+	 *
+	 * @return ?list<array<string, mixed>>
+	 */
+	private function beside(string $entry): ?array
+	{
+		if (! str_starts_with(basename($entry), 'index.') || ! str_contains($entry, '/')) {
+			return null;
+		}
+
+		$folder = dirname($entry);
+		$files  = [];
+
+		foreach (glob($this->paths->content . '/' . $folder . '/*') ?: [] as $path) {
+			$name = basename($path);
+
+			if (count($files) >= self::MAX_BESIDE || ! is_file($path) || $this->guess(new SplFileInfo($path)) === null) {
+				continue;
+			}
+
+			$file = $this->resolver->resolve($name, $folder);
+
+			if ($file !== null) {
+				$files[] = self::describe($file, $name, $name);
+			}
+		}
+
+		return $files;
+	}
+
+	/**
+	 * Returns whether a query value is a whole number from 1 to `$max`.
+	 *
+	 * @phpstan-assert-if-true string $value
+	 */
+	private static function counts(mixed $value, int $max): bool
+	{
+		return is_string($value) && ctype_digit($value) && (int) $value >= 1 && (int) $value <= $max;
+	}
+
+	/**
+	 * A file's likely MIME type from its extension, if the site allows it.
+	 */
+	private function guess(SplFileInfo $file): ?string
+	{
+		$mime = self::EXTENSIONS[strtolower($file->getExtension())] ?? null;
+
+		return $mime !== null && $this->config->allows($mime) ? $mime : null;
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	private static function describe(MediaFile $file, string $reference, string $relative): array
+	{
+		$folder = dirname($relative);
+
+		return [
+			'reference' => $reference,
+			'name'      => basename($relative),
+			'folder'    => $folder === '.' ? '' : $folder,
+			'url'       => $file->url,
+			'mime'      => $file->mime,
+			'kind'      => $file->type(),
+			'size'      => $file->size,
+			'width'     => $file->width,
+			'height'    => $file->height,
+			'modified'  => date(DATE_ATOM, (int) filemtime($file->path))
+		];
+	}
+
+	private static function error(string $message, Status $status): ResponseInterface
+	{
+		return Response::json(['error' => $message], $status, ['Cache-Control' => 'no-store']);
+	}
+}

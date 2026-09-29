@@ -12,6 +12,16 @@ Move each item to `decisions.md` once it's answered.
   a future blog extension).
 
 ## Later milestones
+- **Relationships** (D-242):
+  - Data on a link (the role an actor played): references inside object
+    fields (`cast: [{actor: tom-hanks, role: Forrest}]`), indexed too? A
+    bigger step; nothing else in D-242 needs it.
+  - Should the reverse side ever be editable (adding a movie from an
+    actor's screen writes the movie's file)? Leaning no, at least at
+    first.
+  - A type that lists what references it: paged like a term page (with
+    feeds), or a plain list on the entry's page? Reusing term paging gives
+    both.
 - **Media metadata** (D-238, D-239):
   - Embedded metadata readers (to discuss later): an in-house library,
     or getID3 behind the interface (D-006)? EXIF, IPTC, and XMP are

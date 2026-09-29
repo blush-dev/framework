@@ -3,17 +3,29 @@
  * One schema field in the editor's form: its label, the control its type
  * needs (`fields.ts`), and its help text. Fields the form can't edit yet
  * show their value read-only. An error (a required field left empty when
- * publishing) shows beneath the control, which is marked invalid.
+ * publishing) shows beneath the control, which is marked invalid. A
+ * choice shows its `choices` label when the field has one (a
+ * component's props do, D-245). A media field, when `pickable`, has a
+ * **Choose** button for the media picker beside it (D-247).
  */
 
 import { computed } from 'vue';
 import type { FieldDescription } from '../api';
 import { control, help, label, type FormValue } from '../fields';
 
-const props = defineProps<{ field: FieldDescription; error?: string }>();
+const props = defineProps<{ field: FieldDescription; error?: string; idPrefix?: string; pickable?: boolean }>();
 const model = defineModel<FormValue>({ required: true });
 
-const id        = computed(() => `field-${props.field.name}`);
+// A media field can open the media picker (D-247).
+const emit = defineEmits<{ pick: [] }>();
+
+const id        = computed(() => `${props.idPrefix ?? 'field-'}${props.field.name}`);
+
+function choice(option: string): string {
+	const choices = props.field.choices;
+
+	return typeof choices === 'object' && choices !== null && option in choices ? String((choices as Record<string, unknown>)[option]) : option;
+}
 const kind      = computed(() => control(props.field));
 const errorId   = computed(() => props.error === undefined || props.error === '' ? undefined : `${id.value}-error`);
 const described = computed(() => [help(props.field) === '' ? '' : `${id.value}-help`, errorId.value ?? ''].filter((part) => part !== '').join(' ') || undefined);
@@ -50,11 +62,15 @@ const checked = computed({
 			<textarea v-else-if="kind === 'lines'" :id="id" v-model="text" class="mono" rows="2" :aria-describedby="described" :aria-invalid="invalid" />
 			<select v-else-if="kind === 'select'" :id="id" v-model="text" :aria-describedby="described" :aria-invalid="invalid">
 				<option value="">—</option>
-				<option v-for="option in field.options ?? []" :key="option" :value="option">{{ option }}</option>
+				<option v-for="option in field.options ?? []" :key="option" :value="option">{{ choice(option) }}</option>
 			</select>
 			<input v-else-if="kind === 'datetime'" :id="id" v-model="text" type="datetime-local" :aria-describedby="described" :aria-invalid="invalid">
 			<input v-else-if="kind === 'number'" :id="id" v-model="text" type="number" :min="field.min" :max="field.max" :step="field.integer ? 1 : 'any'" :aria-describedby="described" :aria-invalid="invalid">
 			<pre v-else-if="kind === 'readonly'" :id="id" class="field__readonly" tabindex="0" :aria-describedby="`${id}-readonly`">{{ text || '—' }}</pre>
+			<div v-else-if="field.type === 'media' && pickable" class="field__pick">
+				<input :id="id" v-model="text" class="mono" :aria-describedby="described" :aria-invalid="invalid" autocomplete="off" spellcheck="false" placeholder="No file chosen">
+				<button type="button" class="button button--small" @click="emit('pick')">Choose<span class="visually-hidden"> {{ label(field).toLowerCase() }}</span></button>
+			</div>
 			<input v-else :id="id" v-model="text" :class="{ mono: field.type === 'slug' || field.type === 'reference' || field.type === 'media' }" :aria-describedby="described" :aria-invalid="invalid" autocomplete="off" spellcheck="false">
 		</template>
 
@@ -63,3 +79,19 @@ const checked = computed({
 		<p v-if="errorId" :id="errorId" class="field__error">{{ error }}</p>
 	</div>
 </template>
+
+<style scoped>
+.field__pick {
+	display: flex;
+	gap: 6px;
+}
+
+.field__pick input {
+	flex: 1;
+	min-width: 0;
+}
+
+.field__pick .button {
+	flex: none;
+}
+</style>

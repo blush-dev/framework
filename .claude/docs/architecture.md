@@ -719,7 +719,9 @@ Implemented in M7 (D-135 to D-140).
   - Forms generated from schemas.
   - A Markdown editor with live preview through `Kernel::handle()`.
   - A component inserter for dropping components into content: only
-    registered components, always written by full name (D-171, D-172).
+    registered components with a class, always written by full name
+    (D-171, D-172, D-214; built, D-243: `GET components`,
+    `ComponentInserter`, and `/` at the start of a line).
   - A media library, and git-backed revisions.
 - **Admin constraints:** it lives in an `/admin` route group (path
   configurable) behind its own provider and is off by default.
@@ -761,7 +763,30 @@ Implemented in M7 (D-135 to D-140).
   (D-225); lists, the dashboard, and the editor show skeletons while
   loading (D-240); drafts and scheduled entries are
   tabs on each list (D-236), as is the trash (D-237: restore as a draft,
-  delete permanently, empty), and a taxonomy's list counts each term's uses. The look follows `.claude/docs/admin-design/` (D-231):
+  delete permanently, empty), and a taxonomy's list counts each term's uses. The body is
+  edited in `MarkdownEditor` (D-241: a text area over a highlighted copy
+  from `markdown.ts`, which finds directives by the server's rules), with
+the component inserter (D-243: `components.ts` loads `GET components`
+once, groups core components by `ComponentType::category()` and the rest
+by source, keeps recents, and writes the directive text). The
+  navigation is a section rail (Home, Content, Config) with a panel for
+  the active section (D-244: `meta.area` on each route), with taxonomies
+  nested under the one type they group, and screens not built yet are
+  `PlannedView` stubs (D-241). The editor fills the work area
+  (`meta.bleed`) as a writing surface (D-245): a centered column, a
+  settings drawer with Document and Component tabs (`ComponentOptions`,
+  whose changes `markdown.ts` writes into the directive's head as minimal
+  edits), and focus mode (`focusMode` in `screen.ts`). Its inserters
+  (D-247): `ComponentPanel` (a pushing panel, also opened by `/`),
+  `IconPicker` (a popover over `GET icons`, `site-icons.ts`), and
+  `MediaPicker` (a `<dialog>` over `GET media`, also behind **Choose** on
+  media fields); `grid.ts` moves through their grids. Toasts (`toast.ts`)
+  and the command palette (`CommandPalette`, with screens adding
+  commands through `useCommands`) are in the layout (D-248). Roles and
+  Accounts are read-only list and detail screens over `GET roles` and
+  `GET accounts` (D-249), as are Content types over `GET types` and
+  `GET types/{name}` (D-250) and Media over `GET media` and
+  `GET media/{path}` (D-251). The look follows `.claude/docs/admin-design/` (D-231):
   design tokens in `css/tokens.css` are the only literal values, and
   the shell is a rail, a top bar, and a scrolling work area. Extension pieces are described in PHP and drawn
   generically (D-222): `AdminAction`s (label, description, capability,

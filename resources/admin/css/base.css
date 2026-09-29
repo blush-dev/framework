@@ -71,6 +71,16 @@ samp {
 	font-size: .92em;
 }
 
+kbd {
+	padding: 1px 4px;
+	border: 1px solid var(--border);
+	border-bottom-width: 2px;
+	border-radius: var(--r-1);
+	background: var(--surface);
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
 button,
 input,
 select,

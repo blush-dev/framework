@@ -92,6 +92,26 @@ export interface ContentTypeSummary {
 	singular: string;
 	kind: 'collection' | 'taxonomy' | 'pages';
 	dated: boolean;
+	// A taxonomy's: the types its terms group, empty for every type.
+	types?: string[];
+	// Where it was defined, its folder, its URL prefix (`null` without
+	// URLs), and how many fields it defines (D-250).
+	origin: 'built-in' | 'extension' | 'config' | 'data';
+	folder: string;
+	prefix: string | null;
+	fields: number;
+}
+
+/**
+ * One content type (`GET types/{name}`, D-250).
+ */
+export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
+	public: boolean;
+	feed: boolean;
+	sitemap: boolean;
+	editable: boolean;
+	taxonomies: string[];
+	fields: FieldDescription[];
 }
 
 /**
@@ -153,6 +173,34 @@ export interface Health {
 	strict: boolean;
 	counts: { error: number; warning: number; notice: number | null };
 	files: { path: string; violations: Violation[] }[];
+}
+
+/**
+ * A media file an entry can use (`GET media`, D-246).
+ */
+export interface MediaItem {
+	// What to write: the library's URL path, or a bundle file's name.
+	reference: string;
+	name: string;
+	folder: string;
+	url: string;
+	mime: string;
+	kind: 'image' | 'video' | 'audio' | string;
+	size: number;
+	width: number | null;
+	height: number | null;
+	modified: string;
+}
+
+export interface MediaList {
+	search: string;
+	kind: string;
+	total: number;
+	page: number;
+	pages: number;
+	per: number;
+	files: MediaItem[];
+	beside: MediaItem[] | null;
 }
 
 export interface PreviewLink {

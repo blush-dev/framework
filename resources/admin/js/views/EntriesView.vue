@@ -300,8 +300,9 @@ const emptyText = computed(() => {
 			<h1 tabindex="-1">{{ heading }}</h1>
 			<p class="page-header__hint">{{ terms ? 'Terms that group other entries' : `Every ${singular} you can edit` }}</p>
 		</div>
-		<div v-if="can('content.create') && !nothingYet" class="page-header__actions">
-			<RouterLink class="button button--primary" :to="{ name: 'entry-new', query: { type } }">New {{ singular }}</RouterLink>
+		<div v-if="(can('content.create') && !nothingYet) || can('site.settings')" class="page-header__actions">
+			<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type settings</RouterLink>
+			<RouterLink v-if="can('content.create') && !nothingYet" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">New {{ singular }}</RouterLink>
 		</div>
 	</header>
 

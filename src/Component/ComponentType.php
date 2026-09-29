@@ -85,6 +85,31 @@ enum ComponentType: string
 	}
 
 	/**
+	 * Returns the group the admin's inserter shows it in (D-243).
+	 */
+	public function category(): ComponentCategory
+	{
+		return match ($this) {
+			self::Abbr, self::Callout, self::Icon, self::Kbd, self::Time          => ComponentCategory::Text,
+			self::Audio, self::Embed, self::Figure, self::File, self::Gallery,
+			self::Video                                                           => ComponentCategory::Media,
+			self::Grid, self::Group, self::Row                                    => ComponentCategory::Layout,
+			self::Button, self::Menu, self::Toc                                   => ComponentCategory::Navigation,
+			self::Meter, self::Progress                                           => ComponentCategory::Data
+		};
+	}
+
+	/**
+	 * Returns whether it's meant for inside a sentence (`:kbd[Esc]`)
+	 * rather than on a line of its own, which the admin's inserter shows
+	 * as its kind (D-243).
+	 */
+	public function isInline(): bool
+	{
+		return in_array($this, [self::Abbr, self::Icon, self::Kbd, self::Time], true);
+	}
+
+	/**
 	 * Returns the component's full name.
 	 */
 	public function componentName(): ComponentName

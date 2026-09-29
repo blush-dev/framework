@@ -191,9 +191,26 @@ D-228), the editing API (D-229), and the first editor screens (D-233):
 a list per content type (D-234), New entry, and the editor with forms
 from content schemas and a plain-text Markdown body; then the design
 direction's loading, offline, failed-save, conflict, validation, and
-first-run patterns (D-240). Next: live preview and a
-Markdown editor, the component inserter, reference and media pickers,
-and media. Smaller admin items waiting: the admin theme choice (a second
+first-run patterns (D-240); then, from the author's clickable prototype
+(`admin-design/blush-admin.html`), the full navigation with stubs for
+the screens not built yet (Media, Content types, Appearance,
+Extensions, Accounts, Roles, Settings) and a Markdown source editor
+that highlights directives and knows the one under the caret (D-241);
+then the component inserter, with `/` to open it at the caret and
+`GET components` behind it (D-243); then, from the updated design, the
+section rail (Home, Content, Config) with a panel per section (D-244),
+and the editor as a writing surface: one centered column, a settings
+drawer with Document and Component tabs, component options written back
+into their directives, and focus mode (D-245); then the header's two
+halves and three inserters: components in a panel from the left, icons
+in a popover, and media in a modal picker that's also **Choose** beside
+media fields (D-247), over `GET icons` and `GET media` (D-246).
+Then toasts and the ⌘K command palette (D-248), and read-only list and
+detail screens for Roles and Accounts (D-249), Content types (D-250),
+and Media (D-251).
+Next: live preview, uploads and media metadata, a reference picker,
+editing types and accounts, and the remaining stubbed screens
+(Appearance, Extensions, Settings). Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), changing one's own password on Your profile,
 renaming an entry from the editor, objects in forms, autosave, and Pages
 as a tree (see D-233 to D-237's open items).
@@ -208,6 +225,11 @@ Export as a background-safe action is deferred (jtcom runs
 dynamically).
 
 ### Still to scope
+
+- **Relationships (D-242, planned):** a reverse index for every
+  reference field, keyed by field, with a template API and "Used by" in
+  the admin; then "lists what references it" as a setting for any type,
+  with taxonomies as a preset; then one picker in the admin.
 
 Other starting points the author may pick up (none decided):
 

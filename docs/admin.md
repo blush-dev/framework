@@ -5,8 +5,8 @@ from a browser. So far it has a dashboard (your content at a glance, and
 buttons to publish, reindex, and clear caches), a list of each content
 type's entries, an editor, and a content health check.
 
-> **The admin is early.** The editor edits Markdown as plain text for
-> now; a live preview, inserting components, and a media library come
+> **The admin is early.** The editor edits Markdown as text; a live
+> preview, a form for a component's options, and a media library come
 > later.
 
 ## Turning it on
@@ -40,11 +40,24 @@ its URLs exist.
 
 ## Getting around
 
-The sidebar lists the screens your account can use, with your username
-(a link to **Your profile**) and a sign-out button at the bottom. The button at the top left
-collapses the sidebar to icons (your browser remembers the choice); on
-a narrow screen it opens the sidebar as a menu instead. **View site**
-opens your site in a new tab.
+The rail at the far left has three sections: **Home** (the dashboard and
+content health), **Content** (each content type's entries, with its own
+taxonomies under it, the taxonomies several types share, and media), and
+**Config** (content types, the site's settings, and people). The panel
+beside it lists the section you're in. Choosing **Content** or
+**Config** changes the panel without leaving the screen you're on;
+**Home** goes to the dashboard. You only see what your account can use.
+
+**Search or jump to…** in the top bar (or ⌘K, Ctrl+K on Windows and
+Linux) opens the command palette: type to find a screen, a command such
+as **New post**, or an entry by its title, then press Enter. In the
+editor, the editor's own commands come first, such as **Focus mode**
+and **Insert media**.
+
+The button at the top left hides the panel, leaving just the rail (your
+browser remembers the choice); on a narrow screen it opens the rail and
+panel as a menu instead. **View site** opens your site in a new tab, and
+the round button at the top right has **Your profile** and **Sign out**.
 
 ## Your profile
 
@@ -72,12 +85,22 @@ Actions you can't run don't appear. Extensions can add their own actions
 
 ## Entries
 
-The sidebar lists your content types by name: **Content** has your
-collections (such as Posts) and Pages, and **Taxonomies** has the types
-that group them (such as Categories and Authors). Each opens a list of
-that type's entries you can edit, newest changes first. Types are named
-from their `label` and `singular` settings (see
+The sidebar lists your content types by name. **Content** has your
+collections (such as Posts) and Pages, each with the taxonomies that
+group only that type under it (a taxonomy whose `types` setting names
+one type, such as Categories under Posts), then **Media**.
+**Structure** has **Content types** and the taxonomies that group
+several types or every type (such as Authors), each saying which. Each
+type opens a list of its entries you can edit, newest changes first.
+Types are named from their `label` and `singular` settings (see
 [Content types](content-types.md#names-in-the-admin)).
+
+**Site** has Appearance, Extensions, Accounts, Roles, and Settings.
+Those screens, Media, and Content types aren't built yet: each says
+what it will do and where to do that for now (a command or a config
+file). You only see the ones your roles allow: Media needs
+`media.upload`, Accounts and Roles `accounts.manage`, and the rest
+`site.settings`.
 
 The tabs above a list show all of them, or only published entries,
 drafts, or scheduled ones, with a count on each. You see your own
@@ -100,27 +123,45 @@ credited to your account's author.
 
 ## Editing an entry
 
-The editor has the title and the body (Markdown) on the left, and on the
-right:
+The editor is one column of text: the title (press Enter to move to the
+body), then the body in Markdown. While you type, the header and footer
+fade back; moving the pointer brings them back.
 
-- **Publishing:** the publish date, a preview link (or **View** once it's
-  live), and **Move to trash**.
-- **Fields:** the content type's other fields, such as the subtitle,
-  summary, and categories. Fields that take several values say how to
-  separate them. A few kinds (such as `collection`) can't be edited here
-  yet and show their value read-only.
-- **Other front matter:** keys the content type doesn't declare. They're
-  kept as they are.
-- **Problems:** what content health finds in the file, as last saved.
-  Notices are hidden unless you ask for them.
-
-The buttons at the top depend on the entry:
+The header's left side has a link back to the type's list, then three
+ways to put something in: **+** for a component, the picture for media,
+and the shapes for an icon. Its right side says whether your changes are
+saved and the entry's status, then has the settings button, a **⋯** menu
+(**Save draft** or **Switch to draft**, **View**, **Focus mode**, and
+**Move to trash**), and the main button, which depends on the entry:
 
 | The entry is... | You can |
 |---|---|
 | A draft | **Save draft**, or **Publish** (or **Schedule**, when the publish date is in the future) |
 | Scheduled | **Update**, **Publish** once its date is past, or **Switch to draft** |
 | Published | **Update** (or **Schedule**, with a future date), or **Switch to draft** |
+
+The settings (⌘/ or Ctrl+/) open beside the text and push it aside.
+They have two tabs:
+
+- **Document:** the publish date, a preview link (or **View** once it's
+  live); the content type's other fields, such as the subtitle, summary,
+  and categories (fields that take several values say how to separate
+  them, and a few kinds, such as `collection`, show their value
+  read-only); the components the body uses (choose one to go to it);
+  front matter the type doesn't declare, kept as it is; and what content
+  health finds in the file, as last saved (notices only if you ask).
+- **Component:** the options of the component the cursor is in. See
+  [Component options](#component-options).
+
+The body is plain Markdown, shown with headings, code, links, and
+[components](components.md) picked out; the component the cursor is in
+is highlighted. It's an ordinary text field, so undo, spelling, and your
+browser's shortcuts work as usual. The footer counts the words and the
+reading time.
+
+**Focus mode** (⌘⇧F or Ctrl+Shift+F, or the **⋯** menu) hides
+everything but the text and the editor's own header. Press Escape to
+leave it.
 
 Ctrl+S (⌘S on a Mac) saves without changing the status. Saving changes
 only what you changed: every other line of the file stays exactly as it
@@ -131,6 +172,65 @@ If you can't publish, you can save drafts but not publish them.
 Fields the content type marks as required must be filled in to publish,
 schedule, or update a live entry. Anything missing is named at the top
 and marked under the field; a draft saves without them.
+
+### Inserting components
+
+**+** opens the components beside the text, on the left: search by name
+or what it does, or pick a category, then choose a tile (or use the arrow
+keys and Enter). The panel stays open, so you can add several; close it
+with its **×** or Escape.
+
+Typing `/` at the start of an empty line opens the same panel: keep
+typing to narrow it (`/call` for a callout), then press Enter or Tab.
+Press Escape to keep the `/` as text.
+
+The component is written into the Markdown by its full name, such as
+`:::blush/callout` … `:::`, with the cursor where your text goes. An
+inline component (a keyboard key, an abbreviation, an icon) goes at the
+cursor, inside the sentence; the rest go on lines of their own. Select
+some text first to make it the component's text. Options the component
+needs are written empty for you to fill in, such as
+`::blush/figure[]{src=""}`. Undo takes an insertion back.
+
+The list has every registered component with a class that your active
+theme can draw: the built-in ones, your theme's, your site's, and your
+extensions' (marked with where they come from). See
+[Registering a component](components.md#registering-a-component) to
+add yours.
+
+### Inserting media and icons
+
+The picture button opens your media: the files beside the entry (when
+it's a [page bundle](content.md), such as `trip/index.md`), then the
+library in `user/media`, newest first. Search by file name, or show only
+images, video, or audio. Choose a file, then **Insert** (or double-click
+it). An image goes in as a figure, a video as a video, a sound as audio,
+and anything else as a download, and its options open in the settings.
+Uploading comes later: put files in `user/media` or beside the entry for
+now.
+
+The same picker is **Choose** beside every media field and component
+option, such as a figure's **Image**.
+
+The shapes button opens your theme's [icons](components.md#icons): search by
+name or what it shows (`home` finds the house), then choose one. It goes
+in at the cursor as `:blush/icon[]{name=house}`; select some text first
+to give it a label for screen readers.
+
+### Component options
+
+With the cursor in a component, the footer names it ("Callout options");
+choose that, or the **Component** tab in the settings, to see its
+options as a form. Changing one rewrites just that option in the
+Markdown: the rest of what you wrote stays as it is. Setting an option
+back to its default removes it, so the default applies. A component
+that takes a line of text has it here as **Text**. Attributes that
+aren't options of the component, such as a class, are listed but edited
+in the text.
+
+**Remove component** takes the component out; the text inside a
+container, or an inline component's text, stays. Undo in the text puts
+it back.
 
 ### When a save doesn't go through
 
@@ -153,6 +253,33 @@ Your changes aren't lost:
 
 **Move to trash** takes the entry off your site and puts it in the
 **Trash** tab of its list.
+
+## Media
+
+**Content → Media** shows the files in `user/media`, newest first:
+search by name, or show only images, video, or audio. Choose one for a
+preview, its details, and what to write to use it, with **Copy**
+buttons. Uploading comes later: put files in `user/media`, or beside an
+entry in its own folder.
+
+## Content types
+
+With `site.settings`, **Config → Content types** lists every type,
+taxonomies too, with where it's defined, how many fields it has, and how
+many entries. Choose one for its settings, the taxonomies that group it,
+and its fields; **Type settings** on a type's list goes there too. It's
+read-only for now: types are defined in `config/content.php`,
+`user/data/types`, and extensions (see [Content types](content-types.md)).
+
+## Accounts and roles
+
+With `accounts.manage`, **Config → Accounts** lists who can sign in, with
+their roles, linked author, and when they last signed in; choose one for
+its details. **Roles** lists each role with how many capabilities it has
+and who holds it; a role's screen shows every capability it grants or
+doesn't, in groups. Both are read-only for now: roles are set in
+`config/auth.php`, and accounts are changed with the `account:*`
+commands (see [Accounts](accounts.md)).
 
 ## Trash
 
@@ -233,7 +360,14 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `PATCH preferences` | Change the account's own preferences, such as `{"colorScheme": "dark"}` (`system`, `light`, or `dark`); answers `{"preferences"}` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
-| `GET types` | The site's content types: `{"types": [{"name", "label", "singular", "kind", "dated"}]}`, by label, taxonomies last |
+| `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "svg"}]}` |
+| `GET media` | The media files an entry can use (see below) |
+| `GET media/{path}` | One file in the library, by its path under `user/media` |
+| `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
+| `GET roles` | Every capability and role, with the accounts holding each; needs `accounts.manage` |
+| `GET accounts` | Every account's username, roles, author, and created and last sign-in times (Unix); needs `accounts.manage` |
+| `GET types` | The site's content types: `{"types": [{"name", "label", "singular", "kind", "dated", "origin", "folder", "prefix", "fields"}]}`, by label, taxonomies last; a taxonomy adds `"types"`, the types it groups (empty for every type). `fields` is how many the type defines |
+| `GET types/{name}` | One type, with its own `fields`, the `taxonomies` that group it, `public`, `feed`, `sitemap`, and `editable` |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
@@ -269,6 +403,35 @@ has `status`, `type`, `search`, `total`, `page`, `pages`, `per`, and
 `entries`, each with its id, title, type, status, dates, file, authors,
 and whether it's the account's own. A page past the last has no
 entries.
+
+### Listing components
+
+`GET components` lists the components the editor's inserter offers:
+registered components with a class that the active theme can draw. Each
+has:
+
+| Key | What it is |
+|---|---|
+| `name` | Its full name, as written in Markdown: `blush/callout`, `acme/tabs` |
+| `label`, `description` | From the translation catalogs, or a label made from the name |
+| `content` | What it wraps: `none`, `text` (its `[label]`), or `blocks` |
+| `kind` | How it's written: `container` (`:::`), `leaf` (`::`), or `inline` (`:`) |
+| `category` | A built-in component's group (`text`, `media`, `layout`, `navigation`, `data`), else `null` |
+| `source` | Where the rest come from: `{"kind": "theme", "site", or "extension", "label"}`, else `null` |
+| `props` | Its props as schema fields, each with its `label` and, for a choice, `choices` labels by value |
+
+### Listing media
+
+`GET media` lists the library (`user/media`), newest first, a page at a
+time, for accounts that can edit content. Narrow it with `search` (text
+the path must contain), `kind` (`image`, `video`, `audio`, or `any`),
+`page`, and `per` (48 by default, at most 100). Add `entry` (an id) to
+get `beside` too: the media files next to that entry when it's a page
+bundle, else `null`. The answer has `total`, `page`, `pages`, `per`,
+`files`, and `beside`; each file has its `reference` (what to write in
+content: the library's URL path, or a bundle file's name), `name`,
+`folder`, `url`, `mime`, `kind`, `size`, `width` and `height` (images),
+and `modified`. Only the file types your site allows are listed.
 
 ### Editing entries
 

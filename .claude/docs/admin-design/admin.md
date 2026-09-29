@@ -45,6 +45,8 @@ taste, formed early and on thin evidence.
   just to satisfy this table — reconcile the two and update whichever is wrong.
 - Everything in §7 about specific components: sizes, which controls exist,
   what the dashboard shows. These came from a prototype with invented data.
+- Sidebar grouping (§8). Deliberately an interim rule, with its replacement
+  already named in that section.
 - The patterns in §8. The behavior is decided; the presentation is not.
 - Hide-vs-disable for permissions (§8). A guess, and a consequential one.
 - The directory layout in §11. Match whatever the repo already does.
@@ -107,6 +109,55 @@ Each is recorded in `.claude/docs/decisions.md`.
   or taxonomies are for.
 - **Content health keeps quiet text while checking** (D-240): its result is
   a summary, not rows, so there's no shape to sketch.
+- **The full navigation** (D-241): screens that don't exist yet are listed
+  and open a "comes next" page. A taxonomy moves when its `types` change
+  in a config file, not in the admin, so there's no toast announcing the
+  move (§8, Sidebar grouping); nav counts are left out until an API gives
+  them cheaply.
+- **The section rail** (D-244): no state dot on Content (without autosave
+  there are no unpublished changes to live entries), no theme button in
+  the top bar (the color scheme is an account preference on Your
+  profile), and no site switcher; the site's mark links
+  to the site. The account's menu is in the top bar. Home's panel has the
+  Dashboard and Content health, then shortcuts.
+- **The command palette** (D-248): the screen's own commands come first
+  (the editor's), then going places and New {singular}, then entries;
+  switching the color scheme saves it to the account.
+- **The Markdown source editor** (D-241): spelling on, and no horizontal
+  padding on inline code (it shifted the text).
+- **The component inserter** (D-243, D-247): core components are grouped
+  by category (Text, Media, Layout, Navigation, Data); a theme's, the
+  site's, or an extension's by where they come from, and a theme's or
+  extension's tiles say so. Components are written by full name
+  (`blush/callout`, D-171). An inline component goes at the caret; a leaf
+  or container on lines of its own, with a blank line either side;
+  selected text becomes its label or body. Required props are written
+  empty; defaults aren't written. In the search field, left and right move
+  through the grid only while it's empty. Tab inserts, as Enter does,
+  while typing after a slash, and Escape leaves the slash as text. The
+  panel opened by a slash closes once a component replaces it.
+- **The media picker** (D-246, D-247): the library comes from `user/media`
+  newest first, with "Beside this entry" for a page bundle; there's no
+  upload yet. It's also **Choose** beside every media field and option.
+- **The writing surface** (D-245): no `Changes` pill and the save state
+  reads "Unsaved changes" or "Saved 3:46 PM" (no autosave); the entry's
+  file, not a URL slug, sits under the title; the ⋯ menu has Save draft or
+  Switch to draft, View, Focus mode, and Move to trash (no Copy link or
+  Duplicate); Tab in the body moves focus; the drawer isn't remembered;
+  the footer has no line and column. Below 480px the save state is its
+  dot, with its words read out.
+- **Media** (D-251): no upload, alt text, captions, or "used in" yet;
+  bundle files are in the editor's picker, not the library screen.
+- **Content types** (D-250): read-only; no field editor, new-type wizard,
+  or delete yet. "Show in the sidebar" and a hierarchy switch aren't type
+  settings in Blush. Entries counts are what the account may edit.
+- **Roles and accounts** (D-249): read-only, with a notice naming where
+  each is changed; no Invite, role checkboxes, or danger zone yet; roles
+  have no description, and the last sign-in stands in for "last active".
+- **Component options** (D-245): an option set back to its default is
+  removed from the directive; a required one left empty stays as
+  `key=""`. Removing a container keeps its body. Option changes are
+  applied to the text directly, so they aren't in the field's own undo.
 - **Vocabulary follows Blush** where it differs: extensions, not addons, and
   whatever taxonomies a site defines (no built-in Topic).
 
@@ -180,7 +231,7 @@ Four states per admin theme. The cascade order in `tokens.css` matters:
 ```css
 :root                                            /* all tokens, light */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-color-scheme="light"]) { }     /* dark, system */
+	:root:not([data-color-scheme="light"]) { }     /* dark, system */
 }
 :root[data-color-scheme="dark"] { }              /* dark, explicit */
 ```
@@ -243,22 +294,51 @@ Anywhere digits stack in a column, `font-variant-numeric: tabular-nums`.
 ## 6. Layout
 
 ```
-┌────────────┬──────────────────────────────────────┐
-│ site       │ top bar                    --bar     │
-│ header     ├──────────────────────────────────────┤
-│            │                                      │
-│ nav        │ work area (scrolls)                  │
-│  --rail    │   .wrap  max --work-max, centered     │
-│            │                                      │
-│ rail foot  │                                      │
-└────────────┴──────────────────────────────────────┘
+┌──────┬────────────┬──────────────────────────────┐
+│ icon │ section    │ top bar              --bar   │
+│ rail │ panel      ├──────────────────────────────┤
+│ 66px │  --rail    │                              │
+│      │            │ work area (scrolls)          │
+│ Home │ Pages   16 │   .wrap  max --work-max      │
+│ Cont.│ Posts  248 │                              │
+│ Str. │  Topics 14 │                              │
+│ Site │ Media      │                              │
+└──────┴────────────┴──────────────────────────────┘
 ```
 
+**Two levels, on purpose.** One sidebar cannot hold a site's content types,
+their nested taxonomies and its settings without becoming a wall. The icon rail
+carries three sections — **Home, Content, Config** — and the panel beside it
+shows **only the active section**, so its length is bounded by the section
+rather than by the whole admin.
+
+Three sections, not more. Taxonomies are content, so they live under Content
+with their types. *Defining* a content type is configuration, so the type
+builder lives under Config alongside settings, addons and people. The test for
+a new section is whether someone would go looking for it by name — not whether
+the things in it are related.
+
+Rules that keep it honest:
+
+- **Rail items are labeled**, not icons alone. "Structure" has no guessable
+  glyph, and a tooltip is not a label.
+- **Switching sections does not navigate.** It changes what the panel offers;
+  the screen stays put until something in the panel is clicked. The exception
+  is Home, which is a single screen and so navigates directly.
+- **The panel collapses to nothing**, leaving just the rail. That is the real
+  space win, and it beats the old icon-only collapse, which was unreadable.
+- **The cost is one click** to reach anything outside the current section. The
+  command palette is the answer for anyone who feels that, which is why ⌘K
+  stays prominent.
+- A section may carry a **state dot** on its rail icon — Content shows one when
+  live entries have unpublished changes — so attention survives the partition.
+
+Remaining layout rules:
+
 - The app is `height: 100%`, not `100vh`. The work area is the only scroll
-  container; the rail and top bar do not move.
-- Rail collapses to `--rail-min` (icons only) on a toggle.
-- Below 860px the rail becomes an off-canvas drawer with a scrim, and the
-  collapse toggle is replaced by a menu button.
+  container; the rail, panel and top bar do not move.
+- Below 860px the rail and panel slide in together as one off-canvas drawer
+  with a scrim, and the collapse toggle is replaced by a menu button.
 - Work area padding: 22px/24px desktop, 16px at phone width. At least a 16px
   side gutter at every width. The page body never scrolls horizontally; only
   the table does, inside its own `overflow-x: auto`.
@@ -345,6 +425,95 @@ produces a state that must be visible everywhere the entry appears:
 Autosave shows its state as quiet text near the title — *Saving…* → *Saved
 14:32* — never as a toast, never as a spinner that blocks typing.
 
+### The editor is a writing surface
+Every other screen in this admin is a tool. The editor is a place someone
+writes for an hour, so it is designed against a different measure: how little
+of it you notice.
+
+- **One centered column.** The source sits in a `68ch` measure with the
+  remaining width as margin. Full-width lines are unreadable, and a column that
+  moves when a panel opens is worse than one that does not.
+- **Settings push, never cover.** The drawer widens the layout aside rather
+  than sliding over the text, so nothing is hidden behind a panel while it is
+  open. Closed by default; ⌘/ or the header button opens it. Below 980px there
+  is no room to push, so it overlays instead.
+- **Two tabs in the drawer, both always visible**: *Document* for the entry,
+  *Component* for whatever the caret is inside. Neither replaces the other's
+  header and there is no back arrow — you can always see where you are and what
+  the alternative is. The Component tab is disabled with no selection, and
+  names the component and its kind when there is one.
+- **The title is part of the document**, not a form field above it — display
+  face, 30px, no box, wrapping to as many lines as it needs, and it scrolls
+  away with the text. Enter moves to the body.
+- **Chrome recedes while typing.** The header and footer fade to a third
+  opacity as soon as keys move and come back on any pointer movement. Nothing
+  disappears; it just stops competing.
+- **Focus mode** (⌘⇧F, or the palette) drops the rail and top bar entirely,
+  leaving the column. Escape returns.
+- **The footer is the status line**, not a toolbar: words, reading time, and
+  quiet shortcut hints. Counts belong here, out of the way, not above the text.
+- **A selected component is named, not opened.** When the drawer is closed and
+  the caret enters a directive, a chip appears in the footer — "Callout
+  options" — and opens the drawer only if clicked. Interrupting writing to show
+  a panel nobody asked for is the thing this design is against.
+- **Unpublished changes are ordinary, not exceptional.** They get a small
+  `Changes` pill beside the status and the primary button reading **Update** —
+  no banner. Discard lives in the overflow menu. A bar across the top of the
+  screen is for something that has gone wrong: a failed save, a newer version on
+  the server, a required field blocking publication. Routine state does not earn
+  one, and spending the banner on routine state means nobody reads the ones that
+  matter.
+
+- **The header has two halves, and the split is meaningful.** On the left, back,
+  where you are, a hairline, then the three insert tools — things you do *to*
+  the document. On the right, save state, status, settings, overflow, and the
+  primary action — what the document *is* and what happens to it. Reading the
+  toolbar should not require remembering where a given control was put. The
+  insert button also sits directly above the panel it opens, so the panel reads
+  as coming from the button rather than appearing beside the text.
+
+What earns a permanent place in the header: back, where you are, the three
+insert tools, save state, status, settings, overflow, and the primary action.
+Everything else is in the overflow menu or a shortcut.
+
+### The inserters
+Three ways to put something in an entry, and the shape of each follows how much
+of a decision it is.
+
+**Components slide in from the left.** Choosing one is part of writing, often
+with browsing involved, so the panel widens the layout aside and stays open —
+it never covers the sentence you were writing, and it does not snap shut after
+one pick. Inside: a search field, category pills, and a two-column grid of
+tiles — an icon in a tinted square, the name beneath, the kind under that. A
+strip at the foot of the panel describes whatever is highlighted, so the grid
+stays uncluttered while the detail is still one glance away.
+
+Keyboard maps to the grid: left and right step, up and down move a row, Enter
+inserts, Escape closes. Hovering a tile highlights it, so pointer and keyboard
+agree on what Enter would do.
+
+**Typing `/` at the start of a line opens the same panel**, with what follows
+filtering it. The query lives in the document while it is typed and is removed
+when something is inserted, so an abandoned slash is just text. This is the
+path most authors end up using; the toolbar button is the discoverable one that
+teaches it.
+
+**Icons are a popover** anchored to their button: a search field, a dense grid,
+and a foot showing the directive the highlighted icon would produce. One
+decision, no browsing, so it does not deserve to move the layout. Its button is
+a shapes glyph — triangle, square, circle. Avoid a sparkle or a star here, or
+anywhere that is not generation: a sparkle now reads as "AI" before it reads as
+anything else, and an icon that promises the wrong thing is worse than a dull
+one.
+
+**Media is a modal** — the same picker used everywhere else in the admin, so a
+file is chosen the same way wherever you are. What it inserts depends on what
+was chosen: an image becomes a figure, a video becomes a video, anything else
+becomes a download.
+
+The rule: **a panel for choices you browse, a popover or modal for choices you
+make once.** Anything that interrupts writing should be over in a single action.
+
 ### Hierarchy
 Hierarchical types (Pages) default to a **tree**: disclosure triangles, 18px
 indent per level, expansion state held client-side. Sorting a column or
@@ -353,6 +522,54 @@ table saying why and how to get the hierarchy back. Pagination is suppressed in
 tree mode; the count reads "Showing all 14 pages as a tree".
 
 Flat types get a sortable, paginated table. Both are the same component.
+
+### List, then detail — everywhere
+Every collection in the admin uses the same two-screen shape: a **full-width
+list screen** and a **dedicated detail screen** reached by clicking the row's
+name. This holds for entries, taxonomy terms, media, accounts, content types
+and roles alike — a collection of five things gets the same treatment as a
+collection of five hundred, because consistency is worth more than the space
+saved on a short list.
+
+No master/detail split panels. A two-column list-beside-editor layout halves
+the width available to a form that needs it, hides the list on a phone, and
+gives the same object two different appearances depending on how you arrived.
+
+Each detail screen carries: the object's name as the page title, a subtitle of
+its identifying facts, a **back button naming the collection** ("All types",
+"All roles"), and its primary action. Creating follows the same rule — the type
+wizard is its own screen, not a modal over the list.
+
+A list screen earns tabs when its rows divide into meaningful states (entry
+status, type kind) and a search box when the collection grows without bound.
+Roles has neither: four fixed rows need no search, and inventing one is worse
+than leaving it out.
+
+### Sidebar grouping
+A taxonomy attached to **exactly one** content type is nested under that type
+in the sidebar — Topics under Posts, Product categories under Products. A
+taxonomy attached to none, or to more than one, cannot nest without lying, so
+it sits in **Structure** with a caption naming the types that use it: "Tags ·
+Posts, Releases", collapsing to "3 types" when the list gets long.
+
+Nesting is one level only. Content types never nest inside each other, and a
+nested taxonomy never gains children of its own.
+
+**The known cost, stated plainly:** where a taxonomy lives depends on data, so
+attaching a second type moves it out of the nest and into Structure with no
+action by the person watching. The rule "navigation should not rearrange
+itself" is being traded away for a relationship that is worth showing. Two
+things keep it honest — the move is announced with a toast that says why, and
+**Content types** remains the flat index that lists every taxonomy whatever
+group it is in.
+
+*Provisional, and expected to change.* The relationship that actually binds a
+group together is **provenance** — the addon that registered them. A Shop addon
+brings Products, Product categories and Product brands at once; they arrive and
+leave together, a type has exactly one source forever, and grouping by source
+never duplicates and never rearranges. When addons register content types, the
+grouping axis should move from attachment to source, and this section should be
+rewritten rather than extended.
 
 ### Taxonomy terms are entries
 A topic or a tag is an entry of a taxonomy-kind content type, so it gets the
@@ -504,10 +721,13 @@ The rest are strong defaults. Break them with a reason, and record it:
 - Resolving an edit conflict without asking, in either direction.
 - Reporting a failure without saying what happened to the person's work.
 - Adding a second accent hue.
+- Using a sparkle or star icon for anything that is not generation.
 - Rounding every container the same amount — radius marks a thing as a separate
   object, so spend it deliberately.
 - Putting a destructive action next to a common one without a divider between
   them.
+- Building a master/detail split panel where a list screen and a detail screen
+  would do.
 
 ## 13. Open questions
 
@@ -515,14 +735,13 @@ Unresolved at the time of writing. If you settle one, replace it here with the
 decision.
 
 - *Settled:* API conventions (session cookie and CSRF header, `page`/`per`
-  paging with `total` and `pages`, errors as `{"error"}`; `docs/admin.md`) and
-  content type discovery (`GET types`, with `label` and `singular`; D-234).
-- The editor: the Markdown surface (a plain text area for now, D-233), the
-  component inserter, and whether the right sidebar swaps between Document
-  fields and Component options.
-- How the parser maps cursor position to the directive under it, and rewrites
-  component options back into the source without disturbing the author's text.
+  paging with `total` and `pages`, errors as `{"error"}`; `docs/admin.md`),
+  content type discovery (`GET types`, with `label` and `singular`; D-234),
+  the Markdown surface (a text area over a highlighted copy, D-241), the
+  component inserter (`GET components`, D-243, D-247), the settings' two
+  tabs (D-245), mapping the caret to its directive and rewriting options
+  in place (`markdown.ts`, D-241, D-245), and invoking the media picker
+  from an option (**Choose** beside it, D-247).
 - The content-type builder's own screens.
-- How the media picker is invoked from a component option.
 - Whether type provenance ("Posts addon", "Custom type") belongs in the list
   header at all — useful at three types, clutter at fifteen.

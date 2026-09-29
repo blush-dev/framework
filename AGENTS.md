@@ -17,8 +17,16 @@ editing API (D-228, D-229), and, built from the admin design direction
 (`.claude/docs/admin-design/admin.md`, D-231): the tokens and shell,
 per-account preferences on Your profile (D-235), a list per content type
 with status and Trash tabs (D-230, D-234, D-236, D-237), and the first
-editor (D-233). Next: live preview and a Markdown editor, the component
-inserter, reference and media pickers; see `.claude/docs/roadmap.md`.
+editor (D-233); and, from the clickable prototype
+(`.claude/docs/admin-design/blush-admin.html`), the full navigation with
+stub screens and a Markdown source editor (D-241), and the component
+inserter (D-243); then the section rail (D-244) and the editor as a
+writing surface with component options (D-245), and its three
+inserters (components, media, icons; D-246, D-247); toasts and the
+command palette (D-248); and read-only Roles and Accounts, Content
+types, and Media screens (D-249 to D-251). Next: live preview, uploads,
+a reference picker, and the remaining stubbed screens; see
+`.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
 `npm run admin:build` (D-221, D-224). Admin CSS reads design tokens
 from `resources/admin/css/tokens.css` only: no literal colors, fonts,

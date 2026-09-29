@@ -4732,3 +4732,485 @@ decision, add a new entry that supersedes it and mark the old one
   for the empty state; who saved, if the writer ever records it.
 - **Why:** the author asked for the admin to match the updated design
   direction, and for no "All entries" screen.
+
+### D-241: The admin's full navigation, planned screens, and a Markdown source editor
+- **Date:** 2026-09-29
+- **Decision:** From the author's new clickable prototype
+  (`admin-design/blush-admin.html`), with its screens that don't exist
+  yet stubbed, and the editor's next step.
+  - **Navigation in the prototype's groups:** the admin's own screens
+    (Dashboard, Content health); **Content**, each collection and pages
+    type, with a taxonomy nested under it when the taxonomy's `types`
+    names only that type, then Media; **Structure**, Content types and
+    the taxonomies shared by several types or every type, each with a
+    second line naming them ("Every type", "Posts, Pages", "3 types");
+    and **Site**: Appearance, Extensions, Accounts, Roles, Settings.
+    Replaces D-234's Taxonomies group. Links the account can't use are
+    hidden (Media `media.upload`; Accounts and Roles `accounts.manage`;
+    Content types, Appearance, Extensions, and Settings
+    `site.settings`). The prototype's "Addons" are Extensions, and its
+    nav counts are left out (no API gives them cheaply yet).
+  - **`GET types`** adds `types` to each taxonomy (`Taxonomy::$types`,
+    the types a term's page lists; empty for every type), which is what
+    places it.
+  - **Planned screens** (`PlannedView`, routes with `meta.planned`):
+    `/media`, `/types`, `/appearance`, `/extensions`, `/accounts`,
+    `/roles`, `/settings`. Each has its heading, what it's for, "This
+    screen comes next" with what it will do, and where that's done
+    until then (a command or file), so the whole admin can be judged
+    before every screen exists. The first-run setup doesn't link to
+    them: its steps must do something (D-240).
+  - **The Markdown source editor** (`MarkdownEditor`, `markdown.ts`):
+    the body stays a plain text area (typing, undo, spelling, and screen
+    readers work as in any field) laid over a highlighted copy in the
+    same grid cell, hidden from assistive tech. It picks out headings,
+    fenced and inline code, links, strong text, and component
+    directives, following the server's rules (D-026: containers closed
+    by at least as many colons, closing the outermost they're long
+    enough for; leaves; inline directives not after a word character or
+    colon; nothing inside fenced code), and marks the directive the
+    caret is in. A bar above shows the component count, the current
+    component's name, and the line and column; one below, word and
+    character counts (grouped digits) and "Components render on the
+    site". Highlights change color and background only, never width, so
+    the copy lines up (checked: identical sizes at 1360px and 390px).
+    The field grows with its text; the work area stays the only scroll
+    container. Departs from the prototype: no bottom padding for
+    scrolling past the end, spelling on, and no horizontal padding on
+    inline code (it shifted the text in the prototype).
+  - **Checked** on the jtcom trial in headless Chrome with a throwaway
+    administrator (deleted afterwards with its sessions): the groups and
+    nesting (Literature's three taxonomies, Posts' Categories and Eras,
+    Authors under Structure), each planned screen, the collapsed rail,
+    dark mode, a post with a container, a leaf, and inline directives,
+    typing a wrapped paragraph, no page-wide scroll at 390px, and no
+    console errors.
+- **Open:** the component inserter and the sidebar swapping to a
+  component's options (the current directive is the hook); live
+  preview (a render endpoint); nav counts; each planned screen's real
+  version.
+- **Why:** the author supplied the prototype, asked for stubs of the
+  screens that don't exist yet, and to keep moving the admin forward.
+
+### D-242: Relationships between entries; taxonomies become a preset (planned)
+- **Date:** 2026-09-29
+- **Decision:** Taxonomies aren't split further from content types.
+  Instead, references between entries become the general mechanism, and
+  a taxonomy becomes shorthand for settings any type can have. Today's
+  taxonomy is a content type plus: its term field added to the types it
+  groups; a reverse index (`IndexSnapshot::referencing()`); term pages
+  and feeds listing the entries that use a term; virtual terms for
+  referenced slugs with no file; and no dates. A plain `reference` field
+  (`to: actor`) is forward-only. Authors (D-043) already show the
+  pattern: an ordinary type that behaves like a taxonomy.
+  - **A reference is stored on one side** (a movie's `actors:
+    [tom-hanks]`); the index works out the other. Storing both sides in
+    flat files would let them disagree. The admin shows the reverse side
+    read-only ("Appears in", with links); it's edited from the side that
+    holds it.
+  - **Reverse lookups are by field, not by type**, so two fields that
+    point at one type (`director`, `actors` → person) give separate
+    lists ("Directed", "Acted in"). The index keys reverse references by
+    field and slug, for every reference field.
+  - **Whether a missing target is allowed** is a setting on the
+    reference: tags create terms as they're typed (virtual terms); an
+    unknown actor is a problem `content:lint` reports.
+  - **Any type's entry page can list what references it**, with a
+    term page's paging and feeds; a term page is that, on an entry that
+    can also have its own body and fields.
+  - **`kind: taxonomy` (and 1.x's `taxonomy: true`, D-078) becomes a
+    preset:** the reference field added to its `types`, missing targets
+    allowed, its page listing what references it (with feeds), and no
+    dates. Any collection can take each of those separately.
+  - **The admin** gets one picker in two modes: create-as-you-type for
+    taxonomies, search existing entries for other references. "Used by"
+    counts generalize the taxonomy list's Entries column (D-236), and the
+    rail's nesting (D-241) generalizes to a type under the one type that
+    references it.
+  - **In stages:** (1) the reverse index for every reference field, keyed
+    by field, with a template API (something like
+    `$entry->referencedBy('movie.actors')`) and "Used by" in the admin;
+    no config changes; (2) "lists what references it" as a setting for
+    any type, with taxonomies re-expressed as the preset (the taxonomy
+    kind is checked in about 20 files: routing, feeds, sitemaps, the
+    view hierarchy, permissions, lint, menus, the admin); (3) one picker
+    in the admin, after the component inserter settles how pickers look.
+- **Open:** see `open-questions.md` → Relationships.
+- **Why:** the author designed taxonomies as their own thing for a
+  simpler 1.x, thinks they can work much like other types, and wants
+  entry-to-entry relationships (a Movie type with an Actor type that
+  behaves like a taxonomy); agreed after discussion.
+
+### D-243: The admin's component inserter
+- **Date:** 2026-09-29
+- **Decision:** From the updated design direction (`admin.md` §8, The
+  component inserter) and prototype, the editor's inserter, built for a
+  catalog that grows.
+  - **`GET components`** (`ComponentsController`) lists what the
+    inserter offers: registered components with a class (D-214) that the
+    active theme's chain can render (as `component:list` filters them).
+    Each has its full `name` (the inserter writes full names, D-171), its
+    translated `label` and `description` (D-172), `content` (`none`,
+    `text`, `blocks`), `kind` (`container`, `leaf`, or `inline`),
+    `category`, `source`, and `props` as schema fields with translated
+    `label`s and, for choices, `choices` labels by value.
+  - **Groups:** the core components have a category
+    (`ComponentType::category()`, a `ComponentCategory`: Text, Media,
+    Layout, Navigation, Data). The rest are grouped by where they come
+    from (`source`: a theme in the chain by its name, the site's `app`
+    namespace as "This site", or an extension by its vendor), which is
+    the provenance the design names as the lasting axis. No registration
+    API changes: a category for third-party components can come later.
+  - **Kind:** `blocks` is a container; the core components meant for
+    inside a sentence (`ComponentType::isInline()`: abbr, icon, kbd,
+    time) are inline; the rest are leaves.
+  - **The inserter** (`ComponentInserter`): search first (label, name,
+    description, group; every word must match; starts-with ranks first),
+    groups down the side with counts, recently used on top (five, per
+    account, in `localStorage`), keyboard throughout, kind always shown,
+    and a badge naming a theme or extension source.
+  - **Typing `/`** at the start of an otherwise empty line (up to three
+    spaces before it, not in fenced code) opens it at the caret; what
+    follows filters it and stays in the text until a component replaces
+    it. Enter or Tab inserts; Escape, or clicking elsewhere in the text,
+    leaves the slash as text, and it stays closed until that slash is
+    gone.
+  - **What's written:** a component that takes a line of text is
+    written inline (`:blush/kbd[…]`) when the caret is in a sentence,
+    else on lines of its own with a blank line either side (a block can't
+    start mid-line, so it goes after the caret's line). Selected text
+    becomes its label or body. Required props are written empty
+    (`{src=""}`) so the author sees what's needed; defaults aren't
+    written. The caret goes to the first empty value, else the empty
+    label or body. Inserting goes through the browser's own editing
+    (`execCommand('insertText')`, with `setRangeText` as a fallback), so
+    one undo takes it back, slash and all.
+- **Checked:** `composer check`; `vue-tsc` and the build; in headless
+  Chrome, the editor in a scratch page with a stubbed component list:
+  opening from the button, search, groups, recents, the keyboard,
+  slash insertion, Escape, fenced code, inline insertion around a
+  selection, undo and redo, and no page-wide scroll at 390px. Not on
+  the dev site: making a throwaway admin account wasn't permitted this
+  session.
+- **Open:** the sidebar swapping to a component's options (the
+  directive under the caret is the hook); keywords in search (D-172
+  names `components.{name}.keywords`, which isn't read anywhere yet);
+  a category for third-party components; component icons from the
+  registration rather than the admin's own map.
+- **Why:** the author updated the design direction with the inserter's
+  design and asked to keep building the admin from it.
+
+### D-244: The admin's navigation is a section rail and a panel
+- **Date:** 2026-09-29
+- **Decision:** From the updated design direction (`admin.md` §6,
+  Layout: "Two levels, on purpose"), replacing D-241's single sidebar.
+  - **A labeled section rail** (`--railbar`, 66px): the site's mark (a
+    link to the site), then **Home**, **Content**, and **Config**. The
+    panel beside it (`--rail`) shows only the active section: Home has
+    the Dashboard and Content health, then shortcuts (Your profile,
+    Settings); Content has each collection and pages type with the
+    taxonomies that group only it nested under it (one level), "Shared
+    taxonomies" with what they group on a second line, and "Library"
+    (Media); Config has Structure (Content types), Site (Settings,
+    Appearance, Extensions), and People (Accounts, Roles, Your profile).
+    D-241's rules for what shows and what nests are unchanged; a section
+    with nothing the account can use is left out of the rail.
+  - **Each screen belongs to a section** (`meta.area` on its route), and
+    the panel follows the screen. Choosing Content or Config changes the
+    panel without navigating (and shows the panel if it was hidden); Home
+    is one screen, so it goes to the dashboard.
+  - **The panel collapses to nothing**, leaving the rail (remembered in
+    this browser, as before); the old icon-only collapse and `--rail-min`
+    are gone. Below 860px the rail and panel slide in together as one
+    drawer.
+  - **The account's menu moves to the top bar** (`MenuButton`, a
+    disclosure rather than an ARIA menu): the username and roles, Your
+    profile, and Sign out.
+  - **Focus mode** (`focusMode` in `screen.ts`, set by the editor)
+    drops the rail, the panel, and the top bar; any navigation turns it
+    off.
+  - Tokens added: `--railbar`, `--text-2xs` (the rail's labels),
+    `--drawer`, `--measure`, `--doc`, `--doc-title` (D-245).
+- **Departs from the prototype:** no nav counts (as in D-241), no state
+  dot on Content (there are no unpublished changes to live entries
+  without autosave, D-233), no ⌘K palette yet, no theme button in the top
+  bar (the color scheme is an account preference, D-235), no site
+  switcher, and no toast when a taxonomy moves (it moves when a config
+  file changes, not in the admin).
+- **Checked:** in headless Chrome against a stubbed API (scratch
+  harness): the three panels, choosing a section without navigating,
+  hiding and remembering the panel, the account menu (Escape closes it),
+  the drawer at 390px, and no page-wide scroll. Not on the dev site (a
+  throwaway admin account wasn't permitted this session).
+- **Why:** the author's updated design direction.
+
+### D-245: The editor is a writing surface, with component options
+- **Date:** 2026-09-29
+- **Decision:** From the updated design direction (`admin.md` §8, The
+  editor is a writing surface; The component inserter) and prototype.
+  Settles the open question of whether the settings swap between
+  Document fields and Component options: two tabs, both always shown.
+  - **Layout:** the editor fills the work area (`meta.bleed`) and
+    scrolls itself. One centered column (`--measure`, 68ch) holds the
+    title and body; the title is part of the document (a wrapping text
+    area in the display face at `--doc-title`, no box; Enter moves to the
+    body) with the entry's file under it. The body is `--doc` (14px) and
+    the Markdown editor is bare in the column (its bars are gone).
+  - **The header:** back to the type's list, the type, the save state
+    (with a dot), the status, **+** (the inserter, at the caret), the
+    settings button, a **⋯** menu (Save draft or Switch to draft, View,
+    Focus mode, Move to trash), and the primary action. Notices (kept
+    changes, failed saves, missing required fields with **Show me**, a
+    conflict with its comparison) are bars under it.
+  - **The footer is the status line:** words and reading time (220 words
+    a minute), the chip naming the component the caret is in ("Callout
+    options", when the settings aren't showing it), and shortcut hints.
+  - **Settings are a drawer** (`--drawer`, 340px) that pushes the column
+    aside, closed at first (⌘/ toggles it; Escape closes it); below
+    980px it lies over the column. **Document** has Publishing, the
+    type's fields, "Components in this entry" (each opens its options and
+    moves the caret to it), other front matter, and problems.
+    **Component** follows the caret, not focus, so it stays while the
+    settings are used; it's disabled, and says why, with none.
+  - **Component options** (`ComponentOptions`): the props from `GET
+    components` as a form (`FieldControl`, now with choice labels and an
+    id prefix), a **Text** field for the `[label]`, the attributes the
+    component doesn't declare (read-only), its source, and **Remove
+    component**. `markdown.ts` reads a directive's head and makes minimal
+    edits: an attribute that's there is rewritten in place, a new one is
+    added at the end, empty braces are removed, repeats of the same key
+    go, and values are quoted only when needed. A value set back to its
+    default is removed; a required one left empty stays as `key=""`.
+    Removing keeps a container's body and an inline directive's text.
+  - **While keys move** (in the title or body), the header and footer
+    fade to a third and the file path to 40%; any pointer movement
+    brings them back (2.6 s otherwise). No fade under reduced motion.
+  - **Focus mode** (⌘⇧F, or the ⋯ menu) leaves the editor alone
+    (D-244); Escape, the footer's chip, or leaving the editor ends it.
+  - **The inserter opens at the caret**, from **+** too, kept inside the
+    writing column when the column is wide enough and flipped above the
+    caret when there's no room below.
+- **Departs from the prototype:** no autosave (D-233), so the save state
+  reads "Unsaved changes" or "Saved 3:46 PM"; the file path, not a URL
+  slug, under the title; no Copy link or Duplicate in the menu; Tab in
+  the body moves focus as in any field (the prototype indented); the
+  drawer isn't remembered; removing a container keeps its body (the
+  prototype removed it). Option changes from the settings are applied to
+  the text directly, so the settings keep focus while typing; they
+  aren't in the text field's own undo (inserting and removing are).
+- **Checked:** the directive edits under Node (setting, adding, and
+  removing attributes, quoting, repeated keys, labels, removing each
+  kind, an unclosed container); in headless Chrome against a stubbed
+  API: the column and the drawer pushing it, the chip and tabs following
+  the caret, option changes (select, text, checkbox, back to default,
+  a required one emptied) with focus kept in the settings, "Components in
+  this entry", remove and undo, the inserter at the caret, slash
+  insertion, Enter from the title, the fade and its return, focus mode
+  and Escape, ⌘/, ⌘S, and 390px (no page-wide scroll; the drawer lies
+  over the text). Not on the dev site (see D-244).
+- **Open:** a media picker for `media` options; reordering components;
+  undo for option changes; the line and column readout the prototype's
+  footer has.
+- **Why:** the author's updated design direction and prototype.
+
+### D-246: The admin lists icons and media for the editor's pickers
+- **Date:** 2026-09-29
+- **Decision:** Two read-only endpoints for the editor's inserters
+  (D-247), both needing an account.
+  - **`GET icons`** (`IconsController`): the icons the active theme can
+    show (`Icons::all()`, as `icon:list` lists them), each with its
+    `name` as the icon component's `name` prop takes it (a core icon's
+    short name, `house`; the rest in full), its translated `label`, the
+    core icons' `keywords` (Lucide's tags, `resources/icons/blush/tags.json`),
+    and its `svg` (files over 16 KB are sent without it). The admin draws
+    an icon as a CSS mask from its SVG, filled with the text color, so no
+    markup from the file runs in the admin.
+  - **`GET media`** (`MediaListController`, `content.edit`): the library
+    (`user/media`), newest first by modified time, a page at a time
+    (`page`, `per`: 48 by default, at most 100), narrowed by `search` (in
+    the path, any case) and `kind` (`image`, `video`, `audio`, `any`).
+    Files are narrowed by extension first (the site's allowed types, less
+    caption tracks), so a 4,000-file library isn't read, then each file on
+    the page is checked by `MediaResolver` (its real type, size, and an
+    image's dimensions). With `entry` (an id the account may edit) in a
+    page bundle (`name/index.md`), `beside` lists the media files in its
+    folder (at most 200), which it refers to by name; otherwise `null`.
+    Each file has its `reference` (what to write: the library's URL path,
+    such as `/media/2026/photo.jpg`, or a bundle file's name), `name`,
+    `folder`, `url`, `mime`, `kind`, `size`, `width`, `height`, and
+    `modified`.
+- **Open:** uploading (`media.upload`), media metadata (D-238), and
+  thumbnails (the picker shows the file itself, lazily).
+- **Why:** the updated design's icon popover and media modal need them.
+
+### D-247: The editor's three inserters, and a header in two halves
+- **Date:** 2026-09-29
+- **Decision:** From the updated design direction (`admin.md` §8, The
+  editor is a writing surface; The inserters) and prototype.
+  - **The header has two halves.** Left: back, where you are, a hairline,
+    then the three insert tools (components, media, icons), things done
+    *to* the document; the component button sits over the panel it
+    opens. Right: the save state, the status, settings, the ⋯ menu, and
+    the primary action, what the document *is* and what happens to it.
+    Below 480px the save state keeps its dot and its words are read out
+    only.
+  - **Components are a panel from the left** (`ComponentPanel`, replacing
+    D-243's popover `ComponentInserter`, `--inserter`, 322px) that pushes
+    the column aside (below 980px it lies over the text) and stays open
+    after a pick when opened from its button. Inside: a search field,
+    category pills (All, the core categories, then sources), a
+    two-column grid of tiles (an icon in a tinted square, the name, the
+    kind, or "theme"/"extension" for where it comes from), and a strip at
+    the foot describing the highlighted one. Up and down move a row, left
+    and right a tile (in the search field only while it's empty, so they
+    still edit text), Enter inserts, Escape closes (`grid.ts`). Typing
+    `/` opens the same panel with the query from the text; it closes once
+    a component replaces the slash. The recently used list (D-243) is
+    gone, as in the design.
+  - **Icons are a popover** (`IconPicker`) under their button, with the
+    shapes glyph: a search (names, labels, keywords), a six-column grid,
+    and a foot showing the directive the highlighted icon writes
+    (`:blush/icon[]{name=house}`, or the selection as its label).
+  - **Media is a modal** (`MediaPicker`, a native `<dialog>`): search,
+    kind filters, "Beside this entry" for a page bundle, then the library
+    with **Show more**; a click selects, **Insert** or a double click
+    uses it. An image becomes a figure, a video a video, a sound audio,
+    anything else a file download, written on its own lines with
+    `src`, and the settings' Component tab switches to it. The same
+    picker is **Choose** beside every `media` field and option
+    (`FieldControl`'s `pickable`), which settles the open question of how
+    the picker is invoked from a component option.
+  - **What a component's kind decides** (replacing D-243's rule): an
+    inline component is written at the caret; a leaf or container on
+    lines of its own, whatever it takes. (D-243 put any component that
+    takes a line of text inside a sentence, which wrote figures and
+    buttons inline.)
+  - `directiveText()` takes attribute values, written first, before any
+    required props still empty.
+- **Departs from the prototype:** no `Changes` pill (no pending changes
+  without autosave, D-233); the prototype's inserter closes after every
+  pick, the design's doesn't, and this follows the design.
+- **Checked:** `composer check`; in headless Chrome against a stubbed API:
+  the panel pushing the column, pills, grid keys, the preview strip,
+  inserting with the panel staying open, search, Escape, the slash path
+  (open, filter, insert, close), the icon popover under its button with
+  keyword search, the media modal (filters, select, insert as a block,
+  the Component tab following), **Choose** for an option, Escape in the
+  dialog, and 390px with no page-wide scroll. Not on the dev site (a
+  throwaway admin account wasn't permitted).
+- **Why:** the author's updated design direction.
+
+### D-248: Toasts and the command palette
+- **Date:** 2026-09-29
+- **Decision:** From the design direction (`admin.md` §7, Menus, command
+  palette, toasts; §6, where ⌘K is the answer to the section rail's one
+  extra click).
+  - **Toasts** (`toast.ts`, `ToastHost` in the layout): one at a time,
+    bottom right, in a polite live region, gone after 2.6 s, in the past
+    tense. The editor says what it inserted or removed ("Inserted a
+    callout", "Inserted the house icon", "Inserted beach.png", "Removed
+    the figure"), a change of status ("Published", "Scheduled",
+    "Switched to draft"), and "Moved … to the trash". A plain save shows
+    in the save state, never as a toast; problems stay notices where they
+    happened.
+  - **The command palette** (`CommandPalette`, a native `<dialog>`), from
+    ⌘K (Ctrl+K) anywhere or the top bar's "Search or jump to…" button (an
+    icon below 640px). Commands come first: the screen's own
+    (`useCommands` in `commands.ts`; the editor adds focus mode, the
+    settings, the three inserters, Save, its primary and secondary
+    actions, and Move to trash, with their shortcuts), then going to each
+    screen and type the account may use, "New {singular}" for each type,
+    Your profile, and switching the color scheme (saved to the account,
+    D-235). Then entries (`GET entries`, any type the account may edit):
+    the latest changed with nothing typed, else those matching, a moment
+    after typing. Up and down, Enter, and Escape (which closes only the
+    palette, not the focus mode or panel under it).
+- **Checked:** in headless Chrome against a stubbed API: the toasts and
+  their timing; the palette's lists, search, navigation, the editor's
+  commands first, focus mode from it, and Escape.
+- **Why:** the design direction; the section rail made the palette the
+  quick way across sections.
+
+### D-249: Roles and accounts, read-only, as list and detail screens
+- **Date:** 2026-09-29
+- **Decision:** The first stubbed screens (D-241) built for real, in the
+  design direction's shape (`admin.md` §8, List, then detail).
+  - **`GET roles`** and **`GET accounts`** (`PeopleController`,
+    `accounts.manage`): every capability (`name`, `label`); every role
+    with its capabilities (`*` for all), whether it's built in, and the
+    accounts holding it; every account's username, roles, author, and
+    created and last sign-in times. Password hashes and preferences stay
+    on the server.
+  - **Roles** (`/roles`): a table (Role with its key, Capabilities as
+    "Everything" or "3 of 14", Accounts), no search or tabs for a handful
+    of fixed rows. **A role** (`/roles/{name}`): its label as the title,
+    "3 of 14 capabilities · held by 1 account", **All roles**, then About
+    (key, capabilities, built in or `config/auth.php`), Held by (links to
+    the accounts, or an empty state naming `account:roles`), and every
+    capability in groups by its first word, granted or not.
+  - **Accounts** (`/accounts`): Account, Roles, Author, Last signed in.
+    **An account** (`/accounts/{username}`): the facts, the commands
+    that change it, and every role with whether it's held (each a link).
+  - Read-only, with a notice naming where each is changed (`config/auth.php`,
+    `account:*`). A detail screen marks its list in the panel
+    (`meta.parent`).
+- **Departs from the prototype:** no Invite, role checkboxes, or danger
+  zone yet (accounts are changed with commands); no role descriptions (a
+  role has none); no entry counts or "last active" (the last sign-in
+  stands in).
+- **Checked:** `composer check` (`AdminPeopleTest`); in headless Chrome
+  against a stubbed API: both lists, a role, an account, the panel
+  marking the list, and 390px.
+- **Why:** the author asked to keep building the design's screens.
+
+### D-250: Content types, read-only, as list and detail screens
+- **Date:** 2026-09-29
+- **Decision:** The Content types stub (D-241) built as the design's
+  list and detail screens (`admin.md` §8), read-only.
+  - **`GET types`** adds each type's `origin` (`TypeOrigin`: built in,
+    an extension, `config/content.php`, or `user/data/types`), `folder`,
+    URL `prefix` (`null` without URLs), and how many `fields` it defines.
+    **`GET types/{name}`** adds its own fields (`Field::toArray()`), the
+    taxonomies that group it, whether it's public, has a feed, is in the
+    sitemap, and is `editable` (only `user/data/types` types, D-042).
+  - **Content types** (`/types`): tabs by kind (All, Content, Taxonomies)
+    with counts, a search of names and keys, and a table of Name (with
+    its key and address), Kind, Source, Fields, and Entries (each type's
+    `GET entries` total, as the account may edit them); **Clear filters**
+    when nothing matches.
+  - **A type** (`/types/{name}`): its label, "Collection · post · from
+    config/content.php", **All types** and **View posts**; General (names,
+    key, folder, address, dated, public, feed, sitemap), Taxonomies (or,
+    for a taxonomy, the types it groups, and where that puts it in the
+    navigation), and Fields (label, key, type, required), noting the
+    fields every entry has. Each type's list has **Type settings** linking
+    here, for `site.settings`.
+- **Departs from the prototype:** nothing is editable yet (no field
+  editor, no new-type wizard, no delete); "Show in the sidebar" and a
+  hierarchy switch aren't type settings in Blush.
+- **Checked:** `composer check`; in headless Chrome against a stubbed
+  API: the tabs, search and Clear filters, a type's screen, the panel
+  marking Content types, and the links both ways.
+- **Why:** the author asked to keep building the design's screens.
+
+### D-251: The media library, as list and detail screens
+- **Date:** 2026-09-29
+- **Decision:** The Media stub (D-241) built over `GET media` (D-246), in
+  the design's shape (`admin.md` §8, List, then detail), without upload.
+  - **Media** (`/media`): the library newest first as a grid of cards (a
+    lazily loaded image, or a video, audio, or file glyph; the name; the
+    folder, dimensions, and size), filters by kind, a search of file
+    names, **Show more**, and **Clear filters** when nothing matches.
+  - **A file** (`/media/{path}`, its path under `user/media`; `GET
+    media/{path}`, confined to the library and its allowed types): a
+    preview (the image, or a player), its details, and **Use it**: its
+    address and the component that shows it
+    (`::blush/figure[]{src=/media/…}`), each with **Copy** (a toast says
+    so).
+- **Departs from the prototype:** no upload, alt text, captions, or
+  "used in" yet (metadata is D-238); bundle files aren't listed here
+  (they're in the editor's picker, beside their entry).
+- **Checked:** `composer check` (`AdminPickersTest`); in headless Chrome
+  against a stubbed API: the grid, filters, a file's screen, copying, and
+  the panel marking Media.
+- **Why:** the author asked to keep building the design's screens.
