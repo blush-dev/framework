@@ -15,16 +15,20 @@ namespace Blush\Console\Commands;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Psr\Clock\ClockInterface;
 use Blush\Cache\Caches;
 use Blush\Cache\ContentVersion;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Core\AppConfig;
+use Blush\Session\SessionConfig;
+use Blush\Session\SessionStore;
 
 /**
  * The optional cron entry (D-040): moves the content version on if a
- * scheduled entry's time has come, and removes expired cache entries.
+ * scheduled entry's time has come, and removes expired cache entries
+ * and idle sessions.
  * Requests do the first by themselves, so this only makes a go-live
  * happen on time for a site that nobody visits, and keeps the store
  * tidy.
@@ -37,7 +41,10 @@ final readonly class RunSchedule
 	public function __construct(
 		private ContentVersion $version,
 		private Caches $caches,
-		private AppConfig $app
+		private AppConfig $app,
+		private SessionStore $sessions,
+		private SessionConfig $sessionConfig,
+		private ClockInterface $clock
 	) {}
 
 	public function __invoke(Output $output): ExitCode
@@ -45,6 +52,8 @@ final readonly class RunSchedule
 		$version = $this->version->current();
 		$next    = $this->version->scheduled();
 		$pruned  = $this->caches->prune();
+
+		$this->sessions->prune($this->clock->now()->getTimestamp() - $this->sessionConfig->idle);
 
 		$output->success(sprintf(
 			'The content version is %s; next go-live: %s. Pruned %d expired cache entr%s.',

@@ -175,6 +175,41 @@ is registered with `Blush\Region\Item\RegionItemRegistry` the same way.
 Both are built through the container, so their constructors can ask for
 services.
 
+## Capabilities and signed-in routes
+
+Add a [capability](accounts.md#capabilities) for your own feature from a
+provider's `boot()`. Administrators get it automatically; give it to
+other roles in `config/auth.php`.
+
+```php
+use Blush\Auth\Capabilities;
+
+public function boot(): void
+{
+	$this->container->get(Capabilities::class)->register('shop.orders', 'Manage orders');
+}
+```
+
+To check it, ask `Blush\Auth\Permissions`:
+`$permissions->can($account, 'shop.orders')`. Pass an entry as a third
+argument to check that entry, which also applies ownership (see
+[Accounts and roles](accounts.md#authors)).
+
+A route that needs a signed-in account runs three middleware, in this
+order: `Blush\Session\StartSession`, `Blush\Auth\Middleware\VerifyCsrf`,
+and `Blush\Auth\Middleware\Authenticate`. The controller then reads the
+account from the request's `Blush\Auth\Account::class` attribute:
+
+```php
+Route::group('/shop', [
+	Route::get('/orders', App\Http\Orders::class)
+], middleware: [StartSession::class, VerifyCsrf::class, Authenticate::class]);
+```
+
+Requests that change things (anything but `GET`) must send the session's
+CSRF token in an `X-CSRF-Token` header. The admin API's `session` answer
+includes it.
+
 ## Extensions
 
 An extension packages the same kind of code for reuse across sites. It's a

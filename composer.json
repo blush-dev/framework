@@ -19,6 +19,7 @@
 	},
 	"require": {
 		"php": ">=8.5",
+		"ext-dom": "*",
 		"ext-intl": "*",
 		"ext-mbstring": "*",
 		"league/commonmark": "^2.10",

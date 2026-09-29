@@ -193,7 +193,9 @@ Implemented in M2 (D-067).
   - `ConditionalGet` (ETag, Last-Modified → 304), `PageCache`, `SecurityHeaders`
   - `StartSession`, `VerifyCsrf`, `Authenticate`, `RateLimit` (admin and
     webhooks only)
-  `HandleErrors`, `ConditionalGet`, and `PageCache` exist so far. The
+  `HandleErrors`, `ConditionalGet`, and `PageCache` exist so far, plus
+  `StartSession`, `VerifyCsrf`, and `Authenticate` (D-219); login
+  throttling is `LoginThrottle`, not a middleware. The
   kernel always runs `HandleErrors` outermost, and it maps `HttpError`s
   to their status. It asks `ErrorPages` (the themed error pages) for the
   response first (D-108).
@@ -634,6 +636,21 @@ Implemented in M7 (D-135 to D-140).
   the `icon` component (inline SVG, `1em`, `currentColor`, decorative
   or labeled). Labels are catalog text (`icons.{name}.label`).
 
+## Setup (D-218)
+
+- `Blush\Setup\SetupChecks` checks PHP and its extensions, `.env`,
+  production risks (`APP_DEBUG` on, a local `APP_URL`), `public/`, and
+  that every storage path is writable (or can be created). Results are
+  `CheckResult`s (`CheckStatus`: ok, warning, failure; a hint says what
+  to do).
+- `init` creates `.env` (from `.env.example`, through `Env\EnvFile`,
+  which rewrites single lines and keeps the rest), optionally adds a
+  `PUBLISH_SECRET`, and creates the storage folders. `doctor` prints
+  every check.
+- `HttpRunner::handle()` runs the storage checks before loading the
+  application; a failure answers every request with `SetupPage` (a
+  plain, self-contained 503) instead of a stack trace.
+
 ## Publishing and admin (D-013)
 
 - **Stage 1: no UI (ships with core; M6b, D-131 to D-133)**
@@ -649,8 +666,10 @@ Implemented in M7 (D-135 to D-140).
   - `publish` on the CLI does the same over SSH; `schedule:run` is the
     optional cron entry.
 - **Stage 2: operations dashboard**
-  - Auth (password hashes in env or config; passkeys later), sessions, CSRF,
-    and rate limiting.
+  - Auth: several accounts, each linked to an `author` entry, with roles
+    that hold capabilities (D-216); passkeys later. Sessions, CSRF, and
+    rate limiting.
+  - The admin is a JavaScript single-page application (D-215).
   - Actions: clear caches, reindex, publish (git), export.
   - Content health (lint), drafts and scheduled lists, and signed preview URLs.
 - **Stage 3: editor**
@@ -661,6 +680,22 @@ Implemented in M7 (D-135 to D-140).
   - A media library, and git-backed revisions.
 - **Admin constraints:** it lives in an `/admin` route group (path
   configurable) behind its own provider and is off by default.
+- **Built so far (D-219):** the auth groundwork, with no UI.
+  - `Blush\Session`: server-side sessions (`FileSessionStore`, files
+    named by a hash of the id), started only by `StartSession` on the
+    routes that need them; a new session is saved only once something is
+    stored in it; `__Host-` cookie over HTTPS.
+  - `Blush\Auth`: accounts (`FileAccountStore`, `storage/accounts`),
+    `Accounts` (create and change, with checks), `Passwords` (Argon2id),
+    `Roles` (built-ins plus `AuthConfig::$roles`), `Capabilities` (the
+    registry), `Permissions` (roles, ownership through the author link,
+    and the live-entry rule), `Authenticator` (throttled sign-in, session
+    login with a new id, a CSRF token, and a password fingerprint), and
+    the `VerifyCsrf` and `Authenticate` middleware.
+  - `Blush\Admin`: `AdminConfig` and the JSON API under
+    `{path}/api`: `GET session`, `POST login`, `POST logout`.
+  - CLI: `account:add|list|password|roles|author|remove`; `init` offers
+    the first administrator.
 
 ## Extensions (D-041)
 

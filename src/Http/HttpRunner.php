@@ -20,6 +20,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Core\Runner;
 use Blush\Error\ErrorHandler;
 use Blush\Error\HtmlRenderer;
+use Blush\Setup\SetupChecks;
+use Blush\Setup\SetupPage;
 
 /**
  * Runs a web request. The front controller is just:
@@ -63,10 +65,18 @@ final class HttpRunner extends Runner
 	}
 
 	/**
-	 * Handles a request through the kernel.
+	 * Handles a request through the kernel. While storage isn't writable,
+	 * every request gets the setup page instead, before the application
+	 * loads (D-218).
 	 */
 	public function handle(ServerRequestInterface $request): ResponseInterface
 	{
+		$failures = SetupChecks::failures(new SetupChecks($this->sitePaths())->storage());
+
+		if ($failures !== []) {
+			return SetupPage::response($failures);
+		}
+
 		return $this->application()->container()->make(Kernel::class)->handle($request);
 	}
 

@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **PHP 8.5** or newer, with the `intl` and `mbstring` extensions
+- **PHP 8.5** or newer, with the `dom`, `intl`, and `mbstring` extensions
 - **Composer**
 - A web server: Apache (including most shared hosting), nginx, or PHP's
   built-in server for local work
@@ -18,22 +18,37 @@ and make your own:
 git clone -b 2.x https://github.com/blush-dev/blush.git my-site
 cd my-site
 composer install
-cp .env.example .env
+bin/blush init
 ```
 
-Then open `.env` and set at least these:
+`init` sets up the site. It asks for the site's name, address (use
+`http://127.0.0.1:8000` for now), timezone, and environment, and writes
+them to a new `.env` file. It also asks whether to turn on the
+[publish webhook](going-live.md#publishing-without-a-shell), and creates the
+`storage/` folders Blush writes to, and offers to create an administrator
+account for the admin (see [Accounts and roles](accounts.md)). It's safe
+to run again: it never changes a `.env` you already have, except to add a
+missing webhook secret.
 
-```ini
-APP_ENV=development
-APP_DEBUG=true
-APP_NAME="My Site"
-APP_URL="http://127.0.0.1:8000"
-APP_TIMEZONE="America/Chicago"
+Pick the `development` environment while you build the site. It shows
+content changes right away and gives you detailed error pages. Switch to
+`production` when the site goes live (see [Going live](going-live.md)).
+
+You can change any setting later by editing `.env`.
+
+## Check your setup
+
+```sh
+bin/blush doctor
 ```
 
-`APP_ENV=development` shows content changes right away and gives you
-detailed error pages. Switch to `production` when the site goes live (see
-[Going live](going-live.md)).
+`doctor` checks PHP and its extensions, your `.env`, settings that are
+risky on a live site (such as `APP_DEBUG` left on), and whether Blush can
+write to `storage/`. Each problem comes with what to do about it.
+
+Your web server may run a different PHP than your command line, so on a
+host, it's the web server's settings that count. If Blush can't write to
+`storage/`, the site shows a page that says so, rather than an error.
 
 ## See it in your browser
 

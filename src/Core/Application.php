@@ -15,6 +15,8 @@ namespace Blush\Core;
 
 use Override;
 use Psr\Container\ContainerInterface;
+use Blush\Admin\AdminServiceProvider;
+use Blush\Auth\AuthServiceProvider;
 use Blush\Cache\CacheServiceProvider;
 use Blush\Clock\ClockServiceProvider;
 use Blush\Console\ConsoleServiceProvider;
@@ -39,6 +41,7 @@ use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
 use Blush\Publish\PublishServiceProvider;
+use Blush\Session\SessionServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
 use Blush\Sitemap\SitemapServiceProvider;
 use Blush\Theme\ThemeServiceProvider;
@@ -88,6 +91,9 @@ class Application implements Bootable
 		IconServiceProvider::class,
 		MenuServiceProvider::class,
 		RegionServiceProvider::class,
+		SessionServiceProvider::class,
+		AuthServiceProvider::class,
+		AdminServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class
 	];

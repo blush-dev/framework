@@ -3702,3 +3702,198 @@ decision, add a new entry that supersedes it and mark the old one
   code rejects `yesterday` with that pattern, so the check never ran:
   its validators are picked by a single type
   (`getTypeValidations(JsonSchemaType)`), and a type list has none.
+
+### D-213: Menus and regions stay separate
+- **Date:** 2026-09-29
+- **Decision:** Closes the open question from D-204. Menus and regions
+  are two distinct things, as D-199 and D-201 designed them: a menu is
+  link data shown in a menu location, and a region is an ordered list of
+  items shown in a region location. Menu locations and region locations
+  stay separate, and the admin will have a menu editor and a region
+  editor. A region can still show a menu through the `menu` component.
+- **Why:** the author's call.
+
+### D-214: Only components with a class are offered in the admin
+- **Date:** 2026-09-29
+- **Decision:** Answers D-195's open question for the admin. A component
+  must have a class to be offered by the admin's component inserter
+  (the inserter reads its props from the constructor, D-173).
+  Template-only components (`TemplateComponent`) still render wherever
+  they're written by hand, but the admin doesn't list them.
+- **Why:** the author's call; the admin needs typed props to build its
+  forms.
+
+### D-215: The admin is a JavaScript single-page application
+- **Date:** 2026-09-29
+- **Decision:** The admin (M9 and M10) is a single-page application
+  built in JavaScript, not server-rendered PHP pages. The front-end
+  library, and how the SPA talks to the server, are still open (see
+  `open-questions.md`). Component variants (D-191) are deferred until
+  after the admin's groundwork.
+- **Why:** the author's call.
+
+### D-216: Admin accounts, linked to authors, with roles
+- **Date:** 2026-09-29
+- **Decision:** Refines D-013's stage 2 auth ("password hashes in env or
+  config") and D-043's note on accounts. Details are still being
+  designed.
+  - **Several accounts.** A person who signs in to the admin is an
+    **account** (the name avoids clashing with `user/` and the `author`
+    type). Accounts live outside `user/` and git, created and managed
+    from the CLI (`account:*` commands); the working plan is one file per
+    account in `storage/`.
+  - **Accounts are tied to author entries.** An account links to an
+    entry of the built-in `author` type (D-043), which gives it its
+    public name and profile.
+  - **Roles and capabilities.** An account has one or more roles; a role
+    holds capabilities; an account can do what any of its roles allows.
+- **Why:** the author's calls.
+
+### D-217: Account, role, and first-account details (planned)
+- **Date:** 2026-09-29
+- **Decision:** Settles D-216's open details.
+  - **Storage:** `storage/accounts/{username}.json` (password hash,
+    optional author, roles, created and last-login times; passkeys
+    later). Kept out of git and `user/`; `cache:clear` leaves it.
+  - **The author link is optional.** An account without one (a
+    developer's, or any account when the site disables the `author`
+    type) owns no entries. With one, an entry is the account's own when
+    its `authors` field includes that author, and new entries default to
+    it.
+  - **Capabilities** are dotted names (`content.edit`,
+    `content.edit.others`, `content.publish`, `media.upload`,
+    `menus.edit`, `regions.edit`, `site.publish`, `cache.clear`,
+    `accounts.manage`, `site.settings`), registered with translatable
+    labels so extensions can add their own. One set covers all content
+    types for now; per-type capabilities later if a site needs them.
+  - **Roles:** built-in `administrator` (every capability, including
+    ones added later), `editor`, `author` (own entries, media), and
+    `contributor` (own drafts, never publishes). Custom roles, and
+    changes to the built-ins, go in `config/auth.php`, not `user/`: they
+    control security, so the webhook's pull must not reach them.
+  - **Checks:** `$account->can($capability, $entry)` (the entry turns
+    on ownership), a route middleware, and a 403 JSON answer from the
+    API; the SPA reads the account's capabilities from its `me`
+    endpoint.
+  - **The first account:** created with `init` (or `account:add`) on a
+    machine with a shell, and uploaded with `storage/accounts/` on hosts
+    without SSH (D-040). A one-time web setup screen, shown only while
+    no accounts exist and guarded by a setup token from `.env`, comes
+    with the admin.
+- **Why:** the author's calls.
+
+### D-218: First-run setup: `init`, `doctor`, and the setup page
+- **Date:** 2026-09-29
+- **Decision:** The first part of the setup work (D-156), ahead of auth.
+  - **`init`** (`SetUpSite`) is safe to run again. Without a `.env` it
+    writes one from `.env.example` (or built-in defaults), asking in a
+    terminal for the name, URL, timezone, and environment (development
+    also sets `APP_DEBUG=true`). An existing `.env` is never changed,
+    except to add a secret it lacks. It creates the storage folders
+    (`SetupChecks::STORAGE`) and fails when one isn't writable.
+  - **The webhook stays opt-in.** `init` adds a random 64-hex-character
+    `PUBLISH_SECRET` only with `--webhook` or a yes when asked (default
+    no), since a secret turns on a public endpoint. No `APP_SECRET` yet:
+    nothing uses one until signed previews or sessions need it.
+  - **`Env\EnvFile`** edits `.env` as text: it rewrites the last line
+    that sets a variable (keeping `export` and double quotes) or appends
+    one, quoting so `EnvParser` reads the value back, and refuses to
+    rewrite a value that spans lines.
+  - **`doctor`** (`CheckSite`) runs `Setup\SetupChecks::all()`: PHP 8.5,
+    `dom`, `intl`, and `mbstring`; `.env` (a warning when missing, since
+    a host may set the environment itself); in production, `APP_DEBUG`
+    on (failure) and a local `APP_URL` (warning); `public/index.php`
+    (failure) and `public/.htaccess` (warning); and each storage path
+    (writable, or creatable under a writable parent). Hints say what to
+    do; any failure fails the command. There's no opcache check: the
+    CLI's PHP isn't the web server's.
+  - **The setup page:** `HttpRunner::handle()` runs only the storage
+    checks, before the application loads (a few `stat` calls), and
+    answers any failure with `SetupPage`: a self-contained 503
+    (`no-store`, `Retry-After`) listing each problem and its fix, with
+    paths relative to the root. A missing `.env` isn't a setup problem.
+  - `composer.json` now requires `ext-dom` (Blush already used `Dom\`).
+  - **The skeleton** (its `2.x` branch, not changed here) should run
+    `@php bin/blush init` from `post-create-project-cmd`, and its
+    `.env.example` may mention `PUBLISH_SECRET`.
+- **Open:** a read-only deployment (a container with an unwritable
+  filesystem) would get the setup page, though it can run without
+  writing; if one is ever needed, a way to skip the check.
+- **Why:** the author picked first-run setup and auth as the next work
+  (D-156, D-215 to D-217).
+
+### D-219: Auth groundwork: sessions, accounts, roles, and the admin's sign-in API
+- **Date:** 2026-09-29
+- **Decision:** Builds D-215 to D-217 without a UI. Refinements:
+  - **Sessions (`Blush\Session`)** are Blush's own, not PHP's
+    `session_*()` (they'd need superglobals and global state). `Session`
+    is mutable, like PHP's, so a login changes what `StartSession` saves.
+    Ids are 32 random bytes; files in `storage/sessions` are named by the
+    id's SHA-256 and written `0660`. A session is dropped after `idle`
+    (2 hours) or `lifetime` (12 hours). **A new session is saved only
+    once something is stored**, so anonymous admin requests leave no
+    file and no cookie. The cookie is a browser-session cookie,
+    `HttpOnly`, `SameSite=Strict`, and over HTTPS `Secure` with the
+    `__Host-` prefix (plain `blush_session` over HTTP, for local work).
+    Pruned by a 1-in-100 lottery and by `schedule:run`.
+  - **CSRF (`VerifyCsrf`)** for anything but `GET`, `HEAD`, and
+    `OPTIONS`: `Sec-Fetch-Site` must be `same-origin` or `none` and
+    `Origin` the site's or the request's own, when sent; once signed in,
+    `X-CSRF-Token` must match the session's token. **Signing in has no
+    token** (there's no anonymous session to hold one), so it relies on
+    the origin checks and the `SameSite=Strict` cookie. Clients that send
+    neither header (curl) pass the origin layers.
+  - **Accounts** live in `storage/accounts/{username}.json` (`0660`;
+    `Paths::$accounts`, a new path). `Account` holds the hash, roles,
+    optional author, and times. `Accounts` creates and changes them with
+    checks (a free username, `minPasswordLength` 12, roles that exist).
+    `Passwords` uses Argon2id where available, rehashes old hashes at
+    sign-in, and verifies against a dummy hash for unknown usernames.
+  - **Permissions** are a service, `Permissions::can($account,
+    $capability, ?$entry)`, not a method on `Account` (which stays plain
+    data). With an entry: an entry not the account's own also needs the
+    capability's `.others` form, and editing or deleting a non-draft also
+    needs `content.publish` (keeping contributors to drafts). Ownership
+    is the entry crediting the account's author in
+    `AuthConfig::$authorTaxonomy`. An unknown role grants nothing.
+    `capabilities()` lists what an account has, for the admin.
+  - **Capabilities** (`Capabilities`, a registry of names and English
+    labels; built-ins in the `Capability` enum, 15 of them) and **roles**
+    (`BuiltInRole`: `administrator` is `*`; `editor`; `author`;
+    `contributor`) as in D-217. Labels aren't translated yet.
+  - **Sign-in (`Authenticator`)**: usernames are lowercased. A login
+    regenerates the session id and stores the username, a SHA-256
+    fingerprint of the password hash (so a password change signs out
+    every session), and a CSRF token. `LoginThrottle` counts failures in
+    a new persistent `logins` cache namespace (never cleared): 5 per
+    address and username, 20 per address, locked for `lockout` (900 s)
+    from the first counted failure. No lock, so parallel requests can
+    add a few guesses. The address is `REMOTE_ADDR` (`ClientIp`), so
+    behind a proxy it's the proxy's until trusted proxies exist.
+  - **The admin API (`Blush\Admin`)**, only while `AdminConfig::$enabled`
+    (off by default; `path` `/admin`): `GET {path}/api/session` (the
+    account, its capabilities, and the CSRF token, or `account: null`),
+    `POST {path}/api/login` (JSON `username` and `password`; 400, 401,
+    429 with `Retry-After`), and `POST {path}/api/logout` (204). All
+    `no-store`.
+  - **CLI:** `account:add` (administrator by default; `--role` repeats;
+    `--author`), `account:list`, `account:password`, `account:roles`,
+    `account:author`, and `account:remove`. Passwords are asked twice,
+    hidden (`Prompt::newSecret()`), so they need a terminal. `init`
+    offers an administrator while there are no accounts. A missing
+    author only warns; an author counts when entries credit it, even
+    without an entry file (jtcom's `justintadlock` is virtual).
+  - **Other:** `Cookie`, `SameSite`, and `Response::withCookie()`;
+    `Filesystem::writeAtomic()` takes a mode; `SetupChecks` covers
+    `storage/accounts`.
+  - **The jtcom trial** has the admin on (`config/admin.php`) and a
+    `justin` administrator linked to `justintadlock`; signing in and out
+    over `bin/blush serve` was checked with curl. Its `composer.json`
+    runs `init` after `create-project` and has a `doctor` script (not
+    `init`, which would shadow Composer's own command), and its
+    `.env.example` lists an empty `PUBLISH_SECRET`.
+- **Open:** a route middleware that checks a capability (route
+  middleware are class names without arguments today); rate limiting
+  for the rest of the API; trusted proxies; passkeys; the web setup
+  screen for the first account (D-217); translated capability labels.
+- **Why:** the author asked to start on auth after first-run setup.

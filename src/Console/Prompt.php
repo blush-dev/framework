@@ -168,6 +168,32 @@ final readonly class Prompt
 	}
 
 	/**
+	 * Asks for a new secret, such as a password, twice without echoing
+	 * it, until the two match. `$validate` works as in `ask()`.
+	 *
+	 * @param  ?Closure(string): ?string $validate
+	 * @throws InvalidInput When no answer can be read.
+	 */
+	public function newSecret(string $question, string $repeat, ?Closure $validate = null): string
+	{
+		while (true) {
+			$secret = $this->secret($question);
+			$error  = $secret === '' ? 'An answer is required.' : ($validate === null ? null : $validate($secret));
+
+			if ($error !== null) {
+				$this->output->error($error);
+				continue;
+			}
+
+			if (hash_equals($secret, $this->secret($repeat))) {
+				return $secret;
+			}
+
+			$this->output->error('Those didn\'t match; try again.');
+		}
+	}
+
+	/**
 	 * Reads one line of input without its line ending, or `null` at the
 	 * end of input.
 	 */

@@ -27,6 +27,7 @@ you can edit, copy, and keep in git.
 | [Components](components.md) | Callouts, galleries, and your own components, in Markdown and templates |
 | [Themes](themes.md) | Choosing, customizing, and building themes |
 | [Menus and regions](menus.md) | Navigation menus, and the sidebar and footer areas themes offer |
+| [Accounts and roles](accounts.md) | Who can sign in to the admin, and what they can do |
 | [Configuration](configuration.md) | `.env` and every `config/` option |
 | [Going live](going-live.md) | Caching, publishing, webhooks, and static export |
 | [Command line](cli.md) | Every `bin/blush` command |
@@ -50,13 +51,14 @@ my-site/
     lang/         Translations for your own components and icons (the `app` namespace)
     icons/        Your own SVG icons (see Components)
   public/         The web root: index.php and published files only
-  storage/        Caches, the content index, logs, and exports (never commit)
+  storage/        Caches, the content index, logs, exports, sessions, and admin accounts (never commit)
   src/            Your own PHP classes (the App\ namespace)
   bin/blush       The command-line tool
 ```
 
 The short version: **you write in `user/`, and you configure in `config/`
-and `.env`.** Everything in `storage/` is generated and safe to delete.
+and `.env`.** Everything in `storage/` is generated and safe to delete,
+except `storage/accounts/`, which holds the admin's accounts.
 
 `user/` holds everything that's yours: what you write, and the themes and
 extensions you add. Each theme and extension can be its own git

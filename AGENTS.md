@@ -11,8 +11,8 @@ publishing), and M7 (Static export) are **complete**. **Milestone M8
 (Port jtcom)** is on hold after a trial port on the `jtcom-trial` branch
 of `../blush` (a test bed the author uses; never commit its site files).
 **The current focus is setup DX/UX** (D-156), which has lately been
-components and embeds (D-170 to D-191; next, component variants); see
-`.claude/docs/roadmap.md`.
+first-run setup (D-218) and the admin's auth groundwork (D-215 to D-219;
+next, the admin itself, a JavaScript SPA); see `.claude/docs/roadmap.md`.
 The dev site is `../blush` (`ddev start`, https://blush.ddev.site), on
 `jtcom-trial` for now (the skeleton itself is its `2.x` branch). Code on
 `master` (1.x) is not a reference implementation, with one exception:

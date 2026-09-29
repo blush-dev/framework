@@ -78,6 +78,13 @@ Implemented in M2 (D-065, D-069).
 | `extension:list\|new\|check` | Extension management (D-041) |
 | `schedule:run` | Optional cron entry: move the content version on at go-live times and prune the store (D-040, D-133) |
 | `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
-| `doctor` | Check environment, permissions, extensions, and config |
+| `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal), optionally add a `PUBLISH_SECRET`, create the storage folders, and report unwritable ones; idempotent (D-218) |
+| `account:add <username> [--role]... [--author]` | Create an account, asking twice for the password (needs a terminal); administrator by default (D-219) |
+| `account:list` | Accounts with roles (unknown ones flagged), author, and last sign-in (D-219) |
+| `account:password <username>` | Set a password, which signs the account's sessions out (D-219) |
+| `account:roles <username> --role...` | Replace an account's roles (D-219) |
+| `account:author <username> [slug]` | Link to an author, or unlink; warns when no such author exists, virtual terms included (D-219) |
+| `account:remove <username> [--yes]` | Delete an account after confirming (D-219) |
+| `doctor` | Run every `SetupChecks` check (PHP, extensions, `.env`, production risks, `public/`, storage) with hints; fails on any failure. No opcache check, since the CLI's PHP isn't the web server's (D-218) |
 | `generate:{provider,component,controller,command,type}` | Scaffolding (not `make:`, D-008) |
 | `new <dir>` | Create a new site from the skeleton (may live in a global installer) |

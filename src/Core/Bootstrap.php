@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Core;
 
+use Blush\Admin\AdminConfig;
+use Blush\Auth\AuthConfig;
 use Blush\Cache\CacheConfig;
 use Blush\Config\Config;
 use Blush\Config\ConfigCache;
@@ -41,6 +43,7 @@ use Blush\Media\MediaConfig;
 use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
+use Blush\Session\SessionConfig;
 use Blush\Sitemap\SitemapConfig;
 use Blush\Support\PhpArrayFile;
 use Blush\Theme\ThemeCache;
@@ -264,7 +267,10 @@ final readonly class Bootstrap
 			new CacheConfig(),
 			PublishConfig::fromEnv($env),
 			new ExportConfig(),
-			new EmbedConfig()
+			new EmbedConfig(),
+			new SessionConfig(),
+			new AuthConfig(),
+			new AdminConfig()
 		)->with(...$this->overrides);
 	}
 

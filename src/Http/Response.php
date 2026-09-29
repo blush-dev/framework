@@ -229,6 +229,15 @@ final readonly class Response extends Message implements ResponseInterface
 	}
 
 	/**
+	 * Returns a copy that sets a cookie, alongside any others.
+	 */
+	#[\NoDiscard]
+	public function withCookie(Cookie $cookie): static
+	{
+		return $this->withAddedHeader('Set-Cookie', $cookie->header());
+	}
+
+	/**
 	 * Returns the status as an enum case, or `null` for an unregistered
 	 * code.
 	 */

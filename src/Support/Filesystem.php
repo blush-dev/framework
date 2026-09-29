@@ -29,11 +29,12 @@ final class Filesystem
 	/**
 	 * Writes a file atomically: the contents go to a temp file in the same
 	 * directory, which is then renamed over the target, so a reader never
-	 * sees a half-written file. Missing directories are created.
+	 * sees a half-written file. Missing directories are created. `$mode`
+	 * sets the file's permissions (tighter for secrets).
 	 *
 	 * @throws FilesystemException When the file can't be written.
 	 */
-	public function writeAtomic(string $path, string $contents): void
+	public function writeAtomic(string $path, string $contents, int $mode = 0664): void
 	{
 		$directory = dirname($path);
 
@@ -52,7 +53,7 @@ final class Filesystem
 			throw new FilesystemException(sprintf('Unable to write "%s".', $temp));
 		}
 
-		@chmod($temp, 0664);
+		@chmod($temp, $mode);
 
 		if (! @rename($temp, $path)) {
 			@unlink($temp);

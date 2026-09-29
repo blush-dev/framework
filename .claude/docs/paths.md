@@ -54,6 +54,12 @@ blush-framework/
     Icon/               IconName, Icons (lookup through site, themes, extensions, core), IconRegistry (D-187)
     Sitemap/            Sitemap config, builder, controller, robots.txt, routes (D-123)
     Publish/            Publisher, PublishConfig, Puller + GitPuller, webhook (D-131, D-132)
+    Setup/              SetupChecks, CheckResult, CheckStatus, SetupPage (init, doctor, D-218)
+    Session/            Session, SessionStore + FileSessionStore, SessionConfig, StartSession (D-219)
+    Auth/               Account, AccountStore + FileAccountStore, Accounts, Passwords, Roles,
+                        Role, BuiltInRole, Capabilities, Capability, Permissions, Authenticator,
+                        LoginThrottle, AuthConfig; Middleware/ (VerifyCsrf, Authenticate) (D-219)
+    Admin/              AdminConfig, AdminRoutes, SessionController (the JSON API, D-219)
     Export/             Static export: Exporter, ExportSite, Crawler, UrlSource, ExportLayout,
                         ExportWriter, ExportAssets, ExportManifest, ExportFingerprint,
                         ExportRedirect (D-135 to D-139)
@@ -117,6 +123,8 @@ site/
                         and manifest.json) and export.lock (D-135, D-137)
     index/              content.php, the content index (D-087)
     export/             Static export output (`build`, D-137)
-    logs/  sessions/
+    logs/
+    sessions/           One JSON file per session, named by the id's SHA-256 (D-219)
+    accounts/           {username}.json admin accounts (D-217, D-219); never cleared
   tests/
 ```

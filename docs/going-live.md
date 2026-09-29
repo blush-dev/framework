@@ -67,8 +67,9 @@ Many shared hosts don't offer SSH. Blush has a publish **webhook** for
 that: a URL you call after uploading, which runs the same steps as
 `bin/blush publish`.
 
-1. Turn it on by setting a secret of at least 32 random characters in
-   `.env`:
+1. Turn it on with `bin/blush init --webhook`, which adds a random
+   secret to `.env`. Or set one of at least 32 random characters
+   yourself:
 
    ```ini
    PUBLISH_SECRET="paste-a-long-random-string-here-000000"

@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace Blush\Console;
 
 use Blush\Console\Commands\ActivateTheme;
+use Blush\Console\Commands\AddAccount;
 use Blush\Console\Commands\Build;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
+use Blush\Console\Commands\CheckSite;
 use Blush\Console\Commands\CheckTheme;
 use Blush\Console\Commands\CreateContent;
 use Blush\Console\Commands\CreateTheme;
@@ -24,6 +26,7 @@ use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\LintContent;
+use Blush\Console\Commands\ListAccounts;
 use Blush\Console\Commands\ListCommands;
 use Blush\Console\Commands\ListComponents;
 use Blush\Console\Commands\ListIcons;
@@ -33,9 +36,14 @@ use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\Publish;
 use Blush\Console\Commands\PublishMedia;
 use Blush\Console\Commands\PublishThemes;
+use Blush\Console\Commands\RemoveAccount;
 use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\RunSchedule;
 use Blush\Console\Commands\Serve;
+use Blush\Console\Commands\SetAccountAuthor;
+use Blush\Console\Commands\SetAccountPassword;
+use Blush\Console\Commands\SetAccountRoles;
+use Blush\Console\Commands\SetUpSite;
 use Blush\Console\Commands\ShowMenu;
 
 /**
@@ -46,6 +54,8 @@ enum BuiltInCommand: string
 {
 	case List          = 'list';
 	case Help          = 'help';
+	case Init          = 'init';
+	case Doctor        = 'doctor';
 	case Serve         = 'serve';
 	case CacheClear    = 'cache:clear';
 	case CacheCompile  = 'cache:compile';
@@ -68,6 +78,12 @@ enum BuiltInCommand: string
 	case Publish       = 'publish';
 	case ScheduleRun   = 'schedule:run';
 	case Build         = 'build';
+	case AccountAdd      = 'account:add';
+	case AccountList     = 'account:list';
+	case AccountPassword = 'account:password';
+	case AccountRoles    = 'account:roles';
+	case AccountAuthor   = 'account:author';
+	case AccountRemove   = 'account:remove';
 
 	/**
 	 * Returns the command's class.
@@ -79,6 +95,8 @@ enum BuiltInCommand: string
 		return match ($this) {
 			self::List          => ListCommands::class,
 			self::Help          => Help::class,
+			self::Init          => SetUpSite::class,
+			self::Doctor        => CheckSite::class,
 			self::Serve         => Serve::class,
 			self::CacheClear    => CacheClear::class,
 			self::CacheCompile  => CacheCompile::class,
@@ -100,7 +118,13 @@ enum BuiltInCommand: string
 			self::MenuShow      => ShowMenu::class,
 			self::Publish       => Publish::class,
 			self::ScheduleRun   => RunSchedule::class,
-			self::Build         => Build::class
+			self::Build         => Build::class,
+			self::AccountAdd      => AddAccount::class,
+			self::AccountList     => ListAccounts::class,
+			self::AccountPassword => SetAccountPassword::class,
+			self::AccountRoles    => SetAccountRoles::class,
+			self::AccountAuthor   => SetAccountAuthor::class,
+			self::AccountRemove   => RemoveAccount::class
 		};
 	}
 }

@@ -11,6 +11,26 @@ Options that work with every command: `-v` for more detail (`-vv`, `-vvv`
 for even more), `-q` for errors only, `-n` to never ask questions, and
 `--no-ansi` to turn off colors.
 
+## Setting up
+
+| Command | What it does |
+|---|---|
+| `init` | Set up a new site: create `.env` (asking for the basics), create the `storage/` folders, report any Blush can't write to, and offer to create the first admin account. `--webhook` adds a `PUBLISH_SECRET`, which turns on the publish webhook. Safe to run again; it never changes an existing `.env` except to add that secret. |
+| `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, and writable storage. Fails when something needs fixing. |
+
+## Accounts
+
+See [Accounts and roles](accounts.md).
+
+| Command | What it does |
+|---|---|
+| `account:add <username>` | Create an admin account, asking for its password. `--role=` (repeat for more; administrator by default) and `--author=` |
+| `account:list` | List the accounts with their roles, authors, and last sign-in |
+| `account:password <username>` | Set an account's password, signing it out everywhere |
+| `account:roles <username> --role=…` | Replace an account's roles |
+| `account:author <username> [slug]` | Link an account to an author entry, or unlink it |
+| `account:remove <username>` | Delete an account. `--yes` skips the question. |
+
 ## Everyday
 
 | Command | What it does |
@@ -29,7 +49,7 @@ for even more), `-q` for errors only, `-n` to never ask questions, and
 | `cache:compile` | Precompile config, routes, content types, themes, and extensions for speed |
 | `cache:clear` | Clear every compiled file and cache. Flags clear just one: `--config`, `--extensions`, `--container`, `--routes`, `--types`, `--themes`, `--store`. |
 | `content:index` | Update the content index. `--full` rebuilds it from scratch. (`publish` does this for you.) |
-| `schedule:run` | For cron: puts scheduled posts live on time and prunes the cache |
+| `schedule:run` | For cron: puts scheduled posts live on time, and prunes the cache and idle admin sessions |
 | `build` | Export the site to static files in `storage/export/`. Takes `--base-url=`, `--incremental`, and `--no-crawl`. |
 | `media:publish` | Link `user/media` into `public/` so the web server serves it. `--copy` copies instead, for hosts without symlinks. |
 

@@ -56,6 +56,18 @@ final class RunnerTest extends TestCase
 		$this->assertSame($this->runner->application(), $this->runner->application());
 	}
 
+	public function testHttpRunnerShowsTheSetupPageWhileStorageIsUnwritable(): void
+	{
+		$root = $this->fixtureSite();
+		file_put_contents("{$root}/blocked", '');
+
+		$runner   = new HttpRunner($root, ['storage' => "{$root}/blocked"], environment: []);
+		$response = $runner->handle(Request::create('/'));
+
+		$this->assertSame(503, $response->getStatusCode());
+		$this->assertStringContainsString('<code>blocked/</code> This is a file, not a folder.', (string) $response->getBody());
+	}
+
 	public function testConsoleRunnerReturnsTheExitCode(): void
 	{
 		$root         = $this->fixtureSite();

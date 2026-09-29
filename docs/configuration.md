@@ -262,6 +262,36 @@ Most redirects are easier in `user/data/redirects.yaml`; see
 Without this file, the `PUBLISH_*` variables are used. Keep the secret in
 `.env` either way.
 
+### Admin
+
+`config/admin.php` · `Blush\Admin\AdminConfig`
+
+| Option | Default | What it does |
+|---|---|---|
+| `enabled` | `false` | Turn the admin on; none of its URLs exist while it's off |
+| `path` | `'/admin'` | Where the admin lives |
+
+### Accounts and sessions
+
+`config/auth.php` · `Blush\Auth\AuthConfig`
+
+| Option | Default | What it does |
+|---|---|---|
+| `roles` | `[]` | Your own roles (`Blush\Auth\Role` objects), which can replace built-in ones; see [Accounts and roles](accounts.md#your-own-roles) |
+| `authorTaxonomy` | `'author'` | The taxonomy an account's author belongs to, if you renamed the built-in one |
+| `minPasswordLength` | `12` | The shortest password accepted (at least 8) |
+| `maxAttempts` | `5` | Wrong passwords allowed for one username and address before a lockout |
+| `lockout` | `900` | How many seconds a lockout lasts |
+
+`config/session.php` · `Blush\Session\SessionConfig`
+
+| Option | Default | What it does |
+|---|---|---|
+| `cookie` | `'blush_session'` | The session cookie's name; over HTTPS it gets the `__Host-` prefix |
+| `idle` | `7200` | How many seconds a session lasts without a request |
+| `lifetime` | `43200` | How many seconds a session lasts at most |
+| `secure` | `null` | Force the cookie's `Secure` flag on or off; by default it's on over HTTPS |
+
 ### Static export
 
 `config/export.php` · `Blush\Export\ExportConfig`

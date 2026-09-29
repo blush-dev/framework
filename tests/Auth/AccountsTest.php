@@ -1,0 +1,169 @@
+<?php
+
+/**
+ * Account tests.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Tests\Auth;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+use Blush\Auth\Account;
+use Blush\Auth\Accounts;
+use Blush\Auth\AccountStore;
+use Blush\Auth\AuthConfig;
+use Blush\Auth\AuthException;
+use Blush\Auth\FileAccountStore;
+use Blush\Auth\Passwords;
+use Blush\Auth\Role;
+use Blush\Auth\Roles;
+use Blush\Core\Application;
+use Blush\Tests\BootsScratchSite;
+
+#[CoversClass(Account::class)]
+#[CoversClass(Accounts::class)]
+#[CoversClass(FileAccountStore::class)]
+#[CoversClass(Passwords::class)]
+#[CoversClass(Roles::class)]
+#[CoversClass(Role::class)]
+#[CoversClass(AuthConfig::class)]
+final class AccountsTest extends TestCase
+{
+	use BootsScratchSite;
+
+	private ?Application $app = null;
+
+	private function app(): Application
+	{
+		if ($this->app === null) {
+			$this->app = $this->scratchApplication(['APP_ENV' => 'development']);
+			$this->app->boot();
+		}
+
+		return $this->app;
+	}
+
+	private function accounts(): Accounts
+	{
+		return $this->app()->container()->make(Accounts::class);
+	}
+
+	private function store(): AccountStore
+	{
+		return $this->app()->container()->make(AccountStore::class);
+	}
+
+	public function testCreatesAnAccountFile(): void
+	{
+		$account = $this->accounts()->create('jane', 'a long enough password', ['editor', 'editor'], 'jane-doe');
+		$file    = $this->temporaryDirectory() . '/storage/accounts/jane.json';
+
+		$this->assertSame(['editor'], $account->roles);
+		$this->assertFileExists($file);
+		$this->assertSame('0660', substr(sprintf('%o', fileperms($file)), -4));
+		$this->assertStringNotContainsString('a long enough password', (string) file_get_contents($file));
+		$this->assertEquals($account, $this->store()->find('jane'));
+		$this->assertTrue(new Passwords()->verify('a long enough password', $account->passwordHash));
+		$this->assertFalse($this->store()->isEmpty());
+	}
+
+	public function testRefusesBadAccounts(): void
+	{
+		$this->accounts()->create('jane', 'a long enough password', ['editor']);
+
+		$cases = [
+			['jane', 'a long enough password', ['editor'], 'There\'s already an account named "jane".'],
+			['Jane!', 'a long enough password', ['editor'], 'can\'t be a username'],
+			['sam', 'short', ['editor'], 'at least 12 characters'],
+			['sam', 'a long enough password', ['boss'], 'There\'s no "boss" role'],
+			['sam', 'a long enough password', [], 'at least one role']
+		];
+
+		foreach ($cases as [$username, $password, $roles, $message]) {
+			try {
+				$this->accounts()->create($username, $password, $roles);
+				$this->fail("Created {$username}.");
+			} catch (AuthException $e) {
+				$this->assertStringContainsString($message, $e->getMessage());
+			}
+		}
+	}
+
+	public function testChangesAccounts(): void
+	{
+		$account = $this->accounts()->create('jane', 'a long enough password', ['author']);
+		$account = $this->accounts()->setPassword($account, 'another long password');
+		$account = $this->accounts()->setRoles($account, ['editor', 'contributor']);
+		$account = $this->accounts()->setAuthor($account, 'jane');
+
+		$stored = $this->store()->find('jane');
+
+		$this->assertTrue(new Passwords()->verify('another long password', $stored->passwordHash ?? ''));
+		$this->assertSame(['editor', 'contributor'], $stored?->roles);
+		$this->assertSame('jane', $stored->author);
+
+		$this->accounts()->setAuthor($account, null);
+		$this->assertNull($this->store()->find('jane')?->author);
+	}
+
+	public function testListsAndDeletesAccounts(): void
+	{
+		$this->accounts()->create('sam', 'a long enough password', ['editor']);
+		$this->accounts()->create('jane', 'a long enough password', ['editor']);
+
+		$this->assertSame(['jane', 'sam'], array_map(static fn (Account $account): string => $account->username, $this->store()->all()));
+
+		$this->store()->delete('sam');
+		$this->store()->delete('../escape');
+
+		$this->assertNull($this->store()->find('sam'));
+		$this->assertNull($this->store()->find('../jane'));
+	}
+
+	public function testReportsADamagedAccountFile(): void
+	{
+		$this->writeTemporaryFile('storage/accounts/jane.json', '{"username": "sam", "passwordHash": "x", "roles": []}');
+
+		$this->expectException(AuthException::class);
+		$this->expectExceptionMessage('holds the account "sam"');
+
+		$this->store()->find('jane');
+	}
+
+	public function testChecksAuthors(): void
+	{
+		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/credited.md', "---\ntitle: Credited\nauthors: lee\n---\n");
+
+		$this->assertTrue($this->accounts()->hasAuthor('jane'));
+		$this->assertTrue($this->accounts()->hasAuthor('lee'), 'Entries credit a virtual author.');
+		$this->assertFalse($this->accounts()->hasAuthor('sam'));
+	}
+
+	public function testSiteRolesReplaceAndAddToTheBuiltIns(): void
+	{
+		$roles = new Roles(AuthConfig::fromArray(new AuthConfig(roles: [
+			new Role('editor', 'Copy editor', ['content.edit.others']),
+			new Role('reviewer', 'Reviewer', ['content.edit'])
+		])->toArray()));
+
+		$this->assertSame(['administrator', 'editor', 'author', 'contributor', 'reviewer'], array_keys($roles->all()));
+		$this->assertSame('Copy editor', $roles->get('editor')?->label);
+		$this->assertFalse($roles->get('editor')->allows('site.publish'));
+		$this->assertTrue($roles->get('administrator')?->allows('anything.at.all'));
+	}
+
+	public function testRejectsBadRoles(): void
+	{
+		$this->expectException(AuthException::class);
+
+		new Role('reviewer', 'Reviewer', ['Not A Capability']);
+	}
+}

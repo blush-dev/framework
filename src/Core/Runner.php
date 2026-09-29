@@ -85,7 +85,7 @@ abstract class Runner
 		$this->earlyHandler = $this->earlyErrorHandler($this->isDebug());
 		$this->earlyHandler->register();
 
-		$application = new Bootstrap(Paths::fromRoot($this->root, $this->paths), $this->environment)
+		$application = new Bootstrap($this->sitePaths(), $this->environment)
 			->createApplication();
 
 		$application->boot();
@@ -96,6 +96,14 @@ abstract class Runner
 		$application->container()->make(ErrorHandler::class)->register();
 
 		return $application;
+	}
+
+	/**
+	 * Returns the site's paths.
+	 */
+	protected function sitePaths(): Paths
+	{
+		return Paths::fromRoot($this->root, $this->paths);
 	}
 
 	/**

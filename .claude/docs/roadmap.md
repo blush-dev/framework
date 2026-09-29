@@ -160,6 +160,28 @@ The current focus: the experience of setting up a Blush site.
   pages. User guide: `docs/menus.md`. More design work on how menus and
   regions relate is still to come (see `open-questions.md`).
 
+- **First-run setup (D-218):** `init` (creates `.env`, asking for the
+  basics; an opt-in webhook secret; the storage folders), `doctor` (every
+  setup check, with hints), and a plain setup page instead of a stack
+  trace while storage isn't writable. Docs: `docs/installation.md`.
+  Still to do on the skeleton's `2.x`: run `init` from
+  `post-create-project-cmd`.
+
+- **Accounts and auth, no UI (D-219):** server-side sessions, CSRF,
+  accounts in `storage/accounts` with `account:*` commands (and `init`
+  offering the first), roles and capabilities (`config/auth.php`),
+  permissions with ownership through the author link, throttled sign-in,
+  and the admin's JSON sign-in API (`AdminConfig`, off by default). Docs:
+  `docs/accounts.md`. The jtcom trial has the admin on with one account.
+
+### Next: the admin (M9, D-215)
+
+To decide first: how the SPA talks to the server (the private JSON API
+started in D-219, or an Inertia-style protocol) and its front-end
+library (see `open-questions.md`). Then the SPA shell at `{path}`, a
+capability-checking route middleware, and the operations dashboard
+(publish, clear, reindex, export, content health).
+
 ### Still to scope
 
 Other starting points the author may pick up (none decided):
@@ -167,26 +189,22 @@ Other starting points the author may pick up (none decided):
 
 - **Component variants (D-191):** planned (one per use, BEM modifier
   classes, a registry with translatable labels, fallback to the
-  default); where themes declare them is still open. The next step.
+  default); where themes declare them is still open. Deferred until
+  after first-run setup and auth (D-215).
 - **Later for components:** captioned quotes and tables, a `<button>`
   component, rich script embeds and an embed refresh command, extension
   views (D-174), more icons and brand logos (see `open-questions.md`).
 
-- Creating a site: `composer create-project`, first-run steps (`.env`
-  from `.env.example`, the storage folders, secrets such as
-  `PUBLISH_SECRET`), and whether an `init`/`install` command guides it.
+- Creating a site: `composer create-project` (once the skeleton is on
+  Packagist, running `init` afterward; D-218).
 - **A global installer (D-165):** a separately installed `blush` command
   (like `laravel/installer`, via `composer global require`) that creates
   sites (`blush new mysite`) and, inside a site, runs that site's
   `bin/blush`. Until then, the docs can show the small launcher script
   that finds the nearest `bin/blush` (the author uses one in
   `~/.local/bin/blush`).
-- Checking an install: the planned `doctor` command (PHP version and
-  extensions, writable paths, web server rewrites, opcache).
-- Friendly setup notices (1.x's `Message`): setup problems (no `.env`,
-  unwritable `storage/`, no content yet) should show a plain page that
-  says what to do, not a stack trace. Keep in mind for first-run and
-  `doctor` work.
+- Setup notices beyond storage (D-218): a friendly page for "no
+  content yet", and whether a web server rewrite check is possible.
 - The first look: the welcome page, the skeleton's sample content (its
   `blog/` isn't a content type, so the sample post is a plain page), and
   the default theme.

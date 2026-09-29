@@ -50,11 +50,17 @@ enum CacheNamespace: string
 	case Embeds = 'embeds';
 
 	/**
+	 * Failed sign-in counters (D-219), which expire on their own. Never
+	 * cleared with the others, so clearing caches doesn't reset a lockout.
+	 */
+	case Logins = 'logins';
+
+	/**
 	 * Returns whether the namespace holds derived values that clearing
 	 * the caches removes.
 	 */
 	public function isDerived(): bool
 	{
-		return $this !== self::Webhooks && $this !== self::Embeds;
+		return ! in_array($this, [self::Webhooks, self::Embeds, self::Logins], true);
 	}
 }

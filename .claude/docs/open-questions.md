@@ -11,16 +11,10 @@ Move each item to `decisions.md` once it's answered.
   extension in `user/extensions/` (WordPress-style, with site PHP such as
   a future blog extension).
 
-- **Menus and regions need more design work** (D-199 to D-204, noted
-  2026-09-28). The author wants to revisit how the two relate. Today a
-  menu is link data shown in a menu location (by the `menu` component
-  or `$template->menu()`), and a region is an ordered list of items
-  (component, Markdown, entry, view) shown in a region location; the
-  only link is a region item that's the `menu` component. Open: whether
-  menu locations and region locations should stay separate (or menus
-  become mostly something placed in regions), how the future admin
-  splits a menu editor from a region editor, and what a theme should
-  reach for in each case.
+- **How the admin SPA talks to the server** (D-215): a private JSON API
+  under the admin path (session cookie and CSRF header; its sign-in
+  endpoints exist, D-219), or an Inertia-style protocol. And which
+  front-end library (React, Vue, Svelte).
 
 ## Later milestones
 - **Rich (script) embeds** (D-184): providers such as X, Instagram,
@@ -43,12 +37,8 @@ Move each item to `decisions.md` once it's answered.
 - **Component namespace clashes** (D-171): a theme's namespace is its
   slug and an extension's is its vendor, so the two could collide.
   Decide whether Blush checks or reserves namespaces.
-- **Require a class for every component?** (D-195): template-only
-  components remain, with a generic `TemplateComponent` read through
-  `prop()` (untyped, no autocomplete). Requiring a class would make every
-  template typed and let the admin's inserter read props from
-  constructors, at the cost of PHP for the simplest component.
-- **Where themes declare component variants** (D-191): the rest of the
+- **Where themes declare component variants** (D-191; deferred by the
+  author until after the admin's groundwork, D-215): the rest of the
   variant plan is set (one per use, `component-{name}--{variant}`, a
   registry with registrants and translatable labels, fallback to the
   default). Working assumption: themes list them in `theme.json`
