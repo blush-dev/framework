@@ -27,6 +27,7 @@ you can edit, copy, and keep in git.
 | [Components](components.md) | Callouts, galleries, and your own components, in Markdown and templates |
 | [Themes](themes.md) | Choosing, customizing, and building themes |
 | [Menus and regions](menus.md) | Navigation menus, and the sidebar and footer areas themes offer |
+| [The admin](admin.md) | Turning on the admin, its dashboard, and building your own |
 | [Accounts and roles](accounts.md) | Who can sign in to the admin, and what they can do |
 | [Configuration](configuration.md) | `.env` and every `config/` option |
 | [Going live](going-live.md) | Caching, publishing, webhooks, and static export |

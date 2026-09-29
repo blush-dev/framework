@@ -3887,7 +3887,7 @@ decision, add a new entry that supersedes it and mark the old one
     `Filesystem::writeAtomic()` takes a mode; `SetupChecks` covers
     `storage/accounts`.
   - **The jtcom trial** has the admin on (`config/admin.php`) and a
-    `justin` administrator linked to `justintadlock`; signing in and out
+    `justintadlock` administrator (linked to the `justintadlock` author); signing in and out
     over `bin/blush serve` was checked with curl. Its `composer.json`
     runs `init` after `create-project` and has a `doctor` script (not
     `init`, which would shadow Composer's own command), and its
@@ -3897,3 +3897,103 @@ decision, add a new entry that supersedes it and mark the old one
   for the rest of the API; trusted proxies; passkeys; the web setup
   screen for the first account (D-217); translated capability labels.
 - **Why:** the author asked to start on auth after first-run setup.
+
+### D-220: The admin SPA talks to a private JSON API
+- **Date:** 2026-09-29
+- **Decision:** Answers half of D-215's open question. The admin SPA uses
+  a private JSON API under `{path}/api` (session cookie, `X-CSRF-Token`
+  header), grown from D-219's sign-in endpoints, not an Inertia-style
+  protocol. Each endpoint group checks `Permissions`. The front-end
+  library is still open.
+- **Why:** the author's call. The admin will be app-like (a Markdown
+  editor with live preview, a component inserter, uploads, reordering),
+  the API is testable through `Kernel::handle()`, and other clients (the
+  CLI, other tools) can use it later. Inertia would add a server adapter
+  and tie the protocol to one front end.
+
+### D-221: The admin is built with Vue
+- **Date:** 2026-09-29
+- **Decision:** Answers the rest of D-215's open question. The bundled
+  admin is Vue 3 (`<script setup>`, TypeScript), built with Vite, with
+  Vue Router; Reka UI for accessible widgets when they're needed.
+  Sources live in the framework's `resources/admin/`, and the build goes
+  to its `public/admin/`, committed, so sites never need Node.
+- **Why:** the author's criteria, in order: what the wider PHP community
+  uses (Kirby's Panel and Statamic's control panel are Vue; Laravel has
+  long paired with Vue), then modern, documented, and easy to use
+  (official router and docs; HTML-like templates suit PHP developers).
+  The author's own familiarity with React wasn't a factor.
+
+### D-222: Replaceable admin; extensions and themes describe their pieces in PHP
+- **Date:** 2026-09-29
+- **Decision:** Two rules for everything the admin grows:
+  - **Others can build their own admin.** The JSON API (D-220) is the
+    contract, documented for that. `AdminConfig::$app` points the admin
+    at another built front end (a folder with a Vite manifest) in place
+    of the bundled one, and a front end can live anywhere that can reach
+    the API.
+  - **Extensions and themes never need JavaScript to appear in the
+    admin.** They describe their pieces in PHP, and the admin renders
+    them generically from the API's descriptions: actions
+    (`AdminAction` classes), capabilities (D-219), component props from
+    constructors (D-214), and later screens and forms from content
+    schema fields (as theme settings and menu fields already are). A JS
+    extension point may come later as an option, never a requirement.
+- **Why:** the author wants custom admins possible and extension and
+  theme developers to stay in PHP.
+
+### D-223: The admin app's first slice: shell, sign-in, dashboard, actions
+- **Date:** 2026-09-29
+- **Decision:** Builds on D-219 to D-222.
+  - **The shell (`ShellController`)** answers `GET {path}` and
+    `{path}/{screen}` (any path but `api/` and `assets/`, so unknown API
+    paths stay 404s) with one page: the Vite entry's script and styles
+    from `.vite/manifest.json`, and a JSON block
+    (`#blush-admin-config`: `base`, `api`, `site`). Headers: `no-store`,
+    a CSP of `'self'` only (Vue's runtime build needs no `eval`),
+    `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, and
+    `X-Robots-Tag: noindex`. No session. Without a build it's a 503.
+  - **Assets (`AssetController`, `AdminApp`)** come from the build's
+    `assets/` only (js, css, svg, png, webp, woff2), cached a year as
+    immutable, since Vite hashes their names. `AdminApp::BUNDLED` is the
+    framework's `public/admin`; `AdminConfig::$app` (absolute) replaces
+    it.
+  - **API additions:** `GET dashboard` (site name, URL, environment,
+    content version; entry counts by status over every entry; the
+    account's actions) and `POST actions/{name}` (404 unknown, 403
+    without the capability, else the `ActionResult`, 200 even when the
+    action failed).
+  - **Actions (`Blush\Admin\Action`)**, D-019's pattern: the abstract
+    `AdminAction`, `AdminActionType` (built-ins), `AdminActionRegistry`
+    (seeded in the provider with `registerIf`), and `AdminActions`
+    (builds through the container). Built-ins: `publish` (the
+    `Publisher`; `site.publish`), `reindex` (the `Indexer`, bumping the
+    content version when the index changed; `site.publish`), and
+    `clear-caches` (the store and the content version, not compiled
+    files, which are deploy artifacts; `cache.clear`). Export isn't an
+    action yet: a full build can outlast a request.
+  - **The Vue app** (Vue 3.5, Vue Router 5, Vite 8, TypeScript 6 with
+    `vue-tsc`; TypeScript 7's native compiler isn't used yet, since
+    `vue-tsc` builds on the TypeScript API): `config.ts` (the start-up
+    block), `api.ts` (fetch with the cookie and `X-CSRF-Token`,
+    `ApiError`), `session.ts` (shared sign-in state), `router.ts` (history
+    routing under `base`; a guard sends signed-out visitors to sign-in
+    with `next`, which only follows paths inside the admin), the layout
+    (skip link, navigation, sign-out), and the sign-in, dashboard, and
+    not-found screens. Accessibility: labeled fields with autocomplete,
+    errors in `role="alert"`, action results in polite live regions,
+    focus on the new screen's `h1` after each navigation, visible focus,
+    and light and dark colors through `light-dark()`. Confirmations use
+    `window.confirm()` for now; a Reka UI dialog when one is needed.
+  - `package.json` at the framework root (`admin:build`, `admin:watch`,
+    `admin:check`); `resources/admin`, `package.json`, and
+    `package-lock.json` are left out of Composer archives; the build is
+    committed (94 KB of JS, 36 KB gzipped).
+  - **Checked** on the jtcom trial in headless Chrome (sign-in with a
+    wrong and a right password, the dashboard, clearing caches, dark
+    mode, sign-out) and with curl.
+- **Open:** a capability middleware; JS tests for the app (none yet);
+  how a site's own admin screens and forms get described in PHP (next,
+  from content schema fields, D-222).
+- **Why:** the author asked to move forward with Vue (D-221) under
+  D-222's rules.

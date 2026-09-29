@@ -174,13 +174,17 @@ The current focus: the experience of setting up a Blush site.
   and the admin's JSON sign-in API (`AdminConfig`, off by default). Docs:
   `docs/accounts.md`. The jtcom trial has the admin on with one account.
 
-### Next: the admin (M9, D-215)
+### The admin (M9, D-215, D-220 to D-223): in progress
 
-To decide first: how the SPA talks to the server (the private JSON API
-started in D-219, or an Inertia-style protocol) and its front-end
-library (see `open-questions.md`). Then the SPA shell at `{path}`, a
-capability-checking route middleware, and the operations dashboard
-(publish, clear, reindex, export, content health).
+Done: the Vue app's shell, sign-in, and dashboard (entry counts, and
+the `publish`, `reindex`, and `clear-caches` actions, which extensions
+extend in PHP). Docs: `docs/admin.md`.
+
+Next, per D-222 (pieces described in PHP, drawn by the app):
+content health (lint results), drafts and scheduled entries, signed
+preview URLs, and export as a background-safe action; then M10's
+editor (forms from content schemas, the Markdown editor with live
+preview, the component inserter, media).
 
 ### Still to scope
 

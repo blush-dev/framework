@@ -175,6 +175,64 @@ is registered with `Blush\Region\Item\RegionItemRegistry` the same way.
 Both are built through the container, so their constructors can ask for
 services.
 
+## Admin actions
+
+An action is a button on [the admin's](admin.md) dashboard, written in
+PHP; the admin draws it, so you don't write any JavaScript. Extend
+`Blush\Admin\Action\AdminAction`:
+
+```php
+namespace App\Admin;
+
+use App\Shop\Orders;
+use Blush\Admin\Action\ActionResult;
+use Blush\Admin\Action\AdminAction;
+
+final class SyncOrders extends AdminAction
+{
+	public function __construct(private readonly Orders $orders)
+	{}
+
+	public function label(): string
+	{
+		return 'Sync orders';
+	}
+
+	public function description(): string
+	{
+		return 'Fetch new orders from the shop.';
+	}
+
+	public function capability(): string
+	{
+		return 'shop.orders';
+	}
+
+	public function confirm(): ?string
+	{
+		return 'Fetch orders now?';
+	}
+
+	public function run(): ActionResult
+	{
+		return ActionResult::success(sprintf('Fetched %d orders.', $this->orders->sync()));
+	}
+}
+```
+
+Register it by name from a provider's `boot()`. The name is its URL, so
+use lowercase letters, digits, and hyphens:
+
+```php
+use Blush\Admin\Action\AdminActionRegistry;
+
+$this->container->get(AdminActionRegistry::class)->register('sync-orders', App\Admin\SyncOrders::class);
+```
+
+Only accounts with the action's capability see it. `confirm()` is
+optional; without it, the action runs straight away. Keep `run()` short
+enough to finish within a request.
+
 ## Capabilities and signed-in routes
 
 Add a [capability](accounts.md#capabilities) for your own feature from a

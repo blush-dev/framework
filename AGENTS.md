@@ -68,6 +68,8 @@ Run on PHP 8.5 (`php -v`). Run `composer check` before handing work back.
 | `composer test` | PHPUnit 12 (`phpunit.xml`) |
 | `composer bench` | PHPBench against the generated jtcom-sized site (`benchmarks/`, D-101) |
 | `composer schemas` | Regenerate the editor JSON Schemas in `resources/schemas/` (D-206) |
+| `npm run admin:build` | Type-check and build the admin app (`resources/admin/` → `public/admin/`, committed; D-221). Run after changing admin sources |
+| `npm run admin:watch` | Rebuild the admin app on every change |
 
 Single test: `vendor/bin/phpunit --filter FrameworkTest`.
 

@@ -270,6 +270,7 @@ Without this file, the `PUBLISH_*` variables are used. Keep the secret in
 |---|---|---|
 | `enabled` | `false` | Turn the admin on; none of its URLs exist while it's off |
 | `path` | `'/admin'` | Where the admin lives |
+| `app` | `null` | The folder of your own built admin front end; see [The admin](admin.md#your-own-admin) |
 
 ### Accounts and sessions
 

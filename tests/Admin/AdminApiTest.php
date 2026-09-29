@@ -25,11 +25,7 @@ use Blush\Auth\Authenticator;
 use Blush\Auth\LoginThrottle;
 use Blush\Auth\Middleware\Authenticate;
 use Blush\Auth\Middleware\VerifyCsrf;
-use Blush\Core\Application;
 use Blush\Http\ClientIp;
-use Blush\Http\Kernel;
-use Blush\Http\Request;
-use Blush\Tests\BootsScratchSite;
 
 #[CoversClass(AdminConfig::class)]
 #[CoversClass(AdminRoutes::class)]
@@ -41,67 +37,7 @@ use Blush\Tests\BootsScratchSite;
 #[CoversClass(ClientIp::class)]
 final class AdminApiTest extends TestCase
 {
-	use BootsScratchSite;
-
-	private const string PASSWORD = 'a long enough password';
-
-	private Application $app;
-
-	/**
-	 * The session cookie, carried between requests like a browser would.
-	 */
-	private ?string $cookie = null;
-
-	private function boot(bool $enabled = true): void
-	{
-		$this->writeTemporaryFile('config/admin.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\AdminConfig(enabled: " . ($enabled ? 'true' : 'false') . ");\n");
-
-		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test']);
-		$this->app->boot();
-		$this->app->container()->make(Accounts::class)->create('jane', self::PASSWORD, ['editor'], 'jane');
-	}
-
-	/**
-	 * @param array<string, string> $headers
-	 */
-	private function send(string $method, string $path, string $body = '', array $headers = [], string $ip = '203.0.113.5'): ResponseInterface
-	{
-		$request = Request::create("https://example.test/admin/api{$path}", $method, $headers, $body, ['REMOTE_ADDR' => $ip]);
-		$request = $this->cookie === null ? $request : $request->withCookieParams(['__Host-blush_session' => $this->cookie]);
-
-		$response = $this->app->container()->make(Kernel::class)->handle($request);
-
-		if (preg_match('/__Host-blush_session=([0-9a-f]*);/', $response->getHeaderLine('Set-Cookie'), $match) === 1) {
-			$this->cookie = $match[1] === '' ? null : $match[1];
-		}
-
-		return $response;
-	}
-
-	private function login(string $password = self::PASSWORD, string $ip = '203.0.113.5'): ResponseInterface
-	{
-		return $this->send('POST', '/login', json_encode(['username' => 'Jane', 'password' => $password]) ?: '', ['Origin' => 'https://example.test', 'Sec-Fetch-Site' => 'same-origin'], $ip);
-	}
-
-	/**
-	 * @return array<mixed>
-	 */
-	private static function json(ResponseInterface $response): array
-	{
-		$data = json_decode((string) $response->getBody(), true);
-
-		return is_array($data) ? $data : [];
-	}
-
-	/**
-	 * @return array<mixed>
-	 */
-	private static function account(ResponseInterface $response): array
-	{
-		$account = self::json($response)['account'] ?? null;
-
-		return is_array($account) ? $account : [];
-	}
+	use BootsAdmin;
 
 	public function testTheApiOnlyExistsWhenTheAdminIsOn(): void
 	{

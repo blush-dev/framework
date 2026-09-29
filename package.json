@@ -1,0 +1,22 @@
+{
+	"name": "@blush-dev/framework",
+	"private": true,
+	"description": "Build tooling for the Blush admin app (resources/admin), built into public/admin.",
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"admin:build": "vue-tsc -p resources/admin/tsconfig.json --noEmit && vite build --config resources/admin/vite.config.ts",
+		"admin:watch": "vite build --watch --config resources/admin/vite.config.ts",
+		"admin:check": "vue-tsc -p resources/admin/tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"vue": "^3.5.43",
+		"vue-router": "^5.3.1"
+	},
+	"devDependencies": {
+		"@vitejs/plugin-vue": "^6.0.9",
+		"typescript": "^6.0.3",
+		"vite": "^8.3.1",
+		"vue-tsc": "^3.3.11"
+	}
+}

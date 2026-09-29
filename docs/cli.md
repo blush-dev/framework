@@ -20,7 +20,7 @@ for even more), `-q` for errors only, `-n` to never ask questions, and
 
 ## Accounts
 
-See [Accounts and roles](accounts.md).
+See [Accounts and roles](accounts.md) and [The admin](admin.md).
 
 | Command | What it does |
 |---|---|

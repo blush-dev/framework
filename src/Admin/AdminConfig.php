@@ -26,6 +26,8 @@ use Blush\Config\InvalidConfig;
  * - `enabled` turns the admin on. It's off by default, and while it's
  *   off, none of its routes exist.
  * - `path` is where it lives; its JSON API is under `{path}/api`.
+ * - `app` is the folder of a built admin front end (with Vite's
+ *   `.vite/manifest.json`) to serve in place of the bundled one (D-222).
  */
 final readonly class AdminConfig implements Config
 {
@@ -39,8 +41,13 @@ final readonly class AdminConfig implements Config
 	 */
 	public function __construct(
 		public bool $enabled = false,
-		string $path = '/admin'
+		string $path = '/admin',
+		public ?string $app = null
 	) {
+		if ($app !== null && ! str_starts_with($app, '/') && preg_match('#^[A-Za-z]:[/\\\\]#', $app) !== 1) {
+			throw new InvalidConfig(sprintf('AdminConfig "app" must be an absolute path; "%s" given.', $app));
+		}
+
 		$path = '/' . trim($path, '/');
 
 		if (preg_match('#^(/[A-Za-z0-9._~-]+)+$#', $path) !== 1 || str_contains($path, '/.')) {
@@ -57,11 +64,12 @@ final readonly class AdminConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['enabled', 'path']);
+		$values->assertKnownKeys(['enabled', 'path', 'app']);
 
 		return new static(
 			enabled: $values->bool('enabled', false),
-			path: $values->string('path', '/admin')
+			path: $values->string('path', '/admin'),
+			app: $values->nullableString('app')
 		);
 	}
 
@@ -71,6 +79,6 @@ final readonly class AdminConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		return ['enabled' => $this->enabled, 'path' => $this->path];
+		return ['enabled' => $this->enabled, 'path' => $this->path, 'app' => $this->app];
 	}
 }

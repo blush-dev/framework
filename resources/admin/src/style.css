@@ -1,0 +1,269 @@
+/**
+ * Blush admin styles. Plain CSS with custom properties; light and dark
+ * follow the system through `light-dark()`.
+ */
+
+:root {
+	color-scheme: light dark;
+
+	--admin-bg: light-dark(#f6f6f4, #161616);
+	--admin-surface: light-dark(#ffffff, #212121);
+	--admin-text: light-dark(#1d1d1b, #ecece8);
+	--admin-muted: light-dark(#5c5c57, #a9a9a3);
+	--admin-border: light-dark(#dcdcd6, #3a3a37);
+	--admin-accent: light-dark(#a3264f, #f08aad);
+	--admin-accent-text: light-dark(#ffffff, #1d1d1b);
+	--admin-success: light-dark(#1f6b3a, #7fd49d);
+	--admin-error: light-dark(#a1261d, #ff9a90);
+	--admin-focus: light-dark(#1a5fb4, #8cc1ff);
+
+	--admin-radius: 6px;
+	--admin-space: 1rem;
+	--admin-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--admin-bg);
+	color: var(--admin-text);
+	font: 1rem/1.5 var(--admin-font);
+}
+
+a {
+	color: var(--admin-accent);
+}
+
+:focus-visible {
+	outline: 3px solid var(--admin-focus);
+	outline-offset: 2px;
+}
+
+h1:focus {
+	outline: none;
+}
+
+h1 {
+	margin: 0 0 1.5rem;
+	font-size: 1.75rem;
+	line-height: 1.2;
+}
+
+h2 {
+	margin: 0 0 1rem;
+	font-size: 1.125rem;
+}
+
+.skip-link {
+	position: absolute;
+	top: 0.5rem;
+	left: 0.5rem;
+	padding: 0.5rem 1rem;
+	background: var(--admin-surface);
+	transform: translateY(-200%);
+}
+
+.skip-link:focus {
+	transform: none;
+}
+
+/* Layout */
+
+.masthead {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--admin-space);
+	padding: 0.75rem 1.5rem;
+	background: var(--admin-surface);
+	border-bottom: 1px solid var(--admin-border);
+}
+
+.masthead__site {
+	margin: 0;
+	font-weight: 600;
+}
+
+.masthead__site a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.masthead__nav ul {
+	display: flex;
+	gap: var(--admin-space);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.masthead__nav a {
+	color: inherit;
+}
+
+.masthead__nav a[aria-current="page"] {
+	font-weight: 600;
+}
+
+.masthead__account {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-left: auto;
+	color: var(--admin-muted);
+}
+
+.content {
+	max-width: 60rem;
+	margin: 0 auto;
+	padding: 2rem 1.5rem;
+}
+
+.bare {
+	display: grid;
+	min-height: 100vh;
+	place-items: center;
+	padding: 1.5rem;
+}
+
+/* Panels and stats */
+
+.panel {
+	margin-bottom: 1.5rem;
+	padding: 1.5rem;
+	background: var(--admin-surface);
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius);
+}
+
+.stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+	gap: var(--admin-space);
+	margin: 0;
+}
+
+.stats dt {
+	color: var(--admin-muted);
+	font-size: 0.875rem;
+}
+
+.stats dd {
+	margin: 0;
+	font-size: 1.5rem;
+	font-weight: 600;
+}
+
+/* Actions */
+
+.actions {
+	display: grid;
+	gap: 1.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.action {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.action__description {
+	margin: 0.25rem 0 0;
+	color: var(--admin-muted);
+	font-size: 0.875rem;
+}
+
+/* Forms and buttons */
+
+.sign-in {
+	width: min(100%, 24rem);
+	padding: 2rem;
+	background: var(--admin-surface);
+	border: 1px solid var(--admin-border);
+	border-radius: var(--admin-radius);
+}
+
+.sign-in h1 {
+	font-size: 1.375rem;
+}
+
+.form p {
+	margin: 0 0 1rem;
+}
+
+.field label {
+	display: block;
+	margin-bottom: 0.25rem;
+	font-weight: 600;
+}
+
+.field input {
+	width: 100%;
+	padding: 0.5rem 0.625rem;
+	border: 1px solid var(--admin-muted);
+	border-radius: var(--admin-radius);
+	background: var(--admin-bg);
+	color: inherit;
+	font: inherit;
+}
+
+.button {
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--admin-accent);
+	border-radius: var(--admin-radius);
+	background: var(--admin-accent);
+	color: var(--admin-accent-text);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.button--quiet {
+	background: transparent;
+	color: var(--admin-accent);
+}
+
+/* Notices */
+
+.notice {
+	margin: 0 0 1rem;
+	padding: 0.75rem 1rem;
+	border-left: 4px solid var(--admin-muted);
+	background: var(--admin-bg);
+}
+
+.notice p,
+.notice ul {
+	margin: 0;
+}
+
+.notice ul {
+	margin-top: 0.5rem;
+	font-size: 0.875rem;
+}
+
+.notice--success {
+	border-color: var(--admin-success);
+}
+
+.notice--error {
+	border-color: var(--admin-error);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.skip-link {
+		transition: transform 0.15s;
+	}
+}

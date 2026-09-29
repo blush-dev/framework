@@ -11,11 +11,6 @@ Move each item to `decisions.md` once it's answered.
   extension in `user/extensions/` (WordPress-style, with site PHP such as
   a future blog extension).
 
-- **How the admin SPA talks to the server** (D-215): a private JSON API
-  under the admin path (session cookie and CSRF header; its sign-in
-  endpoints exist, D-219), or an Inertia-style protocol. And which
-  front-end library (React, Vue, Svelte).
-
 ## Later milestones
 - **Rich (script) embeds** (D-184): providers such as X, Instagram,
   TikTok, and Mastodon answer oEmbed with HTML that needs their own

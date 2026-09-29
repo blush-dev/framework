@@ -1,29 +1,8 @@
 # Accounts and roles
 
-Accounts are the people who can sign in to the admin. Each one has a
-username, a password, one or more **roles**, and optionally an **author**:
-the author entry it writes as.
-
-> **The admin's screens aren't built yet.** You can create accounts and
-> roles now. Turning the admin on gives you its sign-in API, which the
-> admin's screens will use.
-
-## Turning the admin on
-
-The admin is off until you turn it on in `config/admin.php`:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use Blush\Admin\AdminConfig;
-
-return new AdminConfig(enabled: true);
-```
-
-It lives at `/admin`. Use `path: '/dashboard'` to move it. While it's off,
-none of its URLs exist.
+Accounts are the people who can sign in to [the admin](admin.md). Each
+one has a username, a password, one or more **roles**, and optionally an
+**author**: the author entry it writes as.
 
 ## Creating accounts
 
