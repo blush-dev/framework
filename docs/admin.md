@@ -57,13 +57,16 @@ your own. Build it with Vite (with `build.manifest` on) and point `app`
 at the build folder:
 
 ```php
-return new AdminConfig(enabled: true, app: __DIR__ . '/../resources/my-admin/dist');
+return new AdminConfig(enabled: true, app: __DIR__ . '/../public/my-admin');
 ```
 
-Blush serves its entry script and styles on the admin's page and its
-`assets/` folder at `/admin/assets/`. The page includes a JSON block
-(`#blush-admin-config`) with the admin's path, the API's path, and the
-site's name.
+Blush puts the entry's script and styles on the admin's page, and serves
+the build folder's files at `/admin/assets/` (scripts, styles, images,
+and fonts; never `.vite/`). Build with plain file names, as the
+[theme build](themes.md) does: Blush adds `?v=` and a hash of each
+file's contents to its URL, so browsers cache the files until they
+change. The page also includes a JSON block (`#blush-admin-config`)
+with the admin's path, the API's path, and the site's name.
 
 The API is JSON under `/admin/api`, and uses the session cookie:
 

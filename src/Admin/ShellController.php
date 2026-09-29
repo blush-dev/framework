@@ -58,11 +58,10 @@ final readonly class ShellController
 			return Response::text('The admin app isn\'t built. Build it, or set AdminConfig "app" to a built one.', Status::ServiceUnavailable, $headers);
 		}
 
-		$assets = "{$this->config->path}/";
 		$styles = '';
 
 		foreach ($entry['styles'] as $style) {
-			$styles .= sprintf("<link rel=\"stylesheet\" href=\"%s\">\n", self::escape($assets . $style));
+			$styles .= sprintf("<link rel=\"stylesheet\" href=\"%s\">\n", self::escape($this->app->url($style)));
 		}
 
 		$config = json_encode([
@@ -72,7 +71,7 @@ final readonly class ShellController
 		], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
 		$title  = self::escape("Admin · {$this->site->name}");
-		$script = self::escape($assets . $entry['script']);
+		$script = self::escape($this->app->url($entry['script']));
 		$id     = self::CONFIG_ID;
 
 		return Response::html(<<<HTML

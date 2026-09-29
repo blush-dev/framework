@@ -696,11 +696,13 @@ Implemented in M7 (D-135 to D-140).
     `{path}/api`: `GET session`, `POST login`, `POST logout`.
   - CLI: `account:add|list|password|roles|author|remove`; `init` offers
     the first administrator.
-- **The admin app (D-220 to D-223):** a Vue 3 SPA (`resources/admin`,
-  built to `public/admin`) over the private JSON API. `ShellController`
-  serves one page at `{path}` and every screen under it (strict CSP, no
-  caching or framing) with the Vite entry and a JSON start-up block;
-  `AssetController` serves `{path}/assets/`. `AdminConfig::$app` swaps
+- **The admin app (D-220 to D-224):** a Vue 3 SPA (`resources/admin`,
+  built to `public/admin` with plain file names) over the private JSON
+  API. `ShellController` serves one page at `{path}` and every screen
+  under it (strict CSP, no caching or framing) with the Vite entry's
+  URLs versioned `?v={crc32}` (`AdminApp::url()`) and a JSON start-up
+  block; `AssetController` serves the build's files at
+  `{path}/assets/{file}` (immutable with `?v=`, `no-cache` without). `AdminConfig::$app` swaps
   in another build. Screens so far: sign-in and the dashboard (entry
   counts and actions). Extension pieces are described in PHP and drawn
   generically (D-222): `AdminAction`s (label, description, capability,

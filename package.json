@@ -5,15 +5,16 @@
 	"license": "MIT",
 	"type": "module",
 	"scripts": {
-		"admin:build": "vue-tsc -p resources/admin/tsconfig.json --noEmit && vite build --config resources/admin/vite.config.ts",
+		"admin:build": "npm run admin:check && vite build --config resources/admin/vite.config.ts",
 		"admin:watch": "vite build --watch --config resources/admin/vite.config.ts",
-		"admin:check": "vue-tsc -p resources/admin/tsconfig.json --noEmit"
+		"admin:check": "vue-tsc -p resources/admin/tsconfig.app.json && vue-tsc -p resources/admin/tsconfig.node.json"
 	},
 	"dependencies": {
 		"vue": "^3.5.43",
 		"vue-router": "^5.3.1"
 	},
 	"devDependencies": {
+		"@types/node": "^24.19.0",
 		"@vitejs/plugin-vue": "^6.0.9",
 		"typescript": "^6.0.3",
 		"vite": "^8.3.1",

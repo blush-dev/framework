@@ -20,8 +20,10 @@ use Blush\Http\Response;
 use Blush\Http\StreamException;
 
 /**
- * Streams the admin app's built files from `{path}/assets/`. Vite names
- * them by a hash of their contents, so they're cached for a year.
+ * Streams the admin app's built files from `{path}/assets/`. A URL with a
+ * `?v=` version (as `AdminApp::url()` prints them) is cached for a year,
+ * since a new build changes the version; without one, browsers check
+ * back every time.
  */
 final readonly class AssetController
 {
@@ -38,7 +40,7 @@ final readonly class AssetController
 		$type = AdminApp::TYPES[strtolower(pathinfo($path, PATHINFO_EXTENSION))];
 
 		$headers = [
-			'Cache-Control'          => 'public, max-age=31536000, immutable',
+			'Cache-Control'          => isset($request->getQueryParams()['v']) ? 'public, max-age=31536000, immutable' : 'no-cache',
 			'X-Content-Type-Options' => 'nosniff'
 		];
 

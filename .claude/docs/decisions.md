@@ -3997,3 +3997,26 @@ decision, add a new entry that supersedes it and mark the old one
   from content schema fields, D-222).
 - **Why:** the author asked to move forward with Vue (D-221) under
   D-222's rules.
+
+### D-224: The admin build uses plain names and `?v=` versions
+- **Date:** 2026-09-29
+- **Decision:** Supersedes D-223's hashed file names. Every Vite build
+  follows D-194 (the jtcom theme's build), the admin's included:
+  - **Sources** are flat folders in `resources/admin`: `js/` (the entry
+    `admin.ts`, the Vue files) and `css/admin.css`. No `src/`.
+  - **Output** keeps plain names: `js/[name].js` (entries and chunks),
+    `css/[name].css`, and any other file (fonts, images) at its
+    `resources/admin`-relative path; the rest of `resources/admin` is
+    copied as it is. A small plugin adds `?v={crc32}` (Node's
+    `zlib.crc32`, matching PHP's `crc32b`) to the `url()`s in built CSS.
+  - **PHP versions the URLs:** `AdminApp::url()` prints
+    `{path}/assets/{file}?v=` and a CRC32 of the file's contents, so
+    `ShellController` needs no hashes in names.
+  - **Serving:** `AdminApp::asset()` serves any file of an allowed type
+    anywhere in the build folder, except under dot folders (`.vite/`);
+    `AssetController` caches a `?v=` URL for a year as immutable, and an
+    unversioned one with `no-cache`.
+  - Custom admins (`AdminConfig::$app`) get the same versioning; their
+    docs recommend plain names.
+- **Why:** the author's rule: scripts and assets built with Vite always
+  use `?v={hash}`, never hashed file names.

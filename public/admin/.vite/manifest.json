@@ -1,11 +1,11 @@
 {
-  "src/main.ts": {
-    "file": "assets/main-DLcKK2_1.js",
-    "name": "main",
-    "src": "src/main.ts",
+  "js/admin.ts": {
+    "file": "js/admin.js",
+    "name": "admin",
+    "src": "js/admin.ts",
     "isEntry": true,
     "css": [
-      "assets/main-CFft6DZw.css"
+      "css/admin.css"
     ]
   }
 }

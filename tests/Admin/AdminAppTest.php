@@ -48,10 +48,10 @@ final class AdminAppTest extends TestCase
 	 */
 	private function customApp(): string
 	{
-		$this->writeTemporaryFile('custom-admin/.vite/manifest.json', '{"src/main.ts": {"file": "assets/app-1.js", "isEntry": true, "css": ["assets/app-1.css"]}}');
-		$this->writeTemporaryFile('custom-admin/assets/app-1.js', 'console.log("custom");');
-		$this->writeTemporaryFile('custom-admin/assets/app-1.css', 'body{}');
-		$this->writeTemporaryFile('custom-admin/assets/notes.txt', 'not servable');
+		$this->writeTemporaryFile('custom-admin/.vite/manifest.json', '{"js/app.ts": {"file": "js/app.js", "isEntry": true, "css": ["css/app.css"]}}');
+		$this->writeTemporaryFile('custom-admin/js/app.js', 'console.log("custom");');
+		$this->writeTemporaryFile('custom-admin/css/app.css', 'body{}');
+		$this->writeTemporaryFile('custom-admin/notes.txt', 'not servable');
 
 		return $this->temporaryDirectory() . '/custom-admin';
 	}
@@ -75,7 +75,8 @@ final class AdminAppTest extends TestCase
 		$body = (string) $page->getBody();
 
 		$this->assertSame(200, $page->getStatusCode());
-		$this->assertMatchesRegularExpression('#<script type="module" src="/admin/assets/main-[\w-]+\.js"></script>#', $body);
+		$this->assertMatchesRegularExpression('#<script type="module" src="/admin/assets/js/admin\.js\?v=[0-9a-f]{8}"></script>#', $body);
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="/admin/assets/css/admin\.css\?v=[0-9a-f]{8}">#', $body);
 		$this->assertStringContainsString('"base":"/admin","api":"/admin/api"', $body);
 		$this->assertStringContainsString("script-src 'self'", $page->getHeaderLine('Content-Security-Policy'));
 		$this->assertSame('DENY', $page->getHeaderLine('X-Frame-Options'));
@@ -86,12 +87,13 @@ final class AdminAppTest extends TestCase
 		$this->assertSame(200, $this->visit('GET', '/admin/settings/site')->getStatusCode());
 		$this->assertSame(404, $this->visit('GET', '/admin/api/nothing')->getStatusCode(), 'The API\'s paths never fall through to the app.');
 
-		preg_match('#/admin/assets/(main-[\w-]+\.js)#', $body, $match);
-		$asset = $this->visit('GET', '/admin/assets/' . ($match[1] ?? ''));
+		preg_match('#/admin/assets/js/admin\.js\?v=[0-9a-f]{8}#', $body, $match);
+		$asset = $this->visit('GET', $match[0] ?? '');
 
 		$this->assertSame(200, $asset->getStatusCode());
 		$this->assertStringStartsWith('text/javascript', $asset->getHeaderLine('Content-Type'));
 		$this->assertStringContainsString('immutable', $asset->getHeaderLine('Cache-Control'));
+		$this->assertSame('no-cache', $this->visit('GET', '/admin/assets/js/admin.js')->getHeaderLine('Cache-Control'), 'Unversioned URLs are checked every time.');
 	}
 
 	public function testServesACustomApp(): void
@@ -100,10 +102,11 @@ final class AdminAppTest extends TestCase
 
 		$body = (string) $this->visit('GET', '/admin')->getBody();
 
-		$this->assertStringContainsString('<link rel="stylesheet" href="/admin/assets/app-1.css">', $body);
-		$this->assertStringContainsString('src="/admin/assets/app-1.js"', $body);
-		$this->assertSame('console.log("custom");', (string) $this->visit('GET', '/admin/assets/app-1.js')->getBody());
+		$this->assertStringContainsString('<link rel="stylesheet" href="/admin/assets/css/app.css?v=' . hash('crc32b', 'body{}') . '">', $body);
+		$this->assertStringContainsString('src="/admin/assets/js/app.js?v=' . hash('crc32b', 'console.log("custom");') . '"', $body);
+		$this->assertSame('console.log("custom");', (string) $this->visit('GET', '/admin/assets/js/app.js')->getBody());
 		$this->assertSame(404, $this->visit('GET', '/admin/assets/notes.txt')->getStatusCode());
+		$this->assertSame(404, $this->visit('GET', '/admin/assets/.vite/manifest.json')->getStatusCode());
 		$this->assertSame(404, $this->visit('GET', '/admin/assets/../.vite/manifest.json')->getStatusCode());
 	}
 
