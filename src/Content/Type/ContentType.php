@@ -47,6 +47,18 @@ abstract readonly class ContentType
 	public Schema $schema;
 
 	/**
+	 * The type's name for people, for a group of its entries ("Literary
+	 * genres"), such as the admin's navigation.
+	 */
+	public string $label;
+
+	/**
+	 * The type's name for people, for one entry ("Literary genre"), such
+	 * as the admin's "New literary genre".
+	 */
+	public string $singular;
+
+	/**
 	 * @param  string            $name         Lowercase letters, digits, and underscores.
 	 * @param  ?string           $folder       Defaults to the name.
 	 * @param  bool              $public       Whether the type is public at all.
@@ -57,6 +69,8 @@ abstract readonly class ContentType
 	 * @param  DateArchives      $dateArchives How finely date archives go.
 	 * @param  iterable<Field>   $fields       Fields beyond the built-in ones.
 	 * @param  bool              $closed       Whether undeclared front matter is an error.
+	 * @param  ?string           $label        Defaults to the singular made plural.
+	 * @param  ?string           $singular     Defaults to the name made readable.
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -69,7 +83,9 @@ abstract readonly class ContentType
 		public bool $sitemap,
 		public DateArchives $dateArchives,
 		iterable $fields,
-		bool $closed
+		bool $closed,
+		?string $label = null,
+		?string $singular = null
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -84,7 +100,9 @@ abstract readonly class ContentType
 			throw new InvalidContentType(sprintf('Content type "%s" has invalid fields: %s', $name, $e->getMessage()), previous: $e);
 		}
 
-		$this->folder = self::normalizeFolder($folder ?? $name, $name);
+		$this->folder   = self::normalizeFolder($folder ?? $name, $name);
+		$this->singular = $singular ?? self::readable($name);
+		$this->label    = $label ?? self::plural($this->singular);
 	}
 
 	/**
@@ -194,8 +212,10 @@ abstract readonly class ContentType
 				'folder'  => $definition->nullableString('folder'),
 				'public'  => $definition->bool('public', true),
 				'sitemap' => $definition->bool('sitemap', true),
-				'fields'  => array_values($schema->fields),
-				'closed'  => $schema->closed
+				'fields'   => array_values($schema->fields),
+				'closed'   => $schema->closed,
+				'label'    => $definition->nullableString('label'),
+				'singular' => $definition->nullableString('singular')
 			];
 
 			if ($kind === TypeKind::Pages) {
@@ -241,6 +261,8 @@ abstract readonly class ContentType
 			'feed'    => $this->feed === false ? null : ($this->feed->toArray() ?: true),
 			'public'  => $this->public ? null : false,
 			'sitemap' => $this->sitemap ? null : false,
+			'label'    => $this->label === self::plural($this->singular) ? null : $this->label,
+			'singular' => $this->singular === self::readable($this->name) ? null : $this->singular,
 			...$this->options(),
 			...$this->schema->toArray()
 		];
@@ -258,6 +280,29 @@ abstract readonly class ContentType
 	protected function options(): array
 	{
 		return [];
+	}
+
+	/**
+	 * Returns a type name made readable: `literary_form` becomes
+	 * "Literary form".
+	 */
+	private static function readable(string $name): string
+	{
+		return ucfirst(str_replace('_', ' ', $name));
+	}
+
+	/**
+	 * Returns an English plural for the default label: "Category" becomes
+	 * "Categories", "Class" "Classes", "Post" "Posts". Types whose names
+	 * don't follow these rules, or aren't English, set `label`.
+	 */
+	private static function plural(string $singular): string
+	{
+		return match (true) {
+			preg_match('/[^aeiou]y$/i', $singular) === 1     => substr($singular, 0, -1) . 'ies',
+			preg_match('/(s|x|z|ch|sh)$/i', $singular) === 1 => "{$singular}es",
+			default                                           => "{$singular}s"
+		};
 	}
 
 	/**

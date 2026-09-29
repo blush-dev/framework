@@ -86,10 +86,11 @@ blush-framework/
     admin/              The admin app's sources (Vue 3 + TypeScript, D-221, D-224):
                         vite.config.ts, tsconfig.json (references tsconfig.app.json for js/ and
                         tsconfig.node.json for vite.config.ts, with @types/node), js/ (admin.ts, App.vue, api.ts,
-                        session.ts, router.ts, views/, components/), css/admin.css. Built
-                        with `npm run admin:build`
+                        session.ts, router.ts, icons.ts, color-scheme.ts, fields.ts, types.ts, screen.ts, views/, components/), css/ (admin.css,
+                        the entry, importing tokens.css, fonts.css, base.css; D-231), fonts/
+                        (IBM Plex, OFL). Built with `npm run admin:build`
   public/admin/         The built admin app (committed; plain names, D-224): .vite/manifest.json,
-                        js/admin.js, css/admin.css
+                        js/admin.js, css/admin.css, fonts/
   package.json          npm scripts for the admin build (admin:build, admin:watch, admin:check)
   docs/                 User documentation: installing, content, themes, config, CLI (D-141)
   benchmarks/           PHPBench suite + the generated jtcom-sized site (D-101)
@@ -97,7 +98,8 @@ blush-framework/
   tests/
     Fixtures/site/      Fixture site: .env, config/, local + Composer extensions
   .claude/
-    docs/               ← this folder
+    docs/               ← this folder; admin-design/ holds the admin's design direction
+                        (admin.md) and the original prototype tokens (D-231)
     skills/blush-code-style-php/
   AGENTS.md  CLAUDE.md  .phpcs.xml  phpstan.neon  phpunit.xml  phpbench.json
 ```
@@ -140,7 +142,10 @@ site/
     export/             Static export output (`build`, D-137)
     logs/
     sessions/           One JSON file per session, named by the id's SHA-256 (D-219)
-    accounts/           {username}.json admin accounts (D-217, D-219); never cleared
-    trash/              {Ymd-His}/user/content/... deleted entries (D-228); never cleared
+    accounts/           {username}.json admin accounts (D-217, D-219), with any non-default
+                        preferences (D-235); never cleared
+    trash/              One folder per deleted entry, {Ymd-His}-{6 hex}/: trash.json (entry,
+                        bundle, trashed) and the file or bundle folder at user/content/...
+                        (D-228, D-237; older folders have no manifest); never cleared
   tests/
 ```

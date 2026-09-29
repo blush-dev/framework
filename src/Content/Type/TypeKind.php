@@ -32,9 +32,9 @@ enum TypeKind: string
 	public function options(): array
 	{
 		return match ($this) {
-			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'fields', 'closed'],
-			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'fields', 'closed'],
-			self::Pages      => ['folder', 'public', 'sitemap', 'fields', 'closed']
+			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'fields', 'closed', 'label', 'singular'],
+			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'fields', 'closed', 'label', 'singular'],
+			self::Pages      => ['folder', 'public', 'sitemap', 'fields', 'closed', 'label', 'singular']
 		};
 	}
 }

@@ -81,6 +81,25 @@ Which to pick:
 - **An extension** keeps it with a feature you can reuse or version on its
   own.
 
+## Names in the admin
+
+The [admin](admin.md) names each type in its menu and buttons: `label`
+for a group of entries ("Recipes") and `singular` for one ("New
+recipe"). Both are made from the type's name unless you set them:
+`literary_form` becomes "Literary forms" and "Literary form", and
+`category` "Categories" and "Category". Set them when the name doesn't
+make a good English plural, or to call the type something else:
+
+```yaml
+# user/data/types/person.yaml
+folder: people
+label: People
+```
+
+```php
+new Collection('person', folder: 'people', label: 'People')
+```
+
 ## Example: a blog
 
 ```php

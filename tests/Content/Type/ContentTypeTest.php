@@ -153,6 +153,29 @@ final class ContentTypeTest extends TestCase
 		$this->assertEquals($pages, ContentType::fromArray($pages->toArray(), $this->fields));
 	}
 
+	public function testNamesTypesForPeople(): void
+	{
+		$names = static fn (ContentType $type): array => [$type->label, $type->singular];
+
+		$this->assertSame(['Posts', 'Post'], $names(new Collection('post')));
+		$this->assertSame(['Categories', 'Category'], $names(new Taxonomy('category')));
+		$this->assertSame(['Literary forms', 'Literary form'], $names(new Taxonomy('literary_form')));
+		$this->assertSame(['Classes', 'Class'], $names(new Collection('class')));
+		$this->assertSame(['Essays', 'Essay'], $names(new Collection('essay')), 'A vowel before the y keeps it.');
+		$this->assertSame(['Pages', 'Page'], $names(new Pages()));
+
+		$type = ContentType::fromArray(['name' => 'person', 'label' => 'People'], $this->fields);
+
+		$this->assertSame(['People', 'Person'], $names($type));
+		$this->assertSame('People', $type->toArray()['label'] ?? null);
+		$this->assertArrayNotHasKey('singular', $type->toArray(), 'Defaults are left out.');
+		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
+
+		$era = new Taxonomy('era', label: 'Eras of life', singular: 'Era of life');
+
+		$this->assertEquals($era, ContentType::fromArray($era->toArray(), $this->fields));
+	}
+
 	public function testReadsKinds(): void
 	{
 		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'note'], $this->fields));

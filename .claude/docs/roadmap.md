@@ -179,14 +179,29 @@ The current focus: the experience of setting up a Blush site.
 
 Done: the Vue app's shell, sign-in, and dashboard (entry counts, and
 the `publish`, `reindex`, and `clear-caches` actions, which extensions
-extend in PHP); drafts and scheduled entries, and content health
+extend in PHP); drafts and scheduled entries (a tab on each list since
+D-236), the trash (a tab too, with restore as a draft, D-237), and content health
 (D-225); signed preview links (D-226); the paged, filterable entry
-list API (D-230). Docs: `docs/admin.md`.
+list API (D-230); design tokens and the rail-and-top-bar shell from
+the admin design direction (D-231), with each account's light/dark
+preference on Your profile (D-232, D-235). Docs: `docs/admin.md`.
 
 M10 has started: writing content back to files (`ContentWriter`,
-D-228) and the editing API (D-229). Next: the editor screens: forms
-from content schemas, the
-Markdown editor with live preview, the component inserter, and media.
+D-228), the editing API (D-229), and the first editor screens (D-233):
+a list per content type (D-234), New entry, and the editor with forms
+from content schemas and a plain-text Markdown body. Next: live preview and a
+Markdown editor, the component inserter, reference and media pickers,
+and media. Smaller admin items waiting: the admin theme choice (a second
+account preference, D-235), changing one's own password on Your profile,
+renaming an entry from the editor, objects in forms, autosave, and Pages
+as a tree (see D-233 to D-237's open items).
+
+Testing the admin on the jtcom trial: create a throwaway administrator
+account file in `../blush/storage/accounts/` (an Argon2id hash), drive
+the admin with Playwright and Chrome, and delete the account, its
+sessions, and anything it created afterwards. ddev syncs files with
+Mutagen, so an edit made on the host can reach the container late: test
+write conflicts through the API, not by editing files on disk.
 Export as a background-safe action is deferred (jtcom runs
 dynamically).
 

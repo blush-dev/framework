@@ -1,0 +1,268 @@
+/* ============================================================================
+   Admin design tokens
+   ----------------------------------------------------------------------------
+   The token set below is the ENTIRE surface an admin theme may redefine.
+   Component CSS must never contain a literal color, font family, radius or
+   type size — only var(--token).
+
+   Theme axes, both set on <html>:
+     data-admin-theme="neutral" | "editorial" | "<addon-theme-id>"
+         absent  -> neutral
+     data-color-scheme="light" | "dark"
+         absent  -> follow the operating system
+
+   That gives four states per admin theme. The cascade below is deliberate:
+
+     :root                                    every token, light values
+     @media (prefers-color-scheme: dark)
+       :root:not([data-color-scheme="light"]) dark values for system-dark
+     :root[data-color-scheme="dark"]          dark values for an explicit choice
+
+   Every token gets its first definition on bare :root. A token defined only
+   inside a media query or an attribute selector is the classic unreadable-admin
+   bug: it never applies for the viewers who set nothing.
+
+   A new admin theme = one file that repeats this shape under its own
+   [data-admin-theme="id"] selector. It adds no new token names.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- neutral -- */
+/* Default admin theme. Cool gray chrome, cobalt accent, dense rows.           */
+
+:root {
+	/* surfaces, back to front */
+	--bg:             #f5f6f9;  /* app ground, behind panels */
+	--surface:        #ffffff;  /* panels, table, rail, top bar */
+	--surface-2:      #f0f2f6;  /* row hover, chips, inset fills */
+	--surface-3:      #e7eaf0;  /* pressed, avatar ground */
+
+	/* lines */
+	--border:         #e2e5ec;  /* default hairline */
+	--border-strong:  #ccd2dd;  /* checkbox, hover border, floating edges */
+
+	/* ink */
+	--fg:             #11141b;  /* primary text */
+	--fg-2:           #535b6b;  /* secondary text, icons, labels */
+	--fg-3:           #858d9d;  /* muted: slugs, timestamps, placeholders */
+
+	/* accent — one hue, used for primary action, selection and focus */
+	--accent:         #2f5fe0;
+	--accent-hover:   #2650c4;
+	--accent-fg:      #ffffff;  /* text on a filled accent */
+	--accent-soft:    #e9effc;  /* selected rows, soft pills */
+	--accent-line:    #bdcdf7;  /* border on soft accent fills */
+
+	/* status — reserved. Never reused as decoration or as a series color. */
+	--good:           #136b43;  --good-soft:   #e2f3e9;  --good-dot:   #1f9d5f;
+	--warn:           #8a5806;  --warn-soft:   #faf0d9;  --warn-dot:   #cf8d16;
+	--danger:         #a92420;  --danger-soft: #fbeae9;  --danger-dot: #d6403a;
+
+	/* elevation */
+	--shadow-1: 0 1px 2px rgba(17,20,27,.06), 0 1px 3px rgba(17,20,27,.04);
+	--shadow-2: 0 8px 24px rgba(17,20,27,.10), 0 2px 6px rgba(17,20,27,.06);
+	--shadow-3: 0 24px 60px rgba(17,20,27,.18), 0 6px 16px rgba(17,20,27,.10);
+
+	/* radius */
+	--r-1: 5px;   /* controls: buttons, inputs, chips */
+	--r-2: 8px;   /* menus, small cards */
+	--r-3: 12px;  /* panels, table shell */
+
+	/* type */
+	--font-ui:      "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-display: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+	--font-title:   "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+	--font-mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+	--base:         13px;     /* body / control text */
+	--h1:           22px;     /* page title */
+	--h1-track:     -.022em;
+	--title-size:   13px;     /* entry titles in lists */
+	--title-weight: 500;
+	--title-track:  -.005em;
+
+	/* density — an admin theme may loosen these; component CSS must not hardcode */
+	--pad-row:   10px;  /* table cell and list row vertical padding */
+	--pad-panel: 13px;  /* panel header vertical padding */
+	--pad-x:     16px;  /* panel horizontal padding */
+	--stat-v:    26px;  /* stat tile figure size */
+
+	/* layout */
+	--rail:      238px; /* sidebar width */
+	--rail-min:  60px;  /* collapsed sidebar */
+	--bar:       53px;  /* top bar and site header height */
+	--work-max:  1360px;
+
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-color-scheme="light"]) {
+		--bg:            #0b0d12;
+		--surface:       #13161d;
+		--surface-2:     #1a1e27;
+		--surface-3:     #222733;
+		--border:        #242936;
+		--border-strong: #353c4c;
+		--fg:            #e9ebf0;
+		--fg-2:          #a3abba;
+		--fg-3:          #747d8e;
+		--accent:        #7295f7;
+		--accent-hover:  #8aa8f9;
+		--accent-fg:     #0b0d12;
+		--accent-soft:   #182444;
+		--accent-line:   #2c3d68;
+		--good:   #5ecb92;  --good-soft:   #102a1e;  --good-dot:   #35b877;
+		--warn:   #e3b360;  --warn-soft:   #2b2312;  --warn-dot:   #d69f3c;
+		--danger: #f28d84;  --danger-soft: #301917;  --danger-dot: #e0655c;
+		--shadow-1: 0 1px 2px rgba(0,0,0,.4);
+		--shadow-2: 0 8px 24px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.3);
+		--shadow-3: 0 24px 60px rgba(0,0,0,.6), 0 6px 16px rgba(0,0,0,.4);
+		color-scheme: dark;
+	}
+}
+
+:root[data-color-scheme="dark"] {
+	--bg:            #0b0d12;
+	--surface:       #13161d;
+	--surface-2:     #1a1e27;
+	--surface-3:     #222733;
+	--border:        #242936;
+	--border-strong: #353c4c;
+	--fg:            #e9ebf0;
+	--fg-2:          #a3abba;
+	--fg-3:          #747d8e;
+	--accent:        #7295f7;
+	--accent-hover:  #8aa8f9;
+	--accent-fg:     #0b0d12;
+	--accent-soft:   #182444;
+	--accent-line:   #2c3d68;
+	--good:   #5ecb92;  --good-soft:   #102a1e;  --good-dot:   #35b877;
+	--warn:   #e3b360;  --warn-soft:   #2b2312;  --warn-dot:   #d69f3c;
+	--danger: #f28d84;  --danger-soft: #301917;  --danger-dot: #e0655c;
+	--shadow-1: 0 1px 2px rgba(0,0,0,.4);
+	--shadow-2: 0 8px 24px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.3);
+	--shadow-3: 0 24px 60px rgba(0,0,0,.6), 0 6px 16px rgba(0,0,0,.4);
+	color-scheme: dark;
+}
+
+/* -------------------------------------------------------------- editorial -- */
+/* Second bundled theme. Warm paper, teal accent, serif titles, looser rows.
+   Note it redefines type and density tokens as well as color — that is what an
+   admin theme is allowed to do, and the ceiling of what it may do.            */
+
+:root[data-admin-theme="editorial"] {
+	--bg:            #f6f2ec;
+	--surface:       #fffdfa;
+	--surface-2:     #f1ece3;
+	--surface-3:     #e7e0d4;
+	--border:        #e5ded2;
+	--border-strong: #cdc3b3;
+	--fg:            #23201b;
+	--fg-2:          #5d564c;
+	--fg-3:          #8e867a;
+	--accent:        #17595e;
+	--accent-hover:  #124a4e;
+	--accent-fg:     #fffdfa;
+	--accent-soft:   #e2eded;
+	--accent-line:   #b6d3d5;
+	--good:   #4c6d2c;  --good-soft:   #edf1e2;  --good-dot:   #6f9b45;
+	--warn:   #8a5a14;  --warn-soft:   #f8eeda;  --warn-dot:   #c58a2a;
+	--danger: #9c3327;  --danger-soft: #f8e7e2;  --danger-dot: #c2503f;
+	--shadow-1: 0 1px 2px rgba(60,48,32,.06), 0 1px 3px rgba(60,48,32,.04);
+	--shadow-2: 0 8px 24px rgba(60,48,32,.10), 0 2px 6px rgba(60,48,32,.06);
+	--shadow-3: 0 24px 60px rgba(60,48,32,.18), 0 6px 16px rgba(60,48,32,.10);
+
+	--r-1: 6px;  --r-2: 10px;  --r-3: 14px;
+
+	--font-ui:      "Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+	--font-title:   "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+
+	--base: 13.5px;
+	--h1: 27px;  --h1-track: -.012em;
+	--title-size: 15px;  --title-weight: 500;  --title-track: 0;
+
+	--pad-row: 13px;  --pad-panel: 15px;  --pad-x: 18px;  --stat-v: 30px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+		--bg:            #15120e;
+		--surface:       #1d1915;
+		--surface-2:     #26211a;
+		--surface-3:     #322b22;
+		--border:        #302a21;
+		--border-strong: #463e31;
+		--fg:            #f0e9dd;
+		--fg-2:          #b4a996;
+		--fg-3:          #877c6c;
+		--accent:        #72bec2;
+		--accent-hover:  #8bcccf;
+		--accent-fg:     #15120e;
+		--accent-soft:   #113032;
+		--accent-line:   #1d4a4d;
+		--good:   #9cc16b;  --good-soft:   #1c2413;  --good-dot:   #84ad55;
+		--warn:   #dcae63;  --warn-soft:   #2c2314;  --warn-dot:   #c79646;
+		--danger: #e8897b;  --danger-soft: #2f1a16;  --danger-dot: #cf6a5c;
+		--shadow-1: 0 1px 2px rgba(0,0,0,.45);
+		--shadow-2: 0 8px 24px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35);
+		--shadow-3: 0 24px 60px rgba(0,0,0,.65), 0 6px 16px rgba(0,0,0,.45);
+		color-scheme: dark;
+	}
+}
+
+:root[data-color-scheme="dark"][data-admin-theme="editorial"] {
+	--bg:            #15120e;
+	--surface:       #1d1915;
+	--surface-2:     #26211a;
+	--surface-3:     #322b22;
+	--border:        #302a21;
+	--border-strong: #463e31;
+	--fg:            #f0e9dd;
+	--fg-2:          #b4a996;
+	--fg-3:          #877c6c;
+	--accent:        #72bec2;
+	--accent-hover:  #8bcccf;
+	--accent-fg:     #15120e;
+	--accent-soft:   #113032;
+	--accent-line:   #1d4a4d;
+	--good:   #9cc16b;  --good-soft:   #1c2413;  --good-dot:   #84ad55;
+	--warn:   #dcae63;  --warn-soft:   #2c2314;  --warn-dot:   #c79646;
+	--danger: #e8897b;  --danger-soft: #2f1a16;  --danger-dot: #cf6a5c;
+	--shadow-1: 0 1px 2px rgba(0,0,0,.45);
+	--shadow-2: 0 8px 24px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35);
+	--shadow-3: 0 24px 60px rgba(0,0,0,.65), 0 6px 16px rgba(0,0,0,.45);
+	color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ base -- */
+
+*, *::before, *::after { box-sizing: border-box }
+html, body { height: 100% }
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--fg);
+	font-family: var(--font-ui);
+	font-size: var(--base);
+	line-height: 1.45;
+	-webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: 3px;
+}
+
+/* Digits that stack in a column always line up. */
+.num, .mono, td, th, time { font-variant-numeric: tabular-nums }
+.mono { font-family: var(--font-mono) }
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation-duration: .01ms !important;
+		transition-duration: .01ms !important;
+	}
+}

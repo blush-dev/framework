@@ -110,6 +110,17 @@ final readonly class Accounts
 	}
 
 	/**
+	 * Sets an account's preferences (D-235).
+	 */
+	public function setPreferences(Account $account, Preferences $preferences): Account
+	{
+		$account = $account->withPreferences($preferences);
+		$this->store->save($account);
+
+		return $account;
+	}
+
+	/**
 	 * Whether an author exists: it has an entry, or entries credit it (a
 	 * virtual term). An account can be linked before either happens, so
 	 * this is advice, not a rule.

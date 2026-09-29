@@ -4,6 +4,7 @@
 
 import { createApp } from 'vue';
 import App from './App.vue';
+import './color-scheme';
 import { router } from './router';
 import '../css/admin.css';
 

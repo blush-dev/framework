@@ -18,10 +18,13 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\AdminConfig;
 use Blush\Admin\AdminRoutes;
+use Blush\Admin\PreferencesController;
 use Blush\Admin\SessionController;
 use Blush\Auth\Accounts;
 use Blush\Auth\AccountStore;
 use Blush\Auth\Authenticator;
+use Blush\Auth\ColorScheme;
+use Blush\Auth\Preferences;
 use Blush\Auth\LoginThrottle;
 use Blush\Auth\Middleware\Authenticate;
 use Blush\Auth\Middleware\VerifyCsrf;
@@ -30,6 +33,8 @@ use Blush\Http\ClientIp;
 #[CoversClass(AdminConfig::class)]
 #[CoversClass(AdminRoutes::class)]
 #[CoversClass(SessionController::class)]
+#[CoversClass(PreferencesController::class)]
+#[CoversClass(Preferences::class)]
 #[CoversClass(Authenticator::class)]
 #[CoversClass(LoginThrottle::class)]
 #[CoversClass(VerifyCsrf::class)]
@@ -129,5 +134,30 @@ final class AdminApiTest extends TestCase
 		$container->make(Accounts::class)->setPassword($account, 'a brand new password');
 
 		$this->assertSame(['account' => null], self::json($this->send('GET', '/session')));
+	}
+
+	public function testAccountsSetTheirOwnPreferences(): void
+	{
+		$this->boot(roles: ['contributor']);
+		$token = self::json($this->login())['csrfToken'] ?? null;
+		$this->assertIsString($token);
+
+		$this->assertSame(['colorScheme' => 'system'], self::account($this->send('GET', '/session'))['preferences'] ?? null);
+
+		$answer = $this->send('PATCH', '/preferences', '{"colorScheme": "dark"}', ['X-CSRF-Token' => $token]);
+
+		$this->assertSame(200, $answer->getStatusCode());
+		$this->assertSame(['preferences' => ['colorScheme' => 'dark']], self::json($answer));
+		$this->assertSame(ColorScheme::Dark, $this->app->container()->make(AccountStore::class)->find('jane')?->preferences->colorScheme);
+		$this->assertSame(['colorScheme' => 'dark'], self::account($this->send('GET', '/session'))['preferences'] ?? null, 'Saving doesn\'t sign the account out.');
+
+		$this->assertSame(400, $this->send('PATCH', '/preferences', '{"colorScheme": "purple"}', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(400, $this->send('PATCH', '/preferences', '"dark"', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(403, $this->send('PATCH', '/preferences', '{"colorScheme": "light"}')->getStatusCode(), 'CSRF is checked.');
+
+		$this->send('PATCH', '/preferences', '{"colorScheme": "system"}', ['X-CSRF-Token' => $token]);
+		$file = (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json');
+
+		$this->assertStringNotContainsString('preferences', $file, 'Defaults aren\'t stored.');
 	}
 }

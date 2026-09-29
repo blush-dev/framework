@@ -27,6 +27,7 @@ use Blush\Http\SameSite;
 use Blush\Session\FileSessionStore;
 use Blush\Session\Session;
 use Blush\Session\SessionConfig;
+use Blush\Session\SessionReader;
 use Blush\Session\StartSession;
 use Blush\Support\Filesystem;
 use Blush\Tests\Fixtures\Session\SessionAction;
@@ -36,6 +37,7 @@ use Blush\Tests\TemporaryDirectory;
 #[CoversClass(SessionConfig::class)]
 #[CoversClass(FileSessionStore::class)]
 #[CoversClass(StartSession::class)]
+#[CoversClass(SessionReader::class)]
 #[CoversClass(Cookie::class)]
 final class StartSessionTest extends TestCase
 {
@@ -56,7 +58,9 @@ final class StartSessionTest extends TestCase
 		$request = Request::create($url);
 		$request = $cookie === null ? $request : $request->withCookieParams(['blush_session' => $cookie, '__Host-blush_session' => $cookie]);
 
-		return new StartSession($this->store, new SessionConfig(), $this->clock)->process($request, new SessionAction($action));
+		$config = new SessionConfig();
+
+		return new StartSession($this->store, $config, new SessionReader($this->store, $config, $this->clock), $this->clock)->process($request, new SessionAction($action));
 	}
 
 	/**
@@ -96,6 +100,26 @@ final class StartSessionTest extends TestCase
 
 		$this->assertSame('2', (string) $second->getBody());
 		$this->assertFalse($second->hasHeader('Set-Cookie'));
+	}
+
+	public function testReadsALiveSessionWithoutTouchingIt(): void
+	{
+		$id     = $this->cookie($this->send('count'));
+		$reader = new SessionReader($this->store, new SessionConfig(), $this->clock);
+		$file   = $this->temporaryDirectory() . '/storage/sessions/' . hash('sha256', $id) . '.json';
+		$before = (string) file_get_contents($file);
+
+		$this->clock->advance('PT1H');
+
+		$this->assertSame(1, $reader->read(Request::create('http://example.test/admin')->withCookieParams(['blush_session' => $id]))?->get('count'));
+		$this->assertSame($before, file_get_contents($file), 'Reading doesn\'t keep the session alive.');
+		$this->assertNull($reader->read(Request::create('http://example.test/admin')), 'No cookie, no session.');
+		$this->assertNull($reader->read(Request::create('http://example.test/admin')->withCookieParams(['blush_session' => 'nope'])));
+
+		$this->clock->advance('PT1H1S');
+
+		$this->assertNull($reader->read(Request::create('http://example.test/admin')->withCookieParams(['blush_session' => $id])), 'Idle too long.');
+		$this->assertFileExists($file, 'Expired sessions are left for StartSession to drop.');
 	}
 
 	public function testUsesASecureHostCookieOverHttps(): void

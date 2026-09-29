@@ -12,12 +12,17 @@ publishing), and M7 (Static export) are **complete**. **Milestone M8
 of `../blush` (a test bed the author uses; never commit its site files).
 **The current focus is the admin** (M9 and M10), grown out of the setup
 DX/UX work (D-156): first-run setup (D-218), accounts and auth (D-215 to
-D-219), the Vue admin app with its dashboard, drafts, content health, and
-preview links (D-220 to D-227), and the editor's write path and editing
-API (D-228, D-229). Next: the editor screens (forms from content schemas,
-a Markdown editor with live preview); see `.claude/docs/roadmap.md`.
+D-219), the Vue admin app (D-220 to D-227), the editor's write path and
+editing API (D-228, D-229), and, built from the admin design direction
+(`.claude/docs/admin-design/admin.md`, D-231): the tokens and shell,
+per-account preferences on Your profile (D-235), a list per content type
+with status and Trash tabs (D-230, D-234, D-236, D-237), and the first
+editor (D-233). Next: live preview and a Markdown editor, the component
+inserter, reference and media pickers; see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
-`npm run admin:build` (D-221, D-224).
+`npm run admin:build` (D-221, D-224). Admin CSS reads design tokens
+from `resources/admin/css/tokens.css` only: no literal colors, fonts,
+type sizes, or radii elsewhere (D-231).
 The dev site is `../blush` (`ddev start`, https://blush.ddev.site), on
 `jtcom-trial` for now (the skeleton itself is its `2.x` branch). Code on
 `master` (1.x) is not a reference implementation, with one exception:
@@ -47,6 +52,7 @@ At the start of a session, read `roadmap.md` (current milestone) and skim
 | [`.claude/docs/cli.md`](.claude/docs/cli.md) | Custom CLI design. |
 | [`.claude/docs/roadmap.md`](.claude/docs/roadmap.md) | Milestones and exit criteria. |
 | [`.claude/docs/open-questions.md`](.claude/docs/open-questions.md) | Unresolved questions. Move each to `decisions.md` once answered. |
+| [`.claude/docs/admin-design/admin.md`](.claude/docs/admin-design/admin.md) | The admin's design direction (prototype stage, D-231). Read before writing admin UI; update it when you depart from it. `tokens.css` beside it is the original prototype, not the build source. |
 
 When the user makes a decision in conversation, record it in `decisions.md`
 (and update any affected doc) in the same session.

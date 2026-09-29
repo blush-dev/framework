@@ -24,6 +24,7 @@ use NoDiscard;
  * - `author` optionally links the account to an entry of the `author`
  *   type by slug. Entries crediting that author are the account's own.
  * - `created` and `lastLogin` are Unix timestamps.
+ * - `preferences` are how the person likes the admin (D-235).
  */
 final readonly class Account
 {
@@ -42,7 +43,8 @@ final readonly class Account
 		public array $roles = [],
 		public ?string $author = null,
 		public int $created = 0,
-		public ?int $lastLogin = null
+		public ?int $lastLogin = null,
+		public Preferences $preferences = new Preferences()
 	) {
 		if (! self::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
@@ -87,7 +89,16 @@ final readonly class Account
 	#[NoDiscard]
 	public function withAuthor(?string $author): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin);
+		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin, $this->preferences);
+	}
+
+	/**
+	 * Returns a copy with other preferences.
+	 */
+	#[NoDiscard]
+	public function withPreferences(Preferences $preferences): self
+	{
+		return clone($this, ['preferences' => $preferences]);
 	}
 
 	/**
@@ -120,24 +131,29 @@ final readonly class Account
 			roles: $roles,
 			author: is_string($data['author'] ?? null) ? $data['author'] : null,
 			created: is_int($data['created'] ?? null) ? $data['created'] : 0,
-			lastLogin: is_int($data['lastLogin'] ?? null) ? $data['lastLogin'] : null
+			lastLogin: is_int($data['lastLogin'] ?? null) ? $data['lastLogin'] : null,
+			preferences: Preferences::fromArray(is_array($data['preferences'] ?? null) ? $data['preferences'] : [])
 		);
 	}
 
 	/**
-	 * Returns the account as its stored array.
+	 * Returns the account as its stored array. Preferences at their
+	 * defaults are left out, and so is `preferences` when all are.
 	 *
-	 * @return array{username: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int}
+	 * @return array{username: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string>}
 	 */
 	public function toArray(): array
 	{
+		$preferences = $this->preferences->changed();
+
 		return [
 			'username'     => $this->username,
 			'passwordHash' => $this->passwordHash,
 			'roles'        => $this->roles,
 			'author'       => $this->author,
 			'created'      => $this->created,
-			'lastLogin'    => $this->lastLogin
+			'lastLogin'    => $this->lastLogin,
+			...($preferences === [] ? [] : ['preferences' => $preferences])
 		];
 	}
 }

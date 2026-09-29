@@ -19,11 +19,13 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\EntriesController;
 use Blush\Admin\HealthController;
 use Blush\Admin\PreviewLinkController;
+use Blush\Admin\TypesController;
 use Blush\Content\ContentRepository;
 
 #[CoversClass(EntriesController::class)]
 #[CoversClass(HealthController::class)]
 #[CoversClass(PreviewLinkController::class)]
+#[CoversClass(TypesController::class)]
 final class AdminContentTest extends TestCase
 {
 	use BootsAdmin;
@@ -186,6 +188,36 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(5, $this->list('?type=page')['total']);
 		$this->assertSame(400, $this->send('GET', '/entries?type=missing')->getStatusCode());
+	}
+
+	public function testCountsHowManyPublishedEntriesUseATerm(): void
+	{
+		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/authors/nobody.md', "---\ntitle: Nobody\n---\n");
+		$this->site(['editor']);
+
+		$terms = array_column($this->listed('?type=author'), 'uses', 'title');
+
+		$this->assertEqualsCanonicalizing(['Jane' => 1, 'Nobody' => 0], $terms, 'Only "Live" counts: drafts and scheduled entries aren\'t published.');
+		$pages = $this->listed('?type=page');
+
+		$this->assertNotSame([], $pages);
+		$this->assertSame(array_fill(0, count($pages), null), array_column($pages, 'uses'), 'Only terms have uses.');
+	}
+
+	public function testDescribesTheContentTypes(): void
+	{
+		$this->site(['author']);
+
+		$types = self::json($this->send('GET', '/types'))['types'] ?? null;
+
+		$this->assertIsArray($types);
+		$this->assertContains(['name' => 'page', 'label' => 'Pages', 'singular' => 'Page', 'kind' => 'pages', 'dated' => false], $types);
+
+		$last = end($types);
+
+		$this->assertIsArray($last);
+		$this->assertSame('taxonomy', $last['kind'] ?? null, 'Taxonomies come last.');
 	}
 
 	public function testPagesThroughEntries(): void

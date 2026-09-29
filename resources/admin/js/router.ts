@@ -5,20 +5,32 @@
  */
 
 import { createRouter, createWebHistory } from 'vue-router';
+import { watch } from 'vue';
 import { config } from './config';
+import { screenTitle } from './screen';
 import { can, loadSession, session } from './session';
 import DashboardView from './views/DashboardView.vue';
-import DraftsView from './views/DraftsView.vue';
+import EditorView from './views/EditorView.vue';
+import EntriesView from './views/EntriesView.vue';
 import HealthView from './views/HealthView.vue';
+import NewEntryView from './views/NewEntryView.vue';
 import NotFoundView from './views/NotFoundView.vue';
+import ProfileView from './views/ProfileView.vue';
 import SignInView from './views/SignInView.vue';
 
 export const router = createRouter({
 	history: createWebHistory(config.base),
 	routes: [
 		{ path: '/', name: 'dashboard', component: DashboardView, meta: { title: 'Dashboard' } },
-		{ path: '/drafts', name: 'drafts', component: DraftsView, meta: { title: 'Drafts', capability: 'content.edit' } },
+		{ path: '/entries', name: 'entries', component: EntriesView, meta: { title: 'All entries', capability: 'content.edit', section: 'entries' } },
+		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', capability: 'content.edit', section: 'entries' } },
+		{ path: '/entries/new', name: 'entry-new', component: NewEntryView, meta: { title: 'New entry', capability: 'content.create', section: 'entries' } },
+		// An entry's id is its source path, so it spans segments.
+		{ path: '/entries/:id+', name: 'entry', component: EditorView, meta: { title: 'Edit entry', capability: 'content.edit', section: 'entries' } },
+		// Drafts are a tab on each list now (D-236); old links still work.
+		{ path: '/drafts', redirect: { name: 'entries', query: { status: 'draft' } } },
 		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content health', capability: 'content.edit.others' } },
+		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your profile' } },
 		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign in', public: true } },
 		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: 'Not found' } }
 	]
@@ -43,8 +55,19 @@ router.beforeEach(async (to) => {
 	return true;
 });
 
-router.afterEach((to) => {
-	const title = typeof to.meta.title === 'string' ? to.meta.title : 'Admin';
+function setTitle(): void {
+	const meta  = router.currentRoute.value.meta.title;
+	const title = screenTitle.value ?? (typeof meta === 'string' ? meta : 'Admin');
 
 	document.title = `${title} · ${config.site.name}`;
+}
+
+router.afterEach((to, from) => {
+	if (to.name !== from.name || to.params.type !== from.params.type) {
+		screenTitle.value = null;
+	}
+
+	setTitle();
 });
+
+watch(screenTitle, setTitle);

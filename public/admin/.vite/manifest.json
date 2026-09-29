@@ -1,4 +1,20 @@
 {
+  "fonts/ibm-plex-mono-latin-400-normal.woff2": {
+    "file": "fonts/ibm-plex-mono-latin-400-normal.woff2",
+    "src": "fonts/ibm-plex-mono-latin-400-normal.woff2"
+  },
+  "fonts/ibm-plex-mono-latin-500-normal.woff2": {
+    "file": "fonts/ibm-plex-mono-latin-500-normal.woff2",
+    "src": "fonts/ibm-plex-mono-latin-500-normal.woff2"
+  },
+  "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2": {
+    "file": "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2",
+    "src": "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2"
+  },
+  "fonts/ibm-plex-sans-latin-wght-normal.woff2": {
+    "file": "fonts/ibm-plex-sans-latin-wght-normal.woff2",
+    "src": "fonts/ibm-plex-sans-latin-wght-normal.woff2"
+  },
   "js/admin.ts": {
     "file": "js/admin.js",
     "name": "admin",
@@ -6,6 +22,12 @@
     "isEntry": true,
     "css": [
       "css/admin.css"
+    ],
+    "assets": [
+      "fonts/ibm-plex-sans-latin-wght-normal.woff2",
+      "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2",
+      "fonts/ibm-plex-mono-latin-400-normal.woff2",
+      "fonts/ibm-plex-mono-latin-500-normal.woff2"
     ]
   }
 }

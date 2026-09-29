@@ -25,6 +25,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Order;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Taxonomy;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
 
@@ -42,6 +43,7 @@ use Blush\Http\Status as HttpStatus;
  * entries soonest first, and published entries newest first. The
  * permission rules, the filters, and paging all run in the index as one
  * query (`Permissions::restrict()`), so only the page's entries are built.
+ * Terms also say how many published entries use them (`uses`, D-236).
  */
 final readonly class EntriesController
 {
@@ -107,6 +109,15 @@ final readonly class EntriesController
 		};
 
 		$entries = $this->permissions->restrict($account, Capability::ContentEdit, $query)->paginate($per, $page);
+		$counts  = [];
+
+		// How many published entries use each term on the page, one pass
+		// per taxonomy (D-236).
+		foreach ($entries->all() as $entry) {
+			if ($entry->type instanceof Taxonomy) {
+				$counts[$entry->type->name] ??= $this->content->termCounts($entry->type->name);
+			}
+		}
 
 		return self::json([
 			'status'  => $status->value ?? 'any',
@@ -116,16 +127,18 @@ final readonly class EntriesController
 			'page'    => $page,
 			'pages'   => $entries->pages(),
 			'per'     => $per,
-			'entries' => array_map(fn (Entry $entry): array => $this->describe($account, $entry), $entries->all())
+			'entries' => array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts), $entries->all())
 		]);
 	}
 
 	/**
-	 * Returns what the admin shows of an entry.
+	 * Returns what the admin shows of an entry. A term's `uses` is how
+	 * many published entries reference it; other entries' is `null`.
 	 *
+	 * @param  array<string, array<string, int>> $counts Term counts by taxonomy.
 	 * @return array<string, mixed>
 	 */
-	private function describe(Account $account, Entry $entry): array
+	private function describe(Account $account, Entry $entry, array $counts): array
 	{
 		return [
 			'id'        => $entry->id,
@@ -136,7 +149,8 @@ final readonly class EntriesController
 			'updated'   => $entry->updated->format(DateTimeInterface::ATOM),
 			'path'      => $entry->source?->path,
 			'authors'   => $entry->terms($this->config->authorTaxonomy),
-			'own'       => $this->permissions->owns($account, $entry)
+			'own'       => $this->permissions->owns($account, $entry),
+			'uses'      => $entry->type instanceof Taxonomy ? ($counts[$entry->type->name][$entry->key] ?? 0) : null
 		];
 	}
 

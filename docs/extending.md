@@ -203,7 +203,10 @@ $writer->update($entry->id, new EntryChanges(
   nothing. Leave it out to skip the check.
 - `create()`, `rename()` (a new slug; a dated file keeps its date, and a
   bundle's folder moves with its media), and `delete()` (the file moves
-  to `storage/trash/`) work the same way.
+  to `storage/trash/`) work the same way. `trashed()` lists the trash,
+  `restore($id, $changes)` brings an entry back after making the changes
+  (such as `new EntryChanges(set: ['status' => 'draft'])`), and
+  `purge($id)` deletes one for good.
 - Every change reindexes content and refreshes cached pages.
 
 The writer only writes content files inside `user/content`, and refuses

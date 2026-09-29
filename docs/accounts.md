@@ -114,6 +114,8 @@ they decide who can do what.
 - **Too many wrong passwords** lock out that address and username for 15
   minutes: five tries for one username, or twenty for any.
 - **Changing a password** signs that account out everywhere.
+- **Preferences**, such as the admin's color scheme, are each person's own,
+  set on **Your profile** in the admin and kept in their account's file.
 
 Both can be changed in `config/auth.php` and `config/session.php`; see
 [Configuration](configuration.md#accounts-and-sessions).

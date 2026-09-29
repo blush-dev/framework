@@ -12,6 +12,13 @@ export interface Account {
 	roles: string[];
 	capabilities: string[];
 	lastLogin: number | null;
+	preferences: Preferences;
+}
+
+export type ColorScheme = 'system' | 'light' | 'dark';
+
+export interface Preferences {
+	colorScheme: ColorScheme;
 }
 
 export interface SessionState {
@@ -48,9 +55,25 @@ export interface EntrySummary {
 	path: string | null;
 	authors: string[];
 	own: boolean;
+	// For a term, how many published entries use it; else `null` (D-236).
+	uses: number | null;
 }
 
 export type EntryStatus = 'draft' | 'scheduled' | 'published';
+
+/**
+ * An entry in the trash (`GET trash`, D-237).
+ */
+export interface TrashedSummary {
+	id: string;
+	entry: string;
+	title: string;
+	type: string | null;
+	bundle: boolean;
+	trashed: string;
+	authors: string[];
+	own: boolean;
+}
 
 export interface EntryList {
 	status: EntryStatus | 'any';
@@ -61,6 +84,60 @@ export interface EntryList {
 	pages: number;
 	per: number;
 	entries: EntrySummary[];
+}
+
+export interface ContentTypeSummary {
+	name: string;
+	label: string;
+	singular: string;
+	kind: 'collection' | 'taxonomy' | 'pages';
+	dated: boolean;
+}
+
+/**
+ * A schema field as the server describes it (`Field::toArray()`); the
+ * type's own settings (`options`, `item`, `to`, …) sit beside the shared
+ * ones.
+ */
+export interface FieldDescription {
+	name: string;
+	type: string;
+	aliases?: string[];
+	required?: boolean;
+	default?: unknown;
+	label?: string;
+	description?: string;
+	options?: string[];
+	item?: FieldDescription;
+	to?: string;
+	multiple?: boolean;
+	integer?: boolean;
+	min?: number;
+	max?: number;
+	[setting: string]: unknown;
+}
+
+/**
+ * An entry for editing (`GET entries/{id}`, D-229).
+ */
+export interface EntryDetail {
+	id: string;
+	revision: string;
+	title: string;
+	status: EntryStatus;
+	own: boolean;
+	url: string | null;
+	type: {
+		name: string;
+		kind: ContentTypeSummary['kind'];
+		dated: boolean;
+		fields: FieldDescription[];
+	};
+	values: Record<string, unknown>;
+	extra: Record<string, unknown>;
+	body: string;
+	can: { edit: boolean; publish: boolean; delete: boolean };
+	violations: Violation[];
 }
 
 export interface Violation {
@@ -87,6 +164,13 @@ export class ApiError extends Error {
 	}
 }
 
+/**
+ * The API path of an entry, from its id (its source path).
+ */
+export function entryPath(id: string): string {
+	return `/entries/${id.split('/').map(encodeURIComponent).join('/')}`;
+}
+
 let csrfToken: string | null = null;
 
 /**
@@ -99,7 +183,7 @@ export function setCsrfToken(token: string | null): void {
 /**
  * Sends a request and returns the decoded answer (`undefined` for a 204).
  */
-export async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
 	const headers: Record<string, string> = { Accept: 'application/json' };
 
 	if (body !== undefined) {

@@ -2,10 +2,12 @@
 
 The admin is where people with an [account](accounts.md) run the site
 from a browser. So far it has a dashboard (your content at a glance, and
-buttons to publish, reindex, and clear caches), a list of drafts and
-scheduled entries, and a content health check.
+buttons to publish, reindex, and clear caches), a list of each content
+type's entries, an editor, and a content health check.
 
-> **The admin is early.** Editing content in the browser comes later.
+> **The admin is early.** The editor edits Markdown as plain text for
+> now; a live preview, inserting components, and a media library come
+> later.
 
 ## Turning it on
 
@@ -36,6 +38,22 @@ its URLs exist.
 | `path` | `'/admin'` | Where it lives, such as `'/dashboard'` |
 | `app` | `null` | A folder with your own admin front end (see below) |
 
+## Getting around
+
+The sidebar lists the screens your account can use, with your username
+(a link to **Your profile**) and a sign-out button at the bottom. The button at the top left
+collapses the sidebar to icons (your browser remembers the choice); on
+a narrow screen it opens the sidebar as a menu instead. **View site**
+opens your site in a new tab.
+
+## Your profile
+
+**Your profile** shows your account (username, roles, linked author,
+and when you last signed in) and your **color scheme**: light, dark, or
+your device's setting (the default). The choice is saved with your
+account, so it follows you to every device you sign in on, and it only
+changes what you see: someone else on the same site keeps their own.
+
 ## The dashboard
 
 The dashboard shows how many entries you have, by status, and the actions
@@ -50,17 +68,93 @@ your account may run:
 Actions you can't run don't appear. Extensions can add their own actions
 (see [Extending Blush](extending.md#admin-actions)).
 
-## Drafts
+## Entries
 
-**Drafts** lists the drafts and scheduled entries you can edit: your own
-if you're an author or contributor, and everyone's if you're an editor.
+The sidebar lists your content types by name: **Content** has your
+collections (such as Posts) and Pages, and **Taxonomies** has the types
+that group them (such as Categories and Authors). Each opens a list of
+that type's entries you can edit, newest changes first. Types are named
+from their `label` and `singular` settings (see
+[Content types](content-types.md#names-in-the-admin)).
+
+The tabs above a list show all of them, or only published entries,
+drafts, or scheduled ones, with a count on each. You see your own
+entries if you're an author or contributor, and everyone's if you're an
+editor; entries credited to your account's author are marked "Yours".
 Drafts come most recently changed first, and scheduled entries in the
-order they'll go live. Entries credited to your account's author are
-marked "Yours".
+order they'll go live. Search matches titles and file paths. Click a
+title to edit the entry.
+
+A taxonomy's list (such as Categories) holds its **terms**. Instead of
+authors, it shows how many published entries use each term.
+
+**All entries**, at the end of the Content group, lists every type
+together, with a menu to narrow it to one. Its Drafts and Scheduled tabs
+are what the dashboard's counts link to.
+
+**New post** (named for the type you're looking at) asks for a type and
+a title, creates the entry as a draft, and opens it in the editor. It's
+credited to your account's author.
+
+## Editing an entry
+
+The editor has the title and the body (Markdown) on the left, and on the
+right:
+
+- **Publishing:** the publish date, a preview link (or **View** once it's
+  live), and **Move to trash**.
+- **Fields:** the content type's other fields, such as the subtitle,
+  summary, and categories. Fields that take several values say how to
+  separate them. A few kinds (such as `collection`) can't be edited here
+  yet and show their value read-only.
+- **Other front matter:** keys the content type doesn't declare. They're
+  kept as they are.
+- **Problems:** what content health finds in the file, as last saved.
+  Notices are hidden unless you ask for them.
+
+The buttons at the top depend on the entry:
+
+| The entry is... | You can |
+|---|---|
+| A draft | **Save draft**, or **Publish** (or **Schedule**, when the publish date is in the future) |
+| Scheduled | **Update**, **Publish** once its date is past, or **Switch to draft** |
+| Published | **Update** (or **Schedule**, with a future date), or **Switch to draft** |
+
+Ctrl+S (⌘S on a Mac) saves without changing the status. Saving changes
+only what you changed: every other line of the file stays exactly as it
+was. If someone else saved the entry after you opened it, your save is
+refused, so neither change is lost silently; load their version, then
+make your change again. Leaving the editor with unsaved changes asks
+first.
+
+If you can't publish, you can save drafts but not publish them.
+
+**Move to trash** takes the entry off your site and puts it in the
+**Trash** tab of its list.
+
+## Trash
+
+Each list has a **Trash** tab (if your account can delete entries) with
+the entries moved there, most recent first. For each one:
+
+- **Restore as a draft** puts it back where it was, as a draft, even if
+  it was published before; publish it again from the editor when you're
+  ready. If something else now has its file name, rename or move that
+  first.
+- **Delete permanently** removes it for good.
+
+**Empty trash** deletes everything in that tab permanently. Authors and
+contributors see and handle their own trashed entries; editors see
+everyone's.
+
+On the server, each trashed entry is a folder in `storage/trash/` (a
+bundle's media go with it), so you can also restore one by moving its
+file back into `user/content/`.
 
 ## Previewing drafts
 
-Each entry on the Drafts screen has a **Get link** button. It makes a
+In the editor, an entry that isn't live yet has a **Get link** button
+under Publishing. It makes a
 preview link: a private URL that shows the entry, with your theme, as it
 will look once it's live. **Open** it in a new tab, or **Copy** it to
 send to someone. Anyone with the link can see the entry, without an
@@ -103,24 +197,32 @@ and fonts; never `.vite/`). Build with plain file names, as the
 [theme build](themes.md) does: Blush adds `?v=` and a hash of each
 file's contents to its URL, so browsers cache the files until they
 change. The page also includes a JSON block (`#blush-admin-config`)
-with the admin's path, the API's path, and the site's name.
+with the admin's path, the API's path, the site's name, and the
+signed-in account's `colorScheme` (`null` when no one is signed in). For
+a light or dark account, `<html>` also carries `data-color-scheme`.
 
 The API is JSON under `/admin/api`, and uses the session cookie:
 
 | Request | What it does |
 |---|---|
-| `GET session` | The signed-in account (its username, roles, and capabilities) and a CSRF token, or `{"account": null}` |
+| `GET session` | The signed-in account (its username, roles, capabilities, and preferences) and a CSRF token, or `{"account": null}` |
 | `POST login` | Sign in with `{"username", "password"}` |
 | `POST logout` | Sign out |
+| `PATCH preferences` | Change the account's own preferences, such as `{"colorScheme": "dark"}` (`system`, `light`, or `dark`); answers `{"preferences"}` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
+| `GET types` | The site's content types: `{"types": [{"name", "label", "singular", "kind", "dated"}]}`, by label, taxonomies last |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
 | `GET entries/{id}` | An entry for editing (see below) |
 | `POST entries` | Create an entry: `{"type", "title"}`, and optionally `"slug"`, `"set"`, `"body"`, `"status"` |
 | `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
-| `DELETE entries/{id}?revision=…` | Move an entry to `storage/trash/` |
+| `DELETE entries/{id}?revision=…` | Move an entry to the trash |
+| `GET trash` | The trashed entries the account may handle, newest first (`?type=` for one type): `{"trash": [{"id", "entry", "title", "type", "bundle", "trashed", "authors", "own"}]}` |
+| `POST trash/restore` | Restore `{"id"}` as a draft: `{"id"}` is the entry's id again; 409 when something else has its place |
+| `POST trash/delete` | Delete `{"id"}` permanently |
+| `POST trash/empty` | Delete everything the account may handle permanently (`{"type"}` for one type): `{"deleted"}` |
 
 Once signed in, send the token from `session` or `login` in an
 `X-CSRF-Token` header with every `POST`, `PATCH`, and `DELETE`. Errors are JSON too:

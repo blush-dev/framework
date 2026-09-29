@@ -32,3 +32,12 @@ router.afterEach(async () => {
 		<RouterView />
 	</main>
 </template>
+
+<style scoped>
+.bare {
+	display: grid;
+	min-height: 100%;
+	place-items: center;
+	padding: 24px 16px;
+}
+</style>

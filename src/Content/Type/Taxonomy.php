@@ -55,6 +55,8 @@ final readonly class Taxonomy extends ContentType
 	 * @param  bool            $sitemap     Whether terms are in the sitemap.
 	 * @param  iterable<Field> $fields      Fields beyond the built-in ones.
 	 * @param  bool            $closed      Whether undeclared front matter is an error.
+	 * @param  ?string         $label       For people, for a group of terms; defaults to the singular made plural.
+	 * @param  ?string         $singular    For people, for one term; defaults to the name made readable.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -70,9 +72,11 @@ final readonly class Taxonomy extends ContentType
 		bool $public = true,
 		bool $sitemap = true,
 		iterable $fields = [],
-		bool $closed = false
+		bool $closed = false,
+		?string $label = null,
+		?string $singular = null
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $label, $singular);
 
 		$this->field = $field ?? $name;
 	}

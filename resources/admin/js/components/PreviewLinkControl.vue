@@ -8,8 +8,9 @@
 import { ref } from 'vue';
 import { ApiError, request, type EntrySummary, type PreviewLink } from '../api';
 import { formatDate } from '../format';
+import AdminIcon from './AdminIcon.vue';
 
-const props = defineProps<{ entry: EntrySummary }>();
+const props = defineProps<{ entry: Pick<EntrySummary, 'id' | 'title' | 'path'> }>();
 
 // Untitled drafts are named by their file for screen readers.
 const name = props.entry.title || props.entry.path || 'this entry';
@@ -48,15 +49,22 @@ async function copy(): Promise<void> {
 
 <template>
 	<div class="preview-link">
-		<button v-if="!link" type="button" class="button button--quiet button--small" :disabled="busy" :aria-label="`Get a preview link for ${name}`" @click="make">
+		<button v-if="!link" type="button" class="button button--ghost button--small" :disabled="busy" :aria-label="`Get a preview link for ${name}`" @click="make">
+			<AdminIcon name="link" />
 			{{ busy ? 'Getting…' : 'Get link' }}
 		</button>
 		<template v-else>
-			<a :href="link.url" target="_blank" rel="noopener noreferrer">Open<span class="visually-hidden"> the preview of {{ name }} (new tab)</span></a>
-			<button type="button" class="button button--quiet button--small" @click="copy">Copy<span class="visually-hidden"> the preview link for {{ name }}</span></button>
-			<span class="preview-link__expires">Until <time :datetime="link.expires">{{ formatDate(link.expires) }}</time></span>
+			<a class="button button--ghost button--small" :href="link.url" target="_blank" rel="noopener noreferrer">
+				<AdminIcon name="external-link" />
+				Open<span class="visually-hidden"> the preview of {{ name }} (new tab)</span>
+			</a>
+			<button type="button" class="button button--ghost button--small" @click="copy">
+				<AdminIcon name="copy" />
+				Copy<span class="visually-hidden"> the preview link for {{ name }}</span>
+			</button>
+			<span class="preview-link__note">Until <time :datetime="link.expires">{{ formatDate(link.expires) }}</time></span>
 		</template>
 		<span class="visually-hidden" aria-live="polite">{{ message }}</span>
-		<span v-if="message && !link" class="preview-link__error">{{ message }}</span>
+		<span v-if="message && !link" class="preview-link__note preview-link__note--error">{{ message }}</span>
 	</div>
 </template>

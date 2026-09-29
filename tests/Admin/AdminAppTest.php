@@ -85,6 +85,7 @@ final class AdminAppTest extends TestCase
 
 		$this->assertSame(200, $this->visit('GET', '/admin/sign-in')->getStatusCode());
 		$this->assertSame(200, $this->visit('GET', '/admin/settings/site')->getStatusCode());
+		$this->assertSame(200, $this->visit('GET', '/admin/entries/_posts/2026-01-01.hello.md')->getStatusCode(), 'Editor screens name files.');
 		$this->assertSame(404, $this->visit('GET', '/admin/api/nothing')->getStatusCode(), 'The API\'s paths never fall through to the app.');
 
 		preg_match('#/admin/assets/js/admin\.js\?v=[0-9a-f]{8}#', $body, $match);
@@ -94,6 +95,32 @@ final class AdminAppTest extends TestCase
 		$this->assertStringStartsWith('text/javascript', $asset->getHeaderLine('Content-Type'));
 		$this->assertStringContainsString('immutable', $asset->getHeaderLine('Cache-Control'));
 		$this->assertSame('no-cache', $this->visit('GET', '/admin/assets/js/admin.js')->getHeaderLine('Cache-Control'), 'Unversioned URLs are checked every time.');
+	}
+
+	public function testTheShellCarriesTheAccountsColorScheme(): void
+	{
+		$this->boot();
+
+		$signedOut = (string) $this->visit('GET', '/admin')->getBody();
+
+		$this->assertStringContainsString('<html lang="en">', $signedOut);
+		$this->assertStringContainsString('"colorScheme":null', $signedOut);
+
+		$token = $this->token();
+		$this->send('PATCH', '/preferences', '{"colorScheme": "dark"}', ['X-CSRF-Token' => $token]);
+
+		$page = $this->visit('GET', '/admin/drafts');
+		$body = (string) $page->getBody();
+
+		$this->assertStringContainsString('<html lang="en" data-color-scheme="dark">', $body);
+		$this->assertStringContainsString('"colorScheme":"dark"', $body);
+		$this->assertFalse($page->hasHeader('Set-Cookie'), 'The shell only reads the session.');
+
+		$this->send('PATCH', '/preferences', '{"colorScheme": "system"}', ['X-CSRF-Token' => $token]);
+		$body = (string) $this->visit('GET', '/admin')->getBody();
+
+		$this->assertStringContainsString('<html lang="en">', $body, 'System sets no attribute.');
+		$this->assertStringContainsString('"colorScheme":"system"', $body);
 	}
 
 	public function testServesACustomApp(): void

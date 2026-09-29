@@ -14,7 +14,12 @@ declare(strict_types=1);
 namespace Blush\Content\Writer;
 
 use Closure;
+use DateTimeImmutable;
 use DateTimeInterface;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 use Override;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\ContentVersion;
@@ -27,6 +32,7 @@ use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
+use Blush\Content\Type\InvalidContentType;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
@@ -42,7 +48,9 @@ use Blush\Support\Slug;
  *   formatting and refuses results that wouldn't read back as intended;
  *   files are written atomically, one write at a time (a lock file in
  *   `storage/cache`), and checked against the caller's revision first.
- * - **Kept:** a deleted entry moves to `storage/trash/{time}/`.
+ * - **Kept:** a deleted entry moves to its own folder in `storage/trash`
+ *   (`{time}-{random}/`, with a `trash.json` naming it), from where
+ *   `restore()` brings it back and `purge()` deletes it for good (D-237).
  * - **Live:** each write reindexes incrementally and moves the content
  *   version on.
  *
@@ -51,6 +59,11 @@ use Blush\Support\Slug;
  */
 final readonly class FilesystemWriter implements ContentWriter
 {
+	/**
+	 * The file in each trash folder saying what it holds (D-237).
+	 */
+	private const string MANIFEST = 'trash.json';
+
 	public function __construct(
 		private Paths $paths,
 		private Filesystem $filesystem,
@@ -188,7 +201,9 @@ final readonly class FilesystemWriter implements ContentWriter
 			// A bundle's entry takes its folder (and media) with it.
 			$bundle = preg_match('#(^|/)index\.[a-z]+$#', $id) === 1 && $this->content->find($id)?->landing !== true;
 			$from   = $bundle ? dirname($path) : $path;
-			$target = sprintf('%s/trash/%s/%s', $this->paths->storage, $this->clock->now()->format('Ymd-His'), $this->paths->relative($from));
+			$now    = $this->clock->now();
+			$folder = sprintf('%s/%s-%s', $this->trash(), $now->format('Ymd-His'), bin2hex(random_bytes(3)));
+			$target = "{$folder}/" . $this->paths->relative($from);
 
 			if (! is_dir(dirname($target)) && ! @mkdir(dirname($target), 0775, true) && ! is_dir(dirname($target))) {
 				throw new WriteException(sprintf('The trash folder %s couldn\'t be created.', $this->paths->relative(dirname($target))));
@@ -197,6 +212,13 @@ final readonly class FilesystemWriter implements ContentWriter
 			if (! @rename($from, $target)) {
 				throw new WriteException(sprintf('%s couldn\'t be moved to the trash.', $id));
 			}
+
+			// What was moved, so the trash can list and restore it.
+			$this->write("{$folder}/" . self::MANIFEST, json_encode([
+				'entry'   => $id,
+				'bundle'  => $bundle,
+				'trashed' => $now->format(DateTimeInterface::ATOM)
+			], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
 
 			return new WriteResult($id, null, $this->refresh());
 		});
@@ -224,6 +246,239 @@ final readonly class FilesystemWriter implements ContentWriter
 		$newId = ltrim("{$directory}/" . ($match[1] ?? '') . "{$slug}." . ($match[2] ?? 'md'), '/');
 
 		return [$this->path($id), $this->path($newId), $newId];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function trashed(): array
+	{
+		$entries = [];
+
+		foreach (glob($this->trash() . '/*', GLOB_ONLYDIR) ?: [] as $folder) {
+			array_push($entries, ...$this->trashedIn($folder));
+		}
+
+		usort($entries, static fn (TrashedEntry $a, TrashedEntry $b): int => [$b->trashed, $a->entry] <=> [$a->trashed, $b->entry]);
+
+		return $entries;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function restore(string $trashId, EntryChanges $changes = new EntryChanges()): WriteResult
+	{
+		return $this->locked(function () use ($trashId, $changes): WriteResult {
+			$trashed = $this->findTrashed($trashId);
+			$file    = $this->trashedFile($trashed);
+			$path    = $this->path($trashed->entry);
+			$from    = $trashed->bundle ? dirname($file) : $file;
+			$to      = $trashed->bundle ? dirname($path) : $path;
+
+			if (file_exists($to)) {
+				throw new WriteException(sprintf('%s can\'t be restored: something else is there now. Move or rename it, then try again.', $this->paths->relative($to)));
+			}
+
+			if (! $changes->isEmpty()) {
+				$type = null;
+
+				try {
+					$type = $this->types->forFile($trashed->entry)->name;
+				} catch (InvalidContentType) {
+					// No type claims it; keys are used as given.
+				}
+
+				$this->write($file, $this->editor->edit($trashed->entry, $this->read($file), $changes, $this->keys($type)));
+			}
+
+			if (! is_dir(dirname($to)) && ! @mkdir(dirname($to), 0775, true) && ! is_dir(dirname($to))) {
+				throw new WriteException(sprintf('The folder %s couldn\'t be created.', $this->paths->relative(dirname($to))));
+			}
+
+			if (! @rename($from, $to)) {
+				throw new WriteException(sprintf('%s couldn\'t be moved back from the trash.', $trashed->entry));
+			}
+
+			$this->tidyTrash($trashId);
+
+			return new WriteResult($trashed->entry, self::revision($this->read($path)), $this->refresh());
+		});
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function purge(string $trashId): void
+	{
+		$this->locked(function () use ($trashId): void {
+			$trashed = $this->findTrashed($trashId);
+			$file    = $this->trashedFile($trashed);
+
+			self::remove($trashed->bundle ? dirname($file) : $file);
+			$this->tidyTrash($trashId);
+		});
+	}
+
+	/**
+	 * Returns the trash folder.
+	 */
+	private function trash(): string
+	{
+		return "{$this->paths->storage}/trash";
+	}
+
+	/**
+	 * Lists what one trash folder holds: the entry its manifest names, or,
+	 * for trash from before manifests (D-237), each content file in it.
+	 *
+	 * @return list<TrashedEntry>
+	 */
+	private function trashedIn(string $folder): array
+	{
+		$name     = basename($folder);
+		$manifest = $this->manifest($folder);
+
+		if ($manifest !== null) {
+			return [$this->describeTrashed($name, $manifest['entry'], $manifest['bundle'], $manifest['trashed'])];
+		}
+
+		$trashed = DateTimeImmutable::createFromFormat('!Ymd-His', substr($name, 0, 15)) ?: new DateTimeImmutable('@' . (int) filemtime($folder));
+		$root    = "{$folder}/" . $this->paths->relative($this->paths->content);
+		$entries = [];
+
+		foreach ($this->filesystem->files($root, links: false) as $entry => $file) {
+			if ($this->parsers->supports($entry)) {
+				$entries[] = $this->describeTrashed($name, $entry, false, $trashed);
+			}
+		}
+
+		return $entries;
+	}
+
+	/**
+	 * Reads a trash folder's manifest, or returns `null` without one.
+	 *
+	 * @return ?array{entry: string, bundle: bool, trashed: DateTimeImmutable}
+	 */
+	private function manifest(string $folder): ?array
+	{
+		$contents = @file_get_contents("{$folder}/" . self::MANIFEST);
+		$data     = $contents === false ? null : json_decode($contents, true);
+
+		if (! is_array($data) || ! is_string($data['entry'] ?? null) || ! is_bool($data['bundle'] ?? null) || ! is_string($data['trashed'] ?? null)) {
+			return null;
+		}
+
+		$trashed = DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $data['trashed']);
+
+		return $trashed === false ? null : ['entry' => $data['entry'], 'bundle' => $data['bundle'], 'trashed' => $trashed];
+	}
+
+	/**
+	 * Describes a trashed entry, reading its front matter when it can.
+	 */
+	private function describeTrashed(string $folder, string $entry, bool $bundle, DateTimeImmutable $trashed): TrashedEntry
+	{
+		$described = new TrashedEntry("{$folder}/{$entry}", $entry, $bundle, $trashed, []);
+		$contents  = @file_get_contents($this->trashedFile($described));
+
+		try {
+			$frontMatter = $contents === false ? [] : $this->parsers->parse($entry, $contents)->frontMatter;
+		} catch (InvalidDocument) {
+			$frontMatter = [];
+		}
+
+		return new TrashedEntry($described->id, $entry, $bundle, $trashed, $frontMatter);
+	}
+
+	/**
+	 * Finds a trashed entry by the trash's name for it.
+	 *
+	 * @throws WriteException
+	 */
+	private function findTrashed(string $trashId): TrashedEntry
+	{
+		[$folder] = explode('/', $trashId, 2);
+
+		if (preg_match('/^\d{8}-\d{6}(-[0-9a-f]{6})?$/', $folder) === 1 && is_dir($this->trash() . "/{$folder}")) {
+			foreach ($this->trashedIn($this->trash() . "/{$folder}") as $trashed) {
+				if ($trashed->id === $trashId) {
+					return $trashed;
+				}
+			}
+		}
+
+		throw new WriteException(sprintf('There\'s no "%s" in the trash.', $trashId));
+	}
+
+	/**
+	 * Returns the path of a trashed entry's file, confined to its folder.
+	 *
+	 * @throws WriteException
+	 */
+	private function trashedFile(TrashedEntry $trashed): string
+	{
+		[$folder] = explode('/', $trashed->id, 2);
+
+		try {
+			return $this->paths->join($this->trash() . "/{$folder}/" . $this->paths->relative($this->paths->content), $trashed->entry);
+		} catch (FilesystemException $e) {
+			throw new WriteException(sprintf('"%s" is outside the trash.', $trashed->id), previous: $e);
+		}
+	}
+
+	/**
+	 * Removes a trash folder's manifest once its entry is gone, then any
+	 * folders left empty, the trash folder itself included.
+	 */
+	private function tidyTrash(string $trashId): void
+	{
+		[$name] = explode('/', $trashId, 2);
+		$folder = $this->trash() . "/{$name}";
+
+		if (is_file("{$folder}/" . self::MANIFEST)) {
+			@unlink("{$folder}/" . self::MANIFEST);
+		}
+
+		$directories = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($folder, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+
+		foreach ($directories as $item) {
+			if ($item instanceof SplFileInfo && $item->isDir() && ! $item->isLink()) {
+				@rmdir($item->getPathname());
+			}
+		}
+
+		@rmdir($folder);
+	}
+
+	/**
+	 * Deletes a file, or a folder and everything in it.
+	 *
+	 * @throws WriteException
+	 */
+	private static function remove(string $path): void
+	{
+		if (is_dir($path) && ! is_link($path)) {
+			$items = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+
+			foreach ($items as $item) {
+				if ($item instanceof SplFileInfo) {
+					$item->isDir() && ! $item->isLink() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+				}
+			}
+
+			$removed = @rmdir($path);
+		} else {
+			$removed = @unlink($path);
+		}
+
+		if (! $removed) {
+			throw new WriteException(sprintf('%s couldn\'t be deleted.', basename($path)));
+		}
 	}
 
 	/**

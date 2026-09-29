@@ -42,6 +42,7 @@ final readonly class StartSession implements MiddlewareInterface
 	public function __construct(
 		private SessionStore $store,
 		private SessionConfig $config,
+		private SessionReader $reader,
 		private ClockInterface $clock
 	) {}
 
@@ -52,7 +53,7 @@ final readonly class StartSession implements MiddlewareInterface
 	public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
 	{
 		$now    = $this->clock->now()->getTimestamp();
-		$cookie = new Cookie($this->config->cookieName($this->isSecure($request)), secure: $this->isSecure($request));
+		$cookie = new Cookie($this->reader->cookieName($request), secure: $this->reader->isSecure($request));
 		$sent   = $request->getCookieParams()[$cookie->name] ?? null;
 
 		$session = (is_string($sent) ? $this->load($sent, $now) : null) ?? Session::start($now);
@@ -108,20 +109,12 @@ final readonly class StartSession implements MiddlewareInterface
 			return null;
 		}
 
-		if ($record['lastSeen'] + $this->config->idle < $now || $record['created'] + $this->config->lifetime < $now) {
+		if ($this->reader->isExpired($record, $now)) {
 			$this->store->delete($id);
 
 			return null;
 		}
 
 		return new Session($id, $record['data'], $record['created']);
-	}
-
-	/**
-	 * Whether the cookie should be `Secure`.
-	 */
-	private function isSecure(ServerRequestInterface $request): bool
-	{
-		return $this->config->secure ?? $request->getUri()->getScheme() === 'https';
 	}
 }

@@ -3944,6 +3944,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-223: The admin app's first slice: shell, sign-in, dashboard, actions
 - **Date:** 2026-09-29
+- **Status:** Partially superseded by D-224 (plain file names), D-231 (design tokens, not `light-dark()`; the rail layout), and D-235 (the shell reads the session, without starting one).
 - **Decision:** Builds on D-219 to D-222.
   - **The shell (`ShellController`)** answers `GET {path}` and
     `{path}/{screen}` (any path but `api/` and `assets/`, so unknown API
@@ -4023,6 +4024,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-225: Admin screens for drafts and content health
 - **Date:** 2026-09-29
+- **Status:** Partially superseded by D-236 (no Drafts screen; drafts and scheduled entries are tabs on each list).
 - **Decision:** The next M9 pieces (D-013's "content health (lint),
   drafts and scheduled lists").
   - **`GET {path}/api/entries?status=draft|scheduled`**
@@ -4118,6 +4120,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-228: Writing content back to files
 - **Date:** 2026-09-29
+- **Status:** Partially superseded by D-237 (one trash folder per entry, with a manifest; restore and purge).
 - **Decision:** The first piece of M10 (the editor): `ContentWriter`
   (`Blush\Content\Writer`), bound to `FilesystemWriter`.
   - **Only the edit changes the file.** Markdown and HTML front matter,
@@ -4255,3 +4258,320 @@ decision, add a new entry that supersedes it and mark the old one
   UI design is in progress; every design needs an entry list. Paging in
   the index came after benchmarking, because the author plans sites
   several times jtcom's size.
+
+### D-231: The admin's design tokens and shell
+- **Date:** 2026-09-29
+- **Decision:** The admin follows the design direction in
+  `.claude/docs/admin-design/` (`admin.md`, a prototype-stage document,
+  and `tokens.css`, the prototype's tokens, kept as the author supplied
+  them). Its firm parts are adopted as rules: the theming cascade (every
+  token on bare `:root`, dark values for a dark system and again for
+  `[data-color-scheme="dark"]`), token names as a contract for admin
+  themes, no literal colors, fonts, type sizes, or radii outside the
+  tokens, and status never shown by color alone. Supersedes D-223's
+  `light-dark()` colors. Built so far:
+  - **CSS layers** in `resources/admin/css/`: `tokens.css` (the neutral
+    theme, light and dark; the only file with literal values),
+    `fonts.css`, `base.css` (resets, element defaults), and `admin.css`
+    (the entry: imports the others, then the pieces several screens
+    share: page headers, buttons, panels, status pills, stat tiles,
+    tables, empty states, fields, notices). A component's own layout is
+    in its scoped styles.
+  - **Fonts:** IBM Plex Sans (variable, latin and latin-ext) and IBM
+    Plex Mono (400, 500, latin) in `resources/admin/fonts/` with their
+    OFL license, self-hosted because the admin's CSP allows only
+    `'self'`. About 106 KB, fetched only as text needs them.
+  - **Icons:** Lucide 1.48.0 markup in `js/icons.ts`, drawn by
+    `AdminIcon`; the admin's set is separate from the core front-end
+    icons (D-187), which carry tags and translated labels it doesn't
+    need.
+  - **The shell (`AdminLayout`):** a rail (the site's name, the
+    navigation, the account with sign-out), a top bar (a rail toggle,
+    the site / screen trail, "View site"), and the work area, the only
+    scroll container, capped at `--work-max`. The rail collapses to
+    icons, remembered per browser in `localStorage` (wrapped in
+    `try`/`catch`). At 860px and below it's a drawer: a menu button
+    with `aria-expanded`, a scrim, Escape to close, focus into the
+    drawer on open and back to the button on close, and `inert` on
+    whichever side is hidden.
+  - **Screens restyled:** the dashboard's counts are stat tiles (with a
+    share of all entries as context) and its actions are panel rows;
+    the entry table shows the file under the title and a status pill
+    (`StatusPill`: published, scheduled, draft); drafts and health use
+    panels with empty states; health severities are pills (error,
+    warning, notice).
+  - **Departures from the prototype**, recorded in `admin.md`: three
+    tokens added (`--text-sm`, `--text-xs`, `--h2`) so type sizes stay
+    tokenized; shared pieces are global classes in `admin.css`, not yet
+    `Base*` components; table headers aren't sticky (a table that
+    scrolls sideways is its own scroll container, so a sticky header
+    has nothing to stick to); the `editorial` theme isn't shipped,
+    since nothing chooses a theme yet.
+  - **Checked** on the jtcom trial in headless Chrome: light and dark,
+    the collapsed rail, 390px with the drawer (Escape returns focus),
+    no page-wide horizontal scroll at phone width, and the fonts
+    loading under the CSP.
+- **Open:** choosing an admin theme and color scheme per account (the
+  attributes exist; nothing sets them yet); the prototype's list screen
+  (status tabs, filters, bulk selection, row menus, tree view), command
+  palette, and toasts, which come with the editor screens.
+- **Why:** the author supplied the prototype tokens and direction and
+  asked for the admin to be built from them.
+
+### D-232: A light/dark choice in the admin, per browser
+- **Date:** 2026-09-29
+- **Status:** Superseded by D-235 (the preference belongs to the account, set on Your profile).
+- **Decision:** Settles the color-scheme half of D-231's open question;
+  the admin theme choice stays open. The top bar has an Appearance
+  control (`ColorSchemeControl`): three radio buttons drawn as icons
+  (System, Light, Dark), named for screen readers and on hover.
+  `js/color-scheme.ts` sets `data-color-scheme` on `<html>` (removed
+  for System) before the app mounts, so the sign-in screen follows it
+  too, and keeps the choice in `localStorage`
+  (`blush-admin-color-scheme`, wrapped in `try`/`catch`; System removes
+  it). Nothing is stored on the account.
+  - The page's background can show the system's scheme for a moment
+    before the app's script runs: the CSP allows no inline script to set
+    the attribute earlier. An account setting served in the shell's
+    HTML would fix that, and belongs with the theme choice.
+  - **Checked** in headless Chrome: choosing Dark with a light system,
+    a reload keeping it, arrow keys moving between options, and System
+    following the system's setting again.
+- **Why:** the author asked for the toggle now and theme choice later;
+  a per-browser setting needs no API or account changes.
+
+### D-233: The editor's first screens: entries, new entry, and the editor
+- **Date:** 2026-09-29
+- **Status:** Partially superseded by D-234 (a list per content type) and D-236 (no Drafts screen or preview column).
+- **Decision:** M10's third piece, over the editing API (D-229) and
+  the entry list (D-230). The Markdown body is a plain text area for
+  now; live preview, a Markdown editor component, the component
+  inserter, and media come next.
+  - **API:** `GET types` (`TypesController`): each content type's
+    `name`, `kind`, and `dated`, taxonomies last, for the type filter
+    and "New …". The shell's screen paths now allow `.`, so editor URLs
+    (which end in a file name) load directly.
+  - **Entries** (`/entries`): status tabs (All, Published, Drafts,
+    Scheduled) with counts (one `per=1` query each, with the same type
+    and search), a search box (300 ms after typing stops), a type menu,
+    Clear filters, and Previous / Next pages. The filters live in the
+    URL query. Titles link to the editor (`EntryTable`, now also on
+    Drafts, where preview links stay).
+  - **New entry** (`/entries/new?type=`): a type and a title; the
+    server writes a draft (D-229) and the editor opens it with a
+    one-time "Created" notice.
+  - **The editor** (`/entries/{id…}`, the id's segments as a repeatable
+    route param):
+    - The title and body in the main column; a sidebar with
+      Publishing (the `published` date, a preview link or View, Move to
+      trash), Fields (the schema's fields but `title`, `status`, and
+      `published`), Other front matter (read-only), and Problems
+      (`lintFile()`'s, notices behind a checkbox, per D-229).
+    - **Forms from schemas** (`fields.ts`, `FieldControl`): text, slug,
+      media, and single references are text inputs; markdown a text
+      area; bool a checkbox; number a number input (min, max,
+      integer); enum a select with an empty choice; date a
+      `datetime-local` input; multiple references a comma-separated
+      list; lists of scalars one per line. Objects and lists of
+      objects are read-only ("Edit this one in the file for now").
+      Labels are a field's `label` or its name made readable.
+    - **Saves send only what changed** (compared as form state), so
+      untouched keys keep their exact text and shape (a single
+      `author: jane` isn't rewritten as a list). A cleared field is
+      removed. A date keeps the offset its old value had; a new one is
+      written without, so the site's timezone applies.
+    - **Buttons from status and date** via D-229's status shortcut:
+      a draft has Save draft and Publish (Schedule with a future
+      date); a published or scheduled entry has Update (Schedule when
+      the date moves to the future; Publish when a scheduled date is
+      past) and Switch to draft. Without `content.publish`, drafts get
+      Save draft only.
+    - Ctrl+S / ⌘S saves without a status change. Quiet save state
+      beside the buttons ("Unsaved changes", "Saving…", "Saved 12:27
+      PM"). A 409 shows the server's message and "Load the saved
+      version". Leaving with unsaved changes asks (route guard and
+      `beforeunload`). Trash asks first, then returns to Entries.
+  - The rail gains Entries; `meta.section` keeps it current on the new
+    and editor screens.
+  - **Departures from the design direction** (in `admin-design/admin.md`):
+    no autosave and no pending changes on published entries (the writer
+    has no pending-draft store; saves are explicit); status tabs are
+    links (`aria-current`), since each is a URL.
+  - **Checked** on the jtcom trial in headless Chrome: the list's tabs,
+    type filter, and search; opening a real draft (not dirty on load;
+    reload works); creating a post, saving a body, subtitle, and
+    categories (only those lines written); a conflicting save made
+    through the API refused with 409, then reloaded; scheduling for
+    2099 (the offset kept) and switching back to draft; the leave
+    prompt; trash; no page-wide horizontal scroll at 390px. (Editing
+    files on the host doesn't test conflicts under ddev's Mutagen sync:
+    the container hadn't seen the change yet.)
+- **Open:** live preview (a render endpoint for a body and front
+  matter); a Markdown editor component; the component inserter; media;
+  pickers for references (terms) and media; renaming (the API's `slug`)
+  from the editor; objects and lists of objects in forms; autosave and
+  pending changes; whether Drafts folds into Entries.
+- **Why:** the author asked to start on the editor screens.
+
+### D-234: The admin lists entries by content type
+- **Date:** 2026-09-29
+- **Decision:** Refines D-233's single Entries screen, following the
+  admin design direction (one list component, varied by the type).
+  - **Types name themselves** (`ContentType::$label`, `$singular`):
+    optional settings on every kind (`label:`, `singular:` in YAML;
+    named arguments in PHP). `singular` defaults to the name made
+    readable (`literary_form` → "Literary form"), `label` to the
+    singular made plural by simple English rules (`-y` after a
+    consonant → `-ies`; `-s`, `-x`, `-z`, `-ch`, `-sh` → `-es`; else
+    `-s`). `toArray()` leaves defaults out. `GET types` adds both and
+    sorts by label (taxonomies still last). Types from other languages,
+    or names English doesn't pluralize this way, set `label`. The jtcom
+    trial's `literature` type sets `label: 'Literature'`.
+  - **Navigation:** the admin's screens (Dashboard, Drafts, Content
+    health); a **Content** group with each collection and pages type
+    by label, then **All entries**; and a **Taxonomies** group (the
+    author's choice) with each taxonomy. Headings label their lists
+    (`aria-labelledby`); the collapsed rail shows them as dividers.
+    Icons by kind (collection `file-text`, pages `files`, taxonomy
+    `tag`, all entries `library`). Types load once (`types.ts`) and the
+    menu works without them.
+  - **Screens:** `/content/{type}` is the type's list (the same
+    `EntriesView`): its label as the heading and title, "New
+    {singular}", "Search {label}", counts in its words, and no type
+    column or menu. `/entries` stays as All entries, with the type menu.
+    New entry and the editor use `singular` ("New literary genre",
+    "Edit post"), and the editor's crumb goes back to the type's list.
+    The navigation marks the type being listed, created, or edited
+    (`currentType`); screens can name themselves more precisely than
+    their route (`screenTitle`, for the top bar and the document title).
+  - **Checked** on the jtcom trial in headless Chrome: the groups and
+    their order, each type's screen and "New" button, the current item
+    on list, new, and editor screens (and after changing the new
+    entry's type), the crumb, All entries, the collapsed rail, and a
+    direct load of `/admin/content/post`.
+- **Open:** icons per type (a setting that names an admin icon);
+  translated labels; hierarchical pages as a tree; whether Drafts and
+  All entries stay once each type has its own screen.
+- **Why:** the author asked why everything was under one Entries screen
+  and chose per-type screens, with taxonomies grouped under a heading.
+
+### D-235: Admin preferences belong to the account; Your profile
+- **Date:** 2026-09-29
+- **Decision:** Supersedes D-232's per-browser storage, following the
+  updated design direction (§3): the color scheme (and later the admin
+  theme) is a per-account preference, kept on the server and followed on
+  any device, edited on **Your profile**, never with the site's
+  Appearance.
+  - **Stored with the account:** `Blush\Auth\Preferences` (immutable;
+    `colorScheme`, a `ColorScheme` enum: `system`, `light`, `dark`),
+    `Account::$preferences` and `withPreferences()`, and
+    `Accounts::setPreferences()`. The account file gets `preferences`
+    only for settings off their defaults; unknown or damaged values fall
+    back to the defaults. The session fingerprint is the password hash,
+    so saving a preference signs no one out.
+  - **API:** `GET session` adds `account.preferences`; `PATCH
+    preferences` (`PreferencesController`, any signed-in account, CSRF
+    checked) changes the account's own and answers `{"preferences"}`;
+    400 for a bad value or body.
+  - **The shell reads the session without starting it**
+    (`Blush\Session\SessionReader`: the cookie name, `Secure`, a live
+    record, and the expiry rules, shared with `StartSession`; `read()`
+    writes nothing and doesn't keep the session alive). `ShellController`
+    prints `data-color-scheme` on `<html>` for a light or dark account
+    and `colorScheme` in the start-up block (`null` when signed out), so
+    the first frame is right and D-232's flash is gone. The page still
+    sets no cookie.
+  - **The app:** `color-scheme.ts` starts from the start-up block, else
+    the browser's cache (`localStorage`, for the sign-in screen), follows
+    the account whenever the session loads (a new device switches right
+    after signing in), and `saveColorScheme()` shows a choice at once,
+    saves it, and puts the old one back if saving fails.
+  - **Your profile** (`/profile`, linked from the account at the foot of
+    the rail, which now reads "Your profile"): the account's username,
+    roles, author, and last sign-in, and the color scheme as three
+    labeled choices (System, Light, Dark) with a polite "Saved" message.
+    The top bar's control (D-232) is gone.
+  - **Checked** in headless Chrome with two browser contexts as two
+    devices: choosing Dark on one; the shell's HTML carrying it; the
+    other device switching to dark on sign-in and keeping it on reload;
+    System clearing the attribute and the cache; arrow keys between
+    choices. Tests cover the API, storage (defaults left out), CSRF, the
+    shell's attribute signed in and out without `Set-Cookie`, and the
+    reader having no side effects.
+- **Open:** the admin theme choice (a second preference; bundled themes
+  and addon themes); changing one's own password on the profile.
+- **Why:** the author updated the design direction to make these
+  per-account preferences and asked to build that first.
+
+### D-236: Taxonomy lists count uses; Drafts folds into the lists
+- **Date:** 2026-09-29
+- **Decision:** Two changes from the updated design direction and the
+  author's follow-up.
+  - **Terms count their uses.** `GET entries` adds `uses` to each
+    entry: for a term, how many published, listed entries reference it
+    (`ContentRepository::termCounts()`, one pass per taxonomy on the
+    page, matching what the site's term pages list); `null` for other
+    entries. A taxonomy's list (`/content/{taxonomy}`) shows an
+    **Entries** column (right-aligned) in place of Authors, says so in
+    the panel header ("Entries counts the published entries using
+    each"), and speaks of terms ("Terms that group other entries",
+    empty states). Drafts that use a term aren't counted, so a 0 doesn't
+    promise that deleting the term breaks nothing. Checked against the
+    jtcom trial's files (`era: current` on every post, `life` in 21
+    posts with one a draft). The design direction's reparenting on
+    delete doesn't apply: terms aren't hierarchical.
+  - **No Drafts screen** (the author's call): each list's Drafts and
+    Scheduled tabs replace it, and All entries covers every type.
+    `/drafts` redirects to All entries → Drafts; the dashboard's Drafts
+    and Scheduled figures link to those tabs. `DraftsView` is removed,
+    and with it the entry table's preview column; preview links live in
+    the editor (D-233).
+- **Why:** the author asked for the design direction's taxonomy list
+  and said Drafts no longer needs its own screen.
+
+### D-237: The trash, in the admin
+- **Date:** 2026-09-29
+- **Decision:** Answers D-228's open "restoring from the trash (by hand
+  for now)", following the design direction's Trash pattern: trash is a
+  tab on each list, not a separate screen.
+  - **Storage:** each deleted entry gets its own folder,
+    `storage/trash/{Ymd-His}-{6 hex}/`, holding the moved file (or a
+    bundle's folder, with its media) at its `user/content/…` path and a
+    `trash.json` manifest (`entry`, `bundle`, `trashed`). Trash from
+    before manifests is listed file by file (as single files, its folder
+    time as when).
+  - **`ContentWriter` gains** `trashed()` (`TrashedEntry`: the trash's
+    id `{folder}/{entry id}`, the entry id, bundle, when, and the file's
+    front matter), `restore($trashId, $changes)`, and `purge($trashId)`,
+    all under the write lock. `restore()` makes its changes to the file
+    **while it's still in the trash**, then moves it back, so a restored
+    entry is never live without them; it refuses (and leaves the trash
+    alone) when something now has the entry's place. Emptied trash
+    folders are removed.
+  - **API** (`TrashController`): `GET trash?type=`, `POST trash/restore`
+    (always as a draft: `status: draft`), `POST trash/delete`, and `POST
+    trash/empty` (`type` optional; everything the account may handle).
+    Trashed entries aren't in the index, so ownership comes from the
+    file's author field (the author taxonomy's field and aliases): an
+    account handles its own with `content.delete` and everyone's with
+    `content.delete.others`. POST with a JSON `id`, since trash ids hold
+    slashes.
+  - **Admin:** a Trash tab (with a count) on every list for accounts
+    with `content.delete`, filtered by the list's type and search; rows
+    show the title and where it lived, the type (on All entries), and
+    when it was trashed, with **Restore as a draft** and, after a
+    divider, **Delete permanently**; **Empty trash** in the panel header.
+    Both deletions confirm first; results show in a status notice
+    ("Restored “…” as a draft." with a link to open it). Trashing from
+    the editor returns to the entry's type list.
+  - **Checked** in headless Chrome on the jtcom trial: a published post
+    trashed from the editor, restored as a draft, trashed again, deleted
+    permanently; two pages trashed and the Pages tab emptied, leaving an
+    older trashed post alone. Tests cover the writer (manifests, legacy
+    trash, restore with changes, bundles with media, a refused restore,
+    purge, and ids that try to leave the trash) and the API (types,
+    restore as draft, delete, empty, and an author seeing only their
+    own).
+- **Open:** a trash "status" in the index (so trashed entries could sit
+  in "All"); automatic emptying after some days.
+- **Why:** the author asked for the design direction's Trash next.

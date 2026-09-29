@@ -424,7 +424,9 @@ Implemented in M4b (D-087, D-090).
   by default): `load` (raw front matter, body, and a revision hash),
   `create`, `update` (`EntryChanges`: set, remove, body), `rename` (a
   new slug; date prefixes kept, bundles move their folder), and
-  `delete` (to `storage/trash/{time}/`). Writes are atomic, serialized
+  `delete` (to its own `storage/trash/{time}-{random}/` folder with a
+  `trash.json` manifest), and `trashed`, `restore` (changes made before
+  the move back), and `purge` (D-237). Writes are atomic, serialized
   by a lock file, checked against the caller's revision (`WriteConflict`),
   confined to the content root and content formats, and followed by an
   incremental reindex and a content version bump. `DocumentEditor`
@@ -717,6 +719,9 @@ Implemented in M7 (D-135 to D-140).
     `{path}/api`: `GET session`, `POST login`, `POST logout`.
   - CLI: `account:add|list|password|roles|author|remove`; `init` offers
     the first administrator.
+  - Accounts carry `Preferences` (the admin's color scheme, D-235), set
+    through `PATCH {path}/api/preferences`; `SessionReader` lets the
+    admin's shell read the session without starting one.
 - **The admin app (D-220 to D-224):** a Vue 3 SPA (`resources/admin`,
   built to `public/admin` with plain file names) over the private JSON
   API. `ShellController` serves one page at `{path}` and every screen
@@ -725,8 +730,14 @@ Implemented in M7 (D-135 to D-140).
   block; `AssetController` serves the build's files at
   `{path}/assets/{file}` (immutable with `?v=`, `no-cache` without). `AdminConfig::$app` swaps
   in another build. Screens so far: sign-in, the dashboard (entry
-  counts and actions), drafts and scheduled entries, and content health
-  (D-225). Extension pieces are described in PHP and drawn
+  counts and actions), a list per content type and All entries (D-234),
+  New entry, and the editor (D-233; forms
+  from schema fields via `fields.ts`, saves that send only what
+  changed), and content health (D-225); drafts and scheduled entries are
+  tabs on each list (D-236), as is the trash (D-237: restore as a draft,
+  delete permanently, empty), and a taxonomy's list counts each term's uses. The look follows `.claude/docs/admin-design/` (D-231):
+  design tokens in `css/tokens.css` are the only literal values, and
+  the shell is a rail, a top bar, and a scrolling work area. Extension pieces are described in PHP and drawn
   generically (D-222): `AdminAction`s (label, description, capability,
   optional confirmation, `run()` → `ActionResult`) in
   `AdminActionRegistry`, with `publish`, `reindex`, and `clear-caches`

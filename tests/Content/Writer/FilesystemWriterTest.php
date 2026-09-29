@@ -24,6 +24,7 @@ use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EditableEntry;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\FilesystemWriter;
+use Blush\Content\Writer\TrashedEntry;
 use Blush\Content\Writer\WriteConflict;
 use Blush\Content\Writer\WriteException;
 use Blush\Content\Writer\WriteResult;
@@ -35,6 +36,7 @@ use Blush\Tests\Content\BuildsContentSite;
 #[CoversClass(EntryChanges::class)]
 #[CoversClass(EditableEntry::class)]
 #[CoversClass(WriteResult::class)]
+#[CoversClass(TrashedEntry::class)]
 final class FilesystemWriterTest extends TestCase
 {
 	use BuildsContentSite;
@@ -200,9 +202,94 @@ final class FilesystemWriterTest extends TestCase
 
 		$this->writer()->delete($id);
 
+		$folders = glob($this->temporaryDirectory() . '/storage/trash/20260601-120000-*') ?: [];
+
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . "/user/content/{$id}");
-		$this->assertFileExists($this->temporaryDirectory() . "/storage/trash/20260601-120000/user/content/{$id}");
+		$this->assertCount(1, $folders, 'Each trashed entry gets its own folder.');
+		$this->assertFileExists(($folders[0] ?? '') . "/user/content/{$id}");
+		$this->assertSame(['entry' => $id, 'bundle' => false, 'trashed' => '2026-06-01T12:00:00-05:00'], json_decode((string) file_get_contents(($folders[0] ?? '') . '/trash.json'), true));
 		$this->assertNull($this->content()->find($id));
+	}
+
+	public function testListsTheTrash(): void
+	{
+		$this->writer()->delete('_posts/2022-03-29.rekindling-the-flame.md');
+		$this->writer()->delete('_posts/hello/index.md');
+
+		// Trash from before manifests is listed file by file.
+		$this->writeTemporaryFile('storage/trash/20250101-090000/user/content/old.md', "---\ntitle: Old\n---\n");
+
+		$trashed = $this->writer()->trashed();
+
+		$this->assertSame(['_posts/2022-03-29.rekindling-the-flame.md', '_posts/hello/index.md', 'old.md'], array_map(static fn (TrashedEntry $entry): string => $entry->entry, $trashed));
+		$this->assertSame('Rekindling the Flame', $trashed[0]->title());
+		$this->assertTrue($trashed[1]->bundle);
+		$this->assertSame('20250101-090000/old.md', $trashed[2]->id);
+		$this->assertSame('2025-01-01 09:00:00', $trashed[2]->trashed->format('Y-m-d H:i:s'));
+	}
+
+	public function testRestoresWithChangesAndNeverLive(): void
+	{
+		$id = '_posts/2022-03-29.rekindling-the-flame.md';
+		$this->writer()->delete($id);
+		$trashed = $this->writer()->trashed()[0];
+
+		$restored = $this->writer()->restore($trashed->id, new EntryChanges(set: ['status' => 'draft']));
+
+		$this->assertSame($id, $restored->id);
+		$this->assertStringContainsString("category  : [life]\nstatus: draft\n", $this->file($id), 'The rest of the file is as it was.');
+		$this->assertSame(Status::Draft, $this->content()->find($id)?->status);
+		$this->assertSame([], $this->writer()->trashed());
+		$this->assertSame([], glob($this->temporaryDirectory() . '/storage/trash/*') ?: [], 'Nothing is left behind.');
+	}
+
+	public function testRestoresABundleWithItsMedia(): void
+	{
+		$this->writer()->delete('_posts/hello/index.md');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/hello/photo.jpg');
+
+		$this->writer()->restore($this->writer()->trashed()[0]->id);
+
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello/photo.jpg');
+		$this->assertNotNull($this->content()->find('_posts/hello/index.md'));
+	}
+
+	public function testWontRestoreOverSomethingNew(): void
+	{
+		$id = '_posts/2022-03-29.rekindling-the-flame.md';
+		$this->writer()->delete($id);
+		$this->writeTemporaryFile("user/content/{$id}", "---\ntitle: A new one\n---\n");
+
+		try {
+			$this->writer()->restore($this->writer()->trashed()[0]->id);
+			$this->fail('Restored over a new file.');
+		} catch (WriteException $e) {
+			$this->assertStringContainsString('something else is there now', $e->getMessage());
+		}
+
+		$this->assertCount(1, $this->writer()->trashed(), 'It stays in the trash.');
+		$this->assertStringContainsString('A new one', $this->file($id));
+	}
+
+	public function testPurgesForGood(): void
+	{
+		$this->writer()->delete('_posts/2022-03-29.rekindling-the-flame.md');
+		$this->writer()->delete('_posts/hello/index.md');
+
+		foreach ($this->writer()->trashed() as $trashed) {
+			$this->writer()->purge($trashed->id);
+		}
+
+		$this->assertSame([], glob($this->temporaryDirectory() . '/storage/trash/*') ?: []);
+
+		foreach (['missing', '../../../config/app.php', '20260601-120000-abcdef/../../x.md'] as $id) {
+			try {
+				$this->writer()->purge($id);
+				$this->fail("Purged {$id}.");
+			} catch (WriteException) {
+				$this->addToAssertionCount(1);
+			}
+		}
 	}
 
 	public function testStaysInsideTheContentFolder(): void

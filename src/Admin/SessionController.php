@@ -115,7 +115,8 @@ final readonly class SessionController
 				'author'       => $account->author,
 				'roles'        => $account->roles,
 				'capabilities' => $this->permissions->capabilities($account),
-				'lastLogin'    => $account->lastLogin
+				'lastLogin'    => $account->lastLogin,
+				'preferences'  => $account->preferences->toArray()
 			],
 			'csrfToken' => $this->authenticator->csrfToken($session)
 		];

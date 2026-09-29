@@ -1,0 +1,163 @@
+/**
+ * Admin design tokens (D-231). These are everything an admin theme may
+ * redefine, and the only place literal colors, fonts, type sizes, and
+ * radii appear; the rest of the admin's CSS reads `var(--token)`.
+ *
+ * Two attributes on `<html>` pick the look:
+ *
+ *   data-admin-theme="neutral" | "<theme-id>"   absent: neutral
+ *   data-color-scheme="light" | "dark"          absent: the system's
+ *
+ * The cascade order matters. Every token is first defined on bare
+ * `:root`, so it applies to viewers who set nothing; dark values follow,
+ * once for a dark system and once for an explicit choice.
+ *
+ *   :root                                     every token, light
+ *   @media (prefers-color-scheme: dark)
+ *     :root:not([data-color-scheme="light"])  dark, from the system
+ *   :root[data-color-scheme="dark"]           dark, chosen
+ *
+ * Another admin theme repeats this shape under its own
+ * `[data-admin-theme="id"]` selectors, changing values, never names.
+ */
+
+/* Neutral: cool gray chrome, a cobalt accent, dense rows. */
+
+:root {
+	/* Surfaces, back to front. */
+	--bg: #f5f6f9;          /* the app's ground, behind panels */
+	--surface: #ffffff;     /* panels, the table, the rail, the top bar */
+	--surface-2: #f0f2f6;   /* row hover, chips, inset fills */
+	--surface-3: #e7eaf0;   /* pressed, avatar ground */
+
+	/* Lines. */
+	--border: #e2e5ec;          /* the default hairline */
+	--border-strong: #ccd2dd;   /* checkboxes, hover borders, floating edges */
+
+	/* Ink. */
+	--fg: #11141b;     /* primary text */
+	--fg-2: #535b6b;   /* secondary text, icons, labels */
+	--fg-3: #858d9d;   /* muted: slugs, timestamps, placeholders */
+
+	/* Accent: one hue, for the primary action, selection, and focus. */
+	--accent: #2f5fe0;
+	--accent-hover: #2650c4;
+	--accent-fg: #ffffff;      /* text on a filled accent */
+	--accent-soft: #e9effc;    /* selected rows, soft pills */
+	--accent-line: #bdcdf7;    /* borders on soft accent fills */
+
+	/* Status: reserved for state, never decoration or a chart series. */
+	--good: #136b43;
+	--good-soft: #e2f3e9;
+	--good-dot: #1f9d5f;
+	--warn: #8a5806;
+	--warn-soft: #faf0d9;
+	--warn-dot: #cf8d16;
+	--danger: #a92420;
+	--danger-soft: #fbeae9;
+	--danger-dot: #d6403a;
+
+	/* Elevation. */
+	--shadow-1: 0 1px 2px rgb(17 20 27 / 6%), 0 1px 3px rgb(17 20 27 / 4%);
+	--shadow-2: 0 8px 24px rgb(17 20 27 / 10%), 0 2px 6px rgb(17 20 27 / 6%);
+	--shadow-3: 0 24px 60px rgb(17 20 27 / 18%), 0 6px 16px rgb(17 20 27 / 10%);
+
+	/* Radius. */
+	--r-1: 5px;    /* controls: buttons, inputs, chips */
+	--r-2: 8px;    /* menus, small cards */
+	--r-3: 12px;   /* panels, the table's shell */
+
+	/* Type. */
+	--font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-display: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+	--font-title: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+	--font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+	--base: 13px;            /* body and control text */
+	--text-sm: 12px;         /* secondary text */
+	--text-xs: 11px;         /* uppercase micro-labels, badges */
+	--h1: 22px;              /* page titles */
+	--h1-track: -.022em;
+	--h2: 14px;              /* panel headings */
+	--title-size: 13px;      /* entry titles in lists */
+	--title-weight: 500;
+	--title-track: -.005em;
+
+	/* Density: a theme may loosen these. */
+	--pad-row: 10px;     /* table cells and list rows, vertical */
+	--pad-panel: 13px;   /* panel headers, vertical */
+	--pad-x: 16px;       /* panels, horizontal */
+	--stat-v: 26px;      /* stat tile figures */
+
+	/* Layout. */
+	--rail: 238px;       /* the sidebar */
+	--rail-min: 60px;    /* the collapsed sidebar */
+	--bar: 53px;         /* the top bar and the site header */
+	--work-max: 1360px;
+
+	color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-color-scheme="light"]) {
+		--bg: #0b0d12;
+		--surface: #13161d;
+		--surface-2: #1a1e27;
+		--surface-3: #222733;
+		--border: #242936;
+		--border-strong: #353c4c;
+		--fg: #e9ebf0;
+		--fg-2: #a3abba;
+		--fg-3: #747d8e;
+		--accent: #7295f7;
+		--accent-hover: #8aa8f9;
+		--accent-fg: #0b0d12;
+		--accent-soft: #182444;
+		--accent-line: #2c3d68;
+		--good: #5ecb92;
+		--good-soft: #102a1e;
+		--good-dot: #35b877;
+		--warn: #e3b360;
+		--warn-soft: #2b2312;
+		--warn-dot: #d69f3c;
+		--danger: #f28d84;
+		--danger-soft: #301917;
+		--danger-dot: #e0655c;
+		--shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+		--shadow-2: 0 8px 24px rgb(0 0 0 / 50%), 0 2px 6px rgb(0 0 0 / 30%);
+		--shadow-3: 0 24px 60px rgb(0 0 0 / 60%), 0 6px 16px rgb(0 0 0 / 40%);
+
+		color-scheme: dark;
+	}
+}
+
+:root[data-color-scheme="dark"] {
+	--bg: #0b0d12;
+	--surface: #13161d;
+	--surface-2: #1a1e27;
+	--surface-3: #222733;
+	--border: #242936;
+	--border-strong: #353c4c;
+	--fg: #e9ebf0;
+	--fg-2: #a3abba;
+	--fg-3: #747d8e;
+	--accent: #7295f7;
+	--accent-hover: #8aa8f9;
+	--accent-fg: #0b0d12;
+	--accent-soft: #182444;
+	--accent-line: #2c3d68;
+	--good: #5ecb92;
+	--good-soft: #102a1e;
+	--good-dot: #35b877;
+	--warn: #e3b360;
+	--warn-soft: #2b2312;
+	--warn-dot: #d69f3c;
+	--danger: #f28d84;
+	--danger-soft: #301917;
+	--danger-dot: #e0655c;
+	--shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+	--shadow-2: 0 8px 24px rgb(0 0 0 / 50%), 0 2px 6px rgb(0 0 0 / 30%);
+	--shadow-3: 0 24px 60px rgb(0 0 0 / 60%), 0 6px 16px rgb(0 0 0 / 40%);
+
+	color-scheme: dark;
+}

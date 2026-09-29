@@ -63,11 +63,35 @@ interface ContentWriter
 	public function rename(string $id, string $slug, ?string $revision = null): WriteResult;
 
 	/**
-	 * Deletes an entry: its file, or its bundle's folder, moves to
-	 * `storage/trash`, from where it can be restored by hand.
+	 * Deletes an entry: its file, or its bundle's folder, moves to the
+	 * trash, from where `restore()` brings it back.
 	 *
 	 * @throws WriteConflict
 	 * @throws WriteException
 	 */
 	public function delete(string $id, ?string $revision = null): WriteResult;
+
+	/**
+	 * Returns the entries in the trash, most recently trashed first.
+	 *
+	 * @return list<TrashedEntry>
+	 */
+	public function trashed(): array;
+
+	/**
+	 * Brings an entry back from the trash to where it was, after making
+	 * the changes to it (such as `status: draft`), so it's never back
+	 * without them.
+	 *
+	 * @throws WriteException When there's no such entry in the trash, or
+	 *                        something now has its place.
+	 */
+	public function restore(string $trashId, EntryChanges $changes = new EntryChanges()): WriteResult;
+
+	/**
+	 * Deletes an entry in the trash for good.
+	 *
+	 * @throws WriteException When there's no such entry in the trash.
+	 */
+	public function purge(string $trashId): void;
 }

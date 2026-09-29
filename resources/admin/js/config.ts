@@ -7,6 +7,8 @@ export interface AdminConfig {
 	base: string;
 	api: string;
 	site: { name: string; url: string };
+	// The signed-in account's, or `null` when no one is (D-235).
+	colorScheme: 'system' | 'light' | 'dark' | null;
 }
 
 function read(): AdminConfig {
