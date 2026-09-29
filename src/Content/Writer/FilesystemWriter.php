@@ -82,7 +82,8 @@ final readonly class FilesystemWriter implements ContentWriter
 	#[Override]
 	public function load(string $id): EditableEntry
 	{
-		$contents = $this->read($this->path($id));
+		$path     = $this->path($id);
+		$contents = $this->read($path);
 
 		try {
 			$document = $this->parsers->parse($id, $contents);
@@ -90,7 +91,10 @@ final readonly class FilesystemWriter implements ContentWriter
 			throw new WriteException(sprintf('%s can\'t be read: %s', $id, $e->getMessage()), previous: $e);
 		}
 
-		return new EditableEntry($id, $document->frontMatter, $document->body, self::revision($contents));
+		clearstatcache(true, $path);
+		$modified = @filemtime($path);
+
+		return new EditableEntry($id, $document->frontMatter, $document->body, self::revision($contents), $modified === false ? null : $modified);
 	}
 
 	/**

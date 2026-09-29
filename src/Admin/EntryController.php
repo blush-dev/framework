@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use Exception;
 use JsonException;
 use LogicException;
@@ -50,8 +51,9 @@ use Blush\Support\Slug;
  *
  * - `GET    entries/{id}`: an entry for editing: its field values by name
  *   (from whichever key or alias the file uses), other front matter,
- *   body, revision, type and field descriptions, what the account may
- *   do, and the file's problems.
+ *   body, revision, when the file was last written (`modified`), type
+ *   and field descriptions, what the account may do, and the file's
+ *   problems.
  * - `POST   entries`: creates one (`type`, `title`, optional `slug`,
  *   `set`, `body`, `status`). New entries are drafts unless asked
  *   otherwise, and credit the account's author.
@@ -398,6 +400,7 @@ final readonly class EntryController
 		return [
 			'id'         => $file->id,
 			'revision'   => $file->revision,
+			'modified'   => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
 			'title'      => $entry->title,
 			'status'     => $entry->status->value,
 			'own'        => $this->permissions->owns($account, $entry),

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Trashed entries (D-237): the title with where it lived, optionally the
- * type, when it was trashed, and two actions, kept apart: **Restore as a
+ * Trashed entries of one type (D-237): the title with where it lived,
+ * when it was trashed, and two actions, kept apart: **Restore as a
  * draft** and, after a divider, **Delete permanently**.
  */
 
@@ -9,11 +9,10 @@ import type { TrashedSummary } from '../api';
 import { formatDate } from '../format';
 import AdminIcon from './AdminIcon.vue';
 
-const { showType = true } = defineProps<{
+defineProps<{
 	items: TrashedSummary[];
 	labelledby: string;
 	busy: string | null;
-	showType?: boolean;
 }>();
 
 defineEmits<{
@@ -32,7 +31,6 @@ function name(item: TrashedSummary): string {
 			<thead>
 				<tr>
 					<th scope="col">Title</th>
-					<th v-if="showType" scope="col">Type</th>
 					<th scope="col">Trashed</th>
 					<th scope="col"><span class="visually-hidden">Actions</span></th>
 				</tr>
@@ -49,7 +47,6 @@ function name(item: TrashedSummary): string {
 							<span class="entry-title__path">{{ item.entry }}<template v-if="item.bundle"> (with its folder)</template></span>
 						</span>
 					</th>
-					<td v-if="showType" class="table__meta">{{ item.type ?? '—' }}</td>
 					<td class="table__meta"><time :datetime="item.trashed">{{ formatDate(item.trashed) }}</time></td>
 					<td>
 						<div class="trash-actions">

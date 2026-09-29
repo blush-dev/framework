@@ -57,7 +57,9 @@ changes what you see: someone else on the same site keeps their own.
 ## The dashboard
 
 The dashboard shows how many entries you have, by status, and the actions
-your account may run:
+your account may run. On a site with no content yet, it shows the steps
+to write the first page and the first entry of each other type instead
+of the counts. The actions:
 
 | Action | What it does | Who can run it |
 |---|---|---|
@@ -88,9 +90,9 @@ title to edit the entry.
 A taxonomy's list (such as Categories) holds its **terms**. Instead of
 authors, it shows how many published entries use each term.
 
-**All entries**, at the end of the Content group, lists every type
-together, with a menu to narrow it to one. Its Drafts and Scheduled tabs
-are what the dashboard's counts link to.
+A type with no entries yet skips the tabs and search: it says what the
+type is for and offers to create the first one. A site with no content
+at all shows the same offer on the dashboard, one step per type.
 
 **New post** (named for the type you're looking at) asks for a type and
 a title, creates the entry as a draft, and opens it in the editor. It's
@@ -122,12 +124,32 @@ The buttons at the top depend on the entry:
 
 Ctrl+S (⌘S on a Mac) saves without changing the status. Saving changes
 only what you changed: every other line of the file stays exactly as it
-was. If someone else saved the entry after you opened it, your save is
-refused, so neither change is lost silently; load their version, then
-make your change again. Leaving the editor with unsaved changes asks
-first.
+was. Leaving the editor with unsaved changes asks first.
 
 If you can't publish, you can save drafts but not publish them.
+
+Fields the content type marks as required must be filled in to publish,
+schedule, or update a live entry. Anything missing is named at the top
+and marked under the field; a draft saves without them.
+
+### When a save doesn't go through
+
+Your changes aren't lost:
+
+- **Unsaved changes stay in your browser** as you type. If the tab
+  closes or the browser crashes, open the entry again and choose
+  **Restore them** (or **Throw them away**).
+- **Offline**, a bar under the top bar says so, and you can keep
+  writing. A save you ask for shows **Waiting for a connection** and goes
+  ahead once you're back online.
+- **A save that fails** (a server error, say) shows **Not saved** and a
+  **Try again** button.
+- **If the entry changed after you opened it** (someone else saved it,
+  or its file was edited or pulled from git), the editor stops saving
+  and says when it changed. **Compare** shows the fields and body lines
+  that differ; **Keep theirs** throws your changes away for their
+  version; **Keep mine** saves your version of everything the editor
+  shows over theirs.
 
 **Move to trash** takes the entry off your site and puts it in the
 **Trash** tab of its list.
@@ -258,7 +280,8 @@ An entry's id is its file's path under `user/content`, such as
   doesn't declare.
 - `body`, and `revision`: send the revision back with a change. If the
   file changed meanwhile, the change is refused with a 409, so no one's
-  edit is lost.
+  edit is lost. `modified` is when the file was last written (ISO 8601),
+  or `null` if that isn't known.
 - `type`: the type's name, kind, whether it's dated, and a description
   of each field (name, type, label, and options).
 - `can`: whether the account may edit, publish, and delete it.

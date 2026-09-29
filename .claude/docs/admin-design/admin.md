@@ -84,6 +84,29 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Term use counts are published entries only** (D-236), matching the site's
   term pages.
 - **Terms aren't hierarchical**, so there's no reparenting on delete (D-236).
+- **No list of every type together** (D-240): each content type has its own
+  list, and there's no "All entries" screen. The dashboard's Drafts and
+  Scheduled figures are plain numbers.
+- **Unsaved changes are kept in the browser** (D-240): without autosave, the
+  editor keeps a copy of unsaved changes in `localStorage` as they're made
+  and offers them back when the entry is opened again. That's what makes the
+  offline bar's "changes stay in this browser" true. A save made offline
+  waits and goes ahead when the connection is back.
+- **Conflicts say when, not who** (D-240): a file can change through git or a
+  text editor, so the notice gives the time the file was written and "from
+  the admin or by editing the file itself". **Keep mine** saves this
+  editor's version of every field it shows over theirs; front matter the
+  editor doesn't show stays as theirs.
+- **Validation runs in the admin only** (D-240), from the schema's
+  `required`; the API doesn't refuse to publish yet.
+- **The setup path has only steps that do something** (D-240): the first
+  entry of each page and collection type. "First content type", media, and
+  inviting people join it when their screens exist.
+- **A type's purpose comes from its kind** (D-240): types have no
+  description yet, so an empty type's screen says what pages, collections,
+  or taxonomies are for.
+- **Content health keeps quiet text while checking** (D-240): its result is
+  a summary, not rows, so there's no shape to sketch.
 - **Vocabulary follows Blush** where it differs: extensions, not addons, and
   whatever taxonomies a site defines (no built-in Topic).
 
@@ -350,6 +373,57 @@ and the Trash tab gains an **Empty trash** action. Restoring returns an entry
 as a draft rather than to its previous status, because a silent republish is
 worse than an extra click.
 
+### Loading
+A screen waiting on the API shows **skeletons in the shape of the content**,
+not a spinner: table rows with bars where the title, status, author and date
+will be, cards with a blank thumbnail in the media grid, tiles and list rows on
+the dashboard. The page chrome — header, tabs, filters — renders immediately
+and stays put, so nothing jumps when the data lands. The skeleton is a
+one-directional shimmer, and it holds still under
+`prefers-reduced-motion: reduce`.
+
+Row counts in skeletons are a guess at the real count, not a fixed number; six
+rows reads as "a list is coming", twenty reads as a promise you may not keep.
+
+### Offline and failed saves
+Losing the connection shows one bar under the top bar, in warn, saying that
+changes are kept on the device — never a modal, and never a block on typing.
+The editor's save indicator becomes **Waiting for a connection** rather than
+claiming a save that did not happen.
+
+A save that fails shows the failure **where the save state lives** (the
+indicator turns red) and a bar with a Try again action. The copy leads with
+what is safe: the change is still on the device, nothing is lost. Never an
+apology, never "Oops".
+
+### Edit conflicts
+This is the state an autosaving editor gets wrong most often. When the server
+has a newer version than the one being edited, the editor stops saving, says
+who saved it and when, and offers three ways out: **Keep theirs**, **Compare**,
+**Keep mine**. It never resolves silently in either direction, and it never
+discards the local edit to fetch the remote one without asking.
+
+The rule: an autosave may not overwrite someone else's work, and a conflict may
+not lose the typing that caused it.
+
+### Validation
+Required fields come from the type, so validation is data-driven rather than
+hand-written per screen. Publishing with a required field empty does not
+publish. It shows a count in the notice bar, marks each offending field, and
+puts the reason under the field itself. Errors clear as each field is filled,
+not only on the next publish attempt. A draft still saves — validation gates
+publishing, not saving.
+
+### Empty and first-run
+Distinguish **no results** from **nothing yet**. A filter that matches nothing
+offers to clear the filter. A type with no entries at all shows what the type
+is for and the action that creates the first one, and hides the tabs and the
+filter bar entirely — there is nothing to filter, so the controls are noise.
+
+A site with no content at all replaces the dashboard with a short numbered
+setup path: first page, first content type, media, invite people. Each step
+does the thing rather than linking to documentation about it.
+
 ### Type-driven variation
 The list screen reads these from the type and changes nothing else:
 `label`, `singular`, `icon`, `hierarchical`, and its taxonomy (which produces
@@ -427,6 +501,8 @@ The rest are strong defaults. Break them with a reason, and record it:
 
 - Giving a custom field its own table column.
 - Showing a spinner where a skeleton row or quiet text would do.
+- Resolving an edit conflict without asking, in either direction.
+- Reporting a failure without saying what happened to the person's work.
 - Adding a second accent hue.
 - Rounding every container the same amount — radius marks a thing as a separate
   object, so spend it deliberately.

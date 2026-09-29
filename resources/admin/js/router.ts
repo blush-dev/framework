@@ -22,13 +22,14 @@ export const router = createRouter({
 	history: createWebHistory(config.base),
 	routes: [
 		{ path: '/', name: 'dashboard', component: DashboardView, meta: { title: 'Dashboard' } },
-		{ path: '/entries', name: 'entries', component: EntriesView, meta: { title: 'All entries', capability: 'content.edit', section: 'entries' } },
+		// Each type has its own list; there's no list of every type (D-240).
+		{ path: '/entries', redirect: { name: 'dashboard' } },
 		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', capability: 'content.edit', section: 'entries' } },
 		{ path: '/entries/new', name: 'entry-new', component: NewEntryView, meta: { title: 'New entry', capability: 'content.create', section: 'entries' } },
 		// An entry's id is its source path, so it spans segments.
 		{ path: '/entries/:id+', name: 'entry', component: EditorView, meta: { title: 'Edit entry', capability: 'content.edit', section: 'entries' } },
-		// Drafts are a tab on each list now (D-236); old links still work.
-		{ path: '/drafts', redirect: { name: 'entries', query: { status: 'draft' } } },
+		// Drafts are a tab on each type's list now (D-236).
+		{ path: '/drafts', redirect: { name: 'dashboard' } },
 		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content health', capability: 'content.edit.others' } },
 		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your profile' } },
 		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign in', public: true } },

@@ -16,9 +16,10 @@ namespace Blush\Content\Writer;
 /**
  * An entry's file as it is on disk, for an editor: its id (the path under
  * the content folder), its front matter as written (keys as the file has
- * them, aliases included), its raw body, and a revision (a hash of the
+ * them, aliases included), its raw body, a revision (a hash of the
  * file) to send back with changes, so a change made meanwhile isn't
- * overwritten.
+ * overwritten, and when the file was last written (a Unix timestamp), if
+ * known.
  */
 final readonly class EditableEntry
 {
@@ -29,6 +30,7 @@ final readonly class EditableEntry
 		public string $id,
 		public array $frontMatter,
 		public string $body,
-		public string $revision
+		public string $revision,
+		public ?int $modified = null
 	) {}
 }

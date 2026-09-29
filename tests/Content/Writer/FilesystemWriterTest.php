@@ -79,6 +79,7 @@ final class FilesystemWriterTest extends TestCase
 		$this->assertArrayHasKey('date', $entry->frontMatter);
 		$this->assertSame("\nThe body.\n", $entry->body);
 		$this->assertSame(hash('sha256', self::POST), $entry->revision);
+		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/_posts/2022-03-29.rekindling-the-flame.md'), $entry->modified);
 	}
 
 	public function testUpdatesOnlyWhatChanged(): void

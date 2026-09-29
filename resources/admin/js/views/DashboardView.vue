@@ -4,13 +4,19 @@
  * run. Actions are described by the server (`AdminAction` classes,
  * D-222), so ones an extension adds in PHP show up here with no
  * JavaScript. Results are announced in a polite live region.
+ *
+ * Tiles and actions are skeletons until the server answers. A site with
+ * no content at all gets a short setup path in place of the figures:
+ * each step creates the first entry of a type.
  */
 
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import { inSentence } from '../fields';
 import { can } from '../session';
 import { ApiError, request, type ActionDescription, type ActionResult, type Dashboard } from '../api';
+import { loadTypes, types } from '../types';
 
 const dashboard = ref<Dashboard | null>(null);
 const error     = ref('');
@@ -60,7 +66,22 @@ function share(value: number, total: number): string {
 	return total === 0 ? 'No entries yet' : `${Math.round(value / total * 100)}% of entries`;
 }
 
-onMounted(load);
+// The setup path: pages first, then the other types entries are written
+// in. Taxonomies' terms come from using them, so they aren't steps.
+const steps = computed(() => [
+	...types.value.filter((type) => type.kind === 'pages'),
+	...types.value.filter((type) => type.kind === 'collection')
+]);
+
+const empty = computed(() => dashboard.value?.content.total === 0);
+
+onMounted(() => {
+	void load();
+
+	if (can('content.create')) {
+		loadTypes().catch(() => undefined);
+	}
+});
 </script>
 
 <template>
@@ -72,10 +93,49 @@ onMounted(load);
 	</header>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-	<p v-else-if="!dashboard" class="loading" aria-live="polite">Loading…</p>
+
+	<template v-else-if="!dashboard">
+		<p class="visually-hidden" role="status">Loading the dashboard…</p>
+		<div class="stats" aria-hidden="true">
+			<div v-for="tile in 4" :key="tile" class="stat">
+				<span class="skeleton" :style="{ width: `${40 + tile * 9}%` }" />
+				<span class="skeleton skeleton--figure" />
+				<span class="skeleton skeleton--small" :style="{ width: `${70 - tile * 6}%` }" />
+			</div>
+		</div>
+		<section class="panel" aria-hidden="true">
+			<header class="panel__header">
+				<h2>Actions</h2>
+			</header>
+			<ul class="actions">
+				<li v-for="row in 3" :key="row" class="action">
+					<span class="skeleton" :style="{ width: `${50 + row * 11}%` }" />
+					<span class="skeleton skeleton--button" />
+				</li>
+			</ul>
+		</section>
+	</template>
 
 	<template v-else>
-		<section aria-labelledby="content-heading">
+		<section v-if="empty" class="panel" aria-labelledby="setup-heading">
+			<header class="panel__header">
+				<h2 id="setup-heading">Get started</h2>
+				<p class="panel__hint">The site has no content yet</p>
+			</header>
+			<ol v-if="can('content.create') && steps.length" class="setup">
+				<li v-for="(type, index) in steps" :key="type.name" class="setup__step">
+					<span class="setup__number" aria-hidden="true">{{ index + 1 }}</span>
+					<span class="setup__text">
+						<span class="setup__title">Write your first {{ inSentence(type.singular) }}</span>
+						<span class="setup__hint">{{ type.kind === 'pages' ? 'A page that stands on its own, like About.' : `${type.label} are listed together on the site.` }}</span>
+					</span>
+					<RouterLink class="button" :class="{ 'button--primary': index === 0 }" :to="{ name: 'entry-new', query: { type: type.name } }">New {{ inSentence(type.singular) }}</RouterLink>
+				</li>
+			</ol>
+			<p v-else class="panel__body setup__none">Once someone writes the first entry, the site's content shows here.</p>
+		</section>
+
+		<section v-else aria-labelledby="content-heading">
 			<h2 id="content-heading" class="visually-hidden">Content</h2>
 			<dl class="stats">
 				<div class="stat">
@@ -90,18 +150,12 @@ onMounted(load);
 				</div>
 				<div class="stat">
 					<dt class="stat__label"><AdminIcon name="file-pen-line" />Drafts</dt>
-					<dd class="stat__value">
-						<RouterLink v-if="can('content.edit')" :to="{ name: 'entries', query: { status: 'draft' } }">{{ count(dashboard.content.draft) }}</RouterLink>
-						<template v-else>{{ count(dashboard.content.draft) }}</template>
-					</dd>
+					<dd class="stat__value">{{ count(dashboard.content.draft) }}</dd>
 					<dd class="stat__context">{{ share(dashboard.content.draft, dashboard.content.total) }}</dd>
 				</div>
 				<div class="stat">
 					<dt class="stat__label"><AdminIcon name="calendar-clock" />Scheduled</dt>
-					<dd class="stat__value">
-						<RouterLink v-if="can('content.edit')" :to="{ name: 'entries', query: { status: 'scheduled' } }">{{ count(dashboard.content.scheduled) }}</RouterLink>
-						<template v-else>{{ count(dashboard.content.scheduled) }}</template>
-					</dd>
+					<dd class="stat__value">{{ count(dashboard.content.scheduled) }}</dd>
 					<dd class="stat__context">Go live on their own</dd>
 				</div>
 			</dl>
@@ -166,5 +220,67 @@ onMounted(load);
 
 .stats dd {
 	margin: 0;
+}
+
+.skeleton--button {
+	width: 6rem;
+	height: 30px;
+}
+
+.setup {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.setup__step {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 14px;
+	padding: var(--pad-row) var(--pad-x);
+}
+
+.setup__step + .setup__step {
+	border-top: 1px solid var(--border);
+}
+
+.setup__number {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--accent-soft);
+	color: var(--accent);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	font-variant-numeric: tabular-nums;
+}
+
+.setup__text {
+	display: grid;
+	gap: 2px;
+}
+
+.setup__title {
+	font-weight: 500;
+}
+
+.setup__hint,
+.setup__none {
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+@media (width <= 640px) {
+	.setup__step {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+
+	.setup__step .button {
+		grid-column: 2;
+		justify-self: start;
+	}
 }
 </style>

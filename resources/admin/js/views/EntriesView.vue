@@ -1,24 +1,29 @@
 <script setup lang="ts">
 /**
- * The entries the account may edit (D-230), of one content type
- * (`/content/{type}`, D-234) or of all of them (`/entries`, with a type
- * menu): status tabs with counts, a search, and pages. The filters live
- * in the URL, so the back button and a shared link restore them. Titles
- * open the editor; the type's own words name the screen and its "New"
- * button.
+ * The entries of one content type the account may edit (D-230,
+ * `/content/{type}`, D-234): status tabs with counts, a search, and
+ * pages. The filters live in the URL, so the back button and a shared
+ * link restore them. Titles open the editor; the type's own words name
+ * the screen and its "New" button. There's no list of every type
+ * together: each type has its own.
+ *
+ * The header, tabs, and search show at once; the table is a skeleton
+ * until its entries arrive. A type with no entries at all drops the tabs
+ * and search, says what the type is for, and offers its first entry.
  */
 
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
-import { ApiError, request, type EntryList, type EntryStatus, type TrashedSummary } from '../api';
+import { ApiError, request, type ContentTypeSummary, type EntryList, type EntryStatus, type TrashedSummary } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import EntryTable from '../components/EntryTable.vue';
+import SkeletonTable from '../components/SkeletonTable.vue';
 import TrashTable from '../components/TrashTable.vue';
 import { humanize, inSentence } from '../fields';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
 import { can } from '../session';
-import { currentType, findType, loadTypes, types } from '../types';
+import { currentType, findType, loadTypes } from '../types';
 
 type Tab = EntryStatus | 'any' | 'trash';
 
@@ -28,6 +33,9 @@ const statusTabs: { status: EntryStatus | 'any'; label: string }[] = [
 	{ status: 'draft', label: 'Drafts' },
 	{ status: 'scheduled', label: 'Scheduled' }
 ];
+
+// Pages of entries hold this many unless the server says otherwise.
+const PER_PAGE = 20;
 
 // Trash is a tab like the statuses (D-237), for accounts that can delete.
 const canTrash = computed(() => can('content.delete'));
@@ -44,6 +52,10 @@ const loading = ref(false);
 const busy    = ref<string | null>(null);
 const done    = ref<{ text: string; entry?: string } | null>(null);
 
+// What the entries on screen were loaded for: the type and tab. Until
+// they match what's asked for, the table is a skeleton.
+const loaded = ref('');
+
 const status = computed<Tab>(() => {
 	const value = route.query.status;
 
@@ -52,24 +64,28 @@ const status = computed<Tab>(() => {
 
 const inTrash = computed(() => status.value === 'trash');
 
-// A type's own screen, or the menu on the screen for all of them.
-const fixed  = computed(() => route.name === 'type');
-const type   = computed(() => fixed.value ? String(route.params.type ?? '') : (typeof route.query.type === 'string' ? route.query.type : ''));
+const type   = computed(() => String(route.params.type ?? ''));
 const info   = computed(() => findType(type.value));
 const search = computed(() => typeof route.query.search === 'string' ? route.query.search : '');
 const page   = computed(() => Math.max(1, Number(route.query.page) || 1));
+const key    = computed(() => `${type.value}|${status.value}`);
+const ready  = computed(() => loaded.value === key.value);
 
-const filtered = computed(() => search.value !== '' || (!fixed.value && type.value !== ''));
+const filtered = computed(() => search.value !== '');
 
 // A taxonomy's entries are terms: they're counted by use, not credited.
-const terms = computed(() => fixed.value && info.value?.kind === 'taxonomy');
+const terms = computed(() => info.value?.kind === 'taxonomy');
 
-const heading  = computed(() => fixed.value ? (info.value?.label ?? humanize(type.value)) : 'All entries');
-const singular = computed(() => inSentence(info.value?.singular ?? (type.value === '' ? 'entry' : humanize(type.value))));
+const heading  = computed(() => info.value?.label ?? humanize(type.value));
+const singular = computed(() => inSentence(info.value?.singular ?? humanize(type.value)));
 
-watch([fixed, type, info], () => {
-	currentType.value = fixed.value ? type.value : null;
-	screenTitle.value = fixed.value ? heading.value : null;
+// Nothing yet, as opposed to nothing matching: no entries in any status,
+// none in the trash, and no search.
+const nothingYet = computed(() => ready.value && !filtered.value && counts.value.any === 0 && (counts.value.trash ?? 0) === 0);
+
+watch([type, info], () => {
+	currentType.value = type.value;
+	screenTitle.value = heading.value;
 }, { immediate: true });
 
 // The search box updates the URL a moment after typing stops.
@@ -93,9 +109,9 @@ watch(search, (value) => {
 function go(changes: LocationQueryRaw): void {
 	const next: LocationQueryRaw = { ...route.query, ...changes };
 
-	for (const key of Object.keys(next)) {
-		if (next[key] === undefined || next[key] === '' || (key === 'status' && next[key] === 'any')) {
-			delete next[key];
+	for (const name of Object.keys(next)) {
+		if (next[name] === undefined || next[name] === '' || (name === 'status' && next[name] === 'any')) {
+			delete next[name];
 		}
 	}
 
@@ -104,7 +120,7 @@ function go(changes: LocationQueryRaw): void {
 
 function clear(): void {
 	query.value = '';
-	go({ type: undefined, search: undefined, page: undefined });
+	go({ search: undefined, page: undefined });
 }
 
 function tabQuery(tab: Tab): LocationQueryRaw {
@@ -116,11 +132,7 @@ function tabQuery(tab: Tab): LocationQueryRaw {
 }
 
 function params(extra: Record<string, string>): string {
-	const values = new URLSearchParams(extra);
-
-	if (type.value !== '') {
-		values.set('type', type.value);
-	}
+	const values = new URLSearchParams({ ...extra, type: type.value });
 
 	if (search.value !== '') {
 		values.set('search', search.value);
@@ -136,16 +148,42 @@ const trashShown = computed(() => {
 	return (trash.value ?? []).filter((item) => needle === '' || item.title.toLowerCase().includes(needle) || item.entry.toLowerCase().includes(needle));
 });
 
+// A skeleton guesses at the rows to come: the tab's last count, up to a
+// page, or a handful before anything is known.
+const skeletonRows = computed(() => {
+	const count = counts.value[status.value];
+
+	return count === undefined ? 6 : Math.max(1, Math.min(count, list.value?.per ?? PER_PAGE));
+});
+
+const skeletonColumns = computed(() => inTrash.value ? ['Title', 'Trashed', ''] : ['Title', 'Status', terms.value ? 'Entries' : 'Authors', 'Updated']);
+
+// Each load's number; only the latest one's answer is shown.
+let latest = 0;
+
 async function load(): Promise<void> {
+	const asked  = ++latest;
+	const wanted = key.value;
+
+	// Another type's counts don't guess this one's.
+	if (!loaded.value.startsWith(`${type.value}|`)) {
+		counts.value = {};
+	}
+
 	loading.value = true;
 	error.value   = '';
 
 	try {
 		const [current, trashed, ...totals] = await Promise.all([
 			inTrash.value ? Promise.resolve(null) : request<EntryList>('GET', `/entries?${params({ status: status.value, page: String(page.value) })}`),
-			canTrash.value ? request<{ trash: TrashedSummary[] }>('GET', `/trash${type.value === '' ? '' : `?type=${encodeURIComponent(type.value)}`}`) : Promise.resolve(null),
+			canTrash.value ? request<{ trash: TrashedSummary[] }>('GET', `/trash?type=${encodeURIComponent(type.value)}`) : Promise.resolve(null),
 			...statusTabs.map((tab) => request<EntryList>('GET', `/entries?${params({ status: tab.status, per: '1' })}`))
 		]);
+
+		// A later load has taken over.
+		if (asked !== latest) {
+			return;
+		}
 
 		list.value   = current;
 		trash.value  = trashed?.trash ?? null;
@@ -153,10 +191,15 @@ async function load(): Promise<void> {
 			...Object.fromEntries(statusTabs.map((tab, index) => [tab.status, totals[index]?.total ?? 0])),
 			...(trashed === null ? {} : { trash: trashed.trash.length })
 		};
+		loaded.value = wanted;
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The entries couldn\'t be loaded.';
+		if (asked === latest) {
+			error.value = caught instanceof ApiError ? caught.message : 'The entries couldn\'t be loaded.';
+		}
 	} finally {
-		loading.value = false;
+		if (asked === latest) {
+			loading.value = false;
+		}
 	}
 }
 
@@ -169,8 +212,8 @@ function nameOf(item: TrashedSummary): string {
 /**
  * Runs a trash action, then reloads the list and says what happened.
  */
-async function act(key: string, action: () => Promise<{ text: string; entry?: string }>): Promise<void> {
-	busy.value  = key;
+async function act(name: string, action: () => Promise<{ text: string; entry?: string }>): Promise<void> {
+	busy.value  = name;
 	done.value  = null;
 	error.value = '';
 
@@ -207,36 +250,47 @@ function purge(item: TrashedSummary): void {
 function emptyTrash(): void {
 	const count = trash.value?.length ?? 0;
 
-	if (!window.confirm(`Delete ${plural(count, 'entry', 'entries')} in the trash permanently? This can't be undone.`)) {
+	if (!window.confirm(`Delete ${plural(count, singular.value, inSentence(heading.value))} in the trash permanently? This can't be undone.`)) {
 		return;
 	}
 
 	void act('empty', async () => {
-		const answer = await request<{ deleted: number }>('POST', '/trash/empty', type.value === '' ? {} : { type: type.value });
+		const answer = await request<{ deleted: number }>('POST', '/trash/empty', { type: type.value });
 
-		return { text: `Deleted ${plural(answer.deleted, 'entry', 'entries')} permanently.` };
+		return { text: `Deleted ${plural(answer.deleted, singular.value, inSentence(heading.value))} permanently.` };
 	});
 }
 
-// Without types the menu and labels are left out; the list still works.
+// Without types the labels fall back to the type's name; the list still works.
 loadTypes().catch(() => undefined);
+
+/**
+ * What a type is for, from what it is: for the screen of a type with no
+ * entries yet.
+ */
+function purpose(summary: ContentTypeSummary | undefined, label: string): string {
+	switch (summary?.kind) {
+		case 'taxonomy':
+			return `${label} group other entries. Each one is an entry of its own, with a page listing what uses it.`;
+		case 'pages':
+			return `${label} stand on their own, like an About or a Contact page.`;
+		case 'collection':
+			return summary.dated ? `${label} are dated entries the site lists together, newest first.` : `${label} are entries the site lists together.`;
+		default:
+			return `${label} are entries of their own type.`;
+	}
+}
 
 const emptyText = computed(() => {
 	if (filtered.value) {
-		return 'Nothing matches these filters.';
-	}
-
-	const what = fixed.value ? inSentence(heading.value) : 'entries';
-
-	if (terms.value && status.value === 'any') {
-		return `Terms group other entries. Create a ${singular.value} to describe one in its own page.`;
+		return 'Nothing matches this search.';
 	}
 
 	if (inTrash.value) {
-		return `Entries you move to the trash wait here until you restore them or delete them permanently.`;
+		return `${heading.value} you move to the trash wait here until you restore them or delete them permanently.`;
 	}
 
-	return status.value === 'any' ? `There are no ${what} you can edit yet.` : `No ${tabs.value.find((tab) => tab.status === status.value)?.label.toLowerCase()} among the ${what}.`;
+	return status.value === 'any' ? `There are no ${inSentence(heading.value)} you can edit.` : `No ${tabs.value.find((tab) => tab.status === status.value)?.label.toLowerCase()} among the ${inSentence(heading.value)}.`;
 });
 </script>
 
@@ -244,86 +298,87 @@ const emptyText = computed(() => {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ heading }}</h1>
-			<p class="page-header__hint">{{ terms ? `Terms that group other entries` : (fixed ? `Every ${singular} you can edit` : 'Every entry you can edit, of any type') }}</p>
+			<p class="page-header__hint">{{ terms ? 'Terms that group other entries' : `Every ${singular} you can edit` }}</p>
 		</div>
-		<div v-if="can('content.create')" class="page-header__actions">
-			<RouterLink class="button button--primary" :to="{ name: 'entry-new', query: type ? { type } : {} }">New {{ singular }}</RouterLink>
+		<div v-if="can('content.create') && !nothingYet" class="page-header__actions">
+			<RouterLink class="button button--primary" :to="{ name: 'entry-new', query: { type } }">New {{ singular }}</RouterLink>
 		</div>
 	</header>
 
-	<nav class="tabs" aria-label="Status">
-		<RouterLink v-for="tab in tabs" :key="tab.status" class="tabs__tab" :to="{ query: tabQuery(tab.status) }" :aria-current="status === tab.status ? 'page' : undefined">
-			{{ tab.label }}
-			<span v-if="counts[tab.status] !== undefined" class="tabs__count">{{ counts[tab.status] }}</span>
-		</RouterLink>
-	</nav>
-
-	<div class="toolbar" role="search">
-		<label class="visually-hidden" for="entries-search">Search entries</label>
-		<input id="entries-search" v-model="query" class="input" type="search" :placeholder="`Search ${fixed ? inSentence(heading) : 'titles and files'}`" autocomplete="off">
-
-		<template v-if="!fixed && types.length">
-			<label class="visually-hidden" for="entries-type">Type</label>
-			<select id="entries-type" class="input" :value="type" @change="go({ type: ($event.target as HTMLSelectElement).value || undefined, page: undefined })">
-				<option value="">All types</option>
-				<option v-for="item in types" :key="item.name" :value="item.name">{{ item.label }}</option>
-			</select>
-		</template>
-
-		<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
-	</div>
-
-	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-
-	<p v-if="done" class="notice notice--success" role="status">
-		{{ done.text }}
-		<RouterLink v-if="done.entry" :to="{ name: 'entry', params: { id: done.entry.split('/') } }">Open it</RouterLink>
-	</p>
-
-	<section v-if="inTrash && trash" class="panel" aria-labelledby="entries-heading" :aria-busy="loading || busy !== null">
-		<header class="panel__header">
-			<h2 id="entries-heading">Trash</h2>
-			<p class="panel__hint" aria-live="polite">{{ plural(trashShown.length, 'entry', 'entries') }} · Restored entries come back as drafts</p>
-			<div v-if="trash.length" class="panel__actions">
-				<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty trash</button>
-			</div>
-		</header>
-
-		<TrashTable v-if="trashShown.length" :items="trashShown" labelledby="entries-heading" :busy="busy" :show-type="!fixed" @restore="restore" @purge="purge" />
-
-		<div v-else class="empty">
-			<AdminIcon name="circle-check" />
-			<p class="empty__heading">The trash is empty</p>
-			<p class="empty__text">{{ emptyText }}</p>
-			<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+	<section v-if="nothingYet" class="panel" aria-labelledby="entries-heading">
+		<div class="empty">
+			<AdminIcon :name="terms ? 'tag' : 'files'" />
+			<h2 id="entries-heading" class="empty__heading">No {{ inSentence(heading) }} yet</h2>
+			<p class="empty__text">{{ purpose(info, heading) }}</p>
+			<RouterLink v-if="can('content.create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ singular }}</RouterLink>
 		</div>
 	</section>
 
-	<section v-else-if="!error && list && !inTrash" class="panel" aria-labelledby="entries-heading" :aria-busy="loading">
-		<header class="panel__header">
-			<h2 id="entries-heading">{{ tabs.find((tab) => tab.status === status)?.label }}</h2>
-			<p class="panel__hint" aria-live="polite">
-				{{ fixed ? plural(list.total, singular, inSentence(heading)) : plural(list.total, 'entry', 'entries') }}<template v-if="terms"> · Entries counts the published entries using each</template>
-			</p>
-		</header>
-
-		<EntryTable v-if="list.entries.length" :entries="list.entries" labelledby="entries-heading" date-label="Updated" date-key="updated" :show-type="!fixed" :terms="terms" />
-
-		<div v-else class="empty">
-			<AdminIcon name="files" />
-			<p class="empty__heading">{{ fixed ? `No ${inSentence(heading)}` : 'No entries' }}</p>
-			<p class="empty__text">{{ emptyText }}</p>
-			<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
-		</div>
-
-		<nav v-if="list.pages > 1" class="pager" aria-label="Pages">
-			<RouterLink v-if="page > 1" class="button button--small" :to="{ query: { ...route.query, page: page - 1 === 1 ? undefined : page - 1 } }">Previous</RouterLink>
-			<span class="pager__status">Page {{ list.page }} of {{ list.pages }}</span>
-			<RouterLink v-if="page < list.pages" class="button button--small" :to="{ query: { ...route.query, page: page + 1 } }">Next</RouterLink>
+	<template v-else>
+		<nav class="tabs" aria-label="Status">
+			<RouterLink v-for="tab in tabs" :key="tab.status" class="tabs__tab" :to="{ query: tabQuery(tab.status) }" :aria-current="status === tab.status ? 'page' : undefined">
+				{{ tab.label }}
+				<span v-if="counts[tab.status] !== undefined" class="tabs__count">{{ counts[tab.status] }}</span>
+			</RouterLink>
 		</nav>
-	</section>
 
-	<p v-else-if="!error" class="loading" aria-live="polite">Loading…</p>
+		<div class="toolbar" role="search">
+			<label class="visually-hidden" for="entries-search">Search {{ inSentence(heading) }}</label>
+			<input id="entries-search" v-model="query" class="input" type="search" :placeholder="`Search ${inSentence(heading)}`" autocomplete="off">
+			<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
+		</div>
+
+		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
+
+		<p v-if="done" class="notice notice--success" role="status">
+			{{ done.text }}
+			<RouterLink v-if="done.entry" :to="{ name: 'entry', params: { id: done.entry.split('/') } }">Open it</RouterLink>
+		</p>
+
+		<section v-if="!error || ready" class="panel" aria-labelledby="entries-heading" :aria-busy="loading || busy !== null">
+			<header class="panel__header">
+				<h2 id="entries-heading">{{ tabs.find((tab) => tab.status === status)?.label }}</h2>
+				<p class="panel__hint" aria-live="polite">
+					<template v-if="!ready">&nbsp;</template>
+					<template v-else-if="inTrash">{{ plural(trashShown.length, singular, inSentence(heading)) }} · Restored entries come back as drafts</template>
+					<template v-else-if="list">{{ plural(list.total, singular, inSentence(heading)) }}<template v-if="terms"> · Entries counts the published entries using each</template></template>
+				</p>
+				<div v-if="ready && inTrash && trash?.length" class="panel__actions">
+					<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty trash</button>
+				</div>
+			</header>
+
+			<SkeletonTable v-if="!ready" :columns="skeletonColumns" :rows="skeletonRows" :label="`Loading ${inSentence(heading)}…`" />
+
+			<template v-else-if="inTrash">
+				<TrashTable v-if="trashShown.length" :items="trashShown" labelledby="entries-heading" :busy="busy" @restore="restore" @purge="purge" />
+
+				<div v-else class="empty">
+					<AdminIcon name="circle-check" />
+					<p class="empty__heading">{{ filtered ? 'Nothing in the trash matches' : 'The trash is empty' }}</p>
+					<p class="empty__text">{{ emptyText }}</p>
+					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+				</div>
+			</template>
+
+			<template v-else-if="list">
+				<EntryTable v-if="list.entries.length" :entries="list.entries" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" />
+
+				<div v-else class="empty">
+					<AdminIcon name="files" />
+					<p class="empty__heading">{{ filtered ? `No ${inSentence(heading)} match` : `No ${inSentence(heading)}` }}</p>
+					<p class="empty__text">{{ emptyText }}</p>
+					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+				</div>
+
+				<nav v-if="list.pages > 1" class="pager" aria-label="Pages">
+					<RouterLink v-if="page > 1" class="button button--small" :to="{ query: { ...route.query, page: page - 1 === 1 ? undefined : page - 1 } }">Previous</RouterLink>
+					<span class="pager__status">Page {{ list.page }} of {{ list.pages }}</span>
+					<RouterLink v-if="page < list.pages" class="button button--small" :to="{ query: { ...route.query, page: page + 1 } }">Next</RouterLink>
+				</nav>
+			</template>
+		</section>
+	</template>
 </template>
 
 <style scoped>

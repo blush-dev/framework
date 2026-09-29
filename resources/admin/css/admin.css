@@ -477,6 +477,17 @@
 	font-size: var(--text-sm);
 }
 
+.field__error {
+	color: var(--danger);
+	font-size: var(--text-sm);
+	font-weight: 500;
+}
+
+.field [aria-invalid="true"],
+.input[aria-invalid="true"] {
+	border-color: var(--danger-dot);
+}
+
 .field__readonly {
 	max-height: 12rem;
 	margin: 0;
@@ -587,9 +598,31 @@
 	color: var(--danger);
 }
 
+.notice--warn {
+	border-color: var(--warn-dot);
+	background: var(--warn-soft);
+	color: var(--warn);
+}
+
 .notice--success ul,
-.notice--error ul {
+.notice--error ul,
+.notice--warn ul {
 	color: inherit;
+}
+
+/* A notice with an action beside its text. */
+.notice--actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+}
+
+.notice__buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 /* Preview links */
@@ -617,4 +650,46 @@
 /* Quiet text while something loads. */
 .loading {
 	color: var(--fg-2);
+}
+
+/*
+ * Skeletons: bars in the shape of content that's loading, with a shimmer
+ * that runs one way and holds still when motion is reduced.
+ */
+.skeleton {
+	display: block;
+	height: 10px;
+	border-radius: var(--r-1);
+	background: linear-gradient(90deg, var(--surface-2) 30%, var(--surface-3) 50%, var(--surface-2) 70%) 0 0 / 300% 100%;
+	animation: skeleton 1.6s linear infinite;
+}
+
+.skeleton--small {
+	height: 8px;
+	opacity: .7;
+}
+
+.skeleton--figure {
+	width: 3.5rem;
+	height: 22px;
+}
+
+.skeleton--block {
+	height: auto;
+}
+
+@keyframes skeleton {
+	from {
+		background-position: 100% 0;
+	}
+
+	to {
+		background-position: 0 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.skeleton {
+		animation: none;
+	}
 }

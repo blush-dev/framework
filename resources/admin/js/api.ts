@@ -123,6 +123,8 @@ export interface FieldDescription {
 export interface EntryDetail {
 	id: string;
 	revision: string;
+	// When the file was last written (ISO 8601), if known.
+	modified: string | null;
 	title: string;
 	status: EntryStatus;
 	own: boolean;

@@ -118,7 +118,8 @@ site/
     content/            Markdown, HTML, and data entries
     media/              Uploaded and co-located media
     data/               Other user data: menus/ and regions/ (one file each, D-199, D-201),
-                        redirects, theme.json, types/ (D-042); JSON or YAML
+                        redirects, theme.json, types/ (D-042), media/ (metadata
+                        mirroring media paths, planned, D-238); JSON or YAML
     themes/             Local themes, each optionally its own repo (Composer themes may
                         live in vendor/). A built theme keeps sources in {slug}/resources/
                         (never served), its build in {slug}/public/, and its build

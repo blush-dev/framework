@@ -4,12 +4,15 @@
  * navigation, and the account; a top bar; and the work area, the only
  * part that scrolls. The rail collapses to icons (remembered in this
  * browser), and below 860px it's a drawer opened from the top bar.
+ * While the browser is offline, a bar under the top bar says so; typing
+ * is never blocked, and the editor keeps unsaved changes in the browser.
  */
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
 import { ApiError, type ContentTypeSummary } from '../api';
 import { config } from '../config';
+import { online } from '../connection';
 import type { IconName } from '../icons';
 import { screenTitle } from '../screen';
 import { can, session, signOut } from '../session';
@@ -71,10 +74,7 @@ const groups = computed<NavGroup[]>(() => {
 		{
 			key: 'content',
 			heading: 'Content',
-			links: [
-				...types.value.filter((type) => type.kind !== 'taxonomy').map(link),
-				{ key: 'all', label: 'All entries', icon: 'library', to: { name: 'entries' }, current: inEntries && currentType.value === null }
-			]
+			links: types.value.filter((type) => type.kind !== 'taxonomy').map(link)
 		},
 		{ key: 'taxonomies', heading: 'Taxonomies', links: types.value.filter((type) => type.kind === 'taxonomy').map(link) }
 	];
@@ -238,6 +238,11 @@ async function leave(): Promise<void> {
 					<span>View site</span><span class="visually-hidden"> (new tab)</span>
 				</a>
 			</header>
+
+			<p v-if="!online" class="offline" role="status">
+				<AdminIcon name="triangle-alert" />
+				You're offline. Changes you make stay in this browser, and you can save them once the connection is back.
+			</p>
 
 			<main id="main" class="main">
 				<div class="wrap">
@@ -511,14 +516,16 @@ async function leave(): Promise<void> {
 /* Work area */
 
 .work {
-	display: grid;
-	grid-template-rows: var(--bar) minmax(0, 1fr);
+	display: flex;
+	flex-direction: column;
 	min-width: 0;
 	min-height: 0;
 }
 
 .bar {
 	display: flex;
+	flex: none;
+	height: var(--bar);
 	align-items: center;
 	gap: 10px;
 	padding: 0 16px 0 12px;
@@ -551,7 +558,27 @@ async function leave(): Promise<void> {
 	text-overflow: ellipsis;
 }
 
+.offline {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 16px;
+	border-bottom: 1px solid var(--warn-dot);
+	background: var(--warn-soft);
+	color: var(--warn);
+	font-size: var(--text-sm);
+}
+
+.offline svg {
+	flex: none;
+	width: 16px;
+	height: 16px;
+}
+
 .main {
+	flex: 1;
+	min-height: 0;
 	overflow: auto;
 }
 

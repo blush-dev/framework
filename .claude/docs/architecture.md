@@ -474,8 +474,29 @@ Implemented in M4c (D-099), apart from image derivatives.
   to `user/media` (or copies the allowed files with `--copy`). The
   `MediaController` streams anything unpublished, with ranges, `nosniff`,
   and sandboxed SVGs.
-- **Image derivatives:** in-house GD/Imagick adapter. Sizes are declared by the
-  theme, generated on demand or at export, and cached in `public/_media/`.
+- **Metadata (planned, D-238):** fields for media (alt, caption,
+  credit, description, and a site's own), defined like content type
+  schemas but without a body, status, or URLs. Stored in
+  `user/data/media/`, mirroring the media paths (`{path}.yml`; bundle
+  media under `_content/`), never next to the file. Embedded metadata
+  (EXIF, IPTC, XMP, ID3) is read by per-format readers (in-house or a
+  library behind the interface, undecided) and cached with
+  the media index, reread only when the file changes. Media records sit
+  in the index beside entries for the media library. When rendering, a
+  value set where the media is used wins, then the metadata file, then
+  embedded metadata.
+- **Variants (planned, D-239):** resized copies imported from WordPress
+  (`photo-300x200.jpg`, `-scaled`, `-rotated`, edited `-e{time}`) are
+  grouped under their original, which holds the metadata and is the
+  one library item. Variants stay on disk and are still served for old
+  links. Detection is by rule: a `-{w}x{h}` name, an original beside
+  it, and real dimensions that match (so `daisy-3x4.jpg` stays its own
+  image).
+- **Image derivatives:** in-house GD/Imagick adapter, always from the
+  original, never from a variant (D-239); a focal point field guides
+  crops. Sizes are named and declared by the theme (sites can add or
+  change them, in config first and the admin later), generated on demand
+  or at export, and cached in `public/_media/`, never in `user/media`.
   Output includes `srcset`/`sizes` helpers.
 
 ## Views
@@ -730,10 +751,15 @@ Implemented in M7 (D-135 to D-140).
   block; `AssetController` serves the build's files at
   `{path}/assets/{file}` (immutable with `?v=`, `no-cache` without). `AdminConfig::$app` swaps
   in another build. Screens so far: sign-in, the dashboard (entry
-  counts and actions), a list per content type and All entries (D-234),
-  New entry, and the editor (D-233; forms
-  from schema fields via `fields.ts`, saves that send only what
-  changed), and content health (D-225); drafts and scheduled entries are
+  counts and actions, or a setup path on an empty site), a list per
+  content type (D-234; no list of every type, D-240), New entry, and the
+  editor (D-233; forms from schema fields via `fields.ts`, saves that
+  send only what changed; D-240: unsaved changes kept in the browser
+  (`kept.ts`), saves that wait for a connection, failed saves with Try
+  again, conflicts with Keep theirs, Compare (`diff.ts`), and Keep mine,
+  and required fields checked before publishing), and content health
+  (D-225); lists, the dashboard, and the editor show skeletons while
+  loading (D-240); drafts and scheduled entries are
   tabs on each list (D-236), as is the trash (D-237: restore as a draft,
   delete permanently, empty), and a taxonomy's list counts each term's uses. The look follows `.claude/docs/admin-design/` (D-231):
   design tokens in `css/tokens.css` are the only literal values, and

@@ -12,6 +12,28 @@ Move each item to `decisions.md` once it's answered.
   a future blog extension).
 
 ## Later milestones
+- **Media metadata** (D-238, D-239):
+  - Embedded metadata readers (to discuss later): an in-house library,
+    or getID3 behind the interface (D-006)? EXIF, IPTC, and XMP are
+    within reach in-house (`exif_read_data()`, `iptcparse()`, an XMP
+    packet through DOM); ID3v2 tags are simple, but durations (MPEG
+    frames, MP4 boxes) are the hard part.
+  - Edited WordPress images (`photo-e1234567890.jpg`, D-239): a variant
+    of the original, or an image of its own, since the edit (a crop or
+    rotation) is often what the author meant to show?
+  - Removing unused WordPress variants (D-239): a command that lists
+    variants no content references, and optionally deletes them?
+  - Adopting WordPress variants as Blush sizes (D-239): when a generated
+    size matches a variant's dimensions, serve the existing file instead
+    of generating one, or always generate?
+  - Where the media index lives: in the content index (so one query
+    layer and one rebuild), or a separate index beside it? 4,261 media
+    files on jtcom, so extraction must be incremental.
+  - Stripping location data on upload: off, on, or a setting?
+  - Embedded artwork (album covers): extract to a cached image the
+    library and themes can show?
+  - Per-folder or per-MIME field sets (audio fields differ from image
+    fields), or one set for all media?
 - **Rich (script) embeds** (D-184): providers such as X, Instagram,
   TikTok, and Mastodon answer oEmbed with HTML that needs their own
   `<script>`. The planned path: a provider opts in with

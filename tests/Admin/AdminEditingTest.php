@@ -160,6 +160,8 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame('2022-03-29T23:00:00-06:00', $entry['values']['published'] ?? null, 'The 1.x `date` is the `published` field, as parsed.');
 		$this->assertSame(['mood' => 'hopeful'], $entry['extra'] ?? null);
 		$this->assertSame("\nThe body.\n", $entry['body'] ?? null);
+		$this->assertIsString($entry['modified'] ?? null, 'When the file was last written, for the editor\'s conflict notice.');
+		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/' . self::FLAME), strtotime($entry['modified']));
 		$this->assertSame('/archives/flame', $entry['url'] ?? null);
 		$this->assertTrue($entry['own'] ?? null);
 		$this->assertSame(['edit' => true, 'publish' => true, 'delete' => true], $entry['can'] ?? null);

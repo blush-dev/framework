@@ -4575,3 +4575,160 @@ decision, add a new entry that supersedes it and mark the old one
 - **Open:** a trash "status" in the index (so trashed entries could sit
   in "All"); automatic emptying after some days.
 - **Why:** the author asked for the design direction's Trash next.
+
+### D-238: Media metadata (planned)
+- **Date:** 2026-09-29
+- **Decision:** Media files can carry fields (alt text, caption, and so
+  on) without becoming a content type. They borrow the parts of content
+  types that fit a file and leave out the rest.
+  - **Not a content type.** A media file's identity is its path, not a
+    Markdown document: no body, slug, status, taxonomies, or routes.
+    Media gets no pages of its own (no attachment pages); it's served as
+    a file, as now (D-099).
+  - **Fields** are defined with the same model as content type schemas
+    (D-042), in code or in data, using the existing field types.
+    Built-ins: `alt`, `caption`, `credit`, and `description`. Sites and
+    extensions add their own. The admin's forms, validation, and editor
+    JSON Schemas come from the definition, as for entries.
+  - **Storage:** never next to the media file (`media:publish` would
+    expose it, D-099, and the author doesn't want it there). A tree under
+    `user/data/media/` mirrors the media paths, one file per media file,
+    written only when it has something in it:
+    `user/media/2024/sunset.jpg` →
+    `user/data/media/2024/sunset.jpg.yml`; bundle media under
+    `_content/`, as it's served (`user/content/posts/hello/photo.jpg` →
+    `user/data/media/_content/posts/hello/photo.jpg.yml`). JSON or YAML,
+    like the rest of `user/data`.
+  - **Moves:** the admin moves or trashes a media file and its metadata
+    file together. A metadata file with no media file (a rename by
+    hand) is reported by `content:lint` and `doctor`.
+  - **Embedded metadata** is read from the file where possible: EXIF,
+    IPTC, and XMP for images; ID3 (and the like) for audio and video:
+    title, artist, album, date, duration, dimensions, camera details,
+    copyright, and embedded artwork. It's derived data, so it's
+    **cached, not stored**: kept with the media index, reread only when
+    the file's size or modified time changes, and never written into
+    `user/data`. The admin can copy embedded values into the editable
+    fields ("use the file's title") when an author wants to keep or
+    change them.
+  - **Readers** follow the Type enum + Registry + Factory + Registrar
+    pattern, one per format, so extensions can add formats. Any
+    third-party library (for example getID3) sits behind the Blush
+    interface (D-006). Readers that need an optional PHP extension
+    (`exif`) are skipped when it's missing.
+  - **The index** holds media records beside entries: every allowed file
+    in `user/media` and in page bundles, with or without a metadata
+    file (path, URL, MIME, size, dimensions, embedded metadata, fields).
+    The media library lists, searches, and filters it (for example
+    images missing alt text). Queries go through the same query layer as
+    entries.
+  - **Rendering:** a value set where the media is used (Markdown alt or
+    title, a component prop) wins; then the metadata file; then embedded
+    metadata. Alt text and captions depend on context, so metadata only
+    fills gaps. Alt text is never made up from a file name. Content
+    written without metadata renders exactly as it does now (D-078).
+  - **Privacy:** location data (EXIF GPS) is read but never rendered or
+    exported by default.
+- **Open:** see `open-questions.md` → Media metadata.
+- **Why:** the author's call: fields and descriptions for media,
+  metadata kept away from the files, and embedded metadata looked up and
+  cached.
+
+### D-239: Image sizes: legacy WordPress copies are variants; the original is the source of truth (planned)
+- **Date:** 2026-09-29
+- **Decision:** Refines D-238 and the planned image derivatives
+  (architecture → Media).
+  - **Variants.** Media imported from WordPress holds resized copies of
+    each image (`photo-300x200.jpg`, `photo-1024x683.jpg`) and others
+    WordPress makes (`photo-scaled.jpg`, `photo-rotated.jpg`, edited
+    `photo-e1234567890.jpg`, and their sizes). These are **variants** of
+    the original, not media of their own:
+    - The media library and the media index show one item, the
+      original, with its variants listed under it. Metadata (D-238)
+      belongs to the original; variants have no metadata files.
+    - Variant files stay where they are and are still served, so old
+      content that links to them keeps working (D-078). A reference to a
+      variant resolves to the original for its metadata (alt, caption).
+    - Nothing is deleted automatically.
+  - **Detection is by rule, never by name alone.** A file is a WordPress
+    size only when its name ends in `-{w}x{h}`, a file without that
+    suffix exists beside it, and the file really is `w`×`h` pixels (no
+    larger than the original). This keeps names such as
+    `daisy-3x4.jpg` or `warrior-16x9.jpg` (aspect ratios, in the jtcom
+    trial's media) as images of their own. Rules follow the Type enum +
+    Registry + Factory + Registrar pattern, with WordPress's as the
+    built-in, so other importers' conventions can be added; `MediaConfig`
+    can turn rules off.
+  - **Image sizes made by Blush** (the planned derivatives) are always
+    generated from the original, never from a variant, and are cached
+    output (rebuildable, in `public/_media/` or storage), never written
+    into `user/media`, so they're never mistaken for originals. Sizes
+    are named and declared by the theme, and sites can add or change
+    them (in config first, the admin later). A media field for a
+    **focal point** (D-238's fields) guides crops.
+- **Open:** see `open-questions.md` → Media metadata.
+- **Why:** the author has many old WordPress media files with several
+  sizes of the same image, and wants to create image sizes in Blush
+  later.
+
+### D-240: The admin follows the design direction's state patterns; no "All entries"
+- **Date:** 2026-09-29
+- **Decision:** From the updated design direction
+  (`admin-design/admin.md` §8: Loading, Offline and failed saves, Edit
+  conflicts, Validation, Empty and first-run) and the author's call to
+  drop the list of every type.
+  - **No "All entries".** Each content type has its own list; `/entries`
+    and `/drafts` redirect to the dashboard. The lists lose their Type
+    column and type menu. The dashboard's Drafts and Scheduled figures
+    are plain numbers (they linked to All entries).
+  - **Loading:** skeletons in the shape of the content
+    (`SkeletonTable`, dashboard tiles and actions, the editor's title,
+    body, and sidebar), with the chrome (header, tabs, search) shown at
+    once. A list's skeleton guesses its rows from the tab's last count
+    (up to a page), else six. The shimmer runs one way and stops under
+    reduced motion. Content health keeps its quiet text.
+  - **Offline:** a warn bar under the top bar (`connection.ts` follows
+    the browser's `online`/`offline` events); typing is never blocked.
+  - **Unsaved changes are kept in the browser** (`kept.ts`, one
+    `localStorage` item per entry with its revision), since there's no
+    autosave (D-233): written a moment after typing stops, cleared once
+    saved, thrown away, or left on purpose. Opening the entry again
+    offers **Restore them** or **Throw them away**; changes kept from an
+    older revision come back as a conflict.
+  - **Saves:** offline, a save waits (**Waiting for a connection**) and
+    goes ahead when the browser is back online. Any other failure shows
+    **Not saved** in the save state (red) and a notice that leads with
+    what's safe, with **Try again**.
+  - **Conflicts** (a 409 on an old revision): saving stops; the editor
+    loads the file as it is now and says when it was written
+    (`GET entries/{id}` gains `modified`, from `EditableEntry::$modified`,
+    the file's modified time), "from the admin or by editing the file
+    itself" (who isn't known: files change through git and text editors
+    too). **Keep theirs** loads their version; **Compare** lists the
+    fields that differ and a line diff of the body (`diff.ts`, common
+    ends trimmed, then a longest common subsequence; unchanged runs
+    folded to two lines of context); **Keep mine** saves this editor's
+    version of every field it shows over theirs, with their revision.
+    Nothing is resolved without a choice.
+  - **Validation:** the schema's `required` fields (the title and
+    publish date too, when required) gate **Publish**, **Schedule**, and
+    **Update** of a live entry, never a draft save. A blocked publish
+    names the missing fields in a notice, marks each (`aria-invalid`,
+    the reason under it), and focuses the first; errors clear as fields
+    are filled. The API doesn't enforce it yet.
+  - **Empty and first-run:** a type with no entries in any status or
+    the trash drops its tabs and search, says what the type is for (from
+    its kind; types have no description yet), and offers its first
+    entry. A site with no content replaces the dashboard's figures with
+    numbered steps: the first entry of each page type, then of each
+    collection. Steps for content types, media, and inviting people wait
+    for their screens.
+  - `admin.md` gets back this repo's file paths, departures (with these
+    added), and settled questions, which the updated copy had dropped.
+- **Checked:** `vue-tsc` and the build; `composer check`; the diff under
+  Node. Not driven in a browser: making a throwaway admin account on the
+  dev site wasn't permitted this session.
+- **Open:** enforcing required fields in the API; a type `description`
+  for the empty state; who saved, if the writer ever records it.
+- **Why:** the author asked for the admin to match the updated design
+  direction, and for no "All entries" screen.

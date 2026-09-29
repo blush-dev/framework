@@ -83,7 +83,7 @@ async function create(): Promise<void> {
 			</p>
 			<div class="new-entry__actions">
 				<button type="submit" class="button button--primary" :disabled="busy || title.trim() === ''">{{ busy ? 'Creating…' : `Create ${noun}` }}</button>
-				<RouterLink class="button button--ghost" :to="type ? { name: 'type', params: { type } } : { name: 'entries' }">Cancel</RouterLink>
+				<RouterLink class="button button--ghost" :to="type ? { name: 'type', params: { type } } : { name: 'dashboard' }">Cancel</RouterLink>
 			</div>
 		</div>
 	</form>

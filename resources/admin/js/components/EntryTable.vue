@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
- * A table of entries: the title (a link to the editor) with its file
- * beneath, the status, optionally the type, the authors (or, for a
- * taxonomy's terms, how many published entries use each), and a date. Labeled by the heading whose id it's given.
+ * A table of one type's entries: the title (a link to the editor) with
+ * its file beneath, the status, the authors (or, for a taxonomy's terms,
+ * how many published entries use each), and a date. Labeled by the
+ * heading whose id it's given.
  */
 
 import { RouterLink } from 'vue-router';
@@ -10,12 +11,11 @@ import type { EntrySummary } from '../api';
 import { formatDate } from '../format';
 import StatusPill from './StatusPill.vue';
 
-const { showType = true, terms = false } = defineProps<{
+const { terms = false } = defineProps<{
 	entries: EntrySummary[];
 	labelledby: string;
 	dateLabel: string;
 	dateKey: 'updated' | 'published';
-	showType?: boolean;
 	terms?: boolean;
 }>();
 
@@ -32,7 +32,6 @@ function editor(entry: EntrySummary): { name: string; params: { id: string[] } }
 				<tr>
 					<th scope="col">Title</th>
 					<th scope="col">Status</th>
-					<th v-if="showType" scope="col">Type</th>
 					<th v-if="terms" scope="col" class="table__count">Entries</th>
 					<th v-else scope="col">Authors</th>
 					<th scope="col">{{ dateLabel }}</th>
@@ -53,7 +52,6 @@ function editor(entry: EntrySummary): { name: string; params: { id: string[] } }
 						</span>
 					</th>
 					<td><StatusPill :status="entry.status" /></td>
-					<td v-if="showType" class="table__meta">{{ entry.type }}</td>
 					<td v-if="terms" class="table__meta table__count">{{ entry.uses?.toLocaleString() ?? '—' }}</td>
 					<td v-else class="table__meta">{{ entry.authors.join(', ') || '—' }}</td>
 					<td class="table__meta">
