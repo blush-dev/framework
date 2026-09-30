@@ -21,6 +21,7 @@ use Blush\Auth\ColorScheme;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Media\MediaConfig;
 use Blush\Session\SessionReader;
 
 /**
@@ -47,7 +48,8 @@ final readonly class ShellController
 		private AdminConfig $config,
 		private AppConfig $site,
 		private SessionReader $sessions,
-		private Authenticator $authenticator
+		private Authenticator $authenticator,
+		private MediaConfig $media
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -78,6 +80,7 @@ final readonly class ShellController
 			'base'        => $this->config->path,
 			'api'         => "{$this->config->path}/api",
 			'site'        => ['name' => $this->site->name, 'url' => $this->site->url],
+			'media'       => ['url' => $this->media->url],
 			'colorScheme' => $scheme?->value
 		], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 

@@ -51,7 +51,7 @@ onMounted(check);
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Content health</h1>
+			<h1 tabindex="-1">Content Health</h1>
 			<p class="page-header__hint">Problems in content files, as <code>content:lint</code> finds them</p>
 		</div>
 		<div class="page-header__actions">
@@ -80,7 +80,7 @@ onMounted(check);
 		<div v-if="!health.files.length" class="panel">
 			<div class="empty">
 				<AdminIcon name="circle-check" />
-				<p class="empty__heading">No problems found</p>
+				<p class="empty__heading">No Problems Found</p>
 				<p class="empty__text">Every content file passed{{ health.strict ? ', notices included' : '' }}.</p>
 			</div>
 		</div>

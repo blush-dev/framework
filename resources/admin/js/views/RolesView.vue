@@ -41,7 +41,7 @@ function granted(capabilities: string[]): string {
 
 	<section v-if="!error" class="panel" aria-labelledby="roles-heading" :aria-busy="list === null">
 		<header class="panel__header">
-			<h2 id="roles-heading">All roles</h2>
+			<h2 id="roles-heading">All Roles</h2>
 			<p v-if="list" class="panel__hint">{{ plural(list.roles.length, 'role') }} · {{ plural(total, 'capability', 'capabilities') }} in all</p>
 		</header>
 		<SkeletonTable v-if="list === null" :columns="['Role', 'Capabilities', 'Accounts']" :rows="4" label="Loading the roles…" />

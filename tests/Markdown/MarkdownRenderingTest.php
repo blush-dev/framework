@@ -15,7 +15,6 @@ namespace Blush\Tests\Markdown;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use League\CommonMark\Extension\Attributes\AttributesExtension;
 use League\CommonMark\Extension\Highlight\HighlightExtension;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
@@ -53,7 +52,6 @@ final class MarkdownRenderingTest extends TestCase
 	{
 		return new CommonMarkParser(
 			new MarkdownConfig(
-				extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, AttributesExtension::class],
 				figures: $figures,
 				absoluteLinks: $absoluteLinks
 			),
@@ -80,6 +78,59 @@ final class MarkdownRenderingTest extends TestCase
 		);
 
 		$this->assertSame("<p><mark>once</mark></p>\n", $parser->toHtml('==once=='));
+	}
+
+	/**
+	 * Attributes are on by default (D-268), in the places the admin writes
+	 * them: the end of a heading's, paragraph's, or list item's last line,
+	 * and a line of their own above a quote, code block, table, or rule.
+	 */
+	public function testAttributesAreOnByDefault(): void
+	{
+		$html = $this->parser()->toHtml(<<<'MD'
+			## Title {.big #top}
+
+			A paragraph
+			on two lines. {.lead}
+
+			- one {.first}
+			- [ ] two
+
+			{.aside}
+			> Quoted
+
+			{.demo}
+			```php
+			echo 1;
+			```
+
+			{.data}
+			| A |
+			|---|
+			| 1 |
+
+			{.break}
+			---
+			MD);
+
+		$this->assertStringContainsString('<h2 class="big" id="top">Title</h2>', $html);
+		$this->assertStringContainsString("<p class=\"lead\">A paragraph\non two lines.</p>", $html);
+		$this->assertStringContainsString('<li class="first">one</li>', $html);
+		$this->assertStringContainsString('<blockquote class="aside">', $html);
+		$this->assertStringContainsString('<code class="demo language-php">', $html);
+		$this->assertStringContainsString('<table class="data">', $html);
+		$this->assertStringContainsString('<hr class="break" />', $html);
+	}
+
+	/**
+	 * Empty brackets are empty alt text, as written (D-272): nothing
+	 * fills them in.
+	 */
+	public function testAnImageWithoutAltTextHasEmptyAltText(): void
+	{
+		$this->writeTemporaryFile('user/data/media/2019/cat.png.yml', "alt: A cat\n");
+
+		$this->assertStringContainsString('alt=""', $this->parser()->toHtml('![](/media/2019/cat.png)'));
 	}
 
 	public function testALoneImageIsAFigure(): void

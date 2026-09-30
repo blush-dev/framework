@@ -76,29 +76,29 @@ export const router = createRouter({
 		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', capability: 'content.edit', section: 'entries', area: 'content' } },
 		// An entry is edited at its handle, its type and key (D-253); a
 		// page's key spans segments.
-		{ path: '/content/:type/:key+', name: 'entry', component: EditorView, meta: { title: 'Edit entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
-		{ path: '/entries/new', name: 'entry-new', component: NewEntryView, meta: { title: 'New entry', capability: 'content.create', section: 'entries', area: 'content' } },
+		{ path: '/content/:type/:key+', name: 'entry', component: EditorView, meta: { title: 'Edit Entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
+		{ path: '/entries/new', name: 'entry-new', component: NewEntryView, meta: { title: 'New Entry', capability: 'content.create', section: 'entries', area: 'content' } },
 		// An entry without a handle is edited at its source path, which
 		// also still works for the rest (the editor moves to the handle).
-		{ path: '/entries/:id+', name: 'entry-file', component: EditorView, meta: { title: 'Edit entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
+		{ path: '/entries/:id+', name: 'entry-file', component: EditorView, meta: { title: 'Edit Entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
-		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content health', capability: 'content.edit.others', area: 'home' } },
+		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content Health', capability: 'content.edit.others', area: 'home' } },
 		...Object.entries(planned).map(([name, meta]) => ({ path: `/${name}`, name, component: PlannedView, meta })),
 		// A library file's screen is at its path under `user/media` (D-251).
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', capability: 'media.upload', area: 'content' } },
 		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', capability: 'media.upload', area: 'content', parent: 'media' } },
-		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content types', capability: 'site.settings', area: 'config' } },
-		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content type', capability: 'site.settings', area: 'config', parent: 'types' } },
+		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content Types', capability: 'site.settings', area: 'config' } },
+		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		// People (D-249): each list, then a screen per item (`meta.parent`
 		// marks the list in the navigation).
 		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.manage', area: 'config' } },
 		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'config', parent: 'accounts' } },
 		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'config' } },
 		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.manage', area: 'config', parent: 'roles' } },
-		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your profile', area: 'config' } },
-		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign in', public: true } },
-		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: 'Not found' } }
+		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your Profile', area: 'config' } },
+		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign In', public: true } },
+		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: 'Not Found' } }
 	]
 });
 

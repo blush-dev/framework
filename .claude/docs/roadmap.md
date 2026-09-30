@@ -221,12 +221,20 @@ Default plus named variants from a component, a theme's `theme.json`, or
 the `ComponentVariantsCollecting` event, with the callout's tones and
 the button's secondary style as core variants, and a Variant select in
 the editor. Then `:::figure` as a container for anything captioned, and
-images from the media picker as plain Markdown (D-267).
+images from the media picker as plain Markdown (D-267). Then every
+block as an object on the Component tab, with classes and an id
+(attributes on by default), images edited as Markdown with the theme's
+image variants, the list of components as a state, the media menu and
+uploads (`POST media`), and Title Case for names (D-268). Then alt
+text and captions in the media library, in `user/data/media/`, edited
+on a file's screen and filled in on insert (D-269); an image without
+alt text is decorative (D-272).
 Next: the Markdown editing experience (D-252; begun with styled
 Markdown and editor addresses by handle, D-253; a 640px Fira Code
 editor, site addresses in tables, and row menus, D-254; Fira Code
-throughout and pinned index pages, D-255), then uploads and media
-metadata, a reference picker,
+throughout and pinned index pages, D-255), then the rest of media
+metadata (D-238: fields defined like schemas, the media index, and
+embedded metadata), a reference picker,
 editing types and accounts, and the remaining stubbed screens
 (Appearance, Extensions, Settings). Live preview waits (D-252): inline
 image and embed previews first, then a full preview, above all of

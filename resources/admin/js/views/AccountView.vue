@@ -41,7 +41,7 @@ watch(account, (value) => {
 			</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink v-if="yours" class="button" :to="{ name: 'profile' }"><AdminIcon name="users" />Your profile</RouterLink>
+			<RouterLink v-if="yours" class="button" :to="{ name: 'profile' }"><AdminIcon name="users" />Your Profile</RouterLink>
 			<RouterLink class="button" :to="{ name: 'accounts' }"><AdminIcon name="arrow-left" />All accounts</RouterLink>
 		</div>
 	</header>

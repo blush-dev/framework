@@ -75,9 +75,9 @@ names. When you're ready, you can move to them (see
 
 **Markdown** (`config/markdown.php`) works the same way, with
 `MarkdownConfig::fromArray()`, and accepts 1.x's `config`,
-`extensions`, and `inline_parsers` keys. If your content uses attribute
-syntax like `{.alignwide}`, keep `AttributesExtension` in the list: 2.x
-doesn't turn it on by default.
+`extensions`, and `inline_parsers` keys. Attribute syntax like
+`{.alignwide}` works without `AttributesExtension` in the list: 2.x turns
+it on by default.
 
 **Media URLs:** 2.x serves media from `/media`. To keep 1.x's
 `/user/media/...` URLs working, add `config/media.php`:

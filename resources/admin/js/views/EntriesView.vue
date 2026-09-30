@@ -352,7 +352,7 @@ const emptyText = computed(() => {
 		<EntryTable v-if="list?.index" :entries="[]" :pinned="list.index" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" />
 		<div class="empty">
 			<AdminIcon :name="terms ? 'tag' : 'files'" />
-			<h2 id="entries-heading" class="empty__heading">No {{ inSentence(heading) }} yet</h2>
+			<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
 			<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
 			<RouterLink v-if="can('content.create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ singular }}</RouterLink>
 		</div>
@@ -407,7 +407,7 @@ const emptyText = computed(() => {
 
 				<div v-else class="empty">
 					<AdminIcon name="circle-check" />
-					<p class="empty__heading">{{ filtered ? 'Nothing in the trash matches' : 'The trash is empty' }}</p>
+					<p class="empty__heading">{{ filtered ? 'Nothing in the Trash Matches' : 'The Trash Is Empty' }}</p>
 					<p class="empty__text">{{ emptyText }}</p>
 					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
 				</div>
@@ -419,7 +419,7 @@ const emptyText = computed(() => {
 
 				<div v-if="!list.entries.length" class="empty">
 					<AdminIcon name="files" />
-					<p class="empty__heading">{{ filtered ? `No ${inSentence(heading)} match` : `No ${inSentence(heading)}` }}</p>
+					<p class="empty__heading">{{ filtered ? `No ${heading} Match` : `No ${heading}` }}</p>
 					<p class="empty__text">{{ emptyText }}</p>
 					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
 				</div>

@@ -264,19 +264,36 @@ add yours.
 
 ### Inserting media and icons
 
-The picture button opens your media: the files beside the entry (when
-it's a [page bundle](content.md), such as `trip/index.md`), then the
-library in `user/media`, newest first. Search by file name, or show only
-images, video, audio, or other files. Choose a file (it gets a tick),
-then **Insert** (or double-click it). An image goes in as plain
-Markdown on a line of its own, `![](/media/photo.jpg)`, with the cursor
-where its description goes (selected text becomes the description). On
-the site it's a figure; add a quoted title after the address,
-`![A lake](/media/lake.jpg "The lake at dawn")`, to caption it. A video
-goes in as a video, a sound as audio, and anything else as a download,
-and their options open in the settings.
-Uploading comes later: put files in `user/media` or beside the entry for
-now.
+The picture button has two ways in: **Media Library** and **Upload a
+File**. Both open the same picker, on its **Library** or **Upload** tab.
+**Image** in the components panel opens it too, showing only images.
+
+The Library tab has the files beside the entry (when it's a
+[page bundle](content.md), such as `trip/index.md`), then the library in
+`user/media`, newest first. Search by file name, or show only images,
+video, audio, or other files. Choose a file (it gets a tick), then
+**Insert** (or double-click it). An image goes in as plain Markdown on a
+line of its own, `![](/media/photo.jpg)`, with the cursor where its
+description goes (selected text becomes the description), and its
+settings open on the **Component** tab (see
+[Images](#images-and-blocks)). When the library has alt text and a
+caption for the file (see [Media](#media)), they're filled in:
+`![A lake at dawn](/media/lake.jpg "The lake at dawn")`, with selected
+text still winning for the description. On the site it's a figure; a quoted title
+after the address, `![A lake](/media/lake.jpg "The lake at dawn")`, is
+its caption. A video goes in as a video, a sound as audio, and anything
+else as a download, and their options open in the settings.
+
+The Upload tab takes files from your computer: drag them anywhere onto
+the picker, or use **Choose files**. It says how large a file may be and
+which types the library takes. Each one goes into `user/media` under the
+year and month (`user/media/2026/09/`), with its name made safe for an
+address (`My Photo.JPG` becomes `My-Photo.jpg`); a name that's taken gets
+`-2`, `-3`, and so on, so nothing is replaced. An upload lands at the top
+of the library, chosen, so **Insert** finishes the job; **Show in
+library** switches tabs to see it there. Uploading needs `media.upload`.
+How large a file may be is up to PHP (`upload_max_filesize` and
+`post_max_size`).
 
 The same picker is **Choose** beside every media field and component
 option, such as a video's **Poster image**.
@@ -292,20 +309,63 @@ for screen readers.
 
 ### Component options
 
-With the cursor in a component, the footer names it ("Callout options");
-choose that, or the **Component** tab in the settings, to see its
-options as a form. A component with [variants](components.md#variants)
-lists them first, under **Variant**, with what each one looks like;
-**Default** writes nothing. Changing one rewrites just that option in the
-Markdown: the rest of what you wrote stays as it is. Setting an option
-back to its default removes it, so the default applies. A component
-that takes a line of text has it here as **Text**. Attributes that
-aren't options of the component, such as a class, are listed but edited
-in the text.
+The **Component** tab in the settings follows the cursor. It's named for
+what the cursor is in: a component, an image, or else the block of
+Markdown (a heading, paragraph, list item, quote, code block, table, or
+divider). On a blank line, it's the block above.
 
-**Remove component** takes the component out; the text inside a
-container, or an inline component's text, stays. Undo in the text puts
-it back.
+With the cursor in a component, the footer names it ("Callout options");
+choose that, or the tab, to see its options as a form. A component with
+[variants](components.md#variants) lists them first, under **Variant**,
+with what each one looks like; **Default** writes nothing. Changing one
+rewrites just that option in the Markdown: the rest of what you wrote
+stays as it is. Setting an option back to its default removes it, so the
+default applies. A component that takes a line of text has it here as
+**Text**. **Classes** and **ID** set its `.class` and `#id`; other
+attributes that aren't options of the component are listed but edited in
+the text.
+
+**Remove component** takes the component out: a container with
+everything inside it, a line component with its line, and an inline
+component leaving its text in the sentence. Undo in the text puts it
+back.
+
+At the foot of every panel, **Components in this page** (or post, and
+so on) lists the components and images in the entry; choose one to go
+to it. Moving the cursor brings the panel back.
+
+### Images and blocks
+
+An image is plain Markdown, `![A lake](/media/lake.jpg "The lake at dawn"){.stretch-wide}`,
+and its panel edits each part of it:
+
+- **Variant**: the looks your theme offers images, such as **Wide**
+  (see [Image variants](themes.md#image-variants)). Each is a class on the
+  image, so choosing one swaps that class and leaves the others.
+- **Image**: the picture itself, with its address and size under it.
+  Point at it (or tab to it) for **Replace**, which opens the media
+  picker, and **Remove**. A file that isn't there says so. A replacement
+  brings the library's alt text and caption, if the image had none.
+- **Decorative**, for an image that adds nothing a reader needs (an
+  ornament, a divider). An image without alt text is decorative, so it's
+  on when the brackets are empty; turn it off to write **Alt text**,
+  which describes the picture for anyone who can't see it. Turning it on
+  clears the alt text. If the library has alt text for the file, a
+  decorative image offers **Use the library's**.
+- **Caption**, the quoted part the site shows under it (left empty,
+  nothing is written).
+
+  Alt text and caption are this image's, in this entry: the library's
+  don't change.
+- **Classes** and **ID**.
+
+Every block of Markdown takes classes and an id too, so a heading's,
+paragraph's, list item's, quote's, code block's, table's, or divider's
+panel has **Classes** and **ID**, which write `{.class #id}` where the
+site reads it: at the end of a heading, paragraph, or list item, and on
+a line of its own above a quote, code block, table, or divider. Some
+have more: a heading's **Level** (1 to 6), a code block's **Language**,
+and whether a list item is a task, and done.
 
 ### When a save doesn't go through
 
@@ -333,9 +393,34 @@ Your changes aren't lost:
 
 **Content → Media** shows the files in `user/media`, newest first:
 search by name, or show only images, video, audio, or other files. Choose one for a
-preview, its details, and what to write to use it, with **Copy**
-buttons. Uploading comes later: put files in `user/media`, or beside an
-entry in its own folder.
+preview, its **Alt text** and **Caption**, its details, and what to write
+to use it, with **Copy** buttons. Alt text describes the file for anyone
+who can't see it, and the caption goes under it; both are filled in when
+it's inserted as an image. After that, the entry's copy is its own: the
+page shows what the entry wrote, and an image with empty brackets,
+`![](/media/rule.png)`, has empty alt text (`alt=""`), which marks it
+decorative. Changing an image's alt text or caption in the editor never
+changes the library's, and changing the library's never changes an
+entry. They
+need `media.upload` to change, and are saved when you choose **Save**.
+
+They're kept apart from the file, in `user/data/media/`, which mirrors
+the media paths: `user/media/2026/09/lake.jpg` has
+`user/data/media/2026/09/lake.jpg.yml`:
+
+```yaml
+alt: A lake at dawn, with mist on the water.
+caption: The lake at dawn
+```
+
+(or `.yaml` or `.json`). A file in a page bundle,
+`user/content/trip/beach.jpg`, has
+`user/data/media/_content/trip/beach.jpg.yml`. You can write these by
+hand; saving from the admin changes only `alt` and `caption` and keeps
+the rest, and removes a file left with nothing in it. If you rename or
+delete a media file by hand, move or delete its metadata file too. **Upload** opens the same picker the editor uses, on its Upload
+tab; **Open** goes to the file you uploaded. You can also put files in
+`user/media` yourself, or beside an entry in its own folder.
 
 ## Content types
 
@@ -438,6 +523,8 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |
 | `GET media` | The media files an entry can use (see below) |
 | `GET media/{path}` | One file in the library, by its path under `user/media` |
+| `POST media` | Upload a file to the library (see below) |
+| `PATCH media/{path}` | Change a library file's `alt` and `caption` (see below) |
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
 | `GET roles` | Every capability and role, with the accounts holding each; needs `accounts.manage` |
 | `GET accounts` | Every account's username, roles, author, and created and last sign-in times (Unix); needs `accounts.manage` |
@@ -458,7 +545,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 
 Once signed in, send the token from `session` or `login` in an
 `X-CSRF-Token` header with every `POST`, `PATCH`, and `DELETE`. Errors are JSON too:
-`{"error": "…"}`, with a 400, 401, 403, 404, or 429 status.
+`{"error": "…"}`, with a 400, 401, 403, 404, 413, 422, or 429 status.
 
 ### Listing entries
 
@@ -512,6 +599,10 @@ has:
 | `props` | Its props as schema fields, each with its `label` and, for a choice, `choices` labels by value |
 | `variants` | Its variants under the active theme, not including Default: `{"name", "label", "description", "source"}`, where `source` is `null` when the component's own namespace declared it, else like the component's |
 
+Beside `components`, `image` has the `variants` the active theme offers
+Markdown images (its `theme.json` `variants.image`): each a class, with
+its `name`, `label`, `description`, and `source` (`null`).
+
 ### Listing media
 
 `GET media` lists the library (`user/media`), newest first, a page at a
@@ -524,7 +615,23 @@ bundle, else `null`. The answer has `total`, `page`, `pages`, `per`,
 `files`, and `beside`; each file has its `reference` (what to write in
 content: the library's URL path, or a bundle file's name), `name`,
 `folder`, `url`, `mime`, `kind`, `size`, `width` and `height` (images),
-and `modified`. Only the file types your site allows are listed.
+`modified`, and the library's `alt` and `caption` for it (`""` for
+none). Only the file types your site allows are listed. When
+the account may upload (`media.upload`), `upload` has the largest file
+PHP takes (`limit`, in bytes, or `null` for none) and the `extensions`
+the library takes; otherwise it's `null`.
+
+`POST media` uploads one file, sent as the multipart field `file`, and
+needs `media.upload`. It goes in `user/media/{year}/{month}/` with a
+name safe for a URL, and `-2`, `-3`, and so on when the name is taken.
+Its extension must be one the library lists, and its contents must be
+of a type your site allows ([`MediaConfig`](configuration.md)). The
+answer is a 201 with the file, as `GET media` describes one; a file too
+large is a 413, and one of the wrong type a 422.
+
+`PATCH media/{path}` takes `{"alt", "caption"}` (either or both, as
+text) for a file in the library, needs `media.upload`, and answers with
+the file. An empty value removes it.
 
 ### Editing entries
 

@@ -218,6 +218,9 @@ export interface MediaItem {
 	width: number | null;
 	height: number | null;
 	modified: string;
+	// The library's alt text and caption for it, `''` for none (D-269).
+	alt: string;
+	caption: string;
 }
 
 export interface MediaList {
@@ -229,6 +232,9 @@ export interface MediaList {
 	per: number;
 	files: MediaItem[];
 	beside: MediaItem[] | null;
+	// When the account may upload: the largest file the server takes, in
+	// bytes (`null` for no limit), and the extensions the library takes.
+	upload: { limit: number | null; extensions: string[] } | null;
 }
 
 export interface PreviewLink {
@@ -286,15 +292,40 @@ export async function request<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', pa
 		headers['X-CSRF-Token'] = csrfToken;
 	}
 
+	return answer<T>(config.api + path, {
+		method,
+		headers,
+		credentials: 'same-origin',
+		body: body === undefined ? undefined : JSON.stringify(body)
+	});
+}
+
+/**
+ * Uploads a file as the multipart field `file` and returns the decoded
+ * answer.
+ */
+export async function upload<T>(path: string, file: File): Promise<T> {
+	const form = new FormData();
+
+	form.append('file', file);
+
+	return answer<T>(config.api + path, {
+		method: 'POST',
+		headers: csrfToken === null ? { Accept: 'application/json' } : { Accept: 'application/json', 'X-CSRF-Token': csrfToken },
+		credentials: 'same-origin',
+		body: form
+	});
+}
+
+/**
+ * Sends a request and decodes its answer, throwing an `ApiError` for a
+ * failure.
+ */
+async function answer<T>(url: string, init: RequestInit): Promise<T> {
 	let response: Response;
 
 	try {
-		response = await fetch(config.api + path, {
-			method,
-			headers,
-			credentials: 'same-origin',
-			body: body === undefined ? undefined : JSON.stringify(body)
-		});
+		response = await fetch(url, init);
 	} catch {
 		throw new ApiError('The site couldn\'t be reached. Check your connection and try again.', 0);
 	}
@@ -308,7 +339,7 @@ export async function request<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', pa
 	if (!response.ok) {
 		const message = typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
 			? data.error
-			: `The request failed (${response.status}).`;
+			: (response.status === 413 ? 'That\'s larger than the server takes.' : `The request failed (${response.status}).`);
 
 		throw new ApiError(message, response.status);
 	}

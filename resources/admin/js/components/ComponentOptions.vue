@@ -5,7 +5,8 @@
  * written back into its directive as they change. Only the attribute
  * that changed is rewritten; the rest of the author's text stays as it
  * is. An option set back to its default is removed, so the default
- * applies; a required one left empty stays, empty. A component that
+ * applies; a required one left empty stays, empty. Removing it takes a
+ * container's contents too (D-272). A component that
  * takes a line of text has it here too, as its `[label]`.
  *
  * A component with variants (D-266) has a Variant select first, since
@@ -17,17 +18,20 @@
  * There's no button to go to the component in the text: the caret is
  * already in it (D-265).
  *
- * Attributes the component doesn't declare (a class, an id, anything
- * else) are listed as written. A component that isn't in the list (not
- * registered, or without a class) can only be edited in the text.
+ * Every component takes classes and an id (D-268), so it has the same
+ * **Classes** and **ID** fields every object on the tab has. Other
+ * attributes the component doesn't declare are listed as written. A
+ * component that isn't in the list (not registered, or without a class)
+ * can only be edited in the text, but for those two fields.
  */
 
 import { computed } from 'vue';
 import AdminIcon from './AdminIcon.vue';
+import AttributeFields from './AttributeFields.vue';
 import FieldControl from './FieldControl.vue';
 import type { ComponentDescription, ComponentProp } from '../components';
 import type { FormValue } from '../fields';
-import { attributesOf, directiveHead, withAttribute, withLabel, type Directive, type Edit } from '../markdown';
+import { attributeParts, attributesOf, directiveHead, withAttribute, withDirectiveParts, withLabel, type Directive, type Edit } from '../markdown';
 
 const props = defineProps<{
 	source: string;
@@ -62,8 +66,18 @@ function changeVariant(event: Event): void {
 	}
 }
 
+const parts = computed(() => attributeParts(head.value.attributes?.text ?? ''));
+
+function changeParts(classes: string[], id: string): void {
+	const edit = withDirectiveParts(props.source, props.directive, classes, id);
+
+	if (edit !== null) {
+		emit('edit', edit);
+	}
+}
+
 const others = computed(() => {
-	const known = new Set([...options.value.map((prop) => prop.name), ...(variants.value.length ? ['variant'] : [])]);
+	const known = new Set([...options.value.map((prop) => prop.name), 'class', 'id', ...(variants.value.length ? ['variant'] : [])]);
 
 	return Object.entries(attributes.value).filter(([name]) => !known.has(name));
 });
@@ -109,7 +123,7 @@ const removal = computed(() => {
 		return { label: 'Remove component', note: 'Its line is removed.' };
 	}
 
-	return { label: 'Remove component', note: props.directive.kind === 'container' ? 'The text inside it stays.' : 'Its text stays in the sentence.' };
+	return { label: 'Remove component', note: props.directive.kind === 'container' ? 'Everything inside it goes too.' : 'Its text stays in the sentence.' };
 });
 </script>
 
@@ -158,15 +172,18 @@ const removal = computed(() => {
 			/>
 		</div>
 
-		<div v-if="others.length" class="options__group">
-			<p class="options__heading">Other attributes</p>
-			<dl class="options__others">
-				<div v-for="[name, value] in others" :key="name">
-					<dt class="mono">{{ name }}</dt>
-					<dd class="mono">{{ value }}</dd>
-				</div>
-			</dl>
-			<p class="field__help">Not options of this component; edit them in the text.</p>
+		<div class="options__group">
+			<p class="options__heading">Attributes</p>
+			<AttributeFields :classes="parts.classes" :id="parts.id" id-prefix="option-" @change="changeParts" />
+			<template v-if="others.length">
+				<dl class="options__others">
+					<div v-for="[name, value] in others" :key="name">
+						<dt class="mono">{{ name }}</dt>
+						<dd class="mono">{{ value }}</dd>
+					</div>
+				</dl>
+				<p class="field__help">Not options of this component; edit them in the text.</p>
+			</template>
 		</div>
 
 		<div class="options__group">
@@ -183,39 +200,6 @@ const removal = computed(() => {
 </template>
 
 <style scoped>
-.options__group {
-	display: grid;
-	gap: var(--s-4);
-	padding: var(--s-5);
-	border-bottom: 1px solid var(--border);
-}
-
-.options__heading {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
-	font-weight: 600;
-	letter-spacing: .07em;
-	text-transform: uppercase;
-}
-
-.options__note {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	line-height: 1.5;
-}
-
-.options__source {
-	margin: 0;
-	padding: 9px 11px;
-	overflow-x: auto;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface-2);
-	font-family: var(--font-mono);
-	font-size: var(--text-sm);
-	white-space: pre;
-}
-
 .options__others {
 	display: grid;
 	gap: 6px;

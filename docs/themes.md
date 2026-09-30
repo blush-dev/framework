@@ -140,7 +140,8 @@ Only `name` is required.
   and regions. See [Menus and regions](menus.md#for-theme-authors).
 - **`variants`:** styles your theme adds to components, by component,
   such as `{"callout": ["bordered"]}`. See
-  [Variants](components.md#variants).
+  [Variants](components.md#variants). Under `image`, the classes it
+  offers images; see [Image variants](#image-variants).
 
 #### Autocomplete in your editor
 
@@ -438,6 +439,43 @@ that don't exist or with names that aren't valid, and about a variant's
 template that's also another component's. With `--strict`, it also notes
 registered components and variants without a translated label (see
 [Labels and translations](components.md#labels-and-translations)).
+
+### Image variants
+
+An image in Markdown takes classes, `![A lake](/media/lake.jpg){.stretch-wide}`,
+and the site puts them on the image's figure. List the ones your
+stylesheet styles under `variants.image` in `theme.json`, and the
+editor offers them as the image's **Variant**:
+
+```json
+{
+	"variants": {
+		"image": ["stretch-wide", "stretch-full"]
+	}
+}
+```
+
+Give each a label (and a description, if you like) in your theme's
+`lang/` catalog:
+
+```json
+{
+	"images": {
+		"variants": {
+			"stretch-wide": {
+				"label": "Wide",
+				"description": "Wider than the text, centered on it."
+			}
+		}
+	}
+}
+```
+
+The default theme offers `stretch-wide` (Wide), `stretch-full` (Full
+Bleed), `inline-left` (Float Left), and `inline-right` (Float Right), and
+styles them. They're only offered while it's the active theme, since
+another theme's stylesheet may not style them; list the ones yours does.
+`theme:check` notes an image variant without a label.
 
 ### Building assets with Vite
 

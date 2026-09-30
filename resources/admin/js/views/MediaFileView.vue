@@ -1,15 +1,22 @@
 <script setup lang="ts">
 /**
- * One file in the media library (D-251): a preview, its facts, and what
- * to write to use it. Its metadata (alt text, captions) comes with D-238.
+ * One file in the media library (D-251): a preview, its alt text and
+ * caption (D-269), its facts, and what to write to use it.
+ *
+ * The alt text and caption are the library's own, kept in `user/data`
+ * (`PATCH media/{path}`); the editor fills them in when the file is
+ * inserted as an image (D-272: pages don't read them). What an entry
+ * writes is its own, and editing it there never changes the library's.
+ * They're saved when asked, and leaving with changes unsaved asks first.
  */
 
 import { computed, ref, watch } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { onBeforeRouteLeave, RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import { ApiError, request, type MediaItem } from '../api';
-import { attributeText } from '../markdown';
+import { attributeText, imageText } from '../markdown';
 import { formatDate, formatSize } from '../format';
+import { forgetFile } from '../media';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
 
@@ -23,12 +30,29 @@ const path = computed(() => {
 	return Array.isArray(segments) ? segments.join('/') : String(segments ?? '');
 });
 
-watch(path, async (value) => {
-	file.value  = null;
-	error.value = '';
+const address = computed(() => `/media/${path.value.split('/').map(encodeURIComponent).join('/')}`);
+
+// The fields, as typed.
+const alt     = ref('');
+const caption = ref('');
+const saving  = ref(false);
+const failure = ref('');
+
+const changed = computed(() => file.value !== null && (alt.value.trim() !== file.value.alt || caption.value.trim() !== file.value.caption));
+
+function fill(item: MediaItem): void {
+	file.value    = item;
+	alt.value     = item.alt;
+	caption.value = item.caption;
+}
+
+watch(path, async () => {
+	file.value    = null;
+	error.value   = '';
+	failure.value = '';
 
 	try {
-		file.value = await request<MediaItem>('GET', `/media/${value.split('/').map(encodeURIComponent).join('/')}`);
+		fill(await request<MediaItem>('GET', address.value));
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'The file couldn\'t be loaded.';
 	}
@@ -38,17 +62,43 @@ watch(file, (value) => {
 	screenTitle.value = value?.name ?? null;
 });
 
-// What an entry would write to show it.
-const directive = computed(() => {
+async function save(): Promise<void> {
+	if (!changed.value || saving.value) {
+		return;
+	}
+
+	saving.value  = true;
+	failure.value = '';
+
+	try {
+		fill(await request<MediaItem>('PATCH', address.value, { alt: alt.value, caption: caption.value }));
+		forgetFile(file.value?.reference ?? '');
+		toast('Saved');
+	} catch (caught) {
+		failure.value = caught instanceof ApiError ? caught.message : 'It couldn\'t be saved.';
+	} finally {
+		saving.value = false;
+	}
+}
+
+onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving? Your changes will be lost.'));
+
+// What an entry would write to show it: an image is Markdown, with the
+// library's alt text and caption (D-267, D-268); the rest are components.
+const snippet = computed(() => {
 	const item = file.value;
 
 	if (item === null) {
 		return '';
 	}
 
-	const name = item.kind === 'image' ? 'figure' : (item.kind === 'video' ? 'video' : (item.kind === 'audio' ? 'audio' : 'file'));
+	if (item.kind === 'image') {
+		return imageText(item.reference, item.alt, item.caption).text;
+	}
 
-	return `::blush/${name}[]{${attributeText('src', item.reference)}}`;
+	const name = item.kind === 'video' ? 'video' : (item.kind === 'audio' ? 'audio' : 'file');
+
+	return `::blush/${name}{${attributeText('src', item.reference)}}`;
 });
 
 async function copy(text: string, what: string): Promise<void> {
@@ -86,9 +136,33 @@ async function copy(text: string, what: string): Promise<void> {
 		</section>
 
 		<div class="detail__side">
+			<form class="panel" aria-labelledby="text-heading" @submit.prevent="save">
+				<header class="panel__header">
+					<h2 id="text-heading">Details</h2>
+				</header>
+				<div class="panel__body text">
+					<div class="field">
+						<label for="media-alt">Alt text</label>
+						<textarea id="media-alt" v-model="alt" rows="3" placeholder="What it shows, for anyone who can't see it." aria-describedby="media-alt-help" />
+						<p v-if="file.kind === 'image' && alt.trim() === ''" id="media-alt-help" class="field__help text__warn"><AdminIcon name="triangle-alert" />No alt text. Images inserted from the library start without a description.</p>
+						<p v-else id="media-alt-help" class="field__help">Filled in when it's inserted as an image. Changing it here doesn't change what entries already wrote.</p>
+					</div>
+					<div class="field">
+						<label for="media-caption">Caption</label>
+						<input id="media-caption" v-model="caption" autocomplete="off" aria-describedby="media-caption-help">
+						<p id="media-caption-help" class="field__help">Shown under the image where it's inserted, as its quoted title.</p>
+					</div>
+					<p v-if="failure" class="field__error" role="alert">{{ failure }}</p>
+					<div class="text__actions">
+						<button type="submit" class="button button--primary button--small" :disabled="!changed || saving">{{ saving ? 'Saving…' : 'Save' }}</button>
+						<span class="field__help">Kept in <code>user/data/media</code>, not in the file.</span>
+					</div>
+				</div>
+			</form>
+
 			<section class="panel" aria-labelledby="details-heading">
 				<header class="panel__header">
-					<h2 id="details-heading">Details</h2>
+					<h2 id="details-heading">File</h2>
 				</header>
 				<dl class="panel__body facts">
 					<div><dt>Folder</dt><dd class="mono">user/media/{{ file.folder }}</dd></div>
@@ -101,7 +175,7 @@ async function copy(text: string, what: string): Promise<void> {
 
 			<section class="panel" aria-labelledby="use-heading">
 				<header class="panel__header">
-					<h2 id="use-heading">Use it</h2>
+					<h2 id="use-heading">Use It</h2>
 				</header>
 				<div class="panel__body use">
 					<p class="field__help">In the editor, the media button inserts it. In Markdown or front matter, it's:</p>
@@ -110,8 +184,8 @@ async function copy(text: string, what: string): Promise<void> {
 						<button type="button" class="button button--small" @click="copy(file.reference, 'address')"><AdminIcon name="copy" />Copy</button>
 					</div>
 					<div class="use__row">
-						<code>{{ directive }}</code>
-						<button type="button" class="button button--small" @click="copy(directive, 'component')"><AdminIcon name="copy" />Copy</button>
+						<code>{{ snippet }}</code>
+						<button type="button" class="button button--small" @click="copy(snippet, file.kind === 'image' ? 'Markdown' : 'component')"><AdminIcon name="copy" />Copy</button>
 					</div>
 				</div>
 			</section>
@@ -182,6 +256,32 @@ async function copy(text: string, what: string): Promise<void> {
 	margin: 0;
 	text-align: right;
 	overflow-wrap: anywhere;
+}
+
+.text {
+	display: grid;
+	gap: var(--s-4);
+}
+
+.text__warn {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	color: var(--warn);
+}
+
+.text__warn :deep(svg) {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	margin-top: 1px;
+}
+
+.text__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-3);
 }
 
 .use__row {

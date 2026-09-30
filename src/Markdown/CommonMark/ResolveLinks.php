@@ -44,15 +44,19 @@ final readonly class ResolveLinks
 	 */
 	public function __invoke(DocumentParsedEvent $event): void
 	{
+		// Found first and changed after, so no change can upset the walk.
+		$nodes  = [];
 		$walker = $event->getDocument()->walker();
 
 		while (($step = $walker->next()) !== null) {
 			$node = $step->getNode();
 
-			if (! $step->isEntering() || ! $node instanceof AbstractWebResource) {
-				continue;
+			if ($step->isEntering() && $node instanceof AbstractWebResource) {
+				$nodes[] = $node;
 			}
+		}
 
+		foreach ($nodes as $node) {
 			$url  = $node->getUrl();
 			$file = $this->media?->resolve($url, $this->context->base);
 

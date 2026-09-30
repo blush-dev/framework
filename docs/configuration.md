@@ -175,15 +175,19 @@ Answers are kept in `storage/cache/store/embeds`, which publishing and
 | Option | Default | What it does |
 |---|---|---|
 | `options` | `[]` | [CommonMark options](https://commonmark.thephpleague.com/2.x/configuration/) |
-| `extensions` | CommonMark and GitHub extras, footnotes, definition lists, highlighting | The [CommonMark extensions](https://commonmark.thephpleague.com/2.x/extensions/overview/) to use |
+| `extensions` | CommonMark and GitHub extras, footnotes, definition lists, highlighting, attributes | The [CommonMark extensions](https://commonmark.thephpleague.com/2.x/extensions/overview/) to use |
 | `inlineParsers` | `[]` | Extra inline parsers |
 | `figures` | `true` | Turn a lone image into a `<figure>` |
 | `absoluteLinks` | `true` | Turn links starting with `/` into full URLs |
 | `directives` | `true` | Render [components](components.md) in Markdown |
 
+Attributes are on by default: `{.class #id}` at the end of a heading,
+paragraph, or list item, or on a line of its own above a table, code
+block, or rule, gives it classes and an id. The editor's Classes and ID
+fields write them.
+
 To add extensions, list the defaults along with yours (listing one twice
-is fine). For example, to
-allow attributes such as `{.alignwide}`:
+is fine). For example, for smart quotes and dashes:
 
 ```php
 <?php
@@ -191,10 +195,10 @@ allow attributes such as `{.alignwide}`:
 declare(strict_types=1);
 
 use Blush\Markdown\MarkdownConfig;
-use League\CommonMark\Extension\Attributes\AttributesExtension;
+use League\CommonMark\Extension\SmartPunct\SmartPunctExtension;
 
 return new MarkdownConfig(
-	extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, AttributesExtension::class]
+	extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, SmartPunctExtension::class]
 );
 ```
 

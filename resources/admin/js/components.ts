@@ -69,6 +69,7 @@ const ICONS: Record<string, IconName> = {
 	grid: 'layout-grid',
 	group: 'folder',
 	icon: 'star',
+	image: 'image',
 	kbd: 'terminal',
 	menu: 'menu',
 	meter: 'sliders-horizontal',
@@ -79,23 +80,58 @@ const ICONS: Record<string, IconName> = {
 	video: 'video'
 };
 
-let loading: Promise<ComponentDescription[]> | null = null;
+/**
+ * What `GET components` answers: the components, and Markdown images'
+ * variants, the classes the theme offers them (D-268).
+ */
+interface ComponentsAnswer {
+	components: ComponentDescription[];
+	image: { variants: ComponentVariant[] };
+}
+
+let loading: Promise<ComponentsAnswer> | null = null;
+
+function load(): Promise<ComponentsAnswer> {
+	loading ??= request<ComponentsAnswer>('GET', '/components').catch((caught: unknown) => {
+		loading = null;
+		throw caught;
+	});
+
+	return loading;
+}
 
 /**
  * Loads the components, once per page load; a failed load is tried again
  * next time.
  */
-export function loadComponents(): Promise<ComponentDescription[]> {
-	loading ??= request<{ components: ComponentDescription[] }>('GET', '/components').then(
-		(answer) => answer.components,
-		(caught: unknown) => {
-			loading = null;
-			throw caught;
-		}
-	);
-
-	return loading;
+export async function loadComponents(): Promise<ComponentDescription[]> {
+	return (await load()).components;
 }
+
+/**
+ * Loads the variants the theme offers Markdown images, with the
+ * components.
+ */
+export async function imageVariants(): Promise<ComponentVariant[]> {
+	return (await load()).image.variants;
+}
+
+/**
+ * Markdown images in the component panel (D-268): not a component, but
+ * listed under Media where people look for one. Choosing it opens the
+ * media library, which writes plain Markdown.
+ */
+export const IMAGE_COMPONENT: ComponentDescription = {
+	name: 'image',
+	label: 'Image',
+	description: 'An ordinary Markdown image, from the media library. The quoted part after its address is its caption.',
+	content: 'none',
+	kind: 'leaf',
+	category: 'media',
+	source: null,
+	props: [],
+	variants: []
+};
 
 /**
  * The group a component is shown in.

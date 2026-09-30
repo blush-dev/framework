@@ -50,6 +50,11 @@ use Blush\View\Views;
  *   with its `name`, translated `label` and `description`, and `source`,
  *   `null` when the component's own namespace declared it, else where it
  *   comes from (a theme's variant for a core component, say).
+ *
+ * Beside them, `image` describes Markdown images, which aren't components
+ * but are edited like one (D-268): its `variants` are the classes the
+ * active theme offers (`theme.json`'s `variants.image`), each with its
+ * `name` (the class), `label`, `description`, and `source` (`null`).
  */
 final readonly class ComponentsController
 {
@@ -77,7 +82,16 @@ final readonly class ComponentsController
 			}
 		}
 
-		return Response::json(['components' => $components], headers: ['Cache-Control' => 'no-store']);
+		$image = [
+			'variants' => array_map(static fn (Variant $variant): array => [
+				'name'        => $variant->name,
+				'label'       => $views->imageVariantText($variant, 'label') ?? ucfirst(str_replace('-', ' ', $variant->name)),
+				'description' => $views->imageVariantText($variant, 'description') ?? '',
+				'source'      => null
+			], $views->imageVariants())
+		];
+
+		return Response::json(['components' => $components, 'image' => $image], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**

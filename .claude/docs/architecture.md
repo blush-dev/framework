@@ -374,6 +374,7 @@ Implemented in M4a (D-080, D-085, D-086).
   It starts with a CommonMark adapter configured by `MarkdownConfig`, with
   an in-house parser as the long-term goal. The
   `MarkdownEnvironmentBuilding` event lets extensions add syntax.
+  Attribute blocks (`{.class #id}`) are on by default (D-268).
   1.x's rendering is built in (D-100): local media links point at the
   media URL and images get their dimensions, root-relative links become
   absolute, and a lone image becomes a `<figure>` with its title as the
@@ -482,11 +483,17 @@ Implemented in M4c (D-099), apart from image derivatives.
   to `user/media` (or copies the allowed files with `--copy`). The
   `MediaController` streams anything unpublished, with ranges, `nosniff`,
   and sandboxed SVGs.
-- **Metadata (planned, D-238):** fields for media (alt, caption,
+- **Metadata (D-238, begun in D-269):** fields for media (alt, caption,
   credit, description, and a site's own), defined like content type
   schemas but without a body, status, or URLs. Stored in
   `user/data/media/`, mirroring the media paths (`{path}.yml`; bundle
-  media under `_content/`), never next to the file. Embedded metadata
+  media under `_content/`), never next to the file. Built so far: alt
+  text and caption (`MediaMetadata`), read and written by
+  `MediaMetadataStore` (YAML edited key by key with `YamlMap`, JSON
+  kept JSON, an empty file removed), answered with every file by
+  `GET media` and changed by `PATCH media/{path}`. Pages don't read them
+  (D-272): the editor fills them in on insert, and empty brackets render
+  as `alt=""`. Embedded metadata
   (EXIF, IPTC, XMP, ID3) is read by per-format readers (in-house or a
   library behind the interface, undecided) and cached with
   the media index, reread only when the file changes. Media records sit
@@ -804,7 +811,15 @@ by source, keeps recents, and writes the directive text). The
   and end in a row menu (`MenuButton`, `floating`; D-254); a
   collection's or taxonomy's landing page is its **index page**, pinned
   in a `tbody` of its own above the rest and answered apart from them
-  as `index` in `GET entries` (D-255). The look follows `.claude/docs/admin-design/` (D-231):
+  as `index` in `GET entries` (D-255). The Component tab follows the
+  caret over three kinds of object (D-268): a directive
+  (`ComponentOptions`), a Markdown image (`ImageOptions`, over
+  `outline()`'s `images`), or a block (`BlockOptions`, over `blocks()`),
+  each writing minimal edits through `markdown.ts`; images' variants are
+  the theme's `variants.image` classes (`ComponentVariants::forImages()`,
+  `GET components`' `image`). `MediaPicker` has Library and Upload tabs;
+  uploads go through `POST media` (`MediaUploadController`: hidden first,
+  checked by contents with `MediaResolver::mimeOf()`, then named). The look follows `.claude/docs/admin-design/` (D-231):
   design tokens in `css/tokens.css` are the only literal values, and
   the shell is a rail, a top bar, and a scrolling work area. Extension pieces are described in PHP and drawn
   generically (D-222): `AdminAction`s (label, description, capability,

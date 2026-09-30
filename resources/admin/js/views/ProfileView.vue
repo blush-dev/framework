@@ -102,7 +102,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Your profile</h1>
+			<h1 tabindex="-1">Your Profile</h1>
 			<p class="page-header__hint">Your account, and how you like the admin</p>
 		</div>
 	</header>
@@ -134,7 +134,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 
 		<section v-if="authorType !== null" class="panel" aria-labelledby="author-heading">
 			<header class="panel__header">
-				<h2 id="author-heading">Author page</h2>
+				<h2 id="author-heading">Author Page</h2>
 				<p class="panel__hint">Your name and bio on the site</p>
 			</header>
 			<div class="panel__body profile__author">
@@ -167,7 +167,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 
 		<section class="panel" aria-labelledby="display-heading">
 			<header class="panel__header">
-				<h2 id="display-heading">Color scheme</h2>
+				<h2 id="display-heading">Color Scheme</h2>
 				<p class="panel__hint">Just for you, on any device</p>
 			</header>
 			<div class="panel__body">

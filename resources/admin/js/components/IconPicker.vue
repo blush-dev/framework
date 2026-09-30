@@ -142,7 +142,7 @@ onMounted(() => {
 <template>
 	<dialog ref="dialog" class="modal icon-picker" aria-labelledby="icon-picker-heading" @close="emit('close')" @keydown.esc.prevent.stop="dialog?.close()">
 		<div class="modal__head">
-			<h2 id="icon-picker-heading">Insert an icon</h2>
+			<h2 id="icon-picker-heading">Insert an Icon</h2>
 			<button type="button" class="button button--ghost button--icon" @click="dialog?.close()">
 				<AdminIcon name="x" />
 				<span class="visually-hidden">Close</span>
@@ -172,7 +172,7 @@ onMounted(() => {
 		<div class="icon-picker__split">
 			<nav class="icon-picker__groups" aria-label="Icon groups">
 				<button type="button" :aria-current="group === 'all'" @click="pick('all')">
-					<AdminIcon name="layout-grid" />All icons<span class="icon-picker__n mono">{{ icons.length }}</span>
+					<AdminIcon name="layout-grid" />All Icons<span class="icon-picker__n mono">{{ icons.length }}</span>
 				</button>
 				<button v-for="item in groups" :key="item.key" type="button" :aria-current="group === item.key" @click="pick(item.key)">
 					<AdminIcon :name="item.icon" />{{ item.label }}<span class="icon-picker__n mono">{{ item.icons.length }}</span>
@@ -186,9 +186,9 @@ onMounted(() => {
 				<div v-else-if="!cells.length" class="empty">
 					<AdminIcon name="search" />
 					<p class="empty__heading">
-						<template v-if="failed">The icons couldn't be loaded</template>
-						<template v-else-if="query">No icon called that</template>
-						<template v-else>This site has no icons</template>
+						<template v-if="failed">The Icons Couldn't Be Loaded</template>
+						<template v-else-if="query">No Icon Called That</template>
+						<template v-else>This Site Has No Icons</template>
 					</p>
 					<p v-if="query && !failed" class="empty__text">Try a broader word, or pick a group on the left.</p>
 				</div>

@@ -66,7 +66,7 @@ watch(role, (value) => {
 
 			<section class="panel" aria-labelledby="held-heading">
 				<header class="panel__header">
-					<h2 id="held-heading">Held by</h2>
+					<h2 id="held-heading">Held By</h2>
 					<p class="panel__hint">{{ role.accounts.length ? plural(role.accounts.length, 'account') : 'Nobody' }}</p>
 				</header>
 				<ul v-if="role.accounts.length" class="panel__body people">
@@ -77,7 +77,7 @@ watch(role, (value) => {
 				</ul>
 				<div v-else class="empty">
 					<AdminIcon name="users" />
-					<p class="empty__heading">No accounts have this role</p>
+					<p class="empty__heading">No Accounts Have This Role</p>
 					<p class="empty__text">Give it to an account with <code>bin/blush account:roles</code>.</p>
 				</div>
 			</section>

@@ -61,7 +61,7 @@ function origin(type: ContentTypeSummary): string {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Content types</h1>
+			<h1 tabindex="-1">Content Types</h1>
 			<p class="page-header__hint">The kinds of entries the site has. Taxonomies are content types too.</p>
 		</div>
 	</header>
@@ -71,7 +71,7 @@ function origin(type: ContentTypeSummary): string {
 
 	<section v-if="!failed" class="panel" aria-labelledby="types-heading" :aria-busy="!loaded">
 		<header class="panel__header">
-			<h2 id="types-heading" class="visually-hidden">Content types</h2>
+			<h2 id="types-heading" class="visually-hidden">Content Types</h2>
 			<nav class="tabs" aria-label="Kinds">
 				<button v-for="tab in tabs" :key="tab.key" type="button" class="tabs__tab" :aria-pressed="kind === tab.key" @click="kind = tab.key">
 					{{ tab.label }} <span class="tabs__count">{{ tab.count }}</span>
@@ -119,7 +119,7 @@ function origin(type: ContentTypeSummary): string {
 		</div>
 		<div v-else class="empty">
 			<AdminIcon name="search" />
-			<p class="empty__heading">No types match</p>
+			<p class="empty__heading">No Types Match</p>
 			<p class="empty__text">Nothing matches the search and kind.</p>
 			<button type="button" class="button" @click="search = ''; kind = 'all'">Clear filters</button>
 		</div>

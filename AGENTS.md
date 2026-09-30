@@ -26,9 +26,12 @@ inserters (components, media, icons; D-246, D-247); toasts and the
 command palette (D-248); and read-only Roles and Accounts, Content
 types, and Media screens (D-249 to D-251); then the updated design's
 space scale, four inserters, icon categories, and marked source
-(D-265); and component variants (D-266). Next: the Markdown editing
-experience (D-252; live preview waits), uploads, a reference picker,
-and the remaining stubbed screens; see
+(D-265); component variants (D-266); `:::figure` as a container (D-267);
+every block as an object, images edited as Markdown, and uploads
+(D-268); and alt text and captions in the media library, filled in on
+insert (D-269, D-272). Next: the Markdown editing experience (D-252; live preview
+waits), media metadata, a reference picker, and the remaining stubbed
+screens; see
 `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
 `npm run admin:build` (D-221, D-224). Admin CSS reads design tokens

@@ -37,7 +37,7 @@ Promise.all([loadAccounts(), loadRoles()]).then(([list, roles]) => {
 
 	<section v-if="!error" class="panel" aria-labelledby="accounts-heading" :aria-busy="accounts === null">
 		<header class="panel__header">
-			<h2 id="accounts-heading">All accounts</h2>
+			<h2 id="accounts-heading">All Accounts</h2>
 			<p v-if="accounts" class="panel__hint">{{ plural(accounts.length, 'account') }}</p>
 		</header>
 		<SkeletonTable v-if="accounts === null" :columns="['Account', 'Roles', 'Author', 'Last signed in']" :rows="3" label="Loading the accounts…" />

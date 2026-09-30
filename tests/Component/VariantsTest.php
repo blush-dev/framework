@@ -158,6 +158,32 @@ final class VariantsTest extends TestCase
 		$this->assertSame(['info', 'tip', 'warning', 'danger'], self::names($other->variants($name)));
 	}
 
+	public function testImagesHaveTheThemesVariants(): void
+	{
+		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "Alt", "variants": {"image": ["stretch-wide", "polaroid", "Bad Name"]}}');
+		$this->writeTemporaryFile('user/themes/alt/lang/en.json', '{"images": {"variants": {"polaroid": {"label": "Polaroid", "description": "A white border."}}}}');
+		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": "Other"}');
+
+		$views    = $this->boot('alt');
+		$variants = $views->imageVariants();
+
+		$this->assertSame(['stretch-wide', 'polaroid'], self::names($variants), 'An invalid name is skipped, and the default theme\'s aren\'t styled here.');
+		$this->assertSame('alt', $variants[0]->registrant);
+		$this->assertSame('Wide', $views->imageVariantText($variants[0], 'label'), 'The theme catalogs fall back through the chain.');
+		$this->assertSame('A white border.', $views->imageVariantText($variants[1], 'description'));
+
+		$container = $this->app->container();
+		$themes    = $container->make(Themes::class);
+		$factory   = $container->make(ViewFactory::class);
+
+		$this->assertSame([], $factory->forChain($themes->chain('other'))->imageVariants());
+
+		$default = $factory->forChain($themes->chain('default'))->imageVariants();
+
+		$this->assertSame(['stretch-wide', 'stretch-full', 'inline-left', 'inline-right'], self::names($default));
+		$this->assertSame('default', $default[1]->registrant);
+	}
+
 	public function testAVariantsOwnTemplateWins(): void
 	{
 		$this->writeTemporaryFile('resources/views/components/callout-warning.php', 'warning template: <?= $component->variant ?>');

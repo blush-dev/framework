@@ -77,10 +77,10 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const home: NavLink[] = [screen('dashboard', 'Dashboard', 'layout-dashboard')];
 
 	if (can('content.edit.others')) {
-		home.push(screen('health', 'Content health', 'heart-pulse'));
+		home.push(screen('health', 'Content Health', 'heart-pulse'));
 	}
 
-	const shortcuts: NavLink[] = [screen('profile', 'Your profile', 'users')];
+	const shortcuts: NavLink[] = [screen('profile', 'Your Profile', 'users')];
 
 	if (can('site.settings')) {
 		shortcuts.push(screen('settings', 'Settings', 'settings'));
@@ -114,15 +114,15 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const content = entryTypes.map((type) => ({ ...link(type), links: taxonomies.filter((taxonomy) => owner(taxonomy) === type.name).map((taxonomy) => link(taxonomy)) }));
 	const library = can('media.upload') ? [screen('media', 'Media', 'image')] : [];
 
-	const structure = can('site.settings') ? [screen('types', 'Content types', 'layers')] : [];
+	const structure = can('site.settings') ? [screen('types', 'Content Types', 'layers')] : [];
 	const site      = can('site.settings') ? [screen('settings', 'Settings', 'settings'), screen('appearance', 'Appearance', 'paintbrush'), screen('extensions', 'Extensions', 'plug')] : [];
-	const people    = [...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users'), screen('roles', 'Roles', 'shield')] : []), ...authors.map((type) => link(type)), screen('profile', 'Your profile', 'users')];
+	const people    = [...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users'), screen('roles', 'Roles', 'shield')] : []), ...authors.map((type) => link(type)), screen('profile', 'Your Profile', 'users')];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
 
 	return {
 		home: groups([{ key: 'home', links: home }, { key: 'shortcuts', heading: 'Shortcuts', links: shortcuts }]),
-		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared taxonomies', links: shared }, { key: 'library', heading: 'Library', links: library }]),
+		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Taxonomies', links: shared }, { key: 'library', heading: 'Library', links: library }]),
 		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'site', heading: 'Site', links: site }, { key: 'people', heading: 'People', links: people }])
 	};
 });
@@ -367,7 +367,7 @@ async function leave(): Promise<void> {
 						<span class="account__roles">{{ session.account?.roles.join(', ') }}</span>
 					</p>
 					<RouterLink class="menu-item" :to="{ name: 'profile' }">
-						<AdminIcon name="users" />Your profile
+						<AdminIcon name="users" />Your Profile
 					</RouterLink>
 					<button type="button" class="menu-item" :disabled="leaving" @click="leave">
 						<AdminIcon name="log-out" />{{ leaving ? 'Signing out…' : 'Sign out' }}

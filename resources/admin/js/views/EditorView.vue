@@ -7,18 +7,24 @@
  * footer that's the status line. Settings are a drawer that pushes the
  * column aside (⌘/), closed at first, with two tabs, left, and a close
  * button, right: **Document** (its publishing, schema fields as a form,
- * other front matter, and its problems) and **Component** (D-265): the
- * options of the component the caret is in (`ComponentOptions`), and
- * under them every component in the entry, each a way to select it. With
- * nothing selected it says so over that list, so the tab is never a dead
- * end. With the drawer closed, the footer names the component the caret
- * is in instead of opening anything.
+ * other front matter, and its problems) and **Component** (D-265,
+ * D-268), which follows the caret: the component it's in
+ * (`ComponentOptions`), an image (`ImageOptions`), or else the block of
+ * Markdown (`BlockOptions`), each named on the tab. A blank line belongs
+ * to the block above it. Each panel ends with one quiet row, **Components
+ * in this entry**, which swaps the panel for the list of components and
+ * images in it; picking one, or moving the caret, puts the panel back.
+ * With nothing selected (above the first block), it says so over that
+ * list. With the drawer closed, the footer names the component or image
+ * the caret is in instead of opening anything.
  *
  * The header's left half has the four ways to put something in (D-247,
  * D-265): block components, in a panel that slides in from the left and
- * stays open (also opened by typing `/`); media and icons, each a
- * library in a modal; and inline components, a short menu. Its right half
- * says what the entry is and what happens to it.
+ * stays open (also opened by typing `/`), where **Image** opens the
+ * media library; media, a menu of **Media Library** and **Upload a
+ * File** (D-268), both ending in the media picker; icons, a library in a
+ * modal; and inline components, a short menu. Its right half says what
+ * the entry is and what happens to it.
  *
  * While keys move, the header and footer fade back; any pointer movement
  * brings them back. Focus mode (⌘⇧F) leaves only the column; Escape
@@ -47,22 +53,27 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, entryPath, entryRoute, request, type EntryDetail, type EntryStatus, type FieldDescription, type MediaItem } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
+import BlockOptions from '../components/BlockOptions.vue';
 import ComponentOptions from '../components/ComponentOptions.vue';
 import ComponentPanel from '../components/ComponentPanel.vue';
 import FieldControl from '../components/FieldControl.vue';
 import IconPicker from '../components/IconPicker.vue';
+import ImageOptions from '../components/ImageOptions.vue';
 import MarkdownEditor from '../components/MarkdownEditor.vue';
 import MediaPicker from '../components/MediaPicker.vue';
 import MenuButton from '../components/MenuButton.vue';
 import PreviewLinkControl from '../components/PreviewLinkControl.vue';
 import StatusPill from '../components/StatusPill.vue';
-import { componentIcon, loadComponents, type ComponentDescription, type ComponentProp } from '../components';
+import { BLOCK_KINDS } from '../blocks';
+import { componentIcon, IMAGE_COMPONENT, imageVariants, loadComponents, type ComponentDescription, type ComponentProp } from '../components';
 import { online } from '../connection';
 import { diffLines, type DiffLine } from '../diff';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
-import { formatDate, plural } from '../format';
+import { formatDate, plural, titleCase } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
-import { attributeText, attributesOf, imageText, directiveAt, directiveHead, outline, wordCount, withAttribute, withoutDirective, type Directive, type Edit } from '../markdown';
+import { attributeText, attributesOf, blockAt, blocks, directiveHead, imageText, outline, unescaped, withAttribute, withImage, withoutDirective, withoutImage, wordCount, type Directive, type Edit } from '../markdown';
+import { forgetBeside } from '../media';
+import { can } from '../session';
 import type { SiteIcon } from '../site-icons';
 import { focusMode, screenTitle } from '../screen';
 import { toast } from '../toast';
@@ -150,7 +161,7 @@ watch(entry, (value) => {
 });
 
 watch(noun, (value) => {
-	screenTitle.value = `Edit ${value}`;
+	screenTitle.value = titleCase(`Edit ${value}`);
 }, { immediate: true });
 
 /**
@@ -681,9 +692,11 @@ const writing    = ref(false);
 const available  = ref<ComponentDescription[]>([]);
 
 const componentsFailed = ref(false);
+const imageStyles      = ref<Awaited<ReturnType<typeof imageVariants>>>([]);
 
-loadComponents().then((components) => {
-	available.value = components;
+loadComponents().then(async (components) => {
+	available.value   = components;
+	imageStyles.value = await imageVariants();
 }, () => {
 	componentsFailed.value = true;
 });
@@ -754,9 +767,10 @@ function slashKey(key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'): void {
 	}
 }
 
-// The panel offers block components; inline ones have their own menu,
-// less the icon, which has its own picker.
-const blockComponents  = computed(() => available.value.filter((component) => component.kind !== 'inline'));
+// The panel offers block components, with a Markdown image first among
+// the media (D-268); inline ones have their own menu, less the icon,
+// which has its own picker.
+const blockComponents  = computed(() => available.value.length === 0 ? [] : [IMAGE_COMPONENT, ...available.value.filter((component) => component.kind !== 'inline')]);
 const inlineComponents = computed(() => available.value.filter((component) => component.kind === 'inline' && component !== iconComponent.value));
 
 // "a callout", "an embed".
@@ -765,8 +779,12 @@ function article(name: string): string {
 }
 
 function chooseComponent(component: ComponentDescription): void {
-	bodyEditor.value?.insert(component);
-	toast(`Inserted ${article(component.label)}`);
+	if (component === IMAGE_COMPONENT) {
+		pickMedia('library', 'image');
+	} else {
+		bodyEditor.value?.insert(component);
+		toast(`Inserted ${article(component.label)}`);
+	}
 
 	// A slash's panel has done its job; one opened from its button stays.
 	if (panelSlash.value) {
@@ -810,21 +828,33 @@ function closeIcons(): void {
 	bodyEditor.value?.focusAt(caret.value);
 }
 
-// The media picker: inserting a file, or choosing one for a field or a
-// component's option.
-const picking = ref<{ title: string; action: string; use: (file: MediaItem) => void } | null>(null);
+// The media picker: inserting a file, or choosing one for a field, a
+// component's option, or an image. It opens on the Library tab, or on
+// Upload from the media menu's Upload a File.
+const picking = ref<{ title: string; action: string; tab?: 'library' | 'upload'; kind?: 'image'; use: (file: MediaItem) => void } | null>(null);
+const uploads = computed(() => can('media.upload'));
 
-function pickMedia(): void {
+function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): void {
 	picking.value = {
-		title: 'Insert media',
+		title: kind === 'image' ? 'Insert an Image' : 'Insert Media',
 		action: 'Insert',
+		tab: start,
+		kind,
 		use: (file) => {
+			// A file uploaded beside the entry would be new to its list.
+			if (entry.value !== null) {
+				forgetBeside(entry.value.id);
+			}
+
 			// An image is plain Markdown (on its own line, the site makes it a
 			// figure, with a quoted title as its caption, D-267), with the
-			// caret in its alternative text; a video is a video, a sound
-			// audio, and anything else a download.
+			// library's alt text and caption (D-269; selected text is its
+			// alt text instead), the caret in its alt text when it has
+			// none, and selected, so its panel is next; a video is a video,
+			// a sound audio, and anything else a download.
 			if (file.kind === 'image') {
-				bodyEditor.value?.insertBlock((selected) => imageText(file.reference, selected));
+				bodyEditor.value?.insertBlock((selected) => imageText(file.reference, selected || file.alt, file.caption));
+				tab.value = 'component';
 				toast(`Inserted ${file.name}`);
 
 				return;
@@ -847,7 +877,7 @@ function pickMedia(): void {
 
 function pickForField(field: FieldDescription): void {
 	picking.value = {
-		title: `Choose ${label(field).toLowerCase()}`,
+		title: titleCase(`Choose ${inSentence(label(field))}`),
 		action: 'Choose',
 		use: (file) => {
 			form.value[field.name] = file.reference;
@@ -863,7 +893,7 @@ function pickForOption(prop: ComponentProp): void {
 	}
 
 	picking.value = {
-		title: `Choose ${label(prop).toLowerCase()}`,
+		title: titleCase(`Choose ${inSentence(label(prop))}`),
 		action: 'Choose',
 		use: (file) => {
 			const edit = withAttribute(body.value, item, prop.name, file.reference);
@@ -871,6 +901,31 @@ function pickForOption(prop: ComponentProp): void {
 			if (edit !== null) {
 				applyOption(edit);
 			}
+		}
+	};
+}
+
+// An image's Replace (or Choose, without a file yet): a new address, the
+// rest kept, but for alt text or a caption it didn't have.
+function pickForImage(): void {
+	const item = image.value;
+
+	if (item === undefined) {
+		return;
+	}
+
+	picking.value = {
+		title: item.src === '' ? 'Choose an Image' : 'Replace the Image',
+		action: 'Choose',
+		kind: 'image',
+		use: (file) => {
+			// The library's alt text and caption fill what the image lacks.
+			applyOption(withImage(item, {
+				src: file.reference,
+				...(item.alt === '' && file.alt !== '' ? { alt: file.alt } : {}),
+				...((item.title ?? '') === '' && file.caption !== '' ? { title: file.caption } : {})
+			}));
+			toast(`Chose ${file.name}`);
 		}
 	};
 }
@@ -894,7 +949,8 @@ useCommands(() => {
 		{ id: 'editor-focus', label: focusMode.value ? 'Leave focus mode' : 'Focus mode', icon: 'maximize-2', keywords: 'writing zen distraction', shortcut: '⌘⇧F', run: toggleFocus },
 		{ id: 'editor-settings', label: sideOpen.value ? 'Hide the settings' : 'Show the settings', icon: 'panel-right', keywords: 'document fields sidebar', shortcut: '⌘/', run: toggleSide },
 		{ id: 'editor-component', label: 'Insert a component', icon: 'plus', keywords: 'callout figure block', shortcut: '/', run: () => void togglePanel() },
-		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file', run: pickMedia },
+		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file library', run: () => pickMedia() },
+		...(uploads.value ? [{ id: 'editor-upload', label: 'Upload a file', icon: 'upload' as const, keywords: 'media image picture video audio add', run: () => pickMedia('upload') }] : []),
 		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
 		{ id: 'editor-save', label: 'Save', icon: 'file-text', shortcut: '⌘S', run: () => void save() }
 	];
@@ -919,8 +975,61 @@ useCommands(() => {
 });
 
 const markdown  = computed(() => outline(body.value));
-const directive = computed<Directive | undefined>(() => markdown.value.directives[directiveAt(markdown.value.directives, caret.value)]);
+const allBlocks = computed(() => blocks(markdown.value));
 const words     = computed(() => wordCount(markdown.value));
+
+/**
+ * What the Component tab shows (D-268): the innermost directive or image
+ * the caret is in; else the block it's in, or on a blank line, the block
+ * or block directive above it, whichever ends nearer; else nothing.
+ */
+const selection = computed<{ kind: 'directive' | 'image' | 'block'; index: number } | null>(() => {
+	const at = caret.value;
+	let found: { kind: 'directive' | 'image' | 'block'; index: number } | null = null;
+	let size = Infinity;
+
+	markdown.value.directives.forEach((item, index) => {
+		if (item.start <= at && at <= item.end && item.end - item.start < size) {
+			found = { kind: 'directive', index };
+			size  = item.end - item.start;
+		}
+	});
+
+	markdown.value.images.forEach((item, index) => {
+		if (item.start <= at && at <= item.end && item.end - item.start < size) {
+			found = { kind: 'image', index };
+			size  = item.end - item.start;
+		}
+	});
+
+	if (found !== null) {
+		return found;
+	}
+
+	const index = blockAt(allBlocks.value, at);
+	const block = allBlocks.value[index];
+
+	if (block !== undefined && at <= block.end) {
+		return { kind: 'block', index };
+	}
+
+	let nearest = block?.end ?? -1;
+
+	found = block === undefined ? null : { kind: 'block', index };
+
+	markdown.value.directives.forEach((item, which) => {
+		if (item.kind !== 'inline' && item.end < at && item.end >= nearest) {
+			found   = { kind: 'directive', index: which };
+			nearest = item.end;
+		}
+	});
+
+	return found;
+});
+
+const directive = computed<Directive | undefined>(() => selection.value?.kind === 'directive' ? markdown.value.directives[selection.value.index] : undefined);
+const image     = computed(() => selection.value?.kind === 'image' ? markdown.value.images[selection.value.index] : undefined);
+const block     = computed(() => selection.value?.kind === 'block' ? allBlocks.value[selection.value.index] : undefined);
 
 /**
  * The inserter's description of a directive's component, by its full or
@@ -936,27 +1045,78 @@ function componentLabel(item: Directive): string {
 
 const selected = computed(() => directive.value === undefined ? undefined : componentFor(directive.value.name));
 
-// Each component in the body, with a hint of which one it is.
-const used = computed(() => markdown.value.directives.map((item, index) => {
-	const values = attributesOf(body.value, item);
-	const known  = componentFor(item.name);
+// The Component tab's name and icon: what's selected, else "Components".
+const tabName = computed(() => {
+	if (directive.value !== undefined) {
+		return componentLabel(directive.value);
+	}
 
-	return {
-		index,
-		item,
-		label: componentLabel(item),
-		icon: known === undefined ? 'code' as const : componentIcon(known),
-		hint: directiveHead(body.value, item).label?.text || values.title || values.caption || values.src || values.url || values.name || ''
-	};
-}));
+	if (image.value !== undefined) {
+		return 'Image';
+	}
 
-function jumpTo(item: Directive): void {
-	bodyEditor.value?.focusAt(directiveHead(body.value, item).end);
+	return block.value === undefined ? 'Components' : BLOCK_KINDS[block.value.kind].label;
+});
+
+const tabIcon = computed(() => {
+	if (directive.value !== undefined) {
+		return selected.value === undefined ? 'code' : componentIcon(selected.value);
+	}
+
+	if (image.value !== undefined) {
+		return 'image';
+	}
+
+	return block.value === undefined ? 'code' : BLOCK_KINDS[block.value.kind].icon;
+});
+
+// Each component and image in the body, in order, with a hint of which
+// one it is. Blocks aren't in it: it's the objects placed, not every
+// paragraph written.
+const used = computed(() => [
+	...markdown.value.directives.map((item, index) => {
+		const values = attributesOf(body.value, item);
+		const known  = componentFor(item.name);
+
+		return {
+			key: `directive-${index}`,
+			start: item.start,
+			at: directiveHead(body.value, item).end,
+			current: directive.value === item,
+			label: componentLabel(item),
+			icon: known === undefined ? 'code' as const : componentIcon(known),
+			hint: directiveHead(body.value, item).label?.text || values.title || values.caption || values.src || values.url || values.name || ''
+		};
+	}),
+	...markdown.value.images.map((item, index) => ({
+		key: `image-${index}`,
+		start: item.start,
+		at: item.end,
+		current: image.value === item,
+		label: 'Image',
+		icon: 'image' as const,
+		hint: unescaped(item.title ?? '') || item.src.split('/').pop() || ''
+	}))
+].sort((a, b) => a.start - b.start));
+
+// The list replaces the panel on request; picking from it, moving the
+// caret, or changing tabs puts the panel back.
+const listing = ref(false);
+
+watch([caret, tab], () => {
+	listing.value = false;
+});
+
+async function showList(): Promise<void> {
+	listing.value = true;
+	await nextTick();
+	document.getElementById('editor-used-heading')?.focus();
 }
 
-function openComponent(item: Directive): void {
-	tab.value = 'component';
-	jumpTo(item);
+function openComponent(item: { at: number }): void {
+	tab.value     = 'component';
+	listing.value = false;
+	bodyEditor.value?.focusAt(item.at);
 }
 
 /**
@@ -981,6 +1141,15 @@ function removeComponent(): void {
 	if (item !== undefined) {
 		bodyEditor.value?.apply(withoutDirective(body.value, item));
 		toast(`Removed the ${inSentence(componentLabel(item))}`);
+	}
+}
+
+function removeImage(): void {
+	const item = image.value;
+
+	if (item !== undefined) {
+		bodyEditor.value?.apply(withoutImage(body.value, item));
+		toast('Removed the image');
 	}
 }
 
@@ -1153,7 +1322,7 @@ function fieldKey(field: FieldDescription): string {
 
 <template>
 	<section class="editor" :class="{ 'is-side-open': sideOpen, 'is-writing': writing, 'is-focus': focusMode }" aria-labelledby="editor-heading">
-		<h1 id="editor-heading" class="visually-hidden" tabindex="-1">Edit {{ noun }}</h1>
+		<h1 id="editor-heading" class="visually-hidden" tabindex="-1">{{ titleCase(`Edit ${noun}`) }}</h1>
 
 		<header class="editor__head">
 			<template v-if="entry">
@@ -1167,7 +1336,26 @@ function fieldKey(field: FieldDescription): string {
 					<AdminIcon name="plus" />
 					<span class="visually-hidden">Insert a component</span>
 				</button>
-				<button type="button" class="button button--ghost button--icon" title="Media" aria-haspopup="dialog" @click="pickMedia">
+				<MenuButton v-if="uploads" button-class="button button--ghost editor__wide" label="Insert media" align="start" floating>
+					<template #button>
+						<AdminIcon name="image" /><AdminIcon name="chevron-down" class="editor__caret" />
+					</template>
+					<button type="button" class="menu-item menu-item--described" @click="pickMedia('library')">
+						<AdminIcon name="image" />
+						<span>
+							<span class="menu-item__name">Media Library</span>
+							<span class="menu-item__text">Choose a file already in the library.</span>
+						</span>
+					</button>
+					<button type="button" class="menu-item menu-item--described" @click="pickMedia('upload')">
+						<AdminIcon name="upload" />
+						<span>
+							<span class="menu-item__name">Upload a File</span>
+							<span class="menu-item__text">Add one from this computer, then place it.</span>
+						</span>
+					</button>
+				</MenuButton>
+				<button v-else type="button" class="button button--ghost button--icon" title="Media" aria-haspopup="dialog" @click="pickMedia()">
 					<AdminIcon name="image" />
 					<span class="visually-hidden">Insert media</span>
 				</button>
@@ -1344,6 +1532,8 @@ function fieldKey(field: FieldDescription): string {
 							label="Body (Markdown)"
 							placeholder="Write in Markdown…"
 							:slash-open="panelOpen && panelSlash"
+							:directive="selection?.kind === 'directive' ? selection.index : -1"
+							:image="selection?.kind === 'image' ? selection.index : -1"
 							@typed="typed"
 							@slash="slashed"
 							@slash-key="slashKey"
@@ -1363,8 +1553,8 @@ function fieldKey(field: FieldDescription): string {
 					<span>{{ count(words, 'word') }}</span>
 					<span class="editor__sep" aria-hidden="true">·</span>
 					<span>{{ Math.max(1, Math.round(words / 220)) }} min read</span>
-					<button v-if="directive && !(sideOpen && tab === 'component')" type="button" class="editor__chip" @click="showOptions">
-						<AdminIcon :name="selected ? componentIcon(selected) : 'code'" />{{ componentLabel(directive) }} options
+					<button v-if="(directive || image) && !(sideOpen && tab === 'component')" type="button" class="editor__chip" @click="showOptions">
+						<AdminIcon :name="tabIcon" />{{ tabName }} options
 					</button>
 					<span class="editor__foot-end">
 						<button v-if="focusMode" type="button" class="editor__chip" @click="focusMode = false">
@@ -1384,10 +1574,7 @@ function fieldKey(field: FieldDescription): string {
 								<AdminIcon name="file-text" />Document
 							</button>
 							<button id="editor-tab-component" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-component" :aria-selected="tab === 'component'" :tabindex="tab === 'component' ? 0 : -1" @click="tab = 'component'">
-								<AdminIcon :name="selected ? componentIcon(selected) : 'code'" />
-								<template v-if="directive">{{ componentLabel(directive) }}</template>
-								<template v-else>Components</template>
-								<span v-if="used.length" class="editor__tab-count mono"><span class="visually-hidden">(</span>{{ used.length }}<span class="visually-hidden"> in this {{ noun }})</span></span>
+								<AdminIcon :name="tabIcon" />{{ tabName }}
 							</button>
 						</div>
 						<button type="button" class="button button--ghost button--icon editor__side-close" @click="sideOpen = false">
@@ -1417,12 +1604,12 @@ function fieldKey(field: FieldDescription): string {
 						</div>
 
 						<div v-if="fields.length" class="editor__group">
-							<p class="editor__group-heading">{{ typeInfo?.singular ?? humanize(entry.type.name) }} fields</p>
+							<p class="editor__group-heading">{{ typeInfo?.singular ?? humanize(entry.type.name) }} Fields</p>
 							<FieldControl v-for="field in fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
 						</div>
 
 						<div v-if="Object.keys(entry.extra).length" class="editor__group">
-							<p class="editor__group-heading">Other front matter <span class="editor__group-hint">Kept as it is</span></p>
+							<p class="editor__group-heading">Other Front Matter <span class="editor__group-hint">Kept as it is</span></p>
 							<dl class="editor__extra">
 								<div v-for="(value, key) in entry.extra" :key="key">
 									<dt class="mono">{{ key }}</dt>
@@ -1447,41 +1634,76 @@ function fieldKey(field: FieldDescription): string {
 					</div>
 
 					<div v-show="tab === 'component'" id="editor-panel-component" role="tabpanel" aria-labelledby="editor-tab-component">
-						<ComponentOptions
-							v-if="directive"
-							:source="body"
-							:directive="directive"
-							:component="selected"
-							@edit="applyOption"
-							@remove="removeComponent"
-							@pick="pickForOption"
-						/>
-						<div v-else class="editor__none">
-							<AdminIcon name="code" />
-							<p class="editor__none-heading">No component selected</p>
-							<p class="editor__none-text">Put the cursor inside one in the text, or pick it from the list below.</p>
-						</div>
+						<template v-if="selection && !listing">
+							<ComponentOptions
+								v-if="directive"
+								:source="body"
+								:directive="directive"
+								:component="selected"
+								@edit="applyOption"
+								@remove="removeComponent"
+								@pick="pickForOption"
+							/>
+							<ImageOptions
+								v-else-if="image"
+								:key="`image-${selection.index}`"
+								:source="body"
+								:image="image"
+								:variants="imageStyles"
+								:entry="entry?.id"
+								@edit="applyOption"
+								@remove="removeImage"
+								@pick="pickForImage"
+							/>
+							<BlockOptions
+								v-else-if="block"
+								:key="`block-${selection.index}`"
+								:source="body"
+								:markdown="markdown"
+								:block="block"
+								@edit="applyOption"
+							/>
 
-						<div class="editor__group">
-							<p class="editor__group-heading">Components in this {{ noun }}</p>
-							<p v-if="!used.length" class="field__help">None yet. Use <strong>+</strong> in the header, or type <kbd>/</kbd> at the start of a line.</p>
-							<ul v-else class="editor__used">
-								<li v-for="item in used" :key="`${item.index}-${item.item.start}`">
-									<button type="button" class="editor__used-item" :class="{ 'is-current': directive === item.item }" :aria-current="directive === item.item ? 'true' : undefined" @click="openComponent(item.item)">
-										<AdminIcon :name="item.icon" />
-										<span class="editor__used-name">{{ item.label }}</span>
-										<span class="editor__used-hint">{{ item.hint }}</span>
-									</button>
-								</li>
-							</ul>
-						</div>
+							<button type="button" class="editor__list-link" @click="showList">
+								<AdminIcon name="list" />
+								<span>Components in this {{ noun }}</span>
+								<span class="editor__list-count mono">{{ used.length }}</span>
+								<AdminIcon name="chevron-right" class="editor__list-go" />
+							</button>
+						</template>
+
+						<template v-else>
+							<div v-if="!selection" class="editor__none">
+								<AdminIcon name="code" />
+								<p class="editor__none-heading">Nothing Selected</p>
+								<p class="editor__none-text">Put the cursor anywhere in the text, and this panel follows it.</p>
+							</div>
+							<button v-else type="button" class="editor__list-link editor__list-link--back" @click="listing = false">
+								<AdminIcon name="arrow-left" />
+								<span>Back to the {{ inSentence(tabName) }}</span>
+							</button>
+
+							<div class="editor__group">
+								<p id="editor-used-heading" class="editor__group-heading" tabindex="-1">{{ titleCase(`Components in this ${noun}`) }}</p>
+								<p v-if="!used.length" class="field__help">None yet. Use <strong>+</strong> in the header, or type <kbd>/</kbd> at the start of a line.</p>
+								<ul v-else class="editor__used">
+									<li v-for="item in used" :key="item.key">
+										<button type="button" class="editor__used-item" :class="{ 'is-current': item.current }" :aria-current="item.current ? 'true' : undefined" @click="openComponent(item)">
+											<AdminIcon :name="item.icon" />
+											<span class="editor__used-name">{{ item.label }}</span>
+											<span class="editor__used-hint">{{ item.hint }}</span>
+										</button>
+									</li>
+								</ul>
+							</div>
+						</template>
 					</div>
 				</div>
 			</aside>
 		</div>
 
 		<IconPicker v-if="iconsOpen" :preview="iconPreview" @choose="chooseIcon" @close="closeIcons" />
-		<MediaPicker v-if="picking" :entry="entry?.id" :title="picking.title" :action="picking.action" @choose="picked" @close="picking = null" />
+		<MediaPicker v-if="picking" :entry="entry?.id" :title="picking.title" :action="picking.action" :tab="picking.tab" :kind="picking.kind" @choose="picked" @close="picking = null" />
 	</section>
 </template>
 
@@ -1941,14 +2163,6 @@ function fieldKey(field: FieldDescription): string {
 	font-weight: 500;
 }
 
-.editor__tab-count {
-	padding: 1px 6px;
-	border-radius: 99px;
-	background: var(--surface-2);
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
-	font-weight: 400;
-}
 
 .editor__side-close {
 	flex: none;
@@ -1991,6 +2205,48 @@ function fieldKey(field: FieldDescription): string {
 	color: var(--fg-3);
 	font-size: var(--text-sm);
 	line-height: 1.6;
+}
+
+/* One quiet row, in the same place under every panel, to the list of
+   what's in the entry; the list has one back. */
+.editor__list-link {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	width: 100%;
+	padding: var(--s-4) var(--s-5);
+	border: 0;
+	border-bottom: 1px solid var(--border);
+	background: none;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	text-align: left;
+	cursor: pointer;
+}
+
+.editor__list-link:hover {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.editor__list-link svg {
+	flex: none;
+	color: var(--fg-3);
+}
+
+.editor__list-count {
+	margin-left: auto;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.editor__list-link .editor__list-go {
+	width: 13px;
+	height: 13px;
+}
+
+.editor__group-heading:focus {
+	outline: none;
 }
 
 .editor__group-heading {
@@ -2266,6 +2522,18 @@ function fieldKey(field: FieldDescription): string {
 /* A phone keeps the save state's dot; its words are still read out. */
 
 @media (width <= 480px) {
+	/* The menus' carets go, so the header still fits a phone. */
+	.editor__head :deep(.editor__wide) {
+		justify-content: center;
+		width: var(--ctl);
+		height: var(--ctl);
+		padding: 0;
+	}
+
+	.editor__head :deep(.editor__caret) {
+		display: none;
+	}
+
 	.editor__save-text {
 		position: absolute;
 		width: 1px;

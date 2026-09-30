@@ -30,7 +30,7 @@ const today = computed(() => planned.value.today.split('`').map((text, index) =>
 	<section class="panel" aria-labelledby="planned-heading">
 		<div class="empty">
 			<AdminIcon :name="planned.icon" />
-			<h2 id="planned-heading" class="empty__heading">This screen comes next</h2>
+			<h2 id="planned-heading" class="empty__heading">This Screen Comes Next</h2>
 			<p class="empty__text">{{ planned.next }}</p>
 			<p class="empty__text planned__today"><template v-for="(part, index) in today" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template></p>
 			<RouterLink class="button" :to="{ name: 'dashboard' }">Back to the dashboard</RouterLink>

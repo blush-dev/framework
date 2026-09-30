@@ -40,7 +40,7 @@ async function submit(): Promise<void> {
 	<div class="sign-in">
 		<header class="sign-in__header">
 			<span class="sign-in__mark" aria-hidden="true">{{ config.site.name.charAt(0) }}</span>
-			<h1 tabindex="-1">Sign in to {{ config.site.name }}</h1>
+			<h1 tabindex="-1">Sign In to {{ config.site.name }}</h1>
 		</header>
 		<form class="sign-in__form" :aria-busy="busy" @submit.prevent="submit">
 			<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>

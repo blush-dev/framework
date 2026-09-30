@@ -4,9 +4,12 @@
  * typing, undo, spelling, and screen readers work as in any field, over a
  * highlighted copy of the same text (`markdown.ts`), where the syntax is
  * faint scaffolding and the words keep full ink (D-253, D-265), and the
- * directive the caret is in is boxed, with a container's body tinted. The copy is decoration and hidden from assistive tech. It
- * sits bare in the editor's writing column and grows with its text; the
- * editor around it scrolls, counts, and holds the inserters.
+ * directive or image selected (`directive`, `image`; by default, the
+ * directive the caret is in) is boxed; a container only on its opening
+ * and closing lines (D-268). The copy is decoration and hidden from
+ * assistive tech. It sits bare in the editor's writing column and grows
+ * with its text; the editor around it scrolls, counts, and holds the
+ * inserters.
  *
  * Typing `/` at the start of an empty line reports the query after it
  * (`slash`), so the editor can open the component panel filtered by it;
@@ -29,6 +32,10 @@ const props = defineProps<{
 	// Whether the component panel is open for a slash, so its keys are
 	// passed on.
 	slashOpen?: boolean;
+	// What's selected, boxed in the text: a directive's or an image's
+	// index in the outline, or -1.
+	directive?: number;
+	image?: number;
 }>();
 
 const model = defineModel<string>({ required: true });
@@ -48,10 +55,10 @@ const emit = defineEmits<{
 }>();
 
 const markdown = computed(() => outline(model.value));
-const current  = computed(() => directiveAt(markdown.value.directives, caret.value));
+const current  = computed(() => props.directive ?? (props.image === undefined ? directiveAt(markdown.value.directives, caret.value) : -1));
 
 // A trailing space gives a final empty line its height, as in the field.
-const html = computed(() => `${highlight(markdown.value, current.value)} `);
+const html = computed(() => `${highlight(markdown.value, current.value, props.image ?? -1)} `);
 
 const field  = ref<HTMLTextAreaElement | null>(null);
 const source = ref<HTMLElement | null>(null);
@@ -542,13 +549,15 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 .md__highlight :deep(.md-code),
 .md__highlight :deep(.md-attr),
 .md__highlight :deep(.md-directive.is-current),
-.md__highlight :deep(.md-inside) {
+.md__highlight :deep(.md-selected) {
 	-webkit-box-decoration-break: clone;
 	box-decoration-break: clone;
 }
 
-/* A link's label is read in the sentence; its address isn't. */
+/* A link's label is read in the sentence; its address isn't. An image is
+   a link that points at a picture, so its alt text reads the same way. */
 .md__highlight :deep(.md-link__text),
+.md__highlight :deep(.md-image__text),
 .md__highlight :deep(.md-footnote) {
 	color: var(--accent);
 }
@@ -557,13 +566,11 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 	color: var(--fg-3);
 }
 
-.md__highlight :deep(.md-image__text) {
-	color: var(--fg-2);
-}
-
-/* An image's quoted title is its caption on the site: words to read. */
+/* An image's quoted title is its caption on the site, which the reader
+   sees: full ink, a step heavier. */
 .md__highlight :deep(.md-image__caption) {
 	color: var(--fg);
+	font-weight: 500;
 }
 
 /* A directive is named in the accent and left unboxed; the box is for
@@ -577,16 +584,12 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 	color: var(--fg);
 }
 
-.md__highlight :deep(.md-directive.is-current) {
+.md__highlight :deep(.md-directive.is-current),
+.md__highlight :deep(.md-selected) {
 	padding-block: 1px;
 	border-radius: 3px;
 	background: var(--accent-soft);
 	box-shadow: 0 0 0 1px var(--accent-line);
-}
-
-.md__highlight :deep(.md-inside) {
-	border-radius: 2px;
-	background: var(--accent-soft);
 }
 
 /* Attributes are metadata about the line they hang off: a gray chip,

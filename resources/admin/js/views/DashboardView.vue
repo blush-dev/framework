@@ -119,7 +119,7 @@ onMounted(() => {
 	<template v-else>
 		<section v-if="empty" class="panel" aria-labelledby="setup-heading">
 			<header class="panel__header">
-				<h2 id="setup-heading">Get started</h2>
+				<h2 id="setup-heading">Get Started</h2>
 				<p class="panel__hint">The site has no content yet</p>
 			</header>
 			<ol v-if="can('content.create') && steps.length" class="setup">

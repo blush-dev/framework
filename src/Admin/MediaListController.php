@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use JsonException;
 use SplFileInfo;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -24,7 +25,10 @@ use Blush\Core\Paths;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\MediaConfig;
+use Blush\Media\MediaException;
 use Blush\Media\MediaFile;
+use Blush\Media\MediaMetadata;
+use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 use Blush\Support\Filesystem;
 
@@ -39,13 +43,20 @@ use Blush\Support\Filesystem;
  * - `beside`: with `entry` (an id the account may edit) in a page bundle
  *   (`name/index.md`), the media files in its folder, which it refers to
  *   by name; otherwise `null`.
+ * - `upload`: when the account may upload (D-268), the largest file PHP
+ *   takes (`limit`, in bytes, or `null`) and the `extensions` the library
+ *   takes; otherwise `null`.
  *
  * `GET {path}/api/media/{path}` (`show()`) describes one library file, by
- * its path under `user/media`.
+ * its path under `user/media`, and `PATCH` (`update()`, `media.upload`)
+ * changes its `alt` and `caption` (D-269), either or both, and answers
+ * with it. Pages don't read them: the editor fills them in on insert
+ * (D-272).
  *
  * Each file has its `reference` (what to write: the library's URL path,
  * or a bundle file's name), `name`, `folder`, `url`, `mime`, `kind`,
- * `size`, `width` and `height` (images), and `modified`. Only the types
+ * `size`, `width` and `height` (images), `modified`, and its metadata,
+ * `alt` and `caption` (`''` for none; `MediaMetadataStore`). Only the types
  * the site allows (`MediaConfig::$types`) are listed, without caption
  * tracks, and never hidden files.
  */
@@ -59,9 +70,12 @@ final readonly class MediaListController
 
 	/**
 	 * MIME types by extension, to narrow a large library before reading
-	 * any file; the page's files are then checked by their contents.
+	 * any file; the page's files are then checked by their contents. An
+	 * upload must have one of them too (`MediaUploadController`).
+	 *
+	 * @var array<string, string>
 	 */
-	private const array EXTENSIONS = [
+	public const array EXTENSIONS = [
 		'apng' => 'image/apng',
 		'avif' => 'image/avif',
 		'gif'  => 'image/gif',
@@ -92,7 +106,9 @@ final readonly class MediaListController
 		private MediaConfig $config,
 		private MediaResolver $resolver,
 		private ContentRepository $content,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private MediaUploadController $uploads,
+		private MediaMetadataStore $metadata
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -135,7 +151,7 @@ final readonly class MediaListController
 			$file = $this->resolver->resolve($reference);
 
 			if ($file !== null) {
-				$files[] = self::describe($file, $reference, (string) $relative);
+				$files[] = self::describe($file, $reference, (string) $relative, $this->metadata->find($file));
 			}
 		}
 
@@ -147,7 +163,10 @@ final readonly class MediaListController
 			'pages'  => max(1, (int) ceil(count($candidates) / $per)),
 			'per'    => $per,
 			'files'  => $files,
-			'beside' => $beside
+			'beside' => $beside,
+			'upload' => $this->permissions->can($account, Capability::MediaUpload)
+				? ['limit' => MediaUploadController::limit(), 'extensions' => $this->uploads->extensions()]
+				: null
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -159,14 +178,66 @@ final readonly class MediaListController
 			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
 		}
 
-		$reference = $this->config->url . '/' . implode('/', array_map(rawurlencode(...), explode('/', trim($path, '/'))));
-		$file      = $this->guess(new SplFileInfo($path)) === null ? null : $this->resolver->resolve($reference);
+		[$file, $reference] = $this->libraryFile($path);
 
-		if ($file === null || ! str_starts_with($file->path, $this->paths->media . '/')) {
+		if ($file === null) {
 			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
 		}
 
-		return Response::json(self::describe($file, $reference, trim($path, '/')), headers: ['Cache-Control' => 'no-store']);
+		return Response::json(self::describe($file, $reference, trim($path, '/'), $this->metadata->find($file)), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	public function update(ServerRequestInterface $request, string $path): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::MediaUpload)) {
+			return self::error('You aren\'t allowed to change media.', Status::Forbidden);
+		}
+
+		[$file, $reference] = $this->libraryFile($path);
+
+		if ($file === null) {
+			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+		}
+
+		try {
+			$input = json_decode((string) $request->getBody(), true, 4, JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			$input = null;
+		}
+
+		if (! is_array($input) || array_any(['alt', 'caption'], static fn (string $key): bool => array_key_exists($key, $input) && ! is_string($input[$key]))) {
+			return self::error('Send "alt" and "caption", as text, in a JSON object.', Status::BadRequest);
+		}
+
+		$current = $this->metadata->find($file);
+		$next    = new MediaMetadata(
+			is_string($input['alt'] ?? null) ? $input['alt'] : $current->alt,
+			is_string($input['caption'] ?? null) ? $input['caption'] : $current->caption
+		);
+
+		try {
+			$this->metadata->save($file, $next);
+		} catch (MediaException $error) {
+			return self::error($error->getMessage(), Status::InternalServerError);
+		}
+
+		return Response::json(self::describe($file, $reference, trim($path, '/'), $next), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * A library file by its path under `user/media`, with its reference,
+	 * or `null` when there's no such file the library lists.
+	 *
+	 * @return array{?MediaFile, string}
+	 */
+	private function libraryFile(string $path): array
+	{
+		$reference = $this->config->url . '/' . implode('/', array_map(rawurlencode(...), explode('/', trim($path, '/'))));
+		$file      = $this->guess(new SplFileInfo($path)) === null ? null : $this->resolver->resolve($reference);
+
+		return [$file !== null && str_starts_with($file->path, $this->paths->media . '/') ? $file : null, $reference];
 	}
 
 	/**
@@ -244,7 +315,7 @@ final readonly class MediaListController
 			$file = $this->resolver->resolve($name, $folder);
 
 			if ($file !== null) {
-				$files[] = self::describe($file, $name, $name);
+				$files[] = self::describe($file, $name, $name, $this->metadata->find($file));
 			}
 		}
 
@@ -272,9 +343,11 @@ final readonly class MediaListController
 	}
 
 	/**
+	 * Describes a file for the admin.
+	 *
 	 * @return array<string, mixed>
 	 */
-	private static function describe(MediaFile $file, string $reference, string $relative): array
+	public static function describe(MediaFile $file, string $reference, string $relative, MediaMetadata $metadata): array
 	{
 		$folder = dirname($relative);
 
@@ -288,7 +361,9 @@ final readonly class MediaListController
 			'size'      => $file->size,
 			'width'     => $file->width,
 			'height'    => $file->height,
-			'modified'  => date(DATE_ATOM, (int) filemtime($file->path))
+			'modified'  => date(DATE_ATOM, (int) filemtime($file->path)),
+			'alt'       => $metadata->alt,
+			'caption'   => $metadata->caption
 		];
 	}
 

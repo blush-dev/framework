@@ -176,7 +176,7 @@
 			}
 		},
 		"kbd": {
-			"label": "Keyboard key",
+			"label": "Keyboard Key",
 			"description": "A key or key combination to press, such as Ctrl+S.",
 			"props": {
 				"label": {
@@ -212,7 +212,7 @@
 			}
 		},
 		"progress": {
-			"label": "Progress bar",
+			"label": "Progress Bar",
 			"description": "How far along something is, such as a goal or a task.",
 			"props": {
 				"value": {
@@ -267,7 +267,7 @@
 			}
 		},
 		"toc": {
-			"label": "Table of contents",
+			"label": "Table of Contents",
 			"description": "Links to the headings on the page.",
 			"props": {
 				"min": {

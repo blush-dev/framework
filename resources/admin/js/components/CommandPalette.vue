@@ -39,7 +39,7 @@ const everywhere = computed<Command[]>(() => {
 
 	if (can('content.edit')) {
 		for (const type of types.value) {
-			found.push({ id: `type-${type.name}`, label: `Go to ${inSentence(type.label)}`, icon: typeIcon(type), keywords: type.name, run: go('type', { type: type.name }) });
+			found.push({ id: `type-${type.name}`, label: `Go to ${type.label}`, icon: typeIcon(type), keywords: type.name, run: go('type', { type: type.name }) });
 		}
 	}
 
@@ -50,14 +50,14 @@ const everywhere = computed<Command[]>(() => {
 	}
 
 	const screens: [string, string, IconName, string, string?][] = [
-		['health', 'Go to content health', 'heart-pulse', 'content.edit.others', 'problems lint'],
-		['media', 'Go to media', 'image', 'media.upload', 'files images library'],
-		['types', 'Go to content types', 'layers', 'site.settings'],
-		['appearance', 'Go to appearance', 'paintbrush', 'site.settings', 'theme'],
-		['extensions', 'Go to extensions', 'plug', 'site.settings', 'addons plugins'],
-		['accounts', 'Go to accounts', 'users', 'accounts.manage', 'people'],
-		['roles', 'Go to roles', 'shield', 'accounts.manage', 'capabilities'],
-		['settings', 'Go to settings', 'settings', 'site.settings']
+		['health', 'Go to Content Health', 'heart-pulse', 'content.edit.others', 'problems lint'],
+		['media', 'Go to Media', 'image', 'media.upload', 'files images library'],
+		['types', 'Go to Content Types', 'layers', 'site.settings'],
+		['appearance', 'Go to Appearance', 'paintbrush', 'site.settings', 'theme'],
+		['extensions', 'Go to Extensions', 'plug', 'site.settings', 'addons plugins'],
+		['accounts', 'Go to Accounts', 'users', 'accounts.manage', 'people'],
+		['roles', 'Go to Roles', 'shield', 'accounts.manage', 'capabilities'],
+		['settings', 'Go to Settings', 'settings', 'site.settings']
 	];
 
 	for (const [name, label, icon, capability, keywords] of screens) {
@@ -67,7 +67,7 @@ const everywhere = computed<Command[]>(() => {
 	}
 
 	found.push(
-		{ id: 'profile', label: 'Go to your profile', icon: 'users', keywords: 'account password', run: go('profile') },
+		{ id: 'profile', label: 'Go to Your Profile', icon: 'users', keywords: 'account password', run: go('profile') },
 		{
 			id: 'scheme',
 			label: colorScheme.value === 'dark' ? 'Use the light color scheme' : 'Use the dark color scheme',

@@ -264,7 +264,7 @@ final class ThemeCommandsTest extends TestCase
 	public function testThemeCheckFlagsVariantProblems(): void
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova", "variants": {"callout": ["bordered", "Bad"], "nova/nothing": ["wide"], "nova/badge": ["pill"]}}');
+		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova", "variants": {"callout": ["bordered", "Bad"], "nova/nothing": ["wide"], "nova/badge": ["pill"], "image": ["polaroid", "Bad", "stretch-wide"]}}');
 		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'badge');
 		$this->writeTemporaryFile('user/themes/nova/lang/en.json', '{"components": {"badge": {"label": "Badge"}, "callout": {"variants": {"bordered": {"label": "Bordered"}}}}}');
 
@@ -274,6 +274,10 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringContainsString('warning variants blush/callout: theme.json lists a variant of "blush/callout" that isn\'t valid', $check);
 		$this->assertStringContainsString('notice  variants nova/badge: The "pill" variant of "nova/badge" has no label; add "components.badge.variants.pill.label" to the theme\'s lang/ catalog.', $check);
 		$this->assertStringNotContainsString('"bordered" variant', $check);
+		$this->assertStringContainsString('warning variants image: theme.json lists an image variant that isn\'t valid', $check);
+		$this->assertStringContainsString('notice  variants image: The "polaroid" image variant has no label; add "images.variants.polaroid.label" to the theme\'s lang/ catalog.', $check);
+		$this->assertStringNotContainsString('"stretch-wide" image variant', $check, 'The default theme has its label.');
+		$this->assertStringNotContainsString('"image", which isn\'t a component', $check);
 		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\| Blush\\\\Component\\\\Callout\s*\| info, tip, warning, danger, bordered\s*\|#', $this->command(['component:list', '--theme=nova'])->output);
 	}
 

@@ -10,6 +10,9 @@
 	"regions": {
 		"footer": "Footer"
 	},
+	"variants": {
+		"image": ["stretch-wide", "stretch-full", "inline-left", "inline-right"]
+	},
 	"settings": {
 		"excerpts": {
 			"type": "bool",

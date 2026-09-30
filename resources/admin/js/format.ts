@@ -39,3 +39,19 @@ export function formatSize(bytes: number): string {
 
 	return `${sizes.format(value)} ${units[unit] ?? 'GB'}`;
 }
+
+// Words Title Case leaves lowercase unless they lead.
+const SMALL = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'nor', 'of', 'on', 'or', 'the', 'to', 'with']);
+
+/**
+ * A name in Title Case (admin.md §10, Copy): "Choose an Image", "Nothing
+ * Links to This File". Only first letters change, so a name already
+ * capitalized, or with capitals inside it, keeps them.
+ */
+export function titleCase(text: string): string {
+	return text.split(' ').map((word, index) => {
+		const lower = word.toLowerCase();
+
+		return index > 0 && SMALL.has(lower) ? lower : word.charAt(0).toUpperCase() + word.slice(1);
+	}).join(' ');
+}

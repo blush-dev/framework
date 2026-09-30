@@ -136,7 +136,7 @@ final readonly class MediaResolver
 			return null;
 		}
 
-		$mime = self::mime($path);
+		$mime = self::mimeOf($path);
 
 		if (! $this->config->allows($mime)) {
 			return null;
@@ -161,7 +161,7 @@ final readonly class MediaResolver
 	 * sniff as XML or text) and WebVTT tracks (text, until they have a
 	 * cue) by their extension.
 	 */
-	private static function mime(string $path): string
+	public static function mimeOf(string $path): string
 	{
 		$mime      = strtolower(mime_content_type($path) ?: 'application/octet-stream');
 		$extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));

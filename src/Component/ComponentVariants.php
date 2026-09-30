@@ -25,9 +25,19 @@ use Blush\Theme\Themes;
  * add or remove (once per component), then those the chain's themes list
  * in their `theme.json`. A variant from a theme outside the chain is left
  * out, so a theme's variants apply only while it's active.
+ *
+ * A Markdown image isn't a component, but a theme can offer it variants
+ * too (D-268): `theme.json`'s `variants.image`, each a class the image's
+ * attributes carry (`{.stretch-wide}`), which the site puts on its
+ * figure. Only themes declare them.
  */
 final class ComponentVariants
 {
+	/**
+	 * The key a theme's `variants` lists Markdown images' variants under.
+	 */
+	public const string IMAGE = 'image';
+
 	/**
 	 * Collected variants, by component, before the chain is applied.
 	 *
@@ -61,6 +71,33 @@ final class ComponentVariants
 		}
 
 		return array_values(array_filter($variants, fn (Variant $variant): bool => ! $this->themes->isOutside($variant->registrant, $chain)));
+	}
+
+	/**
+	 * Returns Markdown images' variants for a chain, Default not included:
+	 * the ones its themes list, the child's winning a name they share.
+	 * They're classes, which only a stylesheet gives a look, and the
+	 * framework default theme's stylesheet loads only while it's the
+	 * active theme, so only then are its variants included.
+	 *
+	 * @return list<Variant>
+	 */
+	public function forImages(ThemeChain $chain): array
+	{
+		$variants = [];
+		$themes   = count($chain->themes) > 1 ? array_slice($chain->themes, 0, -1) : $chain->themes;
+
+		foreach (array_reverse($themes) as $theme) {
+			foreach ($theme->variants()[self::IMAGE] ?? [] as $item) {
+				$variant = self::manifestItem($item, $theme->slug);
+
+				if ($variant !== null) {
+					$variants[$variant->name] = $variant;
+				}
+			}
+		}
+
+		return array_values($variants);
 	}
 
 	/**

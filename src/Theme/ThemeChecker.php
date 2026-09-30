@@ -204,6 +204,12 @@ final readonly class ThemeChecker
 		$problems = [];
 
 		foreach ($theme->variants() as $component => $list) {
+			if ($component === ComponentVariants::IMAGE) {
+				$problems = [...$problems, ...$this->imageVariants($theme, $views, $list)];
+
+				continue;
+			}
+
 			$name = ComponentName::parse($component);
 
 			if ($name === null || ! in_array((string) $name, $known, true)) {
@@ -230,6 +236,30 @@ final readonly class ThemeChecker
 
 			if ($other !== null && in_array((string) $other, $known, true) && (string) $other !== (string) $name) {
 				$problems[] = new Violation("component {$other}", sprintf('components/%s.php is both the "%s" component\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
+			}
+		}
+
+		return $problems;
+	}
+
+	/**
+	 * Checks the Markdown image variants the theme's manifest lists
+	 * (D-268): each a valid name, with a label in the theme's catalog.
+	 *
+	 * @param  list<mixed> $list
+	 * @return list<Violation>
+	 */
+	private function imageVariants(ThemeManifest $theme, Views $views, array $list): array
+	{
+		$problems = [];
+
+		foreach ($list as $item) {
+			$variant = ComponentVariants::manifestItem($item, $theme->slug);
+
+			if ($variant === null) {
+				$problems[] = new Violation('variants image', 'theme.json lists an image variant that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', Severity::Warning);
+			} elseif ($views->imageVariantText($variant, 'label') === null) {
+				$problems[] = new Violation('variants image', sprintf('The "%s" image variant has no label; add "images.variants.%s.label" to the theme\'s lang/ catalog.', $variant->name, $variant->name), Severity::Notice);
 			}
 		}
 

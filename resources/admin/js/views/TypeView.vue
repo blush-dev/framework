@@ -63,7 +63,7 @@ const related = computed(() => {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ type?.label ?? 'Content type' }}</h1>
+			<h1 tabindex="-1">{{ type?.label ?? 'Content Type' }}</h1>
 			<p v-if="type" class="page-header__hint">
 				{{ humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · from {{ origin }}
 			</p>

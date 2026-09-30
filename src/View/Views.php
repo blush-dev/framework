@@ -185,6 +185,29 @@ final readonly class Views
 	}
 
 	/**
+	 * Returns Markdown images' variants under the chain (D-268), Default
+	 * not included: classes its themes offer.
+	 *
+	 * @return list<Variant>
+	 */
+	public function imageVariants(): array
+	{
+		return $this->services->variants->forImages($this->chain);
+	}
+
+	/**
+	 * Returns an image variant's translated text (`label` or
+	 * `description`), or `null`: `images.variants.{variant}.{key}` in its
+	 * theme's catalog.
+	 *
+	 * @param array<string, mixed> $params
+	 */
+	public function imageVariantText(Variant $variant, string $key, array $params = []): ?string
+	{
+		return $this->namespaceText($variant->registrant, "images.variants.{$variant->name}.{$key}", $params);
+	}
+
+	/**
 	 * Returns a variant's translated text (`label` or `description`), or
 	 * `null` when no catalog has it: `components.{name}.variants.{variant}.{key}`
 	 * in its registrant's domain.

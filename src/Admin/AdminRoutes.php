@@ -40,7 +40,9 @@ use Blush\Session\StartSession;
  *   - `GET  components`: the components the editor's inserter offers.
  *   - `GET  icons`: the icons the editor's icon picker offers.
  *   - `GET  media`: the media files an entry can use, a page at a time,
- *     and `GET media/{path}` one library file.
+ *     and `GET media/{path}` one library file; `POST media` uploads one,
+ *     and `PATCH media/{path}` changes a library file's alt text and
+ *     caption.
  *   - `GET  entries`: the entries the account may edit, a page at a time.
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
  *     the editing API (`EntryController`), and `GET content/{type}/{key}`,
@@ -89,7 +91,9 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/components', ComponentsController::class)->named('components')->middleware(Authenticate::class),
 			Route::get('/icons', IconsController::class)->named('icons')->middleware(Authenticate::class),
 			Route::get('/media', MediaListController::class)->named('media')->middleware(Authenticate::class),
+			Route::post('/media', MediaUploadController::class)->named('media.upload')->middleware(Authenticate::class),
 			Route::get('/media/{path:.+}', [MediaListController::class, 'show'])->named('media.file')->middleware(Authenticate::class),
+			Route::patch('/media/{path:.+}', [MediaListController::class, 'update'])->named('media.update')->middleware(Authenticate::class),
 			Route::get('/entries', EntriesController::class)->named('entries')->middleware(Authenticate::class),
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
 			Route::get('/entries/{id:.+}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),

@@ -5794,3 +5794,254 @@ decision, add a new entry that supersedes it and mark the old one
   Node; inserting an image from the picker in headless Chrome.
 - **Why:** the author's call: a figure is for anything captioned, and
   the lone-image convention already makes a captioned image.
+
+### D-268: Every block is an object; images are edited as Markdown; uploads
+- **Date:** 2026-09-30
+- **Decision:** From the author's updated design direction (`admin.md`
+  §8: Marking the source, The inserters, Every block is an object, An
+  image is Markdown, The media library; §10: Copy) and prototype.
+  Supersedes D-265's `--fg-2` alternative text and tinted container
+  body, D-247's single media button, and D-251's "no upload".
+  - **Attributes are on by default:** `AttributesExtension` joins
+    `MarkdownConfig::DEFAULT_EXTENSIONS`, since the editor writes
+    `{.class #id}` for any block (a site listing it again is fine;
+    extensions are added once). Checked against the parser, attributes
+    go at the end of a heading's, paragraph's, or list item's last line,
+    and on a line of their own directly above a quote, code block,
+    table, or rule (the end of those lines doesn't reach the block, and
+    a fence's info string doesn't take them).
+  - **The Component tab follows the caret over three kinds of object:**
+    the innermost directive or image the caret is in, else the Markdown
+    block it's in (`blocks()` in `markdown.ts`), named on the tab
+    (Heading, Paragraph, List Item, Quote, Code Block, Table, Divider).
+    A blank line belongs to the block, or block directive, that ends
+    nearest above it. Inside a container, the container wins. The
+    selection drives the box in the source too, so the two always agree.
+  - **Every object has Classes and ID** (`AttributeFields`): blocks,
+    images, and components alike. A block's panel adds a heading's
+    Level (an underlined heading becomes one with hashes), a code
+    block's Language (the fence's first word), and a list item's task
+    and done switches, then its first line as Source.
+  - **An image is edited as Markdown** (`ImageOptions`): Variant, the
+    image itself (the library's 4:3 crop, Replace and Remove over a veil
+    on hover or focus, and always shown without hover; a file that's
+    missing says so; a bare file name is looked up beside the entry),
+    Alt text, Caption (the quoted title; empty writes nothing), and
+    Classes and ID. Images are in "Components in this entry"; blocks
+    aren't. Remove takes an image alone on its line with the blank line
+    after it; in a sentence, one space around it.
+  - **Image variants are the theme's classes:** `theme.json`'s
+    `variants.image` lists them, with text at
+    `images.variants.{name}.label` and `.description` in the theme's
+    catalog; `ComponentVariants::forImages()` collects them, and
+    `GET components` answers them as `image.variants`. Choosing one
+    swaps that class in the image's attributes and leaves the rest. The
+    framework default theme offers `stretch-wide` (Wide),
+    `stretch-full` (Full Bleed), `inline-left` (Float Left), and
+    `inline-right` (Float Right) and styles them, but only while it's
+    the active theme, since only the active theme's stylesheet loads.
+    `theme:check` checks them. The jtcom trial's theme lists
+    `stretch-wide` and `stretch-full`.
+  - **The list is a state:** each panel ends with one row, "Components
+    in this {entry}" with the count, which swaps the panel for the list;
+    choosing from it, moving the caret, or changing tabs brings the
+    panel back.
+  - **Marking:** an image is marked as a link (alternative text in the
+    accent) with its caption at full ink and 500; a container is boxed
+    on its opening and closing lines only; the selected image is boxed
+    with its attributes. An alternative text with escaped brackets is an
+    image now (the link pattern takes escapes).
+  - **Media is a menu:** **Media Library** and **Upload a File**, both
+    opening the picker on that tab (a plain button without
+    `media.upload`). **Image** leads the panel's Media group and opens
+    the picker on images. The Media screen gets **Upload** (the same
+    picker, "Upload to the Library", **Open** going to the file).
+  - **Uploads:** `POST media` (`MediaUploadController`, `media.upload`)
+    takes one file as the multipart field `file` into
+    `user/media/{Y}/{m}/`, with a name made safe for a URL (spaces to
+    hyphens, other characters dropped, extension lowercased) and `-2`,
+    `-3`, … when it's taken; nothing is replaced. The extension must be
+    one the library lists and the site allows; the file is written
+    hidden first, checked by its contents (`MediaResolver::mimeOf()`),
+    and only then named, so a file that isn't what its name says never
+    appears. 413 when PHP refused its size, 422 for a type. `GET media`
+    answers `upload` (`limit` from `upload_max_filesize` and
+    `post_max_size`, and `extensions`) for accounts that may. The
+    picker's Upload tab is a drop zone and a button with those limits;
+    a drop anywhere on the modal uploads; each upload lands at the top
+    of the library, selected, with a receipt and **Show in library**.
+  - **Title Case names things; sentence case says things** (§10): page
+    and document titles, headings, empty-state headings, modal titles,
+    nav and breadcrumb entries, palette rows naming a screen, and core
+    component labels ("Keyboard Key", "Progress Bar", "Table of
+    Contents"); buttons, labels, hints, toasts, and menu items stay in
+    sentence case. `titleCase()` (`format.ts`) for built names.
+- **Departs from the design:** attributes for quotes, code, tables, and
+  rules go on a line above (the design's provisional end-of-block rule
+  doesn't reach them); image variants come from the theme, not a fixed
+  list; the list state has a **Back to the {object}** row too; a blank
+  line after a leaf or container selects it; images from the library
+  get no alt text or caption filled in (the library has none yet); the
+  upload types are the library's (images, sound, video), as the site
+  allows; below 480px the menus' carets go, so the header fits; the
+  writing column stays 640px (D-254).
+- **Checked:** `composer check` (`MarkdownRenderingTest`: attributes in
+  each place by default; `VariantsTest`: image variants by theme;
+  `ThemeCommandsTest`; `AdminContentTest`: `image.variants`;
+  `AdminPickersTest`: uploads, names, refusals, nothing left behind,
+  who may); `blocks()`, the image and block edits, and the highlighter
+  under Node (every character kept); in headless Chrome against the real
+  API on a scratch site: each block's panel and edits, the blank-line
+  rule, image variants, caption, alt text, classes, the list row and
+  back, the media menu, an upload through the picker and its insertion,
+  **Image** in the panel, dark mode, and 390px; the jtcom trial's
+  `theme:check`.
+- **Open:** media metadata (alt text and captions in the library, to
+  fill in on insert); a Markdown image's own attributes on a linked
+  image; a site or extension adding image variants.
+- **Why:** the author's updated design direction.
+
+### D-269: Alt text and captions in the media library
+- **Date:** 2026-09-30
+- **Decision:** Builds the first part of D-238 (media metadata) and
+  settles D-268's open item on filling images in from the library.
+  - **Two fields, alt and caption** (`Media\MediaMetadata`), each one
+    line of text, trimmed, `''` for none. D-238's field definitions
+    (credit, description, a site's own, schemas) wait; a metadata file
+    may hold other keys, which are kept.
+  - **Storage as D-238 planned** (`MediaMetadataStore`):
+    `user/data/media/{path under user/media}.yml`, or `_content/{path
+    under user/content}` for bundle files, read through the data loader
+    (`.json`, `.yaml`, `.yml`, in its order). Saving edits `alt` and
+    `caption` only: YAML key by key (`YamlMap`, so comments and other
+    keys stay), JSON as JSON; a file left empty is removed, and none is
+    written for a file with nothing to say. An unreadable metadata file
+    counts as none, so it can't break the library.
+  - **API:** every file `GET media` and `GET media/{path}` describe (and
+    `POST media` answers) has `alt` and `caption`; `PATCH
+    media/{path}` (`media.upload`) changes either or both for a library
+    file. An upload doesn't take a name that has leftover metadata.
+  - **The admin:** a file's screen has a Details panel with Alt text
+    (warned when an image has none) and Caption, saved with **Save**,
+    asking before leaving unsaved changes; its "Use It" snippet for an
+    image is now Markdown with them (it still showed D-267's retired
+    `::figure{src}`). Inserting an image writes the library's alt text
+    (selected text wins) and caption; **Replace** brings them only
+    where the image has none. What an entry writes always wins.
+- **Not yet (D-238):** rendering fallbacks (an image without alt text
+  or a title taking the library's when the page renders, which needs
+  the page cache to know about metadata files), the media index,
+  embedded metadata, moving metadata with a file, `content:lint` for
+  orphaned or unreadable metadata files, and editing a bundle file's
+  metadata in the admin.
+- **Checked:** `composer check` (`AdminPickersTest`: saved outside the
+  media folder, listed, one field changed with the rest kept, other
+  keys and comments kept, JSON kept JSON, an empty file removed, a
+  bundle file's under `_content/`, bad input, a broken file, who may,
+  and uploads skipping leftover metadata); in headless Chrome against
+  the real API on a scratch site: the file screen empty and saved, the
+  data file written, and an image inserted with its alt text and
+  caption.
+- **Why:** the author asked for alt text and captions in the media
+  library.
+
+### D-270: Pages use the library's alt text where theirs is empty
+- **Date:** 2026-09-30
+- **Decision:** Builds D-238's rendering rule for alt text, which D-269
+  left open.
+  - **Where it's used wins:** a Markdown image of local media (a library
+    file, or one beside the entry) written without alt text, or with
+    only spaces, renders with the library's (`ResolveLinks`, given the
+    `MediaMetadataStore`). Alt text in the content always wins. Other
+    addresses are left alone.
+  - **Captions don't fall back:** a caption is visible text, and pages
+    written without one (all of the jtcom trial's older images) would
+    change; the library's caption is filled in on insert only.
+  - **Separate, both ways (the author's note):** an image's alt text and
+    caption in content are its own there. Editing them in the editor
+    never writes to the library, and saving the library's never
+    rewrites content, though content with empty alt text shows the new
+    one. The image panel shows the library's alt text as the empty
+    field's placeholder, with a hint saying the page uses it, and says
+    "For this image here; the library's own doesn't change" once it has
+    its own; the Media file screen says the reverse.
+  - **Caches:** `PATCH media/{path}` moves the content version on, so
+    cached bodies and pages re-render. A metadata file edited by hand
+    needs a publish or `cache:clear`, as other site data does.
+  - **The admin finds an image's library file** from its address
+    (`mediaFile()` in `media.ts`: the media URL, which the shell config
+    now carries as `media.url`, then `GET media/{path}`; a bare name
+    beside the entry through `beside`), cached per file.
+  - `ResolveLinks` collects the links and images, then rewrites them:
+    changing an image's children during the walk lost its place.
+- **Open:** marking an image decorative (empty alt on purpose) when the
+  library has alt text for its file; components' own image props.
+- **Checked:** `composer check` (`AdminPickersTest`: library alt text
+  used for block and inline images, a bundle file's, content's own
+  winning, captions not falling back, other addresses untouched, the
+  content version moving on); on a scratch site, a page's image with
+  and without its own alt text over HTTP, and the image panel's
+  placeholder and hint in headless Chrome.
+- **Why:** the author's request, and D-238's rendering rule.
+
+### D-271: Decorative images are `{alt=""}`; no count on the Component tab
+- **Date:** 2026-09-30
+- **Decision:** Settles D-270's open item on decorative images, and
+  supersedes the Component tab's count (D-265, D-268).
+  - **The marker is `alt=""` in the image's attributes:**
+    `![](/media/rule.png){alt=""}`. It's the HTML meaning of empty alt
+    text said out loud, and the attributes parser already reads it (a
+    bare `{decorative}` isn't an attribute to it). `ResolveLinks` gives
+    library alt text only to an image without an `alt` attribute, so a
+    decorative image keeps `alt=""` on the page. Alt text written in the
+    brackets still wins over the attribute, as CommonMark renders it.
+  - **The editor:** the image panel has a **Decorative** checkbox under
+    Alt text. Checking it writes `alt=""` at the end of the attributes
+    and clears the alt text (which it stands in for); the field turns
+    off, saying screen readers skip it and the library's isn't used.
+    Unchecking removes it. Classes, ID, and Variant keep it
+    (`isDecorative()`, `withDecorative()` in `markdown.ts`). Empty alt
+    text on an image that isn't decorative now says a screen reader may
+    read its file name, rather than calling it decorative.
+  - **No count on the Component tab:** it's named for what's selected,
+    or "Components", with no number; the count stays on the "Components
+    in this entry" row.
+  - Fixed along the way: the image panel's size line cleared after any
+    edit (its watcher fired on every change).
+- **Checked:** `composer check` (a decorative image keeps `alt=""`
+  beside library alt text); the checkbox on and off, the Markdown
+  written, the field's state, and the tab without a count, in headless
+  Chrome.
+- **Why:** the author's request.
+
+### D-272: Empty brackets are empty alt text; removing a container removes its body
+- **Date:** 2026-09-30
+- **Decision:** The author's call. Supersedes D-270 (pages taking the
+  library's alt text) and D-271's `{alt=""}` marker, and D-245's
+  "removing a container keeps its body".
+  - **An image without alt text in its brackets renders `alt=""`**, as
+    CommonMark does: no library fallback and no extra syntax. The
+    library's alt text and caption are filled in when an image is
+    inserted (D-269) and are the entry's own copy from then on; pages
+    never read `user/data/media`. `ResolveLinks` no longer takes the
+    metadata store, and `PATCH media/{path}` no longer moves the content
+    version on. An image already written with `{alt=""}` still renders
+    `alt=""`.
+  - **Decorative is empty alt text.** The image panel's **Decorative**
+    toggle is on when the brackets are empty, and the Alt text field is
+    hidden then. Turning it off shows the field (focused) until there's
+    something in it; turning it on clears the alt text. A decorative
+    image whose file has library alt text offers **Use the library's**.
+    The toggle comes first in the Text group, then Alt text, then
+    Caption.
+  - **Removing a container removes everything in it**, with a blank
+    line after it, as a leaf goes with its line; an inline component
+    still leaves its label in the sentence. Undo in the text brings it
+    back.
+- **Checked:** `composer check` (`MarkdownRenderingTest`: empty
+  brackets are `alt=""` beside library alt text); in headless Chrome on
+  a scratch site: the toggle on (field hidden, alt text cleared, the
+  library's offered) and off (field shown and focused, typing writes
+  it), and removing a callout with its body.
+- **Why:** the author's call: no extra syntax, and a removed component
+  shouldn't leave its contents behind.

@@ -8,6 +8,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, entryRoute, request, type EntryDetail } from '../api';
 import { inSentence } from '../fields';
+import { titleCase } from '../format';
 import { screenTitle } from '../screen';
 import { currentType, findType, loadTypes, types } from '../types';
 
@@ -28,7 +29,7 @@ watch(type, (name) => {
 }, { immediate: true });
 
 watch(noun, (value) => {
-	screenTitle.value = `New ${value}`;
+	screenTitle.value = titleCase(`New ${value}`);
 }, { immediate: true });
 
 onMounted(async () => {
@@ -63,7 +64,7 @@ async function create(): Promise<void> {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">New {{ noun }}</h1>
+			<h1 tabindex="-1">{{ titleCase(`New ${noun}`) }}</h1>
 			<p class="page-header__hint">It starts as a draft. You'll write the rest in the editor.</p>
 		</div>
 	</header>

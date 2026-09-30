@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Markdown;
 
 use Override;
+use League\CommonMark\Extension\Attributes\AttributesExtension;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\DescriptionList\DescriptionListExtension;
@@ -33,7 +34,7 @@ use Blush\Config\InvalidConfig;
  *
  *     return new MarkdownConfig(
  *         options: ['renderer' => ['soft_break' => '<br />']],
- *         extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, AttributesExtension::class],
+ *         extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, SmartPunctExtension::class],
  *         inlineParsers: [App\Markdown\Cite::class]
  *     );
  *
@@ -52,8 +53,9 @@ final readonly class MarkdownConfig implements Config
 {
 	/**
 	 * The extensions used when none are configured: CommonMark plus the
-	 * GitHub-flavored extras, footnotes, definition lists, and
-	 * highlighting (`==text==`, D-175).
+	 * GitHub-flavored extras, footnotes, definition lists, highlighting
+	 * (`==text==`, D-175), and attribute blocks (`{.class #id}`, D-268),
+	 * which the admin writes for a block's classes and id.
 	 *
 	 * @var list<class-string<ExtensionInterface>>
 	 */
@@ -65,7 +67,8 @@ final readonly class MarkdownConfig implements Config
 		TaskListExtension::class,
 		FootnoteExtension::class,
 		DescriptionListExtension::class,
-		HighlightExtension::class
+		HighlightExtension::class,
+		AttributesExtension::class
 	];
 
 	/**

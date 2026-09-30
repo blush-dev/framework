@@ -138,8 +138,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   switching the color scheme saves it to the account.
 - **The Markdown source editor** (D-241): spelling on, and no horizontal
   padding on inline code (it shifted the text).
-- **The component inserter** (D-243, D-247, D-265): block components
-  only; core ones are grouped by category (Text, Media, Layout,
+- **The component inserter** (D-243, D-247, D-265, D-268): block
+  components only, with **Image** first under Media (it opens the media
+  picker on images); core ones are grouped by category (Text, Media, Layout,
   Navigation, Data), and a theme's, the site's, or an extension's by where
   they come from, which the strip at the foot names. Components are written by full name
   (`blush/callout`, D-171). An inline component goes at the caret; a leaf
@@ -149,10 +150,19 @@ Each is recorded in `.claude/docs/decisions.md`.
   through the grid only while it's empty. Tab inserts, as Enter does,
   while typing after a slash, and Escape leaves the slash as text. The
   panel opened by a slash closes once a component replaces it.
-- **The media picker** (D-246, D-247, D-265): the library comes from
-  `user/media` newest first, a page at a time with **Show more**, with
-  "Beside this entry" for a page bundle; there's no upload yet. It's also
-  **Choose** beside every media field and option.
+- **The media picker** (D-246, D-247, D-265, D-268): the library comes
+  from `user/media` newest first, a page at a time with **Show more**,
+  with "Beside This Entry" for a page bundle. The Upload tab (only for
+  `media.upload`; the menu is a plain button without it) takes the
+  library's types as the site allows them (images, sound, video; no
+  PDFs by default), up to PHP's limit, into `user/media/{year}/{month}/`.
+  Inserted images get the library's alt text and caption (D-269); a
+  Replace brings them only where the image had none. An image's own alt
+  text and caption are its own there: the panel never writes them to
+  the library. **Decorative** is empty alt text (D-272): on, the field
+  is hidden (and a library description is offered); off, it shows. It's also
+  **Choose** beside every media field and option, and **Replace** on an
+  image.
 - **The writing surface** (D-245): no `Changes` pill and the save state
   reads "Unsaved changes" or "Saved 3:46 PM" (no autosave); nothing sits
   under the title (D-254); the ⋯ menu has Save draft or
@@ -160,23 +170,30 @@ Each is recorded in `.claude/docs/decisions.md`.
   Duplicate); Tab in the body moves focus; the drawer isn't remembered;
   the footer has no line and column. Below 480px the save state is its
   dot, with its words read out.
-- **Media** (D-251): no upload, alt text, captions, or "used in" yet;
-  bundle files are in the editor's picker, not the library screen.
+- **Media** (D-251, D-268, D-269): **Upload** opens the picker on its
+  Upload tab and **Open** goes to the file. A file's screen has a
+  Details panel with Alt text (warned when an image has none) and
+  Caption, saved with **Save**; no file name, credit, "used in",
+  Replace, or Delete yet. Bundle files are in the editor's picker, not
+  the library screen, so their metadata is read but set by hand.
 - **Content types** (D-250): read-only; no field editor, new-type wizard,
   or delete yet. "Show in the sidebar" and a hierarchy switch aren't type
   settings in Blush. Entries counts are what the account may edit.
 - **Roles and accounts** (D-249): read-only, with a notice naming where
   each is changed; no Invite, role checkboxes, or danger zone yet; roles
   have no description, and the last sign-in stands in for "last active".
-- **Component options** (D-245): an option set back to its default is
-  removed from the directive; a required one left empty stays as
-  `key=""`. Removing a container keeps its body. Option changes are
-  applied to the text directly, so they aren't in the field's own undo.
+- **Component options** (D-245, D-268): an option set back to its
+  default is removed from the directive; a required one left empty
+  stays as `key=""`. Removing a container removes its body too (D-272). Option changes
+  are applied to the text directly, so they aren't in the field's own
+  undo. Classes and ID are fields; other undeclared attributes are
+  listed.
 - **Vocabulary follows Blush** where it differs: extensions, not addons, and
   whatever taxonomies a site defines (no built-in Topic).
 - **Markdown reads as it looks** (D-253, then §8's Marking the source in
-  D-265): the source is marked as that section's table says. Emphasis is
-  Fira Code's slanted face, not a true italic.
+  D-265 and D-268): the source is marked as that section's table says.
+  Emphasis is Fira Code's slanted face, not a true italic. Below 480px
+  the header's menus lose their carets, so it fits.
 - **Fira Code is the mono** (D-254, D-255), not IBM Plex Mono: 400, 500,
   and a real 600 (so bold keeps its width), and a slanted italic (it has
   none). The writing column is 640px (`--measure`), with nothing between
@@ -224,9 +241,26 @@ Each is recorded in `.claude/docs/decisions.md`.
   with the chosen one's description under it. A variant the component
   doesn't have here is kept, shown as "not available here". Variants
   aren't previewed.
-- **The Component tab** (D-265): named "Components", with the count, when
-  the caret isn't in one; the list of components is under the options
-  either way, with the current one marked.
+- **The Component tab** (D-265, D-268, D-271): named for what it shows,
+  else "Components", with no count. The list is a
+  state behind the one row, as §8 says, plus a **Back to the {object}**
+  row at its top. A blank line after a leaf or container selects it,
+  as one after a block selects the block; inside a container, the
+  container wins.
+- **Every block is an object** (D-268): attributes go at the end of a
+  heading's, paragraph's, or list item's last line, and on a line of
+  their own just above a quote, code block, table, or divider, where
+  the parser reads them (the provisional end-of-block rule doesn't
+  reach those four). An underlined heading given a level becomes one
+  with hashes. Attributes are on by default in `MarkdownConfig`.
+- **An image is Markdown** (D-268): its variants are the classes the
+  active theme lists under `theme.json`'s `variants.image`, not a fixed
+  list; the framework default theme offers Wide, Full Bleed, Float
+  Left, and Float Right only while it's active. The panel keeps a Source
+  line. Without hover, Replace and Remove stay on the image.
+- **Title Case** (D-268, §10) is applied to names across the admin,
+  core component labels included; `titleCase()` builds names from
+  parts ("Edit Page").
 
 ---
 
@@ -699,7 +733,7 @@ also why headings are told apart by weight rather than size.
 | Bold / italic / strike | Markers dim; content bold, oblique, or struck and dimmed |
 | Inline code | Backticks dim, content on a `--surface-2` chip |
 | Link | Brackets dim, **label in the accent**, target in `--fg-3` |
-| Image | `!` and brackets dim, alt in `--fg-2`, source in `--fg-3` |
+| Image | Marked exactly like a link: `!` and brackets dim, **alt in the accent**, source in `--fg-3`, **caption in full ink at 500** |
 | Blockquote | `>` dim, quoted text `--fg-2` |
 | List | Marker `--fg-2` at 600; text untouched |
 | Task | `[ ]` dim, `[x]` in `--good`; the text is never struck through |
@@ -715,11 +749,18 @@ Three consequences worth keeping:
 - **A link's label is read in the sentence and its target is not.** Coloring the
   whole `[label](url)` in the accent makes a paragraph with three links unreadable.
   The label takes the accent; the URL steps back to `--fg-3`.
+- **An image is marked as a link**, because that is what it is — a reference out
+  of the document that happens to point at a picture. Alt text sits where a
+  link's label sits and takes the accent; the path steps back the same way. The
+  quoted caption is the exception: the reader sees it, so it takes full ink at
+  500 while the quotes around it dim. Three parts, three weights, one glance.
 - **A directive is not boxed.** Its name carries the accent and that is enough.
   The box is reserved for **the component the caret is inside**, so a highlight
-  in the source always means *you are here* rather than *this is a component* —
-  the container's body picks up the same faint tint, so its extent is visible
-  without a border anywhere.
+  in the source always means *you are here* rather than *this is a component*.
+  A container marks its **opener and its closer only** — never the body between
+  them. The body is the writing; putting a tint behind three paragraphs an author
+  is in the middle of is the opposite of a writing surface, and the two marked
+  lines already say where the container starts and stops.
 - **Valid syntax is the only syntax that lights up.** A brace that is not an
   attribute block, a `*` that closes nothing, a `[` with no `]` — all stay plain
   text. The highlighting doubles as a syntax check: if it did not light up, it
@@ -785,10 +826,19 @@ star here, or anywhere that is not generation: a sparkle now reads as "AI"
 before it reads as anything else, and an icon that promises the wrong thing is
 worse than a dull one.
 
-**Media is a modal** too — the same picker used everywhere else in the admin, so
-a file is chosen the same way wherever you are. What it inserts depends on what
-was chosen: an image becomes a figure, a video becomes a video, anything else
-becomes a download.
+**Media inserts Markdown for images**, and a component only where Markdown has
+no syntax: an image becomes `![alt](src "caption")` with the library's own alt
+text and caption filled in, a video becomes `::video`, anything else becomes
+`::file`.
+
+**Media is a dropdown onto a modal.** The toolbar button offers two ways in —
+*Media library* and *Upload a file* — because they are different acts with
+different expectations: one browses what exists, the other adds something new,
+and an author usually knows which before they click. Both land in the same
+modal on the matching tab, so the menu is a way in, not a fork.
+
+The modal itself is the same picker used everywhere else in the admin, so a file
+is chosen the same way wherever you are.
 
 The rule: **a panel for what you browse while writing, a dropdown for a short
 fixed list, a modal for a library.** The question is not how important the
@@ -798,6 +848,101 @@ happens while a sentence is half-written.
 Both modals share one shell: head, filter bar, body, footer, with the primary
 button disabled until something is chosen and labeled for the errand. Two
 libraries that behave differently is two things to learn.
+
+### Every block is an object
+The Component tab does not only show components. **Every block-level thing in
+the source has a panel** — heading, paragraph, list item, quote, code block,
+table, divider, image, directive — because every one of them can take a class or
+an id, and an author should not have to remember where the braces go.
+
+The panel follows the caret. Directives and images win where they overlap,
+because they are more specific; otherwise it shows the plain Markdown block the
+caret is sitting in, named on the tab: *Heading*, *Paragraph*, *List Item*,
+*Code Block*, *Table*, *Quote*, *Divider*.
+
+Two controls are the same in every one of them, because the syntax is the same
+everywhere: **Classes** (space separated, without the dots) and **ID**. Above
+them sits whatever else that block has to say:
+
+| Block | Its own controls |
+|---|---|
+| Heading | Level, 1–6, which rewrites the hashes |
+| Code block | Language, written as the fence's info string |
+| List item | Whether it is a task, and whether the task is done |
+| Image | The picture, alt text and caption |
+| Everything else | Attributes alone |
+
+Rules that keep it from becoming noise:
+
+- **A blank line belongs to the block above it.** Otherwise the panel empties
+  itself every other line as you arrow through a document, which is worse than
+  being a line behind.
+- **Blocks get no highlight in the source.** The ring means *you are here*, and
+  the caret already says that; tinting the whole paragraph you are typing in
+  would undo the writing surface.
+- **Blocks are not in "Components in this entry".** That list is objects you
+  placed, not every paragraph you wrote.
+- **The list is a state, not a footer.** Once the panel always has something to
+  show, printing the whole index under every heading and paragraph is padding.
+  Each panel ends with **one quiet row** — icon, "Components in this entry", the
+  count, a chevron — in the same place every time; clicking it replaces the panel
+  with the list, and picking something from the list, or moving the caret, puts
+  the panel back. The list is still one click from anywhere without being on
+  screen when nobody asked for it.
+- **Attributes go where the syntax puts them**: at the end of the block's last
+  line, and after the info string on a code fence. *Provisional:* the placement
+  for tables and dividers follows the same end-of-block rule, which the parser
+  should be checked against.
+- **No footer chip for a block.** The chip names a component when the drawer is
+  closed; doing it for every paragraph would be a label that never goes away.
+
+### An image is Markdown
+There is **no figure component**. An image is what Markdown already says it is:
+
+```
+![alt text](/media/2026/06/icon-dream.webp "The caption"){.stretch-wide}
+```
+
+Four parts, each with a job: alt text for anyone who cannot see it, the source,
+the quoted title — which this framework renders as the **caption** — and an
+attribute block carrying the width class. A component wrapping the same four
+things would be a second syntax for one object, and the entry's source would
+then depend on which button the author happened to press.
+
+So the editor makes the Markdown itself selectable. An image is scanned like a
+directive, appears in **Components in this entry**, names the Component tab, and
+gets the same panel: **Variant** (Default, Wide, Full bleed, Float left, Float
+right), the **image itself**, **Alt text**, and **Caption**.
+
+**The panel shows the picture, not its file name.** A path in a read-only text
+field asks someone to recognize a photograph by its slug. The preview is the same
+4:3 cropped frame the library uses, so a file looks the same wherever it appears,
+with the path and dimensions on one quiet line beneath it. **Replace** and
+**Remove** sit on the image itself on hover or keyboard focus, over a veil that
+still lets it show through — the actions are on the thing they act on, and the
+panel stays two controls lighter until someone reaches for them. An image whose
+file is not in the library says so rather than showing a broken frame.
+
+- The **caption field is called Caption, not Title**, because that is what it
+  does here. Naming a field after the syntax rather than the effect is how an
+  interface ends up teaching its own implementation.
+- An image's variant is a **class**, not `variant=`, because `{.stretch-wide}`
+  is what the framework reads. Same idea as a directive's variant, spelled the
+  way images spell it — changing it swaps that one class and leaves every other
+  class and attribute alone.
+- An **empty caption writes nothing**, not an empty pair of quotes.
+- The inserter still lists **Image** under Media, but choosing it opens the
+  media library rather than writing a directive. The entry point stays where
+  people look for it; only the output changed.
+
+The same holds in reverse: video and downloads *do* get components, because
+Markdown has no syntax for them. The test is whether Markdown already says it.
+
+**`:::figure` is a container, not an image.** It wraps *anything* that needs a
+caption and a width — a table, a gallery, a code sample, an image — and its own
+options are the caption and the alignment. That is a different job from an image,
+which is why it can exist alongside one without being a second way to write the
+same thing: an image is the content, a figure is the frame around content.
 
 ### Variants
 Every component has a **variant**: a named style the theme provides. The
@@ -956,6 +1101,28 @@ a 760px dialog is the reason picking an image feels like a chore.
   button is disabled until something is chosen, and it is labeled for the
   errand: *Insert* when inserting into an entry, *Choose* when filling a field.
 
+**Two tabs: Library and Upload.** Uploading is the same act as choosing, one
+step earlier — a file lands in the library and is then selected — so it belongs
+in the same modal rather than behind a separate dialog that ends somewhere else.
+
+- **The Upload tab is a drop zone and a button**, in that order, with the size
+  limit and accepted types stated before anyone tries. The button carries no
+  icon: there is already a large upload glyph above it, and a second one three
+  inches below reads as a different action rather than the same one. A drop zone with no
+  button excludes anyone not dragging; a button with no drop zone ignores how
+  most people actually move a file.
+- **Dropping anywhere on the modal uploads**, and switches to the Upload tab as
+  the drag enters. Nobody aims for the dashed rectangle, and a file dropped an
+  inch outside it should not vanish.
+- **An upload ends in the library, selected.** The Upload tab keeps a short
+  receipt — file name, dimensions, size, a check — and the footer already names
+  the newest file, so *Insert* finishes the job without a detour. **Show in
+  library** is there for anyone who wants to see it in place first.
+- **The empty search state offers the other tab**: "No file matches" is often
+  the moment someone realizes they never uploaded it.
+- The library screen's own **Upload** button opens the same modal on the same
+  tab. One uploader, one set of rules about what a file may be.
+
 ### Trash
 Trash is a status, not a separate screen. A trashed entry's row menu replaces
 the ordinary actions with **Restore as a draft** and **Delete permanently**,
@@ -1045,8 +1212,20 @@ initial render — the first frame is complete. Everything is disabled under
   *Published 3 posts*.
 - Errors say what went wrong and what to do. No apologies, no "Oops".
 - No exclamation marks, no emoji in the interface.
-- Sentence case for buttons, labels and headings. Uppercase only for the 11px
-  micro-labels, which take tracking.
+- **Title Case names things; sentence case says things.** Anything that *is* a
+  name takes Title Case: page titles, panel and section headings, empty-state
+  headings, modal titles, tab labels, sidebar and breadcrumb entries, component
+  and variant names, and the command palette rows that name a screen. Anything
+  that is a sentence or an instruction stays sentence case: buttons, form
+  labels, hints, descriptions, toasts, menu items, and every line of body copy.
+  So *Content Types* in the sidebar and as the page title, but *New type* on the
+  button and *Name (plural)* on the field. The test is whether you would
+  capitalize it mid-sentence: you would write "open Content Types", but you
+  would not write "click New Type".
+- In Title Case, small words stay lowercase unless they lead: *Nothing Links to
+  This File*, *Insert an Icon*, *Upload to the Library*.
+- Uppercase is only for the 11px micro-labels, which take tracking. They are
+  set from Title Case text, so turning the styling off leaves correct copy.
 - Counts are exact. "1,204 files", not "over a thousand".
 - **US English throughout** — color, gray, behavior, organized, catalog. This
   applies to interface copy, code identifiers, CSS token names and comments.
@@ -1114,8 +1293,9 @@ decision.
   component inserter (`GET components`, D-243, D-247), the settings' two
   tabs (D-245), mapping the caret to its directive and rewriting options
   in place (`markdown.ts`, D-241, D-245), invoking the media picker
-  from an option (**Choose** beside it, D-247), and icon categories
-  (`GET icons`' `category` and `source`, D-265).
+  from an option (**Choose** beside it, D-247), icon categories
+  (`GET icons`' `category` and `source`, D-265), and where a block's
+  attributes go, uploads (`POST media`), and image variants (D-268).
 - The content-type builder's own screens.
 - Whether type provenance ("Posts addon", "Custom type") belongs in the list
   header at all — useful at three types, clutter at fifteen.

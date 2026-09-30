@@ -17,9 +17,19 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Admin\IconsController;
 use Blush\Admin\MediaListController;
+use Blush\Admin\MediaUploadController;
+use Blush\Media\MediaMetadata;
+use Blush\Media\MediaMetadataStore;
+use Blush\Http\Kernel;
+use Blush\Http\Request;
+use Blush\Http\UploadedFile;
+use Psr\Http\Message\ResponseInterface;
 
 #[CoversClass(IconsController::class)]
 #[CoversClass(MediaListController::class)]
+#[CoversClass(MediaUploadController::class)]
+#[CoversClass(MediaMetadata::class)]
+#[CoversClass(MediaMetadataStore::class)]
 final class AdminPickersTest extends TestCase
 {
 	use BootsAdmin;
@@ -118,6 +128,168 @@ final class AdminPickersTest extends TestCase
 		foreach (['notes.txt', '.hidden.png', '2026/missing.png', '../user/content/trip/beach.png'] as $path) {
 			$this->assertSame(404, $this->send('GET', "/media/{$path}")->getStatusCode(), $path);
 		}
+	}
+
+	/**
+	 * Uploads a file with the multipart field `file`, as the browser would.
+	 */
+	private function upload(string $name, string $contents, int $error = UPLOAD_ERR_OK): ResponseInterface
+	{
+		$token     = self::json($this->send('GET', '/session'))['csrfToken'] ?? '';
+		$temporary = $this->writeTemporaryFile('uploads/' . bin2hex(random_bytes(4)), $contents);
+		$request   = Request::create('https://example.test/admin/api/media', 'POST', ['Origin' => 'https://example.test', 'Sec-Fetch-Site' => 'same-origin', 'X-CSRF-Token' => is_string($token) ? $token : ''], '', ['REMOTE_ADDR' => '203.0.113.5'])
+			->withCookieParams(['__Host-blush_session' => (string) $this->cookie])
+			->withUploadedFiles(['file' => new UploadedFile($temporary, strlen($contents), $error, $name, 'application/octet-stream')]);
+
+		return $this->app->container()->make(Kernel::class)->handle($request);
+	}
+
+	public function testUploadsIntoTheLibrary(): void
+	{
+		$this->site();
+
+		$png  = (string) base64_decode(self::PNG, true);
+		$list = $this->media();
+
+		$this->assertSame(['extensions' => ['apng', 'avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp', 'mp3', 'oga', 'ogg', 'wav', 'm4v', 'mp4', 'ogv', 'webm']], array_diff_key(is_array($list['upload'] ?? null) ? $list['upload'] : [], ['limit' => true]), 'The picker learns what it may upload.');
+
+		$first = $this->upload('My Holiday (1).PNG', $png);
+		$file  = self::json($first);
+
+		$folder = $file['folder'] ?? null;
+
+		$this->assertSame(201, $first->getStatusCode());
+		$this->assertIsString($folder);
+		$this->assertMatchesRegularExpression('#^\d{4}/\d{2}$#', $folder, 'Filed by year and month.');
+		$this->assertSame(['My-Holiday-1.png', 'image', 1], [$file['name'] ?? null, $file['kind'] ?? null, $file['width'] ?? null], 'A name safe for a URL, with its extension lowercased.');
+		$this->assertFileExists($this->temporaryDirectory() . "/user/media/{$folder}/My-Holiday-1.png");
+
+		$again = self::json($this->upload('My Holiday (1).png', $png));
+
+		$this->assertSame('My-Holiday-1-2.png', $again['name'] ?? null, 'Nothing is replaced.');
+		$this->assertSame("/media/{$folder}/My-Holiday-1-2.png", $again['reference'] ?? null);
+
+		$files = $this->media()['files'] ?? null;
+
+		$this->assertIsArray($files);
+		$this->assertSame('My-Holiday-1-2.png', is_array($files[0] ?? null) ? $files[0]['name'] ?? null : null, 'It\'s the newest in the library.');
+	}
+
+	public function testRefusesWhatTheLibraryDoesNotTake(): void
+	{
+		$this->site();
+
+		$this->assertSame(422, $this->upload('notes.txt', 'plain text')->getStatusCode(), 'Not a library type.');
+		$this->assertSame(422, $this->upload('page.png', '<html><script>alert(1)</script></html>')->getStatusCode(), 'Not what its name says.');
+		$this->assertSame(413, $this->upload('big.png', '', UPLOAD_ERR_INI_SIZE)->getStatusCode());
+		$this->assertSame([], glob($this->temporaryDirectory() . '/user/media/*/*/{.,}*.png', GLOB_BRACE) ?: [], 'Nothing is left behind.');
+		$this->assertSame(['.hidden.png'], array_map(basename(...), glob($this->temporaryDirectory() . '/user/media/.*.png') ?: []));
+
+		$this->assertSame('file.png', MediaUploadController::safeName('../../.png'));
+		$this->assertSame('etc-passwd.svg', MediaUploadController::safeName('/etc passwd.SVG'));
+	}
+
+	public function testChecksWhoMayUpload(): void
+	{
+		$this->site(['contributor']);
+
+		$this->assertSame(403, $this->upload('photo.png', (string) base64_decode(self::PNG, true))->getStatusCode());
+	}
+
+	/**
+	 * Changes a library file's metadata, as the Media screen does.
+	 *
+	 * @param array<mixed> $data
+	 */
+	private function patch(string $path, array $data): ResponseInterface
+	{
+		$token = self::json($this->send('GET', '/session'))['csrfToken'] ?? '';
+
+		return $this->send('PATCH', "/media/{$path}", json_encode($data) ?: '', ['X-CSRF-Token' => is_string($token) ? $token : '']);
+	}
+
+	public function testKeepsAltTextAndCaptionsOutsideTheMediaFolder(): void
+	{
+		$this->site();
+
+		$file = self::json($this->send('GET', '/media/2026/new-photo.png'));
+
+		$this->assertSame(['', ''], [$file['alt'] ?? null, $file['caption'] ?? null], 'None yet.');
+
+		$saved = $this->patch('2026/new-photo.png', ['alt' => "  A red\nsquare. ", 'caption' => 'The first one']);
+		$data  = $this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.yml';
+
+		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
+		$this->assertSame(['A red square.', 'The first one'], [self::json($saved)['alt'] ?? null, self::json($saved)['caption'] ?? null], 'On one line, trimmed.');
+		$this->assertSame("alt: \"A red square.\"\ncaption: \"The first one\"\n", (string) file_get_contents($data));
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2026/new-photo.png.yml', 'Never beside the file.');
+
+		$files = $this->media()['files'] ?? null;
+
+		$this->assertIsArray($files);
+		$this->assertSame('A red square.', is_array($files[0] ?? null) ? $files[0]['alt'] ?? null : null, 'The library lists it.');
+
+		// One changed, the other kept; keys it doesn't know stay as written.
+		file_put_contents($data, "# Credit goes here.\ncredit: Jane\n" . file_get_contents($data));
+		$this->patch('2026/new-photo.png', ['caption' => '']);
+
+		$this->assertSame("# Credit goes here.\ncredit: Jane\nalt: \"A red square.\"\n", (string) file_get_contents($data));
+
+		$this->patch('2026/new-photo.png', ['alt' => '']);
+		$this->assertSame("# Credit goes here.\ncredit: Jane\n", (string) file_get_contents($data));
+
+		unlink($data);
+		$this->writeTemporaryFile('user/data/media/2020/old.png.json', '{"credit": "Sam"}');
+		$this->patch('2020/old.png', ['alt' => 'Old']);
+
+		$this->assertSame(['credit' => 'Sam', 'alt' => 'Old'], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2020/old.png.json'), true), 'JSON stays JSON.');
+
+		$this->patch('2020/old.png', ['alt' => '']);
+		$this->patch('2026/new-photo.png', ['alt' => 'Back', 'caption' => '']);
+		$this->patch('2026/new-photo.png', ['alt' => '']);
+
+		$this->assertFileDoesNotExist($data, 'A file with nothing to say goes.');
+	}
+
+	public function testABundleFilesMetadataIsUnderContent(): void
+	{
+		$this->writeTemporaryFile('user/data/media/_content/trip/beach.png.yaml', "alt: Sand and sea\ncaption: [not, text]\n");
+		$this->site();
+
+		$beside = $this->media('?entry=trip/index.md')['beside'] ?? null;
+
+		$this->assertIsArray($beside);
+		$this->assertSame(['Sand and sea', ''], is_array($beside[0] ?? null) ? [$beside[0]['alt'] ?? null, $beside[0]['caption'] ?? null] : null);
+	}
+
+	public function testChecksChangesToMetadata(): void
+	{
+		$this->site();
+
+		$this->assertSame(400, $this->patch('2026/new-photo.png', ['alt' => 3])->getStatusCode());
+		$this->assertSame(404, $this->patch('2026/missing.png', ['alt' => 'x'])->getStatusCode());
+		$this->assertSame(404, $this->patch('notes.txt', ['alt' => 'x'])->getStatusCode());
+
+		$this->writeTemporaryFile('user/data/media/2026/broken.png.yml', "alt: [\n");
+		$this->assertSame('', self::json($this->send('GET', '/media/2026/new-photo.png'))['alt'] ?? null, 'Its own file, not a broken one.');
+	}
+
+	public function testOnlyThoseWhoMayUploadChangeMetadata(): void
+	{
+		$this->site(['contributor']);
+
+		$this->assertSame(403, $this->patch('2026/new-photo.png', ['alt' => 'x'])->getStatusCode());
+	}
+
+	public function testAnUploadDoesNotTakeOnLeftoverMetadata(): void
+	{
+		$this->site();
+
+		$folder = date('Y/m');
+
+		$this->writeTemporaryFile("user/data/media/{$folder}/gone.png.yml", "alt: Someone else's\n");
+
+		$this->assertSame('gone-2.png', self::json($this->upload('gone.png', (string) base64_decode(self::PNG, true)))['name'] ?? null);
 	}
 
 	public function testDescribesTheIcons(): void

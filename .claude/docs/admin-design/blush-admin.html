@@ -32,13 +32,14 @@ img{max-width:100%}[hidden]{display:none!important}</style>
   /* One spacing scale. Nothing in the stylesheet invents its own gap. */
   --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
   --ctl:34px; --ctl-sm:30px;
-  --mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-title:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --base:13px; --h1:26px; --h1-track:-.024em; --title-track:-.005em; --title-size:13.5px; --title-weight:500;
   --pad-row:14px; --pad-panel:17px; --pad-x:22px; --stat-v:30px;
-  --rail:262px;
+  --railbar:74px; --rail:262px; --bar:62px; --work-max:1400px;
+  --measure:72ch;   /* the editor's writing column */
 }
 
 /* -- admin theme: editorial (light) -- */
@@ -126,14 +127,14 @@ button{background:none;border:0;padding:0;cursor:pointer}
 a{color:inherit;text-decoration:none}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
 .ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---------- app shell ----------
    A labeled icon rail carries the sections; the panel beside it shows only the
    active one, so it stays short however many types a site defines. */
 .app{display:flex;height:100%;min-height:0}
-.railbar{width:74px;flex:none;background:var(--surface);border-right:1px solid var(--border);
+.railbar{width:var(--railbar);flex:none;background:var(--surface);border-right:1px solid var(--border);
   display:flex;flex-direction:column;align-items:center;padding:var(--s-3) 0;gap:var(--s-1);z-index:2}
 .rb{width:60px;padding:10px 2px 8px;border-radius:var(--r-2);display:flex;flex-direction:column;align-items:center;gap:6px;
   color:var(--fg-3);font-size:9.5px;font-weight:500;line-height:1.2;text-align:center;position:relative}
@@ -147,11 +148,11 @@ a{color:inherit;text-decoration:none}
 
 .rail{width:var(--rail);flex:none;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;transition:width .16s ease;overflow:hidden}
 .app.rail-collapsed .rail{width:0;border-right-width:0}
-.sec-head{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-4) var(--s-4);border-bottom:1px solid var(--border);min-height:62px;flex:none}
+.sec-head{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-4) var(--s-4);border-bottom:1px solid var(--border);min-height:var(--bar);flex:none}
 .sec-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.01em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sec-head .sub{display:block;font-size:11px;color:var(--fg-3);font-weight:400;font-family:var(--font-ui);letter-spacing:0;margin-top:2px}
 
-.site{display:flex;align-items:center;gap:11px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--border);min-height:62px}
+.site{display:flex;align-items:center;gap:11px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--border);min-height:var(--bar)}
 .site-mark{width:30px;height:30px;flex:none;border-radius:var(--r-1);background:var(--fg);color:var(--bg);display:grid;place-items:center;font-weight:600;font-size:13px;letter-spacing:-.02em}
 .site-meta{min-width:0;flex:1}
 .site-name{font-family:var(--font-display);font-weight:600;font-size:14.5px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -167,7 +168,7 @@ a{color:inherit;text-decoration:none}
 .nav-item .lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav-item[aria-current="page"]{background:var(--surface-2);color:var(--fg);font-weight:500}
 .nav-item[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:2px;border-radius:0 2px 2px 0;background:var(--accent)}
-.nav-count{font-family:var(--mono);font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.nav-count{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
 .nav-item.two{align-items:flex-start;padding-block:7px}
 .nav-item.two .ic{margin-top:2px}
 .nav-item.two .lbl{white-space:normal}
@@ -189,7 +190,7 @@ a{color:inherit;text-decoration:none}
 
 /* ---------- main column ---------- */
 .main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
-.topbar{height:62px;flex:none;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-4)}
+.topbar{height:var(--bar);flex:none;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-4)}
 .icon-btn{width:32px;height:32px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-2);flex:none}
 .icon-btn:hover{background:var(--surface-2);color:var(--fg)}
 .crumbs{display:flex;align-items:center;gap:6px;min-width:0;font-size:13px;color:var(--fg-3)}
@@ -199,12 +200,12 @@ a{color:inherit;text-decoration:none}
 .kbar{display:flex;align-items:center;gap:8px;height:var(--ctl);padding:0 12px;border:1px solid var(--border);border-radius:var(--r-1);color:var(--fg-3);background:var(--bg);min-width:220px}
 .kbar:hover{border-color:var(--border-strong);color:var(--fg-2)}
 .kbar .kbar-t{flex:1;text-align:left;font-size:12.5px}
-kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 4px;color:var(--fg-3);background:var(--surface)}
+kbd{font-family:var(--font-mono);font-size:10.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 4px;color:var(--fg-3);background:var(--surface)}
 .avatar{width:29px;height:29px;border-radius:99px;background:var(--surface-3);color:var(--fg-2);display:grid;place-items:center;font-size:10.5px;font-weight:600;letter-spacing:.02em;flex:none}
 .avatar.sm{width:22px;height:22px;font-size:9.5px}
 
 .work{flex:1;overflow-y:auto;min-height:0}
-.wrap{padding:var(--s-6) var(--s-6) 96px;max-width:1400px;margin:0 auto}
+.wrap{padding:var(--s-6) var(--s-6) 96px;max-width:var(--work-max);margin:0 auto}
 
 /* ---------- page header ---------- */
 .page-head{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap;margin-bottom:var(--s-6)}
@@ -223,6 +224,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--border);bord
 .btn-danger:hover{background:var(--danger-soft);border-color:var(--danger-soft)}
 .btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
 .btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
 
 /* ---------- panels ---------- */
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);box-shadow:var(--shadow-1)}
@@ -257,7 +259,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--border);bord
 .bar-hit{fill:transparent;cursor:pointer}
 .bar-hit:hover + .bar,.bar-hit:focus-visible + .bar{fill:var(--accent-hover)}
 .gridline{stroke:var(--border);stroke-width:1}
-.axis-t{fill:var(--fg-3);font-size:10px;font-family:var(--mono)}
+.axis-t{fill:var(--fg-3);font-size:10px;font-family:var(--font-mono)}
 .chart-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 2px 2px;font-size:11px;color:var(--fg-3)}
 
 .rows{display:flex;flex-direction:column}
@@ -275,11 +277,11 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--border);bord
 .feed li:last-child{border-bottom:0}
 .feed .txt{font-size:12.5px;color:var(--fg-2);min-width:0;flex:1}
 .feed .txt b{color:var(--fg);font-weight:500}
-.feed time{font-family:var(--mono);font-size:10.5px;color:var(--fg-3);flex:none;padding-top:2px}
+.feed time{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);flex:none;padding-top:2px}
 
 .sched li{display:flex;gap:13px;padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border);align-items:center}
 .sched li:last-child{border-bottom:0}
-.when{font-family:var(--mono);font-size:10.5px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:3px 6px;text-align:center;flex:none;line-height:1.3}
+.when{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:3px 6px;text-align:center;flex:none;line-height:1.3}
 .when b{display:block;color:var(--fg);font-weight:500}
 .tbadge{font-size:10.5px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:1px 6px;white-space:nowrap;flex:none}
 
@@ -299,7 +301,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--border);bord
 .tab{display:inline-flex;align-items:center;gap:7px;padding:12px 14px;font-size:13px;color:var(--fg-2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
 .tab:hover{color:var(--fg)}
 .tab[aria-selected="true"]{color:var(--fg);font-weight:500;border-bottom-color:var(--accent)}
-.tab .c{font-family:var(--mono);font-size:10.5px;color:var(--fg-3);background:var(--surface-2);border-radius:99px;padding:1px 5px;font-variant-numeric:tabular-nums}
+.tab .c{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);background:var(--surface-2);border-radius:99px;padding:1px 5px;font-variant-numeric:tabular-nums}
 .tab[aria-selected="true"] .c{color:var(--fg-2)}
 
 .toolbar{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-4) 0;flex-wrap:wrap}
@@ -354,7 +356,7 @@ tbody tr.selected:hover{background:var(--accent-soft)}
 .title-main{min-width:0}
 .t-title{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);display:block;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .t-title:hover{color:var(--accent)}
-.t-slug{display:block;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);margin-top:4px;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-slug{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-top:4px;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* The pinned index row. It reads as part of the table, tinted just enough to
    say it does not take part in the sorting and paging of the rows below. */
 #pinBody tr.pinned{background:var(--surface-2)}
@@ -365,14 +367,14 @@ tbody tr.selected:hover{background:var(--accent-soft)}
 .t-row{display:flex;align-items:center;gap:7px;min-width:0}
 .ix-line{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface-2)}
 .ix-line .t-title{display:inline;max-width:none}
-.ix-line code{font-family:var(--mono);font-size:11px;color:var(--fg-3)}
+.ix-line code{font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
 .t-row .t-title{max-width:38ch}
 .ix-mark{flex:none;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);
   border:1px solid var(--border);border-radius:4px;padding:2px 7px;background:var(--surface)}
 .who{display:flex;align-items:center;gap:9px;white-space:nowrap}
 .who span{font-size:12.5px;color:var(--fg-2)}
 .when-cell{font-size:12px;color:var(--fg-2);white-space:nowrap}
-.when-cell small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);margin-top:2px}
+.when-cell small{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-top:2px}
 .row-more{opacity:0;width:30px;height:30px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-3)}
 tr:hover .row-more,.row-more[aria-expanded="true"],.row-more:focus-visible{opacity:1}
 .row-more:hover{background:var(--surface-3);color:var(--fg)}
@@ -412,7 +414,7 @@ tr:hover .row-more,.row-more[aria-expanded="true"],.row-more:focus-visible{opaci
 .palette-sec{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-3) 10px var(--s-1)}
 .palette-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px;border-radius:var(--r-1);color:var(--fg-2);font-size:13px;text-align:left}
 .palette-item .ic{color:var(--fg-3)}
-.palette-item .sub{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);flex:none}
+.palette-item .sub{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);flex:none}
 .palette-item.active{background:var(--surface-2);color:var(--fg)}
 .palette-item.active .ic{color:var(--accent)}
 .palette-foot{display:flex;gap:var(--s-4);padding:12px var(--s-5);border-top:1px solid var(--border);font-size:11px;color:var(--fg-3);background:var(--bg)}
@@ -434,7 +436,7 @@ tr:hover .row-more,.row-more[aria-expanded="true"],.row-more:focus-visible{opaci
   .railbar,.rail{position:fixed;top:0;bottom:0;z-index:52;transform:translateX(-100%);transition:transform .18s ease}
   .railbar{left:0;box-shadow:none}
   /* Clear the rail bar's width too, or its edge sits over the menu button. */
-  .rail{left:74px;box-shadow:var(--shadow-3);transform:translateX(calc(-100% - 74px))}
+  .rail{left:var(--railbar);box-shadow:var(--shadow-3);transform:translateX(calc(-100% - var(--railbar)))}
   .app.nav-open .railbar,.app.nav-open .rail{transform:translateX(0)}
   .app.nav-open .scrim-nav{display:block}
   .app.rail-collapsed .rail{width:var(--rail);border-right-width:1px}
@@ -489,9 +491,9 @@ select.inp{appearance:none;padding-right:30px;
    Writing first: one centered column, chrome that gets out of the way while
    typing, and settings on demand rather than permanently beside the text. */
 .work.bleed{overflow:hidden}
-.editor{display:flex;flex-direction:column;height:100%;min-height:0;--measure:72ch}
+.editor{display:flex;flex-direction:column;height:100%;min-height:0}
 .ed-head{flex:none;display:flex;align-items:center;gap:10px;padding:var(--s-3) var(--s-5);border-bottom:1px solid var(--border);background:var(--surface);
-  min-height:68px;transition:opacity .25s ease}
+  min-height:calc(var(--bar) + 6px);transition:opacity .25s ease}
 /* The editor's toolbar is used more than any other, so its targets are bigger
    and further apart than the admin's default icon button. */
 .ed-head .icon-btn{width:36px;height:36px}
@@ -523,9 +525,9 @@ select.inp{appearance:none;padding-right:30px;
 .ed-title{display:block;width:100%;border:0;background:none;outline:none;font-family:var(--font-display);font-size:34px;font-weight:600;
   letter-spacing:-.028em;line-height:1.18;color:var(--fg);padding:0;margin:0;resize:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:break-word}
 .ed-title::placeholder{color:var(--fg-3);opacity:.6}
-.ed-slug{font-family:var(--mono);font-size:11.5px;color:var(--fg-3);margin-top:11px;margin-bottom:var(--s-6)}
+.ed-slug{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);margin-top:11px;margin-bottom:var(--s-6)}
 .ed-text{position:relative}
-.ed-hl,.ed-src{font-family:var(--mono);font-size:14px;line-height:2;white-space:pre-wrap;overflow-wrap:break-word;
+.ed-hl,.ed-src{font-family:var(--font-mono);font-size:14px;line-height:2;white-space:pre-wrap;overflow-wrap:break-word;
   margin:0;padding:0;border:0;tab-size:2;letter-spacing:0}
 .ed-hl{color:var(--fg);pointer-events:none}
 .ed-src{position:absolute;top:0;left:0;width:100%;background:transparent;color:transparent;caret-color:var(--accent);
@@ -552,7 +554,10 @@ select.inp{appearance:none;padding-right:30px;
    steps back and the label carries the one accent colour prose gets. */
 .hl-link{color:var(--accent)}
 .hl-url{color:var(--fg-3)}
-.hl-alt{color:var(--fg-2)}
+/* An image is a link that happens to point at a picture, so it is marked like
+   one: alt text in the accent where a link's label would be, path stepped back,
+   and the quoted caption in full ink because the reader sees it. */
+.hl-title{color:var(--fg);font-weight:500}
 .hl-fn{color:var(--accent)}
 
 .hl-quote{color:var(--fg-2)}
@@ -576,7 +581,6 @@ select.inp{appearance:none;padding-right:30px;
 .hl-dname{color:var(--accent);font-weight:500}
 .hl-dlabel{color:var(--fg)}
 .hl-dir.on{background:var(--accent-soft);border-radius:3px;padding:1px 0;box-shadow:0 0 0 1px var(--accent-line)}
-.hl-inside{background:var(--accent-soft);border-radius:2px}
 
 /* Attributes are metadata about the line they hang off — the same chip on an
    image, a heading or a directive. The names carry full ink; nothing else does. */
@@ -615,7 +619,7 @@ select.inp{appearance:none;padding-right:30px;
 .ed-tab:first-child{padding-left:var(--s-5)}
 .ed-tab:hover:not([disabled]){color:var(--fg)}
 .ed-tab[aria-selected="true"]{color:var(--fg);font-weight:500;border-bottom-color:var(--accent)}
-.ed-tab .n{font-family:var(--mono);font-size:10px;color:var(--fg-3);background:var(--surface-2);border-radius:99px;padding:1px 6px}
+.ed-tab .n{font-family:var(--font-mono);font-size:10px;color:var(--fg-3);background:var(--surface-2);border-radius:99px;padding:1px 6px}
 .ed-tab .ic{width:13px;height:13px}
 
 @media (max-width:980px){
@@ -632,11 +636,29 @@ select.inp{appearance:none;padding-right:30px;
 .comp-jump:hover{background:var(--surface-2);color:var(--fg)}
 .comp-jump.on{background:var(--accent-soft);color:var(--accent)}
 .comp-jump.on .nm{color:var(--accent)}
+/* The image itself, with its actions over it on hover or keyboard focus. */
+.img-prev{position:relative;border:1px solid var(--border);border-radius:var(--r-2);overflow:hidden;background:var(--surface-2)}
+.img-prev .frame{display:block;aspect-ratio:4/3}
+.img-prev .frame img,.img-prev .frame svg{display:block;width:100%;height:100%;object-fit:cover}
+.img-prev .miss{display:grid;place-items:center;height:100%;color:var(--fg-3)}
+.img-prev .miss .ic{width:24px;height:24px}
+.img-prev .veil{position:absolute;inset:0;background:var(--surface);opacity:0;transition:opacity .12s}
+.img-prev .acts{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:var(--s-2);
+  opacity:0;transition:opacity .12s}
+.img-prev:hover .veil,.img-prev:focus-within .veil{opacity:.8}
+.img-prev:hover .acts,.img-prev:focus-within .acts{opacity:1}
+.img-prev.empty{aspect-ratio:4/3;display:grid;place-items:center;border-style:dashed;background:var(--bg)}
+.side-link{display:flex;align-items:center;gap:var(--s-3);width:100%;padding:var(--s-4) var(--s-5);
+  border-bottom:1px solid var(--border);font-size:12.5px;color:var(--fg-2);text-align:left}
+.side-link:hover{background:var(--surface-2);color:var(--fg)}
+.side-link .ic{color:var(--fg-3)}
+.side-link .n{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.side-link .go{width:13px;height:13px;margin-left:2px}
 .side-none{padding:52px var(--s-5) 46px;text-align:center;color:var(--fg-2);border-bottom:1px solid var(--border)}
 .side-none .ic{width:22px;height:22px;color:var(--fg-3);margin-bottom:var(--s-3)}
 .side-none h3{font-family:var(--font-display);font-size:14.5px;font-weight:600;color:var(--fg);margin-bottom:6px}
 .side-none p{font-size:12px;color:var(--fg-3);line-height:1.6;max-width:34ch;margin:0 auto}
-.comp-jump .nm{font-family:var(--mono);font-size:11px;color:var(--accent)}
+.comp-jump .nm{font-family:var(--font-mono);font-size:11px;color:var(--accent)}
 .comp-jump .sub{margin-left:auto;font-size:11px;color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
 .mini-note{font-size:11.5px;color:var(--fg-3);line-height:1.5}
 
@@ -658,7 +680,7 @@ select.inp{appearance:none;padding-right:30px;
   border-right:1px solid transparent;transition:width .18s ease;min-height:0}
 .editor.ins-open .ins-panel{width:376px;border-right-color:var(--border)}
 .ins-inner{width:376px;height:100%;display:flex;flex-direction:column;min-height:0}
-.ins-head{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-4) var(--s-3) var(--s-4) var(--s-5);border-bottom:1px solid var(--border);flex:none;min-height:62px}
+.ins-head{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-4) var(--s-3) var(--s-4) var(--s-5);border-bottom:1px solid var(--border);flex:none;min-height:var(--bar)}
 .ins-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;flex:1;min-width:0;letter-spacing:-.01em}
 .ins-head .hint{font-size:10.5px;color:var(--fg-3)}
 /* One band, one control. The group headings in the grid already show the
@@ -718,7 +740,7 @@ select.inp{appearance:none;padding-right:30px;
   font-size:12.5px;color:var(--fg-2);text-align:left;width:100%}
 .split-side button:hover{background:var(--surface-2);color:var(--fg)}
 .split-side button[aria-current="true"]{background:var(--surface-2);color:var(--fg);font-weight:500}
-.split-side .n{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--fg-3)}
+.split-side .n{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3)}
 @media (max-width:760px){
   .split{flex-direction:column}
   .split-side{width:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border)}
@@ -754,25 +776,48 @@ select.inp{appearance:none;padding-right:30px;
   background:var(--accent);color:var(--accent-fg);box-shadow:var(--shadow-1);opacity:0;transform:scale(.7);transition:opacity .12s,transform .12s}
 .mtick .ic{width:13px;height:13px;stroke-width:2.6}
 .mcard[aria-pressed="true"] .mtick{opacity:1;transform:scale(1)}
-.mkind{position:absolute;left:9px;top:9px;font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--fg-2);background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 4px}
+.mkind{position:absolute;left:9px;top:9px;font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--fg-2);background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 4px}
 .mmeta{display:block;padding:var(--s-3) var(--s-4);border-top:1px solid var(--border);min-width:0}
 .mname{display:block;font-size:12px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.msub{display:block;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msub{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .picker{position:fixed;z-index:55;top:8vh;left:50%;transform:translateX(-50%);width:min(760px,calc(100vw - 32px));max-height:80vh;display:flex;flex-direction:column;
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);box-shadow:var(--shadow-3);overflow:hidden}
 /* The library is a browsing screen that happens to be in a modal, so it gets
    the room a browsing screen needs rather than the room a dialog usually takes. */
 .picker-wide{top:5vh;width:min(1180px,calc(100vw - 64px));max-height:90vh}
-.picker-bar{display:flex;align-items:center;gap:var(--s-3);padding:0 var(--s-5) var(--s-4);flex:none;flex-wrap:wrap}
+.picker-bar{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-4) var(--s-5);flex:none;flex-wrap:wrap}
 .picker-bar .search{max-width:none;flex:1;min-width:200px}
 .picker-count{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-3);padding-bottom:var(--s-4);
   font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
 .picker-count span:last-child{letter-spacing:0;text-transform:none;font-weight:400;font-size:11.5px}
+/* Two ways in, one modal: the tabs sit where the filter bar would, flush with
+   the modal's own left edge like the editor drawer's. */
+.pk-tabs{display:flex;align-items:center;gap:var(--s-1);padding:0 var(--s-5);border-bottom:1px solid var(--border);flex:none}
+.pk-tabs .ed-tab:first-child{padding-left:0}
+.picker-body{position:relative}
+#pkUpload{padding-top:var(--s-5)}
+.dropzone{border:1.5px dashed var(--border-strong);border-radius:var(--r-3);background:var(--bg);
+  padding:64px var(--s-6);text-align:center;display:flex;flex-direction:column;align-items:center;gap:var(--s-3);
+  transition:border-color .12s,background .12s}
+.dropzone .ic{width:28px;height:28px;color:var(--fg-3)}
+.dropzone h3{font-family:var(--font-display);font-size:17px;font-weight:600}
+.dropzone p{font-size:12.5px;color:var(--fg-3);max-width:46ch;line-height:1.6}
+.dropzone .btn{margin-top:var(--s-2)}
+.dropzone .hint{font-size:11px;color:var(--fg-3)}
+.picker.dragging .dropzone{border-color:var(--accent);background:var(--accent-soft)}
+.picker.dragging .dropzone .ic{color:var(--accent)}
+.up-list{display:flex;flex-direction:column;gap:var(--s-2);margin-top:var(--s-6)}
+.up-list .picker-count{align-items:center}
+.up-row{display:flex;align-items:center;gap:var(--s-3);padding:12px var(--s-4);border:1px solid var(--border);
+  border-radius:var(--r-2);background:var(--surface);font-size:12.5px}
+.up-row .ic{color:var(--good);flex:none}
+.up-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.up-row .sub{color:var(--fg-3);font-family:var(--font-mono);font-size:11px;flex:none}
 .picker-foot .sel-name{font-size:12.5px}
 .picker-foot .sel-name b{font-weight:500;color:var(--fg)}
 .picker-head{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-5) var(--s-5) var(--s-4);flex:none}
 .picker-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;flex:1;min-width:0}
-.picker-body{overflow-y:auto;padding:var(--s-5);flex:1;min-height:0}
+.picker-body{overflow-y:auto;padding:0 var(--s-5) var(--s-5);flex:1;min-height:0}
 .picker-foot{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-4) var(--s-5);border-top:1px solid var(--border);background:var(--bg);flex:none}
 .picker-foot .end{margin-left:auto;display:flex;gap:var(--s-2)}
 .picker-foot .sel-name{font-size:12px;color:var(--fg-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -785,8 +830,8 @@ select.inp{appearance:none;padding-right:30px;
 .field-row:hover{background:var(--surface-2)}
 .field-row .grip{color:var(--fg-3);cursor:grab;display:grid;place-items:center;flex:none}
 .fn{display:block;font-size:12.5px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fk{display:block;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ftype{font-family:var(--mono);font-size:10.5px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:3px 9px;flex:none}
+.fk{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ftype{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:3px 9px;flex:none}
 .freq{font-size:10.5px;color:var(--warn);background:var(--warn-soft);border-radius:99px;padding:3px 9px;flex:none}
 .field-edit{padding:var(--s-5) var(--pad-x);border-bottom:1px solid var(--border);background:var(--surface-2);display:flex;flex-direction:column;gap:var(--s-4)}
 .field-edit .row2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)}
@@ -800,7 +845,7 @@ select.inp{appearance:none;padding-right:30px;
 .cap.on .ic{color:var(--good)}
 .cap.off{color:var(--fg-3)}
 .cap.off .ic{color:var(--border-strong)}
-.cap code{font-family:var(--mono);font-size:10.5px;color:var(--fg-3);margin-left:auto;flex:none}
+.cap code{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-left:auto;flex:none}
 .role-pills{display:flex;gap:6px;flex-wrap:wrap}
 .role-pill{font-size:11px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);border-radius:99px;padding:3px 11px;white-space:nowrap}
 .role-pill.admin{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
@@ -823,7 +868,7 @@ select.inp{appearance:none;padding-right:30px;
 .addon-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--s-2)}
 .addon-t{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .addon-t .nm{font-family:var(--font-display);font-size:14.5px;font-weight:600}
-.addon-t .ver{font-family:var(--mono);font-size:10.5px;color:var(--fg-3)}
+.addon-t .ver{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3)}
 .addon-t .by{font-size:11.5px;color:var(--fg-3)}
 .addon-d{font-size:12.5px;color:var(--fg-2);max-width:68ch;line-height:1.55}
 .addon-end{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
@@ -877,7 +922,7 @@ select.inp{appearance:none;padding-right:30px;
 /* ================= wizard ================= */
 .steps{display:flex;gap:var(--s-3);align-items:center;padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border);flex-wrap:wrap}
 .step{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--fg-3);white-space:nowrap}
-.step .n{width:23px;height:23px;border-radius:99px;border:1px solid var(--border-strong);display:grid;place-items:center;font-size:10.5px;font-family:var(--mono);flex:none}
+.step .n{width:23px;height:23px;border-radius:99px;border:1px solid var(--border-strong);display:grid;place-items:center;font-size:10.5px;font-family:var(--font-mono);flex:none}
 .step[aria-current="step"]{color:var(--fg);font-weight:500}
 .step[aria-current="step"] .n{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .step.done{color:var(--fg-2)}
@@ -914,7 +959,7 @@ select.inp{appearance:none;padding-right:30px;
 .mbig-foot{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-4) var(--pad-x);border-top:1px solid var(--border);flex-wrap:wrap}
 .mbig-foot .end{margin-left:auto;display:flex;gap:var(--s-2)}
 .url-row{display:flex;gap:var(--s-2)}
-.url-row .inp{font-family:var(--mono);font-size:11.5px}
+.url-row .inp{font-family:var(--font-mono);font-size:11.5px}
 
 /* ================= account detail ================= */
 .acct-head{display:flex;gap:var(--s-5);align-items:center;padding:var(--s-5) var(--pad-x);border-bottom:1px solid var(--border)}
@@ -965,7 +1010,7 @@ tbody tr.sk-tr:hover{background:transparent}
 /* ================= first-run ================= */
 .firstrun{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--s-4);padding:var(--s-5) var(--pad-x)}
 .fr-step{border:1px solid var(--border);border-radius:var(--r-2);padding:var(--s-5);background:var(--surface);display:flex;flex-direction:column;gap:var(--s-3);text-align:left}
-.fr-step .n{width:22px;height:22px;border-radius:99px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:11px;font-family:var(--mono);font-weight:500}
+.fr-step .n{width:22px;height:22px;border-radius:99px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:11px;font-family:var(--font-mono);font-weight:500}
 .fr-step .nm{font-family:var(--font-display);font-size:14px;font-weight:600}
 .fr-step .ds{font-size:12px;color:var(--fg-3);line-height:1.5;flex:1}
 .fr-step.done{opacity:.6}
@@ -1045,6 +1090,7 @@ tbody tr.sk-tr:hover{background:transparent}
 <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
 <symbol id="i-spacer" viewBox="0 0 24 24"><path d="M12 8V2"/><path d="m8 5 4-3 4 3"/><path d="M12 16v6"/><path d="m8 19 4 3 4-3"/><path d="M3 12h18"/></symbol>
 <symbol id="i-cards" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+<symbol id="i-frame" viewBox="0 0 24 24"><path d="M22 6H2"/><path d="M22 18H2"/><path d="M6 2v20"/><path d="M18 2v20"/></symbol>
 <symbol id="i-gallery" viewBox="0 0 24 24"><path d="M18 22H4a2 2 0 0 1-2-2V6"/><path d="m22 13-1.296-1.296a2.41 2.41 0 0 0-3.408 0L11 18"/><circle cx="12" cy="8" r="2"/><rect width="16" height="16" x="6" y="2" rx="2"/></symbol>
 <symbol id="i-audio" viewBox="0 0 24 24"><path d="M2 10v4"/><path d="M6 6v12"/><path d="M10 3v18"/><path d="M14 8v8"/><path d="M18 5v14"/><path d="M22 10v4"/></symbol>
 <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
@@ -1073,7 +1119,7 @@ tbody tr.sk-tr:hover{background:transparent}
       <div><div class="nm">Meridian Review</div></div>
     </div>
     <form class="signin-panel" id="signinForm">
-      <h1>Sign in</h1>
+      <h1>Sign In</h1>
       <p class="sub">Use the account your site administrator set up.</p>
       <div class="field">
         <label for="si-email">Email</label>
@@ -1159,7 +1205,7 @@ tbody tr.sk-tr:hover{background:transparent}
           <div id="dashEmpty" hidden>
             <section class="panel">
               <div class="panel-head">
-                <h2>Set up your site</h2>
+                <h2>Set Up Your Site</h2>
                 <div class="end"><span class="hint" id="frProgress"></span></div>
               </div>
               <div class="firstrun" id="frSteps"></div>
@@ -1172,7 +1218,7 @@ tbody tr.sk-tr:hover{background:transparent}
           <div class="stack">
               <section class="panel">
                 <div class="panel-head">
-                  <h2>Entries published</h2>
+                  <h2>Entries Published</h2>
                   <span class="hint">Last 12 weeks, all types</span>
                   <div class="end"><span class="hint mono">to 29 Sep</span></div>
                 </div>
@@ -1200,7 +1246,7 @@ tbody tr.sk-tr:hover{background:transparent}
 
                 <section class="panel">
                   <div class="panel-head">
-                    <h2>Recent activity</h2>
+                    <h2>Recent Activity</h2>
                     <div class="end"><span class="hint mono">Today</span></div>
                   </div>
                   <ul class="feed" id="feed"></ul>
@@ -1296,7 +1342,7 @@ tbody tr.sk-tr:hover{background:transparent}
               <p class="sub">Files available to every entry. Components that take an image pick from here.</p>
             </div>
             <div class="acts">
-              <button class="btn btn-primary" type="button" data-toast="Upload dialog would open"><svg class="ic"><use href="#i-upload"/></svg>Upload</button>
+              <button class="btn btn-primary" type="button" id="mUpload"><svg class="ic"><use href="#i-upload"/></svg>Upload</button>
             </div>
           </div>
           <div class="toolbar">
@@ -1325,7 +1371,7 @@ tbody tr.sk-tr:hover{background:transparent}
         <section id="view-types" hidden>
           <div class="page-head">
             <div>
-              <h1>Content types</h1>
+              <h1>Content Types</h1>
               <p class="sub">Every type in the site, including the ones addons bring.</p>
             </div>
             <div class="acts">
@@ -1436,7 +1482,7 @@ tbody tr.sk-tr:hover{background:transparent}
                 <div class="fgroup" id="rlAbout"></div>
               </section>
               <section class="panel">
-                <div class="panel-head"><h2>Held by</h2><div class="end"><span class="hint" id="rlHeldCount"></span></div></div>
+                <div class="panel-head"><h2>Held By</h2><div class="end"><span class="hint" id="rlHeldCount"></span></div></div>
                 <div id="rlHeld"></div>
               </section>
             </div>
@@ -1451,7 +1497,7 @@ tbody tr.sk-tr:hover{background:transparent}
         <section id="view-type-new" hidden>
           <div class="page-head">
             <div>
-              <h1>New content type</h1>
+              <h1>New Content Type</h1>
               <p class="sub">A type defines what an entry of that kind is, where it lives, and what fields it carries.</p>
             </div>
             <div class="acts">
@@ -1471,7 +1517,7 @@ tbody tr.sk-tr:hover{background:transparent}
               </div>
             </section>
             <section class="panel">
-              <div class="panel-head"><h2>What gets created</h2><div class="end"><span class="hint">Updates as you go</span></div></div>
+              <div class="panel-head"><h2>What Gets Created</h2><div class="end"><span class="hint">Updates as you go</span></div></div>
               <div class="fgroup" id="wizSummary"></div>
             </section>
           </div>
@@ -1501,7 +1547,7 @@ tbody tr.sk-tr:hover{background:transparent}
                 </div>
               </div>
               <section class="panel">
-                <div class="panel-head"><h2>Used by</h2><div class="end"><span class="hint" id="miUseCount"></span></div></div>
+                <div class="panel-head"><h2>Used By</h2><div class="end"><span class="hint" id="miUseCount"></span></div></div>
                 <div class="rows" id="miUsage"></div>
               </section>
             </div>
@@ -1536,7 +1582,7 @@ tbody tr.sk-tr:hover{background:transparent}
                 <div class="fgroup" id="acFields"></div>
               </section>
               <section class="panel">
-                <div class="panel-head"><h2>Danger zone</h2></div>
+                <div class="panel-head"><h2>Danger Zone</h2></div>
                 <div class="fgroup" id="acDanger"></div>
               </section>
             </div>
@@ -1612,7 +1658,7 @@ tbody tr.sk-tr:hover{background:transparent}
           </div>
           <section class="panel">
             <div class="panel-head">
-              <h2>Site theme</h2>
+              <h2>Site Theme</h2>
               <div class="end"><span class="hint">One active theme per site</span></div>
             </div>
             <div id="siteThemes"></div>
@@ -1623,7 +1669,7 @@ tbody tr.sk-tr:hover{background:transparent}
         <section id="view-profile" hidden>
           <div class="page-head">
             <div>
-              <h1>Your profile</h1>
+              <h1>Your Profile</h1>
               <p class="sub">Your account and how this admin looks to you. Nothing here affects other accounts.</p>
             </div>
           </div>
@@ -1646,7 +1692,7 @@ tbody tr.sk-tr:hover{background:transparent}
 
             <section class="panel">
               <div class="panel-head">
-                <h2>Admin theme</h2>
+                <h2>Admin Theme</h2>
                 <div class="end"><span class="hint">Yours alone — other accounts keep their own</span></div>
               </div>
               <div class="theme-cards" id="themeCards"></div>
@@ -1654,7 +1700,7 @@ tbody tr.sk-tr:hover{background:transparent}
 
             <section class="panel">
               <div class="panel-head">
-                <h2>Color scheme</h2>
+                <h2>Color Scheme</h2>
                 <div class="end"><span class="hint">Applies on this account, on every device</span></div>
               </div>
               <div class="scheme-row" style="padding-top:14px" id="schemeRow">
@@ -1699,7 +1745,7 @@ tbody tr.sk-tr:hover{background:transparent}
           <span class="ed-where" id="edWhere">Pages</span>
           <span class="ed-div" aria-hidden="true"></span>
           <button class="icon-btn" type="button" id="edInsert" aria-label="Insert a component" title="Components  /"><svg class="ic"><use href="#i-plus"/></svg></button>
-          <button class="icon-btn" type="button" id="edMedia" aria-label="Insert media" title="Media"><svg class="ic"><use href="#i-image"/></svg></button>
+          <button class="icon-btn wide" type="button" id="edMedia" aria-haspopup="menu" aria-expanded="false" aria-label="Insert media" title="Media"><svg class="ic"><use href="#i-image"/></svg><svg class="ic caret"><use href="#i-caret-down"/></svg></button>
           <button class="icon-btn" type="button" id="edIcon" aria-label="Insert an icon" title="Icon"><svg class="ic"><use href="#i-shapes"/></svg></button>
           <button class="icon-btn wide" type="button" id="edInline" aria-haspopup="menu" aria-expanded="false" aria-label="Insert an inline component" title="Inline"><svg class="ic"><use href="#i-inline"/></svg><svg class="ic caret"><use href="#i-caret-down"/></svg></button>
           <span class="grow"></span>
@@ -1796,7 +1842,7 @@ tbody tr.sk-tr:hover{background:transparent}
 
 <div class="picker picker-wide" id="iconPicker" hidden role="dialog" aria-modal="true" aria-label="Insert an icon">
   <div class="picker-head">
-    <h2>Insert an icon</h2>
+    <h2>Insert an Icon</h2>
     <button class="icon-btn" type="button" id="ipClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
   <div class="picker-bar">
@@ -1820,10 +1866,16 @@ tbody tr.sk-tr:hover{background:transparent}
 
 <div class="picker picker-wide" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="pkTitle">
   <div class="picker-head">
-    <h2 id="pkTitle">Choose a file</h2>
+    <h2 id="pkTitle">Choose a File</h2>
     <button class="icon-btn" type="button" id="pkClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
-  <div class="picker-bar">
+  <div class="pk-tabs" role="tablist" aria-label="Source">
+    <button class="ed-tab" type="button" role="tab" data-pktab="library" aria-selected="true">
+      <svg class="ic"><use href="#i-image"/></svg>Library</button>
+    <button class="ed-tab" type="button" role="tab" data-pktab="upload" aria-selected="false">
+      <svg class="ic"><use href="#i-upload"/></svg>Upload</button>
+  </div>
+  <div class="picker-bar" id="pkBar">
     <label class="search">
       <svg class="ic"><use href="#i-search"/></svg>
       <input id="pkq" type="search" placeholder="Search file names…" aria-label="Search media">
@@ -1835,11 +1887,22 @@ tbody tr.sk-tr:hover{background:transparent}
       <button type="button" data-pkkind="doc" aria-pressed="false">Files</button>
     </div>
   </div>
-  <div class="picker-body">
+  <div class="picker-body" id="pkLibrary">
     <div class="picker-count"><span>Library</span><span id="pkCount"></span></div>
     <div class="media-grid pick" id="pickerGrid"></div>
     <div class="empty" id="pkEmpty" hidden></div>
   </div>
+  <div class="picker-body" id="pkUpload" hidden>
+    <div class="dropzone" id="pkDrop">
+      <svg class="ic"><use href="#i-upload"/></svg>
+      <h3>Drag Files Here</h3>
+      <p>Images, video and documents. They land in the library, so any entry can use them afterwards.</p>
+      <button class="btn btn-primary" type="button" id="pkBrowse">Choose files</button>
+      <span class="hint">Up to 64 MB each · JPEG, PNG, WebP, AVIF, SVG, MP4, PDF</span>
+    </div>
+    <div class="up-list" id="pkUpList"></div>
+  </div>
+  <input type="file" id="pkFiles" multiple hidden>
   <div class="picker-foot">
     <span class="sel-name" id="pkSel">Nothing selected</span>
     <span class="end">
@@ -1851,7 +1914,7 @@ tbody tr.sk-tr:hover{background:transparent}
 
 <div class="picker narrow" id="invite" hidden role="dialog" aria-modal="true" aria-label="Invite an account">
   <div class="picker-head">
-    <h2>Invite an account</h2>
+    <h2>Invite an Account</h2>
     <span style="flex:1"></span>
     <button class="icon-btn" type="button" id="invClose" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
@@ -2107,13 +2170,13 @@ function renderNavOverview(){
     navItem("entries","page","i-page","Pages",String(countType("page"))) +
     navItem("media","","i-image","Media",String(sim.empty ? 0 : MEDIA.length)) +
     '<div class="nav-group-label">Shortcuts</div>' +
-    navItem("profile","","i-users","Your profile","") +
+    navItem("profile","","i-users","Your Profile","") +
     navItem("settings","","i-gear","Settings","");
 }
 function renderNavConfig(){
   $("#nav").innerHTML =
     '<div class="nav-group-label">Structure</div>' +
-    navItem("types","","i-schema","Content types",String(ALL_TYPES.length)) +
+    navItem("types","","i-schema","Content Types",String(ALL_TYPES.length)) +
     '<div class="nav-group-label">Site</div>' +
     navItem("settings","","i-gear","Settings","") +
     navItem("appearance","","i-brush","Appearance","") +
@@ -2121,7 +2184,7 @@ function renderNavConfig(){
     '<div class="nav-group-label">People</div>' +
     navItem("accounts","","i-users","Accounts",String(sim.empty ? 1 : ACCOUNTS.length)) +
     navItem("roles","","i-shield","Roles",String(ROLES.length)) +
-    navItem("profile","","i-users","Your profile","");
+    navItem("profile","","i-users","Your Profile","");
 }
 function renderNavContent(){
   let h = "";
@@ -2137,7 +2200,7 @@ function renderNavContent(){
   const n = v => String(sim.empty ? 0 : v);
   const shared = sharedTaxonomies();
   if (shared.length){
-    h += '<div class="nav-group-label">Shared taxonomies</div>';
+    h += '<div class="nav-group-label">Shared Taxonomies</div>';
     shared.forEach(t=>{
       const on = taxLabels(t);
       h += navItem("terms", t.key, t.icon, t.label, n((TERMS[t.key]||[]).length),
@@ -2195,10 +2258,10 @@ function drawChart(){
 
 /* ================= dashboard ================= */
 const FIRST_RUN = [
-  {n:1, nm:"Write your first page", ds:"Pages are the structure of the site. Most people start with a home page.", act:"New page", go:()=>{ setView("entries","page"); $("#newEntry").click(); }},
-  {n:2, nm:"Add a content type",    ds:"Beyond pages, define what else the site holds — posts, releases, anything.", act:"New type", go:()=>{ wizReset(); setView("type-new"); }},
-  {n:3, nm:"Upload some media",     ds:"Images and documents entries can use, in one library.", act:"Go to media", go:()=>setView("media")},
-  {n:4, nm:"Invite the people who write", ds:"Accounts hold roles, and roles decide what each person can do.", act:"Invite", go:()=>{ setView("accounts"); openInvite(); }}
+  {n:1, nm:"Write Your First Page", ds:"Pages are the structure of the site. Most people start with a home page.", act:"New page", go:()=>{ setView("entries","page"); $("#newEntry").click(); }},
+  {n:2, nm:"Add a Content Type",    ds:"Beyond pages, define what else the site holds — posts, releases, anything.", act:"New type", go:()=>{ wizReset(); setView("type-new"); }},
+  {n:3, nm:"Upload Some Media",     ds:"Images and documents entries can use, in one library.", act:"Go to media", go:()=>setView("media")},
+  {n:4, nm:"Invite the People Who Write", ds:"Accounts hold roles, and roles decide what each person can do.", act:"Invite", go:()=>{ setView("accounts"); openInvite(); }}
 ];
 function renderFirstRun(){
   $("#frProgress").textContent = "Nothing published yet";
@@ -2456,7 +2519,7 @@ function renderEntries(){
     $("#pageInfo").textContent = firstRun ? "" : $("#pageInfo").textContent;
     if (firstRun){
       empty.innerHTML = '<div class="empty"><svg class="ic"><use href="#'+t.icon+'"/></svg>'+
-        '<h3>No '+esc(t.label.toLowerCase())+' yet</h3>'+
+        '<h3>No '+esc(t.label)+' Yet</h3>'+
         '<p>'+(t.hierarchical
           ? 'Pages are the structure of the site. The first one is usually the home page.'
           : 'Nothing of this type has been written. The first entry is a draft until you publish it.')+
@@ -2466,7 +2529,7 @@ function renderEntries(){
       if (btn) btn.addEventListener("click", ()=> $("#newEntry").click());
     } else {
       empty.innerHTML = '<div class="empty"><svg class="ic"><use href="#i-search"/></svg>'+
-        '<h3>Nothing matches</h3><p>No '+esc(t.label.toLowerCase())+
+        '<h3>Nothing Matches</h3><p>No '+esc(t.label.toLowerCase())+
         (state.status==="all"?"":" in "+STATUS_LABEL[state.status].toLowerCase())+
         ' match the current filters.</p><button class="btn" type="button" id="emptyClear">Clear filters</button></div>';
       $("#emptyClear").addEventListener("click", clearFilters);
@@ -2545,14 +2608,14 @@ function setView(view, name){
     $("#crumbHere").textContent = acctItem ? acctItem.name : "Account";
     renderAccount();
   } else if (view === "type-new"){
-    $("#crumbHere").textContent = "New content type";
+    $("#crumbHere").textContent = "New Content Type";
     renderWizard();
   } else if (view === "types"){
-    $("#crumbHere").textContent = "Content types";
+    $("#crumbHere").textContent = "Content Types";
     renderTypes();
   } else if (view === "type-edit"){
     const t = ALL_TYPES.find(x=>x.key === tbState.key);
-    $("#crumbHere").textContent = t ? t.label : "Content type";
+    $("#crumbHere").textContent = t ? t.label : "Content Type";
     renderTypeDetail();
   } else if (view === "role"){
     const r = ROLES.find(x=>x.key === roleKey);
@@ -2571,7 +2634,7 @@ function setView(view, name){
     $("#crumbHere").textContent = "Appearance";
     renderAppearance();
   } else if (view === "profile"){
-    $("#crumbHere").textContent = "Your profile";
+    $("#crumbHere").textContent = "Your Profile";
     renderProfile();
   } else if (view === "settings"){
     $("#crumbHere").textContent = "Settings";
@@ -2676,21 +2739,21 @@ function showMenu(btn, e, isTerm){
 const COMMANDS = [
   {icon:"i-plus",   label:"New page",              run:()=>toast("New page created as a draft")},
   {icon:"i-doc",    label:"New post",              run:()=>toast("New post created as a draft")},
-  {icon:"i-grid",   label:"Go to dashboard",       run:()=>setView("dashboard")},
-  {icon:"i-page",   label:"Go to pages",           run:()=>setView("entries","page")},
-  {icon:"i-doc",    label:"Go to posts",           run:()=>setView("entries","post")},
+  {icon:"i-grid",   label:"Go to Dashboard",       run:()=>setView("dashboard")},
+  {icon:"i-page",   label:"Go to Pages",           run:()=>setView("entries","page")},
+  {icon:"i-doc",    label:"Go to Posts",           run:()=>setView("entries","post")},
   {icon:"i-alert",  label:"Show unpublished changes", run:()=>{ setView("entries","page"); state.pendingOnly=true; renderEntries(); }},
   {icon:"i-calendar",label:"Show scheduled entries", run:()=>{ setView("entries","post"); state.status="scheduled"; renderTabs(); renderEntries(); }},
-  {icon:"i-schema", label:"Go to content types",   run:()=>setView("types")},
-  {icon:"i-image",  label:"Go to media",           run:()=>setView("media")},
-  {icon:"i-users",  label:"Go to accounts",        run:()=>setView("accounts")},
-  {icon:"i-shield", label:"Go to roles",           run:()=>setView("roles")},
-  {icon:"i-folder", label:"Go to topics",          run:()=>setView("terms","topic")},
-  {icon:"i-plug",   label:"Go to addons",          run:()=>setView("addons")},
-  {icon:"i-gear",   label:"Go to settings",        run:()=>setView("settings")},
+  {icon:"i-schema", label:"Go to Content Types",   run:()=>setView("types")},
+  {icon:"i-image",  label:"Go to Media",           run:()=>setView("media")},
+  {icon:"i-users",  label:"Go to Accounts",        run:()=>setView("accounts")},
+  {icon:"i-shield", label:"Go to Roles",           run:()=>setView("roles")},
+  {icon:"i-folder", label:"Go to Topics",          run:()=>setView("terms","topic")},
+  {icon:"i-plug",   label:"Go to Addons",          run:()=>setView("addons")},
+  {icon:"i-gear",   label:"Go to Settings",        run:()=>setView("settings")},
   {icon:"i-brush",  label:"Switch admin theme",    run:()=>{ setDir(dir==="neutral"?"editorial":"neutral"); if(currentView==="profile") renderProfile(); toast("Admin theme: "+(dir==="neutral"?"Neutral":"Editorial")); }},
-  {icon:"i-users",  label:"Go to your profile",    run:()=>setView("profile")},
-  {icon:"i-sidebar",label:"Focus mode (writing)",  run:()=>{ if (currentView === "editor") setZen(true); else toast("Open an entry first"); }},
+  {icon:"i-users",  label:"Go to Your Profile",    run:()=>setView("profile")},
+  {icon:"i-sidebar",label:"Focus Mode (Writing)",  run:()=>{ if (currentView === "editor") setZen(true); else toast("Open an entry first"); }},
   {icon:"i-moon",   label:"Toggle light or dark",  run:()=>$("#themeBtn").click()}
 ];
 let pItems = [], pActive = 0;
@@ -2953,12 +3016,19 @@ document.addEventListener("click", ev=>{
   const fr = t.closest("[data-fr]");
   if (fr){ const s = FIRST_RUN.find(x=>String(x.n) === fr.dataset.fr); if (s) s.go(); return; }
 
+  if (t.closest("[data-showlist]")){ editor.showList = true; renderSide(); return; }
   const jump = t.closest("[data-jump]");
-  if (jump){ jumpTo(+jump.dataset.jump); return; }
+  if (jump){ editor.showList = false; jumpTo(+jump.dataset.jump); return; }
 
   const untag = t.closest("[data-untag]");
   if (untag){ editor.tax = editor.tax.filter(v=>v !== untag.dataset.untag); renderSide(); markDirty(); return; }
 
+  if (t.closest("#o-img-pick")){
+    const d = editor.dirs[editor.active];
+    openPicker(name=>{ writeImage({src: mediaPath(name)}); renderSide(); toast("Chose " + name); },
+      "", {title:"Choose an Image", action:"Choose"});
+    return;
+  }
   const pickfor = t.closest("[data-pickfor]");
   if (pickfor){
     const k = pickfor.dataset.pickfor;
@@ -3069,6 +3139,9 @@ $("#work").addEventListener("scroll", closeMenu, {passive:true});
 
 /* ================= media ================= */
 const MEDIA = [
+  {id:"f0",  name:"icon-dream.webp",         kind:"image", dim:"1536×1024", size:186, by:"jt", h:1,
+   alt:"A boy at a desk, tinkering, the night sky through the window.",
+   caption:"The quoted part is the caption.", usedBy:["e18"]},
   {id:"f1",  name:"grid-overlay.png",        kind:"image", dim:"1600×1000", size:412, by:"nk", h:2,
    alt:"A page layout with its baseline grid drawn over the text.", caption:"The underlying grid, exposed", usedBy:["e5","e19"]},
   {id:"f2",  name:"specimen-1974-cover.jpg", kind:"image", dim:"2400×3200", size:1840, by:"tw", h:26,
@@ -3094,6 +3167,9 @@ const MEDIA = [
 function hashOf(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0; return Math.abs(h); }
 function fileSize(kb){ return kb >= 1024 ? (kb/1024).toFixed(1)+" MB" : kb+" KB"; }
 function thumbSVG(m){
+  /* A file that was just uploaded shows itself, which is also the honest test
+     of the 4:3 crop — real photographs are never the shape of the box. */
+  if (m.url && m.kind === "image") return '<img src="'+esc(m.url)+'" alt="">';
   if (m.kind !== "image"){
     const ic = m.kind === "video" ? "i-video" : "i-file";
     return '<svg viewBox="0 0 120 90" preserveAspectRatio="xMidYMid slice" role="img" aria-label="'+esc(m.kind)+' file"><rect width="120" height="90" fill="var(--surface-2)"/>'+
@@ -3157,11 +3233,11 @@ function renderMedia(){
   if (!rows.length){
     if (sim.empty || !MEDIA.length){
       e.innerHTML = '<div class="panel"><div class="empty"><svg class="ic"><use href="#i-image"/></svg>'+
-        '<h3>The library is empty</h3><p>Images, video and documents you upload land here, and any entry can use them.</p>'+
-        '<button class="btn btn-primary" type="button" data-toast="Upload dialog would open"><svg class="ic"><use href="#i-upload"/></svg>Upload your first file</button></div></div>';
+        '<h3>The Library Is Empty</h3><p>Images, video and documents you upload land here, and any entry can use them.</p>'+
+        '<button class="btn btn-primary" type="button" onclick="document.getElementById(\'mUpload\').click()"><svg class="ic"><use href="#i-upload"/></svg>Upload your first file</button></div></div>';
     } else {
       e.innerHTML = '<div class="panel"><div class="empty"><svg class="ic"><use href="#i-search"/></svg>'+
-        '<h3>No files match</h3><p>Nothing in the library matches the current search and filter.</p>'+
+        '<h3>No Files Match</h3><p>Nothing in the library matches the current search and filter.</p>'+
         '<button class="btn" type="button" id="mClear">Clear filters</button></div></div>';
       $("#mClear").addEventListener("click", ()=>{ mstate.q=""; mstate.kind=""; $("#mq").value=""; $("#mKind").value=""; renderMedia(); });
     }
@@ -3173,17 +3249,68 @@ function renderMedia(){
 
 /* -- picker modal, invoked by media-typed component options -- */
 let pickTarget = null, pickSel = null;
-const pickState = {kind:""};
+const pickState = {kind:"", tab:"library", added:[]};
 function openPicker(onChoose, current, opts){
   opts = opts || {};
-  pickTarget = onChoose; pickSel = current || null; pickState.kind = "";
-  $("#pkTitle").textContent = opts.title || "Choose a file";
+  pickTarget = onChoose; pickSel = current || null;
+  pickState.kind = ""; pickState.tab = opts.tab || "library"; pickState.added = [];
+  $("#pkTitle").textContent = opts.title || "Choose a File";
   $("#pkChoose").textContent = opts.action || "Choose";
   $("#scrim").hidden = false; $("#picker").hidden = false;
-  $("#pkq").value = ""; renderPicker(); $("#pkq").focus();
+  $("#pkq").value = ""; renderPicker();
+  setTimeout(()=>{ if (pickState.tab === "library") $("#pkq").focus(); }, 40);
 }
-function closePicker(){ $("#picker").hidden = true; $("#scrim").hidden = true; pickTarget = null; }
+function closePicker(){
+  $("#picker").hidden = true; $("#scrim").hidden = true; pickTarget = null;
+  $("#picker").classList.remove("dragging");
+}
+function setPickTab(tab){ pickState.tab = tab; renderPicker(); }
+
+/* Uploading is the same act as choosing, one step earlier: a file lands in the
+   library and is then selected, so the flow ends where the other tab starts. */
+function addUploads(files){
+  const list = Array.from(files || []);
+  if (!list.length) return;
+  list.forEach(f=>{
+    const ext = (f.name.split(".").pop() || "").toLowerCase();
+    const kind = /^(jpg|jpeg|png|webp|avif|gif|svg)$/.test(ext) ? "image"
+               : /^(mp4|mov|webm|m4v)$/.test(ext) ? "video" : "doc";
+    const m = {id:"u"+(MEDIA.length+1)+"-"+Date.now().toString(36).slice(-4), name:f.name, kind,
+               dim: kind === "image" ? "—" : (kind === "video" ? "—" : "—"),
+               size: Math.max(1, Math.round(f.size/1024)), by:"jt", h:0,
+               alt:"", caption:"", usedBy:[], fresh:true};
+    if (kind === "image" || kind === "video"){
+      try {
+        m.url = URL.createObjectURL(f);
+        if (kind === "image"){
+          const img = new Image();
+          img.onload = ()=>{ m.dim = img.naturalWidth + "×" + img.naturalHeight; if (!$("#picker").hidden) renderPicker(); };
+          img.src = m.url;
+        }
+      } catch(err){ /* a prototype without a real file still gets a row */ }
+    }
+    MEDIA.unshift(m);
+    pickState.added.unshift(m);
+    pickSel = m.name;
+  });
+  toast(list.length === 1 ? "Uploaded " + list[0].name : "Uploaded " + list.length + " files");
+  renderPicker();
+  renderMedia();
+}
 function renderPicker(){
+  const lib = pickState.tab === "library";
+  $$("#picker [data-pktab]").forEach(b=> b.setAttribute("aria-selected", String(b.dataset.pktab === pickState.tab)));
+  $("#pkBar").hidden = !lib;
+  $("#pkLibrary").hidden = !lib;
+  $("#pkUpload").hidden = lib;
+  $("#pkUpList").innerHTML = pickState.added.length
+    ? '<div class="picker-count"><span>Added to the Library</span>'+
+      '<button class="link" type="button" data-pktab="library">Show in library</button></div>' +
+      pickState.added.map(m=>
+        '<div class="up-row"><svg class="ic"><use href="#i-check-circle"/></svg>'+
+        '<span class="nm">'+esc(m.name)+'</span><span class="sub">'+esc(m.dim)+' · '+fileSize(m.size)+'</span></div>').join("")
+    : "";
+
   const rows = mediaFiltered($("#pkq").value, pickState.kind, "new");
   $$("#pkKinds button").forEach(b=> b.setAttribute("aria-pressed", String(b.dataset.pkkind === pickState.kind)));
   $("#pickerGrid").innerHTML = rows.map(m=>mediaCard(m,{pick:true, selected:m.name===pickSel})).join("");
@@ -3193,7 +3320,8 @@ function renderPicker(){
   empty.hidden = !!rows.length;
   if (!rows.length){
     empty.innerHTML = '<div class="empty"><svg class="ic"><use href="#i-search"/></svg>'+
-      '<h3>Nothing matches</h3><p>No file in the library matches that search.</p></div>';
+      '<h3>Nothing Matches</h3><p>No file in the library matches that search.</p>'+
+      '<button class="btn" type="button" data-pktab="upload"><svg class="ic"><use href="#i-upload"/></svg>Upload one instead</button></div>';
   }
   const sel = pickSel ? MEDIA.find(m=>m.name === pickSel) : null;
   $("#pkSel").innerHTML = sel
@@ -3217,14 +3345,10 @@ const VARIANTS = {
             ["terminal","Terminal","Dark, with a prompt marker on each line."]],
   details: [["","Default","A summary line with a disclosure triangle."],
             ["card","Card","Boxed, so it reads as a separate object."],
-            ["plus","Plus and minus","A plus that becomes a minus when open."]],
+            ["plus","Plus and Minus","A plus that becomes a minus when open."]],
   toc:     [["","Default","An indented list under a small heading."],
             ["inline","Inline","A single wrapped line of links, no heading."],
             ["numbered","Numbered","Numbered to match the headings."]],
-  figure:  [["","Default","Image with the caption below, left aligned."],
-            ["framed","Framed","A border and a tint behind the image."],
-            ["overlay","Overlay","Caption laid over the foot of the image."],
-            ["bleed","Full bleed","Edge to edge, ignoring the measure."]],
   gallery: [["","Default","An even grid at the width of the column."],
             ["masonry","Masonry","Columns of unequal height, no cropping."],
             ["carousel","Carousel","One at a time, swiped or arrowed."]],
@@ -3238,8 +3362,8 @@ const VARIANTS = {
             ["button","Button","A single download button."],
             ["card","Card","Boxed, with a description under the name."]],
   columns: [["","Default","Equal columns that stack on a phone."],
-            ["wide-left","Wide left","The first column takes two thirds."],
-            ["wide-right","Wide right","The last column takes two thirds."]],
+            ["wide-left","Wide Left","The first column takes two thirds."],
+            ["wide-right","Wide Right","The last column takes two thirds."]],
   cards:   [["","Default","A grid of bordered cards."],
             ["plain","Plain","No borders — space does the separating."],
             ["list","List","One per row, image beside the text."]],
@@ -3269,13 +3393,38 @@ const VARIANTS = {
             ["compact","Compact","A single row, no image."],
             ["feature","Feature","Large image with the description beside it."]],
   footnote:[["","Default","A superscript number linked to the foot."],
-            ["side","Side note","Set in the margin beside the paragraph."]],
+            ["side","Side Note","Set in the margin beside the paragraph."]],
   badge:   [["","Default","A filled pill in the chosen tone."],
             ["outline","Outline","An outlined pill, no fill."]],
   kbd:     [["","Default","A key cap with a soft shadow."],
             ["flat","Flat","A plain bordered box."]],
-  abbr:    [["","Default","A dotted underline, expansion on hover."]]
+  abbr:    [["","Default","A dotted underline, expansion on hover."]],
+  figure:  [["","Default","At the width of the text column."],
+            ["stretch-wide","Wide","Wider than the text, centered on it."],
+            ["stretch-full","Full Bleed","Edge to edge, ignoring the measure."],
+            ["bordered","Bordered","A rule around the whole figure."]],
+  image:   [["","Default","At the width of the text column."],
+            ["stretch-wide","Wide","Wider than the text, centered on it."],
+            ["stretch-full","Full bleed","Edge to edge, ignoring the measure."],
+            ["inline-left","Float left","Set left with the text wrapping beside it."],
+            ["inline-right","Float right","Set right with the text wrapping beside it."]]
 };
+/* An image has no attribute syntax of its own, so its variant is a class in the
+   attribute block — `{.stretch-wide}` — which is what the framework already
+   reads. Same idea as a directive's `variant=`, spelled the way images spell it. */
+function attrClasses(at){ return ((at || "").match(/\.[A-Za-z0-9_-]+/g) || []).map(x=>x.slice(1)); }
+function imageVariant(d){
+  const keys = variantsOf("image").map(v=>v.k).filter(Boolean);
+  return attrClasses(d.attrs).find(c=>keys.indexOf(c) !== -1) || "";
+}
+function setImageVariant(d, key){
+  const keys = variantsOf("image").map(v=>v.k).filter(Boolean);
+  const inner = (d.attrs || "").replace(/^\{:?\s*/, "").replace(/\s*\}$/, "");
+  const parts = inner.split(/\s+/).filter(Boolean)
+    .filter(x=> !(x[0] === "." && keys.indexOf(x.slice(1)) !== -1));
+  if (key) parts.unshift("." + key);
+  return parts.length ? "{" + parts.join(" ") + "}" : "";
+}
 function variantsOf(name){
   return (VARIANTS[name] || [["","Default","The theme's standard styling for this component."]])
     .map(v=>({k:v[0], l:v[1], d:v[2]}));
@@ -3300,14 +3449,14 @@ const COMPONENTS = [
      {k:"title", l:"Title", t:"text",   def:"", hint:"Optional heading shown above the body."},
      {k:"icon",  l:"Show the icon", t:"bool", def:"true"}
    ]},
-  {name:"quote", label:"Pull quote", cat:"text", block:"container", icon:"i-quote",
+  {name:"quote", label:"Pull Quote", cat:"text", block:"container", icon:"i-quote",
    desc:"A quotation set larger than the body, with an attribution.",
    options:[
      {k:"cite",  l:"Attribution", t:"text", def:""},
      {k:"href",  l:"Source link", t:"text", def:""},
      {k:"align", l:"Alignment", t:"select", values:["left","center","pull"], def:"left"}
    ]},
-  {name:"code", label:"Code sample", cat:"text", block:"container", icon:"i-braces",
+  {name:"code", label:"Code Sample", cat:"text", block:"container", icon:"i-braces",
    desc:"A labeled code block with a language and an optional file name.",
    options:[
      {k:"lang",  l:"Language",  t:"select", values:["php","js","css","bash","json","html"], def:"php"},
@@ -3323,7 +3472,7 @@ const COMPONENTS = [
   {name:"footnote", label:"Footnote", cat:"text", block:"inline", icon:"i-hash",
    desc:"A marker in the sentence and a note collected at the foot of the entry.",
    options:[{k:"id", l:"Reference", t:"text", def:""}]},
-  {name:"toc", label:"Table of contents", cat:"text", block:"leaf", icon:"i-list",
+  {name:"toc", label:"Table of Contents", cat:"text", block:"leaf", icon:"i-list",
    desc:"Built from the headings in this entry.",
    options:[
      {k:"depth", l:"Heading depth", t:"select", values:["2","3","4"], def:"3"},
@@ -3340,13 +3489,20 @@ const COMPONENTS = [
    options:[{k:"title", l:"Stands for", t:"text", def:""}]},
 
   /* ---- media ---- */
-  {name:"figure", label:"Figure", cat:"media", block:"leaf", icon:"i-image",
-   desc:"An image from the media library, with a caption.",
+  /* There is no figure component. An image is Markdown — `![alt](src "caption")`
+     with classes for width — and a second syntax for the same object would only
+     give two ways to write one thing. Picking this opens the media library and
+     writes ordinary Markdown; the panel edits it in place afterwards. */
+  {name:"image", label:"Image", cat:"media", block:"markdown", icon:"i-image",
+   desc:"An ordinary Markdown image. The quoted part after the source is its caption.",
+   options:[]},
+  /* A wrapper, not an image: it takes whatever is inside it — a table, a
+     gallery, a code sample, an image — and gives it a caption and a width. */
+  {name:"figure", label:"Figure", cat:"media", block:"container", icon:"i-frame",
+   desc:"Wraps anything in a figure with a caption: a table, a gallery, an image, a code sample.",
    options:[
-     {k:"src",     l:"Image",   t:"media", def:""},
-     {k:"caption", l:"Caption", t:"text",  def:""},
-     {k:"width",   l:"Width",   t:"select", values:["column","wide","full"], def:"column"},
-     {k:"link",    l:"Links to", t:"text", def:"", hint:"Leave empty for no link."}
+     {k:"caption", l:"Caption", t:"text", def:"", hint:"Rendered as the figure's caption."},
+     {k:"align",   l:"Alignment", t:"select", values:["left","center"], def:"left"}
    ]},
   {name:"gallery", label:"Gallery", cat:"media", block:"leaf", icon:"i-gallery",
    desc:"Several images in a grid or a slideshow.",
@@ -3368,7 +3524,7 @@ const COMPONENTS = [
      {k:"src",        l:"File", t:"media", def:""},
      {k:"transcript", l:"Transcript link", t:"text", def:""}
    ]},
-  {name:"file", label:"File download", cat:"media", block:"leaf", icon:"i-download",
+  {name:"file", label:"File Download", cat:"media", block:"leaf", icon:"i-download",
    desc:"A download card showing the file type and size.",
    options:[
      {k:"src",   l:"File", t:"media", def:""},
@@ -3382,7 +3538,7 @@ const COMPONENTS = [
      {k:"count", l:"How many", t:"select", values:["2","3","4"], def:"2"},
      {k:"split", l:"Split",    t:"select", values:["even","wide-left","wide-right"], def:"even"}
    ]},
-  {name:"cards", label:"Card grid", cat:"layout", block:"container", icon:"i-cards",
+  {name:"cards", label:"Card Grid", cat:"layout", block:"container", icon:"i-cards",
    desc:"A grid of cards, each written as a list item.",
    options:[
      {k:"columns", l:"Columns", t:"select", values:["2","3","4"], def:"3"},
@@ -3396,7 +3552,7 @@ const COMPONENTS = [
    options:[{k:"size", l:"Size", t:"select", values:["small","medium","large"], def:"medium"}]},
 
   /* ---- data ---- */
-  {name:"entries", label:"Entry list", cat:"data", block:"leaf", icon:"i-list",
+  {name:"entries", label:"Entry List", cat:"data", block:"leaf", icon:"i-list",
    desc:"A live list of entries pulled from a content type.",
    options:[
      {k:"type",  l:"Content type", t:"select", values:["page","post","release"], def:"post"},
@@ -3404,7 +3560,7 @@ const COMPONENTS = [
      {k:"topic", l:"Topic",        t:"text",   def:"", hint:"Leave empty for every topic."},
      {k:"style", l:"Style",        t:"select", values:["list","cards"], def:"list"}
    ]},
-  {name:"terms", label:"Term list", cat:"data", block:"leaf", icon:"i-folder",
+  {name:"terms", label:"Term List", cat:"data", block:"leaf", icon:"i-folder",
    desc:"Every term in a taxonomy, with entry counts.",
    options:[
      {k:"taxonomy", l:"Taxonomy", t:"select", values:["topic","tag"], def:"topic"},
@@ -3448,7 +3604,7 @@ const COMPONENTS = [
    ]},
 
   /* ---- shop addon ---- */
-  {name:"product", label:"Product card", cat:"shop", src:"Shop addon", block:"leaf", icon:"i-cart",
+  {name:"product", label:"Product Card", cat:"shop", src:"Shop addon", block:"leaf", icon:"i-cart",
    desc:"One product with its price and an add-to-basket button.",
    options:[
      {k:"sku",  l:"Product", t:"text", def:""},
@@ -3461,6 +3617,8 @@ const COMPONENTS = [
      {k:"tax", l:"Include tax", t:"bool", def:"true"}
    ]}
 ];
+/* Not in the inserter — you get one by inserting media — but it behaves like a
+   component everywhere else: selectable, named in the tab, options in the panel. */
 const COMP = Object.fromEntries(COMPONENTS.map(c=>[c.name,c]));
 
 function parseAttrs(s){
@@ -3496,20 +3654,31 @@ function scanDirectives(src){
     const line = lines[i], s = starts[i];
     let m;
     if ((m = /^:::([a-z][\w-]*)(\{[^}]*\})?\s*$/.exec(line))){
-      if (!COMP[m[1]]) continue;
+      if (!COMP[m[1]] || COMP[m[1]].block === "markdown") continue;
       let end = s + line.length;
       for (let j = i + 1; j < lines.length; j++){
         if (/^:::\s*$/.test(lines[j])){ end = starts[j] + lines[j].length; closedBy[j] = out.length; break; }
       }
       out.push({name:m[1], kind:"container", label:"", attrs:m[2]||"", start:s, headEnd:s+line.length, end});
     } else if ((m = /^::([a-z][\w-]*)(\{[^}]*\})?\s*$/.exec(line))){
-      if (!COMP[m[1]]) continue;
+      if (!COMP[m[1]] || COMP[m[1]].block === "markdown") continue;
       out.push({name:m[1], kind:"leaf", label:"", attrs:m[2]||"", start:s, headEnd:s+line.length, end:s+line.length});
     } else if (!/^```/.test(line)){
+      /* A plain Markdown image is an object in its own right: it has a source,
+         alt text, a caption and classes, so it gets the same panel a component
+         gets. Nothing about the syntax changes — only what the editor knows. */
+      const ire = /!\[([^\]]*)\]\(\s*([^)\s]*)(?:\s+"([^"]*)")?\s*\)(\{[^}]*\})?/g;
+      let gm;
+      while ((gm = ire.exec(line))){
+        const st = s + gm.index;
+        out.push({name:"image", kind:"image", label:"", attrs:gm[4]||"", start:st,
+                  headEnd:st+gm[0].length, end:st+gm[0].length,
+                  alt:gm[1]||"", src:gm[2]||"", caption:gm[3] === undefined ? null : gm[3]});
+      }
       const re = /:([a-z][\w-]*)(\[[^\]]*\])?(\{[^}]*\})?/g;
       let im;
       while ((im = re.exec(line))){
-        if (!COMP[im[1]]) continue;
+        if (!COMP[im[1]] || COMP[im[1]].block === "markdown") continue;
         const prev = line[im.index-1];
         if (prev === ":" || (prev && /[\w]/.test(prev))) continue;
         const st = s + im.index;
@@ -3523,7 +3692,7 @@ function scanDirectives(src){
 
 /* ================= entry editor ================= */
 const editor = {
-  id:null, type:"page", src:"", dirs:[], active:-1, mode:"document",
+  id:null, type:"page", src:"", dirs:[], blocks:[], block:null, active:-1, mode:"document", showList:false,
   dirty:false, savedAt:"15:20", pending:false, status:"draft",
   fields:{}, tax:[], excerpt:"", parent:""
 };
@@ -3565,7 +3734,7 @@ function sampleBody(e){
 "- [x] Something finished\n\n" +
 "### Attributes\n\n" +
 "Ordinary Markdown takes attributes too, and they are marked the same way wherever they appear:\n\n" +
-"![A boy at a desk, tinkering, the night sky through the window.](/media/2026/06/icon-dream.webp){.stretch-wide}\n\n" +
+"![A boy at a desk, tinkering, the night sky through the window.](/media/2026/06/icon-dream.webp \"The quoted part is the caption.\"){.stretch-wide}\n\n" +
 "---\n\n" +
 "### Tables and code\n\n" +
 "| Element | Marked by | Reads as |\n" +
@@ -3575,7 +3744,7 @@ function sampleBody(e){
 "| Directive | Accent on the name | A component |\n\n" +
 "```php\n$type = $cms->types()->get( 'post' );\n$entries = $type->entries()->published();\n```\n\n" +
 "## Components\n\n" +
-"::figure{src=grid-overlay.png caption=\"The underlying grid, exposed\" width=wide}\n\n" +
+"![A page layout with its baseline grid drawn over the text.](/media/2026/06/grid-overlay.png \"The underlying grid, exposed\"){.stretch-wide}\n\n" +
 "A leaf component takes one line. An inline one sits mid-sentence, like this :badge[new]{tone=accent} label.\n\n" +
 "::entries{type=post limit=5 topic=Tooling style=list}\n\n" +
 "[^1]: A footnote is collected at the foot of the entry.\n";
@@ -3635,6 +3804,7 @@ function openEditor(id){
     ta.focus({preventScroll:true});
     ta.setSelectionRange(0,0);
     $("#edSrcWrap").scrollTop = 0;   /* focusing a tall textarea scrolls its container */
+    setActiveFromCursor();           /* the panel follows the caret from the first frame */
   }, 0);
 }
 function slugLine(){
@@ -3670,6 +3840,20 @@ function commitEditor(){
 function rescan(){
   editor.src = $("#edSrc").value;
   editor.dirs = scanDirectives(editor.src);
+  editor.blocks = scanBlocks(editor.src);
+}
+/* A blank line belongs to the block above it: you have just finished writing
+   that block, and a panel that empties itself every other line is worse than
+   one that is a line behind. */
+function blockFromCursor(){
+  const pos = $("#edSrc").selectionStart;
+  const list = editor.blocks || [];
+  let last = null;
+  for (let i = 0; i < list.length; i++){
+    if (pos >= list[i].start && pos <= list[i].end) return list[i];
+    if (list[i].start <= pos) last = list[i];
+  }
+  return last;
 }
 function activeFromCursor(){
   const pos = $("#edSrc").selectionStart;
@@ -3684,7 +3868,12 @@ function activeFromCursor(){
 }
 function setActiveFromCursor(){
   const next = activeFromCursor();
-  if (next !== editor.active){
+  const b = next >= 0 ? null : blockFromCursor();
+  const bChanged = (editor.block && editor.block.start) !== (b && b.start) ||
+                   (editor.block && editor.block.type) !== (b && b.type);
+  editor.block = b;
+  if (next !== editor.active || bChanged){
+    editor.showList = false;   /* moving the caret always returns to what it found */
     editor.active = next;
     editor.mode = next >= 0 ? "component" : "document";
     if ($("#view-editor").classList.contains("side-open")) renderSide();
@@ -3752,13 +3941,20 @@ const HL_INLINE = new RegExp(HL_RULES.map(r=>"("+r[1]+")").join("|"), "g");
 function wrapped(t, n, cls){
   return mk(t.slice(0, n)) + '<span class="'+cls+'">'+hlText(t.slice(n, -n))+'</span>' + mk(t.slice(-n));
 }
+/* [label](target "title") — three separate things in one construct, and on an
+   image the quoted part is the caption the reader sees, so it gets full ink
+   while the path beside it steps back. */
 function labelled(t, cls, urlCls, bang){
-  /* [label](target) — the label is read in the sentence, the target is not. */
   const i = t.indexOf("]("), lead = bang ? 2 : 1;
   if (i === -1) return esc(t);
+  const target = t.slice(i + 2, -1);
+  const tm = /^(\s*[^\s]*)(\s+)("[^"]*"|'[^']*')(\s*)$/.exec(target);
+  const inner = tm
+    ? '<span class="'+urlCls+'">'+esc(tm[1])+'</span>' + esc(tm[2]) +
+      mk(tm[3][0]) + '<span class="hl-title">'+esc(tm[3].slice(1,-1))+'</span>' + mk(tm[3].slice(-1)) + esc(tm[4])
+    : '<span class="'+urlCls+'">'+esc(target)+'</span>';
   return (bang ? mk("![") : mk("[")) +
-    '<span class="'+cls+'">'+esc(t.slice(lead, i))+'</span>' + mk("](") +
-    '<span class="'+urlCls+'">'+esc(t.slice(i + 2, -1))+'</span>' + mk(")");
+    '<span class="'+cls+'">'+esc(t.slice(lead, i))+'</span>' + mk("](") + inner + mk(")");
 }
 function hlToken(m){
   let i = 1; while (i <= HL_RULES.length && m[i] === undefined) i++;
@@ -3766,7 +3962,7 @@ function hlToken(m){
   switch (kind){
     case "esc":   return mk(t[0]) + esc(t.slice(1));
     case "code":  return '<span class="hl-code">'+mk("`")+esc(t.slice(1,-1))+mk("`")+'</span>';
-    case "image": return labelled(t, "hl-alt", "hl-url", true);
+    case "image": return labelled(t, "hl-link", "hl-url", true);
     case "link":  return labelled(t, "hl-link", "hl-url", false);
     case "fnref": return '<span class="hl-fn">'+esc(t)+'</span>';
     case "auto":  return mk("<")+'<span class="hl-link">'+esc(t.slice(1,-1))+'</span>'+mk(">");
@@ -3801,6 +3997,105 @@ const RE_TASK  = /^(\[[ xX]\])(\s+)([\s\S]*)$/;
 const RE_FNDEF = /^(\[\^[^\]\n]+\]:)(\s*)([\s\S]*)$/;
 const RE_TABLE = /^\s*\|.*\|?\s*$/;
 const RE_TSEP  = /^\s*\|?[\s:|-]+\|[\s:|-]*$/;
+
+/* ================= block model =================
+   Every block-level thing in the source is an object the author can attach a
+   class or an id to, so every one of them gets a panel. Directives and images
+   are more specific and win where they overlap; everything else falls back to
+   the plain Markdown block the caret is sitting in. */
+const BLOCK_KINDS = {
+  heading: {label:"Heading",    icon:"i-text",   desc:"A heading. Its level is the number of hashes."},
+  para:    {label:"Paragraph",  icon:"i-page",   desc:"A paragraph of prose."},
+  item:    {label:"List Item",  icon:"i-list",   desc:"One item of a list. Attributes attach to the item, not the whole list."},
+  quote:   {label:"Quote",      icon:"i-quote",  desc:"A block quotation."},
+  code:    {label:"Code Block", icon:"i-braces", desc:"A fenced code block. The word after the fence is its language."},
+  table:   {label:"Table",      icon:"i-table",  desc:"A pipe table."},
+  rule:    {label:"Divider",    icon:"i-minus",  desc:"A horizontal rule."}
+};
+function isBlockStart(l){
+  return RE_HEAD.test(l) || RE_LIST.test(l) || RE_QUOTE.test(l) || RE_TABLE.test(l) ||
+         RE_HR.test(l) || /^\s*```/.test(l) || /^:{2,3}/.test(l);
+}
+function scanBlocks(src){
+  const lines = src.split("\n");
+  const starts = []; let o = 0;
+  lines.forEach(l=>{ starts.push(o); o += l.length + 1; });
+  const at = (a,b)=>({first:a, last:b, start:starts[a], end:starts[b] + lines[b].length});
+  const out = [];
+  let i = 0;
+  while (i < lines.length){
+    const line = lines[i];
+    if (!line.trim()){ i++; continue; }
+    if (/^\s*```/.test(line)){
+      let j = i + 1;
+      while (j < lines.length && !/^\s*```/.test(lines[j])) j++;
+      if (j >= lines.length) j = lines.length - 1;
+      out.push(Object.assign({type:"code"}, at(i, j))); i = j + 1; continue;
+    }
+    if (/^:{2,3}/.test(line)){ i++; continue; }          /* directives have their own panel */
+    if (RE_HR.test(line)){ out.push(Object.assign({type:"rule"}, at(i, i))); i++; continue; }
+    if (RE_HEAD.test(line)){ out.push(Object.assign({type:"heading"}, at(i, i))); i++; continue; }
+    if (RE_TABLE.test(line)){
+      let j = i; while (j + 1 < lines.length && RE_TABLE.test(lines[j+1])) j++;
+      out.push(Object.assign({type:"table"}, at(i, j))); i = j + 1; continue;
+    }
+    if (RE_QUOTE.test(line)){
+      let j = i; while (j + 1 < lines.length && RE_QUOTE.test(lines[j+1])) j++;
+      out.push(Object.assign({type:"quote"}, at(i, j))); i = j + 1; continue;
+    }
+    if (RE_LIST.test(line)){
+      /* One record per item: that is the unit an attribute attaches to. */
+      let j = i;
+      while (j + 1 < lines.length && lines[j+1].trim() && !isBlockStart(lines[j+1]) && /^\s/.test(lines[j+1])) j++;
+      out.push(Object.assign({type:"item"}, at(i, j))); i = j + 1; continue;
+    }
+    let j = i;
+    while (j + 1 < lines.length && lines[j+1].trim() && !isBlockStart(lines[j+1])) j++;
+    out.push(Object.assign({type:"para"}, at(i, j))); i = j + 1;
+  }
+  return out;
+}
+
+/* Where a block's `{...}` lives: after the info string on a fence, at the end
+   of the last line everywhere else. Split it out so reading and writing agree. */
+function blockAttrLine(b){
+  const lines = editor.src.split("\n");
+  const n = b.type === "code" ? b.first : b.last;
+  const raw = lines[n] || "";
+  const m = /^([\s\S]*?)(\s*\{[^}]*\})?\s*$/.exec(raw);
+  return {n, raw, body:m[1], attrs:(m[2] || "").trim()};
+}
+function blockClasses(b){ return attrClasses(blockAttrLine(b).attrs).join(" "); }
+function blockId(b){
+  const m = /#([A-Za-z0-9_-]+)/.exec(blockAttrLine(b).attrs);
+  return m ? m[1] : "";
+}
+function blockOther(b){
+  const inner = blockAttrLine(b).attrs.replace(/^\{:?\s*/, "").replace(/\s*\}$/, "");
+  return inner.split(/\s+/).filter(x=> x && x[0] !== "." && x[0] !== "#");
+}
+function setBlockAttrs(b, classes, id){
+  const parts = [];
+  String(classes || "").trim().split(/\s+/).filter(Boolean).forEach(c=> parts.push("." + c.replace(/^\./,"")));
+  if (id) parts.push("#" + String(id).replace(/^#/,""));
+  blockOther(b).forEach(x=> parts.push(x));
+  const at = parts.length ? "{" + parts.join(" ") + "}" : "";
+  const L = blockAttrLine(b);
+  replaceLine(L.n, L.body + (at ? " " + at : ""));
+}
+function replaceLine(n, text){
+  const lines = editor.src.split("\n");
+  if (n < 0 || n >= lines.length) return;
+  const pos = $("#edSrc").selectionStart;
+  lines[n] = text;
+  editor.src = lines.join("\n");
+  const ta = $("#edSrc");
+  ta.value = editor.src;
+  ta.setSelectionRange(Math.min(pos, editor.src.length), Math.min(pos, editor.src.length));
+  rescan();
+  setActiveFromCursor();
+  renderSide(); updateCounts(); markDirty();
+}
 
 function hlTable(line){
   if (RE_TSEP.test(line) && line.indexOf("-") !== -1) return '<span class="hl-pipe">'+esc(line)+'</span>';
@@ -3859,8 +4154,6 @@ function renderHl(){
 
   lines.forEach((line, i)=>{
     const s = starts[i], e = s + line.length;
-    const inActive = act && s >= act.start && e <= act.end;
-
     if (/^\s*```/.test(line)){
       inFence = !inFence;
       const fm = /^(\s*)(`{3,})(.*)$/.exec(line);
@@ -3870,27 +4163,37 @@ function renderHl(){
     }
     if (inFence){ html += '<span class="hl-fence">'+esc(line)+'</span>\n'; return; }
 
-    const head = editor.dirs.find(d=>d.kind !== "inline" && d.start === s);
+    /* An image is scanned like a directive but written like Markdown, so it
+       must not be picked up here as a directive head. */
+    const head = editor.dirs.find(d=>d.kind !== "inline" && d.kind !== "image" && d.start === s);
     if (head){ html += dirSpan(line, head, act === head) + "\n"; return; }
     if (/^:::\s*$/.test(line)){
       const owner = editor.dirs.find(d=>d.kind === "container" && d.end === e);
       html += '<span class="hl-dir'+(owner && owner === act ? " on":"")+'">'+mk(line)+'</span>\n'; return;
     }
 
-    const inl = editor.dirs.filter(d=>d.kind === "inline" && d.start >= s && d.end <= e);
+    /* Images take part in selection like inline directives, but they keep their
+       ordinary Markdown coloring — only the "you are here" ring is added. */
+    const inl = editor.dirs.filter(d=>(d.kind === "inline" || d.kind === "image") && d.start >= s && d.end <= e);
     let out;
     if (!inl.length){
       out = hlBlock(line);
     } else {
       let cursor = s; out = "";
       inl.forEach(d=>{
+        const t = src.slice(d.start, d.end);
         out += hlText(src.slice(cursor, d.start));
-        out += dirSpan(src.slice(d.start, d.end), d, act === d);
+        out += d.kind === "image"
+          ? (act === d ? '<span class="hl-dir on">'+hlText(t)+'</span>' : hlText(t))
+          : dirSpan(t, d, act === d);
         cursor = d.end;
       });
       out += hlText(src.slice(cursor, e));
     }
-    html += (inActive ? '<span class="hl-inside">'+out+'</span>' : out) + "\n";
+    /* A container marks its opener and its closer, and nothing between them:
+       the body is the writing, and tinting it puts a highlight behind whole
+       paragraphs the author is in the middle of. */
+    html += out + "\n";
   });
 
   $("#edHl").innerHTML = html;
@@ -4014,14 +4317,15 @@ function validateEntry(){
    caret. Neither replaces the other's header, so you always know where you are. */
 function renderSide(){
   const d = editor.dirs[editor.active];
-  if (editor.tab === "component" && !d) { /* stay on the tab, show why it is empty */ }
+  const b = !d && editor.block ? editor.block : null;
+  const bk = b ? BLOCK_KINDS[b.type] : null;
   $("#edSideHead").innerHTML =
     '<div class="ed-tabs" role="tablist" aria-label="Settings">'+
       '<button class="ed-tab" type="button" role="tab" data-edtab="document" aria-selected="'+(editor.tab !== "component")+'">'+
         '<svg class="ic"><use href="#i-page"/></svg>Document</button>'+
       '<button class="ed-tab" type="button" role="tab" data-edtab="component" aria-selected="'+(editor.tab === "component")+'">'+
-        '<svg class="ic"><use href="#'+(d ? COMP[d.name].icon : "i-braces")+'"/></svg>'+
-        (d ? esc(COMP[d.name].label) : "Components")+
+        '<svg class="ic"><use href="#'+(d ? COMP[d.name].icon : bk ? bk.icon : "i-braces")+'"/></svg>'+
+        (d ? esc(COMP[d.name].label) : bk ? esc(bk.label) : "Components")+
         (editor.dirs.length ? '<span class="n">'+editor.dirs.length+'</span>' : '')+'</button>'+
       '<span class="grow"></span>'+
       '<button class="icon-btn" type="button" id="edSideClose" aria-label="Close settings"><svg class="ic"><use href="#i-x"/></svg></button>'+
@@ -4115,6 +4419,15 @@ function renderDocumentSide(){
   $("#edSideBody").innerHTML = h;
 }
 
+/* One quiet row, in the same place in every panel, back to the index. Without
+   it the list would be unreachable, because the caret is always inside
+   something and so the panel always has something better to show. */
+function compLinkHTML(){
+  return '<button class="side-link" type="button" data-showlist="1">'+
+    '<svg class="ic"><use href="#i-list"/></svg>'+
+    '<span>Components in this entry</span><span class="n">'+editor.dirs.length+'</span>'+
+    '<svg class="ic go"><use href="#i-chev-r"/></svg></button>';
+}
 /* The list of components in the entry belongs on this tab, not with the
    document's own fields — it is the index to what this tab shows. */
 function compListHTML(){
@@ -4124,7 +4437,9 @@ function compListHTML(){
   } else {
     h += '<div class="comp-list">' + editor.dirs.map((d,i)=>{
       const c = COMP[d.name], a = parseAttrs(d.attrs);
-      const sub = a.title || a.caption || a.src || a.url || a.type || a.lang || "";
+      const sub = d.kind === "image"
+        ? (d.caption || (d.src || "").split("/").pop() || "")
+        : (a.title || a.caption || a.src || a.url || a.type || a.lang || "");
       return '<button class="comp-jump'+(i === editor.active ? " on" : "")+'" type="button" data-jump="'+i+'">'+
         '<svg class="ic"><use href="#'+c.icon+'"/></svg>'+
         '<span class="nm">'+esc(c.label)+'</span><span class="sub">'+esc(sub)+'</span></button>';
@@ -4133,44 +4448,150 @@ function compListHTML(){
   return h + '</div>';
 }
 
+/* Plain Markdown gets the same panel a component gets. Attributes are the same
+   `{...}` block everywhere, so the two controls that hold them are identical
+   wherever you are — the only thing that changes is what sits above them. */
+function attrGroupHTML(b){
+  return '<div class="fgroup"><span class="fgroup-t">Attributes</span>'+
+    fieldHTML("b-class","Classes",
+      '<input class="inp mono" type="text" id="b-class" data-blk="classes" value="'+esc(blockClasses(b))+'" placeholder="lead wide">',
+      "Space separated, without the dots.")+
+    fieldHTML("b-id","ID",
+      '<input class="inp mono" type="text" id="b-id" data-blk="id" value="'+esc(blockId(b))+'" placeholder="section-two">',
+      "Becomes the anchor this block can be linked to.")+
+    '</div>';
+}
+function renderBlockSide(b){
+  const k = BLOCK_KINDS[b.type];
+  const L = blockAttrLine(b);
+  let h = '<div class="fgroup"><span class="mini-note">'+esc(k.desc)+'</span></div>';
+
+  if (b.type === "heading"){
+    const m = RE_HEAD.exec(editor.src.split("\n")[b.first]) || [,"","##"," ",""];
+    h += '<div class="fgroup"><span class="fgroup-t">Level</span>'+
+      '<select class="inp" id="b-level" data-blk="level">'+
+        [1,2,3,4,5,6].map(n=>'<option value="'+n+'"'+(m[2].length === n ? " selected" : "")+'>Heading '+n+'</option>').join("")+
+      '</select>'+
+      '<span class="hint">The entry title is the page\'s heading 1, so bodies usually start at 2.</span></div>';
+  }
+  if (b.type === "code"){
+    const fm = /^\s*`{3,}\s*([A-Za-z0-9_+-]*)/.exec(L.body) || [,""];
+    h += '<div class="fgroup"><span class="fgroup-t">Language</span>'+
+      '<input class="inp mono" type="text" id="b-lang" data-blk="lang" value="'+esc(fm[1])+'" placeholder="php">'+
+      '<span class="hint">Sets the highlighting on the site. Leave empty for none.</span></div>';
+  }
+  if (b.type === "item"){
+    const line = editor.src.split("\n")[b.first];
+    const lm = RE_LIST.exec(line);
+    const task = lm ? RE_TASK.exec(lm[4]) : null;
+    const done = !!(task && task[1][1] !== " ");
+    h += '<div class="fgroup"><span class="fgroup-t">Item</span>'+
+      '<label class="switch"><input type="checkbox" id="b-task" data-blk="task"'+(task ? " checked" : "")+'>'+
+        '<span class="track"></span><span class="st">A task, with a checkbox</span></label>'+
+      (task ? '<label class="switch"><input type="checkbox" id="b-done" data-blk="done"'+(done ? " checked" : "")+'>'+
+        '<span class="track"></span><span class="st">Done</span></label>' : "")+
+      '</div>';
+  }
+
+  h += attrGroupHTML(b);
+  h += '<div class="fgroup"><span class="fgroup-t">Source</span>'+
+    '<div class="mini-note mono" style="font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:7px 8px;overflow-x:auto;white-space:pre">'+
+    esc(editor.src.split("\n")[b.first].slice(0, 120))+'</div></div>';
+  h += compLinkHTML();
+  $("#edSideBody").innerHTML = h;
+}
+
 function renderComponentSide(){
   const d = editor.dirs[editor.active];
+  if (editor.showList){ $("#edSideBody").innerHTML = compListHTML(); return; }
+  if (!d && editor.block){ renderBlockSide(editor.block); return; }
   if (!d){
     $("#edSideBody").innerHTML =
       '<div class="side-none"><svg class="ic"><use href="#i-braces"/></svg>'+
-      '<h3>No component selected</h3>'+
-      '<p>Put the cursor inside one in the text, or pick it from the list below.</p></div>' +
+      '<h3>Nothing Selected</h3>'+
+      '<p>Put the cursor anywhere in the text and this panel follows it.</p></div>' +
       compListHTML();
     return;
   }
   const c = COMP[d.name], attrs = parseAttrs(d.attrs);
-  const vars = variantsOf(c.name), cur = attrs.variant || "";
+  const isImg = d.kind === "image";
+  const vars = variantsOf(c.name), cur = isImg ? imageVariant(d) : (attrs.variant || "");
   const chosen = vars.find(v=>v.k === cur) || vars[0];
   let h = '<div class="fgroup"><span class="mini-note">'+esc(c.desc)+'</span></div>';
   h += '<div class="fgroup"><span class="fgroup-t">Variant</span>'+
-    '<select class="inp" id="o-variant" data-fk="variant">'+
+    '<select class="inp" id="o-variant"'+(isImg ? ' data-imgvar="1"' : ' data-fk="variant"')+'>'+
       vars.map(v=>'<option value="'+esc(v.k)+'"'+(v.k === cur ? " selected" : "")+'>'+esc(v.l)+'</option>').join("")+
     '</select>'+
     '<span class="hint">'+esc(chosen.d)+'</span></div>';
-  h += '<div class="fgroup"><span class="fgroup-t">Options</span>'+
-    c.options.map(o=>fieldHTML("o-"+o.k, o.l, controlFor(o, attrs[o.k] !== undefined ? attrs[o.k] : o.def, "o-"), o.hint)).join("")+
-    '</div>';
+  if (d.kind === "image"){
+    /* Alt, source and caption are parts of the syntax, not attributes, so they
+       are written back by rebuilding the image rather than by serializing. */
+    /* The file is the thing being edited, so it is shown rather than named. The
+       actions sit on the image itself, where the thing they act on is. */
+    const rec = d.src ? MEDIA.find(m=>d.src.split("/").pop() === m.name) : null;
+    h += '<div class="fgroup"><span class="fgroup-t">Image</span>'+
+      (d.src
+        ? '<div class="img-prev"><span class="frame">'+(rec ? thumbSVG(rec) : '<span class="miss"><svg class="ic"><use href="#i-image"/></svg></span>')+'</span>'+
+          '<span class="veil"></span><span class="acts">'+
+            '<button class="btn sm" type="button" id="o-img-pick">Replace</button>'+
+            '<button class="btn sm btn-danger" type="button" id="o-img-del">Remove</button>'+
+          '</span></div>'+
+          '<span class="hint mono">'+esc(d.src)+(rec ? ' · '+esc(rec.dim) : ' · not in the library')+'</span>'
+        : '<div class="img-prev empty"><button class="btn" type="button" id="o-img-pick">'+
+          '<svg class="ic"><use href="#i-image"/></svg>Choose an image</button></div>')+
+      '</div>';
+    h += '<div class="fgroup"><span class="fgroup-t">Text</span>'+
+      fieldHTML("o-img-alt","Alt text",
+        '<textarea class="inp" id="o-img-alt" data-img="alt" placeholder="What the image shows, for anyone who cannot see it.">'+esc(d.alt)+'</textarea>',
+        "Left empty, the image is announced as decorative.")+
+      fieldHTML("o-img-cap","Caption",
+        '<input class="inp" type="text" id="o-img-cap" data-img="caption" value="'+esc(d.caption || "")+'">',
+        "Shown under the image on the site. This is the quoted part after the source.")+
+      '</div>';
+  } else {
+    h += '<div class="fgroup"><span class="fgroup-t">Options</span>'+
+      c.options.map(o=>fieldHTML("o-"+o.k, o.l, controlFor(o, attrs[o.k] !== undefined ? attrs[o.k] : o.def, "o-"), o.hint)).join("")+
+      '</div>';
+  }
   if (d.kind === "inline"){
     h += '<div class="fgroup"><span class="fgroup-t">Label</span>'+
       fieldHTML("o-label","Text shown inline",'<input class="inp" type="text" id="o-label" data-label="1" value="'+esc(d.label.slice(1,-1))+'">')+
       '</div>';
   }
   h += '<div class="fgroup"><span class="fgroup-t">Source</span>'+
-    '<div class="mini-note mono" style="font-family:var(--mono);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:7px 8px;overflow-x:auto;white-space:pre">'+
+    '<div class="mini-note mono" style="font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:7px 8px;overflow-x:auto;white-space:pre">'+
     esc(editor.src.slice(d.start, d.headEnd))+'</div>'+
-    '<button class="btn sm btn-danger" type="button" id="edRemoveComp"><svg class="ic"><use href="#i-trash"/></svg>Remove component</button></div>';
-  h += compListHTML();
+    (isImg ? "" : '<button class="btn sm btn-danger" type="button" id="edRemoveComp"><svg class="ic"><use href="#i-trash"/></svg>Remove component</button>')+'</div>';
+  h += compLinkHTML();
   $("#edSideBody").innerHTML = h;
 }
 
+/* `![alt](src "caption"){.class}` — the caption is dropped entirely when empty
+   rather than left as a pair of quotes, so the source stays clean. */
+function imageSource(d, next){
+  const cap = (next.caption === undefined ? d.caption : next.caption);
+  const alt = (next.alt === undefined ? d.alt : next.alt);
+  const src = (next.src === undefined ? d.src : next.src);
+  const at  = (next.attrs === undefined ? d.attrs : next.attrs);
+  return "![" + alt.replace(/[\[\]]/g,"") + "](" + src +
+    (cap ? ' "' + String(cap).replace(/"/g,"'") + '"' : "") + ")" + (at || "");
+}
+function writeImage(next){
+  const d = editor.dirs[editor.active];
+  if (!d || d.kind !== "image") return;
+  const head = imageSource(d, next);
+  const at = d.start;
+  editor.src = editor.src.slice(0, d.start) + head + editor.src.slice(d.headEnd);
+  const ta = $("#edSrc");
+  ta.value = editor.src;
+  rescan();
+  editor.active = editor.dirs.findIndex(x=>x.start === at);
+  renderHl(); updateCounts(); markDirty();
+}
 function writeAttrs(next){
   const d = editor.dirs[editor.active];
   if (!d) return;
+  if (d.kind === "image"){ writeImage({attrs: serializeAttrs(next)}); renderSide(); return; }
   const prefix = d.kind === "container" ? ":::" : d.kind === "leaf" ? "::" : ":";
   const head = prefix + d.name + (d.label || "") + serializeAttrs(next);
   const at = d.start;
@@ -4196,6 +4617,8 @@ function removeComponent(){
   const d = editor.dirs[editor.active];
   if (!d) return;
   let from = d.start, to = d.end;
+  /* An image sits on its own line like a block, so it takes the blank lines
+     around it with it; an inline directive is spliced out of the sentence. */
   if (d.kind !== "inline"){
     while (from > 0 && editor.src[from-1] === "\n") from--;
     while (to < editor.src.length && editor.src[to] === "\n") to++;
@@ -4344,6 +4767,37 @@ const ICON_CATS = [
   {key:"shop",    label:"Commerce",   icon:"i-cart",   icons:["i-cart","i-price"]}
 ];
 const ICON_SET = ICON_CATS.reduce((a,c)=>a.concat(c.icons), []);
+/* Two ways to get an image in, and they are different enough to name: one
+   browses what exists, the other adds something new. */
+let mediaPop = null;
+function closeMediaPop(){
+  if (!mediaPop) return;
+  mediaPop.remove(); mediaPop = null;
+  $("#edMedia").setAttribute("aria-expanded","false");
+}
+function openMediaPop(btn){
+  closeMediaPop();
+  const el = document.createElement("div");
+  el.className = "inline-pop"; el.setAttribute("role","menu"); el.setAttribute("aria-label","Insert media");
+  el.innerHTML =
+    '<button type="button" role="menuitem" data-mtab="library"><svg class="ic"><use href="#i-image"/></svg>'+
+      '<span><span class="nm">Media Library</span><span class="ds">Choose a file already in the library.</span></span></button>'+
+    '<button type="button" role="menuitem" data-mtab="upload"><svg class="ic"><use href="#i-upload"/></svg>'+
+      '<span><span class="nm">Upload a File</span><span class="ds">Add one from this computer, then place it.</span></span></button>';
+  document.body.appendChild(el);
+  const r = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + "px";
+  el.style.top  = (r.bottom + h + 8 > window.innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + "px";
+  btn.setAttribute("aria-expanded","true");
+  mediaPop = el;
+  el.addEventListener("click", ev=>{
+    const b = ev.target.closest("[data-mtab]"); if (!b) return;
+    closeMediaPop();
+    insertMedia(b.dataset.mtab);
+  });
+  el.querySelector("button").focus();
+}
+
 let inlinePop = null;
 function closeInlinePop(){
   if (!inlinePop) return;
@@ -4407,13 +4861,13 @@ function renderIconPicker(){
 
   $("#ipCats").innerHTML =
     '<button type="button" data-ipcat="all" aria-current="'+(iconState.cat === "all")+'">'+
-      '<svg class="ic"><use href="#i-grid"/></svg>All icons<span class="n">'+ICON_SET.length+'</span></button>' +
+      '<svg class="ic"><use href="#i-grid"/></svg>All Icons<span class="n">'+ICON_SET.length+'</span></button>' +
     ICON_CATS.map(c=>'<button type="button" data-ipcat="'+c.key+'" aria-current="'+(iconState.cat === c.key)+'">'+
       '<svg class="ic"><use href="#'+c.icon+'"/></svg>'+esc(c.label)+'<span class="n">'+c.icons.length+'</span></button>').join("");
 
   let h = "";
   if (!items.length){
-    h = '<div class="empty"><svg class="ic"><use href="#i-search"/></svg><h3>No icon called that</h3>'+
+    h = '<div class="empty"><svg class="ic"><use href="#i-search"/></svg><h3>No Icon Called That</h3>'+
         '<p>Try a broader word, or pick a category on the left.</p></div>';
   } else if (iconState.q || iconState.cat !== "all"){
     h = '<div class="icon-group">'+items.length+(items.length === 1 ? " icon" : " icons")+'</div>'+
@@ -4463,13 +4917,30 @@ function chooseIcon(name){
 }
 
 /* ---- media ---- */
-function insertMedia(){
+function mediaPath(name){ return "/media/2026/06/" + name; }
+function insertMedia(tab){
   openPicker(name=>{
     const m = MEDIA.find(x=>x.name === name);
-    const c = COMP[m && m.kind === "video" ? "video" : m && m.kind === "doc" ? "file" : "figure"];
     const ta = $("#edSrc"), pos = ta.selectionStart;
+    /* An image is an image. Wrapping one in a component to give it a caption
+       would be inventing a second syntax for something Markdown already says. */
+    if (!m || m.kind === "image"){
+      const alt = (m && m.alt) || "";
+      const cap = (m && m.caption) || "";
+      const snippet = "\n![" + alt + "](" + mediaPath(name) + (cap ? ' "' + cap + '"' : "") + ")\n";
+      editor.src = editor.src.slice(0, pos) + snippet + editor.src.slice(pos);
+      ta.value = editor.src;
+      ta.focus({preventScroll:true});
+      ta.setSelectionRange(pos + snippet.length, pos + snippet.length);
+      rescan(); renderHl(); updateCounts(); markDirty();
+      const at = editor.dirs.findIndex(d=>d.kind === "image" && d.start >= pos);
+      if (at !== -1){ editor.active = at; editor.tab = "component"; renderHl(); renderSelChip();
+        if ($("#view-editor").classList.contains("side-open")) renderSide(); }
+      toast("Inserted " + name);
+      return;
+    }
+    const c = COMP[m.kind === "video" ? "video" : "file"];
     const attrs = {src:name};
-    if (c.name === "figure") attrs.width = "column";
     const snippet = "\n::" + c.name + serializeAttrs(attrs) + "\n";
     editor.src = editor.src.slice(0, pos) + snippet + editor.src.slice(pos);
     ta.value = editor.src;
@@ -4479,9 +4950,10 @@ function insertMedia(){
     const at = editor.dirs.findIndex(d=>d.start >= pos && d.name === c.name);
     if (at !== -1){ editor.active = at; editor.tab = "component"; renderHl(); renderSelChip(); if ($("#view-editor").classList.contains("side-open")) renderSide(); }
     toast("Inserted " + name);
-  }, "", {title:"Insert media", action:"Insert"});
+  }, "", {title:"Insert Media", action:"Insert", tab:tab || "library"});
 }
 function insertComponent(c){
+  if (c.block === "markdown"){ insertMedia("library"); return; }
   const ta = $("#edSrc");
   const pos = ta.selectionStart;
   const defs = {};
@@ -4568,7 +5040,7 @@ function renderTypes(){
   em.hidden = rows.length !== 0;
   $("#typeRows").closest("table").hidden = rows.length === 0;
   if (!rows.length){
-    em.innerHTML = '<div class="empty"><svg class="ic"><use href="#i-search"/></svg><h3>No types match</h3>'+
+    em.innerHTML = '<div class="empty"><svg class="ic"><use href="#i-search"/></svg><h3>No Types Match</h3>'+
       '<p>Nothing matches the current search and filter.</p>'+
       '<button class="btn" type="button" id="tyClear">Clear</button></div>';
     $("#tyClear").addEventListener("click", ()=>{ tbState.q=""; tbState.kind="all"; $("#tyq").value=""; renderTypes(); });
@@ -4640,7 +5112,7 @@ function renderTypeDetail(){
 
   if (!fields.length && !tbState.adding){
     h += '<div class="empty" style="padding:56px 24px"><svg class="ic"><use href="#i-text"/></svg>'+
-      '<h3>No fields yet</h3><p>Every entry of this type still has a title, a slug and a body. Fields add structured data beside them.</p></div>';
+      '<h3>No Fields Yet</h3><p>Every entry of this type still has a title, a slug and a body. Fields add structured data beside them.</p></div>';
   } else {
     fields.forEach((f,i)=>{
       h += '<div class="field-row" data-field="'+f.k+'">'+
@@ -4685,7 +5157,7 @@ function renderTypeDetail(){
   h += '</section>';
 
   if (t.source === "Custom"){
-    h += '<section class="panel"><div class="panel-head"><h2>Danger zone</h2></div>'+
+    h += '<section class="panel"><div class="panel-head"><h2>Danger Zone</h2></div>'+
       '<div class="fgroup"><div><button class="btn sm btn-danger" type="button" data-tydelete="'+t.key+'">'+
       '<svg class="ic"><use href="#i-trash"/></svg>Delete this type</button></div>'+
       '<span class="mini-note">'+typeEntryCount(t)+' '+(isTax?"terms":"entries")+
@@ -4746,7 +5218,7 @@ function renderAccounts(){
   if (loading){ $("#accountRows").innerHTML = skRows(5, 4); return; }
   if (sim.empty){
     $("#accountRows").innerHTML = '<tr><td colspan="6" style="padding:0">'+
-      '<div class="empty"><svg class="ic"><use href="#i-users"/></svg><h3>Only you so far</h3>'+
+      '<div class="empty"><svg class="ic"><use href="#i-users"/></svg><h3>Only You So Far</h3>'+
       '<p>Invite the people who will write, and give each one the roles they need.</p>'+
       '<button class="btn btn-primary" type="button" id="emptyInvite"><svg class="ic"><use href="#i-plus"/></svg>Invite someone</button></div></td></tr>';
     const b = $("#emptyInvite"); if (b) b.addEventListener("click", openInvite);
@@ -4818,7 +5290,7 @@ function renderRoleDetail(){
         '<div class="row-s">'+esc(ACCOUNT_META[a.id].email)+'</div></div>'+
         '<div class="row-end"><button class="btn sm" type="button" data-account="'+a.id+'">Open</button></div></div>').join("")
     : '<div class="empty" style="padding:56px 24px"><svg class="ic"><use href="#i-users"/></svg>'+
-      '<h3>No accounts have this role</h3><p>Assign it from any account’s own screen.</p>'+
+      '<h3>No Accounts Have This Role</h3><p>Assign it from any account’s own screen.</p>'+
       '<button class="btn" type="button" data-goto-accounts="1">Go to accounts</button></div>';
 
   $("#rlCapCount").textContent = granted === "*" ? "All granted" : capCount(roleKey) + " granted";
@@ -4926,7 +5398,7 @@ function renderTerms(){
         '<button class="btn btn-primary" type="button" id="tNewEmpty"><svg class="ic"><use href="#i-plus"/></svg>New '+esc(t.singular)+'</button></div>';
       const b = $("#tNewEmpty"); if (b) b.addEventListener("click", ()=> $("#termNew").click());
     } else {
-      em.innerHTML = '<div class="empty"><svg class="ic"><use href="#i-search"/></svg><h3>No '+esc(t.label.toLowerCase())+' match</h3>'+
+      em.innerHTML = '<div class="empty"><svg class="ic"><use href="#i-search"/></svg><h3>No '+esc(t.label)+' Match</h3>'+
         '<p>Nothing here matches “'+esc(termState.q)+'”.</p>'+
         '<button class="btn" type="button" id="tClear">Clear search</button></div>';
       $("#tClear").addEventListener("click", ()=>{ termState.q=""; $("#tq").value=""; renderTerms(); });
@@ -5064,7 +5536,7 @@ const SETTING_PANELS = [
     {k:"per_page",     l:"Entries per page in lists", t:"select", values:()=>[["10","10"],["25","25"],["50","50"]]},
     {k:"trash_days",   l:"Empty trash after", t:"select", values:()=>[["7","7 days"],["30","30 days"],["0","Never"]]}
   ]},
-  {title:"Dates and time", hint:"How timestamps are written", fields:[
+  {title:"Dates and Time", hint:"How timestamps are written", fields:[
     {k:"timezone",    l:"Time zone",   t:"select", values:()=>[["Europe/Brussels","Europe/Brussels"],["UTC","UTC"],["America/Chicago","America/Chicago"]]},
     {k:"date_format", l:"Date format", t:"select", values:()=>[["j M Y","29 Sep 2026"],["Y-m-d","2026-09-29"],["F j, Y","September 29, 2026"]]},
     {k:"time_format", l:"Time format", t:"select", values:()=>[["H:i","15:20"],["g:i a","3:20 pm"]]},
@@ -5389,7 +5861,7 @@ function renderMediaItem(){
         '<div class="row-s">'+esc(kindOf(e.type).label)+' · '+esc(STATUS_LABEL[e.status])+'</div></div>'+
         '<div class="row-end"><button class="btn sm" type="button" data-open="'+e.id+'">Open</button></div></div>').join("")
     : '<div class="empty" style="padding:56px 24px"><svg class="ic"><use href="#i-link"/></svg>'+
-      '<h3>Nothing links to this file</h3><p>It is safe to delete, or it may simply be new.</p></div>';
+      '<h3>Nothing Links to This File</h3><p>It is safe to delete, or it may simply be new.</p></div>';
 }
 
 /* ================= account detail & invite ================= */
@@ -5507,7 +5979,11 @@ $("#edInsert").addEventListener("click", ()=>{
   if (insState.open){ closeInserter(); $("#edSrc").focus({preventScroll:true}); }
   else openInserter();
 });
-$("#edMedia").addEventListener("click", insertMedia);
+$("#edMedia").addEventListener("click", e=>{
+  e.stopPropagation();
+  if (mediaPop){ closeMediaPop(); return; }
+  openMediaPop(e.currentTarget);
+});
 $("#edIcon").addEventListener("click", ()=> openIconPicker());
 $("#ipq").addEventListener("input", e=>{ iconState.q = e.target.value; iconState.idx = 0; renderIconPicker(); });
 $("#ipq").addEventListener("keydown", iconKeydown);
@@ -5618,6 +6094,39 @@ $("#edSideBody").addEventListener("change", ev=>{
     renderSide(); return;
   }
   if (el.dataset.label !== undefined){ writeLabel(el.value); return; }
+  if (el.dataset.blk){
+    const b = editor.block;
+    if (!b) return;
+    const key = el.dataset.blk;
+    const lines = editor.src.split("\n");
+    if (key === "classes") setBlockAttrs(b, el.value, blockId(b));
+    else if (key === "id")  setBlockAttrs(b, blockClasses(b), el.value);
+    else if (key === "level"){
+      const m = RE_HEAD.exec(lines[b.first]);
+      if (m) replaceLine(b.first, m[1] + "#".repeat(+el.value) + m[3] + m[4]);
+    }
+    else if (key === "lang"){
+      const L2 = blockAttrLine(b);
+      const fm = /^(\s*`{3,})\s*[A-Za-z0-9_+-]*(.*)$/.exec(L2.body);
+      if (fm) replaceLine(L2.n, fm[1] + (el.value ? el.value : "") + fm[2] + (L2.attrs ? " " + L2.attrs : ""));
+    }
+    else if (key === "task" || key === "done"){
+      const m = RE_LIST.exec(lines[b.first]);
+      if (!m) return;
+      const t = RE_TASK.exec(m[4]);
+      let rest;
+      if (key === "task") rest = el.checked ? (t ? m[4] : "[ ] " + m[4]) : (t ? t[3] : m[4]);
+      else rest = "[" + (el.checked ? "x" : " ") + "]" + (t ? t[2] + t[3] : " " + m[4]);
+      replaceLine(b.first, m[1] + m[2] + m[3] + rest);
+    }
+    return;
+  }
+  if (el.dataset.imgvar){
+    const d = editor.dirs[editor.active];
+    if (d) { writeImage({attrs: setImageVariant(d, el.value)}); renderSide(); }
+    return;
+  }
+  if (el.dataset.img){ writeImage({[el.dataset.img]: el.value}); return; }
 
   const doc = el.dataset.doc;
   if (doc){
@@ -5656,12 +6165,13 @@ $("#edSideBody").addEventListener("change", ev=>{
   }
 });
 $("#edSideBody").addEventListener("click", ev=>{
-  if (ev.target.closest("#edRemoveComp")){ removeComponent(); return; }
+  if (ev.target.closest("#edRemoveComp") || ev.target.closest("#o-img-del")){ removeComponent(); return; }
 });
 $("#edSideHead").addEventListener("click", ev=>{
   const t = ev.target.closest("[data-edtab]");
   if (!t || t.disabled) return;
   editor.tab = t.dataset.edtab;
+  editor.showList = false;
   renderSide();
 });
 $("#edSideBody").addEventListener("click", ev=>{
@@ -5670,14 +6180,36 @@ $("#edSideBody").addEventListener("click", ev=>{
 document.addEventListener("click", ev=>{
 
   if (inlinePop && !ev.target.closest(".inline-pop") && !ev.target.closest("#edInline")) closeInlinePop();
+  if (mediaPop && !ev.target.closest(".inline-pop") && !ev.target.closest("#edMedia")) closeMediaPop();
 });
 window.addEventListener("resize", ()=>{ if (currentView === "editor") renderHl(); });
 
 /* ================= wiring: media & picker ================= */
 $("#mq").addEventListener("input", e=>{ mstate.q = e.target.value; renderMedia(); });
+$("#mUpload").addEventListener("click", ()=> openPicker(name=>{ const m = MEDIA.find(x=>x.name===name); if (m) openMediaItem(m.id); },
+  "", {title:"Upload to the Library", action:"Open", tab:"upload"}));
 $("#mKind").addEventListener("change", e=>{ mstate.kind = e.target.value; renderMedia(); });
 $("#mSort").addEventListener("change", e=>{ mstate.sort = e.target.value; renderMedia(); });
 $("#pkq").addEventListener("input", renderPicker);
+$("#picker").addEventListener("click", ev=>{
+  const t = ev.target.closest("[data-pktab]");
+  if (t){ setPickTab(t.dataset.pktab); return; }
+});
+$("#pkBrowse").addEventListener("click", ()=> $("#pkFiles").click());
+$("#pkFiles").addEventListener("change", e=>{ addUploads(e.target.files); e.target.value = ""; });
+/* Dropping anywhere on the modal uploads — nobody aims for the dashed box. */
+["dragenter","dragover"].forEach(n=> $("#picker").addEventListener(n, e=>{
+  e.preventDefault(); $("#picker").classList.add("dragging");
+  if (pickState.tab !== "upload") setPickTab("upload");
+}));
+["dragleave","dragend"].forEach(n=> $("#picker").addEventListener(n, e=>{
+  if (e.relatedTarget && $("#picker").contains(e.relatedTarget)) return;
+  $("#picker").classList.remove("dragging");
+}));
+$("#picker").addEventListener("drop", e=>{
+  e.preventDefault(); $("#picker").classList.remove("dragging");
+  addUploads(e.dataTransfer && e.dataTransfer.files);
+});
 $("#pkKinds").addEventListener("click", ev=>{
   const b = ev.target.closest("[data-pkkind]"); if (!b) return;
   pickState.kind = b.dataset.pkkind; renderPicker();
@@ -5746,7 +6278,7 @@ $("#accountBtn").addEventListener("click", ev=>{
     '<div style="padding:10px 10px 12px;border-bottom:1px solid var(--border);margin-bottom:6px">'+
       '<span class="fn">Justin Tadlock</span><span class="fk">justin@meridianreview.org</span>'+
       '<span class="role-pills" style="margin-top:6px"><span class="role-pill admin">Administrator</span></span></div>'+
-    '<button type="button" role="menuitem" data-acct="profile"><svg class="ic"><use href="#i-users"/></svg>Your profile</button>'+
+    '<button type="button" role="menuitem" data-acct="profile"><svg class="ic"><use href="#i-users"/></svg>Your Profile</button>'+
     '<button type="button" role="menuitem" data-acct="profile"><svg class="ic"><use href="#i-brush"/></svg>Admin theme and colors</button>'+
     '<div class="div"></div>'+
     '<button type="button" role="menuitem" data-acct="signout"><svg class="ic"><use href="#i-arr-left"/></svg>Sign out</button>';
@@ -5777,7 +6309,7 @@ function renderProtoPanel(){
         ['instant','slow','offline'].map(k=>'<button type="button" data-net="'+k+'" aria-pressed="'+(sim.net===k)+'">'+
           (k==="instant"?"Instant":k==="slow"?"Slow":"Offline")+'</button>').join("")+
       '</div></div>'+
-    '<div><h3>Next save</h3>'+
+    '<div><h3>Next Save</h3>'+
       '<label class="switch" style="margin-top:6px"><input type="checkbox" data-sim="failSave"'+(sim.failSave?" checked":"")+'>'+
       '<span class="track"></span><span class="st">Fails</span></label>'+
       '<label class="switch" style="margin-top:8px"><input type="checkbox" data-sim="conflict"'+(sim.conflict?" checked":"")+'>'+

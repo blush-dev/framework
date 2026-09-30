@@ -242,6 +242,15 @@ aren't candidates (D-104).
   `components.{name}.variants.{variant}.label` and `.description` in the
   registrant's domain. `content:lint` (`VariantCheck`) and `theme:check`
   report problems.
+- **Image variants (D-268):** a Markdown image isn't a component, but a
+  theme lists classes for it under `theme.json`'s `variants.image`
+  (`{.stretch-wide}`; `FigureRenderer` puts them on the figure), with
+  text at `images.variants.{name}.label` and `.description` in the
+  theme's catalog. `ComponentVariants::forImages()` collects them from
+  the chain, leaving out the framework default theme's unless it's the
+  active theme (only the active theme's stylesheet loads). The default
+  theme offers and styles `stretch-wide`, `stretch-full`, `inline-left`,
+  and `inline-right`.
 - **Slots:** `$component->content()` holds the default slot and
   `$component->slots->name` named slots (`''` when unfilled).
 - **Registry (D-172, D-173):** `ComponentRegistry::register($name, $class,

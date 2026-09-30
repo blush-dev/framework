@@ -82,12 +82,12 @@ watch(query, () => {
 
 watch(active, async () => {
 	await nextTick();
-	grid.value?.querySelector('.panel__tile.is-active')?.scrollIntoView({ block: 'nearest' });
+	grid.value?.querySelector('.inserter__tile.is-active')?.scrollIntoView({ block: 'nearest' });
 });
 
 // The tiles reflow with the panel's width, so steps are read off it.
 function columns(): number {
-	const tiles = grid.value?.querySelector('.panel__tiles');
+	const tiles = grid.value?.querySelector('.inserter__tiles');
 
 	return tiles === null || tiles === undefined ? 1 : Math.max(1, getComputedStyle(tiles).gridTemplateColumns.split(' ').length);
 }
@@ -135,17 +135,17 @@ defineExpose({ move, choose, focus });
 </script>
 
 <template>
-	<div class="panel">
-		<div class="panel__head">
+	<div class="inserter">
+		<div class="inserter__head">
 			<h2 id="component-panel-heading">Insert</h2>
-			<span class="panel__count">{{ query.trim() === '' ? components.length : `${shown} of ${components.length}` }}</span>
+			<span class="inserter__count">{{ query.trim() === '' ? components.length : `${shown} of ${components.length}` }}</span>
 			<button type="button" class="button button--ghost button--icon" @click="emit('close')">
 				<AdminIcon name="x" />
 				<span class="visually-hidden">Close the components</span>
 			</button>
 		</div>
 
-		<label class="panel__search">
+		<label class="inserter__search">
 			<AdminIcon name="search" />
 			<input
 				ref="input"
@@ -164,18 +164,18 @@ defineExpose({ move, choose, focus });
 			>
 		</label>
 
-		<div id="component-panel-grid" ref="grid" class="panel__grid" role="listbox" aria-labelledby="component-panel-heading">
-			<p v-if="failed" class="panel__empty">The components couldn't be loaded.</p>
-			<p v-else-if="!components.length" class="panel__empty">No components are registered.</p>
-			<p v-else-if="!tiles.length" class="panel__empty">Nothing matches <strong>{{ query }}</strong>.<br>Try a broader word.</p>
+		<div id="component-panel-grid" ref="grid" class="inserter__grid" role="listbox" aria-labelledby="component-panel-heading">
+			<p v-if="failed" class="inserter__empty">The components couldn't be loaded.</p>
+			<p v-else-if="!components.length" class="inserter__empty">No components are registered.</p>
+			<p v-else-if="!tiles.length" class="inserter__empty">Nothing matches <strong>{{ query }}</strong>.<br>Try a broader word.</p>
 			<div v-for="section in sections" :key="section.heading" role="group" :aria-label="section.heading">
-				<p class="panel__group" aria-hidden="true">{{ section.heading }}</p>
-				<div class="panel__tiles">
+				<p class="inserter__group" aria-hidden="true">{{ section.heading }}</p>
+				<div class="inserter__tiles">
 					<div
 						v-for="tile in section.tiles"
 						:id="`component-tile-${tile.index}`"
 						:key="tile.component.name"
-						class="panel__tile"
+						class="inserter__tile"
 						:class="{ 'is-active': tile.index === active }"
 						role="option"
 						:aria-selected="tile.index === active"
@@ -184,22 +184,22 @@ defineExpose({ move, choose, focus });
 						@click="emit('choose', tile.component)"
 					>
 						<AdminIcon :name="componentIcon(tile.component)" />
-						<span class="panel__name">{{ tile.component.label }}</span>
+						<span class="inserter__name">{{ tile.component.label }}</span>
 					</div>
 				</div>
 			</div>
 		</div>
 
-		<div class="panel__preview" aria-live="polite">
+		<div class="inserter__preview" aria-live="polite">
 			<template v-if="current">
-				<p class="panel__preview-title">
+				<p class="inserter__preview-title">
 					{{ current.label }}
-					<span v-if="current.source && current.source.kind !== 'site'" class="panel__source">{{ current.source.label }}</span>
+					<span v-if="current.source && current.source.kind !== 'site'" class="inserter__source">{{ current.source.label }}</span>
 				</p>
-				<p class="panel__preview-text">{{ current.description || current.name }}</p>
+				<p class="inserter__preview-text">{{ current.description || current.name }}</p>
 			</template>
-			<p v-else class="panel__preview-text">Search, or scroll the {{ components.length }} components by category.</p>
-			<p class="panel__preview-hint">
+			<p v-else class="inserter__preview-text">Search, or scroll the {{ components.length }} components by category.</p>
+			<p class="inserter__preview-hint">
 				<template v-if="slash">Typing after <kbd>/</kbd></template>
 				<template v-else>Type <kbd>/</kbd> on an empty line to open this at the cursor</template>
 			</p>
@@ -208,7 +208,7 @@ defineExpose({ move, choose, focus });
 </template>
 
 <style scoped>
-.panel {
+.inserter {
 	display: flex;
 	flex-direction: column;
 	width: var(--inserter);
@@ -216,7 +216,7 @@ defineExpose({ move, choose, focus });
 	min-height: 0;
 }
 
-.panel__head {
+.inserter__head {
 	display: flex;
 	flex: none;
 	align-items: center;
@@ -226,7 +226,7 @@ defineExpose({ move, choose, focus });
 	border-bottom: 1px solid var(--border);
 }
 
-.panel__head h2 {
+.inserter__head h2 {
 	flex: 1;
 	min-width: 0;
 	font-family: var(--font-display);
@@ -234,14 +234,14 @@ defineExpose({ move, choose, focus });
 	font-weight: 600;
 }
 
-.panel__count {
+.inserter__count {
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 }
 
 /* One band, one control: the grid's headings already show the
    categories. */
-.panel__search {
+.inserter__search {
 	display: flex;
 	flex: none;
 	align-items: center;
@@ -251,7 +251,7 @@ defineExpose({ move, choose, focus });
 	color: var(--fg-3);
 }
 
-.panel__search input {
+.inserter__search input {
 	flex: 1;
 	min-width: 0;
 	border: 0;
@@ -260,14 +260,14 @@ defineExpose({ move, choose, focus });
 	outline: none;
 }
 
-.panel__grid {
+.inserter__grid {
 	flex: 1;
 	min-height: 0;
 	padding: var(--s-1) var(--s-3) var(--s-5);
 	overflow-y: auto;
 }
 
-.panel__group {
+.inserter__group {
 	padding: var(--s-5) 2px var(--s-2);
 	color: var(--fg-3);
 	font-size: var(--text-2xs);
@@ -276,11 +276,11 @@ defineExpose({ move, choose, focus });
 	text-transform: uppercase;
 }
 
-[role="group"]:first-child .panel__group {
+[role="group"]:first-child .inserter__group {
 	padding-top: var(--s-4);
 }
 
-.panel__tiles {
+.inserter__tiles {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 2px;
@@ -288,7 +288,7 @@ defineExpose({ move, choose, focus });
 
 /* An icon and a name: the highlight shows only where the pointer or the
    keyboard is. */
-.panel__tile {
+.inserter__tile {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -300,23 +300,23 @@ defineExpose({ move, choose, focus });
 	transition: background 100ms, color 100ms;
 }
 
-.panel__tile > :deep(svg) {
+.inserter__tile > :deep(svg) {
 	width: 22px;
 	height: 22px;
 	stroke-width: 1.5;
 }
 
-.panel__tile:hover {
+.inserter__tile:hover {
 	background: var(--surface-2);
 	color: var(--fg);
 }
 
-.panel__tile.is-active {
+.inserter__tile.is-active {
 	background: var(--accent-soft);
 	color: var(--accent);
 }
 
-.panel__name {
+.inserter__name {
 	color: var(--fg-2);
 	font-size: var(--text-xs);
 	font-weight: 500;
@@ -326,11 +326,11 @@ defineExpose({ move, choose, focus });
 	hyphens: auto;
 }
 
-.panel__tile.is-active .panel__name {
+.inserter__tile.is-active .inserter__name {
 	color: var(--accent);
 }
 
-.panel__source {
+.inserter__source {
 	padding: 2px 8px;
 	border-radius: 99px;
 	background: var(--warn-soft);
@@ -339,7 +339,7 @@ defineExpose({ move, choose, focus });
 	font-weight: 500;
 }
 
-.panel__empty {
+.inserter__empty {
 	padding: 32px 10px;
 	color: var(--fg-3);
 	font-size: var(--text-sm);
@@ -347,7 +347,7 @@ defineExpose({ move, choose, focus });
 	text-align: center;
 }
 
-.panel__preview {
+.inserter__preview {
 	display: grid;
 	flex: none;
 	gap: 4px;
@@ -357,7 +357,7 @@ defineExpose({ move, choose, focus });
 	background: var(--bg);
 }
 
-.panel__preview-title {
+.inserter__preview-title {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -367,28 +367,28 @@ defineExpose({ move, choose, focus });
 	font-weight: 500;
 }
 
-.panel__preview-text {
+.inserter__preview-text {
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 	line-height: 1.5;
 }
 
-.panel__preview-hint {
+.inserter__preview-hint {
 	margin-top: 4px;
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 }
 
 @media (width <= 640px) {
-	.panel__head,
-	.panel__search,
-	.panel__preview {
+	.inserter__head,
+	.inserter__search,
+	.inserter__preview {
 		padding-inline: var(--s-4);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.panel__tile {
+	.inserter__tile {
 		transition: none;
 	}
 }

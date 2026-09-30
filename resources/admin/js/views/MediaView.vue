@@ -2,12 +2,15 @@
 /**
  * Media (D-251): the library in `user/media`, newest first, as a grid of
  * files with a search and filters by kind, then a screen for each file
- * (admin.md §8, List, then detail). Uploading comes later.
+ * (admin.md §8, List, then detail). **Upload** opens the media picker on
+ * its Upload tab (D-268): one uploader, one set of rules about what a
+ * file may be; **Open** goes to the file's screen.
  */
 
 import { ref, watch } from 'vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import MediaPicker from '../components/MediaPicker.vue';
 import { ApiError, request, type MediaItem, type MediaList } from '../api';
 import { formatSize } from '../format';
 import type { IconName } from '../icons';
@@ -87,6 +90,19 @@ function details(file: MediaItem): string {
 function path(file: MediaItem): string[] {
 	return [file.folder, file.name].filter((part) => part !== '').join('/').split('/');
 }
+
+const router    = useRouter();
+const uploading = ref(false);
+
+function uploaded(file: MediaItem): void {
+	void router.push({ name: 'media-file', params: { path: path(file) } });
+}
+
+// Files uploaded and left in the picker are new to the list.
+function closed(): void {
+	uploading.value = false;
+	void load();
+}
 </script>
 
 <template>
@@ -95,9 +111,10 @@ function path(file: MediaItem): string[] {
 			<h1 tabindex="-1">Media</h1>
 			<p class="page-header__hint">Files every entry can use</p>
 		</div>
+		<div class="page-header__actions">
+			<button type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload</button>
+		</div>
 	</header>
-
-	<p class="notice notice--warn"><span>Uploading comes later. Put files in <code>user/media</code>, or beside an entry in its own folder, and they're here and in the editor's media button.</span></p>
 
 	<section class="panel" aria-labelledby="media-heading" :aria-busy="loading">
 		<header class="panel__header toolbar-row">
@@ -134,15 +151,18 @@ function path(file: MediaItem): string[] {
 			</div>
 			<div v-else-if="!error" class="empty">
 				<AdminIcon name="image" />
-				<p class="empty__heading">{{ search || kind !== 'any' ? 'No files match' : 'The library is empty' }}</p>
-				<p class="empty__text">{{ search || kind !== 'any' ? 'Try another name or kind.' : 'Put images, video, and audio in user/media to use them in entries.' }}</p>
+				<p class="empty__heading">{{ search || kind !== 'any' ? 'No Files Match' : 'The Library Is Empty' }}</p>
+				<p class="empty__text">{{ search || kind !== 'any' ? 'Try another name or kind.' : 'Images, video, and sound you upload land here, and any entry can use them.' }}</p>
 				<button v-if="search || kind !== 'any'" type="button" class="button" @click="search = ''; kind = 'any'">Clear filters</button>
+				<button v-else type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload your first file</button>
 			</div>
 			<p v-if="page < pages" class="more">
 				<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show more' }}</button>
 			</p>
 		</div>
 	</section>
+
+	<MediaPicker v-if="uploading" title="Upload to the Library" action="Open" tab="upload" @choose="uploaded" @close="closed" />
 </template>
 
 <style scoped>
