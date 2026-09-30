@@ -17,6 +17,10 @@ use Override;
 use Throwable;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Event\DocumentParsedEvent;
+use League\CommonMark\Extension\DescriptionList\DescriptionListExtension;
+use League\CommonMark\Extension\DescriptionList\Node\Description;
+use League\CommonMark\Extension\DescriptionList\Node\DescriptionList;
+use League\CommonMark\Extension\DescriptionList\Node\DescriptionTerm;
 use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\MarkdownConverter;
 use League\CommonMark\Node\Block\Paragraph;
@@ -24,6 +28,8 @@ use League\CommonMark\Parser\Inline\InlineParserInterface;
 use Blush\Core\AppConfig;
 use Blush\Event\Dispatcher;
 use Blush\Markdown\CommonMark\Directive\DirectiveExtension;
+use Blush\Markdown\CommonMark\DescriptionAttributes;
+use Blush\Markdown\CommonMark\DescriptionListRenderer;
 use Blush\Markdown\CommonMark\FigureRenderer;
 use Blush\Markdown\CommonMark\ResolveLinks;
 use Blush\Markdown\Events\MarkdownEnvironmentBuilding;
@@ -105,6 +111,16 @@ final class CommonMarkParser implements MarkdownParser
 
 			if ($this->config->directives) {
 				$environment->addExtension(new DirectiveExtension($this->directives, $this->context));
+			}
+
+			// league/commonmark's description list renderers leave out
+			// attributes (D-282).
+			if (in_array(DescriptionListExtension::class, $this->config->extensions, true)) {
+				$environment->addEventListener(DocumentParsedEvent::class, new DescriptionAttributes(), -10);
+
+				foreach ([DescriptionList::class, DescriptionTerm::class, Description::class] as $node) {
+					$environment->addRenderer($node, new DescriptionListRenderer(), 10);
+				}
 			}
 
 			if ($this->config->figures) {

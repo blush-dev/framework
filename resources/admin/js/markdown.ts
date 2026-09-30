@@ -568,14 +568,51 @@ function leadHtml(text: string, kind: MarkKind): string {
 	return markHtml(text);
 }
 
+// What the block scan knows about a line that the line can't say for
+// itself: a table's header row is a row, and a term is a line of prose.
+type LineRole = 'head' | 'term' | 'definition';
+
+function lineRoles(found: MarkdownBlock[]): Map<number, LineRole> {
+	const roles = new Map<number, LineRole>();
+
+	for (const block of found) {
+		if (block.kind === 'table') {
+			roles.set(block.first, 'head');
+		} else if (block.kind === 'term' || block.kind === 'definition') {
+			roles.set(block.first, block.kind);
+		}
+	}
+
+	return roles;
+}
+
 /**
  * One line of text (not code or a directive's own line), with its marks
  * and tokens.
  */
-function lineHtml(line: Line, current: Current): string {
-	// A table's delimiter row is all syntax.
+function lineHtml(line: Line, current: Current, role: LineRole | undefined): string {
+	// A table's delimiter row is all syntax but its alignment colons, the
+	// one part of it that says something.
 	if (TABLE.test(line.text) && DELIMITER.test(line.text) && line.text.includes('-')) {
-		return markHtml(line.text);
+		return line.text.split(/(:)/).map((part) => part === ':' ? '<span class="md-talign">:</span>' : markHtml(part)).join('');
+	}
+
+	// A table's header row: its cells full ink and heavier, its pipes muted.
+	if (role === 'head') {
+		return `<span class="md-th">${inlineHtml(line.text, line.tokens, 0, line.text.length, current, true)}</span>`;
+	}
+
+	// A definition list's term, and a definition, whose colon is syntax.
+	if (role === 'term') {
+		return `<span class="md-dt">${inlineHtml(line.text, line.tokens, 0, line.text.length, current)}</span>`;
+	}
+
+	if (role === 'definition') {
+		const marker = DEFINITION.exec(line.text)?.[0] ?? '';
+		const colon  = marker.indexOf(':');
+
+		return escape(marker.slice(0, colon)) + markHtml(':') + escape(marker.slice(colon + 1))
+			+ `<span class="md-dd">${inlineHtml(line.text, line.tokens, marker.length, line.text.length, current)}</span>`;
 	}
 
 	// The line's marks, then its text: a heading or a quote wraps what
@@ -611,10 +648,11 @@ function lineHtml(line: Line, current: Current): string {
  * (D-268). Every character of the source is in it, escaped, so it lines
  * up with the text area over it.
  */
-export function highlight(markdown: MarkdownOutline, directive: number, image = -1): string {
-	const at = markdown.images[image]?.start ?? -1;
+export function highlight(markdown: MarkdownOutline, directive: number, image = -1, found: MarkdownBlock[] = blocks(markdown)): string {
+	const at    = markdown.images[image]?.start ?? -1;
+	const roles = lineRoles(found);
 
-	return markdown.lines.map((line) => {
+	return markdown.lines.map((line, index) => {
 		let html: string;
 
 		switch (line.kind) {
@@ -637,7 +675,7 @@ export function highlight(markdown: MarkdownOutline, directive: number, image = 
 				return escape(line.text.slice(0, indent)) + directiveHtml(line.text.slice(indent), line.directive === directive);
 			}
 			default:
-				html = lineHtml(line, { directive, image: at, line: line.start });
+				html = lineHtml(line, { directive, image: at, line: line.start }, roles.get(index));
 		}
 
 		return html;
@@ -976,25 +1014,30 @@ export function withDirectiveParts(source: string, directive: Directive, classes
 		: { from: head.attributes.start, to: head.attributes.end, text: next };
 }
 
-export type BlockKind = 'heading' | 'paragraph' | 'item' | 'quote' | 'code' | 'table' | 'rule';
+export type BlockKind = 'heading' | 'paragraph' | 'list' | 'item' | 'quote' | 'code' | 'table' | 'rule' | 'definitions' | 'term' | 'definition';
 
 /**
  * A block of Markdown outside directives' own lines: a heading, a
- * paragraph, one list item (with its continuation lines), a quote, a
- * fenced code block, a table, or a rule.
+ * paragraph, a list and each of its items (with their continuation
+ * lines), a quote, a fenced code block, a table, a rule, or a definition
+ * list with each of its terms and definitions.
  */
 export interface MarkdownBlock {
 	kind: BlockKind;
-	// Its first and last lines, by index.
+	// Its first and last lines, by index: for a list item, its own text,
+	// without the lists nested under it.
 	first: number;
 	last: number;
 	// From its attributes' own line, if it has one, to the end of its
-	// last line.
+	// last line; a list item's reaches over what's nested under it, so a
+	// nested list is inside the item it was written under.
 	start: number;
 	end: number;
 	// The attributes' body, without the braces, and where it is: on a line
 	// of its own above (`own`), or at the end of the last line.
 	attributes: { start: number; end: number; text: string; own: boolean } | null;
+	// A list's and a list item's indent, in spaces.
+	indent?: number;
 }
 
 // A line that's nothing but a block of attributes, and attributes at the
@@ -1004,12 +1047,23 @@ const ATTRIBUTE_LINE = new RegExp(`^ {0,3}(${ATTRIBUTES})[ \\t]*$`);
 const TRAILING       = new RegExp(`[ \\t]+(${ATTRIBUTES})[ \\t]*$`);
 const SETEXT         = /^ {0,3}(=+|-+)[ \t]*$/;
 
+// A definition: one colon (two would be a leaf directive), then a space.
+const DEFINITION = /^ {0,3}:(?!:)[ \t]+/;
+
 function blank(line: Line | undefined): boolean {
 	return line === undefined || line.text.trim() === '';
 }
 
 function isAttributeLine(line: Line): boolean {
 	return line.kind === 'text' && line.marks.length === 0 && ATTRIBUTE_LINE.test(line.text);
+}
+
+function isDefinition(line: Line | undefined): boolean {
+	return line !== undefined && line.kind === 'text' && line.marks.length === 0 && DEFINITION.test(line.text);
+}
+
+function indentOf(line: Line | undefined): number {
+	return /^ */.exec(line?.text ?? '')?.[0].length ?? 0;
 }
 
 /**
@@ -1023,11 +1077,55 @@ function startsBlock(line: Line, next: Line | undefined): boolean {
 }
 
 /**
- * The body's blocks, in order.
+ * Where one group of terms and their definitions starting at `index`
+ * ends (its last definition's line), or -1 if the lines there aren't one.
+ */
+function termsEnd(lines: Line[], index: number): number {
+	let at = index;
+
+	while (!blank(lines[at]) && !isDefinition(lines[at]) && !startsBlock(lines[at] as Line, lines[at + 1]) && lines[at]?.kind === 'text') {
+		at++;
+	}
+
+	if (at === index || !isDefinition(lines[at])) {
+		return -1;
+	}
+
+	while (isDefinition(lines[at + 1])) {
+		at++;
+	}
+
+	return at;
+}
+
+/**
+ * Where a definition list starting at `index` ends, or -1. Groups
+ * separated by one blank line are one list, as they render.
+ */
+function definitionsEnd(lines: Line[], index: number): number {
+	let end = termsEnd(lines, index);
+
+	while (end !== -1 && blank(lines[end + 1]) && !blank(lines[end + 2])) {
+		const next = termsEnd(lines, end + 2);
+
+		if (next === -1) {
+			break;
+		}
+
+		end = next;
+	}
+
+	return end;
+}
+
+/**
+ * The body's blocks, in order: a list before its first item, a definition
+ * list before its first term.
  */
 export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
 	const { lines } = markdown;
 	const found: MarkdownBlock[] = [];
+	const lineEndOf = (index: number): number => (lines[index] as Line).start + (lines[index] as Line).text.length;
 	let above: Line | null = null;
 	let index = 0;
 
@@ -1041,7 +1139,8 @@ export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
 		}
 
 		if (isAttributeLine(line) && !blank(lines[index + 1])) {
-			above = line;
+			// Above a list, the line is the list's, not its first item's.
+			above = lines[index + 1]?.marks[0]?.kind === 'list' ? null : line;
 			index++;
 			continue;
 		}
@@ -1078,6 +1177,22 @@ export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
 		} else if (TABLE.test(line.text) && DELIMITER.test(lines[index + 1]?.text ?? '')) {
 			kind = 'table';
 			more((next) => next.text.includes('|'));
+		} else if (definitionsEnd(lines, index) !== -1) {
+			const end = definitionsEnd(lines, index);
+
+			// The list's attributes are on a line above it, as a list's are
+			// (D-282); a term's and a definition's at the end of its line.
+			found.push({ kind: 'definitions', first: index, last: end, start: above?.start ?? line.start, end: lineEndOf(end), attributes: above === null ? null : ownAttributes(above) });
+
+			for (let at = index; at <= end; at++) {
+				if (!blank(lines[at])) {
+					found.push({ kind: isDefinition(lines[at]) ? 'definition' : 'term', first: at, last: at, start: (lines[at] as Line).start, end: lineEndOf(at), attributes: trailingAttributes(lines[at] as Line) });
+				}
+			}
+
+			above = null;
+			index = end + 1;
+			continue;
 		} else {
 			more((next) => SETEXT.test(next.text) || !startsBlock(next, lines[last + 2]));
 
@@ -1090,27 +1205,122 @@ export function blocks(markdown: MarkdownOutline): MarkdownBlock[] {
 		let attributes: MarkdownBlock['attributes'] = null;
 
 		if (above !== null) {
-			const brace = above.text.indexOf('{');
-
-			attributes = { start: above.start + brace + 1, end: above.start + above.text.lastIndexOf('}'), text: above.text.slice(brace + 1, above.text.lastIndexOf('}')), own: true };
+			attributes = ownAttributes(above);
 		} else if (kind === 'heading' || kind === 'paragraph' || kind === 'item') {
 			// A setext heading's attributes are on its text, not its underline.
-			const holder = kind === 'heading' && last > index ? line : end;
-			const match  = TRAILING.exec(holder.text);
-
-			if (match !== null) {
-				const brace = holder.text.length - match[0].length + match[0].indexOf('{');
-
-				attributes = { start: holder.start + brace + 1, end: holder.start + holder.text.lastIndexOf('}'), text: (match[1] ?? '').slice(1, -1), own: false };
-			}
+			attributes = trailingAttributes(kind === 'heading' && last > index ? line : end);
 		}
 
-		found.push({ kind, first: index, last, start: above?.start ?? line.start, end: end.start + end.text.length, attributes });
+		const block: MarkdownBlock = { kind, first: index, last, start: above?.start ?? line.start, end: end.start + end.text.length, attributes };
+
+		if (kind === 'item') {
+			// The item reaches over the lines indented under it.
+			let span = last;
+
+			block.indent = indentOf(line);
+
+			while (!blank(lines[span + 1]) && indentOf(lines[span + 1]) > block.indent && lines[span + 1]?.kind === 'text') {
+				span++;
+			}
+
+			block.end = lineEndOf(span);
+		}
+
+		found.push(block);
 		above = null;
 		index = last + 1;
 	}
 
-	return found;
+	return addLists(found, lines);
+}
+
+/**
+ * The attributes at the end of a line, after a space, if it has them.
+ */
+function trailingAttributes(holder: Line): MarkdownBlock['attributes'] {
+	const match = TRAILING.exec(holder.text);
+
+	if (match === null) {
+		return null;
+	}
+
+	const brace = holder.text.length - match[0].length + match[0].indexOf('{');
+
+	return { start: holder.start + brace + 1, end: holder.start + holder.text.lastIndexOf('}'), text: (match[1] ?? '').slice(1, -1), own: false };
+}
+
+/**
+ * An attribute line's attributes.
+ */
+function ownAttributes(line: Line): NonNullable<MarkdownBlock['attributes']> {
+	const brace = line.text.indexOf('{');
+	const close = line.text.lastIndexOf('}');
+
+	return { start: line.start + brace + 1, end: line.start + close, text: line.text.slice(brace + 1, close), own: true };
+}
+
+/**
+ * Adds the lists the items make, rebuilt from their indents: a run of
+ * items, with nothing but blank lines between them, is a list, and an
+ * item indented further than the one before starts a list nested in it.
+ * A list's attributes are on a line of their own just above it.
+ */
+function addLists(found: MarkdownBlock[], lines: Line[]): MarkdownBlock[] {
+	const items = found.filter((block) => block.kind === 'item');
+	const lists: MarkdownBlock[] = [];
+	const open: { indent: number; first: number; last: number }[] = [];
+
+	const close = (list: { indent: number; first: number; last: number }): void => {
+		const above = lines[list.first - 1];
+		const own   = above !== undefined && isAttributeLine(above) ? above : null;
+		const last  = lines[list.last] as Line;
+
+		lists.push({
+			kind: 'list',
+			first: list.first,
+			last: list.last,
+			start: own?.start ?? (lines[list.first] as Line).start,
+			end: last.start + last.text.length,
+			attributes: own === null ? null : ownAttributes(own),
+			indent: list.indent
+		});
+	};
+
+	items.forEach((item, at) => {
+		const before = items[at - 1];
+		const indent = item.indent ?? 0;
+
+		// Anything but blank lines between two items ends every open list.
+		if (before !== undefined && !lines.slice(before.last + 1, item.first).every((line) => blank(line) || indentOf(line) > (before.indent ?? 0))) {
+			while (open.length > 0) {
+				close(open.pop() as { indent: number; first: number; last: number });
+			}
+		}
+
+		while (open.length > 0 && indent < (open.at(-1)?.indent ?? 0)) {
+			close(open.pop() as { indent: number; first: number; last: number });
+		}
+
+		if (open.length === 0 || indent > (open.at(-1)?.indent ?? 0)) {
+			open.push({ indent, first: item.first, last: item.last });
+		}
+
+		for (const list of open) {
+			list.last = Math.max(list.last, item.last);
+		}
+	});
+
+	while (open.length > 0) {
+		close(open.pop() as { indent: number; first: number; last: number });
+	}
+
+	return [...found, ...lists].sort((a, b) => a.start - b.start || b.end - a.end || rank(a) - rank(b));
+}
+
+// On the same span, what holds the rest comes first: a list before its
+// only item.
+function rank(block: MarkdownBlock): number {
+	return block.kind === 'list' || block.kind === 'definitions' ? 0 : 1;
 }
 
 /**
@@ -1167,7 +1377,7 @@ export function withBlockParts(source: string, markdown: MarkdownOutline, block:
 
 	const first = markdown.lines[block.first] as Line;
 
-	if (block.kind === 'heading' || block.kind === 'paragraph' || block.kind === 'item') {
+	if (block.kind === 'heading' || block.kind === 'paragraph' || block.kind === 'item' || block.kind === 'term' || block.kind === 'definition') {
 		const holder = block.kind === 'heading' && block.last > block.first ? first : markdown.lines[block.last] as Line;
 		const at     = holder.start + holder.text.trimEnd().length;
 
@@ -1265,4 +1475,636 @@ export function withTask(markdown: MarkdownOutline, block: MarkdownBlock, task: 
 	const from = first.start + (match[1]?.length ?? 0);
 
 	return { from, to: first.start + match[0].length, text: task ? ` [${done ? 'x' : ' '}] ` : ' ' };
+}
+
+export type ListStyle = 'bullet' | 'number' | 'task';
+
+// A list item's line: indent, marker, spaces, a task's box, and its text.
+const ITEM_LINE = /^( *)([-*+]|\d{1,9}[.)])( +|$)(\[[ xX]\] +)?(.*)$/;
+
+/**
+ * A list's items at its own indent, not the ones nested in them.
+ */
+export function listItems(found: MarkdownBlock[], list: MarkdownBlock): MarkdownBlock[] {
+	return found.filter((block) => block.kind === 'item' && block.first >= list.first && block.last <= list.last && block.indent === list.indent);
+}
+
+/**
+ * What kind of list it is, by its first item: numbered, a task list, or
+ * bulleted.
+ */
+export function listStyle(markdown: MarkdownOutline, found: MarkdownBlock[], list: MarkdownBlock): ListStyle {
+	const first = listItems(found, list)[0];
+	const match = ITEM_LINE.exec(markdown.lines[first?.first ?? -1]?.text ?? '');
+
+	if (match === null) {
+		return 'bullet';
+	}
+
+	return match[4] !== undefined ? 'task' : (/\d/.test(match[2] ?? '') ? 'number' : 'bullet');
+}
+
+/**
+ * The smallest edit that turns `before` into `after`: what's the same at
+ * both ends is left out.
+ */
+export function editBetween(before: string, after: string): Edit {
+	let from = 0;
+
+	while (from < before.length && from < after.length && before[from] === after[from]) {
+		from++;
+	}
+
+	let tail = 0;
+
+	while (tail < before.length - from && tail < after.length - from && before[before.length - 1 - tail] === after[after.length - 1 - tail]) {
+		tail++;
+	}
+
+	return { from, to: before.length - tail, text: after.slice(from, after.length - tail) };
+}
+
+/**
+ * The edit that makes a list bulleted, numbered, or a task list: every
+ * marker at the list's own indent is rewritten, numbered in order, and
+ * nested lists and the items' text are left alone. A task list's items
+ * keep their boxes; a new one is open.
+ */
+export function withListStyle(source: string, markdown: MarkdownOutline, found: MarkdownBlock[], list: MarkdownBlock, style: ListStyle): Edit | null {
+	const text = source.split('\n');
+	let number = 0;
+
+	for (const item of listItems(found, list)) {
+		const match = ITEM_LINE.exec(text[item.first] ?? '');
+
+		if (match === null) {
+			continue;
+		}
+
+		number++;
+
+		const [, indent = '', marker = '-', , box] = match;
+		const bullet = /\d/.test(marker) ? '-' : marker;
+		const start  = number === 1 && /\d/.test(marker) ? Number.parseInt(marker, 10) : 1;
+
+		if (number === 1) {
+			number = start;
+		}
+
+		const lead = style === 'number' ? `${number}.` : bullet;
+
+		text[item.first] = `${indent}${lead} ${style === 'task' ? (box ?? '[ ] ') : ''}${match[5] ?? ''}`;
+	}
+
+	const after = text.join('\n');
+
+	return after === source ? null : editBetween(source, after);
+}
+
+/**
+ * Renumbers the numbered list with an item on line `index`: the whole
+ * run at that item's indent, from the number it starts at, since an item
+ * pushed into the middle makes it wrong from there down (or from
+ * `start`, the number it started at before its items moved). Nested
+ * lines and single blank lines between items stay in the run.
+ */
+function renumber(text: string[], index: number, start?: number): void {
+	const match  = ITEM_LINE.exec(text[index] ?? '');
+	const indent = match?.[1]?.length ?? 0;
+
+	if (match === null || !/\d/.test(match[2] ?? '')) {
+		return;
+	}
+
+	const inRun = (at: number): boolean => {
+		const line = text[at];
+
+		if (line === undefined) {
+			return false;
+		}
+
+		if (line.trim() === '') {
+			return text[at + 1] !== undefined && text[at + 1]?.trim() !== '' && inRun(at + 1) && at > 0 && text[at - 1]?.trim() !== '';
+		}
+
+		const item = ITEM_LINE.exec(line);
+
+		return (/^ */.exec(line)?.[0].length ?? 0) > indent || (item !== null && (item[1]?.length ?? 0) === indent && /\d/.test(item[2] ?? ''));
+	};
+
+	let first = index;
+
+	while (first > 0 && inRun(first - 1)) {
+		first--;
+	}
+
+	let number: number | null = null;
+
+	for (let at = first; at < text.length && inRun(at); at++) {
+		const item = ITEM_LINE.exec(text[at] ?? '');
+
+		if (item === null || (item[1]?.length ?? 0) !== indent) {
+			continue;
+		}
+
+		const marker = item[2] ?? '1.';
+
+		number = number === null ? start ?? Number.parseInt(marker, 10) : number + 1;
+		text[at] = `${item[1] ?? ''}${number}${marker.slice(-1)}${item[3] || ' '}${item[4] ?? ''}${item[5] ?? ''}`;
+	}
+}
+
+/**
+ * The number the numbered run with an item on line `index` starts at, or
+ * `undefined` when the line isn't a numbered item.
+ */
+function runStart(text: string[], index: number): number | undefined {
+	const item = ITEM_LINE.exec(text[index] ?? '');
+
+	if (item === null || !/\d/.test(item[2] ?? '')) {
+		return undefined;
+	}
+
+	const indent   = item[1]?.length ?? 0;
+	const leading  = (line: string): number => /^ */.exec(line)?.[0].length ?? 0;
+	const numbered = (line: string): boolean => {
+		const found = ITEM_LINE.exec(line);
+
+		return found !== null && (found[1]?.length ?? 0) === indent && /\d/.test(found[2] ?? '');
+	};
+
+	let start = Number.parseInt(item[2] ?? '1', 10);
+
+	// Up through the run: its numbered items, what's nested in them, and
+	// single blank lines between them.
+	for (let at = index - 1; at >= 0; at--) {
+		const line = text[at] ?? '';
+
+		if (line.trim() === '') {
+			const above = text[at - 1] ?? '';
+
+			if (above.trim() !== '' && (numbered(above) || leading(above) > indent)) {
+				continue;
+			}
+
+			break;
+		}
+
+		if (numbered(line)) {
+			start = Number.parseInt(ITEM_LINE.exec(line)?.[2] ?? '1', 10);
+		} else if (leading(line) <= indent) {
+			break;
+		}
+	}
+
+	return start;
+}
+
+// A blockquote's markers, and a table's delimiter cells.
+const QUOTE_LINE = /^( {0,3})((?:> ?)+)(.*)$/;
+
+/**
+ * What Enter does at `position` in a list, quote, or table (admin.md §8,
+ * Enter carries the marker): the new text and where the caret goes, or
+ * `null` for an ordinary line break.
+ *
+ * - In a list item, the next line starts with the same marker (the next
+ *   number, renumbering the run; an open box for a task). On an item
+ *   with nothing in it, the marker goes and a blank line is left above
+ *   the caret, so what's written next is a paragraph, not part of the
+ *   item.
+ * - In a quote, the `>` carries down; on a bare `>`, it goes.
+ * - In a table row, a new row with the same columns, after the
+ *   delimiter row the syntax needs if there isn't one yet; on a row of
+ *   empty cells, the table ends. A delimiter row has dashes in it: a row
+ *   of empty cells is only pipes and spaces.
+ */
+export function continuation(source: string, position: number): { text: string; caret: number } | null {
+	const markdown = outline(source);
+	const index    = markdown.lines.findIndex((line) => line.start <= position && position <= line.start + line.text.length);
+	const line     = markdown.lines[index];
+
+	if (line === undefined || line.kind !== 'text' && line.kind !== 'heading') {
+		return null;
+	}
+
+	const at    = position - line.start;
+	const text  = source.split('\n');
+	const end   = line.start + line.text.length;
+	const empty = (): { text: string; caret: number } => ({ text: `${source.slice(0, line.start)}\n${source.slice(end)}`, caret: line.start + 1 });
+
+	if (TABLE.test(line.text) && !(DELIMITER.test(line.text) && line.text.includes('-'))) {
+		const cells = line.text.trim().replace(/^\|/, '').replace(/\|$/, '').split('|');
+
+		if (cells.every((cell) => cell.trim() === '')) {
+			return empty();
+		}
+
+		let first = index;
+		let last  = index;
+
+		while (first > 0 && TABLE.test(text[first - 1] ?? '')) {
+			first--;
+		}
+
+		while (TABLE.test(text[last + 1] ?? '')) {
+			last++;
+		}
+
+		const hasDelimiter = text.slice(first, last + 1).some((row) => DELIMITER.test(row) && row.includes('-'));
+		const delimiter    = hasDelimiter ? '' : `\n|${' --- |'.repeat(cells.length)}`;
+		const row          = `\n|${'   |'.repeat(cells.length)}`;
+
+		return { text: source.slice(0, end) + delimiter + row + source.slice(end), caret: end + delimiter.length + 3 };
+	}
+
+	const item = ITEM_LINE.exec(line.text);
+
+	if (item !== null && line.marks.at(-1)?.kind === 'list') {
+		const lead = (item[1] ?? '') + (item[2] ?? '') + (item[3] ?? '') + (item[4] ?? '');
+
+		if (at < lead.length) {
+			return null;
+		}
+
+		if ((item[5] ?? '').trim() === '') {
+			return empty();
+		}
+
+		const marker = item[2] ?? '-';
+		const next   = /\d/.test(marker) ? `${Number.parseInt(marker, 10) + 1}${marker.slice(-1)}` : marker;
+		const added  = `${item[1] ?? ''}${next}${item[3] || ' '}${item[4] === undefined ? '' : '[ ] '}`;
+		const lines  = `${source.slice(0, position)}\n${added}${source.slice(position)}`.split('\n');
+
+		if (/\d/.test(marker)) {
+			renumber(lines, index + 1);
+		}
+
+		// After the new line's marker, which renumbering may have changed.
+		const lineStart = lines.slice(0, index + 1).join('\n').length + 1;
+
+		return { text: lines.join('\n'), caret: lineStart + (lines[index + 1]?.length ?? 0) - (end - position) };
+	}
+
+	const quote = QUOTE_LINE.exec(line.text);
+
+	if (quote !== null && line.marks[0]?.kind === 'quote') {
+		if (at < (quote[1] ?? '').length + (quote[2] ?? '').length) {
+			return null;
+		}
+
+		if ((quote[3] ?? '').trim() === '') {
+			return empty();
+		}
+
+		const lead = (quote[1] ?? '') + ((quote[2] ?? '').endsWith(' ') ? quote[2] ?? '' : `${quote[2] ?? ''} `);
+
+		return { text: `${source.slice(0, position)}\n${lead}${source.slice(position)}`, caret: position + 1 + lead.length };
+	}
+
+	return null;
+}
+
+/**
+ * A change to the body as a whole: its new text, and the selection to
+ * leave in it.
+ */
+export interface Change {
+	text: string;
+	from: number;
+	to: number;
+}
+
+export type InlineMark = '**' | '*' | '~~' | '`';
+
+// How long the run of `character` is that ends at `at`, or starts there.
+function runBefore(source: string, at: number, character: string): number {
+	let length = 0;
+
+	while (at - length > 0 && source[at - length - 1] === character) {
+		length++;
+	}
+
+	return length;
+}
+
+function runAfter(source: string, at: number, character: string): number {
+	let length = 0;
+
+	while (source[at + length] === character) {
+		length++;
+	}
+
+	return length;
+}
+
+// Whether a run of marks includes this one: strong is two stars, and
+// emphasis one, so three is both.
+function carries(run: number, mark: InlineMark): boolean {
+	if (mark === '*') {
+		return run % 2 === 1;
+	}
+
+	return run >= mark.length;
+}
+
+/**
+ * Turns strong, emphasized, struck, or code text on or off for a
+ * selection (⌘B, ⌘I, ⌘⇧X, ⌘E): the marks around it, or at its ends, are
+ * taken away, else they're added. The spaces at a selection's ends stay
+ * outside the marks, which can't close on a space. With nothing
+ * selected, a pair of marks goes in with the caret between them.
+ */
+export function toggleMark(source: string, start: number, end: number, mark: InlineMark): Change {
+	let from = start;
+	let to   = end;
+
+	while (from < to && /\s/.test(source[from] ?? '')) {
+		from++;
+	}
+
+	while (to > from && /\s/.test(source[to - 1] ?? '')) {
+		to--;
+	}
+
+	const size      = mark.length;
+	const character = mark.charAt(0);
+	const inner     = source.slice(from, to);
+
+	// The marks are part of what's selected.
+	if (inner.length >= size * 2 && carries(runAfter(inner, 0, character), mark) && carries(runBefore(inner, inner.length, character), mark)) {
+		return { text: source.slice(0, from) + inner.slice(size, -size) + source.slice(to), from, to: to - size * 2 };
+	}
+
+	// The marks are around it.
+	if (carries(runBefore(source, from, character), mark) && carries(runAfter(source, to, character), mark)) {
+		return { text: source.slice(0, from - size) + inner + source.slice(to + size), from: from - size, to: to - size };
+	}
+
+	return { text: source.slice(0, from) + mark + inner + mark + source.slice(to), from: from + size, to: to + size };
+}
+
+const URL_ONLY = /^(?:https?:\/\/|mailto:|\/)\S*$/;
+
+/**
+ * Makes a selection a link. Given an address (a pasted one), the
+ * selected text becomes its label; else a selected address becomes the
+ * target, with the caret in the empty label, and selected words the
+ * label, with the caret where the address goes.
+ */
+export function linked(source: string, start: number, end: number, url?: string): Change {
+	const inner  = source.slice(start, end);
+	const before = source.slice(0, start);
+	const after  = source.slice(end);
+
+	if (url !== undefined) {
+		const text = `[${inner}](${url})`;
+
+		return { text: before + text + after, from: start + text.length, to: start + text.length };
+	}
+
+	if (URL_ONLY.test(inner.trim()) && inner.trim() !== '') {
+		return { text: `${before}[](${inner.trim()})${after}`, from: start + 1, to: start + 1 };
+	}
+
+	const caret = start + inner.length + 3;
+
+	return { text: `${before}[${inner}]()${after}`, from: caret, to: caret };
+}
+
+/**
+ * Whether pasted text is one address, to make a selection a link.
+ */
+export function isAddress(text: string): boolean {
+	return /^(?:https?:\/\/|mailto:)\S+$/.test(text.trim());
+}
+
+/**
+ * Nests the list items in a selection one level deeper (Tab), or one
+ * level shallower (Shift+Tab), with what's nested under them: under the
+ * item above at the same level, lined up with its text, or back to the
+ * item it's under. A numbered item that starts a new level is numbered
+ * from one, and the runs it left and joined are renumbered. `null` when
+ * the first line isn't an item, or has nowhere to go.
+ */
+export function nested(source: string, start: number, end: number, outdent: boolean): Change | null {
+	const text   = source.split('\n');
+	const offset = (line: number): number => text.slice(0, line).join('\n').length + (line > 0 ? 1 : 0);
+	const lineOf = (position: number): number => source.slice(0, position).split('\n').length - 1;
+	const first  = lineOf(start);
+	const item   = ITEM_LINE.exec(text[first] ?? '');
+
+	if (item === null) {
+		return null;
+	}
+
+	const indent = item[1]?.length ?? 0;
+	let delta    = 0;
+
+	if (outdent) {
+		for (let at = first - 1; at >= 0; at--) {
+			const above = ITEM_LINE.exec(text[at] ?? '');
+
+			if (above !== null && (above[1]?.length ?? 0) < indent) {
+				delta = (above[1]?.length ?? 0) - indent;
+				break;
+			}
+		}
+
+		if (delta === 0) {
+			return null;
+		}
+	} else {
+		for (let at = first - 1; at >= 0; at--) {
+			const line  = text[at] ?? '';
+			const above = ITEM_LINE.exec(line);
+
+			if (line.trim() !== '' && above === null && (/^ */.exec(line)?.[0].length ?? 0) <= indent) {
+				break;
+			}
+
+			if (above !== null && (above[1]?.length ?? 0) === indent) {
+				delta = (above[2]?.length ?? 1) + Math.max(1, above[3]?.length ?? 1);
+				break;
+			}
+
+			if (above !== null && (above[1]?.length ?? 0) < indent) {
+				break;
+			}
+		}
+
+		if (delta === 0) {
+			return null;
+		}
+	}
+
+	// The selected lines, and what's nested under the last of them.
+	let last = Math.max(first, lineOf(end));
+
+	while (last + 1 < text.length && (text[last + 1] ?? '').trim() !== '' && (/^ */.exec(text[last + 1] ?? '')?.[0].length ?? 0) > indent && ITEM_LINE.exec(text[last + 1] ?? '')?.[1]?.length !== indent) {
+		last++;
+	}
+
+	for (let at = first; at <= last; at++) {
+		const line = text[at] ?? '';
+
+		if (line.trim() !== '') {
+			const shift = delta > 0 ? delta : -Math.min(-delta, /^ */.exec(line)?.[0].length ?? 0);
+
+			text[at] = shift > 0 ? ' '.repeat(shift) + line : line.slice(-shift);
+		}
+	}
+
+	// A numbered item starting a level of its own starts at one.
+	const now    = ITEM_LINE.exec(text[first] ?? '');
+	const level  = now?.[1]?.length ?? 0;
+	const before = ITEM_LINE.exec(text[first - 1] ?? '');
+
+	if (now !== null && /\d/.test(now[2] ?? '') && !(before !== null && (before[1]?.length ?? 0) === level)) {
+		text[first] = `${now[1] ?? ''}1${(now[2] ?? '1.').slice(-1)}${now[3] || ' '}${now[4] ?? ''}${now[5] ?? ''}`;
+	}
+
+	renumber(text, first);
+
+	if (first > 0) {
+		renumber(text, first - 1);
+	}
+
+	// Every change is at the front of a line, so a position keeps its
+	// distance from the end of its line.
+	const old = source.split('\n');
+	const map = (position: number): number => {
+		const line  = lineOf(position);
+		const toEnd = old.slice(0, line + 1).join('\n').length - position;
+
+		return offset(line) + Math.max(0, (text[line]?.length ?? 0) - toEnd);
+	};
+	const after = text.join('\n');
+
+	return { text: after, from: map(start), to: map(end) };
+}
+
+// The line an offset is on, and where each line starts.
+function lineAt(source: string, position: number): number {
+	return source.slice(0, position).split('\n').length - 1;
+}
+
+function lineStarts(lines: string[]): number[] {
+	const starts: number[] = [];
+	let at = 0;
+
+	for (const line of lines) {
+		starts.push(at);
+		at += line.length + 1;
+	}
+
+	return starts;
+}
+
+/**
+ * Moves a position from one version of the lines to another: it keeps
+ * its distance from the end of its line, since every change here is at
+ * the front of a line or moves whole lines. `lineMap` says where each old
+ * line went.
+ */
+function remap(before: string[], after: string[], position: number, lineMap: (line: number) => number): number {
+	const source = before.join('\n');
+	const line   = lineAt(source, position);
+	const toEnd  = (lineStarts(before)[line] ?? 0) + (before[line]?.length ?? 0) - position;
+	const moved  = lineMap(line);
+
+	return (lineStarts(after)[moved] ?? 0) + Math.max(0, (after[moved]?.length ?? 0) - toEnd);
+}
+
+/**
+ * Makes the lines in a selection headings of a level (⌘⌥1 to ⌘⌥6), or
+ * paragraphs (level 0, ⌘⌥0): the hashes go after any quote or list
+ * marks and replace any there. If every line is already that level, it
+ * goes back to a paragraph. Code, directives' own lines, and blank lines
+ * are left alone; `null` when nothing's left.
+ */
+export function withHeading(source: string, start: number, end: number, level: number): Change | null {
+	const markdown = outline(source);
+	const before   = source.split('\n');
+	const text     = [...before];
+	const first    = lineAt(source, start);
+	const last     = Math.max(first, lineAt(source, end));
+	const lines    = markdown.lines.slice(first, last + 1).filter((line) => (line.kind === 'text' || line.kind === 'heading') && line.text.trim() !== '' && line.marks.at(-1)?.kind !== 'rule');
+
+	if (lines.length === 0) {
+		return null;
+	}
+
+	// Where the heading's hashes go, and where any already there end.
+	const parts = lines.map((line) => {
+		const lead    = line.marks.filter((mark) => mark.kind === 'quote' || mark.kind === 'list').at(-1)?.end ?? 0;
+		const heading = line.marks.find((mark) => mark.kind === 'heading');
+		const hashes  = heading === undefined ? 0 : /#+/.exec(line.text.slice(lead, heading.end))?.[0].length ?? 0;
+
+		return { line, lead, rest: heading?.end ?? lead, hashes };
+	});
+
+	const target = level === 0 || parts.every((part) => part.hashes === level) ? 0 : Math.min(6, level);
+
+	for (const part of parts) {
+		const index = markdown.lines.indexOf(part.line);
+		const body  = part.line.text.slice(part.rest).replace(/^ +/, '');
+
+		text[index] = part.line.text.slice(0, part.lead) + (target === 0 ? '' : `${'#'.repeat(target)} `) + (part.hashes === 0 ? part.line.text.slice(part.lead).replace(/^ {0,3}/, '') : body);
+	}
+
+	return { text: text.join('\n'), from: remap(before, text, start, (line) => line), to: remap(before, text, end, (line) => line) };
+}
+
+/**
+ * Moves the lines in a selection up or down one line (⌥↑, ⌥↓), past the
+ * line there, keeping the selection on them. A numbered list's items are
+ * renumbered where they left and where they landed. `null` at the top or
+ * bottom.
+ */
+export function movedLines(source: string, start: number, end: number, up: boolean): Change | null {
+	const before = source.split('\n');
+	const first  = lineAt(source, start);
+	let last     = lineAt(source, end);
+
+	// A selection ending at the start of a line doesn't take that line.
+	if (last > first && end === lineStarts(before)[last]) {
+		last--;
+	}
+
+	if (up ? first === 0 : last === before.length - 1) {
+		return null;
+	}
+
+	const block = before.slice(first, last + 1);
+	const other = before[up ? first - 1 : last + 1] ?? '';
+	const text  = up
+		? [...before.slice(0, first - 1), ...block, other, ...before.slice(last + 1)]
+		: [...before.slice(0, first), other, ...block, ...before.slice(last + 2)];
+
+	const shift = up ? -1 : 1;
+
+	// Where each run started before the move is where it starts after.
+	const moves = [
+		{ index: first + shift, start: runStart(before, first) },
+		{ index: up ? last : first, start: runStart(before, up ? first - 1 : last + 1) }
+	];
+
+	for (const move of moves) {
+		renumber(text, move.index, move.start);
+	}
+
+	const lineMap = (line: number): number => {
+		if (line >= first && line <= last) {
+			return line + shift;
+		}
+
+		return line === (up ? first - 1 : last + 1) ? (up ? last : first) : line;
+	};
+
+	// A selection ending at the start of the line after it still does.
+	const endsAtLine = end > start && end === lineStarts(before)[last + 1];
+	const to         = endsAtLine ? (lineStarts(text)[last + shift + 1] ?? text.join('\n').length) : remap(before, text, end, lineMap);
+
+	return { text: text.join('\n'), from: remap(before, text, start, lineMap), to };
 }

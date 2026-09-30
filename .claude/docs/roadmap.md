@@ -241,7 +241,22 @@ image and embed previews first, then a full preview, above all of
 components. Changing one's own password on Your profile is done (D-273), the
 editor's side of the index page (D-274), Duplicate (D-275), Preview
 for a trashed entry (D-276), renaming from the editor (D-277), and
-type labels (D-278).
+type labels (D-278). Then the updated direction's editor (D-280): every
+element an object with one resolver, the Outline and Content groups,
+the breadcrumb footer, lists (with a List Type) and definition lists,
+Enter carrying markers, the sectioned ⋮ menu, the rail never
+navigating, drawn selects, and the Publish group's Status menu and
+calendar. Still from that direction: the rest of the document panel
+(authors as people, a taxonomy tree and token field, a parent tree, a
+featured image), which waits for the reference picker. The reference
+picker is in (D-281): `GET references/{type}`, one picker for trees,
+tokens, people, and single values, and the document panel's groups with
+Visibility, Featured Image, Authors, taxonomies, and Summary. The panel
+now matches the prototype, offers only the type's taxonomies (D-283),
+and the Markdown editing experience has begun (D-284: formatting keys,
+links, nesting lists with Tab, and files dropped or pasted in), then
+heading levels and moving lines from the keyboard (D-285). Pasting HTML
+as Markdown is on hold (D-286).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open

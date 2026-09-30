@@ -5,12 +5,17 @@
  * show their value read-only. An error (a required field left empty when
  * publishing) shows beneath the control, which is marked invalid. A
  * choice shows its `choices` label when the field has one (a
- * component's props do, D-245). A media field, when `pickable`, has a
+ * component's props do, D-245). A date opens a month, with a 12-hour
+ * time (`DatePicker`), and can be cleared. A reference picks from the
+ * entries it points at (`ReferencePicker`). A media field, when `pickable`, has a
  * **Choose** button for the media picker beside it (D-247).
  */
 
 import { computed } from 'vue';
 import type { FieldDescription } from '../api';
+import AdminSelect from './AdminSelect.vue';
+import DatePicker from './DatePicker.vue';
+import ReferencePicker from './ReferencePicker.vue';
 import { control, help, label, type FormValue } from '../fields';
 
 const props = defineProps<{ field: FieldDescription; error?: string; idPrefix?: string; pickable?: boolean }>();
@@ -60,11 +65,12 @@ const checked = computed({
 
 			<textarea v-if="kind === 'textarea'" :id="id" v-model="text" rows="3" :aria-describedby="described" :aria-invalid="invalid" />
 			<textarea v-else-if="kind === 'lines'" :id="id" v-model="text" class="mono" rows="2" :aria-describedby="described" :aria-invalid="invalid" />
-			<select v-else-if="kind === 'select'" :id="id" v-model="text" :aria-describedby="described" :aria-invalid="invalid">
-				<option value="">—</option>
-				<option v-for="option in field.options ?? []" :key="option" :value="option">{{ choice(option) }}</option>
-			</select>
-			<input v-else-if="kind === 'datetime'" :id="id" v-model="text" type="datetime-local" :aria-describedby="described" :aria-invalid="invalid">
+			<AdminSelect v-else-if="kind === 'select'" :id="id" v-model="text" :options="[{ value: '', label: '—' }, ...(field.options ?? []).map((option) => ({ value: option, label: choice(option) }))]" :described-by="described" :invalid="invalid === 'true'" />
+			<ReferencePicker v-else-if="field.type === 'reference' && field.to" :id="id" v-model="text" :field="field" :described-by="described" :invalid="invalid === 'true'" />
+			<div v-else-if="kind === 'datetime'" class="field__date">
+				<DatePicker :id="id" v-model="text" :described-by="described" :invalid="invalid === 'true'" />
+				<button v-if="text" type="button" class="button button--ghost button--small" @click="text = ''">Clear<span class="visually-hidden"> {{ label(field).toLowerCase() }}</span></button>
+			</div>
 			<input v-else-if="kind === 'number'" :id="id" v-model="text" type="number" :min="field.min" :max="field.max" :step="field.integer ? 1 : 'any'" :aria-describedby="described" :aria-invalid="invalid">
 			<pre v-else-if="kind === 'readonly'" :id="id" class="field__readonly" tabindex="0" :aria-describedby="`${id}-readonly`">{{ text || '—' }}</pre>
 			<div v-else-if="field.type === 'media' && pickable" class="field__pick">
@@ -81,6 +87,13 @@ const checked = computed({
 </template>
 
 <style scoped>
+.field__date {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+}
+
 .field__pick {
 	display: flex;
 	gap: 6px;

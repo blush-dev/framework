@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The two fields every object on the Component tab has (D-268), since
+ * The two fields every object on the element tab has (D-268), since
  * the syntax is the same everywhere: **Classes** (space separated, dots
  * optional) and **ID**. They report each change as typed; what's written
  * is up to the panel.

@@ -20,6 +20,8 @@ use League\CommonMark\Extension\SmartPunct\SmartPunctExtension;
 use Blush\Config\InvalidConfig;
 use Blush\Event\EventDispatcher;
 use Blush\Event\Listener\ListenerRegistry;
+use Blush\Markdown\CommonMark\DescriptionAttributes;
+use Blush\Markdown\CommonMark\DescriptionListRenderer;
 use Blush\Markdown\CommonMarkParser;
 use Blush\Markdown\Events\MarkdownEnvironmentBuilding;
 use Blush\Markdown\MarkdownConfig;
@@ -27,6 +29,8 @@ use Blush\Markdown\MarkdownException;
 use Blush\Tests\Fixtures\Markdown\ShoutParser;
 
 #[CoversClass(CommonMarkParser::class)]
+#[CoversClass(DescriptionAttributes::class)]
+#[CoversClass(DescriptionListRenderer::class)]
 #[CoversClass(MarkdownConfig::class)]
 #[CoversClass(MarkdownEnvironmentBuilding::class)]
 #[CoversClass(MarkdownException::class)]
@@ -53,6 +57,19 @@ final class CommonMarkParserTest extends TestCase
 		$this->assertStringContainsString('<a href="https://example.com">', $html);
 		$this->assertStringContainsString('<table>', $html);
 		$this->assertStringContainsString('<b>raw</b>', $html);
+	}
+
+	public function testDescriptionListsTakeAttributes(): void
+	{
+		$html = $this->parser()->toHtml("{#terms .dl}\nFirst {#one}\n: A definition. {.note}\n\nSecond\n: Two\n: Three {.more}\n{.after}\n\nLoose\n\n: A paragraph. {.wide}\n\nPlain\n: None");
+
+		$this->assertStringContainsString('<dl class="dl after" id="terms">', $html, 'Above and below the list.');
+		$this->assertStringContainsString('<dt id="one">First</dt>', $html);
+		$this->assertStringContainsString('<dd class="note">A definition.</dd>', $html, 'A tight definition\'s go on the <dd>.');
+		$this->assertStringContainsString('<dd>Two</dd>', $html);
+		$this->assertStringContainsString('<dd class="more">Three</dd>', $html);
+		$this->assertStringContainsString('<dd><p class="wide">A paragraph.</p></dd>', $html, 'A loose one keeps them on its <p>.');
+		$this->assertStringContainsString("<dt>Plain</dt>\n<dd>None</dd>", $html, 'Nothing to add, nothing added.');
 	}
 
 	public function testUsesTheConfiguredOptionsExtensionsAndInlineParsers(): void

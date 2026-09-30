@@ -6316,3 +6316,304 @@ decision, add a new entry that supersedes it and mark the old one
   pointer listeners, and `MarkdownEditor`'s `typed` event are gone.
 - **Why:** the author found the darkened toolbar, then the footer,
   distracting while editing.
+
+### D-280: The editor's elements, outline, breadcrumb, and Enter; drawn selects and dates
+- **Date:** 2026-09-30
+- **Decision:** From the author's updated design direction
+  (`admin-design/admin.md` and `blush-admin.html`, uploaded as is). Its
+  project-specific parts (files, departures, settled questions) move to
+  a separate doc, `admin-design/departures.md`, so the direction can be
+  replaced wholesale. Supersedes D-245's footer chip and shortcut hints,
+  D-244's Home navigating, D-265's and D-268's Component tab name and
+  "Components in this entry" list, and D-268's list item attributes
+  above a list.
+  - **Every element is an object** (`elements.ts`): one resolver over
+    directives, images, and blocks takes the smallest span holding the
+    caret (a list item over its list, an image over its paragraph), so
+    inside a callout the caret is in a paragraph. On a blank line it's
+    the element above at the caret's own level: one inside a container
+    that closed above the caret is passed over. An element picked from
+    the outline, a Content group, or the breadcrumb stays picked while
+    the caret stays put (a list and its first item start on one line).
+  - **New blocks** (`markdown.ts`): **lists**, rebuilt from their items'
+    indents (items separated only by blank lines are one list), each
+    item reaching over what's nested under it; a list's attributes on a
+    line of their own above it (the parser reads them there; the item
+    no longer claims that line), written when needed and removed when
+    both fields are emptied; a **List Type** (Bulleted, Numbered, Task)
+    that rewrites the markers at the list's indent. **Definition lists**
+    (`:` with one colon; groups a blank line apart are one list), with
+    each term and definition an element. The site's parser gives a
+    definition list, a term, and a definition no attributes, so their
+    panels have none (a departure).
+  - **The outline**: every container and leaf directive, image (a line
+    that's only an image isn't also a paragraph), and block, in order,
+    with depth by containment (container, list, list item, definition
+    list), a name column (quiet mono; a component's in the accent) and a
+    line of what's in it. It's a drilldown at the foot of the entry's
+    tab ("← Post / Outline 14"), also in the ⋮ menu and the palette. A
+    holder's panel has a **Content** group, one level deep.
+  - **The drawer's tabs** are the type's singular label, title-cased
+    (the index page's is "Index page"), and the element's name
+    ("Heading 2", "List"), else "Elements".
+  - **The footer** is the breadcrumb (every element holding the
+    caret, outermost first; each crumb selects it; the root opens the
+    entry's tab; middle crumbs shrink first) and the words and reading
+    time. No shortcut hints, and no chip.
+  - **The ⋮ menu** (vertical, after the primary button) has named
+    sections: View (Settings panel ⌘/, Outline, Focus mode ⌘⇧F, View
+    when live) and Entry (Save draft or Switch to draft, Copy link when
+    live, Duplicate unless a term or index page, then Move to trash
+    after a divider). No Preview or Revisions item: an unpublished
+    entry's preview link stays on the entry's tab, and there are no
+    revisions. `GET entries/{id}` answers `can.duplicate`.
+  - **Enter carries the marker** (`continuation()`): a list item's
+    marker (the next number, renumbering the run from its first number;
+    an open box for a task), a quote's `>`, a table's row (writing the
+    delimiter row first when there's none); Enter on an empty one ends
+    it, leaving a blank line above the caret. One edit, so one undo.
+  - **Marking the source:** a table's header cells at 600, a delimiter
+    row's colons at `--fg-2` 600, a term at 600, a definition's `:`
+    dimmed; the scan tells the highlighter which lines those are. The
+    text area's selection is a 26% accent tint and the copy's is
+    transparent.
+  - **The rail never navigates**, Home included. The editor collapses
+    the section panel on the way in and puts it back on the way out,
+    without changing the remembered setting.
+  - **Selects are drawn** (`AdminSelect`): a Vue component, not a
+    `MutationObserver` enhancing every `<select>` (Vue owns the DOM, and
+    there are five). The real `<select>` stays, visually hidden, holding
+    the value; the button is what a label names.
+  - **The Publish group** is label → value rows: **Status**, a menu of
+    Draft and Published (or Scheduled, with a future date), each with
+    what it does, which saves with that status; **Date** ("Goes live"
+    when in the future), which opens a Monday-first month with a
+    12-hour time (`DatePicker`, also used for a type's date fields in
+    place of `datetime-local`) and a line saying what it means; and
+    **Slug**.
+- **Kept as they were:** the chrome doesn't fade while typing (D-279;
+  the direction brought the fade back); a type's words come from
+  `labels` (D-278), not `singular`; no visibility (Blush has none); and
+  the direction's featured image, authors as people, taxonomy tree and
+  token field, and parent tree wait for the reference picker.
+- **Checked:** `composer check`; `npm run admin:build`; a scratch run
+  of the scanner (blocks, outline, resolver, Enter, list types, marks);
+  on the jtcom trial in headless Chrome with a throwaway account (since
+  removed), nothing saved: the rail, the panel collapsed and restored,
+  the tabs, breadcrumb and crumbs, the Outline and Content groups, the
+  List Type select (Escape closes only it), Enter in lists and tables
+  and its undo, the blank line after a closed container, the ⋮ menu,
+  the Status menu, and the calendar.
+- **Why:** the author uploaded the updated design direction and asked
+  for its changes, mostly the editor's, to be implemented.
+
+### D-281: The reference picker, and the document panel's groups
+- **Date:** 2026-09-30
+- **Decision:** D-242's third stage, and the rest of the direction's
+  document panel (admin.md §8). Corrects D-280, which said Blush has no
+  visibility: every entry has `visibility` (D-082), which the editor
+  showed as a plain select among the type's fields.
+  - **`GET references/{type}`** (`ReferencesController`): what a
+    reference field to a type can point at, for anyone who edits content
+    (not only entries they may edit: an author files under a category
+    they can't edit). Items are `slug`, `title`, `status`, `parent`,
+    `uses` (terms), `depth` (in a tree), `virtual` (a slug in use with no
+    file), and `missing` (a held slug nothing answers to). A
+    hierarchical taxonomy answers every term in tree order; anything
+    else answers a `search` of titles and slugs, by title, up to `limit`
+    (20, at most 100). `slugs` are always answered, found or not.
+    `create` is true for a taxonomy (a slug with no term becomes a
+    virtual one, D-242), and `tree` for a hierarchical one. The index
+    page is left out.
+  - **`ReferencePicker`**, one picker shaped by the field: a
+    hierarchical taxonomy is one box of search (keeping a match's
+    parents), the tree as checkboxes with use counts, and **New
+    {term}** (name and parent, the parent a tree select), which writes
+    the term with `POST entries` (published when the account can
+    publish) and ticks it; another multi-value reference is a token
+    field (Enter takes the first suggestion, or writes what's typed when
+    `create`, keeping the typed words, which a virtual term shows;
+    Backspace removes the last chip); the authors field (`to` the
+    author type) is people, the first marked Lead, with no × on the last
+    one (the handler refuses too); a single value (a term's `parent`) is
+    an `AdminSelect` in tree order without the term and its descendants.
+    The form value is still the slugs separated by commas, so saving is
+    unchanged, and `FieldControl` uses the picker for any reference with
+    a `to`.
+  - **The Document tab's groups**, in the direction's order: Publish
+    (Status, Date, Slug, **Visibility** as a menu of Public, Unlisted,
+    and Hidden with what each does, where Public writes nothing unless
+    the file said `public`; and **Parent** for a term), **Featured
+    Image** (the `image` field, 16:9, the image panel's preview, now
+    `ImagePreview`), **Authors** (with "2 people"), each other reference
+    (with "3 selected"), **Summary** (with "84 / 160"), then the type's
+    other fields as a form. A term shows Featured Image and Authors only
+    when its file has one.
+- **Departures:** the people rows show an author's slug, not a role
+  (an author isn't always an account); a term keeps its Visibility row
+  and Date, as Blush terms have both; no avatar images.
+- **Open:** the author says the site's parser takes classes and ids on
+  definition lists. Checked against `CommonMarkParser` with the default
+  and the jtcom trial's config (above, below, trailing on a term or
+  definition, `{: …}`), none reached the HTML, so D-280's panels without
+  attributes stay until the syntax that works is known.
+- **Checked:** `composer check` (`AdminReferencesTest`: a tree in order
+  with depths, parents, and uses; virtual terms with their words;
+  search; held slugs found and missing; `limit`; input errors; an
+  author seeing terms they can't edit); `npm run admin:build`; on the
+  jtcom trial in headless Chrome with a throwaway account (since
+  removed): the groups on a post, the category tree searched and
+  ticked, a new literary form typed, the authors search, a topic's
+  parent select without itself, and **New topic** under Art (the file
+  had `parent: art`; since deleted and reindexed).
+- **Why:** the author asked to start on the reference picker, and
+  pointed out visibility.
+
+### D-282: Definition lists take attributes
+- **Date:** 2026-09-30
+- **Decision:** Supersedes D-280's panels without attributes and settles
+  D-281's open item. league/commonmark's attributes extension already
+  attaches `{…}` to a description list and its terms, but its
+  description list renderers pass no attributes, so they never reached
+  the HTML. Blush now renders `<dl>`, `<dt>`, and `<dd>` with them
+  (`DescriptionListRenderer`, registered over league's when
+  `DescriptionListExtension` is configured), and moves attributes at the
+  end of a tight definition from its paragraph (which a tight `<dd>`
+  doesn't print) to the `<dd>` (`DescriptionAttributes`, after the
+  attributes listener), as league does for a tight list's items. A
+  loose definition keeps them on its `<p>`, as a loose list item does.
+  - **Where they go:** `{.glossary}` on a line of its own above (or
+    below) the list, `{#one}` at the end of a term, `{.note}` at the
+    end of a definition.
+  - **The editor** gives the Definitions, Term, and Definition panels
+    Classes and ID again: the list's on a line of its own above it (the
+    list claims that line, as a list does), a term's and a
+    definition's at the end of its line.
+- **Checked:** `composer check` (`CommonMarkParserTest`: above and
+  below, terms, tight and loose definitions, and a list without any
+  unchanged); `npm run admin:build`; a scratch run of the editor's
+  scan and edits (reading each place, writing and removing the list's
+  line, a definition's and a term's).
+- **Why:** the author asked whether the PHP side could support them.
+
+### D-283: The document panel as the prototype draws it; only the type's taxonomies
+- **Date:** 2026-09-30
+- **Decision:** From a check against `blush-admin.html`'s document
+  panel, at the author's request.
+  - **Publish** is the prototype's rows: Status, Visibility, Date,
+    Slug (and a term's Parent), each value filling its row with its
+    caret at the end; Status in its state's ink (green published, gray
+    draft, accent scheduled) with its icon and word; the slug a
+    borderless value that becomes a field on focus; a term's Parent a
+    plain `AdminSelect` (`plain`). One quiet line under the rows says
+    what the date means and when the file was last edited ("Published
+    152 days ago · Last edited 1 day ago."); the slug's help and the
+    redirect choice appear only once the slug changes. The **View**
+    button and the preview link leave the group: **Preview** is in the
+    ⋮ menu's View section (a signed link, D-226, opened in a new tab,
+    to the entry as last saved), with **View** there once it's live.
+  - **The pickers and fields** follow the prototype's rules: filled
+    search fields and tag boxes (`--bg`), custom checkboxes (a hidden
+    real input and a drawn box), gray chips, gray avatars, a quiet
+    **New {term}** at the tree's foot; the drawer's typed-into fields
+    are filled wells too. A taxonomy group is headed by the taxonomy's
+    plural label ("Topics"), not its field.
+  - **The Outline** no longer overflows: the list is a one-column grid
+    whose rows can shrink, the name column truncates (at most half the
+    row), and the excerpt truncates, as the prototype's rows do.
+  - **Only the type's taxonomies** (`EntryController::describe()`):
+    the schema keeps every taxonomy's term field, so a file may use any
+    of them, but `GET entries/{id}` sends only those of taxonomies that
+    group the type (naming it in `types`, or with no `types`, unless the
+    entry is itself a term), and any the file already uses, so it stays
+    editable.
+- **Checked:** `composer check` (`AdminEditingTest`: a post offered its
+  own and every-type taxonomies but not a page's, a page offered its
+  own, one a post's file uses kept, and a term not offered the
+  every-type taxonomy); `npm run admin:build`; the prototype and the
+  jtcom trial side by side in headless Chrome (a post shows Publish,
+  Featured Image, Authors, Topics, Eras, Summary, and Post Fields, no
+  literary taxonomies, and no sideways overflow in the Outline).
+- **Why:** the author found the panel didn't match the mockups, the
+  outline overflowing, and non-post taxonomies on a post.
+
+### D-284: The Markdown editing experience, first set
+- **Date:** 2026-09-30
+- **Decision:** Settles part of D-252's open "what the Markdown
+  experience needs", with the affordances Markdown editors share, all
+  editing the source as one undoable step (`markdown.ts`,
+  `MarkdownEditor`):
+  - **Formatting keys:** ⌘B strong (`**`), ⌘I emphasis (`*`), ⌘E code
+    (`` ` ``), ⌘⇧X struck (`~~`), each toggling (`toggleMark()`): marks
+    around the selection or at its ends are removed, else added; a
+    selection's end spaces stay outside the marks; three stars count as
+    both strong and emphasis; nothing selected puts in a pair with the
+    caret between.
+  - **Links:** ⌘K with text selected (`linked()`): words become
+    `[words]()` with the caret where the address goes, an address
+    becomes `[](address)` with the caret in the label. With nothing
+    selected, ⌘K stays the command palette (D-248). An address pasted
+    over selected words (one line, not itself an address) links them.
+  - **Nesting lists:** Tab and Shift+Tab in a list item (`nested()`)
+    move it under the item above at its level (lined up with that
+    item's text) or back to the item it's under, with the lines nested
+    under it; a numbered item starting a level starts at one, and the
+    runs it left and joined are renumbered. Elsewhere, and on a first
+    item, Tab leaves the field as before (D-245).
+  - **Files:** dropping or pasting files on the text uploads each
+    (`POST media`, needs `media.upload`) and inserts it at the caret as
+    the media picker does (`insertFile()`, now shared: an image as
+    Markdown with the library's alt text and caption, else a video,
+    audio, or file component). The text is outlined while a file is
+    held over it.
+  - The formatting commands are in the command palette, with their
+    keys.
+- **Open (D-252):** what comes next: candidates are heading levels from
+  the keyboard, moving lines, and smart paste of HTML as Markdown;
+  image and embed previews still wait.
+- **Checked:** `npm run admin:build`; a scratch run of `toggleMark()`,
+  `linked()`, and `nested()` (on and off, spaces, `***`, links from
+  words and addresses, nesting, un-nesting, numbering, nested lines,
+  nowhere to go); on the jtcom trial in headless Chrome with a
+  throwaway account (since removed): each key and its undo, ⌘K with and
+  without a selection, Tab and Shift+Tab, an address pasted over words,
+  and a dropped PNG uploaded and inserted (the file since deleted).
+- **Why:** the author asked to start on the Markdown editing
+  experience.
+
+### D-285: Heading levels and moving lines from the keyboard
+- **Date:** 2026-09-30
+- **Decision:** Two of D-284's open items, at the author's request.
+  - **⌘⌥1 to ⌘⌥6** make the line, or every line in the selection, a
+    heading of that level (`withHeading()`), with the hashes after any
+    quote or list marks and in place of any there; if every line is
+    already that level, they go back to paragraphs. **⌘⌥0** makes them
+    paragraphs. Code, directives' own lines, rules, and blank lines are
+    left alone. The keys are read by `event.code` (`Digit2`), since
+    Option changes the character a digit types on a Mac.
+  - **⌥↑ and ⌥↓** move the line, or the selected lines, past the line
+    above or below (`movedLines()`), keeping the selection on them; a
+    selection ending at the start of a line doesn't take it. A numbered
+    list is renumbered where the lines left and where they landed, from
+    the number its run started at before the move (`runStart()`;
+    `renumber()` takes that start). Lines, not blocks: the same keys
+    work in any Markdown, as in code editors.
+  - Both are one undoable edit, keep the caret at its distance from its
+    line's end, and are in the command palette (Heading 1 to 6,
+    Paragraph, Move line up, Move line down).
+- **Checked:** `npm run admin:build`; a scratch run (levels on and
+  off, paragraphs, quotes and list items, several lines, code and blank
+  lines left alone; moving up and down, at the edges, several lines, a
+  selection ending at a line's start, numbered runs starting at 1 and at
+  3, a numbered list under a bulleted one); on the jtcom trial in
+  headless Chrome with a throwaway account (since removed): each key,
+  and undo.
+- **Why:** the author asked for the heading shortcuts and moving lines
+  next.
+
+### D-286: Pasting HTML as Markdown is on hold
+- **Date:** 2026-09-30
+- **Decision:** The last of D-284's open items, converting pasted HTML
+  (from a web page or a word processor) to Markdown, waits. Pasting
+  keeps the browser's plain text, with D-284's link paste and files.
+- **Why:** the author's call.

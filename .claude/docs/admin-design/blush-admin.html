@@ -402,7 +402,24 @@ tr:hover .row-more,.row-more[aria-expanded="true"],.row-more:focus-visible{opaci
 .menu button:hover{background:var(--surface-2);color:var(--fg)}
 .menu button.danger{color:var(--danger)}
 .menu button.danger:hover{background:var(--danger-soft)}
+.menu.wide{min-width:288px}
+.menu.wide button{align-items:flex-start;padding:10px 12px}
+.menu.wide .ic{margin-top:2px}
+.menu.wide .nm{display:block;font-size:12.5px;color:var(--fg);font-weight:500}
+.menu.wide .ds{display:block;font-size:11px;color:var(--fg-3);line-height:1.45;margin-top:2px}
+.menu.wide button[aria-checked="true"] .nm{color:var(--accent)}
+.menu.wide .tick{margin-left:auto;color:var(--accent);width:14px;height:14px}
 .menu .div{height:1px;background:var(--border);margin:7px -7px}
+/* Sections, because a flat list of eleven actions is a list nobody reads. */
+.menu.sectioned{min-width:252px}
+.src-peek{font-family:var(--font-mono);font-size:11px;line-height:1.7;color:var(--fg-2);
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);
+  padding:8px 9px;overflow-x:auto;white-space:pre}
+.menu .sec{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--fg-3);padding:12px 11px 5px}
+.menu .sec:first-child{padding-top:4px}
+.menu button .l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.menu button kbd{flex:none;margin-left:var(--s-3)}
 
 .scrim{position:fixed;inset:0;z-index:50;background:rgba(17,20,27,.28);backdrop-filter:blur(3px)}
 .palette{position:fixed;z-index:55;top:14vh;left:50%;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));
@@ -532,8 +549,12 @@ select.inp{appearance:none;padding-right:30px;
 .ed-hl{color:var(--fg);pointer-events:none}
 .ed-src{position:absolute;top:0;left:0;width:100%;background:transparent;color:transparent;caret-color:var(--accent);
   outline:none;resize:none;overflow:hidden;display:block}
-.ed-src::selection{background:var(--accent-soft)}
-/* Source highlighting. Every rule here is metric-neutral: colour, weight,
+/* The textarea's own text is transparent — the colors come from the <pre>
+   underneath it. So the selection has to be a *tint*, not a fill: an opaque
+   background paints over the only legible copy of the text. */
+.ed-src::selection{background:color-mix(in srgb, var(--accent) 26%, transparent)}
+.ed-hl ::selection,.ed-hl::selection{background:transparent}
+/* Source highlighting. Every rule here is metric-neutral: color, weight,
    slant, background, decoration and vertical padding only. A horizontal
    padding or a letter-spacing anywhere in this block would slide the caret
    away from the character it is on. */
@@ -551,7 +572,7 @@ select.inp{appearance:none;padding-right:30px;
 .hl-code{color:var(--fg-2);background:var(--surface-2);border-radius:3px;padding:1px 0}
 
 /* A link's label is read in the sentence; its target is not, so the target
-   steps back and the label carries the one accent colour prose gets. */
+   steps back and the label carries the one accent color prose gets. */
 .hl-link{color:var(--accent)}
 .hl-url{color:var(--fg-3)}
 /* An image is a link that happens to point at a picture, so it is marked like
@@ -566,6 +587,10 @@ select.inp{appearance:none;padding-right:30px;
 .hl-task.done{color:var(--good)}
 .hl-hr{color:var(--fg-2);font-weight:500}
 .hl-pipe{color:var(--fg-3)}
+.hl-th{color:var(--fg);font-weight:600}          /* a table's header row */
+.hl-talign{color:var(--fg-2);font-weight:600}    /* the one part of a separator that means something */
+.hl-dt{color:var(--fg);font-weight:600}          /* a term being defined */
+.hl-dd{color:var(--fg)}                          /* its definition */
 
 /* A fence is the one place the source *is* the content, so the whole block —
    delimiters included — sits on a slab. Every tinted run clones its box across
@@ -593,7 +618,19 @@ select.inp{appearance:none;padding-right:30px;
 .ed-foot{flex:none;display:flex;align-items:center;gap:var(--s-2);padding:11px var(--s-5);border-top:1px solid var(--border);
   background:var(--surface);font-size:11px;color:var(--fg-3);transition:opacity .25s ease}
 .ed-foot .sep{opacity:.5}
-.ed-foot .end{margin-left:auto;display:flex;align-items:center;gap:14px}
+.ed-foot .end{margin-left:auto;display:flex;align-items:center;gap:7px;flex:none;padding-left:var(--s-4)}
+/* Where the caret is, from the entry down. Crumbs shrink from the middle so the
+   thing you are actually in — the last one — is never the one that gets cut. */
+.ed-crumbs{display:flex;align-items:center;gap:1px;flex:1;min-width:0;overflow:hidden}
+.ed-crumb{flex:0 1 auto;min-width:0;display:inline-flex;align-items:center;gap:6px;padding:3px 7px;
+  border-radius:var(--r-1);font-size:11.5px;color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-crumb:hover{background:var(--surface-2);color:var(--fg)}
+.ed-crumb .ic{width:13px;height:13px;flex:none}
+.ed-crumb.root{color:var(--fg-2)}
+.ed-crumb.is-comp{color:var(--accent)}
+.ed-crumb.here{flex:none;color:var(--fg);font-weight:500}
+.ed-crumb.here.is-comp{color:var(--accent)}
+.ed-crumbs .sep{width:11px;height:11px;flex:none;color:var(--fg-3);opacity:.45}
 .ed-chip{display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:2px 8px;border-radius:99px;
   background:var(--accent-soft);color:var(--accent);font-size:10.5px;font-weight:500;border:1px solid var(--accent-line)}
 .ed-chip:hover{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
@@ -628,11 +665,164 @@ select.inp{appearance:none;padding-right:30px;
 }
 .fgroup{border-bottom:1px solid var(--border);padding:var(--s-5) var(--s-5);display:flex;flex-direction:column;gap:var(--s-4)}
 .fgroup-t{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+/* The native select is hidden but present: it still holds the value. */
+select[data-xs]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;clip:rect(0 0 0 0)}
+.xsel{display:inline-flex;align-items:center;gap:var(--s-2);text-align:left;
+  font-size:12.5px;color:var(--fg);border-radius:var(--r-1);max-width:100%}
+.xsel.as-inp,.xsel.as-val{width:100%}
+.xsel.as-sel{flex:none}
+.xsel .xs-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xsel .xs-go{width:13px;height:13px;color:var(--fg-3);flex:none}
+.xsel[disabled]{opacity:.5;pointer-events:none}
+.xsel.as-inp{height:var(--ctl);padding:0 12px;border:1px solid var(--border);background:var(--bg)}
+.xsel.as-inp:hover{border-color:var(--border-strong)}
+.xsel.as-sel{height:var(--ctl);padding:0 12px;border:1px solid var(--border);background:var(--surface);color:var(--fg-2)}
+.xsel.as-sel:hover{border-color:var(--border-strong);color:var(--fg)}
+.xsel.as-val{padding:7px 8px;color:var(--accent);border:1px solid transparent}
+.xsel.as-val:hover{background:var(--surface-2)}
+.xsel:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.xs-list{position:fixed;z-index:65;max-height:min(340px,60vh);overflow-y:auto;padding:var(--s-2);
+  background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-2);box-shadow:var(--shadow-3);
+  display:flex;flex-direction:column;gap:1px}
+.xs-list button{display:flex;align-items:center;gap:var(--s-2);padding:8px 12px;border-radius:var(--r-1);
+  font-size:12.5px;color:var(--fg-2);text-align:left;white-space:nowrap}
+.xs-list button:hover,.xs-list button:focus-visible{background:var(--surface-2);color:var(--fg);outline:none}
+.xs-list button[aria-selected="true"]{color:var(--accent)}
+.xs-list .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.xs-list .tick{width:14px;height:14px;color:var(--accent);flex:none}
+
+/* ---- document panel ---- */
+.fgroup-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-3)}
+.fgroup-meta{font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+/* A label/value row list, not a stack of form fields. The label states the
+   question in flat ink; the value answers it in the accent and opens whatever
+   control that answer needs. Boxes are spent on things you type into. */
+.row-set{display:flex;flex-direction:column;margin:-6px -8px}
+.set-row{display:flex;align-items:center;gap:var(--s-3);min-height:36px}
+.set-row .k{width:84px;flex:none;padding-left:8px;font-size:12.5px;color:var(--fg-2)}
+.val{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r-1);
+  font-size:12.5px;color:var(--accent);text-align:left}
+.val:hover{background:var(--surface-2)}
+.val .ic{width:14px;height:14px;color:currentColor;flex:none}
+.val .vt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.val .dim{color:var(--fg-3)}
+.val .go{width:13px;height:13px;margin-left:auto;color:var(--fg-3)}
+.val.st-published{color:var(--good)}
+.val.st-scheduled{color:var(--accent)}
+.val.st-draft{color:var(--fg-2)}
+.val-input,.val-select{flex:1;min-width:0;border:1px solid transparent;background:none;border-radius:var(--r-1);
+  padding:7px 8px;font-size:12.5px;color:var(--accent);outline:none;width:100%}
+.val-input:hover,.val-select:hover{background:var(--surface-2)}
+.val-input:focus,.val-select:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-soft)}
+.val-select{appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--fg-3) 50%),linear-gradient(135deg,var(--fg-3) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 16px,calc(100% - 10px) 16px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+
+/* People: the avatar identifies, the name confirms, the role qualifies. */
+.people{display:flex;flex-direction:column;gap:2px;margin:0 -8px}
+.person{display:flex;align-items:center;gap:11px;padding:8px;border-radius:var(--r-1)}
+.person:hover{background:var(--surface-2)}
+.person .pm{min-width:0;flex:1;display:flex;flex-direction:column}
+.person .pn{font-size:12.5px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person .pr{font-size:11px;color:var(--fg-3)}
+.person .x{width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:var(--r-1);color:var(--fg-3);opacity:0}
+.person:hover .x,.person .x:focus-visible{opacity:1}
+.person .x:hover{background:var(--surface-3);color:var(--danger)}
+.person .x .ic{width:13px;height:13px}
+
+.cal-pop{position:fixed;z-index:60;width:296px;background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:var(--r-2);box-shadow:var(--shadow-3);padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+.cal-head{display:flex;align-items:center;gap:var(--s-2)}
+.cal-title{flex:1;text-align:center;font-family:var(--font-display);font-size:13.5px;font-weight:600}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow span{text-align:center;font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--fg-3)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-d{aspect-ratio:1;border-radius:var(--r-1);font-size:12px;color:var(--fg-2);font-variant-numeric:tabular-nums;
+  display:grid;place-items:center}
+.cal-d:hover{background:var(--surface-2);color:var(--fg)}
+.cal-d.out{color:var(--fg-3);opacity:.5}
+.cal-d.today{box-shadow:inset 0 0 0 1px var(--border-strong);color:var(--fg)}
+/* Soft, not solid: a filled accent square is the loudest thing in the panel
+   and it is only saying "this one". */
+.cal-d.on{background:var(--accent-soft);color:var(--accent);font-weight:600;box-shadow:inset 0 0 0 1px var(--accent-line)}
+.cal-time{display:flex;align-items:center;gap:var(--s-3);border-top:1px solid var(--border);padding-top:var(--s-3)}
+.cal-time .lbl{font-size:11.5px;color:var(--fg-2);font-weight:500}
+/* One box holding two numbers and a meridiem, so it reads as a single time. */
+.timef{flex:1;display:flex;align-items:center;gap:4px;height:var(--ctl);padding:0 4px 0 10px;
+  border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg)}
+.timef:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.timef .tp{width:2.4ch;border:0;background:none;outline:none;font-size:13px;color:var(--fg);text-align:center;
+  font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.timef .sep{color:var(--fg-3);font-family:var(--font-mono)}
+.ampm{display:flex;margin-left:auto;gap:2px}
+.ampm button{padding:3px 8px;border-radius:var(--r-1);font-size:10.5px;font-weight:600;letter-spacing:.04em;color:var(--fg-3)}
+.ampm button:hover{background:var(--surface-2);color:var(--fg-2)}
+.ampm button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.cal-quick{display:flex;flex-wrap:wrap;gap:6px}
+
+/* A tree you can search, with the count on every row so a term's weight is
+   visible before you pick it. */
+.tax-box{border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);overflow:hidden}
+.tax-search{display:flex;align-items:center;gap:9px;height:var(--ctl);padding:0 12px;background:var(--bg);
+  border-bottom:1px solid var(--border)}
+.tax-search.solo{border:1px solid var(--border);border-radius:var(--r-1)}
+.tax-search .ic{color:var(--fg-3);width:14px;height:14px}
+.tax-search input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:12.5px;color:var(--fg)}
+.tax-tree{max-height:236px;overflow-y:auto;background:var(--surface)}
+.tax-add{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border-top:1px solid var(--border);
+  font-size:12.5px;color:var(--fg-2);text-align:left;background:var(--bg)}
+.tax-add:hover{background:var(--surface-2);color:var(--fg)}
+.tax-add .ic{width:14px;height:14px;color:var(--fg-3)}
+.tax-new{display:flex;flex-direction:column;gap:var(--s-2);padding:var(--s-3);border-top:1px solid var(--border);background:var(--bg)}
+.tax-new-acts{display:flex;gap:6px}
+.tax-row{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 18px;font-size:12.5px;color:var(--fg-2);cursor:pointer}
+.tax-row:hover{background:var(--surface-2);color:var(--fg)}
+.tax-row.on{color:var(--fg)}
+.tax-row input{position:absolute;opacity:0;width:0;height:0}
+.tax-row .box{width:15px;height:15px;flex:none;border:1px solid var(--border-strong);border-radius:4px;
+  display:grid;place-items:center;color:transparent;background:var(--surface)}
+.tax-row .box .ic{width:11px;height:11px;stroke-width:2.6}
+.tax-row.on .box{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.tax-row input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.tax-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tax-row .c{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);flex:none}
+.tax-empty{padding:26px 14px;text-align:center;font-size:12px;color:var(--fg-3)}
+
+/* A token field: chips and a bare input in one box, suggestions under it. */
+.tokens{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:var(--ctl);padding:6px 8px;
+  border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg);cursor:text}
+.tokens:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.tokens input{flex:1;min-width:90px;border:0;background:none;outline:none;font-size:12.5px;color:var(--fg);height:22px}
+.token{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 4px 0 9px;border-radius:var(--r-1);
+  background:var(--surface-2);border:1px solid var(--border);color:var(--fg-2);font-size:11.5px;font-weight:500}
+.token button{color:var(--fg-3);opacity:.8;display:grid;place-items:center;border-radius:3px}
+.token button:hover{opacity:1;color:var(--danger)}
+.token .ic{width:11px;height:11px;stroke-width:2.4}
+.token-sugg{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-1);
+  background:var(--surface);overflow:hidden;margin-top:-11px}
+.token-sugg .avatar.sm{width:20px;height:20px}
+.token-sugg button{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:12.5px;color:var(--fg-2);text-align:left}
+.token-sugg button:hover{background:var(--surface-2);color:var(--fg)}
+.token-sugg .nm{flex:1;min-width:0}
+.token-sugg .c{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3)}
+.token-sugg .ic{width:13px;height:13px;color:var(--fg-3)}
+
+.img-prev.wide .frame{aspect-ratio:16/9}
+.img-prev.empty.wide{aspect-ratio:16/9}
+
 /* Help text that belongs to the control above it, not to the group. */
 .fgroup > .hint{font-size:11px;color:var(--fg-3);line-height:1.5;margin-top:-11px}
 .fgroup .row2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)}
-.comp-list{display:flex;flex-direction:column;gap:3px}
-.comp-jump{display:flex;align-items:center;gap:var(--s-2);padding:8px 10px;border-radius:var(--r-1);font-size:12px;color:var(--fg-2);text-align:left;width:100%}
+.comp-list{display:flex;flex-direction:column;gap:2px}
+/* --d is the nesting depth. Indentation plus a hairline guide is enough to read
+   containment; disclosure triangles would ask you to open the document twice. */
+.comp-jump{position:relative;display:flex;align-items:center;gap:var(--s-2);
+  padding:7px 10px 7px calc(10px + var(--d,0) * 13px);
+  border-radius:var(--r-1);font-size:12px;color:var(--fg-2);text-align:left;width:100%;min-width:0}
+.comp-jump .ic{flex:none;color:var(--fg-3)}
+.comp-jump.on .ic{color:var(--accent)}
+.comp-jump::before{content:"";position:absolute;left:calc(10px + (var(--d,0) - 1) * 13px + 5px);
+  top:4px;bottom:4px;width:1px;background:var(--border-strong);opacity:var(--d,0)}
 .comp-jump:hover{background:var(--surface-2);color:var(--fg)}
 .comp-jump.on{background:var(--accent-soft);color:var(--accent)}
 .comp-jump.on .nm{color:var(--accent)}
@@ -648,6 +838,16 @@ select.inp{appearance:none;padding-right:30px;
 .img-prev:hover .veil,.img-prev:focus-within .veil{opacity:.8}
 .img-prev:hover .acts,.img-prev:focus-within .acts{opacity:1}
 .img-prev.empty{aspect-ratio:4/3;display:grid;place-items:center;border-style:dashed;background:var(--bg)}
+/* The way back out of a drilldown, reading as a path: ‹ Post / Outline. It says
+   what you left as well as where you are, so the panel never feels replaced. */
+.side-back{display:flex;align-items:center;gap:var(--s-2);width:100%;padding:var(--s-4) var(--s-5);
+  border-bottom:1px solid var(--border);font-size:12.5px;color:var(--fg-3);text-align:left}
+.side-back:hover{background:var(--surface-2)}
+.side-back:hover span:first-of-type{color:var(--fg)}
+.side-back .ic{width:14px;height:14px}
+.side-back .here{color:var(--fg);font-weight:500}
+.side-back .here::before{content:"/";color:var(--fg-3);font-weight:400;margin-right:var(--s-2)}
+.side-back .n{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
 .side-link{display:flex;align-items:center;gap:var(--s-3);width:100%;padding:var(--s-4) var(--s-5);
   border-bottom:1px solid var(--border);font-size:12.5px;color:var(--fg-2);text-align:left}
 .side-link:hover{background:var(--surface-2);color:var(--fg)}
@@ -658,9 +858,20 @@ select.inp{appearance:none;padding-right:30px;
 .side-none .ic{width:22px;height:22px;color:var(--fg-3);margin-bottom:var(--s-3)}
 .side-none h3{font-family:var(--font-display);font-size:14.5px;font-weight:600;color:var(--fg);margin-bottom:6px}
 .side-none p{font-size:12px;color:var(--fg-3);line-height:1.6;max-width:34ch;margin:0 auto}
-.comp-jump .nm{font-family:var(--font-mono);font-size:11px;color:var(--accent)}
-.comp-jump .sub{margin-left:auto;font-size:11px;color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+/* The name is the accent only when the thing is a component. Ordinary Markdown
+   keeps the flat ink it has everywhere else, so one glance down the outline
+   separates what the author placed from what they simply wrote. */
+/* The name sits in a column and the excerpt flows left out of it, so the list
+   reads down the page like the document it describes. Pushing the excerpt to
+   the right edge would make a key/value table out of a table of contents. */
+.comp-jump .nm{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);flex:none;min-width:74px}
+.comp-jump.is-comp .nm{color:var(--accent)}
+.comp-jump .sub{font-size:11.5px;color:var(--fg-2);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0}
+.comp-jump:hover .sub{color:var(--fg)}
+.comp-jump.on .sub{color:var(--accent)}
 .mini-note{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.mini-note code{font-family:var(--font-mono);font-size:11px;color:var(--fg-2)}
 
 /* Focus mode drops the shell entirely. */
 .app.zen .railbar,.app.zen .rail,.app.zen .topbar{display:none}
@@ -1031,7 +1242,7 @@ tbody tr.sk-tr:hover{background:transparent}
 </head>
 <body>
 <svg style="display:none" aria-hidden="true">
-<!-- Lucide (lucide.dev), ISC. 24x24 grid, stroke only; .ic sets width/colour. -->
+<!-- Lucide (lucide.dev), ISC. 24x24 grid, stroke only; .ic sets width/color. -->
 <symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
 <symbol id="i-doc" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
 <symbol id="i-page" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
@@ -1056,6 +1267,8 @@ tbody tr.sk-tr:hover{background:transparent}
 <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
 <symbol id="i-trash" viewBox="0 0 24 24"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
 <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+<symbol id="i-dots-v" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+<symbol id="i-corner" viewBox="0 0 24 24"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></symbol>
 <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
 <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol>
 <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
@@ -1752,8 +1965,8 @@ tbody tr.sk-tr:hover{background:transparent}
           <span class="ed-save" id="edSave"><span class="d"></span>Saved 15:20</span>
           <span class="pill-row" id="edStatus"></span>
           <button class="icon-btn" type="button" id="edSideToggle" aria-label="Entry settings" title="Entry settings  ⌘/"><svg class="ic"><use href="#i-sidebar"/></svg></button>
-          <button class="icon-btn" type="button" id="edMore" aria-haspopup="menu" aria-expanded="false" aria-label="More actions"><svg class="ic"><use href="#i-dots"/></svg></button>
           <button class="btn btn-primary sm" type="button" id="edPrimary">Publish</button>
+          <button class="icon-btn" type="button" id="edMore" aria-haspopup="menu" aria-expanded="false" aria-label="More actions"><svg class="ic"><use href="#i-dots-v"/></svg></button>
         </header>
 
         <div class="ed-notice" id="edNotice" hidden></div>
@@ -1788,15 +2001,12 @@ tbody tr.sk-tr:hover{background:transparent}
             </div>
 
             <div class="ed-foot">
-              <span id="edWords">0 words</span>
-              <span class="sep">·</span>
-              <span id="edRead">1 min</span>
-              <button class="ed-chip" type="button" id="edSel" hidden></button>
+              <nav class="ed-crumbs" id="edCrumbs" aria-label="Where the cursor is"></nav>
               <span class="end">
                 <button class="ed-chip" type="button" id="zenExit" hidden><svg class="ic"><use href="#i-x"/></svg>Leave focus mode</button>
-                <span class="hide-sm" id="edCursor">Ln 1, Col 1</span>
-                <span class="hide-sm">Type <kbd>/</kbd> to insert</span>
-                <span><kbd>⌘/</kbd> settings</span>
+                <span id="edWords">0 words</span>
+                <span class="sep">·</span>
+                <span id="edRead">1 min</span>
               </span>
             </div>
           </div>
@@ -1971,9 +2181,9 @@ const acct = Object.fromEntries(ACCOUNTS.map(a=>[a.id,a]));
 const TYPES = [
   /* hasIndex: the type has an archive page, and that archive is itself an entry.
      Pages ship without one — a page tree has no archive; its root is the site. */
-  {key:"page",    label:"Pages",    singular:"page",    icon:"i-page", hierarchical:true,  hasIndex:false, source:"",            tax:null},
-  {key:"post",    label:"Posts",    singular:"post",    icon:"i-doc",  hierarchical:false, hasIndex:true,  source:"Posts addon", tax:{key:"topic", label:"Topics", values:["Typography","Interfaces","Field notes","Tooling","Standards","Craft"]}},
-  {key:"release", label:"Releases", singular:"release", icon:"i-rocket", hierarchical:false, hasIndex:true, source:"Custom type", tax:{key:"tag", label:"Tags", values:["core","addon","breaking","security"]}}
+  {key:"page",    label:"Pages",    singular:"page",    icon:"i-page", hierarchical:true,  hasIndex:false, featured:false, multiAuthor:false, source:"",            tax:null},
+  {key:"post",    label:"Posts",    singular:"post",    icon:"i-doc",  hierarchical:false, hasIndex:true,  featured:true, multiAuthor:true, source:"Posts addon", tax:{key:"topic", label:"Topics", values:["Typography","Interfaces","Field notes","Tooling","Standards","Craft"]}},
+  {key:"release", label:"Releases", singular:"release", icon:"i-rocket", hierarchical:false, hasIndex:true, featured:true, multiAuthor:true, source:"Custom type", tax:{key:"tag", label:"Tags", values:["core","addon","breaking","security"]}}
 ];
 const typeOf = Object.fromEntries(TYPES.map(t=>[t.key,t]));
 
@@ -1983,7 +2193,7 @@ function E(type,title,slug,status,author,hoursAgo,opts){
   return {id:"e"+(nextId++), type, title, slug, status, author,
           updated:new Date(NOW - hoursAgo*hour),
           parent:opts.parent || "", pending:!!opts.pending, tax:opts.tax || [],
-          index:!!opts.index};
+          index:!!opts.index, featured:opts.featured || ""};
 }
 
 const ENTRIES = [
@@ -2007,9 +2217,9 @@ const ENTRIES = [
   E("page","Old landing page","/landing-2024","trash","lr",900),
 
   /* --- posts --- */
-  E("post","The counter-space problem in variable fonts","counter-space-variable-fonts","published","nk",3,{tax:["Typography","Craft"]}),
+  E("post","The counter-space problem in variable fonts","counter-space-variable-fonts","published","nk",3,{tax:["Typography","Craft"],featured:"counter-space-fig-1.png"}),
   E("post","A grid that survives contact with editors","grid-survives-editors","published","jt",7,{tax:["Interfaces"]}),
-  E("post","Field notes: the paper archive in Ghent","field-notes-ghent-archive","draft","ab",1,{tax:["Field notes"]}),
+  E("post","Field notes: the paper archive in Ghent","field-notes-ghent-archive","draft","ab",1,{tax:["Field notes"],featured:"ghent-archive-03.jpg"}),
   E("post","Why we stopped shipping icon fonts","stopped-shipping-icon-fonts","published","lr",26,{tax:["Tooling","Standards"]}),
   E("post","Optical sizing, explained without the math","optical-sizing-explained","scheduled","nk",12,{tax:["Typography"]}),
   E("post","The table is the hardest component","table-hardest-component","published","jt",49,{tax:["Interfaces","Craft"],pending:true}),
@@ -2082,6 +2292,7 @@ function relTime(d){
 const MONS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function stamp(d){ const p=n=>String(n).padStart(2,"0"); return d.getDate()+" "+MONS[d.getMonth()]+" "+p(d.getHours())+":"+p(d.getMinutes()); }
 const STATUS_LABEL = {published:"Published", draft:"Draft", scheduled:"Scheduled", trash:"Trash"};
+const STATUS_ICON  = {published:"i-check-circle", draft:"i-circle", scheduled:"i-clock", trash:"i-trash"};
 
 let toastTimer = null;
 function toast(msg){
@@ -2120,8 +2331,11 @@ function setDir(d){ dir = d; writeStored("meridian.dir", d); applyDir(d); }
 /* ================= sidebar ================= */
 function countType(k){ return sim.empty ? 0 : ENTRIES.filter(e=>e.type===k && e.status!=="trash" && !e.index).length; }
 /* Which rail section a view belongs to. */
+/* The rail chooses which section the panel offers. It never changes the screen —
+   that is the panel's job, and a rail that navigated would throw away whatever
+   was open the moment someone went looking for something else. */
 const SECTIONS = [
-  {key:"overview", label:"Home",    icon:"i-grid", direct:"dashboard"},
+  {key:"overview", label:"Home",    icon:"i-grid"},
   {key:"content",  label:"Content", icon:"i-doc"},
   {key:"config",   label:"Config",  icon:"i-gear"}
 ];
@@ -2569,7 +2783,14 @@ function clearFilters(){
 /* ================= views ================= */
 let currentView = "dashboard";
 let lastListType = "page";
+let railWasCollapsed = false;
+function setRailCollapsed(on){
+  app.classList.toggle("rail-collapsed", on);
+  $("#railToggle").setAttribute("aria-label", on ? "Expand sidebar" : "Collapse sidebar");
+}
 function setView(view, name){
+  /* Leaving the editor puts the section panel back the way it was found. */
+  if (currentView === "editor" && view !== "editor") setRailCollapsed(railWasCollapsed);
   currentView = view;
   const sec = VIEW_SECTION[view];
   if (sec && sec !== section){ section = sec; renderRailbar(); renderNav(); }
@@ -2804,9 +3025,9 @@ document.addEventListener("click", ev=>{
   if (secBtn){
     const s = SECTIONS.find(x=>x.key === secBtn.dataset.section);
     if (!s) return;
-    if (s.direct){ setView(s.direct); return; }
     section = s.key;
-    app.classList.remove("rail-collapsed");
+    /* Asking a section what is in it is asking for the panel back. */
+    setRailCollapsed(false); railWasCollapsed = false;
     renderRailbar(); renderNav();
     /* Keep the current screen's item marked if it lives in this section. */
     $$("#nav .nav-item").forEach(b=>{
@@ -3016,12 +3237,16 @@ document.addEventListener("click", ev=>{
   const fr = t.closest("[data-fr]");
   if (fr){ const s = FIRST_RUN.find(x=>String(x.n) === fr.dataset.fr); if (s) s.go(); return; }
 
-  if (t.closest("[data-showlist]")){ editor.showList = true; renderSide(); return; }
+  /* The drilldown lives on the Document tab and takes you to the other one. */
+  if (t.closest("[data-showlist]")){
+    openOutline();
+    return;
+  }
+  if (t.closest("[data-hidelist]")){ editor.showList = false; renderSide(); return; }
   const jump = t.closest("[data-jump]");
   if (jump){ editor.showList = false; jumpTo(+jump.dataset.jump); return; }
-
-  const untag = t.closest("[data-untag]");
-  if (untag){ editor.tax = editor.tax.filter(v=>v !== untag.dataset.untag); renderSide(); markDirty(); return; }
+  const bjump = t.closest("[data-bjump]");
+  if (bjump){ editor.showList = false; jumpToBlock(+bjump.dataset.bjump); return; }
 
   if (t.closest("#o-img-pick")){
     const d = editor.dirs[editor.active];
@@ -3076,10 +3301,7 @@ $("#burger").addEventListener("click", ()=>{
   const open = !app.classList.contains("nav-open");
   app.classList.toggle("nav-open", open); $("#scrimNav").hidden = !open;
 });
-$("#railToggle").addEventListener("click", ()=>{
-  app.classList.toggle("rail-collapsed");
-  $("#railToggle").setAttribute("aria-label", app.classList.contains("rail-collapsed") ? "Expand sidebar" : "Collapse sidebar");
-});
+$("#railToggle").addEventListener("click", ()=> setRailCollapsed(!app.classList.contains("rail-collapsed")));
 $("#q").addEventListener("input", e=>{ state.q = e.target.value; state.page = 1; renderEntries(); });
 $("#fAuthor").addEventListener("change", e=>{ state.author = e.target.value; state.page=1; renderEntries(); });
 $("#fTax").addEventListener("change", e=>{ state.tax = e.target.value; state.page=1; renderEntries(); });
@@ -3127,7 +3349,10 @@ document.addEventListener("keydown", e=>{
   }
   if (e.key==="Escape"){
     if (app.classList.contains("zen")){ setZen(false); return; }
-    if (iconPickerOpen()){ closeIconPicker(); $("#edSrc").focus(); return; }
+    if (xselOpen){ const b = xselOpen.btn; closeXsel(); b.focus(); return; }
+    if (openMenu){ closeMenu(); return; }   /* a menu is nearer than the panel behind it */
+    if (cal.el){ closeCal(); return; }
+  if (iconPickerOpen()){ closeIconPicker(); $("#edSrc").focus(); return; }
     if (insState.open){ closeInserter(); $("#edSrc").focus(); return; }
     if (currentView === "editor" && $("#view-editor").classList.contains("side-open")){ setSideOpen(false); return; }
     closePalette(); closeMenu(); closePicker(); closeInvite(); return;
@@ -3693,15 +3918,14 @@ function scanDirectives(src){
 /* ================= entry editor ================= */
 const editor = {
   id:null, type:"page", src:"", dirs:[], blocks:[], block:null, active:-1, mode:"document", showList:false,
+  when:new Date(), edited:new Date(), terms:{}, featured:"", authors:["jt"], visibility:"public",
   dirty:false, savedAt:"15:20", pending:false, status:"draft",
   fields:{}, tax:[], excerpt:"", parent:""
 };
 const TYPE_FIELDS = {
   page:    [{k:"menu_order", l:"Menu order", t:"number", def:"0", req:false},
             {k:"hide_title", l:"Hide the title on the page", t:"boolean", def:"false", req:false}],
-  post:    [{k:"subtitle",  l:"Subtitle",    t:"text", def:"", req:false},
-            {k:"read_time", l:"Read time (minutes)", t:"number", def:"6", req:false},
-            {k:"featured",  l:"Feature on the home page", t:"boolean", def:"false", req:false}],
+  post:    [{k:"subtitle",  l:"Subtitle",    t:"text", def:"", req:false}],
   release: [{k:"version",     l:"Version",     t:"text", def:"", req:true},
             {k:"released_on", l:"Released on", t:"date", def:"2026-09-20", req:true},
             {k:"breaking",    l:"Contains breaking changes", t:"boolean", def:"false", req:false}]
@@ -3726,6 +3950,7 @@ function sampleBody(e){
 "## How it works\n\n" +
 "Ordinary Markdown throughout: **bold**, *italic*, ~~struck out~~, `inline code`, and a [link to the docs](/docs/getting-started) whose target steps back so the sentence still reads.[^1]\n\n" +
 "> A blockquote keeps the marker faint and the words at full strength.\n> Structure should be visible without shouting.\n\n" +
+"{.checklist}\n" +
 "- The first point\n" +
 "- The second point, with a nested list\n" +
 "  1. Ordered items are marked the same way\n" +
@@ -3743,6 +3968,10 @@ function sampleBody(e){
 "| Link | Accent on the label | A reference out |\n" +
 "| Directive | Accent on the name | A component |\n\n" +
 "```php\n$type = $cms->types()->get( 'post' );\n$entries = $type->entries()->published();\n```\n\n" +
+"### Definition lists\n\n" +
+"Container\n: A component that wraps other content, opened and closed with three colons.\n\n" +
+"Leaf\n: A component that takes a single line.\n: It carries attributes the same way everything else does.\n\n" +
+"Term\nTaxonomy term\n: Several terms in a row share the definitions written under them.\n\n" +
 "## Components\n\n" +
 "![A page layout with its baseline grid drawn over the text.](/media/2026/06/grid-overlay.png \"The underlying grid, exposed\"){.stretch-wide}\n\n" +
 "A leaf component takes one line. An inline one sits mid-sentence, like this :badge[new]{tone=accent} label.\n\n" +
@@ -3750,7 +3979,21 @@ function sampleBody(e){
 "[^1]: A footnote is collected at the foot of the entry.\n";
 }
 
+/* Which taxonomies this entry's type is filed under, in a fixed order so the
+   panel does not reshuffle itself between entries. */
+function taxOfEditor(){
+  if (editor.isTerm || editor.isIndex) return [];
+  return Object.keys(TAXONOMIES).map(k=>TAXONOMIES[k])
+    .filter(tx=> tx.types.indexOf(editor.type) !== -1);
+}
+
 /* One editor for every kind of entry, taxonomy terms included. */
+/* `singular` is stored lowercase because most of its uses are inside a sentence
+   ("New post", "Untitled release"). A name on its own is Title Case. */
+function typeName(key){
+  const s = kindOf(key).singular || "";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 function kindOf(key){
   if (typeOf[key]) return typeOf[key];
   const t = TAXONOMIES[key];
@@ -3782,6 +4025,18 @@ function openEditor(id){
   editor.tax    = e ? e.tax.slice() : [];
   editor.count  = e ? null : rec.count;
   editor.excerpt = "";
+  editor.authors = e ? [e.author].concat(e.coauthors || []) : ["jt"];
+  editor.visibility = (e && e.visibility) || "public";
+  /* Two different facts: when it goes out, and when it was last touched. */
+  editor.when   = new Date(e ? e.updated : NOW);
+  editor.edited = new Date(e ? e.updated : NOW);
+  editor.featured = (e && e.featured) || "";
+  /* Terms are held by id, not by name: renaming a term must not detach it. */
+  editor.terms = {};
+  taxOfEditor().forEach(tx=>{
+    editor.terms[tx.key] = (TERMS[tx.key] || [])
+      .filter(t=> (e ? e.tax : []).indexOf(t.name) !== -1).map(t=>t.id);
+  });
   editor.dirty = false; editor.active = -1; editor.mode = "document";
   editor.conflict = false; editor.saveFailed = false; editor.invalid = []; editor.tab = "document";
   setSaveState("", editor.status === "published" ? "No unsaved changes" : "Draft saved 15:20");
@@ -3796,6 +4051,11 @@ function openEditor(id){
   $("#edNotice").hidden = !editor.pending;
   $("#view-editor").classList.remove("side-open","writing");
   app.classList.remove("zen");
+  /* The editor is a writing screen: the list of other things to work on is not
+     what you came here for. Both panels start closed and stay closed until
+     someone asks for them; the section panel comes back when you leave. */
+  railWasCollapsed = app.classList.contains("rail-collapsed");
+  setRailCollapsed(true);
   setView("editor");
   rescan(); renderHl(); renderSide(); renderEdHead(); updateCounts();
   setTimeout(()=>{
@@ -3842,33 +4102,50 @@ function rescan(){
   editor.dirs = scanDirectives(editor.src);
   editor.blocks = scanBlocks(editor.src);
 }
-/* A blank line belongs to the block above it: you have just finished writing
-   that block, and a panel that empties itself every other line is worse than
-   one that is a line behind. */
-function blockFromCursor(){
-  const pos = $("#edSrc").selectionStart;
-  const list = editor.blocks || [];
-  let last = null;
-  for (let i = 0; i < list.length; i++){
-    if (pos >= list[i].start && pos <= list[i].end) return list[i];
-    if (list[i].start <= pos) last = list[i];
-  }
-  return last;
+/* ================= what the caret is in =================
+   One resolver over both scans, because "component or block" was never the
+   question the writer is asking. The **most specific element wins**: inside a
+   callout the caret is in a paragraph, and the callout is that paragraph's
+   parent, which is what the breadcrumb is for. A container only wins on its own
+   opening or closing line, where there is no block to lose to.
+
+   A blank line still belongs to the element above it — a panel that empties
+   itself every other line is worse than one that is a line behind — but only to
+   an element **at the caret's own level**. Otherwise stepping out of a
+   container would go on reporting the last paragraph inside it, which says you
+   are somewhere you have already left. */
+function cursorCandidates(){
+  const out = [];
+  editor.dirs.forEach((d,i)=> out.push({dir:i, start:d.start, end:d.end, d:d}));
+  (editor.blocks || []).forEach((b,i)=> out.push({blk:i, start:b.start, end:b.end, b:b}));
+  return out;
 }
-function activeFromCursor(){
+function elementAtCursor(){
   const pos = $("#edSrc").selectionStart;
-  let best = -1, bestLen = Infinity;
-  editor.dirs.forEach((d,i)=>{
-    if (pos >= d.start && pos <= d.end){
-      const len = d.end - d.start;
-      if (len < bestLen){ best = i; bestLen = len; }
-    }
+  const cands = cursorCandidates();
+  let best = null, bestLen = Infinity;
+  cands.forEach(c=>{
+    if (pos < c.start || pos > c.end) return;
+    const len = c.end - c.start;
+    if (len < bestLen){ best = c; bestLen = len; }
   });
-  return best;
+  if (best) return best;
+  /* Nothing contains the caret, so it is on a blank line. Walk back to the
+     nearest element that is not buried in a container the caret has left. */
+  let fb = null;
+  cands.forEach(c=>{
+    if (c.end > pos) return;
+    const buried = editor.dirs.some(d=> d.kind === "container" && d !== c.d &&
+      d.start <= c.start && d.end >= c.end && d.end < pos);
+    if (buried) return;
+    if (!fb || c.end > fb.end || (c.end === fb.end && c.end - c.start < fb.end - fb.start)) fb = c;
+  });
+  return fb;
 }
 function setActiveFromCursor(){
-  const next = activeFromCursor();
-  const b = next >= 0 ? null : blockFromCursor();
+  const c = elementAtCursor();
+  const next = c && c.dir !== undefined ? c.dir : -1;
+  const b = c && c.blk !== undefined ? c.b : null;
   const bChanged = (editor.block && editor.block.start) !== (b && b.start) ||
                    (editor.block && editor.block.type) !== (b && b.type);
   editor.block = b;
@@ -3891,7 +4168,7 @@ function setActiveFromCursor(){
 /* ================= source highlighting =================
    The rule that shapes all of it: nothing here may change a character's
    advance width, or the highlight layer drifts out of step with the textarea
-   over it and the caret lands in the wrong place. Colour, weight, slant,
+   over it and the caret lands in the wrong place. Color, weight, slant,
    background, underline and vertical padding are all safe. Horizontal padding,
    margin, letter-spacing and font-size are not, ever.
 
@@ -4006,12 +4283,46 @@ const RE_TSEP  = /^\s*\|?[\s:|-]+\|[\s:|-]*$/;
 const BLOCK_KINDS = {
   heading: {label:"Heading",    icon:"i-text",   desc:"A heading. Its level is the number of hashes."},
   para:    {label:"Paragraph",  icon:"i-page",   desc:"A paragraph of prose."},
+  list:    {label:"List",       icon:"i-list",   desc:"A whole list. Its items are elements of their own, nested under it."},
   item:    {label:"List Item",  icon:"i-list",   desc:"One item of a list. Attributes attach to the item, not the whole list."},
   quote:   {label:"Quote",      icon:"i-quote",  desc:"A block quotation."},
   code:    {label:"Code Block", icon:"i-braces", desc:"A fenced code block. The word after the fence is its language."},
   table:   {label:"Table",      icon:"i-table",  desc:"A pipe table."},
-  rule:    {label:"Divider",    icon:"i-minus",  desc:"A horizontal rule."}
+  rule:    {label:"Divider",    icon:"i-minus",  desc:"A horizontal rule."},
+  dlist:   {label:"Definitions",icon:"i-book",   desc:"A definition list: terms, each with one or more definitions."},
+  dterm:   {label:"Term",       icon:"i-text",   desc:"A term being defined. Several in a row share the definitions below them."},
+  ddef:    {label:"Definition", icon:"i-corner", desc:"One definition of the term above it. A term may have several."}
 };
+/* Elements that hold other elements: they open a level in the outline and they
+   get a Content group in their panel. */
+const HOLDS_CONTENT = {list:1, item:1, dlist:1};
+const RE_ATTRONLY = /^\s*\{[^}\n]*\}\s*$/;
+/* A definition: `: ` at the head of the line, the way the framework writes one.
+   Two colons would be a leaf directive, so the marker is exactly one. */
+const RE_DDEF = /^(\s*)(:)(?!:)(\s+)([\s\S]*)$/;
+/* One term-and-definitions group, or -1 if the lines here are not one. */
+function dgroupEnd(lines, i){
+  let t = i;
+  while (t < lines.length && lines[t].trim() && !RE_DDEF.test(lines[t]) && !isBlockStart(lines[t])) t++;
+  if (t === i || t >= lines.length || !RE_DDEF.test(lines[t])) return -1;
+  let d = t;
+  while (d < lines.length && RE_DDEF.test(lines[d])) d++;
+  return d - 1;
+}
+/* Groups separated by a single blank line are one list, because that is how
+   they render — three `<dl>`s in a row is not what the author wrote. */
+function dlistEnd(lines, i){
+  let end = dgroupEnd(lines, i);
+  if (end < 0) return -1;
+  for (;;){
+    if (end + 1 >= lines.length || lines[end+1].trim()) break;
+    const e2 = dgroupEnd(lines, end + 2);
+    if (e2 < 0) break;
+    end = e2;
+  }
+  return end;
+}
+function indentLen(l){ return /^[ \t]*/.exec(l)[0].replace(/\t/g, "  ").length; }
 function isBlockStart(l){
   return RE_HEAD.test(l) || RE_LIST.test(l) || RE_QUOTE.test(l) || RE_TABLE.test(l) ||
          RE_HR.test(l) || /^\s*```/.test(l) || /^:{2,3}/.test(l);
@@ -4044,23 +4355,124 @@ function scanBlocks(src){
       out.push(Object.assign({type:"quote"}, at(i, j))); i = j + 1; continue;
     }
     if (RE_LIST.test(line)){
-      /* One record per item: that is the unit an attribute attaches to. */
-      let j = i;
-      while (j + 1 < lines.length && lines[j+1].trim() && !isBlockStart(lines[j+1]) && /^\s/.test(lines[j+1])) j++;
-      out.push(Object.assign({type:"item"}, at(i, j))); i = j + 1; continue;
+      /* One record per item: that is the unit an attribute attaches to, so
+         `first`/`last` stay on the item's own text. */
+      const ind = indentLen(line);
+      let own = i;
+      while (own + 1 < lines.length && lines[own+1].trim() && !isBlockStart(lines[own+1]) && /^\s/.test(lines[own+1])) own++;
+      /* Its *span* reaches over anything nested under it, so a nested list has
+         the item it belongs to as its parent rather than its grandparent. */
+      let sub = own;
+      while (sub + 1 < lines.length && lines[sub+1].trim() && indentLen(lines[sub+1]) > ind) sub++;
+      const rec = Object.assign({type:"item"}, at(i, own));
+      rec.end = at(i, sub).end;
+      out.push(rec); i = own + 1; continue;
     }
+    /* A definition list: terms, then `: ` definitions. The list is the element;
+       each term and each definition is an element inside it. */
+    const de = dlistEnd(lines, i);
+    if (de >= i){
+      out.push(Object.assign({type:"dlist"}, at(i, de)));
+      for (let k = i; k <= de; k++){
+        if (!lines[k].trim()) continue;
+        out.push(Object.assign({type: RE_DDEF.test(lines[k]) ? "ddef" : "dterm"}, at(k, k)));
+      }
+      i = de + 1; continue;
+    }
+
+    /* `{.wide}` on a line of its own, immediately above a list, is that list's
+       attribute block — the one place Markdown puts attributes *before* the
+       thing they describe, because a list has no last line of its own to hang
+       them off. It belongs to the list, so it is not a paragraph. */
+    if (RE_ATTRONLY.test(line) && i + 1 < lines.length && RE_LIST.test(lines[i+1])){ i++; continue; }
+
     let j = i;
     while (j + 1 < lines.length && lines[j+1].trim() && !isBlockStart(lines[j+1])) j++;
     out.push(Object.assign({type:"para"}, at(i, j))); i = j + 1;
   }
+  addLists(out, lines, at);
+  out.sort((a,b)=> a.start - b.start || b.end - a.end);
   return out;
+}
+/* A list is an element in its own right — it is the thing you reach for when
+   you want to restyle the whole list rather than one line of it, and it is the
+   parent a list item needs in order to have a parent. Items come out of the
+   scan flat, so the runs and their nesting are rebuilt here from indentation. */
+/* A list has one property worth a control: what kind of list it is. Changing it
+   rewrites every marker at that list's own indent and leaves nested lists, and
+   the items' own text, exactly as they were. */
+const LIST_STYLES = {
+  bullet: {l:"Bulleted", d:"Order does not matter."},
+  number: {l:"Numbered", d:"Order matters, and the site renumbers as items move."},
+  task:   {l:"Task",     d:"Each item carries a checkbox."}
+};
+function listItemsOf(b){
+  return (editor.blocks || []).filter(x=> x.type === "item" && x.start >= b.start && x.end <= b.end &&
+    indentLen(editor.src.slice(x.start, x.end)) === b.indent);
+}
+function listStyleOf(b){
+  const first = listItemsOf(b)[0];
+  if (!first) return "bullet";
+  const m = RE_LIST.exec(editor.src.slice(first.start, first.end).split("\n")[0]);
+  if (!m) return "bullet";
+  if (RE_TASK.test(m[4])) return "task";
+  return /\d/.test(m[2]) ? "number" : "bullet";
+}
+function setListStyle(b, style){
+  const lines = editor.src.split("\n");
+  let n = 0;
+  listItemsOf(b).forEach(it=>{
+    const m = RE_LIST.exec(lines[it.first]);
+    if (!m) return;
+    n++;
+    const task = RE_TASK.exec(m[4]);
+    const text = task ? task[3] : m[4];
+    const marker = style === "number" ? n + "." : "-";
+    const box = style === "task" ? (task ? task[1] : "[ ]") + " " : "";
+    lines[it.first] = m[1] + marker + " " + box + text;
+  });
+  const pos = $("#edSrc").selectionStart;
+  $("#edSrc").value = lines.join("\n");
+  $("#edSrc").setSelectionRange(pos, pos);
+  rescan(); markDirty(); renderHl(); updateCounts();
+  editor.block = editor.blocks.find(x=>x.type === "list" && x.start === b.start) || null;
+  renderSide();
+}
+function addLists(out, lines, at){
+  const indentOf = b => indentLen(lines[b.first]);
+  const items = out.filter(b=>b.type === "item");
+  const open = [];
+  const close = o=>{
+    const rec = Object.assign({type:"list", indent:o.indent}, at(o.first, o.last));
+    /* The list's span reaches up to take in its attribute line, so selecting it
+       from the outline or the breadcrumb selects the thing it describes. */
+    if (o.first > 0 && RE_ATTRONLY.test(lines[o.first - 1])){
+      rec.attrLine = o.first - 1;
+      rec.start = at(o.first - 1, o.last).start;
+    }
+    out.push(rec);
+  };
+  items.forEach((b,n)=>{
+    const prev = items[n-1];
+    /* A gap between items ends every list that was open across it. */
+    if (prev && b.first !== prev.last + 1){ while (open.length) close(open.pop()); }
+    const ind = indentOf(b);
+    while (open.length && ind < open[open.length-1].indent) close(open.pop());
+    if (!open.length || ind > open[open.length-1].indent) open.push({indent:ind, first:b.first, last:b.last});
+    /* Every list still open wraps this item, so every one of them reaches it. */
+    open.forEach(o=>{ if (b.last > o.last) o.last = b.last; });
+  });
+  while (open.length) close(open.pop());
 }
 
 /* Where a block's `{...}` lives: after the info string on a fence, at the end
    of the last line everywhere else. Split it out so reading and writing agree. */
 function blockAttrLine(b){
   const lines = editor.src.split("\n");
-  const n = b.type === "code" ? b.first : b.last;
+  const n = b.type === "code" ? b.first
+          : b.type === "list" ? (b.attrLine === undefined ? -1 : b.attrLine)
+          : b.last;
+  if (n < 0) return {n:-1, raw:"", body:"", attrs:""};
   const raw = lines[n] || "";
   const m = /^([\s\S]*?)(\s*\{[^}]*\})?\s*$/.exec(raw);
   return {n, raw, body:m[1], attrs:(m[2] || "").trim()};
@@ -4081,7 +4493,33 @@ function setBlockAttrs(b, classes, id){
   blockOther(b).forEach(x=> parts.push(x));
   const at = parts.length ? "{" + parts.join(" ") + "}" : "";
   const L = blockAttrLine(b);
+  /* A list keeps its attributes on a line of their own above it, so setting
+     them writes a line, clearing them takes the line away again — an empty
+     `{}` left sitting over a list is litter the author did not write. */
+  if (b.type === "list"){
+    const lines = editor.src.split("\n");
+    const pad = " ".repeat(b.indent || 0);
+    if (L.n >= 0 && !at) lines.splice(L.n, 1);
+    else if (L.n >= 0)   lines[L.n] = pad + at;
+    else if (at)         lines.splice(b.first, 0, pad + at);
+    else return;
+    writeSrc(lines.join("\n"));
+    return;
+  }
   replaceLine(L.n, L.body + (at ? " " + at : ""));
+}
+/* One way in and out of the source, so the caret, the scan, the highlight and
+   the panel can never be left describing a different version of the text. */
+function writeSrc(text, caret){
+  const ta = $("#edSrc");
+  const pos = caret === undefined ? ta.selectionStart : caret;
+  editor.src = text;
+  ta.value = text;
+  const p = Math.max(0, Math.min(pos, text.length));
+  ta.setSelectionRange(p, p);
+  rescan();
+  setActiveFromCursor();
+  renderSide(); renderHl(); updateCounts(); markDirty();
 }
 function replaceLine(n, text){
   const lines = editor.src.split("\n");
@@ -4097,11 +4535,22 @@ function replaceLine(n, text){
   renderSide(); updateCounts(); markDirty();
 }
 
-function hlTable(line){
-  if (RE_TSEP.test(line) && line.indexOf("-") !== -1) return '<span class="hl-pipe">'+esc(line)+'</span>';
-  return line.split("|").map((cell,i)=> (i ? '<span class="hl-pipe">|</span>' : "") + hlText(cell)).join("");
+/* A table is a grid drawn in characters, so the pipes are the grid: they recede
+   to scaffolding and the cells keep full ink. The separator row is pure
+   scaffolding except for its alignment colons, which are the one part of it
+   that says something — so they are the one part that is not faint. */
+function hlTable(line, isHead){
+  if (RE_TSEP.test(line) && line.indexOf("-") !== -1){
+    return line.replace(/[^:]+|:/g, t=> t === ":"
+      ? '<span class="hl-talign">:</span>'
+      : '<span class="hl-pipe">'+esc(t)+'</span>');
+  }
+  return line.split("|").map((cell,i)=>
+    (i ? '<span class="hl-pipe">|</span>' : "") +
+    (isHead ? '<span class="hl-th">'+hlText(cell)+'</span>' : hlText(cell))
+  ).join("");
 }
-function hlBlock(line){
+function hlBlock(line, flags){
   if (RE_HR.test(line) && line.trim().length) return '<span class="hl-hr">'+esc(line)+'</span>';
 
   let m = RE_HEAD.exec(line);
@@ -4125,7 +4574,12 @@ function hlBlock(line){
     } else rest = hlText(m[4]);
     return esc(m[1]) + '<span class="hl-bullet">'+esc(m[2])+'</span>' + esc(m[3]) + rest;
   }
-  if (RE_TABLE.test(line)) return hlTable(line);
+  /* A definition. The colon is scaffolding; the definition itself is prose. */
+  m = RE_DDEF.exec(line);
+  if (m) return esc(m[1]) + mk(m[2]) + esc(m[3]) + '<span class="hl-dd">'+hlText(m[4])+'</span>';
+
+  if (RE_TABLE.test(line)) return hlTable(line, flags && flags.thead);
+  if (flags && flags.dterm) return '<span class="hl-dt">'+hlText(line)+'</span>';
   return hlText(line);
 }
 
@@ -4151,6 +4605,14 @@ function renderHl(){
   lines.forEach(l=>{ starts.push(o); o += l.length + 1; });
   const act = editor.dirs[editor.active] || null;
   let html = "", inFence = false;
+  /* Two things a line cannot tell about itself: whether it is a term in a
+     definition list, and whether it is a table's header row. The scan already
+     knows both, so it says so rather than the highlighter guessing. */
+  const dterms = new Set(), theads = new Set();
+  (editor.blocks || []).forEach(b=>{
+    if (b.type === "dterm") dterms.add(b.start);
+    if (b.type === "table" && RE_TSEP.test(lines[b.first + 1] || "")) theads.add(b.start);
+  });
 
   lines.forEach((line, i)=>{
     const s = starts[i], e = s + line.length;
@@ -4175,9 +4637,10 @@ function renderHl(){
     /* Images take part in selection like inline directives, but they keep their
        ordinary Markdown coloring — only the "you are here" ring is added. */
     const inl = editor.dirs.filter(d=>(d.kind === "inline" || d.kind === "image") && d.start >= s && d.end <= e);
+    const flags = {dterm: dterms.has(s), thead: theads.has(s)};
     let out;
     if (!inl.length){
-      out = hlBlock(line);
+      out = hlBlock(line, flags);
     } else {
       let cursor = s; out = "";
       inl.forEach(d=>{
@@ -4207,25 +4670,43 @@ function updateCounts(){
   $("#edRead").textContent = Math.max(1, Math.round(words / 220)) + " min read";
   renderSelChip();
 }
-/* When settings are closed, the selected component is named in the footer
-   rather than opening a panel over the writing. */
+/* ================= the breadcrumb =================
+   Where the caret is, from the entry down to the smallest thing containing it.
+   A line and column number says where you are in a file; this says where you
+   are in a document, which is the question someone writing one actually has. */
+function elementPath(){
+  const items = outlineItems();
+  const cur = editor.active >= 0
+    ? items.find(o=>o.dir === editor.active)
+    : editor.block ? items.find(o=>o.b && o.b.start === editor.block.start && o.b.type === editor.block.type) : null;
+  if (!cur) return [];
+  /* Ancestors are simply the elements whose span swallows this one, outermost
+     first — which is how a list turns up as the parent of a list item. */
+  return items
+    .filter(o=> o.at <= cur.at && o.end >= cur.end && !(o.at === cur.at && o.end === cur.end && o !== cur))
+    .sort((a,b)=> a.at - b.at || b.end - a.end);
+}
 function renderSelChip(){
-  const chip = $("#edSel"), d = editor.dirs[editor.active];
-  const open = $("#view-editor").classList.contains("side-open");
-  if (!d || open){ chip.hidden = true; return; }
-  chip.hidden = false;
-  chip.innerHTML = '<svg class="ic"><use href="#'+COMP[d.name].icon+'"/></svg>'+esc(COMP[d.name].label)+' options';
+  const nav = $("#edCrumbs");
+  if (!nav) return;
+  const k = kindOf(editor.type);
+  let h = '<button class="ed-crumb root" type="button" data-crumb="root">'+
+    '<svg class="ic"><use href="#'+k.icon+'"/></svg>'+esc(typeName(editor.type))+'</button>';
+  elementPath().forEach((o,i,arr)=>{
+    const last = i === arr.length - 1;
+    h += '<svg class="ic sep" aria-hidden="true"><use href="#i-chev-r"/></svg>'+
+      '<button class="ed-crumb'+(last ? " here" : "")+(o.d && o.d.kind !== "image" ? " is-comp" : "")+'" type="button" '+
+      (o.dir !== undefined ? 'data-crumb="d'+o.dir+'"' : 'data-crumb="b'+o.blk+'"')+
+      (last ? ' aria-current="true"' : '')+'>'+esc(outlineName(o))+'</button>';
+  });
+  nav.innerHTML = h;
 }
 function setSideOpen(open){
   $("#view-editor").classList.toggle("side-open", open);
   if (open) renderSide();
   renderSelChip();
 }
-function updateCursorReadout(){
-  const pos = $("#edSrc").selectionStart;
-  const before = editor.src.slice(0, pos).split("\n");
-  $("#edCursor").textContent = "Ln " + before.length + ", Col " + (before[before.length-1].length + 1);
-}
+function updateCursorReadout(){ renderSelChip(); }
 function renderEdHead(){
   const live = editor.status === "published";
   const p = $("#edStatus");
@@ -4319,20 +4800,41 @@ function renderSide(){
   const d = editor.dirs[editor.active];
   const b = !d && editor.block ? editor.block : null;
   const bk = b ? BLOCK_KINDS[b.type] : null;
+  const n = outlineItems().length;
   $("#edSideHead").innerHTML =
     '<div class="ed-tabs" role="tablist" aria-label="Settings">'+
+      /* Named for what is being edited — "Post", "Page", "Topic" — because
+         "Document" is a word about software and the other tab is about this. */
       '<button class="ed-tab" type="button" role="tab" data-edtab="document" aria-selected="'+(editor.tab !== "component")+'">'+
-        '<svg class="ic"><use href="#i-page"/></svg>Document</button>'+
+        '<svg class="ic"><use href="#'+kindOf(editor.type).icon+'"/></svg>'+esc(typeName(editor.type))+'</button>'+
       '<button class="ed-tab" type="button" role="tab" data-edtab="component" aria-selected="'+(editor.tab === "component")+'">'+
         '<svg class="ic"><use href="#'+(d ? COMP[d.name].icon : bk ? bk.icon : "i-braces")+'"/></svg>'+
-        (d ? esc(COMP[d.name].label) : bk ? esc(bk.label) : "Components")+
-        (editor.dirs.length ? '<span class="n">'+editor.dirs.length+'</span>' : '')+'</button>'+
+        (d ? esc(COMP[d.name].label) : bk ? esc(blockLabel(b)) : "Element")+'</button>'+
       '<span class="grow"></span>'+
       '<button class="icon-btn" type="button" id="edSideClose" aria-label="Close settings"><svg class="ic"><use href="#i-x"/></svg></button>'+
     '</div>';
 
+  /* The outline is a drilldown *inside* the entry tab, not a third tab and not
+     a borrowed one: it answers "what is in this entry", which is a question
+     about the entry. It opens over that tab's fields with a way back. */
+  if (editor.showList){ renderOutlineSide(n); return; }
   if (editor.tab === "component"){ renderComponentSide(); return; }
   renderDocumentSide();
+}
+function openOutline(){
+  setSideOpen(true);
+  editor.tab = "document"; editor.showList = true;
+  renderSide();
+  const n = $(".ed-side-inner"); if (n) n.scrollTop = 0;
+}
+function renderOutlineSide(n){
+  $("#edSideBody").innerHTML =
+    '<button class="side-back" type="button" data-hidelist="1">'+
+      '<svg class="ic"><use href="#i-arr-left"/></svg>'+
+      '<span>'+esc(typeName(editor.type))+'</span>'+
+      '<span class="here">Outline</span>'+
+      '<span class="n">'+n+'</span></button>'+
+    compListHTML();
 }
 function fieldHTML(id, label, control, hint){
   return '<div class="field"><label for="'+id+'">'+esc(label)+'</label>'+control+
@@ -4356,55 +4858,335 @@ function controlFor(f, value, idPrefix){
   return '<input class="inp" type="text" id="'+id+'" data-fk="'+f.k+'" value="'+esc(value||"")+'">';
 }
 
+/* ================= document panel components =================
+   Three controls carry most of the panel, so each is built rather than
+   borrowed: a date you can see a month of, a tree you can search, and a token
+   field that accepts what you type. They share the panel's spacing so a long
+   sidebar still reads as one column. */
+
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+function fmtDate(d){ return DOW[(d.getDay()+6)%7] + " " + d.getDate() + " " + MONTHS[d.getMonth()].slice(0,3) + " " + d.getFullYear(); }
+/* The site writes times as 12-hour with a meridiem, so the editor does too. */
+function h12n(d){ return ((d.getHours() + 11) % 12) + 1; }
+function h12(d){ return String(h12n(d)).padStart(2,"0"); }
+function fmtTime(d){ return h12(d) + ":" + String(d.getMinutes()).padStart(2,"0") + " " + (d.getHours() < 12 ? "am" : "pm"); }
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+/* "in 3 days" / "2 days ago", so the date reads as a fact about now. */
+function whenNote(){
+  const d = editor.when, diff = d - NOW;
+  const days = Math.round(Math.abs(diff) / day);
+  const near = Math.abs(diff) < hour ? "within the hour"
+    : days === 0 ? "today"
+    : days === 1 ? (diff > 0 ? "tomorrow" : "yesterday")
+    : days + " days " + (diff > 0 ? "from now" : "ago");
+  if (editor.status === "scheduled") return diff > 0 ? "Goes live " + near : "The date has passed — it will go live on the next save";
+  if (editor.status === "published") return "Published " + near;
+  return "Will be dated " + near + " when published";
+}
+
+const cal = {el:null, month:null};
+function closeCal(){ if (cal.el){ cal.el.remove(); cal.el = null; } }
+function openCal(btn){
+  closeCal();
+  cal.month = new Date(editor.when.getFullYear(), editor.when.getMonth(), 1);
+  cal.el = document.createElement("div");
+  cal.el.className = "cal-pop";
+  cal.el.setAttribute("role","dialog");
+  cal.el.setAttribute("aria-label","Choose a date and time");
+  document.body.appendChild(cal.el);
+  renderCal();
+  const r = btn.getBoundingClientRect(), w = cal.el.offsetWidth, h = cal.el.offsetHeight;
+  cal.el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + "px";
+  cal.el.style.top  = (r.bottom + h + 8 > window.innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + "px";
+}
+function renderCal(){
+  if (!cal.el) return;
+  const m = cal.month, first = new Date(m.getFullYear(), m.getMonth(), 1);
+  const lead = (first.getDay() + 6) % 7;                 /* the week starts on Monday */
+  const start = new Date(first); start.setDate(1 - lead);
+  let cells = "";
+  for (let i = 0; i < 42; i++){
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const out = d.getMonth() !== m.getMonth();
+    const cls = ["cal-d"];
+    if (out) cls.push("out");
+    if (sameDay(d, NOW)) cls.push("today");
+    if (sameDay(d, editor.when)) cls.push("on");
+    cells += '<button class="'+cls.join(" ")+'" type="button" data-cal="'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()+'">'+d.getDate()+'</button>';
+  }
+  cal.el.innerHTML =
+    '<div class="cal-head">'+
+      '<button class="icon-btn" type="button" data-calmove="-1" aria-label="Previous month"><svg class="ic"><use href="#i-chev-l"/></svg></button>'+
+      '<span class="cal-title">'+MONTHS[m.getMonth()]+' '+m.getFullYear()+'</span>'+
+      '<button class="icon-btn" type="button" data-calmove="1" aria-label="Next month"><svg class="ic"><use href="#i-chev-r"/></svg></button>'+
+    '</div>'+
+    '<div class="cal-dow">'+DOW.map(d=>'<span>'+d[0]+'</span>').join("")+'</div>'+
+    '<div class="cal-grid">'+cells+'</div>'+
+    '<div class="cal-time"><span class="lbl">Time</span>'+
+      '<div class="timef">'+
+        '<input class="tp mono" type="text" id="cal-h" inputmode="numeric" maxlength="2" value="'+h12(editor.when)+'" aria-label="Hour">'+
+        '<span class="sep">:</span>'+
+        '<input class="tp mono" type="text" id="cal-m" inputmode="numeric" maxlength="2" value="'+String(editor.when.getMinutes()).padStart(2,"0")+'" aria-label="Minute">'+
+        '<div class="ampm" role="group" aria-label="Morning or afternoon">'+
+          '<button type="button" data-ampm="am" aria-pressed="'+(editor.when.getHours() < 12)+'">AM</button>'+
+          '<button type="button" data-ampm="pm" aria-pressed="'+(editor.when.getHours() >= 12)+'">PM</button>'+
+        '</div>'+
+      '</div></div>'+
+    '<div class="cal-quick">'+
+      '<button class="btn sm" type="button" data-calq="now">Now</button>'+
+      '<button class="btn sm" type="button" data-calq="tomorrow">Tomorrow, 09:00</button>'+
+      '<button class="btn sm" type="button" data-calq="monday">Next Monday</button>'+
+    '</div>';
+  /* Three fields, not a native time input: that one brings its own glyph, its
+     own AM/PM and its own idea of what a control looks like. Two digits, a
+     colon, and a two-state toggle — which is how people say a time. */
+  const hEl = cal.el.querySelector("#cal-h"), mEl = cal.el.querySelector("#cal-m");
+  const commit = ()=>{
+    let hh = parseInt(hEl.value, 10), mm = parseInt(mEl.value, 10);
+    if (isNaN(hh) || hh < 1 || hh > 12) hh = h12n(editor.when);
+    if (isNaN(mm) || mm < 0 || mm > 59) mm = editor.when.getMinutes();
+    const pm = editor.when.getHours() >= 12;
+    const d = new Date(editor.when);
+    d.setHours((hh % 12) + (pm ? 12 : 0), mm, 0, 0);
+    setWhen(d);
+  };
+  [hEl, mEl].forEach(el=>{
+    el.addEventListener("change", commit);
+    el.addEventListener("keydown", e=>{ if (e.key === "Enter"){ e.preventDefault(); commit(); } });
+    el.addEventListener("focus", ()=> el.select());
+  });
+}
+function setWhen(d){
+  editor.when = d;
+  markDirty();
+  renderSide();
+  if (cal.el) renderCal();
+}
+function calQuick(which){
+  const d = new Date(NOW);
+  if (which === "tomorrow"){ d.setDate(d.getDate()+1); d.setHours(9,0,0,0); }
+  else if (which === "monday"){ d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); d.setHours(9,0,0,0); }
+  cal.month = new Date(d.getFullYear(), d.getMonth(), 1);
+  setWhen(d);
+}
+
+/* Adding a person is a search, not a select: a site with forty accounts makes
+   a dropdown useless, and the same field works at four. */
+const peopleUI = {q:""};
+function peopleSearchHTML(current){
+  const q = peopleUI.q.trim().toLowerCase();
+  const hits = ACCOUNTS.filter(a=> current.indexOf(a.id) === -1 && (!q || a.name.toLowerCase().includes(q)));
+  return '<div class="tax-search solo"><svg class="ic"><use href="#i-search"/></svg>'+
+      '<input type="text" id="d-authq" value="'+esc(peopleUI.q)+'" placeholder="Add an author…" autocomplete="off">'+
+    '</div>'+
+    (q ? '<div class="token-sugg">'+
+      (hits.length ? hits.slice(0,5).map(a=>'<button type="button" data-addauthor="'+a.id+'">'+
+        '<span class="avatar sm">'+esc(a.init)+'</span><span class="nm">'+esc(a.name)+'</span>'+
+        '<span class="c">'+esc(a.role)+'</span></button>').join("")
+        : '<div class="tax-empty">Nobody matches “'+esc(peopleUI.q)+'”.</div>')+
+    '</div>' : "");
+}
+
+/* ---- taxonomies ---- */
+const taxUI = {q:{}, draft:{}, adding:{}, newName:{}, newParent:{}};
+function termsOf(key){ return TERMS[key] || []; }
+/* Options in tree order, each carrying its depth so the list can indent it.
+   A flat alphabetical list of parents hides the shape you are adding to. */
+function termOptions(key, current){
+  let out = "";
+  const walk = (parent, depth)=>{
+    termsOf(key).filter(t=>t.parent === parent).forEach(t=>{
+      out += '<option value="'+t.id+'" data-depth="'+depth+'"'+(current === t.id ? " selected" : "")+'>'+esc(t.name)+'</option>';
+      walk(t.id, depth + 1);
+    });
+  };
+  walk("", 0);
+  return out;
+}
+function termById(key, id){ return termsOf(key).find(t=>t.id === id); }
+function selectedTerms(key){ return (editor.terms[key] || []); }
+function toggleTerm(key, id){
+  const list = editor.terms[key] || (editor.terms[key] = []);
+  const i = list.indexOf(id);
+  if (i === -1) list.push(id); else list.splice(i, 1);
+  markDirty(); renderSide();
+}
+
+/* Hierarchical: a searchable tree of checkboxes. Children stay under their
+   parent even when only the child matches, because a term means little
+   without the one above it. */
+function taxTreeHTML(tx){
+  const q = (taxUI.q[tx.key] || "").trim().toLowerCase();
+  const all = termsOf(tx.key);
+  const hit = t => !q || t.name.toLowerCase().includes(q);
+  const keep = new Set();
+  all.forEach(t=>{
+    if (!hit(t)) return;
+    keep.add(t.id);
+    let p = t.parent;
+    while (p){ keep.add(p); const up = termById(tx.key, p); p = up ? up.parent : ""; }
+  });
+  const sel = selectedTerms(tx.key);
+  let rows = "";
+  const walk = (parent, depth)=>{
+    all.filter(t=>t.parent === parent && (!q || keep.has(t.id))).forEach(t=>{
+      const on = sel.indexOf(t.id) !== -1;
+      rows += '<label class="tax-row'+(on ? " on" : "")+'" style="padding-left:'+(var_s4() + depth*16)+'px">'+
+        '<input type="checkbox" data-term="'+tx.key+':'+t.id+'"'+(on ? " checked" : "")+'>'+
+        '<span class="box"><svg class="ic"><use href="#i-check"/></svg></span>'+
+        '<span class="nm">'+esc(t.name)+'</span>'+
+        '<span class="c">'+t.count+'</span></label>';
+      walk(t.id, depth + 1);
+    });
+  };
+  walk("", 0);
+  if (!rows) rows = '<div class="tax-empty">No '+esc(tx.label.toLowerCase())+' match “'+esc(taxUI.q[tx.key] || "")+'”.</div>';
+  const adding = taxUI.adding[tx.key];
+  /* Search, list and "new" are one object: three boxes with gaps between them
+     read as three unrelated controls that happen to be stacked. */
+  const foot = adding
+    ? '<div class="tax-new">'+
+        '<input class="inp" type="text" id="tax-new-name" data-taxnew="'+tx.key+'" value="'+esc(taxUI.newName[tx.key] || "")+'" placeholder="'+esc(tx.singular)+' name" autocomplete="off">'+
+        '<select class="inp" id="tax-new-parent"><option value="">No parent — top level</option>'+
+          termOptions(tx.key, taxUI.newParent[tx.key] || "")+
+        '</select>'+
+        '<div class="tax-new-acts"><button class="btn btn-primary sm" type="button" data-taxadd="'+tx.key+'">Add</button>'+
+        '<button class="btn sm" type="button" data-taxcancel="'+tx.key+'">Cancel</button></div>'+
+      '</div>'
+    : '<button class="tax-add" type="button" data-taxopen="'+tx.key+'"><svg class="ic"><use href="#i-plus"/></svg>New '+esc(tx.singular)+'</button>';
+  return '<div class="tax-box">'+
+    '<div class="tax-search"><svg class="ic"><use href="#i-search"/></svg>'+
+      '<input type="text" data-taxq="'+tx.key+'" value="'+esc(taxUI.q[tx.key] || "")+'" placeholder="Search '+esc(tx.label.toLowerCase())+'…">'+
+    '</div><div class="tax-tree">'+rows+'</div>'+foot+'</div>';
+}
+function var_s4(){ return 18; }
+
+/* Flat: a token field. Typing filters; Enter takes the first suggestion, or
+   makes the tag when nothing matches — the two things a tag field is for. */
+function taxTokensHTML(tx){
+  const sel = selectedTerms(tx.key);
+  const q = (taxUI.q[tx.key] || "").trim().toLowerCase();
+  const sugg = termsOf(tx.key).filter(t=> sel.indexOf(t.id) === -1 && (!q || t.name.toLowerCase().includes(q))).slice(0, 6);
+  const exact = termsOf(tx.key).some(t=>t.name.toLowerCase() === q);
+  return '<div class="tokens" data-tokens="'+tx.key+'">'+
+      sel.map(id=>{ const t = termById(tx.key, id); return t ? '<span class="token">'+esc(t.name)+
+        '<button type="button" data-untoken="'+tx.key+':'+id+'" aria-label="Remove '+esc(t.name)+'"><svg class="ic"><use href="#i-x"/></svg></button></span>' : ""; }).join("")+
+      '<input type="text" data-taxq="'+tx.key+'" value="'+esc(taxUI.q[tx.key] || "")+'" placeholder="'+(sel.length ? "Add another…" : "Type to add…")+'">'+
+    '</div>'+
+    (q ? '<div class="token-sugg">'+
+      sugg.map(t=>'<button type="button" data-term="'+tx.key+':'+t.id+'"><span class="nm">'+esc(t.name)+'</span><span class="c">'+t.count+'</span></button>').join("")+
+      (exact ? "" : '<button type="button" data-newterm="'+tx.key+'"><svg class="ic"><use href="#i-plus"/></svg><span class="nm">Create “'+esc(taxUI.q[tx.key])+'”</span></button>')+
+    '</div>' : "");
+}
+
+const VISIBILITY = {
+  public:   {l:"Public",    icon:"i-eye",    d:"Anyone can read it once it is live."},
+  private:  {l:"Private",   icon:"i-shield", d:"Only signed-in accounts that can edit this type."},
+  password: {l:"Password",  icon:"i-key",    d:"Readers need the password you set."}
+};
+function rowsHTML(rows){ return '<div class="row-set">'+rows.filter(Boolean).join("")+'</div>'; }
+function setRow(label, value){ return '<div class="set-row"><span class="k">'+label+'</span>'+value+'</div>'; }
+function valBtn(id, icon, text, cls){
+  return '<button class="val'+(cls ? " "+cls : "")+'" type="button" id="'+id+'">'+
+    (icon ? '<svg class="ic"><use href="#'+icon+'"/></svg>' : '')+
+    '<span class="vt">'+text+'</span><svg class="ic go"><use href="#i-caret-down"/></svg></button>';
+}
+
 function renderDocumentSide(){
   const t = kindOf(editor.type);
-  const parents = editor.isTerm
-    ? TERMS[editor.type].filter(x=>x.id !== editor.id).map(x=>[x.id, x.name])
-    : ENTRIES.filter(e=>e.type === editor.type && e.id !== editor.id && e.status !== "trash").map(e=>[e.id, e.title]);
+  /* Parents in tree order with their depth, so the list shows the shape you are
+     joining rather than an alphabetical pile. */
+  const parentOpts = (function(){
+    if (editor.isTerm) return termOptions(editor.type, editor.parent);
+    let out = "";
+    const rows = ENTRIES.filter(e=>e.type === editor.type && e.id !== editor.id && e.status !== "trash");
+    const walk = (pid, depth)=>{
+      rows.filter(e=>(e.parent || "") === pid).forEach(e=>{
+        out += '<option value="'+e.id+'" data-depth="'+depth+'"'+(editor.parent===e.id?" selected":"")+'>'+esc(e.title)+'</option>';
+        walk(e.id, depth + 1);
+      });
+    };
+    walk("", 0);
+    return out;
+  })();
+  const group = (title, meta, body)=>
+    '<div class="fgroup"><div class="fgroup-head"><span class="fgroup-t">'+title+'</span>'+
+    (meta ? '<span class="fgroup-meta">'+meta+'</span>' : '')+'</div>'+body+'</div>';
 
   let h = "";
 
-  h += '<div class="fgroup"><span class="fgroup-t">Publishing</span>'+
-    fieldHTML("d-status","Status",
-      '<select class="inp" id="d-status" data-doc="status">'+
-      (editor.isIndex ? ["draft","published"] : ["draft","published","scheduled"]).map(s=>'<option value="'+s+'"'+(editor.status===s?" selected":"")+'>'+STATUS_LABEL[s]+'</option>').join("")+
-      '</select>') +
-    (editor.status === "scheduled" ? fieldHTML("d-when","Goes live",'<input class="inp" type="datetime-local" id="d-when" value="2026-10-02T09:00">') : "") +
-    fieldHTML("d-slug","Slug",'<input class="inp mono" type="text" id="d-slug" data-doc="slug" value="'+esc(editor.slug)+'">',
-      t.hierarchical ? "The full path is built from the parent." : "") +
-    (t.hierarchical ? fieldHTML("d-parent","Parent",
-      '<select class="inp" id="d-parent" data-doc="parent"><option value="">No parent — top level</option>'+
-      parents.map(p=>'<option value="'+p[0]+'"'+(editor.parent===p[0]?" selected":"")+'>'+esc(p[1])+'</option>').join("")+
-      '</select>') : "") +
-    (editor.isIndex ? '<span class="mini-note">The index page for <strong>'+esc(t.label)+'</strong>. There is one, it cannot be deleted, and its slug is the type\'s URL base.</span>' : "") +
+  /* ---- publish: everything about when and where this entry exists ---- */
+  const vis = VISIBILITY[editor.visibility] || VISIBILITY.public;
+  h += group("Publish", "",
+    rowsHTML([
+      setRow("Status", valBtn("d-status", STATUS_ICON[editor.status], STATUS_LABEL[editor.status], "st-"+editor.status)),
+      editor.isTerm ? "" : setRow("Visibility", valBtn("d-vis", vis.icon, esc(vis.l))),
+      setRow(editor.status === "scheduled" ? "Goes live" : "Date",
+        '<button class="val" type="button" id="d-when"><span class="vt">'+esc(fmtDate(editor.when))+'</span>'+
+        '<span class="vt mono dim">'+esc(fmtTime(editor.when))+'</span>'+
+        '<svg class="ic go"><use href="#i-caret-down"/></svg></button>'),
+      setRow("Slug", '<input class="val-input mono" type="text" id="d-slug" data-doc="slug" value="'+esc(editor.slug)+'" spellcheck="false">'),
+      t.hierarchical ? setRow("Parent",
+        '<select class="val-select" id="d-parent" data-doc="parent"><option value="">None</option>'+
+        parentOpts+
+        '</select>') : ""
+    ])+
+    '<span class="hint">'+esc(whenNote())+' · Last edited '+esc(relTime(editor.edited))+'.</span>'+
+    (editor.isIndex ? '<span class="mini-note">The index page for <strong>'+esc(t.label)+'</strong>. There is one, it cannot be deleted, and its slug is the type\'s URL base.</span>' : "")+
     (editor.isTerm ? '<span class="mini-note">Used by <strong>'+editor.count+'</strong> '+
-      (editor.count===1?"entry":"entries")+'. Deleting this '+esc(t.singular)+' leaves them in place.</span>' : "") +
-    '</div>';
+      (editor.count===1?"entry":"entries")+'. Deleting this '+esc(t.singular)+' leaves them in place.</span>' : ""));
 
-  /* An archive is not filed under its own taxonomy, so the picker is not shown. */
-  if (t.tax && !editor.isIndex){
-    h += '<div class="fgroup"><span class="fgroup-t">'+esc(t.tax.label)+'</span>'+
-      '<div class="chips" id="d-tax">'+
-        (editor.tax.length ? editor.tax.map(v=>'<span class="chip">'+esc(v)+
-          '<button type="button" data-untag="'+esc(v)+'" aria-label="Remove '+esc(v)+'"><svg class="ic"><use href="#i-x"/></svg></button></span>').join("")
-          : '<span class="mini-note">None yet.</span>')+
-      '</div>'+
-      '<select class="inp" id="d-addtax"><option value="">Add '+esc(t.tax.label.toLowerCase().replace(/s$/,""))+'…</option>'+
-        t.tax.values.filter(v=>!editor.tax.includes(v)).map(v=>'<option>'+esc(v)+'</option>').join("")+
-      '</select></div>';
+  /* ---- featured image ---- */
+  if (!editor.isTerm && !editor.isIndex && typeOf[editor.type] && typeOf[editor.type].featured){
+    const rec = editor.featured ? MEDIA.find(m=>m.name === editor.featured) : null;
+    h += group("Featured Image", "",
+      (rec
+        ? '<div class="img-prev wide"><span class="frame">'+thumbSVG(rec)+'</span><span class="veil"></span>'+
+          '<span class="acts"><button class="btn sm" type="button" id="d-feat-pick">Replace</button>'+
+          '<button class="btn sm btn-danger" type="button" id="d-feat-clear">Remove</button></span></div>'+
+          '<span class="hint mono">'+esc(rec.name)+' · '+esc(rec.dim)+'</span>'
+        : '<div class="img-prev empty wide"><button class="btn" type="button" id="d-feat-pick">'+
+          '<svg class="ic"><use href="#i-image"/></svg>Choose an image</button></div>'+
+          '<span class="hint">Used in listings, link previews and the entry header.</span>'));
   }
 
+  /* ---- authors ---- */
   if (!editor.isTerm){
-    h += '<div class="fgroup"><span class="fgroup-t">Summary</span>'+
-      fieldHTML("d-excerpt","Excerpt",'<textarea class="inp" id="d-excerpt" data-doc="excerpt" placeholder="Used in listings and link previews.">'+esc(editor.excerpt)+'</textarea>')+
-      '</div>';
+    const many = typeOf[editor.type] && typeOf[editor.type].multiAuthor;
+    const list = editor.authors.length ? editor.authors : ["jt"];
+    h += group(many ? "Authors" : "Author", many && list.length > 1 ? list.length + " people" : "",
+      '<div class="people">'+
+        list.map((id,i)=>{ const a = acct[id]; if (!a) return "";
+          return '<div class="person"><span class="avatar">'+esc(a.init)+'</span>'+
+            '<span class="pm"><span class="pn">'+esc(a.name)+'</span>'+
+            '<span class="pr">'+esc(i === 0 && many ? "Lead · " + a.role : a.role)+'</span></span>'+
+            (many && list.length > 1 ? '<button class="x" type="button" data-unauthor="'+id+'" aria-label="Remove '+esc(a.name)+'"><svg class="ic"><use href="#i-x"/></svg></button>' : '')+
+          '</div>'; }).join("")+
+      '</div>'+
+      (many ? peopleSearchHTML(list) : "")+
+      (many && list.length < 2 ? '<span class="hint">An entry always has at least one author, so this one cannot be removed until another is added.</span>' : ""));
+  }
+
+  /* ---- taxonomies ---- */
+  taxOfEditor().forEach(tx=>{
+    const n = selectedTerms(tx.key).length;
+    h += group(esc(tx.label), n ? n + " selected" : "",
+      tx.hier ? taxTreeHTML(tx) : taxTokensHTML(tx));
+  });
+
+  /* ---- summary ---- */
+  if (!editor.isTerm){
+    const n = (editor.excerpt || "").length;
+    h += group("Summary", n ? n + " / 160" : "",
+      '<textarea class="inp" id="d-excerpt" data-doc="excerpt" rows="3" placeholder="Used in listings and link previews. Left empty, the opening sentences are used.">'+esc(editor.excerpt)+'</textarea>');
   }
 
   /* Custom fields describe an entry of the type, not its archive. */
   const custom = editor.isIndex ? [] : (fieldsOf(editor.type) || []);
   if (custom.length){
     const bad = editor.invalid || [];
-    h += '<div class="fgroup"><span class="fgroup-t">'+esc(t.singular)+' fields</span>'+
+    h += group(esc(t.singular)+" Fields", "",
       custom.map(f=>{
         const isBad = bad.indexOf(f.k) !== -1;
         let ctl = controlFor(f, editor.fields[f.k], "c-");
@@ -4412,38 +5194,170 @@ function renderDocumentSide(){
         return fieldHTML("c-"+f.k, f.l + (f.req ? " *" : ""), ctl,
           isBad ? null : (f.req ? "Required before this can be published." : null)) +
           (isBad ? '<span class="err" style="margin-top:-6px"><svg class="ic"><use href="#i-alert"/></svg>'+esc(f.l)+' is required.</span>' : '');
-      }).join("")+
-      '</div>';
+      }).join(""));
   }
 
+  h += compLinkHTML();
   $("#edSideBody").innerHTML = h;
 }
 
-/* One quiet row, in the same place in every panel, back to the index. Without
-   it the list would be unreachable, because the caret is always inside
-   something and so the panel always has something better to show. */
+/* ================= the element outline =================
+   Everything the document is made of, in source order: the Markdown the author
+   wrote and the directives they placed, in one list. Two lists would ask the
+   author to know which of the two a thing is before they could look for it,
+   and that is exactly the distinction the editor is trying to stop mattering.
+
+   Inline directives are left out. They live inside a sentence, so they are not
+   something the document is *made of*; listing them would bury the structure
+   under every badge and footnote in the prose. Container, leaf and block: the
+   three levels that own a line of their own. */
+function outlineItems(){
+  const out = [];
+  const imgs = editor.dirs.filter(d=>d.kind === "image");
+  editor.dirs.forEach((d,i)=>{
+    if (d.kind === "inline") return;
+    out.push({at:d.start, end:d.end, dir:i, d:d});
+  });
+  editor.blocks.forEach((b,i)=>{
+    /* A line that is nothing but an image lists as the image, not as a
+       paragraph that happens to contain one. */
+    if (b.type === "para" && imgs.some(d=> d.start === b.start && d.end >= b.end)) return;
+    out.push({at:b.start, end:b.end, blk:i, b:b});
+  });
+  /* Whatever wraps the rest opens first, so on a tie the wider span sorts up:
+     a container before its first paragraph, a list before its first item. */
+  out.sort((a,b)=> a.at - b.at || (b.end - a.end) ||
+                   ((a.dir !== undefined ? 0 : 1) - (b.dir !== undefined ? 0 : 1)));
+  /* Depth is containment: anything starting before a container closes is inside
+     it. The list is the document's shape, so the shape has to be visible. */
+  const open = [];
+  out.forEach(o=>{
+    while (open.length && o.at >= open[open.length-1]) open.pop();
+    o.depth = open.length;
+    /* Anything that wraps other elements opens a level: a container directive,
+       and a list, which is why a list item now has a parent to be selected. */
+    if (o.d && o.d.kind === "container") open.push(o.d.end);
+    if (o.b && HOLDS_CONTENT[o.b.type]) open.push(o.b.end);
+  });
+  return out;
+}
+/* What a row says it is, and one line of what is in it. The excerpt is what
+   someone actually scans for — "Paragraph" eight times over is not a list. */
+function outlineText(o){
+  if (o.d){
+    const a = parseAttrs(o.d.attrs);
+    return o.d.kind === "image"
+      ? (o.d.caption || o.d.alt || (o.d.src || "").split("/").pop() || "")
+      : (a.title || a.caption || a.label || a.src || a.url || a.type || a.lang || "");
+  }
+  const b = o.b;
+  const raw = editor.src.slice(b.start, b.end);
+  if (b.type === "rule") return "";
+  if (b.type === "code"){
+    const info = (raw.split("\n")[0] || "").replace(/^\s*```/, "").replace(/\{[^}]*\}\s*$/, "").trim();
+    const n = raw.split("\n").length - 2;
+    return (info || "plain") + " · " + Math.max(0, n) + (n === 1 ? " line" : " lines");
+  }
+  if (b.type === "table"){
+    const cells = (raw.split("\n")[0] || "").split("|").filter(x=>x.trim()).length;
+    return cells + (cells === 1 ? " column" : " columns");
+  }
+  if (b.type === "list"){
+    const n = listItemsOf(b).length;
+    return LIST_STYLES[listStyleOf(b)].l + " · " + n + (n === 1 ? " item" : " items");
+  }
+  if (b.type === "dlist"){
+    const ls = raw.split("\n").filter(l=>l.trim());
+    const defs = ls.filter(l=>RE_DDEF.test(l)).length, terms = ls.length - defs;
+    return terms + (terms === 1 ? " term" : " terms") + " · " +
+           defs + (defs === 1 ? " definition" : " definitions");
+  }
+  return raw.split("\n")[0]
+    .replace(/\{[^}]*\}\s*$/, "")
+    .replace(/^\s*(#{1,6}\s+|>\s*|:(?!:)\s+|[-*+]\s+(\[[ xX]\]\s*)?|\d+[.)]\s+)/, "")
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`~]/g, "")
+    .trim();
+}
+/* A heading names its level, because "Heading" six times in a row tells you
+   nothing about the shape of the document you are looking at. */
+function blockLabel(b){
+  if (!b) return "";
+  if (b.type === "heading"){
+    const m = /^\s*(#{1,6})/.exec(editor.src.slice(b.start, b.end));
+    return "Heading " + (m ? m[1].length : 1);
+  }
+  return BLOCK_KINDS[b.type].label;
+}
+function outlineName(o){ return o.d ? COMP[o.d.name].label : blockLabel(o.b); }
+function outlineIcon(o){
+  return o.d ? COMP[o.d.name].icon : BLOCK_KINDS[o.b.type].icon;
+}
+/* One quiet row, at the foot of the Document tab, into the outline. Without it
+   the list would be unreachable, because the caret is always inside something
+   and so the panel always has something better to show. */
 function compLinkHTML(){
   return '<button class="side-link" type="button" data-showlist="1">'+
     '<svg class="ic"><use href="#i-list"/></svg>'+
-    '<span>Components in this entry</span><span class="n">'+editor.dirs.length+'</span>'+
+    '<span>Outline</span><span class="n">'+outlineItems().length+'</span>'+
     '<svg class="ic go"><use href="#i-chev-r"/></svg></button>';
 }
-/* The list of components in the entry belongs on this tab, not with the
-   document's own fields — it is the index to what this tab shows. */
+/* ================= what is inside this one =================
+   An element that holds other elements gets a **Content** group: the level
+   directly beneath it, and only that level. The whole subtree is what the
+   outline is for; repeating it inside a panel would make every callout a second
+   outline, and the deeper rows belong to the elements that own them. One level
+   answers the question the panel is being asked — what is in *this*. */
+function childrenOf(o){
+  const items = outlineItems();
+  return items.filter(x=> x !== o && x.depth === o.depth + 1 && x.at >= o.at && x.end <= o.end);
+}
+function outlineSelfOf(b, dirIndex){
+  const items = outlineItems();
+  return dirIndex !== undefined
+    ? items.find(x=> x.dir === dirIndex)
+    : items.find(x=> x.b && x.b.start === b.start && x.b.type === b.type);
+}
+function contentGroupHTML(b, dirIndex){
+  const self = outlineSelfOf(b, dirIndex);
+  const kids = self ? childrenOf(self) : [];
+  let h = '<div class="fgroup"><span class="fgroup-t">Content</span>';
+  if (!kids.length){
+    h += '<span class="mini-note">Nothing inside it yet.</span></div>';
+    return h;
+  }
+  h += '<div class="comp-list flat">' + kids.map(o=> outlineRowHTML(o, true)).join("") + '</div>';
+  h += '<span class="mini-note">'+kids.length+(kids.length === 1 ? " element" : " elements")+
+    ' directly inside. Anything nested deeper belongs to the one that holds it.</span>';
+  return h + '</div>';
+}
+/* The outline belongs on this tab, not with the document's own fields — it is
+   the index to what this tab shows. */
+/* One row, used by the outline and by a Content group — the same thing selected
+   the same way, so an element looks like itself wherever it is listed. `flat`
+   drops the indent, because inside a Content group everything is one level. */
+function outlineRowHTML(o, flat){
+  const on = o.dir !== undefined
+    ? o.dir === editor.active
+    : editor.active < 0 && editor.block && editor.block.start === o.b.start;
+  const sub = outlineText(o);
+  /* An image is Markdown, so it keeps flat ink here like every other piece
+     of Markdown. The accent name means "someone placed a component". */
+  const isComp = !!o.d && (o.d.kind === "container" || o.d.kind === "leaf");
+  return '<button class="comp-jump'+(on ? " on" : "")+(isComp ? " is-comp" : "")+'" type="button" '+
+    (o.dir !== undefined ? 'data-jump="'+o.dir+'"' : 'data-bjump="'+o.blk+'"')+
+    ' style="--d:'+(flat ? 0 : o.depth)+'">'+
+    '<svg class="ic"><use href="#'+outlineIcon(o)+'"/></svg>'+
+    '<span class="nm">'+esc(outlineName(o))+'</span>'+
+    (sub ? '<span class="sub">'+esc(sub)+'</span>' : '')+'</button>';
+}
 function compListHTML(){
-  let h = '<div class="fgroup"><span class="fgroup-t">Components in this entry</span>';
-  if (!editor.dirs.length){
-    h += '<span class="mini-note">None yet. Use <strong>Insert</strong> in the toolbar, or type <strong>/</strong> at the start of a line.</span>';
+  const items = outlineItems();
+  let h = '<div class="fgroup">';
+  if (!items.length){
+    h += '<span class="mini-note">Nothing yet. Start writing, or use <strong>Insert</strong> in the toolbar.</span>';
   } else {
-    h += '<div class="comp-list">' + editor.dirs.map((d,i)=>{
-      const c = COMP[d.name], a = parseAttrs(d.attrs);
-      const sub = d.kind === "image"
-        ? (d.caption || (d.src || "").split("/").pop() || "")
-        : (a.title || a.caption || a.src || a.url || a.type || a.lang || "");
-      return '<button class="comp-jump'+(i === editor.active ? " on" : "")+'" type="button" data-jump="'+i+'">'+
-        '<svg class="ic"><use href="#'+c.icon+'"/></svg>'+
-        '<span class="nm">'+esc(c.label)+'</span><span class="sub">'+esc(sub)+'</span></button>';
-    }).join("") + '</div>';
+    h += '<div class="comp-list">' + items.map(o=> outlineRowHTML(o)).join("") + '</div>';
   }
   return h + '</div>';
 }
@@ -4459,6 +5373,9 @@ function attrGroupHTML(b){
     fieldHTML("b-id","ID",
       '<input class="inp mono" type="text" id="b-id" data-blk="id" value="'+esc(blockId(b))+'" placeholder="section-two">',
       "Becomes the anchor this block can be linked to.")+
+    (b.type === "list"
+      ? '<span class="mini-note">Written on a line of its own above the list — <code>{.wide}</code> — which is where a list carries them.</span>'
+      : "")+
     '</div>';
 }
 function renderBlockSide(b){
@@ -4493,24 +5410,35 @@ function renderBlockSide(b){
       '</div>';
   }
 
+  if (b.type === "list"){
+    const cur = listStyleOf(b), items = listItemsOf(b).length;
+    h += '<div class="fgroup"><span class="fgroup-t">List Type</span>'+
+      '<select class="inp" id="b-liststyle" data-blk="liststyle">'+
+        Object.keys(LIST_STYLES).map(k=>'<option value="'+k+'"'+(k === cur ? " selected" : "")+'>'+LIST_STYLES[k].l+'</option>').join("")+
+      '</select>'+
+      '<span class="hint">'+esc(LIST_STYLES[cur].d)+'</span></div>';
+    h += attrGroupHTML(b);
+    h += contentGroupHTML(b);
+    $("#edSideBody").innerHTML = h;
+    return;
+  }
+
   h += attrGroupHTML(b);
+  if (HOLDS_CONTENT[b.type]) h += contentGroupHTML(b);
   h += '<div class="fgroup"><span class="fgroup-t">Source</span>'+
-    '<div class="mini-note mono" style="font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:7px 8px;overflow-x:auto;white-space:pre">'+
-    esc(editor.src.split("\n")[b.first].slice(0, 120))+'</div></div>';
-  h += compLinkHTML();
+    '<div class="src-peek mono">'+
+    esc(editor.src.slice(b.start, b.end).split("\n").slice(0,4).join("\n"))+'</div></div>';
   $("#edSideBody").innerHTML = h;
 }
 
 function renderComponentSide(){
   const d = editor.dirs[editor.active];
-  if (editor.showList){ $("#edSideBody").innerHTML = compListHTML(); return; }
   if (!d && editor.block){ renderBlockSide(editor.block); return; }
   if (!d){
     $("#edSideBody").innerHTML =
       '<div class="side-none"><svg class="ic"><use href="#i-braces"/></svg>'+
       '<h3>Nothing Selected</h3>'+
-      '<p>Put the cursor anywhere in the text and this panel follows it.</p></div>' +
-      compListHTML();
+      '<p>Put the cursor anywhere in the text and this panel follows it.</p></div>';
     return;
   }
   const c = COMP[d.name], attrs = parseAttrs(d.attrs);
@@ -4558,11 +5486,11 @@ function renderComponentSide(){
       fieldHTML("o-label","Text shown inline",'<input class="inp" type="text" id="o-label" data-label="1" value="'+esc(d.label.slice(1,-1))+'">')+
       '</div>';
   }
+  /* A container wraps content, so it says what it is wrapping. */
+  if (d.kind === "container") h += contentGroupHTML(null, editor.active);
   h += '<div class="fgroup"><span class="fgroup-t">Source</span>'+
-    '<div class="mini-note mono" style="font-family:var(--font-mono);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:7px 8px;overflow-x:auto;white-space:pre">'+
-    esc(editor.src.slice(d.start, d.headEnd))+'</div>'+
+    '<div class="src-peek mono">'+esc(editor.src.slice(d.start, d.headEnd))+'</div>'+
     (isImg ? "" : '<button class="btn sm btn-danger" type="button" id="edRemoveComp"><svg class="ic"><use href="#i-trash"/></svg>Remove component</button>')+'</div>';
-  h += compLinkHTML();
   $("#edSideBody").innerHTML = h;
 }
 
@@ -4798,6 +5726,40 @@ function openMediaPop(btn){
   el.querySelector("button").focus();
 }
 
+/* Status and visibility are the same shape of decision — one of a short list,
+   with a consequence worth stating — so they share one menu. */
+function openStateMenu(btn, which){
+  closeMenu();
+  const el = document.createElement("div");
+  el.className = "menu wide"; el.setAttribute("role","menu");
+  const items = which === "status"
+    ? (editor.isIndex ? ["draft","published"] : ["draft","published","scheduled"]).map(k=>({
+        k, l:STATUS_LABEL[k], icon:STATUS_ICON[k],
+        d: k === "draft" ? "Not on the site. Only editors see it."
+         : k === "published" ? "Live at its address."
+         : "Goes live by itself at the date above."}))
+    : Object.keys(VISIBILITY).map(k=>({k, l:VISIBILITY[k].l, icon:VISIBILITY[k].icon, d:VISIBILITY[k].d}));
+  const cur = which === "status" ? editor.status : editor.visibility;
+  el.innerHTML = items.map(i=>
+    '<button type="button" role="menuitemradio" aria-checked="'+(i.k === cur)+'" data-pick="'+i.k+'">'+
+      '<svg class="ic"><use href="#'+i.icon+'"/></svg>'+
+      '<span><span class="nm">'+esc(i.l)+'</span><span class="ds">'+esc(i.d)+'</span></span>'+
+      (i.k === cur ? '<svg class="ic tick"><use href="#i-check"/></svg>' : '')+
+    '</button>').join("");
+  document.body.appendChild(el);
+  const r = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + "px";
+  el.style.top  = (r.bottom + h + 8 > window.innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + "px";
+  openMenu = {el, btn};
+  el.addEventListener("click", ev=>{
+    const b = ev.target.closest("[data-pick]"); if (!b) return;
+    closeMenu();
+    if (which === "status"){ editor.status = b.dataset.pick; renderEdHead(); }
+    else editor.visibility = b.dataset.pick;
+    markDirty(); renderSide();
+  });
+}
+
 let inlinePop = null;
 function closeInlinePop(){
   if (!inlinePop) return;
@@ -4831,6 +5793,100 @@ function openInlinePop(btn){
 const iconState = {q:"", cat:"all", idx:0, items:[], sel:null};
 function iconLabel(n){ return n.replace(/^i-/,"").replace(/-/g," "); }
 function iconName(n){ return iconLabel(n).replace(/ /g,"-"); }
+
+/* ================= select =================
+   Native selects are the one control the browser draws its own way, and no CSS
+   makes the open list match anything else here. So every select stays in the
+   DOM — it holds the value, fires `change`, and keeps every existing handler
+   working — and a button drawn beside it opens a list that looks like the rest
+   of the admin. Nothing that reads a select had to change. */
+let xselOpen = null;
+function closeXsel(){
+  if (!xselOpen) return;
+  xselOpen.list.remove();
+  xselOpen.btn.setAttribute("aria-expanded","false");
+  xselOpen = null;
+}
+function xselLabel(sel){
+  const o = sel.options[sel.selectedIndex] || sel.options[0];
+  return o ? o.textContent : "";
+}
+/* The select is the source of truth for text, hidden and disabled — screens
+   re-render its options and toggle it directly, and the button follows. */
+function syncXsel(sel){
+  const btn = sel._xbtn;
+  if (!btn) return;
+  btn.querySelector(".xs-t").textContent = xselLabel(sel);
+  btn.hidden = sel.hidden;
+  btn.disabled = sel.disabled;
+}
+function syncAllXsel(){ document.querySelectorAll("select[data-xs]").forEach(syncXsel); }
+function enhanceSelects(root){
+  (root || document).querySelectorAll("select:not([data-xs])").forEach(sel=>{
+    sel.setAttribute("data-xs","1");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "xsel";
+    if (sel.classList.contains("inp")) btn.classList.add("as-inp");
+    if (sel.classList.contains("val-select")) btn.classList.add("as-val");
+    if (sel.classList.contains("sel")) btn.classList.add("as-sel");
+    btn.setAttribute("aria-haspopup","listbox");
+    btn.setAttribute("aria-expanded","false");
+    if (sel.getAttribute("aria-label")) btn.setAttribute("aria-label", sel.getAttribute("aria-label"));
+    if (sel.disabled) btn.disabled = true;
+    btn.innerHTML = '<span class="xs-t"></span><svg class="ic xs-go"><use href="#i-caret-down"/></svg>';
+    sel.parentNode.insertBefore(btn, sel.nextSibling);
+    sel._xbtn = btn; btn._xsel = sel;
+    syncXsel(sel);
+    btn.addEventListener("click", e=>{ e.stopPropagation(); toggleXsel(btn); });
+    btn.addEventListener("keydown", e=>{
+      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " " || e.key === "Enter"){
+        e.preventDefault(); if (!xselOpen || xselOpen.btn !== btn) toggleXsel(btn);
+      }
+    });
+    sel.addEventListener("change", ()=> syncXsel(sel));
+  });
+}
+function toggleXsel(btn){
+  if (xselOpen && xselOpen.btn === btn){ closeXsel(); return; }
+  closeXsel();
+  const sel = btn._xsel;
+  const list = document.createElement("div");
+  list.className = "xs-list"; list.setAttribute("role","listbox");
+  list.innerHTML = Array.from(sel.options).map((o,i)=>
+    '<button type="button" role="option" aria-selected="'+(i === sel.selectedIndex)+'" data-xi="'+i+'"'+
+    (o.dataset.depth ? ' style="padding-left:'+(12 + (+o.dataset.depth) * 16)+'px"' : '')+
+    (o.disabled ? ' disabled' : '')+'>'+
+    '<span class="nm">'+esc(o.textContent)+'</span>'+
+    (i === sel.selectedIndex ? '<svg class="ic tick"><use href="#i-check"/></svg>' : '')+'</button>').join("");
+  document.body.appendChild(list);
+  const r = btn.getBoundingClientRect();
+  list.style.minWidth = r.width + "px";
+  const h = list.offsetHeight;
+  list.style.left = Math.max(8, Math.min(r.left, window.innerWidth - list.offsetWidth - 8)) + "px";
+  list.style.top  = (r.bottom + h + 8 > window.innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + "px";
+  btn.setAttribute("aria-expanded","true");
+  xselOpen = {btn, list, sel};
+  const cur = list.querySelector('[aria-selected="true"]');
+  if (cur) cur.scrollIntoView({block:"nearest"});
+  list.addEventListener("click", ev=>{
+    const b = ev.target.closest("[data-xi]"); if (!b) return;
+    sel.selectedIndex = +b.dataset.xi;
+    closeXsel(); syncXsel(sel);
+    sel.dispatchEvent(new Event("change", {bubbles:true}));
+    btn.focus();
+  });
+  if (cur) cur.focus(); else { const f = list.querySelector("button"); if (f) f.focus(); }
+}
+/* New markup arrives from a dozen render functions, so watch for it rather than
+   remembering to call this from each one. */
+let xselQueued = false;
+new MutationObserver(()=>{
+  if (xselQueued) return;
+  xselQueued = true;
+  requestAnimationFrame(()=>{ xselQueued = false; enhanceSelects(); syncAllXsel(); });
+}).observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:["hidden","disabled"]});
+enhanceSelects();
 
 function openIconPicker(){
   iconState.q = ""; iconState.cat = "all"; iconState.idx = 0; iconState.sel = null;
@@ -4984,6 +6040,20 @@ function jumpTo(i){
   const ratio = d.start / Math.max(1, editor.src.length);
   $("#edSrcWrap").scrollTop = Math.max(0, $("#edHl").offsetHeight * ratio - 120);
 }
+/* The same move for a piece of plain Markdown. Picking a paragraph out of the
+   outline has to land the caret in it, or the panel that opens is describing
+   something the writer cannot see. */
+function jumpToBlock(i){
+  const b = editor.blocks[i];
+  if (!b) return;
+  const ta = $("#edSrc");
+  ta.focus({preventScroll:true});
+  ta.setSelectionRange(b.start, b.start);
+  editor.active = -1; editor.block = b; editor.mode = "document"; editor.tab = "component";
+  renderHl(); renderSide(); renderSelChip(); updateCursorReadout();
+  const ratio = b.start / Math.max(1, editor.src.length);
+  $("#edSrcWrap").scrollTop = Math.max(0, $("#edHl").offsetHeight * ratio - 120);
+}
 
 /* ================= content types ================= */
 const ALL_TYPES = [
@@ -5082,7 +6152,8 @@ function renderTypeDetail(){
         '<label class="switch'+(readOnly?" ro":"")+'"><input type="checkbox" id="t-hier"'+(t.hier?" checked":"")+(readOnly?" disabled":"")+'><span class="track"></span><span class="st">Entries can nest under a parent</span></label>'+
         '<label class="switch'+(readOnly?" ro":"")+'"><input type="checkbox" id="t-nav" checked'+(readOnly?" disabled":"")+'><span class="track"></span><span class="st">Show in the sidebar</span></label>'+
         (isTax ? '' :
-          '<label class="switch'+(readOnly?" ro":"")+'"><input type="checkbox" id="t-index"'+(ix?" checked":"")+(readOnly?" disabled":"")+'><span class="track"></span><span class="st">Has an index page</span></label>')+
+          '<label class="switch'+(readOnly?" ro":"")+'"><input type="checkbox" id="t-index"'+(ix?" checked":"")+(readOnly?" disabled":"")+'><span class="track"></span><span class="st">Has an index page</span></label>'+
+          '<label class="switch'+(readOnly?" ro":"")+'"><input type="checkbox" id="t-feat"'+((typeOf[t.key]||{}).featured?" checked":"")+(readOnly?" disabled":"")+'><span class="track"></span><span class="st">Has a featured image</span></label>')+
       '</div>'+
       (isTax || !ix ? '' :
         '<div class="field"><label>Index page</label>'+
@@ -5654,10 +6725,10 @@ function skDashboard(){
 /* ================= new content type wizard ================= */
 const WIZ_ICONS = ["i-doc","i-page","i-rocket","i-folder","i-tag","i-box","i-image","i-calendar","i-braces","i-shield"];
 const wiz = {step:0, kind:"content", label:"", singular:"", key:"", keyTouched:false,
-             icon:"i-box", hier:false, nav:true, index:true, slug:"", tax:[], fields:[], err:""};
+             icon:"i-box", hier:false, nav:true, index:true, featured:true, slug:"", tax:[], fields:[], err:""};
 function wizReset(){
   Object.assign(wiz, {step:0, kind:"content", label:"", singular:"", key:"", keyTouched:false,
-    icon:"i-box", hier:false, nav:true, index:true, slug:"", tax:[], fields:[], err:""});
+    icon:"i-box", hier:false, nav:true, index:true, featured:true, slug:"", tax:[], fields:[], err:""});
 }
 function slugify(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
 function keyify(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,""); }
@@ -5713,7 +6784,9 @@ function renderWizard(){
         '<label class="switch"><input type="checkbox" id="w-nav"'+(wiz.nav?" checked":"")+'><span class="track"></span>'+
           '<span class="st">Show in the sidebar</span></label>'+
         (wiz.kind === "content" ? '<label class="switch"><input type="checkbox" id="w-index"'+(wiz.index?" checked":"")+'><span class="track"></span>'+
-          '<span class="st">Has an index page</span></label>' : "")+
+          '<span class="st">Has an index page</span></label>'+
+          '<label class="switch"><input type="checkbox" id="w-feat"'+(wiz.featured?" checked":"")+'><span class="track"></span>'+
+          '<span class="st">Has a featured image</span></label>' : "")+
         (wiz.hier ? '<span class="mini-note">The list screen will open as a tree, like Pages.</span>' : '')+
         (wiz.kind === "content" && wiz.index ? '<span class="mini-note">An entry is created for the archive at <code>'+esc(wiz.slug||("/"+(wiz.key||"recipes")))+'</code> and pinned at the top of the list.</span>' : '')+
       '</div>'+
@@ -5770,6 +6843,7 @@ function renderWizard(){
     S("Nesting", wiz.hier ? "Tree — entries nest" : "Flat") +
     S("Sidebar", wiz.nav ? "Listed under Content" : "Hidden") +
     (wiz.kind === "content" ? S("Index page", wiz.index ? "Created and pinned" : "None") : "") +
+    (wiz.kind === "content" ? S("Featured image", wiz.featured ? "Offered on every entry" : "None") : "") +
     (wiz.kind === "content" ? S("Taxonomies", wiz.tax.length ? wiz.tax.map(k=>esc(TAXONOMIES[k].label)).join(", ") : '<span style="color:var(--fg-3)">None</span>') : "") +
     S("Fields", wiz.fields.length ? wiz.fields.map(f=>esc(f.l)).join(", ") : '<span style="color:var(--fg-3)">None yet</span>');
 }
@@ -5801,6 +6875,7 @@ function createType(){
                hierarchical:wiz.hier, source:"Custom type",
                tax: wiz.tax.length ? {key:wiz.tax[0], label:TAXONOMIES[wiz.tax[0]].label, values:TAXONOMIES[wiz.tax[0]].key==="topic"?TERMS.topic.map(x=>x.name):TERMS.tag.map(x=>x.name)} : null};
     t.hasIndex = !!wiz.index;
+    t.featured = !!wiz.featured;
     TYPES.push(t);
     typeOf[key] = t;
     TYPE_FIELDS[key] = wiz.fields.slice();
@@ -5934,13 +7009,7 @@ function enterWriting(){
 
 edSrc.addEventListener("input", ()=>{
   rescan(); renderHl(); updateCounts(); markDirty(); enterWriting();
-  const a = activeFromCursor();
-  if (a !== editor.active){
-    editor.active = a; editor.mode = a >= 0 ? "component" : "document";
-    if ($("#view-editor").classList.contains("side-open")) renderSide();
-    renderSelChip();
-  }
-  updateCursorReadout();
+  setActiveFromCursor();
   syncSlash();
 });
 edSrc.addEventListener("click", ()=>{ if (insState.slash) closeInserter(); setActiveFromCursor(); });
@@ -5953,6 +7022,8 @@ edSrc.addEventListener("keydown", e=>{
       ["ArrowDown","ArrowUp","ArrowLeft","ArrowRight","Enter","Escape"].indexOf(e.key) !== -1){
     insKeydown(e); return;
   }
+  if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey &&
+      edSrc.selectionStart === edSrc.selectionEnd && continueBlock(e)) return;
   if (e.key === "Tab"){
     e.preventDefault();
     const s = edSrc.selectionStart, en = edSrc.selectionEnd;
@@ -5961,6 +7032,100 @@ edSrc.addEventListener("keydown", e=>{
     rescan(); renderHl(); updateCounts(); markDirty();
   }
 });
+/* ================= Enter inside a list or a quote =================
+   A list is a run of lines that each repeat a marker, so the editor repeats it:
+   Enter carries the marker down, and Enter on an item with nothing in it takes
+   the marker away and leaves you in a paragraph. That second press is how every
+   editor people already use ends a list, and without it the only way out is to
+   delete characters you did not type.
+
+   It is done here, on the source, rather than by a rich-text model, because the
+   source is the document — what the author sees is what gets saved. */
+function continueBlock(e){
+  const ta = $("#edSrc"), pos = ta.selectionStart, src = ta.value;
+  const ls = src.lastIndexOf("\n", pos - 1) + 1;
+  const le = src.indexOf("\n", pos) === -1 ? src.length : src.indexOf("\n", pos);
+  const line = src.slice(ls, le);
+
+  /* A table row is a run of cells between pipes, so Enter opens another one
+     with the same columns — and on the header row, the separator that has to
+     come before any body row at all. */
+  /* A row of empty cells is all pipes and spaces, which the separator pattern
+     also matches — a separator is only a separator if it has dashes in it. */
+  if (RE_TABLE.test(line) && !(RE_TSEP.test(line) && line.indexOf("-") !== -1)){
+    const cells = line.split("|").filter((x,k,a)=> k > 0 && k < a.length - 1).length ||
+                  line.split("|").filter(x=>x.trim()).length;
+    const n = Math.max(1, cells);
+    const blank = "|" + "   |".repeat(n);
+    if (!line.split("|").some(c=>c.trim())){
+      e.preventDefault();
+      writeSrc(src.slice(0, ls) + "\n" + src.slice(le), ls + 1);
+      return true;
+    }
+    /* A table with no separator row is not a table yet, so the first Enter
+       writes the one the syntax requires before it writes a body row. */
+    const tb = (editor.blocks || []).find(x=> x.type === "table" && pos >= x.start && pos <= x.end);
+    const body = tb ? editor.src.slice(tb.start, tb.end).split("\n") : [line];
+    const sep = body.some(l=>RE_TSEP.test(l) && l.indexOf("-") !== -1) ? "" : "\n|" + " --- |".repeat(n);
+    const add = sep + "\n" + blank;
+    e.preventDefault();
+    writeSrc(src.slice(0, le) + add + src.slice(le), le + sep.length + 3);
+    return true;
+  }
+
+  const li = RE_LIST.exec(line);
+  const qm = li ? null : RE_QUOTE.exec(line);
+  if (!li && !qm) return false;
+
+  if (li){
+    const task = RE_TASK.exec(li[4]);
+    const body = task ? task[3] : li[4];
+    /* Nothing written on this item: the second Enter. Take the marker away and
+       leave a blank line above the caret, because a paragraph written straight
+       under a list item is a lazy continuation of it, not a paragraph. */
+    if (!body.trim()){
+      e.preventDefault();
+      writeSrc(src.slice(0, ls) + "\n" + src.slice(le), ls + 1);
+      return true;
+    }
+    const ordered = /\d/.test(li[2]);
+    const marker = ordered ? (parseInt(li[2], 10) + 1) + li[2].slice(-1) : li[2];
+    const lead = li[1] + marker + li[3] + (task ? "[ ] " : "");
+    e.preventDefault();
+    const head = src.slice(0, pos), tail = src.slice(pos);
+    writeSrc(head + "\n" + lead + tail, pos + 1 + lead.length);
+    if (ordered) renumberListAt(pos + 1 + lead.length);
+    return true;
+  }
+
+  /* A quote marker with nothing after it is the same second press. */
+  if (!qm[3].trim()){
+    e.preventDefault();
+    writeSrc(src.slice(0, ls) + "\n" + src.slice(le), ls + 1);
+    return true;
+  }
+  const lead = qm[1] + (/\s$/.test(qm[2]) ? qm[2] : qm[2] + " ");
+  e.preventDefault();
+  writeSrc(src.slice(0, pos) + "\n" + lead + src.slice(pos), pos + 1 + lead.length);
+  return true;
+}
+/* An ordered list that has had an item pushed into the middle of it is wrong
+   from that point down, so the whole run is renumbered rather than the tail. */
+function renumberListAt(pos){
+  const b = (editor.blocks || [])
+    .filter(x=> x.type === "list" && pos >= x.start && pos <= x.end)
+    .sort((a,c)=> (a.end - a.start) - (c.end - c.start))[0];
+  if (!b || listStyleOf(b) !== "number") return;
+  const lines = editor.src.split("\n");
+  let n = 0;
+  listItemsOf(b).forEach(it=>{
+    const m = RE_LIST.exec(lines[it.first]);
+    if (!m) return;
+    n++;
+    lines[it.first] = m[1] + n + m[2].slice(-1) + m[3] + m[4];
+  });
+  writeSrc(lines.join("\n"));
+}
 function sizeTitle(){
   const t = $("#edTitle");
   t.style.height = "auto";
@@ -6023,7 +7188,6 @@ $("#insGrid").addEventListener("mouseover", ev=>{
 });
 $("#edSideToggle").addEventListener("click", ()=> setSideOpen(!$("#view-editor").classList.contains("side-open")));
 $("#edSideHead").addEventListener("click", ev=>{ if (ev.target.closest("#edSideClose")) setSideOpen(false); });
-$("#edSel").addEventListener("click", ()=>{ editor.tab = "component"; setSideOpen(true); });
 $("#zenExit").addEventListener("click", ()=> setZen(false));
 function setZen(on){
   app.classList.toggle("zen", on);
@@ -6080,25 +7244,190 @@ $("#edNotice").addEventListener("click", ev=>{
   const b = ev.target.closest("[data-cf]");
   if (b) editorAction(b.dataset.cf);
 });
+/* A crumb is a way in, not a label: it moves the caret and opens the panel for
+   whatever it names, including the root, which opens the entry's own settings. */
+$("#edCrumbs").addEventListener("click", ev=>{
+  const c = ev.target.closest("[data-crumb]");
+  if (!c) return;
+  const v = c.dataset.crumb;
+  editor.showList = false;
+  if (v === "root"){ editor.tab = "document"; setSideOpen(true); renderSide(); return; }
+  if (v[0] === "d") jumpTo(+v.slice(1)); else jumpToBlock(+v.slice(1));
+  setSideOpen(true);
+});
+/* ================= the editor's own menu =================
+   Everything the editor can do that is not the one primary button, in sections:
+   what you can put in the entry, what you can look at, and what you can do to
+   the entry itself. A flat list of eleven items is a list nobody reads, and the
+   footer is not the place for command hints — it has a job of its own now. */
+const ED_MENU = [
+  /* No inserters here. Putting something *into* the entry is the toolbar's job
+     and it is one keystroke away; a menu that repeats the toolbar is a second
+     place to look for the same thing. */
+  {sec:"View", items:[
+    {icon:"i-sidebar", label:"Settings Panel",  key:"⌘/", run:()=>setSideOpen(!$("#view-editor").classList.contains("side-open"))},
+    {icon:"i-list",    label:"Outline",                   run:()=>openOutline()},
+    {icon:"i-text",    label:"Focus Mode",       key:"⌘⇧F", run:()=>setZen(true)},
+    {icon:"i-eye",     label:"Preview",                   run:()=>toast("Opened the preview")}
+  ]},
+  {sec:"Entry", items:[
+    {icon:"i-link",  label:"Copy Link",               run:()=>toast("Permalink copied")},
+    {icon:"i-copy",  label:"Duplicate", entryOnly:true, run:()=>toast("Duplicated as a draft")},
+    {icon:"i-undo",  label:"Revisions",               run:()=>toast("Revisions are not designed yet")},
+    {icon:"i-trash", label:"Move to Trash", danger:true, div:true, entryOnly:true, run:()=>toast("Moved to the trash")}
+  ]}
+];
+function openEditorMenu(btn){
+  closeMenu();
+  /* An index page and a taxonomy term are singular and permanent: no duplicate,
+     no trash. Leaving them out beats showing them disabled. */
+  const solo = editor.isIndex || editor.isTerm;
+  const el = document.createElement("div");
+  el.className = "menu sectioned"; el.setAttribute("role","menu");
+  let h = "", n = 0;
+  ED_MENU.forEach(g=>{
+    const items = g.items.filter(it=> !(it.entryOnly && solo));
+    if (!items.length) return;
+    h += '<div class="sec">'+esc(g.sec)+'</div>';
+    items.forEach(it=>{
+      /* A destructive action never sits flush against an ordinary one. */
+      if (it.div) h += '<div class="div"></div>';
+      h += '<button type="button" role="menuitem"'+(it.danger ? ' class="danger"' : '')+' data-em="'+(n++)+'">'+
+        '<svg class="ic"><use href="#'+it.icon+'"/></svg><span class="l">'+esc(it.label)+'</span>'+
+        (it.key ? '<kbd>'+esc(it.key)+'</kbd>' : '')+'</button>';
+    });
+  });
+  const flat = [];
+  ED_MENU.forEach(g=>g.items.filter(it=> !(it.entryOnly && solo)).forEach(it=>flat.push(it)));
+  el.innerHTML = h;
+  document.body.appendChild(el);
+  const r = btn.getBoundingClientRect(), w = el.offsetWidth, hh = el.offsetHeight;
+  el.style.left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8)) + "px";
+  el.style.top  = (r.bottom + hh + 8 > window.innerHeight ? r.top - hh - 4 : r.bottom + 4) + "px";
+  btn.setAttribute("aria-expanded","true");
+  openMenu = {el, btn};
+  el.addEventListener("click", ev=>{
+    const b = ev.target.closest("button[data-em]");
+    if (!b) return;
+    closeMenu();
+    const it = flat[+b.dataset.em];
+    if (it) setTimeout(it.run, 0);   /* let the menu close before its action opens anything */
+  });
+}
 $("#edMore").addEventListener("click", ev=>{
   ev.stopPropagation();
-  const e = ENTRIES.find(x=>x.id===editor.id) || {title:"this entry"};
-  if (openMenu && openMenu.btn === $("#edMore")) closeMenu(); else showMenu($("#edMore"), e);
+  if (openMenu && openMenu.btn === $("#edMore")) closeMenu(); else openEditorMenu($("#edMore"));
 });
+
+$("#edSideBody").addEventListener("click", ev=>{
+  if (ev.target.closest("#d-status")){ ev.stopPropagation(); openStateMenu(ev.target.closest("#d-status"), "status"); return; }
+  if (ev.target.closest("#d-vis")){ ev.stopPropagation(); openStateMenu(ev.target.closest("#d-vis"), "vis"); return; }
+  const ua = ev.target.closest("[data-unauthor]");
+  if (ua){
+    if (editor.authors.length < 2) return;   /* content always has an author */
+    editor.authors = editor.authors.filter(x=>x !== ua.dataset.unauthor);
+    markDirty(); renderSide(); return;
+  }
+  const aa = ev.target.closest("[data-addauthor]");
+  if (aa){ editor.authors.push(aa.dataset.addauthor); peopleUI.q = ""; markDirty(); renderSide(); return; }
+  const to = ev.target.closest("[data-taxopen]");
+  if (to){ const k = to.dataset.taxopen; taxUI.adding[k] = true; renderSide();
+    const f = $("#tax-new-name"); if (f) f.focus(); return; }
+  const tc = ev.target.closest("[data-taxcancel]");
+  if (tc){ taxUI.adding[tc.dataset.taxcancel] = false; taxUI.newName[tc.dataset.taxcancel] = ""; renderSide(); return; }
+  const ta = ev.target.closest("[data-taxadd]");
+  if (ta){ createTerm(ta.dataset.taxadd); return; }
+  if (ev.target.closest("#d-when")){ ev.stopPropagation(); if (cal.el) closeCal(); else openCal(ev.target.closest("#d-when")); return; }
+  const term = ev.target.closest("[data-term]");
+  if (term){ const p = term.dataset.term.split(":"); taxUI.q[p[0]] = ""; toggleTerm(p[0], p[1]); return; }
+  const un = ev.target.closest("[data-untoken]");
+  if (un){ const p = un.dataset.untoken.split(":"); toggleTerm(p[0], p[1]); return; }
+  const nt = ev.target.closest("[data-newterm]");
+  if (nt){ addTermFromField(nt.dataset.newterm); return; }
+  const tokbox = ev.target.closest("[data-tokens]");
+  if (tokbox && !ev.target.closest("button")){ const i = tokbox.querySelector("input"); if (i) i.focus(); return; }
+  if (ev.target.closest("#d-feat-pick")){
+    openPicker(name=>{ editor.featured = name; markDirty(); renderSide(); },
+      editor.featured, {title:"Choose a Featured Image", action:"Choose"});
+    return;
+  }
+  if (ev.target.closest("#d-feat-clear")){ editor.featured = ""; markDirty(); renderSide(); return; }
+});
+/* Typing in a taxonomy field filters without losing the caret, so the field is
+   re-rendered and focus put back where it was. */
+$("#edSideBody").addEventListener("input", ev=>{
+  if (ev.target.id === "d-authq"){
+    const at = ev.target.selectionStart;
+    peopleUI.q = ev.target.value;
+    renderSide();
+    const n = $("#d-authq"); if (n){ n.focus(); try { n.setSelectionRange(at, at); } catch(e){} }
+    return;
+  }
+  const nn = ev.target.closest("[data-taxnew]");
+  if (nn){ taxUI.newName[nn.dataset.taxnew] = nn.value; return; }
+  const q = ev.target.closest("[data-taxq]");
+  if (!q) return;
+  const key = q.dataset.taxq, at = q.selectionStart;
+  taxUI.q[key] = q.value;
+  renderSide();
+  const next = $("#edSideBody").querySelector('[data-taxq="'+key+'"]');
+  if (next){ next.focus(); try { next.setSelectionRange(at, at); } catch(e){} }
+});
+$("#edSideBody").addEventListener("keydown", ev=>{
+  const q = ev.target.closest("[data-taxq]");
+  if (!q) return;
+  const key = q.dataset.taxq;
+  if (ev.key === "Enter"){
+    ev.preventDefault();
+    const text = (taxUI.q[key] || "").trim();
+    if (!text) return;
+    const match = termsOf(key).find(t=>t.name.toLowerCase() === text.toLowerCase()) ||
+                  termsOf(key).find(t=>t.name.toLowerCase().includes(text.toLowerCase()) && selectedTerms(key).indexOf(t.id) === -1);
+    if (match){ taxUI.q[key] = ""; toggleTerm(key, match.id); }
+    else addTermFromField(key);
+    return;
+  }
+  if (ev.key === "Backspace" && !q.value){
+    const list = editor.terms[key] || [];
+    if (list.length){ ev.preventDefault(); toggleTerm(key, list[list.length-1]); }
+  }
+  if (ev.key === "Escape"){ taxUI.q[key] = ""; renderSide(); }
+});
+/* A new term is created where the author is already looking, with a parent
+   chosen from the same tree they were just reading. */
+function createTerm(key){
+  const name = (taxUI.newName[key] || "").trim();
+  if (!name){ const f = $("#tax-new-name"); if (f) f.focus(); return; }
+  const parentSel = $("#tax-new-parent");
+  const t = {id:"n"+(termSeq++), name, slug:slugify(name), desc:"", count:0,
+             parent: parentSel ? parentSel.value : "", status:"published"};
+  TERMS[key].push(t);
+  (editor.terms[key] || (editor.terms[key] = [])).push(t.id);
+  taxUI.adding[key] = false; taxUI.newName[key] = ""; taxUI.q[key] = "";
+  markDirty(); renderSide();
+  toast("Created the " + TAXONOMIES[key].singular + " “" + name + "”");
+}
+function addTermFromField(key){
+  const text = (taxUI.q[key] || "").trim();
+  if (!text) return;
+  const t = {id:"n"+(termSeq++), name:text, slug:slugify(text), desc:"", count:0, parent:"", status:"published"};
+  TERMS[key].push(t);
+  taxUI.q[key] = "";
+  (editor.terms[key] || (editor.terms[key] = [])).push(t.id);
+  markDirty(); renderSide();
+  toast("Created the " + TAXONOMIES[key].singular + " “" + text + "”");
+}
 
 $("#edSideBody").addEventListener("change", ev=>{
   const el = ev.target;
 
-  if (el.id === "d-addtax"){
-    if (el.value && editor.tax.indexOf(el.value) === -1){ editor.tax.push(el.value); markDirty(); }
-    renderSide(); return;
-  }
   if (el.dataset.label !== undefined){ writeLabel(el.value); return; }
   if (el.dataset.blk){
     const b = editor.block;
     if (!b) return;
     const key = el.dataset.blk;
     const lines = editor.src.split("\n");
+    if (key === "liststyle"){ setListStyle(b, el.value); return; }
     if (key === "classes") setBlockAttrs(b, el.value, blockId(b));
     else if (key === "id")  setBlockAttrs(b, blockClasses(b), el.value);
     else if (key === "level"){
@@ -6131,6 +7460,7 @@ $("#edSideBody").addEventListener("change", ev=>{
   const doc = el.dataset.doc;
   if (doc){
     if (doc === "status"){ editor.status = el.value; renderEdHead(); renderSide(); markDirty(); }
+
     else if (doc === "parent"){ editor.parent = el.value; markDirty(); }
     else if (doc === "excerpt"){ editor.excerpt = el.value; markDirty(); }
     else if (doc === "slug"){
@@ -6181,6 +7511,27 @@ document.addEventListener("click", ev=>{
 
   if (inlinePop && !ev.target.closest(".inline-pop") && !ev.target.closest("#edInline")) closeInlinePop();
   if (mediaPop && !ev.target.closest(".inline-pop") && !ev.target.closest("#edMedia")) closeMediaPop();
+  if (cal.el && !ev.target.closest(".cal-pop") && !ev.target.closest("#d-when")) closeCal();
+  if (xselOpen && !ev.target.closest(".xs-list") && !ev.target.closest(".xsel")) closeXsel();
+  const cd = ev.target.closest("[data-cal]");
+  if (cd){
+    const p = cd.dataset.cal.split("-").map(Number);
+    const d = new Date(editor.when);
+    d.setFullYear(p[0], p[1]-1, p[2]);
+    setWhen(d); return;
+  }
+  const cm = ev.target.closest("[data-calmove]");
+  if (cm){ cal.month.setMonth(cal.month.getMonth() + (+cm.dataset.calmove)); renderCal(); return; }
+  const cq = ev.target.closest("[data-calq]");
+  if (cq){ calQuick(cq.dataset.calq); return; }
+  const ap = ev.target.closest("[data-ampm]");
+  if (ap){
+    const wantPm = ap.dataset.ampm === "pm", h = editor.when.getHours();
+    if ((h >= 12) === wantPm) return;
+    const d = new Date(editor.when);
+    d.setHours(wantPm ? h + 12 : h - 12);
+    setWhen(d); return;
+  }
 });
 window.addEventListener("resize", ()=>{ if (currentView === "editor") renderHl(); });
 
@@ -6391,6 +7742,7 @@ $("#wizBody").addEventListener("change", e=>{
   const el = e.target;
   if (el.id === "w-hier"){ wiz.hier = el.checked; renderWizard(); return; }
   if (el.id === "w-index"){ wiz.index = el.checked; renderWizard(); return; }
+  if (el.id === "w-feat"){ wiz.featured = el.checked; renderWizard(); return; }
   if (el.id === "w-nav"){ wiz.nav = el.checked; renderWizard(); return; }
   if (el.dataset.wtax !== undefined){
     const k = el.dataset.wtax;

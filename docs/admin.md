@@ -45,9 +45,10 @@ content health), **Content** (each content type's entries, with its own
 taxonomies under it, the taxonomies several types share, and media), and
 **Config** (content types, the site's settings, and people, including
 authors). The panel
-beside it lists the section you're in. Choosing **Content** or
-**Config** changes the panel without leaving the screen you're on;
-**Home** goes to the dashboard. You only see what your account can use.
+beside it lists the section you're in. Choosing a section changes the
+panel and nothing else, so you never leave the screen you're on (an
+entry you're writing stays open); choose a link in the panel to go
+there. You only see what your account can use.
 
 **Search or jump to…** in the top bar (or ⌘K, Ctrl+K on Windows and
 Linux) opens the command palette: type to find a screen, a command such
@@ -56,7 +57,8 @@ editor, the editor's own commands come first, such as **Focus mode**
 and **Insert media**.
 
 The button at the top left hides the panel, leaving just the rail (your
-browser remembers the choice); on a narrow screen it opens the rail and
+browser remembers the choice). The editor hides it while you write and
+puts it back as it was when you leave. On a narrow screen it opens the rail and
 panel as a menu instead. **View site** opens your site in a new tab, and
 the round button at the top right has **Your profile** and **Sign out**.
 
@@ -174,7 +176,8 @@ credited to your account's author.
 ## Editing an entry
 
 The editor is one column of text: the title (press Enter to move to the
-body), then the body in Markdown.
+body), then the body in Markdown. It opens with the section panel and
+the settings closed.
 
 The body stays Markdown, set in Fira Code (the admin's monospace font
 throughout), but the words read first: every mark (`*`, `**`, `#`, `>`,
@@ -184,12 +187,15 @@ bold, headings are bold (lighter from `###` down), quotes are muted, and
 struck text is dimmed. A link's text is colored and its address dimmed;
 an image's text is muted. Inline code and fenced code sit on a gray
 background, with a fence's language named. A task's `[x]` is green.
-A table's pipes and its `| --- |` row are dimmed. Footnotes are
+A table's pipes and its `| --- |` row are dimmed, but for the row's
+alignment colons; its header row is bold. In a definition list, a term
+is bold and a definition's `:` is dimmed. Footnotes are
 colored. Attribute blocks, such as `{.stretch-wide}` after an image or a
 heading, are a gray chip with their class and id names in full
-strength. A component's name is colored; the component the cursor is in
-is boxed, and a container's text is tinted. Only valid Markdown lights
-up, so something that stays plain won't be read the way you meant.
+strength. A component's name is colored, and a component or image the
+settings are showing is boxed (a container on its first and last lines).
+Only valid Markdown lights up, so something that stays plain won't be
+read the way you meant.
 
 Each entry's editor has its own address, from its content type and slug:
 `/admin/content/post/hello-world` edits the post `hello-world`, and a
@@ -203,9 +209,13 @@ The header's left side has a link back to the type's list, then four
 ways to put something in: **+** for a block component, the picture for
 media, the shapes for an icon, and the **A** menu for a component inside
 a sentence. Its right side says whether your changes are
-saved and the entry's status, then has the settings button, a **⋯** menu
-(**Save draft** or **Switch to draft**, **View**, **Focus mode**, and
-**Move to trash**), and the main button, which depends on the entry:
+saved and the entry's status, then has the settings button, the main
+button, and a **⋮** menu in two parts: **View** (the settings panel,
+the **Outline**, **Focus mode**, and **Preview**, or **View** once it's
+live; a preview shows the entry as last saved) and
+**Entry** (**Save draft** or **Switch to draft**, **Copy link** once
+it's live, **Duplicate**, and **Move to trash**), with their shortcuts.
+The main button depends on the entry:
 
 | The entry is... | You can |
 |---|---|
@@ -219,25 +229,63 @@ there's nothing to save yet.
 The settings (⌘/ or Ctrl+/) open beside the text and push it aside;
 close them with their **×** or Escape. They have two tabs:
 
-- **Document:** the publish date, the slug (see below), a preview link
-  (or **View** once it's live); the content type's other fields, such as the subtitle, summary,
-  and categories (fields that take several values say how to separate
-  them, and a few kinds, such as `collection`, show their value
+- **The entry's**, named for its type (**Post**, **Page**): under
+  **Publish**, its **Status** (choose it to see what each status does,
+  and to change it), its **Date** (choose it for a calendar and the
+  time, on a 12-hour clock; a line under it says what the date means,
+  such as "Goes live tomorrow"), its **Slug** (see below), its
+  **Visibility** (**Public**, **Unlisted**: it has an address but isn't
+  in lists, feeds, or the sitemap, or **Hidden**: no address), and a
+  term's **Parent**. A line under them says what the date means and when
+the file was last edited.
+  Then the **Featured Image** (choose, replace, or remove it), the
+  **Authors**, each taxonomy (see
+  [Choosing terms and authors](#choosing-terms-and-authors)), the
+  **Summary**, and the content type's other fields, such as the
+  subtitle (a few kinds, such as `collection`, show their value
   read-only); front matter the type doesn't declare, kept as it is; and
   what content health finds in the file, as last saved (notices only if
-  you ask).
-- **Components:** named for the component the cursor is in, with the
-  number in the entry beside it. It shows that component's options (see
-  [Component options](#component-options)), then every component the
-  body uses; choose one to go to it.
+  you ask). Only the taxonomies that group the content type are offered,
+  plus any the file already uses. At its foot,
+  **Outline** lists everything in the entry (see
+  [The outline](#the-outline-and-the-breadcrumb)).
+- **The element's**, named for what the cursor is in (**Callout**,
+  **Heading 2**, **List**), with its settings (see
+  [Element settings](#element-settings)).
 
-The body is plain Markdown, shown with headings, code, links, and
-[components](components.md) picked out; the component the cursor is in
-is highlighted. It's an ordinary text field, so undo, spelling, and your
-browser's shortcuts work as usual. The footer counts the words and the
-reading time.
+The body is an ordinary text field, so undo, spelling, and your
+browser's shortcuts work as usual. The footer shows where the cursor is
+on the left (see below), and the words and reading time on the right.
 
-**Focus mode** (⌘⇧F or Ctrl+Shift+F, or the **⋯** menu) hides
+In a list, Enter starts the next item with the same marker (the next
+number, renumbering the list; an open `[ ]` for a task), and Enter on
+an empty item ends the list, leaving a blank line so what you write next
+is a paragraph. A quote carries its `>` the same way. In a table, Enter
+adds a row with the same columns (and the `| --- |` row a table needs, if
+it hasn't one yet); Enter on an empty row ends the table.
+
+Formatting has the usual keys (Ctrl in place of ⌘ on Windows and
+Linux), each turning it on for the selected text, or off when it's
+already there:
+
+| Keys | Does |
+|---|---|
+| ⌘B | **Bold** (`**text**`) |
+| ⌘I | *Italic* (`*text*`) |
+| ⌘E | Inline code (`` `text` ``) |
+| ⌘⇧X | Strikethrough (`~~text~~`) |
+| ⌘K | With text selected, a link: `[text]()`, with the cursor where the address goes (a selected address becomes `[](address)`). With nothing selected, ⌘K opens the command palette as usual |
+| ⌘⌥1 to ⌘⌥6 | Make the line (or the selected lines) a heading of that level; the same keys again make it a paragraph. In a quote or list item, the heading goes inside it |
+| ⌘⌥0 | Make the line a paragraph |
+| ⌥↑, ⌥↓ | Move the line (or the selected lines) up or down; a numbered list is renumbered |
+| Tab, Shift+Tab | In a list, nest the item under the one above, or bring it back out; what's nested under it moves with it. Elsewhere, Tab leaves the text as usual |
+
+Pasting an address over selected text makes it a link. Dropping or
+pasting files into the text uploads them to the library and puts each
+in where the cursor is, as the media picker does (see below); that
+needs `media.upload`. They're in the command palette too.
+
+**Focus mode** (⌘⇧F or Ctrl+Shift+F, or the **⋮** menu) hides
 everything but the text and the editor's own header. Press Escape to
 leave it.
 
@@ -250,6 +298,28 @@ If you can't publish, you can save drafts but not publish them.
 Fields the content type marks as required must be filled in to publish,
 schedule, or update a live entry. Anything missing is named at the top
 and marked under the field; a draft saves without them.
+
+### Choosing terms and authors
+
+A field that points at other entries (a taxonomy's terms, the authors,
+or any other type) is a picker rather than a list of slugs to type:
+
+- **A hierarchical taxonomy**, such as categories, is its whole tree,
+  each term with how many entries use it. Search to narrow it (a
+  match's parents stay in view) and tick the ones that apply. **New
+  category** (named for the taxonomy) asks for a name and a parent and
+  adds the term to your site, ticked.
+- **Other taxonomies**, such as tags, are chips. Type to see matching
+  terms and press Enter for the first, or, when nothing matches, to add
+  what you typed as a new tag. Backspace in the empty field removes the
+  last chip.
+- **Authors** are listed by name, the first marked **Lead**. Search to
+  add someone. An entry always has an author, so the last one can't be
+  removed until another is added.
+- **One value**, such as a term's parent, is a list to choose from,
+  indented to show the tree.
+
+A slug that nothing answers to is shown as written, marked as not found.
 
 ### Changing the slug
 
@@ -320,7 +390,7 @@ video, audio, or other files. Choose a file (it gets a tick), then
 **Insert** (or double-click it). An image goes in as plain Markdown on a
 line of its own, `![](/media/photo.jpg)`, with the cursor where its
 description goes (selected text becomes the description), and its
-settings open on the **Component** tab (see
+settings open on the element tab (see
 [Images](#images-and-blocks)). When the library has alt text and a
 caption for the file (see [Media](#media)), they're filled in:
 `![A lake at dawn](/media/lake.jpg "The lake at dawn")`, with selected
@@ -352,15 +422,32 @@ search, Enter inserts the first match). It goes in at the cursor as
 `:blush/icon[]{name=house}`; select some text first to give it a label
 for screen readers.
 
-### Component options
+### The outline and the breadcrumb
 
-The **Component** tab in the settings follows the cursor. It's named for
-what the cursor is in: a component, an image, or else the block of
-Markdown (a heading, paragraph, list item, quote, code block, table, or
-divider). On a blank line, it's the block above.
+The footer's breadcrumb says where the cursor is, from the entry down to
+the smallest thing it's in: `Post › List › List Item › List › List
+Item`. Choose any part of it to select that element and open its
+settings; the first opens the entry's own tab.
 
-With the cursor in a component, the footer names it ("Callout options");
-choose that, or the tab, to see its options as a form. A component with
+**Outline**, at the foot of the entry's tab (or in the **⋮** menu),
+lists every element in the entry in order: paragraphs, headings, lists
+and their items, quotes, code blocks, tables, definition lists,
+images, and block components (inline components are part of their
+sentence, so they aren't listed), each with a line of what's in it.
+What's inside a component, list, or list item is indented under it.
+Choose one to select it; **←** goes back.
+
+### Element settings
+
+The element tab follows the cursor and shows whatever it's most
+precisely in: inside a callout, that's the paragraph (the callout is
+above it in the breadcrumb); on the callout's own first or last line,
+it's the callout. On a blank line, it's the element above, but not one
+inside a component that has already closed. A component, a list, a list
+item, and a definition list list what's directly inside them under
+**Content**; choose one to select it.
+
+A component's options are a form. A component with
 [variants](components.md#variants) lists them first, under **Variant**,
 with what each one looks like; **Default** writes nothing. Changing one
 rewrites just that option in the Markdown: the rest of what you wrote
@@ -374,10 +461,6 @@ the text.
 everything inside it, a line component with its line, and an inline
 component leaving its text in the sentence. Undo in the text puts it
 back.
-
-At the foot of every panel, **Components in this page** (or post, and
-so on) lists the components and images in the entry; choose one to go
-to it. Moving the cursor brings the panel back.
 
 ### Images and blocks
 
@@ -405,12 +488,17 @@ and its panel edits each part of it:
 - **Classes** and **ID**.
 
 Every block of Markdown takes classes and an id too, so a heading's,
-paragraph's, list item's, quote's, code block's, table's, or divider's
-panel has **Classes** and **ID**, which write `{.class #id}` where the
-site reads it: at the end of a heading, paragraph, or list item, and on
-a line of its own above a quote, code block, table, or divider. Some
-have more: a heading's **Level** (1 to 6), a code block's **Language**,
-and whether a list item is a task, and done.
+paragraph's, list's, list item's, quote's, code block's, table's,
+divider's, definition list's, term's, or definition's panel has
+**Classes** and **ID**, which write `{.class #id}` where the site reads
+it: at the end of a heading, paragraph, list item, term, or definition,
+and on a line of its own above a list, definition list, quote, code
+block, table, or divider (emptying both fields takes the line away
+again). Some have
+more: a heading's **Level** (1 to 6), a code block's **Language**, a
+list's **List Type** (Bulleted, Numbered, or Task, which rewrites its
+markers and leaves the lists inside it alone), and whether a list item
+is a task, and done.
 
 ### When a save doesn't go through
 
@@ -580,6 +668,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET accounts` | Every account's username, roles, author, and created and last sign-in times (Unix); needs `accounts.manage` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies last; a taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`. `fields` is how many the type defines, `icon` is `null` for the kind's, and `authors` names the type accounts' authors belong to (`null` when it's disabled). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
 | `GET types/{name}` | One type, with its own `fields`, the `taxonomies` that group it, `public`, `feed`, `sitemap`, and `editable` |
+| `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
@@ -655,6 +744,26 @@ Beside `components`, `image` has the `variants` the active theme offers
 Markdown images (its `theme.json` `variants.image`): each a class, with
 its `name`, `label`, `description`, and `source` (`null`).
 
+### Listing references
+
+`GET references/{type}` answers what a reference field to `type` (a
+taxonomy's terms, the authors, or any other type) can point at, for
+anyone who can edit content, including entries they can't edit
+themselves. Each item has the `slug` a reference stores, `title`,
+`status`, its `parent`'s slug (or `null`), `uses` (how many published
+entries use a term; `null` for other types), `depth` (its depth in a
+tree, else `null`), `virtual` (a term entries use that has no file), and
+`missing` (a slug you asked for that nothing answers to). A type's index
+page isn't included.
+
+A hierarchical taxonomy answers every term, in tree order (each
+followed by its children, siblings by title), with `tree: true`. Any
+other type answers the items whose title or slug contains `search`, by
+title, at most `limit` (20 by default, up to 100), with the `total`
+found. `slugs=a,b` adds those slugs to the answer, found or not, so a
+field can name what it holds. `create` is `true` for a taxonomy: a slug
+with no term is fine there, and becomes a virtual term.
+
 ### Listing media
 
 `GET media` lists the library (`user/media`), newest first, a page at a
@@ -704,8 +813,9 @@ entries/{id}` answers with:
 - `type`: the type's name, kind, whether it's dated, and a description
   of each field (name, type, label, and options).
 - `slug`: the last part of its key.
-- `can`: whether the account may edit, publish, rename, and delete it
-  (`rename` is `false` for a landing page).
+- `can`: whether the account may edit, publish, rename, delete, and
+  duplicate it (`rename` and `duplicate` are `false` for a landing page;
+  `duplicate` needs `content.create`).
 - `index`: whether it's its type's index page. An index page's `type`
   describes only its `title` and `status` fields (the rest of its front
   matter is in `extra`), and `can.delete` is `false`.

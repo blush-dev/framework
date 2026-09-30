@@ -209,6 +209,30 @@ onBeforeUnmount(() => {
 	background: var(--border);
 }
 
+/* A section's name: a heading says how two groups differ, where a rule
+   only says that they do. */
+.menu-button__list :deep(.menu-heading) {
+	padding: 8px 11px 4px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+}
+
+.menu-button__list :deep(.menu-heading:not(:first-child)) {
+	margin-top: 6px;
+}
+
+/* A command's shortcut, right-aligned. */
+.menu-button__list :deep(.menu-kbd) {
+	margin-left: auto;
+	padding-left: 12px;
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
 /* An item with a line saying what it does, under its name. */
 .menu-button__list :deep(.menu-item--described) {
 	align-items: flex-start;

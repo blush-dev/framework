@@ -560,6 +560,36 @@ final readonly class EntryController
 	}
 
 	/**
+	 * Returns whether the editor offers a field: any that isn't a
+	 * taxonomy's term field, and a term field when its taxonomy groups the
+	 * entry's type or the file uses it.
+	 *
+	 * @param array<mixed> $frontMatter
+	 */
+	private function groups(Field $field, Entry $entry, array $frontMatter): bool
+	{
+		foreach ($this->types->taxonomies() as $taxonomy) {
+			$term = $taxonomy->termField();
+
+			if ($term->name !== $field->name) {
+				continue;
+			}
+
+			foreach ([$term->name, ...$term->aliases] as $key) {
+				if (array_key_exists($key, $frontMatter)) {
+					return true;
+				}
+			}
+
+			return $taxonomy->types === []
+				? ! $entry->type instanceof Taxonomy
+				: in_array($entry->type->name, $taxonomy->types, true);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Describes an entry for the editor.
 	 *
 	 * @return array<string, mixed>
@@ -575,6 +605,13 @@ final readonly class EntryController
 		if ($index) {
 			$fields = array_filter($fields, static fn (Field $field): bool => in_array($field->name, ['title', 'status'], true));
 		}
+
+		// The schema has every taxonomy's term field, so a file may use any
+		// of them, but the editor offers only the taxonomies that group the
+		// type (D-283): those naming it in `types`, and those with no
+		// `types` (every type) unless it's a taxonomy itself. One the file
+		// already uses stays, so it can still be edited.
+		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry, $file->frontMatter));
 
 		[$values, $extra] = self::split($fields, $file->frontMatter);
 
@@ -599,10 +636,11 @@ final readonly class EntryController
 			'extra'      => $extra,
 			'body'       => $file->body,
 			'can'        => [
-				'edit'    => $this->permissions->can($account, Capability::ContentEdit, $entry),
-				'publish' => $this->permissions->can($account, Capability::ContentPublish, $entry),
-				'rename'  => ! $entry->landing,
-				'delete'  => ! $index && $this->permissions->can($account, Capability::ContentDelete, $entry)
+				'edit'      => $this->permissions->can($account, Capability::ContentEdit, $entry),
+				'publish'   => $this->permissions->can($account, Capability::ContentPublish, $entry),
+				'rename'    => ! $entry->landing,
+				'delete'    => ! $index && $this->permissions->can($account, Capability::ContentDelete, $entry),
+				'duplicate' => ! $entry->landing && $this->permissions->can($account, Capability::ContentCreate)
 			],
 			'violations' => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,

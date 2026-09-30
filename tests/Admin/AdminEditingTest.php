@@ -163,6 +163,31 @@ final class AdminEditingTest extends TestCase
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/trash/20250101-090000/user/content/_posts/2020-01-01.old.md');
 	}
 
+	public function testOffersOnlyTheTaxonomiesThatGroupTheType(): void
+	{
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"taxonomy": true, "folder": "genres", "types": ["page"]}');
+		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
+		$this->writeTemporaryFile('user/data/types/shelf.json', '{"taxonomy": true, "types": ["post"]}');
+		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true}');
+		$this->site();
+
+		$names = static fn (array $entry): array => array_column(is_array($entry['type'] ?? null) && is_array($entry['type']['fields'] ?? null) ? $entry['type']['fields'] : [], 'name');
+		$post  = $names($this->load('_posts/2023-01-01.idea.md'));
+
+		$this->assertContains('shelf', $post, 'It groups posts.');
+		$this->assertContains('mood', $post, 'It groups every type.');
+		$this->assertNotContains('genre', $post, 'It groups pages only.');
+		$this->assertContains('genre', $names($this->load('about.md')), 'Pages have it.');
+
+		$this->writeTemporaryFile('user/content/_posts/2023-01-01.idea.md', "---\ntitle: An Idea\nauthors: jane\nstatus: draft\ngenre: essay\n---\n");
+		$this->app->container()->make(Indexer::class)->index();
+		$this->assertContains('genre', $names($this->load('_posts/2023-01-01.idea.md')), 'One the file uses stays editable.');
+
+		$this->writeTemporaryFile('user/content/genres/essay.md', "---\ntitle: Essay\n---\n");
+		$this->app->container()->make(Indexer::class)->index();
+		$this->assertNotContains('mood', $names($this->load('genres/essay.md')), 'A term isn\'t in "every type".');
+	}
+
 	public function testLoadsAnEntryForEditing(): void
 	{
 		$this->site();
@@ -178,7 +203,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/' . self::FLAME), strtotime($entry['modified']));
 		$this->assertSame('/archives/flame', $entry['url'] ?? null);
 		$this->assertTrue($entry['own'] ?? null);
-		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'delete' => true], $entry['can'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'delete' => true, 'duplicate' => true], $entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertTrue($entry['type']['dated'] ?? null);
 		$this->assertIsArray($entry['type']['fields'] ?? null);

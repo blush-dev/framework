@@ -182,8 +182,9 @@ Answers are kept in `storage/cache/store/embeds`, which publishing and
 | `directives` | `true` | Render [components](components.md) in Markdown |
 
 Attributes are on by default: `{.class #id}` at the end of a heading,
-paragraph, or list item, or on a line of its own above a table, code
-block, or rule, gives it classes and an id. The editor's Classes and ID
+paragraph, list item, definition list term, or definition, or on a line
+of its own above a list, definition list, table, code block, or rule,
+gives it classes and an id. The editor's Classes and ID
 fields write them.
 
 To add extensions, list the defaults along with yours (listing one twice

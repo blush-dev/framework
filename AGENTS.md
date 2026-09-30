@@ -29,9 +29,13 @@ space scale, four inserters, icon categories, and marked source
 (D-265); component variants (D-266); `:::figure` as a container (D-267);
 every block as an object, images edited as Markdown, and uploads
 (D-268); and alt text and captions in the media library, filled in on
-insert (D-269, D-272). Next: the Markdown editing experience (D-252; live preview
-waits), media metadata, a reference picker, and the remaining stubbed
-screens; see
+insert (D-269, D-272); and, from the updated direction, every element as
+an object with an outline, a breadcrumb, lists and definition lists,
+Enter carrying list and quote markers, drawn selects, and a calendar
+for dates (D-280); and the reference picker, with the document panel's
+groups (D-281, D-283); and the Markdown editing experience's first set
+(D-284). Next: more of the Markdown editing experience (D-252, D-284's
+open list; live preview waits), media metadata, and the remaining stubbed screens; see
 `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
 `npm run admin:build` (D-221, D-224). Admin CSS reads design tokens
@@ -66,7 +70,8 @@ At the start of a session, read `roadmap.md` (current milestone) and skim
 | [`.claude/docs/cli.md`](.claude/docs/cli.md) | Custom CLI design. |
 | [`.claude/docs/roadmap.md`](.claude/docs/roadmap.md) | Milestones and exit criteria. |
 | [`.claude/docs/open-questions.md`](.claude/docs/open-questions.md) | Unresolved questions. Move each to `decisions.md` once answered. |
-| [`.claude/docs/admin-design/admin.md`](.claude/docs/admin-design/admin.md) | The admin's design direction (prototype stage, D-231). Read before writing admin UI; update it when you depart from it. `tokens.css` beside it is the original prototype, not the build source. |
+| [`.claude/docs/admin-design/admin.md`](.claude/docs/admin-design/admin.md) | The admin's design direction (prototype stage, D-231), kept exactly as the author uploads it, with its prototype `blush-admin.html`. Read before writing admin UI; don't edit it. `tokens.css` beside it is the original prototype, not the build source. |
+| [`.claude/docs/admin-design/departures.md`](.claude/docs/admin-design/departures.md) | The project's side of the direction: file paths, every departure from it and why, and its settled questions. Read with `admin.md`; record a departure here, not there. |
 
 When the user makes a decision in conversation, record it in `decisions.md`
 (and update any affected doc) in the same session.

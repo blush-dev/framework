@@ -44,6 +44,8 @@ use Blush\Session\StartSession;
  *     and `GET media/{path}` one library file; `POST media` uploads one,
  *     and `PATCH media/{path}` changes a library file's alt text and
  *     caption.
+ *   - `GET  references/{type}`: what a reference field to a type can
+ *     point at, for the editor's picker.
  *   - `GET  entries`: the entries the account may edit, a page at a time.
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
  *     the editing API (`EntryController`), `POST entries/{id}/duplicate`,
@@ -96,6 +98,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/media', MediaUploadController::class)->named('media.upload')->middleware(Authenticate::class),
 			Route::get('/media/{path:.+}', [MediaListController::class, 'show'])->named('media.file')->middleware(Authenticate::class),
 			Route::patch('/media/{path:.+}', [MediaListController::class, 'update'])->named('media.update')->middleware(Authenticate::class),
+			Route::get('/references/{type:[a-z0-9_-]+}', ReferencesController::class)->named('references')->middleware(Authenticate::class),
 			Route::get('/entries', EntriesController::class)->named('entries')->middleware(Authenticate::class),
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
 			Route::post('/entries/{id:.+}/duplicate', [EntryController::class, 'duplicate'])->named('entry.duplicate')->middleware(Authenticate::class),

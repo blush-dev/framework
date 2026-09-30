@@ -73,7 +73,7 @@ export function inSentence(name: string): string {
 export function help(field: FieldDescription): string {
 	const how = control(field) === 'lines'
 		? 'One per line.'
-		: (field.type === 'reference' && field.multiple !== false ? 'Separate slugs with commas.' : '');
+		: (field.type === 'reference' && field.multiple !== false && !field.to ? 'Separate slugs with commas.' : '');
 
 	return [field.description ?? '', how].filter((text) => text !== '').join(' ');
 }

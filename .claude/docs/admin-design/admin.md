@@ -54,222 +54,25 @@ taste, formed early and on thin evidence.
 ### Files
 
 ```
-.claude/docs/admin-design/admin.md     this file
-.claude/docs/admin-design/tokens.css   the original prototype tokens (reference only)
-resources/admin/css/tokens.css         the tokens the admin builds from
+docs/ui-design-direction.md     this file
+src/styles/tokens.css           the token definitions
 ```
 
-`AGENTS.md` points here. The theming cascade, and that all color, type,
-radius, spacing and density values come from `resources/admin/css/tokens.css`
-as `var(--token)`, are not negotiable without a deliberate decision.
+Add to `CLAUDE.md`:
 
-### Departures so far
+```md
+## Admin UI
 
-Each is recorded in `.claude/docs/decisions.md`.
+`docs/ui-design-direction.md` describes the intended direction for the admin
+SPA. Read it before writing admin UI. It is a prototype-stage document, not a
+spec — follow it where it fits the project, depart from it where it does not,
+and update it in the same change when you do.
 
-- **Type tokens added** (D-231): `--text-sm` (12px), `--text-xs` (11px),
-  `--text-2xs` (10px), and `--h2` (15px since D-265), so no type size is a
-  literal.
-- **Shared pieces are global classes** in `admin.css` (buttons, panels, pills,
-  tables, stat tiles, notices), not yet `Base*` components; components keep
-  their own layout in scoped styles (D-231). The directory layout follows the
-  repo: `resources/admin/{css,fonts,js/{components,views}}`.
-- **Tables aren't sticky-headed** (D-231): a table that scrolls sideways is its
-  own scroll container.
-- **Only the neutral theme ships** until an account can choose a theme (D-231,
-  D-235).
-- **No autosave or pending changes** (D-233): the writer has nowhere to keep a
-  pending draft, so the editor saves when asked and warns before leaving
-  unsaved work.
-- **Status tabs are links** with `aria-current`, since each is a URL (D-233).
-- **Trash is a tab, not an index status** (D-237): trashed files leave the
-  index, so the Trash tab lists them separately and "All" doesn't include them.
-- **Term use counts are published entries only** (D-236), matching the site's
-  term pages.
-- **No reparenting on delete** (D-236, D-257): a hierarchical taxonomy's
-  terms name their parent, and trashing a parent leaves its children
-  pointing at a missing term, shown at the top level and reported by
-  `content:lint`.
-- **Trees are paged** (D-261, D-263): the All tab, unsearched, lists
-  nesting types in tree order with the Hierarchy section's triangles and
-  18px indent, but 20 rows a page rather than all at once, and a page
-  that starts inside a branch repeats the rows above it, marked
-  **Continued**. Tabs and searches flatten the tree (with the note bar)
-  and show a row's parents before its title. There's no tree/flat switch
-  and no column sorting yet.
-- **Authors are under People** (D-259), not Content's shared taxonomies:
-  they're the public side of accounts.
-- **No list of every type together** (D-240): each content type has its own
-  list, and there's no "All entries" screen. The dashboard's Drafts and
-  Scheduled figures are plain numbers.
-- **Unsaved changes are kept in the browser** (D-240): without autosave, the
-  editor keeps a copy of unsaved changes in `localStorage` as they're made
-  and offers them back when the entry is opened again. That's what makes the
-  offline bar's "changes stay in this browser" true. A save made offline
-  waits and goes ahead when the connection is back.
-- **Conflicts say when, not who** (D-240): a file can change through git or a
-  text editor, so the notice gives the time the file was written and "from
-  the admin or by editing the file itself". **Keep mine** saves this
-  editor's version of every field it shows over theirs; front matter the
-  editor doesn't show stays as theirs.
-- **Validation runs in the admin only** (D-240), from the schema's
-  `required`; the API doesn't refuse to publish yet.
-- **The setup path has only steps that do something** (D-240): the first
-  entry of each page and collection type. "First content type", media, and
-  inviting people join it when their screens exist.
-- **A type's purpose comes from its kind** (D-240): types have no
-  description yet, so an empty type's screen says what pages, collections,
-  or taxonomies are for.
-- **Content health keeps quiet text while checking** (D-240): its result is
-  a summary, not rows, so there's no shape to sketch.
-- **The full navigation** (D-241): screens that don't exist yet are listed
-  and open a "comes next" page. A taxonomy moves when its `types` change
-  in a config file, not in the admin, so there's no toast announcing the
-  move (§8, Sidebar grouping); nav counts are left out until an API gives
-  them cheaply.
-- **The section rail** (D-244): no state dot on Content (without autosave
-  there are no unpublished changes to live entries), no theme button in
-  the top bar (the color scheme is an account preference on Your
-  profile), and no site switcher; the site's mark links
-  to the site. The account's menu is in the top bar. Home's panel has the
-  Dashboard and Content health, then shortcuts.
-- **The command palette** (D-248): the screen's own commands come first
-  (the editor's), then going places and New {singular}, then entries;
-  switching the color scheme saves it to the account.
-- **The Markdown source editor** (D-241): spelling on, and no horizontal
-  padding on inline code (it shifted the text).
-- **The component inserter** (D-243, D-247, D-265, D-268): block
-  components only, with **Image** first under Media (it opens the media
-  picker on images); core ones are grouped by category (Text, Media, Layout,
-  Navigation, Data), and a theme's, the site's, or an extension's by where
-  they come from, which the strip at the foot names. Components are written by full name
-  (`blush/callout`, D-171). An inline component goes at the caret; a leaf
-  or container on lines of its own, with a blank line either side;
-  selected text becomes its label or body. Required props are written
-  empty; defaults aren't written. In the search field, left and right move
-  through the grid only while it's empty. Tab inserts, as Enter does,
-  while typing after a slash, and Escape leaves the slash as text. The
-  panel opened by a slash closes once a component replaces it.
-- **The media picker** (D-246, D-247, D-265, D-268): the library comes
-  from `user/media` newest first, a page at a time with **Show more**,
-  with "Beside This Entry" for a page bundle. The Upload tab (only for
-  `media.upload`; the menu is a plain button without it) takes the
-  library's types as the site allows them (images, sound, video; no
-  PDFs by default), up to PHP's limit, into `user/media/{year}/{month}/`.
-  Inserted images get the library's alt text and caption (D-269); a
-  Replace brings them only where the image had none. An image's own alt
-  text and caption are its own there: the panel never writes them to
-  the library. **Decorative** is empty alt text (D-272): on, the field
-  is hidden (and a library description is offered); off, it shows. It's also
-  **Choose** beside every media field and option, and **Replace** on an
-  image.
-- **The writing surface** (D-245): no `Changes` pill and the save state
-  reads "Unsaved changes" or "Saved 3:46 PM" (no autosave); a save
-  that changes no status (Update, Save draft, ⌘S) is disabled until
-  something changes; nothing sits
-  under the title (D-254); the ⋯ menu has Save draft or
-  Switch to draft, View, Focus mode, and Move to trash (no Copy link or
-  Duplicate); Tab in the body moves focus; the drawer isn't remembered;
-  the footer has no line and column. Below 480px the save state is its
-  dot, with its words read out.
-- **Media** (D-251, D-268, D-269): **Upload** opens the picker on its
-  Upload tab and **Open** goes to the file. A file's screen has a
-  Details panel with Alt text (warned when an image has none) and
-  Caption, saved with **Save**; no file name, credit, "used in",
-  Replace, or Delete yet. Bundle files are in the editor's picker, not
-  the library screen, so their metadata is read but set by hand.
-- **Content types** (D-250): read-only; no field editor, new-type wizard,
-  or delete yet. "Show in the sidebar" and a hierarchy switch aren't type
-  settings in Blush. Entries counts are what the account may edit.
-- **Roles and accounts** (D-249): read-only, with a notice naming where
-  each is changed; no Invite, role checkboxes, or danger zone yet; roles
-  have no description, and the last sign-in stands in for "last active".
-- **Component options** (D-245, D-268): an option set back to its
-  default is removed from the directive; a required one left empty
-  stays as `key=""`. Removing a container removes its body too (D-272). Option changes
-  are applied to the text directly, so they aren't in the field's own
-  undo. Classes and ID are fields; other undeclared attributes are
-  listed.
-- **Vocabulary follows Blush** where it differs: extensions, not addons, and
-  whatever taxonomies a site defines (no built-in Topic).
-- **Markdown reads as it looks** (D-253, then §8's Marking the source in
-  D-265 and D-268): the source is marked as that section's table says.
-  Emphasis is Fira Code's slanted face, not a true italic. Below 480px
-  the header's menus lose their carets, so it fits.
-- **Fira Code is the mono** (D-254, D-255), not IBM Plex Mono: 400, 500,
-  and a real 600 (so bold keeps its width), and a slanted italic (it has
-  none). The writing column is 640px (`--measure`), with nothing between
-  the title and the body.
-- **Editor addresses by handle** (D-253): `/content/{type}/{key}`, under
-  the type's list, not the file's path.
-- **Paths stay out of the UI** (D-254): tables show an entry's address on
-  the site (`/archives/…`), not its file or folder, and untitled entries
-  are "Untitled". Files belong in an info box, later.
-- **Row menus** (D-254): Edit, View and Copy link once live (View archive
-  for terms), and Move to trash; the trash's are Restore as a draft and
-  Delete permanently. Duplicate is there since D-275 (not for terms,
-  as in the prototype), shown with a notice and an Open it link rather
-  than a toast, like the list's other actions. A trashed entry's
-  Preview (D-276) opens a read-only screen in the admin (the prototype's
-  "Opened the editor"), not the themed page. The editor's Slug field
-  (D-277) sits in the Document tab's Publishing group, as the
-  prototype's does, with a "Redirect the old address here" option
-  for a live entry. The floating list opens above the button when there's
-  no room below.
-- **The pinned index page** (D-255): a collection's or taxonomy's
-  landing page. With no checkbox column (no bulk actions yet), the pin
-  sits before the title. It's pinned on the list's first page only, not
-  on every page as "survives … paging" says (D-264). In a tree list its
-  title leaves the triangle's space like the rows below it. The
-  editor's side is done (D-274): the **Index** mark beside the type, a
-  line on the Document tab (under Publishing, as the prototype has it),
-  no type fields, no date or scheduling, and no Move to trash. Not yet:
-  the type screen's switch, or a new type being born with one.
-- **The design refresh of D-265.** From the updated direction: the space
-  scale (`--s-1` to `--s-7`), `--ctl` and `--ctl-sm`, flat surfaces
-  (`--shadow-1: none`), larger radii, and the looser density tokens, in
-  `resources/admin/css/tokens.css`, plus `--drawer` (372px) and
-  `--inserter` (376px). The writing column stays 640px (`--measure`,
-  D-254), not 72ch. Icons are `AdminIcon` with Lucide's paths in
-  `icons.ts` (inline SVGs, not a sprite of `<symbol>`s); `.icon` sets the
-  1.6 stroke.
-- **The compact toggle** (D-265): on each type's list, kept in this
-  browser (`density.ts`), not an account preference yet; compact rows drop
-  the address line.
-- **Four inserters** (D-265): the inline menu lists the inline components
-  except the icon, which has its own picker. The icon picker's groups are
-  Blush's own fourteen categories for the core icons
-  (`resources/icons/blush/categories.json`, `GET icons`' `category`),
-  then a theme's, the site's, or an extension's icons by where they come
-  from. A search selects its best match, so a name and Enter inserts it;
-  otherwise nothing is chosen until clicked. The media picker's kinds are
-  All, Images, Video, Audio, and Files (`GET media`'s `kind=file`).
-- **The Variant select** (D-266) is a native select with Default first,
-  then the component's variants under the active theme (a theme's or an
-  extension's variant of another's component names where it comes from),
-  with the chosen one's description under it. A variant the component
-  doesn't have here is kept, shown as "not available here". Variants
-  aren't previewed.
-- **The Component tab** (D-265, D-268, D-271): named for what it shows,
-  else "Components", with no count. The list is a
-  state behind the one row, as §8 says, plus a **Back to the {object}**
-  row at its top. A blank line after a leaf or container selects it,
-  as one after a block selects the block; inside a container, the
-  container wins.
-- **Every block is an object** (D-268): attributes go at the end of a
-  heading's, paragraph's, or list item's last line, and on a line of
-  their own just above a quote, code block, table, or divider, where
-  the parser reads them (the provisional end-of-block rule doesn't
-  reach those four). An underlined heading given a level becomes one
-  with hashes. Attributes are on by default in `MarkdownConfig`.
-- **An image is Markdown** (D-268): its variants are the classes the
-  active theme lists under `theme.json`'s `variants.image`, not a fixed
-  list; the framework default theme offers Wide, Full Bleed, Float
-  Left, and Float Right only while it's active. The panel keeps a Source
-  line. Without hover, Replace and Remove stay on the image.
-- **Title Case** (D-268, §10) is applied to names across the admin,
-  core component labels included; `titleCase()` builds names from
-  parts ("Edit Page").
+Two things in it are not negotiable without a deliberate decision: the theming
+cascade, and that all color, type, radius, spacing and density values come from
+`src/styles/tokens.css` as `var(--token)`. Never write a literal color,
+font-family or px radius in component CSS.
+```
 
 ---
 
@@ -293,7 +96,10 @@ code and in copy.
 | **Account** | A person who can sign in | User |
 | **Role** | A named set of capabilities, many per account | Group |
 | **Capability** | One permission | Permission, scope |
-| **Component** | An author-inserted directive in Markdown | Directive, shortcode, block |
+| **Element** | Any one thing a document is made of — a paragraph, a heading, a table, a component | Block, node |
+| **Content** | What an element holds, one level down, as shown in its panel | Children, body |
+| **Outline** | The whole document as a list of its elements | Structure, tree, TOC |
+| **Component** | An author-inserted directive in Markdown — one kind of element | Directive, shortcode, block |
 | **Addon** | A server-side extension | Plugin, module, extension |
 | **Media** | The file library | Attachments, assets, uploads |
 | **Index page** | The entry that is a type's archive | Archive settings, listing page |
@@ -488,9 +294,16 @@ Rules that keep it honest:
 
 - **Rail items are labeled**, not icons alone. "Structure" has no guessable
   glyph, and a tooltip is not a label.
-- **Switching sections does not navigate.** It changes what the panel offers;
-  the screen stays put until something in the panel is clicked. The exception
-  is Home, which is a single screen and so navigates directly.
+- **The rail never navigates. Not even once.** Clicking a section changes what
+  the panel offers and nothing else; the work area keeps whatever is open until
+  something in the *panel* is clicked. There is no exception for Home, however
+  tempting a single-screen section makes one — an author halfway through an
+  entry who taps Content to check a term name would lose the entry, and a rule
+  that holds four times out of five is a rule nobody can rely on. Two levels,
+  two jobs: the rail scopes, the panel navigates.
+- Switching sections keeps the current screen's panel item marked
+  `aria-current="page"` when that screen lives in the section being shown, so
+  coming back to a section tells you where you already are.
 - **The panel collapses to nothing**, leaving just the rail. That is the real
   space win, and it beats the old icon-only collapse, which was unreadable.
 - **The cost is one click** to reach anything outside the current section. The
@@ -592,13 +405,50 @@ Row actions live in a `⋯` menu revealed on hover and always present to keyboar
 focus. Bulk selection uses a checkbox column with a tri-state header
 (`aria-checked="mixed"`).
 
+### Selects
+The native `<select>` is the one control a browser refuses to let you style. Its
+closed state can be made to fit; its open list cannot — that popup is drawn by
+the operating system, in the system font, at the system size, with the system's
+idea of a checkmark, and it ignores the admin theme entirely. In an interface
+whose whole argument is one consistent surface, a control that opens a hole in
+that surface is not acceptable, so the admin draws its own.
+
+**The select is still the source of truth.** The real `<select>` stays in the
+DOM, holding the value and firing `change`; it is only visually hidden
+(`position:absolute; 1px; opacity:0; clip`, never `display:none`, which would
+drop it from the form). A sibling button draws the current label and a caret,
+and opening it builds the list from `sel.options`. Every screen keeps writing
+options into the select and toggling `hidden`/`disabled` on it exactly as
+before — none of them know the enhancement exists. A `MutationObserver` on
+`childList`, `subtree` and the `hidden`/`disabled` attributes re-runs the
+enhancement and re-syncs the labels on the next frame, so a re-rendered panel
+never leaves a stale button behind.
+
+```
+enhanceSelects()   wrap every select:not([data-xs])
+syncXsel(sel)      button label, hidden and disabled follow the select
+toggleXsel(btn)    build .xs-list from sel.options, honoring data-depth
+```
+
+Requirements on the drawn list: it takes the trigger's width and flips above
+when it would overflow; the current option is checked, not merely tinted;
+`data-depth` on an option becomes indentation, which is how hierarchy reaches
+the list (see *The parent dropdown shows the tree*); Escape closes the list
+before anything else handles the key; and a click outside closes it. The button
+carries `aria-expanded`, and the hidden select keeps the accessible name.
+
+**Width is opt-in, not inherited.** The wrapper is `width:auto` by default, with
+`as-inp` and `as-val` stretching to 100% and `as-sel` sitting `flex:none` in a
+toolbar row. A drop-in replacement that silently makes every filter full-width
+is not a drop-in replacement.
+
 ### Tabs, toolbar, filters
 Status tabs with counts sit directly under the page header. Filters live in one
 row below them: search, then selects, then toggles, with view/density controls
 pushed right. A **Clear filters** button appears only when a filter is active.
 
 ### Bulk bar
-Floating pill, fixed to the bottom centre, appearing only with a selection.
+Floating pill, fixed to the bottom center, appearing only with a selection.
 Carries the count, the safe actions, a divider, then destructive actions, then
 Clear. It respects the bottom safe-area inset.
 
@@ -644,25 +494,43 @@ of it you notice.
   than sliding over the text, so nothing is hidden behind a panel while it is
   open. Closed by default; ⌘/ or the header button opens it. Below 980px there
   is no room to push, so it overlays instead.
-- **Two tabs in the drawer, both always visible**: *Document* for the entry,
-  *Component* for whatever the caret is inside. Neither replaces the other's
-  header and there is no back arrow — you can always see where you are and what
-  the alternative is. The Component tab is disabled with no selection, and names
-  the component when there is one.
+- **Two tabs in the drawer, both always visible**: one for the entry, one for
+  whatever the caret is inside. Neither replaces the other's header and there is
+  no back arrow — you can always see where you are and what the alternative is.
+- **Both tabs are named for what they hold, not for what they are.** The first
+  is **the content type's own name** — *Post*, *Page*, *Release*, *Topic* — not
+  "Document", because "document" is a word about software and a writer opening
+  this drawer is editing a post. The second **renames itself to what it is
+  showing**: "Callout", "Heading 2", "List", falling back to *Elements* for the
+  outline or an empty selection. The panel under it changes every time the caret
+  moves, so a constant label would be the one thing on screen not telling you
+  anything. (`singular` is stored lowercase for use inside sentences — "New
+  post" — so a name standing on its own is title-cased at the point of use.)
 - **The tabs sit left, the close button sits right.** Tabs stretched to fill the
   width read as segmented buttons, not tabs, and a panel with no visible way to
   shut it sends people hunting the toolbar for the control that opened it. The
   first tab is **flush with the panel's edge**: its own padding lines its label
   up with the fields below, so the whole drawer shares one left edge.
-- **The Component tab is never disabled.** A disabled tab is a dead end that
-  still costs a click to discover. With nothing selected it says so and shows
-  **Components in this entry** — the list of every component in the document,
-  each one a way to select it. So the tab always answers a question: either
-  "what is this component" or "what components are in here". The tab carries the
-  count, and the list stays under the options once something *is* selected, with
-  the current one marked.
-- **That list does not live on the Document tab.** It is the index to what the
-  Component tab shows, not a property of the entry.
+- **The element tab is never disabled.** A disabled tab is a dead end that still
+  costs a click to discover. It names whatever the caret is in, and in the rare
+  state where the caret is nowhere it says so in words.
+- **The Outline is a drilldown inside the entry tab, not a third tab and not a
+  borrowed one.** "What is in this entry" is a question about the entry, so it
+  is asked where the entry's other properties are: one quiet row at the foot of
+  that tab, opening a panel *over* its fields with a way back.
+
+  ```
+  ←  Post / Outline                            36
+  ```
+
+  The path says what you left as well as where you are, so the panel reads as
+  gone-one-level-deeper rather than replaced, and the tab above stays on **Post**
+  the whole time — borrowing the element tab to show it made the drawer look
+  like it had navigated somewhere else. Opening it also **scrolls the panel back
+  to the top**: the row that opens it sits at the foot of a scrolled panel, and
+  landing halfway down the list hides the elements it starts with. Picking a row
+  selects that element, which is the one moment the element tab takes over,
+  because the panel is now showing that element's options.
 - **The drawer says nothing about `container` / `leaf` / `inline`.** That is the
   syntax's business, not the author's: they can see the shape of the thing in
   the text, and the word adds a vocabulary they never asked to learn.
@@ -672,12 +540,17 @@ of it you notice.
 - **The title is part of the document**, not a form field above it — display
   face, 30px, no box, wrapping to as many lines as it needs, and it scrolls
   away with the text. Enter moves to the body.
-- **The chrome stays put while typing.** The header and footer don't fade
-  or hide as keys move (D-279).
+- **Chrome recedes while typing.** The header and footer fade to a third
+  opacity as soon as keys move and come back on any pointer movement. Nothing
+  disappears; it just stops competing.
 - **Focus mode** (⌘⇧F, or the palette) drops the rail and top bar entirely,
   leaving the column. Escape returns.
-- **The footer is the status line**, not a toolbar: words, reading time, and
-  quiet shortcut hints. Counts belong here, out of the way, not above the text.
+- **The footer says where you are, and how much you have written.** Two things
+  and nothing else: the **breadcrumb** on the left, **words and reading time**
+  on the right. No shortcut hints — a hint that is always on screen is being
+  read by nobody after the first day, and the space it takes is the space the
+  breadcrumb needs. The commands those hints named live in the editor's own
+  menu, which is where someone goes when they are looking rather than typing.
 - **Attribute blocks are marked, and marked differently from directives.**
   `{.class #id key=value}` can hang off any ordinary Markdown — an image, a
   link, a heading, a paragraph — and an author who cannot see where one ends
@@ -691,10 +564,16 @@ of it you notice.
 - **The toolbar is bigger than the admin's default.** 36px targets and 18px
   icons against 32/16 elsewhere, with more space between them. It is the most
   used toolbar in the product and the one people reach for without looking.
-- **A selected component is named, not opened.** When the drawer is closed and
-  the caret enters a directive, a chip appears in the footer — "Callout
-  options" — and opens the drawer only if clicked. Interrupting writing to show
-  a panel nobody asked for is the thing this design is against.
+- **A selected element is named, not opened.** The breadcrumb follows the caret
+  whether the drawer is open or shut, and opens it only when a crumb is clicked.
+  Interrupting writing to show a panel nobody asked for is the thing this design
+  is against.
+- **The editor opens with both panels closed.** The section panel collapses on
+  the way in and the settings drawer starts shut, so an entry opens as a column
+  of text and nothing else. The list of other things you could be working on is
+  not what you came here for. Both reopen on request, and **the section panel is
+  put back the way it was found** when you leave — collapsing it for the editor
+  is a courtesy, not a setting the editor gets to change on your behalf.
 - **Unpublished changes are ordinary, not exceptional.** They get a small
   `Changes` pill beside the status and the primary button reading **Update** —
   no banner. Discard lives in the overflow menu. A bar across the top of the
@@ -746,7 +625,8 @@ also why headings are told apart by weight rather than size.
 | List | Marker `--fg-2` at 600; text untouched |
 | Task | `[ ]` dim, `[x]` in `--good`; the text is never struck through |
 | Rule | `--fg-2` at 500 — it is a divider, it should divide |
-| Table | Pipes dim, cells normal, the delimiter row dim throughout |
+| Table | Pipes dim; **header row cells full ink at 600**; the delimiter row dim except its alignment colons, which are `--fg-2` at 600 |
+| Definition list | The term's line full ink at 600; the `:` dim; the definition full ink |
 | Fence | Delimiters and body on a `--surface-2` slab, language named in `--fg-2` |
 | Footnote | Reference and definition marker in the accent |
 | Directive | Prefix dim, **name in the accent**, label in full ink |
@@ -769,10 +649,126 @@ Three consequences worth keeping:
   them. The body is the writing; putting a tint behind three paragraphs an author
   is in the middle of is the opposite of a writing surface, and the two marked
   lines already say where the container starts and stops.
+- **A selection is a tint, not a fill.** The textarea's own text is transparent —
+  every color on screen comes from the `<pre>` underneath it — so an opaque
+  selection background paints over the only legible copy of the text. The
+  selection is a translucent accent (`color-mix`, ~26%) on the textarea, and
+  transparent on the `<pre>`, so selected text keeps its highlighting and its
+  contrast. This is the same class of bug as the advance-width rule: two layers
+  drawing the same characters, and only one of them being looked at.
+- **Some lines cannot tell you what they are.** A table's header row is a table
+  row, and a definition list's term is a plain line of prose; only the block scan
+  knows which is which. So the scan tells the highlighter — a set of line offsets
+  passed in — rather than the highlighter guessing from the line alone.
 - **Valid syntax is the only syntax that lights up.** A brace that is not an
   attribute block, a `*` that closes nothing, a `[` with no `]` — all stay plain
   text. The highlighting doubles as a syntax check: if it did not light up, it
   will not parse.
+
+### The document panel
+The Document tab holds everything about the entry that is not its text, which is
+a lot of different kinds of thing. It works because it is a **list of label →
+value rows**, not a stack of form fields.
+
+```
+Status      ✓ Published        ⌄
+Visibility  ◉ Public           ⌄
+Date        Tue 29 Sep 2026  08:20 am  ⌄
+Slug        grid-survives-editors
+```
+
+The label states the question in flat ink; the value answers it in the accent
+and opens whatever control that answer needs. **Boxes are spent only on things
+you type into.** Ten bordered inputs stacked down a sidebar make ten identical
+targets out of ten different decisions; a row list makes the *answers* the thing
+you scan, which is what someone opening this panel came for.
+
+Order is by how often it is touched: **Publish, Featured Image, Authors,
+taxonomies, Summary, custom fields.** Every group has a heading, and a heading
+may carry one piece of **right-aligned meta** — "2 selected", "84 / 160" — so a
+glance tells you the state of a group you are not looking at.
+
+**Status and Visibility are the same shape of decision**, so they share one
+menu: a short list where every option carries a line saying what it *does*
+("Not on the site. Only editors see it", "Readers need the password you set").
+A status a person picks once a week is worth one sentence of explanation.
+
+**The date opens a month.** Monday-first grid, today ringed, the chosen day
+tinted — **soft, not solid**: a filled accent square is the loudest thing in the
+panel and it is only saying "this one". A line under the rows says what the date
+**means** — "Goes live 6 days from now", "Published today" — because a date on
+its own is a fact an author still has to do arithmetic on.
+
+**Time is two fields and a switch, on a 12-hour clock.**
+
+```
+[08] : [20]   ( AM | PM )
+```
+
+Two short monospace inputs and a two-button group — not one string to parse, and
+not the native `<input type="time">`, which brings its own AM/PM widget, its own
+clock glyph and its own idea of what a control looks like, none of which match
+anything else here. The fields are `type="text"` with `inputmode="numeric"` and
+`maxlength="2"`, so a phone offers digits without the browser also offering a
+stepper. Hours read 1–12, and noon and midnight are written `12`, not `00` — the
+one place where padding a number would say the wrong thing. AM/PM is a
+`role="group"` pair with `aria-pressed`, not a select: a two-way choice that is
+always on screen should not cost a click to read. Storage stays a `Date`;
+12-hour is a presentation layer applied on render and undone on commit.
+
+**Accent is ink here, not fill.** Values, links and the selected day are
+accent-colored *text*; the only solid accent in the whole panel is a checked
+checkbox. Tags are neutral chips with a border. A sidebar of blue fills reads as
+a sidebar of buttons.
+
+**A hierarchical taxonomy is one box, not three controls.** Search, tree and
+*New Topic* share a single bordered container with dividers between them — three
+boxes with gaps between them read as three unrelated things that happen to be
+stacked. Every row carries its entry count, because a term's weight is worth
+knowing *before* you file something under it. Searching keeps a matched term's
+ancestors visible, and indentation rather than disclosure triangles carries
+depth: you are picking, not browsing. The footer opens an inline **name +
+parent** form, so a term is created where the author is already looking.
+
+**The parent dropdown shows the tree, not an index.** Options come out in tree
+order, each carrying its depth, and the list indents them accordingly:
+
+```
+Typography
+  Variable fonts
+  Specimens
+Interfaces
+  Tables
+Field notes
+```
+
+A flat alphabetical list of candidate parents is technically complete and
+practically useless — it hides the shape you are adding to, which is the only
+thing you are looking at the list to learn. The same rule governs the **entry
+parent** selector on hierarchical content types.
+
+**A flat taxonomy is a token field.** Chips and a bare input share one box.
+Typing filters, Enter takes the first suggestion, Enter with nothing matching
+**creates the tag**, Backspace on an empty input removes the last chip.
+
+**Authors are people, not a select.** Each one is an avatar, a name and a role,
+with the first marked *Lead*; removing is an × that appears on hover. Adding is
+a **search**, because a site with forty accounts makes a dropdown useless and the
+same field still works at four. A type declares whether it takes more than one.
+
+**An entry always has at least one author.** With one author left, the × is not
+shown and the handler refuses the removal — the rule is enforced in the data
+path, not only in the markup. Under the search sits one line of copy saying why
+("An entry always has at least one author, so this one cannot be removed until
+another is added"), because a control that silently stops working reads as
+broken. To hand an entry over, you add the new author first and then remove
+yourself; there is no moment where the entry belongs to nobody.
+
+**The featured image reuses the image component**, at 16:9 rather than 4:3
+because that is the shape it will be used in, with the same hover Replace and
+Remove over a veil. One preview component, two places; the alternative is two
+things that look alike and behave differently. It appears only for types that
+declare one — a switch in the type builder beside the index-page switch.
 
 ### The inserters
 Four ways to put something in an entry. The shape of each follows how much of a
@@ -857,16 +853,20 @@ Both modals share one shell: head, filter bar, body, footer, with the primary
 button disabled until something is chosen and labeled for the errand. Two
 libraries that behave differently is two things to learn.
 
-### Every block is an object
-The Component tab does not only show components. **Every block-level thing in
+### Every element is an object
+The element tab does not only show components. **Every block-level thing in
 the source has a panel** — heading, paragraph, list item, quote, code block,
 table, divider, image, directive — because every one of them can take a class or
 an id, and an author should not have to remember where the braces go.
 
-The panel follows the caret. Directives and images win where they overlap,
-because they are more specific; otherwise it shows the plain Markdown block the
-caret is sitting in, named on the tab: *Heading*, *Paragraph*, *List Item*,
-*Code Block*, *Table*, *Quote*, *Divider*.
+**The most specific element wins.** One resolver runs over both scans — the
+directives and the blocks — and takes whichever span containing the caret is
+smallest. Inside a callout the caret is in a *paragraph*, and the callout is
+that paragraph's parent, which is what the breadcrumb is for; the container only
+wins on its own opening or closing line, where there is no block to lose to.
+"Component or block" was never the question a writer is asking, and an editor
+that answers it anyway reports the wrong thing every time a component has
+content in it.
 
 Two controls are the same in every one of them, because the syntax is the same
 everywhere: **Classes** (space separated, without the dots) and **ID**. Above
@@ -876,33 +876,269 @@ them sits whatever else that block has to say:
 |---|---|
 | Heading | Level, 1–6, which rewrites the hashes |
 | Code block | Language, written as the fence's info string |
+| List | Its type — Bulleted, Numbered, Task — and its Content |
 | List item | Whether it is a task, and whether the task is done |
+| Definition list | Its Content: the terms and definitions in it |
 | Image | The picture, alt text and caption |
 | Everything else | Attributes alone |
 
 Rules that keep it from becoming noise:
 
-- **A blank line belongs to the block above it.** Otherwise the panel empties
-  itself every other line as you arrow through a document, which is worse than
-  being a line behind.
+- **A blank line belongs to the element above it — at its own level.** Otherwise
+  the panel empties itself every other line as you arrow through a document,
+  which is worse than being a line behind. The level clause is what keeps it
+  honest: on the blank line under a closed `:::`, walking back naively lands on
+  the container's last paragraph and the breadcrumb then says you are somewhere
+  you have just left. Candidates buried in a container the caret has stepped out
+  of are skipped, so that line resolves to the container itself.
 - **Blocks get no highlight in the source.** The ring means *you are here*, and
   the caret already says that; tinting the whole paragraph you are typing in
   would undo the writing surface.
-- **Blocks are not in "Components in this entry".** That list is objects you
-  placed, not every paragraph you wrote.
-- **The list is a state, not a footer.** Once the panel always has something to
-  show, printing the whole index under every heading and paragraph is padding.
-  Each panel ends with **one quiet row** — icon, "Components in this entry", the
-  count, a chevron — in the same place every time; clicking it replaces the panel
-  with the list, and picking something from the list, or moving the caret, puts
-  the panel back. The list is still one click from anywhere without being on
-  screen when nobody asked for it.
+- **The outline is a state, not a footer.** Once the panel always has something
+  to show, printing the whole index under every heading and paragraph is
+  padding. It is reached from **one quiet row** — icon, "Elements in This
+  Entry", the count, a chevron — at the bottom of the **Document** tab, and only
+  there. Picking a row, or moving the caret, turns the list back into that
+  element's options.
 - **Attributes go where the syntax puts them**: at the end of the block's last
-  line, and after the info string on a code fence. *Provisional:* the placement
-  for tables and dividers follows the same end-of-block rule, which the parser
-  should be checked against.
-- **No footer chip for a block.** The chip names a component when the drawer is
-  closed; doing it for every paragraph would be a label that never goes away.
+  line, after the info string on a code fence, and on a line of its own *above*
+  a list. Three placements, each one the framework's, none of them the editor's
+  invention. *Provisional:* the placement for tables and dividers follows the
+  end-of-block rule, which the parser should be checked against.
+- **A list is an element, and a list item's parent.** Items come out of the scan
+  flat, so the runs and their nesting are rebuilt from indentation into `list`
+  records. A list is what you reach for to restyle the whole thing rather than
+  one line of it, and it is what makes *List Item* a thing with a parent to
+  climb to. An item's `first`/`last` stay on its own text, so an attribute still
+  writes to the right line; its **span** reaches over anything nested under it,
+  so a nested list belongs to the item it was written under rather than to that
+  item's list.
+- **The List panel offers what a list has: its type.** Bulleted, Numbered, Task
+  — switching rewrites every marker at that list's own indent, renumbers as it
+  goes, and leaves nested lists and the items' text alone.
+- **A list carries its attributes on a line above it.** This is the one place
+  the syntax puts an attribute block *before* the thing it describes, because a
+  list has no last line of its own to hang one off:
+
+  ```
+  {.checklist}
+  - list
+  - item
+  - three
+  ```
+
+  So that line is not a paragraph — the scanner skips it and the list claims it,
+  and the list's span reaches up to include it, which is why selecting the list
+  from the outline or the breadcrumb selects the thing the attributes are on.
+  The panel's Classes and ID fields **write the line when it is needed and take
+  it away when both fields are emptied**: a bare `{}` left sitting over a list is
+  litter the author did not write. Everything else keeps attributes at the end
+  of its last line, as before.
+
+### Content: what is inside this one
+An element that holds other elements gets a **Content** group in its panel: a
+list of the level directly beneath it, each row selecting that element the same
+way an outline row does.
+
+```
+CONTENT
+  Term        Container
+  Definition  A component that wraps other content…
+  Term        Leaf
+  Definition  A component that takes a single line.
+```
+
+**One level, never the subtree.** The whole tree is what the Outline is for;
+repeating it inside a panel would make every callout a second outline, and the
+deeper rows belong to the elements that own them — a nested list's items are the
+nested list's business. One level answers the question the panel is being asked:
+what is in *this*.
+
+The elements that hold content are the ones that open a level in the outline:
+**a container directive, a list, a list item, a definition list.** The same
+predicate drives both, so a thing that indents its children in the outline is
+exactly a thing with a Content group, and neither can drift from the other.
+
+Rows are the shared outline row with its indent dropped, because inside a
+Content group everything is one level by definition — and because an element
+should look like itself wherever it is listed.
+
+### Definition lists
+Terms and their definitions, in the syntax the framework reads:
+
+```
+First Term
+: This is the definition of the first term.
+
+Second Term
+: This is the first definition of the second term.
+: This is a second definition for the same term.
+
+Term Three
+Term Four
+: Multiple terms can share a single definition.
+```
+
+- **The marker is exactly one colon.** Two would be a leaf directive, so the
+  scan and the highlighting both require `:` not followed by another.
+- **Groups separated by a single blank line are one list.** That is how they
+  render — three `<dl>`s in a row is not what the author wrote — so the scan
+  keeps walking across one blank line as long as what follows is another
+  term-and-definitions group.
+- **The list, each term and each definition are all elements.** *Definitions* is
+  the container, carrying the count ("4 terms · 4 definitions") and a Content
+  group; *Term* and *Definition* sit inside it and take attributes of their own.
+- A term is a plain line of prose, so nothing about the line says it is a term —
+  see *Marking the source* on why the scan has to tell the highlighter.
+
+### Enter carries the marker
+A list is a run of lines that each repeat a marker, so the editor repeats it.
+Enter at the end of `- The first point` opens `- ` on the next line; Enter in an
+ordered list opens the next number and **renumbers the whole run**, not the tail,
+because a list with an item pushed into the middle is wrong from that point
+down. A task item opens another `[ ]`, unticked.
+
+**Enter on an item with nothing in it ends the list.** The marker goes away and
+the caret lands in a paragraph. That second press is how every editor people
+already use ends a list; without it, the only way out is to delete characters
+you did not type. Blockquotes work identically: Enter carries the `>` down,
+Enter on a bare `>` takes it away. Tables work the same way: Enter opens
+another row with the same columns, and — if the table has no delimiter row yet —
+writes the one the syntax requires first, because a table without it is not a
+table. Enter on a row of empty cells ends the table.
+
+One trap worth naming: a row of empty cells is all pipes and spaces, which the
+delimiter pattern also matches. **A delimiter row is only a delimiter row if it
+has dashes in it**, and every test for one has to say so, or the second Enter
+silently does nothing.
+
+**The escape leaves a blank line above the caret.** A paragraph written straight
+under a list item is a lazy continuation of that item, not a paragraph — so
+ending a list this way has to produce source that actually parses as what the
+author just did. Getting the markers right and the blank line wrong would be a
+bug you only find at publish time.
+
+This is done on the source, not through a rich-text model, because **the source
+is the document**: what the author sees is what gets saved, and every one of
+these edits goes through one write path so the caret, the scan, the highlight
+and the panel can never end up describing different versions of the text.
+
+### The breadcrumb
+The bottom bar's left half says where the caret is, from the entry down to the
+smallest thing holding it:
+
+```
+Post  ›  List  ›  List Item  ›  List  ›  List Item
+```
+
+A line and column number says where you are in a *file*. This says where you
+are in a *document*, which is the question someone writing one actually has —
+and it answers the one a nested structure always raises: what am I inside?
+
+- **The root is the content type**, named the same way the drawer's first tab is
+  — *Post*, *Page*, *Topic*. It is the entry itself, so clicking it opens that
+  tab.
+- **Every crumb is a way in, not a label.** Clicking one moves the caret to that
+  element, scrolls the source to it, and opens the drawer on its options. That
+  includes the ancestors, which is how you select the list a list item is in
+  without hunting for its first line.
+- **Ancestors are containment, computed, not stored.** The path is every element
+  whose span swallows the current one, outermost first. Nothing has to maintain
+  a tree; the same spans that drive the outline drive this.
+- **A component crumb is accent, the rest is flat ink** — the same rule as the
+  source and the outline. The last crumb is the one you are in, so it is full
+  ink and never the one that gets truncated: crumbs shrink from the middle.
+
+### The editor's menu
+Everything the editor can do that is not the one primary button, in a menu
+**to the right of that button** — the last thing in the toolbar, where a menu of
+everything else belongs, rather than wedged between the status and the action.
+
+Sections, because a flat list of eight actions is a list nobody reads:
+
+| Section | Holds |
+|---|---|
+| **View** | Settings panel, Outline, Focus mode, Preview |
+| **Entry** | Copy link, Duplicate, Revisions, — , Move to Trash |
+
+- **No inserters here.** Putting something *into* the entry is the toolbar's job
+  and it is one keystroke away; a menu that repeats the toolbar is a second place
+  to look for the same thing, and the two drift apart the first time one of them
+  gains an item.
+- **The trigger is a vertical ellipsis**, because it sits at the end of a
+  horizontal row of controls. A horizontal one reads as *more of this row*; a
+  vertical one reads as *a list opens below*.
+- **Sections are named, not just divided.** A rule between two groups says they
+  differ; a heading says how.
+- **Shortcuts are printed here**, right-aligned, which is why the footer no
+  longer has to carry them. A menu is where someone looks for a command; a
+  status bar is where they look for a number.
+- **An index page and a taxonomy term lose Duplicate and Move to Trash** — both
+  are singular and permanent. Leaving items out beats showing them disabled; a
+  menu of dead entries reads as a bug.
+- **The destructive item gets a divider**, always.
+
+### The Outline
+One list of everything the document is made of, in source order — the Markdown
+the author wrote and the directives they placed, together:
+
+```
+  Paragraph   An opening paragraph. Nothing here is rendered…
+  Callout     Before you start
+  │ Paragraph   This is a container component. The cursor…
+  Heading 2   How it works
+  Quote       A blockquote keeps the marker faint and the…
+  List        Bulleted · 4 items
+  │ List Item   The first point
+  │ List Item   The second point, with a nested list
+  │ │ List        Numbered · 2 items
+  │ │ │ List Item   Ordered items are marked the same way
+  Table       3 columns
+  Code Block  php · 2 lines
+  Entry List  post
+```
+
+**One list, not two.** Splitting components from Markdown would ask the author
+to know which of the two a thing is before they could go looking for it, and
+that distinction is exactly what the rest of the editor works to stop mattering.
+A table and a callout are both things in the document; the outline is the
+document's shape, and half a shape is no shape.
+
+**Container and leaf level only — inline directives are left out.** A badge or a
+footnote reference lives *inside* a sentence, so it is not something the
+document is made of; listing them would bury the structure under every scrap of
+markup in the prose. The three things that own a line of their own are what
+appear.
+
+**The excerpt is the point.** "Paragraph" eight times in a row tells you nothing
+about the document you are looking at, so every row carries one line of what is
+actually in it: the heading's words, the quote's first sentence, a code block's
+language and length, a table's column count, a component's title attribute. A
+divider has nothing to say and says nothing.
+
+**The type name is a column; the excerpt flows out of it.** Pushing the excerpt
+to the right edge would make a key/value table out of a table of contents. The
+name is quiet mono in a fixed column and the excerpt reads down the page like
+the document it describes.
+
+**The name is accent only when it is a component.** That is the same rule the
+source highlighting follows: the accent means *someone placed this*. Ordinary
+Markdown keeps the flat ink it has everywhere else, so one glance down the list
+separates what was inserted from what was written — and because an image is
+Markdown, an image's name is flat too.
+
+**Depth is containment, drawn with indentation and a hairline.** Anything
+starting before a container closes is inside it — and the things that open a
+level are a container directive, a list, and a list item, which is what puts a
+nested list under the item it was written under. No disclosure triangles: they
+would ask you to open the document a second time to see what is in it.
+
+**A line that is nothing but an image is listed as the image**, not as a
+paragraph that happens to contain one — otherwise the same object appears twice
+under two names.
+
+Every row is a way to select: it puts the caret in that element, scrolls the
+source to it, and turns the panel into that element's options.
 
 ### An image is Markdown
 There is **no figure component**. An image is what Markdown already says it is:
@@ -918,7 +1154,7 @@ things would be a second syntax for one object, and the entry's source would
 then depend on which button the author happened to press.
 
 So the editor makes the Markdown itself selectable. An image is scanned like a
-directive, appears in **Components in this entry**, names the Component tab, and
+directive, appears in **the Outline**, names the element tab, and
 gets the same panel: **Variant** (Default, Wide, Full bleed, Float left, Float
 right), the **image itself**, **Alt text**, and **Caption**.
 
@@ -965,7 +1201,7 @@ callout is a callout whether it is tinted, bordered or compact.
   theme change reaches it.
 - Any other variant writes `variant=key` on the directive, beside the options.
   It is an ordinary attribute, so nothing new is needed to parse it.
-- The selector sits **at the top of the Component tab**, above Options, because
+- The selector sits **at the top of the element tab**, above Options, because
   it usually changes what the options mean.
 - **Themes own the list.** A component ships with the variants its theme
   defines; an entry referring to a variant the current theme does not have falls
@@ -1191,11 +1427,9 @@ does the thing rather than linking to documentation about it.
 
 ### Type-driven variation
 The list screen reads these from the type and changes nothing else:
-`labels`, `icon`, `hierarchical`, and its taxonomy (which produces
-one filter select). The New button, the search field, the empty state, and
-every action toast take their words from `labels` (D-278): the phrases
-(`newItem`, `searchItems`) as they are, and `item` and `items` for nouns
-mid-sentence. The admin never lowercases a type's name itself.
+`label`, `singular`, `icon`, `hierarchical`, and its taxonomy (which produces
+one filter select). The New button, the empty state, and every action toast
+take their noun from `singular`.
 
 ### Permissions
 Capabilities are read-only in this pass, but the UI is capability-aware from
@@ -1290,22 +1524,38 @@ The rest are strong defaults. Break them with a reason, and record it:
   them.
 - Building a master/detail split panel where a list screen and a detail screen
   would do.
+- Letting the icon rail change what is on screen.
+- Spending the editor's status bar on shortcut hints instead of on where the
+  caret is.
+- Showing a structure an author cannot click into, or one that names a list item
+  without offering the list it is in.
+- Reporting the container when the caret is in something inside it.
+- Making Enter end a list any way other than a second Enter on an empty item.
+- Writing source that does not parse as the thing the author just did.
+- Painting an opaque selection over a transparent-text editor.
+- Repeating a whole subtree inside a panel that was asked about one element.
+- Shipping a bare `<select>` whose list an author will see, or replacing one
+  with a widget that no longer holds the value.
+- Showing a native `<input type="time">`, or offering a parent picker that
+  flattens the hierarchy it is picking from.
+- Leaving an entry with no author, or hiding a control without saying why it is
+  gone.
 
 ## 13. Open questions
 
 Unresolved at the time of writing. If you settle one, replace it here with the
 decision.
 
-- *Settled:* API conventions (session cookie and CSRF header, `page`/`per`
-  paging with `total` and `pages`, errors as `{"error"}`; `docs/admin.md`),
-  content type discovery (`GET types`, with `labels`; D-234, D-278),
-  the Markdown surface (a text area over a highlighted copy, D-241), the
-  component inserter (`GET components`, D-243, D-247), the settings' two
-  tabs (D-245), mapping the caret to its directive and rewriting options
-  in place (`markdown.ts`, D-241, D-245), invoking the media picker
-  from an option (**Choose** beside it, D-247), icon categories
-  (`GET icons`' `category` and `source`, D-265), and where a block's
-  attributes go, uploads (`POST media`), and image variants (D-268).
+- API conventions: auth, pagination shape, error format, and how the admin
+  discovers content types at runtime.
+- The editor: Markdown surface, the component inserter, and the right sidebar
+  that swaps between Document fields and Component options.
+- How the parser maps cursor position to the directive under it, and rewrites
+  component options back into the source without disturbing the author's text.
 - The content-type builder's own screens.
+- How the media picker is invoked from a component option.
 - Whether type provenance ("Posts addon", "Custom type") belongs in the list
   header at all — useful at three types, clutter at fifteen.
+- How long a breadcrumb is allowed to get before the middle should collapse into
+  a menu. Five crumbs is the realistic worst case in the prototype, and it fits;
+  a deeply nested outline in real content may not.

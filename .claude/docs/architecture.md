@@ -820,11 +820,17 @@ by source, keeps recents, and writes the directive text). The
   and end in a row menu (`MenuButton`, `floating`; D-254); a
   collection's or taxonomy's landing page is its **index page**, pinned
   in a `tbody` of its own above the rest and answered apart from them
-  as `index` in `GET entries` (D-255). The Component tab follows the
-  caret over three kinds of object (D-268): a directive
-  (`ComponentOptions`), a Markdown image (`ImageOptions`, over
-  `outline()`'s `images`), or a block (`BlockOptions`, over `blocks()`),
-  each writing minimal edits through `markdown.ts`; images' variants are
+  as `index` in `GET entries` (D-255). The element tab follows the
+  caret (D-268, D-280): `elements.ts` resolves the most specific of the
+  directives, images, and blocks (`blocks()`, with lists and definition
+  lists) and builds the outline and breadcrumb from their spans; a
+  directive gets `ComponentOptions`, a Markdown image `ImageOptions`
+  (with `ImagePreview`), and a block `BlockOptions`, each writing
+  minimal edits through `markdown.ts`, which also carries list, quote,
+  and table markers on Enter (`continuation()`). Reference fields use
+  `ReferencePicker` over `GET references/{type}`
+  (`ReferencesController`, D-281); selects are `AdminSelect` and dates
+  `DatePicker`; images' variants are
   the theme's `variants.image` classes (`ComponentVariants::forImages()`,
   `GET components`' `image`). `MediaPicker` has Library and Upload tabs;
   uploads go through `POST media` (`MediaUploadController`: hidden first,

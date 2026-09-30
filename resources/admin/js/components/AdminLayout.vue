@@ -4,9 +4,12 @@
  * Content, Config), the panel beside it with only the active section's
  * links, a top bar, and the work area, the only part that scrolls.
  *
- * Choosing a section changes what the panel offers without leaving the
- * screen; Home is one screen, so it goes there. The panel collapses to
- * nothing (remembered in this browser), leaving the rail, and below 860px
+ * Choosing a section changes what the panel offers and nothing else: the
+ * rail never navigates, Home included, so an entry being written is never
+ * left by a look at another section (admin.md §6). The panel collapses to
+ * nothing (remembered in this browser), leaving the rail. The editor
+ * opens with it collapsed and puts it back as it was on the way out,
+ * without changing what's remembered. Below 860px
  * the rail and panel slide in together as a drawer. The account's menu
  * is in the top bar, with the command palette's button (⌘K anywhere,
  * D-248). While the browser is offline, a bar under the top bar says so. The editor's focus mode drops everything but the work
@@ -166,10 +169,8 @@ const panelSub = computed(() => {
 });
 
 function choose(key: Area): void {
-	collapsed.value = false;
-
-	if (key === 'home') {
-		void router.push({ name: 'dashboard' });
+	if (hidden.value) {
+		toggle();
 	}
 
 	area.value = key;
@@ -190,6 +191,26 @@ function stored(): boolean {
 }
 
 const collapsed = ref(stored());
+
+// The editor's own collapse: the panel shut on the way in, as a
+// courtesy, and whatever it's toggled to while writing; `null` elsewhere,
+// so leaving puts the remembered setting back.
+const writing = computed(() => route.meta.section === 'entries' && route.meta.bleed === true);
+const shut    = ref<boolean | null>(null);
+
+watch(writing, (value) => {
+	shut.value = value ? true : null;
+}, { immediate: true });
+
+const hidden = computed(() => shut.value ?? collapsed.value);
+
+function toggle(): void {
+	if (writing.value) {
+		shut.value = !hidden.value;
+	} else {
+		collapsed.value = !collapsed.value;
+	}
+}
 
 watch(collapsed, (value) => {
 	try {
@@ -275,7 +296,7 @@ async function leave(): Promise<void> {
 </script>
 
 <template>
-	<div class="app" :class="{ 'is-collapsed': collapsed && !narrow, 'is-narrow': narrow, 'is-open': open, 'is-focus': focusMode }">
+	<div class="app" :class="{ 'is-collapsed': hidden && !narrow, 'is-narrow': narrow, 'is-open': open, 'is-focus': focusMode }">
 		<a class="skip-link" href="#main">Skip to content</a>
 
 		<div id="nav-drawer" ref="drawer" class="drawer" :inert="(narrow && !open) || focusMode">
@@ -341,9 +362,9 @@ async function leave(): Promise<void> {
 					<AdminIcon name="menu" />
 					<span class="visually-hidden">Menu</span>
 				</button>
-				<button v-else type="button" class="button button--ghost button--icon" aria-controls="nav-panel" :aria-expanded="!collapsed" @click="collapsed = !collapsed">
+				<button v-else type="button" class="button button--ghost button--icon" aria-controls="nav-panel" :aria-expanded="!hidden" @click="toggle">
 					<AdminIcon name="panel-left" />
-					<span class="visually-hidden">{{ collapsed ? 'Show the section panel' : 'Hide the section panel' }}</span>
+					<span class="visually-hidden">{{ hidden ? 'Show the section panel' : 'Hide the section panel' }}</span>
 				</button>
 				<p class="bar__crumbs">
 					<span class="bar__root">{{ config.site.name }}</span>

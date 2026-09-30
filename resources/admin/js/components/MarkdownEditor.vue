@@ -11,6 +11,19 @@
  * with its text; the editor around it scrolls, counts, and holds the
  * inserters.
  *
+ * Enter in a list item, quote, or table row carries its marker to the
+ * next line, and on an empty one ends it (admin.md §8, Enter carries the
+ * marker). Formatting has its usual keys (D-284): ⌘B strong, ⌘I
+ * emphasis, ⌘E code, and ⌘⇧X struck text, each on or off; ⌘K with text
+ * selected makes it a link (with nothing selected, ⌘K stays the command
+ * palette's); ⌘⌥1 to ⌘⌥6 make the line a heading of that level (again,
+ * a paragraph) and ⌘⌥0 a paragraph; ⌥↑ and ⌥↓ move the line, or the
+ * selected lines, up or down (D-285); and an address pasted over
+ * selected text links it. Tab and
+ * Shift+Tab nest a list item one level deeper or shallower; anywhere else
+ * Tab leaves the field, as in any form. Files dropped or pasted into the
+ * text are passed on (`files`) to upload and insert.
+ *
  * Typing `/` at the start of an empty line reports the query after it
  * (`slash`), so the editor can open the component panel filtered by it;
  * while it's open, the keys that drive the panel are passed on
@@ -22,7 +35,7 @@
 
 import { computed } from 'vue';
 import { ref } from 'vue';
-import { directiveAt, highlight, outline, type Edit } from '../markdown';
+import { continuation, directiveAt, editBetween, highlight, isAddress, linked, movedLines, nested, outline, toggleMark, withHeading, type Change, type Edit, type InlineMark } from '../markdown';
 import { directiveText, type ComponentDescription } from '../components';
 
 const props = defineProps<{
@@ -52,6 +65,8 @@ const emit = defineEmits<{
 	slash: [query: string | null];
 	// A key for the component panel while a slash has it open.
 	slashKey: [key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'];
+	// Files dropped or pasted into the text.
+	files: [files: File[]];
 }>();
 
 const markdown = computed(() => outline(model.value));
@@ -181,9 +196,14 @@ function clicked(event: Event): void {
 	}
 }
 
-// While a slash has the panel open, it takes the keys that drive it.
+// While a slash has the panel open, it takes the keys that drive it;
+// otherwise Enter in a list, quote, or table carries its marker down.
 function keydown(event: KeyboardEvent): void {
 	if (!props.slashOpen || slash.value === null) {
+		if (!shortcut(event)) {
+			carry(event);
+		}
+
 		return;
 	}
 
@@ -197,6 +217,203 @@ function keydown(event: KeyboardEvent): void {
 		}
 
 		emit('slashKey', key);
+	}
+}
+
+const MARKS: Record<string, InlineMark> = { b: '**', i: '*', e: '`', x: '~~' };
+
+/**
+ * The editing keys: formatting, a link, and nesting a list item. Returns
+ * whether the key was used.
+ */
+function shortcut(event: KeyboardEvent): boolean {
+	const element = field.value;
+	const command = event.metaKey || event.ctrlKey;
+	const key     = event.key.toLowerCase();
+
+	if (element === null || props.readonly || event.isComposing) {
+		return false;
+	}
+
+	// Headings by level: the digit's key, since Option changes the
+	// character it types on a Mac.
+	const digit = /^(?:Digit|Numpad)([0-6])$/.exec(event.code)?.[1];
+
+	if (command && event.altKey && !event.shiftKey && digit !== undefined) {
+		event.preventDefault();
+		heading(Number(digit));
+
+		return true;
+	}
+
+	if (event.altKey && !command && !event.shiftKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+		event.preventDefault();
+		move(event.key === 'ArrowUp');
+
+		return true;
+	}
+
+	if (event.altKey) {
+		return false;
+	}
+
+	if (command && (key === 'x' ? event.shiftKey : !event.shiftKey) && MARKS[key] !== undefined) {
+		event.preventDefault();
+		format(MARKS[key]);
+
+		return true;
+	}
+
+	if (command && !event.shiftKey && key === 'k' && element.selectionStart !== element.selectionEnd) {
+		event.preventDefault();
+		event.stopPropagation();
+		link();
+
+		return true;
+	}
+
+	if (key === 'tab' && !command) {
+		const change = nested(element.value, element.selectionStart, element.selectionEnd, event.shiftKey);
+
+		if (change !== null) {
+			event.preventDefault();
+			applyChange(change);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Applies a change to the whole text as one edit undo takes back, and
+ * leaves its selection.
+ */
+function applyChange(change: Change): void {
+	const element = field.value;
+
+	if (element === null) {
+		return;
+	}
+
+	const edit = editBetween(element.value, change.text);
+
+	replace(element, edit.from, edit.to, edit.text);
+	element.setSelectionRange(change.from, change.to);
+	caret.value = change.from;
+}
+
+/**
+ * Turns a mark on or off for the selection.
+ */
+function format(mark: InlineMark): void {
+	const element = field.value;
+
+	if (element !== null && !props.readonly) {
+		applyChange(toggleMark(element.value, element.selectionStart, element.selectionEnd, mark));
+	}
+}
+
+/**
+ * Makes the selected lines headings of a level, or paragraphs (0).
+ */
+function heading(level: number): void {
+	const element = field.value;
+	const change  = element === null || props.readonly ? null : withHeading(element.value, element.selectionStart, element.selectionEnd, level);
+
+	if (change !== null) {
+		applyChange(change);
+	}
+}
+
+/**
+ * Moves the selected lines up or down one line.
+ */
+function move(up: boolean): void {
+	const element = field.value;
+	const change  = element === null || props.readonly ? null : movedLines(element.value, element.selectionStart, element.selectionEnd, up);
+
+	if (change !== null) {
+		applyChange(change);
+	}
+}
+
+/**
+ * Makes the selection a link.
+ */
+function link(): void {
+	const element = field.value;
+
+	if (element !== null && !props.readonly) {
+		applyChange(linked(element.value, element.selectionStart, element.selectionEnd));
+	}
+}
+
+// An address pasted over selected words links them; files are passed on.
+function paste(event: ClipboardEvent): void {
+	const element = field.value;
+	const data    = event.clipboardData;
+
+	if (element === null || data === null || props.readonly) {
+		return;
+	}
+
+	const files = [...data.files];
+
+	if (files.length > 0) {
+		event.preventDefault();
+		emit('files', files);
+
+		return;
+	}
+
+	const text     = data.getData('text/plain');
+	const selected = element.value.slice(element.selectionStart, element.selectionEnd);
+
+	if (selected !== '' && !selected.includes('\n') && !isAddress(selected) && isAddress(text)) {
+		event.preventDefault();
+		applyChange(linked(element.value, element.selectionStart, element.selectionEnd, text.trim()));
+	}
+}
+
+// Files dropped on the text go where the caret is.
+const dropping = ref(false);
+
+function dragover(event: DragEvent): void {
+	if (!props.readonly && [...(event.dataTransfer?.types ?? [])].includes('Files')) {
+		event.preventDefault();
+		dropping.value = true;
+	}
+}
+
+function drop(event: DragEvent): void {
+	dropping.value = false;
+
+	const files = [...(event.dataTransfer?.files ?? [])];
+
+	if (files.length > 0 && !props.readonly) {
+		event.preventDefault();
+		emit('files', files);
+	}
+}
+
+/**
+ * Enter in a list item, quote, or table row starts the next one, and on
+ * an empty one ends it (`continuation()`), as one edit undo takes back.
+ */
+function carry(event: KeyboardEvent): void {
+	const element = field.value;
+
+	if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey || event.isComposing || props.readonly || element === null || element.selectionStart !== element.selectionEnd) {
+		return;
+	}
+
+	const next = continuation(element.value, element.selectionStart);
+
+	if (next !== null) {
+		event.preventDefault();
+		apply(editBetween(element.value, next.text), next.caret);
 	}
 }
 
@@ -376,12 +593,12 @@ function selection(): string {
 	return element === null ? '' : element.value.slice(element.selectionStart, element.selectionEnd);
 }
 
-defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismissSlash });
+defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismissSlash, format, link, heading, move });
 </script>
 
 <template>
 	<div class="md">
-		<div ref="source" class="md__source">
+		<div ref="source" class="md__source" :class="{ 'is-dropping': dropping }" @dragover="dragover" @dragleave="dropping = false" @drop="drop">
 			<pre class="md__highlight" aria-hidden="true" v-html="html" />
 			<textarea
 				:id="props.id"
@@ -399,6 +616,7 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 				@click="clicked"
 				@select="track"
 				@focus="track"
+				@paste="paste"
 			/>
 		</div>
 	</div>
@@ -459,9 +677,21 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 	color: var(--fg-3);
 }
 
+/* The field's text is transparent, so its selection is a tint over the
+   highlighted copy, never a fill that would hide it. */
 .md__field::selection {
-	background: var(--accent-soft);
+	background: color-mix(in srgb, var(--accent) 26%, transparent);
 	color: transparent;
+}
+
+.md__highlight ::selection {
+	background: transparent;
+}
+
+/* A file held over the text says it can be dropped there. */
+.md__source.is-dropping {
+	border-radius: var(--r-2);
+	box-shadow: 0 0 0 2px var(--accent-line);
 }
 
 .md__field:focus-visible {
@@ -515,6 +745,32 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 
 .md__highlight :deep(.md-task--done) {
 	color: var(--good);
+}
+
+/* A table's header cells, and a delimiter row's alignment colons, the
+   one part of it that says something. */
+.md__highlight :deep(.md-th) {
+	color: var(--fg);
+	font-weight: 600;
+}
+
+.md__highlight :deep(.md-th .md-mark) {
+	font-weight: 400;
+}
+
+.md__highlight :deep(.md-talign) {
+	color: var(--fg-2);
+	font-weight: 600;
+}
+
+/* A definition list's term reads heavier; its definitions are prose. */
+.md__highlight :deep(.md-dt) {
+	color: var(--fg);
+	font-weight: 600;
+}
+
+.md__highlight :deep(.md-dd) {
+	color: var(--fg);
 }
 
 /* A rule is a divider: it should divide. */

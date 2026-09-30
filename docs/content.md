@@ -173,6 +173,10 @@ lists, autolinks, and footnotes. On top of that:
   : A flat-file CMS.
   ```
 
+  With attributes on, `{.glossary}` on a line of its own above the list
+  gives the `<dl>` a class, and `{#blush}` at the end of a term or
+  `{.note}` at the end of a definition gives the `<dt>` or `<dd>` one.
+
 - **Highlighting:** `==text==` marks text as highlighted (`<mark>`).
 - Links that start with `/` become full URLs, so they still work in feeds.
 - Raw HTML is allowed.

@@ -4,19 +4,21 @@
  * D-245): one centered column with the title as part of the document and
  * the Markdown body under it (`MarkdownEditor`, D-241); a header with
  * where you are, the save state, the status, and the actions; and a
- * footer that's the status line. Settings are a drawer that pushes the
- * column aside (⌘/), closed at first, with two tabs, left, and a close
- * button, right: **Document** (its publishing, schema fields as a form,
- * other front matter, and its problems) and **Component** (D-265,
- * D-268), which follows the caret: the component it's in
- * (`ComponentOptions`), an image (`ImageOptions`), or else the block of
- * Markdown (`BlockOptions`), each named on the tab. A blank line belongs
- * to the block above it. Each panel ends with one quiet row, **Components
- * in this entry**, which swaps the panel for the list of components and
- * images in it; picking one, or moving the caret, puts the panel back.
- * With nothing selected (above the first block), it says so over that
- * list. With the drawer closed, the footer names the component or image
- * the caret is in instead of opening anything.
+ * footer with the breadcrumb, and words and reading time. It opens with
+ * both panels closed: the layout collapses the section panel while it's
+ * open. Settings are a drawer that pushes the column aside (⌘/), with two
+ * tabs, left, named for what they hold, and a close button, right: the
+ * entry's, named for its type ("Post"), with its publishing, schema
+ * fields, other front matter, and problems, and at its foot one quiet
+ * row into the **Outline** of every element in it, which opens over the
+ * fields with a way back; and the element's, named for the element the
+ * caret is in ("Callout", "Heading 2", else "Elements",
+ * `elements.ts`): the most specific element wins, and a blank line
+ * belongs to the element above it at its own level. It shows that
+ * component's options (`ComponentOptions`), an image's (`ImageOptions`),
+ * or a block's (`BlockOptions`), with a **Content** group, one level
+ * deep, for an element that holds others. The breadcrumb names where the
+ * caret is, from the entry down, and each crumb selects what it names.
  *
  * The header's left half has the four ways to put something in (D-247,
  * D-265): block components, in a panel that slides in from the left and
@@ -26,7 +28,9 @@
  * modal; and inline components, a short menu. Its right half says what
  * the entry is and what happens to it.
  *
- * Focus mode (⌘⇧F) leaves only the column; Escape returns.
+ * Focus mode (⌘⇧F) leaves only the column; Escape returns. The ⋮ menu,
+ * after the primary button, has the rest in two named sections, View and
+ * Entry, with their shortcuts.
  *
  * A save sends only what changed, so untouched keys stay exactly as the
  * file has them, with the revision it was loaded at. Ctrl+S (⌘S) saves.
@@ -54,19 +58,22 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, entryRoute, request, type EntryDetail, type EntryStatus, type FieldDescription, type MediaItem } from '../api';
+import { ApiError, entryPath, entryRoute, request, upload, type EntryDetail, type EntryStatus, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import BlockOptions from '../components/BlockOptions.vue';
 import ComponentOptions from '../components/ComponentOptions.vue';
 import ComponentPanel from '../components/ComponentPanel.vue';
+import DatePicker from '../components/DatePicker.vue';
 import FieldControl from '../components/FieldControl.vue';
+import ImagePreview from '../components/ImagePreview.vue';
+import ReferencePicker from '../components/ReferencePicker.vue';
 import IconPicker from '../components/IconPicker.vue';
 import ImageOptions from '../components/ImageOptions.vue';
 import MarkdownEditor from '../components/MarkdownEditor.vue';
 import MediaPicker from '../components/MediaPicker.vue';
 import MenuButton from '../components/MenuButton.vue';
-import PreviewLinkControl from '../components/PreviewLinkControl.vue';
 import StatusPill from '../components/StatusPill.vue';
+import TypeIcon from '../components/TypeIcon.vue';
 import { BLOCK_KINDS } from '../blocks';
 import { componentIcon, IMAGE_COMPONENT, imageVariants, loadComponents, type ComponentDescription, type ComponentProp } from '../components';
 import { online } from '../connection';
@@ -74,14 +81,17 @@ import { diffLines, type DiffLine } from '../diff';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
 import { formatDate, plural, titleCase } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
-import { attributeText, attributesOf, blockAt, blocks, directiveHead, imageText, outline, unescaped, withAttribute, withImage, withoutDirective, withoutImage, wordCount, type Directive, type Edit } from '../markdown';
+import { childrenOf, elementAt, elementName, excerpt, holdsContent, outlineItems, pathTo, sameElement, type ElementRef, type OutlineItem } from '../elements';
+import { attributeText, blocks, directiveHead, imageText, outline, withAttribute, withImage, withoutDirective, withoutImage, wordCount, type Directive, type Edit } from '../markdown';
 import { forgetBeside } from '../media';
 import { can } from '../session';
+import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
 import { focusMode, screenTitle } from '../screen';
+import { config } from '../config';
 import { toast } from '../toast';
 import { useCommands, type Command } from '../commands';
-import { currentType, labelsOf, loadTypes } from '../types';
+import { authorType, currentType, labelsOf, loadTypes, types } from '../types';
 
 // Fields the editor shows in their own places rather than the form.
 const PLACED = ['title', 'status', 'published', 'slug'];
@@ -156,6 +166,7 @@ const fields    = computed(() => fieldsOf(entry.value));
 const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'published'));
 const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
 const noun      = computed(() => entry.value?.index ? 'index page' : labels.value.item);
+const entryType = computed(() => types.value.find((type) => type.name === entry.value?.type.name));
 const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : labels.value.editItem));
 
 // The navigation marks the entry's type; the top bar names what's edited.
@@ -680,6 +691,172 @@ const secondary = computed<{ label: string; status?: EntryStatus } | null>(() =>
 	return detail.status === 'draft' ? { label: 'Save draft' } : { label: 'Switch to draft', status: 'draft' };
 });
 
+// The Status value's menu: what each status does, in a sentence, and
+// only the ones this account can move it to. Choosing one saves.
+const statusNames: Record<EntryStatus, { label: string; icon: IconName }> = {
+	published: { label: 'Published', icon: 'circle-check' },
+	scheduled: { label: 'Scheduled', icon: 'calendar-clock' },
+	draft: { label: 'Draft', icon: 'file-pen-line' }
+};
+
+const statusOptions = computed(() => {
+	const detail = entry.value;
+
+	if (detail === null) {
+		return [];
+	}
+
+	const options: { status: EntryStatus; label: string; text: string; icon: IconName }[] = [
+		{ status: 'draft', label: 'Draft', text: 'Not on the site. Only people who can edit it see it.', icon: 'file-pen-line' }
+	];
+
+	if (detail.can.publish && future.value) {
+		options.push({ status: 'scheduled', label: 'Scheduled', text: 'Goes live on its date, on its own.', icon: 'calendar-clock' });
+	} else if (detail.can.publish) {
+		options.push({ status: 'published', label: 'Published', text: 'On the site, for anyone to read.', icon: 'circle-check' });
+	}
+
+	if (!options.some((option) => option.status === detail.status)) {
+		options.push({ status: detail.status, ...statusNames[detail.status], text: detail.status === 'scheduled' ? 'Its date has passed, so it goes live the next time it is published.' : 'On the site, for anyone to read.' });
+	}
+
+	return options;
+});
+
+// What the date means, so nobody has to work it out.
+const dateMeaning = computed(() => {
+	const offset = splitDate(entry.value?.values.published)?.offset ?? '';
+	const when   = date.value === '' ? Number.NaN : Date.parse(`${date.value}:00${offset === '' ? '' : offset.replace(/^([+-]\d{2})(\d{2})$/, '$1:$2')}`);
+
+	if (Number.isNaN(when)) {
+		return 'No date yet. It\'s dated when it\'s published.';
+	}
+
+	const difference = when - Date.now();
+	const days       = Math.round(Math.abs(difference) / 86400000);
+	const near       = Math.abs(difference) < 3600000 ? 'within the hour'
+		: (days === 0 ? 'today' : (days === 1 ? (difference > 0 ? 'tomorrow' : 'yesterday') : `${days.toLocaleString()} days ${difference > 0 ? 'from now' : 'ago'}`));
+
+	if (difference > 0) {
+		return entry.value?.status === 'scheduled' ? `Goes live ${near}.` : `Goes live ${near}, once it's scheduled.`;
+	}
+
+	return entry.value?.status === 'published' ? `Published ${near}.` : `Dated ${near}.`;
+});
+
+// The line under Publish: what the date means, and when the file was
+// last written, as a fact about now.
+function ago(iso: string | null): string {
+	const when = iso === null ? Number.NaN : Date.parse(iso);
+
+	if (Number.isNaN(when)) {
+		return '';
+	}
+
+	const minutes = Math.round((Date.now() - when) / 60000);
+
+	if (minutes < 1) {
+		return 'just now';
+	}
+
+	if (minutes < 60) {
+		return `${plural(minutes, 'minute')} ago`;
+	}
+
+	const hours = Math.round(minutes / 60);
+
+	return hours < 24 ? `${plural(hours, 'hour')} ago` : `${plural(Math.round(hours / 24), 'day')} ago`;
+}
+
+const publishNote = computed(() => {
+	const edited = ago(entry.value?.modified ?? null);
+
+	return [dateField.value === undefined ? '' : dateMeaning.value.replace(/\.$/, ''), edited === '' ? '' : `Last edited ${edited}`].filter((part) => part !== '').join(' · ') + '.';
+});
+
+/**
+ * Opens a preview of the entry as last saved, in a new tab: a signed
+ * link (D-226). The tab opens as the menu is chosen, so it isn't
+ * blocked, and goes to the link once it's made.
+ */
+async function preview(): Promise<void> {
+	const detail = entry.value;
+	const tab    = window.open('about:blank', '_blank');
+
+	if (detail === null) {
+		tab?.close();
+
+		return;
+	}
+
+	try {
+		const link = await request<PreviewLink>('POST', '/previews', { entry: detail.id });
+
+		if (tab === null) {
+			window.open(link.url, '_blank', 'noopener');
+		} else {
+			tab.opener = null;
+			tab.location.href = link.url;
+		}
+
+		if (dirty.value) {
+			toast('The preview shows the last saved version');
+		}
+	} catch (caught) {
+		tab?.close();
+		error.value = caught instanceof ApiError ? caught.message : 'The preview couldn\'t be opened.';
+	}
+}
+
+// The Document tab's fields, in the order they're touched (admin.md §8,
+// The document panel): visibility and a term's parent as rows under
+// Publish, then the featured image, the authors, each other reference
+// (a taxonomy's terms, as a picker), the summary, and the type's other
+// fields as a form.
+const visibilityField = computed(() => fields.value.find((field) => field.name === 'visibility' && field.type === 'enum'));
+const parentField     = computed(() => fields.value.find((field) => field.name === 'parent' && field.type === 'reference' && field.multiple === false && field.to !== undefined));
+// A term has no author or featured image of its own (admin.md §8), so
+// those show only when its file has one.
+const term = computed(() => entry.value?.type.kind === 'taxonomy');
+const imageField      = computed(() => fields.value.find((field) => field.name === 'image' && field.type === 'media'));
+const authorField     = computed(() => fields.value.find((field) => field.type === 'reference' && field.to !== undefined && field.to === authorType.value));
+const summaryField    = computed(() => fields.value.find((field) => field.name === 'summary' && field.type === 'markdown'));
+const referenceFields = computed(() => fields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && field !== authorField.value));
+
+const otherFields = computed(() => {
+	const placed = [visibilityField.value, parentField.value, imageField.value, authorField.value, summaryField.value, ...referenceFields.value];
+
+	return fields.value.filter((field) => !placed.includes(field));
+});
+
+function referenceCount(field: FieldDescription): number {
+	return String(form.value[field.name] ?? '').split(',').filter((item) => item.trim() !== '').length;
+}
+
+// Who can reach it (D-082), with what each choice does. Public is the
+// default, so choosing it writes nothing.
+type VisibilityName = 'public' | 'unlisted' | 'hidden';
+
+const visibilityNames: Record<VisibilityName, { label: string; icon: IconName; text: string }> = {
+	public: { label: 'Public', icon: 'eye', text: 'Anyone can read it once it\'s live, and it\'s listed with the others.' },
+	unlisted: { label: 'Unlisted', icon: 'link', text: 'It has an address, but isn\'t in lists, feeds, or the sitemap.' },
+	hidden: { label: 'Hidden', icon: 'eye-off', text: 'No address and not listed. The site\'s templates can still show it.' }
+};
+
+const visibility = computed<VisibilityName>(() => {
+	const value = visibilityField.value === undefined ? '' : String(form.value[visibilityField.value.name] ?? '');
+
+	return value === 'unlisted' || value === 'hidden' ? value : 'public';
+});
+
+function setVisibility(value: VisibilityName): void {
+	const field = visibilityField.value;
+
+	if (field !== undefined) {
+		form.value[field.name] = value === 'public' && (initial.value?.form[field.name] ?? '') === '' ? '' : value;
+	}
+}
+
 // Saving stops while a conflict or an offer of kept changes is open.
 const blocked = computed(() => saving.value || conflict.value !== null || offer.value !== null);
 
@@ -740,7 +917,7 @@ async function showMissing(): Promise<void> {
 const bodyEditor = ref<InstanceType<typeof MarkdownEditor> | null>(null);
 const titleField = ref<HTMLTextAreaElement | null>(null);
 const sideOpen   = ref(false);
-const tab        = ref<'document' | 'component'>('document');
+const tab        = ref<'document' | 'element'>('document');
 const caret      = ref(0);
 const available  = ref<ComponentDescription[]>([]);
 
@@ -893,39 +1070,65 @@ function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): voi
 		action: 'Insert',
 		tab: start,
 		kind,
-		use: (file) => {
-			// A file uploaded beside the entry would be new to its list.
-			if (entry.value !== null) {
-				forgetBeside(entry.value.id);
-			}
-
-			// An image is plain Markdown (on its own line, the site makes it a
-			// figure, with a quoted title as its caption, D-267), with the
-			// library's alt text and caption (D-269; selected text is its
-			// alt text instead), the caret in its alt text when it has
-			// none, and selected, so its panel is next; a video is a video,
-			// a sound audio, and anything else a download.
-			if (file.kind === 'image') {
-				bodyEditor.value?.insertBlock((selected) => imageText(file.reference, selected || file.alt, file.caption));
-				tab.value = 'component';
-				toast(`Inserted ${file.name}`);
-
-				return;
-			}
-
-			const name      = file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file');
-			const component = componentFor(name);
-
-			if (component === undefined) {
-				bodyEditor.value?.insertText(`::blush/${name}{${attributeText('src', file.reference)}}`);
-			} else {
-				bodyEditor.value?.insert(component, { src: file.reference });
-			}
-
-			tab.value = 'component';
-			toast(`Inserted ${file.name}`);
-		}
+		use: insertFile
 	};
+}
+
+/**
+ * Puts a file in the text: an image as plain Markdown (on its own line,
+ * the site makes it a figure, with a quoted title as its caption, D-267),
+ * with the library's alt text and caption (D-269; selected text is its
+ * alt text instead), the caret in its alt text when it has none, and
+ * selected, so its panel is next; a video as a video, a sound as audio,
+ * and anything else as a download.
+ */
+function insertFile(file: MediaItem): void {
+	// A file uploaded beside the entry would be new to its list.
+	if (entry.value !== null) {
+		forgetBeside(entry.value.id);
+	}
+
+	if (file.kind === 'image') {
+		bodyEditor.value?.insertBlock((selected) => imageText(file.reference, selected || file.alt, file.caption));
+		tab.value = 'element';
+		toast(`Inserted ${file.name}`);
+
+		return;
+	}
+
+	const name      = file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file');
+	const component = componentFor(name);
+
+	if (component === undefined) {
+		bodyEditor.value?.insertText(`::blush/${name}{${attributeText('src', file.reference)}}`);
+	} else {
+		bodyEditor.value?.insert(component, { src: file.reference });
+	}
+
+	tab.value = 'element';
+	toast(`Inserted ${file.name}`);
+}
+
+/**
+ * Uploads files dropped or pasted into the text (D-284), one at a time,
+ * and inserts each where the caret is.
+ */
+async function uploadFiles(files: File[]): Promise<void> {
+	if (!uploads.value) {
+		toast('Your account can\'t upload files');
+
+		return;
+	}
+
+	for (const file of files) {
+		toast(`Uploading ${file.name}…`);
+
+		try {
+			insertFile(await upload<MediaItem>('/media', file));
+		} catch (caught) {
+			error.value = `${file.name} wasn't uploaded. ${caught instanceof ApiError ? caught.message : 'Check your connection, then try again.'}`;
+		}
+	}
 }
 
 function pickForField(field: FieldDescription): void {
@@ -1001,10 +1204,20 @@ useCommands(() => {
 	const found: Command[] = [
 		{ id: 'editor-focus', label: focusMode.value ? 'Leave focus mode' : 'Focus mode', icon: 'maximize-2', keywords: 'writing zen distraction', shortcut: '⌘⇧F', run: toggleFocus },
 		{ id: 'editor-settings', label: sideOpen.value ? 'Hide the settings' : 'Show the settings', icon: 'panel-right', keywords: 'document fields sidebar', shortcut: '⌘/', run: toggleSide },
+		{ id: 'editor-outline', label: 'Outline', icon: 'list', keywords: 'elements structure contents blocks', run: () => void showOutline() },
 		{ id: 'editor-component', label: 'Insert a component', icon: 'plus', keywords: 'callout figure block', shortcut: '/', run: () => void togglePanel() },
 		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file library', run: () => pickMedia() },
 		...(uploads.value ? [{ id: 'editor-upload', label: 'Upload a file', icon: 'upload' as const, keywords: 'media image picture video audio add', run: () => pickMedia('upload') }] : []),
 		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
+		{ id: 'editor-bold', label: 'Bold', icon: 'baseline', keywords: 'strong format', shortcut: '⌘B', run: () => bodyEditor.value?.format('**') },
+		{ id: 'editor-italic', label: 'Italic', icon: 'baseline', keywords: 'emphasis format', shortcut: '⌘I', run: () => bodyEditor.value?.format('*') },
+		{ id: 'editor-code', label: 'Inline code', icon: 'code', keywords: 'format monospace', shortcut: '⌘E', run: () => bodyEditor.value?.format('`') },
+		{ id: 'editor-strike', label: 'Strikethrough', icon: 'minus', keywords: 'format delete', shortcut: '⌘⇧X', run: () => bodyEditor.value?.format('~~') },
+		{ id: 'editor-link', label: 'Link', icon: 'link', keywords: 'url address format', shortcut: '⌘K', run: () => bodyEditor.value?.link() },
+		...[1, 2, 3, 4, 5, 6].map((level) => ({ id: `editor-heading-${level}`, label: `Heading ${level}`, icon: 'heading' as const, keywords: 'title level format', shortcut: `⌘⌥${level}`, run: () => bodyEditor.value?.heading(level) })),
+		{ id: 'editor-paragraph', label: 'Paragraph', icon: 'pilcrow', keywords: 'text body format heading', shortcut: '⌘⌥0', run: () => bodyEditor.value?.heading(0) },
+		{ id: 'editor-line-up', label: 'Move line up', icon: 'arrow-up-right', keywords: 'reorder swap', shortcut: '⌥↑', run: () => bodyEditor.value?.move(true) },
+		{ id: 'editor-line-down', label: 'Move line down', icon: 'arrow-down', keywords: 'reorder swap', shortcut: '⌥↓', run: () => bodyEditor.value?.move(false) },
 		{ id: 'editor-save', label: 'Save', icon: 'file-text', shortcut: '⌘S', run: () => void save() }
 	];
 
@@ -1030,54 +1243,27 @@ useCommands(() => {
 const markdown  = computed(() => outline(body.value));
 const allBlocks = computed(() => blocks(markdown.value));
 const words     = computed(() => wordCount(markdown.value));
+const items     = computed(() => outlineItems(body.value, markdown.value, allBlocks.value));
+
+// An element chosen from the outline, a Content group, or the
+// breadcrumb, with where the caret was put for it. It stays chosen while
+// the caret does, since a list and its first item start on one line;
+// moving the caret gives the choice back to `elementAt()`.
+const chosen = ref<{ element: ElementRef; caret: number } | null>(null);
 
 /**
- * What the Component tab shows (D-268): the innermost directive or image
- * the caret is in; else the block it's in, or on a blank line, the block
- * or block directive above it, whichever ends nearer; else nothing.
+ * What the element tab shows (admin.md §8, Every element is an object):
+ * the most specific element the caret is in, or on a blank line the one
+ * above it at the caret's own level; else nothing.
  */
-const selection = computed<{ kind: 'directive' | 'image' | 'block'; index: number } | null>(() => {
-	const at = caret.value;
-	let found: { kind: 'directive' | 'image' | 'block'; index: number } | null = null;
-	let size = Infinity;
+const selection = computed<ElementRef | null>(() => {
+	const choice = chosen.value;
 
-	markdown.value.directives.forEach((item, index) => {
-		if (item.start <= at && at <= item.end && item.end - item.start < size) {
-			found = { kind: 'directive', index };
-			size  = item.end - item.start;
-		}
-	});
-
-	markdown.value.images.forEach((item, index) => {
-		if (item.start <= at && at <= item.end && item.end - item.start < size) {
-			found = { kind: 'image', index };
-			size  = item.end - item.start;
-		}
-	});
-
-	if (found !== null) {
-		return found;
+	if (choice !== null && choice.caret === caret.value) {
+		return choice.element;
 	}
 
-	const index = blockAt(allBlocks.value, at);
-	const block = allBlocks.value[index];
-
-	if (block !== undefined && at <= block.end) {
-		return { kind: 'block', index };
-	}
-
-	let nearest = block?.end ?? -1;
-
-	found = block === undefined ? null : { kind: 'block', index };
-
-	markdown.value.directives.forEach((item, which) => {
-		if (item.kind !== 'inline' && item.end < at && item.end >= nearest) {
-			found   = { kind: 'directive', index: which };
-			nearest = item.end;
-		}
-	});
-
-	return found;
+	return elementAt(markdown.value, allBlocks.value, caret.value);
 });
 
 const directive = computed<Directive | undefined>(() => selection.value?.kind === 'directive' ? markdown.value.directives[selection.value.index] : undefined);
@@ -1092,92 +1278,138 @@ function componentFor(name: string): ComponentDescription | undefined {
 	return available.value.find((component) => component.name === name || component.name === `blush/${name}`);
 }
 
+function componentName(name: string): string {
+	return componentFor(name)?.label ?? humanize(name.replace(/^.*\//, ''));
+}
+
 function componentLabel(item: Directive): string {
-	return componentFor(item.name)?.label ?? humanize(item.name.replace(/^.*\//, ''));
+	return componentName(item.name);
 }
 
 const selected = computed(() => directive.value === undefined ? undefined : componentFor(directive.value.name));
 
-// The Component tab's name and icon: what's selected, else "Components".
-const tabName = computed(() => {
-	if (directive.value !== undefined) {
-		return componentLabel(directive.value);
+// An element's name and icon: a component's, "Image", or its block's.
+function nameOf(element: ElementRef): string {
+	return elementName(markdown.value, allBlocks.value, element, componentName);
+}
+
+function iconOf(element: ElementRef): IconName {
+	if (element.kind === 'directive') {
+		const known = componentFor(markdown.value.directives[element.index]?.name ?? '');
+
+		return known === undefined ? 'code' : componentIcon(known);
 	}
 
-	if (image.value !== undefined) {
-		return 'Image';
-	}
-
-	return block.value === undefined ? 'Components' : BLOCK_KINDS[block.value.kind].label;
-});
-
-const tabIcon = computed(() => {
-	if (directive.value !== undefined) {
-		return selected.value === undefined ? 'code' : componentIcon(selected.value);
-	}
-
-	if (image.value !== undefined) {
+	if (element.kind === 'image') {
 		return 'image';
 	}
 
-	return block.value === undefined ? 'code' : BLOCK_KINDS[block.value.kind].icon;
+	return BLOCK_KINDS[allBlocks.value[element.index]?.kind ?? 'paragraph'].icon;
+}
+
+// Whether an element was placed, not written: a container or leaf
+// component, which the outline and breadcrumb name in the accent.
+function placed(element: ElementRef): boolean {
+	return element.kind === 'directive' && markdown.value.directives[element.index]?.kind !== 'inline';
+}
+
+// The tabs are named for what they hold: the entry's type ("Post"), and
+// the element the caret is in ("Callout", "Heading 2"), else "Elements".
+const typeName = computed(() => titleCase(entry.value?.index ? 'Index page' : labels.value.singular));
+const tabName  = computed(() => selection.value === null ? 'Elements' : nameOf(selection.value));
+const tabIcon  = computed<IconName>(() => selection.value === null ? 'list' : iconOf(selection.value));
+
+// Where the caret is, from the entry down (the breadcrumb): every element
+// holding the selected one, outermost first.
+const path = computed(() => {
+	const current = selection.value;
+	const span    = current === null ? undefined : (current.kind === 'directive' ? markdown.value.directives[current.index] : undefined);
+
+	return pathTo(items.value, current, span);
 });
 
-// Each component and image in the body, in order, with a hint of which
-// one it is. Blocks aren't in it: it's the objects placed, not every
-// paragraph written.
-const used = computed(() => [
-	...markdown.value.directives.map((item, index) => {
-		const values = attributesOf(body.value, item);
-		const known  = componentFor(item.name);
+// A holder's Content group: the elements directly inside it.
+const content = computed(() => selection.value !== null && holdsContent(markdown.value, allBlocks.value, selection.value) ? childrenOf(items.value, selection.value) : null);
 
-		return {
-			key: `directive-${index}`,
-			start: item.start,
-			at: directiveHead(body.value, item).end,
-			current: directive.value === item,
-			label: componentLabel(item),
-			icon: known === undefined ? 'code' as const : componentIcon(known),
-			hint: directiveHead(body.value, item).label?.text || values.title || values.caption || values.src || values.url || values.name || ''
-		};
-	}),
-	...markdown.value.images.map((item, index) => ({
-		key: `image-${index}`,
-		start: item.start,
-		at: item.end,
-		current: image.value === item,
-		label: 'Image',
-		icon: 'image' as const,
-		hint: unescaped(item.title ?? '') || item.src.split('/').pop() || ''
-	}))
-].sort((a, b) => a.start - b.start));
-
-// The list replaces the panel on request; picking from it, moving the
-// caret, or changing tabs puts the panel back.
+// The Outline replaces the Document tab's fields on request, with a way
+// back; picking from it, moving the caret, or changing tabs puts them
+// back.
 const listing = ref(false);
 
 watch([caret, tab], () => {
 	listing.value = false;
 });
 
-async function showList(): Promise<void> {
+async function showOutline(): Promise<void> {
+	sideOpen.value = true;
+	tab.value      = 'document';
+	await nextTick();
 	listing.value = true;
 	await nextTick();
-	document.getElementById('editor-used-heading')?.focus();
+	document.querySelector('.editor__side-inner')?.scrollTo({ top: 0 });
+	document.getElementById('editor-outline-back')?.focus();
 }
 
-function openComponent(item: { at: number }): void {
-	tab.value     = 'component';
-	listing.value = false;
-	bodyEditor.value?.focusAt(item.at);
+/**
+ * Where the caret goes for an element: in a directive's head, after an
+ * image, or at the start of a block's first line.
+ */
+function caretFor(element: ElementRef): number {
+	if (element.kind === 'directive') {
+		const item = markdown.value.directives[element.index];
+
+		return item === undefined ? 0 : directiveHead(body.value, item).end;
+	}
+
+	if (element.kind === 'image') {
+		return markdown.value.images[element.index]?.end ?? 0;
+	}
+
+	const found = allBlocks.value[element.index];
+	const first = markdown.value.lines[found?.first ?? 0];
+
+	return first === undefined ? 0 : first.start + first.text.length - first.text.trimStart().length;
+}
+
+/**
+ * Selects an element: the caret in it, the text scrolled to it, and the
+ * drawer on its options.
+ */
+function select(element: ElementRef): void {
+	const at = caretFor(element);
+
+	sideOpen.value = true;
+	tab.value      = 'element';
+	listing.value  = false;
+	bodyEditor.value?.focusAt(at);
+	chosen.value   = { element: { kind: element.kind, index: element.index }, caret: at };
+}
+
+// A crumb opens what it names: the root, the entry's own tab.
+function openCrumb(item: OutlineItem | null): void {
+	if (item === null) {
+		sideOpen.value = true;
+		tab.value      = 'document';
+		listing.value  = false;
+
+		return;
+	}
+
+	select(item);
+}
+
+function outlineText(item: ElementRef): string {
+	return excerpt(body.value, markdown.value, allBlocks.value, item);
 }
 
 /**
  * Applies an option's edit to the body directly (so typing in the
- * settings keeps its focus), keeping the caret on the same text.
+ * settings keeps its focus), keeping the caret on the same text, and
+ * the element chosen with it.
  */
 function applyOption(edit: Edit): void {
 	const delta = edit.text.length - (edit.to - edit.from);
+	const kept  = chosen.value !== null && chosen.value.caret === caret.value ? chosen.value : null;
 
 	body.value = body.value.slice(0, edit.from) + edit.text + body.value.slice(edit.to);
 
@@ -1185,6 +1417,10 @@ function applyOption(edit: Edit): void {
 		caret.value += delta;
 	} else if (caret.value > edit.from) {
 		caret.value = edit.from + edit.text.length;
+	}
+
+	if (kept !== null) {
+		chosen.value = { element: kept.element, caret: caret.value };
 	}
 }
 
@@ -1210,9 +1446,39 @@ function toggleSide(): void {
 	sideOpen.value = !sideOpen.value;
 }
 
-function showOptions(): void {
-	tab.value      = 'component';
-	sideOpen.value = true;
+// A live entry's full address, to share.
+async function copyLink(): Promise<void> {
+	const url = entry.value?.url ?? null;
+
+	if (url === null) {
+		return;
+	}
+
+	try {
+		await navigator.clipboard.writeText(new URL(url, config.site.url).href);
+		toast('Link copied');
+	} catch {
+		toast("The link couldn't be copied");
+	}
+}
+
+/**
+ * Copies the entry as a draft beside it (D-275), as it was last saved.
+ */
+async function duplicate(): Promise<void> {
+	const detail = entry.value;
+
+	if (detail === null) {
+		return;
+	}
+
+	try {
+		const copy = await request<EntryDetail>('POST', `${entryPath(detail.id)}/duplicate`);
+
+		toast(`Duplicated as a draft: “${copy.title || 'Untitled'}”`);
+	} catch (caught) {
+		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be duplicated.`;
+	}
 }
 
 // Arrow keys move between the two tabs.
@@ -1223,7 +1489,7 @@ function tabKey(event: KeyboardEvent): void {
 
 	event.preventDefault();
 
-	const next = tab.value === 'document' ? 'component' : 'document';
+	const next = tab.value === 'document' ? 'element' : 'document';
 
 	tab.value = next;
 	document.getElementById(`editor-tab-${next}`)?.focus();
@@ -1418,18 +1684,36 @@ function fieldKey(field: FieldDescription): string {
 					<AdminIcon name="panel-right" />
 					<span class="visually-hidden">Settings</span>
 				</button>
+				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked || idle(primary)" @click="save(primary.status)">{{ primary.label }}</button>
 				<MenuButton button-class="button button--ghost button--icon" label="More actions">
 					<template #button>
-						<AdminIcon name="ellipsis" />
+						<AdminIcon name="ellipsis-vertical" />
 					</template>
-					<button v-if="secondary" type="button" class="menu-item" :disabled="blocked || idle(secondary)" @click="save(secondary.status)">
-						<AdminIcon name="file-text" />{{ secondary.label }}
+					<p class="menu-heading">View</p>
+					<button type="button" class="menu-item" @click="toggleSide">
+						<AdminIcon name="panel-right" />{{ sideOpen ? 'Hide the settings panel' : 'Settings panel' }}<kbd class="menu-kbd">⌘/</kbd>
 					</button>
-					<a v-if="entry.url" class="menu-item" :href="entry.url" target="_blank" rel="noopener">
-						<AdminIcon name="external-link" />View<span class="visually-hidden"> the live {{ noun }} (new tab)</span>
-					</a>
+					<button type="button" class="menu-item" @click="showOutline">
+						<AdminIcon name="list" />Outline
+					</button>
 					<button type="button" class="menu-item" @click="toggleFocus">
 						<AdminIcon name="maximize-2" />{{ focusMode ? 'Leave focus mode' : 'Focus mode' }}<kbd class="menu-kbd">⌘⇧F</kbd>
+					</button>
+					<button v-if="!(entry.url && entry.status === 'published')" type="button" class="menu-item" @click="preview">
+						<AdminIcon name="eye" />Preview
+					</button>
+					<a v-if="entry.url && entry.status === 'published'" class="menu-item" :href="entry.url" target="_blank" rel="noopener">
+						<AdminIcon name="external-link" />View<span class="visually-hidden"> the live {{ noun }} (new tab)</span>
+					</a>
+					<p class="menu-heading">Entry</p>
+					<button v-if="secondary" type="button" class="menu-item" :disabled="blocked || idle(secondary)" @click="save(secondary.status)">
+						<AdminIcon name="file-text" />{{ secondary.label }}<kbd v-if="!secondary.status" class="menu-kbd">⌘S</kbd>
+					</button>
+					<button v-if="entry.url && entry.status === 'published'" type="button" class="menu-item" @click="copyLink">
+						<AdminIcon name="link" />Copy link
+					</button>
+					<button v-if="entry.can.duplicate && entry.type.kind !== 'taxonomy'" type="button" class="menu-item" @click="duplicate">
+						<AdminIcon name="copy" />Duplicate
 					</button>
 					<template v-if="entry.can.delete">
 						<div class="menu-divider" />
@@ -1438,7 +1722,6 @@ function fieldKey(field: FieldDescription): string {
 						</button>
 					</template>
 				</MenuButton>
-				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked || idle(primary)" @click="save(primary.status)">{{ primary.label }}</button>
 			</template>
 		</header>
 
@@ -1566,6 +1849,7 @@ function fieldKey(field: FieldDescription): string {
 							:image="selection?.kind === 'image' ? selection.index : -1"
 							@slash="slashed"
 							@slash-key="slashKey"
+							@files="uploadFiles"
 						/>
 					</div>
 
@@ -1579,18 +1863,26 @@ function fieldKey(field: FieldDescription): string {
 				</div>
 
 				<footer v-if="entry" class="editor__foot">
-					<span>{{ count(words, 'word') }}</span>
-					<span class="editor__sep" aria-hidden="true">·</span>
-					<span>{{ Math.max(1, Math.round(words / 220)) }} min read</span>
-					<button v-if="(directive || image) && !(sideOpen && tab === 'component')" type="button" class="editor__chip" @click="showOptions">
-						<AdminIcon :name="tabIcon" />{{ tabName }} options
-					</button>
+					<nav class="editor__crumbs" aria-label="Where the cursor is">
+						<ol>
+							<li>
+								<button type="button" class="editor__crumb editor__crumb--root" :aria-current="path.length === 0 ? 'true' : undefined" @click="openCrumb(null)">
+									<TypeIcon v-if="entryType" :type="entryType" />{{ typeName }}
+								</button>
+							</li>
+							<li v-for="(item, index) in path" :key="`${item.kind}-${item.index}`">
+								<AdminIcon name="chevron-right" class="editor__crumb-sep" />
+								<button type="button" class="editor__crumb" :class="{ 'is-placed': placed(item), 'is-here': index === path.length - 1 }" :aria-current="index === path.length - 1 ? 'true' : undefined" @click="openCrumb(item)">{{ nameOf(item) }}</button>
+							</li>
+						</ol>
+					</nav>
 					<span class="editor__foot-end">
 						<button v-if="focusMode" type="button" class="editor__chip" @click="focusMode = false">
 							<AdminIcon name="x" />Leave focus mode
 						</button>
-						<span class="editor__hide-small">Type <kbd>/</kbd> to insert</span>
-						<span class="editor__hide-small"><kbd>⌘/</kbd> settings</span>
+						<span>{{ count(words, 'word') }}</span>
+						<span class="editor__sep" aria-hidden="true">·</span>
+						<span>{{ Math.max(1, Math.round(words / 220)) }} min read</span>
 					</span>
 				</footer>
 			</div>
@@ -1600,10 +1892,10 @@ function fieldKey(field: FieldDescription): string {
 					<div class="editor__tabs">
 						<div class="editor__tablist" role="tablist" aria-label="Settings" @keydown="tabKey">
 							<button id="editor-tab-document" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-document" :aria-selected="tab === 'document'" :tabindex="tab === 'document' ? 0 : -1" @click="tab = 'document'">
-								<AdminIcon name="file-text" />Document
+								<TypeIcon v-if="entryType" :type="entryType" /><AdminIcon v-else name="file-text" />{{ typeName }}
 							</button>
-							<button id="editor-tab-component" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-component" :aria-selected="tab === 'component'" :tabindex="tab === 'component' ? 0 : -1" @click="tab = 'component'">
-								<AdminIcon :name="tabIcon" />{{ tabName }}
+							<button id="editor-tab-element" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-element" :aria-selected="tab === 'element'" :tabindex="tab === 'element' ? 0 : -1" @click="tab = 'element'">
+								<AdminIcon :name="tabIcon" /><span class="editor__tab-name">{{ tabName }}</span>
 							</button>
 						</div>
 						<button type="button" class="button button--ghost button--icon editor__side-close" @click="sideOpen = false">
@@ -1613,71 +1905,165 @@ function fieldKey(field: FieldDescription): string {
 					</div>
 
 					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" role="tabpanel" aria-labelledby="editor-tab-document">
-						<div class="editor__group">
-							<p class="editor__group-heading">Publishing</p>
-							<p v-if="entry.index" class="field__help">The index page for <strong>{{ labels.plural }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.</p>
-							<div v-if="dateField" class="field">
-								<label for="editor-date">Publish date</label>
-								<input id="editor-date" v-model="date" type="datetime-local" :aria-invalid="errorFor('published') ? 'true' : undefined" :aria-describedby="errorFor('published') ? 'editor-date-help editor-date-error' : 'editor-date-help'">
-								<p id="editor-date-help" class="field__help">A date in the future schedules it.</p>
+						<template v-if="!listing">
+							<div class="editor__group">
+								<p class="editor__group-heading">Publish</p>
+								<dl class="settings">
+									<div class="settings__row">
+										<dt>Status</dt>
+										<dd>
+											<MenuButton v-if="statusOptions.length > 1" :button-class="`settings__value settings__value--${entry.status}`" :label="`Status: ${statusNames[entry.status].label}`" align="start" floating>
+												<template #button>
+													<AdminIcon :name="statusNames[entry.status].icon" /><span class="settings__text">{{ statusNames[entry.status].label }}</span><AdminIcon name="chevron-down" class="settings__caret" />
+												</template>
+												<button v-for="option in statusOptions" :key="option.status" type="button" class="menu-item menu-item--described" :aria-current="option.status === entry.status ? 'true' : undefined" :disabled="option.status !== entry.status && blocked" @click="option.status === entry.status || save(option.status)">
+													<AdminIcon :name="option.status === entry.status ? 'check' : option.icon" />
+													<span>
+														<span class="menu-item__name">{{ option.label }}</span>
+														<span class="menu-item__text">{{ option.text }}</span>
+													</span>
+												</button>
+											</MenuButton>
+											<span v-else class="settings__static" :class="`settings__value--${entry.status}`"><AdminIcon :name="statusNames[entry.status].icon" />{{ statusNames[entry.status].label }}</span>
+										</dd>
+									</div>
+									<div v-if="visibilityField" class="settings__row">
+										<dt>Visibility</dt>
+										<dd>
+											<MenuButton button-class="settings__value" :label="`Visibility: ${visibilityNames[visibility].label}`" align="start" floating>
+												<template #button>
+													<AdminIcon :name="visibilityNames[visibility].icon" /><span class="settings__text">{{ visibilityNames[visibility].label }}</span><AdminIcon name="chevron-down" class="settings__caret" />
+												</template>
+												<button v-for="(option, key) in visibilityNames" :key="key" type="button" class="menu-item menu-item--described" :aria-current="key === visibility ? 'true' : undefined" @click="setVisibility(key)">
+													<AdminIcon :name="key === visibility ? 'check' : option.icon" />
+													<span>
+														<span class="menu-item__name">{{ option.label }}</span>
+														<span class="menu-item__text">{{ option.text }}</span>
+													</span>
+												</button>
+											</MenuButton>
+										</dd>
+									</div>
+									<div v-if="dateField" class="settings__row">
+										<dt><label for="editor-date">{{ future ? 'Goes live' : 'Date' }}</label></dt>
+										<dd>
+											<DatePicker id="editor-date" v-model="date" :invalid="Boolean(errorFor('published'))" :described-by="errorFor('published') ? 'editor-publish-help editor-date-error' : 'editor-publish-help'" />
+										</dd>
+									</div>
+									<div v-if="entry.can.rename" class="settings__row">
+										<dt><label for="editor-slug">Slug</label></dt>
+										<dd>
+											<input id="editor-slug" v-model="slug" class="settings__input mono" autocomplete="off" autocapitalize="none" spellcheck="false" title="Lowercase letters, numbers, and hyphens" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
+										</dd>
+									</div>
+									<div v-if="parentField" class="settings__row">
+										<dt><label :for="`field-${parentField.name}`">Parent</label></dt>
+										<dd>
+											<ReferencePicker :id="`field-${parentField.name}`" :key="fieldKey(parentField)" :field="parentField" :self="entry.slug" plain :model-value="String(form[parentField.name] ?? '')" @update:model-value="form[parentField.name] = $event" />
+										</dd>
+									</div>
+								</dl>
+								<p id="editor-publish-help" class="editor__group-note">{{ publishNote }}</p>
 								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
-							</div>
-							<div v-if="entry.can.rename" class="field">
-								<label for="editor-slug">Slug</label>
-								<input id="editor-slug" v-model="slug" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
-								<p id="editor-slug-help" class="field__help">
-									<template v-if="entry.status === 'published' && slug.trim() !== entry.slug">Saving moves it to <span class="mono">{{ slugAddress ?? 'a new address' }}</span>{{ redirect ? '.' : ', and links to the old address will stop working.' }}</template>
-									<template v-else>Lowercase letters, numbers, and hyphens. {{ entry.status === 'published' ? 'Changing it changes its address.' : 'Its address will end in it.' }}</template>
-								</p>
 								<p v-if="slugError" id="editor-slug-error" class="field__error">{{ slugError }}</p>
-								<label v-if="entry.status === 'published' && slug.trim() !== entry.slug" class="checkbox">
-									<input v-model="redirect" type="checkbox">
-									Redirect the old address here
+								<template v-if="entry.can.rename && entry.status === 'published' && slug.trim() !== entry.slug">
+									<p id="editor-slug-help" class="editor__group-note">Saving moves it to <span class="mono">{{ slugAddress ?? 'a new address' }}</span>{{ redirect ? '.' : ', and links to the old address will stop working.' }}</p>
+									<label class="checkbox">
+										<input v-model="redirect" type="checkbox">
+										Redirect the old address here
+									</label>
+								</template>
+								<p v-else id="editor-slug-help" class="visually-hidden">The slug is lowercase letters, numbers, and hyphens, and the address ends in it.</p>
+								<p v-if="entry.index" class="editor__group-note">The index page for <strong>{{ labels.plural }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.</p>
+							</div>
+
+							<div v-if="imageField && (!term || form[imageField.name])" class="editor__group">
+								<p class="editor__group-heading">Featured Image</p>
+								<ImagePreview :src="String(form[imageField.name] ?? '')" :entry="entry.id" wide noun="the featured image" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
+								<p v-if="!form[imageField.name]" class="field__help">Used in listings, link previews, and at the top of the {{ noun }}, as the theme shows it.</p>
+							</div>
+
+							<div v-if="authorField && (!term || referenceCount(authorField))" class="editor__group">
+								<p class="editor__group-heading">{{ authorField.multiple === false ? 'Author' : 'Authors' }}<span v-if="referenceCount(authorField) > 1" class="editor__group-hint">{{ plural(referenceCount(authorField), 'person', 'people') }}</span></p>
+								<ReferencePicker :id="`field-${authorField.name}`" :key="fieldKey(authorField)" :field="authorField" people :model-value="String(form[authorField.name] ?? '')" :invalid="Boolean(errorFor(authorField.name))" @update:model-value="form[authorField.name] = $event" />
+								<p v-if="errorFor(authorField.name)" class="field__error">{{ errorFor(authorField.name) }}</p>
+							</div>
+
+							<div v-for="field in referenceFields" :key="fieldKey(field)" class="editor__group">
+								<p class="editor__group-heading"><label :for="`field-${field.name}`">{{ titleCase(field.label ?? labelsOf(field.to ?? '').plural) }}</label><span v-if="referenceCount(field)" class="editor__group-hint">{{ referenceCount(field).toLocaleString() }} selected</span></p>
+								<ReferencePicker :id="`field-${field.name}`" :field="field" :model-value="String(form[field.name] ?? '')" :invalid="Boolean(errorFor(field.name))" @update:model-value="form[field.name] = $event" />
+								<p v-if="errorFor(field.name)" class="field__error">{{ errorFor(field.name) }}</p>
+							</div>
+
+							<div v-if="summaryField" class="editor__group">
+								<p class="editor__group-heading"><label :for="`field-${summaryField.name}`">Summary</label><span v-if="String(form[summaryField.name] ?? '').length" class="editor__group-hint">{{ String(form[summaryField.name] ?? '').length }} / 160</span></p>
+								<div class="field">
+									<textarea :id="`field-${summaryField.name}`" :value="String(form[summaryField.name] ?? '')" rows="3" placeholder="Used in listings and feeds. Left empty, the opening words are used." :aria-invalid="errorFor(summaryField.name) ? 'true' : undefined" @input="form[summaryField.name] = ($event.target as HTMLTextAreaElement).value" />
+									<p v-if="errorFor(summaryField.name)" class="field__error">{{ errorFor(summaryField.name) }}</p>
+								</div>
+							</div>
+
+							<div v-if="otherFields.length" class="editor__group">
+								<p class="editor__group-heading">{{ labels.singular }} Fields</p>
+								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
+							</div>
+
+							<div v-if="Object.keys(entry.extra).length" class="editor__group">
+								<p class="editor__group-heading">Other Front Matter <span class="editor__group-hint">Kept as it is</span></p>
+								<dl class="editor__extra">
+									<div v-for="(value, key) in entry.extra" :key="key">
+										<dt class="mono">{{ key }}</dt>
+										<dd class="mono">{{ typeof value === 'string' ? value : JSON.stringify(value) }}</dd>
+									</div>
+								</dl>
+							</div>
+
+							<div v-if="entry.violations.length" class="editor__group">
+								<p class="editor__group-heading">Problems <span class="editor__group-hint">As last saved</span></p>
+								<ul v-if="shown.length" class="editor__problems">
+									<li v-for="(violation, index) in shown" :key="index">
+										<span class="pill" :class="{ 'pill--danger': violation.severity === 'error', 'pill--warn': violation.severity === 'warning' }">{{ humanize(violation.severity) }}</span>
+										<span><code>{{ violation.field }}</code>: {{ violation.message }}</span>
+									</li>
+								</ul>
+								<label v-if="noticeCount" class="checkbox">
+									<input v-model="notices" type="checkbox">
+									Show {{ plural(noticeCount, 'notice') }}
 								</label>
 							</div>
-							<p v-if="entry.url" class="editor__link">
-								<a class="button button--small" :href="entry.url" target="_blank" rel="noopener">
-									<AdminIcon name="external-link" />View<span class="visually-hidden"> the live {{ noun }} (new tab)</span>
-								</a>
-							</p>
-							<div v-else class="editor__preview">
-								<span class="field__help">Preview</span>
-								<PreviewLinkControl :entry="{ id: entry.id, title: entry.title }" />
-							</div>
-						</div>
 
-						<div v-if="fields.length" class="editor__group">
-							<p class="editor__group-heading">{{ labels.singular }} Fields</p>
-							<FieldControl v-for="field in fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
-						</div>
+						<button type="button" class="editor__list-link" @click="showOutline">
+							<AdminIcon name="list" />
+							<span>Outline</span>
+							<span class="editor__list-count mono">{{ items.length }}</span>
+							<AdminIcon name="chevron-right" class="editor__list-go" />
+						</button>
+					</template>
 
-						<div v-if="Object.keys(entry.extra).length" class="editor__group">
-							<p class="editor__group-heading">Other Front Matter <span class="editor__group-hint">Kept as it is</span></p>
-							<dl class="editor__extra">
-								<div v-for="(value, key) in entry.extra" :key="key">
-									<dt class="mono">{{ key }}</dt>
-									<dd class="mono">{{ typeof value === 'string' ? value : JSON.stringify(value) }}</dd>
-								</div>
-							</dl>
-						</div>
+					<template v-else>
+						<button id="editor-outline-back" type="button" class="editor__list-link editor__list-link--back" @click="listing = false">
+							<AdminIcon name="arrow-left" />
+							<span class="editor__back-path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>Outline</strong></span>
+							<span class="editor__list-count mono">{{ items.length }}</span>
+						</button>
 
-						<div v-if="entry.violations.length" class="editor__group">
-							<p class="editor__group-heading">Problems <span class="editor__group-hint">As last saved</span></p>
-							<ul v-if="shown.length" class="editor__problems">
-								<li v-for="(violation, index) in shown" :key="index">
-									<span class="pill" :class="{ 'pill--danger': violation.severity === 'error', 'pill--warn': violation.severity === 'warning' }">{{ humanize(violation.severity) }}</span>
-									<span><code>{{ violation.field }}</code>: {{ violation.message }}</span>
+						<div class="editor__group">
+							<p v-if="!items.length" class="field__help">Nothing yet. Start writing, or use the insert buttons in the header.</p>
+							<ul v-else class="editor__outline">
+								<li v-for="item in items" :key="`${item.kind}-${item.index}`">
+									<button type="button" class="editor__row" :class="{ 'is-current': sameElement(item, selection), 'is-placed': placed(item) }" :style="{ '--depth': item.depth }" :aria-current="sameElement(item, selection) ? 'true' : undefined" @click="select(item)">
+										<AdminIcon :name="iconOf(item)" />
+										<span class="editor__row-name">{{ nameOf(item) }}</span>
+										<span class="editor__row-text">{{ outlineText(item) }}</span>
+									</button>
 								</li>
 							</ul>
-							<label v-if="noticeCount" class="checkbox">
-								<input v-model="notices" type="checkbox">
-								Show {{ plural(noticeCount, 'notice') }}
-							</label>
 						</div>
+					</template>
 					</div>
 
-					<div v-show="tab === 'component'" id="editor-panel-component" role="tabpanel" aria-labelledby="editor-tab-component">
-						<template v-if="selection && !listing">
+					<div v-show="tab === 'element'" id="editor-panel-element" role="tabpanel" aria-labelledby="editor-tab-element">
+						<template v-if="selection">
 							<ComponentOptions
 								v-if="directive"
 								:source="body"
@@ -1686,7 +2072,21 @@ function fieldKey(field: FieldDescription): string {
 								@edit="applyOption"
 								@remove="removeComponent"
 								@pick="pickForOption"
-							/>
+							>
+								<div v-if="content" class="options__group">
+									<p class="options__heading">Content</p>
+									<p v-if="!content.length" class="field__help">Nothing inside it yet.</p>
+									<ul v-else class="editor__outline">
+										<li v-for="item in content" :key="`${item.kind}-${item.index}`">
+											<button type="button" class="editor__row" :class="{ 'is-placed': placed(item) }" @click="select(item)">
+												<AdminIcon :name="iconOf(item)" />
+												<span class="editor__row-name">{{ nameOf(item) }}</span>
+												<span class="editor__row-text">{{ outlineText(item) }}</span>
+											</button>
+										</li>
+									</ul>
+								</div>
+							</ComponentOptions>
 							<ImageOptions
 								v-else-if="image"
 								:key="`image-${selection.index}`"
@@ -1703,43 +2103,32 @@ function fieldKey(field: FieldDescription): string {
 								:key="`block-${selection.index}`"
 								:source="body"
 								:markdown="markdown"
+								:blocks="allBlocks"
 								:block="block"
 								@edit="applyOption"
-							/>
-
-							<button type="button" class="editor__list-link" @click="showList">
-								<AdminIcon name="list" />
-								<span>Components in this {{ noun }}</span>
-								<span class="editor__list-count mono">{{ used.length }}</span>
-								<AdminIcon name="chevron-right" class="editor__list-go" />
-							</button>
+							>
+								<div v-if="content" class="options__group">
+									<p class="options__heading">Content</p>
+									<p v-if="!content.length" class="field__help">Nothing inside it yet.</p>
+									<ul v-else class="editor__outline">
+										<li v-for="item in content" :key="`${item.kind}-${item.index}`">
+											<button type="button" class="editor__row" :class="{ 'is-placed': placed(item) }" @click="select(item)">
+												<AdminIcon :name="iconOf(item)" />
+												<span class="editor__row-name">{{ nameOf(item) }}</span>
+												<span class="editor__row-text">{{ outlineText(item) }}</span>
+											</button>
+										</li>
+									</ul>
+									<p v-if="content.length" class="field__help">{{ plural(content.length, 'element') }} directly inside. What's nested deeper is listed under the one holding it.</p>
+								</div>
+							</BlockOptions>
 						</template>
 
-						<template v-else>
-							<div v-if="!selection" class="editor__none">
-								<AdminIcon name="code" />
-								<p class="editor__none-heading">Nothing Selected</p>
-								<p class="editor__none-text">Put the cursor anywhere in the text, and this panel follows it.</p>
-							</div>
-							<button v-else type="button" class="editor__list-link editor__list-link--back" @click="listing = false">
-								<AdminIcon name="arrow-left" />
-								<span>Back to the {{ inSentence(tabName) }}</span>
-							</button>
-
-							<div class="editor__group">
-								<p id="editor-used-heading" class="editor__group-heading" tabindex="-1">{{ titleCase(`Components in this ${noun}`) }}</p>
-								<p v-if="!used.length" class="field__help">None yet. Use <strong>+</strong> in the header, or type <kbd>/</kbd> at the start of a line.</p>
-								<ul v-else class="editor__used">
-									<li v-for="item in used" :key="item.key">
-										<button type="button" class="editor__used-item" :class="{ 'is-current': item.current }" :aria-current="item.current ? 'true' : undefined" @click="openComponent(item)">
-											<AdminIcon :name="item.icon" />
-											<span class="editor__used-name">{{ item.label }}</span>
-											<span class="editor__used-hint">{{ item.hint }}</span>
-										</button>
-									</li>
-								</ul>
-							</div>
-						</template>
+						<div v-else class="editor__none">
+							<AdminIcon name="list" />
+							<p class="editor__none-heading">Nothing Selected</p>
+							<p class="editor__none-text">The cursor is above the first element. Put it anywhere in the text, and this panel follows it.</p>
+						</div>
 					</div>
 				</div>
 			</aside>
@@ -1865,13 +2254,6 @@ function fieldKey(field: FieldDescription): string {
 .editor__grow {
 	flex: 1;
 	min-width: 0;
-}
-
-.menu-kbd {
-	margin-left: auto;
-	padding-left: 12px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
 }
 
 /* Notices: one bar each, under the header. */
@@ -2033,7 +2415,6 @@ function fieldKey(field: FieldDescription): string {
 .editor__foot {
 	display: flex;
 	flex: none;
-	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--s-2);
 	padding: 11px var(--s-5);
@@ -2049,9 +2430,89 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__foot-end {
 	display: flex;
+	flex: none;
 	align-items: center;
-	gap: 14px;
+	gap: var(--s-2);
 	margin-left: auto;
+	white-space: nowrap;
+}
+
+/* The breadcrumb: where the caret is, from the entry down. Every crumb
+   selects what it names; the middle ones shrink first, so the one the
+   caret is in stays whole. */
+.editor__crumbs {
+	flex: 1;
+	min-width: 0;
+}
+
+.editor__crumbs ol {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.editor__crumbs li {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+	flex-shrink: 1;
+}
+
+.editor__crumbs li:first-child,
+.editor__crumbs li:last-child {
+	flex-shrink: 0;
+}
+
+.editor__crumb {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	padding: 3px 6px;
+	overflow: hidden;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.editor__crumb--root {
+	margin-left: -6px;
+}
+
+.editor__crumb:hover {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.editor__crumb.is-here {
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.editor__crumb.is-placed {
+	color: var(--accent);
+}
+
+.editor__crumb :deep(svg),
+.editor__crumb :deep(.type-icon) {
+	flex: none;
+	width: 12px;
+	height: 12px;
+}
+
+.editor__crumb-sep {
+	flex: none;
+	width: 11px;
+	height: 11px;
+	color: var(--fg-3);
 }
 
 .editor__chip {
@@ -2178,6 +2639,13 @@ function fieldKey(field: FieldDescription): string {
 	padding-left: var(--s-5);
 }
 
+.editor__tab-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.editor__tab :deep(.type-icon),
 .editor__tab svg {
 	flex: none;
 	width: 13px;
@@ -2206,7 +2674,7 @@ function fieldKey(field: FieldDescription): string {
 	border-bottom: 1px solid var(--border);
 }
 
-/* The Component tab with nothing selected says so, over the list. */
+/* The element tab with nothing selected says so. */
 .editor__none {
 	display: grid;
 	justify-items: center;
@@ -2297,66 +2765,257 @@ function fieldKey(field: FieldDescription): string {
 	text-transform: none;
 }
 
-.editor__preview {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
+/* The entry's settings as label → value rows (admin.md §8, The document
+   panel): the question in flat ink, the answer in the accent, filling the
+   row with its caret at the end; boxes only once something is typed. */
+.settings {
+	display: grid;
+	margin: -6px -8px;
 }
 
-.editor__used {
+.settings__row {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	min-height: 36px;
+}
+
+.settings__row dt {
+	flex: none;
+	width: 84px;
+	padding-left: 8px;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+.settings__row dd {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+}
+
+.settings__row dd > :deep(.menu-button),
+.settings__row dd > .reference {
+	flex: 1;
+	min-width: 0;
+}
+
+.settings__row :deep(.settings__value),
+.settings__row :deep(.date),
+.settings__static {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: var(--s-2);
+	width: 100%;
+	min-width: 0;
+	margin: 0;
+	padding: 7px 8px;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--accent);
+	font: inherit;
+	font-size: var(--text-sm);
+	text-align: left;
+	cursor: pointer;
+}
+
+.settings__static {
+	cursor: default;
+}
+
+.settings__row :deep(.settings__value:hover),
+.settings__row :deep(.settings__value[aria-expanded="true"]),
+.settings__row :deep(.date:hover),
+.settings__row :deep(.date[aria-expanded="true"]) {
+	background: var(--surface-2);
+}
+
+/* Status says its state in its own ink, never color alone: an icon and a
+   word go with it. */
+.settings__row :deep(.settings__value--published),
+.settings__value--published {
+	color: var(--good);
+}
+
+.settings__row :deep(.settings__value--draft),
+.settings__value--draft {
+	color: var(--fg-2);
+}
+
+.settings__row :deep(.settings__value svg),
+.settings__static svg {
+	flex: none;
+	width: 14px;
+	height: 14px;
+}
+
+.settings__row :deep(.settings__text) {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.settings__row :deep(.settings__caret),
+.settings__row :deep(.date__caret) {
+	width: 13px;
+	height: 13px;
+	margin-left: auto;
+	color: var(--fg-3);
+}
+
+.settings__input {
+	flex: 1;
+	width: 100%;
+	min-width: 0;
+	padding: 7px 8px;
+	border: 1px solid transparent;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--accent);
+	font-size: var(--text-sm);
+}
+
+.settings__input:hover {
+	background: var(--surface-2);
+}
+
+.settings__input:focus-visible {
+	border-color: var(--accent);
+	outline: none;
+	background: var(--surface);
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.settings__input[aria-invalid="true"] {
+	border-color: var(--danger);
+}
+
+/* In the drawer, typed-into fields are filled wells, as the panel's
+   search fields are. */
+.editor__side :deep(.field input:not([type="checkbox"])),
+.editor__side :deep(.field textarea),
+.editor__side :deep(.select__button:not(.select__button--plain)) {
+	border-color: var(--border);
+	background: var(--bg);
+	font-size: var(--text-sm);
+}
+
+.editor__side :deep(.field input:not([type="checkbox"]):focus-visible),
+.editor__side :deep(.field textarea:focus-visible) {
+	border-color: var(--accent);
+	background: var(--surface);
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* A quiet line under a group, tucked up to what it describes. */
+.editor__group-note {
+	margin-top: -11px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+
+.editor__group-note + .editor__group-note {
+	margin-top: -14px;
+}
+
+/* The Outline, and a Content group: the type name a quiet column, the
+   excerpt flowing out of it, depth drawn as indent and a hairline per
+   level. A component's name is in the accent: someone placed it. */
+.editor__outline {
 	display: grid;
-	gap: 3px;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 2px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
-.editor__used-item {
+.editor__outline li {
+	min-width: 0;
+}
+
+.editor__row {
+	--depth: 0;
 	display: flex;
 	align-items: center;
 	gap: var(--s-2);
 	width: 100%;
-	padding: 8px 10px;
+	min-width: 0;
+	padding: 7px 10px 7px calc(10px + var(--depth) * 13px);
+	overflow: hidden;
 	border: 0;
 	border-radius: var(--r-1);
-	background: none;
+	background: repeating-linear-gradient(to right, var(--border-strong) 0 1px, transparent 1px 13px) 15px 4px / calc(var(--depth) * 13px) calc(100% - 8px) no-repeat;
 	color: var(--fg-2);
 	font-size: var(--text-sm);
 	text-align: left;
 	cursor: pointer;
 }
 
-.editor__used-item:hover {
-	background: var(--surface-2);
+.editor__row:hover {
+	background-color: var(--surface-2);
 	color: var(--fg);
 }
 
-.editor__used-item.is-current {
-	background: var(--accent-soft);
-	color: var(--accent);
+.editor__row.is-current {
+	background-color: var(--accent-soft);
 }
 
-.editor__used-item svg {
+.editor__row svg {
 	flex: none;
 	width: 14px;
 	height: 14px;
+	color: var(--fg-3);
 }
 
-.editor__used-name {
+.editor__row.is-current svg {
 	color: var(--accent);
-	font-weight: 500;
-	white-space: nowrap;
 }
 
-.editor__used-hint {
-	min-width: 0;
-	margin-left: auto;
+/* The type name is a quiet column; the excerpt flows out of it, and both
+   give way to the panel's width rather than overflowing it. */
+.editor__row-name {
+	flex: none;
+	min-width: 74px;
+	max-width: 50%;
 	overflow: hidden;
 	color: var(--fg-3);
+	font-family: var(--font-mono);
 	font-size: var(--text-xs);
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.editor__row.is-placed .editor__row-name,
+.editor__row.is-current .editor__row-name {
+	color: var(--accent);
+}
+
+.editor__row-text {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--fg-2);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.editor__row:hover .editor__row-text {
+	color: var(--fg);
+}
+
+.editor__back-path {
+	color: var(--fg-3);
+}
+
+.editor__back-path strong {
+	color: var(--fg);
+	font-weight: 500;
 }
 
 .editor__extra {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The editor's Component tab (admin.md §8, D-245): the options of the
+ * The editor's element tab for a component (admin.md §8, D-245): the options of the
  * component the caret is in, as a form from its props (`GET components`),
  * written back into its directive as they change. Only the attribute
  * that changed is rewritten; the rest of the author's text stays as it
@@ -27,6 +27,7 @@
 
 import { computed } from 'vue';
 import AdminIcon from './AdminIcon.vue';
+import AdminSelect from './AdminSelect.vue';
 import AttributeFields from './AttributeFields.vue';
 import FieldControl from './FieldControl.vue';
 import type { ComponentDescription, ComponentProp } from '../components';
@@ -57,14 +58,21 @@ const variants = computed(() => props.component?.variants ?? []);
 const variant  = computed(() => attributes.value.variant ?? '');
 const chosen   = computed(() => variants.value.find((item) => item.name === variant.value));
 
-function changeVariant(event: Event): void {
-	const value = (event.target as HTMLSelectElement).value;
+function changeVariant(value: string): void {
 	const edit  = withAttribute(props.source, props.directive, 'variant', value === '' || value === 'default' ? null : value);
 
 	if (edit !== null) {
 		emit('edit', edit);
 	}
 }
+
+// Default first, then the component's variants here, and one it names
+// that isn't here, kept.
+const variantOptions = computed(() => [
+	{ value: '', label: 'Default' },
+	...variants.value.map((item) => ({ value: item.name, label: item.source && item.source.kind !== 'site' ? `${item.label} (${item.source.label})` : item.label })),
+	...(variant.value !== '' && variant.value !== 'default' && !chosen.value ? [{ value: variant.value, label: `${variant.value} (not available here)` }] : [])
+]);
 
 const parts = computed(() => attributeParts(head.value.attributes?.text ?? ''));
 
@@ -140,11 +148,7 @@ const removal = computed(() => {
 			<p class="options__heading">Variant</p>
 			<div class="field">
 				<label class="visually-hidden" for="option-variant">Variant</label>
-				<select id="option-variant" :value="variant === 'default' ? '' : variant" aria-describedby="option-variant-help" @change="changeVariant">
-					<option value="">Default</option>
-					<option v-for="item in variants" :key="item.name" :value="item.name">{{ item.label }}<template v-if="item.source && item.source.kind !== 'site'"> ({{ item.source.label }})</template></option>
-					<option v-if="variant !== '' && variant !== 'default' && !chosen" :value="variant">{{ variant }} (not available here)</option>
-				</select>
+				<AdminSelect id="option-variant" :model-value="variant === 'default' ? '' : variant" :options="variantOptions" described-by="option-variant-help" @update:model-value="changeVariant" />
 				<p id="option-variant-help" class="field__help">
 					<template v-if="chosen">{{ chosen.description || 'A style the theme provides.' }}</template>
 					<template v-else-if="variant !== '' && variant !== 'default'">This site's theme doesn't have it, so it shows as Default.</template>
@@ -185,6 +189,8 @@ const removal = computed(() => {
 				<p class="field__help">Not options of this component; edit them in the text.</p>
 			</template>
 		</div>
+
+		<slot />
 
 		<div class="options__group">
 			<p class="options__heading">Source</p>

@@ -215,7 +215,7 @@ export interface EntryDetail {
 	extra: Record<string, unknown>;
 	body: string;
 	// `rename`: not for a landing page, whose slug is its folder's.
-	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean };
+	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean; duplicate: boolean };
 	violations: Violation[];
 }
 

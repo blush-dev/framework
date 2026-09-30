@@ -7,6 +7,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, entryRoute, request, type EntryDetail } from '../api';
+import AdminSelect from '../components/AdminSelect.vue';
 import { titleCase } from '../format';
 import { screenTitle } from '../screen';
 import { currentType, labelsOf, loadTypes, types } from '../types';
@@ -74,9 +75,7 @@ async function create(): Promise<void> {
 			<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 			<p class="field">
 				<label for="new-type">Type</label>
-				<select id="new-type" v-model="type" required>
-					<option v-for="item in types" :key="item.name" :value="item.name">{{ item.labels.singular }}</option>
-				</select>
+				<AdminSelect id="new-type" v-model="type" :options="types.map((item) => ({ value: item.name, label: item.labels.singular }))" />
 			</p>
 			<p class="field">
 				<label for="new-title">Title</label>
