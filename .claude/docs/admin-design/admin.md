@@ -212,10 +212,11 @@ Each is recorded in `.claude/docs/decisions.md`.
   landing page. With no checkbox column (no bulk actions yet), the pin
   sits before the title. It's pinned on the list's first page only, not
   on every page as "survives … paging" says (D-264). In a tree list its
-  title leaves the triangle's space like the rows below it. Only the
-  tables so far: not the editor's side
-  of the pattern, the type screen's switch, or a new type being born
-  with one; the editor's menu still offers Move to trash.
+  title leaves the triangle's space like the rows below it. The
+  editor's side is done (D-274): the **Index** mark beside the type, a
+  line on the Document tab (under Publishing, as the prototype has it),
+  no type fields, no date or scheduling, and no Move to trash. Not yet:
+  the type screen's switch, or a new type being born with one.
 - **The design refresh of D-265.** From the updated direction: the space
   scale (`--s-1` to `--s-7`), `--ctl` and `--ctl-sm`, flat surfaces
   (`--shadow-1: none`), larger radii, and the looser density tokens, in

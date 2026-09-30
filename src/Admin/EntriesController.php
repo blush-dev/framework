@@ -275,23 +275,13 @@ final readonly class EntriesController
 		return $above;
 	}
 
-
-	/**
-	 * Returns whether an entry is its type's index page, which is never
-	 * trashed from a list.
-	 */
-	private static function isIndex(Entry $entry): bool
-	{
-		return $entry->landing && $entry->type->kind() !== TypeKind::Pages;
-	}
-
 	/**
 	 * Returns the type's index page, if the list's query finds it.
 	 */
 	private function index(Query $query): ?Entry
 	{
 		foreach ($query->names('index')->get() as $entry) {
-			if (self::isIndex($entry) && $entry->locale === $this->app->locale) {
+			if (IndexPage::is($entry) && $entry->locale === $this->app->locale) {
 				return $entry;
 			}
 		}
@@ -329,8 +319,8 @@ final readonly class EntriesController
 			'url'       => $this->urls->entry($entry),
 			'authors'   => $entry->terms($this->config->authorTaxonomy),
 			'own'       => $this->permissions->owns($account, $entry),
-			'index'     => self::isIndex($entry),
-			'can'       => ['delete' => ! self::isIndex($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry)],
+			'index'     => IndexPage::is($entry),
+			'can'       => ['delete' => ! IndexPage::is($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry)],
 			'uses'      => $entry->type instanceof Taxonomy ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors' => $this->ancestors($entry),
 			'depth'     => $tree === null ? null : ($tree['depths'][$entry->id] ?? 0),

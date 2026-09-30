@@ -47,6 +47,11 @@
  *
  * Publishing (and updating a live entry) needs the type's required
  * fields; a draft saves without them.
+ *
+ * A type's index page (D-255, D-274) is marked **Index** beside its type
+ * and says what it is on the Document tab. The server sends it without
+ * the type's fields or a date, so it has no taxonomy fields and can't be
+ * scheduled, and without `can.delete`, so it has no Move to trash.
  */
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -151,7 +156,7 @@ function fieldsOf(detail: EntryDetail | null): FieldDescription[] {
 const fields    = computed(() => fieldsOf(entry.value));
 const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'published'));
 const typeInfo  = computed(() => entry.value === null ? undefined : findType(entry.value.type.name));
-const noun      = computed(() => inSentence(typeInfo.value?.singular ?? (entry.value === null ? 'entry' : humanize(entry.value.type.name))));
+const noun      = computed(() => entry.value?.index ? 'index page' : inSentence(typeInfo.value?.singular ?? (entry.value === null ? 'entry' : humanize(entry.value.type.name))));
 
 // The navigation marks the entry's type; the top bar names what's edited.
 loadTypes().catch(() => undefined);
@@ -1331,6 +1336,7 @@ function fieldKey(field: FieldDescription): string {
 					<span class="visually-hidden">Back to {{ typeInfo?.label ?? humanize(entry.type.name) }}</span>
 				</RouterLink>
 				<span class="editor__where">{{ typeInfo?.label ?? humanize(entry.type.name) }}</span>
+				<span v-if="entry.index" class="index-mark editor__hide-small">Index</span>
 				<span class="editor__divider" aria-hidden="true" />
 				<button type="button" class="button button--ghost button--icon" :class="{ 'is-on': panelOpen }" title="Components ( / )" aria-controls="editor-components" :aria-expanded="panelOpen" @click="togglePanel">
 					<AdminIcon name="plus" />
@@ -1586,6 +1592,7 @@ function fieldKey(field: FieldDescription): string {
 					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" role="tabpanel" aria-labelledby="editor-tab-document">
 						<div class="editor__group">
 							<p class="editor__group-heading">Publishing</p>
+							<p v-if="entry.index" class="field__help">The index page for <strong>{{ typeInfo?.label ?? humanize(entry.type.name) }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.</p>
 							<div v-if="dateField" class="field">
 								<label for="editor-date">Publish date</label>
 								<input id="editor-date" v-model="date" type="datetime-local" :aria-invalid="errorFor('published') ? 'true' : undefined" :aria-describedby="errorFor('published') ? 'editor-date-help editor-date-error' : 'editor-date-help'">

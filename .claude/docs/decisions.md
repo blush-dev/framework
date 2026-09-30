@@ -6088,3 +6088,40 @@ decision, add a new entry that supersedes it and mark the old one
   the change kept this browser signed in and signed the other out, and
   the new password signed in; 390px in dark mode.
 - **Why:** the author asked for the quick wins, this one first.
+
+### D-274: The editor's side of the index page
+- **Date:** 2026-09-30
+- **Decision:** Finishes D-255's editor items, from the design's "The
+  index page is an entry, pinned".
+  - **`IndexPage::is()`** (`Blush\Admin`) is the one test for an index
+    page (a collection's or taxonomy's landing entry), used by the list
+    and the editing API.
+  - **`GET entries/{id}`** answers `index`. An index page's `type.fields`
+    are only `title` and `status`: the type's other fields describe its
+    entries, not its archive, so taxonomy fields, custom fields, and
+    `published` are left out, and anything the file has for them is in
+    `extra` ("kept as it is"), never removed. `can.delete` is false.
+  - **Guarded on the server too:** `DELETE` of an index page is a 422
+    ("… is the index page for Posts, so it can't be moved to the
+    trash"); `status: scheduled` is a 400; `status: published` doesn't
+    date it.
+  - **The editor** marks it **Index** (the list's `index-mark`) beside
+    the type in the header (hidden at 760px and under, with the type),
+    calls it an "index page" (Edit Index Page, toasts), and adds a line
+    at the top of the Document tab's Publishing group: "The index page
+    for **Posts**, where readers find all of them. There's only one, so
+    it can't be moved to the trash." With no date field there's no
+    Schedule; with no `can.delete`, no Move to trash in the menu or the
+    command palette.
+- **Departs from the design:** the prototype's line also says "its slug
+  is the type's URL base"; Blush's index page is the `index` file in
+  the type's folder and has no slug of its own to edit, so the line
+  leaves that out. The type screen's "Has an index page" switch and a
+  new type being born with one still wait for editing types.
+- **Checked:** `composer check` (`AdminEditingTest`: fields, `extra`,
+  `can`, refused trash and schedule, publishing without a date, and the
+  home page still a page); on the jtcom trial in Chrome: the Posts index
+  page shows the mark, the line, no date or type fields, and a menu
+  without Move to trash; an ordinary post has none of it; the Categories
+  index page is marked too.
+- **Why:** the author asked for the quick wins in turn; this was second.

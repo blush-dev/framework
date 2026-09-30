@@ -30,7 +30,6 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Schema\Field;
-use Blush\Content\Schema\Schema;
 use Blush\Content\Schema\Violation;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentTypes;
@@ -72,6 +71,11 @@ use Blush\Support\Slug;
  * `status` is a shortcut: `draft` sets `status: draft`; `published`
  * clears it and dates the entry now if it has no date or a future one;
  * `scheduled` clears it and sets `published` (a future date, required).
+ *
+ * **A type's index page** (`IndexPage`, D-274) is edited without the
+ * type's fields: only its title and status are, and everything else in its
+ * front matter is kept as it is (`extra`). It's never scheduled or
+ * dated by publishing, and never moved to the trash.
  */
 final readonly class EntryController
 {
@@ -267,6 +271,10 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to delete that entry.', Status::Forbidden);
 		}
 
+		if (IndexPage::is($entry)) {
+			return self::error(sprintf('"%s" is the index page for %s, so it can\'t be moved to the trash.', $entry->title, $entry->type->label), Status::UnprocessableContent);
+		}
+
 		if (! is_string($revision)) {
 			return self::error('Send the "revision" you loaded, so no one else\'s change is lost.', Status::PreconditionRequired);
 		}
@@ -327,6 +335,11 @@ final readonly class EntryController
 		$set    = $changes->set;
 		$remove = array_values(array_diff($changes->remove, ['status']));
 		$now    = $this->clock->now();
+		$index  = $entry !== null && IndexPage::is($entry);
+
+		if ($status === 'scheduled' && $index) {
+			throw new InvalidEdit('An index page can\'t be scheduled; publish it or keep it a draft.');
+		}
 
 		unset($set['status']);
 
@@ -346,7 +359,7 @@ final readonly class EntryController
 			$set['published'] = self::dateString($when);
 		}
 
-		if ($status === 'published' && ! isset($set['published']) && ($entry?->published === null || $entry->published > $now)) {
+		if ($status === 'published' && ! $index && ! isset($set['published']) && ($entry?->published === null || $entry->published > $now)) {
 			$set['published'] = self::dateString($now->setTimezone($this->app->timezone()));
 		}
 
@@ -419,8 +432,17 @@ final readonly class EntryController
 	 */
 	private function describe(Account $account, Entry $entry, EditableEntry $file): array
 	{
-		$schema = $this->types->schema($entry->type->name);
-		[$values, $extra] = self::split($schema, $file->frontMatter);
+		$index  = IndexPage::is($entry);
+		$fields = $this->types->schema($entry->type->name)->fields;
+
+		// An index page describes the type's archive, not one of its
+		// entries, so the type's fields don't apply; its title and status
+		// do. With no date field, it can't be scheduled.
+		if ($index) {
+			$fields = array_filter($fields, static fn (Field $field): bool => in_array($field->name, ['title', 'status'], true));
+		}
+
+		[$values, $extra] = self::split($fields, $file->frontMatter);
 
 		return [
 			'id'         => $file->id,
@@ -435,15 +457,16 @@ final readonly class EntryController
 				'name'   => $entry->type->name,
 				'kind'   => $entry->type->kind()->value,
 				'dated'  => $entry->type->dateArchives !== DateArchives::None,
-				'fields' => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $schema->fields))
+				'fields' => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $fields))
 			],
+			'index'      => $index,
 			'values'     => $values,
 			'extra'      => $extra,
 			'body'       => $file->body,
 			'can'        => [
 				'edit'    => $this->permissions->can($account, Capability::ContentEdit, $entry),
 				'publish' => $this->permissions->can($account, Capability::ContentPublish, $entry),
-				'delete'  => $this->permissions->can($account, Capability::ContentDelete, $entry)
+				'delete'  => ! $index && $this->permissions->can($account, Capability::ContentDelete, $entry)
 			],
 			'violations' => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,
@@ -457,15 +480,16 @@ final readonly class EntryController
 	 * Splits front matter into field values by name (from the first of a
 	 * field's name and aliases the file uses) and everything else.
 	 *
+	 * @param  array<array-key, Field> $fields
 	 * @param  array<array-key, mixed> $frontMatter
 	 * @return array{array<string, mixed>, array<string, mixed>}
 	 */
-	private static function split(Schema $schema, array $frontMatter): array
+	private static function split(array $fields, array $frontMatter): array
 	{
 		$values  = [];
 		$claimed = [];
 
-		foreach ($schema->fields as $field) {
+		foreach ($fields as $field) {
 			foreach ([$field->name, ...$field->aliases] as $key) {
 				if (array_key_exists($key, $frontMatter)) {
 					$values[$field->name] ??= $frontMatter[$key];

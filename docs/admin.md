@@ -145,9 +145,9 @@ The **⋯** button at the end of each row has **Edit**, then **View** and
 A collection's or taxonomy's **index page** (the `index.md` in its
 folder, which introduces its archive) is pinned at the top of its list
 with a pin and an **Index** tag, on the list's first page. It isn't
-counted in the list's totals, and it can't be moved to the trash from
-the list. It still follows the tabs and search: it shows only when it
-matches them. Pages have no index page; the site's home page is listed
+counted in the list's totals, and it can't be moved to the trash (see
+[Editing an index page](#editing-an-index-page)). It still follows the
+tabs and search: it shows only when it matches them. Pages have no index page; the site's home page is listed
 with the other pages.
 
 A taxonomy's list (such as Categories) holds its **terms**. Instead of
@@ -238,6 +238,17 @@ If you can't publish, you can save drafts but not publish them.
 Fields the content type marks as required must be filled in to publish,
 schedule, or update a live entry. Anything missing is named at the top
 and marked under the field; a draft saves without them.
+
+### Editing an index page
+
+A type's index page opens in the same editor, marked **Index** beside
+its type, and the Document tab says what it is. It introduces the
+type's archive rather than being one of its entries, so it leaves out
+what doesn't apply: the type's fields (such as categories or a
+subtitle; any already in the file are kept as they are, under front
+matter the type doesn't declare), the publish date, and scheduling. It
+can be a draft or published, and publishing doesn't add a date. There's
+only one, so it has no **Move to trash**.
 
 ### Inserting components
 
@@ -659,6 +670,9 @@ entries/{id}` answers with:
 - `type`: the type's name, kind, whether it's dated, and a description
   of each field (name, type, label, and options).
 - `can`: whether the account may edit, publish, and delete it.
+- `index`: whether it's its type's index page. An index page's `type`
+  describes only its `title` and `status` fields (the rest of its front
+  matter is in `extra`), and `can.delete` is `false`.
 - `violations`: the file's problems, as content health shows them.
 
 A change only touches what it names; the rest of the file stays as it
@@ -670,6 +684,9 @@ field names, and `body` the whole body. `status` is a shortcut:
 | `draft` | Sets `status: draft` |
 | `published` | Removes `status`, and dates the entry now if it has no date or a future one |
 | `scheduled` | Removes `status` and sets `published` to the given `"published"` date, which must be in the future |
+
+An index page can't be `scheduled` (a 400), publishing it doesn't date
+it, and deleting it is refused with a 422.
 
 `slug` renames the entry: a dated file keeps its date, and a bundle's
 folder moves with its media. The answer is the entry as `GET` would

@@ -177,6 +177,9 @@ export interface EntryDetail {
 	status: EntryStatus;
 	own: boolean;
 	url: string | null;
+	// Whether it's its type's index page (D-274): edited without the
+	// type's fields or scheduling, and never trashed.
+	index: boolean;
 	type: {
 		name: string;
 		kind: ContentTypeSummary['kind'];

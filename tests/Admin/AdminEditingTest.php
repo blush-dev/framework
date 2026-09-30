@@ -18,12 +18,14 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\EntryController;
 use Blush\Admin\EntryHandles;
+use Blush\Admin\IndexPage;
 use Blush\Admin\InvalidEdit;
 use Blush\Admin\TrashController;
 use Blush\Content\Lint\Linter;
 
 #[CoversClass(EntryController::class)]
 #[CoversClass(EntryHandles::class)]
+#[CoversClass(IndexPage::class)]
 #[CoversClass(InvalidEdit::class)]
 #[CoversClass(TrashController::class)]
 #[CoversClass(Linter::class)]
@@ -254,6 +256,40 @@ final class AdminEditingTest extends TestCase
 		$this->assertNull($pages['index'], 'Pages have no index page.');
 		$this->assertIsArray($pages['entries'] ?? null);
 		$this->assertContains('index.md', array_column($pages['entries'], 'id'), 'The home page is a page like the others.');
+	}
+
+	public function testEditsTheIndexPageWithoutTheTypesFieldsOrTheTrash(): void
+	{
+		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\nstatus: draft\nauthors: [jane]\n---\n");
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
+		$this->site();
+
+		$index = $this->load('_posts/index.md');
+		$this->assertTrue($index['index'] ?? null);
+		$this->assertIsArray($index['type'] ?? null);
+		$this->assertIsArray($index['type']['fields'] ?? null);
+		$this->assertSame(['title', 'status'], array_column($index['type']['fields'], 'name'), 'Only its title and status are fields.');
+		$this->assertSame(['title' => 'Writing', 'status' => 'draft'], $index['values'] ?? null);
+		$this->assertSame(['authors' => ['jane']], $index['extra'] ?? null, 'The rest is kept as it is.');
+		$this->assertIsArray($index['can'] ?? null);
+		$this->assertFalse($index['can']['delete'] ?? null);
+
+		$home = $this->load('index.md');
+		$this->assertFalse($home['index'] ?? null, 'The home page is a page like the others.');
+		$this->assertTrue(is_array($home['can'] ?? null) && ($home['can']['delete'] ?? null) === true);
+
+		$trashed = $this->call('DELETE', '/entries/_posts/index.md?revision=' . $this->revision('_posts/index.md'));
+		$this->assertSame(422, $trashed->getStatusCode());
+		$this->assertSame('"Writing" is the index page for Posts, so it can\'t be moved to the trash.', self::json($trashed)['error'] ?? null);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/index.md');
+
+		$scheduled = $this->call('PATCH', '/entries/_posts/index.md', ['revision' => $this->revision('_posts/index.md'), 'status' => 'scheduled', 'published' => '2999-01-01 08:00:00']);
+		$this->assertSame(400, $scheduled->getStatusCode());
+
+		$published = $this->call('PATCH', '/entries/_posts/index.md', ['revision' => $this->revision('_posts/index.md'), 'status' => 'published']);
+		$this->assertSame(200, $published->getStatusCode());
+		$this->assertSame('published', self::json($published)['status'] ?? null);
+		$this->assertStringNotContainsString('published', $this->file('_posts/index.md'), 'Publishing doesn\'t date it.');
 	}
 
 	/**
