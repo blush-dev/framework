@@ -73,6 +73,12 @@ your device's setting (the default). The choice is saved with your
 account, so it follows you to every device you sign in on, and it only
 changes what you see: someone else on the same site keeps their own.
 
+**Change password** asks for your current password and a new one (at
+least 12 characters, unless your site sets another length). You stay
+signed in where you changed it, and you're signed out on every other
+device. Too many wrong current passwords lock you out of changing it
+for a while, as with signing in.
+
 ## The dashboard
 
 The dashboard shows how many entries you have, by status, and the actions
@@ -517,6 +523,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET session` | The signed-in account (its username, roles, capabilities, and preferences) and a CSRF token, or `{"account": null}` |
 | `POST login` | Sign in with `{"username", "password"}` |
 | `POST logout` | Sign out |
+| `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
 | `PATCH preferences` | Change the account's own preferences, such as `{"colorScheme": "dark"}` (`system`, `light`, or `dark`); answers `{"preferences"}` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |

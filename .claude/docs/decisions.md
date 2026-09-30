@@ -6045,3 +6045,46 @@ decision, add a new entry that supersedes it and mark the old one
   it), and removing a callout with its body.
 - **Why:** the author's call: no extra syntax, and a removed component
   shouldn't leave its contents behind.
+
+### D-273: Changing your own password on Your profile
+- **Date:** 2026-09-30
+- **Decision:** Any account may change its own password in the admin
+  (one of D-235's open items).
+  - **API:** `POST {path}/api/password` with `{"current", "password"}`
+    (`PasswordController`). The current password is checked by
+    `Authenticator::confirm()`, throttled per address and username like
+    a sign-in (a `429` when locked out). A wrong current password or a
+    new one that's too short (`Accounts::passwordProblem()`) is a `422`
+    whose `field` is `current` or `password`; the admin's `ApiError`
+    carries it. Success is a `204`.
+  - **Sessions:** the account's other sessions are signed out (the
+    fingerprint changes, as with `account:password`). This one stays
+    signed in: `Authenticator::refresh()` gives it a new id and the new
+    fingerprint, and keeps its CSRF token so the open admin needn't
+    fetch a new one.
+  - **Fixed along the way:** a session signed out by a password change
+    elsewhere kept its CSRF token, so that browser's next sign-in was
+    refused (`403`) until the session expired. `Authenticator::account()`
+    now forgets a stale sign-in and its token, and `VerifyCsrf` refuses
+    a wrong token only while the session is still signed in: a stale
+    session has nothing left to protect, and `Authenticate` still
+    answers `401`.
+  - **UI:** **Change password** in the Account panel, as in the
+    prototype, opens an inline form (current and new password, with
+    password-manager `autocomplete` and a hidden username); errors mark
+    the field and focus it; Escape or **Cancel** closes it; success
+    closes it with a toast. The Lucide `key-round` icon is added.
+  - **Not done:** the prototype's email confirmation (Blush has no
+    email) and **Sign out everywhere else** on its own; an administrator
+    setting another account's password in the admin waits for editing
+    accounts. There's no "confirm new password" field: browsers and
+    password managers fill and save new passwords, and a mistyped one
+    can be reset with `account:password`.
+- **Checked:** `composer check` (`AdminApiTest`: wrong, short, missing,
+  and CSRF-less requests; this session kept with a new id and working
+  token; another session signed out and able to sign in again; the old
+  password refused; throttling); on the jtcom trial in Chrome with a
+  throwaway account and two browsers: both errors marked and focused,
+  the change kept this browser signed in and signed the other out, and
+  the new password signed in; 390px in dark mode.
+- **Why:** the author asked for the quick wins, this one first.

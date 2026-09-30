@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\AdminConfig;
 use Blush\Admin\AdminRoutes;
+use Blush\Admin\PasswordController;
 use Blush\Admin\PreferencesController;
 use Blush\Admin\SessionController;
 use Blush\Auth\Accounts;
@@ -34,6 +35,7 @@ use Blush\Http\ClientIp;
 #[CoversClass(AdminRoutes::class)]
 #[CoversClass(SessionController::class)]
 #[CoversClass(PreferencesController::class)]
+#[CoversClass(PasswordController::class)]
 #[CoversClass(Preferences::class)]
 #[CoversClass(Authenticator::class)]
 #[CoversClass(LoginThrottle::class)]
@@ -159,5 +161,66 @@ final class AdminApiTest extends TestCase
 		$file = (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json');
 
 		$this->assertStringNotContainsString('preferences', $file, 'Defaults aren\'t stored.');
+	}
+
+	public function testAccountsChangeTheirOwnPassword(): void
+	{
+		$this->boot(roles: ['contributor']);
+		$token = self::json($this->login())['csrfToken'] ?? null;
+		$this->assertIsString($token);
+
+		// A second browser, signed in as the same account.
+		$first        = $this->cookie;
+		$this->cookie = null;
+		$this->login();
+		$second       = $this->cookie;
+		$this->cookie = $first;
+
+		$headers = ['X-CSRF-Token' => $token];
+		$new     = 'a brand new long password';
+
+		$wrong = $this->send('POST', '/password', (string) json_encode(['current' => 'not it', 'password' => $new]), $headers);
+
+		$this->assertSame(422, $wrong->getStatusCode());
+		$this->assertSame('current', self::json($wrong)['field'] ?? null);
+
+		$short = $this->send('POST', '/password', (string) json_encode(['current' => self::PASSWORD, 'password' => 'short']), $headers);
+
+		$this->assertSame(422, $short->getStatusCode());
+		$this->assertSame('password', self::json($short)['field'] ?? null);
+		$this->assertSame('Passwords must be at least 12 characters.', self::json($short)['error'] ?? null);
+
+		$this->assertSame(400, $this->send('POST', '/password', '{"password": "a brand new long password"}', $headers)->getStatusCode());
+		$this->assertSame(403, $this->send('POST', '/password', (string) json_encode(['current' => self::PASSWORD, 'password' => $new]))->getStatusCode(), 'CSRF is checked.');
+
+		$changed = $this->send('POST', '/password', (string) json_encode(['current' => self::PASSWORD, 'password' => $new]), $headers);
+
+		$this->assertSame(204, $changed->getStatusCode());
+		$this->assertNotSame($first, $this->cookie, 'The session has a new id.');
+		$this->assertSame('jane', self::account($this->send('GET', '/session'))['username'] ?? null, 'This session stays signed in.');
+		$this->assertSame(200, $this->send('PATCH', '/preferences', '{"colorScheme": "dark"}', $headers)->getStatusCode(), 'Its CSRF token still works.');
+
+		$this->cookie = $second;
+		$this->assertSame(401, $this->send('PATCH', '/preferences', '{"colorScheme": "dark"}', ['X-CSRF-Token' => 'stale'])->getStatusCode(), 'Other sessions are signed out.');
+		$this->assertSame(['account' => null], self::json($this->send('GET', '/session')));
+
+		$this->assertSame(401, $this->login()->getStatusCode(), 'The old password no longer signs in.');
+		$this->assertSame(200, $this->login($new)->getStatusCode(), 'A signed-out browser can sign in again.');
+	}
+
+	public function testWrongCurrentPasswordsAreThrottled(): void
+	{
+		$this->boot();
+		$token = self::json($this->login())['csrfToken'] ?? null;
+		$this->assertIsString($token);
+
+		$body   = (string) json_encode(['current' => 'not it', 'password' => 'a brand new long password']);
+		$status = 0;
+
+		for ($i = 0; $i < 20 && $status !== 429; $i++) {
+			$status = $this->send('POST', '/password', $body, ['X-CSRF-Token' => $token])->getStatusCode();
+		}
+
+		$this->assertSame(429, $status);
 	}
 }

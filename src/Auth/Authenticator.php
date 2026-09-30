@@ -26,9 +26,13 @@ use Blush\Session\Session;
  * - `login()` gives the session a new id (against session fixation) and
  *   stores the username, a fingerprint of the password hash, and a new
  *   CSRF token.
+ * - `confirm()` checks a signed-in account's password again (before
+ *   changing it), throttled like a sign-in.
+ * - `refresh()` keeps a session signed in after its own account's
+ *   password changed, with a new id.
  * - `account()` returns the session's account, or `null` when it was
  *   removed or its password changed since, which signs out every other
- *   session when a password changes.
+ *   session when a password changes. It forgets such a stale sign-in.
  */
 final readonly class Authenticator
 {
@@ -90,6 +94,42 @@ final readonly class Authenticator
 	}
 
 	/**
+	 * Whether a password is an account's, throttled like a sign-in: the
+	 * account is signed in already, so this only guards a sensitive
+	 * change (a new password) against a borrowed session.
+	 *
+	 * @throws LockedOut After too many failures.
+	 * @throws CacheException
+	 */
+	public function confirm(Account $account, string $password, string $ip): bool
+	{
+		if ($this->throttle->isLockedOut($ip, $account->username)) {
+			throw new LockedOut('Too many wrong passwords. Try again later.');
+		}
+
+		if (! $this->passwords->verify($password, $account->passwordHash)) {
+			$this->throttle->fail($ip, $account->username);
+
+			return false;
+		}
+
+		$this->throttle->clear($ip, $account->username);
+
+		return true;
+	}
+
+	/**
+	 * Keeps a session signed in to an account whose password it just
+	 * changed: a new session id and the new hash's fingerprint. The CSRF
+	 * token stays, so the admin's next request still has it.
+	 */
+	public function refresh(Session $session, Account $account): void
+	{
+		$session->regenerate();
+		$session->set(self::FINGERPRINT, self::fingerprint($account));
+	}
+
+	/**
 	 * Signs an account in to a session.
 	 */
 	public function login(Session $session, Account $account): void
@@ -109,7 +149,8 @@ final readonly class Authenticator
 	}
 
 	/**
-	 * Returns the session's account, or `null`.
+	 * Returns the session's account, or `null`. A session signed in to an
+	 * account that's gone or whose password changed is signed out.
 	 *
 	 * @throws AuthException When the account's record is damaged.
 	 */
@@ -124,7 +165,17 @@ final readonly class Authenticator
 
 		$account = $this->accounts->find($username);
 
-		return $account !== null && hash_equals(self::fingerprint($account), $fingerprint) ? $account : null;
+		if ($account !== null && hash_equals(self::fingerprint($account), $fingerprint)) {
+			return $account;
+		}
+
+		// Signed out elsewhere: forget the sign-in and its CSRF token, so
+		// this browser can sign in again.
+		$session->remove(self::ACCOUNT);
+		$session->remove(self::FINGERPRINT);
+		$session->remove(self::CSRF);
+
+		return null;
 	}
 
 	/**

@@ -34,7 +34,8 @@ use Blush\Session\Session;
  *    request's own.
  * 3. Once signed in, the request must carry the session's token in the
  *    `X-CSRF-Token` header. Signing in has no token yet, so the first two
- *    layers, and the `SameSite=Strict` session cookie, guard it.
+ *    layers, and the `SameSite=Strict` session cookie, guard it; nor does
+ *    a session signed out by a password change elsewhere.
  *
  * Runs after `StartSession`. A refusal is a 403 with a JSON error.
  */
@@ -76,7 +77,8 @@ final readonly class VerifyCsrf implements MiddlewareInterface
 		$session = $request->getAttribute(Session::class);
 		$token   = $session instanceof Session ? $this->authenticator->csrfToken($session) : null;
 
-		if ($token !== null && ! hash_equals($token, $request->getHeaderLine(self::HEADER))) {
+		// A session signed out elsewhere (D-273) has nothing to protect.
+		if ($token !== null && ! hash_equals($token, $request->getHeaderLine(self::HEADER)) && $this->authenticator->account($session) !== null) {
 			return self::refuse('The request\'s CSRF token is missing or wrong.');
 		}
 

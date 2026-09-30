@@ -760,6 +760,12 @@ Implemented in M7 (D-135 to D-140).
   - Accounts carry `Preferences` (the admin's color scheme, D-235), set
     through `PATCH {path}/api/preferences`; `SessionReader` lets the
     admin's shell read the session without starting one.
+  - An account changes its own password through `POST
+    {path}/api/password` (`PasswordController`, D-273):
+    `Authenticator::confirm()` checks the current one, throttled like a
+    sign-in, and `refresh()` keeps the session signed in with a new id.
+    `Authenticator::account()` forgets a stale sign-in (and its CSRF
+    token), and `VerifyCsrf` doesn't refuse a session that's signed out.
 - **The admin app (D-220 to D-224):** a Vue 3 SPA (`resources/admin`,
   built to `public/admin` with plain file names) over the private JSON
   API. `ShellController` serves one page at `{path}` and every screen

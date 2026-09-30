@@ -243,7 +243,8 @@ export interface PreviewLink {
 }
 
 export class ApiError extends Error {
-	constructor(message: string, public readonly status: number) {
+	// The input the server blamed, when it named one.
+	constructor(message: string, public readonly status: number, public readonly field: string | null = null) {
 		super(message);
 	}
 }
@@ -341,7 +342,9 @@ async function answer<T>(url: string, init: RequestInit): Promise<T> {
 			? data.error
 			: (response.status === 413 ? 'That\'s larger than the server takes.' : `The request failed (${response.status}).`);
 
-		throw new ApiError(message, response.status);
+		const field = typeof data === 'object' && data !== null && 'field' in data && typeof data.field === 'string' ? data.field : null;
+
+		throw new ApiError(message, response.status, field);
 	}
 
 	return data as T;

@@ -33,6 +33,7 @@ use Blush\Session\StartSession;
  *   - `POST login`: signs in (`{"username", "password"}`).
  *   - `POST logout`: signs out.
  *   - `PATCH preferences`: changes the account's own preferences.
+ *   - `POST password`: changes the account's own password.
  *   - `GET  dashboard`: the site, content counts, and the actions the
  *     account may run.
  *   - `POST actions/{action}`: runs an action.
@@ -84,6 +85,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/login', [SessionController::class, 'login'])->named('login'),
 			Route::post('/logout', [SessionController::class, 'logout'])->named('logout')->middleware(Authenticate::class),
 			Route::patch('/preferences', PreferencesController::class)->named('preferences')->middleware(Authenticate::class),
+			Route::post('/password', PasswordController::class)->named('password')->middleware(Authenticate::class),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
 			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),

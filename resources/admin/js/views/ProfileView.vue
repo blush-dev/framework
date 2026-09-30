@@ -10,9 +10,12 @@
  * the author type the account is linked to, with its name and bio. It's
  * the account's own, so it's edited in the editor like any entry, and
  * made from here when it doesn't exist yet.
+ *
+ * Changing the password (D-273) asks for the current one, and signs out
+ * the account's other sessions; this one stays signed in.
  */
 
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import { ApiError, entryRoute, request, type ColorScheme, type EntryDetail } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
@@ -20,6 +23,7 @@ import { colorScheme, saveColorScheme } from '../color-scheme';
 import { formatDate } from '../format';
 import type { IconName } from '../icons';
 import { can, session } from '../session';
+import { toast } from '../toast';
 import { authorType, loadTypes } from '../types';
 
 const schemes: { value: ColorScheme; label: string; hint: string; icon: IconName }[] = [
@@ -83,6 +87,51 @@ async function createAuthor(): Promise<void> {
 	}
 }
 
+// Changing the password: the form is shown on request.
+const changing        = ref(false);
+const currentPassword = ref('');
+const newPassword     = ref('');
+const passwordBusy    = ref(false);
+const passwordError   = ref('');
+const passwordField   = ref<'current' | 'password' | null>(null);
+const currentInput    = ref<HTMLInputElement | null>(null);
+const newInput        = ref<HTMLInputElement | null>(null);
+const changeButton    = ref<HTMLButtonElement | null>(null);
+
+async function startPasswordChange(): Promise<void> {
+	changing.value = true;
+	await nextTick();
+	currentInput.value?.focus();
+}
+
+async function stopPasswordChange(): Promise<void> {
+	changing.value        = false;
+	currentPassword.value = '';
+	newPassword.value     = '';
+	passwordError.value   = '';
+	passwordField.value   = null;
+	await nextTick();
+	changeButton.value?.focus();
+}
+
+async function changePassword(): Promise<void> {
+	passwordBusy.value  = true;
+	passwordError.value = '';
+	passwordField.value = null;
+
+	try {
+		await request<void>('POST', '/password', { current: currentPassword.value, password: newPassword.value });
+		await stopPasswordChange();
+		toast('Password changed. You\'re signed out everywhere else.');
+	} catch (caught) {
+		passwordError.value = caught instanceof ApiError ? caught.message : 'Your password couldn\'t be changed.';
+		passwordField.value = caught instanceof ApiError && (caught.field === 'current' || caught.field === 'password') ? caught.field : null;
+		(passwordField.value === 'password' ? newInput : currentInput).value?.focus();
+	} finally {
+		passwordBusy.value = false;
+	}
+}
+
 async function choose(scheme: ColorScheme): Promise<void> {
 	saving.value  = true;
 	message.value = '';
@@ -130,6 +179,28 @@ async function choose(scheme: ColorScheme): Promise<void> {
 					<dd>{{ lastLogin }}</dd>
 				</div>
 			</dl>
+			<div class="panel__body profile__password">
+				<p v-if="!changing">
+					<button ref="changeButton" type="button" class="button button--small" @click="startPasswordChange"><AdminIcon name="key-round" />Change password</button>
+				</p>
+				<form v-else class="profile__password-form" :aria-busy="passwordBusy" @submit.prevent="changePassword" @keydown.esc="stopPasswordChange">
+					<input type="text" class="visually-hidden" name="username" :value="account.username" autocomplete="username" tabindex="-1" aria-hidden="true" readonly>
+					<p class="field">
+						<label for="current-password">Current password</label>
+						<input id="current-password" ref="currentInput" v-model="currentPassword" type="password" autocomplete="current-password" required :aria-invalid="passwordField === 'current' || undefined" :aria-describedby="passwordField === 'current' ? 'password-error' : undefined">
+					</p>
+					<p class="field">
+						<label for="new-password">New password</label>
+						<input id="new-password" ref="newInput" v-model="newPassword" type="password" autocomplete="new-password" required :aria-invalid="passwordField === 'password' || undefined" :aria-describedby="passwordField === 'password' ? 'password-error' : 'new-password-help'">
+						<span id="new-password-help" class="field__help">You'll stay signed in here and be signed out on every other device.</span>
+					</p>
+					<p v-if="passwordError" id="password-error" class="notice notice--error" role="alert">{{ passwordError }}</p>
+					<p class="profile__password-actions">
+						<button type="submit" class="button button--primary button--small" :disabled="passwordBusy">{{ passwordBusy ? 'Changing…' : 'Change password' }}</button>
+						<button type="button" class="button button--ghost button--small" :disabled="passwordBusy" @click="stopPasswordChange">Cancel</button>
+					</p>
+				</form>
+			</div>
 		</section>
 
 		<section v-if="authorType !== null" class="panel" aria-labelledby="author-heading">
@@ -203,6 +274,25 @@ async function choose(scheme: ColorScheme): Promise<void> {
 .profile__author {
 	display: grid;
 	gap: 10px;
+}
+
+.profile__password {
+	border-top: 1px solid var(--border);
+}
+
+.profile__password p {
+	margin: 0;
+}
+
+.profile__password-form {
+	display: grid;
+	gap: 14px;
+	max-width: 24rem;
+}
+
+.profile__password-actions {
+	display: flex;
+	gap: 8px;
 }
 
 .profile__facts {
