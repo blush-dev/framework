@@ -6169,3 +6169,87 @@ decision, add a new entry that supersedes it and mark the old one
   then trashed and deleted permanently from the Trash tab, leaving the
   trial as it was.
 - **Why:** the author asked for the quick wins in turn; this was third.
+
+### D-276: Previewing a trashed entry
+- **Date:** 2026-09-30
+- **Decision:** Settles D-254's "Not yet: a trashed entry's Preview".
+  - **In the admin, not through the theme.** The prototype's trash
+    Preview "opened the editor"; a trashed file isn't in the content
+    index, so the signed preview page (D-226), which renders indexed
+    entries, can't show it without building an entry outside the index.
+    A read-only screen shows what's in it, which is what deciding
+    between restoring and deleting needs.
+  - **`ContentWriter::loadTrashed($trashId)`** reads a trashed entry's
+    file (an `EditableEntry` with the id it had, its front matter and
+    body, and the trash time as `modified`).
+  - **`GET trash/{id}`** (`TrashController::show`) answers what `GET
+    trash` lists for it plus `frontMatter` and `body`, for the accounts
+    that may handle it (404 otherwise, as restore and delete answer).
+  - **The screen** (`TrashedView`, `/trash/{trash id}`): the title,
+    "Post · Moved to the trash {date}", **Trash** (back to the type's
+    Trash tab), **Delete permanently**, and **Restore as a draft**
+    (primary, then the editor opens on it); a warning notice that it
+    isn't on the site and can't be edited until restored; the body in
+    `MarkdownEditor` with a new `readonly` prop (the same highlighting,
+    no spellcheck), leading blank lines trimmed; and the front matter
+    but the title. The navigation marks its type.
+  - **The Trash tab**: titles link to it, and each menu has **Preview**
+    (Lucide `eye`) between Restore as a draft and the divider, as in the
+    prototype.
+- **Checked:** `composer check` (`FilesystemWriterTest`: reading one,
+  and a missing one; `AdminEditingTest`: the answer, a 404, and an
+  author kept from someone else's); on the jtcom trial in Chrome with a
+  throwaway account: a throwaway duplicate trashed, its menu, the
+  screen (read-only body, front matter, the type marked), Restore
+  opening the editor on a draft, trashed again from the editor, opened
+  from its title, and Delete permanently returning to the Trash tab with
+  it gone.
+- **Why:** the author asked for the quick wins in turn; this was fourth.
+
+### D-277: Renaming from the editor, with redirects
+- **Date:** 2026-09-30
+- **Decision:** One of D-233's open items. Amends D-275 (what a copy
+  keeps).
+  - **The Slug field** is on the Document tab, in Publishing under the
+    publish date (as the prototype has it), for every entry but a
+    landing page (`can.rename`, false when `landing`; its slug is its
+    folder's). `GET entries/{id}` answers `slug`. The type's `slug`
+    field (`EntryFields`: "The URL name, instead of the file name") no
+    longer shows under the type's fields (`PLACED`), since this is it.
+    The slug is part of the editor's state (kept changes too; older kept
+    changes without one still restore) and saves with everything else.
+  - **What a rename changes:** the file's `slug` key when it has one
+    (that's what names the entry; renaming the file wouldn't move it),
+    else the file (`ContentWriter::rename()`). The file is renamed
+    **before** the other changes are written, so a refused name leaves
+    the file untouched; before, the changes were written and then the
+    rename could fail.
+  - **Checked up front**, as a 422 with `field: "slug"`, so the editor
+    marks the field (it opens the drawer on the Document tab and focuses
+    it; nothing is saved and the rest of the changes stay unsaved): not
+    a slug ("Slugs are lowercase letters, numbers, and hyphens; try
+    …"), another entry of the type with that key (`ContentRepository::
+    named()`, so a dated post can't take another post's slug on another
+    day either, which would make its handle ambiguous), or a landing
+    page.
+  - **Redirects:** `redirect: true` adds a published entry's current
+    address to its `redirect_from` (after any there, its own set ones
+    first; a lone string becomes a list; no duplicates), which
+    `ContentRedirects` answers with a 301. The editor offers **Redirect
+    the old address here**, on by default, once a live entry's slug
+    changes, and the help shows the new address ("Saving moves it to
+    /archives/…/new-slug."), or warns that links will stop working when
+    it's off.
+  - **Duplicate (amends D-275):** a copy drops the original's `slug` and
+    `redirect_from` keys, so it's named by its file and doesn't claim the
+    original's addresses.
+- **Checked:** `composer check` (`AdminEditingTest`: a rename with and
+  without other changes, taken and invalid slugs changing nothing, a
+  landing page refused, `can.rename`, a slug key changed in place, old
+  addresses kept and joined, a copy without `slug` or `redirect_from`);
+  on the jtcom trial in Chrome with a throwaway duplicate of "Forty-two":
+  a taken slug refused in the field (focused, still unsaved), a rename
+  moving the editor's address and surviving a reload; published, the
+  new address shown, the redirect on, and the old address answering
+  301 to the new one; the throwaway then trashed and deleted.
+- **Why:** the author asked for the quick wins in turn; this was fifth.

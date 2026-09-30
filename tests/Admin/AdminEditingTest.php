@@ -21,6 +21,7 @@ use Blush\Admin\EntryHandles;
 use Blush\Admin\IndexPage;
 use Blush\Admin\InvalidEdit;
 use Blush\Admin\TrashController;
+use Blush\Content\Index\Indexer;
 use Blush\Content\Lint\Linter;
 
 #[CoversClass(EntryController::class)]
@@ -123,6 +124,14 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame([], $this->trash('?type=page'));
 		$this->assertSame(400, $this->call('GET', '/trash?type=missing')->getStatusCode());
 
+		$shown = self::json($this->call('GET', '/trash/' . $this->trashId(self::FLAME)));
+
+		$this->assertSame([self::FLAME, 'Rekindling the Flame', 'post'], [$shown['entry'] ?? null, $shown['title'] ?? null, $shown['type'] ?? null]);
+		$this->assertIsArray($shown['frontMatter'] ?? null);
+		$this->assertSame('hopeful', $shown['frontMatter']['mood'] ?? null);
+		$this->assertSame("\nThe body.\n", $shown['body'] ?? null);
+		$this->assertSame(404, $this->call('GET', '/trash/20250101-090000/_posts/nothing.md')->getStatusCode());
+
 		$restored = $this->call('POST', '/trash/restore', ['id' => $this->trashId(self::FLAME)]);
 
 		$this->assertSame(['id' => self::FLAME], self::json($restored));
@@ -149,6 +158,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(['An Idea'], array_column($this->trash(), 'title'), 'Sam\'s trash is his.');
 		$this->assertSame(404, $this->call('POST', '/trash/restore', ['id' => '20250101-090000/_posts/2020-01-01.old.md'])->getStatusCode());
+		$this->assertSame(404, $this->call('GET', '/trash/20250101-090000/_posts/2020-01-01.old.md')->getStatusCode(), 'Nor can he look at it.');
 		$this->assertSame(['deleted' => 1], self::json($this->call('POST', '/trash/empty', ['type' => 'post'])));
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/trash/20250101-090000/user/content/_posts/2020-01-01.old.md');
 	}
@@ -168,7 +178,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/' . self::FLAME), strtotime($entry['modified']));
 		$this->assertSame('/archives/flame', $entry['url'] ?? null);
 		$this->assertTrue($entry['own'] ?? null);
-		$this->assertSame(['edit' => true, 'publish' => true, 'delete' => true], $entry['can'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'delete' => true], $entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertTrue($entry['type']['dated'] ?? null);
 		$this->assertIsArray($entry['type']['fields'] ?? null);
@@ -440,6 +450,54 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame('_posts/2022-03-29.the-flame.md', $renamed['id'] ?? null);
 		$this->assertSame('/archives/the-flame', $renamed['url'] ?? null);
+		$this->assertSame('the-flame', $renamed['slug'] ?? null);
+		$this->assertIsArray($renamed['can'] ?? null);
+		$this->assertTrue($renamed['can']['rename'] ?? null);
+
+		$id       = '_posts/2022-03-29.the-flame.md';
+		$both     = self::json($this->call('PATCH', "/entries/{$id}", ['revision' => $this->revision($id), 'slug' => 'flame-again', 'set' => ['title' => 'Again']]));
+		$this->assertSame(['_posts/2022-03-29.flame-again.md', 'Again'], [$both['id'] ?? null, $both['title'] ?? null], 'A rename and a change save together.');
+
+		$id       = '_posts/2022-03-29.flame-again.md';
+		$revision = $this->revision($id);
+		$taken    = $this->call('PATCH', "/entries/{$id}", ['revision' => $revision, 'slug' => 'idea', 'set' => ['title' => 'Lost?']]);
+		$this->assertSame(422, $taken->getStatusCode());
+		$this->assertSame(['error' => 'Another post already has the slug "idea".', 'field' => 'slug'], self::json($taken));
+		$this->assertSame($revision, $this->revision($id), 'A refused name changes nothing.');
+
+		$bad = $this->call('PATCH', "/entries/{$id}", ['revision' => $revision, 'slug' => 'Not A Slug']);
+		$this->assertSame(['error' => 'Slugs are lowercase letters, numbers, and hyphens; try "not-a-slug".', 'field' => 'slug'], self::json($bad));
+
+		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\n---\n");
+		$this->app->container()->make(Indexer::class)->index();
+		$index = $this->load('_posts/index.md');
+		$this->assertIsArray($index['can'] ?? null);
+		$this->assertFalse($index['can']['rename'] ?? null);
+		$this->assertSame(422, $this->call('PATCH', '/entries/_posts/index.md', ['revision' => $this->revision('_posts/index.md'), 'slug' => 'blog'])->getStatusCode());
+	}
+
+	public function testRenamingKeepsOldLinksAndChangesASlugKey(): void
+	{
+		$this->writeTemporaryFile('user/content/_posts/2020-02-02.file-name.md', "---\ntitle: Keyed\nslug: keyed\nredirect_from: /older\n---\n");
+		$this->site();
+
+		$redirected = self::json($this->call('PATCH', '/entries/' . self::FLAME, ['revision' => $this->revision(self::FLAME), 'slug' => 'the-flame', 'redirect' => true]));
+		$this->assertSame('/archives/the-flame', $redirected['url'] ?? null);
+		$this->assertStringContainsString("redirect_from: [/archives/flame]\n", $this->file('_posts/2022-03-29.the-flame.md'), 'The old address redirects.');
+
+		$id    = '_posts/2020-02-02.file-name.md';
+		$keyed = self::json($this->call('PATCH', "/entries/{$id}", ['revision' => $this->revision($id), 'slug' => 'keyed-again', 'redirect' => true]));
+		$this->assertSame([$id, 'keyed-again', '/archives/keyed-again'], [$keyed['id'] ?? null, $keyed['slug'] ?? null, $keyed['url'] ?? null], 'A slug key is changed, not the file.');
+		$this->assertStringContainsString("slug: keyed-again\n", $this->file($id));
+		$this->assertStringContainsString('/older', $this->file($id));
+		$this->assertStringContainsString('/archives/keyed', $this->file($id), 'Old addresses stay, and the new old one joins them.');
+
+		$copy = self::json($this->call('POST', "/entries/{$id}/duplicate"));
+		$this->assertIsString($copy['id'] ?? null);
+		$this->assertStringEndsWith('.keyed-again-copy.md', $copy['id']);
+		$this->assertSame('keyed-again-copy', $copy['slug'] ?? null);
+		$this->assertStringNotContainsString('slug:', $this->file($copy['id']), 'A copy is named by its file.');
+		$this->assertStringNotContainsString('redirect_from', $this->file($copy['id']), 'The original keeps its old addresses.');
 	}
 
 	public function testDeletesToTheTrash(): void

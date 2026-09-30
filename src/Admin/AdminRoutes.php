@@ -48,8 +48,8 @@ use Blush\Session\StartSession;
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
  *     the editing API (`EntryController`), `POST entries/{id}/duplicate`,
  *     and `GET content/{type}/{key}`, an entry by its handle (D-253).
- *   - `GET  trash`, and `POST trash/restore`, `trash/delete`, and
- *     `trash/empty`: the trash (`TrashController`).
+ *   - `GET  trash` and `GET trash/{id}`, and `POST trash/restore`,
+ *     `trash/delete`, and `trash/empty`: the trash (`TrashController`).
  *   - `GET  health`: the content's lint problems.
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts, to
  *     show (`PeopleController`).
@@ -104,6 +104,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/entries/{id:.+}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),
 			Route::delete('/entries/{id:.+}', [EntryController::class, 'delete'])->named('entry.delete')->middleware(Authenticate::class),
 			Route::get('/trash', [TrashController::class, 'index'])->named('trash')->middleware(Authenticate::class),
+			Route::get('/trash/{id:.+}', [TrashController::class, 'show'])->named('trash.entry')->middleware(Authenticate::class),
 			Route::post('/trash/restore', [TrashController::class, 'restore'])->named('trash.restore')->middleware(Authenticate::class),
 			Route::post('/trash/delete', [TrashController::class, 'delete'])->named('trash.delete')->middleware(Authenticate::class),
 			Route::post('/trash/empty', [TrashController::class, 'empty'])->named('trash.empty')->middleware(Authenticate::class),

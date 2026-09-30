@@ -36,6 +36,8 @@ const props = defineProps<{
 	// index in the outline, or -1.
 	directive?: number;
 	image?: number;
+	// Shown, not edited: a trashed entry's body (D-276).
+	readonly?: boolean;
 }>();
 
 const model = defineModel<string>({ required: true });
@@ -390,7 +392,8 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 				v-model="model"
 				class="md__field"
 				rows="1"
-				spellcheck="true"
+				:spellcheck="!props.readonly"
+				:readonly="props.readonly"
 				:aria-label="props.label"
 				:placeholder="props.placeholder"
 				@input="input"

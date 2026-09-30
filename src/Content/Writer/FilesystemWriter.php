@@ -368,6 +368,25 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function loadTrashed(string $trashId): EditableEntry
+	{
+		$trashed  = $this->findTrashed($trashId);
+		$file     = $this->trashedFile($trashed);
+		$contents = $this->read($file);
+
+		try {
+			$document = $this->parsers->parse($trashed->entry, $contents);
+		} catch (InvalidDocument $e) {
+			throw new WriteException(sprintf('%s can\'t be read: %s', $trashed->entry, $e->getMessage()), previous: $e);
+		}
+
+		return new EditableEntry($trashed->entry, $document->frontMatter, $document->body, self::revision($contents), $trashed->trashed->getTimestamp());
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function restore(string $trashId, EntryChanges $changes = new EntryChanges()): WriteResult
 	{
 		return $this->locked(function () use ($trashId, $changes): WriteResult {

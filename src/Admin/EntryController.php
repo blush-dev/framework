@@ -58,11 +58,16 @@ use Blush\Support\Slug;
  *   `set`, `body`, `status`). New entries are drafts unless asked
  *   otherwise, and credit the account's author.
  * - `PATCH  entries/{id}`: changes one (`revision` required; `set`,
- *   `remove`, `body`, `status`, `published`, `slug`).
+ *   `remove`, `body`, `status`, `published`, `slug`, `redirect`). A new
+ *   `slug` renames it (D-277): its `slug` key when the file has one,
+ *   else the file, first, so a slug that's refused (not a slug, another
+ *   entry's, or a landing page's) changes nothing; the refusal is a 422
+ *   with `field: "slug"`. With `redirect: true`, a published entry's old
+ *   address is added to its `redirect_from`.
  * - `DELETE entries/{id}?revision=…`: moves it to the trash.
  * - `POST   entries/{id}/duplicate`: copies it beside itself as a draft
- *   titled "… (Copy)", slugged `{slug}-copy`, with the same authors, dated now if its type is
- *   dated (D-275). Needs `content.create`, and `content.edit` for the
+ *   titled "… (Copy)", slugged `{slug}-copy`, with the same authors,
+ *   dated now if its type is dated (D-275). Needs `content.create`, and `content.edit` for the
  *   entry; a landing page (an index page or the home page) can't be
  *   copied.
  *
@@ -240,12 +245,34 @@ final readonly class EntryController
 			return self::error($refusal, Status::Forbidden);
 		}
 
-		try {
-			$result = $this->writer->update($id, $changes, $revision);
+		$rename  = is_string($slug) && $slug !== '' && $slug !== $entry->slug ? $slug : null;
+		$problem = $rename === null ? null : $this->slugProblem($entry, $rename);
 
-			if (is_string($slug) && $slug !== '' && $slug !== $entry->slug) {
-				$result = $this->writer->rename($result->id, $slug, $result->revision);
+		if ($problem !== null) {
+			return self::error($problem, Status::UnprocessableContent, 'slug');
+		}
+
+		// A `slug` key names the entry, so it's what changes; and the old
+		// address can redirect to the new one.
+		if ($rename !== null) {
+			$file    = $this->writer->load($id);
+			$changes = $this->withRedirect($changes, $entry, $file, ($input['redirect'] ?? false) === true);
+
+			if (self::has($file, $this->keys($entry->type->name, 'slug'))) {
+				$changes = new EntryChanges([...$changes->set, 'slug' => $rename], $changes->remove, $changes->body);
+				$rename  = null;
 			}
+		}
+
+		try {
+			// Renaming the file first, so a refused name leaves it as it was.
+			if ($rename !== null) {
+				$renamed  = $this->writer->rename($id, $rename, $revision);
+				$id       = $renamed->id;
+				$revision = $renamed->revision ?? $revision;
+			}
+
+			$result = $this->writer->update($id, $changes, $revision);
 		} catch (WriteConflict $e) {
 			return self::error($e->getMessage(), Status::Conflict);
 		} catch (WriteException $e) {
@@ -288,7 +315,9 @@ final readonly class EntryController
 		];
 
 		try {
-			$result = $this->writer->duplicate($id, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set), $now);
+			// The copy's name is its file's, and the original's old
+			// addresses stay the original's.
+			$result = $this->writer->duplicate($id, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set, remove: ['slug', 'redirect_from']), $now);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
@@ -334,6 +363,65 @@ final readonly class EntryController
 		}
 
 		return self::json(['deleted' => $id]);
+	}
+
+	/**
+	 * Adds a published entry's address to its `redirect_from`, after the
+	 * old addresses (the changes' own, if they set them).
+	 */
+	private function withRedirect(EntryChanges $changes, Entry $entry, EditableEntry $file, bool $redirect): EntryChanges
+	{
+		$from = $entry->isPublished() && $redirect ? $this->urls->entry($entry) : null;
+
+		if ($from === null) {
+			return $changes;
+		}
+
+		$keys = $this->keys($entry->type->name, 'redirect_from');
+		$key  = array_find($keys, static fn (string $key): bool => array_key_exists($key, $changes->set))
+			?? array_find($keys, static fn (string $key): bool => array_key_exists($key, $file->frontMatter));
+		$old  = $key === null ? [] : ($changes->set[$key] ?? $file->frontMatter[$key] ?? []);
+		$list = array_values(array_filter(is_array($old) ? $old : [$old], is_string(...)));
+
+		if (in_array($from, $list, true)) {
+			return $changes;
+		}
+
+		$set = $changes->set;
+		unset($set[$key ?? 'redirect_from']);
+
+		return new EntryChanges([...$set, ($key ?? 'redirect_from') => [...$list, $from]], $changes->remove, $changes->body);
+	}
+
+	/**
+	 * Whether a file's front matter has any of a field's keys.
+	 *
+	 * @param list<string> $keys
+	 */
+	private static function has(EditableEntry $file, array $keys): bool
+	{
+		return array_any($keys, static fn (string $key): bool => array_key_exists($key, $file->frontMatter));
+	}
+
+	/**
+	 * Returns what's wrong with renaming an entry to a slug, or `null`.
+	 */
+	private function slugProblem(Entry $entry, string $slug): ?string
+	{
+		if ($entry->landing) {
+			return sprintf('"%s" is its folder\'s landing page, so its slug is the folder\'s.', $entry->title);
+		}
+
+		if (! Slug::isSlug($slug)) {
+			return sprintf('Slugs are lowercase letters, numbers, and hyphens; try "%s".', Slug::from($slug) ?: 'untitled');
+		}
+
+		$folder = dirname($entry->key);
+		$key    = ($folder === '.' ? '' : "{$folder}/") . $slug;
+
+		return $this->content->named($entry->type->name, $key) === null
+			? null
+			: sprintf('Another %s already has the slug "%s".', lcfirst($entry->type->singular), $slug);
 	}
 
 	/**
@@ -493,6 +581,7 @@ final readonly class EntryController
 		return [
 			'id'         => $file->id,
 			'handle'     => $this->handles->of($entry),
+			'slug'       => $entry->slug,
 			'revision'   => $file->revision,
 			'modified'   => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
 			'title'      => $entry->title,
@@ -512,6 +601,7 @@ final readonly class EntryController
 			'can'        => [
 				'edit'    => $this->permissions->can($account, Capability::ContentEdit, $entry),
 				'publish' => $this->permissions->can($account, Capability::ContentPublish, $entry),
+				'rename'  => ! $entry->landing,
 				'delete'  => ! $index && $this->permissions->can($account, Capability::ContentDelete, $entry)
 			],
 			'violations' => array_map(static fn (Violation $violation): array => [
@@ -675,8 +765,8 @@ final readonly class EntryController
 	/**
 	 * Builds an error.
 	 */
-	private static function error(string $message, Status $status): ResponseInterface
+	private static function error(string $message, Status $status, ?string $field = null): ResponseInterface
 	{
-		return self::json(['error' => $message], $status);
+		return self::json(['error' => $message, ...($field === null ? [] : ['field' => $field])], $status);
 	}
 }

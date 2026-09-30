@@ -38,6 +38,8 @@ use Blush\Support\Slug;
  *
  * - `GET trash?type=`: the trashed entries the account may handle, most
  *   recently trashed first, optionally of one type.
+ * - `GET trash/{id}`: one of them with its front matter and body, to
+ *   look at before restoring it (D-276).
  * - `POST trash/restore` (`{"id"}`): brings one back **as a draft**, so a
  *   trashed entry is never republished without someone choosing to.
  * - `POST trash/delete` (`{"id"}`): deletes one for good.
@@ -73,6 +75,31 @@ final readonly class TrashController
 			fn (TrashedEntry $trashed): array => $this->describe($account, $trashed),
 			$this->handled($account, $type)
 		)]);
+	}
+
+	/**
+	 * Answers one trashed entry, with its front matter and body.
+	 */
+	public function show(ServerRequestInterface $request, string $id): ResponseInterface
+	{
+		$account = self::account($request);
+		$trashed = $this->find($account, $id);
+
+		if ($trashed === null) {
+			return self::json(['error' => 'That isn\'t in the trash, or you can\'t see it.'], Status::NotFound);
+		}
+
+		try {
+			$file = $this->writer->loadTrashed($trashed->id);
+		} catch (WriteException $e) {
+			return self::json(['error' => $e->getMessage()], Status::UnprocessableContent);
+		}
+
+		return self::json([
+			...$this->describe($account, $trashed),
+			'frontMatter' => (object) $file->frontMatter,
+			'body'        => $file->body
+		]);
 	}
 
 	/**

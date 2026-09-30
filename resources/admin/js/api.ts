@@ -94,6 +94,14 @@ export interface TrashedSummary {
 	own: boolean;
 }
 
+/**
+ * A trashed entry with what's in it (`GET trash/{id}`, D-276).
+ */
+export interface TrashedDetail extends TrashedSummary {
+	frontMatter: Record<string, unknown>;
+	body: string;
+}
+
 export interface EntryList {
 	status: EntryStatus | 'any';
 	type: string | null;
@@ -171,6 +179,8 @@ export interface FieldDescription {
 export interface EntryDetail {
 	id: string;
 	handle: string | null;
+	// The last part of its key; renaming changes it (D-277).
+	slug: string;
 	revision: string;
 	// When the file was last written (ISO 8601), if known.
 	modified: string | null;
@@ -190,7 +200,8 @@ export interface EntryDetail {
 	values: Record<string, unknown>;
 	extra: Record<string, unknown>;
 	body: string;
-	can: { edit: boolean; publish: boolean; delete: boolean };
+	// `rename`: not for a landing page, whose slug is its folder's.
+	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean };
 	violations: Violation[];
 }
 

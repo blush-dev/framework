@@ -205,7 +205,8 @@ $writer->update($entry->id, new EntryChanges(
   bundle's folder moves with its media), `duplicate($id, $slug,
   $changes)` (a copy beside it under the first free name from `$slug`,
   dated today if it's dated, a bundle's folder copied with its media),
-  and `delete()` (the file moves to `storage/trash/`) work the same way. `trashed()` lists the trash,
+  and `delete()` (the file moves to `storage/trash/`) work the same way.
+  `trashed()` lists the trash, `loadTrashed($id)` reads one,
   `restore($id, $changes)` brings an entry back after making the changes
   (such as `new EntryChanges(set: ['status' => 'draft'])`), and
   `purge($id)` deletes one for good.

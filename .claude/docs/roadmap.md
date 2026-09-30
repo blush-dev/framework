@@ -239,9 +239,10 @@ editing types and accounts, and the remaining stubbed screens
 (Appearance, Extensions, Settings). Live preview waits (D-252): inline
 image and embed previews first, then a full preview, above all of
 components. Changing one's own password on Your profile is done (D-273), the
-editor's side of the index page (D-274), and Duplicate (D-275).
+editor's side of the index page (D-274), Duplicate (D-275), Preview
+for a trashed entry (D-276), and renaming from the editor (D-277).
 Smaller admin items waiting: the admin theme choice (a second
-account preference, D-235), renaming an entry from the editor, objects in forms, autosave, and Pages
+account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
 items).
 

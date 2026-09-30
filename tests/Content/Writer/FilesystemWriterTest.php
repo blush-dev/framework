@@ -254,6 +254,22 @@ final class FilesystemWriterTest extends TestCase
 		$this->assertSame('2025-01-01 09:00:00', $trashed[2]->trashed->format('Y-m-d H:i:s'));
 	}
 
+	public function testReadsAnEntryInTheTrash(): void
+	{
+		$this->writer()->delete('_posts/2022-03-29.rekindling-the-flame.md');
+
+		$id     = $this->writer()->trashed()[0]->id ?? '';
+		$loaded = $this->writer()->loadTrashed($id);
+
+		$this->assertSame('_posts/2022-03-29.rekindling-the-flame.md', $loaded->id);
+		$this->assertSame('Rekindling the Flame', $loaded->frontMatter['title'] ?? null);
+		$this->assertSame("The body.\n", ltrim($loaded->body));
+
+		$this->expectException(WriteException::class);
+
+		$this->writer()->loadTrashed('20250101-090000/nope.md');
+	}
+
 	public function testRestoresWithChangesAndNeverLive(): void
 	{
 		$id = '_posts/2022-03-29.rekindling-the-flame.md';

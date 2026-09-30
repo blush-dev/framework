@@ -13,6 +13,8 @@ export interface EditorState {
 	title: string;
 	body: string;
 	date: string;
+	// Missing from changes kept before renaming came to the editor.
+	slug?: string;
 	form: Record<string, FormValue>;
 }
 

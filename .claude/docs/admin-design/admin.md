@@ -207,8 +207,12 @@ Each is recorded in `.claude/docs/decisions.md`.
   for terms), and Move to trash; the trash's are Restore as a draft and
   Delete permanently. Duplicate is there since D-275 (not for terms,
   as in the prototype), shown with a notice and an Open it link rather
-  than a toast, like the list's other actions. No Preview of a
-  trashed entry. The floating list opens above the button when there's
+  than a toast, like the list's other actions. A trashed entry's
+  Preview (D-276) opens a read-only screen in the admin (the prototype's
+  "Opened the editor"), not the themed page. The editor's Slug field
+  (D-277) sits in the Document tab's Publishing group, as the
+  prototype's does, with a "Redirect the old address here" option
+  for a live entry. The floating list opens above the button when there's
   no room below.
 - **The pinned index page** (D-255): a collection's or taxonomy's
   landing page. With no checkbox column (no bulk actions yet), the pin

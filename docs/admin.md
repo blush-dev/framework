@@ -145,7 +145,9 @@ The **⋯** button at the end of each row has **Edit**, then **View** and
 **Duplicate** copies the entry beside the original as a draft titled
 "… (Copy)", with the original's slug plus `-copy` (then `-copy-2`, and so
 on, if that's taken). Everything else is copied as it is: the body, the
-authors, and the other front matter; a dated entry is dated today, and
+authors, and the other front matter, except its own `slug` and
+`redirect_from` (the copy is named by its file, and old addresses stay
+the original's); a dated entry is dated today, and
 an entry in its own folder is copied with its media. A notice above the
 list says so, with a link to open the copy. Terms and index pages can't
 be duplicated.
@@ -215,8 +217,8 @@ saved and the entry's status, then has the settings button, a **⋯** menu
 The settings (⌘/ or Ctrl+/) open beside the text and push it aside;
 close them with their **×** or Escape. They have two tabs:
 
-- **Document:** the publish date, a preview link (or **View** once it's
-  live); the content type's other fields, such as the subtitle, summary,
+- **Document:** the publish date, the slug (see below), a preview link
+  (or **View** once it's live); the content type's other fields, such as the subtitle, summary,
   and categories (fields that take several values say how to separate
   them, and a few kinds, such as `collection`, show their value
   read-only); front matter the type doesn't declare, kept as it is; and
@@ -246,6 +248,22 @@ If you can't publish, you can save drafts but not publish them.
 Fields the content type marks as required must be filled in to publish,
 schedule, or update a live entry. Anything missing is named at the top
 and marked under the field; a draft saves without them.
+
+### Changing the slug
+
+The **Slug** field on the Document tab is the last part of the entry's
+address, such as `hello-world` in `/archives/2026/09/30/hello-world`.
+Change it and save to rename the entry: its file is renamed (a dated
+file keeps its date), or, if the file sets its own `slug` in its front
+matter, that is changed instead. Slugs are lowercase letters, numbers,
+and hyphens, and another entry of the same type can't already have it;
+if the name is refused, nothing is saved and the field says why.
+
+For a published entry, the field shows the new address, and **Redirect
+the old address here** (on by default) adds the old address to the
+entry's `redirect_from`, so links to it keep working. Landing pages
+(the home page, and a folder's `index.md`) take their folder's name,
+so they have no Slug field.
 
 ### Editing an index page
 
@@ -475,6 +493,10 @@ the entries moved there, most recent first. Each one's **⋯** button has:
   it was published before; publish it again from the editor when you're
   ready. If something else now has its file name, rename or move that
   first.
+- **Preview** (or clicking its title) shows what's in it: the body, as
+  the editor shows it but read-only, and its front matter. From there
+  you can restore it or delete it permanently. A trashed entry isn't on
+  your site, so it can't be viewed there or edited until it's restored.
 - **Delete permanently** removes it for good.
 
 **Empty trash** deletes everything in that tab permanently. Authors and
@@ -566,6 +588,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE entries/{id}?revision=…` | Move an entry to the trash |
 | `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above); answers `201` with the copy as `GET entries/{id}` shows it. Needs `content.create` and the right to edit the entry; an index page is refused with a `422` |
 | `GET trash` | The trashed entries the account may handle, newest first (`?type=` for one type): `{"trash": [{"id", "entry", "title", "type", "bundle", "trashed", "authors", "own"}]}` |
+| `GET trash/{id}` | One trashed entry, as in `GET trash`, with its `frontMatter` and `body`; 404 if it isn't there or the account can't handle it |
 | `POST trash/restore` | Restore `{"id"}` as a draft: `{"id"}` is the entry's id again; 409 when something else has its place |
 | `POST trash/delete` | Delete `{"id"}` permanently |
 | `POST trash/empty` | Delete everything the account may handle permanently (`{"type"}` for one type): `{"deleted"}` |
@@ -678,7 +701,9 @@ entries/{id}` answers with:
   or `null` if that isn't known.
 - `type`: the type's name, kind, whether it's dated, and a description
   of each field (name, type, label, and options).
-- `can`: whether the account may edit, publish, and delete it.
+- `slug`: the last part of its key.
+- `can`: whether the account may edit, publish, rename, and delete it
+  (`rename` is `false` for a landing page).
 - `index`: whether it's its type's index page. An index page's `type`
   describes only its `title` and `status` fields (the rest of its front
   matter is in `extra`), and `can.delete` is `false`.
@@ -697,9 +722,14 @@ field names, and `body` the whole body. `status` is a shortcut:
 An index page can't be `scheduled` (a 400), publishing it doesn't date
 it, and deleting it is refused with a 422.
 
-`slug` renames the entry: a dated file keeps its date, and a bundle's
-folder moves with its media. The answer is the entry as `GET` would
-show it, with its new id and revision.
+`slug` renames the entry: when its front matter has a `slug`, that's
+changed; otherwise its file is renamed first (a dated file keeps its
+date, and a bundle's folder moves with its media), so a refused name
+changes nothing. A slug that isn't one, that another entry of the type
+has, or that's a landing page's is a `422` with `"field": "slug"`. With
+`"redirect": true`, a published entry's old address is added to its
+`redirect_from`. The answer is the entry as `GET` would show it, with
+its new id and revision.
 
 New entries are drafts unless `status` says otherwise, credit the
 account's author, and dated types get today's date.

@@ -28,6 +28,7 @@ import RolesView from './views/RolesView.vue';
 import TypeView from './views/TypeView.vue';
 import MediaFileView from './views/MediaFileView.vue';
 import MediaView from './views/MediaView.vue';
+import TrashedView from './views/TrashedView.vue';
 import TypesView from './views/TypesView.vue';
 import SignInView from './views/SignInView.vue';
 
@@ -81,6 +82,9 @@ export const router = createRouter({
 		// An entry without a handle is edited at its source path, which
 		// also still works for the rest (the editor moves to the handle).
 		{ path: '/entries/:id+', name: 'entry-file', component: EditorView, meta: { title: 'Edit Entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
+		// A trashed entry, to look at before restoring it (D-276), by the
+		// trash's id for it.
+		{ path: '/trash/:id+', name: 'trashed', component: TrashedView, meta: { title: 'In the Trash', capability: 'content.delete', section: 'entries', area: 'content' } },
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
 		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content Health', capability: 'content.edit.others', area: 'home' } },

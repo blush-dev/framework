@@ -86,7 +86,7 @@ import { useCommands, type Command } from '../commands';
 import { currentType, findType, loadTypes } from '../types';
 
 // Fields the editor shows in their own places rather than the form.
-const PLACED = ['title', 'status', 'published'];
+const PLACED = ['title', 'status', 'published', 'slug'];
 
 // Why a required field stops publishing.
 const REQUIRED = 'Required to publish.';
@@ -125,6 +125,7 @@ const entry    = ref<EntryDetail | null>(null);
 const title    = ref('');
 const body     = ref('');
 const date     = ref('');
+const slug     = ref('');
 const form     = ref<Record<string, FormValue>>({});
 const initial  = ref<EditorState | null>(null);
 const error    = ref('');
@@ -179,23 +180,25 @@ function stateOf(detail: EntryDetail): EditorState {
 		title: typeof detail.values.title === 'string' ? detail.values.title : detail.title,
 		body: detail.body,
 		date: published === undefined ? '' : String(toForm(published, detail.values.published)),
+		slug: detail.slug,
 		form: Object.fromEntries(fieldsOf(detail).map((field) => [field.name, toForm(field, detail.values[field.name])]))
 	};
 }
 
 function current(): EditorState {
-	return { title: title.value, body: body.value, date: date.value, form: { ...form.value } };
+	return { title: title.value, body: body.value, date: date.value, slug: slug.value, form: { ...form.value } };
 }
 
 function apply(state: EditorState): void {
 	title.value = state.title;
 	body.value  = state.body;
 	date.value  = state.date;
+	slug.value  = state.slug ?? entry.value?.slug ?? '';
 	form.value  = Object.fromEntries(fields.value.map((field) => [field.name, state.form[field.name] ?? toForm(field, undefined)]));
 }
 
 function same(a: EditorState, b: EditorState): boolean {
-	return a.title === b.title && a.body === b.body && a.date === b.date
+	return a.title === b.title && a.body === b.body && a.date === b.date && (a.slug === undefined || b.slug === undefined || a.slug === b.slug)
 		&& fields.value.every((field) => a.form[field.name] === b.form[field.name]);
 }
 
@@ -208,7 +211,31 @@ const changedFields = computed(() => {
 const dirty = computed(() => {
 	const start = initial.value;
 
-	return start !== null && (title.value !== start.title || body.value !== start.body || date.value !== start.date || changedFields.value.length > 0);
+	return start !== null && (title.value !== start.title || body.value !== start.body || date.value !== start.date || slug.value.trim() !== start.slug || changedFields.value.length > 0);
+});
+
+// Why the last save refused the new slug (D-277), until it's changed;
+// and whether a live entry's old address redirects to its new one.
+const slugError = ref('');
+const redirect  = ref(true);
+
+watch(slug, () => {
+	slugError.value = '';
+});
+
+// The address the new slug gives, when the address ends in the slug.
+const slugAddress = computed(() => {
+	const detail = entry.value;
+	const url    = detail?.url ?? null;
+
+	if (detail === null || url === null || slug.value.trim() === '') {
+		return null;
+	}
+
+	const trailing = url.endsWith('/') ? '/' : '';
+	const path     = url.replace(/\/$/, '');
+
+	return path.endsWith(`/${detail.slug}`) ? `${path.slice(0, -detail.slug.length)}${slug.value.trim()}${trailing}` : null;
 });
 
 // Whether the date in the form is still to come.
@@ -409,6 +436,11 @@ async function save(status?: EntryStatus): Promise<void> {
 		change.body = body.value;
 	}
 
+	if (slug.value.trim() !== start.slug) {
+		change.slug     = slug.value.trim();
+		change.redirect = redirect.value;
+	}
+
 	if (status !== undefined) {
 		change.status = status;
 
@@ -429,6 +461,7 @@ async function save(status?: EntryStatus): Promise<void> {
 
 		fill(saved);
 		forget(saved.id);
+		forget(detail.id);
 		keptHere.value  = false;
 		attempted.value = false;
 		savedAt.value   = new Date();
@@ -438,7 +471,14 @@ async function save(status?: EntryStatus): Promise<void> {
 			toast(status === 'published' ? 'Published' : (status === 'scheduled' ? 'Scheduled' : 'Switched to draft'));
 		}
 	} catch (caught) {
-		if (caught instanceof ApiError && caught.status === 409) {
+		if (caught instanceof ApiError && caught.field === 'slug') {
+			// Nothing was saved; the slug field says why.
+			slugError.value = caught.message;
+			sideOpen.value  = true;
+			tab.value       = 'document';
+			await nextTick();
+			document.getElementById('editor-slug')?.focus();
+		} else if (caught instanceof ApiError && caught.status === 409) {
 			void openConflict(status);
 		} else if (caught instanceof ApiError && caught.status === 0 && !online.value) {
 			waiting.value = { status };
@@ -1598,6 +1638,19 @@ function fieldKey(field: FieldDescription): string {
 								<input id="editor-date" v-model="date" type="datetime-local" :aria-invalid="errorFor('published') ? 'true' : undefined" :aria-describedby="errorFor('published') ? 'editor-date-help editor-date-error' : 'editor-date-help'">
 								<p id="editor-date-help" class="field__help">A date in the future schedules it.</p>
 								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
+							</div>
+							<div v-if="entry.can.rename" class="field">
+								<label for="editor-slug">Slug</label>
+								<input id="editor-slug" v-model="slug" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
+								<p id="editor-slug-help" class="field__help">
+									<template v-if="entry.status === 'published' && slug.trim() !== entry.slug">Saving moves it to <span class="mono">{{ slugAddress ?? 'a new address' }}</span>{{ redirect ? '.' : ', and links to the old address will stop working.' }}</template>
+									<template v-else>Lowercase letters, numbers, and hyphens. {{ entry.status === 'published' ? 'Changing it changes its address.' : 'Its address will end in it.' }}</template>
+								</p>
+								<p v-if="slugError" id="editor-slug-error" class="field__error">{{ slugError }}</p>
+								<label v-if="entry.status === 'published' && slug.trim() !== entry.slug" class="checkbox">
+									<input v-model="redirect" type="checkbox">
+									Redirect the old address here
+								</label>
 							</div>
 							<p v-if="entry.url" class="editor__link">
 								<a class="button button--small" :href="entry.url" target="_blank" rel="noopener">

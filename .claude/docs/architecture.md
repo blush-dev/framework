@@ -436,7 +436,8 @@ Implemented in M4b (D-087, D-090).
   (a copy beside it under the first free name, `-2` and on; a new date
   prefix; a bundle's folder copied; D-275), and
   `delete` (to its own `storage/trash/{time}-{random}/` folder with a
-  `trash.json` manifest), and `trashed`, `restore` (changes made before
+  `trash.json` manifest), and `trashed`, `loadTrashed` (D-276),
+  `restore` (changes made before
   the move back), and `purge` (D-237). Writes are atomic, serialized
   by a lock file, checked against the caller's revision (`WriteConflict`),
   confined to the content root and content formats, and followed by an

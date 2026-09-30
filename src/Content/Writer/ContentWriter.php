@@ -91,6 +91,15 @@ interface ContentWriter
 	public function trashed(): array;
 
 	/**
+	 * Reads an entry in the trash, to look at before restoring it (D-276).
+	 * Its id is the one it had, and has again once restored.
+	 *
+	 * @throws WriteException When there's no such entry in the trash, or
+	 *                        it can't be read.
+	 */
+	public function loadTrashed(string $trashId): EditableEntry;
+
+	/**
 	 * Brings an entry back from the trash to where it was, after making
 	 * the changes to it (such as `status: draft`), so it's never back
 	 * without them.
