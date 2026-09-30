@@ -432,7 +432,9 @@ Implemented in M4b (D-087, D-090).
 - **`ContentWriter`** (D-228; `Blush\Content\Writer`, `FilesystemWriter`
   by default): `load` (raw front matter, body, and a revision hash),
   `create`, `update` (`EntryChanges`: set, remove, body), `rename` (a
-  new slug; date prefixes kept, bundles move their folder), and
+  new slug; date prefixes kept, bundles move their folder), `duplicate`
+  (a copy beside it under the first free name, `-2` and on; a new date
+  prefix; a bundle's folder copied; D-275), and
   `delete` (to its own `storage/trash/{time}-{random}/` folder with a
   `trash.json` manifest), and `trashed`, `restore` (changes made before
   the move back), and `purge` (D-237). Writes are atomic, serialized
@@ -729,7 +731,7 @@ Implemented in M7 (D-135 to D-140).
     URLs (built: D-225, D-226; `Blush\Preview`, signed with `APP_SECRET`).
 - **Stage 3: editor**
   - The editing API (built, D-229): load, create, change (with the
-    status shortcut and renames), and delete entries through
+    status shortcut and renames), duplicate (D-275), and delete entries through
     `ContentWriter`, with permissions judged on the change.
   - Forms generated from schemas.
   - A Markdown editor with live preview through `Kernel::handle()`.

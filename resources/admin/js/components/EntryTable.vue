@@ -14,13 +14,14 @@ const collapsed = ref(new Set<string>());
  * above it, with its address on the site beneath, the status, the authors (or, for a
  * taxonomy's terms, how many published entries use each), a date, and a
  * menu of what to do with each (D-254): **Edit**, **View** and **Copy
- * link** once it's live, and **Move to trash** when the account may.
+ * link** once it's live, **Duplicate** (not for terms, D-275) and **Move
+ * to trash** when the account may.
  * Files and folders aren't shown. Labeled by the heading whose id it's
  * given.
  *
  * The type's index page, when there is one, is `pinned` in a body of its
  * own above the rest (D-255): the same row, tinted, with a pin and an
- * **Index** tag, and never with **Move to trash**.
+ * **Index** tag, and never with **Duplicate** or **Move to trash**.
  *
  * A tree page that starts inside a branch begins with the entries above
  * it, marked **Continued** (D-263). Collapsing a branch hides the rows
@@ -48,6 +49,7 @@ const { terms = false, pinned = null, entries } = defineProps<{
 
 defineEmits<{
 	trash: [entry: EntrySummary];
+	duplicate: [entry: EntrySummary];
 }>();
 
 // The rows a collapsed branch hides: those under it, by depth.
@@ -171,6 +173,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 								</a>
 								<button type="button" class="menu-item" @click="copyLink(entry)"><AdminIcon name="link" />Copy link</button>
 							</template>
+							<button v-if="entry.can.duplicate && !terms" type="button" class="menu-item" @click="$emit('duplicate', entry)"><AdminIcon name="copy" />Duplicate</button>
 							<template v-if="entry.can.delete">
 								<div class="menu-divider" />
 								<button type="button" class="menu-item menu-item--danger" @click="$emit('trash', entry)"><AdminIcon name="trash-2" />Move to trash</button>

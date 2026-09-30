@@ -45,6 +45,18 @@ interface ContentWriter
 	public function create(ContentType $type, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null, string $format = 'md'): WriteResult;
 
 	/**
+	 * Copies an entry beside it (D-275) under a new slug, with changes
+	 * applied to the copy: `{slug}`, or the first of `{slug}-2`,
+	 * `{slug}-3`, … that's free. A dated file takes the date given
+	 * (default now) in place of its own. A bundle's copy is a copy of its
+	 * folder, media and all. A landing page can't be copied; its name is
+	 * its folder's.
+	 *
+	 * @throws WriteException When the entry can't be read or the copy written.
+	 */
+	public function duplicate(string $id, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult;
+
+	/**
 	 * Changes an entry's front matter and body.
 	 *
 	 * @throws WriteConflict

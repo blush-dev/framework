@@ -6125,3 +6125,47 @@ decision, add a new entry that supersedes it and mark the old one
   without Move to trash; an ordinary post has none of it; the Categories
   index page is marked too.
 - **Why:** the author asked for the quick wins in turn; this was second.
+
+### D-275: Duplicate
+- **Date:** 2026-09-30
+- **Decision:** Settles D-254's "Not yet: Duplicate (no API)".
+  - **`ContentWriter::duplicate($id, $slug, $changes, $date)`** writes a
+    copy beside the entry with the changes applied, under `$slug` or
+    the first free `{slug}-2`, `{slug}-3`, …, never over anything. A
+    dated name (file or bundle folder) takes the new date's prefix. A
+    bundle's whole folder is copied (media too; links skipped), then its
+    index file is written. A landing page is refused, as `rename()`
+    refuses it.
+  - **`POST entries/{id}/duplicate`** (`EntryController::duplicate`)
+    needs `content.create` and `content.edit` for the entry. The copy is
+    a draft titled "{title} (Copy)" ("Untitled (Copy)" for none), slugged
+    `{slug}-copy` from the original's slug (not the title, so a
+    hand-picked slug carries over), with the same authors and every other
+    key as it was, and dated now when its type is dated. An index page
+    is a 422 ("… and there's only one"). Answers `201` with the copy as
+    `GET entries/{id}` describes it.
+  - **`GET entries`** gives each entry `can.duplicate`: not for landing
+    pages, and only with `content.create`.
+  - **The row menu** has **Duplicate** (Lucide `copy`) after Copy link
+    and before the divider, as in the prototype, for entries but not
+    terms (the prototype's term menus have none). The list shows the
+    result in its notice, "Duplicated as a draft: “… (Copy)”." with
+    **Open it**, as Restore does, since the copy is a draft that the
+    current tab may not show.
+- **Departs from the design:** the prototype confirms with a toast;
+  the list's other actions already use the notice with a link, and the
+  link matters here.
+- **Not done:** Duplicate in the editor's ⋯ menu (the design's editor
+  menu has none) and duplicating terms.
+- **Checked:** `composer check` (`FilesystemWriterTest`: dated copy,
+  numbered second copy, file byte-for-byte but for the changes,
+  original untouched, bundle media copied, landing refused;
+  `AdminEditingTest`: `can`, the copy's id, title, status, extra,
+  authors and body, `-copy-2`, index page 422, 404, an author's own vs
+  someone else's); on the jtcom trial in Chrome: the index page's menu
+  has no Duplicate, a post's does; duplicating shows the notice and
+  the draft copy at the top of All (64 posts), Open it opens
+  `register-custom-icons-wordpress-7-0-copy` as a draft; the copy was
+  then trashed and deleted permanently from the Trash tab, leaving the
+  trial as it was.
+- **Why:** the author asked for the quick wins in turn; this was third.

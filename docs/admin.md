@@ -139,8 +139,16 @@ search switch between roomy rows and compact ones, which leave out the
 address line; your browser remembers the choice.
 
 The **⋯** button at the end of each row has **Edit**, then **View** and
-**Copy link** once the entry is live (**View archive** for a term), and
-**Move to trash** if your account can delete it.
+**Copy link** once the entry is live (**View archive** for a term),
+**Duplicate**, and **Move to trash** if your account can delete it.
+
+**Duplicate** copies the entry beside the original as a draft titled
+"… (Copy)", with the original's slug plus `-copy` (then `-copy-2`, and so
+on, if that's taken). Everything else is copied as it is: the body, the
+authors, and the other front matter; a dated entry is dated today, and
+an entry in its own folder is copied with its media. A notice above the
+list says so, with a link to open the copy. Terms and index pages can't
+be duplicated.
 
 A collection's or taxonomy's **index page** (the `index.md` in its
 folder, which introduces its archive) is pinned at the top of its list
@@ -556,6 +564,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST entries` | Create an entry: `{"type", "title"}`, and optionally `"slug"`, `"set"`, `"body"`, `"status"` |
 | `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
 | `DELETE entries/{id}?revision=…` | Move an entry to the trash |
+| `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above); answers `201` with the copy as `GET entries/{id}` shows it. Needs `content.create` and the right to edit the entry; an index page is refused with a `422` |
 | `GET trash` | The trashed entries the account may handle, newest first (`?type=` for one type): `{"trash": [{"id", "entry", "title", "type", "bundle", "trashed", "authors", "own"}]}` |
 | `POST trash/restore` | Restore `{"id"}` as a draft: `{"id"}` is the entry's id again; 409 when something else has its place |
 | `POST trash/delete` | Delete `{"id"}` permanently |
@@ -584,7 +593,7 @@ has `status`, `type`, `search`, `total`, `page`, `pages`, `per`, and
 `entries`, each with its id, handle, title, type, status, dates, file,
 `url` (its path on the site, where it is or will be once published, or
 `null`), authors, whether it's the account's own, `index`,
-`can.delete`, and `ancestors`: the titles of the entries above it, from
+`can.delete` and `can.duplicate`, and `ancestors`: the titles of the entries above it, from
 the top down (a page's parent pages, or a hierarchical term's parents;
 empty for the rest). With a `type` whose entries nest (pages, or a
 hierarchical taxonomy), no `status`, and no `search`, entries come in

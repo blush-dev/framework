@@ -228,7 +228,8 @@ function nameOf(item: { title: string }): string {
 }
 
 /**
- * Runs a trash action, then reloads the list and says what happened.
+ * Runs a row's or the trash's action, then reloads the list and says
+ * what happened.
  */
 async function act(name: string, action: () => Promise<{ text: string; entry?: string }>): Promise<void> {
 	busy.value  = name;
@@ -260,6 +261,18 @@ function moveToTrash(entry: EntrySummary): void {
 		await request<void>('DELETE', `${entryPath(entry.id)}?revision=${encodeURIComponent(detail.revision)}`);
 
 		return { text: `Moved ${nameOf(entry)} to the trash.` };
+	});
+}
+
+/**
+ * Copies an entry as a draft beside it (D-275), and offers to open the
+ * copy, which the current tab may not show.
+ */
+function duplicate(entry: EntrySummary): void {
+	void act(entry.id, async () => {
+		const copy = await request<EntryDetail>('POST', `${entryPath(entry.id)}/duplicate`);
+
+		return { text: `Duplicated as a draft: ${nameOf(copy)}.`, entry: copy.id };
 	});
 }
 
@@ -415,7 +428,7 @@ const emptyText = computed(() => {
 
 			<template v-else-if="list">
 				<p v-if="flattened && list.entries.length" class="notebar"><AdminIcon name="info" />{{ flattened }}</p>
-				<EntryTable v-if="list.entries.length || list.index" :entries="list.entries" :pinned="list.index" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" @trash="moveToTrash" />
+				<EntryTable v-if="list.entries.length || list.index" :entries="list.entries" :pinned="list.index" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" @trash="moveToTrash" @duplicate="duplicate" />
 
 				<div v-if="!list.entries.length" class="empty">
 					<AdminIcon name="files" />

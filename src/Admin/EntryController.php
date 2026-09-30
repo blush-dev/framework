@@ -60,6 +60,11 @@ use Blush\Support\Slug;
  * - `PATCH  entries/{id}`: changes one (`revision` required; `set`,
  *   `remove`, `body`, `status`, `published`, `slug`).
  * - `DELETE entries/{id}?revision=…`: moves it to the trash.
+ * - `POST   entries/{id}/duplicate`: copies it beside itself as a draft
+ *   titled "… (Copy)", slugged `{slug}-copy`, with the same authors, dated now if its type is
+ *   dated (D-275). Needs `content.create`, and `content.edit` for the
+ *   entry; a landing page (an index page or the home page) can't be
+ *   copied.
  *
  * **Permissions come from the change, not only the entry:** editing
  * needs `content.edit` for the entry (with D-219's ownership and
@@ -252,6 +257,47 @@ final readonly class EntryController
 		return $updated === null
 			? self::error('The entry was saved but couldn\'t be read back; check content health.', Status::UnprocessableContent)
 			: self::json($this->describe($account, $updated, $this->writer->load($result->id)));
+	}
+
+	/**
+	 * Copies an entry as a draft (D-275).
+	 */
+	public function duplicate(ServerRequestInterface $request, string $id): ResponseInterface
+	{
+		$account = self::account($request);
+		$entry   = $this->content->find($id);
+
+		if ($entry === null) {
+			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
+		}
+
+		if (! $this->permissions->can($account, Capability::ContentCreate) || ! $this->permissions->can($account, Capability::ContentEdit, $entry)) {
+			return self::error('You aren\'t allowed to duplicate that entry.', Status::Forbidden);
+		}
+
+		if (IndexPage::is($entry)) {
+			return self::error(sprintf('"%s" is the index page for %s, and there\'s only one.', $entry->title, $entry->type->label), Status::UnprocessableContent);
+		}
+
+		$now   = $this->clock->now()->setTimezone($this->app->timezone());
+		$title = sprintf('%s (Copy)', trim($entry->title) === '' ? 'Untitled' : $entry->title);
+		$set   = [
+			'title'  => $title,
+			'status' => 'draft',
+			...($entry->type->dateArchives === DateArchives::None ? [] : ['published' => self::dateString($now)])
+		];
+
+		try {
+			$result = $this->writer->duplicate($id, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set), $now);
+		} catch (WriteException $e) {
+			return self::error($e->getMessage(), Status::UnprocessableContent);
+		}
+
+		$copy = $this->content->find($result->id);
+
+		return $copy === null
+			? self::error('The copy was written but couldn\'t be read back; check content health.', Status::UnprocessableContent)
+			: self::json($this->describe($account, $copy, $this->writer->load($result->id)), Status::Created);
 	}
 
 	/**

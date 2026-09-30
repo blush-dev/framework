@@ -320,7 +320,10 @@ final readonly class EntriesController
 			'authors'   => $entry->terms($this->config->authorTaxonomy),
 			'own'       => $this->permissions->owns($account, $entry),
 			'index'     => IndexPage::is($entry),
-			'can'       => ['delete' => ! IndexPage::is($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry)],
+			'can'       => [
+				'delete'    => ! IndexPage::is($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry),
+				'duplicate' => ! $entry->landing && $this->permissions->can($account, Capability::ContentCreate)
+			],
 			'uses'      => $entry->type instanceof Taxonomy ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors' => $this->ancestors($entry),
 			'depth'     => $tree === null ? null : ($tree['depths'][$entry->id] ?? 0),

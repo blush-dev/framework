@@ -205,7 +205,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   are "Untitled". Files belong in an info box, later.
 - **Row menus** (D-254): Edit, View and Copy link once live (View archive
   for terms), and Move to trash; the trash's are Restore as a draft and
-  Delete permanently. No Duplicate yet (no API), and no Preview of a
+  Delete permanently. Duplicate is there since D-275 (not for terms,
+  as in the prototype), shown with a notice and an Open it link rather
+  than a toast, like the list's other actions. No Preview of a
   trashed entry. The floating list opens above the button when there's
   no room below.
 - **The pinned index page** (D-255): a collection's or taxonomy's

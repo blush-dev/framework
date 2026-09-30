@@ -221,7 +221,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertIsArray($idea);
 		$this->assertSame('/archives/flame', $flame['url'] ?? null);
 		$this->assertSame('/archives/idea', $idea['url'] ?? null, 'A draft has the address it will have.');
-		$this->assertSame(['delete' => true], $flame['can'] ?? null, 'An author trashes their own.');
+		$this->assertSame(['delete' => true, 'duplicate' => true], $flame['can'] ?? null, 'An author trashes their own.');
 		$this->assertArrayNotHasKey('_posts/2021-05-05.sams.md', $byId, 'An author lists only their own.');
 	}
 
@@ -238,7 +238,7 @@ final class AdminEditingTest extends TestCase
 		$index = $list['index'] ?? null;
 		$this->assertIsArray($index);
 		$this->assertSame(['_posts/index.md', true], [$index['id'] ?? null, $index['index'] ?? null]);
-		$this->assertSame(['delete' => false], $index['can'] ?? null, 'It can\'t be trashed from the list.');
+		$this->assertSame(['delete' => false, 'duplicate' => false], $index['can'] ?? null, 'It can\'t be trashed from the list.');
 
 		$this->assertNull($this->pinned('/entries?type=post&per=1&page=2'), 'It\'s pinned on the first page only.');
 
@@ -290,6 +290,46 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(200, $published->getStatusCode());
 		$this->assertSame('published', self::json($published)['status'] ?? null);
 		$this->assertStringNotContainsString('published', $this->file('_posts/index.md'), 'Publishing doesn\'t date it.');
+	}
+
+	public function testDuplicatesAnEntryAsADraft(): void
+	{
+		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\n---\n");
+		$this->site();
+
+		$list = self::json($this->call('GET', '/entries?type=post'));
+		$this->assertIsArray($list['entries'] ?? null);
+		$this->assertIsArray($list['index'] ?? null);
+		$this->assertSame(['delete' => true, 'duplicate' => true], array_column($list['entries'], 'can', 'id')[self::FLAME] ?? null);
+		$this->assertSame(['delete' => false, 'duplicate' => false], $list['index']['can'] ?? null, 'Not the index page.');
+
+		$response = $this->call('POST', '/entries/' . self::FLAME . '/duplicate');
+		$copy     = self::json($response);
+
+		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertIsString($copy['id'] ?? null);
+		$this->assertMatchesRegularExpression('#^_posts/\d{4}-\d{2}-\d{2}\.flame-copy\.md$#', $copy['id']);
+		$this->assertSame(['Rekindling the Flame (Copy)', 'draft'], [$copy['title'] ?? null, $copy['status'] ?? null]);
+		$this->assertIsArray($copy['extra'] ?? null);
+		$this->assertSame('hopeful', $copy['extra']['mood'] ?? null, 'Everything else is copied.');
+		$this->assertIsArray($copy['values'] ?? null);
+		$this->assertSame(['jane'], (array) ($copy['values']['authors'] ?? null), 'It keeps its authors.');
+		$this->assertStringContainsString("\nThe body.\n", $this->file($copy['id']));
+		$this->assertStringContainsString('Rekindling the Flame"', $this->file(self::FLAME), 'The original is untouched.');
+
+		$again = self::json($this->call('POST', '/entries/' . self::FLAME . '/duplicate'));
+		$this->assertStringEndsWith('.flame-copy-2.md', is_string($again['id'] ?? null) ? $again['id'] : '');
+
+		$this->assertSame(422, $this->call('POST', '/entries/_posts/index.md/duplicate')->getStatusCode(), 'Not the index page.');
+		$this->assertSame(404, $this->call('POST', '/entries/_posts/nope.md/duplicate')->getStatusCode());
+	}
+
+	public function testDuplicatingNeedsCreateAndEdit(): void
+	{
+		$this->site(['author']);
+
+		$this->assertSame(403, $this->call('POST', '/entries/_posts/2021-05-05.sams.md/duplicate')->getStatusCode(), 'Not someone else\'s.');
+		$this->assertSame(201, $this->call('POST', '/entries/' . self::FLAME . '/duplicate')->getStatusCode(), 'An author duplicates their own.');
 	}
 
 	/**

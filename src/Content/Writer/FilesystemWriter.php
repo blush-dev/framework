@@ -48,6 +48,8 @@ use Blush\Support\Slug;
  *   formatting and refuses results that wouldn't read back as intended;
  *   files are written atomically, one write at a time (a lock file in
  *   `storage/cache`), and checked against the caller's revision first.
+ * - **Copied:** `duplicate()` writes a copy beside an entry, or copies
+ *   a bundle's whole folder, never over anything (D-275).
  * - **Kept:** a deleted entry moves to its own folder in `storage/trash`
  *   (`{time}-{random}/`, with a `trash.json` naming it), from where
  *   `restore()` brings it back and `purge()` deletes it for good (D-237).
@@ -126,6 +128,44 @@ final readonly class FilesystemWriter implements ContentWriter
 			$this->write($path, $contents);
 
 			return new WriteResult($id, self::revision($contents), $this->refresh());
+		});
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function duplicate(string $id, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult
+	{
+		if (! Slug::isSlug($slug)) {
+			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
+		}
+
+		$path = $this->path($id);
+
+		return $this->locked(function () use ($id, $path, $slug, $changes, $date): WriteResult {
+			$contents = $this->read($path);
+			$entry    = $this->content->find($id);
+
+			if ($entry?->landing === true) {
+				throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s, so it can\'t be copied.', $id));
+			}
+
+			$prefix = ($date ?? $this->clock->now())->format('Y-m-d') . '.';
+			$number = 1;
+
+			do {
+				[$from, $to, $newId, $bundle] = $this->duplicateTargets($id, $number === 1 ? $slug : "{$slug}-{$number}", $prefix);
+				$number++;
+			} while (file_exists($to));
+
+			if ($bundle) {
+				$this->copyFolder($from, $to);
+			}
+
+			$this->write($this->path($newId), $this->editor->edit($newId, $contents, $changes, $this->keys($entry?->type->name)));
+
+			return new WriteResult($newId, self::revision($this->read($this->path($newId))), $this->refresh());
 		});
 	}
 
@@ -250,6 +290,61 @@ final readonly class FilesystemWriter implements ContentWriter
 		$newId = ltrim("{$directory}/" . ($match[1] ?? '') . "{$slug}." . ($match[2] ?? 'md'), '/');
 
 		return [$this->path($id), $this->path($newId), $newId];
+	}
+
+	/**
+	 * Returns what a copy copies (the file, or a bundle's folder), where
+	 * to, the copy's id, and whether it's a bundle. A leading date in the
+	 * name is replaced with `$prefix`.
+	 *
+	 * @return array{string, string, string, bool}
+	 * @throws WriteException
+	 */
+	private function duplicateTargets(string $id, string $slug, string $prefix): array
+	{
+		$directory = dirname($id) === '.' ? '' : dirname($id);
+		$file      = basename($id);
+		$dated     = static fn (string $name): string => preg_match('/^\d{4}-\d{2}-\d{2}\./', $name) === 1 ? $prefix : '';
+
+		if (preg_match('/^index\.([a-z]+)$/', $file) === 1 && $directory !== '') {
+			$parent = dirname($directory) === '.' ? '' : dirname($directory) . '/';
+			$folder = $parent . $dated(basename($directory)) . $slug;
+
+			return [$this->folder($directory), $this->folder($folder), "{$folder}/{$file}", true];
+		}
+
+		preg_match('/^.+\.([a-z]+)$/', $file, $match);
+
+		$newId = ltrim("{$directory}/" . $dated($file) . "{$slug}." . ($match[1] ?? 'md'), '/');
+
+		return [$this->path($id), $this->path($newId), $newId, false];
+	}
+
+	/**
+	 * Copies a folder and everything in it to a new place.
+	 *
+	 * @throws WriteException
+	 */
+	private function copyFolder(string $from, string $to): void
+	{
+		if (! @mkdir($to, 0775, true)) {
+			throw new WriteException(sprintf('The folder %s couldn\'t be created.', $this->paths->relative($to)));
+		}
+
+		$items = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($from, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
+
+		foreach ($items as $item) {
+			if (! $item instanceof SplFileInfo || $item->isLink()) {
+				continue;
+			}
+
+			$target = $to . substr($item->getPathname(), strlen($from));
+			$copied = $item->isDir() ? (is_dir($target) || @mkdir($target, 0775)) : @copy($item->getPathname(), $target);
+
+			if (! $copied) {
+				throw new WriteException(sprintf('%s couldn\'t be copied.', $this->paths->relative($item->getPathname())));
+			}
+		}
 	}
 
 	/**

@@ -46,8 +46,8 @@ use Blush\Session\StartSession;
  *     caption.
  *   - `GET  entries`: the entries the account may edit, a page at a time.
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
- *     the editing API (`EntryController`), and `GET content/{type}/{key}`,
- *     an entry by its handle (D-253).
+ *     the editing API (`EntryController`), `POST entries/{id}/duplicate`,
+ *     and `GET content/{type}/{key}`, an entry by its handle (D-253).
  *   - `GET  trash`, and `POST trash/restore`, `trash/delete`, and
  *     `trash/empty`: the trash (`TrashController`).
  *   - `GET  health`: the content's lint problems.
@@ -98,6 +98,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/media/{path:.+}', [MediaListController::class, 'update'])->named('media.update')->middleware(Authenticate::class),
 			Route::get('/entries', EntriesController::class)->named('entries')->middleware(Authenticate::class),
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
+			Route::post('/entries/{id:.+}/duplicate', [EntryController::class, 'duplicate'])->named('entry.duplicate')->middleware(Authenticate::class),
 			Route::get('/entries/{id:.+}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
 			Route::get('/content/{type:[a-z0-9_-]+}/{key:.+}', [EntryController::class, 'named'])->named('entry.named')->middleware(Authenticate::class),
 			Route::patch('/entries/{id:.+}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),

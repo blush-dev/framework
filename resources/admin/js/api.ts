@@ -63,7 +63,8 @@ export interface EntrySummary {
 	own: boolean;
 	// Whether it's its type's index page, pinned above the rest (D-255).
 	index: boolean;
-	can: { delete: boolean };
+	// Duplicate: not for landing pages, and needs `content.create` (D-275).
+	can: { delete: boolean; duplicate: boolean };
 	// For a term, how many published entries use it; else `null` (D-236).
 	uses: number | null;
 	// The titles of the entries above it, from the top down: a page's

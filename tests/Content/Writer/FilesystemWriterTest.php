@@ -197,6 +197,31 @@ final class FilesystemWriterTest extends TestCase
 		$this->writer()->rename('_posts/index.md', 'blog');
 	}
 
+	public function testDuplicatesBesideTheEntryUnderAFreeName(): void
+	{
+		$id      = '_posts/2022-03-29.rekindling-the-flame.md';
+		$changes = new EntryChanges(set: ['title' => 'The Copy', 'status' => 'draft']);
+
+		$first  = $this->writer()->duplicate($id, 'the-copy', $changes);
+		$second = $this->writer()->duplicate($id, 'the-copy', $changes);
+
+		$this->assertSame('_posts/2026-06-01.the-copy.md', $first->id, 'A dated copy takes today\'s date.');
+		$this->assertSame('_posts/2026-06-01.the-copy-2.md', $second->id, 'A taken name gets a number.');
+		$this->assertSame("---\ntitle     : \"The Copy\"\nauthor    : justintadlock\ndate      : 2022-03-29 23:00:00 -6\nformat    :\ncategory  : [life]\nstatus: draft\n---\n\nThe body.\n", $this->file($first->id));
+		$this->assertSame(self::POST, $this->file($id), 'The original is untouched.');
+		$this->assertSame('The Copy', $this->content()->find($first->id)?->title);
+
+		$bundle = $this->writer()->duplicate('_posts/hello/index.md', 'hello-copy', new EntryChanges(set: ['title' => 'Hello (Copy)']));
+
+		$this->assertSame('_posts/hello-copy/index.md', $bundle->id);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello-copy/photo.jpg', 'A bundle\'s media is copied with it.');
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello/photo.jpg');
+
+		$this->expectException(WriteException::class);
+
+		$this->writer()->duplicate('_posts/index.md', 'blog', $changes);
+	}
+
 	public function testDeletingMovesToTheTrash(): void
 	{
 		$id = '_posts/2022-03-29.rekindling-the-flame.md';
