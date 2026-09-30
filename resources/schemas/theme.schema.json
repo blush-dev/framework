@@ -140,6 +140,50 @@
 				]
 			}
 		},
+		"variants": {
+			"type": "object",
+			"description": "Variants the theme adds to components, by component name (such as \"callout\" or \"notebook/card\"). Their labels and descriptions are in the theme's lang/ catalog, under components.{name}.variants.{variant}.",
+			"propertyNames": {
+				"pattern": "^[A-Za-z][A-Za-z0-9_-]*(?:/[A-Za-z][A-Za-z0-9_-]*)?$"
+			},
+			"additionalProperties": {
+				"type": "array",
+				"items": {
+					"oneOf": [
+						{
+							"type": "string",
+							"pattern": "^[a-z][a-z0-9-]*$",
+							"not": {
+								"const": "default"
+							},
+							"description": "The variant's name: lowercase letters, digits, and hyphens. Its class is component-{name}--{variant}."
+						},
+						{
+							"type": "object",
+							"required": [
+								"name"
+							],
+							"additionalProperties": false,
+							"properties": {
+								"name": {
+									"type": "string",
+									"pattern": "^[a-z][a-z0-9-]*$",
+									"not": {
+										"const": "default"
+									},
+									"description": "The variant's name."
+								},
+								"modifier": {
+									"type": "string",
+									"pattern": "^[a-z][a-z0-9-]*$",
+									"description": "The class modifier to add instead of the name: component-{name}--{modifier}."
+								}
+							}
+						}
+					]
+				}
+			}
+		},
 		"requires": {
 			"type": "object",
 			"description": "What the theme needs, such as {\"blush\": \"^2.0\"}. Not checked yet.",

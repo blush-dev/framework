@@ -15,6 +15,7 @@
 	flex: none;
 	width: 16px;
 	height: 16px;
+	stroke-width: 1.6;
 }
 
 /* Page headers */
@@ -22,26 +23,28 @@
 .page-header {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: flex-end;
-	gap: 8px 16px;
+	align-items: flex-start;
+	gap: var(--s-3) var(--s-4);
 }
 
 .page-header__text {
 	display: grid;
-	gap: 4px;
+	gap: 7px;
 	min-width: 0;
 }
 
 .page-header__hint {
+	max-width: 70ch;
 	color: var(--fg-2);
-	font-size: var(--text-sm);
+	font-size: var(--base);
 }
 
 .page-header__actions {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: var(--s-2);
 	margin-left: auto;
+	padding-top: 3px;
 }
 
 /* Buttons */
@@ -50,9 +53,9 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
-	height: 30px;
-	padding: 0 12px;
+	gap: 7px;
+	height: var(--ctl);
+	padding: 0 14px;
 	border: 1px solid var(--border-strong);
 	border-radius: var(--r-1);
 	background: var(--surface);
@@ -123,18 +126,18 @@
 }
 
 .button--small {
-	height: 26px;
-	padding: 0 8px;
+	height: var(--ctl-sm);
+	padding: 0 11px;
 	font-size: var(--text-sm);
 }
 
 .button--icon {
-	width: 30px;
+	width: var(--ctl);
 	padding: 0;
 }
 
 .button--small.button--icon {
-	width: 26px;
+	width: var(--ctl-sm);
 }
 
 /* Panels */
@@ -152,7 +155,8 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 4px 12px;
+	gap: var(--s-1) var(--s-3);
+	min-height: 58px;
 	padding: var(--pad-panel) var(--pad-x);
 	border-bottom: 1px solid var(--border);
 }
@@ -164,16 +168,23 @@
 
 .panel__actions {
 	display: flex;
-	gap: 8px;
+	gap: var(--s-2);
 	margin-left: auto;
 }
 
 .panel__body {
-	padding: var(--pad-x);
+	padding: var(--s-5) var(--pad-x);
 }
 
 .panel__body > * + * {
-	margin-top: 12px;
+	margin-top: var(--s-4);
+}
+
+@media (width <= 640px) {
+	/* A panel's subtitle is supplementary; its heading needs the room. */
+	.panel__hint {
+		display: none;
+	}
 }
 
 /* Status pills: a dot and a word, never color alone. */
@@ -182,8 +193,8 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	height: 20px;
-	padding: 0 8px;
+	height: 23px;
+	padding: 0 10px 0 9px;
 	border-radius: 999px;
 	background: var(--surface-2);
 	color: var(--fg-2);
@@ -255,14 +266,14 @@
 .stats {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 12px;
+	gap: var(--s-4);
 	margin: 0;
 }
 
 .stat {
 	display: grid;
-	gap: 6px;
-	padding: 14px var(--pad-x);
+	gap: 10px;
+	padding: var(--s-4) var(--s-5);
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--r-3);
@@ -320,6 +331,16 @@
 	}
 }
 
+@media (width <= 640px) {
+	.stats {
+		gap: var(--s-3);
+	}
+
+	.stat {
+		padding: var(--s-4);
+	}
+}
+
 /* Tables */
 
 /* Positioned, so visually hidden text in cells scrolls with the table
@@ -336,7 +357,7 @@
 
 .table th,
 .table td {
-	padding: var(--pad-row) 12px;
+	padding: var(--pad-row) var(--pad-x);
 	border-bottom: 1px solid var(--border);
 	text-align: left;
 	vertical-align: top;
@@ -357,7 +378,7 @@
 }
 
 .table thead th {
-	padding-block: 8px;
+	padding-block: 13px;
 	background: var(--surface);
 	color: var(--fg-2);
 	font-size: var(--text-xs);
@@ -387,8 +408,8 @@
  * always where there isn't.
  */
 .table .table__actions {
-	width: 44px;
-	padding-block: calc(var(--pad-row) - 4px);
+	width: 54px;
+	padding-block: calc(var(--pad-row) - 6px);
 	text-align: right;
 	vertical-align: middle;
 }
@@ -396,8 +417,8 @@
 .row-more {
 	display: inline-grid;
 	place-items: center;
-	width: 26px;
-	height: 26px;
+	width: 30px;
+	height: 30px;
 	padding: 0;
 	border: 0;
 	border-radius: var(--r-1);
@@ -437,7 +458,7 @@
 /* An entry's title with its file beneath. */
 .entry-title {
 	display: grid;
-	gap: 2px;
+	gap: 4px;
 	min-width: 14rem;
 }
 
@@ -489,7 +510,7 @@
 
 .index-mark {
 	display: inline-block;
-	padding: 1px 5px;
+	padding: 2px 7px;
 	border: 1px solid var(--border);
 	border-radius: var(--r-1);
 	background: var(--surface);
@@ -507,9 +528,9 @@
 .notebar {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--s-2);
 	margin: 0;
-	padding: 8px 12px;
+	padding: 11px var(--pad-x);
 	border-bottom: 1px solid var(--border);
 	background: var(--surface-2);
 	color: var(--fg-2);
@@ -527,7 +548,7 @@
 .title-cell {
 	display: flex;
 	align-items: flex-start;
-	gap: 2px;
+	gap: 4px;
 	min-width: 0;
 	padding-left: calc(var(--depth, 0) * 18px);
 }
@@ -585,18 +606,19 @@
 
 /* Empty states */
 
+/* A screen with nothing in it gets the most room of anything. */
 .empty {
 	display: grid;
 	justify-items: center;
-	gap: 6px;
-	padding: 32px var(--pad-x);
+	gap: 7px;
+	padding: 88px var(--s-5);
 	text-align: center;
 }
 
 .empty svg {
-	width: 24px;
-	height: 24px;
-	margin-bottom: 4px;
+	width: 26px;
+	height: 26px;
+	margin-bottom: calc(var(--s-4) - 7px);
 	color: var(--fg-3);
 }
 
@@ -605,15 +627,27 @@
 }
 
 .empty__text {
-	max-width: 36rem;
+	max-width: 46ch;
 	color: var(--fg-2);
+	line-height: 1.6;
+}
+
+.empty > .button,
+.empty > p + div {
+	margin-top: calc(var(--s-5) - 7px);
+}
+
+@media (width <= 640px) {
+	.empty {
+		padding: 56px var(--s-4);
+	}
 }
 
 /* Forms */
 
 .field {
 	display: grid;
-	gap: 6px;
+	gap: 7px;
 }
 
 .field label {
@@ -635,6 +669,7 @@
 .field__help {
 	color: var(--fg-3);
 	font-size: var(--text-sm);
+	line-height: 1.5;
 }
 
 .field__error {
@@ -668,8 +703,8 @@
 .field select,
 .field textarea {
 	width: 100%;
-	min-height: 32px;
-	padding: 0 10px;
+	min-height: var(--ctl);
+	padding: 0 12px;
 	border: 1px solid var(--border-strong);
 	border-radius: var(--r-1);
 	background: var(--surface);
@@ -681,8 +716,8 @@
 }
 
 .field textarea {
-	padding: 6px 10px;
-	line-height: 1.5;
+	padding: 10px 12px;
+	line-height: 1.55;
 	resize: vertical;
 }
 
@@ -725,7 +760,7 @@
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 12px;
+	gap: var(--s-2) var(--s-3);
 }
 
 /* Notices */
@@ -733,7 +768,8 @@
 .notice {
 	display: grid;
 	gap: 4px;
-	padding: 10px 12px;
+	padding: 14px var(--s-4);
+	line-height: 1.55;
 	border: 1px solid var(--border);
 	border-radius: var(--r-2);
 	background: var(--surface-2);
@@ -856,4 +892,216 @@
 	.twist .icon {
 		transition: none;
 	}
+}
+
+/*
+ * Library modals (admin.md §8, The inserters): the media and icon
+ * pickers share one shell, a native <dialog> with a head, a filter bar,
+ * a body, and a footer naming the selection. A library is a browsing
+ * screen that happens to be in a modal, so it gets the room one needs.
+ */
+.modal {
+	width: min(1180px, calc(100vw - 64px));
+	max-width: none;
+	height: min(90vh, 900px);
+	max-height: 90vh;
+	padding: 0;
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--r-3);
+	background: var(--surface);
+	box-shadow: var(--shadow-3);
+	color: var(--fg);
+}
+
+.modal[open] {
+	display: flex;
+	flex-direction: column;
+}
+
+.modal::backdrop {
+	background: color-mix(in srgb, var(--fg) 28%, transparent);
+	backdrop-filter: blur(3px);
+}
+
+.modal__head {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: var(--s-3);
+	padding: var(--s-5) var(--s-4) var(--s-4) var(--s-5);
+}
+
+.modal__head h2 {
+	flex: 1;
+	min-width: 0;
+	font-family: var(--font-display);
+	font-size: var(--h2);
+	font-weight: 600;
+}
+
+.modal__bar {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-3);
+	padding: 0 var(--s-5) var(--s-4);
+}
+
+.modal__body {
+	flex: 1;
+	min-height: 0;
+	padding: var(--s-5);
+	overflow-y: auto;
+	border-top: 1px solid var(--border);
+}
+
+.modal__foot {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-2);
+	padding: var(--s-4) var(--s-5);
+	border-top: 1px solid var(--border);
+	background: var(--bg);
+}
+
+.modal__selected {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.modal__selected b {
+	color: var(--fg);
+	font-weight: 500;
+}
+
+/* The count line over a library's grid. */
+.modal__count {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--s-3);
+	padding-bottom: var(--s-4);
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+}
+
+.modal__count > span:last-child {
+	font-size: var(--text-sm);
+	font-weight: 400;
+	letter-spacing: normal;
+	text-transform: none;
+}
+
+@media (width <= 640px) {
+	.modal {
+		width: calc(100vw - 24px);
+		height: calc(100vh - 24px);
+		max-height: none;
+	}
+
+	.modal__head,
+	.modal__bar,
+	.modal__body,
+	.modal__foot {
+		padding-inline: var(--s-4);
+	}
+}
+
+/* A search field with its icon, the width of whatever holds it. */
+.search-field {
+	display: flex;
+	flex: 1 1 200px;
+	align-items: center;
+	gap: 9px;
+	height: var(--ctl);
+	padding: 0 12px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface);
+	color: var(--fg-3);
+}
+
+.search-field:focus-within {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.search-field input {
+	flex: 1;
+	min-width: 0;
+	border: 0;
+	background: none;
+	color: var(--fg);
+	outline: none;
+}
+
+.search-field input::placeholder {
+	color: var(--fg-3);
+}
+
+/* A short, fixed set of choices side by side (All, Images, Video…). */
+.segmented {
+	display: flex;
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface);
+}
+
+.segmented button {
+	height: calc(var(--ctl) - 2px);
+	padding: 0 13px;
+	border: 0;
+	background: none;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.segmented button + button {
+	border-left: 1px solid var(--border);
+}
+
+.segmented button:hover {
+	color: var(--fg);
+}
+
+.segmented button[aria-pressed="true"] {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.segmented--icons button {
+	display: grid;
+	place-items: center;
+	width: var(--ctl);
+	padding: 0;
+}
+
+.toolbar__end {
+	margin-left: auto;
+}
+
+/* Compact rows, when asked for: less padding and no address line. */
+.panel--compact .table tbody td,
+.panel--compact .table tbody th {
+	padding-block: 7px;
+}
+
+.panel--compact .entry-title__path {
+	display: none;
 }

@@ -18,6 +18,7 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Core\Framework;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Icon\IconCategory;
 use Blush\Icon\IconName;
 use Blush\Icon\Icons;
 use Blush\Theme\ThemeException;
@@ -30,7 +31,10 @@ use Blush\View\ViewFactory;
  * its `name` as the icon component's `name` prop takes it (a core icon's
  * short name, `house`; the rest in full, `jtcom/github`), its translated
  * `label`, the core icons' search `keywords`, and its `svg`, for the
- * picker to draw (as a mask, so no markup from the file runs).
+ * picker to draw (as a mask, so no markup from the file runs). A core
+ * icon has its `category` (`IconCategory`, D-265); the rest have `null`
+ * and a `source` naming the theme, the site, or the extension they come
+ * from, as components do.
  */
 final readonly class IconsController
 {
@@ -42,7 +46,8 @@ final readonly class IconsController
 	public function __construct(
 		private Icons $icons,
 		private ThemeResolver $resolver,
-		private ViewFactory $views
+		private ViewFactory $views,
+		private Provenance $provenance
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -54,8 +59,9 @@ final readonly class IconsController
 			return Response::json(['error' => $error->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
 		}
 
-		$keywords = self::keywords();
-		$icons    = [];
+		$keywords   = self::keywords();
+		$categories = self::categories();
+		$icons      = [];
 
 		foreach ($this->icons->all($chain) as $key => $file) {
 			$name = IconName::parse($key);
@@ -70,6 +76,8 @@ final readonly class IconsController
 				'name'     => $name->isCore() ? $name->name : (string) $name,
 				'label'    => $views->iconText($name, 'label') ?? $name->label(),
 				'keywords' => $name->isCore() ? $keywords[$name->name] ?? [] : [],
+				'category' => $name->isCore() ? ($categories[$name->name] ?? null)?->value : null,
+				'source'   => $name->isCore() ? null : $this->provenance->of($name->namespace, $chain),
 				'svg'      => $svg
 			];
 		}
@@ -101,5 +109,34 @@ final readonly class IconsController
 		}
 
 		return $keywords;
+	}
+
+	/**
+	 * The core icons' categories, by name. An icon the file leaves out, or
+	 * gives an unknown category, has none.
+	 *
+	 * @return array<string, IconCategory>
+	 */
+	private static function categories(): array
+	{
+		$file = Framework::path('resources/icons/blush/categories.json');
+
+		try {
+			$data = json_decode((string) @file_get_contents($file), true, 2, JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			return [];
+		}
+
+		$categories = [];
+
+		foreach (is_array($data) ? $data : [] as $name => $category) {
+			$case = is_string($name) && is_string($category) ? IconCategory::tryFrom($category) : null;
+
+			if ($case !== null) {
+				$categories[$name] = $case;
+			}
+		}
+
+		return $categories;
 	}
 }

@@ -304,18 +304,31 @@ final class AdminContentTest extends TestCase
 			'The inserter writes full names.'
 		);
 		$this->assertSame('inline', $this->component($components, 'blush/kbd')['kind'] ?? null);
-		$this->assertSame('leaf', $this->component($components, 'blush/figure')['kind'] ?? null);
+		$this->assertSame('container', $this->component($components, 'blush/figure')['kind'] ?? null);
+		$this->assertSame('layout', $this->component($components, 'blush/figure')['category'] ?? null, 'A figure wraps anything, so it\'s layout, not media.');
+		$this->assertSame('leaf', $this->component($components, 'blush/embed')['kind'] ?? null);
 
-		$props = $callout['props'] ?? null;
+		$this->assertSame(
+			[
+				['name' => 'info', 'label' => 'Info', 'description' => 'Something useful to know.', 'source' => null],
+				['name' => 'tip', 'label' => 'Tip', 'description' => 'A suggestion that helps.', 'source' => null],
+				['name' => 'warning', 'label' => 'Warning', 'description' => 'Something to be careful about.', 'source' => null],
+				['name' => 'danger', 'label' => 'Danger', 'description' => 'Something that can break things or lose data.', 'source' => null]
+			],
+			$callout['variants'] ?? null,
+			'Variants come with their text; Default isn\'t one.'
+		);
+
+		$props = $this->component($components, 'blush/button')['props'] ?? null;
 		$this->assertIsArray($props);
 
-		$tone = array_find($props, static fn (mixed $prop): bool => is_array($prop) && ($prop['name'] ?? null) === 'tone');
-		$this->assertIsArray($tone);
-		$this->assertSame('Tone', $tone['label'] ?? null);
+		$position = array_find($props, static fn (mixed $prop): bool => is_array($prop) && ($prop['name'] ?? null) === 'iconPosition');
+		$this->assertIsArray($position);
+		$this->assertSame('Icon position', $position['label'] ?? null);
 
-		$choices = $tone['choices'] ?? null;
+		$choices = $position['choices'] ?? null;
 		$this->assertIsArray($choices);
-		$this->assertSame('Warning', $choices['warning'] ?? null);
+		$this->assertSame('After the text', $choices['end'] ?? null);
 
 		$note = $this->component($components, 'app/note');
 

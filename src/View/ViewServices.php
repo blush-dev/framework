@@ -22,6 +22,7 @@ use Blush\Region\Regions;
 use Blush\Routing\UrlGenerator;
 use Blush\Component\ComponentFactory;
 use Blush\Component\ComponentRegistry;
+use Blush\Component\ComponentVariants;
 
 /**
  * The services every `Views` shares, whatever its theme chain: what
@@ -38,6 +39,7 @@ final readonly class ViewServices
 		public ContextProviders $providers,
 		public ComponentRegistry $components,
 		public ComponentFactory $factory,
+		public ComponentVariants $variants,
 		public Menus $menus,
 		public Regions $regions,
 		public ?ContentCache $cache = null

@@ -16,13 +16,13 @@ namespace Blush\Tests\Component;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Component\Callout;
-use Blush\Component\CalloutTone;
 use Blush\Component\Component;
 use Blush\Component\ComponentName;
 use Blush\Component\Inline\Kbd;
-use Blush\Component\Media\Figure;
+use Blush\Component\Layout\Figure;
 use Blush\Component\Slots;
 use Blush\Component\TemplateComponent;
+use Blush\Component\Variant;
 use Blush\Tests\Fixtures\Component\Card;
 
 #[CoversClass(Component::class)]
@@ -34,8 +34,8 @@ final class ComponentTest extends TestCase
 {
 	public function testAttributesPrintTheBlockModifiersAndProps(): void
 	{
-		$callout = new Callout(CalloutTone::Warning, 'Heads up');
-		$callout->attach(new ComponentName('blush', 'callout'), ['class' => ' wide ', 'id' => 'note-1', 'tone' => 'warning']);
+		$callout = new Callout('Heads up');
+		$callout->attach(new ComponentName('blush', 'callout'), ['class' => ' wide ', 'id' => 'note-1', 'variant' => 'warning'], variant: new Variant('warning', 'blush'));
 
 		$this->assertSame('component-callout component-callout--warning wide', $callout->classes());
 		$this->assertSame('class="component-callout component-callout--warning wide" id="note-1" role="note"', $callout->attributes());
@@ -45,7 +45,9 @@ final class ComponentTest extends TestCase
 			'class="component-callout component-callout--warning wide open" id="note-1" role="region" data-open',
 			$callout->attributes(['class' => 'open', 'role' => 'region', 'data-open' => true, 'hidden' => false, 'title' => null])
 		);
-		$this->assertSame('warning', $callout->prop('tone'));
+		$this->assertSame('warning', $callout->prop('variant'));
+		$this->assertSame('warning', $callout->variant);
+		$this->assertTrue($callout->isVariant('warning'));
 		$this->assertSame('fallback', $callout->prop('missing', 'fallback'));
 	}
 
@@ -65,7 +67,8 @@ final class ComponentTest extends TestCase
 	public function testUnattachedComponentsNameTheirBlockFromTheirClass(): void
 	{
 		$this->assertSame('component-card', new Card()->block());
-		$this->assertSame('class="component-callout component-callout--note" role="note"', new Callout()->attributes());
+		$this->assertSame('class="component-callout" role="note"', new Callout()->attributes());
+		$this->assertSame('default', new Callout()->variant, 'Default adds no modifier.');
 	}
 
 	public function testCalloutsAreTitledByTheLabelOrTitle(): void
@@ -93,15 +96,17 @@ final class ComponentTest extends TestCase
 
 	public function testRoleNamedContentFallsBackToTheLabel(): void
 	{
-		// From a template, the label prop is enough; it's escaped.
-		$figure = new Figure('photo.jpg', label: 'Tom & Jerry');
+		// A figure's caption is its label, escaped; its content is what it
+		// wraps, and without any, it doesn't render.
+		$figure = new Figure('Tom & Jerry');
 		$this->assertSame('Tom &amp; Jerry', $figure->caption());
+		$this->assertFalse($figure->shouldRender());
 
-		// Content (Markdown's escaped label, or a template's HTML) wins.
-		$figure->attach(new ComponentName('blush', 'figure'), [], '<em>Tom</em>');
-		$this->assertSame('<em>Tom</em>', $figure->caption());
+		$figure->attach(new ComponentName('blush', 'figure'), [], '<table></table>');
+		$this->assertSame('Tom &amp; Jerry', $figure->caption());
+		$this->assertTrue($figure->shouldRender());
 
-		$this->assertSame('', new Figure('photo.jpg')->caption());
+		$this->assertSame('', new Figure()->caption());
 		$this->assertSame('Ctrl', new Kbd('Ctrl')->text());
 		$this->assertFalse(new Kbd('Ctrl')->isCombination());
 		$this->assertTrue(new Kbd('Ctrl+S')->isCombination());

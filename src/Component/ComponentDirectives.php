@@ -28,8 +28,8 @@ use Blush\View\ViewFactory;
 
 /**
  * Renders Markdown directives as the components of the same name (D-026),
- * with the theme chain of the request being rendered: `:::callout{tone=info}`
- * is the `blush/callout` component with `tone` and the block's HTML as
+ * with the theme chain of the request being rendered: `:::callout{variant=info}`
+ * is the `blush/callout` component with `variant` and the block's HTML as
  * `$slot`, and `::acme/tabs` is `acme/tabs`. Only core components have
  * short names (D-171). A directive's `[label]` is also given as the
  * `label` prop. A registered component's `media` props are resolved like

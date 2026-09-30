@@ -211,6 +211,17 @@ and Media (D-251). Then content-model gaps the admin exposed: type
 descriptions and icons (D-256), pages nesting by folder and hierarchical
 taxonomies by `parent` (D-257), `_{name}` type folders (D-258), and
 authors as the public side of accounts (D-259).
+Then the updated design (D-265): the space scale, flat surfaces, and a
+compact toggle for lists; four inserters (block components, media,
+icons, and an inline menu), icons as a library modal grouped by
+category (`GET icons`' `category` and `source`), a wider media picker,
+the drawer's tabs and never-disabled Component tab, and the source
+marked as the design's table says. Then component variants (D-266):
+Default plus named variants from a component, a theme's `theme.json`, or
+the `ComponentVariantsCollecting` event, with the callout's tones and
+the button's secondary style as core variants, and a Variant select in
+the editor. Then `:::figure` as a container for anything captioned, and
+images from the media picker as plain Markdown (D-267).
 Next: the Markdown editing experience (D-252; begun with styled
 Markdown and editor addresses by handle, D-253; a 640px Fira Code
 editor, site addresses in tables, and row menus, D-254; Fira Code
@@ -244,10 +255,8 @@ dynamically).
 Other starting points the author may pick up (none decided):
 
 
-- **Component variants (D-191):** planned (one per use, BEM modifier
-  classes, a registry with translatable labels, fallback to the
-  default); where themes declare them is still open. Deferred until
-  after first-run setup and auth (D-215).
+- **Required component registration (D-266's direction):** every
+  component registered to render (PHP, or JSON with translations).
 - **Later for components:** captioned quotes and tables, a `<button>`
   component, rich script embeds and an embed refresh command, extension
   views (D-174), more icons and brand logos (see `open-questions.md`).

@@ -24,6 +24,7 @@ use Blush\Translation\Translator;
 use Blush\Component\ComponentListing;
 use Blush\Component\ComponentName;
 use Blush\Component\ComponentType;
+use Blush\Component\Variant;
 use Blush\Component\Slots;
 use Blush\Component\TemplateComponent;
 
@@ -141,25 +142,19 @@ final readonly class Views
 	/**
 	 * Returns every component the chain can render, by name: the core
 	 * components, the registered ones, and every template in a
-	 * `components/` folder named for a component (see
-	 * `strayComponentFiles()` for the rest).
+	 * `components/` folder named for a component, other than a variant's
+	 * template (see `strayComponentFiles()` for the rest), each with its
+	 * variants.
 	 *
 	 * @return list<ComponentListing>
 	 */
 	public function components(): array
 	{
-		$names = [];
-
-		foreach (ComponentType::cases() as $type) {
-			$names[(string) $type->componentName()] = $type->componentName();
-		}
-
-		foreach ($this->services->components->all() as $key => $definition) {
-			$names[$key] = $definition->name;
-		}
+		$names    = $this->knownComponents();
+		$variants = $this->variantFiles();
 
 		foreach ($this->componentFiles() as [$fileName]) {
-			$name = ComponentName::fromFileName($fileName, $this->componentNamespaces());
+			$name = isset($variants[$fileName]) ? null : ComponentName::fromFileName($fileName, $this->componentNamespaces());
 
 			if ($name !== null) {
 				$names[(string) $name] ??= $name;
@@ -173,24 +168,91 @@ final readonly class Views
 			$this->services->components->get((string) $name),
 			array_column($this->finder->allOf($name->views()), 1),
 			$this->componentText($name, 'label'),
-			$this->componentText($name, 'description')
+			$this->componentText($name, 'description'),
+			$this->variants($name)
 		), $names));
 	}
 
 	/**
+	 * Returns a component's variants under the chain, Default not
+	 * included (D-266).
+	 *
+	 * @return list<Variant>
+	 */
+	public function variants(ComponentName $name): array
+	{
+		return $this->services->variants->for($name, $this->chain);
+	}
+
+	/**
+	 * Returns a variant's translated text (`label` or `description`), or
+	 * `null` when no catalog has it: `components.{name}.variants.{variant}.{key}`
+	 * in its registrant's domain.
+	 *
+	 * @param array<string, mixed> $params
+	 */
+	public function variantText(ComponentName $name, Variant $variant, string $key, array $params = []): ?string
+	{
+		return $this->namespaceText($variant->registrant, "components.{$name->name}.variants.{$variant->name}.{$key}", $params);
+	}
+
+	/**
+	 * Returns the variant templates the chain could have for the core and
+	 * registered components (`callout-bordered`), as file names, each
+	 * with its component and variant.
+	 *
+	 * @return array<string, array{ComponentName, Variant}>
+	 */
+	public function variantFiles(): array
+	{
+		$files = [];
+
+		foreach ($this->knownComponents() as $name) {
+			foreach ($this->variants($name) as $variant) {
+				foreach ($name->views() as $view) {
+					$files[substr($view, strlen('components/')) . "-{$variant->name}"] = [$name, $variant];
+				}
+			}
+		}
+
+		return $files;
+	}
+
+	/**
+	 * Returns the core and registered components, by full name.
+	 *
+	 * @return array<string, ComponentName>
+	 */
+	private function knownComponents(): array
+	{
+		$names = [];
+
+		foreach (ComponentType::cases() as $type) {
+			$names[(string) $type->componentName()] = $type->componentName();
+		}
+
+		foreach ($this->services->components->all() as $key => $definition) {
+			$names[$key] = $definition->name;
+		}
+
+		return $names;
+	}
+
+	/**
 	 * Returns the templates in the chain's `components/` folders that
-	 * aren't named for any component, such as a theme's `card.php` that
-	 * should be `{slug}-card.php`. Nothing can render them.
+	 * aren't named for any component or variant, such as a theme's
+	 * `card.php` that should be `{slug}-card.php`. Nothing can render them.
 	 *
 	 * @return list<string>
 	 */
 	public function strayComponentFiles(): array
 	{
 		$namespaces = $this->componentNamespaces();
+		$variants   = $this->variantFiles();
 
 		return array_values(array_map(
 			static fn (array $file): string => $file[1],
-			array_filter($this->componentFiles(), static fn (array $file): bool => ComponentName::fromFileName($file[0], $namespaces) === null)
+			array_filter($this->componentFiles(), static fn (array $file): bool => ! isset($variants[$file[0]]) && ComponentName::fromFileName($file[0], $namespaces) === null)
 		));
 	}
 
@@ -244,7 +306,10 @@ final readonly class Views
 	 * Renders a component with its props and slots. `$name` is a full
 	 * name or a core component's short name. Its template gets
 	 * `$component` (its class, or a `TemplateComponent`), which holds its
-	 * content and slots (D-195, D-196).
+	 * content and slots (D-195, D-196), and its variant (D-266): the
+	 * `variant` prop, if the component has it under the chain. A
+	 * variant's own template (`components/callout-bordered`) is used when
+	 * the chain has one.
 	 *
 	 * @param  array<string, mixed> $props
 	 * @throws ViewException
@@ -255,14 +320,19 @@ final readonly class Views
 		$class     = $this->services->components->get($name)?->class;
 		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props);
 
-		$component->attach($parsed, $props, $slot, $slots, $this->translator, $context);
+		$variant   = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
+
+		$component->attach($parsed, $props, $slot, $slots, $this->translator, $context, $variant);
 
 		if (! $component->shouldRender()) {
 			return '';
 		}
 
+		// A variant's own template (`components/callout-bordered`) wins
+		// over the component's (D-266).
 		$view  = $component->template();
 		$views = $view === null ? $parsed->views() : [$view];
+		$views = $variant === null ? $views : [...array_map(static fn (string $name): string => "{$name}-{$variant->name}", $views), ...$views];
 
 		[$view, $file] = $this->finder->nearest($views) ?? throw ViewNotFound::forNames($views);
 

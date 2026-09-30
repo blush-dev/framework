@@ -43,13 +43,6 @@
 				"label": {
 					"label": "Text"
 				},
-				"variant": {
-					"label": "Style",
-					"choices": {
-						"primary": "Primary",
-						"secondary": "Secondary"
-					}
-				},
 				"icon": {
 					"label": "Icon"
 				},
@@ -63,21 +56,33 @@
 				"iconOnly": {
 					"label": "Show only the icon"
 				}
+			},
+			"variants": {
+				"secondary": {
+					"label": "Secondary",
+					"description": "Outlined, for an action beside the main one."
+				}
 			}
 		},
 		"callout": {
 			"label": "Callout",
 			"description": "A note set apart from the text, with an optional title.",
-			"props": {
-				"tone": {
-					"label": "Tone",
-					"choices": {
-						"note": "Note",
-						"info": "Info",
-						"tip": "Tip",
-						"warning": "Warning",
-						"danger": "Danger"
-					}
+			"variants": {
+				"info": {
+					"label": "Info",
+					"description": "Something useful to know."
+				},
+				"tip": {
+					"label": "Tip",
+					"description": "A suggestion that helps."
+				},
+				"warning": {
+					"label": "Warning",
+					"description": "Something to be careful about."
+				},
+				"danger": {
+					"label": "Danger",
+					"description": "Something that can break things or lose data."
 				}
 			}
 		},
@@ -95,13 +100,10 @@
 		},
 		"figure": {
 			"label": "Figure",
-			"description": "An image with a caption.",
+			"description": "Anything set apart with a caption: an image, a table, a code block.",
 			"props": {
-				"src": {
-					"label": "Image"
-				},
-				"alt": {
-					"label": "Alternative text"
+				"label": {
+					"label": "Caption"
 				}
 			}
 		},

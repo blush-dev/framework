@@ -508,9 +508,6 @@ hr {
 	font-weight: 600;
 	line-height: 1.2;
 	text-decoration: none;
-}
-
-.component-button--primary {
 	background: var(--color-accent);
 	color: var(--color-background);
 }
@@ -525,8 +522,8 @@ hr {
 	border-color: var(--color-accent-hover);
 }
 
-.component-button--primary:hover,
-.component-button--primary:focus-visible {
+.component-button:not(.component-button--secondary):hover,
+.component-button:not(.component-button--secondary):focus-visible {
 	background: var(--color-accent-hover);
 }
 

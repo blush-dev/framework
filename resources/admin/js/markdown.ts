@@ -2,8 +2,12 @@
  * Reads a Markdown body the way the editor shows it (D-241): which lines
  * are headings, code, or component directives, where each directive
  * starts and ends, and the body as highlighted HTML for the editor's
- * source view, with emphasis, strong text, headings, quotes, and list
- * markers styled as they read and their marks muted (D-253). Directives follow the server's parser (D-026,
+ * source view (D-253, D-265). The words are the point: every syntax
+ * character is muted and what it wraps keeps full ink. Headings, strong
+ * and emphasized text, quotes, lists and tasks, rules, tables, code,
+ * links and images, footnotes, and attribute blocks are each marked as
+ * they read; only valid syntax lights up, so the highlighting doubles as
+ * a check. Directives follow the server's parser (D-026,
  * `Markdown\CommonMark\Directive`):
  *
  * - a container opens with a line of `:::name[label]{attributes}` (three
@@ -35,10 +39,10 @@ export interface Directive {
 
 type LineKind = 'text' | 'heading' | 'fence' | 'code' | 'open' | 'close' | 'leaf';
 
-type TokenKind = 'escape' | 'code' | 'directive' | 'link' | 'strong' | 'em' | 'strike';
+type TokenKind = 'escape' | 'code' | 'directive' | 'link' | 'footnote' | 'autolink' | 'strong' | 'em' | 'strike' | 'attributes';
 
 // The kinds in the order `INLINE` names their groups.
-const KINDS = ['escape', 'code', 'directive', 'link', 'strong', 'em', 'strike'] as const;
+const KINDS = ['escape', 'code', 'directive', 'link', 'footnote', 'autolink', 'strong', 'em', 'strike', 'attributes'] as const;
 
 interface Token {
 	kind: TokenKind;
@@ -82,6 +86,13 @@ const QUOTE     = /^ {0,3}> ?/;
 const RULE      = /^ {0,3}([-*_])(?: *\1){2,} *$/;
 const HEADS     = /^ {0,3}#{1,6}(?: +|$)/;
 const ITEM      = /^ *(?:[-*+]|\d{1,9}[.)])(?: +\[[ xX]\])?(?: +|$)/;
+const TABLE     = /^ {0,3}\|/;
+const DELIMITER = /^ {0,3}\|?(?: *:?-+:? *\|)+ *(?::?-+:? *)?$/;
+
+// An attribute block in prose, `{.class #id key=value}`: only classes,
+// ids, and keys with values count, so a brace in a sentence stays text.
+const PART       = '(?:[.#][A-Za-z0-9_-]+|[A-Za-z_:][A-Za-z0-9_:.-]*[ \\t]*=[ \\t]*(?:"[^"\\n]*"|\'[^\'\\n]*\'|[^\\s{}"\'=]+))';
+const ATTRIBUTES = `\\{:?[ \\t]*${PART}(?:[ \\t]+${PART})*[ \\t]*\\}`;
 
 // Inline marks, earliest first and, at one place, in this order. Strong,
 // emphasis, and struck text need something that isn't a space just
@@ -92,10 +103,13 @@ const INLINE = new RegExp([
 	'(?<escape>\\\\[!-/:-@[-`{-~])',
 	'(?<code>(?<ticks>`+).+?\\k<ticks>(?!`))',
 	`(?<directive>(?<![\\p{L}\\p{N}_:]):(?<name>${NAME})\\[[^\\]\\n]*\\](?:\\{[^}\\n]*\\})?)`,
-	'(?<link>!?\\[(?<label>[^\\]\\n]*)\\]\\([^)\\n]*\\)(?:\\{[^}\\n]*\\})?)',
+	'(?<link>!?\\[(?<label>[^\\]\\n]*)\\]\\([^)\\n]*\\))',
+	'(?<footnote>\\[\\^[^\\]\\s]+\\])',
+	'(?<autolink><(?:https?:\\/\\/|mailto:)[^>\\s]+>)',
 	`(?<strong>\\*\\*(?!\\s)(?:.*?\\S)?\\*\\*(?!\\*)|(?<!${WORD})__(?!\\s)(?:.*?\\S)?__(?!${WORD}))`,
 	`(?<em>\\*(?![\\s*])(?:.*?[^\\s*])?\\*(?!\\*)|(?<!${WORD})_(?![\\s_])(?:.*?[^\\s_])?_(?!${WORD}))`,
-	'(?<strike>~~(?!\\s)(?:.*?\\S)?~~)'
+	'(?<strike>~~(?!\\s)(?:.*?\\S)?~~)',
+	`(?<attributes>${ATTRIBUTES})`
 ].join('|'), 'gu');
 
 /**
@@ -283,59 +297,138 @@ function escape(text: string): string {
 }
 
 /**
- * A directive's marker and name, then the rest (label and attributes)
- * muted.
- */
-function directiveHtml(text: string, current: boolean): string {
-	const split = text.search(/[[{]/);
-	const head  = split === -1 ? text : text.slice(0, split);
-	const rest  = split === -1 ? '' : text.slice(split);
-
-	return `<span class="md-directive${current ? ' is-current' : ''}">${escape(head)}${rest === '' ? '' : `<span class="md-directive__rest">${escape(rest)}</span>`}</span>`;
-}
-
-/**
- * Marks, muted.
+ * Marks, muted: every syntax character is.
  */
 function markHtml(text: string, kind = ''): string {
 	return text === '' ? '' : `<span class="md-mark${kind === '' ? '' : ` md-mark--${kind}`}">${escape(text)}</span>`;
 }
 
+// A class or id, or a key with its separator and value, in a block of
+// attributes.
+const ATTRIBUTE_PARTS = /([.#][A-Za-z0-9_:-]+)|([A-Za-z_:][A-Za-z0-9_:.-]*)(?:(\s*=\s*)("[^"]*"|'[^']*'|[^\s"'=}]+))?/g;
+
+/**
+ * A block of attributes, braces included, as the gray chip: braces and
+ * punctuation muted, keys and values quieter, and the class and id names,
+ * which are what a document is scanned for, in full ink.
+ */
+function attributesHtml(text: string): string {
+	const inner = text.slice(1, -1);
+	let html = '';
+	let at   = 0;
+
+	for (const match of inner.matchAll(ATTRIBUTE_PARTS)) {
+		html += escape(inner.slice(at, match.index));
+
+		if (match[1] !== undefined) {
+			html += `<span class="md-attr__name">${escape(match[1])}</span>`;
+		} else {
+			html += `<span class="md-attr__key">${escape(match[2] ?? '')}</span>`;
+
+			if (match[3] !== undefined && match[4] !== undefined) {
+				html += `${escape(match[3])}<span class="md-attr__value">${escape(match[4])}</span>`;
+			}
+		}
+
+		at = match.index + match[0].length;
+	}
+
+	return `<span class="md-attr">${markHtml('{')}${html}${escape(inner.slice(at))}${markHtml('}')}</span>`;
+}
+
+const DIRECTIVE_HEAD = new RegExp(`^(:+)(${NAME})(?:(\\[)([^\\]\\n]*)(\\]))?`);
+
+/**
+ * A directive: its colons muted, its name in the accent, its label in
+ * full ink, and its attributes as the gray chip. It isn't boxed: the box
+ * is kept for the one the caret is in (`current`), so a box always means
+ * "you are here".
+ */
+function directiveHtml(text: string, current: boolean): string {
+	const match = DIRECTIVE_HEAD.exec(text);
+	// A container's closing line is all syntax.
+	let html    = /^:+\s*$/.test(text) ? markHtml(text) : escape(text);
+
+	if (match !== null) {
+		const rest = text.slice(match[0].length);
+
+		html = markHtml(match[1] ?? '') + `<span class="md-directive__name">${escape(match[2] ?? '')}</span>`;
+
+		if (match[3] !== undefined) {
+			html += markHtml('[') + `<span class="md-directive__label">${escape(match[4] ?? '')}</span>` + markHtml(']');
+		}
+
+		html += rest.startsWith('{') && rest.trimEnd().endsWith('}')
+			? attributesHtml(rest.trimEnd()) + escape(rest.slice(rest.trimEnd().length))
+			: escape(rest);
+	}
+
+	return `<span class="md-directive${current ? ' is-current' : ''}">${html}</span>`;
+}
+
+/**
+ * Text between tokens: escaped, with a table row's pipes muted.
+ */
+function plainHtml(text: string, pipes: boolean): string {
+	return pipes ? text.split('|').map(escape).join(markHtml('|')) : escape(text);
+}
+
 /**
  * Part of a line, `from` to `to`, with its tokens.
  */
-function inlineHtml(text: string, tokens: Token[], from: number, to: number, current: number): string {
+function inlineHtml(text: string, tokens: Token[], from: number, to: number, current: number, pipes = false): string {
 	let html = '';
 	let at   = from;
 
 	for (const token of tokens) {
-		html += escape(text.slice(at, token.start)) + tokenHtml(text, token, current);
+		html += plainHtml(text.slice(at, token.start), pipes) + tokenHtml(text, token, current);
 		at    = token.end;
 	}
 
-	return html + escape(text.slice(at, to));
+	return html + plainHtml(text.slice(at, to), pipes);
 }
 
 /**
- * A token: code and directives whole, an escape's backslash muted, and
- * the rest as their marks (muted) around what's inside them.
+ * A token: its marks muted around what's inside them. A link's label is
+ * read in the sentence and takes the accent; its address steps back. An
+ * image's alternative text is quieter than a link's label.
  */
 function tokenHtml(text: string, token: Token, current: number): string {
 	const source = text.slice(token.start, token.end);
 
-	if (token.kind === 'directive') {
-		return directiveHtml(source, token.directive === current);
-	}
+	switch (token.kind) {
+		case 'directive':
+			return directiveHtml(source, token.directive === current);
+		case 'code': {
+			const ticks = /^`+/.exec(source)?.[0].length ?? 1;
 
-	if (token.kind === 'code') {
-		return `<span class="md-code">${escape(source)}</span>`;
-	}
-
-	if (token.kind === 'escape' || token.inner === undefined) {
-		return markHtml(source.slice(0, 1)) + escape(source.slice(1));
+			return `<span class="md-code">${markHtml(source.slice(0, ticks))}${escape(source.slice(ticks, -ticks))}${markHtml(source.slice(-ticks))}</span>`;
+		}
+		case 'attributes':
+			return attributesHtml(source);
+		case 'footnote':
+			return `<span class="md-footnote">${escape(source)}</span>`;
+		case 'autolink':
+			return markHtml('<') + `<span class="md-link__text">${escape(source.slice(1, -1))}</span>` + markHtml('>');
+		case 'escape':
+			return markHtml(source.slice(0, 1)) + escape(source.slice(1));
 	}
 
 	const { inner } = token;
+
+	if (inner === undefined) {
+		return escape(source);
+	}
+
+	if (token.kind === 'link') {
+		const image = source.startsWith('!');
+
+		return `<span class="md-${image ? 'image' : 'link'}">${markHtml(text.slice(token.start, inner.start))}`
+			+ `<span class="md-${image ? 'image' : 'link'}__text">${inlineHtml(text, inner.tokens, inner.start, inner.end, current)}</span>`
+			+ markHtml('](') + targetHtml(text.slice(inner.end + 2, token.end - 1), image) + markHtml(')')
+			+ '</span>';
+	}
+
 	const before = markHtml(text.slice(token.start, inner.start));
 	const after  = markHtml(text.slice(inner.end, token.end));
 
@@ -343,16 +436,105 @@ function tokenHtml(text: string, token: Token, current: number): string {
 }
 
 /**
+ * A link's or image's target: the address muted, and an image's quoted
+ * title, which the site shows as its caption (D-267), read as words.
+ */
+function targetHtml(target: string, image: boolean): string {
+	const parts = image ? /^(\S+|<[^>\n]*>)(\s+)(["'])(.*)\3(\s*)$/.exec(target) : null;
+
+	if (parts === null) {
+		return `<span class="md-link__url">${escape(target)}</span>`;
+	}
+
+	return `<span class="md-link__url">${escape(parts[1] ?? '')}</span>${escape(parts[2] ?? '')}`
+		+ markHtml(parts[3] ?? '') + `<span class="md-image__caption">${escape(parts[4] ?? '')}</span>` + markHtml(parts[3] ?? '') + escape(parts[5] ?? '');
+}
+
+const ITEM_PARTS = /^( *)([-*+]|\d{1,9}[.)])( +)?(\[[ xX]\])?( *)$/;
+
+/**
+ * A line's leading mark: a heading's hashes, a list marker (and a task's
+ * box), a rule, or a quote's `>`.
+ */
+function leadHtml(text: string, kind: MarkKind): string {
+	if (kind === 'rule') {
+		return `<span class="md-rule">${escape(text)}</span>`;
+	}
+
+	if (kind === 'list') {
+		const parts = ITEM_PARTS.exec(text);
+
+		if (parts !== null) {
+			const box = parts[4];
+
+			return escape(parts[1] ?? '') + `<span class="md-bullet">${escape(parts[2] ?? '')}</span>` + escape(parts[3] ?? '')
+				+ (box === undefined ? '' : `<span class="md-task${box === '[ ]' ? '' : ' md-task--done'}">${escape(box)}</span>`)
+				+ escape(parts[5] ?? '');
+		}
+	}
+
+	return markHtml(text);
+}
+
+/**
+ * One line of text (not code or a directive's own line), with its marks
+ * and tokens.
+ */
+function lineHtml(line: Line, current: number): string {
+	// A table's delimiter row is all syntax.
+	if (TABLE.test(line.text) && DELIMITER.test(line.text) && line.text.includes('-')) {
+		return markHtml(line.text);
+	}
+
+	// The line's marks, then its text: a heading or a quote wraps what
+	// follows its marks.
+	let html = '';
+	let at   = 0;
+	const wraps: string[] = [];
+
+	for (const mark of line.marks) {
+		const text = line.text.slice(at, mark.end);
+
+		html += leadHtml(text, mark.kind);
+		at    = mark.end;
+
+		if (mark.kind === 'quote' && wraps.length === 0) {
+			html += '<span class="md-quote">';
+			wraps.push('</span>');
+		} else if (mark.kind === 'heading') {
+			// Told apart by weight, not size: the grid is fixed.
+			html += `<span class="md-heading md-heading--${Math.min(3, text.trim().length)}">`;
+			wraps.push('</span>');
+		}
+	}
+
+	return html + inlineHtml(line.text, line.tokens, at, line.text.length, current, TABLE.test(line.text)) + wraps.join('');
+}
+
+/**
  * The body as HTML for the editor's highlighted copy, with the directive
- * at `current` marked. Every character of the source is in it, escaped,
- * so it lines up with the text area over it.
+ * at `current` boxed and, for a container, its body tinted. Every
+ * character of the source is in it, escaped, so it lines up with the text
+ * area over it.
  */
 export function highlight(markdown: MarkdownOutline, current: number): string {
+	const active = markdown.directives[current];
+
 	return markdown.lines.map((line) => {
+		let html: string;
+
 		switch (line.kind) {
-			case 'fence':
+			case 'fence': {
+				// A fence is the one place the source is the content, so it
+				// sits on a slab, with its language named.
+				const parts = /^(\s*)(`{3,}|~{3,})(.*)$/.exec(line.text);
+
+				html = `<span class="md-fence">${parts === null ? escape(line.text) : escape(parts[1] ?? '') + markHtml(parts[2] ?? '') + (parts[3] ? `<span class="md-fence__lang">${escape(parts[3])}</span>` : '')}</span>`;
+				break;
+			}
 			case 'code':
-				return `<span class="md-code-block">${escape(line.text)}</span>`;
+				html = `<span class="md-code-block">${escape(line.text)}</span>`;
+				break;
 			case 'open':
 			case 'leaf':
 			case 'close': {
@@ -360,28 +542,15 @@ export function highlight(markdown: MarkdownOutline, current: number): string {
 
 				return escape(line.text.slice(0, indent)) + directiveHtml(line.text.slice(indent), line.directive === current);
 			}
+			default:
+				html = lineHtml(line, current);
 		}
 
-		// The line's marks, then its text: a heading or a quote wraps what
-		// follows its marks.
-		let html  = '';
-		let at    = 0;
-		const wraps: string[] = [];
+		// The body of the container the caret is in is tinted, so its
+		// extent shows without a border anywhere.
+		const inside = active?.kind === 'container' && line.start > active.start && line.start + line.text.length <= active.end;
 
-		for (const mark of line.marks) {
-			html += markHtml(line.text.slice(at, mark.end), mark.kind === 'list' ? 'list' : '');
-			at    = mark.end;
-
-			if (mark.kind === 'quote' && wraps.length === 0) {
-				html += '<span class="md-quote">';
-				wraps.push('</span>');
-			} else if (mark.kind === 'heading') {
-				html += '<span class="md-heading">';
-				wraps.push('</span>');
-			}
-		}
-
-		return html + inlineHtml(line.text, line.tokens, at, line.text.length, current) + wraps.join('');
+		return inside && line.text !== '' ? `<span class="md-inside">${html}</span>` : html;
 	}).join('\n');
 }
 
@@ -601,4 +770,20 @@ export function withoutDirective(source: string, directive: Directive): Edit {
 	const inner      = closeStart > bodyStart ? source.slice(bodyStart, closeStart).replace(/\n$/, '') : '';
 
 	return { from: lineStart, to: closeEnd, text: inner };
+}
+
+/**
+ * A Markdown image, `![alt](src)`, and where the caret goes in it: in
+ * the alternative text when there's none yet, else after the image. A
+ * `title` (which the site shows as the figure's caption) is written in
+ * quotes. The address is wrapped in `<…>` when it has spaces or
+ * parentheses.
+ */
+export function imageText(src: string, alt = '', title = ''): { text: string; caret: number } {
+	const address = /[\s()<>]/.test(src) ? `<${src.replace(/[<>]/g, (character) => encodeURIComponent(character))}>` : src;
+	const label   = alt.replace(/[\\[\]]/g, '\\$&').replace(/\s*\n\s*/g, ' ');
+	const caption = title === '' ? '' : ` "${title.replace(/["\\]/g, '\\$&')}"`;
+	const text    = `![${label}](${address}${caption})`;
+
+	return { text, caret: label === '' ? 2 : text.length };
 }

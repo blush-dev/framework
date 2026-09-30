@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Countable;
+use InvalidArgumentException;
 use Override;
 use ReflectionClass;
 use Blush\Content\Schema\Field;
@@ -26,7 +27,7 @@ use Blush\Support\RegistrationException;
  *
  * ```php
  * $components->register('acme/tabs', Tabs::class);
- * $components->register('acme/note', content: ComponentContent::Blocks, props: [new TextField('title')]);
+ * $components->register('acme/note', content: ComponentContent::Blocks, props: [new TextField('title')], variants: ['wide']);
  * ```
  *
  * Registering makes a component known to the admin's inserter and to
@@ -50,13 +51,16 @@ final class ComponentRegistry implements Countable
 
 	/**
 	 * Registers a component, replacing any registered under its name.
-	 * `$content` and `$props` default to what the class says.
+	 * `$content`, `$props`, and `$variants` default to what the class
+	 * says (D-266: a variant given by name has the component's namespace
+	 * as its registrant).
 	 *
 	 * @param  ?class-string<Component> $class
 	 * @param  ?list<Field>             $props
-	 * @throws RegistrationException When the name or class isn't valid.
+	 * @param  ?list<Variant|string>    $variants
+	 * @throws RegistrationException When the name, class, or a variant isn't valid.
 	 */
-	public function register(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null): void
+	public function register(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null, ?array $variants = null): void
 	{
 		$parsed = self::name($name);
 
@@ -70,7 +74,15 @@ final class ComponentRegistry implements Countable
 			}
 		}
 
-		$this->definitions[(string) $parsed] = new ComponentDefinition($parsed, $class, $content, $props);
+		$definition = new ComponentDefinition($parsed, $class, $content, $props, $variants);
+
+		try {
+			$definition->variants();
+		} catch (InvalidArgumentException $error) {
+			throw new RegistrationException(sprintf('The "%s" component: %s', $parsed, $error->getMessage()), 0, $error);
+		}
+
+		$this->definitions[(string) $parsed] = $definition;
 	}
 
 	/**
@@ -79,12 +91,13 @@ final class ComponentRegistry implements Countable
 	 *
 	 * @param  ?class-string<Component> $class
 	 * @param  ?list<Field>             $props
+	 * @param  ?list<Variant|string>    $variants
 	 * @throws RegistrationException
 	 */
-	public function registerIf(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null): void
+	public function registerIf(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null, ?array $variants = null): void
 	{
 		if (! $this->isRegistered($name)) {
-			$this->register($name, $class, $content, $props);
+			$this->register($name, $class, $content, $props, $variants);
 		}
 	}
 

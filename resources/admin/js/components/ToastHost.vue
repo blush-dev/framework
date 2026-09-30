@@ -26,7 +26,7 @@ import { currentToast } from '../toast';
 
 .toast {
 	max-width: min(360px, calc(100vw - 32px));
-	padding: 9px 14px;
+	padding: 13px 18px;
 	border-radius: var(--r-2);
 	background: var(--fg);
 	box-shadow: var(--shadow-2);

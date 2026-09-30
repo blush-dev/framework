@@ -18,10 +18,11 @@ use Blush\View\Escaper;
 
 /**
  * A note set apart from the text (D-113, D-195), with an optional title
- * (the label) and a tone:
+ * (the label). Its variants (D-266) say what kind of note it is: Default
+ * (a plain note), `info`, `tip`, `warning`, and `danger`.
  *
  * ```md
- * :::callout[Heads up]{tone=warning}
+ * :::callout[Heads up]{variant=warning}
  * Back up your site first.
  * :::
  * ```
@@ -35,8 +36,12 @@ final class Callout extends Component
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Blocks;
 
+	/**
+	 * @inheritDoc
+	 */
+	public const array VARIANTS = ['info', 'tip', 'warning', 'danger'];
+
 	public function __construct(
-		public readonly CalloutTone $tone = CalloutTone::Note,
 		public readonly string $label = '',
 		public readonly string $title = ''
 	) {}
@@ -48,15 +53,6 @@ final class Callout extends Component
 	public function heading(): string
 	{
 		return Escaper::html(trim($this->label) !== '' ? trim($this->label) : trim($this->title));
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	protected function modifiers(): array
-	{
-		return [$this->tone->value];
 	}
 
 	/**

@@ -138,7 +138,7 @@ function origin(type: ContentTypeSummary): string {
 }
 
 .tabs__tab {
-	padding: 4px 10px;
+	padding: 5px 12px;
 	border: 1px solid transparent;
 	border-radius: var(--r-1);
 	background: none;

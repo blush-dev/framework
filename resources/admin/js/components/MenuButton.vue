@@ -140,8 +140,8 @@ onBeforeUnmount(() => {
 	top: calc(100% + 6px);
 	z-index: 40;
 	display: grid;
-	min-width: 200px;
-	padding: 4px;
+	min-width: 212px;
+	padding: 7px;
 	border: 1px solid var(--border);
 	border-radius: var(--r-2);
 	background: var(--surface);
@@ -164,9 +164,9 @@ onBeforeUnmount(() => {
 .menu-button__list :deep(.menu-item) {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 11px;
 	width: 100%;
-	padding: 6px 8px;
+	padding: 8px 11px;
 	border: 0;
 	border-radius: var(--r-1);
 	background: none;
@@ -205,7 +205,39 @@ onBeforeUnmount(() => {
 
 .menu-button__list :deep(.menu-divider) {
 	height: 1px;
-	margin: 4px -4px;
+	margin: 7px -7px;
 	background: var(--border);
+}
+
+/* An item with a line saying what it does, under its name. */
+.menu-button__list :deep(.menu-item--described) {
+	align-items: flex-start;
+	width: 300px;
+	max-width: calc(100vw - 32px);
+	padding: 10px 12px;
+	white-space: normal;
+}
+
+.menu-button__list :deep(.menu-item--described svg) {
+	margin-top: 2px;
+	color: var(--fg-3);
+}
+
+.menu-button__list :deep(.menu-item--described:hover svg) {
+	color: var(--accent);
+}
+
+.menu-button__list :deep(.menu-item__name) {
+	display: block;
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.menu-button__list :deep(.menu-item__text) {
+	display: block;
+	margin-top: 2px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	line-height: 1.45;
 }
 </style>

@@ -138,6 +138,9 @@ Only `name` is required.
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`menus` and `regions`:** the places your theme shows the site's menus
   and regions. See [Menus and regions](menus.md#for-theme-authors).
+- **`variants`:** styles your theme adds to components, by component,
+  such as `{"callout": ["bordered"]}`. See
+  [Variants](components.md#variants).
 
 #### Autocomplete in your editor
 
@@ -379,6 +382,11 @@ only components with short names. To change how one looks, add your own
 `views/components/callout.php` (or `blush-callout.php`, and so on); yours
 wins.
 
+To give a component a style of your own, add a
+[variant](components.md#variants) in `theme.json` and style its class
+(`.component-callout--bordered`), or give it a template of its own
+(`views/components/callout-bordered.php`).
+
 Content that uses one of your theme's own components shows it as plain
 text under any other theme. If a site's content depends on a component,
 it may belong in the site rather than the theme (see
@@ -424,9 +432,11 @@ See [The class](components.md#the-class) for writing the component class, and [T
 To see every component your theme can use, and which file draws each,
 run `bin/blush component:list`. `bin/blush theme:why components/callout`
 shows what a file overrides. `theme:check` warns about a component with
-a PHP class but no template, and about a file in `components/` that isn't
-named for a component. With `--strict`, it also notes registered
-components without a translated label (see
+a PHP class but no template, about a file in `components/` that isn't
+named for a component, about variants in `theme.json` for components
+that don't exist or with names that aren't valid, and about a variant's
+template that's also another component's. With `--strict`, it also notes
+registered components and variants without a translated label (see
 [Labels and translations](components.md#labels-and-translations)).
 
 ### Building assets with Vite

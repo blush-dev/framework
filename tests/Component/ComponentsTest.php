@@ -206,6 +206,7 @@ final class ComponentsTest extends TestCase
 		$this->view('components/callout', 'site callout');
 		$this->view('components/blush-gallery', 'site gallery');
 		$this->view('components/loose', 'not named for a component');
+		$this->view('components/callout-warning', 'a variant\'s template');
 		$this->writeTemporaryFile('resources/lang/en.json', '{"components": {"box": {"label": "Box of things", "description": "Holds things."}}}');
 
 		$views    = $this->boot();
@@ -238,7 +239,8 @@ final class ComponentsTest extends TestCase
 		$this->assertSame('Holds things.', $components['app/box']->description);
 		$this->assertNull($components['app/card']->label);
 		$this->assertSame('Card', $components['app/card']->displayLabel());
-		$this->assertSame('Warning', $views->componentText(new ComponentName('blush', 'callout'), 'props.tone.choices.warning'));
+		$this->assertSame(['info', 'tip', 'warning', 'danger'], array_map(static fn ($variant): string => $variant->name, $components['blush/callout']->variants));
+		$this->assertSame('Warning', $views->variantText(new ComponentName('blush', 'callout'), $components['blush/callout']->variants[2], 'label'));
 
 		// A class that picks its own view isn't missing a template; one
 		// that relies on its components/ template is.
@@ -246,6 +248,7 @@ final class ComponentsTest extends TestCase
 		$this->assertTrue($components['app/orphan']->isMissingTemplate());
 		$this->assertFalse($components['app/box']->isMissingTemplate());
 
+		// A variant's template is neither a component nor a stray file.
 		$this->assertSame(['loose.php'], array_map(basename(...), $views->strayComponentFiles()));
 	}
 
@@ -280,7 +283,8 @@ final class ComponentsTest extends TestCase
 		$this->assertSame(ComponentContent::Text, $embed->content());
 		$this->assertSame(['url', 'title', 'label'], array_map(static fn ($field): string => $field->name, $embed->props()));
 		$this->assertSame(ComponentContent::Blocks, $callout->content());
-		$this->assertSame('note', $callout->props()[0]->default);
+		$this->assertSame(['info', 'tip', 'warning', 'danger'], array_map(static fn ($variant): string => $variant->name, $callout->variants()));
+		$this->assertSame('blush', $callout->variants()[0]->registrant);
 		$this->assertSame(Callout::class, ComponentType::Callout->className());
 	}
 
@@ -374,7 +378,7 @@ final class ComponentsTest extends TestCase
 			---
 			title: Home
 			---
-			:::callout[Heads up]{tone=warning}
+			:::callout[Heads up]{variant=warning}
 			Back up *first*.
 			:::
 
@@ -386,7 +390,15 @@ final class ComponentsTest extends TestCase
 			![](/c.jpg)
 			:::
 
-			::figure[A photo]{src="/media/p.jpg" alt="A lake"}
+			:::figure[A photo]{.wide}
+			![A lake](/media/p.jpg)
+			:::
+
+			:::figure[Visitors]
+			| Month | Visitors |
+			| ----- | -------- |
+			| May   | 1,204    |
+			:::
 
 			::embed[My video]{url="https://youtu.be/dQw4w9WgXcQ" title="Rick"}
 
@@ -396,7 +408,7 @@ final class ComponentsTest extends TestCase
 
 			::embed{url="https://youtu.be/dQw4w9WgXcQ"}
 
-			:::callout{tone=bogus}
+			:::callout{variant=bogus}
 			Plain note.
 			:::
 
@@ -419,15 +431,16 @@ final class ComponentsTest extends TestCase
 		$this->assertStringContainsString("<aside class=\"component-callout component-callout--warning\" role=\"note\">\n\t\t\t<p class=\"component-callout__title\">Heads up</p>\n\t\t<p>Back up <em>first</em>.</p></aside>", $html);
 		$this->assertStringContainsString('<div class="component-gallery component-gallery--flex wide" style="--gallery-columns: 6">', $html);
 		$this->assertStringContainsString('<div class="component-gallery component-gallery--grid" style="--gallery-columns: 2">', $html);
-		$this->assertStringContainsString('<img src="http://localhost/media/p.jpg" alt="A lake" loading="lazy">', $html);
-		$this->assertStringContainsString('<figcaption>A photo</figcaption>', $html);
+		$this->assertMatchesRegularExpression('#<figure class="component-figure wide">\s*<img src="http://localhost/media/p.jpg" alt="A lake" />\s*<figcaption>A photo</figcaption>#', $html, 'The figure is the container; its image stands alone.');
+		$this->assertMatchesRegularExpression('#<figure class="component-figure">\s*<table>.*?</table>\s*<figcaption>Visitors</figcaption>#s', $html, 'A figure wraps anything, such as a table.');
 		$this->assertStringContainsString('<iframe class="component-embed__frame" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Rick"', $html);
 		$this->assertStringContainsString('<p class="component-embed component-embed--link"><a href="https://example.com/talk">https://example.com/talk</a></p>', $html);
 
 		// Without a title, the frame is named by its caption or provider.
 		$this->assertStringContainsString('<iframe class="component-embed__frame" src="https://player.vimeo.com/video/76979871?dnt=1" title="Our launch"', $html);
 		$this->assertStringContainsString('<iframe class="component-embed__frame" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Embedded content from YouTube"', $html);
-		$this->assertStringContainsString('callout--note', $html);
+		// A variant it doesn't have renders as Default.
+		$this->assertStringContainsString("<aside class=\"component-callout\" role=\"note\">\n\t\t<p>Plain note.</p></aside>", $html);
 		$this->assertStringContainsString('<p>Kept as text</p>', $html);
 		$this->assertStringContainsString('<span class="badge badge--new">Site badge</span>', $html);
 		$this->assertStringContainsString('<p>A short name that isn\'t core.</p>', $html);

@@ -72,7 +72,7 @@ final class RegionsTest extends TestCase
 			  - view: parts/hello
 			    name: { en: friend, fr: ami }
 			  - component: callout
-			    tone: info
+			    variant: info
 			  - view: parts/missing
 			YAML);
 

@@ -23,12 +23,14 @@ use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
 use Blush\Component\ComponentListing;
+use Blush\Component\Variant;
 use Blush\View\ViewFactory;
 
 /**
  * Lists the components a theme can render (the active theme by default):
  * each full name, its label, whether it's registered (and so offered in
- * the admin's inserter), its class, and the file that renders it.
+ * the admin's inserter), its class, its variants besides Default (D-266),
+ * and the file that renders it.
  * `theme:why components/{file}` shows what that file shadows. Templates
  * in `components/` that aren't named for a component are reported.
  */
@@ -72,11 +74,12 @@ final readonly class ListComponents
 				$component->displayLabel(),
 				$component->isRegistered() ? 'yes' : '',
 				$component->className() ?? '',
+				implode(', ', array_map(static fn (Variant $variant): string => $variant->name, $component->variants)),
 				$file === null ? '(none)' : $this->paths->relative($file)
 			];
 		}
 
-		$output->table(['Name', 'Label', 'Registered', 'Class', 'Template'], $rows);
+		$output->table(['Name', 'Label', 'Registered', 'Class', 'Variants', 'Template'], $rows);
 
 		foreach ($components as $component) {
 			if ($component->isMissingTemplate()) {

@@ -17,7 +17,7 @@ const total   = ref(0);
 const page    = ref(1);
 const pages   = ref(1);
 const search  = ref('');
-const kind    = ref<'any' | 'image' | 'video' | 'audio'>('any');
+const kind    = ref<'any' | 'image' | 'video' | 'audio' | 'file'>('any');
 const loading = ref(true);
 const error   = ref('');
 
@@ -25,7 +25,8 @@ const KINDS = [
 	{ key: 'any', label: 'All' },
 	{ key: 'image', label: 'Images' },
 	{ key: 'video', label: 'Video' },
-	{ key: 'audio', label: 'Audio' }
+	{ key: 'audio', label: 'Audio' },
+	{ key: 'file', label: 'Files' }
 ] as const;
 
 let latest = 0;
@@ -101,11 +102,11 @@ function path(file: MediaItem): string[] {
 	<section class="panel" aria-labelledby="media-heading" :aria-busy="loading">
 		<header class="panel__header toolbar-row">
 			<h2 id="media-heading" class="visually-hidden">Library</h2>
-			<div class="kinds" role="group" aria-label="Kind">
-				<button v-for="item in KINDS" :key="item.key" type="button" class="kinds__kind" :aria-pressed="kind === item.key" @click="kind = item.key">{{ item.label }}</button>
+			<div class="segmented" role="group" aria-label="Kind">
+				<button v-for="item in KINDS" :key="item.key" type="button" :aria-pressed="kind === item.key" @click="kind = item.key">{{ item.label }}</button>
 			</div>
 			<p class="panel__hint" aria-live="polite">{{ loading && !files.length ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'file' : 'files'}` }}</p>
-			<label class="search">
+			<label class="search-field search">
 				<AdminIcon name="search" />
 				<span class="visually-hidden">Search file names</span>
 				<input v-model="search" type="search" placeholder="Search file names…" autocomplete="off">
@@ -119,10 +120,12 @@ function path(file: MediaItem): string[] {
 					<RouterLink class="card" :to="{ name: 'media-file', params: { path: path(file) } }">
 						<span class="card__thumb">
 							<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
-							<AdminIcon v-else :name="icon(file)" />
+							<template v-else><AdminIcon :name="icon(file)" /><span class="card__kind mono">{{ file.kind }}</span></template>
 						</span>
-						<span class="card__name">{{ file.name }}</span>
-						<span class="card__meta">{{ file.folder || 'media' }} · {{ details(file) }}</span>
+						<span class="card__text">
+							<span class="card__name">{{ file.name }}</span>
+							<span class="card__meta mono">{{ details(file) }}</span>
+						</span>
 					</RouterLink>
 				</li>
 			</ul>
@@ -147,73 +150,29 @@ function path(file: MediaItem): string[] {
 	flex-wrap: wrap;
 }
 
-.kinds {
-	display: flex;
-	gap: 5px;
-}
-
-.kinds__kind {
-	padding: 3px 10px;
-	border: 1px solid var(--border);
-	border-radius: 99px;
-	background: none;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	cursor: pointer;
-}
-
-.kinds__kind[aria-pressed="true"] {
-	border-color: var(--accent-line);
-	background: var(--accent-soft);
-	color: var(--accent);
-	font-weight: 500;
-}
-
 .search {
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	height: 30px;
+	flex: 0 1 280px;
 	margin-left: auto;
-	padding: 0 9px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--bg);
-	color: var(--fg-3);
-}
-
-.search:focus-within {
-	border-color: var(--accent);
-}
-
-.search input {
-	width: 12rem;
-	min-width: 0;
-	border: 0;
-	background: none;
-	color: var(--fg);
-	outline: none;
 }
 
 .grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
-	gap: 12px;
+	grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+	gap: var(--s-4);
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
+/* Every card the same height: a 4:3 thumbnail, cropped to fill it, a
+   name on one line, and its details on a second. */
 .card {
 	display: flex;
 	flex-direction: column;
-	gap: 3px;
-	padding-bottom: 9px;
 	overflow: hidden;
 	border: 1px solid var(--border);
 	border-radius: var(--r-2);
 	background: var(--surface);
-	box-shadow: var(--shadow-1);
 	color: var(--fg);
 	text-decoration: none;
 }
@@ -224,37 +183,60 @@ function path(file: MediaItem): string[] {
 }
 
 .card__thumb {
+	position: relative;
 	display: grid;
 	place-items: center;
 	aspect-ratio: 4 / 3;
-	margin-bottom: 5px;
+	overflow: hidden;
 	background: var(--surface-2);
 	color: var(--fg-3);
 }
 
 .card__thumb img {
+	display: block;
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 }
 
-.card__thumb :deep(svg) {
+.card__thumb > :deep(svg) {
 	width: 28px;
 	height: 28px;
 	stroke-width: 1.5;
 }
 
+/* A kind only where the thumbnail is a placeholder. */
+.card__kind {
+	position: absolute;
+	top: 9px;
+	left: 9px;
+	padding: 1px 4px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface);
+	color: var(--fg-2);
+	font-size: var(--text-2xs);
+	letter-spacing: .04em;
+	text-transform: uppercase;
+}
+
+.card__text {
+	display: grid;
+	gap: 4px;
+	min-width: 0;
+	padding: var(--s-3) var(--s-4);
+	border-top: 1px solid var(--border);
+}
+
 .card__name,
 .card__meta {
 	overflow: hidden;
-	padding: 0 10px;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .card__name {
 	font-size: var(--text-sm);
-	font-weight: 500;
 }
 
 .card__meta {
@@ -264,12 +246,13 @@ function path(file: MediaItem): string[] {
 
 .card__skeleton {
 	display: block;
-	aspect-ratio: 1;
+	height: auto;
+	aspect-ratio: 172 / 180;
 	border-radius: var(--r-2);
 }
 
 .more {
-	margin-top: 14px;
+	margin-top: var(--s-5);
 	text-align: center;
 }
 </style>

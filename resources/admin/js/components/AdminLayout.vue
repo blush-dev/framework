@@ -430,9 +430,9 @@ async function leave(): Promise<void> {
 	flex: none;
 	flex-direction: column;
 	align-items: center;
-	gap: 2px;
+	gap: var(--s-1);
 	width: var(--railbar);
-	padding: 8px 0;
+	padding: var(--s-3) 0;
 	border-right: 1px solid var(--border);
 	background: var(--surface);
 }
@@ -440,9 +440,9 @@ async function leave(): Promise<void> {
 .railbar__mark {
 	display: grid;
 	place-items: center;
-	width: 30px;
-	height: 30px;
-	margin-bottom: 8px;
+	width: 34px;
+	height: 34px;
+	margin-bottom: var(--s-3);
 	border-radius: var(--r-2);
 	background: var(--fg);
 	color: var(--bg);
@@ -460,9 +460,9 @@ async function leave(): Promise<void> {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 4px;
-	width: 54px;
-	padding: 7px 2px 6px;
+	gap: 6px;
+	width: 60px;
+	padding: 10px 2px 8px;
 	border: 0;
 	border-radius: var(--r-2);
 	background: none;
@@ -474,8 +474,8 @@ async function leave(): Promise<void> {
 }
 
 .railbar__section :deep(svg) {
-	width: 18px;
-	height: 18px;
+	width: 19px;
+	height: 19px;
 	stroke-width: 1.5;
 }
 
@@ -510,9 +510,9 @@ async function leave(): Promise<void> {
 	display: flex;
 	flex: none;
 	align-items: center;
-	gap: 8px;
+	gap: var(--s-2);
 	min-height: var(--bar);
-	padding: 0 12px;
+	padding: 0 var(--s-4);
 	border-bottom: 1px solid var(--border);
 }
 
@@ -535,20 +535,21 @@ async function leave(): Promise<void> {
 	font-size: var(--text-xs);
 	font-weight: 400;
 	text-overflow: ellipsis;
+	margin-top: 2px;
 }
 
 .panel-nav__nav {
 	display: grid;
 	flex: 1;
 	align-content: start;
-	gap: 14px;
+	gap: var(--s-5);
 	min-width: var(--rail);
-	padding: 10px 8px;
+	padding: var(--s-3);
 	overflow-y: auto;
 }
 
 .panel-nav__heading {
-	padding: 0 10px 4px;
+	padding: 0 var(--s-2) var(--s-2);
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 	font-weight: 600;
@@ -558,7 +559,7 @@ async function leave(): Promise<void> {
 
 .panel-nav__nav ul {
 	display: grid;
-	gap: 2px;
+	gap: 3px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -568,8 +569,8 @@ async function leave(): Promise<void> {
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	min-height: 32px;
+	gap: 11px;
+	min-height: 36px;
 	padding: 0 10px;
 	border-radius: var(--r-1);
 	color: var(--fg-2);
@@ -592,7 +593,7 @@ async function leave(): Promise<void> {
 /* A shared taxonomy names what it groups on a second line. */
 
 .panel-nav__link--two {
-	padding-block: 5px;
+	padding-block: 7px;
 }
 
 .panel-nav__detail {
@@ -608,8 +609,8 @@ async function leave(): Promise<void> {
 
 .panel-nav__nav .panel-nav__nest {
 	position: relative;
-	margin-top: 2px;
-	padding-left: 18px;
+	margin-top: 3px;
+	padding-left: 16px;
 }
 
 .panel-nav__nest::before {
@@ -634,7 +635,7 @@ async function leave(): Promise<void> {
 	position: absolute;
 	top: 7px;
 	bottom: 7px;
-	left: -8px;
+	left: calc(-1 * var(--s-3));
 	width: 3px;
 	border-radius: 0 3px 3px 0;
 	background: var(--accent);
@@ -701,8 +702,8 @@ async function leave(): Promise<void> {
 	flex: none;
 	height: var(--bar);
 	align-items: center;
-	gap: 10px;
-	padding: 0 12px;
+	gap: var(--s-2);
+	padding: 0 var(--s-4);
 	background: var(--surface);
 	border-bottom: 1px solid var(--border);
 }
@@ -735,10 +736,10 @@ async function leave(): Promise<void> {
 .bar__search {
 	display: flex;
 	align-items: center;
-	gap: 7px;
-	min-width: 200px;
-	height: 30px;
-	padding: 0 9px;
+	gap: 8px;
+	min-width: 220px;
+	height: var(--ctl);
+	padding: 0 12px;
 	border: 1px solid var(--border);
 	border-radius: var(--r-1);
 	background: var(--bg);
@@ -763,7 +764,7 @@ async function leave(): Promise<void> {
 }
 
 .bar-error {
-	margin: 12px 16px 0;
+	margin: var(--s-3) var(--s-4) 0;
 }
 
 /* The account's menu. */
@@ -771,8 +772,8 @@ async function leave(): Promise<void> {
 .bar :deep(.account) {
 	display: grid;
 	place-items: center;
-	width: 28px;
-	height: 28px;
+	width: 29px;
+	height: 29px;
 	border: 0;
 	border-radius: 50%;
 	background: var(--surface-3);
@@ -790,8 +791,8 @@ async function leave(): Promise<void> {
 
 .account__who {
 	display: grid;
-	padding: 6px 8px 8px;
-	margin-bottom: 4px;
+	padding: 10px 11px 12px;
+	margin-bottom: 7px;
 	border-bottom: 1px solid var(--border);
 	font-weight: 500;
 }
@@ -806,8 +807,8 @@ async function leave(): Promise<void> {
 	display: flex;
 	flex: none;
 	align-items: center;
-	gap: 8px;
-	padding: 8px 16px;
+	gap: 11px;
+	padding: 11px var(--s-5);
 	border-bottom: 1px solid var(--warn-dot);
 	background: var(--warn-soft);
 	color: var(--warn);
@@ -837,16 +838,26 @@ async function leave(): Promise<void> {
 .wrap {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
-	gap: 20px;
+	gap: var(--s-4);
 	max-width: var(--work-max);
 	margin: 0 auto;
-	padding: 22px 24px 40px;
+	padding: var(--s-6) var(--s-6) 96px;
+}
+
+/* A page's header stands further from what follows than sections do
+   from each other. */
+.wrap > :deep(.page-header) {
+	margin-bottom: calc(var(--s-6) - var(--s-4));
 }
 
 @media (width <= 640px) {
 	.wrap {
-		gap: 16px;
-		padding: 16px 16px 32px;
+		gap: var(--s-3);
+		padding: var(--s-5) var(--s-4) 80px;
+	}
+
+	.wrap > :deep(.page-header) {
+		margin-bottom: calc(var(--s-5) - var(--s-3));
 	}
 
 	.bar__root,
@@ -856,7 +867,7 @@ async function leave(): Promise<void> {
 
 	.bar__search {
 		min-width: 0;
-		width: 30px;
+		width: var(--ctl);
 		justify-content: center;
 		padding: 0;
 	}

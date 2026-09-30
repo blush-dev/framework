@@ -5603,3 +5603,194 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `composer check` (`AdminEditingTest`: pinned on page 1,
   not page 2); the jtcom trial's Categories in headless Chrome.
 - **Why:** the author's call.
+
+### D-265: The updated design: space, flat surfaces, four inserters, icon categories, and a marked source
+- **Date:** 2026-09-30
+- **Decision:** From the author's updated design direction (`admin.md`
+  §2, §4 Icons, §5 Elevation, §6 Space, §8 The editor, Marking the
+  source, The inserters, Variants, The media library) and prototype.
+  Supersedes D-247's icon popover, category pills, and two-column tiles,
+  D-245's disabled Component tab and its list on the Document tab, and
+  D-253's styling of the source.
+  - **Space and surfaces.** The tokens take the design's values: a space
+    scale (`--s-1` 4px to `--s-7` 52px), `--ctl` (34px) and `--ctl-sm`
+    (30px) for every control's height, flat resting surfaces
+    (`--shadow-1: none`, with small shadows kept for menus, toasts, and
+    modals), larger radii (6/10/16px), `--h1` 26px, `--h2` 15px, looser
+    density (`--pad-row` 14px, `--pad-panel` 17px, `--pad-x` 22px, shared
+    by panels, cells, and rows), `--railbar` 74px, `--rail` 262px,
+    `--bar` 62px, `--work-max` 1400px, `--drawer` 372px, `--inserter`
+    376px, and `--doc-title` 34px. The shared classes, the shell, menus,
+    the palette, toasts, tabs, and empty states follow (empty states get
+    the most room). Body text is 1.5 high; Fira Code's contextual
+    ligatures are off, so a slug reads as its characters. Icons are
+    drawn with a 1.6 stroke.
+  - **A compact toggle, not a compact default:** each type's list has a
+    two-button control beside the search for roomy or compact rows
+    (compact drops the address line), kept in this browser
+    (`density.ts`).
+  - **Four inserters** in the editor's header, at 36px with 18px icons:
+    **+** for block components (the panel, now without inline ones),
+    media, icons, and an **A** menu of inline components, each with its
+    description (the icon component is left out: it has its own picker).
+    The panel loses its category pills; tiles are an icon and a name,
+    three across, and the strip at the foot names a theme's or
+    extension's source. Arrow keys step by the grid's real column count.
+  - **Icons are a library in a modal**, sharing one shell with the media
+    picker (`.modal` in `admin.css`): a search, the groups down the left
+    (a scrolling row below 760px), a grid of icons with names, and a
+    footer naming the selection and its directive, with **Insert**
+    disabled until one is chosen. A search selects its best match, so a
+    name and Enter inserts it; a double click inserts too.
+  - **Icon categories:** `GET icons` gives each core icon its `category`
+    (`IconCategory`: arrows, interface, status, communication, people,
+    security, writing, media, development, design, time, places, nature,
+    things), read from `resources/icons/blush/categories.json` beside
+    `tags.json` (a test checks every core icon has one). Other icons
+    have `category: null` and a `source` (theme, site, or extension), as
+    components do; `Provenance` names it for both.
+  - **The media picker** is wide (`min(1180px, 100vw - 64px)`, up to 90vh):
+    kinds as a segmented control (All, Images, Video, Audio, Files, with
+    `GET media`'s new `kind=file` for anything not an image, video, or
+    sound), fixed-height cards with 4:3 cropped thumbnails, a ring and a
+    tick for the selection, a kind label only on files that aren't
+    images, and a footer naming the file with its size. The Media
+    screen's cards follow the same rules (its thumbnails had grown to
+    their images' heights).
+  - **The settings drawer:** the tabs sit left (the first flush with the
+    fields) and a close button right. The Component tab is never
+    disabled: named for the component the caret is in, else
+    "Components", with the entry's count; it shows the options, then
+    every component in the entry with the current one marked (moved from
+    the Document tab), and with nothing selected says so over that list.
+    No kind label and no "Go to it in the text".
+  - **Marking the source** (supersedes D-253's styling): every syntax
+    character in `--fg-3` and the words at full ink; headings by weight
+    (600 for `#` and `##`, 500 below); struck text dimmed; inline code's
+    backticks muted on its chip; a link's label in the accent and its
+    address muted; an image's alternative text in `--fg-2`; quotes in
+    `--fg-2`, no longer italic; list markers in `--fg-2` at 600 (not the
+    accent); a task's box muted, `[x]` in `--good`; rules at `--fg-2`;
+    tables' pipes and delimiter row muted; fences on a slab with the
+    language named; footnotes and autolinks in the accent; directives
+    unboxed with the name in the accent and the label at full ink; and
+    attribute blocks (`{.class #id key=value}`, on a directive or after
+    any Markdown) as a gray chip with class and id names at full ink.
+    Only valid syntax lights up (a brace in prose stays text). The box is
+    kept for the directive the caret is in, and a container's body is
+    tinted. The editor's line height is 2.
+  - **Picker dialogs close before they hand over a choice**, so the
+    editor can focus its text and insert at the caret (a modal dialog
+    kept focus, so choosing an icon inserted nothing).
+- **Departs from the design:** the writing column stays 640px (D-254),
+  not 72ch; no Variant selector, since variants aren't built (D-191);
+  admin icons stay per-component inline SVGs (`AdminIcon`), not a
+  `<symbol>` sprite; the density choice is kept in the browser, not the
+  account; the media kinds keep Audio; icon categories are Blush's own
+  for its 131 core icons.
+- **Checked:** `composer check` (`AdminPickersTest`: categories, a site
+  icon's source, every core icon categorized, `kind=file`); the
+  highlighter under Node (every character kept, with a directive
+  current or not); in headless Chrome against the real API on a scratch
+  site: the dashboard, a list roomy and compact, the editor (marks, the
+  boxed container, the drawer's tabs and close button, the Component
+  tab and its list), the panel's three columns and arrow keys, the icon
+  modal (groups, search, Enter inserting), the inline menu, the media
+  modal (selection, insert, the Component tab following), the Media
+  screen, the palette, dark mode, and 390px.
+- **Open:** variants (D-191); a way for a theme or extension to put its
+  icons in the core categories; the density choice as an account
+  preference.
+- **Why:** the author's updated design direction.
+
+### D-266: Component variants
+- **Date:** 2026-09-30
+- **Decision:** Supersedes D-191's planned shape and settles its open
+  question (where themes declare variants). Built in this session.
+  - **A variant is a name and its registrant**, the namespace whose
+    catalog has its text: core (`blush`), a theme's slug, the site
+    (`app`), or an extension's vendor. Its label and description are
+    translated: `components.{name}.variants.{variant}.label` and
+    `.description` in the registrant's domain.
+  - **Default is always the default.** Every component has it; it isn't
+    registered and can't be renamed, replaced, or removed. It writes no
+    attribute (`variant=default` means the same as none) and adds no
+    modifier class. No registered variant may be called `default`.
+  - **Declaring them:** a component declares its own when it registers:
+    a class with its `VARIANTS` constant, a template-only one with
+    `register(…, variants: […])`. Anything else adds (or removes) them
+    when the component's variants are first collected, from the
+    `ComponentVariantsCollecting` event, which fires once per component
+    and whatever order providers booted in. A theme may also list them in
+    `theme.json` (`variants`, by component), with the text in its own
+    catalog.
+  - **A theme's variants apply only while it (or a child) is active.** A
+    variant a component doesn't have (unknown, or from a theme that isn't
+    active) renders as Default.
+  - **Templates get it separately:** `$component->variant` (`'default'`
+    when none), and the root element's classes get the BEM modifier
+    `component-{name}--{variant}` unless the variant names another
+    modifier. `variant` is a prop every component has, like `class` and
+    `id`, so no component takes its own `variant` parameter.
+  - **A variant may have its own template:** `components/{name}-{variant}`
+    (such as `callout-bordered.php`) wins over the component's own, so a
+    variant can change more than its looks. Variants are meant mostly for
+    style, but nothing limits them to it.
+  - **Core ships variants where they fit:** the button's is `secondary`
+    (its Default is the primary look), and the callout's tones become
+    variants (`info`, `tip`, `warning`, `danger`; Default is the note).
+    `ButtonVariant`, `CalloutTone`, and the callout's `tone` prop go, with
+    no fallback: `variant=primary` is flagged by `content:lint` (a
+    variant the button doesn't have); `tone=…` is now just an attribute
+    the callout ignores (the jtcom trial's content had none; its theme's
+    callout styles moved the note colors to the Default callout).
+  - **Checks:** `content:lint` warns about a directive's variant its
+    component doesn't have under the active theme; `theme:check` warns
+    about variants the theme declares for components that don't exist and
+    about a variant template that's also a component's own template name.
+    `component:list` lists each component's variants. `GET components`
+    gives them to the admin, whose Component tab has a Variant select
+    above Options (Default writes nothing).
+- **Direction, not built:** components will have to be registered to
+  render (PHP, or JSON with translations); template-only components found
+  only by their file go away (see `open-questions.md`).
+- **Checked:** `composer check` (`VariantsTest`: names, Default, the
+  event adding and removing once per component, `theme.json` variants
+  only while the theme is active, modifiers, a variant's template;
+  `LinterTest`, `ThemeCommandsTest`, `AdminContentTest`); the jtcom
+  trial's `content:lint`, `theme:check`, and `component:list`; the
+  Variant select in headless Chrome against the real API on a scratch
+  site.
+- **Why:** the author's call, and the design direction's Variants
+  section.
+
+### D-267: `:::figure` is a container; the media picker inserts plain images
+- **Date:** 2026-09-30
+- **Decision:** Supersedes the figure part of D-113 and D-247's "an
+  image becomes a figure".
+  - **`blush/figure` is a container** (`ComponentContent::Blocks`) that
+    wraps anything to be set apart with a caption (an image, a table, a
+    code block, a quote): `:::figure[Caption]` … `:::`. The label is the
+    `<figcaption>`, after the content; without content it doesn't render.
+    Its `src` and `alt` props are gone, with no fallback (the jtcom
+    trial's content doesn't use `::figure`). It moves to Layout: the
+    `Component\Layout\Figure` class, the Layout category in the
+    inserter, and the admin's `panel-bottom` icon (content over its
+    caption).
+  - **An image alone in a paragraph inside a figure is the image**
+    (`FigureRenderer`): no `<p>` and no `<figure>` of its own, and its
+    title stays a `title`. Outside a figure, a lone image is still a
+    figure with its quoted title as the caption (D-078).
+  - **The media picker inserts an image as plain Markdown**,
+    `![alt](src)`, on lines of its own like a block component, with the
+    caret in the alternative text (selected text becomes it). The address
+    is wrapped in `<…>` when it has spaces or parentheses. Video, sound,
+    and other files still insert their components.
+  - **The editor reads an image's quoted title as its caption:** the
+    address stays muted, and the title is set in full ink between muted
+    quotes.
+- **Checked:** `composer check` (a figure around an image and around a
+  table, one in a page bundle); `imageText()` and the highlighter under
+  Node; inserting an image from the picker in headless Chrome.
+- **Why:** the author's call: a figure is for anything captioned, and
+  the lone-image convention already makes a captioned image.

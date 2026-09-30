@@ -40,7 +40,9 @@ use Blush\Content\Type\Taxonomy;
  * - warnings: two files claiming one entry (`about.md` next to
  *   `about/index.md`), a term's `parent` that has no file, and a page
  *   whose address another route answers (`movie/2024.md` beside a type
- *   with date archives at `/movie/{year}`);
+ *   with date archives at `/movie/{year}`), and a directive asking for a
+ *   variant its component doesn't have under the active theme
+ *   (`VariantCheck`, D-266);
  * - notices: undeclared keys and 1.x aliases (D-081), and terms that are
  *   referenced but have no file, which become virtual terms.
  */
@@ -55,7 +57,8 @@ final readonly class Linter
 		private ContentSource $source,
 		private RecordBuilder $builder,
 		private ContentTypes $types,
-		private RouteTable $routes
+		private RouteTable $routes,
+		private VariantCheck $variants
 	) {}
 
 	/**
@@ -73,10 +76,11 @@ final readonly class Linter
 
 		foreach ($files as $done => $file) {
 			try {
-				$parsed = $this->builder->build($file, $this->source->read($file->path));
+				$contents = $this->source->read($file->path);
+				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage())];
 			}
@@ -125,9 +129,10 @@ final readonly class Linter
 		}
 
 		try {
-			$parsed = $this->builder->build($file, $this->source->read($path));
+			$contents = $this->source->read($path);
+			$parsed   = $this->builder->build($file, $contents);
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage())];
 		}

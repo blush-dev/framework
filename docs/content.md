@@ -159,6 +159,10 @@ lists, autolinks, and footnotes. On top of that:
   ![A sunflower.](/media/sunflower.jpg "My favorite flower")
   ```
 
+  To caption something else, such as a table or a code block, wrap it in
+  a [figure](components.md#built-in-components): `:::figure[Caption]` …
+  `:::`.
+
 - Images from your media folder get their `width` and `height`
   automatically.
 - **Definition lists:** a term, then its definition on the next line
@@ -182,7 +186,7 @@ You can add more CommonMark extensions, such as attributes
 Components add richer blocks to your writing:
 
 ```markdown
-:::callout[Heads up]{tone=warning}
+:::callout[Heads up]{variant=warning}
 Back up your site before updating.
 :::
 

@@ -19,11 +19,9 @@ use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\BootsScratchSite;
 use Blush\Component\Button;
-use Blush\Component\ButtonVariant;
 use Blush\Component\IconPosition;
 
 #[CoversClass(Button::class)]
-#[CoversClass(ButtonVariant::class)]
 #[CoversClass(IconPosition::class)]
 final class ButtonTest extends TestCase
 {
@@ -55,9 +53,9 @@ final class ButtonTest extends TestCase
 			::button[Next]{url=/next icon=arrow-right iconPosition=end}
 			MD);
 
-		$this->assertStringContainsString('<a class="component-button component-button--primary" href="http://localhost/start"><span class="component-button__text">Get started</span></a>', $html);
+		$this->assertStringContainsString('<a class="component-button" href="http://localhost/start"><span class="component-button__text">Get started</span></a>', $html);
 		$this->assertStringContainsString('<a class="component-button component-button--secondary wide" href="http://localhost/file.pdf">[icon]<span class="component-button__text">Download</span></a>', $html);
-		$this->assertStringContainsString('<a class="component-button component-button--primary" href="http://localhost/next"><span class="component-button__text">Next</span>[icon]</a>', $html);
+		$this->assertStringContainsString('<a class="component-button" href="http://localhost/next"><span class="component-button__text">Next</span>[icon]</a>', $html);
 	}
 
 	public function testIconOnlyButtonsAreNamedByTheirLabel(): void
@@ -68,10 +66,10 @@ final class ButtonTest extends TestCase
 			::button[Unknown icon]{url=/x icon=nope iconOnly}
 			MD);
 
-		$this->assertStringContainsString('<a class="component-button component-button--primary component-button--icon-only" aria-label="Share this post" title="Share this post" href="http://localhost/share">[icon]</a>', $html);
+		$this->assertStringContainsString('<a class="component-button component-button--icon-only" aria-label="Share this post" title="Share this post" href="http://localhost/share">[icon]</a>', $html);
 
 		// Without its icon, it shows its text.
-		$this->assertStringContainsString('<a class="component-button component-button--primary" href="http://localhost/x"><span class="component-button__text">Unknown icon</span></a>', $html);
+		$this->assertStringContainsString('<a class="component-button" href="http://localhost/x"><span class="component-button__text">Unknown icon</span></a>', $html);
 	}
 
 	public function testButtonsNeedTextAndASafeLink(): void
@@ -83,14 +81,15 @@ final class ButtonTest extends TestCase
 
 			::button[Sneaky]{url="javascript:alert(1)"}
 
-			Read the :button[docs]{url=/docs variant=bogus} first.
+			Read the :button[docs]{url=/docs variant=primary} first.
 			MD);
 
 		$this->assertStringNotContainsString('no-label', $html);
 		$this->assertStringNotContainsString('No link', $html);
 		$this->assertStringNotContainsString('Sneaky', $html);
 
-		// Inline, and an unknown variant falls back to primary.
-		$this->assertStringContainsString('<p>Read the <a class="component-button component-button--primary" href="http://localhost/docs"><span class="component-button__text">docs</span></a> first.</p>', $html);
+		// Inline, and a variant it doesn't have (`primary` is its Default)
+		// renders as Default.
+		$this->assertStringContainsString('<p>Read the <a class="component-button" href="http://localhost/docs"><span class="component-button__text">docs</span></a> first.</p>', $html);
 	}
 }

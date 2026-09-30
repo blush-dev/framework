@@ -25,14 +25,17 @@ use League\CommonMark\Renderer\ChildNodeRendererInterface;
 use League\CommonMark\Renderer\NodeRendererInterface;
 use League\CommonMark\Util\HtmlElement;
 use League\CommonMark\Util\Xml;
+use Blush\Markdown\CommonMark\Directive\ContainerDirective;
 
 /**
  * Renders a paragraph holding nothing but an image (or a link around an
  * image) as a `<figure>` instead of a `<p>`, as 1.x did (D-078): the
  * image's title becomes the `<figcaption>`, and attributes given to the
  * image (or else the link), such as `{.stretch-wide}`, go on the figure,
- * except those that belong on the `<img>`. Every other paragraph renders as
- * usual.
+ * except those that belong on the `<img>`. Inside a `:::figure` container
+ * (D-267), which is already the figure, the image renders on its own,
+ * without a paragraph or a figure around it. Every other paragraph
+ * renders as usual.
  */
 final readonly class FigureRenderer implements NodeRendererInterface
 {
@@ -64,6 +67,11 @@ final readonly class FigureRenderer implements NodeRendererInterface
 			return $this->paragraphs->render($node, $childRenderer);
 		}
 
+		// The container is the figure: the image stands alone in it.
+		if (self::inFigure($node)) {
+			return $childRenderer->renderNodes($node->children());
+		}
+
 		$figure = [];
 
 		foreach ($link === null ? [$image] : [$image, $link] as $source) {
@@ -86,6 +94,17 @@ final readonly class FigureRenderer implements NodeRendererInterface
 		}
 
 		return new HtmlElement('figure', $figure, $contents);
+	}
+
+	/**
+	 * Returns whether a paragraph is directly inside a `:::figure`
+	 * container.
+	 */
+	private static function inFigure(Paragraph $node): bool
+	{
+		$parent = $node->parent();
+
+		return $parent instanceof ContainerDirective && in_array($parent->name, ['figure', 'blush/figure'], true);
 	}
 
 	/**

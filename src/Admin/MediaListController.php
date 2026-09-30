@@ -35,7 +35,7 @@ use Blush\Support\Filesystem;
  * - `files`: the library (`user/media`), newest first, a page at a time
  *   (`page`, and `per`, 48 by default, at most 100), narrowed by `search`
  *   (text the path must contain) and `kind` (`image`, `video`, `audio`,
- *   or `any`, the default).
+ *   `file` for any other kind, or `any`, the default).
  * - `beside`: with `entry` (an id the account may edit) in a page bundle
  *   (`name/index.md`), the media files in its folder, which it refers to
  *   by name; otherwise `null`.
@@ -80,7 +80,12 @@ final readonly class MediaListController
 		'webm' => 'video/webm'
 	];
 
-	private const array KINDS = ['any', 'image', 'video', 'audio'];
+	private const array KINDS = ['any', 'image', 'video', 'audio', 'file'];
+
+	/**
+	 * The kinds a `file` isn't.
+	 */
+	private const array PLAYABLE = ['image', 'video', 'audio'];
 
 	public function __construct(
 		private Paths $paths,
@@ -165,6 +170,20 @@ final readonly class MediaListController
 	}
 
 	/**
+	 * Whether a MIME type is of a kind the list is narrowed to.
+	 */
+	private static function isKind(string $mime, string $kind): bool
+	{
+		$type = strstr($mime, '/', true) ?: $mime;
+
+		return match ($kind) {
+			'any'   => true,
+			'file'  => ! in_array($type, self::PLAYABLE, true),
+			default => $type === $kind
+		};
+	}
+
+	/**
 	 * The library's files that may match, newest first, as relative path
 	 * => reference.
 	 *
@@ -178,7 +197,7 @@ final readonly class MediaListController
 			$relative = (string) $relative;
 			$mime     = $this->guess($file);
 
-			if ($mime === null || ($kind !== 'any' && ! str_starts_with($mime, "{$kind}/"))) {
+			if ($mime === null || ! self::isKind($mime, $kind)) {
 				continue;
 			}
 

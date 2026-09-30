@@ -24,7 +24,9 @@ inserter (D-243); then the section rail (D-244) and the editor as a
 writing surface with component options (D-245), and its three
 inserters (components, media, icons; D-246, D-247); toasts and the
 command palette (D-248); and read-only Roles and Accounts, Content
-types, and Media screens (D-249 to D-251). Next: the Markdown editing
+types, and Media screens (D-249 to D-251); then the updated design's
+space scale, four inserters, icon categories, and marked source
+(D-265); and component variants (D-266). Next: the Markdown editing
 experience (D-252; live preview waits), uploads, a reference picker,
 and the remaining stubbed screens; see
 `.claude/docs/roadmap.md`.

@@ -21,7 +21,7 @@
  * `[data-admin-theme="id"]` selectors, changing values, never names.
  */
 
-/* Neutral: cool gray chrome, a cobalt accent, dense rows. */
+/* Neutral: cool gray chrome, a cobalt accent, roomy rows. */
 
 :root {
 	/* Surfaces, back to front. */
@@ -57,15 +57,26 @@
 	--danger-soft: #fbeae9;
 	--danger-dot: #d6403a;
 
-	/* Elevation. */
-	--shadow-1: 0 1px 2px rgb(17 20 27 / 6%), 0 1px 3px rgb(17 20 27 / 4%);
-	--shadow-2: 0 8px 24px rgb(17 20 27 / 10%), 0 2px 6px rgb(17 20 27 / 6%);
-	--shadow-3: 0 24px 60px rgb(17 20 27 / 18%), 0 6px 16px rgb(17 20 27 / 10%);
+	/* Elevation. Flat by default: borders and surface steps separate
+	   things, and a shadow is spent only where something sits above the
+	   page. */
+	--shadow-1: none;                                                        /* resting surfaces */
+	--shadow-2: 0 2px 8px rgb(17 20 27 / 5%), 0 1px 2px rgb(17 20 27 / 4%);  /* menus, popovers, toasts */
+	--shadow-3: 0 10px 28px rgb(17 20 27 / 9%), 0 2px 6px rgb(17 20 27 / 5%); /* modals and drawers */
 
 	/* Radius. */
-	--r-1: 5px;    /* controls: buttons, inputs, chips */
-	--r-2: 8px;    /* menus, small cards */
-	--r-3: 12px;   /* panels, the table's shell */
+	--r-1: 6px;    /* controls: buttons, inputs, chips */
+	--r-2: 10px;   /* menus, small cards */
+	--r-3: 16px;   /* panels, the table's shell */
+
+	/* Space: one scale, and nothing invents its own gap. */
+	--s-1: 4px;    /* inside a control: icon to label */
+	--s-2: 8px;    /* between adjacent controls */
+	--s-3: 12px;   /* inside a small component */
+	--s-4: 18px;   /* between fields; card padding */
+	--s-5: 26px;   /* panel and section padding */
+	--s-6: 36px;   /* between sections; the screen's gutter */
+	--s-7: 52px;   /* above a page's first content */
 
 	/* Type. */
 	--font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -77,29 +88,33 @@
 	--text-sm: 12px;         /* secondary text */
 	--text-xs: 11px;         /* uppercase micro-labels, badges */
 	--text-2xs: 10px;        /* the section rail's labels */
-	--h1: 22px;              /* page titles */
-	--h1-track: -.022em;
-	--h2: 14px;              /* panel headings */
-	--title-size: 13px;      /* entry titles in lists */
+	--h1: 26px;              /* page titles */
+	--h1-track: -.024em;
+	--h2: 15px;              /* panel headings */
+	--title-size: 13.5px;    /* entry titles in lists */
 	--title-weight: 500;
 	--title-track: -.005em;
 	--doc: 14px;             /* the editor's text */
-	--doc-title: 30px;       /* the editor's title, part of the document */
+	--doc-title: 34px;       /* the editor's title, part of the document */
 
-	/* Density: a theme may loosen these. */
-	--pad-row: 10px;     /* table cells and list rows, vertical */
-	--pad-panel: 13px;   /* panel headers, vertical */
-	--pad-x: 16px;       /* panels, horizontal */
-	--stat-v: 26px;      /* stat tile figures */
+	/* Density: a theme may loosen these. --pad-x is shared by panels,
+	   table cells, and list rows, so their content lines up down the
+	   screen; --ctl is the one control height. */
+	--pad-row: 14px;     /* table cells and list rows, vertical */
+	--pad-panel: 17px;   /* panel headers, vertical */
+	--pad-x: 22px;       /* panels, cells, and rows, horizontal */
+	--ctl: 34px;         /* buttons, inputs, selects, search fields */
+	--ctl-sm: 30px;      /* the same inside a panel header or a row */
+	--stat-v: 30px;      /* stat tile figures */
 
 	/* Layout. */
-	--railbar: 66px;     /* the section rail */
-	--rail: 238px;       /* the section's panel beside it */
-	--drawer: 340px;     /* the editor's settings */
-	--inserter: 322px;   /* the editor's component panel */
+	--railbar: 74px;     /* the section rail */
+	--rail: 262px;       /* the section's panel beside it */
+	--drawer: 372px;     /* the editor's settings */
+	--inserter: 376px;   /* the editor's component panel */
 	--measure: 640px;    /* the editor's writing column */
-	--bar: 53px;         /* the top bar and the site header */
-	--work-max: 1360px;
+	--bar: 62px;         /* the top bar and the site header */
+	--work-max: 1400px;
 
 	color-scheme: light;
 }
@@ -129,9 +144,9 @@
 		--danger: #f28d84;
 		--danger-soft: #301917;
 		--danger-dot: #e0655c;
-		--shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
-		--shadow-2: 0 8px 24px rgb(0 0 0 / 50%), 0 2px 6px rgb(0 0 0 / 30%);
-		--shadow-3: 0 24px 60px rgb(0 0 0 / 60%), 0 6px 16px rgb(0 0 0 / 40%);
+		--shadow-1: none;
+		--shadow-2: 0 2px 8px rgb(0 0 0 / 30%);
+		--shadow-3: 0 10px 28px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 30%);
 
 		color-scheme: dark;
 	}
@@ -161,9 +176,9 @@
 	--danger: #f28d84;
 	--danger-soft: #301917;
 	--danger-dot: #e0655c;
-	--shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
-	--shadow-2: 0 8px 24px rgb(0 0 0 / 50%), 0 2px 6px rgb(0 0 0 / 30%);
-	--shadow-3: 0 24px 60px rgb(0 0 0 / 60%), 0 6px 16px rgb(0 0 0 / 40%);
+	--shadow-1: none;
+	--shadow-2: 0 2px 8px rgb(0 0 0 / 30%);
+	--shadow-3: 0 10px 28px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 30%);
 
 	color-scheme: dark;
 }

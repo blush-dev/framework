@@ -21,7 +21,7 @@ use Blush\View\ViewContext;
  * A component (D-025, D-195): typed props through constructor promotion,
  * and the template (`components/{key}`) that renders it. The template
  * gets the component as `$component`, so its props and computed values
- * are `$component->tone` and `$component->heading()`.
+ * are `$component->label` and `$component->heading()`.
  *
  * ```php
  * final class Card extends Component
@@ -40,7 +40,11 @@ use Blush\View\ViewContext;
  * Every component has the `class` and `id` props (`.class` and `#id` in
  * Markdown), and its root element prints them with `attributes()`, which
  * also names the component's BEM block (`component-{name}`, D-182) and
- * modifiers. Its main content is `content()` and its named slots are
+ * modifiers. Every component has the `variant` prop too (D-266): the
+ * variants it declares are its `VARIANTS`, `$component->variant` names
+ * the one it renders (`'default'` for none), and a variant adds its
+ * modifier (`component-callout--warning`). So no component takes a
+ * `variant` parameter of its own. Its main content is `content()` and its named slots are
  * `$slots->footer`; a component can name the content for its role, such
  * as a figure's `caption()`.
  *
@@ -55,6 +59,14 @@ abstract class Component
 	 * writes it in Markdown (D-172).
 	 */
 	public const ComponentContent CONTENT = ComponentContent::None;
+
+	/**
+	 * The variants it declares, by name, besides Default (D-266). Their
+	 * text is in the component's namespace's catalog.
+	 *
+	 * @var list<string>
+	 */
+	public const array VARIANTS = [];
 
 	/**
 	 * The attributes `html()` escapes as URLs.
@@ -72,6 +84,16 @@ abstract class Component
 	 * The root element's ID, from the `id` prop, or `''`.
 	 */
 	public private(set) string $id = '';
+
+	/**
+	 * The variant it renders: a variant's name, or `'default'`.
+	 */
+	public private(set) string $variant = Variant::DEFAULT;
+
+	/**
+	 * The variant it renders, or `null` for Default.
+	 */
+	private ?Variant $variantInfo = null;
 
 	/**
 	 * The component's name, once it's attached.
@@ -119,8 +141,8 @@ abstract class Component
 
 	/**
 	 * Gives the component its name, its props, its content and slots, the
-	 * theme's translator, and the render it's part of. Called by `Views`
-	 * when it renders one.
+	 * theme's translator, the render it's part of, and the variant it
+	 * renders (`null` for Default). Called by `Views` when it renders one.
 	 *
 	 * @internal
 	 * @param array<string, mixed> $props
@@ -131,7 +153,8 @@ abstract class Component
 		string $content = '',
 		?Slots $slots = null,
 		?Translator $translator = null,
-		?ViewContext $context = null
+		?ViewContext $context = null,
+		?Variant $variant = null
 	): void {
 		$this->componentName = $name;
 		$this->props         = $props;
@@ -141,6 +164,16 @@ abstract class Component
 		$this->namedSlots    = $slots;
 		$this->translator    = $translator;
 		$this->viewContext   = $context;
+		$this->variantInfo   = $variant;
+		$this->variant       = $variant->name ?? Variant::DEFAULT;
+	}
+
+	/**
+	 * Returns whether it renders a variant: `isVariant('warning')`.
+	 */
+	public function isVariant(string $name): bool
+	{
+		return $this->variant === $name;
 	}
 
 	/**
@@ -188,13 +221,15 @@ abstract class Component
 	}
 
 	/**
-	 * Returns the root element's classes: the block, its modifiers
-	 * (`component-callout--warning`), and the `class` prop.
+	 * Returns the root element's classes: the block, its variant's
+	 * modifier (`component-callout--warning`) and its own, and the `class`
+	 * prop.
 	 */
 	public function classes(): string
 	{
 		$block     = $this->block();
-		$modifiers = array_map(static fn (string $modifier): string => "{$block}--{$modifier}", $this->modifiers());
+		$own       = $this->variantInfo === null ? $this->modifiers() : [$this->variantInfo->modifier(), ...$this->modifiers()];
+		$modifiers = array_map(static fn (string $modifier): string => "{$block}--{$modifier}", array_values(array_unique($own)));
 
 		return implode(' ', array_filter([$block, ...$modifiers, $this->class], static fn (string $class): bool => $class !== ''));
 	}
@@ -256,8 +291,8 @@ abstract class Component
 	}
 
 	/**
-	 * Returns the block's modifiers for its current props, such as
-	 * `['warning']` for `component-callout--warning`.
+	 * Returns the block's modifiers for its current props, besides its
+	 * variant's, such as `['icon-only']` for `component-button--icon-only`.
 	 *
 	 * @return list<string>
 	 */

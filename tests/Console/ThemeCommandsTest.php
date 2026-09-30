@@ -196,7 +196,7 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command('component:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertMatchesRegularExpression('#\| app/badge\s*\| Badge\s*\|\s*\|\s*\| resources/views/components/app-badge\.php#', $result->output);
+		$this->assertMatchesRegularExpression('#\| app/badge\s*\| Badge\s*\|\s*\|\s*\|\s*\| resources/views/components/app-badge\.php#', $result->output);
 		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\| Blush\\\\Component\\\\Callout\s*\| .*themes/default/views/components/callout\.php#', $result->output);
 		$this->assertMatchesRegularExpression('#\| blush/embed\s*\| Embed\s*\| yes\s*\| Blush\\\\Component\\\\Embed#', $result->output);
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
@@ -209,7 +209,7 @@ final class ThemeCommandsTest extends TestCase
 
 		$list = $this->command('component:list');
 
-		$this->assertMatchesRegularExpression('#\| app/orphan\s*\| Orphan\s*\| yes\s*\| .*Orphan\s*\| \(none\)#', $list->output);
+		$this->assertMatchesRegularExpression('#\| app/orphan\s*\| Orphan\s*\| yes\s*\| .*Orphan\s*\|\s*\| \(none\)#', $list->output);
 		$this->assertStringContainsString('"app/orphan" has no components/app-orphan.php template, so it can\'t render.', $list->output . $list->errors);
 
 		$check = $this->command('theme:check');
@@ -259,6 +259,22 @@ final class ThemeCommandsTest extends TestCase
 		$this->writeTemporaryFile('user/themes/nova/lang/en.json', '{"components": {"badge": {"label": "Badge"}}}');
 
 		$this->assertStringNotContainsString('nova/badge', $this->command(['theme:check', 'nova', '--strict'])->output);
+	}
+
+	public function testThemeCheckFlagsVariantProblems(): void
+	{
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");
+		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova", "variants": {"callout": ["bordered", "Bad"], "nova/nothing": ["wide"], "nova/badge": ["pill"]}}');
+		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'badge');
+		$this->writeTemporaryFile('user/themes/nova/lang/en.json', '{"components": {"badge": {"label": "Badge"}, "callout": {"variants": {"bordered": {"label": "Bordered"}}}}}');
+
+		$check = $this->command(['theme:check', 'nova', '--strict'])->output;
+
+		$this->assertStringContainsString('warning variants nova/nothing: theme.json lists variants for "nova/nothing", which isn\'t a component.', $check);
+		$this->assertStringContainsString('warning variants blush/callout: theme.json lists a variant of "blush/callout" that isn\'t valid', $check);
+		$this->assertStringContainsString('notice  variants nova/badge: The "pill" variant of "nova/badge" has no label; add "components.badge.variants.pill.label" to the theme\'s lang/ catalog.', $check);
+		$this->assertStringNotContainsString('"bordered" variant', $check);
+		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\| Blush\\\\Component\\\\Callout\s*\| info, tip, warning, danger, bordered\s*\|#', $this->command(['component:list', '--theme=nova'])->output);
 	}
 
 	public function testExplainsWhichViewWins(): void

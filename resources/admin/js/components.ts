@@ -24,6 +24,16 @@ export interface ComponentDescription {
 	category: string | null;
 	source: { kind: 'theme' | 'site' | 'extension'; label: string } | null;
 	props: ComponentProp[];
+	// Its variants under the active theme, Default not included (D-266).
+	variants: ComponentVariant[];
+}
+
+export interface ComponentVariant {
+	name: string;
+	label: string;
+	description: string;
+	// Where it comes from, when not from the component's own namespace.
+	source: { kind: 'theme' | 'site' | 'extension'; label: string } | null;
 }
 
 /**
@@ -53,7 +63,7 @@ const ICONS: Record<string, IconName> = {
 	button: 'arrow-up-right',
 	callout: 'info',
 	embed: 'globe',
-	figure: 'image',
+	figure: 'panel-bottom',
 	file: 'download',
 	gallery: 'images',
 	grid: 'layout-grid',

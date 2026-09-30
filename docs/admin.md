@@ -128,7 +128,9 @@ site (for a draft, the address it will have). In other tabs and in
 search results, a page or a term of a hierarchical taxonomy has the
 titles of the entries above it before its own (such as "Web › Web
 design › CSS"). Search matches titles and file
-paths. Click a title to edit the entry.
+paths. Click a title to edit the entry. The two buttons beside the
+search switch between roomy rows and compact ones, which leave out the
+address line; your browser remembers the choice.
 
 The **⋯** button at the end of each row has **Edit**, then **View** and
 **Copy link** once the entry is live (**View archive** for a term), and
@@ -160,9 +162,19 @@ body), then the body in Markdown. While you type, the header and footer
 fade back; moving the pointer brings them back.
 
 The body stays Markdown, set in Fira Code (the admin's monospace font
-throughout), but it reads as it will look: *emphasis* is italic, **strong text** is bold, headings are bold,
-quotes are muted, and the marks themselves (`*`, `**`, `#`, `>`) are
-dimmed. List markers, links, inline code, and components are colored.
+throughout), but the words read first: every mark (`*`, `**`, `#`, `>`,
+a link's brackets, an attribute block's braces) is dimmed, and what it
+wraps keeps full strength. *Emphasis* is slanted, **strong text** is
+bold, headings are bold (lighter from `###` down), quotes are muted, and
+struck text is dimmed. A link's text is colored and its address dimmed;
+an image's text is muted. Inline code and fenced code sit on a gray
+background, with a fence's language named. A task's `[x]` is green.
+A table's pipes and its `| --- |` row are dimmed. Footnotes are
+colored. Attribute blocks, such as `{.stretch-wide}` after an image or a
+heading, are a gray chip with their class and id names in full
+strength. A component's name is colored; the component the cursor is in
+is boxed, and a container's text is tinted. Only valid Markdown lights
+up, so something that stays plain won't be read the way you meant.
 
 Each entry's editor has its own address, from its content type and slug:
 `/admin/content/post/hello-world` edits the post `hello-world`, and a
@@ -172,9 +184,10 @@ files claiming the same slug) is edited at its file's path instead, such
 as `/admin/entries/_posts/2026-09-29.hello.md`, which works for every
 entry.
 
-The header's left side has a link back to the type's list, then three
-ways to put something in: **+** for a component, the picture for media,
-and the shapes for an icon. Its right side says whether your changes are
+The header's left side has a link back to the type's list, then four
+ways to put something in: **+** for a block component, the picture for
+media, the shapes for an icon, and the **A** menu for a component inside
+a sentence. Its right side says whether your changes are
 saved and the entry's status, then has the settings button, a **⋯** menu
 (**Save draft** or **Switch to draft**, **View**, **Focus mode**, and
 **Move to trash**), and the main button, which depends on the entry:
@@ -185,18 +198,20 @@ saved and the entry's status, then has the settings button, a **⋯** menu
 | Scheduled | **Update**, **Publish** once its date is past, or **Switch to draft** |
 | Published | **Update** (or **Schedule**, with a future date), or **Switch to draft** |
 
-The settings (⌘/ or Ctrl+/) open beside the text and push it aside.
-They have two tabs:
+The settings (⌘/ or Ctrl+/) open beside the text and push it aside;
+close them with their **×** or Escape. They have two tabs:
 
 - **Document:** the publish date, a preview link (or **View** once it's
   live); the content type's other fields, such as the subtitle, summary,
   and categories (fields that take several values say how to separate
   them, and a few kinds, such as `collection`, show their value
-  read-only); the components the body uses (choose one to go to it);
-  front matter the type doesn't declare, kept as it is; and what content
-  health finds in the file, as last saved (notices only if you ask).
-- **Component:** the options of the component the cursor is in. See
-  [Component options](#component-options).
+  read-only); front matter the type doesn't declare, kept as it is; and
+  what content health finds in the file, as last saved (notices only if
+  you ask).
+- **Components:** named for the component the cursor is in, with the
+  number in the entry beside it. It shows that component's options (see
+  [Component options](#component-options)), then every component the
+  body uses; choose one to go to it.
 
 The body is plain Markdown, shown with headings, code, links, and
 [components](components.md) picked out; the component the cursor is in
@@ -220,10 +235,14 @@ and marked under the field; a draft saves without them.
 
 ### Inserting components
 
-**+** opens the components beside the text, on the left: search by name
-or what it does, or pick a category, then choose a tile (or use the arrow
-keys and Enter). The panel stays open, so you can add several; close it
+**+** opens the block components beside the text, on the left, grouped
+by category: search by name or what it does, or scroll, then choose one
+(or use the arrow keys and Enter). The strip at the bottom describes the
+highlighted one. The panel stays open, so you can add several; close it
 with its **×** or Escape.
+
+The **A** menu lists the inline components, the ones that go inside a
+sentence (a keyboard key, an abbreviation), each with what it does.
 
 Typing `/` at the start of an empty line opens the same panel: keep
 typing to narrow it (`/call` for a callout), then press Enter or Tab.
@@ -235,11 +254,11 @@ inline component (a keyboard key, an abbreviation, an icon) goes at the
 cursor, inside the sentence; the rest go on lines of their own. Select
 some text first to make it the component's text. Options the component
 needs are written empty for you to fill in, such as
-`::blush/figure[]{src=""}`. Undo takes an insertion back.
+`::blush/video{src=""}`. Undo takes an insertion back.
 
 The list has every registered component with a class that your active
 theme can draw: the built-in ones, your theme's, your site's, and your
-extensions' (marked with where they come from). See
+extensions' (grouped by where they come from). See
 [Registering a component](components.md#registering-a-component) to
 add yours.
 
@@ -248,25 +267,36 @@ add yours.
 The picture button opens your media: the files beside the entry (when
 it's a [page bundle](content.md), such as `trip/index.md`), then the
 library in `user/media`, newest first. Search by file name, or show only
-images, video, or audio. Choose a file, then **Insert** (or double-click
-it). An image goes in as a figure, a video as a video, a sound as audio,
-and anything else as a download, and its options open in the settings.
+images, video, audio, or other files. Choose a file (it gets a tick),
+then **Insert** (or double-click it). An image goes in as plain
+Markdown on a line of its own, `![](/media/photo.jpg)`, with the cursor
+where its description goes (selected text becomes the description). On
+the site it's a figure; add a quoted title after the address,
+`![A lake](/media/lake.jpg "The lake at dawn")`, to caption it. A video
+goes in as a video, a sound as audio, and anything else as a download,
+and their options open in the settings.
 Uploading comes later: put files in `user/media` or beside the entry for
 now.
 
 The same picker is **Choose** beside every media field and component
-option, such as a figure's **Image**.
+option, such as a video's **Poster image**.
 
-The shapes button opens your theme's [icons](components.md#icons): search by
-name or what it shows (`home` finds the house), then choose one. It goes
-in at the cursor as `:blush/icon[]{name=house}`; select some text first
-to give it a label for screen readers.
+The shapes button opens your theme's [icons](components.md#icons),
+grouped: the built-in icons by category (Status, Interface, Arrows, and
+so on), then your theme's, your site's, and your extensions'. Pick a
+group on the left, or search by name or what it shows (`home` finds the
+house), then choose one and **Insert** (or double-click it; after a
+search, Enter inserts the first match). It goes in at the cursor as
+`:blush/icon[]{name=house}`; select some text first to give it a label
+for screen readers.
 
 ### Component options
 
 With the cursor in a component, the footer names it ("Callout options");
 choose that, or the **Component** tab in the settings, to see its
-options as a form. Changing one rewrites just that option in the
+options as a form. A component with [variants](components.md#variants)
+lists them first, under **Variant**, with what each one looks like;
+**Default** writes nothing. Changing one rewrites just that option in the
 Markdown: the rest of what you wrote stays as it is. Setting an option
 back to its default removes it, so the default applies. A component
 that takes a line of text has it here as **Text**. Attributes that
@@ -302,7 +332,7 @@ Your changes aren't lost:
 ## Media
 
 **Content → Media** shows the files in `user/media`, newest first:
-search by name, or show only images, video, or audio. Choose one for a
+search by name, or show only images, video, audio, or other files. Choose one for a
 preview, its details, and what to write to use it, with **Copy**
 buttons. Uploading comes later: put files in `user/media`, or beside an
 entry in its own folder.
@@ -405,7 +435,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `PATCH preferences` | Change the account's own preferences, such as `{"colorScheme": "dark"}` (`system`, `light`, or `dark`); answers `{"preferences"}` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
-| `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "svg"}]}` |
+| `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |
 | `GET media` | The media files an entry can use (see below) |
 | `GET media/{path}` | One file in the library, by its path under `user/media` |
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
@@ -480,12 +510,14 @@ has:
 | `category` | A built-in component's group (`text`, `media`, `layout`, `navigation`, `data`), else `null` |
 | `source` | Where the rest come from: `{"kind": "theme", "site", or "extension", "label"}`, else `null` |
 | `props` | Its props as schema fields, each with its `label` and, for a choice, `choices` labels by value |
+| `variants` | Its variants under the active theme, not including Default: `{"name", "label", "description", "source"}`, where `source` is `null` when the component's own namespace declared it, else like the component's |
 
 ### Listing media
 
 `GET media` lists the library (`user/media`), newest first, a page at a
 time, for accounts that can edit content. Narrow it with `search` (text
-the path must contain), `kind` (`image`, `video`, `audio`, or `any`),
+the path must contain), `kind` (`image`, `video`, `audio`, `file` for
+anything else, or `any`),
 `page`, and `per` (48 by default, at most 100). Add `entry` (an id) to
 get `beside` too: the media files next to that entry when it's a page
 bundle, else `null`. The answer has `total`, `page`, `pages`, `per`,

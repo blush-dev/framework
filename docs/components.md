@@ -30,11 +30,11 @@ different places never clash:
 Three forms, depending on what the component wraps:
 
 ```markdown
-:::callout[Heads up]{tone=warning}
+:::callout[Heads up]{variant=warning}
 Back up your site before updating.
 :::
 
-::figure[A caption]{src="/media/photo.jpg" alt="Describe the photo"}
+::embed[Our launch]{url="https://youtu.be/…" title="Launch video"}
 
 Read the :app/badge[new]{tone=tip} release notes.
 ```
@@ -74,9 +74,9 @@ These work in every theme, because the default theme provides them:
 
 | Component | Example                                                | Props                                                                                                                                                                                                                                                                  |
 |-----------|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `callout` | `:::callout[Title]{tone=info}` … `:::`                 | `tone`: `note` (default), `info`, `tip`, `warning`, or `danger`. The label is the title.                                                                                                                                                                               |
+| `callout` | `:::callout[Title]{variant=info}` … `:::`              | [Variants](#variants): `info`, `tip`, `warning`, or `danger`; without one, it's a plain note. The label is the title.                                                                                                                                                  |
 | `gallery` | `:::gallery{columns=3}` … `:::`                        | `columns`: 1 to 6 (default 3). `layout`: `flex` (default; rows that grow to fill the width) or `grid` (even columns). Wrap images in it.                                                                                                                               |
-| `figure`  | `::figure[Caption]{src="/media/a.jpg" alt="…"}`        | `src`, `alt`. The label is the caption.                                                                                                                                                                                                                                |
+| `figure`  | `:::figure[Caption]` … `:::`                           | Sets anything apart with a caption (the label): an image, a table, a code block, a quote. An image on its own line inside it is just the image. For a lone image, you don't need it: an image on its own line is already a figure, with its quoted title as the caption. |
 | `embed`   | `::embed[Caption]{url="https://youtu.be/…" title="…"}` | `url`, `title`. YouTube and Vimeo (and [providers you add](configuration.md#embeds)) play in a frame at the video's real shape, named by its own title; YouTube and Vimeo in privacy-friendly mode, from the URL's start time (`?t=90`). Any other URL becomes a link. |
 
 Themes can restyle these or add their own.
@@ -180,13 +180,14 @@ headings in range.
 | Prop           | What it does                                                                              |
 |----------------|-------------------------------------------------------------------------------------------|
 | `url`          | Where it goes (required)                                                                  |
-| `variant`      | `primary` (the default) or `secondary`                                                    |
 | `icon`         | Any [icon](#icons), shown before the text                                                 |
 | `iconPosition` | `start` (the default) or `end`, to show the icon after the text                           |
 | `iconOnly`     | Shows only the icon; the label still names the button for screen readers and as a tooltip |
 
 The label is the button's text, and it's required, even for an
-icon-only button. A `url` starting with `/` becomes a full URL, as
+icon-only button. Without a [variant](#variants) it's the main, filled
+button; `variant=secondary` is an outlined one, for an action beside the
+main one. A `url` starting with `/` becomes a full URL, as
 Markdown's links do. To put buttons side by side, list them in a
 [row](#layout), one per line:
 
@@ -301,7 +302,7 @@ time zone, such as "October 6, 2026".
 ## Using components in templates
 
 ```php
-<?= $template->component('callout', tone: 'tip')->content('<p>Saved!</p>') ?>
+<?= $template->component('callout', variant: 'tip')->content('<p>Saved!</p>') ?>
 ```
 
 Props are named arguments. `->content()` fills the component's main content (in
@@ -318,9 +319,104 @@ Named slots are for templates only; Markdown fills just the main
 content. The component's template reads them back as
 `$component->content()` and `$component->slots->footer`.
 
-When the content is text, such as a figure's caption or a button's
-text, you can pass it as `label` instead, and it's escaped for you:
-`$template->component('figure', src: '/media/lake.jpg', label: 'Lake & hills')`.
+When the content is text, such as a button's text, you can pass it as
+`label` instead, and it's escaped for you:
+`$template->component('button', url: '/start', label: 'Start & go')`.
+
+## Variants
+
+A variant is a named style of a component: `variant=warning` on a
+callout, `variant=secondary` on a button. The component decides what the
+thing is; the variant decides how it looks.
+
+```markdown
+:::callout[Heads up]{variant=warning}
+Back up your site before updating.
+:::
+```
+
+- **Every component has Default,** which is what you get without
+  `variant` (or with `variant=default`). It's always there, and no theme
+  or extension can rename or replace it, so content that has never been
+  given a variant keeps following the theme.
+- **A variant the component doesn't have renders as Default,** such as
+  one from a theme that isn't active. `content:lint` warns about these.
+- **Variants belong to whoever declares them.** The built-in components
+  come with a few; a theme, your site, or an extension can add more to
+  any component. A theme's apply only while it (or a child of it) is
+  active.
+
+The editor in the admin shows a component's variants in a list at the
+top of its options, each with its description.
+
+### Styling a variant
+
+A variant adds a class to the component's root element:
+`component-{name}--{variant}`, such as `component-callout--warning`. In a
+template, `$component->variant` is the variant's name (`'default'` for
+none), and `$component->isVariant('warning')` checks it.
+
+When a variant needs more than a class, give it its own template:
+`views/components/callout-bordered.php` draws a callout with
+`variant=bordered`, and the component's own template draws the rest.
+(For a theme's own component, that's `{slug}-{name}-{variant}.php`.)
+Variants are meant mostly for looks, but nothing stops one from doing
+more.
+
+### Adding variants
+
+A component class lists its own in its `VARIANTS` constant:
+
+```php
+final class Card extends Component
+{
+	public const array VARIANTS = ['wide', 'plain'];
+}
+```
+
+A template-only component lists them when it's registered:
+`$components->register('app/badge', variants: ['outline'])`.
+
+A theme adds variants to any component in its `theme.json`, by
+component:
+
+```json
+{
+	"name": "Notebook",
+	"variants": {
+		"callout": ["bordered", "compact"],
+		"notebook/card": ["wide"]
+	}
+}
+```
+
+Your site, an extension, or a theme's provider can add (or remove)
+variants from PHP, by listening for `ComponentVariantsCollecting`. It
+fires once per component, the first time its variants are needed, so the
+order providers boot in doesn't matter. The second argument is the
+namespace whose catalog has the variant's text:
+
+```php
+use Blush\Component\Events\ComponentVariantsCollecting;
+use Blush\Event\Listener\ListenerRegistry;
+
+$this->container->get(ListenerRegistry::class)->listen(
+	ComponentVariantsCollecting::class,
+	function (ComponentVariantsCollecting $event): void {
+		if ($event->is('callout')) {
+			$event->add('bordered', 'app');
+		}
+	}
+);
+```
+
+A variant's name is lowercase letters, digits, and hyphens, starting with
+a letter, and it can't be `default`. To add a class other than
+`--{variant}`, give it a modifier: `{"name": "compact", "modifier":
+"tight"}` in `theme.json`, or `$event->add('compact', 'app', 'tight')`.
+
+Each variant's label and description are translatable, in the catalog
+of whoever added it (see [Labels and translations](#labels-and-translations)).
 
 ## Making a component
 
@@ -562,9 +658,9 @@ the built-in ones, and every other name needs its namespace.
 
 ### Labels and translations
 
-A component's label, description, and prop names are translatable text,
-kept in the translation catalog of its namespace, under
-`components.{name}`:
+A component's label, description, prop names, and variants are
+translatable text, kept in the translation catalog of its namespace,
+under `components.{name}`:
 
 ```json
 {
@@ -576,6 +672,12 @@ kept in the translation catalog of its namespace, under
 				"tone": {
 					"label": "Tone",
 					"choices": { "info": "Info", "new": "New", "tip": "Tip" }
+				}
+			},
+			"variants": {
+				"outline": {
+					"label": "Outline",
+					"description": "An outline instead of a fill."
 				}
 			}
 		}
@@ -589,9 +691,13 @@ kept in the translation catalog of its namespace, under
 | `app`            | Your site's `resources/lang/en.json`             |
 | A vendor         | Each of that vendor's extensions' `lang/en.json` |
 
+A variant someone else adds to your component, such as a theme's
+`bordered` callout, has its text in their catalog, under the same
+`components.{name}.variants.{variant}` key.
+
 Without a label, one is made from the name (`recent-posts` becomes
 "Recent posts"). `theme:check --strict` notes a theme's registered
-components that have no label.
+components, and the variants in its `theme.json`, that have no label.
 
 ## Where components live
 

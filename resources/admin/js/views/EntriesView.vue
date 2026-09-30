@@ -2,8 +2,9 @@
 /**
  * The entries of one content type the account may edit (D-230,
  * `/content/{type}`, D-234): status tabs with counts, a search, and
- * pages. The filters live in the URL, so the back button and a shared
- * link restore them. Titles open the editor; the type's own words name
+ * pages, and a toggle for compact rows (roomy by default, D-265). The
+ * filters live in the URL, so the back button and a shared link restore
+ * them. Titles open the editor; the type's own words name
  * the screen and its "New" button. There's no list of every type
  * together: each type has its own.
  *
@@ -17,6 +18,7 @@ import { RouterLink, useRoute, useRouter, type LocationQueryRaw } from 'vue-rout
 import { ApiError, entryPath, request, type ContentTypeSummary, type EntryDetail, type EntryList, type EntryStatus, type EntrySummary, type TrashedSummary } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import EntryTable from '../components/EntryTable.vue';
+import { compact } from '../density';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import TrashTable from '../components/TrashTable.vue';
 import { humanize, inSentence } from '../fields';
@@ -368,6 +370,14 @@ const emptyText = computed(() => {
 			<label class="visually-hidden" for="entries-search">Search {{ inSentence(heading) }}</label>
 			<input id="entries-search" v-model="query" class="input" type="search" :placeholder="`Search ${inSentence(heading)}`" autocomplete="off">
 			<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
+			<div v-if="!inTrash" class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
+				<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
+					<AdminIcon name="rows-3" /><span class="visually-hidden">Roomy</span>
+				</button>
+				<button type="button" :aria-pressed="compact" title="Compact rows" @click="compact = true">
+					<AdminIcon name="rows-4" /><span class="visually-hidden">Compact</span>
+				</button>
+			</div>
 		</div>
 
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
@@ -377,7 +387,7 @@ const emptyText = computed(() => {
 			<RouterLink v-if="done.entry" :to="{ name: 'entry-file', params: { id: done.entry.split('/') } }">Open it</RouterLink>
 		</p>
 
-		<section v-if="!error || ready" class="panel" aria-labelledby="entries-heading" :aria-busy="loading || busy !== null">
+		<section v-if="!error || ready" class="panel" :class="{ 'panel--compact': compact }" aria-labelledby="entries-heading" :aria-busy="loading || busy !== null">
 			<header class="panel__header">
 				<h2 id="entries-heading">{{ tabs.find((tab) => tab.status === status)?.label }}</h2>
 				<p class="panel__hint" aria-live="polite">
@@ -427,7 +437,7 @@ const emptyText = computed(() => {
 <style scoped>
 .tabs {
 	display: flex;
-	gap: 4px;
+	gap: var(--s-1);
 	margin-top: -8px;
 	overflow-x: auto;
 	border-bottom: 1px solid var(--border);
@@ -436,8 +446,8 @@ const emptyText = computed(() => {
 .tabs__tab {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	padding: 8px 10px;
+	gap: 7px;
+	padding: 12px 14px;
 	border-bottom: 2px solid transparent;
 	margin-bottom: -1px;
 	color: var(--fg-2);
@@ -473,8 +483,8 @@ const emptyText = computed(() => {
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
-	gap: 12px;
-	padding: 10px var(--pad-x);
+	gap: var(--s-3);
+	padding: var(--s-4) var(--pad-x);
 	border-top: 1px solid var(--border);
 }
 

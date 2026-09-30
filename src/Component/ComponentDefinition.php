@@ -26,28 +26,47 @@ use Blush\Content\Schema\Fields\TextField;
 
 /**
  * A registered component (D-172): its name, its class (or `null` for a
- * template-only one), what it wraps, and its props as content schema
- * fields. Its text (label, description, prop labels) isn't here; it comes
+ * template-only one), what it wraps, its props as content schema fields,
+ * and the variants it declares (D-266). Its text (label, description, prop labels) isn't here; it comes
  * from the translation catalogs (see `Views::componentText()`).
  *
  * A class component's props and content default to what its class says:
  * the constructor's scalar and backed-enum parameters (a public or
  * unpromoted parameter; services and private state are left out), and
  * its `CONTENT` constant. A string parameter marked `#[MediaProp]` is a
- * `media` field.
+ * `media` field. Its variants default to its `VARIANTS` constant, with
+ * the component's namespace as their registrant.
  */
 final readonly class ComponentDefinition
 {
 	/**
 	 * @param ?class-string<Component> $class
-	 * @param ?list<Field>             $props `null` to read them from the class.
+	 * @param ?list<Field>             $props    `null` to read them from the class.
+	 * @param ?list<Variant|string>    $variants `null` to read them from the class.
 	 */
 	public function __construct(
 		public ComponentName $name,
 		public ?string $class = null,
 		private ?ComponentContent $content = null,
-		private ?array $props = null
+		private ?array $props = null,
+		private ?array $variants = null
 	) {}
+
+	/**
+	 * Returns the variants it declares, Default not included. A name given
+	 * as a string has the component's namespace as its registrant.
+	 *
+	 * @return list<Variant>
+	 */
+	public function variants(): array
+	{
+		$declared = $this->variants ?? ($this->class === null ? [] : $this->class::VARIANTS);
+
+		return array_map(
+			fn (Variant|string $variant): Variant => $variant instanceof Variant ? $variant : new Variant($variant, $this->name->namespace),
+			$declared
+		);
+	}
 
 	/**
 	 * Returns what the component wraps.

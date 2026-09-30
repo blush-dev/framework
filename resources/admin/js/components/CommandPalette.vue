@@ -272,8 +272,8 @@ const commandCount = computed(() => commands.value.length);
 .palette__input {
 	display: flex;
 	align-items: center;
-	gap: 9px;
-	padding: 12px 14px;
+	gap: 11px;
+	padding: 18px var(--s-5);
 	border-bottom: 1px solid var(--border);
 	color: var(--fg-3);
 }
@@ -290,12 +290,12 @@ const commandCount = computed(() => commands.value.length);
 
 .palette__list {
 	max-height: min(46vh, 360px);
-	padding: 6px;
+	padding: var(--s-2);
 	overflow-y: auto;
 }
 
 .palette__section {
-	padding: 9px 8px 4px;
+	padding: var(--s-3) 10px var(--s-1);
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 	font-weight: 600;
@@ -306,8 +306,8 @@ const commandCount = computed(() => commands.value.length);
 .palette__item {
 	display: flex;
 	align-items: center;
-	gap: 9px;
-	padding: 7px 8px;
+	gap: 11px;
+	padding: 10px;
 	border-radius: var(--r-1);
 	color: var(--fg-2);
 	cursor: pointer;
@@ -355,8 +355,8 @@ const commandCount = computed(() => commands.value.length);
 
 .palette__foot {
 	display: flex;
-	gap: 14px;
-	padding: 8px 14px;
+	gap: var(--s-4);
+	padding: 12px var(--s-5);
 	border-top: 1px solid var(--border);
 	background: var(--bg);
 	color: var(--fg-3);

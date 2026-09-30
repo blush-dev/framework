@@ -75,13 +75,10 @@ Move each item to `decisions.md` once it's answered.
 - **Component namespace clashes** (D-171): a theme's namespace is its
   slug and an extension's is its vendor, so the two could collide.
   Decide whether Blush checks or reserves namespaces.
-- **Where themes declare component variants** (D-191; deferred by the
-  author until after the admin's groundwork, D-215): the rest of the
-  variant plan is set (one per use, `component-{name}--{variant}`, a
-  registry with registrants and translatable labels, fallback to the
-  default). Working assumption: themes list them in `theme.json`
-  (`"variants": {"blush/button": ["ghost"]}`), and extensions and the
-  site register them in PHP; the author isn't sure yet.
+- **Requiring components to be registered** (D-266's direction): how
+  a template-only component registers without PHP (a JSON file beside
+  the template, with its text in the catalog?), and what happens to
+  today's components found only by their file name.
 - **Array and map props in directives** (D-112, D-205): the
   `key=value` attribute syntax stays, not JSON. Today every attribute is
   a string, cast to the prop's scalar or enum type. When a component needs an `array` prop (a

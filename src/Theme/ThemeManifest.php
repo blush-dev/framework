@@ -24,8 +24,9 @@ namespace Blush\Theme;
  * before the site's, D-054) and, for a local theme, the `autoload.psr-4`
  * map Blush registers for it. Its `settings` are field definitions
  * (D-022), and its `menus` and `regions` declare the locations the site
- * fills (D-199, D-201), each a label or an object. Keys this version
- * doesn't read (image sizes) are kept in `$data`.
+ * fills (D-199, D-201), each a label or an object. Its `variants` list
+ * component variants by component (D-266). Keys this version doesn't
+ * read (image sizes) are kept in `$data`.
  */
 final readonly class ThemeManifest
 {
@@ -96,6 +97,12 @@ final readonly class ThemeManifest
 			}
 		}
 
+		$variants = $data['variants'] ?? [];
+
+		if (! is_array($variants) || ($variants !== [] && array_is_list($variants)) || ! array_all($variants, static fn (mixed $list): bool => is_array($list) && array_is_list($list))) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map component names to lists of variants.', $slug));
+		}
+
 		/** @var array<string, mixed> $data */
 		return new self(
 			slug: $slug,
@@ -146,6 +153,19 @@ final readonly class ThemeManifest
 	{
 		/** @var array<string, string|array<array-key, mixed>> Checked by `fromArray()`. */
 		return $this->data['regions'] ?? [];
+	}
+
+	/**
+	 * Returns the manifest's component variants, by component name: each
+	 * a variant name or a `{"name", "modifier"}` object (see
+	 * `Component\ComponentVariants`).
+	 *
+	 * @return array<string, list<mixed>>
+	 */
+	public function variants(): array
+	{
+		/** @var array<string, list<mixed>> Checked by `fromArray()`. */
+		return $this->data['variants'] ?? [];
 	}
 
 	/**

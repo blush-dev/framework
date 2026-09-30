@@ -19,8 +19,12 @@ body {
 	color: var(--fg);
 	font-family: var(--font-ui);
 	font-size: var(--base);
-	line-height: 1.45;
+	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
+
+	/* Fira Code's ligatures are contextual alternates: off, so a slug
+	   reads as the characters it contains. */
+	font-variant-ligatures: no-contextual;
 }
 
 #app {
@@ -44,6 +48,12 @@ h1 {
 
 h1:focus {
 	outline: none;
+}
+
+@media (width <= 640px) {
+	h1 {
+		font-size: calc(var(--h1) - 4px);
+	}
 }
 
 h2 {

@@ -66,5 +66,5 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `menu:list` | List your theme's menu locations, the [menu](menus.md) each shows, and any items that can't be shown. `--theme=` lists another theme's. |
 | `menu:show <location>` | Show a location's menu as a page sees it, with every URL. `--locale=fr` shows it in another language. |
 | `icon:list` | List the icons your theme can use: each one's full name, its label, and the file that draws it. `--theme=` lists another theme's. |
-| `component:list` | List the components your theme can use: each one's full name, its label, whether it's registered, its class (if it has one), and the file that draws it. Also points out files in `components/` that aren't named for a component. `--theme=` lists another theme's. |
+| `component:list` | List the components your theme can use: each one's full name, its label, whether it's registered, its class (if it has one), its [variants](components.md#variants), and the file that draws it. Also points out files in `components/` that aren't named for a component. `--theme=` lists another theme's. |
 | `theme:publish` | Copy the active theme's files (and its parents') into `public/`. `--all` copies every theme's. |

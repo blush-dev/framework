@@ -139,7 +139,9 @@ final class MediaComponentsTest extends TestCase
 
 			::file{src=https://example.com/report.pdf}
 
-			::figure[The poster]{src=poster.png alt="A poster"}
+			:::figure[The poster]
+			![A poster](poster.png "Not a second caption")
+			:::
 
 			::video{src=missing.mp4}
 			MD);
@@ -162,7 +164,7 @@ final class MediaComponentsTest extends TestCase
 		$this->assertStringContainsString('<span class="component-file__details">(VTT, 7 B)</span>', $html);
 		$this->assertStringContainsString('<a class="component-file__link" href="https://example.com/report.pdf" download>report.pdf</a>', $html);
 		$this->assertStringContainsString('<span class="component-file__details">(PDF)</span>', $html);
-		$this->assertStringContainsString('<img src="http://localhost/media/_content/trip/poster.png" alt="A poster" loading="lazy">', $html);
+		$this->assertMatchesRegularExpression('#<figure class="component-figure">\s*<img width="32" height="18" src="http://localhost/media/_content/trip/poster.png" alt="A poster" title="Not a second caption" />\s*<figcaption>The poster</figcaption>#', $html, 'The figure is the container; its image stands alone.');
 
 		// A file that isn't there stays as written.
 		$this->assertStringContainsString('<video class="component-video__player" src="missing.mp4"', $html);

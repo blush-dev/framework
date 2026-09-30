@@ -67,8 +67,9 @@ as `var(--token)`, are not negotiable without a deliberate decision.
 
 Each is recorded in `.claude/docs/decisions.md`.
 
-- **Type tokens added** (D-231): `--text-sm` (12px), `--text-xs` (11px) and
-  `--h2` (14px), so no type size is a literal.
+- **Type tokens added** (D-231): `--text-sm` (12px), `--text-xs` (11px),
+  `--text-2xs` (10px), and `--h2` (15px since D-265), so no type size is a
+  literal.
 - **Shared pieces are global classes** in `admin.css` (buttons, panels, pills,
   tables, stat tiles, notices), not yet `Base*` components; components keep
   their own layout in scoped styles (D-231). The directory layout follows the
@@ -137,10 +138,10 @@ Each is recorded in `.claude/docs/decisions.md`.
   switching the color scheme saves it to the account.
 - **The Markdown source editor** (D-241): spelling on, and no horizontal
   padding on inline code (it shifted the text).
-- **The component inserter** (D-243, D-247): core components are grouped
-  by category (Text, Media, Layout, Navigation, Data); a theme's, the
-  site's, or an extension's by where they come from, and a theme's or
-  extension's tiles say so. Components are written by full name
+- **The component inserter** (D-243, D-247, D-265): block components
+  only; core ones are grouped by category (Text, Media, Layout,
+  Navigation, Data), and a theme's, the site's, or an extension's by where
+  they come from, which the strip at the foot names. Components are written by full name
   (`blush/callout`, D-171). An inline component goes at the caret; a leaf
   or container on lines of its own, with a blank line either side;
   selected text becomes its label or body. Required props are written
@@ -148,9 +149,10 @@ Each is recorded in `.claude/docs/decisions.md`.
   through the grid only while it's empty. Tab inserts, as Enter does,
   while typing after a slash, and Escape leaves the slash as text. The
   panel opened by a slash closes once a component replaces it.
-- **The media picker** (D-246, D-247): the library comes from `user/media`
-  newest first, with "Beside this entry" for a page bundle; there's no
-  upload yet. It's also **Choose** beside every media field and option.
+- **The media picker** (D-246, D-247, D-265): the library comes from
+  `user/media` newest first, a page at a time with **Show more**, with
+  "Beside this entry" for a page bundle; there's no upload yet. It's also
+  **Choose** beside every media field and option.
 - **The writing surface** (D-245): no `Changes` pill and the save state
   reads "Unsaved changes" or "Saved 3:46 PM" (no autosave); nothing sits
   under the title (D-254); the ⋯ menu has Save draft or
@@ -172,11 +174,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   applied to the text directly, so they aren't in the field's own undo.
 - **Vocabulary follows Blush** where it differs: extensions, not addons, and
   whatever taxonomies a site defines (no built-in Topic).
-- **Markdown reads as it looks** (D-253): emphasis italic, strong text
-  and headings semibold, quotes muted and italic, list markers in the
-  accent, and the marks (`*`, `#`, `>`, a link's address) in `--fg-3`.
-  Headings stay the body's size: the highlighted copy has to line up
-  with the text area, so nothing may change a character's width.
+- **Markdown reads as it looks** (D-253, then §8's Marking the source in
+  D-265): the source is marked as that section's table says. Emphasis is
+  Fira Code's slanted face, not a true italic.
 - **Fira Code is the mono** (D-254, D-255), not IBM Plex Mono: 400, 500,
   and a real 600 (so bold keeps its width), and a slanted italic (it has
   none). The writing column is 640px (`--measure`), with nothing between
@@ -199,6 +199,34 @@ Each is recorded in `.claude/docs/decisions.md`.
   tables so far: not the editor's side
   of the pattern, the type screen's switch, or a new type being born
   with one; the editor's menu still offers Move to trash.
+- **The design refresh of D-265.** From the updated direction: the space
+  scale (`--s-1` to `--s-7`), `--ctl` and `--ctl-sm`, flat surfaces
+  (`--shadow-1: none`), larger radii, and the looser density tokens, in
+  `resources/admin/css/tokens.css`, plus `--drawer` (372px) and
+  `--inserter` (376px). The writing column stays 640px (`--measure`,
+  D-254), not 72ch. Icons are `AdminIcon` with Lucide's paths in
+  `icons.ts` (inline SVGs, not a sprite of `<symbol>`s); `.icon` sets the
+  1.6 stroke.
+- **The compact toggle** (D-265): on each type's list, kept in this
+  browser (`density.ts`), not an account preference yet; compact rows drop
+  the address line.
+- **Four inserters** (D-265): the inline menu lists the inline components
+  except the icon, which has its own picker. The icon picker's groups are
+  Blush's own fourteen categories for the core icons
+  (`resources/icons/blush/categories.json`, `GET icons`' `category`),
+  then a theme's, the site's, or an extension's icons by where they come
+  from. A search selects its best match, so a name and Enter inserts it;
+  otherwise nothing is chosen until clicked. The media picker's kinds are
+  All, Images, Video, Audio, and Files (`GET media`'s `kind=file`).
+- **The Variant select** (D-266) is a native select with Default first,
+  then the component's variants under the active theme (a theme's or an
+  extension's variant of another's component names where it comes from),
+  with the chosen one's description under it. A variant the component
+  doesn't have here is kept, shown as "not available here". Variants
+  aren't previewed.
+- **The Component tab** (D-265): named "Components", with the count, when
+  the caret isn't in one; the list of components is under the options
+  either way, with the current one marked.
 
 ---
 
@@ -234,17 +262,24 @@ release" — derive the button label from the type, never hardcode "New entry".
 ## 2. Principles
 
 1. **The table is the product.** Most admin time is spent scanning a list.
-   Legibility and density beat decoration everywhere they conflict.
-2. **State is visible without reading numbers.** Anything that needs attention
+   Legibility beats decoration everywhere they conflict — but legibility is not
+   the same as density. A list that fits more rows on screen is not easier to
+   read; a row with room around it is. Spend the space, and give anyone who
+   wants the rows back a compact toggle rather than shipping compact by default.
+2. **Space is the cheapest material available.** When a screen feels wrong, the
+   first thing to try is more room — not another border, tint, shadow or rule.
+   Most "cramped" is a padding value, and most "busy" is a separator that space
+   would have made unnecessary.
+3. **State is visible without reading numbers.** Anything that needs attention
    carries a shape — a pill, a dot, an outline — not just a different figure.
-3. **One component per job, varied by declaration.** Types differ in data, not
+4. **One component per job, varied by declaration.** Types differ in data, not
    in code paths. The entries list is one component for every content type;
    what changes is what the type declares.
-4. **Chrome recedes.** One accent hue, achromatic surroundings. Color spent on
+5. **Chrome recedes.** One accent hue, achromatic surroundings. Color spent on
    status and selection, not on making things look designed.
-5. **Nothing invented.** No metric appears unless the API can produce it. A
+6. **Nothing invented.** No metric appears unless the API can produce it. A
    panel that summarizes derived state says so.
-6. **Destructive and irreversible actions look different from safe ones** and
+7. **Destructive and irreversible actions look different from safe ones** and
    never sit adjacent to a common action.
 
 ## 3. Theming contract
@@ -308,14 +343,43 @@ serif for page headings but not for forty table rows.
 
 **Mono is for machine data, and only that**: slugs, paths, timestamps, IDs,
 counts in badges, file sizes, keyboard shortcuts. Never for prose or labels.
+The mono face is **Fira Code** — it is also the editor's writing face, where its
+wider figures and clearly distinguished `l 1 I` / `0 O` matter most. Its
+ligatures are a stylistic set, not a default; leave them off in the admin so a
+slug reads as the characters it contains.
 
-Scale, from `tokens.css`: `--base` 13px, `--h1` 22px, entry titles
+Scale, from `tokens.css`: `--base` 13px, `--h1` 26px, entry titles
 `--title-size`. Everything else is a fixed step off those — 11px for uppercase
 micro-labels (with `.04em`–`.07em` tracking), 11.5–12.5px for secondary text.
 Do not introduce new sizes without adding a token.
 
 Give headings `text-wrap: balance`. Give uppercase labels letter-spacing.
 Anywhere digits stack in a column, `font-variant-numeric: tabular-nums`.
+
+### Icons
+
+**One set: [Lucide](https://lucide.dev).** Not "mostly Lucide" — a single
+drawn-by-one-hand set is most of what makes an interface look assembled rather
+than collected. Every glyph in the admin comes from it, including ones an addon
+contributes.
+
+- Ship them as an inline SVG sprite of `<symbol viewBox="0 0 24 24">` and use
+  them with `<use href="#i-name">`. One request, no font, no runtime library.
+- Symbols carry **geometry only** — no stroke, fill or size attributes. One CSS
+  rule (`.ic`) sets `stroke: currentColor`, `fill: none`, `stroke-width: 1.6`
+  and round caps and joins, so an icon inherits the color of whatever it sits
+  in and a theme can change the weight in one place.
+- Keep Lucide's own geometry. Redrawing a path to "fix" it at 16px breaks the
+  optical consistency that made the set worth choosing.
+- Two sizes: **16px** inline with text and in controls, **18–22px** where an
+  icon stands alone. Below 16px a 24-grid icon turns to mush; scale the box, not
+  the stroke.
+- Name symbols for the **thing**, not the picture: `i-page`, `i-trash`,
+  `i-schema`. When two ideas want the same glyph, one of them is using the wrong
+  metaphor.
+- An icon alone is a label only where the same glyph appears in the same place
+  every time — a row's overflow menu, a table's sort arrow. Everywhere else it
+  needs a word beside it.
 
 ## 5. Color use
 
@@ -331,13 +395,32 @@ Anywhere digits stack in a column, `font-variant-numeric: tabular-nums`.
 - **Neutrals carry the interface.** Surfaces step `--bg` → `--surface` →
   `--surface-2` → `--surface-3`; ink steps `--fg` → `--fg-2` → `--fg-3`.
 
+### Elevation
+
+**Flat by default.** `--shadow-1` is `none`. Panels, tables, cards, buttons,
+selects and stat tiles separate themselves with a border and a surface step, not
+with a drop shadow. A page of forty softly-shadowed rectangles reads as forty
+things floating at slightly different heights, which is both busier and less
+legible than forty things sitting flat with clear edges.
+
+Two levels of shadow remain, and both mean "this is genuinely above the page":
+
+- `--shadow-2` — menus, popovers, toasts. Small and short: they sit a couple of
+  pixels above, not a couple of centimeters.
+- `--shadow-3` — modals and off-canvas drawers, which also have a scrim under
+  them doing most of the separating.
+
+If something needs to look distinct and is not in that list, the answer is a
+border, a surface step or space — never a shadow. Hover states change
+background, never elevation.
+
 ## 6. Layout
 
 ```
 ┌──────┬────────────┬──────────────────────────────┐
 │ icon │ section    │ top bar              --bar   │
 │ rail │ panel      ├──────────────────────────────┤
-│ 66px │  --rail    │                              │
+│ 74px │  --rail    │                              │
 │      │            │ work area (scrolls)          │
 │ Home │ Pages   16 │   .wrap  max --work-max      │
 │ Cont.│ Posts  248 │                              │
@@ -379,14 +462,55 @@ Remaining layout rules:
   container; the rail, panel and top bar do not move.
 - Below 860px the rail and panel slide in together as one off-canvas drawer
   with a scrim, and the collapse toggle is replaced by a menu button.
-- Work area padding: 22px/24px desktop, 16px at phone width. At least a 16px
-  side gutter at every width. The page body never scrolls horizontally; only
-  the table does, inside its own `overflow-x: auto`.
+- Work area padding: `--s-6` (36px) desktop, `--s-4` at phone width. At least a
+  16px side gutter at every width. The page body never scrolls horizontally;
+  only the table does, inside its own `overflow-x: auto`.
 - Space siblings with flex/grid `gap`, not per-element margins.
 
+### Space
+
+There is one spacing scale and nothing invents its own gap:
+
+```css
+--s-1: 4px   /* inside a control: icon to label */
+--s-2: 8px   /* between adjacent controls */
+--s-3: 12px  /* inside a small component */
+--s-4: 18px  /* between fields; card padding */
+--s-5: 26px  /* panel and section padding */
+--s-6: 36px  /* between sections; screen gutter */
+--s-7: 52px  /* above a page's first content */
+```
+
+Four density tokens sit on top of it and are the ones an admin theme moves:
+`--pad-row` (table and list rows), `--pad-panel` (panel headers), `--pad-x` (the
+horizontal padding shared by every panel, table cell and list row, so their
+content lines up down the screen), and `--ctl` (the height of a button, input,
+select or search field — one number, so a toolbar never looks assembled from
+parts). Editorial runs looser than Neutral on all four; that difference *is*
+most of what makes the two themes feel different.
+
+Rules:
+
+- **Left edges line up.** A panel heading, a table cell and a form label in the
+  same column all start at `--pad-x`. When they disagree by two or three pixels
+  the screen reads as slightly broken without anyone being able to say why.
+- **Padding grows with the container.** A 40px chip does not get 26px of air,
+  and a full-width panel does not get 8px. Roughly: small components take
+  `--s-2`/`--s-3`, cards take `--s-4`/`--s-5`, screens take `--s-6`.
+- **Vertical rhythm beats horizontal.** Given a choice, spend on row height and
+  the gap between sections rather than on wider gutters; scanning is vertical.
+- **Space before a separator.** Two groups far enough apart do not need a rule
+  between them. Reach for `--s-5` before reaching for a border.
+- **A compact toggle, not a compact default.** The list screens ship roomy and
+  offer a density control that drops row padding and hides the slug line. The
+  people who want 40 rows on screen get them by asking.
+- **Empty states get the most room of anything**, because a screen with nothing
+  in it is the one place where tightness reads as neglect.
+
 Breakpoints: **1100px** (stat row to 2-up, two-column panels stack),
-**860px** (rail to drawer), **640px** (phone: tighter padding, search bar
-collapses to an icon, breadcrumb root drops).
+**980px** (editor panels overlay instead of pushing), **860px** (rail to
+drawer), **640px** (phone: one step down the spacing scale, search bar
+collapses to an icon, breadcrumb root and panel subtitles drop).
 
 ## 7. Components
 
@@ -480,8 +604,28 @@ of it you notice.
 - **Two tabs in the drawer, both always visible**: *Document* for the entry,
   *Component* for whatever the caret is inside. Neither replaces the other's
   header and there is no back arrow — you can always see where you are and what
-  the alternative is. The Component tab is disabled with no selection, and
-  names the component and its kind when there is one.
+  the alternative is. The Component tab is disabled with no selection, and names
+  the component when there is one.
+- **The tabs sit left, the close button sits right.** Tabs stretched to fill the
+  width read as segmented buttons, not tabs, and a panel with no visible way to
+  shut it sends people hunting the toolbar for the control that opened it. The
+  first tab is **flush with the panel's edge**: its own padding lines its label
+  up with the fields below, so the whole drawer shares one left edge.
+- **The Component tab is never disabled.** A disabled tab is a dead end that
+  still costs a click to discover. With nothing selected it says so and shows
+  **Components in this entry** — the list of every component in the document,
+  each one a way to select it. So the tab always answers a question: either
+  "what is this component" or "what components are in here". The tab carries the
+  count, and the list stays under the options once something *is* selected, with
+  the current one marked.
+- **That list does not live on the Document tab.** It is the index to what the
+  Component tab shows, not a property of the entry.
+- **The drawer says nothing about `container` / `leaf` / `inline`.** That is the
+  syntax's business, not the author's: they can see the shape of the thing in
+  the text, and the word adds a vocabulary they never asked to learn.
+- **No "go to it in the text" button.** The caret is already inside the
+  component — that is why the panel is showing it. A button that goes where you
+  already are is furniture.
 - **The title is part of the document**, not a form field above it — display
   face, 30px, no box, wrapping to as many lines as it needs, and it scrolls
   away with the text. Enter moves to the body.
@@ -492,6 +636,19 @@ of it you notice.
   leaving the column. Escape returns.
 - **The footer is the status line**, not a toolbar: words, reading time, and
   quiet shortcut hints. Counts belong here, out of the way, not above the text.
+- **Attribute blocks are marked, and marked differently from directives.**
+  `{.class #id key=value}` can hang off any ordinary Markdown — an image, a
+  link, a heading, a paragraph — and an author who cannot see where one ends
+  will break one. It gets a quiet gray chip: braces and punctuation in `--fg-3`,
+  key/value pairs in `--fg-2`, and the class and id names in full `--fg`,
+  because the names are what you scan a document for. The accent chip stays
+  reserved for directives, so the two are never confused: accent means *this is
+  a component*, gray means *this is metadata about the line it is attached to*.
+  A brace that is not a valid attribute block — prose, or one inside a code
+  span — is left as plain text, so the highlight doubles as a syntax check.
+- **The toolbar is bigger than the admin's default.** 36px targets and 18px
+  icons against 32/16 elsewhere, with more space between them. It is the most
+  used toolbar in the product and the one people reach for without looking.
 - **A selected component is named, not opened.** When the drawer is closed and
   the caret enters a directive, a chip appears in the footer — "Callout
   options" — and opens the drawer only if clicked. Interrupting writing to show
@@ -512,21 +669,89 @@ of it you notice.
   insert button also sits directly above the panel it opens, so the panel reads
   as coming from the button rather than appearing beside the text.
 
-What earns a permanent place in the header: back, where you are, the three
+What earns a permanent place in the header: back, where you are, the four
 insert tools, save state, status, settings, overflow, and the primary action.
 Everything else is in the overflow menu or a shortcut.
 
-### The inserters
-Three ways to put something in an entry, and the shape of each follows how much
-of a decision it is.
+### Marking the source
+The editor shows Markdown, not a preview, so the highlighting *is* the typography
+of the page. Two rules decide all of it.
 
-**Components slide in from the left.** Choosing one is part of writing, often
-with browsing involved, so the panel widens the layout aside and stays open —
-it never covers the sentence you were writing, and it does not snap shut after
-one pick. Inside: a search field, category pills, and a two-column grid of
-tiles — an icon in a tinted square, the name beneath, the kind under that. A
-strip at the foot of the panel describes whatever is highlighted, so the grid
-stays uncluttered while the detail is still one glance away.
+**The words are the point.** Every syntax character — `#`, `**`, `>`, `-`, the
+brackets around a link, the braces around an attribute — drops to `--fg-3`, and
+the content it wraps keeps full ink. The page then reads as prose with faint
+scaffolding rather than as code with prose in it. Nothing is hidden: an author
+who cannot see where a `**` ends will break one.
+
+**Nothing may change a character's advance width.** The highlight layer is a
+`<pre>` sitting under a transparent `<textarea>`; if one of them lays out a
+character a pixel from where the other does, the caret drifts away from the
+letter it is on and the editor feels broken. So the palette is: color, weight,
+slant, background, `text-decoration`, vertical padding, `border-radius`,
+`box-shadow`. Never: `font-size`, `letter-spacing`, `font-family`, horizontal
+padding or margin. Weight and slant are safe *because the face is monospaced* —
+every weight shares one advance, and a synthesized oblique is a shear. This is
+also why headings are told apart by weight rather than size.
+
+| Element | How it is marked |
+|---|---|
+| Heading | `#`s dim; text full ink, 600 at h1–h2, 500 from h3 |
+| Bold / italic / strike | Markers dim; content bold, oblique, or struck and dimmed |
+| Inline code | Backticks dim, content on a `--surface-2` chip |
+| Link | Brackets dim, **label in the accent**, target in `--fg-3` |
+| Image | `!` and brackets dim, alt in `--fg-2`, source in `--fg-3` |
+| Blockquote | `>` dim, quoted text `--fg-2` |
+| List | Marker `--fg-2` at 600; text untouched |
+| Task | `[ ]` dim, `[x]` in `--good`; the text is never struck through |
+| Rule | `--fg-2` at 500 — it is a divider, it should divide |
+| Table | Pipes dim, cells normal, the delimiter row dim throughout |
+| Fence | Delimiters and body on a `--surface-2` slab, language named in `--fg-2` |
+| Footnote | Reference and definition marker in the accent |
+| Directive | Prefix dim, **name in the accent**, label in full ink |
+| Attributes | The gray chip, wherever they appear |
+
+Three consequences worth keeping:
+
+- **A link's label is read in the sentence and its target is not.** Coloring the
+  whole `[label](url)` in the accent makes a paragraph with three links unreadable.
+  The label takes the accent; the URL steps back to `--fg-3`.
+- **A directive is not boxed.** Its name carries the accent and that is enough.
+  The box is reserved for **the component the caret is inside**, so a highlight
+  in the source always means *you are here* rather than *this is a component* —
+  the container's body picks up the same faint tint, so its extent is visible
+  without a border anywhere.
+- **Valid syntax is the only syntax that lights up.** A brace that is not an
+  attribute block, a `*` that closes nothing, a `[` with no `]` — all stay plain
+  text. The highlighting doubles as a syntax check: if it did not light up, it
+  will not parse.
+
+### The inserters
+Four ways to put something in an entry. The shape of each follows how much of a
+decision it is and where in the document the result lands.
+
+**Block components slide in from the left.** Choosing one is part of writing,
+often with browsing involved, so the panel widens the layout aside and stays
+open — it never covers the sentence you were writing, and it does not snap shut
+after one pick.
+
+A tile is **an icon and a name, and nothing else**. No border, no plate behind
+the icon, no kind label. Twenty-odd bordered boxes read as twenty-odd objects
+competing; the same twenty-odd names with space between them read as a list you
+can scan. The highlight appears only where the pointer or the keyboard is.
+Anything more about a component — its description, whether an addon supplied
+it — goes in the strip at the foot of the panel, which follows the selection.
+
+**There is no category control at all.** The grid is already headed by
+category, so a filter for them was a control standing in for a scroll — and it
+cost a band of the panel that the components themselves should have. The search
+field is the only control in the panel: one plain row, no box around it, the
+full width. Twenty-odd items is a scroll, not a search problem; the field is
+there for the person who already knows the name.
+
+**Three tiles across.** A tile with no border and no icon plate needs less room
+than one with both, and the width it gives back buys a third column — four
+category groups in view at once instead of two. The count of what fits is the
+point: a panel you scroll twice is a panel you stop opening.
 
 Keyboard maps to the grid: left and right step, up and down move a row, Enter
 inserts, Escape closes. Hovering a tile highlights it, so pointer and keyboard
@@ -538,21 +763,62 @@ when something is inserted, so an abandoned slash is just text. This is the
 path most authors end up using; the toolbar button is the discoverable one that
 teaches it.
 
-**Icons are a popover** anchored to their button: a search field, a dense grid,
-and a foot showing the directive the highlighted icon would produce. One
-decision, no browsing, so it does not deserve to move the layout. Its button is
-a shapes glyph — triangle, square, circle. Avoid a sparkle or a star here, or
-anywhere that is not generation: a sparkle now reads as "AI" before it reads as
-anything else, and an icon that promises the wrong thing is worse than a dull
-one.
+**Inline components have their own dropdown.** They are not in the panel at all,
+because putting a badge inside a sentence is a different act from putting a
+gallery between two paragraphs: the panel's grid implies "pick a block to place
+here", and inline components do not go *here*, they go *inside this word*. Its
+button carries a caret so it reads as a menu, and the menu is a short list with
+a description on each row — there are few of them and each is one decision.
 
-**Media is a modal** — the same picker used everywhere else in the admin, so a
-file is chosen the same way wherever you are. What it inserts depends on what
+**Icons are a modal, and it is the same modal the media library uses** — a
+header, a search field, a left column of categories, a grid, and a footer naming
+the selection with the directive it will write. An icon set is a *library*: three
+dozen glyphs now and more later, and nobody remembers which one is called
+"schema". A 300px popover turns that into a scrolling memory test. Categories go
+down the left rather than across the top, because a vertical list takes a column
+that a wide modal has to spare while a horizontal one eats the height the grid
+needs, and it holds its shape as the set grows. Below 760px the same list turns
+into one scrolling row.
+
+Its button is a shapes glyph — triangle, square, circle. Avoid a sparkle or a
+star here, or anywhere that is not generation: a sparkle now reads as "AI"
+before it reads as anything else, and an icon that promises the wrong thing is
+worse than a dull one.
+
+**Media is a modal** too — the same picker used everywhere else in the admin, so
+a file is chosen the same way wherever you are. What it inserts depends on what
 was chosen: an image becomes a figure, a video becomes a video, anything else
 becomes a download.
 
-The rule: **a panel for choices you browse, a popover or modal for choices you
-make once.** Anything that interrupts writing should be over in a single action.
+The rule: **a panel for what you browse while writing, a dropdown for a short
+fixed list, a modal for a library.** The question is not how important the
+choice is, it is how much there is to look through — and whether the looking
+happens while a sentence is half-written.
+
+Both modals share one shell: head, filter bar, body, footer, with the primary
+button disabled until something is chosen and labeled for the errand. Two
+libraries that behave differently is two things to learn.
+
+### Variants
+Every component has a **variant**: a named style the theme provides. The
+component decides what the thing *is*; the variant decides how it looks. A
+callout is a callout whether it is tinted, bordered or compact.
+
+- Variants are **named and described**, never numbered or previewed as a
+  swatch. "Bordered — no fill, a rule down the left and plain text" tells an
+  author what they are choosing; a thumbnail of a rectangle does not.
+- Every component has a **Default**, and Default writes **no attribute at all**.
+  An entry that has never been styled carries no styling in its source, so a
+  theme change reaches it.
+- Any other variant writes `variant=key` on the directive, beside the options.
+  It is an ordinary attribute, so nothing new is needed to parse it.
+- The selector sits **at the top of the Component tab**, above Options, because
+  it usually changes what the options mean.
+- **Themes own the list.** A component ships with the variants its theme
+  defines; an entry referring to a variant the current theme does not have falls
+  back to Default rather than failing. This is the seam where a site's design
+  system meets its content, so it is worth keeping narrow: a handful of named
+  looks, not a style panel.
 
 ### Hierarchy
 Hierarchical types (Pages) default to a **tree**: disclosure triangles, 18px
@@ -663,6 +929,32 @@ class of thing, which the model says they are not.
 Terms differ only in what the list shows: an **Entries** column counting uses,
 no author, and no pending-changes state. Deleting a term reparents its children
 rather than orphaning them, and says so.
+
+### The media library
+The library is a browsing screen that sometimes appears in a modal. It gets the
+room a browsing screen needs, not the room a dialog usually takes: the picker is
+`min(1180px, 100vw - 64px)` wide and up to 90vh tall. A file grid squeezed into
+a 760px dialog is the reason picking an image feels like a chore.
+
+- **Every thumbnail is the same 4:3 box, and images are cropped to fill it**
+  (`aspect-ratio` on the frame, `object-fit: cover` on the image). A grid of
+  ragged rectangles is the single thing that makes a library look untended, and
+  cropping a thumbnail costs less than letterboxing one — the detail view shows
+  the whole file.
+- **Card height is fixed too.** File name on one line with an ellipsis,
+  dimensions and size on a second. A name that wraps drags its neighbors out of
+  alignment.
+- **Selection is a ring and a tick**, not a tint alone: an accent border on the
+  card and a filled check in the corner of the thumbnail. On a grid of images,
+  a tint is invisible against half of them.
+- **A kind badge only where it says something.** `VIDEO` and `DOC` earn a
+  corner label because their thumbnail is a placeholder; `IMAGE` on an image
+  is noise repeated forty times.
+- **Kind filters are a segmented control** beside the search field — All,
+  Images, Video, Files — because the set is short and fixed.
+- **The footer names what is selected** and what happens next. The primary
+  button is disabled until something is chosen, and it is labeled for the
+  errand: *Insert* when inserting into an entry, *Choose* when filling a field.
 
 ### Trash
 Trash is a status, not a separate screen. A trashed entry's row menu replaces
@@ -821,8 +1113,9 @@ decision.
   the Markdown surface (a text area over a highlighted copy, D-241), the
   component inserter (`GET components`, D-243, D-247), the settings' two
   tabs (D-245), mapping the caret to its directive and rewriting options
-  in place (`markdown.ts`, D-241, D-245), and invoking the media picker
-  from an option (**Choose** beside it, D-247).
+  in place (`markdown.ts`, D-241, D-245), invoking the media picker
+  from an option (**Choose** beside it, D-247), and icon categories
+  (`GET icons`' `category` and `source`, D-265).
 - The content-type builder's own screens.
 - Whether type provenance ("Posts addon", "Custom type") belongs in the list
   header at all — useful at three types, clutter at fifteen.

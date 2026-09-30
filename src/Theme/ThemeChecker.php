@@ -16,6 +16,9 @@ namespace Blush\Theme;
 use Throwable;
 use Dom\Element;
 use Dom\HTMLDocument;
+use Blush\Component\ComponentListing;
+use Blush\Component\ComponentName;
+use Blush\Component\ComponentVariants;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Schema\Severity;
@@ -24,6 +27,7 @@ use Blush\Core\ServiceProvider;
 use Blush\Menu\Menus;
 use Blush\Region\Regions;
 use Blush\View\ViewFactory;
+use Blush\View\Views;
 
 /**
  * Checks a theme for `theme:check` (D-020, D-030, D-032):
@@ -138,7 +142,10 @@ final readonly class ThemeChecker
 	 * isn't named for a component (`{slug}-{name}.php`, or a core
 	 * component's name) is never rendered (D-171); and the theme's
 	 * registered components should have a translated label for the
-	 * admin's inserter (a notice, D-172).
+	 * admin's inserter (a notice, D-172). Its `theme.json` variants
+	 * (D-266) must be for components that exist and have valid names, and
+	 * should have labels; a variant's template mustn't also be a
+	 * component's own.
 	 *
 	 * @return list<Violation>
 	 */
@@ -172,10 +179,57 @@ final readonly class ThemeChecker
 			}
 		}
 
+		$problems = [...$problems, ...$this->variants($theme, $views, $components)];
+
 		foreach ($stray as $file) {
 			if (str_starts_with($file, $theme->viewsPath() . '/')) {
 				$fileName   = basename($file, '.php');
 				$problems[] = new Violation("component {$fileName}", sprintf('components/%s.php isn\'t named for a component, so it never renders; name it components/%s-%s.php.', $fileName, $theme->slug, $fileName), Severity::Warning);
+			}
+		}
+
+		return $problems;
+	}
+
+	/**
+	 * Checks the variants the theme's manifest lists, and variant
+	 * templates that are also a component's own template name.
+	 *
+	 * @param  list<ComponentListing> $components
+	 * @return list<Violation>
+	 */
+	private function variants(ThemeManifest $theme, Views $views, array $components): array
+	{
+		$known    = array_map(static fn (ComponentListing $component): string => (string) $component->name, $components);
+		$problems = [];
+
+		foreach ($theme->variants() as $component => $list) {
+			$name = ComponentName::parse($component);
+
+			if ($name === null || ! in_array((string) $name, $known, true)) {
+				$problems[] = new Violation("variants {$component}", sprintf('theme.json lists variants for "%s", which isn\'t a component.', $component), Severity::Warning);
+
+				continue;
+			}
+
+			foreach ($list as $item) {
+				$variant = ComponentVariants::manifestItem($item, $theme->slug);
+
+				if ($variant === null) {
+					$problems[] = new Violation("variants {$name}", sprintf('theme.json lists a variant of "%s" that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', $name), Severity::Warning);
+				} elseif ($views->variantText($name, $variant, 'label') === null) {
+					$problems[] = new Violation("variants {$name}", sprintf('The "%s" variant of "%s" has no label; add "components.%s.variants.%s.label" to the theme\'s lang/ catalog.', $variant->name, $name, $name->name, $variant->name), Severity::Notice);
+				}
+			}
+		}
+
+		$namespaces = array_values(array_unique(array_map(static fn (ComponentListing $component): string => $component->name->namespace, $components)));
+
+		foreach ($views->variantFiles() as $fileName => [$name, $variant]) {
+			$other = ComponentName::fromFileName($fileName, $namespaces);
+
+			if ($other !== null && in_array((string) $other, $known, true) && (string) $other !== (string) $name) {
+				$problems[] = new Violation("component {$other}", sprintf('components/%s.php is both the "%s" component\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
 			}
 		}
 

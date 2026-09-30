@@ -18,10 +18,9 @@ use Blush\Component\ComponentContent;
 use Blush\Component\ComponentListing;
 use Blush\Component\ComponentName;
 use Blush\Component\ComponentType;
+use Blush\Component\Variant;
 use Blush\Content\Schema\Field;
 use Blush\Content\Schema\Fields\EnumField;
-use Blush\Extension\ExtensionManifest;
-use Blush\Extension\Extensions;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Theme\ThemeChain;
@@ -46,7 +45,11 @@ use Blush\View\Views;
  *   `null`, with `source` naming the theme, the site, or the extension
  *   the rest come from;
  * - `props`, as schema fields (`Field::toArray()`) with their translated
- *   `label` and, for a choice, `choices` labels by value.
+ *   `label` and, for a choice, `choices` labels by value;
+ * - `variants` under the active theme (D-266), Default not included: each
+ *   with its `name`, translated `label` and `description`, and `source`,
+ *   `null` when the component's own namespace declared it, else where it
+ *   comes from (a theme's variant for a core component, say).
  */
 final readonly class ComponentsController
 {
@@ -54,7 +57,7 @@ final readonly class ComponentsController
 		private ViewFactory $views,
 		private ThemeResolver $resolver,
 		private Themes $themes,
-		private Extensions $extensions
+		private Provenance $provenance
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -99,11 +102,17 @@ final readonly class ComponentsController
 				default                               => 'leaf'
 			},
 			'category'    => $type?->category()->value,
-			'source'      => $type === null ? $this->source($name, $chain) : null,
+			'source'      => $type === null ? $this->provenance->of($name->namespace, $chain) : null,
 			'props'       => array_map(
 				fn (Field $field): array => $this->prop($field, $name, $views),
 				$component->definition?->props() ?? []
-			)
+			),
+			'variants'    => array_map(fn (Variant $variant): array => [
+				'name'        => $variant->name,
+				'label'       => $views->variantText($name, $variant, 'label') ?? ucfirst(str_replace('-', ' ', $variant->name)),
+				'description' => $views->variantText($name, $variant, 'description') ?? '',
+				'source'      => $variant->registrant === $name->namespace ? null : $this->provenance->of($variant->registrant, $chain)
+			], $component->variants)
 		];
 	}
 
@@ -132,31 +141,5 @@ final readonly class ComponentsController
 		}
 
 		return $prop;
-	}
-
-	/**
-	 * Names where a component that isn't core comes from: a theme in the
-	 * chain, the site (`app`), or an extension (by its vendor).
-	 *
-	 * @return array{kind: string, label: string}
-	 */
-	private function source(ComponentName $name, ThemeChain $chain): array
-	{
-		foreach ($chain->themes as $theme) {
-			if ($theme->slug === $name->namespace) {
-				return ['kind' => 'theme', 'label' => $theme->name];
-			}
-		}
-
-		if ($name->namespace === 'app') {
-			return ['kind' => 'site', 'label' => 'This site'];
-		}
-
-		$extensions = array_values(array_filter(
-			$this->extensions->all(),
-			static fn (ExtensionManifest $extension): bool => $extension->name === $name->namespace || str_starts_with($extension->name, "{$name->namespace}/")
-		));
-
-		return ['kind' => 'extension', 'label' => count($extensions) === 1 ? $extensions[0]->name : $name->namespace];
 	}
 }

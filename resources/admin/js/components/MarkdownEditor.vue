@@ -2,10 +2,9 @@
 /**
  * The Markdown source editor (D-241, D-245): a plain text area, so
  * typing, undo, spelling, and screen readers work as in any field, over a
- * highlighted copy of the same text (`markdown.ts`) that shows headings,
- * strong and emphasized text, quotes, lists, code, links, and component
- * directives, with their marks muted (D-253) and the directive the caret
- * is in marked. The copy is decoration and hidden from assistive tech. It
+ * highlighted copy of the same text (`markdown.ts`), where the syntax is
+ * faint scaffolding and the words keep full ink (D-253, D-265), and the
+ * directive the caret is in is boxed, with a container's body tinted. The copy is decoration and hidden from assistive tech. It
  * sits bare in the editor's writing column and grows with its text; the
  * editor around it scrolls, counts, and holds the inserters.
  *
@@ -256,16 +255,18 @@ function focusAt(offset: number): void {
 }
 
 /**
- * Inserts a component: an inline one at the caret, the rest on lines of
- * their own, with a blank line either side (after the caret's line when
- * it has text). Selected text becomes its label or body; `values` are its
- * first attributes.
+ * Where text goes: an inline piece at the caret (replacing any
+ * selection); a block on lines of its own, with a blank line either side
+ * (after the caret's line when it has text, or in place of a line that's
+ * empty or selected whole). The slash being typed, if any, is replaced.
+ * Returns the range to replace, what goes before and after, and the
+ * selected text.
  */
-function insert(component: ComponentDescription, values: Record<string, string> = {}): void {
+function place(inline: boolean): { from: number; to: number; before: string; after: string; inner: string } | null {
 	const element = field.value;
 
 	if (element === null) {
-		return;
+		return null;
 	}
 
 	const value = element.value;
@@ -276,9 +277,6 @@ function insert(component: ComponentDescription, values: Record<string, string> 
 	const lineStart = value.lastIndexOf('\n', from - 1) + 1;
 	const lineEnd   = value.indexOf('\n', to) === -1 ? value.length : value.indexOf('\n', to);
 	const alone     = value.slice(lineStart, from).trim() === '' && value.slice(to, lineEnd).trim() === '';
-	// Its kind decides: an inline component goes at the caret, the rest
-	// on lines of their own (D-247).
-	const inline    = component.kind === 'inline' && !inner.includes('\n');
 
 	let before = '';
 	let after  = '';
@@ -299,12 +297,56 @@ function insert(component: ComponentDescription, values: Record<string, string> 
 		after = next === '' || next.startsWith('\n\n') ? '' : (next.startsWith('\n') ? '\n' : '\n\n');
 	}
 
-	const { text, caret: at } = directiveText(component, inline, inner, values);
+	return { from, to, before, after, inner };
+}
+
+/**
+ * Writes `text` where `place()` says, the way typing would, with the
+ * caret at `at` in it.
+ */
+function write(spot: { from: number; to: number; before: string; after: string }, text: string, at: number): void {
+	const element = field.value;
+
+	if (element === null) {
+		return;
+	}
 
 	slash.value = null;
-	replace(element, from, to, before + text + after);
-	element.setSelectionRange(from + before.length + at, from + before.length + at);
+	replace(element, spot.from, spot.to, spot.before + text + spot.after);
+	element.setSelectionRange(spot.from + spot.before.length + at, spot.from + spot.before.length + at);
 	caret.value = element.selectionStart;
+}
+
+/**
+ * Inserts a component: an inline one at the caret, the rest on lines of
+ * their own (D-247). Selected text becomes its label or body; `values`
+ * are its first attributes.
+ */
+function insert(component: ComponentDescription, values: Record<string, string> = {}): void {
+	const selected = field.value === null ? '' : field.value.value.slice(field.value.selectionStart, field.value.selectionEnd);
+	const inline   = component.kind === 'inline' && !selected.includes('\n');
+	const spot     = place(inline);
+
+	if (spot !== null) {
+		const { text, caret: at } = directiveText(component, inline, spot.inner, values);
+
+		write(spot, text, at);
+	}
+}
+
+/**
+ * Inserts a block of Markdown (such as an image) on lines of its own,
+ * with the caret at `at` in it. `text` is given the selected text, if
+ * any, to build from.
+ */
+function insertBlock(build: (selected: string) => { text: string; caret: number }): void {
+	const spot = place(false);
+
+	if (spot !== null) {
+		const { text, caret: at } = build(spot.inner);
+
+		write(spot, text, at);
+	}
 }
 
 /**
@@ -328,7 +370,7 @@ function selection(): string {
 	return element === null ? '' : element.value.slice(element.selectionStart, element.selectionEnd);
 }
 
-defineExpose({ apply, focusAt, insert, insertText, selection, dismissSlash });
+defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismissSlash });
 </script>
 
 <template>
@@ -359,11 +401,12 @@ defineExpose({ apply, focusAt, insert, insertText, selection, dismissSlash });
 /*
  * The field and its highlighted copy share one grid cell and every
  * property that affects where text falls, so each character of the copy
- * sits under the same character in the field. Highlights never change
- * width: color, background, Fira Code's own semibold face, and a slant
- * for italic (it has none), all of which keep its advance (D-253,
- * D-254). The column can't grow past its container for a long word or
- * address; those wrap.
+ * sits under the same character in the field. Highlights never change a
+ * character's advance: color, weight (Fira Code's own faces), slant (it
+ * has no italic), background, decoration, vertical padding, radius, and
+ * box shadow only; never size, letter spacing, family, or horizontal
+ * padding or margin (D-253, D-254, D-265). The column can't grow past its
+ * container for a long word or address; those wrap.
  */
 
 .md__source {
@@ -381,7 +424,7 @@ defineExpose({ apply, focusAt, insert, insertText, selection, dismissSlash });
 	font-family: var(--font-mono);
 	font-size: var(--doc);
 	font-weight: 400;
-	line-height: 1.85;
+	line-height: 2;
 	letter-spacing: normal;
 	tab-size: 4;
 	white-space: pre-wrap;
@@ -422,62 +465,147 @@ defineExpose({ apply, focusAt, insert, insertText, selection, dismissSlash });
 	color: var(--fg-3);
 }
 
-.md__highlight :deep(.md-mark--list) {
-	color: var(--accent);
+/* Headings read by weight, not size. */
+.md__highlight :deep(.md-heading) {
+	color: var(--fg);
+	font-weight: 500;
 }
 
-.md__highlight :deep(.md-heading),
-.md__highlight :deep(.md-strong) {
-	color: var(--fg);
+.md__highlight :deep(.md-heading--1),
+.md__highlight :deep(.md-heading--2),
+.md__highlight :deep(.md-strong__text) {
 	font-weight: 600;
 }
 
-.md__highlight :deep(.md-em) {
+.md__highlight :deep(.md-strong__text),
+.md__highlight :deep(.md-em__text) {
+	color: var(--fg);
+}
+
+.md__highlight :deep(.md-em__text) {
 	font-style: italic;
 }
 
 .md__highlight :deep(.md-strike__text) {
-	color: var(--fg-2);
+	color: var(--fg-3);
 	text-decoration: line-through;
 }
 
 .md__highlight :deep(.md-quote) {
 	color: var(--fg-2);
-	font-style: italic;
 }
 
-.md__highlight :deep(.md-code-block) {
+.md__highlight :deep(.md-bullet) {
 	color: var(--fg-2);
+	font-weight: 600;
 }
 
-.md__highlight :deep(.md-code) {
-	border-radius: var(--r-1);
+/* A task's box; its text is never struck through. */
+.md__highlight :deep(.md-task) {
+	color: var(--fg-3);
+	font-weight: 500;
+}
+
+.md__highlight :deep(.md-task--done) {
+	color: var(--good);
+}
+
+/* A rule is a divider: it should divide. */
+.md__highlight :deep(.md-rule) {
+	color: var(--fg-2);
+	font-weight: 500;
+}
+
+/* A fence is the one place the source is the content, so the whole block
+   sits on a slab. Tinted runs clone their box across wrapped lines. */
+.md__highlight :deep(.md-fence),
+.md__highlight :deep(.md-code-block) {
+	padding-block: 1px;
 	background: var(--surface-2);
 	color: var(--fg-2);
 }
 
-.md__highlight :deep(.md-link__text) {
-	color: var(--accent);
+.md__highlight :deep(.md-fence__lang) {
+	color: var(--fg-2);
+	font-weight: 500;
 }
 
-.md__highlight :deep(.md-directive) {
-	border-radius: var(--r-1);
-	background: var(--accent-soft);
-	box-shadow: 0 0 0 1px var(--accent-line);
-	color: var(--accent);
-}
-
-.md__highlight :deep(.md-directive__rest) {
+.md__highlight :deep(.md-code) {
+	padding-block: 1px;
+	border-radius: 3px;
+	background: var(--surface-2);
 	color: var(--fg-2);
 }
 
-.md__highlight :deep(.md-directive.is-current) {
-	background: var(--accent);
-	box-shadow: 0 0 0 1px var(--accent);
-	color: var(--accent-fg);
+.md__highlight :deep(.md-fence),
+.md__highlight :deep(.md-code-block),
+.md__highlight :deep(.md-code),
+.md__highlight :deep(.md-attr),
+.md__highlight :deep(.md-directive.is-current),
+.md__highlight :deep(.md-inside) {
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
 }
 
-.md__highlight :deep(.md-directive.is-current .md-directive__rest) {
-	color: var(--accent-fg);
+/* A link's label is read in the sentence; its address isn't. */
+.md__highlight :deep(.md-link__text),
+.md__highlight :deep(.md-footnote) {
+	color: var(--accent);
+}
+
+.md__highlight :deep(.md-link__url) {
+	color: var(--fg-3);
+}
+
+.md__highlight :deep(.md-image__text) {
+	color: var(--fg-2);
+}
+
+/* An image's quoted title is its caption on the site: words to read. */
+.md__highlight :deep(.md-image__caption) {
+	color: var(--fg);
+}
+
+/* A directive is named in the accent and left unboxed; the box is for
+   the one the caret is in. */
+.md__highlight :deep(.md-directive__name) {
+	color: var(--accent);
+	font-weight: 500;
+}
+
+.md__highlight :deep(.md-directive__label) {
+	color: var(--fg);
+}
+
+.md__highlight :deep(.md-directive.is-current) {
+	padding-block: 1px;
+	border-radius: 3px;
+	background: var(--accent-soft);
+	box-shadow: 0 0 0 1px var(--accent-line);
+}
+
+.md__highlight :deep(.md-inside) {
+	border-radius: 2px;
+	background: var(--accent-soft);
+}
+
+/* Attributes are metadata about the line they hang off: a gray chip,
+   wherever they appear, with the names in full ink. */
+.md__highlight :deep(.md-attr) {
+	padding-block: 1px;
+	border-radius: 3px;
+	background: var(--surface-2);
+	box-shadow: 0 0 0 1px var(--border);
+	color: var(--fg-3);
+}
+
+.md__highlight :deep(.md-attr__name) {
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.md__highlight :deep(.md-attr__key),
+.md__highlight :deep(.md-attr__value) {
+	color: var(--fg-2);
 }
 </style>

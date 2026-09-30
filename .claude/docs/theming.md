@@ -226,8 +226,22 @@ aren't candidates (D-104).
 - **Classes (D-182):** a component's classes are BEM-style with a
   `component-` prefix (`component-callout`, `component-callout--warning`,
   `component-callout__title`); the default theme's core components use
-  it. Planned: registered variants for any component, as
-  `component-{name}--{variant}` modifiers (D-191).
+  it.
+- **Variants (D-266):** a named style of any component, `variant=name`,
+  whose modifier is `component-{name}--{variant}` (or the variant's own
+  modifier). Default is always there, writes nothing, and adds no class.
+  A variant is a `Variant` (name, registrant, optional modifier); a class
+  declares its own in `VARIANTS`, a template-only component with
+  `register(…, variants:)`, a theme in `theme.json` `variants`, and
+  anyone else from `ComponentVariantsCollecting` (fired once per
+  component when its variants are first needed). `ComponentVariants`
+  collects them and drops a theme's outside the chain; an unknown
+  variant renders as Default. Templates get `$component->variant` and
+  `isVariant()`, and `components/{name}-{variant}` wins over the
+  component's template. Text is
+  `components.{name}.variants.{variant}.label` and `.description` in the
+  registrant's domain. `content:lint` (`VariantCheck`) and `theme:check`
+  report problems.
 - **Slots:** `$component->content()` holds the default slot and
   `$component->slots->name` named slots (`''` when unfilled).
 - **Registry (D-172, D-173):** `ComponentRegistry::register($name, $class,
@@ -256,12 +270,12 @@ aren't candidates (D-104).
   ![](a.jpg) ![](b.jpg)
   :::
 
-  This is :notebook/badge[new]{tone=info}.
+  This is :notebook/badge[new]{variant=outline}.
   ```
   An unknown directive, or a short name that isn't core, renders as plain
   content. The framework default theme
   ships the core content components (D-033, D-113): `callout`, `gallery`,
-  `figure`, and `embed`, plus the layout components `group`, `grid`, and
+  `figure` (a container for anything captioned, D-267), and `embed`, plus the layout components `group`, `grid`, and
   `row` (D-177, which set their structural CSS inline and read
   `--layout-gap`), and the media components `audio`, `video`, and
   `file` (D-179), and the inline components `abbr`, `kbd`, and `time`

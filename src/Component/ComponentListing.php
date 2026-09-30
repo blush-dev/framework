@@ -18,20 +18,22 @@ use ReflectionMethod;
 /**
  * A component a theme chain can render, from `Views::components()`: its
  * name, its registration (if any), the template files in the chain for
- * it, winner first, and its translated label and description (`null`
- * when no catalog has them).
+ * it, winner first, its translated label and description (`null` when
+ * no catalog has them), and its variants under the chain (D-266).
  */
 final readonly class ComponentListing
 {
 	/**
-	 * @param list<string> $files Winner first.
+	 * @param list<string>  $files    Winner first.
+	 * @param list<Variant> $variants Default not included.
 	 */
 	public function __construct(
 		public ComponentName $name,
 		public ?ComponentDefinition $definition = null,
 		public array $files = [],
 		public ?string $label = null,
-		public ?string $description = null
+		public ?string $description = null,
+		public array $variants = []
 	) {}
 
 	/**

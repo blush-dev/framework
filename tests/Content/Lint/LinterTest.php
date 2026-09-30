@@ -17,12 +17,14 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
+use Blush\Content\Lint\VariantCheck;
 use Blush\Content\Schema\Severity;
 use Blush\Content\Schema\Violation;
 use Blush\Tests\Content\BuildsContentSite;
 
 #[CoversClass(Linter::class)]
 #[CoversClass(LintReport::class)]
+#[CoversClass(VariantCheck::class)]
 final class LinterTest extends TestCase
 {
 	use BuildsContentSite;
@@ -124,5 +126,39 @@ final class LinterTest extends TestCase
 		$this->assertFalse($report->hasErrors());
 		$this->assertSame([], $report->violations());
 		$this->assertSame(1, $report->checked);
+	}
+
+	public function testFlagsVariantsAComponentDoesntHave(): void
+	{
+		$this->entry('notes.md', 'title: Notes', <<<'MD'
+			:::callout{variant=warning}
+			Fine.
+			:::
+
+			:::callout[Heads up]{variant=shiny .wide}
+			Not a callout variant.
+			:::
+
+			::button[Go]{url=/go variant=primary}
+
+			Press :kbd[Ctrl]{variant=big} and :app/unknown[x]{variant=any}.
+
+			```md
+			:::callout{variant=nope}
+			```
+
+			:::callout{variant=default}
+			Default is always there.
+			:::
+			MD);
+
+		$violations = $this->site()->container()->make(Linter::class)->lintFile('notes.md');
+		$messages   = array_map(static fn (Violation $violation): string => "{$violation->severity->value} {$violation}", $violations);
+
+		$this->assertSame([
+			'warning body: line 5: blush/callout has no "shiny" variant under the active theme, so it renders as Default (it has info, tip, warning, danger).',
+			'warning body: line 9: blush/button has no "primary" variant under the active theme, so it renders as Default (it has secondary).',
+			'warning body: line 11: blush/kbd has no "big" variant under the active theme, so it renders as Default (it has no variants).'
+		], $messages);
 	}
 }

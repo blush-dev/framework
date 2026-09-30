@@ -16,11 +16,11 @@ namespace Blush\Component;
 use Blush\Component\Inline\Abbr;
 use Blush\Component\Inline\Kbd;
 use Blush\Component\Inline\Time;
+use Blush\Component\Layout\Figure;
 use Blush\Component\Layout\Grid;
 use Blush\Component\Layout\Group;
 use Blush\Component\Layout\Row;
 use Blush\Component\Media\Audio;
-use Blush\Component\Media\Figure;
 use Blush\Component\Media\File;
 use Blush\Component\Media\Gallery;
 use Blush\Component\Media\Video;
@@ -91,9 +91,8 @@ enum ComponentType: string
 	{
 		return match ($this) {
 			self::Abbr, self::Callout, self::Icon, self::Kbd, self::Time          => ComponentCategory::Text,
-			self::Audio, self::Embed, self::Figure, self::File, self::Gallery,
-			self::Video                                                           => ComponentCategory::Media,
-			self::Grid, self::Group, self::Row                                    => ComponentCategory::Layout,
+			self::Audio, self::Embed, self::File, self::Gallery, self::Video      => ComponentCategory::Media,
+			self::Figure, self::Grid, self::Group, self::Row                      => ComponentCategory::Layout,
 			self::Button, self::Menu, self::Toc                                   => ComponentCategory::Navigation,
 			self::Meter, self::Progress                                           => ComponentCategory::Data
 		};

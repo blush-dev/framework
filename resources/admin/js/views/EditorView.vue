@@ -5,17 +5,20 @@
  * the Markdown body under it (`MarkdownEditor`, D-241); a header with
  * where you are, the save state, the status, and the actions; and a
  * footer that's the status line. Settings are a drawer that pushes the
- * column aside (⌘/), closed at first, with two tabs: **Document** (its
- * publishing, schema fields as a form, the components it uses, other
- * front matter, and its problems) and **Component**, the options of the
- * component the caret is in (`ComponentOptions`). With the drawer closed,
- * the footer names that component instead of opening anything.
+ * column aside (⌘/), closed at first, with two tabs, left, and a close
+ * button, right: **Document** (its publishing, schema fields as a form,
+ * other front matter, and its problems) and **Component** (D-265): the
+ * options of the component the caret is in (`ComponentOptions`), and
+ * under them every component in the entry, each a way to select it. With
+ * nothing selected it says so over that list, so the tab is never a dead
+ * end. With the drawer closed, the footer names the component the caret
+ * is in instead of opening anything.
  *
- * The header's left half has the three ways to put something in (D-247):
- * components, in a panel that slides in from the left and stays open
- * (also opened by typing `/`); media, in the media picker's modal; and
- * icons, in a popover. Its right half says what the entry is and what
- * happens to it.
+ * The header's left half has the four ways to put something in (D-247,
+ * D-265): block components, in a panel that slides in from the left and
+ * stays open (also opened by typing `/`); media and icons, each a
+ * library in a modal; and inline components, a short menu. Its right half
+ * says what the entry is and what happens to it.
  *
  * While keys move, the header and footer fade back; any pointer movement
  * brings them back. Focus mode (⌘⇧F) leaves only the column; Escape
@@ -59,7 +62,7 @@ import { diffLines, type DiffLine } from '../diff';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
 import { formatDate, plural } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
-import { attributeText, attributesOf, directiveAt, directiveHead, outline, wordCount, withAttribute, withoutDirective, type Directive, type Edit } from '../markdown';
+import { attributeText, attributesOf, imageText, directiveAt, directiveHead, outline, wordCount, withAttribute, withoutDirective, type Directive, type Edit } from '../markdown';
 import type { SiteIcon } from '../site-icons';
 import { focusMode, screenTitle } from '../screen';
 import { toast } from '../toast';
@@ -751,6 +754,11 @@ function slashKey(key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'): void {
 	}
 }
 
+// The panel offers block components; inline ones have their own menu,
+// less the icon, which has its own picker.
+const blockComponents  = computed(() => available.value.filter((component) => component.kind !== 'inline'));
+const inlineComponents = computed(() => available.value.filter((component) => component.kind === 'inline' && component !== iconComponent.value));
+
 // "a callout", "an embed".
 function article(name: string): string {
 	return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${inSentence(name)}`;
@@ -767,23 +775,16 @@ function chooseComponent(component: ComponentDescription): void {
 	}
 }
 
-// The icon popover, under its button.
-const iconAnchor = ref<{ left: number; top: number; bottom: number } | null>(null);
+function chooseInline(component: ComponentDescription): void {
+	bodyEditor.value?.insert(component);
+	toast(`Inserted ${article(component.label)}`);
+}
 
-const iconButton = ref<HTMLButtonElement | null>(null);
+// The icon picker's modal.
+const iconsOpen = ref(false);
 
-function toggleIcons(): void {
-	if (iconAnchor.value !== null) {
-		iconAnchor.value = null;
-
-		return;
-	}
-
-	const rect = iconButton.value?.getBoundingClientRect();
-
-	if (rect !== undefined) {
-		iconAnchor.value = { left: rect.left, top: rect.top, bottom: rect.bottom };
-	}
+function openIcons(): void {
+	iconsOpen.value = true;
 }
 
 const iconComponent = computed(() => componentFor('icon'));
@@ -793,7 +794,7 @@ function iconPreview(icon: SiteIcon): string {
 }
 
 function chooseIcon(icon: SiteIcon): void {
-	iconAnchor.value = null;
+	iconsOpen.value = false;
 
 	if (iconComponent.value === undefined) {
 		bodyEditor.value?.insertText(iconPreview(icon));
@@ -805,7 +806,7 @@ function chooseIcon(icon: SiteIcon): void {
 }
 
 function closeIcons(): void {
-	iconAnchor.value = null;
+	iconsOpen.value = false;
 	bodyEditor.value?.focusAt(caret.value);
 }
 
@@ -818,9 +819,18 @@ function pickMedia(): void {
 		title: 'Insert media',
 		action: 'Insert',
 		use: (file) => {
-			// An image is a figure, a video a video, a sound audio, and
-			// anything else a download.
-			const name      = file.kind === 'image' ? 'figure' : (file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file'));
+			// An image is plain Markdown (on its own line, the site makes it a
+			// figure, with a quoted title as its caption, D-267), with the
+			// caret in its alternative text; a video is a video, a sound
+			// audio, and anything else a download.
+			if (file.kind === 'image') {
+				bodyEditor.value?.insertBlock((selected) => imageText(file.reference, selected));
+				toast(`Inserted ${file.name}`);
+
+				return;
+			}
+
+			const name      = file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file');
 			const component = componentFor(name);
 
 			if (component === undefined) {
@@ -885,7 +895,7 @@ useCommands(() => {
 		{ id: 'editor-settings', label: sideOpen.value ? 'Hide the settings' : 'Show the settings', icon: 'panel-right', keywords: 'document fields sidebar', shortcut: '⌘/', run: toggleSide },
 		{ id: 'editor-component', label: 'Insert a component', icon: 'plus', keywords: 'callout figure block', shortcut: '/', run: () => void togglePanel() },
 		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file', run: pickMedia },
-		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: () => void nextTick(toggleIcons) },
+		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
 		{ id: 'editor-save', label: 'Save', icon: 'file-text', shortcut: '⌘S', run: () => void save() }
 	];
 
@@ -991,7 +1001,7 @@ function tabKey(event: KeyboardEvent): void {
 
 	event.preventDefault();
 
-	const next = tab.value === 'document' && directive.value !== undefined ? 'component' : 'document';
+	const next = tab.value === 'document' ? 'component' : 'document';
 
 	tab.value = next;
 	document.getElementById(`editor-tab-${next}`)?.focus();
@@ -1161,10 +1171,22 @@ function fieldKey(field: FieldDescription): string {
 					<AdminIcon name="image" />
 					<span class="visually-hidden">Insert media</span>
 				</button>
-				<button ref="iconButton" type="button" class="button button--ghost button--icon" :class="{ 'is-on': iconAnchor }" title="Icon" data-icon-toggle aria-haspopup="dialog" :aria-expanded="iconAnchor !== null" @click="toggleIcons">
+				<button type="button" class="button button--ghost button--icon" title="Icon" aria-haspopup="dialog" @click="openIcons">
 					<AdminIcon name="shapes" />
 					<span class="visually-hidden">Insert an icon</span>
 				</button>
+				<MenuButton v-if="inlineComponents.length" button-class="button button--ghost editor__wide" label="Insert an inline component" align="start" floating>
+					<template #button>
+						<AdminIcon name="baseline" /><AdminIcon name="chevron-down" class="editor__caret" />
+					</template>
+					<button v-for="component in inlineComponents" :key="component.name" type="button" class="menu-item menu-item--described" @click="chooseInline(component)">
+						<AdminIcon :name="componentIcon(component)" />
+						<span>
+							<span class="menu-item__name">{{ component.label }}<template v-if="component.source && component.source.kind !== 'site'"> · {{ component.source.label }}</template></span>
+							<span v-if="component.description" class="menu-item__text">{{ component.description }}</span>
+						</span>
+					</button>
+				</MenuButton>
 			</template>
 			<span v-else class="skeleton editor__where-skeleton" />
 			<span class="editor__grow" />
@@ -1285,7 +1307,7 @@ function fieldKey(field: FieldDescription): string {
 				<ComponentPanel
 					ref="panel"
 					v-model:query="panelQuery"
-					:components="available"
+					:components="blockComponents"
 					:failed="componentsFailed"
 					:slash="panelSlash"
 					@choose="chooseComponent"
@@ -1356,14 +1378,21 @@ function fieldKey(field: FieldDescription): string {
 
 			<aside id="editor-settings" class="editor__side" aria-label="Settings" :inert="!sideOpen">
 				<div class="editor__side-inner">
-					<div class="editor__tabs" role="tablist" aria-label="Settings" @keydown="tabKey">
-						<button id="editor-tab-document" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-document" :aria-selected="tab === 'document'" :tabindex="tab === 'document' ? 0 : -1" @click="tab = 'document'">
-							<AdminIcon name="file-text" />Document
-						</button>
-						<button id="editor-tab-component" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-component" :aria-selected="tab === 'component'" :tabindex="tab === 'component' ? 0 : -1" :disabled="!directive" @click="tab = 'component'">
-							<AdminIcon :name="selected ? componentIcon(selected) : 'code'" />
-							<template v-if="directive">{{ componentLabel(directive) }}<span class="editor__tab-kind mono">{{ directive.kind }}</span></template>
-							<template v-else>Component</template>
+					<div class="editor__tabs">
+						<div class="editor__tablist" role="tablist" aria-label="Settings" @keydown="tabKey">
+							<button id="editor-tab-document" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-document" :aria-selected="tab === 'document'" :tabindex="tab === 'document' ? 0 : -1" @click="tab = 'document'">
+								<AdminIcon name="file-text" />Document
+							</button>
+							<button id="editor-tab-component" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-component" :aria-selected="tab === 'component'" :tabindex="tab === 'component' ? 0 : -1" @click="tab = 'component'">
+								<AdminIcon :name="selected ? componentIcon(selected) : 'code'" />
+								<template v-if="directive">{{ componentLabel(directive) }}</template>
+								<template v-else>Components</template>
+								<span v-if="used.length" class="editor__tab-count mono"><span class="visually-hidden">(</span>{{ used.length }}<span class="visually-hidden"> in this {{ noun }})</span></span>
+							</button>
+						</div>
+						<button type="button" class="button button--ghost button--icon editor__side-close" @click="sideOpen = false">
+							<AdminIcon name="x" />
+							<span class="visually-hidden">Close the settings</span>
 						</button>
 					</div>
 
@@ -1390,20 +1419,6 @@ function fieldKey(field: FieldDescription): string {
 						<div v-if="fields.length" class="editor__group">
 							<p class="editor__group-heading">{{ typeInfo?.singular ?? humanize(entry.type.name) }} fields</p>
 							<FieldControl v-for="field in fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
-						</div>
-
-						<div class="editor__group">
-							<p class="editor__group-heading">Components in this {{ noun }}</p>
-							<p v-if="!used.length" class="field__help">None yet. Type <kbd>/</kbd> on an empty line, or use <strong>+</strong> in the header.</p>
-							<ul v-else class="editor__used">
-								<li v-for="item in used" :key="`${item.index}-${item.item.start}`">
-									<button type="button" class="editor__used-item" @click="openComponent(item.item)">
-										<AdminIcon :name="item.icon" />
-										<span class="editor__used-name">{{ item.label }}</span>
-										<span class="editor__used-hint">{{ item.hint }}</span>
-									</button>
-								</li>
-							</ul>
 						</div>
 
 						<div v-if="Object.keys(entry.extra).length" class="editor__group">
@@ -1438,21 +1453,34 @@ function fieldKey(field: FieldDescription): string {
 							:directive="directive"
 							:component="selected"
 							@edit="applyOption"
-							@jump="jumpTo(directive)"
 							@remove="removeComponent"
 							@pick="pickForOption"
 						/>
-						<div v-else class="empty">
+						<div v-else class="editor__none">
 							<AdminIcon name="code" />
-							<p class="empty__heading">No component selected</p>
-							<p class="empty__text">Put the cursor inside a component in the text, or pick one under Components on the Document tab.</p>
+							<p class="editor__none-heading">No component selected</p>
+							<p class="editor__none-text">Put the cursor inside one in the text, or pick it from the list below.</p>
+						</div>
+
+						<div class="editor__group">
+							<p class="editor__group-heading">Components in this {{ noun }}</p>
+							<p v-if="!used.length" class="field__help">None yet. Use <strong>+</strong> in the header, or type <kbd>/</kbd> at the start of a line.</p>
+							<ul v-else class="editor__used">
+								<li v-for="item in used" :key="`${item.index}-${item.item.start}`">
+									<button type="button" class="editor__used-item" :class="{ 'is-current': directive === item.item }" :aria-current="directive === item.item ? 'true' : undefined" @click="openComponent(item.item)">
+										<AdminIcon :name="item.icon" />
+										<span class="editor__used-name">{{ item.label }}</span>
+										<span class="editor__used-hint">{{ item.hint }}</span>
+									</button>
+								</li>
+							</ul>
 						</div>
 					</div>
 				</div>
 			</aside>
 		</div>
 
-		<IconPicker v-if="iconAnchor" :anchor="iconAnchor" :preview="iconPreview" @choose="chooseIcon" @close="closeIcons" />
+		<IconPicker v-if="iconsOpen" :preview="iconPreview" @choose="chooseIcon" @close="closeIcons" />
 		<MediaPicker v-if="picking" :entry="entry?.id" :title="picking.title" :action="picking.action" @choose="picked" @close="picking = null" />
 	</section>
 </template>
@@ -1475,11 +1503,41 @@ function fieldKey(field: FieldDescription): string {
 	display: flex;
 	flex: none;
 	align-items: center;
-	gap: 6px;
-	padding: 8px 14px;
+	gap: 10px;
+	min-height: 68px;
+	padding: var(--s-3) var(--s-5);
 	border-bottom: 1px solid var(--border);
 	background: var(--surface);
 	transition: opacity 250ms ease;
+}
+
+/* The most used toolbar in the admin: bigger targets, further apart. */
+.editor__head :deep(.button--icon) {
+	width: 36px;
+	height: 36px;
+}
+
+.editor__head :deep(.button--icon svg) {
+	width: 18px;
+	height: 18px;
+}
+
+/* The inline menu's button carries a caret, so it reads as a menu. */
+.editor__head :deep(.editor__wide) {
+	gap: 2px;
+	height: 36px;
+	padding: 0 7px 0 9px;
+}
+
+.editor__head :deep(.editor__wide svg) {
+	width: 18px;
+	height: 18px;
+}
+
+.editor__head :deep(.editor__wide .editor__caret) {
+	width: 12px;
+	height: 12px;
+	color: var(--fg-3);
 }
 
 .editor__head .is-on {
@@ -1536,8 +1594,8 @@ function fieldKey(field: FieldDescription): string {
 .editor__divider {
 	flex: none;
 	width: 1px;
-	height: 18px;
-	margin: 0 2px;
+	height: 22px;
+	margin: 0 var(--s-1);
 	background: var(--border);
 }
 
@@ -1559,8 +1617,8 @@ function fieldKey(field: FieldDescription): string {
 	display: flex;
 	flex: none;
 	align-items: center;
-	gap: 10px;
-	padding: 8px 14px;
+	gap: var(--s-3);
+	padding: 12px var(--s-5);
 	border-bottom: 1px solid var(--border);
 	background: var(--warn-soft);
 	color: var(--warn);
@@ -1597,7 +1655,7 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__notice--conflict {
 	align-items: flex-start;
-	padding-block: 11px;
+	padding-block: 15px;
 	border-bottom-color: var(--border-strong);
 	background: var(--surface-2);
 	color: var(--fg);
@@ -1655,7 +1713,7 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__doc {
 	max-width: 100%;
-	padding: 38px max(20px, calc((100% - var(--measure)) / 2)) 40vh;
+	padding: clamp(var(--s-6), 7vh, 72px) max(var(--s-5), calc((100% - var(--measure)) / 2)) 40vh;
 }
 
 .editor__title {
@@ -1671,7 +1729,7 @@ function fieldKey(field: FieldDescription): string {
 	font-family: var(--font-display);
 	font-size: var(--doc-title);
 	font-weight: 600;
-	letter-spacing: -.026em;
+	letter-spacing: -.028em;
 	line-height: 1.18;
 	overflow-wrap: break-word;
 	resize: none;
@@ -1694,14 +1752,14 @@ function fieldKey(field: FieldDescription): string {
 }
 
 .editor__body-text {
-	margin-top: 36px;
+	margin-top: var(--s-6);
 }
 
 .editor__title-skeleton {
 	display: block;
 	width: 60%;
-	height: 36px;
-	margin-bottom: 36px;
+	height: 40px;
+	margin-bottom: var(--s-6);
 }
 
 .editor__body-skeleton {
@@ -1714,8 +1772,8 @@ function fieldKey(field: FieldDescription): string {
 	flex: none;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px;
-	padding: 7px 14px;
+	gap: var(--s-2);
+	padding: 11px var(--s-5);
 	border-top: 1px solid var(--border);
 	background: var(--surface);
 	color: var(--fg-3);
@@ -1823,26 +1881,37 @@ function fieldKey(field: FieldDescription): string {
 	overflow-y: auto;
 }
 
+/*
+ * The tabs sit left, flush with the drawer's edge (the first one's own
+ * padding lines its label up with the fields below), and the close
+ * button sits right.
+ */
 .editor__tabs {
 	position: sticky;
 	top: 0;
 	z-index: 2;
 	display: flex;
-	gap: 2px;
-	padding: 0 8px;
+	align-items: center;
+	gap: var(--s-1);
+	padding-right: var(--s-3);
 	border-bottom: 1px solid var(--border);
 	background: var(--surface);
 }
 
-.editor__tab {
+.editor__tablist {
 	display: flex;
 	flex: 1;
+	gap: var(--s-1);
+	min-width: 0;
+}
+
+.editor__tab {
+	display: flex;
 	align-items: center;
-	justify-content: center;
-	gap: 6px;
+	gap: 7px;
 	min-width: 0;
 	margin-bottom: -1px;
-	padding: 10px 8px 8px;
+	padding: 16px 12px 13px;
 	border: 0;
 	border-bottom: 2px solid transparent;
 	background: none;
@@ -1852,13 +1921,17 @@ function fieldKey(field: FieldDescription): string {
 	cursor: pointer;
 }
 
+.editor__tab:first-child {
+	padding-left: var(--s-5);
+}
+
 .editor__tab svg {
 	flex: none;
 	width: 13px;
 	height: 13px;
 }
 
-.editor__tab:hover:not(:disabled) {
+.editor__tab:hover {
 	color: var(--fg);
 }
 
@@ -1868,26 +1941,56 @@ function fieldKey(field: FieldDescription): string {
 	font-weight: 500;
 }
 
-.editor__tab:disabled {
+.editor__tab-count {
+	padding: 1px 6px;
+	border-radius: 99px;
+	background: var(--surface-2);
 	color: var(--fg-3);
-	opacity: .55;
-	cursor: default;
+	font-size: var(--text-2xs);
+	font-weight: 400;
 }
 
-.editor__tab-kind {
-	padding: 0 4px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	color: var(--fg-3);
-	font-size: var(--text-xs);
-	font-weight: 400;
+.editor__side-close {
+	flex: none;
 }
 
 .editor__group {
 	display: grid;
-	gap: 11px;
-	padding: 13px 14px;
+	gap: var(--s-4);
+	padding: var(--s-5);
 	border-bottom: 1px solid var(--border);
+}
+
+/* The Component tab with nothing selected says so, over the list. */
+.editor__none {
+	display: grid;
+	justify-items: center;
+	gap: 6px;
+	padding: 52px var(--s-5) 46px;
+	border-bottom: 1px solid var(--border);
+	color: var(--fg-2);
+	text-align: center;
+}
+
+.editor__none svg {
+	width: 22px;
+	height: 22px;
+	margin-bottom: 6px;
+	color: var(--fg-3);
+}
+
+.editor__none-heading {
+	color: var(--fg);
+	font-family: var(--font-display);
+	font-size: var(--h2);
+	font-weight: 600;
+}
+
+.editor__none-text {
+	max-width: 34ch;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	line-height: 1.6;
 }
 
 .editor__group-heading {
@@ -1916,7 +2019,7 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__used {
 	display: grid;
-	gap: 2px;
+	gap: 3px;
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -1925,9 +2028,9 @@ function fieldKey(field: FieldDescription): string {
 .editor__used-item {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--s-2);
 	width: 100%;
-	padding: 5px 7px;
+	padding: 8px 10px;
 	border: 0;
 	border-radius: var(--r-1);
 	background: none;
@@ -1940,6 +2043,11 @@ function fieldKey(field: FieldDescription): string {
 .editor__used-item:hover {
 	background: var(--surface-2);
 	color: var(--fg);
+}
+
+.editor__used-item.is-current {
+	background: var(--accent-soft);
+	color: var(--accent);
 }
 
 .editor__used-item svg {
@@ -2136,7 +2244,7 @@ function fieldKey(field: FieldDescription): string {
 
 @media (width <= 760px) {
 	.editor__doc {
-		padding: 26px 16px 40vh;
+		padding: var(--s-5) var(--s-4) 40vh;
 	}
 
 	.editor__where,
@@ -2146,7 +2254,12 @@ function fieldKey(field: FieldDescription): string {
 
 	.editor__head {
 		gap: 2px;
-		padding-inline: 8px;
+		padding-inline: var(--s-2);
+	}
+
+	.editor__head :deep(.button--icon) {
+		width: var(--ctl);
+		height: var(--ctl);
 	}
 }
 

@@ -8,7 +8,14 @@
  * applies; a required one left empty stays, empty. A component that
  * takes a line of text has it here too, as its `[label]`.
  *
+ * A component with variants (D-266) has a Variant select first, since
+ * the variant usually changes what the options mean. Default writes no
+ * attribute; any other writes `variant=name`. A variant the component
+ * doesn't have (another theme's, say) is kept and shown as such.
+ *
  * A media option has **Choose**, which opens the media picker (D-247).
+ * There's no button to go to the component in the text: the caret is
+ * already in it (D-265).
  *
  * Attributes the component doesn't declare (a class, an id, anything
  * else) are listed as written. A component that isn't in the list (not
@@ -30,7 +37,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
 	edit: [edit: Edit];
-	jump: [];
 	remove: [];
 	// A media option's Choose button: the editor opens the media picker.
 	pick: [prop: ComponentProp];
@@ -43,8 +49,21 @@ const attributes = computed(() => attributesOf(props.source, props.directive));
 const options = computed(() => (props.component?.props ?? []).filter((prop) => prop.name !== 'label'));
 const takesText = computed(() => props.component?.content === 'text' || head.value.label !== null);
 
+const variants = computed(() => props.component?.variants ?? []);
+const variant  = computed(() => attributes.value.variant ?? '');
+const chosen   = computed(() => variants.value.find((item) => item.name === variant.value));
+
+function changeVariant(event: Event): void {
+	const value = (event.target as HTMLSelectElement).value;
+	const edit  = withAttribute(props.source, props.directive, 'variant', value === '' || value === 'default' ? null : value);
+
+	if (edit !== null) {
+		emit('edit', edit);
+	}
+}
+
 const others = computed(() => {
-	const known = new Set(options.value.map((prop) => prop.name));
+	const known = new Set([...options.value.map((prop) => prop.name), ...(variants.value.length ? ['variant'] : [])]);
 
 	return Object.entries(attributes.value).filter(([name]) => !known.has(name));
 });
@@ -96,15 +115,27 @@ const removal = computed(() => {
 
 <template>
 	<div class="options">
-		<div class="options__group">
+		<div v-if="component?.description || !component" class="options__group">
 			<p v-if="component?.description" class="options__note">{{ component.description }}</p>
-			<p v-else-if="!component" class="options__note">
+			<p v-else class="options__note">
 				<code>{{ directive.name }}</code> isn't in the list of components this site offers, so its options can't be shown here. Edit it in the text.
 			</p>
-			<div>
-				<button type="button" class="button button--small" @click="emit('jump')">
-					<AdminIcon name="arrow-down" />Go to it in the text
-				</button>
+		</div>
+
+		<div v-if="variants.length" class="options__group">
+			<p class="options__heading">Variant</p>
+			<div class="field">
+				<label class="visually-hidden" for="option-variant">Variant</label>
+				<select id="option-variant" :value="variant === 'default' ? '' : variant" aria-describedby="option-variant-help" @change="changeVariant">
+					<option value="">Default</option>
+					<option v-for="item in variants" :key="item.name" :value="item.name">{{ item.label }}<template v-if="item.source && item.source.kind !== 'site'"> ({{ item.source.label }})</template></option>
+					<option v-if="variant !== '' && variant !== 'default' && !chosen" :value="variant">{{ variant }} (not available here)</option>
+				</select>
+				<p id="option-variant-help" class="field__help">
+					<template v-if="chosen">{{ chosen.description || 'A style the theme provides.' }}</template>
+					<template v-else-if="variant !== '' && variant !== 'default'">This site's theme doesn't have it, so it shows as Default.</template>
+					<template v-else>The theme's own styling for this component.</template>
+				</p>
 			</div>
 		</div>
 
@@ -154,8 +185,8 @@ const removal = computed(() => {
 <style scoped>
 .options__group {
 	display: grid;
-	gap: 11px;
-	padding: 13px 14px;
+	gap: var(--s-4);
+	padding: var(--s-5);
 	border-bottom: 1px solid var(--border);
 }
 
@@ -175,7 +206,7 @@ const removal = computed(() => {
 
 .options__source {
 	margin: 0;
-	padding: 7px 8px;
+	padding: 9px 11px;
 	overflow-x: auto;
 	border: 1px solid var(--border);
 	border-radius: var(--r-1);

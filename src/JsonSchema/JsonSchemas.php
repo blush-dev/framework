@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\JsonSchema;
 
 use JsonException;
+use Blush\Component\ComponentName;
+use Blush\Component\Variant;
 use Blush\Content\EntryFields;
 use Blush\Content\Schema\FieldType;
 use Blush\Core\Framework;
@@ -165,6 +167,28 @@ final readonly class JsonSchemas
 						'items'       => ['$ref' => '#/definitions/regionItem']
 					]
 				]),
+				'variants'    => [
+					'type'                 => 'object',
+					'description'          => 'Variants the theme adds to components, by component name (such as "callout" or "notebook/card"). Their labels and descriptions are in the theme\'s lang/ catalog, under components.{name}.variants.{variant}.',
+					'propertyNames'        => ['pattern' => '^' . ComponentName::SYNTAX . '$'],
+					'additionalProperties' => [
+						'type'  => 'array',
+						'items' => [
+							'oneOf' => [
+								['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'not' => ['const' => Variant::DEFAULT], 'description' => 'The variant\'s name: lowercase letters, digits, and hyphens. Its class is component-{name}--{variant}.'],
+								[
+									'type'                 => 'object',
+									'required'             => ['name'],
+									'additionalProperties' => false,
+									'properties'           => [
+										'name'     => ['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'not' => ['const' => Variant::DEFAULT], 'description' => 'The variant\'s name.'],
+										'modifier' => ['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'description' => 'The class modifier to add instead of the name: component-{name}--{modifier}.']
+									]
+								]
+							]
+						]
+					]
+				],
 				'requires'    => $this->requires('What the theme needs, such as {"blush": "^2.0"}. Not checked yet.')
 			],
 			'definitions' => [
