@@ -11,6 +11,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
+import TypeIcon from './TypeIcon.vue';
 import StatusPill from './StatusPill.vue';
 import { ApiError, entryRoute, request, type EntryList, type EntrySummary } from '../api';
 import { colorScheme, saveColorScheme } from '../color-scheme';
@@ -231,7 +232,8 @@ const commandCount = computed(() => commands.value.length);
 					@pointermove="active = commandCount + index"
 					@click="run(rows[commandCount + index])"
 				>
-					<AdminIcon :name="findType(entry.type) ? typeIcon(findType(entry.type)!) : 'file-text'" />
+					<TypeIcon v-if="findType(entry.type)" :type="findType(entry.type)!" />
+					<AdminIcon v-else name="file-text" />
 					<span class="palette__title">{{ entry.title || 'Untitled' }}</span>
 					<span class="palette__type">{{ findType(entry.type)?.singular ?? entry.type }}</span>
 					<StatusPill :status="entry.status" />

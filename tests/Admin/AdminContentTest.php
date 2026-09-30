@@ -211,9 +211,53 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(array_fill(0, count($pages), null), array_column($pages, 'uses'), 'Only terms have uses.');
 	}
 
+	public function testNamesTheEntriesAboveAnEntry(): void
+	{
+		$this->writeTemporaryFile('user/content/guides/index.md', "---\ntitle: Guides\n---\n");
+		$this->writeTemporaryFile('user/content/guides/setup/index.md', "---\ntitle: Setup\n---\n");
+		$this->writeTemporaryFile('user/content/guides/setup/install.md', "---\ntitle: Install\n---\n");
+		$this->site(['editor']);
+
+		$ancestors = array_column($this->listed('?type=page&search=guides'), 'ancestors', 'title');
+
+		$this->assertSame(['Guides' => [], 'Setup' => ['Guides'], 'Install' => ['Guides', 'Setup']], array_intersect_key($ancestors, ['Guides' => true, 'Setup' => true, 'Install' => true]));
+	}
+
+	public function testListsNestingTypesAsATree(): void
+	{
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics", "hierarchical": true}');
+		$this->writeTemporaryFile('user/content/topics/book-reviews.md', "---\ntitle: Book Reviews\nparent: books\n---\n");
+		$this->writeTemporaryFile('user/content/topics/zoo.md', "---\ntitle: Zoo\nparent: art\n---\n");
+		$this->writeTemporaryFile('user/content/topics/books.md', "---\ntitle: Books\n---\n");
+		$this->writeTemporaryFile('user/content/topics/art.md', "---\ntitle: Art\n---\n");
+		$this->writeTemporaryFile('user/content/topics/orphan.md', "---\ntitle: Orphan\nparent: gone\n---\n");
+		$this->site(['editor']);
+
+		$this->assertSame(['Art', 'Zoo', 'Books', 'Book Reviews', 'Orphan'], array_column($this->listed('?type=topic'), 'title'));
+		$this->assertSame([0, 1, 0, 1, 0], array_column($this->listed('?type=topic'), 'depth'), 'An orphan sits at the top.');
+
+		$page = $this->list('?type=topic&per=2&page=2');
+
+		$this->assertIsArray($page['entries'] ?? null);
+		$this->assertSame(['Books', 'Book Reviews'], array_column($page['entries'], 'title'));
+		$this->assertSame([5, 3], [$page['total'] ?? null, $page['pages'] ?? null]);
+		$this->assertSame([false, false], array_column($page['entries'], 'continued'), 'A page that starts at the top needs nothing above it.');
+
+		$page = $this->list('?type=topic&per=3&page=2');
+
+		$this->assertIsArray($page['entries'] ?? null);
+		$this->assertSame(['Books', 'Book Reviews', 'Orphan'], array_column($page['entries'], 'title'), 'A page inside a branch starts with its parent.');
+		$this->assertSame([true, false, false], array_column($page['entries'], 'continued'));
+		$this->assertSame([5, 2], [$page['total'] ?? null, $page['pages'] ?? null], 'Continued entries aren\'t counted again.');
+		$this->assertSame([1, 0, 0], array_column($page['entries'], 'children'));
+		$this->assertSame(['Book Reviews', 'Books'], array_column($this->listed('?type=topic&search=book'), 'title'), 'A search keeps the usual order.');
+		$this->assertSame([null, null], array_column($this->listed('?type=topic&search=book'), 'depth'), 'Only a tree has depths.');
+		$this->assertSame([null, null], array_column($this->listed('?type=topic&search=book'), 'children'));
+	}
+
 	public function testDescribesTheContentTypes(): void
 	{
-		$this->writeTemporaryFile('user/data/types/genre.json', '{"taxonomy": true, "types": ["page"]}');
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"taxonomy": true, "types": ["page"], "hierarchical": true, "description": "Kinds of writing.", "icon": "book-open"}');
 		$this->site(['author']);
 
 		$types = self::json($this->send('GET', '/types'))['types'] ?? null;
@@ -229,12 +273,14 @@ final class AdminContentTest extends TestCase
 		$genre = array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === 'genre');
 
 		$this->assertIsArray($genre);
-		$this->assertSame(['data', 'genre', '/genre'], [$genre['origin'] ?? null, $genre['folder'] ?? null, $genre['prefix'] ?? null]);
+		$this->assertSame(['data', '_genre', '/genre'], [$genre['origin'] ?? null, $genre['folder'] ?? null, $genre['prefix'] ?? null]);
+		$this->assertSame(['Kinds of writing.', 'book-open', true], [$genre['description'] ?? null, $genre['icon'] ?? null, $genre['hierarchical'] ?? null]);
 
 		$last = end($types);
 
 		$this->assertIsArray($last);
 		$this->assertSame('taxonomy', $last['kind'] ?? null, 'Taxonomies come last.');
+		$this->assertSame('author', self::json($this->send('GET', '/types'))['authors'] ?? null);
 	}
 
 	public function testDescribesTheComponentsTheInserterOffers(): void

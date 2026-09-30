@@ -51,6 +51,29 @@ interface ContentRepository extends QueryRunner
 	public function term(string $taxonomy, string $slug): ?Entry;
 
 	/**
+	 * Returns the key of an entry's parent, by the entry's type and key,
+	 * when the parent has a file (in the site's locale unless another is
+	 * given); `null` otherwise. Cheaper than `parent()` when only the key
+	 * is needed, such as for a hierarchical term's URL.
+	 */
+	public function parentKey(string $type, string $key, ?string $locale = null): ?string;
+
+	/**
+	 * Returns an entry's parent in its own type (see
+	 * `ContentType::parentKey()`), whatever its status, or `null` when it
+	 * has none or the parent has no file.
+	 */
+	public function parent(Entry $entry): ?Entry;
+
+	/**
+	 * Returns the entries whose parent is this one, whatever their
+	 * status, by title.
+	 *
+	 * @return list<Entry>
+	 */
+	public function children(Entry $entry): array;
+
+	/**
 	 * Returns how many listed entries reference each term of a taxonomy,
 	 * by slug, including virtual terms.
 	 *

@@ -59,8 +59,20 @@ abstract readonly class ContentType
 	public string $singular;
 
 	/**
+	 * What the type is for, in a sentence, such as the admin's empty
+	 * list; `''` for none.
+	 */
+	public string $description;
+
+	/**
+	 * The name of an icon the admin shows the type with (an `icon`
+	 * component name, such as `film`), or `null` for its kind's.
+	 */
+	public ?string $icon;
+
+	/**
 	 * @param  string            $name         Lowercase letters, digits, and underscores.
-	 * @param  ?string           $folder       Defaults to the name.
+	 * @param  ?string           $folder       Defaults to `_` and the name.
 	 * @param  bool              $public       Whether the type is public at all.
 	 * @param  TypeUrls|false    $urls         URL settings, or `false` for no routes.
 	 * @param  Listing           $listing      How the type's listing page lists entries.
@@ -71,6 +83,8 @@ abstract readonly class ContentType
 	 * @param  bool              $closed       Whether undeclared front matter is an error.
 	 * @param  ?string           $label        Defaults to the singular made plural.
 	 * @param  ?string           $singular     Defaults to the name made readable.
+	 * @param  string            $description  What the type is for, in a sentence.
+	 * @param  ?string           $icon         An icon name for the admin.
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -85,7 +99,9 @@ abstract readonly class ContentType
 		iterable $fields,
 		bool $closed,
 		?string $label = null,
-		?string $singular = null
+		?string $singular = null,
+		string $description = '',
+		?string $icon = null
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -100,9 +116,11 @@ abstract readonly class ContentType
 			throw new InvalidContentType(sprintf('Content type "%s" has invalid fields: %s', $name, $e->getMessage()), previous: $e);
 		}
 
-		$this->folder   = self::normalizeFolder($folder ?? $name, $name);
-		$this->singular = $singular ?? self::readable($name);
-		$this->label    = $label ?? self::plural($this->singular);
+		$this->folder      = self::normalizeFolder($folder ?? self::defaultFolder($name), $name);
+		$this->singular    = $singular ?? self::readable($name);
+		$this->label       = $label ?? self::plural($this->singular);
+		$this->description = trim($description);
+		$this->icon        = $icon === null || trim($icon) === '' ? null : trim($icon);
 	}
 
 	/**
@@ -112,11 +130,16 @@ abstract readonly class ContentType
 
 	/**
 	 * Returns the URL prefix, without slashes: the URLs' prefix, or the
-	 * folder when there isn't one. Types without URLs have none.
+	 * folder without the `_` that starts its folder names (`_posts` is
+	 * `posts`) when there isn't one. Types without URLs have none.
 	 */
 	public function prefix(): string
 	{
-		return $this->urls === false ? '' : ($this->urls->prefix ?? $this->folder);
+		if ($this->urls === false) {
+			return '';
+		}
+
+		return $this->urls->prefix ?? implode('/', array_map(static fn (string $segment): string => ltrim($segment, '_'), explode('/', $this->folder)));
 	}
 
 	/**
@@ -168,6 +191,18 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns the key of an entry's parent in this type, from its key and
+	 * normalized front matter, or `null` when it has none. Only pages and
+	 * hierarchical taxonomies nest.
+	 *
+	 * @param array<string, mixed> $values
+	 */
+	public function parentKey(string $key, array $values): ?string
+	{
+		return null;
+	}
+
+	/**
 	 * Returns the field other entries reference this type's entries
 	 * through, or `null` for a type that isn't a taxonomy.
 	 */
@@ -208,14 +243,16 @@ abstract readonly class ContentType
 		try {
 			$schema = $fields->schema($definition->maps('fields'), $definition->bool('closed'));
 			$common = [
-				'name'    => $name,
-				'folder'  => $definition->nullableString('folder'),
-				'public'  => $definition->bool('public', true),
-				'sitemap' => $definition->bool('sitemap', true),
-				'fields'   => array_values($schema->fields),
-				'closed'   => $schema->closed,
-				'label'    => $definition->nullableString('label'),
-				'singular' => $definition->nullableString('singular')
+				'name'        => $name,
+				'folder'      => $definition->nullableString('folder'),
+				'public'      => $definition->bool('public', true),
+				'sitemap'     => $definition->bool('sitemap', true),
+				'fields'      => array_values($schema->fields),
+				'closed'      => $schema->closed,
+				'label'       => $definition->nullableString('label'),
+				'singular'    => $definition->nullableString('singular'),
+				'description' => $definition->nullableString('description') ?? '',
+				'icon'        => $definition->nullableString('icon')
 			];
 
 			if ($kind === TypeKind::Pages) {
@@ -236,7 +273,8 @@ abstract readonly class ContentType
 					'types'       => $definition->strings('types'),
 					'field'       => $definition->nullableString('field'),
 					'aliases'     => $definition->strings('aliases'),
-					'termListing' => Listing::fromArray($definition->map('termListing'), sprintf('Content type "%s" termListing', $name))
+					'termListing'  => Listing::fromArray($definition->map('termListing'), sprintf('Content type "%s" termListing', $name)),
+					'hierarchical' => $definition->bool('hierarchical')
 				])
 			};
 		} catch (InvalidSchema $e) {
@@ -253,16 +291,18 @@ abstract readonly class ContentType
 	public function toArray(): array
 	{
 		$data = [
-			'name'    => $this->name,
-			'kind'    => $this->kind()->value,
-			'folder'  => $this->folder === $this->name ? null : $this->folder,
-			'urls'    => $this->urls === false ? false : ($this->urls->toArray() ?: null),
-			'listing' => $this->listing->toArray(),
-			'feed'    => $this->feed === false ? null : ($this->feed->toArray() ?: true),
-			'public'  => $this->public ? null : false,
-			'sitemap' => $this->sitemap ? null : false,
-			'label'    => $this->label === self::plural($this->singular) ? null : $this->label,
-			'singular' => $this->singular === self::readable($this->name) ? null : $this->singular,
+			'name'        => $this->name,
+			'kind'        => $this->kind()->value,
+			'folder'      => $this->folder === self::defaultFolder($this->name) ? null : $this->folder,
+			'urls'        => $this->urls === false ? false : ($this->urls->toArray() ?: null),
+			'listing'     => $this->listing->toArray(),
+			'feed'        => $this->feed === false ? null : ($this->feed->toArray() ?: true),
+			'public'      => $this->public ? null : false,
+			'sitemap'     => $this->sitemap ? null : false,
+			'label'       => $this->label === self::plural($this->singular) ? null : $this->label,
+			'singular'    => $this->singular === self::readable($this->name) ? null : $this->singular,
+			'description' => $this->description === '' ? null : $this->description,
+			'icon'        => $this->icon,
 			...$this->options(),
 			...$this->schema->toArray()
 		];
@@ -280,6 +320,16 @@ abstract readonly class ContentType
 	protected function options(): array
 	{
 		return [];
+	}
+
+	/**
+	 * Returns the folder a type has when it doesn't name one: `_` and its
+	 * name, so type folders stand apart from the page folders beside them
+	 * in the content root. The page type overrides it with the root.
+	 */
+	private static function defaultFolder(string $name): string
+	{
+		return "_{$name}";
 	}
 
 	/**

@@ -62,7 +62,8 @@ final readonly class FeedController
 		if ($name === null) {
 			$feed = $this->builder->collection($contentType, $feedFormat);
 		} else {
-			$term = $contentType instanceof Taxonomy ? $this->content->term($contentType->name, $name) : null;
+			// A hierarchical term's `{name}` is its path; the term is its last slug.
+			$term = $contentType instanceof Taxonomy ? $this->content->term($contentType->name, basename($name)) : null;
 
 			if ($term === null || ! $term->isPublished() || ! $term->isRoutable()) {
 				throw new NotFound(sprintf('There is no "%s" term "%s".', $type, $name));

@@ -66,6 +66,15 @@ export interface EntrySummary {
 	can: { delete: boolean };
 	// For a term, how many published entries use it; else `null` (D-236).
 	uses: number | null;
+	// The titles of the entries above it, from the top down: a page's
+	// folders' pages, or a hierarchical term's parents.
+	ancestors: string[];
+	// In a tree-ordered list: its depth (0 at the top) and how many
+	// children it has; else `null` (D-262). `continued` marks an entry
+	// heading a later page for the entries under it (D-263).
+	depth: number | null;
+	children: number | null;
+	continued: boolean;
 }
 
 export type EntryStatus = 'draft' | 'scheduled' | 'published';
@@ -94,7 +103,7 @@ export interface EntryList {
 	per: number;
 	entries: EntrySummary[];
 	// The type's index page, when the filters find it: not one of the
-	// entries or the total, and on every page (D-255).
+	// entries or the total, and on the first page only (D-255, D-264).
 	index: EntrySummary | null;
 }
 
@@ -102,10 +111,16 @@ export interface ContentTypeSummary {
 	name: string;
 	label: string;
 	singular: string;
+	// What it's for, in a sentence; `''` for none.
+	description: string;
+	// A site icon's name to show it with, or `null` for its kind's.
+	icon: string | null;
 	kind: 'collection' | 'taxonomy' | 'pages';
 	dated: boolean;
-	// A taxonomy's: the types its terms group, empty for every type.
+	// A taxonomy's: the types its terms group, empty for every type, and
+	// whether a term may have a parent.
 	types?: string[];
+	hierarchical?: boolean;
 	// Where it was defined, its folder, its URL prefix (`null` without
 	// URLs), and how many fields it defines (D-250).
 	origin: 'built-in' | 'extension' | 'config' | 'data';

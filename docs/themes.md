@@ -221,6 +221,9 @@ What a template can use:
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](components.md#icons)) |
 | `$template->permalink($entry)` | An entry's URL |
 | `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
+| `$template->parent($entry)` | A page's parent page (from its folder) or a term's parent term, if published |
+| `$template->ancestors($entry)` | Its parents from the top down, for breadcrumbs |
+| `$template->children($entry)` | A page's subpages or a term's child terms, published, by title |
 | `$template->date($entry->published)` | A date, formatted for the site's locale |
 | `$template->setting('name')` | A theme setting |
 | `$template->asset('app.js')` | A theme file's URL, versioned |

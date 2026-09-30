@@ -25,6 +25,11 @@ use Blush\Http\NotFound;
  * the entries that reference it. The entries are those of the
  * taxonomy's `types` (every type when empty), listed by its `termListing`
  * and the term's own `collection` front matter.
+ *
+ * A hierarchical taxonomy's `{name}` is the term's path
+ * (`web/web-design/css`, D-260): the term is its last slug, and any other
+ * path to it, such as a flat 1.x URL or one from before it moved,
+ * redirects to its own.
  */
 final class TermController extends ContentController
 {
@@ -35,7 +40,7 @@ final class TermController extends ContentController
 	public function __invoke(ServerRequestInterface $request, string $type, string $name, int $page = 1): ResponseInterface
 	{
 		$taxonomy = $this->type($type);
-		$term     = $taxonomy instanceof Taxonomy ? $this->visible($this->content->term($taxonomy->name, $name)) : null;
+		$term     = $taxonomy instanceof Taxonomy ? $this->visible($this->content->term($taxonomy->name, basename($name))) : null;
 
 		if ($term === null) {
 			throw new NotFound(sprintf('There is no "%s" term "%s".', $type, $name));
@@ -43,6 +48,12 @@ final class TermController extends ContentController
 
 		if ($page === 1 && self::isPaged($request)) {
 			return self::redirect($request, $this->urls->term($taxonomy, $term->slug) ?? '/');
+		}
+
+		$url = $this->urls->term($taxonomy, $term->slug, $page);
+
+		if ($url !== null && $url !== $request->getUri()->getPath()) {
+			return self::redirect($request, $url);
 		}
 
 		$query = $this->query($taxonomy->termArguments(), self::collectionArguments($term))->whereTerm($taxonomy->name, $term->slug);

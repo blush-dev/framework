@@ -25,7 +25,8 @@ use Blush\Content\Type\Taxonomy;
  * nothing. With an entry, two more rules apply:
  *
  * - **Ownership:** an entry is the account's own when it credits the
- *   account's author (its `authors`). For any other entry, the account
+ *   account's author (its `authors`), and so is that author's own entry,
+ *   the account's public name and bio. For any other entry, the account
  *   also needs the capability's `.others` form (`content.edit.others`).
  *   An account with no author owns nothing.
  * - **Live entries:** editing or deleting an entry that isn't a draft
@@ -88,6 +89,7 @@ final readonly class Permissions
 
 		if ($own !== [] && $author !== null && $this->types->find($taxonomy) instanceof Taxonomy) {
 			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->whereTerm($taxonomy, $author);
+			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->type($taxonomy)->names($author);
 		}
 
 		return $query->either(...$alternatives);
@@ -116,11 +118,14 @@ final readonly class Permissions
 	}
 
 	/**
-	 * Whether the entry credits the account's author.
+	 * Whether the entry credits the account's author, or is that author.
 	 */
 	public function owns(Account $account, Entry $entry): bool
 	{
-		return $account->author !== null && $entry->hasTerm($this->config->authorTaxonomy, $account->author);
+		return $account->author !== null && (
+			$entry->hasTerm($this->config->authorTaxonomy, $account->author)
+			|| ($entry->type->name === $this->config->authorTaxonomy && $entry->key === $account->author)
+		);
 	}
 
 	/**

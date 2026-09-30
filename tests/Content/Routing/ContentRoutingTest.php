@@ -27,11 +27,13 @@ use Blush\Content\Http\SingleController;
 use Blush\Content\Http\TermController;
 use Blush\Content\Routing\ContentRedirects;
 use Blush\Content\Routing\ContentRoutes;
+use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Routing\DataRedirects;
 use Blush\Content\Routing\PageRoutes;
 use Blush\Content\Routing\RefreshRouteCache;
 use Blush\Console\Console;
 use Blush\Console\Testing\CommandTester;
+use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
 use Blush\Core\Bootstrap;
@@ -185,6 +187,39 @@ final class ContentRoutingTest extends TestCase
 		$this->assertPage('/topics/art/page/2', 404);
 		$this->assertPage('/topics/unused', 404);
 		$this->assertPage('/authors/justintadlock', 200, 'justintadlock', ['/archives/2003/04/15/welcome', '/archives/2008/04/05/spring']);
+	}
+
+	public function testHierarchicalTermsHaveNestedUrls(): void
+	{
+		$this->contentConfig([
+			'types' => [
+				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
+				'category' => ['path' => 'topics', 'taxonomy' => true, 'hierarchical' => true, 'term_collect' => 'post', 'feed' => true]
+			]
+		]);
+		$this->entry('topics/painting.md', "title: Painting\nparent: art");
+		$this->entry('topics/oils.md', "title: Oils\nparent: painting");
+		$this->entry('topics/page.md', "title: Page\nparent: art");
+		$this->entry('_posts/2010-02-02.canvas.md', "title: Canvas\ncategory: oils");
+
+		$this->app = $this->site();
+		$urls      = $this->app->container()->make(ContentUrls::class);
+		$category  = $this->app->container()->make(ContentTypes::class)->get('category');
+
+		$this->assertSame('/topics/art/painting/oils', $urls->term($category, 'oils'));
+		$this->assertSame('/topics/art/painting/oils/page/2', $urls->term($category, 'oils', 2));
+		$this->assertSame('/topics/art/painting/oils/feed', $urls->feed($category, 'collection.feed', 'oils'));
+		$this->assertSame('/topics/book-reviews', $urls->term($category, 'book-reviews'), 'A virtual term has no parent.');
+		$this->assertNull($urls->term($category, 'page'), 'A child term slugged "page" has no URL.');
+
+		$this->assertPage('/topics/art/painting/oils', 200, 'Oils', ['/archives/canvas']);
+		$this->assertPage('/topics/art/painting', 200, 'Painting', []);
+		$this->assertPage('/topics/oils', 301, '/topics/art/painting/oils');
+		$this->assertPage('/topics/painting/oils', 301, '/topics/art/painting/oils');
+		$this->assertPage('/topics/art/painting/oils/page/1', 301, '/topics/art/painting/oils');
+		$this->assertPage('/topics/art/painting/oils/page/2', 404);
+		$this->assertSame(200, $this->get('/topics/art/painting/oils/feed')->getStatusCode());
+		$this->assertStringContainsString('<title>Canvas</title>', (string) $this->get('/topics/art/painting/oils/feed')->getBody());
 	}
 
 	public function testServesPagesByFolderPath(): void

@@ -47,6 +47,8 @@ final class PermissionsTest extends TestCase
 		$this->writeTemporaryFile('user/content/their-draft.md', "---\ntitle: Their draft\nauthors: sam\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/my-scheduled.md', "---\ntitle: My scheduled\nauthors: [sam, jane]\npublished: 2099-01-01\n---\n");
 		$this->writeTemporaryFile('user/content/nobodys.md', "---\ntitle: Nobody's\n---\n");
+		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/authors/sam.md', "---\ntitle: Sam\n---\n");
 
 		$this->app = $this->scratchApplication(['APP_ENV' => 'development']);
 		$this->app->boot();
@@ -57,9 +59,9 @@ final class PermissionsTest extends TestCase
 		return $this->app->container()->make(Permissions::class);
 	}
 
-	private function entry(string $key): Entry
+	private function entry(string $key, string $type = 'page'): Entry
 	{
-		$entry = $this->app->container()->make(ContentRepository::class)->named('page', $key);
+		$entry = $this->app->container()->make(ContentRepository::class)->named($type, $key);
 		$this->assertNotNull($entry, $key);
 
 		return $entry;
@@ -90,6 +92,8 @@ final class PermissionsTest extends TestCase
 		$this->assertTrue($permissions->can($this->account('editor'), 'content.edit', $this->entry('theirs')));
 		$this->assertFalse($permissions->can($this->account('author', null), 'content.edit', $this->entry('mine')), 'No author, no entries of its own.');
 		$this->assertTrue($permissions->owns($this->account('author'), $this->entry('mine')));
+		$this->assertTrue($permissions->can($this->account('author'), 'content.edit', $this->entry('jane', 'author')), 'An account\'s author entry is its own.');
+		$this->assertFalse($permissions->can($this->account('author'), 'content.edit', $this->entry('sam', 'author')));
 	}
 
 	public function testContributorsStayInDrafts(): void
@@ -151,9 +155,9 @@ final class PermissionsTest extends TestCase
 
 		$this->assertGreaterThan(0, $checked);
 		$this->assertSame(
-			['mine.md', 'my-draft.md', 'my-scheduled.md', 'their-draft.md'],
+			['authors/jane.md', 'mine.md', 'my-draft.md', 'my-scheduled.md', 'their-draft.md'],
 			array_map(static fn (Entry $entry): string => $entry->id, $permissions->restrict($this->account('reviewer'), 'content.edit', $content->query()->any())->get()->all()),
-			'A reviewer edits their own entries and others\' drafts, but not others\' live entries.'
+			'A reviewer edits their own entries (and author entry) and others\' drafts, but not others\' live entries.'
 		);
 	}
 }

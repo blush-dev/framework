@@ -9,11 +9,12 @@
 import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import TypeIcon from '../components/TypeIcon.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { request, type ContentTypeSummary, type EntryList } from '../api';
 import { humanize } from '../fields';
 import { plural } from '../format';
-import { loadTypes, typeIcon, types } from '../types';
+import { loadTypes, types } from '../types';
 
 const loaded = ref(false);
 const failed = ref(false);
@@ -99,7 +100,7 @@ function origin(type: ContentTypeSummary): string {
 					<tr v-for="type in shown" :key="type.name">
 						<th scope="row">
 							<span class="type-name">
-								<AdminIcon :name="typeIcon(type)" />
+								<TypeIcon :type="type" />
 								<span class="entry-title">
 									<span class="entry-title__text">
 										<RouterLink class="entry-title__link" :to="{ name: 'content-type', params: { name: type.name } }">{{ type.label }}</RouterLink>

@@ -15,6 +15,10 @@ namespace Blush\Auth;
 
 use Psr\Clock\ClockInterface;
 use Blush\Content\ContentRepository;
+use Blush\Content\Type\ContentTypes;
+use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\EntryChanges;
+use Blush\Content\Writer\WriteException;
 
 /**
  * Creates and changes accounts, checking what goes into them: a free
@@ -29,7 +33,9 @@ final readonly class Accounts
 		private Roles $roles,
 		private AuthConfig $config,
 		private ClockInterface $clock,
-		private ContentRepository $content
+		private ContentRepository $content,
+		private ContentTypes $types,
+		private ContentWriter $writer
 	) {}
 
 	/**
@@ -128,6 +134,34 @@ final readonly class Accounts
 	public function hasAuthor(string $author): bool
 	{
 		return $this->content->term($this->config->authorTaxonomy, $author) !== null;
+	}
+
+	/**
+	 * Whether an author has an entry of its own: the account's public
+	 * name and bio (D-259), not just a virtual term.
+	 */
+	public function hasAuthorPage(string $author): bool
+	{
+		return $this->content->named($this->config->authorTaxonomy, $author) !== null;
+	}
+
+	/**
+	 * Creates an author's entry, published, with its public name, and
+	 * returns its ID (its path under `user/content`).
+	 *
+	 * @throws AuthException When the site has no author type, or the file
+	 *                       exists or can't be written.
+	 */
+	public function createAuthorPage(string $author, string $name): string
+	{
+		$type = $this->types->find($this->config->authorTaxonomy)
+			?? throw new AuthException(sprintf('The site has no "%s" content type for authors.', $this->config->authorTaxonomy));
+
+		try {
+			return $this->writer->create($type, $author, new EntryChanges(set: ['title' => $name], body: "\n"), $this->clock->now())->id;
+		} catch (WriteException $e) {
+			throw new AuthException($e->getMessage(), previous: $e);
+		}
 	}
 
 	/**

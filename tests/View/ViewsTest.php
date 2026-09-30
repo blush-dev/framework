@@ -17,6 +17,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Blush\Content\ContentRepository;
 use Blush\Core\Framework;
 use Blush\Tests\BootsScratchSite;
 use Blush\Theme\ThemeResolver;
@@ -252,6 +253,37 @@ final class ViewsTest extends TestCase
 			PHP);
 
 		$this->assertSame('Tom &amp; Jerry go&nbsp;home|Three short words|', trim($this->render('widont')));
+	}
+
+	public function testParentsAncestorsAndChildren(): void
+	{
+		$this->writeTemporaryFile('config/content.php', <<<'PHP'
+			<?php
+
+			declare(strict_types=1);
+
+			use Blush\Content\Type\ContentConfig;
+			use Blush\Content\Type\Taxonomy;
+
+			return new ContentConfig(types: [new Taxonomy('topic', folder: 'topics', hierarchical: true)]);
+			PHP);
+		$this->writeTemporaryFile('user/content/topics/web.md', "---\ntitle: Web\n---\n");
+		$this->writeTemporaryFile('user/content/topics/css.md', "---\ntitle: CSS\nparent: web\n---\n");
+		$this->writeTemporaryFile('user/content/topics/grid.md', "---\ntitle: Grid\nparent: css\n---\n");
+		$this->writeTemporaryFile('user/content/topics/flex.md', "---\ntitle: Flex\nparent: css\nstatus: draft\n---\n");
+		$this->writeTemporaryFile('resources/views/tree.php', <<<'PHP'
+			<?= e(implode('/', array_map(fn ($entry) => $entry->title, $template->ancestors($term)))) ?>|<?= e($template->parent($term)?->title ?? '') ?>|<?= e(implode(',', array_map(fn ($entry) => $entry->title, $template->children($template->parent($term))))) ?>
+			PHP);
+
+		$app = $this->scratchApplication(['APP_NAME' => 'Test Site']);
+		$app->boot();
+
+		$container = $app->container();
+		$term      = $container->make(ContentRepository::class)->named('topic', 'grid');
+		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
+		$context   = new ViewContext(new Head('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]);
+
+		$this->assertSame('Web/CSS|CSS|Grid', trim($views->render('tree', ['term' => $term], $context)), 'Drafts aren\'t children.');
 	}
 
 	public function testInlineReadsOnlyServableThemeAssets(): void

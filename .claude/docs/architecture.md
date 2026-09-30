@@ -295,14 +295,19 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 
 - **`ContentType`** (`Blush\Content\Type`): an abstract base with the
   final kinds `Collection`, `Taxonomy`, and `Pages` (`TypeKind` names
-  them in data). Shared: name, `folder`, `public`, `urls` (`TypeUrls`:
+  them in data). Shared: name, `folder` (`_{name}` by default, D-258;
+  the URL prefix drops each folder name's leading `_`), `label`,
+  `singular`, `description`, and `icon` (D-256), `public`, `urls` (`TypeUrls`:
   prefix plus per-key paths over 1.x's defaults, with `single` and
   `collection` shortcuts, or `false`), `listing` (`Listing`: typed `type`,
   `orderBy`, `order`, `perPage`, plus 1.x `query` arguments), `feed`
   (`TypeFeed`: `categories` taxonomy and a `listing`), `sitemap`, and its
   own `Schema` (`fields`, `closed`). `Collection` adds `dateArchives`
-  (`DateArchives`); `Taxonomy` adds `types`, `field`, `aliases`, and
-  `termListing`; `Pages` has no URLs, listing, or feed. `fromArray()`
+  (`DateArchives`); `Taxonomy` adds `types`, `field`, `aliases`,
+  `termListing`, and `hierarchical` (a `parent` reference to its own
+  terms, D-257); `Pages` has no URLs, listing, or feed. `parentKey()`
+  says where an entry nests: pages by folder, hierarchical terms by
+  `parent`, nothing else. `fromArray()`
   dispatches on `kind` (or 1.x's `taxonomy: true`) and accepts the 1.x
   option names.
 - **Sources, one model** (D-042, D-083): built-ins, extension
@@ -414,7 +419,10 @@ Implemented in M4b (D-087, D-090).
     production, reindexing is triggered by CLI, webhook, or admin save.
   - Emits `ContentIndexed` with the `IndexReport` when it writes.
 - **`ContentRepository`** is the facade: `query()`, `find(id)`,
-  `named(type, key)`, `term()`, `termCounts()`, plus `get()`,
+  `named(type, key)`, `term()`, `termCounts()`, `parent()` and
+  `children()` (from records' `parent` keys and the snapshot's reverse
+  `children` map, D-257), `parentKey()` (for a hierarchical term's
+  nested URL, which `ContentUrls::termPath()` builds, D-260), plus `get()`,
   `paginate()`, and `count()` for queries, plus `redirects()` for
   `redirect_from`. URLs are resolved by the router's content routes, not
   the repository. A stale index (another fingerprint) is rebuilt on first

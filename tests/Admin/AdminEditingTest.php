@@ -238,7 +238,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(['_posts/index.md', true], [$index['id'] ?? null, $index['index'] ?? null]);
 		$this->assertSame(['delete' => false], $index['can'] ?? null, 'It can\'t be trashed from the list.');
 
-		$this->assertSame('_posts/index.md', $this->pinned('/entries?type=post&per=1&page=2'), 'It\'s pinned on every page.');
+		$this->assertNull($this->pinned('/entries?type=post&per=1&page=2'), 'It\'s pinned on the first page only.');
 
 		$drafts = self::json($this->call('GET', '/entries?type=post&status=draft'));
 		$this->assertArrayHasKey('index', $drafts);

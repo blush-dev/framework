@@ -12,6 +12,17 @@ Move each item to `decisions.md` once it's answered.
   a future blog extension).
 
 ## Later milestones
+- **Hierarchy** (D-257):
+  - Should a hierarchical term's page also list its child terms'
+    entries, as WordPress's category archives do? An option on the
+    taxonomy (or `termListing`), or always?
+  - A kind for nesting entries (a manual with chapters), since
+    collections don't nest: needed, and how do its URLs work?
+  - Nested URLs for pages already follow folders; should a collection's
+    single route ever take a hierarchical term's path (`{category}` as
+    `web/css`)? Today it's the first term's slug.
+- **Type labels** (D-256): which more labels the admin needs ("Add
+  new …", "Search …", empty states), and how labels are translated.
 - **Relationships** (D-242):
   - Data on a link (the role an actor played): references inside object
     fields (`cast: [{actor: tom-hanks, role: Forrest}]`), indexed too? A

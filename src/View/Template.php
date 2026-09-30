@@ -431,6 +431,52 @@ final class Template
 	}
 
 	/**
+	 * Returns an entry's parent: a page's (from its folder) or a
+	 * hierarchical taxonomy term's (its `parent`). `null` when there's
+	 * none, or it isn't published.
+	 */
+	public function parent(Entry $entry): ?Entry
+	{
+		$parent = $this->views->services->content->parent($entry);
+
+		return $parent !== null && $parent->isPublished() && $parent->isRoutable() ? $parent : null;
+	}
+
+	/**
+	 * Returns an entry's ancestors, from the top down, such as for
+	 * breadcrumbs. The chain stops at a parent that's missing or not
+	 * published.
+	 *
+	 * @return list<Entry>
+	 */
+	public function ancestors(Entry $entry): array
+	{
+		$ancestors = [];
+		$seen      = [$entry->id => true];
+
+		while (($entry = $this->parent($entry)) !== null && ! isset($seen[$entry->id])) {
+			$seen[$entry->id] = true;
+			array_unshift($ancestors, $entry);
+		}
+
+		return $ancestors;
+	}
+
+	/**
+	 * Returns the published entries whose parent is this one, by title:
+	 * a page's subpages, or a term's child terms.
+	 *
+	 * @return list<Entry>
+	 */
+	public function children(Entry $entry): array
+	{
+		return array_values(array_filter(
+			$this->views->services->content->children($entry),
+			static fn (Entry $child): bool => $child->isPublished() && $child->isRoutable()
+		));
+	}
+
+	/**
 	 * Formats a date in the site's locale and timezone: `full`, `long`,
 	 * `medium`, or `short`, or else an ICU pattern (`'MMMM y'`).
 	 */

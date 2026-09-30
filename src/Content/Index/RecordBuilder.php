@@ -108,7 +108,8 @@ final readonly class RecordBuilder
 			labels: $labels,
 			modified: $file->modified,
 			size: $file->size,
-			hash: self::hash($contents)
+			hash: self::hash($contents),
+			parent: $landing ? null : $type->parentKey(implode('/', [...$segments, $slug]), $values)
 		);
 
 		return new ParsedEntry($record, $result->violations);

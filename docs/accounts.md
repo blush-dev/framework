@@ -21,7 +21,7 @@ Passwords must be at least 12 characters.
 
 | Command | What it does |
 |---|---|
-| `account:add <username>` | Create an account. `--role=` (repeat for more; administrator by default) and `--author=` |
+| `account:add <username>` | Create an account. `--role=` (repeat for more; administrator by default) and `--author=` (see [Authors](#authors)) |
 | `account:list` | List the accounts, their roles and authors, and when each last signed in |
 | `account:password <username>` | Set a new password, which signs the account out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |
@@ -46,10 +46,17 @@ An account can be linked to an author (see
 `user/content/authors/jane.md`, or to the `jane` author your posts credit
 even without that file.
 
-Entries that credit an account's author are its **own**. Roles decide
-what an account can do with its own entries and with everyone else's. An
-account with no author owns nothing, which suits someone who only runs
-the site.
+The author entry is the account's public side: its name in bylines, its
+bio, and its archive page. The account itself (username, password, roles)
+stays private. When the author has no entry yet, `account:add` and
+`account:author` offer to create one and ask for the public name; say no,
+and bylines show the slug until someone creates it. In the admin, **Your
+profile** links to your author page, or creates it.
+
+Entries that credit an account's author are its **own**, and so is the
+author's entry. Roles decide what an account can do with its own entries
+and with everyone else's. An account with no author owns nothing, which
+suits someone who only runs the site.
 
 ## Roles
 

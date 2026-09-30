@@ -159,6 +159,7 @@ The template API (kept deliberately small; D-103):
 | `head()` | The `Head` manager (title, meta, OpenGraph, and so on; D-109) |
 | `permalink($entry)` / `route($name, $params)` | Entry and named-route URLs |
 | `terms($entry, $taxonomy)` | An entry's published term entries |
+| `parent($entry)` / `ancestors($entry)` / `children($entry)` | A page's or hierarchical term's published parent, parents from the top down, and children by title (D-257) |
 | `date($date, $format)` | A localized date (`long`, or an ICU pattern) |
 | `bodyClass()` | The `<body>` classes |
 

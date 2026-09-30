@@ -52,6 +52,11 @@ return ContentConfig::fromArray([
 ]);
 ```
 
+One default changed: a type without a `path` (or `folder`) now lives in
+`_` and its name (`_recipe/`), not a folder named after it. If a 1.x type
+leaves `path` out, add `'path' => 'recipe'` to keep its folder. Its URLs
+don't change either way.
+
 In 2.x, each kind of type is its own class, and some options have new
 names. When you're ready, you can move to them (see
 [Content types](content-types.md)):

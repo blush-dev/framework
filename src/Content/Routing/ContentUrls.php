@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Content\Routing;
 
+use Closure;
+use Blush\Container\Attributes\Defer;
+use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -36,7 +39,10 @@ use Blush\Routing\UrlGenerationException;
  *   published date, and a taxonomy's name (such as `{author}` or
  *   `{category}`) is the entry's first term of it.
  * - A taxonomy's terms use `single` with the term's slug, and are paged
- *   with `single.paged`.
+ *   with `single.paged`. A hierarchical taxonomy's `{name}` is the term's
+ *   path: its parents' slugs, then its own (`web/web-design/css`,
+ *   D-260), constrained by `TERM_PATH`. A term whose parent has no file
+ *   sits at the top.
  * - Entries of types without routing (pages, and types with
  *   `urls: false`) live at their folder path: `/about/biography`.
  * - A landing page is its type's collection. The home type's collection
@@ -63,6 +69,15 @@ final readonly class ContentUrls
 	];
 
 	/**
+	 * The constraint on a hierarchical taxonomy's `{name}`: slugs joined
+	 * by `/`. Only a lone first segment may be `page` or `feed`, so a
+	 * term's paged and feed routes (`{name}/page/2`, `{name}/feed`) and
+	 * the taxonomy's own (`/topics/page/2`) still match; a child term
+	 * slugged `page` or `feed` has no URL.
+	 */
+	public const string TERM_PATH = '(?!(?:page|feed)/)[^/]+(?:/(?!(?:page|feed)(?:/|$))[^/]+)*';
+
+	/**
 	 * The date format of each date parameter.
 	 *
 	 * @var array<string, string>
@@ -76,11 +91,55 @@ final readonly class ContentUrls
 		'second' => 's'
 	];
 
+	/**
+	 * @param Closure(): ContentRepository $content Deferred: only terms' paths need it.
+	 */
 	public function __construct(
 		private ContentTypes $types,
 		private RouteConfig $routes,
-		private AppConfig $app
+		private AppConfig $app,
+		#[Defer(ContentRepository::class)] private Closure $content
 	) {}
+
+	/**
+	 * Returns the constraints a type's route puts on its parameters: the
+	 * content constraints, and `TERM_PATH` for a hierarchical taxonomy's
+	 * `{name}`.
+	 *
+	 * @param  list<string>          $params
+	 * @return array<string, string>
+	 */
+	public static function constraints(?ContentType $type, array $params): array
+	{
+		$constraints = array_intersect_key(self::CONSTRAINTS, array_flip($params));
+
+		if ($type instanceof Taxonomy && $type->hierarchical && in_array('name', $params, true)) {
+			$constraints['name'] = self::TERM_PATH;
+		}
+
+		return $constraints;
+	}
+
+	/**
+	 * Returns what a term's `{name}` holds: its slug, after its parents'
+	 * for a hierarchical taxonomy.
+	 */
+	public function termPath(Taxonomy $taxonomy, string $slug): string
+	{
+		if (! $taxonomy->hierarchical) {
+			return $slug;
+		}
+
+		$content = ($this->content)();
+		$path    = [$slug];
+		$key     = $slug;
+
+		while (($key = $content->parentKey($taxonomy->name, $key)) !== null && ! in_array($key, $path, true)) {
+			array_unshift($path, $key);
+		}
+
+		return implode('/', $path);
+	}
 
 	/**
 	 * Returns an entry's URL path.
@@ -105,7 +164,7 @@ final readonly class ContentUrls
 			return $this->term($type, $entry->key);
 		}
 
-		return $this->build($type->routePattern('single'), $this->singleParams($entry));
+		return $this->build($type->routePattern('single'), $this->singleParams($entry), $type);
 	}
 
 	/**
@@ -118,8 +177,8 @@ final readonly class ContentUrls
 		}
 
 		return $page > 1
-			? $this->build($type->routePattern('collection.paged'), ['page' => (string) $page])
-			: $this->build($type->routePattern('collection'), []);
+			? $this->build($type->routePattern('collection.paged'), ['page' => (string) $page], $type)
+			: $this->build($type->routePattern('collection'), [], $type);
 	}
 
 	/**
@@ -127,9 +186,11 @@ final readonly class ContentUrls
 	 */
 	public function term(ContentType $taxonomy, string $slug, int $page = 1): ?string
 	{
+		$name = $taxonomy instanceof Taxonomy ? $this->termPath($taxonomy, $slug) : $slug;
+
 		return $page > 1
-			? $this->build($taxonomy->routePattern('single.paged'), ['name' => $slug, 'page' => (string) $page])
-			: $this->build($taxonomy->routePattern('single'), ['name' => $slug]);
+			? $this->build($taxonomy->routePattern('single.paged'), ['name' => $name, 'page' => (string) $page], $taxonomy)
+			: $this->build($taxonomy->routePattern('single'), ['name' => $name], $taxonomy);
 	}
 
 	/**
@@ -146,16 +207,16 @@ final readonly class ContentUrls
 		}
 
 		if ($term !== null) {
-			return $type instanceof Taxonomy ? $this->build($type->routePattern(str_replace('collection.', 'single.', $key)), ['name' => $term]) : null;
+			return $type instanceof Taxonomy ? $this->build($type->routePattern(str_replace('collection.', 'single.', $key)), ['name' => $this->termPath($type, $term)], $type) : null;
 		}
 
 		if ($type->name === $this->types->home) {
 			$path = $type->urls === false ? null : $type->urls->path($key);
 
-			return $path === null ? null : $this->build('/' . $path, []);
+			return $path === null ? null : $this->build('/' . $path, [], $type);
 		}
 
-		return $this->build($type->routePattern($key), []);
+		return $this->build($type->routePattern($key), [], $type);
 	}
 
 	/**
@@ -181,8 +242,8 @@ final readonly class ContentUrls
 		}
 
 		return $page > 1
-			? $this->build($type->routePattern("collection.{$level}.paged"), [...$values, 'page' => (string) $page])
-			: $this->build($type->routePattern("collection.{$level}"), $values);
+			? $this->build($type->routePattern("collection.{$level}.paged"), [...$values, 'page' => (string) $page], $type)
+			: $this->build($type->routePattern("collection.{$level}"), $values, $type);
 	}
 
 	/**
@@ -223,7 +284,7 @@ final readonly class ContentUrls
 	 *
 	 * @param array<string, string> $values
 	 */
-	private function build(?string $pattern, array $values): ?string
+	private function build(?string $pattern, array $values, ContentType $type): ?string
 	{
 		if ($pattern === null) {
 			return null;
@@ -233,7 +294,7 @@ final readonly class ContentUrls
 			$parsed = RoutePattern::parse($pattern);
 
 			return $this->routes->canonicalPath(
-				RoutePattern::parse($pattern, array_intersect_key(self::CONSTRAINTS, array_flip($parsed->params)))->build($values)
+				RoutePattern::parse($pattern, self::constraints($type, $parsed->params))->build($values)
 			);
 		} catch (InvalidRoute | UrlGenerationException) {
 			return null;

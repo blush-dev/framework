@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Auth\AccountStore;
 use Blush\Auth\Passwords;
 use Blush\Console\Commands\AddAccount;
+use Blush\Console\Commands\AuthorPage;
 use Blush\Console\Commands\ListAccounts;
 use Blush\Console\Commands\RemoveAccount;
 use Blush\Console\Commands\SetAccountAuthor;
@@ -36,6 +37,7 @@ use Blush\Tests\BootsScratchSite;
 #[CoversClass(SetAccountPassword::class)]
 #[CoversClass(SetAccountRoles::class)]
 #[CoversClass(SetAccountAuthor::class)]
+#[CoversClass(AuthorPage::class)]
 #[CoversClass(RemoveAccount::class)]
 #[CoversClass(Prompt::class)]
 final class AccountCommandsTest extends TestCase
@@ -83,12 +85,25 @@ final class AccountCommandsTest extends TestCase
 
 	public function testAddsAnAccountWithRolesAndAnAuthor(): void
 	{
-		$result = $this->command('account:add sam --role=editor --role=author --author=sam', [self::PASSWORD, self::PASSWORD]);
+		$result = $this->command('account:add sam --role=editor --role=author --author=sam', [self::PASSWORD, self::PASSWORD, 'yes', 'Sam Smith']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertStringContainsString('No "sam" author exists yet', $result->errors . $result->output);
+		$this->assertStringContainsString('The "sam" author has no page for its name and bio yet. Create it?', $result->output);
+		$this->assertStringContainsString('Created the author page user/content/authors/sam.md.', $result->output);
+		$this->assertStringContainsString('title: "Sam Smith"', (string) file_get_contents($this->temporaryDirectory() . '/user/content/authors/sam.md'));
 		$this->assertSame(['editor', 'author'], $this->store()->find('sam')?->roles);
 		$this->assertSame('sam', $this->store()->find('sam')->author);
+		$this->assertSame(ExitCode::Success, $this->command('account:author sam sam', ['unused'])->exitCode, 'An author with a page isn\'t offered another.');
+	}
+
+	public function testAnAuthorPageCanWait(): void
+	{
+		$result = $this->command('account:add lee --role=author --author=lee', [self::PASSWORD, self::PASSWORD, 'no']);
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertStringContainsString('Bylines show "lee" until the author has a page', $result->errors . $result->output);
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/authors/lee.md');
+		$this->assertSame('lee', $this->store()->find('lee')?->author);
 	}
 
 	public function testRefusesAnUnknownRoleBeforeAskingForAPassword(): void

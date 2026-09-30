@@ -1,18 +1,26 @@
 <script setup lang="ts">
 /**
- * Your profile (D-235): who you're signed in as, and how you like the
- * admin. Preferences belong to the account, not the site, so they follow
- * you to any device and never change what anyone else sees. (The site's
- * own look is its theme, which is something else.)
+ * Your profile (D-235): who you're signed in as, your author page, and
+ * how you like the admin. Preferences belong to the account, not the
+ * site, so they follow you to any device and never change what anyone
+ * else sees. (The site's own look is its theme, which is something
+ * else.)
+ *
+ * The author page is the account's public side (D-259): the entry of
+ * the author type the account is linked to, with its name and bio. It's
+ * the account's own, so it's edited in the editor like any entry, and
+ * made from here when it doesn't exist yet.
  */
 
-import { computed, ref } from 'vue';
-import { ApiError, type ColorScheme } from '../api';
+import { computed, ref, watch } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
+import { ApiError, entryRoute, request, type ColorScheme, type EntryDetail } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { formatDate } from '../format';
 import type { IconName } from '../icons';
-import { session } from '../session';
+import { can, session } from '../session';
+import { authorType, loadTypes } from '../types';
 
 const schemes: { value: ColorScheme; label: string; hint: string; icon: IconName }[] = [
 	{ value: 'system', label: 'System', hint: 'Match your device\'s setting', icon: 'monitor' },
@@ -26,6 +34,54 @@ const error   = ref('');
 
 const account   = computed(() => session.account);
 const lastLogin = computed(() => account.value?.lastLogin ? formatDate(new Date(account.value.lastLogin * 1000).toISOString()) : 'Never');
+
+const router = useRouter();
+
+// The author page: loading, found, missing (no file yet), or kept by
+// someone else (the account may not edit it).
+const author       = ref<EntryDetail | null>(null);
+const authorState  = ref<'loading' | 'found' | 'missing' | 'locked' | 'failed'>('loading');
+const creating     = ref(false);
+const authorError  = ref('');
+
+loadTypes().catch(() => undefined);
+
+watch([() => account.value?.author ?? null, authorType], async ([slug, type]) => {
+	author.value = null;
+
+	if (slug === null || type === null) {
+		return;
+	}
+
+	authorState.value = 'loading';
+
+	try {
+		author.value      = await request<EntryDetail>('GET', `/content/${encodeURIComponent(type)}/${encodeURIComponent(slug)}`);
+		authorState.value = 'found';
+	} catch (caught) {
+		authorState.value = caught instanceof ApiError && caught.status === 404 ? 'missing' : (caught instanceof ApiError && caught.status === 403 ? 'locked' : 'failed');
+	}
+}, { immediate: true });
+
+async function createAuthor(): Promise<void> {
+	const slug = account.value?.author;
+
+	if (!slug || authorType.value === null) {
+		return;
+	}
+
+	creating.value    = true;
+	authorError.value = '';
+
+	try {
+		const entry = await request<EntryDetail>('POST', '/entries', { type: authorType.value, title: slug, slug });
+
+		await router.push({ ...entryRoute(entry), query: { created: '1' } });
+	} catch (caught) {
+		authorError.value = caught instanceof ApiError ? caught.message : 'Your author page couldn\'t be created.';
+		creating.value    = false;
+	}
+}
 
 async function choose(scheme: ColorScheme): Promise<void> {
 	saving.value  = true;
@@ -76,6 +132,39 @@ async function choose(scheme: ColorScheme): Promise<void> {
 			</dl>
 		</section>
 
+		<section v-if="authorType !== null" class="panel" aria-labelledby="author-heading">
+			<header class="panel__header">
+				<h2 id="author-heading">Author page</h2>
+				<p class="panel__hint">Your name and bio on the site</p>
+			</header>
+			<div class="panel__body profile__author">
+				<template v-if="!account.author">
+					<p class="field__help">Your account isn't linked to an author, so it has no public name or entries of its own. An administrator can link one.</p>
+				</template>
+				<template v-else-if="authorState === 'loading'">
+					<p class="field__help">Looking for your author page…</p>
+				</template>
+				<template v-else-if="authorState === 'found' && author">
+					<p>Bylines show you as <strong>{{ author.title || account.author }}</strong>{{ author.status === 'published' ? '' : ', once your author page is published' }}. Your bio and picture are on the same page.</p>
+					<p><RouterLink class="button" :to="entryRoute(author)"><AdminIcon name="pen-line" />Edit your author page</RouterLink></p>
+				</template>
+				<template v-else-if="authorState === 'missing'">
+					<p>You don't have an author page yet, so bylines show you as <span class="mono">{{ account.author }}</span>.</p>
+					<p v-if="can('content.create')">
+						<button type="button" class="button" :disabled="creating" @click="createAuthor"><AdminIcon name="plus" />{{ creating ? 'Creating…' : 'Create your author page' }}</button>
+					</p>
+					<p v-else class="field__help">Ask an editor to create it.</p>
+					<p v-if="authorError" class="notice notice--error" role="alert">{{ authorError }}</p>
+				</template>
+				<template v-else-if="authorState === 'locked'">
+					<p class="field__help">Your author page, <span class="mono">{{ account.author }}</span>, is kept by an editor.</p>
+				</template>
+				<template v-else>
+					<p class="notice notice--error" role="alert">Your author page couldn't be loaded.</p>
+				</template>
+			</div>
+		</section>
+
 		<section class="panel" aria-labelledby="display-heading">
 			<header class="panel__header">
 				<h2 id="display-heading">Color scheme</h2>
@@ -105,6 +194,15 @@ async function choose(scheme: ColorScheme): Promise<void> {
 	display: grid;
 	gap: 20px;
 	max-width: 44rem;
+}
+
+.profile__author > p {
+	margin: 0;
+}
+
+.profile__author {
+	display: grid;
+	gap: 10px;
 }
 
 .profile__facts {

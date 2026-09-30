@@ -30,6 +30,11 @@ use Blush\Routing\RouteSource;
  */
 final readonly class PageRoutes implements RouteSource
 {
+	/**
+	 * The page catch-all's route name.
+	 */
+	public const string SINGLE = 'page.single';
+
 	public function __construct(private ContentTypes $types)
 	{}
 
@@ -55,7 +60,7 @@ final readonly class PageRoutes implements RouteSource
 			$routes[] = ContentRoutes::route('/page/{page}', HomeController::class, 'home.paged');
 		}
 
-		$routes[] = Route::get('/{path:.+}', PageController::class)->named('page.single');
+		$routes[] = Route::get('/{path:.+}', PageController::class)->named(self::SINGLE);
 
 		return $routes;
 	}

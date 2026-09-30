@@ -78,6 +78,43 @@ final class LinterTest extends TestCase
 		$this->assertNotContains('notice category: "art" has no category entry; a virtual term stands in.', $notices['_posts/2008-04-05.spring.md']);
 	}
 
+	public function testChecksTermParents(): void
+	{
+		$this->contentConfig(['types' => ['topic' => ['kind' => 'taxonomy', 'folder' => 'topics', 'hierarchical' => true]]]);
+		$this->entry('topics/web.md', 'title: Web');
+		$this->entry('topics/css.md', "title: CSS\nparent: web");
+		$this->entry('topics/self.md', "title: Self\nparent: self");
+		$this->entry('topics/orphan.md', "title: Orphan\nparent: missing");
+		$this->entry('topics/a.md', "title: A\nparent: b");
+		$this->entry('topics/b.md', "title: B\nparent: a");
+
+		$linter   = $this->site()->container()->make(Linter::class);
+		$messages = self::messages($linter->lint(), Severity::Warning);
+
+		$this->assertSame(['topics/a.md', 'topics/b.md', 'topics/orphan.md', 'topics/self.md'], array_keys($messages));
+		$this->assertSame(['error parent: makes a loop: a → b → a.'], $messages['topics/a.md']);
+		$this->assertSame(['error parent: makes a loop: b → a → b.'], $messages['topics/b.md']);
+		$this->assertSame(['warning parent: "missing" has no topic entry; the term is shown at the top level.'], $messages['topics/orphan.md']);
+		$this->assertSame(['error parent: names the term itself; a term can\'t be its own parent.'], $messages['topics/self.md']);
+		$this->assertSame('names the term itself; a term can\'t be its own parent.', $linter->lintFile('topics/self.md')[0]->message ?? null);
+	}
+
+	public function testWarnsOfPagesAnotherRouteAnswers(): void
+	{
+		$this->contentConfig(['types' => ['movie' => ['kind' => 'collection', 'dateArchives' => 'year'], 'film' => ['kind' => 'collection', 'urls' => false]]]);
+		$this->entry('movie/2024.md', 'title: Shadowed by the year archive');
+		$this->entry('movie/about/index.md', 'title: Shadowed by the single route');
+		$this->entry('movie/about/team.md', 'title: Under the prefix, but no route answers');
+		$this->entry('film/index.md', 'title: No addresses to clash with');
+		$this->entry('_movie/jaws.md', 'title: Jaws');
+
+		$messages = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Warning);
+
+		$this->assertSame(['movie/2024.md', 'movie/about/index.md'], array_keys($messages));
+		$this->assertSame(['warning file: is at /movie/2024, but the movie.collection.year route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.'], $messages['movie/2024.md'] ?? null);
+		$this->assertStringContainsString('the movie.single route answers there', $messages['movie/about/index.md'][0] ?? '');
+	}
+
 	public function testCleanContentHasNoErrors(): void
 	{
 		$this->entry('index.md', 'title: Home');

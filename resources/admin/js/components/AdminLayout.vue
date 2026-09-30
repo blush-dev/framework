@@ -21,11 +21,12 @@ import { online } from '../connection';
 import type { IconName } from '../icons';
 import { focusMode, screenTitle } from '../screen';
 import { can, session, signOut } from '../session';
-import { currentType, loadTypes, typeIcon, types } from '../types';
+import { authorType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import CommandPalette from './CommandPalette.vue';
 import MenuButton from './MenuButton.vue';
 import ToastHost from './ToastHost.vue';
+import TypeIcon from './TypeIcon.vue';
 
 type Area = 'home' | 'content' | 'config';
 
@@ -34,6 +35,8 @@ interface NavLink {
 	label: string;
 	icon: IconName;
 	to: RouteLocationRaw;
+	// A content type's link, shown with the type's own icon.
+	type?: ContentTypeSummary;
 	current?: boolean;
 	// A second line, such as the types a taxonomy groups.
 	detail?: string;
@@ -67,7 +70,8 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * own screens and shortcuts. **Content**: each content type with the
  * taxonomies that group only it nested under it, the taxonomies shared
  * by several types (or every type), and Media. **Config**: content types,
- * the site, and people. Links the account can't use aren't shown.
+ * the site, and people, with authors: the public side of accounts.
+ * Links the account can't use aren't shown.
  */
 const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const home: NavLink[] = [screen('dashboard', 'Dashboard', 'layout-dashboard')];
@@ -87,6 +91,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		key: type.name,
 		label: type.label,
 		icon: typeIcon(type),
+		type,
 		to: { name: 'type', params: { type: type.name } },
 		current: inEntries && currentType.value === type.name,
 		detail
@@ -94,7 +99,8 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 
 	const editing    = can('content.edit');
 	const entryTypes = editing ? types.value.filter((type) => type.kind !== 'taxonomy') : [];
-	const taxonomies = editing ? types.value.filter((type) => type.kind === 'taxonomy') : [];
+	const taxonomies = editing ? types.value.filter((type) => type.kind === 'taxonomy' && type.name !== authorType.value) : [];
+	const authors    = editing ? types.value.filter((type) => type.name === authorType.value) : [];
 	const labelOf    = (name: string): string => types.value.find((type) => type.name === name)?.label ?? name;
 
 	// A taxonomy grouping one listed type sits under it; the rest are shared.
@@ -110,7 +116,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 
 	const structure = can('site.settings') ? [screen('types', 'Content types', 'layers')] : [];
 	const site      = can('site.settings') ? [screen('settings', 'Settings', 'settings'), screen('appearance', 'Appearance', 'paintbrush'), screen('extensions', 'Extensions', 'plug')] : [];
-	const people    = [...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users'), screen('roles', 'Roles', 'shield')] : []), screen('profile', 'Your profile', 'users')];
+	const people    = [...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users'), screen('roles', 'Roles', 'shield')] : []), ...authors.map((type) => link(type)), screen('profile', 'Your profile', 'users')];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
 
@@ -130,6 +136,11 @@ const areas = computed(() => ([
 
 const routeArea = computed<Area>(() => {
 	const area = route.meta.area;
+
+	// Authors are listed with people, so their screens are too.
+	if (route.meta.section === 'entries' && currentType.value !== null && currentType.value === authorType.value) {
+		return 'config';
+	}
 
 	return area === 'content' || area === 'config' ? area : 'home';
 });
@@ -300,13 +311,15 @@ async function leave(): Promise<void> {
 						<ul :aria-labelledby="group.heading ? `nav-${group.key}` : undefined">
 							<li v-for="link in group.links" :key="link.key">
 								<RouterLink class="panel-nav__link" :class="{ 'is-current': link.current, 'panel-nav__link--two': link.detail }" :to="link.to">
-									<AdminIcon :name="link.icon" />
+									<TypeIcon v-if="link.type" :type="link.type" />
+									<AdminIcon v-else :name="link.icon" />
 									<span class="panel-nav__label">{{ link.label }}<span v-if="link.detail" class="panel-nav__detail">{{ link.detail }}</span></span>
 								</RouterLink>
 								<ul v-if="link.links?.length" class="panel-nav__nest">
 									<li v-for="child in link.links" :key="child.key">
 										<RouterLink class="panel-nav__link" :class="{ 'is-current': child.current }" :to="child.to">
-											<AdminIcon :name="child.icon" />
+											<TypeIcon v-if="child.type" :type="child.type" />
+											<AdminIcon v-else :name="child.icon" />
 											<span class="panel-nav__label">{{ child.label }}</span>
 										</RouterLink>
 									</li>

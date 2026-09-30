@@ -34,7 +34,7 @@ final readonly class Collection extends ContentType
 {
 	/**
 	 * @param  string          $name         Lowercase letters, digits, and underscores.
-	 * @param  ?string         $folder       The folder under `user/content`; defaults to the name.
+	 * @param  ?string         $folder       The folder under `user/content`; defaults to `_` and the name.
 	 * @param  TypeUrls|false  $urls         URL settings, or `false` for no routes.
 	 * @param  Listing         $listing      How the listing page lists entries.
 	 * @param  TypeFeed|false  $feed         Feed settings, or `false` for no feed.
@@ -45,6 +45,8 @@ final readonly class Collection extends ContentType
 	 * @param  bool            $closed       Whether undeclared front matter is an error.
 	 * @param  ?string         $label        For people, for a group of entries; defaults to the singular made plural.
 	 * @param  ?string         $singular     For people, for one entry; defaults to the name made readable.
+	 * @param  string          $description  What the type is for, in a sentence.
+	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -59,9 +61,11 @@ final readonly class Collection extends ContentType
 		iterable $fields = [],
 		bool $closed = false,
 		?string $label = null,
-		?string $singular = null
+		?string $singular = null,
+		string $description = '',
+		?string $icon = null
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $label, $singular);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $label, $singular, $description, $icon);
 	}
 
 	/**

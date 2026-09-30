@@ -74,7 +74,7 @@ final class ContentUrlsTest extends TestCase
 		$this->standardContent();
 
 		$app  = $this->site();
-		$urls = new ContentUrls($app->container()->make(ContentTypes::class), new RouteConfig(trailingSlash: true), new AppConfig(url: 'https://example.com:8443/sub'));
+		$urls = new ContentUrls($app->container()->make(ContentTypes::class), new RouteConfig(trailingSlash: true), new AppConfig(url: 'https://example.com:8443/sub'), static fn (): ContentRepository => $app->container()->make(ContentRepository::class));
 
 		$this->assertSame('/topics/art/', $urls->term($app->container()->make(ContentTypes::class)->get('category'), 'art'));
 		$this->assertSame('https://example.com:8443/topics', $urls->absolute('topics'));

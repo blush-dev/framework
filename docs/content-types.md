@@ -6,7 +6,10 @@ are listed, dated, tagged, or given their own fields, define a **content
 type**.
 
 Each content type owns a folder in `user/content/`. Entries in that folder
-belong to it, and its `index.md` becomes the listing page.
+belong to it, and its `index.md` becomes the listing page. The folder is
+the type's name after an underscore (`_recipe` for `recipe`) unless you
+choose one. The underscore keeps type folders apart from your page
+folders, and it's left out of URLs: `_recipe/` is served at `/recipe`.
 
 ## Three kinds of type
 
@@ -19,7 +22,9 @@ Every content type is one of three kinds:
   categories, or series. Each entry in a taxonomy is a **term**, and each
   term gets a page listing the entries in it.
 - **Pages:** the built-in `page` type. It holds every entry that isn't in
-  another type's folder, and serves each one at its file path.
+  another type's folder, and serves each one at its file path. Pages nest
+  by folder: `about/team.md` is a subpage of `about.md` (or
+  `about/index.md`).
 
 ## Built-in types
 
@@ -81,7 +86,7 @@ Which to pick:
 - **An extension** keeps it with a feature you can reuse or version on its
   own.
 
-## Names in the admin
+## Names, descriptions, and icons in the admin
 
 The [admin](admin.md) names each type in its menu and buttons: `label`
 for a group of entries ("Recipes") and `singular` for one ("New
@@ -98,6 +103,19 @@ label: People
 
 ```php
 new Collection('person', folder: 'people', label: 'People')
+```
+
+`description` says what the type is for, in a sentence. The admin shows it
+on the type's screen and on its list while it's empty. `icon` names an
+icon to show the type with in the admin's menu, from the icons the `icon`
+component offers (`bin/blush icon:list`), such as `film` or
+`book-open`. Without one, the type gets its kind's icon.
+
+```yaml
+# user/data/types/recipe.yaml
+folder: recipes
+description: Dishes we cook at home, with what goes in them.
+icon: notebook-pen
 ```
 
 ## Example: a blog
@@ -117,19 +135,19 @@ use Blush\Content\Type\TypeFeed;
 
 return new ContentConfig(
 	types: [
-		// Posts live in user/content/blog/ and are listed at /blog.
+		// Posts live in user/content/_blog/ and are listed at /blog.
 		new Collection(
 			'post',
-			folder: 'blog',
+			folder: '_blog',
 			listing: new Listing(orderBy: 'published', order: Order::Desc),
 			feed: new TypeFeed(),
 			dateArchives: DateArchives::Month
 		),
 
-		// Tags live in user/content/blog/tags/.
+		// Tags live in user/content/_blog/tags/.
 		new Taxonomy(
 			'tag',
-			folder: 'blog/tags',
+			folder: '_blog/tags',
 			types: ['post']
 		)
 	]
@@ -140,7 +158,7 @@ The same types in YAML:
 
 ```yaml
 # user/data/types/post.yaml
-folder: blog
+folder: _blog
 listing:
   orderBy: published
   order: desc
@@ -151,7 +169,7 @@ dateArchives: month
 ```yaml
 # user/data/types/tag.yaml
 kind: taxonomy
-folder: blog/tags
+folder: _blog/tags
 types: [post]
 ```
 
@@ -159,11 +177,11 @@ Now:
 
 | File | URL |
 |---|---|
-| `blog/index.md` | `/blog` (the post listing, newest first) |
-| `blog/2026-09-26.hello.md` | `/blog/hello` |
+| `_blog/index.md` | `/blog` (the post listing, newest first) |
+| `_blog/2026-09-26.hello.md` | `/blog/hello` |
 | | `/blog/2026` and `/blog/2026/09` (date archives) |
 | | `/blog/feed`, `/blog/feed/atom`, `/blog/feed/json` |
-| `blog/tags/php.md` | `/blog/tags/php` (every post tagged `php`) |
+| `_blog/tags/php.md` | `/blog/tags/php` (every post tagged `php`) |
 
 Create a post with:
 
@@ -200,14 +218,43 @@ the types it groups.
 - Entries join a term with a front matter key named after the taxonomy
   (`tag: php`, or a list). Use `field` to pick another key, and `aliases`
   to accept more than one.
-- Each term has a page listing its entries, at `/{folder}/{slug}`. It
+- Each term has a page listing its entries, at `/{folder}/{slug}` (without
+  the folder's underscores). It
   lists the entries of `types` (every type if you leave it empty), and
   `termListing` sets how.
 - The taxonomy's own `listing` sets how its listing page (such as
   `/blog/tags`) lists the terms.
 - You don't have to create a file for every term. A term without one gets
   a stand-in page titled after its slug. Add a file (such as
-  `blog/tags/php.md`) to give it a proper title and description.
+  `_blog/tags/php.md`) to give it a proper title and description.
+
+### Hierarchical taxonomies
+
+Set `hierarchical: true` to let a term sit under another, like categories
+with subcategories. A term names its parent by slug in its front matter:
+
+```yaml
+---
+title: CSS
+parent: web-design
+---
+```
+
+Term files stay side by side in the taxonomy's folder, so moving a term
+changes one line. A term's URL follows the tree: with `css` under
+`web-design` under `web`, it's `/topics/web/web-design/css`, and its
+later pages and feeds are under that (`…/css/page/2`, `…/css/feed`).
+Any other path to the term, such as `/topics/css` or its address before
+it moved, redirects there. Slugs are unique across the whole taxonomy, as
+they are for any taxonomy. A term below the top can't be slugged `page`
+or `feed`, since those words start its paged and feed URLs.
+
+A term's page still lists only the entries in that term, not those in its
+child terms. Themes show the tree with `$template->parent()`,
+`$template->ancestors()`, and `$template->children()` (see
+[Themes](themes.md)), and the admin shows each term's parents before its
+title. `bin/blush content:lint` reports a parent with no file (the term
+is shown at the top level) and a term that's its own ancestor.
 
 ## Custom fields
 
@@ -300,7 +347,10 @@ Every kind takes these:
 
 | Option | Default | What it does |
 |---|---|---|
-| `folder` | The name (`''`, the content root, for pages) | The folder under `user/content/` |
+| `folder` | `_` and the name (`''`, the content root, for pages) | The folder under `user/content/` |
+| `label` / `singular` | Made from the name | [Names in the admin](#names-descriptions-and-icons-in-the-admin) |
+| `description` | | What the type is for, in a sentence |
+| `icon` | Its kind's | An icon for the admin, by name |
 | `public` | `true` | Whether the type is visible on the site at all |
 | `sitemap` | `true` | Whether entries appear in the sitemap |
 | `fields` / `closed` | | [Custom fields](#custom-fields) |
@@ -326,6 +376,7 @@ Only taxonomies take:
 | `types` | Every type | The types a term's page lists |
 | `field` / `aliases` | The name | The front matter key entries use to join a term, and other keys it's read from |
 | `termListing` | | How a term's page lists entries |
+| `hierarchical` | `false` | Whether a term may have a `parent` ([above](#hierarchical-taxonomies)) |
 
 ### Custom URLs
 
@@ -343,7 +394,8 @@ new Collection(
 );
 ```
 
-`prefix` replaces the folder at the start of every URL. `single` (an
+`prefix` replaces the folder (less its underscores) at the start of every
+URL. `single` (an
 entry) and `collection` (the listing page) set the rest; `paths` sets any
 other route key that `routes:list` shows, such as
 `['collection.paged' => 'p/{page}']`.

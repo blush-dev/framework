@@ -26,7 +26,9 @@ use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Pages;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
@@ -47,13 +49,23 @@ use Blush\Http\Status as HttpStatus;
  * entries soonest first, and published entries newest first. The
  * permission rules, the filters, and paging all run in the index as one
  * query (`Permissions::restrict()`), so only the page's entries are built.
+ *
+ * A type whose entries nest (pages, and hierarchical taxonomies; D-257)
+ * lists as a tree when it's the whole list (no status, no search): each
+ * entry followed by its children, siblings by title (D-261), each with
+ * its `depth` in the tree (0 at the top) for the admin to indent by, and
+ * how many `children` it has (D-262). Its entries are all built to order
+ * them, then paged; a page that starts inside a branch begins with the
+ * entries above it, marked `continued` and not counted (D-263). An entry
+ * whose parent isn't in the list sits at the top. Other lists' entries
+ * have `depth` and `children` `null`, and none are `continued`.
  * Terms also say how many published entries use them (`uses`, D-236).
  *
  * A collection's or taxonomy's **index page** (its landing page, in the
  * site's locale) isn't one of its entries (D-255): it's left out of the
  * entries, the total, and the pages, and answered on its own as `index`
- * on every page, when it matches the filters and the account may edit
- * it; otherwise `null`. Pages have no index page: their landing page is
+ * on the first page (D-264), when it matches the filters and the account
+ * may edit it; otherwise `null`. Pages have no index page: their landing page is
  * the site's home, an entry like any other.
  */
 final readonly class EntriesController
@@ -122,15 +134,32 @@ final readonly class EntriesController
 			default           => $query->orderBy('updated', Order::Desc)
 		};
 
-		$pinned  = $type !== null && $this->types->find($type)?->kind() !== TypeKind::Pages;
-		$query   = $this->permissions->restrict($account, Capability::ContentEdit, $query);
-		$entries = ($pinned ? $query->withLanding(false) : $query)->paginate($per, $page);
-		$index   = $pinned ? $this->index($query) : null;
-		$counts  = [];
+		$contentType = $type === null ? null : $this->types->find($type);
+		$pinned      = $contentType !== null && $contentType->kind() !== TypeKind::Pages;
+		$query       = $this->permissions->restrict($account, Capability::ContentEdit, $query);
+		$listed      = $pinned ? $query->withLanding(false) : $query;
+		$index       = $pinned && $page === 1 ? $this->index($query) : null;
+		$counts      = [];
+		$tree        = null;
+		$continued   = [];
+
+		if ($contentType !== null && $status === null && trim($search) === '' && self::nests($contentType)) {
+			$tree      = self::tree($listed->limit(null)->get()->all());
+			$start     = ($page - 1) * $per;
+			$total     = count($tree['entries']);
+			$pages     = (int) ceil($total / $per);
+			$shown     = array_slice($tree['entries'], $start, $per);
+			$continued = self::continued($tree, $start);
+		} else {
+			$entries = $listed->paginate($per, $page);
+			$total   = $entries->total();
+			$pages   = $entries->pages();
+			$shown   = $entries->all();
+		}
 
 		// How many published entries use each term on the page, one pass
 		// per taxonomy (D-236).
-		foreach ([...$entries->all(), ...($index === null ? [] : [$index])] as $entry) {
+		foreach ([...$continued, ...$shown, ...($index === null ? [] : [$index])] as $entry) {
 			if ($entry->type instanceof Taxonomy) {
 				$counts[$entry->type->name] ??= $this->content->termCounts($entry->type->name);
 			}
@@ -140,14 +169,112 @@ final readonly class EntriesController
 			'status'  => $status->value ?? 'any',
 			'type'    => $type,
 			'search'  => trim($search),
-			'total'   => $entries->total(),
+			'total'   => $total,
 			'page'    => $page,
-			'pages'   => $entries->pages(),
+			'pages'   => $pages,
 			'per'     => $per,
-			'entries' => array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts), $entries->all()),
+			'entries' => [
+				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree, continued: true), $continued),
+				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree), $shown)
+			],
 			'index'   => $index === null ? null : $this->describe($account, $index, $counts)
 		]);
 	}
+
+	/**
+	 * Returns whether a type's entries nest (D-257).
+	 */
+	private static function nests(ContentType $type): bool
+	{
+		return $type instanceof Pages || ($type instanceof Taxonomy && $type->hierarchical);
+	}
+
+	/**
+	 * Returns entries in tree order, each followed by its children and
+	 * siblings by title, with each one's depth and how many children it
+	 * has, by ID. An entry whose parent isn't among them is at the top;
+	 * entries in a loop of parents come last, by title, at depth 0.
+	 *
+	 * @param  list<Entry> $entries
+	 * @return array{entries: list<Entry>, depths: array<string, int>, children: array<string, int>}
+	 */
+	private static function tree(array $entries): array
+	{
+		$byTitle = static fn (Entry $a, Entry $b): int => strnatcasecmp($a->title, $b->title) ?: strcmp($a->key, $b->key);
+		$keys    = array_flip(array_map(static fn (Entry $entry): string => $entry->key, $entries));
+		$roots   = [];
+		$under   = [];
+
+		foreach ($entries as $entry) {
+			$parent = $entry->type->parentKey($entry->key, $entry->fields);
+
+			if ($parent !== null && isset($keys[$parent])) {
+				$under[$parent][] = $entry;
+			} else {
+				$roots[] = $entry;
+			}
+		}
+
+		usort($roots, $byTitle);
+
+		$ordered = [];
+		$depths  = [];
+		$stack   = array_map(static fn (Entry $entry): array => [$entry, 0], array_reverse($roots));
+
+		while (($item = array_pop($stack)) !== null) {
+			[$entry, $depth] = $item;
+
+			if (isset($depths[$entry->id])) {
+				continue;
+			}
+
+			$depths[$entry->id] = $depth;
+			$ordered[]          = $entry;
+			$children           = $under[$entry->key] ?? [];
+
+			usort($children, $byTitle);
+			array_push($stack, ...array_map(static fn (Entry $child): array => [$child, $depth + 1], array_reverse($children)));
+		}
+
+		$rest = array_values(array_filter($entries, static fn (Entry $entry): bool => ! isset($depths[$entry->id])));
+		usort($rest, $byTitle);
+
+		$children = [];
+
+		foreach ($entries as $entry) {
+			$children[$entry->id] = count($under[$entry->key] ?? []);
+		}
+
+		return ['entries' => [...$ordered, ...$rest], 'depths' => $depths, 'children' => $children];
+	}
+
+	/**
+	 * Returns the entries above the first one on a page of a tree, from
+	 * the top down, so a page that starts inside a branch shows where it
+	 * is (D-263). They're on an earlier page already, so they aren't
+	 * counted again.
+	 *
+	 * @param  array{entries: list<Entry>, depths: array<string, int>, children: array<string, int>} $tree
+	 * @return list<Entry>
+	 */
+	private static function continued(array $tree, int $start): array
+	{
+		$first = $tree['entries'][$start] ?? null;
+		$want  = $first === null ? -1 : ($tree['depths'][$first->id] ?? 0) - 1;
+		$above = [];
+
+		for ($i = $start - 1; $i >= 0 && $want >= 0; $i--) {
+			$entry = $tree['entries'][$i];
+
+			if (($tree['depths'][$entry->id] ?? 0) === $want) {
+				array_unshift($above, $entry);
+				$want--;
+			}
+		}
+
+		return $above;
+	}
+
 
 	/**
 	 * Returns whether an entry is its type's index page, which is never
@@ -177,12 +304,18 @@ final readonly class EntriesController
 	 * the site, where it is or will be once published (`null` when it has
 	 * none), and `index` whether it's its type's index page. A term's
 	 * `uses` is how many published entries reference it; other entries'
-	 * is `null`.
+	 * is `null`. `ancestors` are the titles of the entries above it, from
+	 * the top down: a page's folders' pages, or a hierarchical term's
+	 * parents. In a tree-ordered list, `depth` (0 at the top) and
+	 * `children` (how many) place it, and `continued` marks an entry that
+	 * heads a later page for the entries under it; otherwise the first
+	 * two are `null` (D-262, D-263).
 	 *
-	 * @param  array<string, array<string, int>> $counts Term counts by taxonomy.
+	 * @param  array<string, array<string, int>>                                                     $counts Term counts by taxonomy.
+	 * @param  ?array{entries: list<Entry>, depths: array<string, int>, children: array<string, int>} $tree   The list's tree, if it's one.
 	 * @return array<string, mixed>
 	 */
-	private function describe(Account $account, Entry $entry, array $counts): array
+	private function describe(Account $account, Entry $entry, array $counts, ?array $tree = null, bool $continued = false): array
 	{
 		return [
 			'id'        => $entry->id,
@@ -198,8 +331,32 @@ final readonly class EntriesController
 			'own'       => $this->permissions->owns($account, $entry),
 			'index'     => self::isIndex($entry),
 			'can'       => ['delete' => ! self::isIndex($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry)],
-			'uses'      => $entry->type instanceof Taxonomy ? ($counts[$entry->type->name][$entry->key] ?? 0) : null
+			'uses'      => $entry->type instanceof Taxonomy ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
+			'ancestors' => $this->ancestors($entry),
+			'depth'     => $tree === null ? null : ($tree['depths'][$entry->id] ?? 0),
+			'children'  => $tree === null ? null : ($tree['children'][$entry->id] ?? 0),
+			'continued' => $continued
 		];
+	}
+
+	/**
+	 * Returns the titles of an entry's ancestors, from the top down,
+	 * whatever their status. The chain stops at a missing parent or a
+	 * loop.
+	 *
+	 * @return list<string>
+	 */
+	private function ancestors(Entry $entry): array
+	{
+		$titles = [];
+		$seen   = [$entry->id => true];
+
+		while (($entry = $this->content->parent($entry)) !== null && ! isset($seen[$entry->id])) {
+			$seen[$entry->id] = true;
+			array_unshift($titles, $entry->title === '' ? $entry->slug : $entry->title);
+		}
+
+		return $titles;
 	}
 
 	/**

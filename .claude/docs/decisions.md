@@ -5358,3 +5358,248 @@ decision, add a new entry that supersedes it and mark the old one
   index page and Pages pins nothing, and paths render in Fira Code.
 - **Why:** the author asked for Fira Code throughout and for the
   design's index-page pattern in the content tables.
+
+### D-256: Content types have a description and an icon
+- **Date:** 2026-09-30
+- **Decision:** Types already had `label` and `singular` (D-234); every
+  kind now also takes:
+  - **`description`**: what the type is for, in a sentence (`''` for
+    none). The admin shows it under the type screen's title and as an
+    empty list's text, in place of D-240's text by kind.
+  - **`icon`**: the name of a site icon (as the `icon` component takes
+    it, `film`, `jtcom/github`), or `null` for its kind's admin icon.
+    The admin loads `GET icons` only when some type names one, and draws
+    it as a mask in the text color (`TypeIcon.vue`), falling back to the
+    kind's icon while loading or for an unknown name.
+  - `GET types` adds both. Two labels stay the whole set for now; more
+    (such as "Add new …" or "Search …" strings) and translated labels
+    come when a screen needs them.
+- **Why:** the author asked for labels for the admin; those existed, so
+  the missing pieces were a description and an icon (D-234's and
+  D-240's open items). The author expects more labels in time.
+
+### D-257: Pages nest by folder, taxonomies by `parent`; collections don't nest
+- **Date:** 2026-09-30
+- **Decision:**
+  - **Pages** nest by folder, as their URLs already do: `about/team`'s
+    parent is the page keyed `about` (`about.md` or `about/index.md`).
+    Top-level pages have none; the home page isn't every page's parent.
+  - **Hierarchical taxonomies:** `hierarchical: true` (`Taxonomy`'s
+    option, in data too) adds a single `parent` reference to the
+    taxonomy's own terms (`Taxonomy::parentField()`, added by
+    `ContentTypes::schema()` after the term fields, so a type's own
+    `parent` field may replace it). A term names its parent by slug;
+    term files stay flat and keep their URLs when they move, and slugs
+    stay unique across the taxonomy. Chosen over folders (the author's
+    call): moving a term would move its file and change its URL.
+  - **Collections don't nest.** A type whose entries nest (a manual with
+    chapters) would be a kind of its own, if one's ever needed; a
+    collection's subfolders stay only a way to organize files.
+  - **One model:** `ContentType::parentKey($key, $values)` (`null` in
+    the base, the folder for `Pages`, `parent` for a hierarchical
+    `Taxonomy`) gives each record's `parent` key (`IndexRecord::$parent`),
+    and the snapshot keeps the reverse (`children`, by locale, type, and
+    parent key; index format version 2). `ContentRepository::parent()`
+    and `children()` (by title, any status) read them; templates get
+    `$template->parent()`, `ancestors()` (top down, stopping at a
+    missing parent or a loop), and `children()`, published and routable
+    only.
+  - **Checks:** `content:lint` errors on a term that's its own parent or
+    in a loop, and warns of a parent with no file (the term is shown at
+    the top level). A folder needn't have a page, so pages aren't
+    checked.
+  - **Admin:** `GET entries` adds each entry's `ancestors` (titles, top
+    down), shown before its title in the lists; `GET types` adds a
+    taxonomy's `hierarchical`. The editor shows `parent` as a text field
+    from the schema until the reference picker (D-242's third stage).
+  - **Not yet:** a term page listing its child terms' entries too
+    (WordPress does); a tree-ordered admin list; reparenting a deleted
+    term's children.
+  - **jtcom trial:** `category` (topics) is hierarchical, with parents on
+    31 terms (Web › Web design › CSS, WordPress › bbPress › bbPress
+    tutorials, and others); the theme nests the topics listing
+    (`parts/term-tree.php`) and puts a term's parents above its title.
+- **Checked:** `composer check`; on the jtcom trial: `content:lint`
+  clean, `/topics` nested and `/topics/css` under "Web › Web Design";
+  in headless Chrome, Categories rows such as "WordPress › bbPress ›
+  bbPress Tutorials" and Pages rows "Archives › Months", and the type
+  screen's Hierarchical row.
+- **Why:** the author asked whether types besides pages nest, wants
+  hierarchical taxonomies (with one in the trial to test), and thinks
+  nesting collections would be a different kind.
+
+### D-258: Type folders default to `_` and the name
+- **Date:** 2026-09-30
+- **Decision:** Supersedes the folder default in D-083 and D-157.
+  - A collection's or taxonomy's `folder` defaults to `_{name}`
+    (`_recipe`), so type folders stand apart from page folders in the
+    content root, as jtcom's `_posts` does. Pages keep the root; the
+    built-in `author` keeps `authors` (existing content).
+  - A type's URL `prefix` without `urls.prefix` is its folder with the
+    leading `_` of each folder name dropped (`_recipe` → `/recipe`,
+    `_blog/_tags` → `/blog/tags`), so URLs are as before.
+  - 1.x definitions without `path` now get the new folder; the author
+    isn't worried about older definitions. `coming-from-1x.md` says to
+    add `path` to keep one.
+  - **A clash check in `content:lint`, not `doctor`:** a page whose
+    address another route answers (a type's single, listing, or archive
+    route; matched against the route table, not by prefix) is a
+    warning. `doctor`'s checks run before the application loads and need
+    only `Paths` (D-218), so content checks belong to lint. Matching real
+    routes rather than prefixes keeps jtcom's `/archives/months` page
+    (under the post type's `archives` prefix, but no post route answers
+    it) quiet.
+- **Why:** the author agreed types shouldn't share the root's namespace
+  with pages by default, and isn't worried about older definitions.
+
+### D-259: Authors are the public side of accounts
+- **Date:** 2026-09-30
+- **Decision:** Refines D-043 and D-216/D-217.
+  - **Author entries stay the public identity:** a name for bylines, a
+    bio, an archive. Accounts stay private and out of git, so content
+    never points at them, and authors who aren't accounts (guests,
+    co-authors, people from jtcom's past) keep working.
+  - **An account's author entry is its own** (`Permissions::owns()` and
+    `restrict()`), so an author edits their own bio without
+    `content.edit.others`; the usual status rules still apply.
+  - **Your profile** has an **Author page** panel: the name bylines
+    show, **Edit your author page** (the editor), or **Create your
+    author page** when there's no file (a draft, with the slug as its
+    title), or a note when the account has no author.
+  - **`account:add` and `account:author`** offer to create the author's
+    entry when it has none (`Accounts::hasAuthorPage()` and
+    `createAuthorPage()`), asking for the public name; declined, or
+    without a terminal, bylines show the slug until someone creates it.
+  - **The admin lists authors under People** (Config), beside accounts,
+    not in Content's shared taxonomies; `GET types` names the author
+    type as `authors`, and its list and editor screens open the Config
+    section.
+  - **Planned:** once D-242's second stage lands, `author` stops being a
+    `Taxonomy` and becomes an ordinary type that other entries
+    reference.
+- **Checked:** `composer check`; in headless Chrome on the jtcom trial
+  with a throwaway account linked to a missing author: Authors under
+  People (marked current on its list, Content without it), Your
+  profile's "Create your author page" opening the new entry's editor and
+  then "Edit your author page"; the account, its sessions, and the page
+  were deleted afterwards.
+- **Why:** the author asked whether the author taxonomy is needed at
+  all, agreed to keep author entries as the public identity, and is
+  fine with it not being a taxonomy; these are the suggestions they
+  accepted for now.
+
+### D-260: Hierarchical terms have nested URLs
+- **Date:** 2026-09-30
+- **Decision:** Refines D-257, where terms kept flat URLs.
+  - A hierarchical taxonomy's `{name}` is the term's path: its parents'
+    slugs, then its own (`/topics/web/web-design/css`), in its single,
+    paged, and feed routes. `ContentUrls::termPath()` walks
+    `ContentRepository::parentKey()` (a deferred dependency; a parent
+    without a file ends the walk, so virtual terms and orphans sit at
+    the top) and every term URL (sitemaps, export, menus, feeds) goes
+    through `ContentUrls::term()` or `feed()`.
+  - The route constraint is `ContentUrls::TERM_PATH`: slugs joined by
+    `/`, where only a lone first segment may be `page` or `feed`, so
+    `{name}/page/{page}`, `{name}/feed`, and the taxonomy's own
+    `/topics/page/2` still match. `ContentUrls::constraints()` gives it
+    to `ContentRoutes::route()` (and `FeedRoutes`) and to URL building
+    for hierarchical taxonomies only. A child term slugged `page` or
+    `feed` has no URL.
+  - `TermController` finds the term by the path's last slug and
+    redirects (301) any other path to the term's own, so flat 1.x URLs
+    and a moved term's old address keep working. `FeedController` finds
+    the term the same way without redirecting.
+  - Term files stay flat and name their `parent` (D-257): the URL
+    follows the tree, the file doesn't.
+  - **jtcom trial:** the term pages no longer show their parents above
+    the title (the author's call); the nested `/topics` list stays.
+- **Checked:** `composer check` (`ContentRoutingTest`: nested pages,
+  paged and feed URLs, redirects from flat and partial paths, a child
+  slugged `page`); the jtcom trial's `/topics/web/web-design/css`.
+- **Why:** the author asked for nested URLs for hierarchical terms.
+
+### D-261: Nesting types list as a tree in the admin
+- **Date:** 2026-09-30
+- **Decision:** Resolves D-257's "tree-ordered admin list" item.
+  - `GET entries` with a `type` whose entries nest (pages, or a
+    hierarchical taxonomy), no `status`, and no `search` returns entries
+    in tree order: each followed by its children, siblings by title
+    (natural, any case), then any caught in a loop of parents. An entry
+    whose parent isn't in the list (missing, or one the account can't
+    edit) is at the top. Every entry is built to order them, then the
+    page is sliced; tabs and searches keep D-230's orders.
+  - The rows still show their parents' titles before their own; no
+    indentation.
+- **Checked:** `composer check` (`AdminContentTest`: order, paging, a
+  search keeping the usual order); the jtcom trial's Categories and
+  Pages lists in headless Chrome.
+- **Why:** the author asked for hierarchical terms, and any nesting
+  type, to be sorted together in their default admin listing.
+
+### D-262: Child rows are indented in a tree-ordered list
+- **Date:** 2026-09-30
+- **Decision:** Refines D-257's and D-261's display.
+  - In tree order (D-261), `GET entries` gives each entry its `depth`
+    (0 at the top; an entry whose parent isn't in the list, or in a loop,
+    is 0). Other lists' entries have `depth: null`.
+  - The table indents a row with a depth: `.entry-title--nested`, 20px a
+    level past the first, with a 1px `--border` guide line, from a
+    `--depth` custom property set through a Vue style binding (CSSOM,
+    which the admin's CSP allows). Those rows don't show their parents'
+    titles.
+  - Rows without a depth (status tabs, searches) keep the parents'
+    titles before their own, since their order isn't a tree.
+  - A page of the list can start with a child whose parent is on the
+    page before; it's indented all the same.
+- **Checked:** `composer check` (`AdminContentTest`: depths in the tree,
+  an orphan at 0, none in a search); the jtcom trial's Categories in
+  headless Chrome (children indented, a search still "WordPress ›
+  bbPress › bbPress Tutorials").
+- **Why:** the author asked for child terms to be indented instead of
+  the breadcrumb.
+
+### D-263: Tree lists follow the design's Hierarchy; later pages repeat their parents
+- **Date:** 2026-09-30
+- **Decision:** Supersedes D-262's look (20px steps and a guide line).
+  - **As the design direction's Hierarchy section says:** 18px indent a
+    level, a disclosure triangle (`chevron-right`, turned 90° when open)
+    before each entry with children and its space before each leaf, and
+    expansion held client-side (a `Set` of collapsed IDs in
+    `EntryTable`, kept while the admin is open). Collapsing hides the
+    rows under it on the page. `GET entries` adds each tree entry's
+    `children` count.
+  - **The flattened-tree bar:** on a nesting type, a status tab or a
+    search shows `.notebar` above the table: "Searching, so the tree is
+    flattened. Clear the search to see the hierarchy." or "Filtered by
+    status, so the tree is flattened. Choose All to see the hierarchy."
+  - **Later pages repeat their parents:** a tree page that starts inside
+    a branch begins with the entries above its first row, top down,
+    marked `continued: true` in the API and **Continued** in the table.
+    They aren't counted again in `total` or `pages`.
+- **Departs from the design:** it suppresses paging in tree mode ("Showing
+  all 14 pages as a tree"); the author asked for parents at the top of
+  later pages, so trees stay paged. No tree/flat switch or column
+  sorting yet.
+- **Checked:** `composer check` (`AdminContentTest`: a page inside a
+  branch starting with its parent, uncounted; child counts; none in a
+  search); on the jtcom trial in headless Chrome: Categories page 2
+  opens with "Books (Continued)" then "Books In Bed", collapsing Art
+  hides its two children, and a search shows the note bar with no
+  triangles.
+- **Why:** the author asked for parents at the top of later pages and
+  for the indent to follow the design docs, without the border.
+
+### D-264: The index page is pinned on the first page only
+- **Date:** 2026-09-30
+- **Decision:** Supersedes D-255's "on every page".
+  - `GET entries` answers the type's index page as `index` on page 1
+    only; later pages have `index: null`. It's still left out of
+    `entries`, `total`, and `pages`, and still follows the tabs and
+    search.
+  - In a tree list (D-261, D-263), the pinned row's title leaves the
+    triangle's space, so it lines up with the top-level rows.
+- **Departs from the design:** the design direction pins it through
+  paging ("survives sorting, paging and the status tabs").
+- **Checked:** `composer check` (`AdminEditingTest`: pinned on page 1,
+  not page 2); the jtcom trial's Categories in headless Chrome.
+- **Why:** the author's call.

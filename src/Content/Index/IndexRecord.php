@@ -43,6 +43,10 @@ use Blush\Content\Visibility;
  * - `terms` maps each taxonomy to the term slugs the entry references,
  *   and `labels` keeps how a term was written when that differs from its
  *   slug (`Book Reviews`), for virtual terms.
+ * - `parent` is the key of the entry's parent in its own type, for the
+ *   types that nest: a page's is the key of the folder it's in
+ *   (`about` for `about/biography`), and a hierarchical taxonomy's term
+ *   names its own in front matter. `null` for the rest.
  *
  * @phpstan-type RecordArray array{
  *     id: string,
@@ -65,7 +69,8 @@ use Blush\Content\Visibility;
  *     labels: array<string, array<string, string>>,
  *     modified: int,
  *     size: int,
- *     hash: string
+ *     hash: string,
+ *     parent: ?string
  * }
  */
 final readonly class IndexRecord
@@ -75,6 +80,7 @@ final readonly class IndexRecord
 	 * @param array<string, mixed>                 $extra  Undeclared front matter (D-081).
 	 * @param array<string, list<string>>          $terms  Term slugs by taxonomy.
 	 * @param array<string, array<string, string>> $labels Term labels by taxonomy and slug.
+	 * @param ?string                              $parent The parent's key in the same type.
 	 */
 	public function __construct(
 		public string $id,
@@ -97,7 +103,8 @@ final readonly class IndexRecord
 		public array $labels,
 		public int $modified,
 		public int $size,
-		public string $hash
+		public string $hash,
+		public ?string $parent = null
 	) {}
 
 	/**
@@ -157,7 +164,8 @@ final readonly class IndexRecord
 			labels: $data['labels'],
 			modified: $data['modified'],
 			size: $data['size'],
-			hash: $data['hash']
+			hash: $data['hash'],
+			parent: $data['parent']
 		);
 	}
 
@@ -198,7 +206,8 @@ final readonly class IndexRecord
 			'labels'     => $this->labels,
 			'modified'   => $this->modified,
 			'size'       => $this->size,
-			'hash'       => $this->hash
+			'hash'       => $this->hash,
+			'parent'     => $this->parent
 		];
 	}
 }

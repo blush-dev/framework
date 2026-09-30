@@ -156,6 +156,51 @@ final class IndexedRepository implements ContentRepository
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function parentKey(string $type, string $key, ?string $locale = null): ?string
+	{
+		$snapshot = $this->snapshot();
+		$locale ??= $this->app->locale;
+		$id       = $snapshot->find($locale, $type, $key);
+		$parent   = $id === null ? null : $snapshot->records[$id]['parent'];
+
+		return $parent !== null && $snapshot->find($locale, $type, $parent) !== null ? $parent : null;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function parent(Entry $entry): ?Entry
+	{
+		$key = $entry->isVirtual() ? null : $entry->type->parentKey($entry->key, $entry->fields);
+
+		return $key === null ? null : $this->named($entry->type->name, $key, $entry->locale);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function children(Entry $entry): array
+	{
+		if ($entry->isVirtual() || $entry->landing) {
+			return [];
+		}
+
+		$children = array_values(array_filter(array_map(
+			$this->find(...),
+			$this->snapshot()->children($entry->locale, $entry->type->name, $entry->key)
+		)));
+
+		usort($children, static fn (Entry $a, Entry $b): int => strnatcasecmp($a->title, $b->title));
+
+		return $children;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function termCounts(string $taxonomy): array
 	{
 		$snapshot = $this->snapshot();

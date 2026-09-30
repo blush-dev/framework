@@ -20,11 +20,13 @@ use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
+use Blush\Console\Prompt;
 
 /**
  * Links an account to the author entry it writes as, or unlinks it when
  * no author is given (D-217). Entries crediting that author become the
- * account's own.
+ * account's own, and so does the author's entry, which it offers to
+ * create when there's none (D-259).
  */
 #[Command('account:author', 'Link an admin account to an author entry, or unlink it.')]
 final readonly class SetAccountAuthor
@@ -36,6 +38,7 @@ final readonly class SetAccountAuthor
 
 	public function __invoke(
 		Output $output,
+		Prompt $prompt,
 		#[Argument('The account\'s username.')] string $username,
 		#[Argument('The author entry\'s slug; leave it out to unlink.')] ?string $author = null
 	): ExitCode {
@@ -54,12 +57,8 @@ final readonly class SetAccountAuthor
 			return ExitCode::Success;
 		}
 
-		if (! $this->accounts->hasAuthor($author)) {
-			$output->warning(sprintf('No "%s" author exists yet (no author entry, and no entry credits it); the account is linked to it anyway.', $author));
-		}
-
 		$output->success(sprintf('"%s" writes as the "%s" author now.', $username, $author));
 
-		return ExitCode::Success;
+		return AuthorPage::offer($output, $prompt, $this->accounts, $author);
 	}
 }

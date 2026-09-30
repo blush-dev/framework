@@ -9,11 +9,12 @@
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import TypeIcon from '../components/TypeIcon.vue';
 import { ApiError, request, type ContentTypeDetail } from '../api';
 import { humanize, label } from '../fields';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
-import { findType, loadTypes } from '../types';
+import { authorType, findType, loadTypes } from '../types';
 
 const route = useRoute();
 const type  = ref<ContentTypeDetail | null>(null);
@@ -66,6 +67,7 @@ const related = computed(() => {
 			<p v-if="type" class="page-header__hint">
 				{{ humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · from {{ origin }}
 			</p>
+			<p v-if="type?.description" class="page-header__hint">{{ type.description }}</p>
 		</div>
 		<div class="page-header__actions">
 			<RouterLink class="button" :to="{ name: 'types' }"><AdminIcon name="arrow-left" />All types</RouterLink>
@@ -86,9 +88,11 @@ const related = computed(() => {
 					<div><dt>Name (plural)</dt><dd>{{ type.label }}</dd></div>
 					<div><dt>Name (singular)</dt><dd>{{ type.singular }}</dd></div>
 					<div><dt>Key</dt><dd class="mono">{{ type.name }}</dd></div>
+					<div><dt>Icon</dt><dd class="type-facts__icon"><TypeIcon :type="type" /><span :class="{ mono: type.icon }">{{ type.icon ?? `The ${type.kind === 'pages' ? 'pages' : type.kind} icon` }}</span></dd></div>
 					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
 					<div><dt>Address</dt><dd :class="{ mono: type.prefix }">{{ type.prefix ?? 'No pages of its own' }}</dd></div>
-					<div><dt>Dated</dt><dd>{{ type.dated ? 'Yes' : 'No' }}</dd></div>
+					<div v-if="taxonomy"><dt>Hierarchical</dt><dd>{{ type.hierarchical ? 'Yes: a term can name a parent' : 'No' }}</dd></div>
+					<div v-else><dt>Dated</dt><dd>{{ type.dated ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>Public</dt><dd>{{ type.public ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>Feed</dt><dd>{{ type.feed ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>In the sitemap</dt><dd>{{ type.sitemap ? 'Yes' : 'No' }}</dd></div>
@@ -105,6 +109,7 @@ const related = computed(() => {
 							<RouterLink :to="{ name: 'content-type', params: { name: item.name } }">{{ item.label }}</RouterLink>
 						</li>
 					</ul>
+					<p v-else-if="taxonomy && type.name === authorType" class="field__help">Every type. Authors are the public side of accounts, so they're under People in the navigation.</p>
 					<p v-else-if="taxonomy" class="field__help">Every type, so it's under Shared taxonomies in the navigation.</p>
 					<p v-else class="field__help">No taxonomy groups it.</p>
 					<p v-if="taxonomy && related.length === 1" class="field__help">One type, so it sits under {{ related[0]?.label }} in the navigation.</p>
@@ -146,12 +151,27 @@ const related = computed(() => {
 	</div>
 
 	<div v-else-if="!error" class="detail" aria-hidden="true">
-		<div class="panel"><div class="panel__body"><span class="skeleton" style="width: 40%" /><span class="skeleton" /><span class="skeleton" /></div></div>
-		<div class="panel"><div class="panel__body"><span class="skeleton" style="width: 30%" /><span class="skeleton" /></div></div>
+		<div class="panel"><div class="panel__body"><span class="skeleton skeleton--heading" /><span class="skeleton" /><span class="skeleton" /></div></div>
+		<div class="panel"><div class="panel__body"><span class="skeleton skeleton--label" /><span class="skeleton" /></div></div>
 	</div>
 </template>
 
 <style scoped>
+/* Widths as classes: the admin's CSP blocks inline style attributes. */
+.skeleton--heading {
+	width: 40%;
+}
+
+.skeleton--label {
+	width: 30%;
+}
+
+.type-facts__icon {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
 .detail {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);

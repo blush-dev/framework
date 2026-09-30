@@ -502,6 +502,74 @@
 	vertical-align: 1px;
 }
 
+/* Above a table whose tree is flattened by a tab or search (the design
+   direction's Hierarchy). */
+.notebar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border);
+	background: var(--surface-2);
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+.notebar .icon {
+	width: 14px;
+	height: 14px;
+	color: var(--fg-3);
+}
+
+/* A row's title in a tree-ordered list (D-262): 18px a level, then a
+   disclosure triangle (or its space). `--depth` is set on the element. */
+.title-cell {
+	display: flex;
+	align-items: flex-start;
+	gap: 2px;
+	min-width: 0;
+	padding-left: calc(var(--depth, 0) * 18px);
+}
+
+.twist {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	margin-top: 1px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-3);
+	cursor: pointer;
+}
+
+.twist:hover {
+	background: var(--surface-3);
+	color: var(--fg);
+}
+
+.twist .icon {
+	width: 12px;
+	height: 12px;
+	transition: transform .12s;
+}
+
+.twist[aria-expanded="true"] .icon {
+	transform: rotate(90deg);
+}
+
+.twist--leaf {
+	visibility: hidden;
+}
+
+.entry-title__ancestors {
+	color: var(--fg-3);
+}
+
 .entry-title__path {
 	color: var(--fg-3);
 	font-family: var(--font-mono);
@@ -783,5 +851,9 @@
 @media (prefers-reduced-motion: reduce) {
 	.skeleton {
 		animation: none;
+	}
+
+	.twist .icon {
+		transition: none;
 	}
 }

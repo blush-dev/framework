@@ -41,10 +41,13 @@ A few rules make the file names flexible:
   to it (`about/index.md`, `about/me.jpg`) and link them by name. See
   [Media](media.md).
 - **Set `slug:`** in front matter to choose the URL name yourself.
+- **Folders nest pages.** `about/team.md` is a subpage of the `about`
+  page, which themes can use for breadcrumbs and lists of subpages.
 
 Folders can also hold a whole [content type](content-types.md), like a
-blog whose posts are listed at `/blog`. Plain folders of pages need no
-setup.
+blog whose posts are listed at `/blog`. A type's folder starts with an
+underscore (`_blog`) so it stands apart from your page folders. Plain
+folders of pages need no setup.
 
 ## Front matter
 
@@ -208,4 +211,6 @@ bin/blush content:new page "Contact me"   # create a new entry
 ```
 
 `content:lint` is worth running before you publish: it catches bad dates,
-misspelled values, and two files claiming the same URL.
+misspelled values, two files claiming the same URL, a page a content
+type's URLs hide (such as `blog/2026.md` when the blog has yearly
+archives at `/blog/2026`), and term parents that are missing or loop.

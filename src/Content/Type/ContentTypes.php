@@ -169,7 +169,9 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns a type's full schema.
+	 * Returns a type's full schema: the built-in entry fields, every
+	 * taxonomy's term field, a hierarchical taxonomy's `parent`, then the
+	 * type's own fields.
 	 *
 	 * @throws InvalidContentType When the fields clash.
 	 */
@@ -182,9 +184,9 @@ final class ContentTypes implements IteratorAggregate, Countable
 		$type = $this->get($name);
 
 		try {
-			$terms = array_values(array_map(static fn (Taxonomy $taxonomy): Field => $taxonomy->termField(), $this->taxonomies()));
-
-			$schema = new Schema([...array_values(EntryFields::schema()->fields), ...$terms])->merge($type->schema);
+			$terms  = array_values(array_map(static fn (Taxonomy $taxonomy): Field => $taxonomy->termField(), $this->taxonomies()));
+			$parent = $type instanceof Taxonomy ? $type->parentField() : null;
+			$schema = new Schema([...array_values(EntryFields::schema()->fields), ...$terms, ...($parent === null ? [] : [$parent])])->merge($type->schema);
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType(sprintf('Content type "%s" has clashing fields: %s', $name, $e->getMessage()), previous: $e);
 		}

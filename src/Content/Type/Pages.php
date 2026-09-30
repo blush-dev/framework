@@ -27,14 +27,16 @@ use Blush\Content\Schema\Field;
 final readonly class Pages extends ContentType
 {
 	/**
-	 * @param  string          $name     Lowercase letters, digits, and underscores.
-	 * @param  string          $folder   The folder under `user/content`; the content root by default.
-	 * @param  bool            $public   Whether pages are public at all.
-	 * @param  bool            $sitemap  Whether pages are in the sitemap.
-	 * @param  iterable<Field> $fields   Fields beyond the built-in ones.
-	 * @param  bool            $closed   Whether undeclared front matter is an error.
-	 * @param  ?string         $label    For people, for a group of pages; defaults to "Pages".
-	 * @param  ?string         $singular For people, for one page; defaults to "Page".
+	 * @param  string          $name        Lowercase letters, digits, and underscores.
+	 * @param  string          $folder      The folder under `user/content`; the content root by default.
+	 * @param  bool            $public      Whether pages are public at all.
+	 * @param  bool            $sitemap     Whether pages are in the sitemap.
+	 * @param  iterable<Field> $fields      Fields beyond the built-in ones.
+	 * @param  bool            $closed      Whether undeclared front matter is an error.
+	 * @param  ?string         $label       For people, for a group of pages; defaults to "Pages".
+	 * @param  ?string         $singular    For people, for one page; defaults to "Page".
+	 * @param  string          $description What pages are for, in a sentence.
+	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -45,9 +47,11 @@ final readonly class Pages extends ContentType
 		iterable $fields = [],
 		bool $closed = false,
 		?string $label = null,
-		?string $singular = null
+		?string $singular = null,
+		string $description = '',
+		?string $icon = null
 	) {
-		parent::__construct($name, $folder, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $label, $singular);
+		parent::__construct($name, $folder, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $label, $singular, $description, $icon);
 	}
 
 	/**
@@ -57,5 +61,15 @@ final readonly class Pages extends ContentType
 	public function kind(): TypeKind
 	{
 		return TypeKind::Pages;
+	}
+
+	/**
+	 * Returns the page the folder a page is in belongs to: `about` for
+	 * `about/biography`. Top-level pages have none.
+	 */
+	#[Override]
+	public function parentKey(string $key, array $values): ?string
+	{
+		return str_contains($key, '/') ? dirname($key) : null;
 	}
 }

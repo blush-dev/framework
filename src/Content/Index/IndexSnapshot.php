@@ -26,6 +26,8 @@ use Blush\Content\Status;
  * - `terms` is the reverse of each record's terms: the entries that
  *   reference each term, by taxonomy and slug.
  * - `labels` keeps the first label written for each term.
+ * - `children` is the reverse of each record's parent: the entries
+ *   under each parent, by locale, type, and parent key.
  * - `scheduled` is the earliest publish time still to come when the
  *   index was built, for cache invalidation.
  * - `fingerprint` identifies what the records were built with (content
@@ -40,6 +42,7 @@ use Blush\Content\Status;
  *     keys: array<string, array<string, array<string, string>>>,
  *     terms: array<string, array<string, list<string>>>,
  *     labels: array<string, array<string, string>>,
+ *     children: array<string, array<string, array<string, list<string>>>>,
  *     conflicts: array<string, list<string>>,
  *     scheduled: ?int
  * }
@@ -50,14 +53,15 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 1;
+	public const int VERSION = 2;
 
 	/**
-	 * @param array<string, RecordArray>                            $records   Keyed by ID, sorted by ID.
-	 * @param array<string, array<string, array<string, string>>>   $keys      IDs by locale, type, and key.
-	 * @param array<string, array<string, list<string>>>            $terms     Referencing IDs by taxonomy and slug.
-	 * @param array<string, array<string, string>>                  $labels    Term labels by taxonomy and slug.
-	 * @param array<string, list<string>>                           $conflicts IDs claiming one `locale/type/key`.
+	 * @param array<string, RecordArray>                                $records   Keyed by ID, sorted by ID.
+	 * @param array<string, array<string, array<string, string>>>       $keys      IDs by locale, type, and key.
+	 * @param array<string, array<string, list<string>>>                $terms     Referencing IDs by taxonomy and slug.
+	 * @param array<string, array<string, string>>                      $labels    Term labels by taxonomy and slug.
+	 * @param array<string, array<string, array<string, list<string>>>> $children  IDs by locale, type, and parent key.
+	 * @param array<string, list<string>>                               $conflicts IDs claiming one `locale/type/key`.
 	 */
 	private function __construct(
 		public string $fingerprint,
@@ -66,6 +70,7 @@ final readonly class IndexSnapshot
 		public array $keys,
 		public array $terms,
 		public array $labels,
+		public array $children,
 		public array $conflicts,
 		public ?int $scheduled
 	) {}
@@ -75,7 +80,7 @@ final readonly class IndexSnapshot
 	 */
 	public static function empty(): self
 	{
-		return new self('', 0, [], [], [], [], [], null);
+		return new self('', 0, [], [], [], [], [], [], null);
 	}
 
 	/**
@@ -97,6 +102,7 @@ final readonly class IndexSnapshot
 		$claims    = [];
 		$terms     = [];
 		$labels    = [];
+		$children  = [];
 		$scheduled = null;
 
 		foreach ($byId as $id => $record) {
@@ -112,6 +118,10 @@ final readonly class IndexSnapshot
 				foreach ($slugs as $slug) {
 					$terms[$taxonomy][$slug][] = $id;
 				}
+			}
+
+			if ($record['parent'] !== null) {
+				$children[$record['locale']][$record['type']][$record['parent']][] = $id;
 			}
 
 			foreach ($record['labels'] as $taxonomy => $termLabels) {
@@ -130,6 +140,7 @@ final readonly class IndexSnapshot
 			$keys,
 			$terms,
 			$labels,
+			$children,
 			array_filter($claims, static fn (array $ids): bool => count($ids) > 1),
 			$scheduled
 		);
@@ -188,6 +199,17 @@ final readonly class IndexSnapshot
 	}
 
 	/**
+	 * Returns the IDs of the entries whose parent is a key in a type and
+	 * locale.
+	 *
+	 * @return list<string>
+	 */
+	public function children(string $locale, string $type, string $key): array
+	{
+		return $this->children[$locale][$type][$key] ?? [];
+	}
+
+	/**
 	 * Returns every referenced slug of a taxonomy with its label, which is
 	 * the slug unless the term was written differently.
 	 *
@@ -219,6 +241,7 @@ final readonly class IndexSnapshot
 			'keys'        => $this->keys,
 			'terms'       => $this->terms,
 			'labels'      => $this->labels,
+			'children'    => $this->children,
 			'conflicts'   => $this->conflicts,
 			'scheduled'   => $this->scheduled
 		];
@@ -244,6 +267,7 @@ final readonly class IndexSnapshot
 			$data['keys'],
 			$data['terms'],
 			$data['labels'],
+			$data['children'],
 			$data['conflicts'],
 			$data['scheduled']
 		);

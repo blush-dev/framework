@@ -42,21 +42,24 @@ final readonly class Taxonomy extends ContentType
 	public string $field;
 
 	/**
-	 * @param  string          $name        Lowercase letters, digits, and underscores.
-	 * @param  ?string         $folder      The folder under `user/content`; defaults to the name.
-	 * @param  list<string>    $types       The types a term's page lists; empty for every type.
-	 * @param  ?string         $field       The term field; defaults to the name.
-	 * @param  list<string>    $aliases     Other keys the term field is read from.
-	 * @param  TypeUrls|false  $urls        URL settings, or `false` for no routes.
-	 * @param  Listing         $listing     How the taxonomy's listing page lists its terms.
-	 * @param  Listing         $termListing How a term's page lists entries.
-	 * @param  TypeFeed|false  $feed        Feed settings (term feeds too), or `false` for no feeds.
-	 * @param  bool            $public      Whether the taxonomy is public at all.
-	 * @param  bool            $sitemap     Whether terms are in the sitemap.
-	 * @param  iterable<Field> $fields      Fields beyond the built-in ones.
-	 * @param  bool            $closed      Whether undeclared front matter is an error.
-	 * @param  ?string         $label       For people, for a group of terms; defaults to the singular made plural.
-	 * @param  ?string         $singular    For people, for one term; defaults to the name made readable.
+	 * @param  string          $name         Lowercase letters, digits, and underscores.
+	 * @param  ?string         $folder       The folder under `user/content`; defaults to `_` and the name.
+	 * @param  list<string>    $types        The types a term's page lists; empty for every type.
+	 * @param  ?string         $field        The term field; defaults to the name.
+	 * @param  list<string>    $aliases      Other keys the term field is read from.
+	 * @param  TypeUrls|false  $urls         URL settings, or `false` for no routes.
+	 * @param  Listing         $listing      How the taxonomy's listing page lists its terms.
+	 * @param  Listing         $termListing  How a term's page lists entries.
+	 * @param  TypeFeed|false  $feed         Feed settings (term feeds too), or `false` for no feeds.
+	 * @param  bool            $public       Whether the taxonomy is public at all.
+	 * @param  bool            $sitemap      Whether terms are in the sitemap.
+	 * @param  iterable<Field> $fields       Fields beyond the built-in ones.
+	 * @param  bool            $closed       Whether undeclared front matter is an error.
+	 * @param  ?string         $label        For people, for a group of terms; defaults to the singular made plural.
+	 * @param  ?string         $singular     For people, for one term; defaults to the name made readable.
+	 * @param  string          $description  What the taxonomy is for, in a sentence.
+	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
+	 * @param  bool            $hierarchical Whether a term may name a `parent` term.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -74,9 +77,12 @@ final readonly class Taxonomy extends ContentType
 		iterable $fields = [],
 		bool $closed = false,
 		?string $label = null,
-		?string $singular = null
+		?string $singular = null,
+		string $description = '',
+		?string $icon = null,
+		public bool $hierarchical = false
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $label, $singular);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $label, $singular, $description, $icon);
 
 		$this->field = $field ?? $name;
 	}
@@ -100,6 +106,31 @@ final readonly class Taxonomy extends ContentType
 	}
 
 	/**
+	 * Returns the field a term names its parent term through, or `null`
+	 * when the taxonomy isn't hierarchical. Parents are named, not
+	 * folders, so a term keeps its file and URL when it moves in the
+	 * tree, and slugs stay unique across the taxonomy.
+	 */
+	public function parentField(): ?ReferenceField
+	{
+		return $this->hierarchical
+			? new ReferenceField('parent', $this->name, multiple: false)->described(sprintf('The parent %s, by slug.', strtolower($this->singular)))
+			: null;
+	}
+
+	/**
+	 * Returns the term a hierarchical taxonomy's term names as its
+	 * `parent`. A term can't be its own parent.
+	 */
+	#[Override]
+	public function parentKey(string $key, array $values): ?string
+	{
+		$parent = $this->hierarchical ? ($values['parent'] ?? null) : null;
+
+		return is_string($parent) && $parent !== '' && $parent !== $key ? $parent : null;
+	}
+
+	/**
 	 * Returns a term page's 1.x query arguments, for `Query::fromArray()`,
 	 * before the term itself is matched.
 	 *
@@ -120,7 +151,8 @@ final readonly class Taxonomy extends ContentType
 			'types'       => $this->types,
 			'field'       => $this->field === $this->name ? null : $this->field,
 			'aliases'     => $this->aliases,
-			'termListing' => $this->termListing->toArray()
+			'termListing'  => $this->termListing->toArray(),
+			'hierarchical' => $this->hierarchical ?: null
 		];
 	}
 }

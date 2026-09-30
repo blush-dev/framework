@@ -76,6 +76,22 @@ const filtered = computed(() => search.value !== '');
 // A taxonomy's entries are terms: they're counted by use, not credited.
 const terms = computed(() => info.value?.kind === 'taxonomy');
 
+// A nesting type lists as a tree on All with no search (D-261); a tab or
+// a search flattens it, and a bar says so and how to get it back (the
+// design direction's Hierarchy).
+const nests     = computed(() => info.value?.kind === 'pages' || info.value?.hierarchical === true);
+const flattened = computed(() => {
+	if (!nests.value || inTrash.value) {
+		return '';
+	}
+
+	if (search.value !== '') {
+		return 'Searching, so the tree is flattened. Clear the search to see the hierarchy.';
+	}
+
+	return status.value === 'any' ? '' : 'Filtered by status, so the tree is flattened. Choose All to see the hierarchy.';
+});
+
 const heading  = computed(() => info.value?.label ?? humanize(type.value));
 const singular = computed(() => inSentence(info.value?.singular ?? humanize(type.value)));
 
@@ -283,10 +299,14 @@ function emptyTrash(): void {
 loadTypes().catch(() => undefined);
 
 /**
- * What a type is for, from what it is: for the screen of a type with no
- * entries yet.
+ * What a type is for, for the screen of a type with no entries yet: its
+ * description, or else what its kind is for.
  */
 function purpose(summary: ContentTypeSummary | undefined, label: string): string {
+	if (summary?.description) {
+		return summary.description;
+	}
+
 	switch (summary?.kind) {
 		case 'taxonomy':
 			return `${label} group other entries. Each one is an entry of its own, with a page listing what uses it.`;
@@ -384,6 +404,7 @@ const emptyText = computed(() => {
 			</template>
 
 			<template v-else-if="list">
+				<p v-if="flattened && list.entries.length" class="notebar"><AdminIcon name="info" />{{ flattened }}</p>
 				<EntryTable v-if="list.entries.length || list.index" :entries="list.entries" :pinned="list.index" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" @trash="moveToTrash" />
 
 				<div v-if="!list.entries.length" class="empty">

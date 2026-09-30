@@ -319,6 +319,33 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame([], $this->content->termCounts('missing'));
 	}
 
+	public function testPagesNestByFolderAndHierarchicalTermsByParent(): void
+	{
+		$this->contentConfig(['types' => ['topic' => ['kind' => 'taxonomy', 'folder' => 'topics', 'hierarchical' => true]]]);
+		$this->entry('topics/web.md', 'title: Web');
+		$this->entry('topics/css.md', "title: CSS\nparent: web");
+		$this->entry('topics/grid.md', "title: Grid\nparent: CSS");
+		$this->entry('topics/html.md', "title: HTML\nparent: web");
+		$this->entry('topics/orphan.md', "title: Orphan\nparent: missing");
+
+		$content = $this->repository();
+		$grid    = $content->named('topic', 'grid');
+		$web     = $content->named('topic', 'web');
+		$about   = $content->named('page', 'about');
+
+		$this->assertNotNull($grid);
+		$this->assertNotNull($web);
+		$this->assertNotNull($about);
+		$this->assertSame('css', $content->parent($grid)?->key, 'Parents are slugged like other references.');
+		$this->assertNull($content->parent($web));
+		$this->assertSame(['css', 'html'], array_map(static fn (Entry $entry): string => $entry->key, $content->children($web)));
+		$this->assertNull($content->parent($content->named('topic', 'orphan') ?? $web));
+		$this->assertSame('about', $content->parent($content->named('page', 'about/biography') ?? $about)?->key);
+		$this->assertSame(['about/biography'], array_map(static fn (Entry $entry): string => $entry->key, $content->children($about)));
+		$this->assertNull($content->parent($about));
+		$this->assertSame([], $content->children($content->named('page', '') ?? $about), 'The home page isn\'t every page\'s parent.');
+	}
+
 	public function testDevelopmentRefreshesTheIndexOnFirstUse(): void
 	{
 		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($this->content->query()->type('post')->get()));

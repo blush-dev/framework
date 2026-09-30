@@ -207,7 +207,10 @@ in a popover, and media in a modal picker that's also **Choose** beside
 media fields (D-247), over `GET icons` and `GET media` (D-246).
 Then toasts and the ⌘K command palette (D-248), and read-only list and
 detail screens for Roles and Accounts (D-249), Content types (D-250),
-and Media (D-251).
+and Media (D-251). Then content-model gaps the admin exposed: type
+descriptions and icons (D-256), pages nesting by folder and hierarchical
+taxonomies by `parent` (D-257), `_{name}` type folders (D-258), and
+authors as the public side of accounts (D-259).
 Next: the Markdown editing experience (D-252; begun with styled
 Markdown and editor addresses by handle, D-253; a 640px Fira Code
 editor, site addresses in tables, and row menus, D-254; Fira Code
@@ -219,7 +222,8 @@ image and embed previews first, then a full preview, above all of
 components. Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), changing one's own password on Your profile,
 renaming an entry from the editor, objects in forms, autosave, and Pages
-as a tree (see D-233 to D-237's open items).
+and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
+items).
 
 Testing the admin on the jtcom trial: create a throwaway administrator
 account file in `../blush/storage/accounts/` (an Argon2id hash), drive

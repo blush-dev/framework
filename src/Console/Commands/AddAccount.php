@@ -27,7 +27,8 @@ use Blush\Console\Prompt;
 /**
  * Creates an admin account (D-217), asking for its password twice without
  * showing it. It needs a terminal, so a password never lands in shell
- * history.
+ * history. When the account's author has no entry yet, it offers to
+ * create one, the account's public name and bio (D-259).
  */
 #[Command('account:add', 'Create an admin account.')]
 final readonly class AddAccount
@@ -59,12 +60,8 @@ final readonly class AddAccount
 			return ExitCode::Failure;
 		}
 
-		if ($account->author !== null && ! $this->accounts->hasAuthor($account->author)) {
-			$output->warning(sprintf('No "%s" author exists yet (no author entry, and no entry credits it); the account is linked to it anyway.', $account->author));
-		}
-
 		$output->success(sprintf('Created the "%s" account (%s).', $account->username, implode(', ', $account->roles)));
 
-		return ExitCode::Success;
+		return $account->author === null ? ExitCode::Success : AuthorPage::offer($output, $prompt, $this->accounts, $account->author);
 	}
 }

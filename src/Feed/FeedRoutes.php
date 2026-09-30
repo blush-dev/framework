@@ -100,7 +100,7 @@ final readonly class FeedRoutes implements RouteSource
 		$single = $type instanceof Taxonomy ? $type->routePattern("single.feed{$suffix}") : null;
 
 		if ($single !== null) {
-			$routes[] = ContentRoutes::route($single, FeedController::class, "{$type->name}.single.feed{$suffix}", $defaults);
+			$routes[] = ContentRoutes::route($single, FeedController::class, "{$type->name}.single.feed{$suffix}", $defaults, $type);
 		}
 
 		return $routes;

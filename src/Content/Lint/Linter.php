@@ -25,6 +25,9 @@ use Blush\Content\Schema\Violation;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Pages;
+use Blush\Content\Routing\PageRoutes;
+use Blush\Routing\RouteTable;
 use Blush\Content\Type\Taxonomy;
 
 /**
@@ -32,9 +35,12 @@ use Blush\Content\Type\Taxonomy;
  * files fresh (not the index) and reports:
  *
  * - errors: files that can't be parsed, front matter values that don't
- *   fit their fields, and `collection` query arguments that don't work;
+ *   fit their fields, `collection` query arguments that don't work, and
+ *   terms that are their own parent or ancestor;
  * - warnings: two files claiming one entry (`about.md` next to
- *   `about/index.md`);
+ *   `about/index.md`), a term's `parent` that has no file, and a page
+ *   whose address another route answers (`movie/2024.md` beside a type
+ *   with date archives at `/movie/{year}`);
  * - notices: undeclared keys and 1.x aliases (D-081), and terms that are
  *   referenced but have no file, which become virtual terms.
  */
@@ -48,7 +54,8 @@ final readonly class Linter
 	public function __construct(
 		private ContentSource $source,
 		private RecordBuilder $builder,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private RouteTable $routes
 	) {}
 
 	/**
@@ -69,7 +76,7 @@ final readonly class Linter
 				$parsed = $this->builder->build($file, $this->source->read($file->path));
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage())];
 			}
@@ -93,7 +100,7 @@ final readonly class Linter
 		}
 
 		foreach ($records as $record) {
-			foreach ($this->missingTerms($snapshot, $record) as $violation) {
+			foreach ([...$this->missingTerms($snapshot, $record), ...$this->checkParent($snapshot, $record), ...$this->checkPageAddress($record)] as $violation) {
 				$violations[$record->id][] = $violation;
 			}
 		}
@@ -120,7 +127,7 @@ final readonly class Linter
 		try {
 			$parsed = $this->builder->build($file, $this->source->read($path));
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage())];
 		}
@@ -146,6 +153,82 @@ final readonly class Linter
 		}
 
 		return [];
+	}
+
+	/**
+	 * Checks that a hierarchical taxonomy's term doesn't name itself as
+	 * its parent.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkOwnParent(IndexRecord $record): array
+	{
+		$type = $this->types->find($record->type);
+
+		return $type instanceof Taxonomy && $type->hierarchical && ($record->values['parent'] ?? null) === $record->key
+			? [new Violation('parent', 'names the term itself; a term can\'t be its own parent.')]
+			: [];
+	}
+
+	/**
+	 * Checks that an entry's parent has a file and that following parents
+	 * up never comes back to the entry. Pages are left out: a folder
+	 * needn't have a page of its own.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkParent(IndexSnapshot $snapshot, IndexRecord $record): array
+	{
+		$type = $this->types->find($record->type);
+
+		if (! $type instanceof Taxonomy || $record->parent === null) {
+			return [];
+		}
+
+		$chain = [$record->key];
+		$key   = $record->parent;
+
+		while ($key !== null) {
+			$id = $snapshot->find($record->locale, $record->type, $key);
+
+			if ($id === null) {
+				return $key === $record->parent
+					? [new Violation('parent', sprintf('"%s" has no %s entry; the term is shown at the top level.', $key, $record->type), Severity::Warning)]
+					: [];
+			}
+
+			if (in_array($key, $chain, true)) {
+				return $key === $record->key
+					? [new Violation('parent', sprintf('makes a loop: %s.', implode(' → ', [...$chain, $key])))]
+					: [];
+			}
+
+			$chain[] = $key;
+			$key     = $snapshot->record($id)?->parent;
+		}
+
+		return [];
+	}
+
+	/**
+	 * Checks that a page's address reaches the page: that no other route
+	 * (a type's entries, listings, or archives) answers it first. Type
+	 * folders start with `_` by default so this is rare, but a type's URL
+	 * prefix can still match a page folder.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkPageAddress(IndexRecord $record): array
+	{
+		if (! $this->types->find($record->type) instanceof Pages || $record->key === '') {
+			return [];
+		}
+
+		$route = $this->routes->find('GET', "/{$record->key}")?->route;
+
+		return $route !== null && $route->name !== PageRoutes::SINGLE
+			? [new Violation(self::FILE, sprintf('is at /%s, but the %s route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', $record->key, $route->name ?? $route->handlerName()), Severity::Warning)]
+			: [];
 	}
 
 	/**

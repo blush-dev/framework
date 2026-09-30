@@ -106,7 +106,7 @@ final readonly class ContentRoutes implements RouteSource
 			$pattern = $type->routePattern($key);
 
 			if ($pattern !== null) {
-				$routes[] = self::route($pattern, $controller, "{$type->name}.{$key}", ['type' => $type->name]);
+				$routes[] = self::route($pattern, $controller, "{$type->name}.{$key}", ['type' => $type->name], $type);
 			}
 		}
 
@@ -119,14 +119,15 @@ final readonly class ContentRoutes implements RouteSource
 	 *
 	 * @param class-string                               $controller
 	 * @param array<string, string|int|float|bool|null> $defaults
+	 * @param ?ContentType                               $type       The type whose route it is, for its own constraints.
 	 */
-	public static function route(string $pattern, string $controller, string $name, array $defaults = []): Route
+	public static function route(string $pattern, string $controller, string $name, array $defaults = [], ?ContentType $type = null): Route
 	{
 		$params = RoutePattern::parse($pattern)->params;
 
 		return Route::get($pattern, $controller)
 			->named($name)
 			->defaults($defaults)
-			->where(array_intersect_key(ContentUrls::CONSTRAINTS, array_flip($params)));
+			->where(ContentUrls::constraints($type, $params));
 	}
 }

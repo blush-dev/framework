@@ -43,7 +43,8 @@ its URLs exist.
 The rail at the far left has three sections: **Home** (the dashboard and
 content health), **Content** (each content type's entries, with its own
 taxonomies under it, the taxonomies several types share, and media), and
-**Config** (content types, the site's settings, and people). The panel
+**Config** (content types, the site's settings, and people, including
+authors). The panel
 beside it lists the section you're in. Choosing **Content** or
 **Config** changes the panel without leaving the screen you're on;
 **Home** goes to the dashboard. You only see what your account can use.
@@ -62,7 +63,12 @@ the round button at the top right has **Your profile** and **Sign out**.
 ## Your profile
 
 **Your profile** shows your account (username, roles, linked author,
-and when you last signed in) and your **color scheme**: light, dark, or
+and when you last signed in), your **author page**, and your **color
+scheme**. Your author page is the entry of your linked author: your name
+in bylines, your bio, and your archive. **Edit your author page** opens
+it in the editor; it's yours to edit even though no entry credits it. If
+it doesn't exist yet, **Create your author page** starts it as a draft
+(publish it to show your name). The color scheme is light, dark, or
 your device's setting (the default). The choice is saved with your
 account, so it follows you to every device you sign in on, and it only
 changes what you see: someone else on the same site keeps their own.
@@ -90,10 +96,12 @@ collections (such as Posts) and Pages, each with the taxonomies that
 group only that type under it (a taxonomy whose `types` setting names
 one type, such as Categories under Posts), then **Media**.
 **Structure** has **Content types** and the taxonomies that group
-several types or every type (such as Authors), each saying which. Each
-type opens a list of its entries you can edit, newest changes first.
-Types are named from their `label` and `singular` settings (see
-[Content types](content-types.md#names-in-the-admin)).
+several types or every type, each saying which. Authors are under
+**People**, beside accounts, since they're the public side of accounts.
+Each type opens a list of its entries you can edit, newest changes
+first. Types are named from their `label` and `singular` settings, and
+shown with their `icon` (see
+[Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
 **Site** has Appearance, Extensions, Accounts, Roles, and Settings.
 Those screens, Media, and Content types aren't built yet: each says
@@ -107,9 +115,20 @@ drafts, or scheduled ones, with a count on each. You see your own
 entries if you're an author or contributor, and everyone's if you're an
 editor; entries credited to your account's author are marked "Yours".
 Drafts come most recently changed first, and scheduled entries in the
-order they'll go live. Under each title is the entry's address on your
-site (for a draft, the address it will have). Search matches titles and
-file paths. Click a title to edit the entry.
+order they'll go live. Pages, and the terms of a hierarchical taxonomy,
+list as a tree on the **All** tab when you aren't searching: each one
+followed by the ones under it, indented, and those alphabetically
+(Books, then Book Reviews indented under it, then Film). The triangle
+beside an entry with others under it collapses or expands that branch;
+the admin remembers which until you close it. When a later page starts
+partway through a branch, the entries above it are shown again at the
+top, marked **Continued**. On another tab or in a search the tree is
+flattened, and a note above the list says how to get it back. Under each title is the entry's address on your
+site (for a draft, the address it will have). In other tabs and in
+search results, a page or a term of a hierarchical taxonomy has the
+titles of the entries above it before its own (such as "Web › Web
+design › CSS"). Search matches titles and file
+paths. Click a title to edit the entry.
 
 The **⋯** button at the end of each row has **Edit**, then **View** and
 **Copy link** once the entry is live (**View archive** for a term), and
@@ -117,7 +136,7 @@ The **⋯** button at the end of each row has **Edit**, then **View** and
 
 A collection's or taxonomy's **index page** (the `index.md` in its
 folder, which introduces its archive) is pinned at the top of its list
-with a pin and an **Index** tag, on every page of the list. It isn't
+with a pin and an **Index** tag, on the list's first page. It isn't
 counted in the list's totals, and it can't be moved to the trash from
 the list. It still follows the tabs and search: it shows only when it
 matches them. Pages have no index page; the site's home page is listed
@@ -127,7 +146,7 @@ A taxonomy's list (such as Categories) holds its **terms**. Instead of
 authors, it shows how many published entries use each term.
 
 A type with no entries yet skips the tabs and search: it says what the
-type is for and offers to create the first one. A site with no content
+type is for (its `description`, if it has one) and offers to create the first one. A site with no content
 at all shows the same offer on the dashboard, one step per type.
 
 **New post** (named for the type you're looking at) asks for a type and
@@ -392,7 +411,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
 | `GET roles` | Every capability and role, with the accounts holding each; needs `accounts.manage` |
 | `GET accounts` | Every account's username, roles, author, and created and last sign-in times (Unix); needs `accounts.manage` |
-| `GET types` | The site's content types: `{"types": [{"name", "label", "singular", "kind", "dated", "origin", "folder", "prefix", "fields"}]}`, by label, taxonomies last; a taxonomy adds `"types"`, the types it groups (empty for every type). `fields` is how many the type defines |
+| `GET types` | The site's content types: `{"types": [{"name", "label", "singular", "description", "icon", "kind", "dated", "origin", "folder", "prefix", "fields"}], "authors"}`, by label, taxonomies last; a taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`. `fields` is how many the type defines, `icon` is `null` for the kind's, and `authors` names the type accounts' authors belong to (`null` when it's disabled) |
 | `GET types/{name}` | One type, with its own `fields`, the `taxonomies` that group it, `public`, `feed`, `sitemap`, and `editable` |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |
@@ -429,12 +448,20 @@ entries soonest first, and published entries newest first. The answer
 has `status`, `type`, `search`, `total`, `page`, `pages`, `per`, and
 `entries`, each with its id, handle, title, type, status, dates, file,
 `url` (its path on the site, where it is or will be once published, or
-`null`), authors, whether it's the account's own, `index`, and
-`can.delete`.
+`null`), authors, whether it's the account's own, `index`,
+`can.delete`, and `ancestors`: the titles of the entries above it, from
+the top down (a page's parent pages, or a hierarchical term's parents;
+empty for the rest). With a `type` whose entries nest (pages, or a
+hierarchical taxonomy), no `status`, and no `search`, entries come in
+tree order instead: each followed by its children, siblings by title,
+each with its `depth` (0 at the top) and how many `children` it has. A
+page that starts inside a branch begins with the entries above it,
+marked `continued: true` and not counted in `total`. Otherwise `depth`
+and `children` are `null`, and `continued` is `false`.
 
 With a `type` that isn't pages, the type's index page (its landing page)
 is left out of `entries`, `total`, and `pages`, and answered as `index`
-on every page when it matches `status` and `search` and the account may
+on the first page when it matches `status` and `search` and the account may
 edit it; otherwise `index` is `null`. A page past the last has no
 entries.
 

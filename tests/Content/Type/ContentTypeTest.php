@@ -62,7 +62,7 @@ final class ContentTypeTest extends TestCase
 	{
 		$type = new Collection('project');
 
-		$this->assertSame('project', $type->folder);
+		$this->assertSame('_project', $type->folder, 'Type folders stand apart from page folders.');
 		$this->assertSame('project', $type->prefix());
 		$this->assertSame('project', $type->listedType());
 		$this->assertSame(['type' => 'project'], $type->listingArguments());
@@ -72,6 +72,29 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('{name}', $type->urls === false ? null : $type->urls->path('single'));
 		$this->assertSame(['name' => 'project', 'kind' => 'collection'], $type->toArray());
 		$this->assertSame('project', new Taxonomy('project')->field);
+		$this->assertSame('', $type->description);
+		$this->assertNull($type->icon);
+		$this->assertFalse(new Taxonomy('topic')->hierarchical);
+	}
+
+	public function testPrefixesDropTheUnderscoresOfFolderNames(): void
+	{
+		$this->assertSame('writing/forms', new Taxonomy('form', folder: '_writing/_forms')->prefix());
+		$this->assertSame('archives', new Collection('post', folder: '_posts', urls: new TypeUrls(prefix: 'archives'))->prefix());
+	}
+
+	public function testDescriptionIconAndHierarchyRoundTrip(): void
+	{
+		$type = ContentType::fromArray(['name' => 'topic', 'kind' => 'taxonomy', 'hierarchical' => true, 'description' => ' What posts are about. ', 'icon' => 'folder'], $this->fields);
+
+		$this->assertInstanceOf(Taxonomy::class, $type);
+		$this->assertTrue($type->hierarchical);
+		$this->assertSame('What posts are about.', $type->description);
+		$this->assertSame('folder', $type->icon);
+		$this->assertSame(['name' => 'topic', 'kind' => 'taxonomy', 'description' => 'What posts are about.', 'icon' => 'folder', 'hierarchical' => true], $type->toArray());
+		$this->assertSame('parent', $type->parentField()?->name);
+		$this->assertFalse($type->parentField()->multiple);
+		$this->assertNull(new Taxonomy('tag')->parentField());
 	}
 
 	public function testAcceptsJtcoms1xConfigUnchanged(): void
