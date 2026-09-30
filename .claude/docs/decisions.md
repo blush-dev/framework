@@ -6308,3 +6308,11 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked for a proper labels system for content
   types, kept to the uses that matter for the CMS.
 
+### D-279: The editor's chrome doesn't fade while typing
+- **Date:** 2026-09-30
+- **Decision:** Supersedes D-245's fade. While keys move, the editor's
+  header (the toolbar with the inserters, save state, and Update button)
+  and footer stay at full opacity. The `is-writing` state, its
+  pointer listeners, and `MarkdownEditor`'s `typed` event are gone.
+- **Why:** the author found the darkened toolbar, then the footer,
+  distracting while editing.

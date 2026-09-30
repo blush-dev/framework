@@ -164,7 +164,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   **Choose** beside every media field and option, and **Replace** on an
   image.
 - **The writing surface** (D-245): no `Changes` pill and the save state
-  reads "Unsaved changes" or "Saved 3:46 PM" (no autosave); nothing sits
+  reads "Unsaved changes" or "Saved 3:46 PM" (no autosave); a save
+  that changes no status (Update, Save draft, ⌘S) is disabled until
+  something changes; nothing sits
   under the title (D-254); the ⋯ menu has Save draft or
   Switch to draft, View, Focus mode, and Move to trash (no Copy link or
   Duplicate); Tab in the body moves focus; the drawer isn't remembered;
@@ -670,9 +672,8 @@ of it you notice.
 - **The title is part of the document**, not a form field above it — display
   face, 30px, no box, wrapping to as many lines as it needs, and it scrolls
   away with the text. Enter moves to the body.
-- **Chrome recedes while typing.** The header and footer fade to a third
-  opacity as soon as keys move and come back on any pointer movement. Nothing
-  disappears; it just stops competing.
+- **The chrome stays put while typing.** The header and footer don't fade
+  or hide as keys move (D-279).
 - **Focus mode** (⌘⇧F, or the palette) drops the rail and top bar entirely,
   leaving the column. Escape returns.
 - **The footer is the status line**, not a toolbar: words, reading time, and

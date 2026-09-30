@@ -26,9 +26,7 @@
  * modal; and inline components, a short menu. Its right half says what
  * the entry is and what happens to it.
  *
- * While keys move, the header and footer fade back; any pointer movement
- * brings them back. Focus mode (⌘⇧F) leaves only the column; Escape
- * returns.
+ * Focus mode (⌘⇧F) leaves only the column; Escape returns.
  *
  * A save sends only what changed, so untouched keys stay exactly as the
  * file has them, with the revision it was loaded at. Ctrl+S (⌘S) saves.
@@ -394,6 +392,11 @@ async function save(status?: EntryStatus): Promise<void> {
 		return;
 	}
 
+	// A plain save with nothing changed has nothing to do.
+	if (status === undefined && !dirty.value) {
+		return;
+	}
+
 	if (publishes(status) && missing.value.length > 0) {
 		attempted.value = true;
 		await showMissing();
@@ -680,6 +683,11 @@ const secondary = computed<{ label: string; status?: EntryStatus } | null>(() =>
 // Saving stops while a conflict or an offer of kept changes is open.
 const blocked = computed(() => saving.value || conflict.value !== null || offer.value !== null);
 
+// Whether a button's save does nothing: no status change and no changes.
+function idle(action: { status?: EntryStatus }): boolean {
+	return action.status === undefined && !dirty.value;
+}
+
 const saveState = computed<{ text: string; tone?: 'warn' | 'danger' }>(() => {
 	if (conflict.value !== null) {
 		return { text: 'Not saved: changed elsewhere', tone: 'danger' };
@@ -734,7 +742,6 @@ const titleField = ref<HTMLTextAreaElement | null>(null);
 const sideOpen   = ref(false);
 const tab        = ref<'document' | 'component'>('document');
 const caret      = ref(0);
-const writing    = ref(false);
 const available  = ref<ComponentDescription[]>([]);
 
 const componentsFailed = ref(false);
@@ -1257,24 +1264,6 @@ function titleKey(event: KeyboardEvent): void {
 	}
 }
 
-// The chrome recedes while keys move, and comes back on any pointer move.
-let quiet: ReturnType<typeof setTimeout> | undefined;
-
-function typed(): void {
-	writing.value = true;
-	clearTimeout(quiet);
-	quiet = setTimeout(() => {
-		writing.value = false;
-	}, 2600);
-}
-
-function moved(): void {
-	if (writing.value) {
-		clearTimeout(quiet);
-		writing.value = false;
-	}
-}
-
 function toggleFocus(): void {
 	focusMode.value = !focusMode.value;
 }
@@ -1328,8 +1317,6 @@ onBeforeRouteLeave(() => {
 
 onMounted(() => {
 	document.addEventListener('keydown', keydown);
-	document.addEventListener('pointermove', moved, { passive: true });
-	document.addEventListener('pointerdown', moved, { passive: true });
 	window.addEventListener('beforeunload', beforeUnload);
 
 	// The "just created" notice shows once.
@@ -1340,11 +1327,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
 	clearTimeout(keeping);
-	clearTimeout(quiet);
 	focusMode.value = false;
 	document.removeEventListener('keydown', keydown);
-	document.removeEventListener('pointermove', moved);
-	document.removeEventListener('pointerdown', moved);
 	window.removeEventListener('beforeunload', beforeUnload);
 	titleWidth?.disconnect();
 });
@@ -1367,7 +1351,7 @@ function fieldKey(field: FieldDescription): string {
 </script>
 
 <template>
-	<section class="editor" :class="{ 'is-side-open': sideOpen, 'is-writing': writing, 'is-focus': focusMode }" aria-labelledby="editor-heading">
+	<section class="editor" :class="{ 'is-side-open': sideOpen, 'is-focus': focusMode }" aria-labelledby="editor-heading">
 		<h1 id="editor-heading" class="visually-hidden" tabindex="-1">{{ editTitle }}</h1>
 
 		<header class="editor__head">
@@ -1438,7 +1422,7 @@ function fieldKey(field: FieldDescription): string {
 					<template #button>
 						<AdminIcon name="ellipsis" />
 					</template>
-					<button v-if="secondary" type="button" class="menu-item" :disabled="blocked" @click="save(secondary.status)">
+					<button v-if="secondary" type="button" class="menu-item" :disabled="blocked || idle(secondary)" @click="save(secondary.status)">
 						<AdminIcon name="file-text" />{{ secondary.label }}
 					</button>
 					<a v-if="entry.url" class="menu-item" :href="entry.url" target="_blank" rel="noopener">
@@ -1454,7 +1438,7 @@ function fieldKey(field: FieldDescription): string {
 						</button>
 					</template>
 				</MenuButton>
-				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked" @click="save(primary.status)">{{ primary.label }}</button>
+				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked || idle(primary)" @click="save(primary.status)">{{ primary.label }}</button>
 			</template>
 		</header>
 
@@ -1566,7 +1550,6 @@ function fieldKey(field: FieldDescription): string {
 							:aria-invalid="errorFor('title') ? 'true' : undefined"
 							:aria-describedby="errorFor('title') ? 'editor-title-error' : undefined"
 							@keydown="titleKey"
-							@input="typed"
 						/>
 						<p v-if="errorFor('title')" id="editor-title-error" class="field__error">{{ errorFor('title') }}</p>
 
@@ -1581,7 +1564,6 @@ function fieldKey(field: FieldDescription): string {
 							:slash-open="panelOpen && panelSlash"
 							:directive="selection?.kind === 'directive' ? selection.index : -1"
 							:image="selection?.kind === 'image' ? selection.index : -1"
-							@typed="typed"
 							@slash="slashed"
 							@slash-key="slashKey"
 						/>
@@ -1770,9 +1752,8 @@ function fieldKey(field: FieldDescription): string {
 
 <style scoped>
 /*
- * Writing first: one centered column, chrome that gets out of the way
- * while typing, and settings on demand rather than always beside the
- * text (admin.md §8).
+ * Writing first: one centered column, and settings on demand rather
+ * than always beside the text (admin.md §8).
  */
 
 .editor {
@@ -1791,7 +1772,6 @@ function fieldKey(field: FieldDescription): string {
 	padding: var(--s-3) var(--s-5);
 	border-bottom: 1px solid var(--border);
 	background: var(--surface);
-	transition: opacity 250ms ease;
 }
 
 /* The most used toolbar in the admin: bigger targets, further apart. */
@@ -2061,7 +2041,6 @@ function fieldKey(field: FieldDescription): string {
 	background: var(--surface);
 	color: var(--fg-3);
 	font-size: var(--text-xs);
-	transition: opacity 250ms ease;
 }
 
 .editor__sep {
@@ -2101,21 +2080,12 @@ function fieldKey(field: FieldDescription): string {
 	height: 11px;
 }
 
-/* The chrome recedes while keys move. */
-
-.is-writing .editor__head,
-.is-writing .editor__foot {
-	opacity: .32;
-}
-
 .is-focus .editor__head {
 	border-bottom-color: transparent;
 	background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.editor__head,
-	.editor__foot,
 	.editor__side,
 	.editor__inserter {
 		transition: none;

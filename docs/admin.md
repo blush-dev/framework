@@ -174,8 +174,7 @@ credited to your account's author.
 ## Editing an entry
 
 The editor is one column of text: the title (press Enter to move to the
-body), then the body in Markdown. While you type, the header and footer
-fade back; moving the pointer brings them back.
+body), then the body in Markdown.
 
 The body stays Markdown, set in Fira Code (the admin's monospace font
 throughout), but the words read first: every mark (`*`, `**`, `#`, `>`,
@@ -213,6 +212,9 @@ saved and the entry's status, then has the settings button, a **⋯** menu
 | A draft | **Save draft**, or **Publish** (or **Schedule**, when the publish date is in the future) |
 | Scheduled | **Update**, **Publish** once its date is past, or **Switch to draft** |
 | Published | **Update** (or **Schedule**, with a future date), or **Switch to draft** |
+
+**Update** and **Save draft** stay off until you change something, since
+there's nothing to save yet.
 
 The settings (⌘/ or Ctrl+/) open beside the text and push it aside;
 close them with their **×** or Escape. They have two tabs:

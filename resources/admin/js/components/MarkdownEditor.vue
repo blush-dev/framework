@@ -47,8 +47,6 @@ const model = defineModel<string>({ required: true });
 const caret = defineModel<number>('caret', { default: 0 });
 
 const emit = defineEmits<{
-	// Keys moved in the text (the editor's chrome recedes).
-	typed: [];
 	// The query typed after a slash at the start of a line, or `null` when
 	// there's no slash (any more).
 	slash: [query: string | null];
@@ -170,7 +168,6 @@ function dismissSlash(): void {
 
 function input(event: Event): void {
 	track(event);
-	emit('typed');
 	followSlash();
 }
 
