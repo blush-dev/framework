@@ -12,11 +12,10 @@ import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, request, type TrashedDetail } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import MarkdownEditor from '../components/MarkdownEditor.vue';
-import { inSentence } from '../fields';
 import { formatDate } from '../format';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
-import { currentType, findType, loadTypes } from '../types';
+import { currentType, labelsOf, loadTypes } from '../types';
 
 const route  = useRoute();
 const router = useRouter();
@@ -27,8 +26,8 @@ const error = ref('');
 const busy  = ref(false);
 
 const id       = computed(() => (Array.isArray(route.params.id) ? route.params.id : [route.params.id ?? '']).join('/'));
-const typeInfo = computed(() => item.value?.type ? findType(item.value.type) : undefined);
-const noun     = computed(() => inSentence(typeInfo.value?.singular ?? 'entry'));
+const labels   = computed(() => labelsOf(item.value?.type || 'entry'));
+const noun     = computed(() => labels.value.item);
 const name     = computed(() => item.value?.title || 'Untitled');
 const back     = computed(() => item.value?.type ? { name: 'type', params: { type: item.value.type }, query: { status: 'trash' } } : { name: 'dashboard' });
 const keys     = computed(() => Object.entries(item.value?.frontMatter ?? {}).filter(([key]) => key !== 'title'));
@@ -108,7 +107,7 @@ async function purge(): Promise<void> {
 				<template v-else>In the Trash</template>
 			</h1>
 			<p v-if="item" class="page-header__hint">
-				{{ typeInfo?.singular ?? 'Entry' }} · Moved to the trash <time :datetime="item.trashed">{{ formatDate(item.trashed) }}</time>
+				{{ labels.singular }} · Moved to the trash <time :datetime="item.trashed">{{ formatDate(item.trashed) }}</time>
 			</p>
 		</div>
 		<div class="page-header__actions">

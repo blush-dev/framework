@@ -1190,9 +1190,11 @@ does the thing rather than linking to documentation about it.
 
 ### Type-driven variation
 The list screen reads these from the type and changes nothing else:
-`label`, `singular`, `icon`, `hierarchical`, and its taxonomy (which produces
-one filter select). The New button, the empty state, and every action toast
-take their noun from `singular`.
+`labels`, `icon`, `hierarchical`, and its taxonomy (which produces
+one filter select). The New button, the search field, the empty state, and
+every action toast take their words from `labels` (D-278): the phrases
+(`newItem`, `searchItems`) as they are, and `item` and `items` for nouns
+mid-sentence. The admin never lowercases a type's name itself.
 
 ### Permissions
 Capabilities are read-only in this pass, but the UI is capability-aware from
@@ -1295,7 +1297,7 @@ decision.
 
 - *Settled:* API conventions (session cookie and CSRF header, `page`/`per`
   paging with `total` and `pages`, errors as `{"error"}`; `docs/admin.md`),
-  content type discovery (`GET types`, with `label` and `singular`; D-234),
+  content type discovery (`GET types`, with `labels`; D-234, D-278),
   the Markdown surface (a text area over a highlighted copy, D-241), the
   component inserter (`GET components`, D-243, D-247), the settings' two
   tabs (D-245), mapping the caret to its directive and rewriting options

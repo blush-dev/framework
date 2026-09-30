@@ -89,7 +89,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const inEntries = route.meta.section === 'entries';
 	const link = (type: ContentTypeSummary, detail?: string): NavLink => ({
 		key: type.name,
-		label: type.label,
+		label: type.labels.menu,
 		icon: typeIcon(type),
 		type,
 		to: { name: 'type', params: { type: type.name } },
@@ -97,11 +97,13 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		detail
 	});
 
+	// By the names the menu shows, which a site may shorten (D-278).
 	const editing    = can('content.edit');
-	const entryTypes = editing ? types.value.filter((type) => type.kind !== 'taxonomy') : [];
-	const taxonomies = editing ? types.value.filter((type) => type.kind === 'taxonomy' && type.name !== authorType.value) : [];
+	const sorted     = [...types.value].sort((a, b) => a.labels.menu.localeCompare(b.labels.menu));
+	const entryTypes = editing ? sorted.filter((type) => type.kind !== 'taxonomy') : [];
+	const taxonomies = editing ? sorted.filter((type) => type.kind === 'taxonomy' && type.name !== authorType.value) : [];
 	const authors    = editing ? types.value.filter((type) => type.name === authorType.value) : [];
-	const labelOf    = (name: string): string => types.value.find((type) => type.name === name)?.label ?? name;
+	const labelOf    = (name: string): string => types.value.find((type) => type.name === name)?.labels.menu ?? name;
 
 	// A taxonomy grouping one listed type sits under it; the rest are shared.
 	const owner  = (taxonomy: ContentTypeSummary): string | undefined => taxonomy.types?.length === 1 && entryTypes.some((type) => type.name === taxonomy.types?.[0]) ? taxonomy.types[0] : undefined;

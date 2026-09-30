@@ -58,11 +58,12 @@ export function humanize(name: string): string {
 }
 
 /**
- * A name for use mid-sentence: its first letter lowercase ("New post"),
- * so acronyms and proper nouns after it stay as they are.
+ * A name for use mid-sentence: its first letter lowercase ("Choose cover
+ * image"), unless its first word has another capital ("FAQ link"), as
+ * the server makes type labels (D-278).
  */
 export function inSentence(name: string): string {
-	return name.charAt(0).toLowerCase() + name.slice(1);
+	return /^\S+\p{Lu}/u.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1);
 }
 
 /**

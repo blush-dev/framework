@@ -7,10 +7,9 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, entryRoute, request, type EntryDetail } from '../api';
-import { inSentence } from '../fields';
 import { titleCase } from '../format';
 import { screenTitle } from '../screen';
-import { currentType, findType, loadTypes, types } from '../types';
+import { currentType, labelsOf, loadTypes, types } from '../types';
 
 const route  = useRoute();
 const router = useRouter();
@@ -21,15 +20,16 @@ const title = ref('');
 const busy  = ref(false);
 const error = ref('');
 
-const noun = computed(() => inSentence(findType(type.value)?.singular ?? 'entry'));
+const labels = computed(() => labelsOf(type.value || 'entry'));
+const noun   = computed(() => labels.value.item);
 
 // The navigation marks the type; the title follows the choice.
 watch(type, (name) => {
 	currentType.value = name === '' ? null : name;
 }, { immediate: true });
 
-watch(noun, (value) => {
-	screenTitle.value = titleCase(`New ${value}`);
+watch(labels, (value) => {
+	screenTitle.value = titleCase(value.newItem);
 }, { immediate: true });
 
 onMounted(async () => {
@@ -64,7 +64,7 @@ async function create(): Promise<void> {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ titleCase(`New ${noun}`) }}</h1>
+			<h1 tabindex="-1">{{ titleCase(labels.newItem) }}</h1>
 			<p class="page-header__hint">It starts as a draft. You'll write the rest in the editor.</p>
 		</div>
 	</header>
@@ -75,7 +75,7 @@ async function create(): Promise<void> {
 			<p class="field">
 				<label for="new-type">Type</label>
 				<select id="new-type" v-model="type" required>
-					<option v-for="item in types" :key="item.name" :value="item.name">{{ item.singular }}</option>
+					<option v-for="item in types" :key="item.name" :value="item.name">{{ item.labels.singular }}</option>
 				</select>
 			</p>
 			<p class="field">

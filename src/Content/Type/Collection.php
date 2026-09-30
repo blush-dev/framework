@@ -43,8 +43,7 @@ final readonly class Collection extends ContentType
 	 * @param  bool            $sitemap      Whether entries are in the sitemap.
 	 * @param  iterable<Field> $fields       Fields beyond the built-in ones.
 	 * @param  bool            $closed       Whether undeclared front matter is an error.
-	 * @param  ?string         $label        For people, for a group of entries; defaults to the singular made plural.
-	 * @param  ?string         $singular     For people, for one entry; defaults to the name made readable.
+	 * @param  ?TypeLabels     $labels       What people call it; defaults to labels made from the name.
 	 * @param  string          $description  What the type is for, in a sentence.
 	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
 	 * @throws InvalidContentType
@@ -60,12 +59,11 @@ final readonly class Collection extends ContentType
 		bool $sitemap = true,
 		iterable $fields = [],
 		bool $closed = false,
-		?string $label = null,
-		?string $singular = null,
+		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $label, $singular, $description, $icon);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon);
 	}
 
 	/**

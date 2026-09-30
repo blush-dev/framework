@@ -303,7 +303,7 @@ final readonly class EntryController
 		}
 
 		if (IndexPage::is($entry)) {
-			return self::error(sprintf('"%s" is the index page for %s, and there\'s only one.', $entry->title, $entry->type->label), Status::UnprocessableContent);
+			return self::error(sprintf('"%s" is the index page for %s, and there\'s only one.', $entry->title, $entry->type->labels->items), Status::UnprocessableContent);
 		}
 
 		$now   = $this->clock->now()->setTimezone($this->app->timezone());
@@ -347,7 +347,7 @@ final readonly class EntryController
 		}
 
 		if (IndexPage::is($entry)) {
-			return self::error(sprintf('"%s" is the index page for %s, so it can\'t be moved to the trash.', $entry->title, $entry->type->label), Status::UnprocessableContent);
+			return self::error(sprintf('"%s" is the index page for %s, so it can\'t be moved to the trash.', $entry->title, $entry->type->labels->items), Status::UnprocessableContent);
 		}
 
 		if (! is_string($revision)) {
@@ -421,7 +421,7 @@ final readonly class EntryController
 
 		return $this->content->named($entry->type->name, $key) === null
 			? null
-			: sprintf('Another %s already has the slug "%s".', lcfirst($entry->type->singular), $slug);
+			: sprintf('Another %s already has the slug "%s".', $entry->type->labels->item, $slug);
 	}
 
 	/**

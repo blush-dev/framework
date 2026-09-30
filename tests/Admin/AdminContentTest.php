@@ -26,6 +26,7 @@ use Blush\Component\ComponentContent;
 use Blush\Component\ComponentRegistry;
 use Blush\Content\ContentRepository;
 use Blush\Content\Schema\Fields\TextField;
+use Blush\Content\Type\TypeLabels;
 
 #[CoversClass(ComponentsController::class)]
 #[CoversClass(EntriesController::class)]
@@ -264,11 +265,11 @@ final class AdminContentTest extends TestCase
 
 		$this->assertIsArray($types);
 
-		$described = array_map(static fn (mixed $type): array => is_array($type) ? array_intersect_key($type, array_flip(['name', 'label', 'singular', 'kind', 'dated', 'types'])) : [], $types);
+		$described = array_map(static fn (mixed $type): array => is_array($type) ? array_intersect_key($type, array_flip(['name', 'labels', 'kind', 'dated', 'types'])) : [], $types);
 
-		$this->assertContains(['name' => 'page', 'label' => 'Pages', 'singular' => 'Page', 'kind' => 'pages', 'dated' => false], $described, 'Only taxonomies name types.');
-		$this->assertContains(['name' => 'genre', 'label' => 'Genres', 'singular' => 'Genre', 'kind' => 'taxonomy', 'dated' => false, 'types' => ['page']], $described);
-		$this->assertContains(['name' => 'author', 'label' => 'Authors', 'singular' => 'Author', 'kind' => 'taxonomy', 'dated' => false, 'types' => []], $described, 'An author groups every type.');
+		$this->assertContains(['name' => 'page', 'labels' => TypeLabels::named('page')->all(), 'kind' => 'pages', 'dated' => false], $described, 'Only taxonomies name types.');
+		$this->assertContains(['name' => 'genre', 'labels' => TypeLabels::named('genre')->all(), 'kind' => 'taxonomy', 'dated' => false, 'types' => ['page']], $described);
+		$this->assertContains(['name' => 'author', 'labels' => TypeLabels::named('author')->all(), 'kind' => 'taxonomy', 'dated' => false, 'types' => []], $described, 'An author groups every type.');
 
 		$genre = array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === 'genre');
 

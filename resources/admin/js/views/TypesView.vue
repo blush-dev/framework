@@ -47,7 +47,7 @@ const shown = computed(() => {
 	const words = search.value.trim().toLowerCase();
 
 	return types.value.filter((type) => (kind.value === 'all' || (kind.value === 'taxonomy') === isTaxonomy(type))
-		&& (words === '' || `${type.label} ${type.singular} ${type.name}`.toLowerCase().includes(words)));
+		&& (words === '' || `${type.labels.plural} ${type.labels.singular} ${type.name}`.toLowerCase().includes(words)));
 });
 
 /**
@@ -103,7 +103,7 @@ function origin(type: ContentTypeSummary): string {
 								<TypeIcon :type="type" />
 								<span class="entry-title">
 									<span class="entry-title__text">
-										<RouterLink class="entry-title__link" :to="{ name: 'content-type', params: { name: type.name } }">{{ type.label }}</RouterLink>
+										<RouterLink class="entry-title__link" :to="{ name: 'content-type', params: { name: type.name } }">{{ type.labels.plural }}</RouterLink>
 									</span>
 									<span class="entry-title__path">{{ type.name }}{{ type.prefix ? ` · ${type.prefix}` : '' }}</span>
 								</span>

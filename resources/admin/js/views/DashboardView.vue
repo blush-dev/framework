@@ -13,7 +13,6 @@
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import { inSentence } from '../fields';
 import { can } from '../session';
 import { ApiError, request, type ActionDescription, type ActionResult, type Dashboard } from '../api';
 import { loadTypes, types } from '../types';
@@ -126,10 +125,10 @@ onMounted(() => {
 				<li v-for="(type, index) in steps" :key="type.name" class="setup__step">
 					<span class="setup__number" aria-hidden="true">{{ index + 1 }}</span>
 					<span class="setup__text">
-						<span class="setup__title">Write your first {{ inSentence(type.singular) }}</span>
-						<span class="setup__hint">{{ type.kind === 'pages' ? 'A page that stands on its own, like About.' : `${type.label} are listed together on the site.` }}</span>
+						<span class="setup__title">Write your first {{ type.labels.item }}</span>
+						<span class="setup__hint">{{ type.kind === 'pages' ? 'A page that stands on its own, like About.' : `${type.labels.plural} are listed together on the site.` }}</span>
 					</span>
-					<RouterLink class="button" :class="{ 'button--primary': index === 0 }" :to="{ name: 'entry-new', query: { type: type.name } }">New {{ inSentence(type.singular) }}</RouterLink>
+					<RouterLink class="button" :class="{ 'button--primary': index === 0 }" :to="{ name: 'entry-new', query: { type: type.name } }">{{ type.labels.newItem }}</RouterLink>
 				</li>
 			</ol>
 			<p v-else class="panel__body setup__none">Once someone writes the first entry, the site's content shows here.</p>

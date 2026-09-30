@@ -296,8 +296,8 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 - **`ContentType`** (`Blush\Content\Type`): an abstract base with the
   final kinds `Collection`, `Taxonomy`, and `Pages` (`TypeKind` names
   them in data). Shared: name, `folder` (`_{name}` by default, D-258;
-  the URL prefix drops each folder name's leading `_`), `label`,
-  `singular`, `description`, and `icon` (D-256), `public`, `urls` (`TypeUrls`:
+  the URL prefix drops each folder name's leading `_`), `labels`
+  (`TypeLabels`, D-278), `description`, and `icon` (D-256), `public`, `urls` (`TypeUrls`:
   prefix plus per-key paths over 1.x's defaults, with `single` and
   `collection` shortcuts, or `false`), `listing` (`Listing`: typed `type`,
   `orderBy`, `order`, `perPage`, plus 1.x `query` arguments), `feed`

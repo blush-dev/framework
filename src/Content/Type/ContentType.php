@@ -47,16 +47,10 @@ abstract readonly class ContentType
 	public Schema $schema;
 
 	/**
-	 * The type's name for people, for a group of its entries ("Literary
-	 * genres"), such as the admin's navigation.
+	 * What people call the type and its entries ("Literary genres", "New
+	 * literary genre"), such as in the admin.
 	 */
-	public string $label;
-
-	/**
-	 * The type's name for people, for one entry ("Literary genre"), such
-	 * as the admin's "New literary genre".
-	 */
-	public string $singular;
+	public TypeLabels $labels;
 
 	/**
 	 * What the type is for, in a sentence, such as the admin's empty
@@ -81,8 +75,7 @@ abstract readonly class ContentType
 	 * @param  DateArchives      $dateArchives How finely date archives go.
 	 * @param  iterable<Field>   $fields       Fields beyond the built-in ones.
 	 * @param  bool              $closed       Whether undeclared front matter is an error.
-	 * @param  ?string           $label        Defaults to the singular made plural.
-	 * @param  ?string           $singular     Defaults to the name made readable.
+	 * @param  ?TypeLabels       $labels       Defaults to labels made from the name.
 	 * @param  string            $description  What the type is for, in a sentence.
 	 * @param  ?string           $icon         An icon name for the admin.
 	 * @throws InvalidContentType
@@ -98,8 +91,7 @@ abstract readonly class ContentType
 		public DateArchives $dateArchives,
 		iterable $fields,
 		bool $closed,
-		?string $label = null,
-		?string $singular = null,
+		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null
 	) {
@@ -117,8 +109,7 @@ abstract readonly class ContentType
 		}
 
 		$this->folder      = self::normalizeFolder($folder ?? self::defaultFolder($name), $name);
-		$this->singular    = $singular ?? self::readable($name);
-		$this->label       = $label ?? self::plural($this->singular);
+		$this->labels      = $labels ?? TypeLabels::named($name);
 		$this->description = trim($description);
 		$this->icon        = $icon === null || trim($icon) === '' ? null : trim($icon);
 	}
@@ -249,8 +240,7 @@ abstract readonly class ContentType
 				'sitemap'     => $definition->bool('sitemap', true),
 				'fields'      => array_values($schema->fields),
 				'closed'      => $schema->closed,
-				'label'       => $definition->nullableString('label'),
-				'singular'    => $definition->nullableString('singular'),
+				'labels'      => TypeLabels::fromArray($definition->map('labels'), $name),
 				'description' => $definition->nullableString('description') ?? '',
 				'icon'        => $definition->nullableString('icon')
 			];
@@ -299,8 +289,7 @@ abstract readonly class ContentType
 			'feed'        => $this->feed === false ? null : ($this->feed->toArray() ?: true),
 			'public'      => $this->public ? null : false,
 			'sitemap'     => $this->sitemap ? null : false,
-			'label'       => $this->label === self::plural($this->singular) ? null : $this->label,
-			'singular'    => $this->singular === self::readable($this->name) ? null : $this->singular,
+			'labels'      => $this->labels->toArray($this->name),
 			'description' => $this->description === '' ? null : $this->description,
 			'icon'        => $this->icon,
 			...$this->options(),
@@ -330,29 +319,6 @@ abstract readonly class ContentType
 	private static function defaultFolder(string $name): string
 	{
 		return "_{$name}";
-	}
-
-	/**
-	 * Returns a type name made readable: `literary_form` becomes
-	 * "Literary form".
-	 */
-	private static function readable(string $name): string
-	{
-		return ucfirst(str_replace('_', ' ', $name));
-	}
-
-	/**
-	 * Returns an English plural for the default label: "Category" becomes
-	 * "Categories", "Class" "Classes", "Post" "Posts". Types whose names
-	 * don't follow these rules, or aren't English, set `label`.
-	 */
-	private static function plural(string $singular): string
-	{
-		return match (true) {
-			preg_match('/[^aeiou]y$/i', $singular) === 1     => substr($singular, 0, -1) . 'ies',
-			preg_match('/(s|x|z|ch|sh)$/i', $singular) === 1 => "{$singular}es",
-			default                                           => "{$singular}s"
-		};
 	}
 
 	/**

@@ -16,7 +16,6 @@ import StatusPill from './StatusPill.vue';
 import { ApiError, entryRoute, request, type EntryList, type EntrySummary } from '../api';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { commandMatches, screenCommands, type Command } from '../commands';
-import { inSentence } from '../fields';
 import type { IconName } from '../icons';
 import { can } from '../session';
 import { findType, typeIcon, types } from '../types';
@@ -39,13 +38,13 @@ const everywhere = computed<Command[]>(() => {
 
 	if (can('content.edit')) {
 		for (const type of types.value) {
-			found.push({ id: `type-${type.name}`, label: `Go to ${type.label}`, icon: typeIcon(type), keywords: type.name, run: go('type', { type: type.name }) });
+			found.push({ id: `type-${type.name}`, label: `Go to ${type.labels.plural}`, icon: typeIcon(type), keywords: type.name, run: go('type', { type: type.name }) });
 		}
 	}
 
 	if (can('content.create')) {
 		for (const type of types.value) {
-			found.push({ id: `new-${type.name}`, label: `New ${inSentence(type.singular)}`, icon: 'plus', keywords: `create add ${type.name}`, run: () => void router.push({ name: 'entry-new', query: { type: type.name } }) });
+			found.push({ id: `new-${type.name}`, label: type.labels.newItem, icon: 'plus', keywords: `create add ${type.name}`, run: () => void router.push({ name: 'entry-new', query: { type: type.name } }) });
 		}
 	}
 
@@ -235,7 +234,7 @@ const commandCount = computed(() => commands.value.length);
 					<TypeIcon v-if="findType(entry.type)" :type="findType(entry.type)!" />
 					<AdminIcon v-else name="file-text" />
 					<span class="palette__title">{{ entry.title || 'Untitled' }}</span>
-					<span class="palette__type">{{ findType(entry.type)?.singular ?? entry.type }}</span>
+					<span class="palette__type">{{ findType(entry.type)?.labels.singular ?? entry.type }}</span>
 					<StatusPill :status="entry.status" />
 				</div>
 			</template>

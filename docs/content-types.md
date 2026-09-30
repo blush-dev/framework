@@ -88,21 +88,54 @@ Which to pick:
 
 ## Names, descriptions, and icons in the admin
 
-The [admin](admin.md) names each type in its menu and buttons: `label`
-for a group of entries ("Recipes") and `singular` for one ("New
-recipe"). Both are made from the type's name unless you set them:
-`literary_form` becomes "Literary forms" and "Literary form", and
-`category` "Categories" and "Category". Set them when the name doesn't
-make a good English plural, or to call the type something else:
+The [admin](admin.md) names each type in its menu, headings, and
+buttons with its `labels`. Each label is made from the ones above it,
+starting from the type's name, so set only the ones that come out
+wrong:
+
+| Label | Made from | For `literary_form` | Where the admin shows it |
+|---|---|---|---|
+| `singular` | The name | Literary form | Field headings, type menus |
+| `plural` | `singular` | Literary forms | The list's heading, the page title |
+| `menu` | `plural` | Literary forms | The admin's navigation |
+| `item` | `singular` | literary form | Mid-sentence: "Create the first literary form" |
+| `items` | `plural` | literary forms | Mid-sentence: "3 literary forms" |
+| `newItem` | `item` | New literary form | The New button and screen |
+| `editItem` | `item` | Edit literary form | The editor's title |
+| `searchItems` | `items` | Search literary forms | The list's search field |
+
+`plural` adds "s" ("es" after s, x, z, ch, or sh, and "ies" for a y
+after a consonant). `item` and `items` lowercase the first letter,
+unless the first word is an acronym or has another capital ("FAQ",
+"HTML snippet" stay as they are).
+
+Set `plural` when the name doesn't make a good English plural, the
+mid-sentence names for a proper noun, and any of them to call the type
+something else. `menu` shortens a long name in the navigation only, such
+as "Forms" for literary forms listed under Literature; the navigation is
+sorted by it:
 
 ```yaml
 # user/data/types/person.yaml
 folder: people
-label: People
+labels:
+  plural: People
+  newItem: Add someone
 ```
 
+```yaml
+# user/data/types/literary_form.yaml
+kind: taxonomy
+labels:
+  menu: Forms
+```
+
+In PHP, `TypeLabels` takes `singular` first and the rest by name:
+
 ```php
-new Collection('person', folder: 'people', label: 'People')
+use Blush\Content\Type\TypeLabels;
+
+new Collection('person', folder: 'people', labels: new TypeLabels('Person', plural: 'People'))
 ```
 
 `description` says what the type is for, in a sentence. The admin shows it
@@ -348,7 +381,7 @@ Every kind takes these:
 | Option | Default | What it does |
 |---|---|---|
 | `folder` | `_` and the name (`''`, the content root, for pages) | The folder under `user/content/` |
-| `label` / `singular` | Made from the name | [Names in the admin](#names-descriptions-and-icons-in-the-admin) |
+| `labels` | Made from the name | [Names in the admin](#names-descriptions-and-icons-in-the-admin) |
 | `description` | | What the type is for, in a sentence |
 | `icon` | Its kind's | An icon for the admin, by name |
 | `public` | `true` | Whether the type is visible on the site at all |

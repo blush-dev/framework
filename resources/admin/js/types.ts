@@ -5,7 +5,8 @@
  */
 
 import { ref } from 'vue';
-import { request, type ContentTypeSummary } from './api';
+import { request, type ContentTypeSummary, type TypeLabels } from './api';
+import { humanize } from './fields';
 import type { IconName } from './icons';
 import { iconMask, loadIcons } from './site-icons';
 
@@ -60,6 +61,23 @@ export function loadTypes(): Promise<ContentTypeSummary[]> {
  */
 export function findType(name: string): ContentTypeSummary | undefined {
 	return types.value.find((type) => type.name === name);
+}
+
+/**
+ * A type's labels (D-278), or, while the types load or for a type the
+ * site doesn't have, plain ones made from its name.
+ */
+export function labelsOf(name: string): TypeLabels {
+	const found = findType(name);
+
+	if (found) {
+		return found.labels;
+	}
+
+	const singular = humanize(name);
+	const item     = name.replace(/[_-]+/g, ' ').trim();
+
+	return { singular, plural: singular, menu: singular, item, items: item, newItem: `New ${item}`, editItem: `Edit ${item}`, searchItems: `Search ${item}` };
 }
 
 /**

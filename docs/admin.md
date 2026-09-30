@@ -105,7 +105,7 @@ one type, such as Categories under Posts), then **Media**.
 several types or every type, each saying which. Authors are under
 **People**, beside accounts, since they're the public side of accounts.
 Each type opens a list of its entries you can edit, newest changes
-first. Types are named from their `label` and `singular` settings, and
+first. Types are named from their `labels` setting, and
 shown with their `icon` (see
 [Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
@@ -576,7 +576,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
 | `GET roles` | Every capability and role, with the accounts holding each; needs `accounts.manage` |
 | `GET accounts` | Every account's username, roles, author, and created and last sign-in times (Unix); needs `accounts.manage` |
-| `GET types` | The site's content types: `{"types": [{"name", "label", "singular", "description", "icon", "kind", "dated", "origin", "folder", "prefix", "fields"}], "authors"}`, by label, taxonomies last; a taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`. `fields` is how many the type defines, `icon` is `null` for the kind's, and `authors` names the type accounts' authors belong to (`null` when it's disabled) |
+| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies last; a taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`. `fields` is how many the type defines, `icon` is `null` for the kind's, and `authors` names the type accounts' authors belong to (`null` when it's disabled). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
 | `GET types/{name}` | One type, with its own `fields`, the `taxonomies` that group it, `public`, `feed`, `sitemap`, and `editable` |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |

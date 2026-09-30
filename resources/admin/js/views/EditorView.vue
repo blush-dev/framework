@@ -83,7 +83,7 @@ import type { SiteIcon } from '../site-icons';
 import { focusMode, screenTitle } from '../screen';
 import { toast } from '../toast';
 import { useCommands, type Command } from '../commands';
-import { currentType, findType, loadTypes } from '../types';
+import { currentType, labelsOf, loadTypes } from '../types';
 
 // Fields the editor shows in their own places rather than the form.
 const PLACED = ['title', 'status', 'published', 'slug'];
@@ -156,8 +156,9 @@ function fieldsOf(detail: EntryDetail | null): FieldDescription[] {
 
 const fields    = computed(() => fieldsOf(entry.value));
 const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'published'));
-const typeInfo  = computed(() => entry.value === null ? undefined : findType(entry.value.type.name));
-const noun      = computed(() => entry.value?.index ? 'index page' : inSentence(typeInfo.value?.singular ?? (entry.value === null ? 'entry' : humanize(entry.value.type.name))));
+const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
+const noun      = computed(() => entry.value?.index ? 'index page' : labels.value.item);
+const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : labels.value.editItem));
 
 // The navigation marks the entry's type; the top bar names what's edited.
 loadTypes().catch(() => undefined);
@@ -166,8 +167,8 @@ watch(entry, (value) => {
 	currentType.value = value?.type.name ?? null;
 });
 
-watch(noun, (value) => {
-	screenTitle.value = titleCase(`Edit ${value}`);
+watch(editTitle, (value) => {
+	screenTitle.value = value;
 }, { immediate: true });
 
 /**
@@ -1367,15 +1368,15 @@ function fieldKey(field: FieldDescription): string {
 
 <template>
 	<section class="editor" :class="{ 'is-side-open': sideOpen, 'is-writing': writing, 'is-focus': focusMode }" aria-labelledby="editor-heading">
-		<h1 id="editor-heading" class="visually-hidden" tabindex="-1">{{ titleCase(`Edit ${noun}`) }}</h1>
+		<h1 id="editor-heading" class="visually-hidden" tabindex="-1">{{ editTitle }}</h1>
 
 		<header class="editor__head">
 			<template v-if="entry">
 				<RouterLink class="button button--ghost button--icon" :to="{ name: 'type', params: { type: entry.type.name } }">
 					<AdminIcon name="arrow-left" />
-					<span class="visually-hidden">Back to {{ typeInfo?.label ?? humanize(entry.type.name) }}</span>
+					<span class="visually-hidden">Back to {{ labels.plural }}</span>
 				</RouterLink>
-				<span class="editor__where">{{ typeInfo?.label ?? humanize(entry.type.name) }}</span>
+				<span class="editor__where">{{ labels.plural }}</span>
 				<span v-if="entry.index" class="index-mark editor__hide-small">Index</span>
 				<span class="editor__divider" aria-hidden="true" />
 				<button type="button" class="button button--ghost button--icon" :class="{ 'is-on': panelOpen }" title="Components ( / )" aria-controls="editor-components" :aria-expanded="panelOpen" @click="togglePanel">
@@ -1632,7 +1633,7 @@ function fieldKey(field: FieldDescription): string {
 					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" role="tabpanel" aria-labelledby="editor-tab-document">
 						<div class="editor__group">
 							<p class="editor__group-heading">Publishing</p>
-							<p v-if="entry.index" class="field__help">The index page for <strong>{{ typeInfo?.label ?? humanize(entry.type.name) }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.</p>
+							<p v-if="entry.index" class="field__help">The index page for <strong>{{ labels.plural }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.</p>
 							<div v-if="dateField" class="field">
 								<label for="editor-date">Publish date</label>
 								<input id="editor-date" v-model="date" type="datetime-local" :aria-invalid="errorFor('published') ? 'true' : undefined" :aria-describedby="errorFor('published') ? 'editor-date-help editor-date-error' : 'editor-date-help'">
@@ -1664,7 +1665,7 @@ function fieldKey(field: FieldDescription): string {
 						</div>
 
 						<div v-if="fields.length" class="editor__group">
-							<p class="editor__group-heading">{{ typeInfo?.singular ?? humanize(entry.type.name) }} Fields</p>
+							<p class="editor__group-heading">{{ labels.singular }} Fields</p>
 							<FieldControl v-for="field in fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
 						</div>
 

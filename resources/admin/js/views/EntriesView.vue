@@ -21,11 +21,10 @@ import EntryTable from '../components/EntryTable.vue';
 import { compact } from '../density';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import TrashTable from '../components/TrashTable.vue';
-import { humanize, inSentence } from '../fields';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
 import { can } from '../session';
-import { currentType, findType, loadTypes } from '../types';
+import { currentType, findType, labelsOf, loadTypes } from '../types';
 
 type Tab = EntryStatus | 'any' | 'trash';
 
@@ -94,8 +93,8 @@ const flattened = computed(() => {
 	return status.value === 'any' ? '' : 'Filtered by status, so the tree is flattened. Choose All to see the hierarchy.';
 });
 
-const heading  = computed(() => info.value?.label ?? humanize(type.value));
-const singular = computed(() => inSentence(info.value?.singular ?? humanize(type.value)));
+const labels  = computed(() => labelsOf(type.value));
+const heading = computed(() => labels.value.plural);
 
 // Nothing yet, as opposed to nothing matching: no entries in any status,
 // none in the trash, and no search.
@@ -224,7 +223,7 @@ async function load(): Promise<void> {
 watch(() => [status.value, type.value, search.value, page.value], load, { immediate: true });
 
 function nameOf(item: { title: string }): string {
-	return item.title === '' ? `the untitled ${singular.value}` : `“${item.title}”`;
+	return item.title === '' ? `the untitled ${labels.value.item}` : `“${item.title}”`;
 }
 
 /**
@@ -299,14 +298,14 @@ function purge(item: TrashedSummary): void {
 function emptyTrash(): void {
 	const count = trash.value?.length ?? 0;
 
-	if (!window.confirm(`Delete ${plural(count, singular.value, inSentence(heading.value))} in the trash permanently? This can't be undone.`)) {
+	if (!window.confirm(`Delete ${plural(count, labels.value.item, labels.value.items)} in the trash permanently? This can't be undone.`)) {
 		return;
 	}
 
 	void act('empty', async () => {
 		const answer = await request<{ deleted: number }>('POST', '/trash/empty', { type: type.value });
 
-		return { text: `Deleted ${plural(answer.deleted, singular.value, inSentence(heading.value))} permanently.` };
+		return { text: `Deleted ${plural(answer.deleted, labels.value.item, labels.value.items)} permanently.` };
 	});
 }
 
@@ -343,7 +342,7 @@ const emptyText = computed(() => {
 		return `${heading.value} you move to the trash wait here until you restore them or delete them permanently.`;
 	}
 
-	return status.value === 'any' ? `There are no ${inSentence(heading.value)} you can edit.` : `No ${tabs.value.find((tab) => tab.status === status.value)?.label.toLowerCase()} among the ${inSentence(heading.value)}.`;
+	return status.value === 'any' ? `There are no ${labels.value.items} you can edit.` : `No ${tabs.value.find((tab) => tab.status === status.value)?.label.toLowerCase()} among the ${labels.value.items}.`;
 });
 </script>
 
@@ -351,11 +350,11 @@ const emptyText = computed(() => {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ heading }}</h1>
-			<p class="page-header__hint">{{ terms ? 'Terms that group other entries' : `Every ${singular} you can edit` }}</p>
+			<p class="page-header__hint">{{ terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit` }}</p>
 		</div>
 		<div v-if="(can('content.create') && !nothingYet) || can('site.settings')" class="page-header__actions">
 			<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type settings</RouterLink>
-			<RouterLink v-if="can('content.create') && !nothingYet" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">New {{ singular }}</RouterLink>
+			<RouterLink v-if="can('content.create') && !nothingYet" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">{{ labels.newItem }}</RouterLink>
 		</div>
 	</header>
 
@@ -367,7 +366,7 @@ const emptyText = computed(() => {
 			<AdminIcon :name="terms ? 'tag' : 'files'" />
 			<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
 			<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
-			<RouterLink v-if="can('content.create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ singular }}</RouterLink>
+			<RouterLink v-if="can('content.create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
 		</div>
 	</section>
 
@@ -380,8 +379,8 @@ const emptyText = computed(() => {
 		</nav>
 
 		<div class="toolbar" role="search">
-			<label class="visually-hidden" for="entries-search">Search {{ inSentence(heading) }}</label>
-			<input id="entries-search" v-model="query" class="input" type="search" :placeholder="`Search ${inSentence(heading)}`" autocomplete="off">
+			<label class="visually-hidden" for="entries-search">{{ labels.searchItems }}</label>
+			<input id="entries-search" v-model="query" class="input" type="search" :placeholder="labels.searchItems" autocomplete="off">
 			<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
 			<div v-if="!inTrash" class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
 				<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
@@ -405,15 +404,15 @@ const emptyText = computed(() => {
 				<h2 id="entries-heading">{{ tabs.find((tab) => tab.status === status)?.label }}</h2>
 				<p class="panel__hint" aria-live="polite">
 					<template v-if="!ready">&nbsp;</template>
-					<template v-else-if="inTrash">{{ plural(trashShown.length, singular, inSentence(heading)) }} · Restored entries come back as drafts</template>
-					<template v-else-if="list">{{ plural(list.total, singular, inSentence(heading)) }}<template v-if="terms"> · Entries counts the published entries using each</template></template>
+					<template v-else-if="inTrash">{{ plural(trashShown.length, labels.item, labels.items) }} · Restored entries come back as drafts</template>
+					<template v-else-if="list">{{ plural(list.total, labels.item, labels.items) }}<template v-if="terms"> · Entries counts the published entries using each</template></template>
 				</p>
 				<div v-if="ready && inTrash && trash?.length" class="panel__actions">
 					<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty trash</button>
 				</div>
 			</header>
 
-			<SkeletonTable v-if="!ready" :columns="skeletonColumns" :rows="skeletonRows" :label="`Loading ${inSentence(heading)}…`" />
+			<SkeletonTable v-if="!ready" :columns="skeletonColumns" :rows="skeletonRows" :label="`Loading ${labels.items}…`" />
 
 			<template v-else-if="inTrash">
 				<TrashTable v-if="trashShown.length" :items="trashShown" labelledby="entries-heading" :busy="busy" @restore="restore" @purge="purge" />

@@ -290,7 +290,7 @@ final class AdminEditingTest extends TestCase
 
 		$trashed = $this->call('DELETE', '/entries/_posts/index.md?revision=' . $this->revision('_posts/index.md'));
 		$this->assertSame(422, $trashed->getStatusCode());
-		$this->assertSame('"Writing" is the index page for Posts, so it can\'t be moved to the trash.', self::json($trashed)['error'] ?? null);
+		$this->assertSame('"Writing" is the index page for posts, so it can\'t be moved to the trash.', self::json($trashed)['error'] ?? null);
 		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/index.md');
 
 		$scheduled = $this->call('PATCH', '/entries/_posts/index.md', ['revision' => $this->revision('_posts/index.md'), 'status' => 'scheduled', 'published' => '2999-01-01 08:00:00']);

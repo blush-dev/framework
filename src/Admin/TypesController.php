@@ -26,7 +26,7 @@ use Blush\Http\Status;
 /**
  * Answers `GET {path}/api/types` (D-233, D-234): the site's content types, so
  * the admin can list each type's entries and offer to create one. A type
- * is described by its name, its `label` and `singular` names for people,
+ * is described by its name, its `labels` for people (D-278),
  * its `description` (`''` for none) and `icon` (`null` for its kind's),
  * its kind (`collection`, `taxonomy`, or `pages`), and whether it's dated
  * (its new entries get a publish date and a dated file name). A taxonomy
@@ -52,9 +52,11 @@ final readonly class TypesController
 
 	public function __invoke(): ResponseInterface
 	{
-		$types = array_values(array_map($this->summary(...), $this->types->all()));
+		$types = array_values($this->types->all());
 
-		usort($types, static fn (array $a, array $b): int => [$a['kind'] === 'taxonomy', $a['label']] <=> [$b['kind'] === 'taxonomy', $b['label']]);
+		usort($types, static fn (ContentType $a, ContentType $b): int => [$a instanceof Taxonomy, $a->labels->plural] <=> [$b instanceof Taxonomy, $b->labels->plural]);
+
+		$types = array_map($this->summary(...), $types);
 
 		return Response::json([
 			'types'   => $types,
@@ -95,8 +97,7 @@ final readonly class TypesController
 	{
 		return [
 			'name'        => $type->name,
-			'label'       => $type->label,
-			'singular'    => $type->singular,
+			'labels'      => $type->labels->all(),
 			'description' => $type->description,
 			'icon'        => $type->icon,
 			'kind'        => $type->kind()->value,

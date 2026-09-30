@@ -116,10 +116,24 @@ export interface EntryList {
 	index: EntrySummary | null;
 }
 
+// What people call a type and its entries (D-278). `item` and `items`
+// are the names mid-sentence, as the site set them or as the server made
+// them, so the admin never lowercases a name itself.
+export interface TypeLabels {
+	singular: string;
+	plural: string;
+	// The navigation's name for it; the plural unless the site shortens it.
+	menu: string;
+	item: string;
+	items: string;
+	newItem: string;
+	editItem: string;
+	searchItems: string;
+}
+
 export interface ContentTypeSummary {
 	name: string;
-	label: string;
-	singular: string;
+	labels: TypeLabels;
 	// What it's for, in a sentence; `''` for none.
 	description: string;
 	// A site icon's name to show it with, or `null` for its kind's.

@@ -33,8 +33,7 @@ final readonly class Pages extends ContentType
 	 * @param  bool            $sitemap     Whether pages are in the sitemap.
 	 * @param  iterable<Field> $fields      Fields beyond the built-in ones.
 	 * @param  bool            $closed      Whether undeclared front matter is an error.
-	 * @param  ?string         $label       For people, for a group of pages; defaults to "Pages".
-	 * @param  ?string         $singular    For people, for one page; defaults to "Page".
+	 * @param  ?TypeLabels     $labels      What people call it; defaults to "Pages" and "Page".
 	 * @param  string          $description What pages are for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @throws InvalidContentType
@@ -46,12 +45,11 @@ final readonly class Pages extends ContentType
 		bool $sitemap = true,
 		iterable $fields = [],
 		bool $closed = false,
-		?string $label = null,
-		?string $singular = null,
+		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null
 	) {
-		parent::__construct($name, $folder, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $label, $singular, $description, $icon);
+		parent::__construct($name, $folder, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon);
 	}
 
 	/**

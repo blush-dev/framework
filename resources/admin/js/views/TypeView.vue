@@ -34,7 +34,7 @@ watch(() => route.params.name, async (name) => {
 }, { immediate: true });
 
 watch(type, (value) => {
-	screenTitle.value = value?.label ?? null;
+	screenTitle.value = value?.labels.plural ?? null;
 });
 
 const taxonomy = computed(() => type.value?.kind === 'taxonomy');
@@ -56,14 +56,14 @@ const related = computed(() => {
 
 	const names = taxonomy.value ? (detail.types ?? []) : detail.taxonomies;
 
-	return names.map((name) => ({ name, label: findType(name)?.label ?? humanize(name) }));
+	return names.map((name) => ({ name, label: findType(name)?.labels.plural ?? humanize(name) }));
 });
 </script>
 
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ type?.label ?? 'Content Type' }}</h1>
+			<h1 tabindex="-1">{{ type?.labels.plural ?? 'Content Type' }}</h1>
 			<p v-if="type" class="page-header__hint">
 				{{ humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · from {{ origin }}
 			</p>
@@ -71,7 +71,7 @@ const related = computed(() => {
 		</div>
 		<div class="page-header__actions">
 			<RouterLink class="button" :to="{ name: 'types' }"><AdminIcon name="arrow-left" />All types</RouterLink>
-			<RouterLink v-if="type" class="button button--primary" :to="{ name: 'type', params: { type: type.name } }"><AdminIcon name="files" />View {{ type.label.toLowerCase() }}</RouterLink>
+			<RouterLink v-if="type" class="button button--primary" :to="{ name: 'type', params: { type: type.name } }"><AdminIcon name="files" />View {{ type.labels.items }}</RouterLink>
 		</div>
 	</header>
 
@@ -85,8 +85,11 @@ const related = computed(() => {
 					<p class="panel__hint">{{ type.editable ? 'Editable here later' : `Defined in ${origin}` }}</p>
 				</header>
 				<dl class="panel__body facts">
-					<div><dt>Name (plural)</dt><dd>{{ type.label }}</dd></div>
-					<div><dt>Name (singular)</dt><dd>{{ type.singular }}</dd></div>
+					<div><dt>Name (plural)</dt><dd>{{ type.labels.plural }}</dd></div>
+					<div><dt>Name (singular)</dt><dd>{{ type.labels.singular }}</dd></div>
+					<div v-if="type.labels.menu !== type.labels.plural"><dt>In the menu</dt><dd>{{ type.labels.menu }}</dd></div>
+					<div><dt>Mid-sentence</dt><dd>{{ type.labels.item }}, {{ type.labels.items }}</dd></div>
+					<div><dt>Actions</dt><dd>{{ type.labels.newItem }} · {{ type.labels.editItem }} · {{ type.labels.searchItems }}</dd></div>
 					<div><dt>Key</dt><dd class="mono">{{ type.name }}</dd></div>
 					<div><dt>Icon</dt><dd class="type-facts__icon"><TypeIcon :type="type" /><span :class="{ mono: type.icon }">{{ type.icon ?? `The ${type.kind === 'pages' ? 'pages' : type.kind} icon` }}</span></dd></div>
 					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>

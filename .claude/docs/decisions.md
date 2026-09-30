@@ -6253,3 +6253,58 @@ decision, add a new entry that supersedes it and mark the old one
   new address shown, the redirect on, and the old address answering
   301 to the new one; the throwaway then trashed and deleted.
 - **Why:** the author asked for the quick wins in turn; this was fifth.
+
+### D-278: Content type labels
+- **Date:** 2026-09-30
+- **Decision:** Supersedes D-234's `label` and `singular` (and settles
+  D-256's open item). A type's names for people are one setting,
+  **`labels`** (`TypeLabels`, `ContentType::$labels`), on every kind:
+  - **Eight keys**, the ones the admin shows: `singular` ("Recipe"),
+    `plural` ("Recipes"), `menu` (the navigation's name, defaulting to
+    `plural`, so "Literary forms" can be "Forms" under Literature;
+    added the same session at the author's request), `item` and
+    `items` (the names mid-sentence: "the first recipe", "3 recipes"),
+    and the phrases `newItem` ("New recipe"), `editItem` ("Edit
+    recipe"), and `searchItems` ("Search recipes"). Unknown keys are an
+    error. No "all items" or "not found" label: the description (D-256)
+    is the empty state.
+  - **Each defaults from the ones before it:** `singular` from the name
+    (`literary_form` → "Literary form"), `plural` by D-234's English
+    rules, `item`/`items` by lowercasing the first letter unless the
+    first word has another capital ("FAQ", "HTML snippet", "McGuffin"
+    stay; `mb_lcfirst`), and the phrases from those. A blank label is
+    its default. `toArray()` leaves out labels equal to what the ones
+    before them make.
+  - **PHP:** `new TypeLabels('Person', plural: 'People')`; `singular` is
+    the only required argument, and a type without `labels` gets
+    `TypeLabels::named($name)`; `menu` is named, like every key after
+    `singular` (`new TypeLabels('Literary form', menu: 'Forms')`).
+    **Data:** a `labels` map, any keys (`labels: {plural: People}`);
+    `singular` comes from the name when it's missing.
+  - **The top-level `label` and `singular` options are gone**, not
+    aliased: 2.x is unreleased, 1.x never had them, and one way to set
+    names is simpler. They're unknown options now, so an old definition
+    fails loudly. The jtcom trial's config moved to `labels`.
+  - **The server makes every label; the admin never lowercases a type
+    name.** `GET types` sends `labels` (all eight, defaults filled) in
+    place of `label` and `singular`, sorted by `plural`. The admin's
+    `labelsOf($name)` (`types.ts`) gives a type's labels, or plain ones
+    from its name while types load. The list, New entry, the editor,
+    Trash, the dashboard, and the command palette use them; the Content
+    type screen shows them all. Server messages use `item`/`items` in
+    place of `lcfirst()`/`strtolower()` (which made "fAQ" and "faq").
+    Admin headings still title-case them (`titleCase`). The navigation
+    uses `menu` (and names a shared taxonomy's types by it) and sorts
+    by it; everything else uses `plural`.
+  - **Also:** the admin's `inSentence()` (field and icon names) keeps a
+    first word with another capital as it is, the same rule.
+- **Open:** translating labels, which waits for the admin's own
+  translation (open-questions.md).
+- **Checked:** `composer check` (defaults chained from `literary_form`,
+  overrides and what `toArray()` keeps, acronyms and multibyte names,
+  unknown keys and the old options rejected, `GET types`); `npm run
+  admin:build`; the jtcom trial's config loads with every type's
+  labels as expected.
+- **Why:** the author asked for a proper labels system for content
+  types, kept to the uses that matter for the CMS.
+

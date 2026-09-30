@@ -55,8 +55,7 @@ final readonly class Taxonomy extends ContentType
 	 * @param  bool            $sitemap      Whether terms are in the sitemap.
 	 * @param  iterable<Field> $fields       Fields beyond the built-in ones.
 	 * @param  bool            $closed       Whether undeclared front matter is an error.
-	 * @param  ?string         $label        For people, for a group of terms; defaults to the singular made plural.
-	 * @param  ?string         $singular     For people, for one term; defaults to the name made readable.
+	 * @param  ?TypeLabels     $labels       What people call it; defaults to labels made from the name.
 	 * @param  string          $description  What the taxonomy is for, in a sentence.
 	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
 	 * @param  bool            $hierarchical Whether a term may name a `parent` term.
@@ -76,13 +75,12 @@ final readonly class Taxonomy extends ContentType
 		bool $sitemap = true,
 		iterable $fields = [],
 		bool $closed = false,
-		?string $label = null,
-		?string $singular = null,
+		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
 		public bool $hierarchical = false
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $label, $singular, $description, $icon);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon);
 
 		$this->field = $field ?? $name;
 	}
@@ -114,7 +112,7 @@ final readonly class Taxonomy extends ContentType
 	public function parentField(): ?ReferenceField
 	{
 		return $this->hierarchical
-			? new ReferenceField('parent', $this->name, multiple: false)->described(sprintf('The parent %s, by slug.', strtolower($this->singular)))
+			? new ReferenceField('parent', $this->name, multiple: false)->described(sprintf('The parent %s, by slug.', $this->labels->item))
 			: null;
 	}
 

@@ -32,6 +32,7 @@ use Blush\Content\Type\Pages;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\TypeFeed;
 use Blush\Content\Type\TypeKind;
+use Blush\Content\Type\TypeLabels;
 use Blush\Content\Type\TypeUrls;
 use Blush\Tests\Fixtures\Content\JtcomTypes;
 
@@ -47,6 +48,7 @@ use Blush\Tests\Fixtures\Content\JtcomTypes;
 #[CoversClass(DateArchives::class)]
 #[CoversClass(BuiltInType::class)]
 #[CoversClass(InvalidContentType::class)]
+#[CoversClass(TypeLabels::class)]
 final class ContentTypeTest extends TestCase
 {
 	private FieldFactory $fields;
@@ -178,7 +180,7 @@ final class ContentTypeTest extends TestCase
 
 	public function testNamesTypesForPeople(): void
 	{
-		$names = static fn (ContentType $type): array => [$type->label, $type->singular];
+		$names = static fn (ContentType $type): array => [$type->labels->plural, $type->labels->singular];
 
 		$this->assertSame(['Posts', 'Post'], $names(new Collection('post')));
 		$this->assertSame(['Categories', 'Category'], $names(new Taxonomy('category')));
@@ -187,16 +189,70 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(['Essays', 'Essay'], $names(new Collection('essay')), 'A vowel before the y keeps it.');
 		$this->assertSame(['Pages', 'Page'], $names(new Pages()));
 
-		$type = ContentType::fromArray(['name' => 'person', 'label' => 'People'], $this->fields);
+		$type = ContentType::fromArray(['name' => 'person', 'labels' => ['plural' => 'People']], $this->fields);
 
 		$this->assertSame(['People', 'Person'], $names($type));
-		$this->assertSame('People', $type->toArray()['label'] ?? null);
-		$this->assertArrayNotHasKey('singular', $type->toArray(), 'Defaults are left out.');
+		$this->assertSame(['plural' => 'People'], $type->toArray()['labels'] ?? null, 'Defaults are left out.');
 		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
+		$this->assertArrayNotHasKey('labels', new Collection('post')->toArray());
 
-		$era = new Taxonomy('era', label: 'Eras of life', singular: 'Era of life');
+		$era = new Taxonomy('era', labels: new TypeLabels('Era of life', plural: 'Eras of life'));
 
 		$this->assertEquals($era, ContentType::fromArray($era->toArray(), $this->fields));
+	}
+
+	public function testLabelsDefaultFromTheOnesBefore(): void
+	{
+		$this->assertSame([
+			'singular'    => 'Literary form',
+			'plural'      => 'Literary forms',
+			'menu'        => 'Literary forms',
+			'item'        => 'literary form',
+			'items'       => 'literary forms',
+			'newItem'     => 'New literary form',
+			'editItem'    => 'Edit literary form',
+			'searchItems' => 'Search literary forms'
+		], new Taxonomy('literary_form')->labels->all());
+
+		$person = new TypeLabels('Person', plural: 'People', newItem: 'Add someone');
+
+		$this->assertSame(['people', 'Add someone', 'Edit person', 'Search people'], [$person->items, $person->newItem, $person->editItem, $person->searchItems]);
+		$this->assertSame(['plural' => 'People', 'newItem' => 'Add someone'], $person->toArray('person'), 'Labels made from the ones before are left out.');
+		$this->assertSame(['singular' => 'Person', 'plural' => 'People', 'newItem' => 'Add someone'], $person->toArray('human'), 'A singular the name doesn\'t make is kept.');
+		$this->assertSame('Edit person', new TypeLabels('Person', editItem: '  ')->editItem, 'A blank label is its default.');
+
+		$forms = TypeLabels::fromArray(['menu' => 'Forms'], 'literary_form');
+
+		$this->assertSame(['Forms', 'Literary forms', 'literary forms'], [$forms->menu, $forms->plural, $forms->items], 'The menu label changes only the menu.');
+		$this->assertSame(['menu' => 'Forms'], $forms->toArray('literary_form'));
+		$this->assertSame('People', new TypeLabels('Person', plural: 'People')->menu, 'The menu follows the plural.');
+	}
+
+	public function testLabelsKeepAcronymsMidSentence(): void
+	{
+		$faq = new TypeLabels('FAQ');
+
+		$this->assertSame(['FAQs', 'FAQ', 'New FAQ', 'Search FAQs'], [$faq->plural, $faq->item, $faq->newItem, $faq->searchItems]);
+		$this->assertSame('HTML snippet', new TypeLabels('HTML snippet')->item);
+		$this->assertSame('McGuffin', new TypeLabels('McGuffin')->item);
+		$this->assertSame('état', new TypeLabels('État')->item, 'Lowercasing is multibyte safe.');
+		$this->assertSame("Jane's notes", new TypeLabels("Jane's note", items: "Jane's notes")->items, 'Proper nouns set it.');
+	}
+
+	public function testRejectsUnknownLabels(): void
+	{
+		$this->expectException(InvalidContentType::class);
+		$this->expectExceptionMessage('Content type "post" labels has unknown options: label.');
+
+		ContentType::fromArray(['name' => 'post', 'labels' => ['label' => 'Posts']], $this->fields);
+	}
+
+	public function testRejectsTheOldLabelOptions(): void
+	{
+		$this->expectException(InvalidContentType::class);
+		$this->expectExceptionMessage('unknown options: label, singular.');
+
+		ContentType::fromArray(['name' => 'post', 'label' => 'Posts', 'singular' => 'Post'], $this->fields);
 	}
 
 	public function testReadsKinds(): void
