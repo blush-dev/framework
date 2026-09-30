@@ -74,9 +74,13 @@ export const router = createRouter({
 		// Each type has its own list; there's no list of every type (D-240).
 		{ path: '/entries', redirect: { name: 'dashboard' } },
 		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', capability: 'content.edit', section: 'entries', area: 'content' } },
+		// An entry is edited at its handle, its type and key (D-253); a
+		// page's key spans segments.
+		{ path: '/content/:type/:key+', name: 'entry', component: EditorView, meta: { title: 'Edit entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
 		{ path: '/entries/new', name: 'entry-new', component: NewEntryView, meta: { title: 'New entry', capability: 'content.create', section: 'entries', area: 'content' } },
-		// An entry's id is its source path, so it spans segments.
-		{ path: '/entries/:id+', name: 'entry', component: EditorView, meta: { title: 'Edit entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
+		// An entry without a handle is edited at its source path, which
+		// also still works for the rest (the editor moves to the handle).
+		{ path: '/entries/:id+', name: 'entry-file', component: EditorView, meta: { title: 'Edit entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
 		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content health', capability: 'content.edit.others', area: 'home' } },

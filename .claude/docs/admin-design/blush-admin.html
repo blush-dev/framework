@@ -350,6 +350,20 @@ tbody tr.selected:hover{background:var(--accent-soft)}
 .t-title{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);display:block;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .t-title:hover{color:var(--accent)}
 .t-slug{display:block;font-family:var(--mono);font-size:10.5px;color:var(--fg-3);margin-top:2px;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The pinned index row. It reads as part of the table, tinted just enough to
+   say it does not take part in the sorting and paging of the rows below. */
+#pinBody tr.pinned{background:var(--surface-2)}
+#pinBody tr.pinned:hover{background:var(--surface-3)}
+#pinBody tr.pinned td{border-bottom:1px solid var(--border-strong)}
+.pin{display:grid;place-items:center;width:14px;height:14px;color:var(--fg-3)}
+.pin .ic{width:13px;height:13px}
+.t-row{display:flex;align-items:center;gap:7px;min-width:0}
+.ix-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface-2)}
+.ix-line .t-title{display:inline;max-width:none}
+.ix-line code{font-family:var(--mono);font-size:11px;color:var(--fg-3)}
+.t-row .t-title{max-width:38ch}
+.ix-mark{flex:none;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);
+  border:1px solid var(--border);border-radius:4px;padding:1px 5px;background:var(--surface)}
 .who{display:flex;align-items:center;gap:7px;white-space:nowrap}
 .who span{font-size:12.5px;color:var(--fg-2)}
 .when-cell{font-size:12px;color:var(--fg-2);white-space:nowrap}
@@ -468,7 +482,7 @@ select.inp{appearance:none;padding-right:26px;
 .ed-head{flex:none;display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface);
   transition:opacity .25s ease}
 .ed-head .grow{flex:1;min-width:0}
-.ed-where{font-size:12px;color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:22ch}
+.ed-where{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--fg-3);white-space:nowrap;overflow:hidden;max-width:30ch}
 .ed-save{font-size:11.5px;color:var(--fg-3);white-space:nowrap;display:inline-flex;align-items:center;gap:6px;margin-right:2px}
 /* Separates the breadcrumb from the insert tools, which are actions, not location. */
 .ed-div{flex:none;width:1px;height:18px;background:var(--border);margin:0 2px}
@@ -915,6 +929,7 @@ tbody tr.sk-tr:hover{background:transparent}
 <symbol id="i-caret-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
 <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></symbol>
 <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M8 3v14"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1Z"/></symbol>
 <symbol id="i-shapes" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.63-1.08L11.4 3a.7.7 0 0 1 1.2-.04L16.3 8.9A.7.7 0 0 1 15.73 10Z"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><circle cx="17.5" cy="17.5" r="3.5"/></symbol>
 <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3.5 13.8 9l5.7 1.8-5.7 1.8L12 18.3l-1.8-5.7L4.5 10.8 10.2 9z"/><path d="M18.5 3.5 19 5l1.5.5L19 6l-.5 1.5L18 6l-1.5-.5L18 5z"/></symbol>
 <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2l2.5 11h10L20 7H6"/><circle cx="9" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/></symbol>
@@ -1123,6 +1138,7 @@ tbody tr.sk-tr:hover{background:transparent}
                   <th class="col-actions"><span class="sr">Actions</span></th>
                 </tr>
               </thead>
+              <tbody id="pinBody"></tbody>
               <tbody id="tbody"></tbody>
             </table>
             <div id="emptyState" hidden></div>
@@ -1724,9 +1740,11 @@ const ACCOUNTS = [
 const acct = Object.fromEntries(ACCOUNTS.map(a=>[a.id,a]));
 
 const TYPES = [
-  {key:"page",    label:"Pages",    singular:"page",    icon:"i-page", hierarchical:true,  source:"",            tax:null},
-  {key:"post",    label:"Posts",    singular:"post",    icon:"i-doc",  hierarchical:false, source:"Posts addon", tax:{key:"topic", label:"Topics", values:["Typography","Interfaces","Field notes","Tooling","Standards","Craft"]}},
-  {key:"release", label:"Releases", singular:"release", icon:"i-rocket", hierarchical:false, source:"Custom type", tax:{key:"tag", label:"Tags", values:["core","addon","breaking","security"]}}
+  /* hasIndex: the type has an archive page, and that archive is itself an entry.
+     Pages ship without one — a page tree has no archive; its root is the site. */
+  {key:"page",    label:"Pages",    singular:"page",    icon:"i-page", hierarchical:true,  hasIndex:false, source:"",            tax:null},
+  {key:"post",    label:"Posts",    singular:"post",    icon:"i-doc",  hierarchical:false, hasIndex:true,  source:"Posts addon", tax:{key:"topic", label:"Topics", values:["Typography","Interfaces","Field notes","Tooling","Standards","Craft"]}},
+  {key:"release", label:"Releases", singular:"release", icon:"i-rocket", hierarchical:false, hasIndex:true, source:"Custom type", tax:{key:"tag", label:"Tags", values:["core","addon","breaking","security"]}}
 ];
 const typeOf = Object.fromEntries(TYPES.map(t=>[t.key,t]));
 
@@ -1735,7 +1753,8 @@ function E(type,title,slug,status,author,hoursAgo,opts){
   opts = opts || {};
   return {id:"e"+(nextId++), type, title, slug, status, author,
           updated:new Date(NOW - hoursAgo*hour),
-          parent:opts.parent || "", pending:!!opts.pending, tax:opts.tax || []};
+          parent:opts.parent || "", pending:!!opts.pending, tax:opts.tax || [],
+          index:!!opts.index};
 }
 
 const ENTRIES = [
@@ -1795,7 +1814,13 @@ const ENTRIES = [
   E("release","4.1.2 — Autosave fixes","4-1-2","published","lr",380,{tax:["core"]}),
   E("release","4.3 — Media library","4-3","draft","jt",2,{tax:["core"]}),
   E("release","Posts addon 1.4","posts-1-4","published","nk",150,{tax:["addon"]}),
-  E("release","Security advisory 2026-03","advisory-2026-03","scheduled","jt",20,{tax:["security"]})
+  E("release","Security advisory 2026-03","advisory-2026-03","scheduled","jt",20,{tax:["security"]}),
+
+  /* --- index pages: one per type that has an archive. Ordinary entries with
+     their own title, slug, author and status — the title is deliberately not
+     the type label, because it is content, not a derived string. --- */
+  E("post","Writing","blog","published","jt",58,{index:true}),
+  E("release","Release notes","releases","published","jt",210,{index:true,pending:true})
 ];
 
 const WEEKS = [
@@ -1864,7 +1889,7 @@ applyDir(dir);
 function setDir(d){ dir = d; writeStored("meridian.dir", d); applyDir(d); }
 
 /* ================= sidebar ================= */
-function countType(k){ return sim.empty ? 0 : ENTRIES.filter(e=>e.type===k && e.status!=="trash").length; }
+function countType(k){ return sim.empty ? 0 : ENTRIES.filter(e=>e.type===k && e.status!=="trash" && !e.index).length; }
 /* Which rail section a view belongs to. */
 const SECTIONS = [
   {key:"overview", label:"Home",    icon:"i-grid", direct:"dashboard"},
@@ -2076,7 +2101,22 @@ const state = {
 };
 const collapsed = new Set();
 
-function typeEntries(){ return ENTRIES.filter(e=>e.type===state.type); }
+/* The index page is an entry, but it is not one of the posts: it never counts
+   toward the type's totals, never paginates, and never sorts. It is pinned. */
+function typeEntries(){ return ENTRIES.filter(e=>e.type===state.type && !e.index); }
+function indexEntry(k){ return ENTRIES.find(e=>e.type===k && e.index) || null; }
+function pinnedIndex(){
+  const e = indexEntry(state.type);
+  if (!e || sim.empty) return null;
+  if (state.status === "trash") return null;              /* it cannot be trashed */
+  if (state.status !== "all" && e.status !== state.status) return null;
+  if (state.author && e.author !== state.author) return null;
+  if (state.days && e.updated < NOW - state.days*day) return null;
+  if (state.pendingOnly && !(e.pending && e.status === "published")) return null;
+  if (state.tax) return null;                              /* an archive has no terms */
+  if (state.q && !(e.title+" /"+e.slug).toLowerCase().includes(state.q.trim().toLowerCase())) return null;
+  return e;
+}
 function statusCounts(){
   const c = {all:0, published:0, draft:0, scheduled:0, trash:0};
   if (sim.empty) return c;
@@ -2151,6 +2191,24 @@ function rowHTML(item){
   '</tr>';
 }
 
+/* Same columns, same editor, same everything — the only differences say what it
+   is: a pin in place of the checkbox, and a marker beside the title. */
+function pinRowHTML(e){
+  const a = acct[e.author];
+  return '<tr class="pinned" data-id="'+e.id+'">'+
+    '<td class="col-check"><span class="pin" title="Pinned — the index page for this type"><svg class="ic"><use href="#i-pin"/></svg></span></td>'+
+    '<td><div class="title-cell"><span class="title-main">'+
+      '<span class="t-row"><a class="t-title" href="#" data-open="'+e.id+'">'+esc(e.title)+'</a>'+
+      '<span class="ix-mark">Index</span></span>'+
+      '<div class="t-slug">/'+esc(e.slug)+'</div></span></div></td>'+
+    '<td><span class="pill-row"><span class="pill '+e.status+'"><span class="d"></span>'+STATUS_LABEL[e.status]+'</span>'+
+      (e.pending && e.status==="published" ? '<span class="pill changes" title="Saved changes that are not live yet"><span class="d"></span>Changes</span>' : '')+'</span></td>'+
+    '<td><span class="who"><span class="avatar sm">'+esc(a.init)+'</span><span>'+esc(a.name)+'</span></span></td>'+
+    '<td><span class="when-cell">'+esc(relTime(e.updated))+'<small>'+esc(stamp(e.updated))+'</small></span></td>'+
+    '<td class="col-actions"><button class="row-more" type="button" data-more="'+e.id+'" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for '+esc(e.title)+'"><svg class="ic"><use href="#i-dots"/></svg></button></td>'+
+  '</tr>';
+}
+
 function renderTabs(){
   const c = statusCounts();
   const keys = [["all","All"],["published","Published"],["draft","Draft"],["scheduled","Scheduled"],["trash","Trash"]];
@@ -2176,6 +2234,7 @@ function renderEntries(){
   } else { taxSel.hidden = true; state.tax = ""; }
 
   if (loading){
+    $("#pinBody").innerHTML = "";
     $("#tbody").innerHTML = skRows(6, 4);
     $("#table").hidden = false; $("#emptyState").hidden = true; $("#noteBar").hidden = true;
     $("#pageInfo").textContent = "Loading " + t.label.toLowerCase() + "…";
@@ -2208,6 +2267,8 @@ function renderEntries(){
   }
 
   $("#tbody").innerHTML = items.map(rowHTML).join("");
+  const pin = pinnedIndex();
+  $("#pinBody").innerHTML = pin ? pinRowHTML(pin) : "";
 
   const note = $("#noteBar");
   if (t.hierarchical && state.tree && !tree){
@@ -2219,7 +2280,9 @@ function renderEntries(){
 
   const table = $("#table"), empty = $("#emptyState");
   if (total === 0){
-    table.hidden = true; empty.hidden = false;
+    /* A type with an archive is never truly empty: the index page is already an
+       entry, so the table stays and the empty state sits under it. */
+    table.hidden = !pin; empty.hidden = false;
     const firstRun = sim.empty || (!anyFilter() && state.status === "all" && typeEntries().length === 0);
     /* Nothing to filter, so the filters are noise. */
     $("#tabs").hidden = firstRun;
@@ -2230,7 +2293,8 @@ function renderEntries(){
         '<h3>No '+esc(t.label.toLowerCase())+' yet</h3>'+
         '<p>'+(t.hierarchical
           ? 'Pages are the structure of the site. The first one is usually the home page.'
-          : 'Nothing of this type has been written. The first entry is a draft until you publish it.')+'</p>'+
+          : 'Nothing of this type has been written. The first entry is a draft until you publish it.')+
+          (pin ? ' The index page above is already live — it is what readers land on.' : '')+'</p>'+
         '<button class="btn btn-primary" type="button" id="emptyNew"><svg class="ic"><use href="#i-plus"/></svg>New '+esc(t.singular)+'</button></div>';
       const btn = $("#emptyNew");
       if (btn) btn.addEventListener("click", ()=> $("#newEntry").click());
@@ -2414,15 +2478,18 @@ function showMenu(btn, e, isTerm){
       '<div class="div"></div>'+
       '<button type="button" role="menuitem" class="danger" data-tdel="'+e.id+'"><svg class="ic"><use href="#i-trash"/></svg>Delete</button>';
   } else {
+    /* An index page is singular and permanent: no duplicate, no trash. Leaving
+       them out beats showing them disabled — a menu of dead items reads as a bug. */
     el.innerHTML =
       '<button type="button" role="menuitem" data-edit="1"><svg class="ic"><use href="#i-pencil"/></svg>Edit</button>'+
       (live ? '<button type="button" role="menuitem" data-act="Opened the live entry"><svg class="ic"><use href="#i-eye"/></svg>View</button>' : '')+
       (e.pending && live ? '<button type="button" role="menuitem" data-cf="update"><svg class="ic"><use href="#i-check-circle"/></svg>Update — publish changes</button>' : '')+
       (e.pending && live ? '<button type="button" role="menuitem" data-cf="discard"><svg class="ic"><use href="#i-undo"/></svg>Discard changes</button>' : '')+
       '<button type="button" role="menuitem" data-act="Permalink copied"><svg class="ic"><use href="#i-link"/></svg>Copy link</button>'+
-      '<button type="button" role="menuitem" data-act="Duplicated as a draft"><svg class="ic"><use href="#i-copy"/></svg>Duplicate</button>'+
-      '<div class="div"></div>'+
-      '<button type="button" role="menuitem" class="danger" data-trash="'+e.id+'"><svg class="ic"><use href="#i-trash"/></svg>Move to trash</button>';
+      (e.index ? '' :
+        '<button type="button" role="menuitem" data-act="Duplicated as a draft"><svg class="ic"><use href="#i-copy"/></svg>Duplicate</button>'+
+        '<div class="div"></div>'+
+        '<button type="button" role="menuitem" class="danger" data-trash="'+e.id+'"><svg class="ic"><use href="#i-trash"/></svg>Move to trash</button>');
   }
   document.body.appendChild(el);
   const r = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
@@ -3203,6 +3270,14 @@ const TYPE_FIELDS = {
 };
 
 function sampleBody(e){
+  if (e.index){
+    const t = typeOf[e.type];
+    return "Everything published under " + t.label.toLowerCase() + ", newest first. This intro is " +
+      "ordinary content — the index page is an entry, so it is written here rather than in a settings field.\n\n" +
+":::callout{type=note title=\"Archive intro\"}\nComponents work here too. Anything above the list renders above it on the site.\n:::\n\n" +
+"::entries{type=" + e.type + " limit=10 style=list}\n\n" +
+"Below the list: whatever else belongs on the archive — a subscribe form, a note about the feed.\n";
+  }
   const lead = {
     page:   "This page sits at `"+e.slug+"`. Everything below is Markdown source; components are the `::` directives.",
     post:   "An opening paragraph. Nothing here is rendered in the admin — the editor shows source, and the site renders it.",
@@ -3239,6 +3314,7 @@ function openEditor(id){
   const rec = e || tr.term;
 
   editor.isTerm = !!tr;
+  editor.isIndex = !!(e && e.index);
   editor.id     = rec.id;
   editor.type   = e ? e.type : tr.key;
   editor.status = rec.status;
@@ -3259,7 +3335,7 @@ function openEditor(id){
   const k = kindOf(editor.type);
   $("#edTitle").value = editor.title;
   $("#edSrc").value = editor.src;
-  $("#edWhere").textContent = k.label;
+  $("#edWhere").innerHTML = esc(k.label) + (editor.isIndex ? ' <span class="ix-mark">Index</span>' : "");
   $("#edSlugLine").textContent = slugLine();
   $("#edNotice").hidden = !editor.pending;
   $("#view-editor").classList.remove("side-open","writing");
@@ -3563,7 +3639,7 @@ function renderDocumentSide(){
   h += '<div class="fgroup"><span class="fgroup-t">Publishing</span>'+
     fieldHTML("d-status","Status",
       '<select class="inp" id="d-status" data-doc="status">'+
-      ["draft","published","scheduled"].map(s=>'<option value="'+s+'"'+(editor.status===s?" selected":"")+'>'+STATUS_LABEL[s]+'</option>').join("")+
+      (editor.isIndex ? ["draft","published"] : ["draft","published","scheduled"]).map(s=>'<option value="'+s+'"'+(editor.status===s?" selected":"")+'>'+STATUS_LABEL[s]+'</option>').join("")+
       '</select>') +
     (editor.status === "scheduled" ? fieldHTML("d-when","Goes live",'<input class="inp" type="datetime-local" id="d-when" value="2026-10-02T09:00">') : "") +
     fieldHTML("d-slug","Slug",'<input class="inp mono" type="text" id="d-slug" data-doc="slug" value="'+esc(editor.slug)+'">',
@@ -3572,11 +3648,13 @@ function renderDocumentSide(){
       '<select class="inp" id="d-parent" data-doc="parent"><option value="">No parent — top level</option>'+
       parents.map(p=>'<option value="'+p[0]+'"'+(editor.parent===p[0]?" selected":"")+'>'+esc(p[1])+'</option>').join("")+
       '</select>') : "") +
+    (editor.isIndex ? '<span class="mini-note">The index page for <strong>'+esc(t.label)+'</strong>. There is one, it cannot be deleted, and its slug is the type\'s URL base.</span>' : "") +
     (editor.isTerm ? '<span class="mini-note">Used by <strong>'+editor.count+'</strong> '+
       (editor.count===1?"entry":"entries")+'. Deleting this '+esc(t.singular)+' leaves them in place.</span>' : "") +
     '</div>';
 
-  if (t.tax){
+  /* An archive is not filed under its own taxonomy, so the picker is not shown. */
+  if (t.tax && !editor.isIndex){
     h += '<div class="fgroup"><span class="fgroup-t">'+esc(t.tax.label)+'</span>'+
       '<div class="chips" id="d-tax">'+
         (editor.tax.length ? editor.tax.map(v=>'<span class="chip">'+esc(v)+
@@ -3594,7 +3672,8 @@ function renderDocumentSide(){
       '</div>';
   }
 
-  const custom = fieldsOf(editor.type) || [];
+  /* Custom fields describe an entry of the type, not its archive. */
+  const custom = editor.isIndex ? [] : (fieldsOf(editor.type) || []);
   if (custom.length){
     const bad = editor.invalid || [];
     h += '<div class="fgroup"><span class="fgroup-t">'+esc(t.singular)+' fields</span>'+
@@ -3945,7 +4024,7 @@ function fieldsOf(key){ return TYPE_FIELDS[key] || TAX_FIELDS[key] || []; }
 const tbState = {key:"page", editing:null, adding:false, q:"", kind:"all"};
 
 function typeEntryCount(t){
-  if (t.kind === "Content") return ENTRIES.filter(e=>e.type===t.key && e.status!=="trash").length;
+  if (t.kind === "Content") return ENTRIES.filter(e=>e.type===t.key && e.status!=="trash" && !e.index).length;
   return (TERMS[t.key] || []).length;
 }
 function renderTypes(){
@@ -4001,6 +4080,7 @@ function renderTypeDetail(){
   const fields = fieldsOf(t.key);
   const readOnly = t.source !== "Custom";
   const isTax = t.kind === "Taxonomy";
+  const ix = isTax ? null : indexEntry(t.key);
 
   $("#tyTitle").textContent = t.label;
   $("#tySub").textContent = t.kind + " type · " + t.key + " · from " + t.source +
@@ -4021,7 +4101,17 @@ function renderTypeDetail(){
       '<div class="field"><label>Behavior</label>'+
         '<label class="switch'+(readOnly?" ro":"")+'"><input type="checkbox" id="t-hier"'+(t.hier?" checked":"")+(readOnly?" disabled":"")+'><span class="track"></span><span class="st">Entries can nest under a parent</span></label>'+
         '<label class="switch'+(readOnly?" ro":"")+'"><input type="checkbox" id="t-nav" checked'+(readOnly?" disabled":"")+'><span class="track"></span><span class="st">Show in the sidebar</span></label>'+
+        (isTax ? '' :
+          '<label class="switch'+(readOnly?" ro":"")+'"><input type="checkbox" id="t-index"'+(ix?" checked":"")+(readOnly?" disabled":"")+'><span class="track"></span><span class="st">Has an index page</span></label>')+
       '</div>'+
+      (isTax || !ix ? '' :
+        '<div class="field"><label>Index page</label>'+
+          '<div class="ix-line"><span class="pin"><svg class="ic"><use href="#i-pin"/></svg></span>'+
+          '<a class="t-title" href="#" data-open="'+ix.id+'">'+esc(ix.title)+'</a>'+
+          '<code>/'+esc(ix.slug)+'</code>'+
+          '<span class="pill '+ix.status+'"><span class="d"></span>'+STATUS_LABEL[ix.status]+'</span></div>'+
+          '<span class="hint">The archive is an entry, and its slug is the URL base above — change one and the other follows. Turning this off does not delete it; it stops the site from routing to it.</span>'+
+        '</div>')+
       (isTax
         ? '<div class="field"><label>Attached to</label>'+
             (TAXONOMIES[t.key] && taxLabels(TAXONOMIES[t.key]).length
@@ -4584,10 +4674,10 @@ function skDashboard(){
 /* ================= new content type wizard ================= */
 const WIZ_ICONS = ["i-doc","i-page","i-rocket","i-folder","i-tag","i-box","i-image","i-calendar","i-braces","i-shield"];
 const wiz = {step:0, kind:"content", label:"", singular:"", key:"", keyTouched:false,
-             icon:"i-box", hier:false, nav:true, slug:"", tax:[], fields:[], err:""};
+             icon:"i-box", hier:false, nav:true, index:true, slug:"", tax:[], fields:[], err:""};
 function wizReset(){
   Object.assign(wiz, {step:0, kind:"content", label:"", singular:"", key:"", keyTouched:false,
-    icon:"i-box", hier:false, nav:true, slug:"", tax:[], fields:[], err:""});
+    icon:"i-box", hier:false, nav:true, index:true, slug:"", tax:[], fields:[], err:""});
 }
 function slugify(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""); }
 function keyify(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,""); }
@@ -4642,7 +4732,10 @@ function renderWizard(){
           '<span class="st">Entries can nest under a parent</span></label>'+
         '<label class="switch"><input type="checkbox" id="w-nav"'+(wiz.nav?" checked":"")+'><span class="track"></span>'+
           '<span class="st">Show in the sidebar</span></label>'+
+        (wiz.kind === "content" ? '<label class="switch"><input type="checkbox" id="w-index"'+(wiz.index?" checked":"")+'><span class="track"></span>'+
+          '<span class="st">Has an index page</span></label>' : "")+
         (wiz.hier ? '<span class="mini-note">The list screen will open as a tree, like Pages.</span>' : '')+
+        (wiz.kind === "content" && wiz.index ? '<span class="mini-note">An entry is created for the archive at <code>'+esc(wiz.slug||("/"+(wiz.key||"recipes")))+'</code> and pinned at the top of the list.</span>' : '')+
       '</div>'+
       (wiz.kind === "content" ? '<div class="field"><label>Taxonomies</label>'+
         '<div class="role-check">'+
@@ -4696,6 +4789,7 @@ function renderWizard(){
     S("URL", '<span class="mono">'+esc(wiz.slug || "/"+(wiz.key||"…"))+'/{slug}</span>') +
     S("Nesting", wiz.hier ? "Tree — entries nest" : "Flat") +
     S("Sidebar", wiz.nav ? "Listed under Content" : "Hidden") +
+    (wiz.kind === "content" ? S("Index page", wiz.index ? "Created and pinned" : "None") : "") +
     (wiz.kind === "content" ? S("Taxonomies", wiz.tax.length ? wiz.tax.map(k=>esc(TAXONOMIES[k].label)).join(", ") : '<span style="color:var(--fg-3)">None</span>') : "") +
     S("Fields", wiz.fields.length ? wiz.fields.map(f=>esc(f.l)).join(", ") : '<span style="color:var(--fg-3)">None yet</span>');
 }
@@ -4726,9 +4820,12 @@ function createType(){
     const t = {key, label:rec.label, singular:rec.singular.toLowerCase(), icon:wiz.icon,
                hierarchical:wiz.hier, source:"Custom type",
                tax: wiz.tax.length ? {key:wiz.tax[0], label:TAXONOMIES[wiz.tax[0]].label, values:TAXONOMIES[wiz.tax[0]].key==="topic"?TERMS.topic.map(x=>x.name):TERMS.tag.map(x=>x.name)} : null};
+    t.hasIndex = !!wiz.index;
     TYPES.push(t);
     typeOf[key] = t;
     TYPE_FIELDS[key] = wiz.fields.slice();
+    /* A new type with an archive is born with exactly one entry: its index. */
+    if (wiz.index) ENTRIES.push(E(key, rec.label, slugify(rec.label), "draft", "jt", 0, {index:true}));
     /* Attaching a taxonomy that had one type now gives it two, which moves it
        out of the sidebar nest and into Structure. Worth watching happen. */
     const moved = wiz.tax.filter(k=>TAXONOMIES[k].types.length === 1).map(k=>TAXONOMIES[k].label);
@@ -5226,6 +5323,7 @@ $("#wizBody").addEventListener("input", e=>{
 $("#wizBody").addEventListener("change", e=>{
   const el = e.target;
   if (el.id === "w-hier"){ wiz.hier = el.checked; renderWizard(); return; }
+  if (el.id === "w-index"){ wiz.index = el.checked; renderWizard(); return; }
   if (el.id === "w-nav"){ wiz.nav = el.checked; renderWizard(); return; }
   if (el.dataset.wtax !== undefined){
     const k = el.dataset.wtax;

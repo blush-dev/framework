@@ -208,9 +208,15 @@ media fields (D-247), over `GET icons` and `GET media` (D-246).
 Then toasts and the ⌘K command palette (D-248), and read-only list and
 detail screens for Roles and Accounts (D-249), Content types (D-250),
 and Media (D-251).
-Next: live preview, uploads and media metadata, a reference picker,
+Next: the Markdown editing experience (D-252; begun with styled
+Markdown and editor addresses by handle, D-253; a 640px Fira Code
+editor, site addresses in tables, and row menus, D-254; Fira Code
+throughout and pinned index pages, D-255), then uploads and media
+metadata, a reference picker,
 editing types and accounts, and the remaining stubbed screens
-(Appearance, Extensions, Settings). Smaller admin items waiting: the admin theme choice (a second
+(Appearance, Extensions, Settings). Live preview waits (D-252): inline
+image and embed previews first, then a full preview, above all of
+components. Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), changing one's own password on Your profile,
 renaming an entry from the editor, objects in forms, autosave, and Pages
 as a tree (see D-233 to D-237's open items).

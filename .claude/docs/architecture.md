@@ -765,7 +765,10 @@ Implemented in M7 (D-135 to D-140).
   tabs on each list (D-236), as is the trash (D-237: restore as a draft,
   delete permanently, empty), and a taxonomy's list counts each term's uses. The body is
   edited in `MarkdownEditor` (D-241: a text area over a highlighted copy
-  from `markdown.ts`, which finds directives by the server's rules), with
+  from `markdown.ts`, which finds directives by the server's rules, and
+  styles emphasis, strong text, headings, quotes, and list markers with
+  muted marks, D-253, in Fira Code, the admin's only mono, D-254,
+  D-255), with
 the component inserter (D-243: `components.ts` loads `GET components`
 once, groups core components by `ComponentType::category()` and the rest
 by source, keeps recents, and writes the directive text). The
@@ -786,7 +789,14 @@ by source, keeps recents, and writes the directive text). The
   Accounts are read-only list and detail screens over `GET roles` and
   `GET accounts` (D-249), as are Content types over `GET types` and
   `GET types/{name}` (D-250) and Media over `GET media` and
-  `GET media/{path}` (D-251). The look follows `.claude/docs/admin-design/` (D-231):
+  `GET media/{path}` (D-251). The editor's address is the entry's
+  handle, `content/{type}/{key}` (`EntryHandles`, `GET
+  content/{type}/{key}`), with `entries/{path}` for entries without one
+  (D-253). Entry tables show each entry's site address, not its file,
+  and end in a row menu (`MenuButton`, `floating`; D-254); a
+  collection's or taxonomy's landing page is its **index page**, pinned
+  in a `tbody` of its own above the rest and answered apart from them
+  as `index` in `GET entries` (D-255). The look follows `.claude/docs/admin-design/` (D-231):
   design tokens in `css/tokens.css` are the only literal values, and
   the shell is a rail, a top bar, and a scrolling work area. Extension pieces are described in PHP and drawn
   generically (D-222): `AdminAction`s (label, description, capability,

@@ -23,9 +23,13 @@ use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Order;
+use Blush\Content\Query\Query;
+use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Taxonomy;
+use Blush\Content\Type\TypeKind;
+use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
 
@@ -44,6 +48,13 @@ use Blush\Http\Status as HttpStatus;
  * permission rules, the filters, and paging all run in the index as one
  * query (`Permissions::restrict()`), so only the page's entries are built.
  * Terms also say how many published entries use them (`uses`, D-236).
+ *
+ * A collection's or taxonomy's **index page** (its landing page, in the
+ * site's locale) isn't one of its entries (D-255): it's left out of the
+ * entries, the total, and the pages, and answered on its own as `index`
+ * on every page, when it matches the filters and the account may edit
+ * it; otherwise `null`. Pages have no index page: their landing page is
+ * the site's home, an entry like any other.
  */
 final readonly class EntriesController
 {
@@ -60,8 +71,11 @@ final readonly class EntriesController
 	public function __construct(
 		private ContentRepository $content,
 		private ContentTypes $types,
+		private EntryHandles $handles,
+		private ContentUrls $urls,
 		private Permissions $permissions,
-		private AuthConfig $config
+		private AuthConfig $config,
+		private AppConfig $app
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -108,12 +122,15 @@ final readonly class EntriesController
 			default           => $query->orderBy('updated', Order::Desc)
 		};
 
-		$entries = $this->permissions->restrict($account, Capability::ContentEdit, $query)->paginate($per, $page);
+		$pinned  = $type !== null && $this->types->find($type)?->kind() !== TypeKind::Pages;
+		$query   = $this->permissions->restrict($account, Capability::ContentEdit, $query);
+		$entries = ($pinned ? $query->withLanding(false) : $query)->paginate($per, $page);
+		$index   = $pinned ? $this->index($query) : null;
 		$counts  = [];
 
 		// How many published entries use each term on the page, one pass
 		// per taxonomy (D-236).
-		foreach ($entries->all() as $entry) {
+		foreach ([...$entries->all(), ...($index === null ? [] : [$index])] as $entry) {
 			if ($entry->type instanceof Taxonomy) {
 				$counts[$entry->type->name] ??= $this->content->termCounts($entry->type->name);
 			}
@@ -127,13 +144,40 @@ final readonly class EntriesController
 			'page'    => $page,
 			'pages'   => $entries->pages(),
 			'per'     => $per,
-			'entries' => array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts), $entries->all())
+			'entries' => array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts), $entries->all()),
+			'index'   => $index === null ? null : $this->describe($account, $index, $counts)
 		]);
 	}
 
 	/**
-	 * Returns what the admin shows of an entry. A term's `uses` is how
-	 * many published entries reference it; other entries' is `null`.
+	 * Returns whether an entry is its type's index page, which is never
+	 * trashed from a list.
+	 */
+	private static function isIndex(Entry $entry): bool
+	{
+		return $entry->landing && $entry->type->kind() !== TypeKind::Pages;
+	}
+
+	/**
+	 * Returns the type's index page, if the list's query finds it.
+	 */
+	private function index(Query $query): ?Entry
+	{
+		foreach ($query->names('index')->get() as $entry) {
+			if (self::isIndex($entry) && $entry->locale === $this->app->locale) {
+				return $entry;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Returns what the admin shows of an entry. Its `url` is its path on
+	 * the site, where it is or will be once published (`null` when it has
+	 * none), and `index` whether it's its type's index page. A term's
+	 * `uses` is how many published entries reference it; other entries'
+	 * is `null`.
 	 *
 	 * @param  array<string, array<string, int>> $counts Term counts by taxonomy.
 	 * @return array<string, mixed>
@@ -142,14 +186,18 @@ final readonly class EntriesController
 	{
 		return [
 			'id'        => $entry->id,
+			'handle'    => $this->handles->of($entry),
 			'title'     => $entry->title,
 			'type'      => $entry->type->name,
 			'status'    => $entry->status->value,
 			'published' => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'   => $entry->updated->format(DateTimeInterface::ATOM),
 			'path'      => $entry->source?->path,
+			'url'       => $this->urls->entry($entry),
 			'authors'   => $entry->terms($this->config->authorTaxonomy),
 			'own'       => $this->permissions->owns($account, $entry),
+			'index'     => self::isIndex($entry),
+			'can'       => ['delete' => ! self::isIndex($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry)],
 			'uses'      => $entry->type instanceof Taxonomy ? ($counts[$entry->type->name][$entry->key] ?? 0) : null
 		];
 	}

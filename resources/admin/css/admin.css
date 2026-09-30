@@ -381,6 +381,54 @@
 	white-space: nowrap;
 }
 
+/*
+ * Each row's menu (D-254): a narrow last column whose button shows on
+ * the row's hover or focus where there's a pointer to hover with, and
+ * always where there isn't.
+ */
+.table .table__actions {
+	width: 44px;
+	padding-block: calc(var(--pad-row) - 4px);
+	text-align: right;
+	vertical-align: middle;
+}
+
+.row-more {
+	display: inline-grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-3);
+	cursor: pointer;
+}
+
+.row-more:hover,
+.row-more[aria-expanded="true"] {
+	background: var(--surface-3);
+	color: var(--fg);
+}
+
+.row-more svg {
+	width: 16px;
+	height: 16px;
+}
+
+@media (hover: hover) {
+	.row-more {
+		opacity: 0;
+	}
+
+	tr:hover .row-more,
+	tr:focus-within .row-more,
+	.row-more[aria-expanded="true"] {
+		opacity: 1;
+	}
+}
+
 /* Counts line up on the right. */
 .table .table__count {
 	text-align: right;
@@ -408,6 +456,50 @@
 .entry-title__link:hover {
 	color: var(--accent);
 	text-decoration: underline;
+}
+
+/*
+ * A type's index page, pinned above its entries (D-255): the same row,
+ * tinted just enough to say it isn't sorted or paged with the rest.
+ */
+.table__pinned tr {
+	background: var(--surface-2);
+}
+
+.table__pinned tr:hover {
+	background: var(--surface-3);
+}
+
+.table tbody.table__pinned tr:last-child > * {
+	border-bottom: 1px solid var(--border-strong);
+}
+
+.entry-title__pin {
+	display: inline-grid;
+	place-items: center;
+	margin-right: 6px;
+	color: var(--fg-3);
+	vertical-align: -2px;
+}
+
+.entry-title__pin svg {
+	width: 13px;
+	height: 13px;
+}
+
+.index-mark {
+	display: inline-block;
+	padding: 1px 5px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface);
+	color: var(--fg-3);
+	font-family: var(--font-ui);
+	font-size: var(--text-2xs);
+	font-weight: 500;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	vertical-align: 1px;
 }
 
 .entry-title__path {

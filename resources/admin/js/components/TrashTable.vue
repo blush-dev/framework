@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
- * Trashed entries of one type (D-237): the title with where it lived,
- * when it was trashed, and two actions, kept apart: **Restore as a
- * draft** and, after a divider, **Delete permanently**.
+ * Trashed entries of one type (D-237): the title, when it was trashed,
+ * and a menu (D-254) with two actions kept apart: **Restore as a draft**
+ * and, after a divider, **Delete permanently**.
  */
 
 import type { TrashedSummary } from '../api';
 import { formatDate } from '../format';
 import AdminIcon from './AdminIcon.vue';
+import MenuButton from './MenuButton.vue';
 
 defineProps<{
 	items: TrashedSummary[];
@@ -21,7 +22,7 @@ defineEmits<{
 }>();
 
 function name(item: TrashedSummary): string {
-	return item.title || item.entry;
+	return item.title || 'Untitled';
 }
 </script>
 
@@ -32,7 +33,7 @@ function name(item: TrashedSummary): string {
 				<tr>
 					<th scope="col">Title</th>
 					<th scope="col">Trashed</th>
-					<th scope="col"><span class="visually-hidden">Actions</span></th>
+					<th scope="col" class="table__actions"><span class="visually-hidden">Actions</span></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -44,39 +45,25 @@ function name(item: TrashedSummary): string {
 								<span v-else class="untitled">Untitled</span>
 								{{ ' ' }}<span v-if="item.own" class="tag">Yours</span>
 							</span>
-							<span class="entry-title__path">{{ item.entry }}<template v-if="item.bundle"> (with its folder)</template></span>
 						</span>
 					</th>
 					<td class="table__meta"><time :datetime="item.trashed">{{ formatDate(item.trashed) }}</time></td>
-					<td>
-						<div class="trash-actions">
-							<button type="button" class="button button--small" :disabled="busy !== null" @click="$emit('restore', item)">
-								<AdminIcon name="refresh-cw" />
-								Restore as a draft<span class="visually-hidden">: {{ name(item) }}</span>
+					<td class="table__actions">
+						<MenuButton button-class="row-more" :label="`Actions for ${name(item)}`" floating>
+							<template #button>
+								<AdminIcon name="ellipsis" />
+							</template>
+							<button type="button" class="menu-item" :disabled="busy !== null" @click="$emit('restore', item)">
+								<AdminIcon name="refresh-cw" />Restore as a draft
 							</button>
-							<span class="trash-actions__divider" aria-hidden="true" />
-							<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="$emit('purge', item)">
-								Delete permanently<span class="visually-hidden">: {{ name(item) }}</span>
+							<div class="menu-divider" />
+							<button type="button" class="menu-item menu-item--danger" :disabled="busy !== null" @click="$emit('purge', item)">
+								<AdminIcon name="trash-2" />Delete permanently
 							</button>
-						</div>
+						</MenuButton>
 					</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
 </template>
-
-<style scoped>
-.trash-actions {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 8px;
-}
-
-.trash-actions__divider {
-	align-self: stretch;
-	width: 1px;
-	background: var(--border);
-}
-</style>

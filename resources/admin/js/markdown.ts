@@ -2,7 +2,8 @@
  * Reads a Markdown body the way the editor shows it (D-241): which lines
  * are headings, code, or component directives, where each directive
  * starts and ends, and the body as highlighted HTML for the editor's
- * source view. Directives follow the server's parser (D-026,
+ * source view, with emphasis, strong text, headings, quotes, and list
+ * markers styled as they read and their marks muted (D-253). Directives follow the server's parser (D-026,
  * `Markdown\CommonMark\Directive`):
  *
  * - a container opens with a line of `:::name[label]{attributes}` (three
@@ -34,15 +35,23 @@ export interface Directive {
 
 type LineKind = 'text' | 'heading' | 'fence' | 'code' | 'open' | 'close' | 'leaf';
 
-type TokenKind = 'code' | 'directive' | 'link' | 'strong';
+type TokenKind = 'escape' | 'code' | 'directive' | 'link' | 'strong' | 'em' | 'strike';
+
+// The kinds in the order `INLINE` names their groups.
+const KINDS = ['escape', 'code', 'directive', 'link', 'strong', 'em', 'strike'] as const;
 
 interface Token {
 	kind: TokenKind;
 	// Offsets in the line.
 	start: number;
 	end: number;
+	// Where the text between the marks is (strong, emphasis, struck
+	// text, and a link's label), and what's in it.
+	inner?: { start: number; end: number; tokens: Token[] };
 	directive?: number;
 }
+
+type MarkKind = 'heading' | 'quote' | 'list' | 'rule';
 
 interface Line {
 	kind: LineKind;
@@ -50,6 +59,9 @@ interface Line {
 	text: string;
 	// The directive an `open`, `close`, or `leaf` line belongs to.
 	directive?: number;
+	// The marks a line of text starts with (`> `, `## `, `- `), in order,
+	// each to where it ends in the line.
+	marks: { kind: MarkKind; end: number }[];
 	tokens: Token[];
 }
 
@@ -66,7 +78,25 @@ const OPEN      = new RegExp(`^ {0,3}(:{3,})\\s*(${NAME})${REST}\\s*$`);
 const CLOSE     = /^ {0,3}(:{3,})\s*$/;
 const LEAF      = new RegExp(`^ {0,3}::(${NAME})${REST}\\s*$`);
 const HEADING   = /^ {0,3}#{1,6}(?:\s|$)/;
-const INLINE    = new RegExp(`(?<code>(\`+).+?\\2(?!\`))|(?<directive>(?<![\\p{L}\\p{N}_:]):(?<name>${NAME})\\[[^\\]\\n]*\\](?:\\{[^}\\n]*\\})?)|(?<link>!?\\[[^\\]\\n]*\\]\\([^)\\n]*\\))|(?<strong>\\*\\*[^*\\n]+\\*\\*|__[^_\\n]+__)`, 'gu');
+const QUOTE     = /^ {0,3}> ?/;
+const RULE      = /^ {0,3}([-*_])(?: *\1){2,} *$/;
+const HEADS     = /^ {0,3}#{1,6}(?: +|$)/;
+const ITEM      = /^ *(?:[-*+]|\d{1,9}[.)])(?: +\[[ xX]\])?(?: +|$)/;
+
+// Inline marks, earliest first and, at one place, in this order. Strong,
+// emphasis, and struck text need something that isn't a space just
+// inside their marks, and underscores don't count inside a word, much as
+// CommonMark reads them.
+const WORD   = '[\\p{L}\\p{N}_]';
+const INLINE = new RegExp([
+	'(?<escape>\\\\[!-/:-@[-`{-~])',
+	'(?<code>(?<ticks>`+).+?\\k<ticks>(?!`))',
+	`(?<directive>(?<![\\p{L}\\p{N}_:]):(?<name>${NAME})\\[[^\\]\\n]*\\](?:\\{[^}\\n]*\\})?)`,
+	'(?<link>!?\\[(?<label>[^\\]\\n]*)\\]\\([^)\\n]*\\)(?:\\{[^}\\n]*\\})?)',
+	`(?<strong>\\*\\*(?!\\s)(?:.*?\\S)?\\*\\*(?!\\*)|(?<!${WORD})__(?!\\s)(?:.*?\\S)?__(?!${WORD}))`,
+	`(?<em>\\*(?![\\s*])(?:.*?[^\\s*])?\\*(?!\\*)|(?<!${WORD})_(?![\\s_])(?:.*?[^\\s_])?_(?!${WORD}))`,
+	'(?<strike>~~(?!\\s)(?:.*?\\S)?~~)'
+].join('|'), 'gu');
 
 /**
  * Finds the body's lines and directives.
@@ -81,7 +111,7 @@ export function outline(source: string): MarkdownOutline {
 
 	for (const text of source.split('\n')) {
 		const end  = start + text.length;
-		const line: Line = { kind: 'text', start, text, tokens: [] };
+		const line: Line = { kind: 'text', start, text, marks: [], tokens: [] };
 		let match: RegExpMatchArray | null;
 
 		if (fence !== null) {
@@ -118,8 +148,10 @@ export function outline(source: string): MarkdownOutline {
 			line.kind      = 'leaf';
 			line.directive = directives.push({ kind: 'leaf', name: match[1] ?? '', start: start + text.indexOf(':'), end }) - 1;
 		} else {
+			const from = (line.marks = marks(text)).at(-1)?.end ?? 0;
+
 			line.kind   = HEADING.test(text) ? 'heading' : 'text';
-			line.tokens = inline(text, start, directives);
+			line.tokens = line.marks.at(-1)?.kind === 'rule' ? [] : inline(text.slice(from), start + from, directives, from);
 		}
 
 		lines.push(line);
@@ -138,18 +170,62 @@ function closes(open: { fence: number }[], length: number): number {
 }
 
 /**
- * Finds a line's inline code, directives, links, and strong text.
+ * Finds the marks a line of text starts with: quotes, then a heading's
+ * hashes, a list item's marker, or a whole line that's a rule.
  */
-function inline(text: string, start: number, directives: Directive[]): Token[] {
+function marks(text: string): Line['marks'] {
+	const found: Line['marks'] = [];
+	let at = 0;
+	let match: RegExpExecArray | null;
+
+	while ((match = QUOTE.exec(text.slice(at))) !== null) {
+		at += match[0].length;
+		found.push({ kind: 'quote', end: at });
+	}
+
+	const rest = text.slice(at);
+
+	if (RULE.test(rest)) {
+		found.push({ kind: 'rule', end: text.length });
+	} else if ((match = HEADS.exec(rest) ?? ITEM.exec(rest)) !== null) {
+		found.push({ kind: match[0].trimStart().startsWith('#') ? 'heading' : 'list', end: at + match[0].length });
+	}
+
+	return found;
+}
+
+/**
+ * Finds the inline code, directives, links, strong, emphasized, and
+ * struck text in part of a line: `text`, which starts at `start` in the
+ * body and `offset` in its line. What's inside marks is read the same
+ * way, so marks nest.
+ */
+function inline(text: string, start: number, directives: Directive[], offset = 0): Token[] {
 	const tokens: Token[] = [];
 
 	for (const match of text.matchAll(INLINE)) {
 		const groups = match.groups ?? {};
-		const kind   = (['code', 'directive', 'link', 'strong'] as const).find((name) => groups[name] !== undefined) ?? 'code';
-		const token: Token = { kind, start: match.index, end: match.index + match[0].length };
+		const kind   = KINDS.find((name) => groups[name] !== undefined) ?? 'code';
+		const source = match[0];
+		const token: Token = { kind, start: offset + match.index, end: offset + match.index + source.length };
+
+		// Where the text inside the marks is, from and to, in the match.
+		const inside = (from: number, to: number): Token['inner'] => ({
+			start: token.start + from,
+			end: token.start + to,
+			tokens: inline(source.slice(from, to), start + match.index + from, directives, token.start + from)
+		});
 
 		if (kind === 'directive') {
-			token.directive = directives.push({ kind: 'inline', name: groups.name ?? '', start: start + token.start, end: start + token.end }) - 1;
+			token.directive = directives.push({ kind: 'inline', name: groups.name ?? '', start: start + match.index, end: start + match.index + source.length }) - 1;
+		} else if (kind === 'link') {
+			const from = source.startsWith('!') ? 2 : 1;
+
+			token.inner = inside(from, from + (groups.label?.length ?? 0));
+		} else if (kind === 'strong' || kind === 'em' || kind === 'strike') {
+			const size = kind === 'em' ? 1 : 2;
+
+			token.inner = inside(size, source.length - size);
 		}
 
 		tokens.push(token);
@@ -219,6 +295,54 @@ function directiveHtml(text: string, current: boolean): string {
 }
 
 /**
+ * Marks, muted.
+ */
+function markHtml(text: string, kind = ''): string {
+	return text === '' ? '' : `<span class="md-mark${kind === '' ? '' : ` md-mark--${kind}`}">${escape(text)}</span>`;
+}
+
+/**
+ * Part of a line, `from` to `to`, with its tokens.
+ */
+function inlineHtml(text: string, tokens: Token[], from: number, to: number, current: number): string {
+	let html = '';
+	let at   = from;
+
+	for (const token of tokens) {
+		html += escape(text.slice(at, token.start)) + tokenHtml(text, token, current);
+		at    = token.end;
+	}
+
+	return html + escape(text.slice(at, to));
+}
+
+/**
+ * A token: code and directives whole, an escape's backslash muted, and
+ * the rest as their marks (muted) around what's inside them.
+ */
+function tokenHtml(text: string, token: Token, current: number): string {
+	const source = text.slice(token.start, token.end);
+
+	if (token.kind === 'directive') {
+		return directiveHtml(source, token.directive === current);
+	}
+
+	if (token.kind === 'code') {
+		return `<span class="md-code">${escape(source)}</span>`;
+	}
+
+	if (token.kind === 'escape' || token.inner === undefined) {
+		return markHtml(source.slice(0, 1)) + escape(source.slice(1));
+	}
+
+	const { inner } = token;
+	const before = markHtml(text.slice(token.start, inner.start));
+	const after  = markHtml(text.slice(inner.end, token.end));
+
+	return `<span class="md-${token.kind}">${before}<span class="md-${token.kind}__text">${inlineHtml(text, inner.tokens, inner.start, inner.end, current)}</span>${after}</span>`;
+}
+
+/**
  * The body as HTML for the editor's highlighted copy, with the directive
  * at `current` marked. Every character of the source is in it, escaped,
  * so it lines up with the text area over it.
@@ -238,20 +362,26 @@ export function highlight(markdown: MarkdownOutline, current: number): string {
 			}
 		}
 
-		let html = '';
-		let at   = 0;
+		// The line's marks, then its text: a heading or a quote wraps what
+		// follows its marks.
+		let html  = '';
+		let at    = 0;
+		const wraps: string[] = [];
 
-		for (const token of line.tokens) {
-			const text = line.text.slice(token.start, token.end);
+		for (const mark of line.marks) {
+			html += markHtml(line.text.slice(at, mark.end), mark.kind === 'list' ? 'list' : '');
+			at    = mark.end;
 
-			html += escape(line.text.slice(at, token.start));
-			html += token.kind === 'directive' ? directiveHtml(text, token.directive === current) : `<span class="md-${token.kind}">${escape(text)}</span>`;
-			at    = token.end;
+			if (mark.kind === 'quote' && wraps.length === 0) {
+				html += '<span class="md-quote">';
+				wraps.push('</span>');
+			} else if (mark.kind === 'heading') {
+				html += '<span class="md-heading">';
+				wraps.push('</span>');
+			}
 		}
 
-		html += escape(line.text.slice(at));
-
-		return line.kind === 'heading' ? `<span class="md-heading">${html}</span>` : html;
+		return html + inlineHtml(line.text, line.tokens, at, line.text.length, current) + wraps.join('');
 	}).join('\n');
 }
 

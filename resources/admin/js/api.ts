@@ -47,14 +47,23 @@ export interface Dashboard {
 
 export interface EntrySummary {
 	id: string;
+	// How the admin's addresses name it (`post/hello-world`), or `null`
+	// when only its path does (D-253).
+	handle: string | null;
 	title: string;
 	type: string;
 	status: EntryStatus;
 	published: string | null;
 	updated: string;
 	path: string | null;
+	// Its path on the site, where it is or will be once published, if it
+	// has one (D-254).
+	url: string | null;
 	authors: string[];
 	own: boolean;
+	// Whether it's its type's index page, pinned above the rest (D-255).
+	index: boolean;
+	can: { delete: boolean };
 	// For a term, how many published entries use it; else `null` (D-236).
 	uses: number | null;
 }
@@ -84,6 +93,9 @@ export interface EntryList {
 	pages: number;
 	per: number;
 	entries: EntrySummary[];
+	// The type's index page, when the filters find it: not one of the
+	// entries or the total, and on every page (D-255).
+	index: EntrySummary | null;
 }
 
 export interface ContentTypeSummary {
@@ -142,6 +154,7 @@ export interface FieldDescription {
  */
 export interface EntryDetail {
 	id: string;
+	handle: string | null;
 	revision: string;
 	// When the file was last written (ISO 8601), if known.
 	modified: string | null;
@@ -212,6 +225,20 @@ export class ApiError extends Error {
 	constructor(message: string, public readonly status: number) {
 		super(message);
 	}
+}
+
+/**
+ * The editor's route for an entry: by its handle (`/content/post/hello`),
+ * or by its path when it has none (D-253).
+ */
+export function entryRoute(entry: { id: string; handle: string | null }): { name: string; params: Record<string, string | string[]> } {
+	if (entry.handle !== null) {
+		const [type = '', ...key] = entry.handle.split('/');
+
+		return { name: 'entry', params: { type, key } };
+	}
+
+	return { name: 'entry-file', params: { id: entry.id.split('/') } };
 }
 
 /**

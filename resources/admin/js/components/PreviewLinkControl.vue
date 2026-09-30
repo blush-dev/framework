@@ -10,10 +10,10 @@ import { ApiError, request, type EntrySummary, type PreviewLink } from '../api';
 import { formatDate } from '../format';
 import AdminIcon from './AdminIcon.vue';
 
-const props = defineProps<{ entry: Pick<EntrySummary, 'id' | 'title' | 'path'> }>();
+const props = defineProps<{ entry: Pick<EntrySummary, 'id' | 'title'> }>();
 
 // Untitled drafts are named by their file for screen readers.
-const name = props.entry.title || props.entry.path || 'this entry';
+const name = props.entry.title || 'this entry';
 
 const link    = ref<PreviewLink | null>(null);
 const busy    = ref(false);

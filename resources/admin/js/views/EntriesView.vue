@@ -14,7 +14,7 @@
 
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
-import { ApiError, request, type ContentTypeSummary, type EntryList, type EntryStatus, type TrashedSummary } from '../api';
+import { ApiError, entryPath, request, type ContentTypeSummary, type EntryDetail, type EntryList, type EntryStatus, type EntrySummary, type TrashedSummary } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import EntryTable from '../components/EntryTable.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
@@ -156,7 +156,7 @@ const skeletonRows = computed(() => {
 	return count === undefined ? 6 : Math.max(1, Math.min(count, list.value?.per ?? PER_PAGE));
 });
 
-const skeletonColumns = computed(() => inTrash.value ? ['Title', 'Trashed', ''] : ['Title', 'Status', terms.value ? 'Entries' : 'Authors', 'Updated']);
+const skeletonColumns = computed(() => inTrash.value ? ['Title', 'Trashed', ''] : ['Title', 'Status', terms.value ? 'Entries' : 'Authors', 'Updated', '']);
 
 // Each load's number; only the latest one's answer is shown.
 let latest = 0;
@@ -205,8 +205,8 @@ async function load(): Promise<void> {
 
 watch(() => [status.value, type.value, search.value, page.value], load, { immediate: true });
 
-function nameOf(item: TrashedSummary): string {
-	return item.title === '' ? item.entry : `“${item.title}”`;
+function nameOf(item: { title: string }): string {
+	return item.title === '' ? `the untitled ${singular.value}` : `“${item.title}”`;
 }
 
 /**
@@ -225,6 +225,24 @@ async function act(name: string, action: () => Promise<{ text: string; entry?: s
 	} finally {
 		busy.value = null;
 	}
+}
+
+/**
+ * Moves an entry to the trash, as the editor does: at the revision it's
+ * at now, so an edit made meanwhile isn't thrown away unseen.
+ */
+function moveToTrash(entry: EntrySummary): void {
+	if (!window.confirm(`Move ${nameOf(entry)} to the trash? You can restore it from the Trash tab.`)) {
+		return;
+	}
+
+	void act(entry.id, async () => {
+		const detail = await request<EntryDetail>('GET', entryPath(entry.id));
+
+		await request<void>('DELETE', `${entryPath(entry.id)}?revision=${encodeURIComponent(detail.revision)}`);
+
+		return { text: `Moved ${nameOf(entry)} to the trash.` };
+	});
 }
 
 function restore(item: TrashedSummary): void {
@@ -307,10 +325,13 @@ const emptyText = computed(() => {
 	</header>
 
 	<section v-if="nothingYet" class="panel" aria-labelledby="entries-heading">
+		<!-- A type with an index page is never empty: the index page is
+		     already there, so the first-run state sits under it (D-255). -->
+		<EntryTable v-if="list?.index" :entries="[]" :pinned="list.index" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" />
 		<div class="empty">
 			<AdminIcon :name="terms ? 'tag' : 'files'" />
 			<h2 id="entries-heading" class="empty__heading">No {{ inSentence(heading) }} yet</h2>
-			<p class="empty__text">{{ purpose(info, heading) }}</p>
+			<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
 			<RouterLink v-if="can('content.create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ singular }}</RouterLink>
 		</div>
 	</section>
@@ -333,7 +354,7 @@ const emptyText = computed(() => {
 
 		<p v-if="done" class="notice notice--success" role="status">
 			{{ done.text }}
-			<RouterLink v-if="done.entry" :to="{ name: 'entry', params: { id: done.entry.split('/') } }">Open it</RouterLink>
+			<RouterLink v-if="done.entry" :to="{ name: 'entry-file', params: { id: done.entry.split('/') } }">Open it</RouterLink>
 		</p>
 
 		<section v-if="!error || ready" class="panel" aria-labelledby="entries-heading" :aria-busy="loading || busy !== null">
@@ -363,9 +384,9 @@ const emptyText = computed(() => {
 			</template>
 
 			<template v-else-if="list">
-				<EntryTable v-if="list.entries.length" :entries="list.entries" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" />
+				<EntryTable v-if="list.entries.length || list.index" :entries="list.entries" :pinned="list.index" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" @trash="moveToTrash" />
 
-				<div v-else class="empty">
+				<div v-if="!list.entries.length" class="empty">
 					<AdminIcon name="files" />
 					<p class="empty__heading">{{ filtered ? `No ${inSentence(heading)} match` : `No ${inSentence(heading)}` }}</p>
 					<p class="empty__text">{{ emptyText }}</p>

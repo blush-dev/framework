@@ -6,7 +6,7 @@
 
 import { computed, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, request, type EntryDetail } from '../api';
+import { ApiError, entryRoute, request, type EntryDetail } from '../api';
 import { inSentence } from '../fields';
 import { screenTitle } from '../screen';
 import { currentType, findType, loadTypes, types } from '../types';
@@ -52,7 +52,7 @@ async function create(): Promise<void> {
 	try {
 		const entry = await request<EntryDetail>('POST', '/entries', { type: type.value, title: title.value });
 
-		await router.replace({ name: 'entry', params: { id: entry.id.split('/') }, query: { created: '1' } });
+		await router.replace({ ...entryRoute(entry), query: { created: '1' } });
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be created.`;
 		busy.value  = false;

@@ -71,7 +71,7 @@
 	--font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 	--font-display: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
 	--font-title: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
-	--font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
 	--base: 13px;            /* body and control text */
 	--text-sm: 12px;         /* secondary text */
@@ -97,7 +97,7 @@
 	--rail: 238px;       /* the section's panel beside it */
 	--drawer: 340px;     /* the editor's settings */
 	--inserter: 322px;   /* the editor's component panel */
-	--measure: 68ch;     /* the editor's writing column */
+	--measure: 640px;    /* the editor's writing column */
 	--bar: 53px;         /* the top bar and the site header */
 	--work-max: 1360px;
 

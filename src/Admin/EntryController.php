@@ -53,7 +53,8 @@ use Blush\Support\Slug;
  *   (from whichever key or alias the file uses), other front matter,
  *   body, revision, when the file was last written (`modified`), type
  *   and field descriptions, what the account may do, and the file's
- *   problems.
+ *   problems, and its handle (`EntryHandles`, D-253), or `null`.
+ * - `GET    content/{type}/{key}`: the same, found by handle.
  * - `POST   entries`: creates one (`type`, `title`, optional `slug`,
  *   `set`, `body`, `status`). New entries are drafts unless asked
  *   otherwise, and credit the account's author.
@@ -85,6 +86,7 @@ final readonly class EntryController
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private Linter $linter,
+		private EntryHandles $handles,
 		private Permissions $permissions,
 		private AuthConfig $auth,
 		private AppConfig $app,
@@ -96,18 +98,41 @@ final readonly class EntryController
 	 */
 	public function show(ServerRequestInterface $request, string $id): ResponseInterface
 	{
-		$account = self::account($request);
-		$entry   = $this->content->find($id);
+		$entry = $this->content->find($id);
 
 		if ($entry === null) {
 			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
 		}
 
+		return $this->edit($request, $entry);
+	}
+
+	/**
+	 * Answers an entry for editing, found by its handle (D-253).
+	 */
+	public function named(ServerRequestInterface $request, string $type, string $key): ResponseInterface
+	{
+		$entry = $this->handles->find($type, $key);
+
+		if ($entry === null || $entry->source === null) {
+			return self::error(sprintf('There\'s no "%s" entry at "%s".', $type, $key), Status::NotFound);
+		}
+
+		return $this->edit($request, $entry);
+	}
+
+	/**
+	 * Answers an entry for editing, if the account may edit it.
+	 */
+	private function edit(ServerRequestInterface $request, Entry $entry): ResponseInterface
+	{
+		$account = self::account($request);
+
 		if (! $this->permissions->can($account, Capability::ContentEdit, $entry)) {
 			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
 		}
 
-		return self::json($this->describe($account, $entry, $this->writer->load($id)));
+		return self::json($this->describe($account, $entry, $this->writer->load($entry->id)));
 	}
 
 	/**
@@ -399,6 +424,7 @@ final readonly class EntryController
 
 		return [
 			'id'         => $file->id,
+			'handle'     => $this->handles->of($entry),
 			'revision'   => $file->revision,
 			'modified'   => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
 			'title'      => $entry->title,

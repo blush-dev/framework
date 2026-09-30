@@ -42,7 +42,7 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, request, type EntryDetail, type EntryStatus, type FieldDescription, type MediaItem } from '../api';
+import { ApiError, entryPath, entryRoute, request, type EntryDetail, type EntryStatus, type FieldDescription, type MediaItem } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import ComponentOptions from '../components/ComponentOptions.vue';
 import ComponentPanel from '../components/ComponentPanel.vue';
@@ -75,11 +75,32 @@ const REQUIRED = 'Required to publish.';
 const route  = useRoute();
 const router = useRouter();
 
-const id = computed(() => {
-	const segments = route.params.id;
-
+function joined(segments: string | string[] | undefined): string {
 	return Array.isArray(segments) ? segments.join('/') : String(segments ?? '');
-});
+}
+
+// What the route names: an entry's handle (`post/hello`), or its path for
+// one without a handle (D-253).
+const address = computed(() => route.name === 'entry'
+	? { handle: true, name: `${joined(route.params.type)}/${joined(route.params.key)}` }
+	: { handle: false, name: joined(route.params.id) });
+
+function isAt(detail: EntryDetail): boolean {
+	const at = address.value;
+
+	return at.name === (at.handle ? detail.handle : detail.id);
+}
+
+
+/**
+ * Keeps the address on the entry's handle, as it moves (a rename) or
+ * when it was opened by its path.
+ */
+function follow(detail: EntryDetail): void {
+	if (detail.handle !== null && !(address.value.handle && address.value.name === detail.handle)) {
+		void router.replace({ ...entryRoute(detail), query: route.query, hash: route.hash });
+	}
+}
 
 const entry    = ref<EntryDetail | null>(null);
 const title    = ref('');
@@ -198,6 +219,8 @@ function fill(detail: EntryDetail): void {
 	comparing.value = false;
 	failure.value   = null;
 	waiting.value   = null;
+
+	follow(detail);
 }
 
 async function load(): Promise<void> {
@@ -205,7 +228,8 @@ async function load(): Promise<void> {
 	offer.value = null;
 
 	try {
-		const detail = await request<EntryDetail>('GET', entryPath(id.value));
+		const at     = address.value;
+		const detail = await request<EntryDetail>('GET', at.handle ? `/content/${at.name.split('/').map(encodeURIComponent).join('/')}` : entryPath(at.name));
 
 		fill(detail);
 
@@ -245,7 +269,10 @@ function restore(): void {
 
 function discard(): void {
 	offer.value = null;
-	forget(id.value);
+
+	if (entry.value !== null) {
+		forget(entry.value.id);
+	}
 }
 
 // Changes are kept in the browser a moment after typing stops; a clean
@@ -546,7 +573,7 @@ function hunks(lines: DiffLine[]): (DiffLine | { kind: 'skip'; count: number })[
 async function trash(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || !window.confirm(`Move “${detail.title || detail.id}” to the trash? You can restore it from the Trash tab.`)) {
+	if (detail === null || !window.confirm(`Move “${detail.title || 'Untitled'}” to the trash? You can restore it from the Trash tab.`)) {
 		return;
 	}
 
@@ -555,7 +582,7 @@ async function trash(): Promise<void> {
 		forget(detail.id);
 		initial.value = null;
 		await router.push({ name: 'type', params: { type: detail.type.name } });
-		toast(`Moved “${detail.title || detail.id}” to the trash`);
+		toast(`Moved “${detail.title || 'Untitled'}” to the trash`);
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be moved to the trash.`;
 	}
@@ -1066,7 +1093,10 @@ onBeforeRouteLeave(() => {
 	}
 
 	clearTimeout(keeping);
-	forget(id.value);
+
+	if (entry.value !== null) {
+		forget(entry.value.id);
+	}
 
 	return true;
 });
@@ -1094,7 +1124,12 @@ onBeforeUnmount(() => {
 	titleWidth?.disconnect();
 });
 
-watch(id, load, { immediate: true });
+// Another entry loads; the same one at its handle doesn't.
+watch(address, () => {
+	if (entry.value === null || !isAt(entry.value)) {
+		void load();
+	}
+}, { immediate: true });
 
 // Counts are exact, with the locale's digit grouping: "1,204 words".
 function count(value: number, one: string): string {
@@ -1277,11 +1312,11 @@ function fieldKey(field: FieldDescription): string {
 							@input="typed"
 						/>
 						<p v-if="errorFor('title')" id="editor-title-error" class="field__error">{{ errorFor('title') }}</p>
-						<p class="editor__path mono">{{ entry.id }}</p>
 
 						<MarkdownEditor
 							id="editor-body"
 							ref="bodyEditor"
+							class="editor__body-text"
 							v-model="body"
 							v-model:caret="caret"
 							label="Body (Markdown)"
@@ -1348,7 +1383,7 @@ function fieldKey(field: FieldDescription): string {
 							</p>
 							<div v-else class="editor__preview">
 								<span class="field__help">Preview</span>
-								<PreviewLinkControl :entry="{ id: entry.id, title: entry.title, path: entry.id }" />
+								<PreviewLinkControl :entry="{ id: entry.id, title: entry.title }" />
 							</div>
 						</div>
 
@@ -1658,11 +1693,8 @@ function fieldKey(field: FieldDescription): string {
 	text-underline-offset: .2em;
 }
 
-.editor__path {
-	margin: 7px 0 30px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
-	transition: opacity 250ms ease;
+.editor__body-text {
+	margin-top: 36px;
 }
 
 .editor__title-skeleton {
@@ -1735,10 +1767,6 @@ function fieldKey(field: FieldDescription): string {
 	opacity: .32;
 }
 
-.is-writing .editor__path {
-	opacity: .4;
-}
-
 .is-focus .editor__head {
 	border-bottom-color: transparent;
 	background: transparent;
@@ -1747,7 +1775,6 @@ function fieldKey(field: FieldDescription): string {
 @media (prefers-reduced-motion: reduce) {
 	.editor__head,
 	.editor__foot,
-	.editor__path,
 	.editor__side,
 	.editor__inserter {
 		transition: none;

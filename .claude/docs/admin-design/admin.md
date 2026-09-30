@@ -54,112 +54,25 @@ taste, formed early and on thin evidence.
 ### Files
 
 ```
-.claude/docs/admin-design/admin.md     this file
-.claude/docs/admin-design/tokens.css   the original prototype tokens (reference only)
-resources/admin/css/tokens.css         the tokens the admin builds from
+docs/ui-design-direction.md     this file
+src/styles/tokens.css           the token definitions
 ```
 
-`AGENTS.md` points here. The theming cascade, and that all color, type,
-radius, spacing and density values come from `resources/admin/css/tokens.css`
-as `var(--token)`, are not negotiable without a deliberate decision.
+Add to `CLAUDE.md`:
 
-### Departures so far
+```md
+## Admin UI
 
-Each is recorded in `.claude/docs/decisions.md`.
+`docs/ui-design-direction.md` describes the intended direction for the admin
+SPA. Read it before writing admin UI. It is a prototype-stage document, not a
+spec — follow it where it fits the project, depart from it where it does not,
+and update it in the same change when you do.
 
-- **Type tokens added** (D-231): `--text-sm` (12px), `--text-xs` (11px) and
-  `--h2` (14px), so no type size is a literal.
-- **Shared pieces are global classes** in `admin.css` (buttons, panels, pills,
-  tables, stat tiles, notices), not yet `Base*` components; components keep
-  their own layout in scoped styles (D-231). The directory layout follows the
-  repo: `resources/admin/{css,fonts,js/{components,views}}`.
-- **Tables aren't sticky-headed** (D-231): a table that scrolls sideways is its
-  own scroll container.
-- **Only the neutral theme ships** until an account can choose a theme (D-231,
-  D-235).
-- **No autosave or pending changes** (D-233): the writer has nowhere to keep a
-  pending draft, so the editor saves when asked and warns before leaving
-  unsaved work.
-- **Status tabs are links** with `aria-current`, since each is a URL (D-233).
-- **Trash is a tab, not an index status** (D-237): trashed files leave the
-  index, so the Trash tab lists them separately and "All" doesn't include them.
-- **Term use counts are published entries only** (D-236), matching the site's
-  term pages.
-- **Terms aren't hierarchical**, so there's no reparenting on delete (D-236).
-- **No list of every type together** (D-240): each content type has its own
-  list, and there's no "All entries" screen. The dashboard's Drafts and
-  Scheduled figures are plain numbers.
-- **Unsaved changes are kept in the browser** (D-240): without autosave, the
-  editor keeps a copy of unsaved changes in `localStorage` as they're made
-  and offers them back when the entry is opened again. That's what makes the
-  offline bar's "changes stay in this browser" true. A save made offline
-  waits and goes ahead when the connection is back.
-- **Conflicts say when, not who** (D-240): a file can change through git or a
-  text editor, so the notice gives the time the file was written and "from
-  the admin or by editing the file itself". **Keep mine** saves this
-  editor's version of every field it shows over theirs; front matter the
-  editor doesn't show stays as theirs.
-- **Validation runs in the admin only** (D-240), from the schema's
-  `required`; the API doesn't refuse to publish yet.
-- **The setup path has only steps that do something** (D-240): the first
-  entry of each page and collection type. "First content type", media, and
-  inviting people join it when their screens exist.
-- **A type's purpose comes from its kind** (D-240): types have no
-  description yet, so an empty type's screen says what pages, collections,
-  or taxonomies are for.
-- **Content health keeps quiet text while checking** (D-240): its result is
-  a summary, not rows, so there's no shape to sketch.
-- **The full navigation** (D-241): screens that don't exist yet are listed
-  and open a "comes next" page. A taxonomy moves when its `types` change
-  in a config file, not in the admin, so there's no toast announcing the
-  move (§8, Sidebar grouping); nav counts are left out until an API gives
-  them cheaply.
-- **The section rail** (D-244): no state dot on Content (without autosave
-  there are no unpublished changes to live entries), no theme button in
-  the top bar (the color scheme is an account preference on Your
-  profile), and no site switcher; the site's mark links
-  to the site. The account's menu is in the top bar. Home's panel has the
-  Dashboard and Content health, then shortcuts.
-- **The command palette** (D-248): the screen's own commands come first
-  (the editor's), then going places and New {singular}, then entries;
-  switching the color scheme saves it to the account.
-- **The Markdown source editor** (D-241): spelling on, and no horizontal
-  padding on inline code (it shifted the text).
-- **The component inserter** (D-243, D-247): core components are grouped
-  by category (Text, Media, Layout, Navigation, Data); a theme's, the
-  site's, or an extension's by where they come from, and a theme's or
-  extension's tiles say so. Components are written by full name
-  (`blush/callout`, D-171). An inline component goes at the caret; a leaf
-  or container on lines of its own, with a blank line either side;
-  selected text becomes its label or body. Required props are written
-  empty; defaults aren't written. In the search field, left and right move
-  through the grid only while it's empty. Tab inserts, as Enter does,
-  while typing after a slash, and Escape leaves the slash as text. The
-  panel opened by a slash closes once a component replaces it.
-- **The media picker** (D-246, D-247): the library comes from `user/media`
-  newest first, with "Beside this entry" for a page bundle; there's no
-  upload yet. It's also **Choose** beside every media field and option.
-- **The writing surface** (D-245): no `Changes` pill and the save state
-  reads "Unsaved changes" or "Saved 3:46 PM" (no autosave); the entry's
-  file, not a URL slug, sits under the title; the ⋯ menu has Save draft or
-  Switch to draft, View, Focus mode, and Move to trash (no Copy link or
-  Duplicate); Tab in the body moves focus; the drawer isn't remembered;
-  the footer has no line and column. Below 480px the save state is its
-  dot, with its words read out.
-- **Media** (D-251): no upload, alt text, captions, or "used in" yet;
-  bundle files are in the editor's picker, not the library screen.
-- **Content types** (D-250): read-only; no field editor, new-type wizard,
-  or delete yet. "Show in the sidebar" and a hierarchy switch aren't type
-  settings in Blush. Entries counts are what the account may edit.
-- **Roles and accounts** (D-249): read-only, with a notice naming where
-  each is changed; no Invite, role checkboxes, or danger zone yet; roles
-  have no description, and the last sign-in stands in for "last active".
-- **Component options** (D-245): an option set back to its default is
-  removed from the directive; a required one left empty stays as
-  `key=""`. Removing a container keeps its body. Option changes are
-  applied to the text directly, so they aren't in the field's own undo.
-- **Vocabulary follows Blush** where it differs: extensions, not addons, and
-  whatever taxonomies a site defines (no built-in Topic).
+Two things in it are not negotiable without a deliberate decision: the theming
+cascade, and that all color, type, radius, spacing and density values come from
+`src/styles/tokens.css` as `var(--token)`. Never write a literal color,
+font-family or px radius in component CSS.
+```
 
 ---
 
@@ -186,6 +99,7 @@ code and in copy.
 | **Component** | An author-inserted directive in Markdown | Directive, shortcode, block |
 | **Addon** | A server-side extension | Plugin, module, extension |
 | **Media** | The file library | Attachments, assets, uploads |
+| **Index page** | The entry that is a type's archive | Archive settings, listing page |
 
 Counting reads naturally: "12 entries", "3 accounts", "No pages match".
 Type names take their own noun in context: "New page", "New post", "New
@@ -231,7 +145,7 @@ Four states per admin theme. The cascade order in `tokens.css` matters:
 ```css
 :root                                            /* all tokens, light */
 @media (prefers-color-scheme: dark) {
-	:root:not([data-color-scheme="light"]) { }     /* dark, system */
+  :root:not([data-color-scheme="light"]) { }     /* dark, system */
 }
 :root[data-color-scheme="dark"] { }              /* dark, explicit */
 ```
@@ -571,6 +485,47 @@ never duplicates and never rearranges. When addons register content types, the
 grouping axis should move from attachment to source, and this section should be
 rewritten rather than extended.
 
+### The index page is an entry, pinned
+A content type that has an archive has exactly one **index page** for it, and
+that index page is an ordinary entry: the same editor, the same Markdown body,
+the same status, author and updated stamp. Its title and slug are content, not
+a string derived from the type — Posts is the type, `Writing` at `/blog` is the
+archive someone actually wrote. The type's URL base and the index page's slug
+are the same value seen from two screens; changing either changes both.
+
+It is **pinned at the top of the type's list**, in its own `tbody` above the
+rows, so it survives sorting, paging and the status tabs. Everything else about
+the row is identical to its neighbors — same columns, same status pill, same
+overflow menu. Only two marks say what it is: a pin where the checkbox would
+be, and an `Index` tag beside the title.
+
+What follows from it being singular and permanent:
+
+- It is **not counted** in the type's totals. "Posts 28" means 28 posts; the
+  archive is not one of them, and the tab counts ignore it too.
+- It **never appears in Trash**, and its row menu has no Duplicate and no Move
+  to trash. Leave those out rather than showing them disabled — a menu of dead
+  items reads as a bug.
+- It is **not bulk-selectable**, which is why the checkbox is a pin.
+- Under a search or filter it behaves like any other row: it stays pinned if it
+  matches and disappears if it does not. Pinning is about position, not about
+  exemption from the filters.
+- In the editor it loses what does not apply — the type's custom fields, the
+  taxonomy picker, the scheduled status — and gains one line in the Document tab
+  saying what it is and that it cannot be deleted.
+- A type with an archive is **never empty**: a new type is born with its index
+  page, so the first-run empty state sits *below* a table that already has a row.
+
+Whether a type has one is a per-type switch, set in the type wizard and on the
+type's detail screen, shown there beside a link to the index page itself. Pages
+ships without one, because a page tree has no archive — its root is the site.
+Turning the switch off does not delete the entry; it stops the site routing to
+it.
+
+*Provisional:* Pages having no index is a judgment about hierarchical types, not
+a rule. If a hierarchical type turns out to want an archive, the switch already
+exists — nothing else in this pattern depends on the type being flat.
+
 ### Taxonomy terms are entries
 A topic or a tag is an entry of a taxonomy-kind content type, so it gets the
 same treatment as a page or a post: the same list screen, the same status
@@ -734,14 +689,13 @@ The rest are strong defaults. Break them with a reason, and record it:
 Unresolved at the time of writing. If you settle one, replace it here with the
 decision.
 
-- *Settled:* API conventions (session cookie and CSRF header, `page`/`per`
-  paging with `total` and `pages`, errors as `{"error"}`; `docs/admin.md`),
-  content type discovery (`GET types`, with `label` and `singular`; D-234),
-  the Markdown surface (a text area over a highlighted copy, D-241), the
-  component inserter (`GET components`, D-243, D-247), the settings' two
-  tabs (D-245), mapping the caret to its directive and rewriting options
-  in place (`markdown.ts`, D-241, D-245), and invoking the media picker
-  from an option (**Choose** beside it, D-247).
+- API conventions: auth, pagination shape, error format, and how the admin
+  discovers content types at runtime.
+- The editor: Markdown surface, the component inserter, and the right sidebar
+  that swaps between Document fields and Component options.
+- How the parser maps cursor position to the directive under it, and rewrites
+  component options back into the source without disturbing the author's text.
 - The content-type builder's own screens.
+- How the media picker is invoked from a component option.
 - Whether type provenance ("Posts addon", "Custom type") belongs in the list
   header at all — useful at three types, clutter at fifteen.

@@ -5,22 +5,69 @@
  * tab order. It closes on Escape (focus goes back to the button), a click
  * outside, or choosing an item; the slot gets `close` for items that
  * don't navigate.
+ *
+ * A `floating` list is placed over the page beside the button (above it
+ * when there's no room below), so a scrolling container such as a table
+ * can't clip it; scrolling or resizing closes it.
  */
 
-import { onBeforeUnmount, onMounted, ref, useId } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue';
 
-defineProps<{
+const props = defineProps<{
 	// The button's accessible name, when its content doesn't say it.
 	label?: string;
 	buttonClass?: string;
 	// Which edge of the button the list lines up with.
 	align?: 'start' | 'end';
+	floating?: boolean;
 }>();
 
 const open   = ref(false);
 const root   = ref<HTMLElement | null>(null);
 const button = ref<HTMLButtonElement | null>(null);
+const list   = ref<HTMLElement | null>(null);
+const place  = ref<{ top: string; left: string } | null>(null);
 const id     = useId();
+
+// Space kept between the list and the button or the window's edge.
+const GAP = 6;
+
+/**
+ * Places a floating list under the button, or over it when there's no
+ * room below, lined up with its end and kept in the window.
+ */
+function position(): void {
+	const box = button.value?.getBoundingClientRect();
+	const element = list.value;
+
+	if (box === undefined || element === null) {
+		return;
+	}
+
+	const height = element.offsetHeight;
+	const width  = element.offsetWidth;
+	const top    = box.bottom + GAP + height <= window.innerHeight - GAP ? box.bottom + GAP : Math.max(GAP, box.top - GAP - height);
+	const left   = props.align === 'start' ? box.left : box.right - width;
+
+	place.value = { top: `${top}px`, left: `${Math.max(GAP, Math.min(left, window.innerWidth - width - GAP))}px` };
+}
+
+async function toggle(): Promise<void> {
+	open.value = !open.value;
+
+	if (open.value && props.floating) {
+		place.value = null;
+		await nextTick();
+		position();
+	}
+}
+
+// A floating list stays where it was put, so moving the page closes it.
+function moved(): void {
+	if (open.value && props.floating) {
+		close();
+	}
+}
 
 function close(refocus = false): void {
 	open.value = false;
@@ -50,16 +97,33 @@ function chosen(event: MouseEvent): void {
 	}
 }
 
-onMounted(() => document.addEventListener('pointerdown', outside));
-onBeforeUnmount(() => document.removeEventListener('pointerdown', outside));
+onMounted(() => {
+	document.addEventListener('pointerdown', outside);
+	window.addEventListener('scroll', moved, { capture: true, passive: true });
+	window.addEventListener('resize', moved, { passive: true });
+});
+
+onBeforeUnmount(() => {
+	document.removeEventListener('pointerdown', outside);
+	window.removeEventListener('scroll', moved, { capture: true });
+	window.removeEventListener('resize', moved);
+});
 </script>
 
 <template>
 	<div ref="root" class="menu-button" @keydown="keydown">
-		<button ref="button" type="button" :class="buttonClass" :aria-label="label" :aria-controls="id" :aria-expanded="open" @click="open = !open">
+		<button ref="button" type="button" :class="buttonClass" :aria-label="label" :aria-controls="id" :aria-expanded="open" @click="toggle">
 			<slot name="button" />
 		</button>
-		<div v-show="open" :id="id" class="menu-button__list" :class="`menu-button__list--${align ?? 'end'}`" @click="chosen">
+		<div
+			v-show="open"
+			:id="id"
+			ref="list"
+			class="menu-button__list"
+			:class="floating ? 'menu-button__list--floating' : `menu-button__list--${align ?? 'end'}`"
+			:style="floating ? (place ?? { visibility: 'hidden' }) : undefined"
+			@click="chosen"
+		>
 			<slot :close="close" />
 		</div>
 	</div>
@@ -90,6 +154,11 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', outside));
 
 .menu-button__list--start {
 	left: 0;
+}
+
+.menu-button__list--floating {
+	position: fixed;
+	z-index: 60;
 }
 
 .menu-button__list :deep(.menu-item) {

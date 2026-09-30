@@ -3,8 +3,9 @@
  * The Markdown source editor (D-241, D-245): a plain text area, so
  * typing, undo, spelling, and screen readers work as in any field, over a
  * highlighted copy of the same text (`markdown.ts`) that shows headings,
- * code, links, and component directives, with the directive the caret is
- * in marked. The copy is decoration and hidden from assistive tech. It
+ * strong and emphasized text, quotes, lists, code, links, and component
+ * directives, with their marks muted (D-253) and the directive the caret
+ * is in marked. The copy is decoration and hidden from assistive tech. It
  * sits bare in the editor's writing column and grows with its text; the
  * editor around it scrolls, counts, and holds the inserters.
  *
@@ -358,12 +359,16 @@ defineExpose({ apply, focusAt, insert, insertText, selection, dismissSlash });
 /*
  * The field and its highlighted copy share one grid cell and every
  * property that affects where text falls, so each character of the copy
- * sits under the same character in the field. Highlights change color
- * and background only, never width.
+ * sits under the same character in the field. Highlights never change
+ * width: color, background, Fira Code's own semibold face, and a slant
+ * for italic (it has none), all of which keep its advance (D-253,
+ * D-254). The column can't grow past its container for a long word or
+ * address; those wrap.
  */
 
 .md__source {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	min-height: 40vh;
 }
 
@@ -413,13 +418,32 @@ defineExpose({ apply, focusAt, insert, insertText, selection, dismissSlash });
 	outline: none;
 }
 
-.md__highlight :deep(.md-heading),
-.md__highlight :deep(.md-strong) {
-	font-weight: 500;
+.md__highlight :deep(.md-mark) {
+	color: var(--fg-3);
 }
 
-.md__highlight :deep(.md-heading) {
+.md__highlight :deep(.md-mark--list) {
+	color: var(--accent);
+}
+
+.md__highlight :deep(.md-heading),
+.md__highlight :deep(.md-strong) {
 	color: var(--fg);
+	font-weight: 600;
+}
+
+.md__highlight :deep(.md-em) {
+	font-style: italic;
+}
+
+.md__highlight :deep(.md-strike__text) {
+	color: var(--fg-2);
+	text-decoration: line-through;
+}
+
+.md__highlight :deep(.md-quote) {
+	color: var(--fg-2);
+	font-style: italic;
 }
 
 .md__highlight :deep(.md-code-block) {
@@ -432,7 +456,7 @@ defineExpose({ apply, focusAt, insert, insertText, selection, dismissSlash });
 	color: var(--fg-2);
 }
 
-.md__highlight :deep(.md-link) {
+.md__highlight :deep(.md-link__text) {
 	color: var(--accent);
 }
 

@@ -12,7 +12,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import StatusPill from './StatusPill.vue';
-import { ApiError, request, type EntryList, type EntrySummary } from '../api';
+import { ApiError, entryRoute, request, type EntryList, type EntrySummary } from '../api';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { commandMatches, screenCommands, type Command } from '../commands';
 import { inSentence } from '../fields';
@@ -92,7 +92,7 @@ interface Row {
 
 const rows = computed<Row[]>(() => [
 	...commands.value.map((command) => ({ key: `command-${command.id}`, run: command.run })),
-	...entries.value.map((entry) => ({ key: `entry-${entry.id}`, run: () => void router.push({ name: 'entry', params: { id: entry.id.split('/') } }) }))
+	...entries.value.map((entry) => ({ key: `entry-${entry.id}`, run: () => void router.push(entryRoute(entry)) }))
 ]);
 
 // Entries: the latest changed, or those matching, a moment after typing.
@@ -232,7 +232,7 @@ const commandCount = computed(() => commands.value.length);
 					@click="run(rows[commandCount + index])"
 				>
 					<AdminIcon :name="findType(entry.type) ? typeIcon(findType(entry.type)!) : 'file-text'" />
-					<span class="palette__title">{{ entry.title || entry.id }}</span>
+					<span class="palette__title">{{ entry.title || 'Untitled' }}</span>
 					<span class="palette__type">{{ findType(entry.type)?.singular ?? entry.type }}</span>
 					<StatusPill :status="entry.status" />
 				</div>

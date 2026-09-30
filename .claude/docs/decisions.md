@@ -4531,6 +4531,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-237: The trash, in the admin
 - **Date:** 2026-09-29
+- **Status:** Partially superseded by D-254 (a trashed entry's actions are in its row menu, and its file isn't shown).
 - **Decision:** Answers D-228's open "restoring from the trash (by hand
   for now)", following the design direction's Trash pattern: trash is a
   tab on each list, not a separate screen.
@@ -5214,3 +5215,146 @@ decision, add a new entry that supersedes it and mark the old one
   against a stubbed API: the grid, filters, a file's screen, copying, and
   the panel marking Media.
 - **Why:** the author asked to keep building the design's screens.
+
+### D-252: Live preview waits; the Markdown experience comes first
+- **Date:** 2026-09-30
+- **Decision:** Live preview (rendering the editor's unsaved body and
+  front matter through the theme; D-233, D-241) is deferred. When it
+  comes, it starts small: inline previews of images and embeds in the
+  editor. The goal after that is a full rendered preview, above all of
+  components. The current focus is making the Markdown editing
+  experience work well.
+- **Open:** what the Markdown experience needs; the shape of image and
+  embed previews; the render endpoint for the full preview.
+- **Why:** the author's call.
+
+### D-253: Markdown that reads as it looks, and editor addresses by handle
+- **Date:** 2026-09-30
+- **Status:** Partially superseded by D-254 (Fira Code instead of Plex Mono's italic and semibold faces; no slug under the title).
+- **Decision:** The first Markdown-experience work (D-252), and the
+  editor's address, both asked for by the author.
+  - **Markdown styling** (`markdown.ts`, `MarkdownEditor`): emphasis
+    (`*`, `_`) is italic, strong text (`**`, `__`) and headings semibold,
+    struck text (`~~`) struck through, quotes muted and italic, list and
+    task markers in the accent, and every mark (`*`, `#`, `>`, `\`
+    escapes, a link's brackets and address) muted; a link's label is in
+    the accent. Marks nest (`**bold *and italic***`), underscores inside
+    words don't count, and nothing in code does. Still not a Markdown
+    parser; the site's rendering has the last word.
+  - **Widths never change**, so the text area still lines up with its
+    highlighted copy: the admin now serves IBM Plex Mono's own 400
+    italic, 600, and 600 italic faces (from Fontsource, the same files as
+    the 400 already there), rather than synthesized ones, which can
+    widen text in some browsers. Headings can't be larger for the same
+    reason.
+  - **Long words and addresses wrap** inside the writing column: its
+    grid track is `minmax(0, 1fr)`, so a long link no longer widens the
+    column and pushes it off center.
+  - **Editor addresses by handle:** an entry is edited at
+    `{path}/content/{type}/{key}`, its type's name and its index key
+    (the slug, with a page's folders; a landing page's is `index`),
+    under the type's list at `content/{type}`, rather than
+    `entries/{source path}`. Keys are already unique per type and
+    locale (entries' own URLs need them), so no date suffix is needed.
+    `EntryHandles` makes and resolves handles; `GET content/{type}/{key}`
+    answers as `GET entries/{id}` does, and entry descriptions (the
+    editor's and `GET entries`') carry `handle`. An entry without one
+    (not in the site's locale, a key another file claims, or a page
+    keyed `index` beside a landing page) is edited at `entries/{path}`,
+    as before; that address still works for every entry, and the
+    editor moves to the handle once loaded, and again after a rename.
+    The API keeps ids (paths) for everything else.
+  - The editor shows the slug under the title (the path is its
+    tooltip), not the file's path.
+- **Checked:** `composer check` (`AdminEditingTest`); on the jtcom trial
+  in Chrome: the post from the report centered (the column 283px from
+  each side), its old address moving to
+  `content/post/register-custom-icons-wordpress-7-0`, list links by
+  handle (pages with folders), and the text area's own text drawn over
+  the highlighted copy, lined up through bold, italic, and code.
+- **Why:** the author asked for italics, bold, and headings to look
+  like themselves, for entries not to be named by their `.md` file, and
+  for addresses to use the type's name rather than its folder.
+
+### D-254: A 640px Fira Code editor, site addresses in tables, and row menus
+- **Date:** 2026-09-30
+- **Status:** Partially superseded by D-255 (Fira Code is the admin's only mono; no `--font-editor`).
+- **Decision:** The author's requests, after D-253:
+  - **The writing column is 640px** (`--measure`, was `68ch`, about
+    530px).
+  - **The Markdown body is in Fira Code** (`--font-editor`; Fontsource's
+    Latin and Latin Extended 400 and 600, OFL, noted in `fonts/LICENSE`).
+    The rest of the admin's mono stays IBM Plex Mono, and D-253's Plex
+    Mono italic and 600 faces are gone. Fira Code has no italic, so
+    emphasis is a synthesized slant, which keeps the advance (a
+    synthesized bold might not, hence the real 600). Its ligatures are
+    left on; they keep widths too.
+  - **Nothing under the editor's title:** D-253's slug line is gone.
+  - **No files or folders in the UI** unless an info box asks for them
+    later: entry tables show the entry's address on the site (`url` in
+    `GET entries`, from `ContentUrls::entry()`, where a draft will be
+    once published; nothing when it has none), the trash shows no path,
+    and an untitled entry is "Untitled" rather than its path (the
+    palette, messages, the preview link's label). Content health still
+    names files: it's about files.
+  - **Row menus**, as in the prototype: a narrow last column of **⋯**
+    buttons (`.row-more`: shown on the row's hover or focus where
+    there's hover, always where there isn't), each opening a
+    `MenuButton` with `floating` (placed `fixed` beside the button,
+    above it when there's no room, so the table's scrolling wrapper
+    can't clip it; scrolling closes it). Entries: **Edit**; **View**
+    (**View archive** for a term) and **Copy link** (the full address)
+    once live; and **Move to trash** when `can.delete` (new in `GET
+    entries`), which loads the entry's revision and deletes at it, as
+    the editor does. The trash: **Restore as a draft** and, after a
+    divider, **Delete permanently**, replacing D-237's inline buttons.
+  - Not yet: **Duplicate** (no API) and a trashed entry's **Preview**.
+- **Checked:** `composer check` (`AdminEditingTest`); on the jtcom trial
+  in Chrome: addresses under titles, the last row's menu opening upward,
+  the editor 640px wide in Fira Code with no slug line and its copy
+  still lined up, and a throwaway post created, moved to the trash from
+  its row menu, and deleted permanently from the Trash tab's.
+- **Why:** the author asked for all of it.
+
+### D-255: Fira Code everywhere, and the index page pinned in its list
+- **Date:** 2026-09-30
+- **Decision:**
+  - **Fira Code is the admin's mono** (`--font-mono`), replacing IBM
+    Plex Mono everywhere; D-254's `--font-editor` is gone and the
+    Markdown editor uses `--font-mono` again. The admin serves Fira
+    Code 400, 500, and 600 (Latin and Latin Extended); Plex Mono's files
+    and license line are removed. IBM Plex Sans stays the UI font.
+  - **The index page is an entry, pinned** (the design doc's new
+    section, from the author): a collection's or taxonomy's landing page
+    (`Entry::$landing`, the `index` file in its folder) is its type's
+    index page. `GET entries?type=` leaves it out of `entries`, `total`,
+    and `pages` (`Query::withLanding(false)`) and answers it apart as
+    `index`, on every page, when the same filters (status, search, the
+    account's permissions) find it, in the site's locale; entries
+    describe `index: true`, and an index page's `can.delete` is false.
+    The list pins it in a `tbody` of its own above the rest, tinted
+    (`--surface-2`, `--surface-3` on hover, a `--border-strong` rule
+    under it), with a pin before the title and an **Index** mark after
+    it; its row menu has no Move to trash. Tab counts and the type's
+    total leave it out, so "Posts 63" means 63 posts (Content types'
+    Entries counts too). A type whose only entry is its index page shows
+    it above the first-run state ("The index page above is already
+    live" when it's published).
+  - **Pages have no index page:** a page tree's root is the site, so
+    the home page (the `page` type's landing) is a page like the others.
+- **Departs from the design:** there's no checkbox column (no bulk
+  actions yet), so the pin sits before the title rather than in the
+  checkbox's place. Not yet: the editor's side of the pattern (no
+  custom fields, taxonomy picker, or Scheduled for an index page, the
+  Document tab's line saying what it is, the **Index** mark beside the
+  type in the editor's header, and refusing to trash it: the editor's
+  menu still offers Move to trash), the type screen's "Has an index
+  page" switch, and a new type being born with one.
+- **Checked:** `composer check` (`AdminEditingTest`: left out and
+  pinned, on every page, hidden by a tab or search it doesn't match,
+  and none for pages); on the jtcom trial in Chrome: Posts pins "I am
+  Justin Tadlock." on page 1 and 2 but not on Drafts or a search for
+  "twinkle", its menu is Edit, View, Copy link, Categories pins its
+  index page and Pages pins nothing, and paths render in Fira Code.
+- **Why:** the author asked for Fira Code throughout and for the
+  design's index-page pattern in the content tables.

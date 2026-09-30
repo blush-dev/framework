@@ -43,7 +43,8 @@ use Blush\Session\StartSession;
  *     and `GET media/{path}` one library file.
  *   - `GET  entries`: the entries the account may edit, a page at a time.
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
- *     the editing API (`EntryController`).
+ *     the editing API (`EntryController`), and `GET content/{type}/{key}`,
+ *     an entry by its handle (D-253).
  *   - `GET  trash`, and `POST trash/restore`, `trash/delete`, and
  *     `trash/empty`: the trash (`TrashController`).
  *   - `GET  health`: the content's lint problems.
@@ -92,6 +93,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/entries', EntriesController::class)->named('entries')->middleware(Authenticate::class),
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
 			Route::get('/entries/{id:.+}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
+			Route::get('/content/{type:[a-z0-9_-]+}/{key:.+}', [EntryController::class, 'named'])->named('entry.named')->middleware(Authenticate::class),
 			Route::patch('/entries/{id:.+}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),
 			Route::delete('/entries/{id:.+}', [EntryController::class, 'delete'])->named('entry.delete')->middleware(Authenticate::class),
 			Route::get('/trash', [TrashController::class, 'index'])->named('trash')->middleware(Authenticate::class),

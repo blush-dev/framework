@@ -107,8 +107,21 @@ drafts, or scheduled ones, with a count on each. You see your own
 entries if you're an author or contributor, and everyone's if you're an
 editor; entries credited to your account's author are marked "Yours".
 Drafts come most recently changed first, and scheduled entries in the
-order they'll go live. Search matches titles and file paths. Click a
-title to edit the entry.
+order they'll go live. Under each title is the entry's address on your
+site (for a draft, the address it will have). Search matches titles and
+file paths. Click a title to edit the entry.
+
+The **⋯** button at the end of each row has **Edit**, then **View** and
+**Copy link** once the entry is live (**View archive** for a term), and
+**Move to trash** if your account can delete it.
+
+A collection's or taxonomy's **index page** (the `index.md` in its
+folder, which introduces its archive) is pinned at the top of its list
+with a pin and an **Index** tag, on every page of the list. It isn't
+counted in the list's totals, and it can't be moved to the trash from
+the list. It still follows the tabs and search: it shows only when it
+matches them. Pages have no index page; the site's home page is listed
+with the other pages.
 
 A taxonomy's list (such as Categories) holds its **terms**. Instead of
 authors, it shows how many published entries use each term.
@@ -126,6 +139,19 @@ credited to your account's author.
 The editor is one column of text: the title (press Enter to move to the
 body), then the body in Markdown. While you type, the header and footer
 fade back; moving the pointer brings them back.
+
+The body stays Markdown, set in Fira Code (the admin's monospace font
+throughout), but it reads as it will look: *emphasis* is italic, **strong text** is bold, headings are bold,
+quotes are muted, and the marks themselves (`*`, `**`, `#`, `>`) are
+dimmed. List markers, links, inline code, and components are colored.
+
+Each entry's editor has its own address, from its content type and slug:
+`/admin/content/post/hello-world` edits the post `hello-world`, and a
+page's address has its folders, such as `/admin/content/page/about/team`.
+An entry that can't be found that way (another language's, or one of two
+files claiming the same slug) is edited at its file's path instead, such
+as `/admin/entries/_posts/2026-09-29.hello.md`, which works for every
+entry.
 
 The header's left side has a link back to the type's list, then three
 ways to put something in: **+** for a component, the picture for media,
@@ -284,7 +310,7 @@ commands (see [Accounts](accounts.md)).
 ## Trash
 
 Each list has a **Trash** tab (if your account can delete entries) with
-the entries moved there, most recent first. For each one:
+the entries moved there, most recent first. Each one's **⋯** button has:
 
 - **Restore as a draft** puts it back where it was, as a draft, even if
   it was published before; publish it again from the editor when you're
@@ -372,6 +398,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
 | `GET entries/{id}` | An entry for editing (see below) |
+| `GET content/{type}/{key}` | The same, found by its handle, such as `content/post/hello` |
 | `POST entries` | Create an entry: `{"type", "title"}`, and optionally `"slug"`, `"set"`, `"body"`, `"status"` |
 | `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
 | `DELETE entries/{id}?revision=…` | Move an entry to the trash |
@@ -400,8 +427,15 @@ or everyone's for an editor. Narrow it with:
 Drafts and the whole list come most recently changed first, scheduled
 entries soonest first, and published entries newest first. The answer
 has `status`, `type`, `search`, `total`, `page`, `pages`, `per`, and
-`entries`, each with its id, title, type, status, dates, file, authors,
-and whether it's the account's own. A page past the last has no
+`entries`, each with its id, handle, title, type, status, dates, file,
+`url` (its path on the site, where it is or will be once published, or
+`null`), authors, whether it's the account's own, `index`, and
+`can.delete`.
+
+With a `type` that isn't pages, the type's index page (its landing page)
+is left out of `entries`, `total`, and `pages`, and answered as `index`
+on every page when it matches `status` and `search` and the account may
+edit it; otherwise `index` is `null`. A page past the last has no
 entries.
 
 ### Listing components
@@ -436,7 +470,11 @@ and `modified`. Only the file types your site allows are listed.
 ### Editing entries
 
 An entry's id is its file's path under `user/content`, such as
-`_posts/2026-09-29.hello.md`. `GET entries/{id}` answers with:
+`_posts/2026-09-29.hello.md`. Its `handle` is its type and key, such as
+`post/hello`, and `GET content/{type}/{key}` finds it by that; a landing
+page's key is `index`. An entry has no handle (`null`) when it isn't in
+the site's language or another file claims the same key. `GET
+entries/{id}` answers with:
 
 - `values`: front matter by field name, read from whichever name the file
   uses (a 1.x `date` is `published`), and `extra`: anything the type

@@ -17,11 +17,13 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\EntryController;
+use Blush\Admin\EntryHandles;
 use Blush\Admin\InvalidEdit;
 use Blush\Admin\TrashController;
 use Blush\Content\Lint\Linter;
 
 #[CoversClass(EntryController::class)]
+#[CoversClass(EntryHandles::class)]
 #[CoversClass(InvalidEdit::class)]
 #[CoversClass(TrashController::class)]
 #[CoversClass(Linter::class)]
@@ -172,6 +174,96 @@ final class AdminEditingTest extends TestCase
 		$this->assertIsArray($entry['violations'] ?? null);
 
 		$this->assertSame(404, $this->call('GET', '/entries/_posts/missing.md')->getStatusCode());
+	}
+
+	public function testFindsAnEntryByItsHandle(): void
+	{
+		$this->writeTemporaryFile('user/content/about/team.md', "---\ntitle: The Team\n---\n");
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
+		$this->site();
+
+		$this->assertSame('post/flame', $this->load(self::FLAME)['handle'] ?? null, 'A type and the key, without the date or extension.');
+
+		$response = $this->call('GET', '/content/post/flame');
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(self::FLAME, self::json($response)['id'] ?? null);
+
+		$page = self::json($this->call('GET', '/content/page/about/team'));
+		$this->assertSame(['about/team.md', 'page/about/team'], [$page['id'] ?? null, $page['handle'] ?? null], 'A page\'s key has its folders.');
+
+		$home = self::json($this->call('GET', '/content/page/index'));
+		$this->assertSame(['index.md', 'page/index'], [$home['id'] ?? null, $home['handle'] ?? null], 'A landing page is `index`.');
+
+		$listed = self::json($this->call('GET', '/entries?type=post'))['entries'] ?? null;
+		$this->assertIsArray($listed);
+		$this->assertContains('post/flame', array_column($listed, 'handle'));
+
+		$this->assertSame(404, $this->call('GET', '/content/post/missing')->getStatusCode());
+		$this->assertSame(404, $this->call('GET', '/content/nope/flame')->getStatusCode());
+
+		$renamed = self::json($this->call('PATCH', '/entries/' . self::FLAME, ['revision' => $this->revision(self::FLAME), 'slug' => 'the-flame']));
+		$this->assertSame('post/the-flame', $renamed['handle'] ?? null, 'A rename moves the handle.');
+	}
+
+	public function testListsEachEntrysAddressAndWhetherItCanBeTrashed(): void
+	{
+		$this->site(['author']);
+
+		$listed = self::json($this->call('GET', '/entries?type=post'))['entries'] ?? null;
+		$this->assertIsArray($listed);
+
+		$byId  = array_column($listed, null, 'id');
+		$flame = $byId[self::FLAME] ?? null;
+		$idea  = $byId['_posts/2023-01-01.idea.md'] ?? null;
+		$this->assertIsArray($flame);
+		$this->assertIsArray($idea);
+		$this->assertSame('/archives/flame', $flame['url'] ?? null);
+		$this->assertSame('/archives/idea', $idea['url'] ?? null, 'A draft has the address it will have.');
+		$this->assertSame(['delete' => true], $flame['can'] ?? null, 'An author trashes their own.');
+		$this->assertArrayNotHasKey('_posts/2021-05-05.sams.md', $byId, 'An author lists only their own.');
+	}
+
+	public function testPinsTheIndexPageApartFromTheEntries(): void
+	{
+		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\n---\n");
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
+		$this->site();
+
+		$list = self::json($this->call('GET', '/entries?type=post'));
+		$this->assertIsArray($list['entries'] ?? null);
+		$this->assertNotContains('_posts/index.md', array_column($list['entries'], 'id'), 'The index page isn\'t one of the posts.');
+		$this->assertSame(3, $list['total'] ?? null, 'Nor is it counted.');
+		$index = $list['index'] ?? null;
+		$this->assertIsArray($index);
+		$this->assertSame(['_posts/index.md', true], [$index['id'] ?? null, $index['index'] ?? null]);
+		$this->assertSame(['delete' => false], $index['can'] ?? null, 'It can\'t be trashed from the list.');
+
+		$this->assertSame('_posts/index.md', $this->pinned('/entries?type=post&per=1&page=2'), 'It\'s pinned on every page.');
+
+		$drafts = self::json($this->call('GET', '/entries?type=post&status=draft'));
+		$this->assertArrayHasKey('index', $drafts);
+		$this->assertNull($drafts['index'], 'A tab it isn\'t in hides it.');
+
+		$found = self::json($this->call('GET', '/entries?type=post&search=flame'));
+		$this->assertArrayHasKey('index', $found);
+		$this->assertNull($found['index'], 'A search it doesn\'t match hides it.');
+		$this->assertSame('_posts/index.md', $this->pinned('/entries?type=post&search=writ'));
+
+		$pages = self::json($this->call('GET', '/entries?type=page'));
+		$this->assertArrayHasKey('index', $pages);
+		$this->assertNull($pages['index'], 'Pages have no index page.');
+		$this->assertIsArray($pages['entries'] ?? null);
+		$this->assertContains('index.md', array_column($pages['entries'], 'id'), 'The home page is a page like the others.');
+	}
+
+	/**
+	 * The id of the index page a list pins, if any.
+	 */
+	private function pinned(string $path): ?string
+	{
+		$index = self::json($this->call('GET', $path))['index'] ?? null;
+
+		return is_array($index) && is_string($index['id'] ?? null) ? $index['id'] : null;
 	}
 
 	public function testSavesChangesWithTheRevision(): void

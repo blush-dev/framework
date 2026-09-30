@@ -1,11 +1,27 @@
 {
-  "fonts/ibm-plex-mono-latin-400-normal.woff2": {
-    "file": "fonts/ibm-plex-mono-latin-400-normal.woff2",
-    "src": "fonts/ibm-plex-mono-latin-400-normal.woff2"
+  "fonts/fira-code-latin-400-normal.woff2": {
+    "file": "fonts/fira-code-latin-400-normal.woff2",
+    "src": "fonts/fira-code-latin-400-normal.woff2"
   },
-  "fonts/ibm-plex-mono-latin-500-normal.woff2": {
-    "file": "fonts/ibm-plex-mono-latin-500-normal.woff2",
-    "src": "fonts/ibm-plex-mono-latin-500-normal.woff2"
+  "fonts/fira-code-latin-500-normal.woff2": {
+    "file": "fonts/fira-code-latin-500-normal.woff2",
+    "src": "fonts/fira-code-latin-500-normal.woff2"
+  },
+  "fonts/fira-code-latin-600-normal.woff2": {
+    "file": "fonts/fira-code-latin-600-normal.woff2",
+    "src": "fonts/fira-code-latin-600-normal.woff2"
+  },
+  "fonts/fira-code-latin-ext-400-normal.woff2": {
+    "file": "fonts/fira-code-latin-ext-400-normal.woff2",
+    "src": "fonts/fira-code-latin-ext-400-normal.woff2"
+  },
+  "fonts/fira-code-latin-ext-500-normal.woff2": {
+    "file": "fonts/fira-code-latin-ext-500-normal.woff2",
+    "src": "fonts/fira-code-latin-ext-500-normal.woff2"
+  },
+  "fonts/fira-code-latin-ext-600-normal.woff2": {
+    "file": "fonts/fira-code-latin-ext-600-normal.woff2",
+    "src": "fonts/fira-code-latin-ext-600-normal.woff2"
   },
   "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2": {
     "file": "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2",
@@ -26,8 +42,12 @@
     "assets": [
       "fonts/ibm-plex-sans-latin-wght-normal.woff2",
       "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2",
-      "fonts/ibm-plex-mono-latin-400-normal.woff2",
-      "fonts/ibm-plex-mono-latin-500-normal.woff2"
+      "fonts/fira-code-latin-400-normal.woff2",
+      "fonts/fira-code-latin-ext-400-normal.woff2",
+      "fonts/fira-code-latin-500-normal.woff2",
+      "fonts/fira-code-latin-ext-500-normal.woff2",
+      "fonts/fira-code-latin-600-normal.woff2",
+      "fonts/fira-code-latin-ext-600-normal.woff2"
     ]
   }
 }
