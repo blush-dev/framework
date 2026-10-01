@@ -1500,6 +1500,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-112: Markdown directives
 - **Date:** 2026-09-25
+- **Status:** Partially superseded by D-320 (a closing fence closes the innermost open container it's long enough for, so nesting doesn't need longer fences).
 - **Decision:** Implements D-026 as an in-house CommonMark extension
   (`Markdown\CommonMark\Directive`), on by default
   (`MarkdownConfig::$directives`):
@@ -7904,3 +7905,134 @@ decision, add a new entry that supersedes it and mark the old one
   `npm run admin:build`.
 - **Why:** the author: "Group is a folder doesn't make sense. Row is
   really a stack (we should have a Stack component)."
+
+### D-319: Inserted containers lengthen the containers around them
+- **Date:** 2026-10-01
+- **Status:** Superseded by D-320 (nested containers all use `:::`; the inserter writes `:::` again, and `withNested()` and `longestFence()` are gone).
+- **Decision:** The editor's inserter always wrote a container with
+  `:::`. Inside another container written with `:::`, the new one's
+  closing line closed the outer one too, since a closing line closes the
+  outermost container it's long enough for (D-026; the editor's
+  `outline()` follows the server's `ContainerDirectiveParser`). So
+  nested stacks, rows, and groups lost their structure, and the
+  highlighting (correctly) showed it. Now:
+  - `directiveText()` gives a container one more colon than the longest
+    container in the text it wraps (`longestFence()`), else three, and
+    returns its `fence`.
+  - `withNested()` (`markdown.ts`) writes the insert and lengthens each
+    container around it, innermost first, to one more colon than the
+    one inside it, opening and closing lines both; ones already long
+    enough stay. `MarkdownEditor`'s `write()` applies it as one edit, so
+    undo takes it all back, with the caret moved by the colons added
+    before it.
+  - Highlighting is unchanged: Markdown typed by hand with equal fences
+    still shows what the site will render.
+- **Open:** moving an element (D-313) into or out of a container, and
+  pasting, don't adjust fences yet.
+- **Checked:** `npm run admin:build`; `withNested()` and
+  `longestFence()` in Node: a stack, then a row in it, then a group in
+  that (five, four, and three colons, each closed by its own line);
+  wrapping a selected group (four colons outside); a container already
+  long enough left alone.
+- **Why:** the author: with nested containers, the editor "doesn't seem
+  to properly pick up where one component ends."
+
+### D-320: Nested containers all use `:::`
+- **Date:** 2026-10-01
+- **Decision:** Supersedes D-319 and D-112's nesting rule. A closing
+  fence closes the **innermost** open container it's long enough for
+  (and anything still open inside that), rather than the outermost, so
+  containers nest with `:::` throughout, as Pandoc's fenced divs do:
+  ```markdown
+  :::stack
+  :::row
+  :::group
+  :::
+  :::
+  :::
+  ```
+  - **Server:** `ContainerDirectiveParser::tryContinue()` doesn't finish
+    on a closing fence when a container still open inside it is short
+    enough to take it (`closesInside()`, walking from the innermost
+    active block's parents up to its own).
+  - **Editor:** `outline()`'s `closes()` picks the last open container
+    long enough, matching the server, so highlighting follows the same
+    rule. The inserter writes `:::` everywhere again; D-319's fence
+    lengthening is removed.
+  - **Longer fences still work** (D-078): the two rules differ only
+    when more than one open container is short enough for a closing
+    line. Markdown that nests by giving the outer fence more colons,
+    and closes each container with its own line, parses as before. What
+    changes: `:::` inside `:::outer` and `:::inner` now closes only the
+    inner one (it closed both, which is what broke nesting), and a
+    `::::` meant to close a `::::outer` and a `:::inner` at once now
+    closes only the inner one, leaving the outer open.
+  - User docs teach only `:::`.
+- **Checked:** `composer check` (`DirectiveTest`: three containers
+  nested with `:::`; a `:::` skipping an inner `::::` container too long
+  for it; the existing longer-outer-fence test unchanged);
+  `npm run admin:build`; `outline()` in Node on the author's
+  stack/row/group snippet (each container ends at its own line).
+- **Why:** the author: "consistent syntax is more important" than
+  counting colons, which is more to learn when typing by hand.
+- **Background** (researched 2026-10-01, at the author's request):
+  - **The generic directives proposal** (mb21, CommonMark forum, 2014;
+    never part of the spec) counts colons: "an arbitrary number of
+    colons greater or equal three could be used as long as the closing
+    line is longer than the opening line. That way, you can even nest
+    blocks … by using successively fewer colons for each containing
+    block," by analogy with fenced code. In the thread, Tab Atkins
+    (post 115) offered the alternative, a container line always has
+    *something* so "a bare `:::` line is always a closer," and the
+    proposal's author answered (post 116): "both approaches are
+    viable."
+  - **Most tools count colons** (outer fence longer): remark-directive
+    (micromark-extension-directive) and what's built on it (Docusaurus,
+    Starlight), VitePress (markdown-it-container), MyST, and djot; each
+    run on equal fences closes everything at the first `:::`. MDC (Nuxt
+    Content) varies colon counts and indents (equal fences held at two
+    levels, not three). Markdoc and Hugo close tags by name. **Pandoc's
+    fenced divs** work as Blush now does: an opening fence must have
+    attributes, a bare fence closes, and lengths are for readability.
+  - **Why this one:** the outer-longer rule exists for code, which is
+    literal, so an inner fence can't be seen as nesting; containers hold
+    Markdown, read as it goes, and every Blush container's opening line
+    has a name, so a bare `:::` can only close. Markdown's other nesting
+    (quotes, lists) marks the inner thing and leaves the outer alone,
+    and writers already know fences as "open with three, close with
+    three."
+  - **Trade-off:** Blush reads remark-style Markdown (longer outer
+    fences, each closed by its own line) unchanged, but Blush Markdown
+    with nested `:::` breaks in remark-based tools. jtcom's content has
+    no such nesting.
+
+### D-321: Pasted containers are balanced; moving already nests
+- **Date:** 2026-10-01
+- **Decision:** With D-320, nesting needs no fence counting, so what was
+  left was text that isn't balanced.
+  - **Pasting** (`pasted()` in `markdown.ts`, used by `MarkdownEditor`'s
+    paste handler): a closing line that closes nothing in the pasted
+    text (left over from copying part of a container) is dropped,
+    leaving a blank line when there are blocks on both sides, so it
+    can't close the container it lands in; a container left open is
+    closed at the end, so it can't take in what follows (and push its
+    parent's closer down until the parent runs to the end of the body);
+    every fence is written `:::`, one closing line per container, so
+    remark-style Markdown (longer outer fences) comes in as Blush
+    writes it. Code is left alone. Text holding a container or leaf
+    directive goes on lines of its own, where the inserter puts a
+    component (`place(false)`), rather than mid-paragraph.
+  - **Moving** (D-313, D-314) needs no change: it swaps whole sibling
+    runs, so a container moves from its opening line to its closing
+    one and never crosses another's fence, and with `:::` everywhere
+    the result nests as it reads. Checked in Node with nested stacks,
+    rows, and groups. Moving into or out of a container stays out, as
+    the direction has it (30-editor.md, Reordering).
+- **Open:** cutting or deleting a selection that holds only one of a
+  container's fences still unbalances the body.
+- **Checked:** `npm run admin:build`; `pasted()` in Node (plain text
+  unchanged; balanced, remark-style, unclosed, and stray-closer pastes;
+  a leaf; `:::` inside code), and each pasted into a stack, its
+  structure read back with `outline()`. Not checked in a browser:
+  creating a temporary administrator account for it wasn't allowed.
+- **Why:** the author asked for pasting and moving to support nesting.

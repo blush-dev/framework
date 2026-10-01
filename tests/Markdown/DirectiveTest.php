@@ -103,6 +103,22 @@ final class DirectiveTest extends TestCase
 		$this->assertSame("<container-outer><container-inner><p>Deep</p></container-inner>\n<p>Still outer</p></container-outer>\n<p>After</p>\n", $html);
 	}
 
+	public function testNestedContainersCanAllUseThreeColons(): void
+	{
+		$html = $this->parser()->toHtml(":::stack\n:::row\n:::group\nDeep\n:::\nIn row\n:::\nIn stack\n:::\nAfter");
+
+		$this->assertSame("<container-stack><container-row><container-group><p>Deep</p></container-group>\n<p>In row</p></container-row>\n<p>In stack</p></container-stack>\n<p>After</p>\n", $html);
+	}
+
+	public function testALongFenceSkipsInnerContainersTooLongForIt(): void
+	{
+		// The outer container is the innermost one `:::` is long enough
+		// for, so it closes, and the inner one with it.
+		$html = $this->parser()->toHtml(":::outer\n::::inner\nDeep\n:::\nAfter");
+
+		$this->assertSame("<container-outer><container-inner><p>Deep</p></container-inner></container-outer>\n<p>After</p>\n", $html);
+	}
+
 	public function testUnclosedContainersRunToTheEnd(): void
 	{
 		$this->assertSame("<container-note><p>Open</p></container-note>\n", $this->parser()->toHtml(":::note\nOpen"));

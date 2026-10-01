@@ -375,7 +375,12 @@ it, at the end of the words; one typed right after a component's
 or inserted into a component's own line goes onto a line after it.
 Typing inside the braces or a component's name still edits them.
 
-Pasting an address over selected text makes it a link. Dropping or
+Pasting an address over selected text makes it a link. Pasted
+components are tidied so they can't break the ones around them: one
+that was copied without its closing `:::` gets one, a stray `:::` left
+over from copying part of a component is dropped, longer fences such as
+`::::` become `:::`, and a pasted component goes on lines of its own,
+as the inserter puts it. Dropping or
 pasting files into the text uploads them to the library and puts each
 in where the cursor is, as the media picker does (see below); that
 needs `media.upload`. They're in the command palette too.

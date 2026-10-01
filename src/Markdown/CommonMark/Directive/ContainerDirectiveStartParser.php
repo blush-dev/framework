@@ -21,8 +21,8 @@ use League\CommonMark\Parser\MarkdownParserStateInterface;
 
 /**
  * Opens a container directive on a `:::name[label]{attrs}` line (three
- * or more colons). A container nested in another uses fewer colons than
- * its parent, so the parent's closing fence is longer.
+ * or more colons). Containers nest with `:::` throughout: a closing
+ * fence closes the innermost open one (D-320).
  */
 final class ContainerDirectiveStartParser implements BlockStartParserInterface
 {

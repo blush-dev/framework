@@ -15,6 +15,7 @@ namespace Blush\Markdown\CommonMark\Directive;
 
 use Override;
 use League\CommonMark\Node\Block\AbstractBlock;
+use League\CommonMark\Node\Node;
 use League\CommonMark\Parser\Block\AbstractBlockContinueParser;
 use League\CommonMark\Parser\Block\BlockContinue;
 use League\CommonMark\Parser\Block\BlockContinueParserInterface;
@@ -22,7 +23,10 @@ use League\CommonMark\Parser\Cursor;
 
 /**
  * Holds a container directive's blocks until a closing fence of at least
- * as many colons (`:::`), or the end of the document.
+ * as many colons (`:::`), or the end of the document. A closing fence
+ * closes the innermost open container it's long enough for (D-320), so
+ * nested containers can all use `:::`; one that's still open inside this
+ * one takes the fence first.
  */
 final class ContainerDirectiveParser extends AbstractBlockContinueParser
 {
@@ -66,10 +70,27 @@ final class ContainerDirectiveParser extends AbstractBlockContinueParser
 			! $cursor->isIndented()
 			&& preg_match('/^(:{3,})\s*$/', ltrim($cursor->getRemainder(), " \t"), $match) === 1
 			&& strlen($match[1]) >= $this->block->fence
+			&& ! $this->closesInside($activeBlockParser->getBlock(), strlen($match[1]))
 		) {
 			return BlockContinue::finished();
 		}
 
 		return BlockContinue::at($cursor);
+	}
+
+	/**
+	 * Whether a container still open inside this one takes a closing
+	 * fence of `$length` colons. The innermost open block's parents, up
+	 * to this one, are the blocks open inside it.
+	 */
+	private function closesInside(Node $tip, int $length): bool
+	{
+		for ($node = $tip; $node !== null && $node !== $this->block; $node = $node->parent()) {
+			if ($node instanceof ContainerDirective && $node->fence <= $length) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

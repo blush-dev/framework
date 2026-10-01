@@ -12,8 +12,9 @@
  *
  * - a container opens with a line of `:::name[label]{attributes}` (three
  *   or more colons) and closes with a line of at least as many colons;
- *   a closing line closes the outermost container it's long enough for,
- *   and everything inside it;
+ *   a closing line closes the innermost open container it's long enough
+ *   for (D-320), and anything inside that, so nested containers can all
+ *   use `:::`;
  * - a leaf is a line of `::name[label]{attributes}`;
  * - an inline directive is `:name[label]{attributes}`, not straight after
  *   a letter, digit, underscore, or colon.
@@ -242,10 +243,16 @@ function collectImages(line: Line, tokens: Token[], images: MarkdownImage[]): vo
 
 /**
  * Which open container a closing line of `length` colons closes (the
- * outermost it's long enough for), or -1.
+ * innermost it's long enough for; D-320), or -1.
  */
 function closes(open: { fence: number }[], length: number): number {
-	return open.findIndex((item) => item.fence <= length);
+	for (let index = open.length - 1; index >= 0; index--) {
+		if ((open[index]?.fence ?? Infinity) <= length) {
+			return index;
+		}
+	}
+
+	return -1;
 }
 
 /**
@@ -2455,6 +2462,56 @@ export function unmarked(source: string, position: number): Change | null {
 	const text = source.slice(0, from) + source.slice(position);
 
 	return { text, from, to: from };
+}
+
+/**
+ * Pasted Markdown made safe to drop inside other containers (D-321): a
+ * closing line that closes nothing in it (left over from copying part of
+ * a container) is dropped, leaving a blank line, so it can't close the
+ * container it lands in;
+ * a container it leaves open is closed at its end, so it can't take in
+ * what follows; and every fence is written `:::` (D-320), one closing
+ * line per container. `block` says whether it holds a container or leaf
+ * directive, which goes on lines of its own. Code is left alone.
+ */
+export function pasted(text: string): { text: string; block: boolean } {
+	const markdown = outline(text.replace(/\r\n?/g, '\n'));
+	const out: string[] = [];
+	const open: number[] = [];
+	let block = false;
+	let gap   = false;
+
+	for (const line of markdown.lines) {
+		const indent = /^ */.exec(line.text)?.[0] ?? '';
+
+		// A dropped closer is still a break between the blocks either side.
+		if (gap && line.text.trim() !== '' && out.length > 0 && out.at(-1)?.trim() !== '') {
+			out.push('');
+		}
+
+		gap = false;
+
+		if (line.kind === 'open') {
+			out.push(line.text.replace(/^( *):+/, '$1:::'));
+			open.push(line.directive ?? -1);
+			block = true;
+		} else if (line.kind === 'close') {
+			const closed = open.splice(open.indexOf(line.directive ?? -1));
+
+			out.push(...closed.map(() => `${indent}:::`));
+		} else if (line.kind === 'text' && CLOSE.test(line.text)) {
+			gap = true;
+		} else {
+			block ||= line.kind === 'leaf';
+			out.push(line.text);
+		}
+	}
+
+	if (open.length > 0) {
+		out.push(...open.map(() => ':::'));
+	}
+
+	return { text: out.join('\n'), block };
 }
 
 /**

@@ -106,11 +106,11 @@ give it a label to name it for screen readers:
 
 Each block inside a grid is a cell, and each block inside a row or a
 stack is an item. To put several blocks in one cell, wrap them in a
-`group`, and give the outer component more colons so the inner ones fit
-inside it:
+`group`. Components nest with `:::` throughout: each `:::` line closes
+the most recent component that's still open.
 
 ```markdown
-::::grid{columns=2}
+:::grid{columns=2}
 :::group
 ### Fast
 No database, so pages are quick.
@@ -120,7 +120,7 @@ No database, so pages are quick.
 ### Simple
 Every page is a file you can edit.
 :::
-::::
+:::
 ```
 
 `min` and `gap` take a CSS length, such as `12rem`, `240px`, or `30%`.

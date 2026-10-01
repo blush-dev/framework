@@ -45,7 +45,7 @@
  */
 
 import { computed, nextTick, ref } from 'vue';
-import { blocks, closingFence, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
+import { blocks, closingFence, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
 import { directiveText, type ComponentDescription } from '../components';
 
 const props = defineProps<{
@@ -427,6 +427,8 @@ function beforeinput(event: InputEvent): void {
 
 // An address pasted over selected words links them; files are passed on;
 // text pasted into a directive's tag or attributes goes where it's safe.
+// Pasted containers are balanced and written `:::`, and a component goes
+// on lines of its own, as the inserter puts it (D-321).
 function paste(event: ClipboardEvent): void {
 	const element = field.value;
 	const data    = event.clipboardData;
@@ -444,7 +446,9 @@ function paste(event: ClipboardEvent): void {
 		return;
 	}
 
-	const text     = data.getData('text/plain');
+	const raw      = data.getData('text/plain');
+	const piece    = pasted(raw);
+	const text     = piece.text;
 	const selected = element.value.slice(element.selectionStart, element.selectionEnd);
 
 	if (selected !== '' && !selected.includes('\n') && !isAddress(selected) && isAddress(text)) {
@@ -454,13 +458,28 @@ function paste(event: ClipboardEvent): void {
 		return;
 	}
 
+	if (piece.block) {
+		const spot = place(false);
+
+		event.preventDefault();
+
+		if (spot !== null) {
+			write(spot, text, text.length);
+		}
+
+		return;
+	}
+
 	if (selected === '') {
 		const spot = safeSpot(element.value, element.selectionStart);
 
-		if (spot.at !== element.selectionStart || spot.before !== '') {
+		if (spot.at !== element.selectionStart || spot.before !== '' || text !== raw) {
 			event.preventDefault();
 			apply({ from: spot.at, to: spot.at, text: spot.before + text });
 		}
+	} else if (text !== raw) {
+		event.preventDefault();
+		apply({ from: element.selectionStart, to: element.selectionEnd, text });
 	}
 }
 
