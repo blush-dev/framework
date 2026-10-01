@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Blush\Component\Layout;
 
 use Override;
-use Blush\Component\Component;
-use Blush\Component\ComponentContent;
 
 /**
  * Puts blocks side by side, wrapping onto more lines when they don't fit
@@ -28,16 +26,13 @@ use Blush\Component\ComponentContent;
  * space between items; otherwise the theme's `--layout-gap` applies, or
  * `1rem`.
  *
+ * `tag` makes it a `section` or `aside`, named by the label (D-298).
+ *
  * The layout is inline styles, so it works in any theme; themes style
  * the `component-row` class for the rest.
  */
-final class Row extends Component
+final class Row extends Layout
 {
-	/**
-	 * @inheritDoc
-	 */
-	public const ComponentContent CONTENT = ComponentContent::Blocks;
-
 	/**
 	 * The gap when neither the component nor the theme sets one.
 	 */
@@ -52,7 +47,9 @@ final class Row extends Component
 		public readonly RowJustify $justify = RowJustify::Start,
 		public readonly RowAlign $align = RowAlign::Center,
 		public readonly bool $wrap = true,
-		public readonly string $gap = ''
+		public readonly string $gap = '',
+		public readonly LayoutTag $tag = LayoutTag::Div,
+		public readonly string $label = ''
 	) {
 		$this->style = $this->styles();
 	}
@@ -63,7 +60,7 @@ final class Row extends Component
 	#[Override]
 	protected function rootAttributes(): array
 	{
-		return ['style' => $this->style];
+		return [...parent::rootAttributes(), 'style' => $this->style];
 	}
 
 	/**

@@ -227,7 +227,10 @@ The main button depends on the entry:
 there's nothing to save yet.
 
 The settings (⌘/ or Ctrl+/) open beside the text and push it aside;
-close them with their **×** or Escape. They have two tabs:
+close them with their **×** or Escape. Your browser remembers whether
+you left them open, so the next entry you edit opens the same way (on a
+small screen, where they'd cover the text, they always start closed).
+They have two tabs:
 
 - **The entry's**, named for its type (**Post**, **Page**): under
   **Publish**, its **Status** (choose it to see what each status does,

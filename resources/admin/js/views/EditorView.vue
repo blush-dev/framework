@@ -5,8 +5,9 @@
  * the Markdown body under it (`MarkdownEditor`, D-241); a header with
  * where you are, the save state, the status, and the actions; and a
  * footer with the breadcrumb, and words and reading time. It opens with
- * both panels closed: the layout collapses the section panel while it's
- * open. Settings are a drawer that pushes the column aside (⌘/), with two
+ * the section panel closed (the layout collapses it while it's open), and
+ * the settings drawer as it was left (`drawer.ts`, D-299). Settings are a
+ * drawer that pushes the column aside (⌘/), with two
  * tabs, left, named for what they hold, and a close button, right: the
  * entry's, named for its type ("Post"), with its publishing, schema
  * fields, other front matter, and problems, and at its foot one quiet
@@ -78,6 +79,7 @@ import { BLOCK_KINDS } from '../blocks';
 import { componentIcon, IMAGE_COMPONENT, imageVariants, loadComponents, type ComponentDescription, type ComponentProp } from '../components';
 import { online } from '../connection';
 import { diffLines, type DiffLine } from '../diff';
+import { drawerOpen, keepDrawer } from '../drawer';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
 import { formatDate, plural, titleCase } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
@@ -916,7 +918,7 @@ async function showMissing(): Promise<void> {
 
 const bodyEditor = ref<InstanceType<typeof MarkdownEditor> | null>(null);
 const titleField = ref<HTMLTextAreaElement | null>(null);
-const sideOpen   = ref(false);
+const sideOpen   = ref(drawerOpen());
 const tab        = ref<'document' | 'element'>('document');
 const caret      = ref(0);
 const available  = ref<ComponentDescription[]>([]);
@@ -1440,6 +1442,8 @@ function removeImage(): void {
 function toggleSide(): void {
 	sideOpen.value = !sideOpen.value;
 }
+
+watch(sideOpen, keepDrawer);
 
 // A live entry's full address, to share.
 async function copyLink(): Promise<void> {

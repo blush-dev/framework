@@ -2,8 +2,8 @@
 
 /**
  * Group component (`Component\Layout\Group`): blocks wrapped in a
- * `<div>`, or a `<section>` named by the label, so they can be styled
- * together.
+ * `<div>`, or a `<section>` or `<aside>` named by the label, so they can
+ * be styled together.
  *
  *     :::group{.alignwide}
  *     Some blocks.

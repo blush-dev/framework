@@ -7029,3 +7029,55 @@ decision, add a new entry that supersedes it and mark the old one
   says). This closes the open question and the roadmap's "next for
   media" item.
 - **Why:** the author: "That's outside our responsibility."
+
+### D-298: Layout components take a `tag`
+- **Date:** 2026-09-30
+- **Decision:** Supersedes D-177's `group`-only `tag`. Which element a
+  layout component renders as is an option, apart from how it lays out
+  its blocks, rather than a component per element (a `division`,
+  `section`, and `aside` that each also do flex and grid).
+  - **`LayoutTag`** (was `GroupTag`): `div` (the default), `section`,
+    and `aside`. `main` is left out because the theme owns it (a second
+    one is invalid), and `header` and `footer` because inside an entry
+    they'd belong to the theme's `<article>`, which authors won't
+    expect; either can be added if a need shows up.
+  - **`group`, `grid`, and `row` all take `tag` and `label`**, through an
+    abstract `Component\Layout\Layout` base (abstract `tag` and `label`
+    properties, which each class promotes, and `CONTENT` as blocks). On
+    `grid` and `row` they come after the existing props, so positional
+    arguments and the admin's field order keep their props first.
+  - **A landmark (`section` or `aside`) is named by its label**
+    (`aria-label`), and only when there is one; a `div`'s label is
+    ignored. The label's admin field is "Name for screen readers" (was
+    "Section name").
+  - **The gallery stays separate:** its columns are a theme-styled
+    custom property capped at the theme's breakpoints (D-198), which
+    jtcom relies on, while `grid` is inline styles that need no media
+    queries. They share no code.
+  - The names `group`, `grid`, and `row` stay, since they read well in
+    Markdown and the jtcom trial uses them.
+- **Why:** the author asked about block-level HTML elements as
+  components; one option keeps the element and the layout independent,
+  makes changing the element a select on the Component tab instead of a
+  different block, and keeps the inserter short.
+- **Checked:** `composer check` (an `aside` grid named by its label, an
+  unnamed `section` row, and the props' order); the jtcom trial's About
+  page renders the same markup.
+
+### D-299: The editor remembers the settings drawer
+- **Date:** 2026-09-30
+- **Decision:** Whether the editor's settings drawer is open is kept in
+  the browser (`localStorage`, `blush-admin-drawer-open`, through
+  `resources/admin/js/drawer.ts`), so a refresh or the next entry opens
+  it as it was left. Any change counts: the toggle, ⌘/, the close button,
+  Escape, and the editor opening it itself (a crumb, a field with a
+  problem). Only on screens wider than 980px, where the drawer pushes the
+  column aside: narrower, it lies over the column, so it starts shut and
+  changes there aren't remembered. Storage that's off or fails leaves it
+  shut. A departure from `admin.md` §8 ("the settings drawer starts
+  shut"), recorded in `departures.md`; the section panel's courtesy
+  collapse is unchanged.
+- **Why:** the author: a refresh or opening another entry should keep it
+  open.
+- **Checked:** `npm run admin:build` (type-checked). Not driven in a
+  browser.

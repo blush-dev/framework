@@ -129,7 +129,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   that changes no status (Update, Save draft, ⌘S) is disabled until
   something changes; nothing sits under the title (D-254); Tab in the
   body moves focus, but in a list item it nests the item (D-284); the
-  drawer isn't remembered. Below 480px the save
+  drawer is remembered (D-299, which departs from §8's "the settings
+  drawer starts shut"). Below 480px the save
   state is its dot, with its words read out.
 - **The chrome doesn't fade while typing** (D-279): the author found the
   darkened toolbar and footer distracting, so §8's "Chrome recedes while

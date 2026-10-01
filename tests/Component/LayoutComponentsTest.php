@@ -24,7 +24,8 @@ use Blush\Component\ComponentRegistry;
 use Blush\Component\Layout\CssLength;
 use Blush\Component\Layout\Grid;
 use Blush\Component\Layout\Group;
-use Blush\Component\Layout\GroupTag;
+use Blush\Component\Layout\Layout;
+use Blush\Component\Layout\LayoutTag;
 use Blush\Component\Layout\Row;
 use Blush\Component\Layout\RowAlign;
 use Blush\Component\Layout\RowJustify;
@@ -32,7 +33,8 @@ use Blush\Component\Layout\RowJustify;
 #[CoversClass(CssLength::class)]
 #[CoversClass(Grid::class)]
 #[CoversClass(Group::class)]
-#[CoversClass(GroupTag::class)]
+#[CoversClass(Layout::class)]
+#[CoversClass(LayoutTag::class)]
 #[CoversClass(Row::class)]
 #[CoversClass(RowAlign::class)]
 #[CoversClass(RowJustify::class)]
@@ -95,8 +97,8 @@ final class LayoutComponentsTest extends TestCase
 		$names    = static fn (string $name): array => array_map(static fn (Field $field): string => $field->name, $registry->get($name)?->props() ?? []);
 
 		$this->assertSame(['tag', 'label'], $names('group'));
-		$this->assertSame(['columns', 'min', 'gap'], $names('grid'));
-		$this->assertSame(['justify', 'align', 'wrap', 'gap'], $names('row'));
+		$this->assertSame(['columns', 'min', 'gap', 'tag', 'label'], $names('grid'));
+		$this->assertSame(['justify', 'align', 'wrap', 'gap', 'tag', 'label'], $names('row'));
 		$this->assertSame(ComponentContent::Blocks, $registry->get('row')?->content());
 	}
 
@@ -126,6 +128,14 @@ final class LayoutComponentsTest extends TestCase
 			:::group[Not a section]
 			Plain.
 			:::
+
+			:::grid[Related]{tag=aside columns=1}
+			Aside.
+			:::
+
+			:::row{tag=section}
+			Unnamed.
+			:::
 			MD);
 
 		$app = $this->scratchApplication(['APP_ENV' => 'development']);
@@ -139,5 +149,9 @@ final class LayoutComponentsTest extends TestCase
 		$this->assertStringContainsString("<section class=\"component-group\" aria-label=\"Two\">\n<p>Two.</p></section>", $html);
 		$this->assertStringContainsString('<div class="component-row" style="display: flex; flex-wrap: wrap; gap: var(--layout-gap, 1rem); justify-content: space-between; align-items: center;">', $html);
 		$this->assertStringContainsString("<div class=\"component-group\">\n<p>Plain.</p></div>", $html);
+		$this->assertStringContainsString('<aside class="component-grid" aria-label="Related" style="display: grid;', $html);
+		$this->assertStringContainsString("<p>Aside.</p></aside>", $html);
+		$this->assertStringContainsString('<section class="component-row" style="display: flex;', $html);
+		$this->assertStringContainsString("<p>Unnamed.</p></section>", $html);
 	}
 }

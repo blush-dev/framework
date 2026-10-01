@@ -13,35 +13,16 @@ declare(strict_types=1);
 
 namespace Blush\Component\Layout;
 
-use Override;
-use Blush\Component\Component;
-use Blush\Component\ComponentContent;
-
 /**
- * Wraps blocks so they can be styled together (D-175, D-177):
+ * Wraps blocks so they can be styled together (D-175, D-177, D-298):
  * `:::group{.alignwide}` … `:::`. It renders a `<div>`, or a `<section>`
- * with `tag=section`, where the label becomes its accessible name. Its
- * `class` and `id` come from the directive's `.class` and `#id`.
+ * or `<aside>` with `tag`, where the label becomes its accessible name.
+ * Its `class` and `id` come from the directive's `.class` and `#id`.
  */
-final class Group extends Component
+final class Group extends Layout
 {
-	/**
-	 * @inheritDoc
-	 */
-	public const ComponentContent CONTENT = ComponentContent::Blocks;
-
 	public function __construct(
-		public readonly GroupTag $tag = GroupTag::Div,
+		public readonly LayoutTag $tag = LayoutTag::Div,
 		public readonly string $label = ''
 	) {}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	protected function rootAttributes(): array
-	{
-		// Only a section is named by the label.
-		return $this->tag === GroupTag::Section ? ['aria-label' => trim($this->label)] : [];
-	}
 }

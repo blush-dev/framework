@@ -2,7 +2,8 @@
 
 /**
  * Grid component (`Component\Layout\Grid`): each block inside is a
- * cell, in up to `columns` columns that wrap on narrow screens.
+ * cell, in up to `columns` columns that wrap on narrow screens. It's a
+ * `<div>`, or a `<section>` or `<aside>` named by the label.
  *
  *     :::grid{columns=3}
  *     First.
@@ -19,6 +20,6 @@
 declare(strict_types=1);
 
 ?>
-<div <?= $component->attributes() ?>>
+<<?= e($component->tag->value) ?> <?= $component->attributes() ?>>
 <?= raw($component->content()) ?>
-</div>
+</<?= e($component->tag->value) ?>>

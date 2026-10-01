@@ -144,6 +144,17 @@
 				},
 				"gap": {
 					"label": "Gap"
+				},
+				"tag": {
+					"label": "Element",
+					"choices": {
+						"div": "Division",
+						"section": "Section",
+						"aside": "Aside"
+					}
+				},
+				"label": {
+					"label": "Name for screen readers"
 				}
 			}
 		},
@@ -155,11 +166,12 @@
 					"label": "Element",
 					"choices": {
 						"div": "Division",
-						"section": "Section"
+						"section": "Section",
+						"aside": "Aside"
 					}
 				},
 				"label": {
-					"label": "Section name"
+					"label": "Name for screen readers"
 				}
 			}
 		},
@@ -254,6 +266,17 @@
 				},
 				"gap": {
 					"label": "Gap"
+				},
+				"tag": {
+					"label": "Element",
+					"choices": {
+						"div": "Division",
+						"section": "Section",
+						"aside": "Aside"
+					}
+				},
+				"label": {
+					"label": "Name for screen readers"
 				}
 			}
 		},

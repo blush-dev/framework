@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Blush\Component\Layout;
 
 use Override;
-use Blush\Component\Component;
-use Blush\Component\ComponentContent;
 
 /**
  * Lays blocks out in columns (D-175, D-177): `:::grid{columns=3}` … `:::`.
@@ -27,16 +25,13 @@ use Blush\Component\ComponentContent;
  * the space between cells; otherwise the theme's `--layout-gap` applies,
  * or `1.5rem`.
  *
+ * `tag` makes it a `section` or `aside`, named by the label (D-298).
+ *
  * The layout is inline styles, so it works in any theme; themes style
  * the `component-grid` class for the rest.
  */
-final class Grid extends Component
+final class Grid extends Layout
 {
-	/**
-	 * @inheritDoc
-	 */
-	public const ComponentContent CONTENT = ComponentContent::Blocks;
-
 	/**
 	 * The gap when neither the component nor the theme sets one.
 	 */
@@ -55,7 +50,9 @@ final class Grid extends Component
 	public function __construct(
 		public readonly int $columns = 2,
 		public readonly string $min = self::MIN,
-		public readonly string $gap = ''
+		public readonly string $gap = '',
+		public readonly LayoutTag $tag = LayoutTag::Div,
+		public readonly string $label = ''
 	) {
 		$this->style = $this->styles();
 	}
@@ -66,7 +63,7 @@ final class Grid extends Component
 	#[Override]
 	protected function rootAttributes(): array
 	{
-		return ['style' => $this->style];
+		return [...parent::rootAttributes(), 'style' => $this->style];
 	}
 
 	/**

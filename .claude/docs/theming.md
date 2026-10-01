@@ -286,7 +286,7 @@ aren't candidates (D-104).
   ships the core content components (D-033, D-113): `callout`, `gallery`,
   `figure` (a container for anything captioned, D-267), and `embed`, plus the layout components `group`, `grid`, and
   `row` (D-177, which set their structural CSS inline and read
-  `--layout-gap`), and the media components `audio`, `video`, and
+  `--layout-gap`; each renders as its `tag`, D-298), and the media components `audio`, `video`, and
   `file` (D-179), and the inline components `abbr`, `kbd`, and `time`
   (D-180), `toc` (D-183), `icon` (D-187), `progress` and `meter`
   (D-188), and `button` (D-189), so they work under any theme. A registered

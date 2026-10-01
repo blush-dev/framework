@@ -2,7 +2,8 @@
 
 /**
  * Row component (`Component\Layout\Row`): each block inside is an
- * item, side by side, wrapping when they don't fit.
+ * item, side by side, wrapping when they don't fit. It's a `<div>`, or a
+ * `<section>` or `<aside>` named by the label.
  *
  *     :::row{justify=between}
  *     [Previous](/one)
@@ -17,6 +18,6 @@
 declare(strict_types=1);
 
 ?>
-<div <?= $component->attributes() ?>>
+<<?= e($component->tag->value) ?> <?= $component->attributes() ?>>
 <?= raw($component->content()) ?>
-</div>
+</<?= e($component->tag->value) ?>>
