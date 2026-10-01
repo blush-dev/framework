@@ -377,7 +377,8 @@ or in Markdown with `:notebook/badge[New]{tone=new}`.
 The **core components** work in every theme, because the default theme
 provides them: `callout`, `embed`, `figure`, and `gallery`; the layout
 components `group`, `grid`, and `row`; the media components `audio`,
-`video`, and `file`; the inline components `abbr`, `kbd`, and `time`; `toc`, a table of
+`video`, and `file`; the inline components `abbr`, `badge`, `cite`, `dfn`, `ins`, `kbd`,
+`samp`, `small`, `time`, and `var`; `toc`, a table of
 contents; `icon`; `button`; and `progress` and `meter`. They're the
 only components with short names. To change how one looks, add your own
 `views/components/callout.php` (or `blush-callout.php`, and so on); yours

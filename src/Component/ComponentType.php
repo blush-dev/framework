@@ -14,8 +14,15 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Blush\Component\Inline\Abbr;
+use Blush\Component\Inline\Badge;
+use Blush\Component\Inline\Cite;
+use Blush\Component\Inline\Dfn;
+use Blush\Component\Inline\Ins;
 use Blush\Component\Inline\Kbd;
+use Blush\Component\Inline\Samp;
+use Blush\Component\Inline\Small;
 use Blush\Component\Inline\Time;
+use Blush\Component\Inline\Variable;
 use Blush\Component\Layout\Figure;
 use Blush\Component\Layout\Grid;
 use Blush\Component\Layout\Group;
@@ -36,8 +43,11 @@ enum ComponentType: string
 {
 	case Abbr     = 'abbr';
 	case Audio    = 'audio';
+	case Badge    = 'badge';
 	case Button   = 'button';
 	case Callout  = 'callout';
+	case Cite     = 'cite';
+	case Dfn      = 'dfn';
 	case Embed    = 'embed';
 	case Figure   = 'figure';
 	case File     = 'file';
@@ -45,13 +55,17 @@ enum ComponentType: string
 	case Grid     = 'grid';
 	case Group    = 'group';
 	case Icon     = 'icon';
+	case Ins      = 'ins';
 	case Kbd      = 'kbd';
 	case Menu     = 'menu';
 	case Meter    = 'meter';
 	case Progress = 'progress';
 	case Row      = 'row';
+	case Samp     = 'samp';
+	case Small    = 'small';
 	case Time     = 'time';
 	case Toc      = 'toc';
+	case Var      = 'var';
 	case Video    = 'video';
 
 	/**
@@ -64,8 +78,11 @@ enum ComponentType: string
 		return match ($this) {
 			self::Abbr     => Abbr::class,
 			self::Audio    => Audio::class,
+			self::Badge    => Badge::class,
 			self::Button   => Button::class,
 			self::Callout  => Callout::class,
+			self::Cite     => Cite::class,
+			self::Dfn      => Dfn::class,
 			self::Embed    => Embed::class,
 			self::Figure   => Figure::class,
 			self::File     => File::class,
@@ -73,13 +90,17 @@ enum ComponentType: string
 			self::Grid     => Grid::class,
 			self::Group    => Group::class,
 			self::Icon     => Icon::class,
+			self::Ins      => Ins::class,
 			self::Kbd      => Kbd::class,
 			self::Menu     => Menu::class,
 			self::Meter    => Meter::class,
 			self::Progress => Progress::class,
 			self::Row      => Row::class,
+			self::Samp     => Samp::class,
+			self::Small    => Small::class,
 			self::Time     => Time::class,
 			self::Toc      => Toc::class,
+			self::Var      => Variable::class,
 			self::Video    => Video::class
 		};
 	}
@@ -90,11 +111,12 @@ enum ComponentType: string
 	public function category(): ComponentCategory
 	{
 		return match ($this) {
-			self::Abbr, self::Callout, self::Icon, self::Kbd, self::Time          => ComponentCategory::Text,
-			self::Audio, self::Embed, self::File, self::Gallery, self::Video      => ComponentCategory::Media,
-			self::Figure, self::Grid, self::Group, self::Row                      => ComponentCategory::Layout,
-			self::Button, self::Menu, self::Toc                                   => ComponentCategory::Navigation,
-			self::Meter, self::Progress                                           => ComponentCategory::Data
+			self::Abbr, self::Badge, self::Callout, self::Cite, self::Dfn, self::Icon,
+			self::Ins, self::Kbd, self::Samp, self::Small, self::Time, self::Var         => ComponentCategory::Text,
+			self::Audio, self::Embed, self::File, self::Gallery, self::Video            => ComponentCategory::Media,
+			self::Figure, self::Grid, self::Group, self::Row                            => ComponentCategory::Layout,
+			self::Button, self::Menu, self::Toc                                         => ComponentCategory::Navigation,
+			self::Meter, self::Progress                                                 => ComponentCategory::Data
 		};
 	}
 
@@ -105,7 +127,19 @@ enum ComponentType: string
 	 */
 	public function isInline(): bool
 	{
-		return in_array($this, [self::Abbr, self::Icon, self::Kbd, self::Time], true);
+		return in_array($this, [
+			self::Abbr,
+			self::Badge,
+			self::Cite,
+			self::Dfn,
+			self::Icon,
+			self::Ins,
+			self::Kbd,
+			self::Samp,
+			self::Small,
+			self::Time,
+			self::Var
+		], true);
 	}
 
 	/**

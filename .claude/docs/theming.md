@@ -288,7 +288,8 @@ aren't candidates (D-104).
   `row` (D-177, which set their structural CSS inline and read
   `--layout-gap`; each renders as its `tag`, D-298), and the media components `audio`, `video`, and
   `file` (D-179), and the inline components `abbr`, `kbd`, and `time`
-  (D-180), `toc` (D-183), `icon` (D-187), `progress` and `meter`
+  (D-180) and `badge`, `cite`, `dfn`, `ins`, `samp`, `small`, and `var`
+  (D-305), `toc` (D-183), `icon` (D-187), `progress` and `meter`
   (D-188), and `button` (D-189), so they work under any theme. A registered
   component's `media` props (`#[MediaProp]` on a class parameter) are
   resolved against the entry's folder, like images (D-179). Directives render with

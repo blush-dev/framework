@@ -60,8 +60,11 @@ const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', site: 'hou
 const ICONS: Record<string, IconName> = {
 	abbr: 'book-open',
 	audio: 'headphones',
+	badge: 'tag',
 	button: 'arrow-up-right',
 	callout: 'info',
+	cite: 'quote',
+	dfn: 'lightbulb',
 	embed: 'globe',
 	figure: 'panel-bottom',
 	file: 'download',
@@ -70,13 +73,17 @@ const ICONS: Record<string, IconName> = {
 	group: 'folder',
 	icon: 'star',
 	image: 'image',
+	ins: 'plus',
 	kbd: 'terminal',
 	menu: 'menu',
 	meter: 'sliders-horizontal',
 	progress: 'chevrons-right',
 	row: 'rows-3',
+	samp: 'monitor',
+	small: 'baseline',
 	time: 'clock',
 	toc: 'list-ordered',
+	var: 'code',
 	video: 'video'
 };
 

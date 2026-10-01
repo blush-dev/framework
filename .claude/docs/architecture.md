@@ -598,7 +598,8 @@ Views use components, but the system is its own subsystem.
   `Component\Layout`
   (`Group`, `Grid`, `Row`, `CssLength`, D-177); `Component\Media`
   (`Audio`, `Video`, `File`, `Figure`, `Gallery`, `MediaPreload`, D-179); `Component\Inline`
-  (`Abbr`, `Kbd`, `Time`, D-180); `Toc` (D-183, fed the outline by the Markdown
+  (`Abbr`, `Kbd`, `Time`, D-180; `Badge`, `Cite`, `Dfn`, `Ins`, `Samp`,
+  `Small`, `Variable` for `var`, D-305); `Toc` (D-183, fed the outline by the Markdown
   layer's `CollectOutline`); `Progress` and `Meter` (D-188); and `Button`
   (D-189).
 - **Props:** `MediaProp` marks media props, which directives resolve

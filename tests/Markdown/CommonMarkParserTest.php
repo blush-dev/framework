@@ -20,6 +20,8 @@ use League\CommonMark\Extension\SmartPunct\SmartPunctExtension;
 use Blush\Config\InvalidConfig;
 use Blush\Event\EventDispatcher;
 use Blush\Event\Listener\ListenerRegistry;
+use Blush\Markdown\CommonMark\BracketedSpanParser;
+use Blush\Markdown\CommonMark\BracketedSpanRenderer;
 use Blush\Markdown\CommonMark\DescriptionAttributes;
 use Blush\Markdown\CommonMark\DescriptionListRenderer;
 use Blush\Markdown\CommonMarkParser;
@@ -29,6 +31,8 @@ use Blush\Markdown\MarkdownException;
 use Blush\Tests\Fixtures\Markdown\ShoutParser;
 
 #[CoversClass(CommonMarkParser::class)]
+#[CoversClass(BracketedSpanParser::class)]
+#[CoversClass(BracketedSpanRenderer::class)]
 #[CoversClass(DescriptionAttributes::class)]
 #[CoversClass(DescriptionListRenderer::class)]
 #[CoversClass(MarkdownConfig::class)]
@@ -70,6 +74,29 @@ final class CommonMarkParserTest extends TestCase
 		$this->assertStringContainsString('<dd class="more">Three</dd>', $html);
 		$this->assertStringContainsString('<dd><p class="wide">A paragraph.</p></dd>', $html, 'A loose one keeps them on its <p>.');
 		$this->assertStringContainsString("<dt>Plain</dt>\n<dd>None</dd>", $html, 'Nothing to add, nothing added.');
+	}
+
+	public function testBracketsWithAttributesAreSpans(): void
+	{
+		$parser = $this->parser(new MarkdownConfig(absoluteLinks: false));
+		$cases  = [
+			'A [big *news*]{.big #news} day.' => '<p>A <span class="big" id="news">big <em>news</em></span> day.</p>',
+			'[a [b]{.inner} c]{.outer}'       => '<p><span class="outer">a <span class="inner">b</span> c</span></p>',
+			'[[text]{.x}](/url)'              => '<p><a href="/url"><span class="x">text</span></a></p>',
+			'**[bold]{.x}**'                  => '<p><strong><span class="x">bold</span></strong></p>',
+			'[link](/url){.x}'                => '<p><a class="x" href="/url">link</a></p>',
+			"[docs]{.x}\n\n[docs]: /docs"     => '<p><a class="x" href="/docs">docs</a></p>',
+			'[not a span]{oops'               => '<p>[not a span]{oops</p>',
+			'[x]{onclick=alert(1)}'           => '<p><span>x</span></p>'
+		];
+
+		foreach ($cases as $markdown => $html) {
+			$this->assertSame("{$html}\n", $parser->toHtml((string) $markdown), (string) $markdown);
+		}
+
+		$plain = $this->parser(new MarkdownConfig(extensions: [CommonMarkCoreExtension::class]));
+
+		$this->assertSame("<p>[text]{.x}</p>\n", $plain->toHtml('[text]{.x}'), 'Only with the attributes extension.');
 	}
 
 	public function testUsesTheConfiguredOptionsExtensionsAndInlineParsers(): void

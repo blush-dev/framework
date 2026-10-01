@@ -19,9 +19,11 @@ use Blush\Core\AppConfig;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\BootsScratchSite;
+use Blush\Component\Inline\Ins;
 use Blush\Component\Inline\Kbd;
 use Blush\Component\Inline\Time;
 
+#[CoversClass(Ins::class)]
 #[CoversClass(Kbd::class)]
 #[CoversClass(Time::class)]
 final class InlineComponentsTest extends TestCase
@@ -65,6 +67,16 @@ final class InlineComponentsTest extends TestCase
 		$this->assertSame('6. Oktober 2026', new Time(new AppConfig(locale: 'de_DE'), '2026-10-06')->formatted);
 	}
 
+	public function testInsertionsTakeOnlyRealDates(): void
+	{
+		$this->assertSame('2026-10-06', new Ins('2026-10-06')->machine);
+		$this->assertSame('2026-10-06T14:30-05:00', new Ins(' 2026-10-06T14:30-05:00 ')->machine);
+		$this->assertNull(new Ins('2026-02-30')->machine);
+		$this->assertNull(new Ins('2026-10')->machine, 'A month isn\'t a date.');
+		$this->assertNull(new Ins('14:30')->machine);
+		$this->assertNull(new Ins('yesterday')->machine);
+	}
+
 	public function testTheyRenderInsideSentences(): void
 	{
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
@@ -76,6 +88,12 @@ final class InlineComponentsTest extends TestCase
 			Plain :abbr[FAQ] and :kbd[Esc].
 
 			::time{datetime=2026-10-06}
+
+			New :badge[Beta]{variant=info} and :badge[Plain], from :cite[The Hobbit], where :dfn[Blush]{title="Blush CMS"} is ~~paid~~ :ins[free]{datetime=2026-10-06 cite=/changes}.
+
+			It prints :samp[Not found], :small[fine print], and :var[x].
+
+			A [plain span]{.note #first} too.
 			MD);
 
 		$app = $this->scratchApplication();
@@ -86,5 +104,8 @@ final class InlineComponentsTest extends TestCase
 		$this->assertStringContainsString('<p>A <abbr class="component-abbr" title="content management system">CMS</abbr>, saved with <kbd class="component-kbd"><kbd>Ctrl</kbd>+<kbd>S</kbd></kbd> on <time class="component-time" datetime="2026-10-06">Tuesday</time>.</p>', $html);
 		$this->assertStringContainsString('<p>Plain <abbr class="component-abbr">FAQ</abbr> and <kbd class="component-kbd">Esc</kbd>.</p>', $html);
 		$this->assertStringContainsString('<time class="component-time" datetime="2026-10-06">October 6, 2026</time>', $html);
+		$this->assertStringContainsString('<p>New <span class="component-badge component-badge--info">Beta</span> and <span class="component-badge">Plain</span>, from <cite class="component-cite">The Hobbit</cite>, where <dfn class="component-dfn" title="Blush CMS">Blush</dfn> is <del>paid</del> <ins class="component-ins" datetime="2026-10-06" cite="/changes">free</ins>.</p>', $html);
+		$this->assertStringContainsString('<p>It prints <samp class="component-samp">Not found</samp>, <small class="component-small">fine print</small>, and <var class="component-var">x</var>.</p>', $html);
+		$this->assertStringContainsString('<p>A <span class="note" id="first">plain span</span> too.</p>', $html);
 	}
 }

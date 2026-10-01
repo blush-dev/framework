@@ -175,11 +175,15 @@ lists, autolinks, and footnotes. On top of that:
   `{.note}` at the end of a definition gives the `<dt>` or `<dd>` one.
 
 - **Highlighting:** `==text==` marks text as highlighted (`<mark>`).
+- **Spans:** text in brackets followed straight away by attributes,
+  `[text]{.class #id}`, becomes a `<span>` with them, for a class or id
+  on a few words. A link (`[text](/url){.class}`) or a word with a link
+  reference definition stays a link, with the attributes on it.
 - Links that start with `/` become full URLs, so they still work in feeds.
 - Raw HTML is allowed.
 
-You can add more CommonMark extensions, such as attributes
-(`{.alignwide}`) or heading permalinks, in `config/markdown.php`; see
+You can add more CommonMark extensions, such as heading permalinks, in
+`config/markdown.php`; see
 [Configuration](configuration.md#markdown).
 
 ### Components

@@ -134,7 +134,9 @@ The current focus: the experience of setting up a Blush site.
   a theme leaves out other themes' components (D-178).
 - **The core component set (D-175):** definition lists and highlighting
   in Markdown (D-176); `group`, `grid`, and `row` (D-177); `audio`,
-  `video`, and `file` (D-179); `abbr`, `kbd`, and `time` (D-180); `toc`
+  `video`, and `file` (D-179); `abbr`, `kbd`, and `time` (D-180), then
+  `badge`, `cite`, `dfn`, `ins`, `samp`, `small`, and `var`, and
+  `[text]{.class}` spans (D-305); `toc`
   (D-183); `icon`, with a 131-icon Lucide subset (D-187); `progress` and
   `meter` (D-188); and `button` (D-189). Media props resolved against the
   entry's bundle (D-179; removed by D-294), and media and link props render as full URLs

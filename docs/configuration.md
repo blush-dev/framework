@@ -187,7 +187,7 @@ Attributes are on by default: `{.class #id}` at the end of a heading,
 paragraph, list item, definition list term, or definition, or on a line
 of its own above a list, definition list, table, code block, or rule,
 gives it classes and an id. The editor's Classes and ID
-fields write them.
+fields write them. They also make `[text]{.class}` a `<span>`.
 
 To add extensions, list the defaults along with yours (listing one twice
 is fine). For example, for smart quotes and dashes:

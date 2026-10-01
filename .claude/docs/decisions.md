@@ -7217,3 +7217,44 @@ decision, add a new entry that supersedes it and mark the old one
   nothing in the admin. This is how it already works; don't propose file
   order as an option.
 - **Why:** the author: "Terms should be alphabetical, not file order."
+
+### D-305: More inline components, and `[text]{.class}` spans
+- **Date:** 2026-09-30
+- **Decision:** Extends D-175's inline set and settles how content
+  writes a plain span. Built in this session.
+  - **Spans are Markdown, not a component.** `[text]{.class #id}`
+    (Pandoc's bracketed spans) renders `<span class="class"
+    id="id">text</span>`. Until now the attributes extension silently
+    dropped the `{…}` and left `[text]`. `BracketedSpanParser` runs
+    just before league/commonmark's closing bracket parser and only
+    takes a `]` that's followed straight away by a valid attribute list,
+    which it leaves for the attributes extension to put on the span (so
+    its filtering of `on*` and unsafe links applies). Links win: an
+    image, an inactive opener, and a label with a link reference
+    definition are left alone. It's on whenever `AttributesExtension`
+    is configured.
+  - **`<mark>` needs nothing:** `==text==` is on by default (D-176) and
+    takes attributes (`==text=={.x}`).
+  - **New core inline components**, each a class in
+    `Component\Inline` with a template in the default theme, category
+    Text, and inline in the admin's inserter: `badge` (`<span>`, with
+    the callout's tones as variants: `info`, `tip`, `warning`, `danger`;
+    Default is neutral), `cite`, `dfn` (`title`, the term when the text
+    says it differently), `ins` (`datetime`, a real date or date and
+    time as HTML requires of `<ins>`, else left out; `cite`, a URL),
+    `samp`, `small`, and `var` (class `Variable`, since `var` is
+    reserved in PHP).
+  - **Not added:** `sub` and `sup`. The author didn't pick them; note
+    that `~text~` is already strikethrough (`<del>`), so Pandoc's
+    subscript syntax isn't available.
+  - The default theme styles the badge; the browser's defaults serve
+    the rest. The jtcom trial's theme got badge, `samp`, and `var`
+    styles (it already styled `ins`, `cite`, `dfn`, and `small`).
+- **Checked:** `composer check` (`CommonMarkParserTest`: spans, nesting,
+  inside links and emphasis, links winning, bad attribute lists, without
+  the extension; `InlineComponentsTest`: rendering and `ins` dates;
+  `ComponentsTest`); `npm run admin:build`; the jtcom trial's
+  `content:lint`, `theme:check`, `component:list`, and theme build.
+- **Why:** the author asked for a badge and a custom span, and picked
+  `ins`, `cite`/`dfn`, and `small`/`var`/`samp` from the HTML inlines
+  Markdown can't write.

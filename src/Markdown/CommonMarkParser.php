@@ -17,6 +17,7 @@ use Override;
 use Throwable;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Event\DocumentParsedEvent;
+use League\CommonMark\Extension\Attributes\AttributesExtension;
 use League\CommonMark\Extension\DescriptionList\DescriptionListExtension;
 use League\CommonMark\Extension\DescriptionList\Node\Description;
 use League\CommonMark\Extension\DescriptionList\Node\DescriptionList;
@@ -27,6 +28,9 @@ use League\CommonMark\Node\Block\Paragraph;
 use League\CommonMark\Parser\Inline\InlineParserInterface;
 use Blush\Core\AppConfig;
 use Blush\Event\Dispatcher;
+use Blush\Markdown\CommonMark\BracketedSpan;
+use Blush\Markdown\CommonMark\BracketedSpanParser;
+use Blush\Markdown\CommonMark\BracketedSpanRenderer;
 use Blush\Markdown\CommonMark\Directive\DirectiveExtension;
 use Blush\Markdown\CommonMark\DescriptionAttributes;
 use Blush\Markdown\CommonMark\DescriptionListRenderer;
@@ -103,6 +107,13 @@ final class CommonMarkParser implements MarkdownParser
 
 			if ($this->config->directives) {
 				$environment->addExtension(new DirectiveExtension($this->directives));
+			}
+
+			// `[text]{.class}` is a span, as in Pandoc (D-305), ahead of
+			// the closing bracket parser (30).
+			if (in_array(AttributesExtension::class, $this->config->extensions, true)) {
+				$environment->addInlineParser(new BracketedSpanParser(), 31);
+				$environment->addRenderer(BracketedSpan::class, new BracketedSpanRenderer());
 			}
 
 			// league/commonmark's description list renderers leave out

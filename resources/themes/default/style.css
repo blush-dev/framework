@@ -606,6 +606,24 @@ hr {
 	font: inherit;
 }
 
+.component-badge {
+	display: inline-block;
+	padding: 0.1em 0.5em;
+	border: 1px solid color-mix(in srgb, var(--badge-color, var(--color-muted)) 40%, transparent);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--badge-color, var(--color-muted)) 12%, var(--color-background));
+	color: var(--badge-color, var(--color-text));
+	font-size: 0.75em;
+	font-weight: 600;
+	line-height: 1.4;
+	vertical-align: 0.1em;
+}
+
+.component-badge--info { --badge-color: var(--color-info); }
+.component-badge--tip { --badge-color: var(--color-success); }
+.component-badge--warning { --badge-color: var(--color-warning); }
+.component-badge--danger { --badge-color: var(--color-danger); }
+
 .component-callout {
 	margin-block: var(--space-l);
 	padding: var(--space-m);

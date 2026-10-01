@@ -33,6 +33,28 @@
 				}
 			}
 		},
+		"badge": {
+			"label": "Badge",
+			"description": "A short label set off from the text, such as “New” or “Beta”.",
+			"variants": {
+				"info": {
+					"label": "Info",
+					"description": "Something useful to know."
+				},
+				"tip": {
+					"label": "Tip",
+					"description": "Something good, such as a success."
+				},
+				"warning": {
+					"label": "Warning",
+					"description": "Something to be careful about."
+				},
+				"danger": {
+					"label": "Danger",
+					"description": "Something that can break things."
+				}
+			}
+		},
 		"button": {
 			"label": "Button",
 			"description": "A link that looks like a button, with an optional icon.",
@@ -83,6 +105,19 @@
 				"danger": {
 					"label": "Danger",
 					"description": "Something that can break things or lose data."
+				}
+			}
+		},
+		"cite": {
+			"label": "Citation",
+			"description": "The title of a book, film, article, or other work."
+		},
+		"dfn": {
+			"label": "Definition",
+			"description": "The term a sentence defines.",
+			"props": {
+				"title": {
+					"label": "Term"
 				}
 			}
 		},
@@ -187,6 +222,18 @@
 				}
 			}
 		},
+		"ins": {
+			"label": "Insertion",
+			"description": "Text added after the fact, the pair to deleted text.",
+			"props": {
+				"datetime": {
+					"label": "Added on"
+				},
+				"cite": {
+					"label": "Reason (link)"
+				}
+			}
+		},
 		"kbd": {
 			"label": "Keyboard Key",
 			"description": "A key or key combination to press, such as Ctrl+S.",
@@ -280,6 +327,14 @@
 				}
 			}
 		},
+		"samp": {
+			"label": "Sample output",
+			"description": "What a program prints, such as an error message."
+		},
+		"small": {
+			"label": "Small print",
+			"description": "A side comment or fine print."
+		},
 		"time": {
 			"label": "Time",
 			"description": "A date, time, or duration that software can read.",
@@ -300,6 +355,10 @@
 					"label": "Deepest heading level"
 				}
 			}
+		},
+		"var": {
+			"label": "Variable",
+			"description": "A variable in math or code."
 		},
 		"video": {
 			"label": "Video",
