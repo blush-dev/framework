@@ -5,7 +5,7 @@
  *
  * Two attributes on `<html>` pick the look:
  *
- *   data-admin-theme="neutral" | "<theme-id>"   absent: neutral
+ *   data-admin-theme="neutral" | "editorial"    absent: neutral
  *   data-color-scheme="light" | "dark"          absent: the system's
  *
  * The cascade order matters. Every token is first defined on bare
@@ -179,6 +179,119 @@
 	--shadow-1: none;
 	--shadow-2: 0 2px 8px rgb(0 0 0 / 30%);
 	--shadow-3: 0 10px 28px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 30%);
+
+	color-scheme: dark;
+}
+
+/* Editorial (D-317): warm paper, a teal accent, serif titles, and looser
+   rows. It redefines type and density as well as color, which is what an
+   admin theme may do, and the most it may do. */
+
+:root[data-admin-theme="editorial"] {
+	--bg: #f6f2ec;
+	--surface: #fffdfa;
+	--surface-2: #f1ece3;
+	--surface-3: #e7e0d4;
+	--border: #e5ded2;
+	--border-strong: #cdc3b3;
+	--fg: #23201b;
+	--fg-2: #5d564c;
+	--fg-3: #8e867a;
+	--accent: #17595e;
+	--accent-hover: #124a4e;
+	--accent-fg: #fffdfa;
+	--accent-soft: #e2eded;
+	--accent-line: #b6d3d5;
+	--good: #4c6d2c;
+	--good-soft: #edf1e2;
+	--good-dot: #6f9b45;
+	--warn: #8a5a14;
+	--warn-soft: #f8eeda;
+	--warn-dot: #c58a2a;
+	--danger: #9c3327;
+	--danger-soft: #f8e7e2;
+	--danger-dot: #c2503f;
+	--shadow-1: none;
+	--shadow-2: 0 2px 8px rgb(60 48 32 / 5%), 0 1px 2px rgb(60 48 32 / 4%);
+	--shadow-3: 0 10px 28px rgb(60 48 32 / 9%), 0 2px 6px rgb(60 48 32 / 5%);
+	--r-1: 8px;
+	--r-2: 12px;
+	--r-3: 20px;
+	--font-ui: "Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+	--font-title: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+	--base: 13.5px;
+	--h1: 32px;
+	--h1-track: -.014em;
+	--title-size: 15.5px;
+	--title-weight: 500;
+	--title-track: 0;
+	--pad-row: 16px;
+	--pad-panel: 19px;
+	--pad-x: 26px;
+	--stat-v: 34px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+		--bg: #15120e;
+		--surface: #1d1915;
+		--surface-2: #26211a;
+		--surface-3: #322b22;
+		--border: #302a21;
+		--border-strong: #463e31;
+		--fg: #f0e9dd;
+		--fg-2: #b4a996;
+		--fg-3: #877c6c;
+		--accent: #72bec2;
+		--accent-hover: #8bcccf;
+		--accent-fg: #15120e;
+		--accent-soft: #113032;
+		--accent-line: #1d4a4d;
+		--good: #9cc16b;
+		--good-soft: #1c2413;
+		--good-dot: #84ad55;
+		--warn: #dcae63;
+		--warn-soft: #2c2314;
+		--warn-dot: #c79646;
+		--danger: #e8897b;
+		--danger-soft: #2f1a16;
+		--danger-dot: #cf6a5c;
+		--shadow-1: none;
+		--shadow-2: 0 2px 8px rgb(0 0 0 / 34%);
+		--shadow-3: 0 10px 28px rgb(0 0 0 / 50%), 0 2px 6px rgb(0 0 0 / 34%);
+
+		color-scheme: dark;
+	}
+}
+
+:root[data-color-scheme="dark"][data-admin-theme="editorial"] {
+	--bg: #15120e;
+	--surface: #1d1915;
+	--surface-2: #26211a;
+	--surface-3: #322b22;
+	--border: #302a21;
+	--border-strong: #463e31;
+	--fg: #f0e9dd;
+	--fg-2: #b4a996;
+	--fg-3: #877c6c;
+	--accent: #72bec2;
+	--accent-hover: #8bcccf;
+	--accent-fg: #15120e;
+	--accent-soft: #113032;
+	--accent-line: #1d4a4d;
+	--good: #9cc16b;
+	--good-soft: #1c2413;
+	--good-dot: #84ad55;
+	--warn: #dcae63;
+	--warn-soft: #2c2314;
+	--warn-dot: #c79646;
+	--danger: #e8897b;
+	--danger-soft: #2f1a16;
+	--danger-dot: #cf6a5c;
+	--shadow-1: none;
+	--shadow-2: 0 2px 8px rgb(0 0 0 / 34%);
+	--shadow-3: 0 10px 28px rgb(0 0 0 / 50%), 0 2px 6px rgb(0 0 0 / 34%);
 
 	color-scheme: dark;
 }

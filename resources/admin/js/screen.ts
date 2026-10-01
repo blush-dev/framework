@@ -18,6 +18,13 @@ export const screenTitle = ref<string | null>(null);
 export const screenTrail = ref<{ label: string; to: RouteLocationRaw }[]>([]);
 
 /**
+ * The trail's last crumb, when it says what you're doing rather than the
+ * screen's title: the editor's "Editing" (D-317). Each navigation clears
+ * it.
+ */
+export const screenCrumb = ref<string | null>(null);
+
+/**
  * Whether the editor's focus mode is on: the layout drops the section
  * rail, its panel, and the top bar, leaving the writing column. Each
  * navigation turns it off.

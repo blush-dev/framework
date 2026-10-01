@@ -121,6 +121,12 @@ final class AdminAppTest extends TestCase
 
 		$this->assertStringContainsString('<html lang="en">', $body, 'System sets no attribute.');
 		$this->assertStringContainsString('"colorScheme":"system"', $body);
+
+		$this->send('PATCH', '/preferences', '{"adminTheme": "editorial"}', ['X-CSRF-Token' => $token]);
+		$body = (string) $this->visit('GET', '/admin')->getBody();
+
+		$this->assertStringContainsString('<html lang="en" data-admin-theme="editorial">', $body);
+		$this->assertStringContainsString('"adminTheme":"editorial"', $body);
 	}
 
 	public function testServesACustomApp(): void

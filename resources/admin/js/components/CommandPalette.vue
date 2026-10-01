@@ -14,6 +14,7 @@ import AdminIcon from './AdminIcon.vue';
 import TypeIcon from './TypeIcon.vue';
 import StatusPill from './StatusPill.vue';
 import { ApiError, entryRoute, request, type EntryList, type EntrySummary } from '../api';
+import { adminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { commandMatches, screenCommands, type Command } from '../commands';
 import type { IconName } from '../icons';
@@ -73,6 +74,13 @@ const everywhere = computed<Command[]>(() => {
 			icon: colorScheme.value === 'dark' ? 'sun' : 'moon',
 			keywords: 'theme dark light mode appearance',
 			run: () => void saveColorScheme(colorScheme.value === 'dark' ? 'light' : 'dark').catch(() => undefined)
+		},
+		{
+			id: 'admin-theme',
+			label: adminTheme.value === 'editorial' ? 'Use the Neutral theme' : 'Use the Editorial theme',
+			icon: adminTheme.value === 'editorial' ? 'layout-dashboard' : 'book-open',
+			keywords: 'admin theme look appearance neutral editorial',
+			run: () => void saveAdminTheme(adminTheme.value === 'editorial' ? 'neutral' : 'editorial').catch(() => undefined)
 		}
 	);
 

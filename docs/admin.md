@@ -48,7 +48,14 @@ authors). The panel
 beside it lists the section you're in. Choosing a section changes the
 panel and nothing else, so you never leave the screen you're on (an
 entry you're writing stays open); choose a link in the panel to go
-there. You only see what your account can use.
+there. Choosing the section that's already showing hides the panel,
+leaving just the rail (your browser remembers it), and choosing it
+again brings the panel back. You only see what your account can use.
+
+The top bar says where you are: the section, then the screens above
+this one, then this one, such as *Content / Posts / Editing* or *Config
+/ Content Types / Pages*. The section's name shows its panel; the
+screens before the last go back to them.
 
 **Search or jump to…** in the top bar (or ⌘K, Ctrl+K on Windows and
 Linux) opens the command palette: type to find a screen, a command such
@@ -56,22 +63,23 @@ as **New post**, or an entry by its title, then press Enter. In the
 editor, the editor's own commands come first, such as **Focus mode**
 and **Insert media**.
 
-The button at the top left hides the panel, leaving just the rail (your
-browser remembers the choice). The editor hides it while you write and
-puts it back as it was when you leave. On a narrow screen it opens the rail and
-panel as a menu instead. **View site** opens your site in a new tab, and
+The editor hides the panel while you write and puts it back as it was
+when you leave. On a narrow screen, the button at the top left opens
+the rail and panel as a menu instead. **View site** opens your site in a new tab, and
 the round button at the top right has **Your profile** and **Sign out**.
 
 ## Your profile
 
 **Your profile** shows your account (username, roles, linked author,
-and when you last signed in), your **author page**, and your **color
-scheme**. Your author page is the entry of your linked author: your name
+and when you last signed in), your **author page**, and the admin's
+**theme** and **color scheme**. Your author page is the entry of your linked author: your name
 in bylines, your bio, and your archive. **Edit your author page** opens
 it in the editor; it's yours to edit even though no entry credits it. If
 it doesn't exist yet, **Create your author page** starts it as a draft
-(publish it to show your name). The color scheme is light, dark, or
-your device's setting (the default). The choice is saved with your
+(publish it to show your name). The theme is **Neutral** (cool gray
+with a blue accent, the default) or **Editorial** (warm paper, a teal
+accent, and serif titles). The color scheme is light, dark, or your
+device's setting (the default). Each choice is saved with your
 account, so it follows you to every device you sign in on, and it only
 changes what you see: someone else on the same site keeps their own.
 
@@ -242,7 +250,7 @@ as `/admin/entries/_posts/2026-09-29.hello.md`, which works for every
 entry.
 
 There's no back button: the type's name in the top bar (**Posts** in
-*Site / Posts / Edit Post*) goes back to its list. The header's left
+*Content / Posts / Editing*) goes back to its list. The header's left
 side is what you do to the text, in three groups:
 
 - **What goes in the entry**, always there: **+** for a block component
@@ -872,8 +880,9 @@ and fonts; never `.vite/`). Build with plain file names, as the
 file's contents to its URL, so browsers cache the files until they
 change. The page also includes a JSON block (`#blush-admin-config`)
 with the admin's path, the API's path, the site's name, and the
-signed-in account's `colorScheme` (`null` when no one is signed in). For
-a light or dark account, `<html>` also carries `data-color-scheme`.
+signed-in account's `colorScheme` and `adminTheme` (`null` when no one
+is signed in). For a light or dark account, `<html>` also carries
+`data-color-scheme`, and for an Editorial one, `data-admin-theme`.
 
 The API is JSON under `/admin/api`, and uses the session cookie:
 
@@ -883,7 +892,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST login` | Sign in with `{"username", "password"}` |
 | `POST logout` | Sign out |
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
-| `PATCH preferences` | Change the account's own preferences, such as `{"colorScheme": "dark"}` (`system`, `light`, or `dark`); answers `{"preferences"}` |
+| `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`) and `adminTheme` (`neutral` or `editorial`), such as `{"colorScheme": "dark"}`; answers `{"preferences"}` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |

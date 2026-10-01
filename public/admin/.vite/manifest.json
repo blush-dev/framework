@@ -31,6 +31,22 @@
     "file": "fonts/ibm-plex-sans-latin-wght-normal.woff2",
     "src": "fonts/ibm-plex-sans-latin-wght-normal.woff2"
   },
+  "fonts/karla-latin-ext-wght-normal.woff2": {
+    "file": "fonts/karla-latin-ext-wght-normal.woff2",
+    "src": "fonts/karla-latin-ext-wght-normal.woff2"
+  },
+  "fonts/karla-latin-wght-normal.woff2": {
+    "file": "fonts/karla-latin-wght-normal.woff2",
+    "src": "fonts/karla-latin-wght-normal.woff2"
+  },
+  "fonts/newsreader-latin-ext-opsz-normal.woff2": {
+    "file": "fonts/newsreader-latin-ext-opsz-normal.woff2",
+    "src": "fonts/newsreader-latin-ext-opsz-normal.woff2"
+  },
+  "fonts/newsreader-latin-opsz-normal.woff2": {
+    "file": "fonts/newsreader-latin-opsz-normal.woff2",
+    "src": "fonts/newsreader-latin-opsz-normal.woff2"
+  },
   "js/admin.ts": {
     "file": "js/admin.js",
     "name": "admin",
@@ -47,7 +63,11 @@
       "fonts/fira-code-latin-500-normal.woff2",
       "fonts/fira-code-latin-ext-500-normal.woff2",
       "fonts/fira-code-latin-600-normal.woff2",
-      "fonts/fira-code-latin-ext-600-normal.woff2"
+      "fonts/fira-code-latin-ext-600-normal.woff2",
+      "fonts/karla-latin-wght-normal.woff2",
+      "fonts/karla-latin-ext-wght-normal.woff2",
+      "fonts/newsreader-latin-opsz-normal.woff2",
+      "fonts/newsreader-latin-ext-opsz-normal.woff2"
     ]
   }
 }

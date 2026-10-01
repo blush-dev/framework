@@ -11,6 +11,8 @@ export interface AdminConfig {
 	media: { url: string };
 	// The signed-in account's, or `null` when no one is (D-235).
 	colorScheme: 'system' | 'light' | 'dark' | null;
+	// The signed-in account's admin theme (D-317), or `null`.
+	adminTheme: 'neutral' | 'editorial' | null;
 }
 
 function read(): AdminConfig {

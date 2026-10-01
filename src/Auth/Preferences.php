@@ -17,13 +17,15 @@ use NoDiscard;
 
 /**
  * How an account likes the admin (D-235): settings that belong to the
- * person, not the site, and follow them to any device. Stored with the
+ * person, not the site, and follow them to any device: the color scheme,
+ * and the admin theme (D-317). Stored with the
  * account; settings at their defaults are left out.
  */
 final readonly class Preferences
 {
 	public function __construct(
-		public ColorScheme $colorScheme = ColorScheme::System
+		public ColorScheme $colorScheme = ColorScheme::System,
+		public AdminTheme $adminTheme = AdminTheme::Neutral
 	) {}
 
 	/**
@@ -36,6 +38,15 @@ final readonly class Preferences
 	}
 
 	/**
+	 * Returns a copy with another admin theme.
+	 */
+	#[NoDiscard]
+	public function withAdminTheme(AdminTheme $theme): self
+	{
+		return clone($this, ['adminTheme' => $theme]);
+	}
+
+	/**
 	 * Builds preferences from their stored array. Unknown keys and values
 	 * fall back to the defaults, so a damaged setting never locks anyone
 	 * out.
@@ -45,20 +56,22 @@ final readonly class Preferences
 	public static function fromArray(array $data): self
 	{
 		$scheme = $data['colorScheme'] ?? null;
+		$theme  = $data['adminTheme'] ?? null;
 
 		return new self(
-			colorScheme: (is_string($scheme) ? ColorScheme::tryFrom($scheme) : null) ?? ColorScheme::System
+			colorScheme: (is_string($scheme) ? ColorScheme::tryFrom($scheme) : null) ?? ColorScheme::System,
+			adminTheme: (is_string($theme) ? AdminTheme::tryFrom($theme) : null) ?? AdminTheme::Neutral
 		);
 	}
 
 	/**
 	 * Returns every preference by name.
 	 *
-	 * @return array{colorScheme: string}
+	 * @return array{colorScheme: string, adminTheme: string}
 	 */
 	public function toArray(): array
 	{
-		return ['colorScheme' => $this->colorScheme->value];
+		return ['colorScheme' => $this->colorScheme->value, 'adminTheme' => $this->adminTheme->value];
 	}
 
 	/**

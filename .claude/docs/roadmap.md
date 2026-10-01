@@ -307,6 +307,10 @@ in quotes and over several lines of code (D-315), and the highlight
 cached per line with the body read once per keystroke (D-316). Left
 from the direction: with a visual editor, the node list and its
 round-trip check.
+Then, from the direction's shell and theming (D-317): a rail button
+toggles its panel, the top bar's collapse button is gone, the trail
+starts at the section (`Content / Posts / Editing`), and the Editorial
+admin theme ships as a per-account choice beside the color scheme.
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages

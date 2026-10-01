@@ -6,13 +6,19 @@
  *
  * Choosing a section changes what the panel offers and nothing else: the
  * rail never navigates, Home included, so an entry being written is never
- * left by a look at another section (admin.md §6). The panel collapses to
- * nothing (remembered in this browser), leaving the rail. The editor
- * opens with it collapsed and puts it back as it was on the way out,
- * without changing what's remembered. Below 860px
- * the rail and panel slide in together as a drawer. The account's menu
- * is in the top bar, with the command palette's button (⌘K anywhere,
- * D-248). While the browser is offline, a bar under the top bar says so. The editor's focus mode drops everything but the work
+ * left by a look at another section (admin.md §6). A rail button is a
+ * toggle for its panel (D-317): pressing the section already shown
+ * closes the panel, leaving the rail (remembered in this browser), and
+ * pressing it again, or another section, opens it. The editor opens with
+ * it closed and puts it back as it was on the way out, without changing
+ * what's remembered. Below 860px the rail and panel slide in together as
+ * a drawer, and the shown section's button closes it.
+ *
+ * The top bar's trail is the section, the screens above this one, and
+ * this one (`Content / Posts / Editing`, `Config / Content Types /
+ * Pages`; D-317): the section crumb opens its panel (never closes it),
+ * and the others are ways back. The account's menu is in the top bar,
+ * with the command palette's button (⌘K anywhere, D-248). While the browser is offline, a bar under the top bar says so. The editor's focus mode drops everything but the work
  * area.
  */
 
@@ -22,7 +28,7 @@ import { ApiError, type ContentTypeSummary } from '../api';
 import { config } from '../config';
 import { online } from '../connection';
 import type { IconName } from '../icons';
-import { focusMode, screenTitle, screenTrail } from '../screen';
+import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { can, session, signOut } from '../session';
 import { authorType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
@@ -168,15 +174,57 @@ const panelSub = computed(() => {
 	return area.value === 'config' ? 'Types, the site, and people' : config.site.name;
 });
 
+/**
+ * A rail button: the section already shown closes its panel (or the
+ * drawer); any other, or a closed panel, opens it on that section.
+ */
 function choose(key: Area): void {
-	if (hidden.value) {
+	if (key === area.value && (narrow.value ? open.value : !hidden.value)) {
+		if (narrow.value) {
+			void closeDrawer(false);
+		} else {
+			toggle();
+		}
+
+		return;
+	}
+
+	if (hidden.value && !narrow.value) {
 		toggle();
 	}
 
 	area.value = key;
 }
 
+/**
+ * The trail's section crumb: opens that section's panel, never closes it.
+ */
+function showSection(key: Area): void {
+	area.value = key;
+
+	if (narrow.value) {
+		openDrawer();
+	} else if (hidden.value) {
+		toggle();
+	}
+}
+
 const title = computed(() => screenTitle.value ?? (typeof route.meta.title === 'string' ? route.meta.title : ''));
+
+// The trail between the section and this screen: what the screen says,
+// else the list a detail screen belongs to (`meta.parent`).
+const trail = computed<{ label: string; to: RouteLocationRaw }[]>(() => {
+	if (screenTrail.value.length > 0) {
+		return screenTrail.value;
+	}
+
+	const parent = typeof route.meta.parent === 'string' ? router.getRoutes().find((item) => item.name === route.meta.parent) : undefined;
+	const label  = parent?.meta.title;
+
+	return parent !== undefined && typeof label === 'string' ? [{ label, to: { name: route.meta.parent as string } }] : [];
+});
+
+const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', config: 'Config' })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
 
 // The collapsed panel is a per-browser convenience; storage may be off.
@@ -311,6 +359,7 @@ async function leave(): Promise<void> {
 					type="button"
 					class="railbar__section"
 					:aria-current="area === item.key ? 'true' : undefined"
+					:aria-expanded="area === item.key ? (narrow ? open : !hidden) : undefined"
 					aria-controls="nav-panel"
 					@click="choose(item.key)"
 				>
@@ -362,19 +411,17 @@ async function leave(): Promise<void> {
 					<AdminIcon name="menu" />
 					<span class="visually-hidden">Menu</span>
 				</button>
-				<button v-else type="button" class="button button--ghost button--icon" aria-controls="nav-panel" :aria-expanded="!hidden" @click="toggle">
-					<AdminIcon name="panel-left" />
-					<span class="visually-hidden">{{ hidden ? 'Show the section panel' : 'Hide the section panel' }}</span>
-				</button>
-				<p class="bar__crumbs">
-					<span class="bar__root">{{ config.site.name }}</span>
-					<template v-for="crumb in screenTrail" :key="crumb.label">
+				<nav class="bar__crumbs" aria-label="Where you are">
+					<button type="button" class="bar__root" aria-controls="nav-panel" :title="`Show ${sectionLabel} in the panel`" @click="showSection(routeArea)">{{ sectionLabel }}</button>
+					<template v-for="crumb in trail" :key="crumb.label">
 						<span class="bar__sep" aria-hidden="true">/</span>
 						<RouterLink class="bar__link" :to="crumb.to">{{ crumb.label }}</RouterLink>
 					</template>
-					<span class="bar__sep" aria-hidden="true">/</span>
-					<span class="bar__current">{{ title }}</span>
-				</p>
+					<template v-if="screenCrumb ?? title">
+						<span class="bar__sep" aria-hidden="true">/</span>
+						<span class="bar__current" aria-current="page">{{ screenCrumb ?? title }}</span>
+					</template>
+				</nav>
 				<button type="button" class="bar__search" aria-haspopup="dialog" @click="paletteOpen = true">
 					<AdminIcon name="search" />
 					<span class="bar__search-text">Search or jump to…</span>
@@ -746,8 +793,18 @@ async function leave(): Promise<void> {
 
 .bar__root {
 	overflow: hidden;
+	padding: 0;
+	border: 0;
+	background: none;
 	color: var(--fg-2);
+	font: inherit;
 	text-overflow: ellipsis;
+	cursor: pointer;
+}
+
+.bar__root:hover {
+	color: var(--fg);
+	text-decoration: underline;
 }
 
 .bar__sep {

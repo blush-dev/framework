@@ -4,6 +4,7 @@
 
 import { reactive, readonly } from 'vue';
 import { request, setCsrfToken, type Account, type SessionState } from './api';
+import { followTheme } from './admin-theme';
 import { followAccount } from './color-scheme';
 
 const state = reactive<{ account: Account | null; loaded: boolean }>({
@@ -21,6 +22,7 @@ function apply(data: SessionState): void {
 	// The account's own look, on any device (D-235).
 	if (data.account !== null) {
 		followAccount(data.account.preferences);
+		followTheme(data.account.preferences);
 	}
 }
 

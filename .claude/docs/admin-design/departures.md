@@ -47,8 +47,6 @@ Each is recorded in `.claude/docs/decisions.md`.
   repo: `resources/admin/{css,fonts,js/{components,views}}`.
 - **Tables aren't sticky-headed** (D-231): a table that scrolls sideways is its
   own scroll container.
-- **Only the neutral theme ships** until an account can choose a theme (D-231,
-  D-235).
 - **No autosave or pending changes** (D-233): the writer has nowhere to keep a
   pending draft, so the editor saves when asked and warns before leaving
   unsaved work.
@@ -122,6 +120,14 @@ Each is recorded in `.claude/docs/decisions.md`.
   profile), and no site switcher; the site's mark links to the site. The
   account's menu is in the top bar. Home's panel has the Dashboard and
   Content health, then shortcuts. The rail never navigates, as §6 says.
+  As the decisions log's *The shell* has it (D-317), a rail button
+  toggles its panel and the top bar has no collapse button; the trail
+  is the section, the screens above (the editor's type, or a detail
+  screen's list from its route's `meta.parent`), and the screen; on a
+  narrow screen the section crumb goes first.
+- **Both admin themes ship** (D-317): Neutral and Editorial, a theme
+  choice on Your profile beside the color scheme, with Editorial's
+  fonts (Karla and Newsreader) served with the admin like the others.
 - **The command palette** (D-248): the screen's own commands come first
   (the editor's), then going places and New {singular}, then entries;
   switching the color scheme saves it to the account.
@@ -207,9 +213,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   keeps for View and Entry. ⌘E (code) and ⌘⇧X (struck) stay, without
   buttons.
 - **The toolbar** (D-313): as `30-editor.md` has it, but the trail it
-  hands the way out to is `Site / Posts / Edit Post` (the site's name
-  first, as on every screen, until the shell's trail starts at the rail
-  section); and the move control (▴▾) sits between the insert tools and
+  hands the way out to is `Content / Posts / Editing` (D-317); and the
+  move control (▴▾) sits between the insert tools and
   the sentence group, as the prototype has it. It moves the element the
   caret is in among its siblings (the author's call, D-314), not only
   the top-level one; a term or definition moves its definition list. Nothing in the toolbar

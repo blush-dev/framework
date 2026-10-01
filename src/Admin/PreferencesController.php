@@ -18,6 +18,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Accounts;
+use Blush\Auth\AdminTheme;
 use Blush\Auth\ColorScheme;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -62,6 +63,16 @@ final readonly class PreferencesController
 			}
 
 			$preferences = $preferences->withColorScheme($scheme);
+		}
+
+		if (array_key_exists('adminTheme', $input)) {
+			$theme = is_string($input['adminTheme']) ? AdminTheme::tryFrom($input['adminTheme']) : null;
+
+			if ($theme === null) {
+				return self::json(['error' => '"adminTheme" must be neutral or editorial.'], Status::BadRequest);
+			}
+
+			$preferences = $preferences->withAdminTheme($theme);
 		}
 
 		$account = $this->accounts->setPreferences($account, $preferences);

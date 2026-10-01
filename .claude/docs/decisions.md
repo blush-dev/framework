@@ -7831,3 +7831,51 @@ decision, add a new entry that supersedes it and mark the old one
   typed text appearing and the copy matching the text; the code box's
   alignment probe; and D-315's Tab probe, with no console errors.
 - **Why:** the author asked for the per-line cache.
+
+### D-317: The shell's rail toggle and section trail, and the Editorial admin theme
+- **Date:** 2026-10-01
+- **Decision:** From the split direction's decisions log (*The shell*,
+  *Theming*) and its requests to foundations, at the author's request to
+  keep going with the design's changes. Supersedes D-231's "only the
+  neutral theme ships" departure, D-235's single preference, and D-313's
+  trail starting at the site's name.
+  - **A rail button toggles its panel:** pressing the section already
+    shown closes the panel (remembered in this browser, as the collapse
+    was), pressing it again or another section opens it; on a narrow
+    screen it closes the drawer. Its `aria-expanded` says which. The top
+    bar's collapse button is gone; the burger stays on narrow screens.
+  - **The trail is the section, the screens above, and the screen:**
+    `Content / Posts / Editing`, `Config / Content Types / Posts`,
+    `Config / Accounts / jane`, `Home / Dashboard`. The section crumb is
+    a button that opens that section's panel (never closes it); the
+    middle crumbs are links back (`screenTrail`, else the route's
+    `meta.parent` and its title); the last is the title, or
+    `screenCrumb` when it says what you're doing (the editor's
+    "Editing"; the document title stays "Edit Post"). The site's name is
+    no longer in it. On a narrow screen the section crumb goes first.
+  - **Editorial ships** as a per-account choice: `AdminTheme`
+    (`neutral`, `editorial`) in `Preferences` (stored only when not
+    neutral, like the color scheme), `PATCH preferences`' `adminTheme`,
+    the shell page's `data-admin-theme` and config `adminTheme`,
+    `admin-theme.ts` (cached in this browser for the sign-in screen),
+    a Theme choice on Your profile beside the color scheme ("Theme and
+    Color Scheme"), and a palette command. Its tokens are the
+    direction's, in `tokens.css`'s three Editorial blocks (light, system
+    dark, chosen dark), changing values only. Its fonts, Karla and
+    Newsreader (variable, latin and latin-ext; OFL, from Fontsource
+    5.3.0), are served with the admin like IBM Plex Sans and Fira Code;
+    the editor's mono stays Fira Code, so its alignment holds.
+- **Checked:** `composer check` (`AdminApiTest`: the theme saved, one
+  preference leaving the other, a bad theme refused;
+  `AdminAppTest`: the shell page's attribute and config);
+  `npm run admin:build`; on the jtcom trial in headless Chrome with a
+  throwaway administrator (since removed): the trail on the list, a
+  type, an account, the dashboard, Settings, and the editor, with
+  Posts going back to the list; the rail toggling, a second section
+  opening, and the section crumb opening without closing; Editorial
+  chosen on Your profile, saved, its fonts loaded, the list and editor
+  in light and dark, and the editor's alignment probe under it; no
+  console errors.
+- **Why:** the author asked to keep moving with the admin design's
+  changes; these were the shell and theming changes the split direction
+  made outside the editor.

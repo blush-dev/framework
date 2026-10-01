@@ -105,7 +105,7 @@ import { mediaName } from '../media';
 import { can } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
-import { focusMode, screenTitle, screenTrail } from '../screen';
+import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { config } from '../config';
 import { toast } from '../toast';
 import { useCommands, type Command } from '../commands';
@@ -203,6 +203,7 @@ watch([entry, labels], () => {
 	const name = entry.value?.type.name;
 
 	screenTrail.value = name === undefined ? [] : [{ label: titleCase(labels.value.plural), to: { name: 'type', params: { type: name } } }];
+	screenCrumb.value = 'Editing';
 }, { immediate: true });
 
 /**

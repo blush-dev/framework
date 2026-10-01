@@ -49,7 +49,9 @@ form, moving elements, bleed with theme-named classes, the code block
 as one box, and the Markdown elements as inserter tiles (D-313); then
 moving the element the caret is in, Backspace taking markers off,
 guarded directive syntax, media kinds, and `only` (D-314); and Tab in
-quotes and over lines of code (D-315). Next: more
+quotes and over lines of code (D-315); the per-line highlight cache
+(D-316); and the shell's rail toggle and section trail, and the
+Editorial admin theme (D-317). Next: more
 of media; and more of the Markdown editing experience (live preview
 waits); see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with

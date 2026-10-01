@@ -17,8 +17,9 @@
 
 import { computed, nextTick, ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import { ApiError, entryRoute, request, type ColorScheme, type EntryDetail } from '../api';
+import { ApiError, entryRoute, request, type AdminTheme, type ColorScheme, type EntryDetail } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
+import { adminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { formatDate } from '../format';
 import type { IconName } from '../icons';
@@ -30,6 +31,12 @@ const schemes: { value: ColorScheme; label: string; hint: string; icon: IconName
 	{ value: 'system', label: 'System', hint: 'Match your device\'s setting', icon: 'monitor' },
 	{ value: 'light', label: 'Light', hint: 'Always light', icon: 'sun' },
 	{ value: 'dark', label: 'Dark', hint: 'Always dark', icon: 'moon' }
+];
+
+// The admin's two looks (D-317): a per-account choice, like the scheme.
+const themes: { value: AdminTheme; label: string; hint: string; icon: IconName }[] = [
+	{ value: 'neutral', label: 'Neutral', hint: 'Cool gray, a cobalt accent', icon: 'layout-dashboard' },
+	{ value: 'editorial', label: 'Editorial', hint: 'Warm paper, a teal accent, serif titles', icon: 'book-open' }
 ];
 
 const saving  = ref(false);
@@ -129,6 +136,21 @@ async function changePassword(): Promise<void> {
 		(passwordField.value === 'password' ? newInput : currentInput).value?.focus();
 	} finally {
 		passwordBusy.value = false;
+	}
+}
+
+async function chooseTheme(theme: AdminTheme): Promise<void> {
+	saving.value  = true;
+	message.value = '';
+	error.value   = '';
+
+	try {
+		await saveAdminTheme(theme);
+		message.value = `Saved. The admin is ${theme === 'neutral' ? 'Neutral' : 'Editorial'} on every device you sign in on.`;
+	} catch (caught) {
+		error.value = caught instanceof ApiError ? caught.message : 'Your theme couldn\'t be saved.';
+	} finally {
+		saving.value = false;
 	}
 }
 
@@ -238,12 +260,23 @@ async function choose(scheme: ColorScheme): Promise<void> {
 
 		<section class="panel" aria-labelledby="display-heading">
 			<header class="panel__header">
-				<h2 id="display-heading">Color Scheme</h2>
+				<h2 id="display-heading">Theme and Color Scheme</h2>
 				<p class="panel__hint">Just for you, on any device</p>
 			</header>
 			<div class="panel__body">
 				<fieldset class="schemes" :disabled="saving">
-					<legend class="visually-hidden">Color scheme</legend>
+					<legend class="schemes__legend">Theme</legend>
+					<label v-for="theme in themes" :key="theme.value" class="scheme">
+						<input class="visually-hidden" type="radio" name="admin-theme" :value="theme.value" :checked="adminTheme === theme.value" @change="chooseTheme(theme.value)">
+						<AdminIcon :name="theme.icon" />
+						<span class="scheme__text">
+							<span class="scheme__label">{{ theme.label }}</span>
+							<span class="scheme__hint">{{ theme.hint }}</span>
+						</span>
+					</label>
+				</fieldset>
+				<fieldset class="schemes" :disabled="saving">
+					<legend class="schemes__legend">Color scheme</legend>
 					<label v-for="scheme in schemes" :key="scheme.value" class="scheme">
 						<input class="visually-hidden" type="radio" name="color-scheme" :value="scheme.value" :checked="colorScheme === scheme.value" @change="choose(scheme.value)">
 						<AdminIcon :name="scheme.icon" />
@@ -325,6 +358,19 @@ async function choose(scheme: ColorScheme): Promise<void> {
 	margin: 0;
 	padding: 0;
 	border: 0;
+}
+
+.schemes + .schemes {
+	margin-top: var(--s-4);
+}
+
+/* Each choice is named, so the two rows of cards read apart. */
+.schemes__legend {
+	margin-bottom: var(--s-2);
+	padding: 0;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	font-weight: 500;
 }
 
 .scheme {

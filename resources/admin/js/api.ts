@@ -17,8 +17,11 @@ export interface Account {
 
 export type ColorScheme = 'system' | 'light' | 'dark';
 
+export type AdminTheme = 'neutral' | 'editorial';
+
 export interface Preferences {
 	colorScheme: ColorScheme;
+	adminTheme: AdminTheme;
 }
 
 export interface SessionState {

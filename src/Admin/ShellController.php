@@ -15,9 +15,11 @@ namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Auth\AdminTheme;
 use Blush\Auth\AuthException;
 use Blush\Auth\Authenticator;
 use Blush\Auth\ColorScheme;
+use Blush\Auth\Preferences;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -75,19 +77,23 @@ final readonly class ShellController
 			$styles .= sprintf("<link rel=\"stylesheet\" href=\"%s\">\n", self::escape($this->app->url($style)));
 		}
 
-		$scheme = $this->colorScheme($request);
+		$preferences = $this->preferences($request);
+		$scheme      = $preferences?->colorScheme;
+		$theme       = $preferences?->adminTheme;
 		$config = json_encode([
 			'base'        => $this->config->path,
 			'api'         => "{$this->config->path}/api",
 			'site'        => ['name' => $this->site->name, 'url' => $this->site->url],
 			'media'       => ['url' => $this->media->url],
-			'colorScheme' => $scheme?->value
+			'colorScheme' => $scheme?->value,
+			'adminTheme'  => $theme?->value
 		], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
 		$title  = self::escape("Admin · {$this->site->name}");
 		$script = self::escape($this->app->url($entry['script']));
 		$id     = self::CONFIG_ID;
-		$html   = $scheme === null || $scheme === ColorScheme::System ? '' : " data-color-scheme=\"{$scheme->value}\"";
+		$html   = ($scheme === null || $scheme === ColorScheme::System ? '' : " data-color-scheme=\"{$scheme->value}\"")
+			. ($theme === null || $theme === AdminTheme::Neutral ? '' : " data-admin-theme=\"{$theme->value}\"");
 
 		return Response::html(<<<HTML
 			<!doctype html>
@@ -112,15 +118,15 @@ final readonly class ShellController
 	 * Escapes text for HTML.
 	 */
 	/**
-	 * Returns the signed-in account's color scheme, or `null` when no one
-	 * is signed in.
+	 * Returns the signed-in account's preferences (its color scheme and
+	 * admin theme), or `null` when no one is signed in.
 	 */
-	private function colorScheme(ServerRequestInterface $request): ?ColorScheme
+	private function preferences(ServerRequestInterface $request): ?Preferences
 	{
 		$session = $this->sessions->read($request);
 
 		try {
-			return $session === null ? null : $this->authenticator->account($session)?->preferences->colorScheme;
+			return $session === null ? null : $this->authenticator->account($session)?->preferences;
 		} catch (AuthException) {
 			return null;
 		}
