@@ -18,8 +18,9 @@ namespace Blush\Content\Type;
  *
  * - `page`: everything in `user/content` no other type claims, routed by
  *   the page catch-all rather than routes of its own.
- * - `author` (D-043): entries in `user/content/authors`, a taxonomy that
- *   other entries reference through `authors` (or the 1.x `author`).
+ * - `author` (D-043, D-329): entries in `user/content/authors`, the
+ *   people that the entries of types supporting authors credit through
+ *   `authors` (or the 1.x `author`). It has no routes of its own.
  *
  * The site can redefine either in `config/content.php` or as a data type,
  * and can disable `author`.
@@ -36,7 +37,7 @@ enum BuiltInType: string
 	{
 		return match ($this) {
 			self::Page   => new Pages(),
-			self::Author => new Taxonomy('author', folder: 'authors', field: 'authors', aliases: ['author'])
+			self::Author => new Authors('author', folder: 'authors', field: 'authors', aliases: ['author'])
 		};
 	}
 

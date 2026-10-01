@@ -34,7 +34,8 @@ use Blush\Content\Schema\Schema;
  *
  * Each type's full schema is the built-in entry fields, then every
  * taxonomy's term field (which may not reuse a built-in name or alias),
- * then the type's own fields (which may replace either).
+ * then the authors field when the type supports authors (D-329), then
+ * the type's own fields (which may replace any of them).
  *
  * @implements IteratorAggregate<string, ContentType>
  */
@@ -132,6 +133,25 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns the authors type (D-329), or `null` when the site has none.
+	 */
+	public function authors(): ?Authors
+	{
+		return array_find($this->types, static fn (ContentType $type): bool => $type instanceof Authors);
+	}
+
+	/**
+	 * Returns the types other entries reference as terms (the taxonomies
+	 * and the authors type), keyed by name.
+	 *
+	 * @return array<string, Taxonomy|Authors>
+	 */
+	public function termTypes(): array
+	{
+		return array_filter($this->types, static fn (ContentType $type): bool => $type instanceof Taxonomy || $type instanceof Authors);
+	}
+
+	/**
 	 * Returns the type whose folder is exactly `$folder`.
 	 */
 	public function byFolder(string $folder): ?ContentType
@@ -170,8 +190,9 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns a type's full schema: the built-in entry fields, every
-	 * taxonomy's term field, a hierarchical taxonomy's `parent`, then the
-	 * type's own fields.
+	 * taxonomy's term field, the authors field when the type supports
+	 * authors, a hierarchical taxonomy's `parent`, then the type's own
+	 * fields.
 	 *
 	 * @throws InvalidContentType When the fields clash.
 	 */
@@ -184,9 +205,15 @@ final class ContentTypes implements IteratorAggregate, Countable
 		$type = $this->get($name);
 
 		try {
-			$terms  = array_values(array_map(static fn (Taxonomy $taxonomy): Field => $taxonomy->termField(), $this->taxonomies()));
-			$parent = $type instanceof Taxonomy ? $type->parentField() : null;
-			$schema = new Schema([...array_values(EntryFields::schema()->fields), ...$terms, ...($parent === null ? [] : [$parent])])->merge($type->schema);
+			$terms   = array_values(array_map(static fn (Taxonomy $taxonomy): Field => $taxonomy->termField(), $this->taxonomies()));
+			$authors = $type->authors ? $this->authors()?->termField() : null;
+			$parent  = $type instanceof Taxonomy ? $type->parentField() : null;
+			$schema  = new Schema([
+				...array_values(EntryFields::schema()->fields),
+				...$terms,
+				...($authors === null ? [] : [$authors]),
+				...($parent === null ? [] : [$parent])
+			])->merge($type->schema);
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType(sprintf('Content type "%s" has clashing fields: %s', $name, $e->getMessage()), previous: $e);
 		}

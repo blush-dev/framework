@@ -18,7 +18,6 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AuthConfig;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
@@ -30,6 +29,7 @@ use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Pages;
+use Blush\Content\Http\AuthorsController;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
@@ -74,7 +74,8 @@ use Blush\Http\Status as HttpStatus;
  * entries, the total, and the pages, and answered on its own as `index`
  * on the first page (D-264), when it matches the filters and the account
  * may edit it; otherwise `null`. Pages have no index page: their landing page is
- * the site's home, an entry like any other.
+ * the site's home, an entry like any other. A type's **authors page**
+ * (`_authors`, D-329) is set apart the same way, as `authorsPage`.
  */
 final readonly class EntriesController
 {
@@ -106,7 +107,6 @@ final readonly class EntriesController
 		private EntryHandles $handles,
 		private ContentUrls $urls,
 		private Permissions $permissions,
-		private AuthConfig $config,
 		private AppConfig $app,
 		private ClockInterface $clock
 	) {}
@@ -188,10 +188,11 @@ final readonly class EntriesController
 			return self::json(['error' => sprintf('"page" must be a whole number from 1, and "per" from 1 to %d.', self::MAX_PER_PAGE)], HttpStatus::BadRequest);
 		}
 
-		$query = $this->content->query()->any()->search($search);
+		$authors = $this->types->authors()->name ?? '';
+		$query   = $this->content->query()->any()->search($search);
 		$query = $status === null ? $query : $query->status($status);
 		$query = $type === null ? $query : $query->type($type);
-		$query = $author === '' ? $query : $query->whereTerm($this->config->authorTaxonomy, $author);
+		$query = $author === '' ? $query : $query->whereTerm($authors, $author);
 		$query = $days === 0 ? $query : $query->updatedSince($this->clock->now()->getTimestamp() - $days * 86400);
 
 		foreach ($terms as [$taxonomy, $slug]) {
@@ -199,7 +200,7 @@ final readonly class EntriesController
 		}
 
 		$query = match (true) {
-			$sort === 'author'            => $query->orderBy($this->config->authorTaxonomy, $order),
+			$sort === 'author'            => $authors === '' ? $query : $query->orderBy($authors, $order),
 			$sort !== ''                  => $query->orderBy($sort, $order),
 			$status === Status::Scheduled => $query->orderBy('published', Order::Asc),
 			$status === Status::Published => $query->orderBy('published', Order::Desc),
@@ -211,8 +212,9 @@ final readonly class EntriesController
 		$contentType = $type === null ? null : $this->types->find($type);
 		$pinned      = $contentType !== null && $contentType->kind() !== TypeKind::Pages;
 		$query       = $this->permissions->restrict($account, Capability::ContentEdit, $query);
-		$listed      = $pinned ? $query->withLanding(false) : $query;
+		$listed      = $pinned ? $query->withLanding(false)->exceptNames(AuthorsController::PAGE) : $query;
 		$index       = $pinned && $page === 1 ? $this->index($query) : null;
+		$people      = $pinned && $page === 1 ? $this->authorsPage($query) : null;
 		$counts      = [];
 		$tree        = null;
 		$continued   = [];
@@ -233,31 +235,32 @@ final readonly class EntriesController
 
 		// How many published entries use each term on the page, one pass
 		// per taxonomy (D-236).
-		foreach ([...$continued, ...$shown, ...($index === null ? [] : [$index])] as $entry) {
-			if ($entry->type instanceof Taxonomy) {
+		foreach ([...$continued, ...$shown, ...($index === null ? [] : [$index]), ...($people === null ? [] : [$people])] as $entry) {
+			if ($entry->type->hasTerms()) {
 				$counts[$entry->type->name] ??= $this->content->termCounts($entry->type->name);
 			}
 		}
 
 		return self::json([
-			'status'  => $status->value ?? 'any',
-			'type'    => $type,
-			'search'  => trim($search),
-			'author'  => $author,
-			'terms'   => array_map(static fn (array $term): string => implode(':', $term), $terms),
-			'days'    => $days === 0 ? null : $days,
-			'sort'    => $sort === '' ? null : $sort,
-			'dir'     => $sort === '' ? null : $order->value,
-			'tree'    => $tree !== null,
-			'total'   => $total,
-			'page'    => $page,
-			'pages'   => $pages,
-			'per'     => $per,
-			'entries' => [
+			'status'      => $status->value ?? 'any',
+			'type'        => $type,
+			'search'      => trim($search),
+			'author'      => $author,
+			'terms'       => array_map(static fn (array $term): string => implode(':', $term), $terms),
+			'days'        => $days === 0 ? null : $days,
+			'sort'        => $sort === '' ? null : $sort,
+			'dir'         => $sort === '' ? null : $order->value,
+			'tree'        => $tree !== null,
+			'total'       => $total,
+			'page'        => $page,
+			'pages'       => $pages,
+			'per'         => $per,
+			'entries'     => [
 				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree, continued: true), $continued),
 				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree), $shown)
 			],
-			'index'   => $index === null ? null : $this->describe($account, $index, $counts)
+			'index'       => $index === null ? null : $this->describe($account, $index, $counts),
+			'authorsPage' => $people === null ? null : $this->describe($account, $people, $counts)
 		]);
 	}
 
@@ -397,6 +400,21 @@ final readonly class EntriesController
 	}
 
 	/**
+	 * Returns the type's authors page (D-329), if the list's query finds
+	 * it.
+	 */
+	private function authorsPage(Query $query): ?Entry
+	{
+		foreach ($query->names(AuthorsController::PAGE)->get() as $entry) {
+			if (AuthorsPage::is($entry) && $entry->locale === $this->app->locale) {
+				return $entry;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Returns what the admin shows of an entry. Its `url` is its path on
 	 * the site, where it is or will be once published (`null` when it has
 	 * none), and `index` whether it's its type's index page. A term's
@@ -414,28 +432,31 @@ final readonly class EntriesController
 	 */
 	private function describe(Account $account, Entry $entry, array $counts, ?array $tree = null, bool $continued = false): array
 	{
+		$authors = $this->types->authors()?->name;
+
 		return [
-			'id'        => $entry->id,
-			'handle'    => $this->handles->of($entry),
-			'title'     => $entry->title,
-			'type'      => $entry->type->name,
-			'status'    => $entry->status->value,
-			'published' => $entry->published?->format(DateTimeInterface::ATOM),
-			'updated'   => $entry->updated->format(DateTimeInterface::ATOM),
-			'path'      => $entry->source?->path,
-			'url'       => $this->urls->entry($entry),
-			'authors'   => $entry->terms($this->config->authorTaxonomy),
-			'own'       => $this->permissions->owns($account, $entry),
-			'index'     => IndexPage::is($entry),
-			'can'       => [
+			'id'          => $entry->id,
+			'handle'      => $this->handles->of($entry),
+			'title'       => $entry->title,
+			'type'        => $entry->type->name,
+			'status'      => $entry->status->value,
+			'published'   => $entry->published?->format(DateTimeInterface::ATOM),
+			'updated'     => $entry->updated->format(DateTimeInterface::ATOM),
+			'path'        => $entry->source?->path,
+			'url'         => $this->urls->entry($entry),
+			'authors'     => $authors === null ? [] : $entry->terms($authors),
+			'own'         => $this->permissions->owns($account, $entry),
+			'index'       => IndexPage::is($entry),
+			'authorsPage' => AuthorsPage::is($entry),
+			'can'         => [
 				'delete'    => ! IndexPage::is($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry),
-				'duplicate' => ! $entry->landing && $this->permissions->can($account, Capability::ContentCreate)
+				'duplicate' => ! $entry->landing && ! AuthorsPage::is($entry) && $this->permissions->can($account, Capability::ContentCreate)
 			],
-			'uses'      => $entry->type instanceof Taxonomy ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
-			'ancestors' => $this->ancestors($entry),
-			'depth'     => $tree === null ? null : ($tree['depths'][$entry->id] ?? 0),
-			'children'  => $tree === null ? null : ($tree['children'][$entry->id] ?? 0),
-			'continued' => $continued
+			'uses'        => $entry->type->hasTerms() ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
+			'ancestors'   => $this->ancestors($entry),
+			'depth'       => $tree === null ? null : ($tree['depths'][$entry->id] ?? 0),
+			'children'    => $tree === null ? null : ($tree['children'][$entry->id] ?? 0),
+			'continued'   => $continued
 		];
 	}
 

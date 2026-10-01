@@ -33,8 +33,8 @@ use Blush\Markdown\MarkdownException;
  * `types`, the same way.
  *
  * Item categories are the terms of the feed's `categories` taxonomy, or
- * of every taxonomy but authors when it has none; authors are the item's
- * author terms.
+ * of every taxonomy when it has none; authors are the names of the
+ * authors the item credits.
  */
 final readonly class FeedBuilder
 {
@@ -87,6 +87,28 @@ final readonly class FeedBuilder
 			$this->urls->term($taxonomy, $term->slug) ?? '/',
 			$this->urls->feed($taxonomy, 'collection.feed' . $format->routeSuffix(), $term->slug) ?? '/',
 			$term->isVirtual() ? null : $term,
+			$query
+		);
+	}
+
+	/**
+	 * Builds an author's feed in a type: the type's entries crediting
+	 * them (D-329).
+	 *
+	 * @throws InvalidQuery
+	 * @throws MarkdownException
+	 */
+	public function author(ContentType $type, Entry $author, FeedFormat $format): Feed
+	{
+		$query = $this->query($type, ['type' => $type->name])->whereTerm($author->type->name, $author->slug);
+		$key   = 'authors.single.feed' . $format->routeSuffix();
+
+		return $this->feed(
+			$format,
+			"{$author->title} | " . ($type->labels->plural),
+			$this->urls->author($type, $author->slug) ?? '/',
+			$this->urls->authorFeed($type, $author->slug, $key) ?? '/',
+			$author->isVirtual() ? null : $author,
 			$query
 		);
 	}
@@ -149,9 +171,10 @@ final readonly class FeedBuilder
 		}
 
 		$feed       = $entry->type->feed;
+		$authors    = $this->types->authors()?->name;
 		$taxonomies = $feed !== false && $feed->categories !== null
 			? [$feed->categories]
-			: array_values(array_filter(array_keys($entry->terms), static fn (string $taxonomy): bool => $taxonomy !== 'author'));
+			: array_values(array_filter(array_keys($entry->terms), fn (string $taxonomy): bool => $this->types->find($taxonomy) instanceof Taxonomy));
 
 		return new FeedItem(
 			entry: $entry,
@@ -161,7 +184,7 @@ final readonly class FeedBuilder
 			updated: $entry->updated,
 			content: $this->config->content ? $entry->body() : '',
 			summary: $entry->excerpt(),
-			authors: $this->titles($entry, ['author']),
+			authors: $authors === null ? [] : $this->titles($entry, [$authors]),
 			categories: $this->titles($entry, $taxonomies)
 		);
 	}

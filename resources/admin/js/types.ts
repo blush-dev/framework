@@ -103,7 +103,7 @@ export function labelsOf(name: string): TypeLabels {
  * The icon a type's kind is shown with.
  */
 export function typeIcon(type: Pick<ContentTypeSummary, 'kind'>): IconName {
-	return type.kind === 'taxonomy' ? 'tag' : (type.kind === 'pages' ? 'files' : 'file-text');
+	return ({ taxonomy: 'tag', pages: 'files', authors: 'user-round', collection: 'file-text' } as const)[type.kind];
 }
 
 /**

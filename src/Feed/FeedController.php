@@ -29,7 +29,8 @@ use Blush\View\ViewException;
 
 /**
  * Serves a feed: a type's collection feed (the home page's at `/feed`),
- * or with `{name}`, a taxonomy term's. The theme renders it with
+ * with `{name}`, a taxonomy term's, or with `{author}`, an author's
+ * entries of the type (D-329). The theme renders it with
  * `feed-{format}-{type}` → `feed-{format}` (D-029). An empty feed is
  * still a feed.
  */
@@ -50,7 +51,7 @@ final readonly class FeedController
 	 * @throws ThemeException
 	 * @throws ViewException
 	 */
-	public function __invoke(ServerRequestInterface $request, string $type, string $format, ?string $name = null): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, string $type, string $format, ?string $name = null, ?string $author = null): ResponseInterface
 	{
 		$feedFormat  = FeedFormat::tryFrom($format);
 		$contentType = $this->types->find($type);
@@ -59,7 +60,16 @@ final readonly class FeedController
 			throw new NotFound(sprintf('There is no %s feed for "%s".', $format, $type));
 		}
 
-		if ($name === null) {
+		if ($author !== null) {
+			$authors = $this->types->authors();
+			$entry   = $authors === null ? null : $this->content->term($authors->name, $author);
+
+			if ($entry === null || ! $entry->isPublished() || ! $entry->isRoutable()) {
+				throw new NotFound(sprintf('There is no "%s" author "%s".', $type, $author));
+			}
+
+			$feed = $this->builder->author($contentType, $entry, $feedFormat);
+		} elseif ($name === null) {
 			$feed = $this->builder->collection($contentType, $feedFormat);
 		} else {
 			// A hierarchical term's `{name}` is its path; the term is its last slug.

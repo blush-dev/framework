@@ -104,6 +104,17 @@ final class Head implements Stringable
 	}
 
 	/**
+	 * Adds another `<meta property>` tag for a property that may repeat,
+	 * such as `article:author`. These are keyed by property and content
+	 * (`property:{name}:{content}`), as links are, so each value is one
+	 * tag.
+	 */
+	public function addProperty(string $property, string $content): self
+	{
+		return $this->add("property:{$property}:{$content}", 'meta', ['property' => $property, 'content' => $content]);
+	}
+
+	/**
 	 * Adds a `<link>`. Links are keyed by `rel` and `href`, so a page can
 	 * have several alternates.
 	 *

@@ -55,7 +55,7 @@ const everywhere = computed<Command[]>(() => {
 		['types', 'Go to Content Types', 'layers', 'site.settings'],
 		['themes', 'Go to Themes', 'paintbrush', 'site.settings', 'appearance look'],
 		['extensions', 'Go to Extensions', 'plug', 'site.settings', 'addons plugins'],
-		['accounts', 'Go to Accounts', 'users', 'accounts.manage', 'people'],
+		['people', 'Go to People', 'users', can('accounts.manage') ? 'accounts.manage' : 'content.edit', 'accounts authors guests'],
 		['roles', 'Go to Roles', 'shield', 'accounts.manage', 'capabilities']
 	];
 

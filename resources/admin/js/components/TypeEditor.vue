@@ -2,7 +2,7 @@
 /**
  * A content type from `user/data/types`, edited (D-311): General (names,
  * description, icon, with its key and folder fixed), Behavior
- * (`TypeBehaviorFields`), and Fields (`FieldListEditor`), saved together
+ * (`TypeBehaviorFields`, with the authors settings, D-329), and Fields (`FieldListEditor`), saved together
  * with **Save** (`PATCH types/{name}`, only what changed) or put back
  * with **Revert**; leaving with changes unsaved asks first. A Danger
  * Zone deletes the type's file; its entries stay where they are.
@@ -21,7 +21,7 @@ import TypeBehaviorFields from './TypeBehaviorFields.vue';
 import { ApiError, request, type ContentTypeDetail } from '../api';
 import { changesOf, formOf, type TypeForm } from '../type-form';
 import { toast } from '../toast';
-import { reloadTypes, typeUrls, types } from '../types';
+import { authorType, reloadTypes, typeUrls, types } from '../types';
 
 const props = defineProps<{ type: ContentTypeDetail }>();
 const emit  = defineEmits<{ saved: [type: ContentTypeDetail] }>();
@@ -31,6 +31,7 @@ const kind    = computed(() => props.type.kind === 'taxonomy' ? 'taxonomy' as co
 const form    = ref<TypeForm>(formOf(props.type));
 const initial = ref<TypeForm>(formOf(props.type));
 const index   = ref(false);
+const page    = ref(false);
 const saving  = ref(false);
 const failure = ref('');
 const removal = ref('');
@@ -39,10 +40,14 @@ watch(() => props.type, (type) => {
 	form.value    = formOf(type);
 	initial.value = formOf(type);
 	index.value   = false;
+	page.value    = false;
 });
 
 const changes = computed(() => changesOf(form.value, initial.value, kind.value));
-const changed = computed(() => Object.keys(changes.value).length > 0 || index.value);
+const changed = computed(() => Object.keys(changes.value).length > 0 || index.value || page.value);
+
+// The site's authors type, which the Behavior panel names.
+const authorsLabel = computed(() => types.value.find((item) => item.name === authorType.value)?.labels.plural ?? null);
 
 // After a change: the routes and index, then the navigation.
 function refresh(): void {
@@ -60,7 +65,7 @@ async function save(): Promise<void> {
 	failure.value = '';
 
 	try {
-		const saved = await request<ContentTypeDetail>('PATCH', `/types/${encodeURIComponent(props.type.name)}`, { set: changes.value, index: index.value });
+		const saved = await request<ContentTypeDetail>('PATCH', `/types/${encodeURIComponent(props.type.name)}`, { set: changes.value, index: index.value, authorsPage: page.value && form.value.authors && form.value.authorArchives });
 
 		emit('saved', saved);
 		refresh();
@@ -75,6 +80,7 @@ async function save(): Promise<void> {
 function revert(): void {
 	form.value    = formOf(props.type);
 	index.value   = false;
+	page.value    = false;
 	failure.value = '';
 }
 
@@ -89,6 +95,7 @@ async function remove(): Promise<void> {
 		await request('DELETE', `/types/${encodeURIComponent(props.type.name)}`);
 		initial.value = form.value;
 		index.value   = false;
+		page.value    = false;
 		refresh();
 		toast(`Deleted the ${props.type.labels.plural} type`);
 		await router.push({ name: 'types' });
@@ -122,7 +129,7 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 				<h2 id="behavior-heading">Behavior</h2>
 			</header>
 			<div class="panel__body">
-				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :types="types.filter((item) => item.name !== type.name)" :index-page="type.index" />
+				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="page" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :types="types.filter((item) => item.name !== type.name)" :index-page="type.index" :authors-label="authorsLabel" :authors-page="type.authorsPage" />
 			</div>
 		</section>
 

@@ -8280,3 +8280,303 @@ decision, add a new entry that supersedes it and mark the old one
   1360px and 390px wide.
 - **Why:** the author could scroll below the sidebar and content on
   content lists.
+
+### D-329: Authors are people, with archives under each type (planned)
+- **Date:** 2026-10-01
+- **Decision:** Refines D-043, D-216, D-217, D-242, D-259, and D-322.
+  Replaces D-043's "author archives work like taxonomy term archives"
+  and D-259's planned step.
+  - **Two records, one person.** An account (`storage/accounts/`:
+    password hash, roles, sessions, preferences) stays private and out
+    of git (D-217). Its author entry (`user/content/authors/`: the public
+    name, a Markdown bio, fields) stays content and stays in git. The
+    link goes one way, from the account to the author, so content never
+    points at accounts and a clone or export without `storage/` still
+    has every byline. Guest authors (entries with no account) are
+    allowed.
+  - **The author slug isn't the username.** Usernames stay out of
+    public URLs because they're half of a login. A new author's slug is
+    suggested from the public name, never from the username.
+  - **`author` becomes an ordinary type, not a `Taxonomy`** (D-242's
+    second stage, for authors). It has **no routes of its own**: no
+    `/authors/{slug}` across the whole site, and no listing, feed, or
+    sitemap of its own. Its pages exist only under the types that
+    support authors.
+  - **A type supports authors** with an `authors` reference field to
+    the `author` type. It's on by default for collections and off for
+    pages and taxonomies. A type can turn it on or off.
+  - **Each type that supports authors gets two routes** under its
+    prefix, with the base word set per type (`urls.authors`, default
+    `authors`; `author`, `users`, `profile`, or anything else, or
+    `null` for no author routes):
+    - `{prefix}/{base}` (`/blog/authors`) lists the authors with at
+      least one published entry of that type, alphabetically by title
+      (D-304).
+    - `{prefix}/{base}/{slug}` (`/blog/authors/jane`) is that author's
+      archive for that type: the author entry's title, body, and fields,
+      then that type's entries crediting them, paged, with a feed.
+    These routes are built on the reverse index for reference fields
+    (D-242), so other reference fields can get them later.
+  - **Per-type settings:** "supports authors" (the field) and "author
+    archives" (`urls.authors`) are separate, so a type can credit
+    authors without archives (bylines are plain text then). The index
+    and the single archives switch on and off together for now; they can
+    be split later if a site wants one without the other. Data types
+    write `authors: true` and `urls: { authors: cooks }` (`false` for
+    no routes); PHP types use `TypeUrls(authors: …)`. The admin's type
+    editor (D-311) gets an **Authors** switch in Behavior and, when
+    it's on, **Author archives** with a URL word field and a preview
+    (`/recipes/cooks`, `/recipes/cooks/jane`), saved by
+    `DataTypeWriter`; types from PHP show them read-only.
+  - **Each type has its own author index page:**
+    `{type folder}/_authors.md` (`_posts/_authors.md`,
+    `_portfolio/_authors.md`). It's named after the field, not the URL
+    word, so changing the word doesn't rename the file (and later
+    reference archives follow the pattern, such as `_movies/_actors.md`).
+    It's an entry of that type, flagged like a landing page: its title
+    and body show above the list of authors, and it's left out of the
+    type's listings, feeds, and counts (as D-255's index page is).
+    Without the file, the page uses the type's labels and no intro. The
+    admin pins it in the type's list below the index page, marked
+    **Authors**, and turning on author archives offers to create it.
+  - **Templates vary per type:** `authors-{type}` → `authors` →
+    `collection` for the index, and `author-{type}-{slug}` →
+    `author-{type}` → `author` → `collection` for one author's archive.
+    The author's bio is one entry, shared by every type; a per-type bio
+    can come later if a site needs it.
+  - **Byline links and structured data** point to the author's archive
+    for the entry's own type. That's also the schema.org `Person` URL.
+  - **A credited slug with no author entry** still renders, with the
+    slug as its name, and `content:lint` warns about it.
+  - **The admin shows one person.** People becomes one list of people
+    (with or without an account). Your Profile (and an account's screen,
+    for administrators) is the editor for the author entry: the bio is
+    the writing surface, and the account's private settings (password,
+    preferences, roles) sit beside it. When an account has an author,
+    there's one name: the author entry's title. The account's private
+    name (D-322) is used only for accounts without an author. The type
+    keeps the name `author`; the admin calls the public side the
+    person's profile.
+  - **jtcom:** posts use the `archives` prefix, so the author archive
+    moves from `/authors/justintadlock` to
+    `/archives/authors/justintadlock` (see `open-questions.md`). Older
+    posts' `author` front matter may need updating.
+- **Build order:** `author` as an ordinary type with the `authors`
+  field and per-type opt-in; the per-type author routes, listing, feed,
+  and theme helpers (byline links, schema.org); `content:lint`; then
+  the admin (one People list, Your Profile as the editor, one name).
+- **Why:** the author wants any type to have authors, with author
+  archives such as `/blog/authors/jane` and `/recipes/authors/jane`
+  (and their indexes, `/blog/authors`) under configurable words, tied
+  to real accounts that have a Markdown editor like other content. The
+  author agreed to keep the split (accounts hold secrets; author entries
+  are public content), to allow guest authors, and to keep slugs apart
+  from usernames, and asked that author pages exist only under types
+  that support authors, with an author index page per type (a portfolio
+  shows something different from a blog). Naming in the admin was left
+  to Claude.
+
+### D-330: The `Authors` kind (D-329's first step)
+- **Date:** 2026-10-01
+- **Decision:** Implements D-329's first step. "Ordinary type" there
+  meant "not a taxonomy"; it's built as a fourth kind, since the
+  framework has to know which type holds people.
+  - **`Authors`** (`Content\Type`, `TypeKind::Authors`, `kind:
+    authors`): `field` and `aliases` (the built-in is `authors`, reading
+    `author`), `public`, fields, labels, description, and icon; no
+    `urls`, `listing`, `feed`, or `sitemap`. A site has at most one
+    (`ContentTypeLoader` refuses a second); `ContentTypes::authors()`
+    finds it. The admin can't create one (`DataTypeWriter::create()`
+    refuses it, as it does pages).
+  - **Not pages either:** `ContentType::servedAsPages()` says whether
+    the page catch-all serves a type without routes at its folder path
+    (1.x's `urls: false`); `Authors` says no, so `/authors/jane` is a
+    404 and `ContentUrls::entry()` gives an author no URL (no sitemap,
+    no export).
+  - **The `authors` option** on collections (default `true`),
+    taxonomies, and pages (default `false`); `toArray()` writes it only
+    when it differs. `ContentTypes::schema()` adds the authors field
+    only to those types, so elsewhere an `authors` key is undeclared
+    front matter.
+  - **Terms beyond taxonomies:** `ContentType::hasTerms()` (a term
+    field) and `ContentTypes::termTypes()` (taxonomies and the authors
+    type) replace `instanceof Taxonomy` where the index's terms are
+    meant: `RecordBuilder` (forward and reverse), `term()` and virtual
+    entries, the admin's use counts and reference picker. Routes,
+    sitemaps, feeds, and menus keep `Taxonomy`.
+  - **`AuthConfig::$authorTaxonomy` is gone** (a site with it set gets
+    the unknown-key error); `Permissions`, `Accounts`, and the admin
+    controllers use the authors type. A site that redefines `author` as
+    a 1.x taxonomy has no authors type, so accounts own nothing by
+    author and feeds name no authors.
+  - **Lint:** a credited author with no entry is a warning (D-329), not
+    a virtual-term notice.
+  - **Feeds** name authors from the authors type and take categories
+    from taxonomies only.
+  - **The admin:** types describe `authors` (whether they credit
+    authors), and the authors type lists the `types` that do. The
+    navigation leaves the authors kind out of Content; an entry list's
+    author filter shows only on types that credit authors; the authors
+    list counts uses like a taxonomy's; the type screen shows "Credits
+    authors" and the authors type's "Credited by". The kind's icon is
+    Lucide's `user-round`, added to the admin's set.
+  - **Between steps:** until the per-type archives (D-329's second
+    step), authors have no public pages at all.
+- **Checked:** `composer check` (the fixture site has author entries
+  now; `ContentTypeTest::testCollectionsCreditAuthorsByDefault`,
+  the authors type's round trip and checks in `ContentTypeLoaderTest`,
+  `LinterTest::testWarnsAboutCreditedAuthorsWithoutEntries`, and
+  `/authors/…` as 404s in `ContentRoutingTest` and `SitemapTest`);
+  `npm run admin:build`; on the jtcom trial, `content:lint` clean,
+  `/authors/justintadlock` a 404, and the JSON feed naming "Justin
+  Tadlock". Not checked in a browser.
+- **Why:** the author asked for D-329's first step.
+
+### D-331: Author archives under each type (D-329's second step)
+- **Date:** 2026-10-01
+- **Decision:** Implements D-329's per-type author routes.
+  - **`TypeUrls::$authors`** (`urls.authors`, default `authors`,
+    `false` for none) sets the route keys `authors.collection`
+    (`{word}`), `authors.single` (`{word}/{author}`),
+    `authors.single.paged`, and the three `authors.single.feed` keys;
+    `paths` can still move any of them, and `toArray()` writes the word
+    only when it isn't the default. The parameter is `{author}`, not
+    `{name}`, so a hierarchical taxonomy's term-path constraint never
+    applies to it. An empty word is an error.
+  - **Who has archives:** `ContentType::hasAuthorArchives()` (public,
+    credits authors, routed, with a word) and, for the site,
+    `ContentUrls::hasAuthorArchives()` (also an authors type). Pages
+    can credit authors but have no routes, so no archives. The home type
+    keeps its archives under its own prefix (jtcom:
+    `/archives/authors/justintadlock`).
+  - **`{type}.authors.collection`** (`AuthorsController`, `PageKind::
+    Authors`): every published, routable author, real or virtual, that a
+    listed entry of the type credits (`Content\AuthorArchives`, shared
+    with the sitemap and export), by name, on one page (no paged route;
+    an authors list rarely needs one). The title is the type's
+    `_authors` page's (`{folder}/_authors.md`, `AuthorsController::
+    PAGE`), else the authors type's plural label. The leading `_`
+    already hides the page (1.x's private files), so it's in no listing,
+    feed, or sitemap and has no URL; the controller reads it when it's
+    published.
+  - **`{type}.authors.single`** (`AuthorController`, `PageKind::
+    Author`): the author, with the type's entries crediting them, listed
+    by the type's `listing` (its own `collection` front matter isn't
+    applied, since one bio serves every type), paged and canonical like
+    a term. An author no listed entry of the type credits is a 404
+    there.
+  - **Feeds:** `{type}.authors.single.feed` (and `.atom`, `.json`) when
+    the type has a feed (`FeedBuilder::author()`, titled "{author} |
+    {type plural}"), advertised on the archive (`FeedLinks`), and
+    exported.
+  - **Templates:** `authors-{type}` → `authors` → `collection`, and
+    `author-{type}-{slug}` → `author-{type}` → `author` →
+    `collection`. The default theme adds `authors.php` (each author
+    linking to their archive, with the start of their bio) and a byline
+    ("By" and the authors, linked when the type has archives) in
+    `parts/entry-meta.php`.
+  - **Template API:** `authors($entry)`, `authorUrl($author,
+    $entryOrType)`, and `authorsUrl($type)`; `terms()` now answers only
+    for taxonomies (so bylines don't list authors as terms).
+    `ViewServices` gains `ContentTypes`.
+  - **Head:** an author archive is `og:type` `profile`; a single entry
+    gets one `article:author` per credited author, their archive in the
+    entry's type (`Head::addProperty()`, for properties that repeat).
+    There's no JSON-LD in Blush yet, so schema.org `Person` waits for
+    structured data in general.
+  - **Sitemap and export:** a type's sitemap adds its authors list and
+    each archive after its entries; static export adds them (paged)
+    before the entries, and each author's feeds.
+- **Checked:** `composer check` (`AuthorArchivesTest`: the list by name
+  with and without an `_authors` page, the archive with paging,
+  redirects, 404s, the profile type and feed links, the feed, bylines
+  and `article:author`, another word and none, templates, export; plus
+  `TypeUrls` and `Head` unit tests and the post sitemap); on the jtcom
+  trial, `/archives/authors`, `/archives/authors/justintadlock` (paged,
+  with a feed), and `/writing/authors/justintadlock` answer, `routes:list`
+  shows the routes, and `content:lint` is clean. jtcom's theme doesn't
+  style the default theme's authors list or show bylines; that waits
+  for the port.
+- **Why:** the author asked for D-329's second step, and is fine with
+  jtcom's author archive moving to `/archives/authors/justintadlock`.
+
+### D-332: The admin's side of authors (D-329's last step)
+- **Date:** 2026-10-01
+- **Decision:** Implements D-329's admin step.
+  - **The type editor** (D-311): `DataTypeWriter` takes `authors` and
+    `authorsWord` (written into `urls.authors`; `null` or `authors` is
+    the default and is left out, `false` turns archives off).
+    `TypesController::detail()` adds `authorsWord` (`null` without
+    URLs) and `authorsPage`. `POST`/`PATCH types` take `authorsPage:
+    true`, which writes `{folder}/_authors.md` titled with the authors
+    type's plural name (a `422` without author archives). The Behavior
+    panel (`TypeBehaviorFields`) gets an Authors group, shown when the
+    site has an authors type: "Entries credit authors", "Each one has
+    an archive here", the word with a hint showing both addresses, and
+    the authors page (a link once it exists, else a checkbox). The
+    new-type wizard sets credits on for content and off for taxonomies,
+    and its summary says where archives will be. Types from code show
+    "Author archives" read-only. A YAML data type emptied to `{}` can
+    take keys again (`DataTypeWriter::yaml()` starts it fresh).
+  - **The authors page in its list** (`AuthorsPage::is()`): set apart
+    from `entries` and the totals like the index page and answered as
+    `authorsPage` on the first page; pinned under the index page
+    (`EntryTable`'s `pinned` is now a list) with an **Authors** tag; not
+    duplicable. In the editor it's described like an index page (title
+    and status only), with `can.rename` false (its slug is what it is)
+    and `authorsPage: true`; the editor names it "Authors page" and
+    says what it introduces. It can be trashed.
+  - **People** (`GET people`, `PeopleView`, D-249's Accounts screen
+    folded in): one list by name of author entries the viewer may edit
+    (`Permissions::restrict()`), authors credited without a page (with
+    `content.edit.others`), and accounts (with `accounts.manage`) not
+    already listed with their author, including a second account linked
+    to one author. Each row has the name, slug, entry, account, and how
+    many published entries credit them. It needs `accounts.manage` or
+    `content.edit` (`meta.anyCapability` in the router); `/accounts`
+    redirects to `/people`, and account screens name People as their
+    list. The panel is Your Profile, People, and Roles; the author type's
+    list and editor still mark People.
+  - **Your Profile** (`ProfileView`): with an author page, it renders
+    `EditorView` with `profile` (the page's handle) and an `account`
+    slot, a third drawer tab, **Account** (`AccountSettings`, the old
+    profile panels as a component). In profile mode the address stays
+    `/profile`, the top bar and heading say Your Profile, and the slug
+    row is hidden. Without a page it's `AccountSettings` as panels plus
+    the author page panel, whose **Create your author page** now titles
+    the draft with the account's name (else the slug) and opens it here.
+    `screenBleed` lets a screen choose edge-to-edge itself; the layout
+    keeps one wrapper around the slot (`display: contents` when
+    bleeding), since swapping wrappers remounted the screen in a loop.
+  - **One name** (D-322 revised): `Accounts::displayName()` is the
+    author page's title, else the account's name, else the username.
+    `PeopleJson::account()` adds `authorPage` (`{"id", "handle"}`). Your
+    Profile and an account's screen show the Name field only without an
+    author page; with one, the account's screen says so and links to
+    the page. The account's stored name stays as it was.
+  - Departures are in `admin-design/departures.md`.
+- **Checked:** `composer check` (`AdminTypeEditTest::
+  testSetsWhetherATypeCreditsAuthorsAndWhere`, `AdminContentTest::
+  testPinsATypesAuthorsPage`, `AdminPeopleTest::
+  testListsAccountsAndAuthorsAsOne` and `testAuthorsSeeOnlyThemselves`,
+  and the one-name expectations in `AccountsTest` and `AdminApiTest`);
+  `npm run admin:build`; on the jtcom trial in headless Chrome with a
+  throwaway administrator linked to `justintadlock` (removed after, with
+  its sessions): People listing both accounts linked to Justin Tadlock,
+  Your Profile as the editor with Author, Elements, and Account tabs,
+  Posts' read-only "Author archives /archives/authors", and a throwaway
+  data type (created through the API with `authorsWord: cooks` and an
+  authors page, then deleted with its folder) showing the Authors group
+  and its pinned authors page. No console errors.
+- **Why:** the author asked for D-329's admin step.
+
+### D-333: The authors work is kept, but on hold
+- **Date:** 2026-10-01
+- **Decision:** D-329 to D-332 stay on the `2.x` branch as built, and
+  the author commits them, but the design isn't settled: the author
+  wants to think it over, and other work comes first. Treat those
+  decisions as provisional, build nothing further on them until the
+  author picks the subject up again, and expect them to be revised or
+  superseded then. The open question is in `open-questions.md`.
+- **Why:** the author called the work a good exploration and wants
+  time to think before going further.

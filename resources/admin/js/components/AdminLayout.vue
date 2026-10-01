@@ -28,7 +28,7 @@ import { ApiError, type ContentTypeSummary } from '../api';
 import { config } from '../config';
 import { online } from '../connection';
 import type { IconName } from '../icons';
-import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
+import { focusMode, screenBleed, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { initials } from '../people';
 import { can, session, signOut } from '../session';
 import { authorType, currentType, loadTypes, typeIcon, types } from '../types';
@@ -80,7 +80,7 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * own screens and shortcuts. **Content**: each content type with the
  * taxonomies that group only it nested under it, the taxonomies shared
  * by several types (or every type), and Media. **People** (D-326): Your
- * Profile, accounts, roles, and authors (the public side of accounts).
+ * Profile, People (accounts and authors in one list, D-329), and Roles.
  * **Config** (D-325): Structure (content types), Settings (its four
  * screens), and Customize (Themes and Extensions; D-327).
  * Links the account can't use aren't shown.
@@ -115,9 +115,8 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	// By the names the menu shows, which a site may shorten (D-278).
 	const editing    = can('content.edit');
 	const sorted     = [...types.value].sort((a, b) => a.labels.menu.localeCompare(b.labels.menu));
-	const entryTypes = editing ? sorted.filter((type) => type.kind !== 'taxonomy') : [];
-	const taxonomies = editing ? sorted.filter((type) => type.kind === 'taxonomy' && type.name !== authorType.value) : [];
-	const authors    = editing ? types.value.filter((type) => type.name === authorType.value) : [];
+	const entryTypes = editing ? sorted.filter((type) => type.kind !== 'taxonomy' && type.kind !== 'authors') : [];
+	const taxonomies = editing ? sorted.filter((type) => type.kind === 'taxonomy') : [];
 	const labelOf    = (name: string): string => types.value.find((type) => type.name === name)?.labels.menu ?? name;
 
 	// A taxonomy grouping one listed type sits under it; the rest are shared.
@@ -134,7 +133,10 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const structure = can('site.settings') ? [screen('types', 'Content Types', 'layers')] : [];
 	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('system', 'System', 'settings')] : [];
 	const customize = can('site.settings') ? [screen('themes', 'Themes', 'paintbrush'), screen('extensions', 'Extensions', 'plug')] : [];
-	const people    = [screen('profile', 'Your Profile', 'circle-user-round'), ...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users'), screen('roles', 'Roles', 'shield')] : []), ...authors.map((type) => link(type))];
+	// People lists accounts and authors together (D-329); an author's
+	// screens mark it.
+	const everyone  = { ...screen('people', 'People', 'users'), current: route.meta.parent === 'people' || (inEntries && currentType.value !== null && currentType.value === authorType.value) };
+	const people    = [screen('profile', 'Your Profile', 'circle-user-round'), ...(can('accounts.manage') || editing ? [everyone] : []), ...(can('accounts.manage') ? [screen('roles', 'Roles', 'shield')] : [])];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
 
@@ -181,7 +183,7 @@ const panelSub = computed(() => {
 	}
 
 	if (area.value === 'people') {
-		return 'Accounts, roles, and authors';
+		return 'Your profile, everyone, and roles';
 	}
 
 	return area.value === 'config' ? 'Types, settings, and the look' : config.site.name;
@@ -238,7 +240,7 @@ const trail = computed<{ label: string; to: RouteLocationRaw }[]>(() => {
 });
 
 const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'People', config: 'Config' })[routeArea.value]);
-const bleed = computed(() => route.meta.bleed === true);
+const bleed = computed(() => screenBleed.value ?? route.meta.bleed === true);
 
 // The collapsed panel is a per-browser convenience; storage may be off.
 const COLLAPSED = 'blush-admin-rail-collapsed';
@@ -256,7 +258,7 @@ const collapsed = ref(stored());
 // The editor's own collapse: the panel shut on the way in, as a
 // courtesy, and whatever it's toggled to while writing; `null` elsewhere,
 // so leaving puts the remembered setting back.
-const writing = computed(() => route.meta.section === 'entries' && route.meta.bleed === true);
+const writing = computed(() => (route.meta.section === 'entries' && route.meta.bleed === true) || screenBleed.value === true);
 const shut    = ref<boolean | null>(null);
 
 watch(writing, (value) => {
@@ -470,9 +472,10 @@ async function leave(): Promise<void> {
 
 			<p v-if="error" class="notice notice--error bar-error" role="alert">{{ error }}</p>
 
+			<!-- One element either way, so a screen that turns bleed on or off
+			     itself (Your Profile, D-329) isn't mounted again. -->
 			<main id="main" class="main" :class="{ 'main--bleed': bleed }">
-				<slot v-if="bleed" />
-				<div v-else class="wrap">
+				<div :class="bleed ? 'bleed' : 'wrap'">
 					<slot />
 				</div>
 			</main>
@@ -949,6 +952,10 @@ async function leave(): Promise<void> {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+}
+
+.bleed {
+	display: contents;
 }
 
 .wrap {

@@ -22,6 +22,7 @@ use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
+use Blush\Content\Http\AuthorsController;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeCache;
@@ -41,9 +42,10 @@ use Blush\Support\Filesystem;
  * `user/data/types` (D-311), for accounts with `site.settings`:
  *
  * - `POST types`: `{"name", "kind"` (`collection` or `taxonomy`),
- *   `"folder"`, `"set"`, `"index"}`; answers `201` with the type as
- *   `GET types/{name}` describes it.
- * - `PATCH types/{name}`: `{"set", "index"}`; answers with the type.
+ *   `"folder"`, `"set"`, `"index"`, `"authorsPage"}`; answers `201` with
+ *   the type as `GET types/{name}` describes it.
+ * - `PATCH types/{name}`: `{"set", "index", "authorsPage"}`; answers
+ *   with the type.
  * - `DELETE types/{name}`: deletes its file (its entries stay); answers
  *   `{"deleted"}`.
  * - `POST types/refresh`: compiles the routes again (when the site keeps
@@ -51,7 +53,10 @@ use Blush\Support\Filesystem;
  *
  * `set` holds the options to change (`DataTypeWriter`); `index: true`
  * gives a collection or taxonomy its index page (D-255), `{folder}/index.md`
- * titled with its plural name, when it has none. A change that doesn't
+ * titled with its plural name, when it has none, and `authorsPage: true`
+ * gives a type with author archives its authors page (D-329),
+ * `{folder}/_authors.md` titled with the authors type's plural name,
+ * when it has none. A change that doesn't
  * fit (an unknown option, a field that isn't one, two types in one
  * folder) is a `422` with the reason, and nothing is written.
  *
@@ -95,7 +100,7 @@ final readonly class TypeEditController
 		$folder = is_string($input['folder'] ?? null) ? $input['folder'] : null;
 
 		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->create($name, $kind, $folder, $set), $name, ($input['index'] ?? false) === true, Status::Created);
+		return $this->changed(fn (): ContentTypes => $this->writer->create($name, $kind, $folder, $set), $name, ($input['index'] ?? false) === true, ($input['authorsPage'] ?? false) === true, Status::Created);
 	}
 
 	public function update(ServerRequestInterface $request, string $name): ResponseInterface
@@ -112,7 +117,7 @@ final readonly class TypeEditController
 		}
 
 		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $set), $name, ($input['index'] ?? false) === true);
+		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $set), $name, ($input['index'] ?? false) === true, ($input['authorsPage'] ?? false) === true);
 	}
 
 	public function delete(ServerRequestInterface $request, string $name): ResponseInterface
@@ -157,12 +162,12 @@ final readonly class TypeEditController
 	}
 
 	/**
-	 * Makes a change, then compiles the types, adds the index page when
-	 * asked, and answers with the type.
+	 * Makes a change, then compiles the types, adds the index page and
+	 * the authors page when asked, and answers with the type.
 	 *
 	 * @param Closure(): ContentTypes $change
 	 */
-	private function changed(Closure $change, string $name, bool $index, Status $status = Status::Ok): ResponseInterface
+	private function changed(Closure $change, string $name, bool $index, bool $authorsPage, Status $status = Status::Ok): ResponseInterface
 	{
 		try {
 			$types = $change();
@@ -172,6 +177,10 @@ final readonly class TypeEditController
 
 			if ($index) {
 				$this->addIndex($type);
+			}
+
+			if ($authorsPage) {
+				$this->addAuthorsPage($types, $type);
 			}
 		} catch (InvalidContentType $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
@@ -222,6 +231,35 @@ final readonly class TypeEditController
 			$this->filesystem->writeAtomic("{$folder}/index.md", "---\ntitle: {$title}\n---\n");
 		} catch (Throwable $error) {
 			throw new InvalidContentType(sprintf('The type was saved, but its index page couldn\'t be written in %s.', $this->paths->relative($folder)), previous: $error);
+		}
+	}
+
+	/**
+	 * Gives a type its authors page (D-329), unless it has one or has no
+	 * author archives.
+	 *
+	 * @throws InvalidContentType
+	 */
+	private function addAuthorsPage(ContentTypes $types, ContentType $type): void
+	{
+		$authors = $types->authors();
+
+		if ($authors === null || $type->folder === '' || ! $type->hasAuthorArchives()) {
+			throw new InvalidContentType(sprintf('%s have no author archives.', $type->labels->plural));
+		}
+
+		$folder = "{$this->paths->content}/{$type->folder}";
+
+		if (glob("{$folder}/" . AuthorsController::PAGE . '.*') !== []) {
+			return;
+		}
+
+		$title = json_encode($authors->labels->plural, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
+
+		try {
+			$this->filesystem->writeAtomic("{$folder}/" . AuthorsController::PAGE . '.md', "---\ntitle: {$title}\n---\n");
+		} catch (Throwable $error) {
+			throw new InvalidContentType(sprintf('The type was saved, but its authors page couldn\'t be written in %s.', $this->paths->relative($folder)), previous: $error);
 		}
 	}
 

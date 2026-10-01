@@ -45,7 +45,7 @@ final class ContentCommandsTest extends TestCase
 		$first = $tester->run('content:index');
 
 		$this->assertTrue($first->isSuccessful());
-		$this->assertMatchesRegularExpression('/^Indexed 15 entries \(15 added, 0 changed, 0 removed\) in \d+ ms\.$/m', $first->output);
+		$this->assertMatchesRegularExpression('/^Indexed 17 entries \(17 added, 0 changed, 0 removed\) in \d+ ms\.$/m', $first->output);
 
 		$again = $tester->run('content:index -v');
 
@@ -74,13 +74,13 @@ final class ContentCommandsTest extends TestCase
 		$clean = $tester->run('content:lint');
 
 		$this->assertTrue($clean->isSuccessful());
-		$this->assertSame("Checked 15 files: 0 errors, 0 warnings.\n", $clean->output);
+		$this->assertSame("Checked 17 files: 0 errors, 0 warnings.\n", $clean->output);
 
 		$strict = $tester->run('content:lint --strict');
 
 		$this->assertTrue($strict->isSuccessful());
 		$this->assertStringContainsString("_posts/2008-04-05.spring.md\n  notice  author: is read as \"authors\".\n  notice  tag: is not declared by the schema.\n", $strict->output);
-		$this->assertMatchesRegularExpression('/Checked 15 files: 0 errors, 0 warnings, \d+ notices\./', $strict->output);
+		$this->assertMatchesRegularExpression('/Checked 17 files: 0 errors, 0 warnings, \d+ notices\./', $strict->output);
 
 		$this->entry('about.md', "title: Old\npublished: soon");
 
@@ -89,7 +89,7 @@ final class ContentCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Failure, $failed->exitCode);
 		$this->assertStringContainsString("about.md\n  error   published: must be a date", $failed->output);
 		$this->assertStringContainsString('  warning file: is the same entry as about/index.md, which wins.', $failed->output);
-		$this->assertStringContainsString('Checked 16 files: 1 error, 1 warning.', $failed->errors);
+		$this->assertStringContainsString('Checked 18 files: 1 error, 1 warning.', $failed->errors);
 	}
 
 	public function testListsContent(): void
@@ -100,7 +100,7 @@ final class ContentCommandsTest extends TestCase
 		$all = $tester->run('content:list');
 
 		$this->assertTrue($all->isSuccessful());
-		$this->assertStringContainsString('15 entries.', $all->output);
+		$this->assertStringContainsString('17 entries.', $all->output);
 		$this->assertMatchesRegularExpression('/\| post +\| \(landing\) +\| Blog +\| published +\| public/', $all->output);
 		$this->assertMatchesRegularExpression('/\| page +\| about\/biography +\| Biography +\|/', $all->output);
 

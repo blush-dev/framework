@@ -41,6 +41,8 @@ final class PermissionsTest extends TestCase
 
 	protected function setUp(): void
 	{
+		// Pages don't credit authors unless the site says so (D-329).
+		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: pages\nauthors: true\n");
 		$this->writeTemporaryFile('user/content/mine.md', "---\ntitle: Mine\nauthors: jane\n---\n");
 		$this->writeTemporaryFile('user/content/my-draft.md', "---\ntitle: My draft\nauthors: jane\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/theirs.md', "---\ntitle: Theirs\nauthors: [sam, lee]\n---\n");
@@ -125,7 +127,6 @@ final class PermissionsTest extends TestCase
 				new Role('proofreader', 'Proofreader', ['content.edit.others', 'content.publish.others'])
 			]), new MemoryRoleStore()),
 			$this->app->container()->make(Capabilities::class),
-			new AuthConfig(),
 			$this->app->container()->make(ContentTypes::class)
 		);
 

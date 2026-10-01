@@ -20,6 +20,8 @@ use Blush\Auth\BuiltInRole;
 use Blush\Auth\Role;
 use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
+use Blush\Content\ContentRepository;
+use Blush\Content\Type\ContentTypes;
 
 /**
  * Describes accounts and roles for the admin's people screens (D-249,
@@ -31,13 +33,17 @@ final readonly class PeopleJson
 	public function __construct(
 		private PeopleRules $rules,
 		private Accounts $accounts,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private ContentRepository $content,
+		private ContentTypes $types,
+		private EntryHandles $handles
 	) {}
 
 	/**
 	 * Describes an account: its `username`, its own `name` (or `null`),
-	 * its `displayName` (D-322: the name, else the author page's title,
-	 * else the username), `roles`, `author`, `created` and `lastLogin`
+	 * its `displayName` (D-329: the author page's title, else the name,
+	 * else the username), `roles`, `author`, its `authorPage` (`{"id",
+	 * "handle"}`, or `null` without one), `created` and `lastLogin`
 	 * (Unix times), `status`, its password `link` (`expires`, and whether
 	 * it has `expired`; `null` for none), and whether the viewer
 	 * `manages` it.
@@ -54,12 +60,26 @@ final readonly class PeopleJson
 			'displayName' => $this->accounts->displayName($account),
 			'roles'       => $account->roles,
 			'author'      => $account->author,
+			'authorPage'  => $this->authorPage($account),
 			'created'     => $account->created,
 			'lastLogin'   => $account->lastLogin,
 			'status'      => $account->status()->value,
 			'link'        => $link === null ? null : ['expires' => $link->expires, 'expired' => $link->expires <= $this->clock->now()->getTimestamp()],
 			'manages'     => $this->rules->manages($viewer, $account)
 		];
+	}
+
+	/**
+	 * Returns an account's author page, `{"id", "handle"}`, or `null`.
+	 *
+	 * @return ?array{id: string, handle: ?string}
+	 */
+	private function authorPage(Account $account): ?array
+	{
+		$authors = $this->types->authors();
+		$entry   = $account->author === null || $authors === null ? null : $this->content->named($authors->name, $account->author);
+
+		return $entry === null ? null : ['id' => $entry->id, 'handle' => $this->handles->of($entry)];
 	}
 
 	/**

@@ -14,6 +14,10 @@
 	"terms": {
 		"label": "Filed under"
 	},
+	"authors": {
+		"byline": "By",
+		"none": "No one has been credited here yet."
+	},
 	"welcome": {
 		"title": "Welcome to {site}",
 		"running": "{generator} is running.",

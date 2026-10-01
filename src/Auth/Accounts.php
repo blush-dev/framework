@@ -210,18 +210,16 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Returns what the admin calls an account (D-322): its name, else its
-	 * author page's title, else its username.
+	 * Returns what the admin calls an account: one name per person
+	 * (D-329), so its author page's title when it has one, else its own
+	 * name (D-322), else its username.
 	 */
 	public function displayName(Account $account): string
 	{
-		if ($account->name !== null) {
-			return $account->name;
-		}
+		$authors = $this->types->authors()?->name;
+		$title   = $account->author === null || $authors === null ? '' : ($this->content->named($authors, $account->author)->title ?? '');
 
-		$title = $account->author === null ? '' : ($this->content->named($this->config->authorTaxonomy, $account->author)->title ?? '');
-
-		return $title !== '' ? $title : $account->username;
+		return $title !== '' ? $title : ($account->name ?? $account->username);
 	}
 
 	/**
@@ -242,7 +240,9 @@ final readonly class Accounts
 	 */
 	public function hasAuthor(string $author): bool
 	{
-		return $this->content->term($this->config->authorTaxonomy, $author) !== null;
+		$authors = $this->types->authors()?->name;
+
+		return $authors !== null && $this->content->term($authors, $author) !== null;
 	}
 
 	/**
@@ -251,7 +251,9 @@ final readonly class Accounts
 	 */
 	public function hasAuthorPage(string $author): bool
 	{
-		return $this->content->named($this->config->authorTaxonomy, $author) !== null;
+		$authors = $this->types->authors()?->name;
+
+		return $authors !== null && $this->content->named($authors, $author) !== null;
 	}
 
 	/**
@@ -263,8 +265,7 @@ final readonly class Accounts
 	 */
 	public function createAuthorPage(string $author, string $name): string
 	{
-		$type = $this->types->find($this->config->authorTaxonomy)
-			?? throw new AuthException(sprintf('The site has no "%s" content type for authors.', $this->config->authorTaxonomy));
+		$type = $this->types->authors() ?? throw new AuthException('The site has no authors type.');
 
 		try {
 			return $this->writer->create($type, $author, new EntryChanges(set: ['title' => $name], body: "\n"), $this->clock->now())->id;

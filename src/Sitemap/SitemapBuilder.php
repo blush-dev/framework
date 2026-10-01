@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Sitemap;
 
 use DateTimeImmutable;
+use Blush\Content\AuthorArchives;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
@@ -28,7 +29,8 @@ use Blush\Content\Type\Taxonomy;
  * A type's sitemap holds its collection page (when it has a landing page
  * or lists something), then its listed entries
  * (published, public, not landing pages) that have URLs, with their
- * `updated` dates. A taxonomy's holds its terms that list entries
+ * `updated` dates, then its authors list and author archives when it
+ * has them (D-329). A taxonomy's holds its terms that list entries
  * (virtual terms included), by slug, so empty archives stay out. The type the root
  * `index.md` belongs to also holds `/`, when the home page isn't a type's
  * collection.
@@ -38,7 +40,8 @@ final readonly class SitemapBuilder
 	public function __construct(
 		private ContentRepository $content,
 		private ContentTypes $types,
-		private ContentUrls $urls
+		private ContentUrls $urls,
+		private AuthorArchives $archives
 	) {}
 
 	/**
@@ -117,7 +120,33 @@ final readonly class SitemapBuilder
 			$this->add($urls, $entry);
 		}
 
+		$this->addAuthors($urls, $type);
+
 		return array_values($urls);
+	}
+
+	/**
+	 * Adds a type's authors list and each author's archive in it (D-329),
+	 * when it has any.
+	 *
+	 * @param array<string, SitemapUrl> $urls
+	 */
+	private function addAuthors(array &$urls, ContentType $type): void
+	{
+		$authors = $this->urls->hasAuthorArchives($type) ? $this->archives->authors($type) : [];
+		$list    = $authors === [] ? null : $this->urls->authors($type);
+
+		if ($list !== null) {
+			$urls[$list] ??= new SitemapUrl($this->urls->absolute($list));
+		}
+
+		foreach ($authors as $author) {
+			$url = $this->urls->author($type, $author->slug);
+
+			if ($url !== null) {
+				$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $author->isVirtual() ? null : $author->updated);
+			}
+		}
 	}
 
 	/**

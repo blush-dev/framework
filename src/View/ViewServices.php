@@ -16,6 +16,7 @@ namespace Blush\View;
 use Blush\Cache\ContentCache;
 use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Menu\Menus;
 use Blush\Region\Regions;
@@ -34,6 +35,7 @@ final readonly class ViewServices
 	public function __construct(
 		public ContentUrls $urls,
 		public ContentRepository $content,
+		public ContentTypes $types,
 		public UrlGenerator $router,
 		public AppConfig $app,
 		public ContextProviders $providers,

@@ -23,7 +23,7 @@ use Blush\Core\AppConfig;
 /**
  * The feeds a page advertises with `<link rel="alternate">`: the home
  * feed on every page, plus the feed of what the page shows (its type's
- * collection, or its term's).
+ * collection, its term's, or an author's in its type).
  */
 final readonly class FeedLinks
 {
@@ -53,12 +53,30 @@ final readonly class FeedLinks
 		if ($type !== null && $page->kind !== PageKind::Home) {
 			if ($page->kind === PageKind::Term && $page->entry !== null) {
 				$this->add($links, $type, $page->title, $page->entry->slug);
+			} elseif ($page->kind === PageKind::Author && $page->entry !== null) {
+				$this->addAuthor($links, $type, $page->entry->slug, "{$page->title} | {$type->labels->plural}");
 			} elseif ($type->hasUrls()) {
 				$this->add($links, $type, $page->kind === PageKind::Collection && $page->title !== '' ? $page->title : ucfirst($type->name));
 			}
 		}
 
 		return array_values($links);
+	}
+
+	/**
+	 * Adds an author's feeds in a type.
+	 *
+	 * @param array<string, array{string, FeedFormat, string}> $links
+	 */
+	private function addAuthor(array &$links, ContentType $type, string $author, string $title): void
+	{
+		foreach ($this->config->formats as $format) {
+			$url = $this->urls->authorFeed($type, $author, 'authors.single.feed' . $format->routeSuffix());
+
+			if ($url !== null) {
+				$links[$url] ??= [$url, $format, "{$title} ({$format->label()})"];
+			}
+		}
 	}
 
 	/**

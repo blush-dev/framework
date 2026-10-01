@@ -322,7 +322,6 @@ either way.
 | Option | Default | What it does |
 |---|---|---|
 | `roles` | `[]` | Your own roles (`Blush\Auth\Role` objects), which can replace built-in ones; see [Accounts and roles](accounts.md#your-own-roles) |
-| `authorTaxonomy` | `'author'` | The taxonomy an account's author belongs to, if you renamed the built-in one |
 | `minPasswordLength` | `12` | The shortest password accepted (at least 8) |
 | `maxAttempts` | `5` | Wrong passwords allowed for one username and address before a lockout |
 | `lockout` | `900` | How many seconds a lockout lasts |

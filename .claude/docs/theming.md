@@ -184,6 +184,11 @@ aren't candidates (D-104).
 - **Term:** `term-{taxonomy}-{slug}` → `term-{taxonomy}` → `term` →
   `collection`.
 - **Date archive:** `archive-date-{type}` → `archive-date` → `collection`.
+- **Authors** (a type's, D-329): `authors-{type}` → `authors` →
+  `collection`; `$entries` holds the authors, `$entry` the type's
+  `_authors` page.
+- **Author archive:** `author-{type}-{slug}` → `author-{type}` →
+  `author` → `collection`; `$entry` is the author.
 - **Home:** `home` → then the hierarchy of whatever it aliases.
 - **Welcome:** `welcome` (a site with no home page yet, D-108).
 - **Errors:** `error-{status}` → `error`, filled from

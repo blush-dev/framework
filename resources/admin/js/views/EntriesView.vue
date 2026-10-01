@@ -121,8 +121,9 @@ function text(value: unknown): string {
 	return typeof value === 'string' ? value : '';
 }
 
-// A taxonomy's entries are terms: they're counted by use, not credited.
-const terms = computed(() => info.value?.kind === 'taxonomy');
+// A taxonomy's entries are terms, and the authors type's are people
+// (D-329): they're counted by use, not credited.
+const terms = computed(() => info.value?.kind === 'taxonomy' || info.value?.kind === 'authors');
 
 // A nesting type lists as a tree on All with no search (D-261); a tab or
 // a search flattens it, and a bar says so and how to get it back (the
@@ -245,15 +246,19 @@ const dayOptions: SelectOption[] = [
 
 const perOptions: SelectOption[] = PER_OPTIONS.map((count) => ({ value: String(count), label: `${count} per page` }));
 
-// The taxonomies that group this type, apart from authors, which have
-// their own filter.
+// The rows pinned above the entries: the index page, then the authors
+// page (D-255, D-329).
+function pinnedOf(answer: EntryList): EntrySummary[] {
+	return [answer.index, answer.authorsPage].filter((entry): entry is EntrySummary => entry !== null && entry !== undefined);
+}
+
+// The taxonomies that group this type.
 const taxonomies = computed(() => types.value.filter((item) => item.kind === 'taxonomy'
 	&& item.name !== type.value
-	&& item.name !== authorType.value
 	&& (!item.types?.length || item.types.includes(type.value))));
 
-// Terms aren't credited, and the authors' own list needs no author filter.
-const authored = computed(() => !terms.value && authorType.value !== null && authorType.value !== type.value);
+// Only the types that credit authors have an author filter (D-329).
+const authored = computed(() => authorType.value !== null && info.value?.authors === true);
 
 let optionsFor = '';
 
@@ -589,7 +594,7 @@ const emptyText = computed(() => {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ heading }}</h1>
-			<p class="page-header__hint">{{ terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit` }}</p>
+			<p class="page-header__hint">{{ info?.kind === 'authors' ? 'The people entries credit' : (terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit`) }}</p>
 		</div>
 		<div v-if="(can('content.create') && !nothingYet) || can('site.settings')" class="page-header__actions">
 			<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type settings</RouterLink>
@@ -600,9 +605,9 @@ const emptyText = computed(() => {
 	<section v-if="nothingYet" class="panel" aria-labelledby="entries-heading">
 		<!-- A type with an index page is never empty: the index page is
 		     already there, so the first-run state sits under it (D-255). -->
-		<EntryTable v-if="list?.index" :entries="[]" :pinned="list.index" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" />
+		<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" />
 		<div class="empty">
-			<AdminIcon :name="terms ? 'tag' : 'files'" />
+			<AdminIcon :name="info?.kind === 'authors' ? 'user-round' : (terms ? 'tag' : 'files')" />
 			<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
 			<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
 			<RouterLink v-if="can('content.create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
@@ -690,9 +695,9 @@ const emptyText = computed(() => {
 					<button v-if="sort" type="button" class="button button--ghost button--small notebar__action" @click="clearSort">Clear the sort</button>
 				</p>
 				<EntryTable
-					v-if="list.entries.length || list.index"
+					v-if="list.entries.length || pinnedOf(list).length"
 					:entries="list.entries"
-					:pinned="list.index"
+					:pinned="pinnedOf(list)"
 					labelledby="entries-heading"
 					date-label="Updated"
 					date-key="updated"

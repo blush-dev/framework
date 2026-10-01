@@ -109,7 +109,7 @@ final readonly class ReferencesController
 			return self::json(['error' => sprintf('"limit" must be a whole number from 1 to %d.', self::MAX_LIMIT)], HttpStatus::BadRequest);
 		}
 
-		$taxonomy = $contentType instanceof Taxonomy;
+		$taxonomy = $contentType->hasTerms();
 		$counts   = $taxonomy ? $this->content->termCounts($type) : [];
 		$entries  = $this->content->query()->any()->type($type)->withLanding(false)->orderBy('title', Order::Asc)->limit(null)->get()->all();
 		$items    = [];
@@ -135,7 +135,7 @@ final readonly class ReferencesController
 			$items = self::inUse($items, array_map(strval(...), array_keys($used)));
 		}
 
-		$tree  = $taxonomy && $contentType->hierarchical;
+		$tree  = $contentType instanceof Taxonomy && $contentType->hierarchical;
 		$found = $tree ? self::tree($items) : self::matching($items, $search);
 		$total = count($found);
 		$shown = $tree ? $found : array_slice($found, 0, $limit);

@@ -20,7 +20,9 @@ use Blush\Content\Query\Order;
 use Blush\Content\Schema\FieldFactory;
 use Blush\Content\Schema\FieldRegistrar;
 use Blush\Content\Schema\FieldRegistry;
+use Blush\Content\Schema\InvalidSchema;
 use Blush\Content\Schema\Fields\TextField;
+use Blush\Content\Type\Authors;
 use Blush\Content\Type\BuiltInType;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentConfig;
@@ -40,6 +42,7 @@ use Blush\Tests\Fixtures\Content\JtcomTypes;
 #[CoversClass(Collection::class)]
 #[CoversClass(Taxonomy::class)]
 #[CoversClass(Pages::class)]
+#[CoversClass(Authors::class)]
 #[CoversClass(TypeKind::class)]
 #[CoversClass(ContentConfig::class)]
 #[CoversClass(TypeUrls::class)]
@@ -176,6 +179,64 @@ final class ContentTypeTest extends TestCase
 
 		$this->assertSame(['name' => 'page', 'kind' => 'pages', 'folder' => '', 'fields' => [['name' => 'subtitle', 'type' => 'text']]], $pages->toArray());
 		$this->assertEquals($pages, ContentType::fromArray($pages->toArray(), $this->fields));
+
+		$authors = new Authors(folder: 'people', field: 'credits', aliases: ['by'], public: false);
+
+		$this->assertSame(['name' => 'author', 'kind' => 'authors', 'folder' => 'people', 'public' => false, 'field' => 'credits', 'aliases' => ['by']], $authors->toArray());
+		$this->assertEquals($authors, ContentType::fromArray($authors->toArray(), $this->fields));
+	}
+
+	public function testUrlsNameTheWordAuthorArchivesSitUnder(): void
+	{
+		$this->assertSame('authors/{author}', new TypeUrls()->path('authors.single'));
+		$this->assertSame([], new TypeUrls()->toArray(), 'The default word is left out.');
+
+		$writers = new TypeUrls(authors: '/writers/', paths: ['authors.single.paged' => 'writers/{author}/p/{page}']);
+
+		$this->assertSame('writers', $writers->path('authors.collection'));
+		$this->assertSame('writers/{author}/feed/json', $writers->path('authors.single.feed.json'));
+		$this->assertSame(['paths' => ['authors.single.paged' => 'writers/{author}/p/{page}'], 'authors' => 'writers'], $writers->toArray());
+		$this->assertEquals($writers, TypeUrls::fromArray($writers->toArray(), 'urls'));
+
+		$none = TypeUrls::fromArray(['authors' => false], 'urls');
+
+		$this->assertFalse($none->authors);
+		$this->assertNull($none->path('authors.single'));
+		$this->assertSame(['authors' => false], $none->toArray());
+		$this->assertFalse(new Collection('post', urls: $none)->hasAuthorArchives());
+		$this->assertTrue(new Collection('post')->hasAuthorArchives());
+		$this->assertFalse(new Collection('post', authors: false)->hasAuthorArchives());
+		$this->assertFalse(new Collection('post', public: false)->hasAuthorArchives());
+
+		foreach ([['authors' => ''], ['authors' => 5]] as $data) {
+			try {
+				TypeUrls::fromArray($data, 'urls');
+				$this->fail('An empty or non-string word.');
+			} catch (InvalidSchema $e) {
+				$this->assertStringContainsString('"authors" must be a word', $e->getMessage());
+			}
+		}
+	}
+
+	public function testCollectionsCreditAuthorsByDefault(): void
+	{
+		$this->assertTrue(new Collection('post')->authors);
+		$this->assertFalse(new Taxonomy('tag')->authors);
+		$this->assertFalse(new Pages()->authors);
+
+		$cases = [
+			[new Collection('post', authors: false), ['authors' => false]],
+			[new Taxonomy('tag', authors: true), ['authors' => true]],
+			[new Pages(authors: true), ['authors' => true]]
+		];
+
+		foreach ($cases as [$type, $expected]) {
+			$this->assertSame($expected, array_intersect_key($type->toArray(), ['authors' => true]), $type->name);
+			$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
+		}
+
+		$this->assertArrayNotHasKey('authors', new Collection('post')->toArray(), 'The default is left out.');
+		$this->assertFalse(ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy'], $this->fields)->authors);
 	}
 
 	public function testNamesTypesForPeople(): void
@@ -262,6 +323,8 @@ final class ContentTypeTest extends TestCase
 		$this->assertInstanceOf(Taxonomy::class, ContentType::fromArray(['name' => 'tag', 'taxonomy' => true], $this->fields));
 		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'note', 'taxonomy' => false], $this->fields));
 
+		$this->assertInstanceOf(Authors::class, ContentType::fromArray(['name' => 'person', 'kind' => 'authors'], $this->fields));
+
 		$pages = ContentType::fromArray(['name' => 'page', 'kind' => 'pages'], $this->fields);
 
 		$this->assertInstanceOf(Pages::class, $pages);
@@ -330,7 +393,7 @@ final class ContentTypeTest extends TestCase
 			[['name' => 'post', 'types' => ['x']], 'Content type "post" (collection) has unknown options: types.'],
 			[['name' => 'tag', 'kind' => 'taxonomy', 'dateArchives' => 'day'], 'Content type "tag" (taxonomy) has unknown options: dateArchives.'],
 			[['name' => 'page', 'kind' => 'pages', 'urls' => []], 'Content type "page" (pages) has unknown options: urls.'],
-			[['name' => 'post', 'kind' => 'blog'], 'Content type "post" "kind" must be one of collection, taxonomy, pages.'],
+			[['name' => 'post', 'kind' => 'blog'], 'Content type "post" "kind" must be one of collection, taxonomy, pages, authors.'],
 			[['name' => 'post', 'kind' => 'collection', 'taxonomy' => true], 'Content type "post" sets "kind: collection" and "taxonomy: true".'],
 			[['name' => 'post', 'routing' => 'yes'], 'Content type "post" "urls" must be false or a map.'],
 			[['name' => 'post', 'urls' => ['prefix' => 'a', 'single' => 'b', 'nope' => 'c']], 'Content type "post" urls has unknown options: nope.'],
@@ -400,8 +463,12 @@ final class ContentTypeTest extends TestCase
 		$this->assertFalse($page->hasUrls());
 		$this->assertFalse(BuiltInType::Page->canDisable());
 
-		$this->assertInstanceOf(Taxonomy::class, $author);
+		$this->assertInstanceOf(Authors::class, $author);
 		$this->assertSame('authors', $author->folder);
+		$this->assertFalse($author->hasUrls(), 'Author pages are archives under the types that credit them (D-329).');
+		$this->assertFalse($author->hasFeed());
+		$this->assertFalse($author->sitemap);
+		$this->assertFalse($author->authors);
 		$field = $author->termField();
 
 		$this->assertSame('authors', $field->name);

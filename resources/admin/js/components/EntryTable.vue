@@ -21,7 +21,9 @@ const collapsed = ref(new Set<string>());
  *
  * The type's index page, when there is one, is `pinned` in a body of its
  * own above the rest (D-255): the same row, tinted, with a pin and an
- * **Index** tag, and never with **Duplicate** or **Move to trash**.
+ * **Index** tag, and never with **Duplicate** or **Move to trash**. Its
+ * authors page (D-329) is pinned under it the same way, tagged
+ * **Authors**, and may be trashed.
  *
  * A tree page that starts inside a branch begins with the entries above
  * it, marked **Continued** (D-263). Collapsing a branch hides the rows
@@ -49,9 +51,9 @@ import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import StatusPill from './StatusPill.vue';
 
-const { terms = false, pinned = null, entries, sortable = false, sort = null, dir = null, dateKey, dateLabel, selectable = false } = defineProps<{
+const { terms = false, pinned = [], entries, sortable = false, sort = null, dir = null, dateKey, dateLabel, selectable = false } = defineProps<{
 	entries: EntrySummary[];
-	pinned?: EntrySummary | null;
+	pinned?: EntrySummary[];
 	labelledby: string;
 	dateLabel: string;
 	dateKey: 'updated' | 'published';
@@ -114,7 +116,7 @@ const tree = computed(() => entries.some((entry) => entry.depth !== null));
 
 // The pinned index page's body, then the entries'.
 const groups = computed(() => [
-	...(pinned === null ? [] : [{ key: 'pinned', entries: [pinned] }]),
+	...(pinned.length === 0 ? [] : [{ key: 'pinned', entries: pinned }]),
 	{ key: 'entries', entries: entries.filter((entry) => !hidden.value.has(entry.id)) }
 ]);
 
@@ -123,8 +125,12 @@ const choosable = computed(() => groups.value.flatMap((group) => group.entries).
 const chosen    = computed(() => choosable.value.filter((id) => selected.value.includes(id)).length);
 const allState  = computed<'true' | 'false' | 'mixed'>(() => chosen.value === 0 ? 'false' : (chosen.value === choosable.value.length ? 'true' : 'mixed'));
 
+function pinTitle(entry: EntrySummary): string {
+	return entry.index ? 'Pinned: the index page for this type' : 'Pinned: the page introducing this type\'s authors';
+}
+
 function canSelect(entry: EntrySummary): boolean {
-	return !entry.index && !entry.continued;
+	return !entry.index && !entry.authorsPage && !entry.continued;
 }
 
 function isSelected(entry: EntrySummary): boolean {
@@ -195,7 +201,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 			<tbody v-for="group in groups" :key="group.key" :class="{ 'table__pinned': group.key === 'pinned' }">
 				<tr v-for="entry in group.entries" :key="`${entry.id}${entry.continued ? ':continued' : ''}`" :class="{ 'is-selected': selectable && isSelected(entry) }">
 					<td v-if="selectable" class="table__check">
-						<span v-if="entry.index" class="table__pin" title="Pinned: the index page for this type"><AdminIcon name="pin" /><span class="visually-hidden">Pinned</span></span>
+						<span v-if="entry.index || entry.authorsPage" class="table__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /><span class="visually-hidden">Pinned</span></span>
 						<button v-else-if="canSelect(entry)" type="button" class="check" role="checkbox" :aria-checked="isSelected(entry) ? 'true' : 'false'" :aria-label="`Select ${entry.title || 'Untitled'}`" @click="choose(entry)"><AdminIcon name="check" /></button>
 					</td>
 					<th scope="row">
@@ -204,13 +210,14 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 						<span v-else-if="entry.depth !== null || (tree && group.key === 'pinned')" class="twist twist--leaf" aria-hidden="true" />
 						<span class="entry-title">
 							<span class="entry-title__text">
-								<span v-if="entry.index && !selectable" class="entry-title__pin" title="Pinned: the index page for this type"><AdminIcon name="pin" /></span>
+								<span v-if="(entry.index || entry.authorsPage) && !selectable" class="entry-title__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /></span>
 								<span v-if="entry.depth === null && entry.ancestors.length" class="entry-title__ancestors">{{ entry.ancestors.join(' › ') }} ›{{ ' ' }}</span>
 								<RouterLink class="entry-title__link" :to="entryRoute(entry)">
 									<template v-if="entry.title">{{ entry.title }}</template>
 									<span v-else class="untitled">Untitled</span>
 								</RouterLink>
 								<template v-if="entry.index">{{ ' ' }}<span class="index-mark">Index</span></template>
+								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">Authors</span></template>
 								{{ ' ' }}<span v-if="entry.own" class="tag">Yours</span>
 								{{ ' ' }}<span v-if="entry.continued" class="tag" title="Listed on an earlier page; shown again above the entries under it">Continued</span>
 							</span>

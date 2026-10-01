@@ -47,6 +47,10 @@ use Blush\Routing\UrlGenerationException;
  *   `urls: false`) live at their folder path: `/about/biography`.
  * - A landing page is its type's collection. The home type's collection
  *   is `/`, paged as `/page/{page}`.
+ * - A type that credits authors lists them at `authors.collection` and
+ *   has an archive per author at `authors.single` (D-329), under its
+ *   own prefix, even for the home type. Authors themselves have no URL
+ *   outside a type.
  *
  * `null` means the thing has no URL: a hidden entry, or values the route
  * can't take.
@@ -153,7 +157,7 @@ final readonly class ContentUrls
 		}
 
 		if (! $type->hasUrls()) {
-			return $this->routes->canonicalPath('/' . trim("{$type->folder}/{$entry->key}", '/'));
+			return $type->servedAsPages() ? $this->routes->canonicalPath('/' . trim("{$type->folder}/{$entry->key}", '/')) : null;
 		}
 
 		if ($entry->landing) {
@@ -191,6 +195,51 @@ final readonly class ContentUrls
 		return $page > 1
 			? $this->build($taxonomy->routePattern('single.paged'), ['name' => $name, 'page' => (string) $page], $taxonomy)
 			: $this->build($taxonomy->routePattern('single'), ['name' => $name], $taxonomy);
+	}
+
+	/**
+	 * Returns the URL path of a type's list of authors, or `null` when it
+	 * has no author archives.
+	 */
+	public function authors(ContentType $type): ?string
+	{
+		return $this->hasAuthorArchives($type) ? $this->build($type->routePattern('authors.collection'), [], $type) : null;
+	}
+
+	/**
+	 * Returns an author's archive URL path in a type, or a later page's,
+	 * or `null` when the type has no author archives.
+	 */
+	public function author(ContentType $type, string $slug, int $page = 1): ?string
+	{
+		if (! $this->hasAuthorArchives($type)) {
+			return null;
+		}
+
+		return $page > 1
+			? $this->build($type->routePattern('authors.single.paged'), ['author' => $slug, 'page' => (string) $page], $type)
+			: $this->build($type->routePattern('authors.single'), ['author' => $slug], $type);
+	}
+
+	/**
+	 * Returns the URL path of an author's feed in a type (`$key` is
+	 * `authors.single.feed`, `.feed.atom`, or `.feed.json`), or `null`
+	 * when the type has no feed or no author archives.
+	 */
+	public function authorFeed(ContentType $type, string $slug, string $key = 'authors.single.feed'): ?string
+	{
+		return $type->hasFeed() && $this->hasAuthorArchives($type)
+			? $this->build($type->routePattern($key), ['author' => $slug], $type)
+			: null;
+	}
+
+	/**
+	 * Returns whether a type has author archives: its own setting, and
+	 * an authors type on the site.
+	 */
+	public function hasAuthorArchives(ContentType $type): bool
+	{
+		return $type->hasAuthorArchives() && $this->types->authors() !== null;
 	}
 
 	/**

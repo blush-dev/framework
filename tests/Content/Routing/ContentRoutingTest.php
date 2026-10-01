@@ -129,8 +129,7 @@ final class ContentRoutingTest extends TestCase
 			'home', 'home.paged', 'page.single', 'media',
 			'post.single', 'post.collection.year', 'post.collection.year.paged', 'post.collection.month',
 			'post.collection.month.paged', 'post.collection.day', 'post.collection.day.paged',
-			'category.collection', 'category.collection.paged', 'category.single', 'category.single.paged',
-			'author.collection', 'author.single', 'author.single.paged'
+			'category.collection', 'category.collection.paged', 'category.single', 'category.single.paged'
 		];
 
 		foreach ($names as $name) {
@@ -138,6 +137,7 @@ final class ContentRoutingTest extends TestCase
 		}
 
 		$this->assertNull($table->named('post.collection'));
+		$this->assertNull($table->named('author.single'), 'Authors have no routes of their own (D-329).');
 		$this->assertNull($table->named('post.collection.hour'));
 		$this->assertNull($table->named('page.collection'));
 		$this->assertSame('/archives/{year}/{month}/{day}/{name}', $table->named('post.single')?->path());
@@ -186,7 +186,8 @@ final class ContentRoutingTest extends TestCase
 		$this->assertPage('/topics/art/page/1', 301, '/topics/art');
 		$this->assertPage('/topics/art/page/2', 404);
 		$this->assertPage('/topics/unused', 404);
-		$this->assertPage('/authors/justintadlock', 200, 'justintadlock', ['/archives/2003/04/15/welcome', '/archives/2008/04/05/spring']);
+		$this->assertPage('/authors/justintadlock', 404);
+		$this->assertPage('/authors', 404);
 	}
 
 	public function testHierarchicalTermsHaveNestedUrls(): void

@@ -23,7 +23,7 @@ import { ApiError, request, type ContentTypeDetail } from '../api';
 import { label as fieldLabel } from '../fields';
 import { changesOf, DATE_ARCHIVES, emptyForm, FEATURED, folderOf, hasFeatured, singularOf, typeKeyOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
-import { canCreateTypes, loadTypes, reloadTypes, typeUrls, types } from '../types';
+import { authorType, canCreateTypes, loadTypes, reloadTypes, typeUrls, types } from '../types';
 
 const router = useRouter();
 
@@ -39,6 +39,7 @@ const folder        = ref('');
 const keyTouched    = ref(false);
 const folderTouched = ref(false);
 const index         = ref(true);
+const authorsPage   = ref(false);
 const creating      = ref(false);
 const failure       = ref('');
 const created       = ref(false);
@@ -66,7 +67,12 @@ watch(kind, (value) => {
 	if (value === 'taxonomy' && hasFeatured(form.value)) {
 		form.value.fields = form.value.fields.filter((field) => !(field.name === FEATURED.name && field.type === FEATURED.type));
 	}
+
+	// Collections credit authors by default; taxonomies don't (D-329).
+	form.value.authors = value === 'collection';
 });
+
+const authorsLabel = computed(() => types.value.find((item) => item.name === authorType.value)?.labels.plural ?? null);
 
 const keyError = computed(() => {
 	if (key.value === '') {
@@ -123,6 +129,7 @@ async function create(): Promise<void> {
 			kind: kind.value,
 			folder: folderClean.value,
 			index: index.value,
+			authorsPage: authorsPage.value && form.value.authors && form.value.authorArchives && authorsLabel.value !== null,
 			set: changesOf(form.value, null, kind.value)
 		});
 
@@ -203,7 +210,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 			</div>
 
 			<div v-else-if="step === 1" class="panel__body wizard__body">
-				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="new-" :kind="kind" :folder-prefix="prefix" :urls="typeUrls" :types="types" :index-page="null" />
+				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :folder-prefix="prefix" :urls="typeUrls" :types="types" :index-page="null" :authors-label="authorsLabel" :authors-page="null" />
 			</div>
 
 			<div v-else>
@@ -237,6 +244,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 				<div v-else><dt>Nesting</dt><dd>{{ form.hierarchical ? 'Terms nest' : 'Flat' }}</dd></div>
 				<div v-if="kind === 'taxonomy'"><dt>Groups</dt><dd>{{ groupLabels.length ? groupLabels.join(', ') : 'Every type' }}</dd></div>
 				<div><dt>Index page</dt><dd>{{ index ? 'Created and pinned' : 'None' }}</dd></div>
+				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ !form.authors ? 'Not credited' : (form.authorArchives && typeUrls ? `Credited, with archives at /${prefix || '…'}/${form.authorsWord.trim() || 'authors'}` : 'Credited') }}</dd></div>
 				<div><dt>Feed</dt><dd>{{ form.feed ? 'Yes' : 'No' }}</dd></div>
 				<div><dt>Fields</dt><dd>{{ form.fields.length ? form.fields.map(fieldLabel).join(', ') : 'None yet' }}</dd></div>
 			</dl>

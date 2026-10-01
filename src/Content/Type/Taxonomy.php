@@ -19,7 +19,7 @@ use Blush\Content\Schema\Fields\ReferenceField;
 
 /**
  * A type whose entries are terms that group other entries: tags,
- * categories, series, authors. Entries join a term through the
+ * categories, series. Entries join a term through the
  * taxonomy's field (its name, unless `field` says otherwise, plus any
  * `aliases`). Its listing page lists the terms, and each term's page
  * lists the entries of `types` (every type when empty) that reference it:
@@ -59,6 +59,7 @@ final readonly class Taxonomy extends ContentType
 	 * @param  string          $description  What the taxonomy is for, in a sentence.
 	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
 	 * @param  bool            $hierarchical Whether a term may name a `parent` term.
+	 * @param  bool            $authors      Whether terms credit authors (D-329).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -78,9 +79,10 @@ final readonly class Taxonomy extends ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		public bool $hierarchical = false
+		public bool $hierarchical = false,
+		bool $authors = false
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $authors);
 
 		$this->field = $field ?? $name;
 	}
@@ -150,7 +152,8 @@ final readonly class Taxonomy extends ContentType
 			'field'       => $this->field === $this->name ? null : $this->field,
 			'aliases'     => $this->aliases,
 			'termListing'  => $this->termListing->toArray(),
-			'hierarchical' => $this->hierarchical ?: null
+			'hierarchical' => $this->hierarchical ?: null,
+			'authors'      => $this->authors ?: null
 		];
 	}
 }

@@ -46,6 +46,7 @@ final readonly class Collection extends ContentType
 	 * @param  ?TypeLabels     $labels       What people call it; defaults to labels made from the name.
 	 * @param  string          $description  What the type is for, in a sentence.
 	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
+	 * @param  bool            $authors      Whether entries credit authors (D-329).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -61,9 +62,10 @@ final readonly class Collection extends ContentType
 		bool $closed = false,
 		?TypeLabels $labels = null,
 		string $description = '',
-		?string $icon = null
+		?string $icon = null,
+		bool $authors = true
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $authors);
 	}
 
 	/**
@@ -81,6 +83,9 @@ final readonly class Collection extends ContentType
 	#[Override]
 	protected function options(): array
 	{
-		return ['dateArchives' => $this->dateArchives === DateArchives::None ? null : $this->dateArchives->value];
+		return [
+			'dateArchives' => $this->dateArchives === DateArchives::None ? null : $this->dateArchives->value,
+			'authors'      => $this->authors ? null : false
+		];
 	}
 }

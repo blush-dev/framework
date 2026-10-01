@@ -14,10 +14,11 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
-use Blush\Auth\AuthConfig;
 use Blush\Content\Schema\Field;
 use Blush\Content\Parser\DocumentFormat;
 use Blush\Content\Type\ContentConfig;
+use Blush\Content\Http\AuthorsController;
+use Blush\Content\Type\Authors;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
@@ -34,22 +35,28 @@ use Blush\Http\Status;
  * the admin can list each type's entries and offer to create one. A type
  * is described by its name, its `labels` for people (D-278),
  * its `description` (`''` for none) and `icon` (`null` for its kind's),
- * its kind (`collection`, `taxonomy`, or `pages`), and whether it's dated
- * (its new entries get a publish date and a dated file name). A taxonomy
- * adds the `types` its terms group (empty for every type), which places it
- * in the admin's navigation, and whether it's `hierarchical`. Each also has its `origin` (`built-in`,
+ * its kind (`collection`, `taxonomy`, `pages`, or `authors`), whether it's
+ * dated (its new entries get a publish date and a dated file name), and
+ * whether its entries credit `authors` (D-329). A taxonomy adds the
+ * `types` its terms group (empty for every type), which places it in the
+ * admin's navigation, and whether it's `hierarchical`; the authors type
+ * adds the `types` that credit authors. Each also has its `origin` (`built-in`,
  * `extension`, `config`, or `data`), its `folder`, its URL `prefix` (or
  * `null` without URLs), and how many `fields` it defines (D-250).
- * Taxonomies come last. Beside them, `authors` names the type accounts'
- * authors belong to (`AuthConfig::$authorTaxonomy`), which the admin
- * lists with people rather than content, or `null` when it's disabled.
+ * Taxonomies and the authors type come last. Beside them, `authors`
+ * names the authors type, which accounts' authors belong to and the
+ * admin lists with people rather than content, or `null` when the site
+ * has none.
  *
  * `GET {path}/api/types/{name}` (`show()`) adds the type's own fields
  * (`Field::toArray()`), the `taxonomies` that group it, whether it's
  * `public`, has a `feed`, is in the `sitemap`, and is `editable` (only
  * `user/data/types` types are, D-311), its `dateArchives`, the prefix its
  * folder gives (`folderPrefix`), the data `file` it's defined in (`null`
- * for the rest), and its `index` page (`{"id", "title"}`, or `null`).
+ * for the rest), its `index` page (`{"id", "title"}`, or `null`), the
+ * word its author archives sit under (`authorsWord`: the word, `false`
+ * for none, or `null` for a type without URLs, D-329), and its
+ * `authorsPage` (`{"id", "title"}`, or `null`).
  * The list adds whether types can be created here (`create`: data types
  * are read) and whether they may set URLs (`urls`).
  *
@@ -60,7 +67,6 @@ final readonly class TypesController
 {
 	public function __construct(
 		private ContentTypes $types,
-		private AuthConfig $auth,
 		private ContentConfig $config,
 		private DataTypeWriter $writer,
 		private Paths $paths
@@ -70,13 +76,13 @@ final readonly class TypesController
 	{
 		$types = array_values($this->types->all());
 
-		usort($types, static fn (ContentType $a, ContentType $b): int => [$a instanceof Taxonomy, $a->labels->plural] <=> [$b instanceof Taxonomy, $b->labels->plural]);
+		usort($types, static fn (ContentType $a, ContentType $b): int => [$a->hasTerms(), $a->labels->plural] <=> [$b->hasTerms(), $b->labels->plural]);
 
 		$types = array_map(fn (ContentType $type): array => $this->summary($this->types, $type), $types);
 
 		return Response::json([
 			'types'   => $types,
-			'authors' => $this->types->find($this->auth->authorTaxonomy) instanceof Taxonomy ? $this->auth->authorTaxonomy : null,
+			'authors' => $this->types->authors()?->name,
 			'create'  => $this->config->dataTypes,
 			'urls'    => $this->config->dataTypeUrls
 		], headers: ['Cache-Control' => 'no-store']);
@@ -125,7 +131,9 @@ final readonly class TypesController
 			'dateArchives' => $type->dateArchives->value,
 			'folderPrefix' => DataTypeWriter::folderPrefix($type->folder),
 			'file'         => $file === null ? null : $this->paths->relative($file),
-			'index'        => $this->index($type)
+			'index'        => $this->index($type),
+			'authorsWord'  => $type->urls === false ? null : $type->urls->authors,
+			'authorsPage'  => $this->page($type, AuthorsController::PAGE, $types->authors()->labels->plural ?? 'Authors')
 		];
 	}
 
@@ -137,15 +145,26 @@ final readonly class TypesController
 	 */
 	private function index(ContentType $type): ?array
 	{
+		return $this->page($type, 'index', $type->labels->plural);
+	}
+
+	/**
+	 * A file in a type's folder, found on disk: `{"id", "title"}`, titled
+	 * with its own `title` or the fallback, or `null`.
+	 *
+	 * @return ?array{id: string, title: string}
+	 */
+	private function page(ContentType $type, string $name, string $fallback): ?array
+	{
 		if ($type->folder === '') {
 			return null;
 		}
 
 		foreach (DocumentFormat::cases() as $format) {
-			$id = "{$type->folder}/index.{$format->value}";
+			$id = "{$type->folder}/{$name}.{$format->value}";
 
 			if (is_file("{$this->paths->content}/{$id}")) {
-				return ['id' => $id, 'title' => self::title("{$this->paths->content}/{$id}") ?? $type->labels->plural];
+				return ['id' => $id, 'title' => self::title("{$this->paths->content}/{$id}") ?? $fallback];
 			}
 		}
 
@@ -176,7 +195,9 @@ final readonly class TypesController
 			'icon'        => $type->icon,
 			'kind'        => $type->kind()->value,
 			'dated'       => $type->dateArchives !== DateArchives::None,
+			'authors'     => $type->authors,
 			...($type instanceof Taxonomy ? ['types' => $type->types, 'hierarchical' => $type->hierarchical] : []),
+			...($type instanceof Authors ? ['types' => array_keys(array_filter($types->all(), static fn (ContentType $credits): bool => $credits->authors))] : []),
 			'origin'      => $types->origin($type->name)->value,
 			'folder'      => $type->folder,
 			'prefix'      => $type->hasUrls() ? '/' . $type->prefix() : null,

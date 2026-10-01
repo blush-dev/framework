@@ -22,6 +22,7 @@ enum TypeKind: string
 	case Collection = 'collection';
 	case Taxonomy   = 'taxonomy';
 	case Pages      = 'pages';
+	case Authors    = 'authors';
 
 	/**
 	 * Returns the options a kind's definitions may use, beyond `name` and
@@ -32,9 +33,10 @@ enum TypeKind: string
 	public function options(): array
 	{
 		return match ($this) {
-			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Pages      => ['folder', 'public', 'sitemap', 'fields', 'closed', 'labels', 'description', 'icon']
+			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'authors', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'authors', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Pages      => ['folder', 'public', 'sitemap', 'authors', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Authors    => ['folder', 'field', 'aliases', 'public', 'fields', 'closed', 'labels', 'description', 'icon']
 		};
 	}
 }

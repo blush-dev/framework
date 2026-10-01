@@ -1,6 +1,6 @@
 /**
  * The admin's screens. Every screen but sign-in needs an account, and some
- * a capability (`meta.capability`); the server answers the same page for
+ * a capability (`meta.capability`, or any of `meta.anyCapability`); the server answers the same page for
  * all of them (`ShellController`) and checks every API request itself.
  * Each belongs to one of the section rail's areas
  * (`meta.area`: `home`, `content`, `people`, or `config`); the editor fills the
@@ -10,7 +10,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { watch } from 'vue';
 import { config } from './config';
-import { screenCrumb, screenTitle, screenTrail } from './screen';
+import { screenBleed, screenCrumb, screenTitle, screenTrail } from './screen';
 import { can, loadSession, session } from './session';
 import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
@@ -22,7 +22,7 @@ import ProfileView from './views/ProfileView.vue';
 import AccountView from './views/AccountView.vue';
 import ExtensionsView from './views/ExtensionsView.vue';
 import SettingsView from './views/SettingsView.vue';
-import AccountsView from './views/AccountsView.vue';
+import PeopleView from './views/PeopleView.vue';
 import NewAccountView from './views/NewAccountView.vue';
 import NewRoleView from './views/NewRoleView.vue';
 import RoleView from './views/RoleView.vue';
@@ -72,11 +72,13 @@ export const router = createRouter({
 		{ path: '/extensions', name: 'extensions', component: ExtensionsView, meta: { title: 'Extensions', capability: 'site.settings', area: 'config' } },
 		// People, its own section (D-249, D-326): each list, then a screen
 		// per item (`meta.parent` marks the list in the navigation).
-		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.manage', area: 'people' } },
+		// Accounts and authors, as one list (D-329).
+		{ path: '/people', name: 'people', component: PeopleView, meta: { title: 'People', anyCapability: ['accounts.manage', 'content.edit'], area: 'people' } },
+		{ path: '/accounts', name: 'accounts', redirect: { name: 'people' } },
 		// New comes before the item it would otherwise be taken for; the
 		// admin makes no account or role named "new" (D-312).
-		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.manage', area: 'people', parent: 'accounts' } },
-		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'people', parent: 'accounts' } },
+		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.manage', area: 'people', parent: 'people' } },
+		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'people', parent: 'people' } },
 		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'people' } },
 		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
 		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
@@ -104,6 +106,11 @@ router.beforeEach(async (to) => {
 		return { name: 'dashboard' };
 	}
 
+	// Or any one of several.
+	if (Array.isArray(to.meta.anyCapability) && !to.meta.anyCapability.some((name) => typeof name === 'string' && can(name))) {
+		return { name: 'dashboard' };
+	}
+
 	return true;
 });
 
@@ -119,6 +126,7 @@ router.afterEach((to, from) => {
 		screenTitle.value = null;
 		screenTrail.value = [];
 		screenCrumb.value = null;
+		screenBleed.value = null;
 	}
 
 	setTitle();

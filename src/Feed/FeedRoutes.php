@@ -15,6 +15,7 @@ namespace Blush\Feed;
 
 use Override;
 use Blush\Content\Routing\ContentRoutes;
+use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Taxonomy;
@@ -31,7 +32,10 @@ use Blush\Routing\RouteSource;
  * - for the home type, `home.feed`, `home.feed.atom`, and
  *   `home.feed.json` at the site root instead;
  * - for a taxonomy, `{type}.single.feed` (`{prefix}/{name}/feed`) and the
- *   Atom and JSON variants, one feed per term.
+ *   Atom and JSON variants, one feed per term;
+ * - for a type with author archives, `{type}.authors.single.feed`
+ *   (`{prefix}/authors/{author}/feed`) and its variants, one feed per
+ *   author (D-329).
  *
  * Paths come from the type's `TypeUrls`, so a type can move them.
  */
@@ -39,6 +43,7 @@ final readonly class FeedRoutes implements RouteSource
 {
 	public function __construct(
 		private ContentTypes $types,
+		private ContentUrls $urls,
 		private FeedConfig $config
 	) {}
 
@@ -101,6 +106,12 @@ final readonly class FeedRoutes implements RouteSource
 
 		if ($single !== null) {
 			$routes[] = ContentRoutes::route($single, FeedController::class, "{$type->name}.single.feed{$suffix}", $defaults, $type);
+		}
+
+		$author = $this->urls->hasAuthorArchives($type) ? $type->routePattern("authors.single.feed{$suffix}") : null;
+
+		if ($author !== null) {
+			$routes[] = ContentRoutes::route($author, FeedController::class, "{$type->name}.authors.single.feed{$suffix}", $defaults, $type);
 		}
 
 		return $routes;

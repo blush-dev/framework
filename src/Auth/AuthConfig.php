@@ -30,8 +30,6 @@ use Blush\Config\InvalidConfig;
  *   what. The admin keeps its own roles in `storage/roles.json`
  *   (D-312); a role here wins over one of the same name there, and the
  *   admin shows it read-only.
- * - `authorTaxonomy` is the taxonomy an account's `author` belongs to
- *   (the built-in `author` type, unless a site renamed it).
  * - `minPasswordLength` is the shortest password accepted.
  * - `maxAttempts` failed sign-ins within `lockout` seconds lock out an
  *   address and username for the rest of that time.
@@ -46,7 +44,6 @@ final readonly class AuthConfig implements Config
 	 */
 	public function __construct(
 		public array $roles = [],
-		public string $authorTaxonomy = 'author',
 		public int $minPasswordLength = 12,
 		public int $maxAttempts = 5,
 		public int $lockout = 900,
@@ -64,7 +61,7 @@ final readonly class AuthConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['roles', 'authorTaxonomy', 'minPasswordLength', 'maxAttempts', 'lockout', 'passwordLinkLifetime']);
+		$values->assertKnownKeys(['roles', 'minPasswordLength', 'maxAttempts', 'lockout', 'passwordLinkLifetime']);
 
 		$roles = [];
 
@@ -78,7 +75,6 @@ final readonly class AuthConfig implements Config
 
 		return new static(
 			roles: $roles,
-			authorTaxonomy: $values->string('authorTaxonomy', 'author'),
 			minPasswordLength: $values->int('minPasswordLength', 12),
 			maxAttempts: $values->int('maxAttempts', 5),
 			lockout: $values->int('lockout', 900),
@@ -94,7 +90,6 @@ final readonly class AuthConfig implements Config
 	{
 		return [
 			'roles'                => array_map(static fn (Role $role): array => $role->toArray(), $this->roles),
-			'authorTaxonomy'       => $this->authorTaxonomy,
 			'minPasswordLength'    => $this->minPasswordLength,
 			'maxAttempts'          => $this->maxAttempts,
 			'lockout'              => $this->lockout,

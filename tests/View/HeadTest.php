@@ -63,6 +63,23 @@ final class HeadTest extends TestCase
 		$this->assertFalse($head->has('meta:robots'));
 	}
 
+	public function testRepeatsPropertiesThatTakeSeveralValues(): void
+	{
+		$head = new Head()
+			->addProperty('article:author', 'https://example.test/blog/authors/jane')
+			->addProperty('article:author', 'https://example.test/blog/authors/sam')
+			->addProperty('article:author', 'https://example.test/blog/authors/jane');
+
+		$this->assertSame(
+			implode("\n", [
+				'<title></title>',
+				'<meta property="article:author" content="https://example.test/blog/authors/jane">',
+				'<meta property="article:author" content="https://example.test/blog/authors/sam">'
+			]),
+			(string) $head
+		);
+	}
+
 	public function testPrintsRootRelativeUrlsOnTheOrigin(): void
 	{
 		$head = new Head('Site', origin: 'https://example.com')

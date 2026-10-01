@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Feed;
 
 use Override;
+use Blush\Content\AuthorArchives;
 use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
@@ -23,8 +24,9 @@ use Blush\Export\UrlSource;
 
 /**
  * Lists every feed for static export (D-136): each public, routed type's
- * collection feed in every configured format, and a taxonomy's per-term
- * feeds for the terms listed entries reference.
+ * collection feed in every configured format, a taxonomy's per-term
+ * feeds for the terms listed entries reference, and the per-author feeds
+ * of a type with author archives (D-329).
  */
 final readonly class FeedExportUrls implements UrlSource
 {
@@ -32,7 +34,8 @@ final readonly class FeedExportUrls implements UrlSource
 		private ContentRepository $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private FeedConfig $config
+		private FeedConfig $config,
+		private AuthorArchives $archives
 	) {}
 
 	/**
@@ -46,7 +49,8 @@ final readonly class FeedExportUrls implements UrlSource
 				continue;
 			}
 
-			$terms = $type instanceof Taxonomy ? array_map(strval(...), array_keys($this->content->termCounts($type->name))) : [];
+			$terms   = $type instanceof Taxonomy ? array_map(strval(...), array_keys($this->content->termCounts($type->name))) : [];
+			$authors = $this->urls->hasAuthorArchives($type) ? $this->archives->authors($type) : [];
 
 			foreach ($this->config->formats as $format) {
 				$key  = "collection.feed{$format->routeSuffix()}";
@@ -58,6 +62,14 @@ final readonly class FeedExportUrls implements UrlSource
 
 				foreach ($terms as $term) {
 					$path = $this->urls->feed($type, $key, $term);
+
+					if ($path !== null) {
+						yield new ExportUrl($path);
+					}
+				}
+
+				foreach ($authors as $author) {
+					$path = $this->urls->authorFeed($type, $author->slug, "authors.single.feed{$format->routeSuffix()}");
 
 					if ($path !== null) {
 						yield new ExportUrl($path);

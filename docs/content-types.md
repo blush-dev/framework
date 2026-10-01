@@ -11,9 +11,9 @@ the type's name after an underscore (`_recipe` for `recipe`) unless you
 choose one. The underscore keeps type folders apart from your page
 folders, and it's left out of URLs: `_recipe/` is served at `/recipe`.
 
-## Three kinds of type
+## Four kinds of type
 
-Every content type is one of three kinds:
+Every content type is one of four kinds:
 
 - **Collection:** entries that are listed, such as posts, recipes, or
   projects. A collection has a listing page, and it can have a feed and
@@ -25,14 +25,20 @@ Every content type is one of three kinds:
   another type's folder, and serves each one at its file path. Pages nest
   by folder: `about/team.md` is a subpage of `about.md` (or
   `about/index.md`).
+- **Authors:** the built-in `author` type, the people your entries
+  credit. A site has one.
 
 ## Built-in types
 
 - **`page`** (pages): every entry that isn't in another type's folder.
-- **`author`** (a taxonomy): people, in `user/content/authors/`. Entries
-  list their authors with `authors: jane`, and each author gets an archive
-  at `/authors/jane`. You don't need an author file; Blush makes a
-  stand-in from the slug until you write one.
+- **`author`** (authors): people, in `user/content/authors/`. Each file
+  is one person: the title is their public name and the body is their
+  bio. Entries credit them with `authors: jane`, in the types that
+  [credit authors](#types-that-credit-authors). Authors have no pages of
+  their own; each type that credits them has
+  [author archives](#author-archives). You don't need an author file; Blush uses the name as the
+  entry writes it until you add one, and `content:lint` warns about it.
+  An [account](accounts.md#authors) can be linked to an author.
 
 ## Three ways to define a type
 
@@ -47,7 +53,7 @@ folder: recipes
 
 **In PHP**, in `config/content.php`, which gives you editor autocomplete
 and type checking. Each kind is its own class: `Collection`, `Taxonomy`,
-or `Pages`.
+`Pages`, or `Authors`.
 
 ```php
 <?php
@@ -389,6 +395,12 @@ Every kind takes these:
 | `sitemap` | `true` | Whether entries appear in the sitemap |
 | `fields` / `closed` | | [Custom fields](#custom-fields) |
 
+Collections, taxonomies, and pages also take this:
+
+| Option | Default | What it does |
+|---|---|---|
+| `authors` | `true` for collections, `false` otherwise | Whether entries credit authors ([below](#types-that-credit-authors)) |
+
 Collections and taxonomies also take these:
 
 | Option | Default | What it does |
@@ -412,6 +424,15 @@ Only taxonomies take:
 | `termListing` | | How a term's page lists entries |
 | `hierarchical` | `false` | Whether a term may have a `parent` ([above](#hierarchical-taxonomies)) |
 
+Only the authors type takes:
+
+| Option | Default | What it does |
+|---|---|---|
+| `field` / `aliases` | The name | The front matter key entries credit authors with, and other keys it's read from (the built-in type uses `authors`, and reads `author` too) |
+
+The authors type doesn't take `urls`, `listing`, `feed`, or `sitemap`:
+authors have no pages of their own.
+
 ### Custom URLs
 
 `urls` moves a type's URLs. For example, to serve posts from `blog/` at
@@ -433,6 +454,11 @@ URL. `single` (an
 entry) and `collection` (the listing page) set the rest; `paths` sets any
 other route key that `routes:list` shows, such as
 `['collection.paged' => 'p/{page}']`.
+
+`authors` sets the word [author archives](#author-archives) sit under
+(`authors` by default), or `false` for none; their route keys are
+`authors.collection`, `authors.single`, `authors.single.paged`, and the
+`authors.single.feed` keys.
 
 Single-entry paths can use `{name}`, `{year}`, `{month}`, `{day}`,
 `{hour}`, `{minute}`, `{second}`, `{author}`, and any taxonomy's name. If
@@ -459,9 +485,62 @@ return new ContentConfig(
 In YAML, that's `user/data/types/page.yaml` with `kind: pages` and
 `fields`.
 
+## Types that credit authors
+
+Collections credit authors unless you turn it off; pages and taxonomies
+don't unless you turn it on. Only those types have the `authors` field:
+
+```yaml
+# user/data/types/recipe.yaml
+folder: recipes
+authors: false
+```
+
+```yaml
+# user/data/types/page.yaml: pages credit authors too
+kind: pages
+authors: true
+```
+
+In a type that doesn't credit authors, an `authors` key in front matter
+is just an undeclared key.
+
+### Author archives
+
+A routed type that credits authors gets two kinds of page under its own
+prefix, so a blog and a recipe box each have their own:
+
+- `/blog/authors` lists the authors at least one published post
+  credits, by name, each with their bio's start.
+- `/blog/authors/jane` is Jane's archive in the blog: their name and
+  bio, then their posts, listed and paged as the blog lists them, with feeds at
+  `/blog/authors/jane/feed` (and `/feed/atom`, `/feed/json`) when the
+  blog has a feed. An author no post credits has no archive there.
+
+Bylines link to the archive in the entry's own type, and the sitemap and
+static export include the archives.
+
+Change the word with `urls.authors`, or set it to `false` for no
+archives (bylines then don't link):
+
+```yaml
+# user/data/types/recipe.yaml
+folder: recipes
+urls:
+  authors: cooks    # /recipes/cooks and /recipes/cooks/jane
+```
+
+In PHP, that's `new TypeUrls(authors: 'cooks')`.
+
+To give a type's authors page a title and an introduction, add
+`_authors.md` to the type's folder (`user/content/_posts/_authors.md`).
+Its title replaces "Authors" and its body introduces the list. The
+leading underscore keeps it out of the type's listings and feeds, so it
+has no address of its own.
+
 ## Turning off a built-in type
 
-If you don't want author archives:
+If you don't want authors:
 
 ```php
 return new ContentConfig(disabled: ['author']);

@@ -16,7 +16,7 @@ import { ApiError, request, type ContentTypeDetail } from '../api';
 import { humanize, label } from '../fields';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
-import { authorType, findType, loadTypes } from '../types';
+import { findType, loadTypes } from '../types';
 
 const route = useRoute();
 const type  = ref<ContentTypeDetail | null>(null);
@@ -40,6 +40,7 @@ watch(type, (value) => {
 });
 
 const taxonomy = computed(() => type.value?.kind === 'taxonomy');
+const people   = computed(() => type.value?.kind === 'authors');
 
 const origin = computed(() => ({
 	'built-in': 'Built in',
@@ -48,7 +49,8 @@ const origin = computed(() => ({
 	data: 'user/data/types'
 })[type.value?.origin ?? 'config']);
 
-// The other side: a taxonomy's types, or a type's taxonomies.
+// The other side: a taxonomy's types, the types that credit authors, or
+// a type's taxonomies.
 const related = computed(() => {
 	const detail = type.value;
 
@@ -56,7 +58,7 @@ const related = computed(() => {
 		return [];
 	}
 
-	const names = taxonomy.value ? (detail.types ?? []) : detail.taxonomies;
+	const names = taxonomy.value || people.value ? (detail.types ?? []) : detail.taxonomies;
 
 	return names.map((name) => ({ name, label: findType(name)?.labels.plural ?? humanize(name) }));
 });
@@ -99,7 +101,9 @@ const related = computed(() => {
 					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
 					<div><dt>Address</dt><dd :class="{ mono: type.prefix }">{{ type.prefix ?? 'No pages of its own' }}</dd></div>
 					<div v-if="taxonomy"><dt>Hierarchical</dt><dd>{{ type.hierarchical ? 'Yes: a term can name a parent' : 'No' }}</dd></div>
-					<div v-else><dt>Dated</dt><dd>{{ type.dated ? 'Yes' : 'No' }}</dd></div>
+					<div v-else-if="!people"><dt>Dated</dt><dd>{{ type.dated ? 'Yes' : 'No' }}</dd></div>
+					<div v-if="!people"><dt>Credits authors</dt><dd>{{ type.authors ? 'Yes' : 'No' }}</dd></div>
+					<div v-if="!people && type.authors && type.prefix !== null"><dt>Author archives</dt><dd :class="{ mono: type.authorsWord }">{{ type.authorsWord ? `${type.prefix.replace(/\/+$/, '')}/${type.authorsWord}` : 'None' }}</dd></div>
 					<div><dt>Public</dt><dd>{{ type.public ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>Feed</dt><dd>{{ type.feed ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>In the sitemap</dt><dd>{{ type.sitemap ? 'Yes' : 'No' }}</dd></div>
@@ -108,7 +112,7 @@ const related = computed(() => {
 
 			<section class="panel" aria-labelledby="related-heading">
 				<header class="panel__header">
-					<h2 id="related-heading">{{ taxonomy ? 'Groups' : 'Taxonomies' }}</h2>
+					<h2 id="related-heading">{{ people ? 'Credited by' : (taxonomy ? 'Groups' : 'Taxonomies') }}</h2>
 				</header>
 				<div class="panel__body">
 					<ul v-if="related.length" class="chips">
@@ -116,9 +120,10 @@ const related = computed(() => {
 							<RouterLink :to="{ name: 'content-type', params: { name: item.name } }">{{ item.label }}</RouterLink>
 						</li>
 					</ul>
-					<p v-else-if="taxonomy && type.name === authorType" class="field__help">Every type. Authors are the public side of accounts, so they're under People in the navigation.</p>
+					<p v-else-if="people" class="field__help">No type credits authors yet.</p>
 					<p v-else-if="taxonomy" class="field__help">Every type, so it's under Shared taxonomies in the navigation.</p>
 					<p v-else class="field__help">No taxonomy groups it.</p>
+					<p v-if="people" class="field__help">Authors are the public side of accounts, so they're under People in the navigation.</p>
 					<p v-if="taxonomy && related.length === 1" class="field__help">One type, so it sits under {{ related[0]?.label }} in the navigation.</p>
 				</div>
 			</section>

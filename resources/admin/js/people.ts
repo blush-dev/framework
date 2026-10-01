@@ -5,7 +5,7 @@
  */
 
 import { ref } from 'vue';
-import { request } from './api';
+import { request, type EntryStatus } from './api';
 
 export interface CapabilityInfo {
 	name: string;
@@ -39,11 +39,13 @@ export interface AccountInfo {
 	username: string;
 	// Its own name, if it has one (D-322).
 	name: string | null;
-	// What the admin calls it: the name, else the author page's title,
-	// else the username.
+	// What the admin calls it: the author page's title, else the name,
+	// else the username (D-329).
 	displayName: string;
 	roles: string[];
 	author: string | null;
+	// Its author page, whose title is its one name (D-329), or `null`.
+	authorPage: { id: string; handle: string | null } | null;
 	created: number;
 	lastLogin: number | null;
 	status: AccountStatus;
@@ -63,6 +65,24 @@ export interface RoleList {
 export interface PasswordLink {
 	url: string;
 	expires: number;
+}
+
+// One person (`GET people`, D-329): an author entry, an author credited
+// without one, or an account with no author entry, by name.
+export interface PersonInfo {
+	name: string;
+	author: string | null;
+	entry: { id: string; handle: string | null; status: EntryStatus } | null;
+	// Credited without an author entry.
+	virtual: boolean;
+	// Their account, when they have one and you manage accounts.
+	account: AccountInfo | null;
+	// How many published entries credit them.
+	uses: number;
+}
+
+export async function loadPeople(): Promise<PersonInfo[]> {
+	return (await request<{ people: PersonInfo[] }>('GET', '/people')).people;
 }
 
 export function loadRoles(): Promise<RoleList> {

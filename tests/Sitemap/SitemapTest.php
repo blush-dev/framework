@@ -80,13 +80,12 @@ final class SitemapTest extends TestCase
 
 		$this->assertSame('application/xml; charset=UTF-8', $index->getHeaderLine('Content-Type'));
 		$this->assertSame(
-			['http://localhost/sitemap/page', 'http://localhost/sitemap/author', 'http://localhost/sitemap/post', 'http://localhost/sitemap/category'],
+			['http://localhost/sitemap/page', 'http://localhost/sitemap/post', 'http://localhost/sitemap/category'],
 			$this->locations('/sitemap')
 		);
 		$this->assertSame($this->locations('/sitemap'), $this->locations('/sitemap.xml'));
 		// Each sitemap's latest change; landing pages without dates count by mtime.
 		$this->assertMatchesRegularExpression('#<loc>http://localhost/sitemap/post</loc>\s*<lastmod>\d{4}-\d{2}-\d{2}T[\d:]+[+-]\d{2}:\d{2}</lastmod>#', (string) $index->getBody());
-		$this->assertMatchesRegularExpression('#<loc>http://localhost/sitemap/author</loc>\s*</sitemap>#', (string) $index->getBody());
 	}
 
 	public function testListsEachTypesUrls(): void
@@ -95,8 +94,12 @@ final class SitemapTest extends TestCase
 		$this->boot();
 
 		$this->assertSame(
-			['http://localhost/', 'http://localhost/archives/welcome', 'http://localhost/archives/spring', 'http://localhost/archives/hello'],
-			$this->locations('/sitemap/post')
+			[
+				'http://localhost/', 'http://localhost/archives/welcome', 'http://localhost/archives/spring', 'http://localhost/archives/hello',
+				'http://localhost/archives/authors', 'http://localhost/archives/authors/guest', 'http://localhost/archives/authors/justintadlock'
+			],
+			$this->locations('/sitemap/post'),
+			'Author archives follow the entries, by name (D-329).'
 		);
 		$this->assertSame(
 			['http://localhost/topics', 'http://localhost/topics/art', 'http://localhost/topics/book-reviews', 'http://localhost/topics/old-posts'],
@@ -104,7 +107,7 @@ final class SitemapTest extends TestCase
 		);
 		// Entries follow file-name order.
 		$this->assertSame(['http://localhost/about/biography', 'http://localhost/about', 'http://localhost/notes'], $this->locations('/sitemap/page'));
-		$this->assertSame(['http://localhost/authors/guest', 'http://localhost/authors/justintadlock'], $this->locations('/sitemap/author'));
+		$this->assertSame(404, $this->get('/sitemap/author')->getStatusCode(), 'Authors have no pages of their own (D-329).');
 		$this->assertSame(404, $this->get('/sitemap/nope')->getStatusCode());
 	}
 

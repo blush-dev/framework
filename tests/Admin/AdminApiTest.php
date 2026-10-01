@@ -192,9 +192,9 @@ final class AdminApiTest extends TestCase
 		$answer = $this->send('PATCH', '/profile', '{"name": "  Jane\n Doe "}', ['X-CSRF-Token' => $token]);
 
 		$this->assertSame(200, $answer->getStatusCode());
-		$this->assertSame(['name' => 'Jane Doe', 'displayName' => 'Jane Doe'], self::json($answer));
+		$this->assertSame(['name' => 'Jane Doe', 'displayName' => 'Jane Author'], self::json($answer), 'Its author page\'s title stays its one name (D-329).');
 		$this->assertSame('Jane Doe', $this->app->container()->make(AccountStore::class)->find('jane')?->name);
-		$this->assertSame('Jane Doe', self::account($this->send('GET', '/session'))['displayName'] ?? null);
+		$this->assertSame('Jane Author', self::account($this->send('GET', '/session'))['displayName'] ?? null);
 
 		$this->assertSame(422, $this->send('PATCH', '/profile', json_encode(['name' => str_repeat('a', 101)]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(400, $this->send('PATCH', '/profile', '{"name": 5}', ['X-CSRF-Token' => $token])->getStatusCode());

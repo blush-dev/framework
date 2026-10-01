@@ -341,6 +341,17 @@ dynamically).
 
 ### Still to scope
 
+- **Authors (D-329, on hold, D-333):** built as an exploration and
+  kept, but the author is still thinking the design over, so treat it
+  as provisional: `author` as its own kind with an
+  `authors` field that types opt into, and the lint warning for credited
+  authors with no entry (D-330); per-type author archives with feeds,
+  bylines, and `_authors` pages (D-331); and the admin: the type
+  editor's Authors settings, the pinned authors page, one People list,
+  Your Profile as the author page's editor, and one name (D-332).
+  Later: schema.org `Person` with structured data in general, and an
+  administrator editing someone else's profile as the editor (today
+  the account screen links to their author page).
 - **Relationships (D-242, planned):** a reverse index for every
   reference field, keyed by field, with a template API and "Used by" in
   the admin; then "lists what references it" as a setting for any type,

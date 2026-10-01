@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Routing;
 
 use Override;
+use Blush\Content\Http\AuthorController;
+use Blush\Content\Http\AuthorsController;
 use Blush\Content\Http\CollectionController;
 use Blush\Content\Http\DateArchiveController;
 use Blush\Content\Http\SingleController;
@@ -31,8 +33,10 @@ use Blush\Routing\RouteSource;
  * 1.x (D-078): `{type}.collection`, `.collection.paged`, the date
  * archives the type's granularity allows (`.collection.year` …
  * `.collection.second`, each with `.paged`), and `{type}.single` (plus
- * `.single.paged` for a taxonomy's term archives). Paths come from the
- * type's `TypeUrls` under its prefix.
+ * `.single.paged` for a taxonomy's term archives). A type with author
+ * archives (D-329) adds `{type}.authors.collection`,
+ * `.authors.single`, and `.authors.single.paged`, ahead of its single
+ * route. Paths come from the type's `TypeUrls` under its prefix.
  *
  * Types register deepest path first, and each type's routes in 1.x's
  * order, so date archives match before a single entry. Date and page
@@ -43,8 +47,10 @@ use Blush\Routing\RouteSource;
  */
 final readonly class ContentRoutes implements RouteSource
 {
-	public function __construct(private ContentTypes $types)
-	{}
+	public function __construct(
+		private ContentTypes $types,
+		private ContentUrls $urls
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -87,6 +93,12 @@ final readonly class ContentRoutes implements RouteSource
 		foreach (array_reverse($type->dateArchives->levels()) as $level) {
 			$controllers["collection.{$level->value}.paged"] = DateArchiveController::class;
 			$controllers["collection.{$level->value}"]       = DateArchiveController::class;
+		}
+
+		if ($this->urls->hasAuthorArchives($type)) {
+			$controllers['authors.single.paged'] = AuthorController::class;
+			$controllers['authors.single']       = AuthorController::class;
+			$controllers['authors.collection']   = AuthorsController::class;
 		}
 
 		if ($type instanceof Taxonomy) {

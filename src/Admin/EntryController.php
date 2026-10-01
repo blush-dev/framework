@@ -22,7 +22,6 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AuthConfig;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
@@ -117,7 +116,6 @@ final readonly class EntryController
 		private Linter $linter,
 		private EntryHandles $handles,
 		private Permissions $permissions,
-		private AuthConfig $auth,
 		private AppConfig $app,
 		private ClockInterface $clock
 	) {}
@@ -642,8 +640,8 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Returns the account's author for a new entry's authors, unless the
-	 * type is the author taxonomy itself.
+	 * Returns the account's author for a new entry's authors, when the
+	 * type supports authors (D-329).
 	 *
 	 * @return array<string, list<string>>
 	 */
@@ -651,20 +649,18 @@ final readonly class EntryController
 	{
 		$field = $this->authorField();
 
-		return $field === null || $account->author === null || $type === $this->auth->authorTaxonomy
+		return $field === null || $account->author === null || ! $this->types->get($type)->authors
 			? []
 			: [$field => [$account->author]];
 	}
 
 	/**
-	 * Returns the author taxonomy's term field (`authors`), or `null` when
-	 * the site has no such taxonomy.
+	 * Returns the field entries credit authors through (`authors`), or
+	 * `null` when the site has no authors type.
 	 */
 	private function authorField(): ?string
 	{
-		$taxonomy = $this->types->find($this->auth->authorTaxonomy);
-
-		return $taxonomy instanceof Taxonomy ? $taxonomy->field : null;
+		return $this->types->authors()?->field;
 	}
 
 	/**
@@ -702,7 +698,7 @@ final readonly class EntryController
 			}
 
 			return $taxonomy->types === []
-				? ! $entry->type instanceof Taxonomy
+				? ! $entry->type->hasTerms()
 				: in_array($entry->type->name, $taxonomy->types, true);
 		}
 
@@ -717,12 +713,14 @@ final readonly class EntryController
 	private function describe(Account $account, Entry $entry, EditableEntry $file): array
 	{
 		$index  = IndexPage::is($entry);
+		$people = AuthorsPage::is($entry);
 		$fields = $this->types->schema($entry->type->name)->fields;
 
 		// An index page describes the type's archive, not one of its
 		// entries, so the type's fields don't apply; its title and status
-		// do. With no date field, it can't be scheduled.
-		if ($index) {
+		// do. With no date field, it can't be scheduled. A type's authors
+		// page (D-329) introduces its authors list the same way.
+		if ($index || $people) {
 			$fields = array_filter($fields, static fn (Field $field): bool => in_array($field->name, ['title', 'status'], true));
 		}
 
@@ -736,33 +734,34 @@ final readonly class EntryController
 		[$values, $extra] = self::split($fields, $file->frontMatter);
 
 		return [
-			'id'         => $file->id,
-			'handle'     => $this->handles->of($entry),
-			'slug'       => $entry->slug,
-			'revision'   => $file->revision,
-			'modified'   => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
-			'title'      => $entry->title,
-			'status'     => $entry->status->value,
-			'own'        => $this->permissions->owns($account, $entry),
-			'url'        => $entry->isPublished() ? $this->urls->entry($entry) : null,
-			'type'       => [
+			'id'          => $file->id,
+			'handle'      => $this->handles->of($entry),
+			'slug'        => $entry->slug,
+			'revision'    => $file->revision,
+			'modified'    => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
+			'title'       => $entry->title,
+			'status'      => $entry->status->value,
+			'own'         => $this->permissions->owns($account, $entry),
+			'url'         => $entry->isPublished() ? $this->urls->entry($entry) : null,
+			'type'        => [
 				'name'   => $entry->type->name,
 				'kind'   => $entry->type->kind()->value,
 				'dated'  => $entry->type->dateArchives !== DateArchives::None,
 				'fields' => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $fields))
 			],
-			'index'      => $index,
-			'values'     => $values,
-			'extra'      => $extra,
-			'body'       => $file->body,
-			'can'        => [
+			'index'       => $index,
+			'authorsPage' => $people,
+			'values'      => $values,
+			'extra'       => $extra,
+			'body'        => $file->body,
+			'can'         => [
 				'edit'      => $this->permissions->can($account, Capability::ContentEdit, $entry),
 				'publish'   => $this->permissions->can($account, Capability::ContentPublish, $entry),
-				'rename'    => ! $entry->landing,
+				'rename'    => ! $entry->landing && ! $people,
 				'delete'    => ! $index && $this->permissions->can($account, Capability::ContentDelete, $entry),
-				'duplicate' => ! $entry->landing && $this->permissions->can($account, Capability::ContentCreate)
+				'duplicate' => ! $entry->landing && ! $people && $this->permissions->can($account, Capability::ContentCreate)
 			],
-			'violations' => array_map(static fn (Violation $violation): array => [
+			'violations'  => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,
 				'message'  => $violation->message,
 				'severity' => $violation->severity->value

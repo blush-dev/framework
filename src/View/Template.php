@@ -21,6 +21,8 @@ use Stringable;
 use Blush\Cache\CacheException;
 use Blush\Cache\CacheNamespace;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Type\ContentType;
+use Blush\Content\Type\Taxonomy;
 use Blush\Data\InvalidData;
 use Blush\Menu\Menu;
 use Blush\Menu\MenuException;
@@ -412,11 +414,16 @@ final class Template
 	/**
 	 * Returns the term entries an entry has in a taxonomy, in the order
 	 * front matter lists them. Terms that aren't published are left out.
+	 * Authors aren't a taxonomy; use `authors()`.
 	 *
 	 * @return list<Entry>
 	 */
 	public function terms(Entry $entry, string $taxonomy): array
 	{
+		if (! $this->views->services->types->find($taxonomy) instanceof Taxonomy) {
+			return [];
+		}
+
 		$terms = [];
 
 		foreach ($entry->terms($taxonomy) as $slug) {
@@ -428,6 +435,52 @@ final class Template
 		}
 
 		return $terms;
+	}
+
+	/**
+	 * Returns the authors an entry credits (D-329), real or virtual, in
+	 * the order front matter lists them. Authors that aren't published
+	 * are left out.
+	 *
+	 * @return list<Entry>
+	 */
+	public function authors(Entry $entry): array
+	{
+		$type    = $this->views->services->types->authors();
+		$authors = [];
+
+		if ($type === null) {
+			return [];
+		}
+
+		foreach ($entry->terms($type->name) as $slug) {
+			$author = $this->views->services->content->term($type->name, $slug);
+
+			if ($author !== null && $author->isPublished() && $author->isRoutable()) {
+				$authors[] = $author;
+			}
+		}
+
+		return $authors;
+	}
+
+	/**
+	 * Returns an author's archive URL path in a type (an entry's own
+	 * type, given the entry), such as `/blog/authors/jane`, or `''` when
+	 * the type has no author archives.
+	 */
+	public function authorUrl(Entry $author, ContentType|Entry $in): string
+	{
+		return $this->views->services->urls->author($in instanceof Entry ? $in->type : $in, $author->slug) ?? '';
+	}
+
+	/**
+	 * Returns the URL path of a type's list of authors, such as
+	 * `/blog/authors`, or `''` when it has none.
+	 */
+	public function authorsUrl(ContentType $type): string
+	{
+		return $this->views->services->urls->authors($type) ?? '';
 	}
 
 	/**

@@ -61,7 +61,7 @@ final class PageController extends ContentController
 	{
 		$type = $this->types->byFolder($path);
 
-		if ($type !== null && ! $type->hasUrls() && $path !== '') {
+		if ($type !== null && $type->servedAsPages() && $path !== '') {
 			return $this->visible($this->content->named($type->name, ''));
 		}
 
@@ -73,7 +73,7 @@ final class PageController extends ContentController
 
 		return array_find(
 			$query->get()->all(),
-			fn (Entry $entry): bool => ! $entry->type->hasUrls() && $this->visible($entry) !== null
+			fn (Entry $entry): bool => $entry->type->servedAsPages() && $this->visible($entry) !== null
 		);
 	}
 }

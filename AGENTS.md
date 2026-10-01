@@ -55,7 +55,11 @@ Editorial admin theme (D-317); and account names, used across the
 admin, with roles shown by their labels (D-322, D-323); and editable
 settings on four screens, saved in `user/data/settings.json` over
 `config/` (D-324, D-325); and People as its own rail section, and Appearance named Themes
-(D-326, D-327).
+(D-326, D-327); and authors as their own kind, credited by the types
+that opt in, with archives under each type, one People list, and
+Your Profile as the editor of your author page (D-329 to D-332; an
+exploration that's kept but on hold while the author thinks it over,
+D-333).
 Next: more
 of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.

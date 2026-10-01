@@ -30,9 +30,10 @@ use Blush\Support\Filesystem;
  * admin edits, and deletes one.
  *
  * Changes are given by canonical option name (`labels`, `description`,
- * `icon`, `prefix` for the URL prefix, `public`, `sitemap`, `feed`,
- * `dateArchives`, `hierarchical`, `types`, and `fields`); `null` removes
- * one. They're applied to the file's own data and the type is built from
+ * `icon`, `prefix` for the URL prefix, `authorsWord` for the word author
+ * archives sit under (`false` for none, D-329), `public`, `sitemap`,
+ * `feed`, `authors`, `dateArchives`, `hierarchical`, `types`, and
+ * `fields`); `null` removes one. They're applied to the file's own data and the type is built from
  * that (`ContentType::fromArray()`), so it's checked as the loader
  * checks it; each changed option is then written as the type itself
  * writes it (`ContentType::toArray()`), which leaves out defaults, under
@@ -60,6 +61,7 @@ final readonly class DataTypeWriter
 		'public'       => [],
 		'sitemap'      => [],
 		'feed'         => [],
+		'authors'      => [],
 		'dateArchives' => ['date_archives', 'time_archives'],
 		'hierarchical' => [],
 		'types'        => ['term_collect'],
@@ -104,8 +106,8 @@ final readonly class DataTypeWriter
 	{
 		$this->assertEnabled();
 
-		if ($kind === TypeKind::Pages) {
-			throw new InvalidContentType('The site has one page type; create a collection or a taxonomy.');
+		if ($kind === TypeKind::Pages || $kind === TypeKind::Authors) {
+			throw new InvalidContentType(sprintf('The site has one %s type; create a collection or a taxonomy.', $kind === TypeKind::Pages ? 'page' : 'authors'));
 		}
 
 		if ($this->path($name) !== null) {
@@ -194,6 +196,9 @@ final readonly class DataTypeWriter
 			if ($key === 'prefix') {
 				$key   = 'urls';
 				$value = $this->urls($merged, $value);
+			} elseif ($key === 'authorsWord') {
+				$key   = 'urls';
+				$value = $this->authorsWord($merged, $value);
 			} elseif ($key === 'labels') {
 				$value = $this->labels($merged, $value);
 			} elseif ($key === 'feed' && $value === true && is_array($merged['feed'] ?? null)) {
@@ -304,6 +309,38 @@ final readonly class DataTypeWriter
 	}
 
 	/**
+	 * The `urls` an author word change leaves: the file's own, with the
+	 * word set, turned off (`false`), or back to the default (`null` or
+	 * `''`).
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @return array<array-key, mixed>|null
+	 * @throws InvalidContentType When the type has no URLs, or the word isn't one.
+	 */
+	private function authorsWord(array $data, mixed $word): ?array
+	{
+		$urls = $data['urls'] ?? $data['routing'] ?? [];
+
+		if ($urls === false) {
+			throw new InvalidContentType('The type has no URLs of its own, so it has no author archives.');
+		}
+
+		if ($word !== null && $word !== false && ! is_string($word)) {
+			throw new InvalidContentType('"authorsWord" must be a word, false, or null.');
+		}
+
+		$urls = is_array($urls) ? $urls : [];
+
+		if ($word === null || (is_string($word) && trim($word, '/ ') === '') || (is_string($word) && trim($word, '/ ') === TypeUrls::AUTHORS)) {
+			unset($urls['authors']);
+		} else {
+			$urls['authors'] = is_string($word) ? trim($word, '/ ') : false;
+		}
+
+		return $urls === [] ? null : $urls;
+	}
+
+	/**
 	 * The `labels` a change leaves: the file's own, with the given ones
 	 * set and the empty ones removed.
 	 *
@@ -364,7 +401,8 @@ final readonly class DataTypeWriter
 	 */
 	private static function yaml(string $text, array $sets): string
 	{
-		$map = YamlMap::fromText($text);
+		// An empty file is written as `{}`, which keys can't follow.
+		$map = YamlMap::fromText(trim($text) === '{}' ? '' : $text);
 
 		foreach ($sets as $key => $value) {
 			$map = $map->without(self::OPTIONS[$key] ?? []);

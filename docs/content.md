@@ -62,7 +62,7 @@ Front matter is YAML between two `---` lines at the top of the file. Only
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words are used. (`excerpt` works too.) |
 | `image` | A featured image |
-| `authors` | One author or a list, by slug (`author` works too) |
+| `authors` | One author or a list, by slug (`author` works too), in types that [credit authors](content-types.md#types-that-credit-authors) |
 | `redirect_from` | Old URLs that should redirect here (see below) |
 | `template` | The theme template to use, such as `single-wide` (`view` works too) |
 | `layout` | The theme layout to use |

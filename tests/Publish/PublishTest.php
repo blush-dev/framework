@@ -260,7 +260,7 @@ final class PublishTest extends TestCase
 		$result = $tester->run('publish -v');
 
 		$this->assertTrue($result->isSuccessful(), $result->errors);
-		$this->assertStringContainsString('Indexed 15 entries', $result->output);
+		$this->assertStringContainsString('Indexed 17 entries', $result->output);
 		$this->assertMatchesRegularExpression('/Published in \d+ ms; the content version is now [0-9a-f]{16}\./', $result->output);
 		$this->assertSame([], $puller->pulled);
 

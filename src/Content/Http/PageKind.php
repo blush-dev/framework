@@ -49,6 +49,16 @@ enum PageKind: string
 	case Date = 'date';
 
 	/**
+	 * The authors a type's entries credit (D-329).
+	 */
+	case Authors = 'authors';
+
+	/**
+	 * An author's archive in a type.
+	 */
+	case Author = 'author';
+
+	/**
 	 * The welcome page of a site with no home page yet.
 	 */
 	case Welcome = 'welcome';

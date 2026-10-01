@@ -85,7 +85,23 @@ Each is recorded in `.claude/docs/decisions.md`.
   shown. The pager offers 10, 20, 50, or 100 a page (20 by default, not
   the prototype's 25), shown once a list is longer than 10.
 - **Authors are under People** (D-259), not Content's shared taxonomies:
-  they're the public side of accounts.
+  they're the public side of accounts. **People** is one list of people
+  (D-329, D-332), where the prototype has separate Accounts: accounts,
+  guest authors, and authors credited without a page, by name, with
+  Accounts and Guests tabs for whoever manages accounts. A name opens
+  the account's screen (managers) or the author page in the editor.
+- **Your Profile is the editor** (D-329, D-332) once the account has an
+  author page: the bio is the writing surface, and the account's
+  settings (password, roles, theme, color scheme) are a third drawer
+  tab, **Account**, beside the entry's and the element's. Without a
+  page, Your Profile is the settings as panels. One name per person:
+  the author page's title, so the Name field shows only for accounts
+  without one.
+- **A type's authors page** (D-329, D-332): `_authors` in its folder,
+  pinned under the index page with an **Authors** tag, edited like an
+  index page (no type fields or date, slug fixed), but trashable. The
+  type editor's Behavior panel has an Authors group: credits authors,
+  has archives, the word in the address, and the authors page.
 - **No list of every type together** (D-240): each content type has its own
   list, and there's no "All entries" screen. The dashboard's Drafts and
   Scheduled figures are plain numbers.
@@ -131,7 +147,7 @@ Each is recorded in `.claude/docs/decisions.md`.
   foundations' own test (someone goes looking for it by name), it's the
   one section every account uses (Your Profile), and it kept Config
   long once Settings became four screens (D-325). People's panel is
-  Your Profile, Accounts, Roles, and Authors, with no headings (D-327);
+  Your Profile, People, and Roles, with no headings (D-327, D-332);
   Config keeps Structure, Settings, and Customize.
 - **Both admin themes ship** (D-317): Neutral and Editorial, a theme
   choice on Your profile beside the color scheme, with Editorial's
@@ -275,8 +291,10 @@ Each is recorded in `.claude/docs/decisions.md`.
   New) with a username instead of an email and name, and no note; the
   account gets a one-time password link shown on its screen to copy,
   and **Send a password reset** is **Make a password link**. Accounts
-  have no email or name fields (the name comes from the author page,
-  linked with an Author field) and no Entries column; the last sign-in
+  have no email field, and a name field only until they have an author
+  page, whose title is then their name (D-332), linked with an Author
+  field; People's Credited column counts the entries crediting each
+  person; the last sign-in
   stands in for "last active". Roles save as they're ticked, as in the
   prototype. Removing an account reassigns nothing (entries credit
   authors, not accounts). Roles are editable, so the prototype's "fixed

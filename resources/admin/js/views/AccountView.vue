@@ -19,7 +19,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import AuthorField from '../components/AuthorField.vue';
 import RoleChecks from '../components/RoleChecks.vue';
-import { ApiError } from '../api';
+import { ApiError, entryRoute } from '../api';
 import { freshLink, initials, loadAccounts, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, type AccountInfo, type PasswordLink, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { session } from '../session';
@@ -238,7 +238,7 @@ async function remove(): Promise<void> {
 	try {
 		await removeAccount(current.username);
 		toast(`Removed ${current.displayName}`);
-		await router.push({ name: 'accounts' });
+		await router.push({ name: 'people' });
 	} catch (caught) {
 		dangerError.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be removed.';
 		dangerBusy.value  = false;
@@ -256,7 +256,7 @@ async function remove(): Promise<void> {
 		</div>
 		<div class="page-header__actions">
 			<RouterLink v-if="yours" class="button" :to="{ name: 'profile' }"><AdminIcon name="users" />Your Profile</RouterLink>
-			<RouterLink class="button" :to="{ name: 'accounts' }"><AdminIcon name="arrow-left" />All accounts</RouterLink>
+			<RouterLink class="button" :to="{ name: 'people' }"><AdminIcon name="arrow-left" />All people</RouterLink>
 		</div>
 	</header>
 
@@ -284,14 +284,16 @@ async function remove(): Promise<void> {
 						<div v-if="!account.manages"><dt>Author</dt><dd :class="{ mono: account.author }">{{ account.author ?? 'None' }}</dd></div>
 					</dl>
 
-					<form v-if="account.manages" class="field" @submit.prevent="saveName">
+					<p v-if="account.authorPage" class="field__help">Their name is their author page's title, everywhere: {{ account.displayName }}. <RouterLink :to="entryRoute(account.authorPage)">Edit their author page</RouterLink></p>
+
+					<form v-if="account.manages && !account.authorPage" class="field" @submit.prevent="saveName">
 						<label for="account-name">Name</label>
 						<div class="inline-save">
 							<input id="account-name" v-model="name" class="input account-name" autocomplete="off" maxlength="100" :placeholder="account.displayName" :aria-invalid="nameError !== '' || undefined" aria-describedby="account-name-help">
 							<button v-if="nameChanged" type="submit" class="button button--small" :disabled="nameBusy">{{ nameBusy ? 'Saving…' : 'Save' }}</button>
 						</div>
 						<p v-if="nameError" id="account-name-help" class="field__error" role="alert">{{ nameError }}</p>
-						<p v-else id="account-name-help" class="field__help">What the admin calls them. Without one, it's their author page's title, or else their username.</p>
+						<p v-else id="account-name-help" class="field__help">What the admin calls them until they have an author page, whose title is then their name. Without one, it's their username.</p>
 					</form>
 
 					<form v-if="account.manages" class="field" @submit.prevent="saveAuthor">

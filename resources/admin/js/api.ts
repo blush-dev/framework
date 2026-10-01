@@ -70,8 +70,10 @@ export interface EntrySummary {
 	url: string | null;
 	authors: string[];
 	own: boolean;
-	// Whether it's its type's index page, pinned above the rest (D-255).
+	// Whether it's its type's index page, pinned above the rest (D-255),
+	// or its authors page, pinned below that (D-329).
 	index: boolean;
+	authorsPage: boolean;
 	// Duplicate: not for landing pages, and needs `content.create` (D-275).
 	can: { delete: boolean; duplicate: boolean };
 	// For a term, how many published entries use it; else `null` (D-236).
@@ -135,6 +137,8 @@ export interface EntryList {
 	// The type's index page, when the filters find it: not one of the
 	// entries or the total, and on the first page only (D-255, D-264).
 	index: EntrySummary | null;
+	// The type's authors page, the same way (D-329).
+	authorsPage: EntrySummary | null;
 }
 
 // What people call a type and its entries (D-278). `item` and `items`
@@ -159,10 +163,13 @@ export interface ContentTypeSummary {
 	description: string;
 	// A site icon's name to show it with, or `null` for its kind's.
 	icon: string | null;
-	kind: 'collection' | 'taxonomy' | 'pages';
+	kind: 'collection' | 'taxonomy' | 'pages' | 'authors';
 	dated: boolean;
+	// Whether its entries credit authors (D-329).
+	authors: boolean;
 	// A taxonomy's: the types its terms group, empty for every type, and
-	// whether a term may have a parent.
+	// whether a term may have a parent. The authors type's: the types
+	// that credit authors.
 	types?: string[];
 	hierarchical?: boolean;
 	// Where it was defined, its folder, its URL prefix (`null` without
@@ -192,6 +199,10 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	file: string | null;
 	// Its index page (D-255), or `null`.
 	index: { id: string; title: string } | null;
+	// The word its author archives sit under, `false` for none, or `null`
+	// for a type without URLs (D-329); and its authors page, or `null`.
+	authorsWord: string | false | null;
+	authorsPage: { id: string; title: string } | null;
 }
 
 /**
@@ -331,8 +342,10 @@ export interface EntryDetail {
 	own: boolean;
 	url: string | null;
 	// Whether it's its type's index page (D-274): edited without the
-	// type's fields or scheduling, and never trashed.
+	// type's fields or scheduling, and never trashed; or its authors page
+	// (D-329), edited the same way, with its slug fixed.
 	index: boolean;
+	authorsPage: boolean;
 	type: {
 		name: string;
 		kind: ContentTypeSummary['kind'];

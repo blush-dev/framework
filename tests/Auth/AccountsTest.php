@@ -120,7 +120,8 @@ final class AccountsTest extends TestCase
 		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], 'jane', "  Jane\t\n  Doe ");
 
 		$this->assertSame('Jane Doe', $account->name, 'Spaces and line breaks are tidied.');
-		$this->assertSame('Jane Doe', $this->accounts()->displayName($account));
+		$this->assertSame('Jane Author', $this->accounts()->displayName($account), 'One name per person: the author page\'s title (D-329).');
+		$this->assertSame('Jane Doe', $this->accounts()->displayName($account->withAuthor(null)), 'Without an author page, the account\'s own name.');
 		$this->assertStringContainsString('"name": "Jane Doe"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json'));
 		$this->assertEquals($account, $this->store()->find('jane'));
 
@@ -130,7 +131,7 @@ final class AccountsTest extends TestCase
 
 		$account = $this->accounts()->setName($account, '   ');
 		$this->assertNull($account->name);
-		$this->assertSame('Jane Author', $this->accounts()->displayName($account), 'Then the author page\'s title.');
+		$this->assertSame('Jane Author', $this->accounts()->displayName($account));
 		$this->assertSame('jane', $this->accounts()->displayName($account->withAuthor(null)), 'Then the username.');
 
 		foreach ([str_repeat('a', Account::NAME_LENGTH + 1), "Jane\u{0007}"] as $bad) {
@@ -174,7 +175,8 @@ final class AccountsTest extends TestCase
 	public function testChecksAuthors(): void
 	{
 		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
-		$this->writeTemporaryFile('user/content/credited.md', "---\ntitle: Credited\nauthors: lee\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/credited.md', "---\ntitle: Credited\nauthors: lee\n---\n");
+		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
 
 		$this->assertTrue($this->accounts()->hasAuthor('jane'));
 		$this->assertTrue($this->accounts()->hasAuthor('lee'), 'Entries credit a virtual author.');

@@ -36,6 +36,7 @@ final readonly class Pages extends ContentType
 	 * @param  ?TypeLabels     $labels      What people call it; defaults to "Pages" and "Page".
 	 * @param  string          $description What pages are for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
+	 * @param  bool            $authors     Whether pages credit authors (D-329).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -47,9 +48,10 @@ final readonly class Pages extends ContentType
 		bool $closed = false,
 		?TypeLabels $labels = null,
 		string $description = '',
-		?string $icon = null
+		?string $icon = null,
+		bool $authors = false
 	) {
-		parent::__construct($name, $folder, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon);
+		parent::__construct($name, $folder, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $authors);
 	}
 
 	/**
@@ -69,5 +71,14 @@ final readonly class Pages extends ContentType
 	public function parentKey(string $key, array $values): ?string
 	{
 		return str_contains($key, '/') ? dirname($key) : null;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	protected function options(): array
+	{
+		return ['authors' => $this->authors ?: null];
 	}
 }

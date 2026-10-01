@@ -135,7 +135,7 @@ final class FeedsTest extends TestCase
 		$spring = self::items($json)[1] ?? [];
 
 		$this->assertSame(['Art', 'Book Reviews'], $spring['tags'] ?? null);
-		$this->assertSame([['name' => 'justintadlock'], ['name' => 'guest']], $spring['authors'] ?? null);
+		$this->assertSame([['name' => 'Justin Tadlock'], ['name' => 'A Guest']], $spring['authors'] ?? null, 'Authors by their entries\' titles.');
 		$this->assertSame('2008-04-05T09:00:00-05:00', $spring['date_published'] ?? null);
 		$this->assertSame("<p>Spring is here.</p>\n", $spring['content_html'] ?? null);
 		$this->assertSame('Spring is here.', $spring['summary'] ?? null);

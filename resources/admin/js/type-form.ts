@@ -20,6 +20,11 @@ export interface TypeForm {
 	public: boolean;
 	sitemap: boolean;
 	feed: boolean;
+	// Whether entries credit authors, and whether those authors have
+	// archives under the type, at a word (`''` for `authors`; D-329).
+	authors: boolean;
+	authorArchives: boolean;
+	authorsWord: string;
 	// A collection's: `none`, `year`, `month`, `day`, … (`DateArchives`).
 	dateArchives: string;
 	// A taxonomy's: whether a term may have a parent, and the types its
@@ -35,10 +40,22 @@ export interface TypeForm {
 export const FEATURED: FieldDescription = { name: 'image', type: 'media', label: 'Featured image', kind: 'image' };
 
 /**
+ * The word author archives sit under unless a type says otherwise.
+ */
+export const AUTHORS = 'authors';
+
+/**
+ * The word a form's author archives sit under, `false` for none.
+ */
+export function authorsWordOf(form: TypeForm): string | false {
+	return form.authorArchives ? (form.authorsWord.trim().replace(/^\/+|\/+$/g, '') || AUTHORS) : false;
+}
+
+/**
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, feed: false, dateArchives: 'none', hierarchical: false, types: [], fields: [] };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, feed: false, authors: true, authorArchives: true, authorsWord: '', dateArchives: 'none', hierarchical: false, types: [], fields: [] };
 }
 
 /**
@@ -56,6 +73,9 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		public: type.public,
 		sitemap: type.sitemap,
 		feed: type.feed,
+		authors: type.authors,
+		authorArchives: typeof type.authorsWord === 'string',
+		authorsWord: typeof type.authorsWord === 'string' && type.authorsWord !== AUTHORS ? type.authorsWord : '',
 		dateArchives: type.dateArchives,
 		hierarchical: type.hierarchical === true,
 		types: [...(type.types ?? [])],
@@ -91,18 +111,27 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		public: form.public,
 		sitemap: form.sitemap,
 		feed: form.feed,
+		authors: form.authors,
 		fields: form.fields,
 		...(kind === 'collection' ? { dateArchives: form.dateArchives === 'none' ? null : form.dateArchives } : {}),
 		...(kind === 'taxonomy' ? { hierarchical: form.hierarchical, types: form.types } : {})
 	};
 
+	// The author word is a URL setting, so it's sent only when it changes
+	// (a site may not let data types set URLs), and the default as `null`.
+	const word = authorsWordOf(form);
+
 	if (initial === null) {
-		return all;
+		return word === AUTHORS ? all : { ...all, authorsWord: word };
 	}
 
 	const before = changesOf(initial, null, kind);
+	const was    = authorsWordOf(initial);
 
-	return Object.fromEntries(Object.entries(all).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(before[key])));
+	return {
+		...Object.fromEntries(Object.entries(all).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(before[key]))),
+		...(word === was ? {} : { authorsWord: word === AUTHORS ? null : word })
+	};
 }
 
 /**

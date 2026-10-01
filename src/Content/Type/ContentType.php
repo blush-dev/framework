@@ -24,9 +24,10 @@ use Blush\Content\Schema\Schema;
  * A content type: the entries in one folder of `user/content`, how they're
  * routed, listed, and fed, and the fields they have. The kinds are final
  * classes (D-157): `Collection` for listed entries such as posts,
- * `Taxonomy` for terms that group other entries, and `Pages` for the
- * built-in type that claims the content root. One model serves types
- * from code and from data (D-042).
+ * `Taxonomy` for terms that group other entries, `Pages` for the
+ * built-in type that claims the content root, and `Authors` for the
+ * people entries credit (D-329). One model serves types from code and
+ * from data (D-042).
  *
  * `fromArray()` builds any kind from a definition array (its `kind`, or
  * 1.x's `taxonomy: true`) and also accepts every 1.x option name
@@ -78,6 +79,7 @@ abstract readonly class ContentType
 	 * @param  ?TypeLabels       $labels       Defaults to labels made from the name.
 	 * @param  string            $description  What the type is for, in a sentence.
 	 * @param  ?string           $icon         An icon name for the admin.
+	 * @param  bool              $authors      Whether entries credit authors.
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -93,7 +95,8 @@ abstract readonly class ContentType
 		bool $closed,
 		?TypeLabels $labels = null,
 		string $description = '',
-		?string $icon = null
+		?string $icon = null,
+		public bool $authors = false
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -154,6 +157,25 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns whether the type has author archives (D-329): it's public,
+	 * credits authors, and has routes with an `authors` word. The site
+	 * also needs an authors type.
+	 */
+	public function hasAuthorArchives(): bool
+	{
+		return $this->public && $this->authors && $this->urls !== false && $this->urls->authors !== false;
+	}
+
+	/**
+	 * Returns whether the page catch-all serves the type's entries at
+	 * their folder paths, as 1.x did for types without routes.
+	 */
+	public function servedAsPages(): bool
+	{
+		return ! $this->hasUrls();
+	}
+
+	/**
 	 * Returns whether the type has a feed.
 	 */
 	public function hasFeed(): bool
@@ -195,11 +217,21 @@ abstract readonly class ContentType
 
 	/**
 	 * Returns the field other entries reference this type's entries
-	 * through, or `null` for a type that isn't a taxonomy.
+	 * through, or `null` for a type that isn't a taxonomy or authors.
 	 */
 	public function termField(): ?ReferenceField
 	{
 		return null;
+	}
+
+	/**
+	 * Returns whether other entries reference this type's entries as
+	 * terms (a taxonomy's, or authors), which the index keeps a reverse
+	 * lookup for and which may be virtual.
+	 */
+	public function hasTerms(): bool
+	{
+		return $this->termField() !== null;
 	}
 
 	/**
@@ -244,6 +276,18 @@ abstract readonly class ContentType
 				'description' => $definition->nullableString('description') ?? '',
 				'icon'        => $definition->nullableString('icon')
 			];
+
+			if ($kind === TypeKind::Authors) {
+				unset($common['sitemap']);
+
+				return new Authors(...[
+					...$common,
+					'field'   => $definition->nullableString('field'),
+					'aliases' => $definition->strings('aliases')
+				]);
+			}
+
+			$common = [...$common, 'authors' => $definition->bool('authors', $kind === TypeKind::Collection)];
 
 			if ($kind === TypeKind::Pages) {
 				return new Pages(...[...$common, 'folder' => $common['folder'] ?? '']);

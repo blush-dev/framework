@@ -29,6 +29,10 @@ use Blush\Content\Type\Taxonomy;
  *   `collection`.
  * - **Date archive:** `archive-date-{type}` → `archive-date` →
  *   `collection`.
+ * - **Authors** (a type's, D-329): `authors-{type}` → `authors` →
+ *   `collection`.
+ * - **Author archive:** `author-{type}-{slug}` → `author-{type}` →
+ *   `author` → `collection`.
  * - **Home:** `home`, then the hierarchy of what it shows.
  * - **Errors:** `error-{status}` → `error`.
  * - **Welcome:** `welcome`.
@@ -85,6 +89,8 @@ final readonly class Hierarchy
 			PageKind::Collection => ["collection-{$type}", ...($taxonomy ? ['collection-taxonomy'] : []), 'collection'],
 			PageKind::Term       => [...($slug === null ? [] : ["term-{$type}-{$slug}"]), "term-{$type}", 'term', 'collection'],
 			PageKind::Date       => ["archive-date-{$type}", 'archive-date', 'collection'],
+			PageKind::Authors    => ["authors-{$type}", 'authors', 'collection'],
+			PageKind::Author     => [...($slug === null ? [] : ["author-{$type}-{$slug}"]), "author-{$type}", 'author', 'collection'],
 			default              => [...($slug === null ? [] : ["single-{$type}-{$slug}"]), "single-{$type}", 'single']
 		};
 	}

@@ -5,13 +5,16 @@
  * and has a feed; a collection's date archives and featured image (an
  * `image` media field); a taxonomy's nesting and the types its terms
  * group; and the index page (D-255), which a type gets once and keeps.
+ * When the site has authors (D-329): whether entries credit them, and
+ * whether a type with URLs has author archives, at which word, with its
+ * authors page, which, like the index page, a type gets once and keeps.
  */
 
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import type { ContentTypeSummary } from '../api';
 import AdminSelect from './AdminSelect.vue';
-import { DATE_ARCHIVES, FEATURED, hasFeatured, type TypeForm } from '../type-form';
+import { authorsWordOf, DATE_ARCHIVES, FEATURED, hasFeatured, AUTHORS, type TypeForm } from '../type-form';
 
 const props = defineProps<{
 	idPrefix: string;
@@ -25,10 +28,22 @@ const props = defineProps<{
 	// The index page it has, or `null`; `indexWanted` is the wizard's or
 	// the editor's choice to add one.
 	indexPage: { id: string; title: string } | null;
+	// The site's authors type's plural name, or `null` without one; the
+	// type's authors page, or `null`.
+	authorsLabel: string | null;
+	authorsPage: { id: string; title: string } | null;
 }>();
 
 const form        = defineModel<TypeForm>({ required: true });
 const indexWanted = defineModel<boolean>('index', { default: false });
+const pageWanted  = defineModel<boolean>('pageWanted', { default: false });
+
+// Where the author archives would be, for the hint.
+const archiveBase = computed(() => {
+	const word = authorsWordOf(form.value);
+
+	return word === false ? '' : `/${(form.value.prefix || props.folderPrefix).replace(/^\/+|\/+$/g, '')}/${word}`;
+});
 
 const featured = computed({
 	get: () => hasFeatured(form.value),
@@ -71,6 +86,27 @@ function grouped(name: string, on: boolean): void {
 			<p v-if="!indexPage && indexWanted" class="field__help">An entry is created for the landing page at <code>/{{ (form.prefix || folderPrefix).replace(/^\/+|\/+$/g, '') }}</code>, titled with the plural name, and pinned at the top of its list.</p>
 		</fieldset>
 
+		<fieldset v-if="authorsLabel !== null" class="type-behavior__group">
+			<legend>{{ authorsLabel }}</legend>
+			<label class="checkbox"><input v-model="form.authors" type="checkbox"> Entries credit {{ authorsLabel.toLowerCase() }}</label>
+			<template v-if="form.authors">
+				<label class="checkbox"><input v-model="form.authorArchives" type="checkbox" :disabled="!urls"> Each one has an archive here</label>
+				<div v-if="form.authorArchives" class="field type-behavior__word">
+					<label :for="`${idPrefix}authors-word`">Word in the address</label>
+					<input :id="`${idPrefix}authors-word`" v-model="form.authorsWord" class="mono" :placeholder="AUTHORS" :disabled="!urls" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}authors-word-help`">
+					<p :id="`${idPrefix}authors-word-help`" class="field__help">The list is at <code>{{ archiveBase }}</code> and each archive at <code>{{ archiveBase }}/{slug}</code>. Bylines link there.</p>
+				</div>
+				<p v-else class="field__help">{{ urls ? 'Bylines name the authors without linking anywhere.' : 'These types can\'t set their URLs, so their author archives are as the site has them.' }}</p>
+				<template v-if="form.authorArchives">
+					<p v-if="authorsPage" class="field__help">Its {{ authorsLabel.toLowerCase() }} page: <RouterLink :to="{ name: 'entry-file', params: { id: authorsPage.id.split('/') } }">{{ authorsPage.title }}</RouterLink>, which introduces the list. It's an entry, edited like one.</p>
+					<template v-else>
+						<label class="checkbox"><input v-model="pageWanted" type="checkbox"> Has a page introducing the list</label>
+						<p v-if="pageWanted" class="field__help">An entry is created at <code>_authors</code> in the folder, titled {{ authorsLabel }}, and pinned in its list. It has no address of its own.</p>
+					</template>
+				</template>
+			</template>
+		</fieldset>
+
 		<div v-if="kind === 'collection'" class="field">
 			<label :for="`${idPrefix}archives`">Date archives</label>
 			<AdminSelect :id="`${idPrefix}archives`" v-model="form.dateArchives" :options="DATE_ARCHIVES" :described-by="`${idPrefix}archives-help`" />
@@ -105,5 +141,9 @@ function grouped(name: string, on: boolean): void {
 	color: var(--fg-2);
 	font-size: var(--text-sm);
 	font-weight: 500;
+}
+
+.type-behavior__word {
+	max-width: 24rem;
 }
 </style>

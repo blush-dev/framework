@@ -46,6 +46,8 @@ final class AdminContentTest extends TestCase
 	 */
 	private function site(array $roles, array $environment = []): void
 	{
+		// Pages don't credit authors unless the site says so (D-329).
+		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: pages\nauthors: true\n");
 		$this->writeTemporaryFile('user/content/jane-draft.md', "---\ntitle: Jane's draft\nstatus: draft\nauthors: jane\n---\n");
 		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\n---\n");
 		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\n---\n");
@@ -111,6 +113,33 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['Soon'], array_column($scheduled, 'title'));
 		$this->assertIsString($scheduled[0]['published'] ?? null);
 		$this->assertStringStartsWith('2099-01-01T09:00:00', $scheduled[0]['published']);
+	}
+
+	public function testPinsATypesAuthorsPage(): void
+	{
+		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
+		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/_authors.md', "---\ntitle: Our Writers\n---\nThe people.\n");
+		$this->site(['editor']);
+
+		$list = $this->list('?type=post');
+
+		$this->assertSame(['One'], array_column(is_array($list['entries'] ?? null) ? $list['entries'] : [], 'title'), 'Set apart, like the index page (D-329).');
+		$this->assertSame(1, $list['total'] ?? null);
+		$page = $list['authorsPage'] ?? null;
+
+		$this->assertIsArray($page);
+		$this->assertIsArray($page['can'] ?? null);
+		$this->assertSame(['Our Writers', true, false], [$page['title'] ?? null, $page['authorsPage'] ?? null, $page['can']['duplicate'] ?? null]);
+		$this->assertNull($this->list('?type=post&page=2')['authorsPage'] ?? null, 'On the first page only.');
+
+		$entry = self::json($this->send('GET', '/content/post/_authors'));
+
+		$this->assertTrue($entry['authorsPage'] ?? null);
+		$this->assertIsArray($entry['can'] ?? null);
+		$this->assertIsArray($entry['type'] ?? null);
+		$this->assertFalse($entry['can']['rename'] ?? null, 'Its slug is what makes it the authors page.');
+		$this->assertSame(['title', 'status'], array_column(is_array($entry['type']['fields'] ?? null) ? $entry['type']['fields'] : [], 'name'), 'Without the type\'s fields, like an index page.');
 	}
 
 	public function testAuthorsSeeTheirOwn(): void
@@ -320,7 +349,8 @@ final class AdminContentTest extends TestCase
 
 		$this->assertContains(['name' => 'page', 'labels' => TypeLabels::named('page')->all(), 'kind' => 'pages', 'dated' => false], $described, 'Only taxonomies name types.');
 		$this->assertContains(['name' => 'genre', 'labels' => TypeLabels::named('genre')->all(), 'kind' => 'taxonomy', 'dated' => false, 'types' => ['page']], $described);
-		$this->assertContains(['name' => 'author', 'labels' => TypeLabels::named('author')->all(), 'kind' => 'taxonomy', 'dated' => false, 'types' => []], $described, 'An author groups every type.');
+		$this->assertContains(['name' => 'author', 'labels' => TypeLabels::named('author')->all(), 'kind' => 'authors', 'dated' => false, 'types' => ['page']], $described, 'The authors type names the types that credit authors.');
+		$this->assertSame([true, false, false], array_map(static fn (string $name): mixed => array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === $name)['authors'] ?? null, ['page', 'genre', 'author']), 'Whether each type credits authors.');
 
 		$genre = array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === 'genre');
 
@@ -432,7 +462,8 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame('page', $page['name'] ?? null);
 		$this->assertContains('genre', is_array($page['taxonomies'] ?? null) ? $page['taxonomies'] : [], 'A taxonomy grouping it.');
-		$this->assertContains('author', is_array($page['taxonomies'] ?? null) ? $page['taxonomies'] : [], 'Authors group every type.');
+		$this->assertNotContains('author', is_array($page['taxonomies'] ?? null) ? $page['taxonomies'] : [], 'The authors type isn\'t a taxonomy (D-329).');
+		$this->assertTrue($page['authors'] ?? null);
 
 		$genre = self::json($this->send('GET', '/types/genre'));
 
@@ -466,6 +497,9 @@ final class AdminContentTest extends TestCase
 
 	public function testReportsContentHealth(): void
 	{
+		// Credited authors without entries are warnings (D-329).
+		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/authors/sam.md', "---\ntitle: Sam\n---\n");
 		$this->site(['editor']);
 
 		$health = self::json($this->send('GET', '/health'));

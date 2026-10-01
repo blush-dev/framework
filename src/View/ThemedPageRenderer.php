@@ -16,9 +16,12 @@ namespace Blush\View;
 use Override;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Content\Entry\Entry;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Http\PageRenderer;
+use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Data\InvalidData;
 use Blush\Feed\FeedLinks;
@@ -45,7 +48,9 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		private ThemeResolver $themes,
 		private ViewFactory $views,
 		private AppConfig $app,
-		private FeedLinks $feeds
+		private FeedLinks $feeds,
+		private ContentTypes $types,
+		private ContentUrls $urls
 	) {}
 
 	/**
@@ -84,8 +89,16 @@ final readonly class ThemedPageRenderer implements PageRenderer
 
 		$head->property('og:site_name', $this->app->name)
 			->property('og:title', $isFront || $page->title === '' ? $this->app->name : $page->title)
-			->property('og:type', $page->kind === PageKind::Single ? 'article' : 'website')
+			->property('og:type', match ($page->kind) {
+				PageKind::Single => 'article',
+				PageKind::Author => 'profile',
+				default          => 'website'
+			})
 			->property('og:url', $canonical);
+
+		if ($page->kind === PageKind::Single && $page->entry !== null) {
+			$this->describeAuthors($head, $page->entry);
+		}
 
 		$this->describeEntry($head, $page);
 
@@ -136,6 +149,23 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		$domain = $views->translator->has($key, 'theme') ? 'theme' : 'blush';
 
 		return $views->translator->translate($key, ['title' => $title, 'page' => $number], $domain);
+	}
+
+	/**
+	 * Adds an article's authors to the head: each one's archive in the
+	 * entry's type (D-329), the URL that stands for the person.
+	 */
+	private function describeAuthors(Head $head, Entry $entry): void
+	{
+		$authors = $this->types->authors();
+
+		foreach ($authors === null ? [] : $entry->terms($authors->name) as $slug) {
+			$url = $this->urls->author($entry->type, $slug);
+
+			if ($url !== null) {
+				$head->addProperty('article:author', $this->app->absoluteUrl($url));
+			}
+		}
 	}
 
 	/**

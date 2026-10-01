@@ -77,11 +77,12 @@ Only people who sign in see it.
 
 Set it when creating an account (`--name=`, or **Name** on **New
 Account**), change it with `account:name`, on the account's screen, or
-on **Your profile**, where everyone can change their own. Without a
-name, the admin uses the account's author page's title, then its
-username.
+on **Your profile**, where everyone can change their own.
 
-The name on the site, in bylines, is the author page's, not this one.
+A person has one name. Once the account has an author page, that page's
+title is its name, in the admin and on the site, and the account's own
+name is set aside (the Name field goes away). Without an author page,
+the admin uses the account's name, then its username.
 
 ## Authors
 
@@ -90,8 +91,8 @@ An account can be linked to an author (see
 `user/content/authors/jane.md`, or to the `jane` author your posts credit
 even without that file.
 
-The author entry is the account's public side: its name in bylines, its
-bio, and its archive page. The account itself (username, password, roles)
+The author entry is the account's public side: its name in bylines and
+its bio, shown on its [author archives](content-types.md#author-archives). The account itself (username, password, roles)
 stays private. When the author has no entry yet, `account:add` and
 `account:author` offer to create one and ask for the public name; say no,
 and bylines show the slug until someone creates it. In the admin, **Your

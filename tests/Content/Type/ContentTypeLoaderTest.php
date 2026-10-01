@@ -65,7 +65,9 @@ final class ContentTypeLoaderTest extends TestCase
 
 		$this->assertSame(['page', 'author'], array_keys($types->all()));
 		$this->assertSame(TypeOrigin::BuiltIn, $types->origin('author'));
-		$this->assertSame(['author'], array_keys($types->taxonomies()));
+		$this->assertSame([], array_keys($types->taxonomies()));
+		$this->assertSame('author', $types->authors()?->name);
+		$this->assertSame(['author'], array_keys($types->termTypes()));
 		$this->assertNull($types->homeType());
 		$this->assertCount(2, $types);
 	}
@@ -115,6 +117,9 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame('authors', $schema->field('author')?->name);
 		$this->assertSame('published', $schema->field('date')?->name);
 		$this->assertSame($schema, $types->schema('post'));
+		$this->assertFalse($types->schema('page')->has('authors'), 'Only the types that support authors credit them (D-329).');
+		$this->assertFalse($types->schema('category')->has('authors'));
+		$this->assertFalse($types->schema('author')->has('authors'));
 	}
 
 	public function testExtensionsAddTypesAndTheConfigReplacesThem(): void
@@ -220,7 +225,8 @@ final class ContentTypeLoaderTest extends TestCase
 			"['types' => ['post' => ['feed' => ['taxonomy' => 'page']]]]"   => 'Content type "post" feed categories "page" isn\'t a taxonomy.',
 			"['types' => ['page' => ['path' => 'pages']]]"                   => 'No content type claims the content root',
 			"['home' => 'post']"                                              => 'ContentConfig "home" names "post", which isn\'t a content type.',
-			"['types' => ['title' => ['taxonomy' => true]]]"                 => 'Content type "page" has clashing fields: Schema key "title"'
+			"['types' => ['title' => ['taxonomy' => true]]]"                 => 'Content type "page" has clashing fields: Schema key "title"',
+			"['types' => ['person' => ['kind' => 'authors']]]"               => 'A site has one authors type, but "author", "person" are all authors types.'
 		];
 
 		foreach ($cases as $config => $message) {

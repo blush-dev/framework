@@ -17,7 +17,6 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\Taxonomy;
 
 /**
  * Answers whether an account may do something (D-217). An account can do
@@ -43,7 +42,6 @@ final readonly class Permissions
 	public function __construct(
 		private Roles $roles,
 		private Capabilities $capabilities,
-		private AuthConfig $config,
 		private ContentTypes $types
 	) {}
 
@@ -75,7 +73,7 @@ final readonly class Permissions
 		$capability   = $capability instanceof Capability ? $capability->value : $capability;
 		$others       = $this->statuses($account, $capability, others: true);
 		$own          = $this->statuses($account, $capability, others: false);
-		$taxonomy     = $this->config->authorTaxonomy;
+		$authors      = $this->types->authors()?->name;
 		$author       = $account->author;
 		$alternatives = [];
 
@@ -87,9 +85,9 @@ final readonly class Permissions
 			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$others);
 		}
 
-		if ($own !== [] && $author !== null && $this->types->find($taxonomy) instanceof Taxonomy) {
-			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->whereTerm($taxonomy, $author);
-			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->type($taxonomy)->names($author);
+		if ($own !== [] && $author !== null && $authors !== null) {
+			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->whereTerm($authors, $author);
+			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->type($authors)->names($author);
 		}
 
 		return $query->either(...$alternatives);
@@ -122,9 +120,11 @@ final readonly class Permissions
 	 */
 	public function owns(Account $account, Entry $entry): bool
 	{
-		return $account->author !== null && (
-			$entry->hasTerm($this->config->authorTaxonomy, $account->author)
-			|| ($entry->type->name === $this->config->authorTaxonomy && $entry->key === $account->author)
+		$authors = $this->types->authors()?->name;
+
+		return $account->author !== null && $authors !== null && (
+			$entry->hasTerm($authors, $account->author)
+			|| ($entry->type->name === $authors && $entry->key === $account->author)
 		);
 	}
 

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Routing;
 
 use Override;
+use Blush\Content\AuthorArchives;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentType;
@@ -35,7 +36,8 @@ use Blush\Export\UrlSource;
  * 4. Each date archive level of each type with archives, for every
  *    period a listed entry was published in, paged. Periods whose
  *    listing turns out empty are 404s, and so are skipped.
- * 5. Every published entry with a URL, unlisted ones included.
+ * 5. Each type's authors list and author archives (D-329), paged.
+ * 6. Every published entry with a URL, unlisted ones included.
  */
 final readonly class ContentExportUrls implements UrlSource
 {
@@ -47,7 +49,8 @@ final readonly class ContentExportUrls implements UrlSource
 	public function __construct(
 		private ContentRepository $content,
 		private ContentTypes $types,
-		private ContentUrls $urls
+		private ContentUrls $urls,
+		private AuthorArchives $archives
 	) {}
 
 	/**
@@ -84,6 +87,10 @@ final readonly class ContentExportUrls implements UrlSource
 			}
 		}
 
+		foreach ($types as $type) {
+			yield from $this->authors($type);
+		}
+
 		$entries = $this->content->query()->visibility(Visibility::Public, Visibility::Unlisted)->withLanding()->get();
 
 		foreach ($entries as $entry) {
@@ -113,6 +120,29 @@ final readonly class ContentExportUrls implements UrlSource
 
 			if ($path !== null) {
 				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->term($taxonomy, $slug, $page));
+			}
+		}
+	}
+
+	/**
+	 * Returns a type's authors list and author archives.
+	 *
+	 * @return iterable<ExportUrl>
+	 */
+	private function authors(ContentType $type): iterable
+	{
+		$authors = $this->urls->hasAuthorArchives($type) ? $this->archives->authors($type) : [];
+		$list    = $authors === [] ? null : $this->urls->authors($type);
+
+		if ($list !== null) {
+			yield new ExportUrl($list);
+		}
+
+		foreach ($authors as $author) {
+			$path = $this->urls->author($type, $author->slug);
+
+			if ($path !== null) {
+				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->author($type, $author->slug, $page));
 			}
 		}
 	}

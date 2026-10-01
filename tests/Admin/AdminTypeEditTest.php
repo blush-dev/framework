@@ -67,6 +67,34 @@ final class AdminTypeEditTest extends TestCase
 		return (string) @file_get_contents($this->temporaryDirectory() . "/{$relative}");
 	}
 
+	public function testSetsWhetherATypeCreditsAuthorsAndWhere(): void
+	{
+		$this->site();
+
+		$answer = $this->write('POST', '/types', ['name' => 'recipe', 'kind' => 'collection', 'authorsPage' => true, 'set' => ['labels' => ['singular' => 'Recipe', 'plural' => 'Recipes'], 'authors' => true, 'authorsWord' => 'cooks']]);
+
+		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
+		$type = self::json($answer);
+		$this->assertSame([true, 'cooks', ['id' => '_recipe/_authors.md', 'title' => 'Authors']], [$type['authors'] ?? null, $type['authorsWord'] ?? null, $type['authorsPage'] ?? null]);
+		$this->assertSame("urls:\n  authors: cooks\n", $this->file('user/data/types/recipe.yaml'), 'Crediting authors is a collection\'s default, so it\'s left out (D-329).');
+		$this->assertSame("---\ntitle: \"Authors\"\n---\n", $this->file('user/content/_recipe/_authors.md'));
+
+		$this->assertSame('authors', self::json($this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => null]]))['authorsWord'] ?? null);
+		$this->assertStringNotContainsString('authors', $this->file('user/data/types/recipe.yaml'), 'The default word is left out.');
+
+		$off = $this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => false]]);
+		$this->assertSame(200, $off->getStatusCode(), (string) $off->getBody());
+		$this->assertFalse(self::json($off)['authorsWord'] ?? null);
+		$this->assertSame("urls:\n  authors: false\n", $this->file('user/data/types/recipe.yaml'));
+
+		$this->assertFalse(self::json($this->write('PATCH', '/types/recipe', ['set' => ['authors' => false]]))['authors'] ?? null);
+		$this->assertStringContainsString("authors: false\n", $this->file('user/data/types/recipe.yaml'));
+
+		$refused = $this->write('PATCH', '/types/recipe', ['set' => [], 'authorsPage' => true]);
+		$this->assertSame(422, $refused->getStatusCode(), 'No author archives, no authors page.');
+		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => 5]])->getStatusCode());
+	}
+
 	public function testCreatesATypeWithFieldsAndAnIndexPage(): void
 	{
 		$this->site();

@@ -125,8 +125,8 @@ final readonly class RecordBuilder
 	}
 
 	/**
-	 * Returns the term slugs each taxonomy's field holds, and the labels of
-	 * terms written differently from their slugs.
+	 * Returns the term slugs each taxonomy's field (and the authors field)
+	 * holds, and the labels of terms written differently from their slugs.
 	 *
 	 * @param  array<array-key, mixed> $frontMatter
 	 * @param  array<string, mixed>    $values
@@ -137,7 +137,7 @@ final readonly class RecordBuilder
 		$terms  = [];
 		$labels = [];
 
-		foreach ($this->types->taxonomies() as $taxonomy) {
+		foreach ($this->types->termTypes() as $taxonomy) {
 			$slugs = $values[$taxonomy->field] ?? [];
 
 			if (! is_array($slugs) || $slugs === []) {

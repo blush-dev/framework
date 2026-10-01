@@ -24,6 +24,7 @@ use Blush\Content\Schema\Severity;
 use Blush\Content\Schema\Violation;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
+use Blush\Content\Type\Authors;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Pages;
 use Blush\Content\Routing\PageRoutes;
@@ -246,7 +247,8 @@ final readonly class Linter
 	}
 
 	/**
-	 * Returns notices for terms the entry references that have no file.
+	 * Returns notices for terms the entry references that have no file,
+	 * and warnings for credited authors without one (D-329).
 	 *
 	 * @return list<Violation>
 	 */
@@ -256,12 +258,17 @@ final readonly class Linter
 
 		foreach ($record->terms as $taxonomy => $slugs) {
 			$type  = $this->types->find($taxonomy);
-			$field = $type instanceof Taxonomy ? $type->field : $taxonomy;
+			$term  = $type?->termField();
+			$field = $term === null ? $taxonomy : $term->name;
 
 			foreach ($slugs as $slug) {
-				if ($snapshot->find($record->locale, $taxonomy, $slug) === null) {
-					$notices[] = new Violation($field, sprintf('"%s" has no %s entry; a virtual term stands in.', $slug, $taxonomy), Severity::Notice);
+				if ($snapshot->find($record->locale, $taxonomy, $slug) !== null) {
+					continue;
 				}
+
+				$notices[] = $type instanceof Authors
+					? new Violation($field, sprintf('"%s" has no %s entry, so it has no public name or bio; add one.', $slug, $type->labels->item), Severity::Warning)
+					: new Violation($field, sprintf('"%s" has no %s entry; a virtual term stands in.', $slug, $taxonomy), Severity::Notice);
 			}
 		}
 

@@ -183,6 +183,11 @@ final readonly class ContentTypeLoader
 	private function check(ContentTypes $types): void
 	{
 		$folders = [];
+		$authors = array_keys(array_filter($types->all(), static fn (ContentType $type): bool => $type instanceof Authors));
+
+		if (count($authors) > 1) {
+			throw new InvalidContentType(sprintf('A site has one authors type, but "%s" are all authors types.', implode('", "', $authors)));
+		}
 
 		foreach ($types as $name => $type) {
 			if (isset($folders[$type->folder])) {

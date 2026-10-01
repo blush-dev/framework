@@ -19,12 +19,10 @@ use LogicException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AuthConfig;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
-use Blush\Content\Type\Taxonomy;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\TrashedEntry;
@@ -55,8 +53,7 @@ final readonly class TrashController
 	public function __construct(
 		private ContentWriter $writer,
 		private ContentTypes $types,
-		private Permissions $permissions,
-		private AuthConfig $auth
+		private Permissions $permissions
 	) {}
 
 	/**
@@ -213,8 +210,8 @@ final readonly class TrashController
 	 */
 	private function authors(TrashedEntry $trashed): array
 	{
-		$taxonomy = $this->types->find($this->auth->authorTaxonomy);
-		$keys     = $taxonomy instanceof Taxonomy ? [$taxonomy->field, ...$taxonomy->aliases] : [$this->auth->authorTaxonomy];
+		$authors = $this->types->authors();
+		$keys    = $authors === null ? [] : [$authors->field, ...$authors->aliases];
 
 		foreach ($keys as $key) {
 			$value = $trashed->frontMatter[$key] ?? null;
