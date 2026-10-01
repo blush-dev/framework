@@ -31,8 +31,11 @@ use Blush\Session\Session;
  * - `refresh()` keeps a session signed in after its own account's
  *   password changed, with a new id.
  * - `account()` returns the session's account, or `null` when it was
- *   removed or its password changed since, which signs out every other
- *   session when a password changes. It forgets such a stale sign-in.
+ *   removed, suspended, or its password changed since, which signs out
+ *   every other session when a password changes. It forgets such a
+ *   stale sign-in.
+ *
+ * A suspended account can't sign in (D-312).
  */
 final readonly class Authenticator
 {
@@ -61,8 +64,9 @@ final readonly class Authenticator
 	/**
 	 * Returns the account a username and password sign in, or `null`.
 	 *
-	 * @throws LockedOut      After too many failures.
-	 * @throws AuthException  When the account's record is damaged.
+	 * @throws LockedOut        After too many failures.
+	 * @throws AccountSuspended For the right password to a suspended account.
+	 * @throws AuthException    When the account's record is damaged.
 	 * @throws CacheException
 	 */
 	public function attempt(string $username, string $password, string $ip): ?Account
@@ -82,6 +86,10 @@ final readonly class Authenticator
 		}
 
 		$this->throttle->clear($ip, $username);
+
+		if ($account->suspended) {
+			throw new AccountSuspended('This account is suspended. Ask an administrator to reinstate it.');
+		}
 
 		if ($this->passwords->needsRehash($account->passwordHash)) {
 			$account = $account->withPasswordHash($this->passwords->hash($password));
@@ -150,7 +158,8 @@ final readonly class Authenticator
 
 	/**
 	 * Returns the session's account, or `null`. A session signed in to an
-	 * account that's gone or whose password changed is signed out.
+	 * account that's gone, suspended, or whose password changed is signed
+	 * out.
 	 *
 	 * @throws AuthException When the account's record is damaged.
 	 */
@@ -165,7 +174,7 @@ final readonly class Authenticator
 
 		$account = $this->accounts->find($username);
 
-		if ($account !== null && hash_equals(self::fingerprint($account), $fingerprint)) {
+		if ($account !== null && ! $account->suspended && hash_equals(self::fingerprint($account), $fingerprint)) {
 			return $account;
 		}
 

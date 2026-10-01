@@ -13,9 +13,12 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use NoDiscard;
+
 /**
  * A named set of capabilities (D-216). `*` grants every capability,
- * including ones extensions add later.
+ * including ones extensions add later. The description says in a line
+ * what the role is for, as the admin shows it (D-312).
  */
 final readonly class Role
 {
@@ -31,7 +34,8 @@ final readonly class Role
 	public function __construct(
 		public string $name,
 		public string $label,
-		public array $capabilities = []
+		public array $capabilities = [],
+		public string $description = ''
 	) {
 		if (preg_match('/^[a-z][a-z0-9_-]*$/', $name) !== 1) {
 			throw new AuthException(sprintf('"%s" can\'t be a role name; use lowercase letters, digits, "_", and "-".', $name));
@@ -53,7 +57,20 @@ final readonly class Role
 	}
 
 	/**
-	 * Builds a role from an array (`name`, `label`, `capabilities`).
+	 * Returns a copy with other capabilities.
+	 *
+	 * @param  list<string> $capabilities
+	 * @throws AuthException For an invalid capability.
+	 */
+	#[NoDiscard]
+	public function withCapabilities(array $capabilities): self
+	{
+		return new self($this->name, $this->label, array_values(array_unique($capabilities)), $this->description);
+	}
+
+	/**
+	 * Builds a role from an array (`name`, `label`, `capabilities`, and
+	 * optionally `description`).
 	 *
 	 * @param  array<mixed> $data
 	 * @throws AuthException
@@ -67,16 +84,26 @@ final readonly class Role
 		}
 
 		/** @var list<string> $capabilities */
-		return new self($data['name'], is_string($data['label'] ?? null) ? $data['label'] : ucfirst($data['name']), $capabilities);
+		return new self(
+			$data['name'],
+			is_string($data['label'] ?? null) ? $data['label'] : ucfirst($data['name']),
+			$capabilities,
+			is_string($data['description'] ?? null) ? $data['description'] : ''
+		);
 	}
 
 	/**
-	 * Returns the role as an array.
+	 * Returns the role as an array, without an empty description.
 	 *
-	 * @return array{name: string, label: string, capabilities: list<string>}
+	 * @return array{name: string, label: string, capabilities: list<string>, description?: string}
 	 */
 	public function toArray(): array
 	{
-		return ['name' => $this->name, 'label' => $this->label, 'capabilities' => $this->capabilities];
+		return [
+			'name'         => $this->name,
+			'label'        => $this->label,
+			'capabilities' => $this->capabilities,
+			...($this->description === '' ? [] : ['description' => $this->description])
+		];
 	}
 }

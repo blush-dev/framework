@@ -220,9 +220,19 @@ Each is recorded in `.claude/docs/decisions.md`.
   follows its type. Delete is in a Danger Zone, confirmed, and refused
   while a taxonomy groups the type. Save and Revert sit below the
   panels.
-- **Roles and accounts** (D-249): read-only, with a notice naming where
-  each is changed; no Invite, role checkboxes, or danger zone yet; roles
-  have no description, and the last sign-in stands in for "last active".
+- **Roles and accounts** (D-249, D-312): Blush sends no email, so the
+  prototype's **Invite** is **New Account**, its own screen (like every
+  New) with a username instead of an email and name, and no note; the
+  account gets a one-time password link shown on its screen to copy,
+  and **Send a password reset** is **Make a password link**. Accounts
+  have no email or name fields (the name comes from the author page,
+  linked with an Author field) and no Entries column; the last sign-in
+  stands in for "last active". Roles save as they're ticked, as in the
+  prototype. Removing an account reassigns nothing (entries credit
+  authors, not accounts). Roles are editable, so the prototype's "fixed
+  in this release" banner and note are gone: **New Role** and
+  **Duplicate** make roles, a role's screen has capability checkboxes
+  with Save and Revert and a Danger Zone, and read-only roles say why.
 - **Appearance** (D-306): no **Activate** or **Browse themes**. The
   active theme is developer config (`config/theme.php`, D-039), so a
   theme row offers **Copy command** (`theme:activate`) and, in

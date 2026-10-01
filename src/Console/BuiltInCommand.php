@@ -38,6 +38,7 @@ use Blush\Console\Commands\PreviewContent;
 use Blush\Console\Commands\Publish;
 use Blush\Console\Commands\PublishMedia;
 use Blush\Console\Commands\PublishThemes;
+use Blush\Console\Commands\ReinstateAccount;
 use Blush\Console\Commands\RemoveAccount;
 use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\RunSchedule;
@@ -47,6 +48,7 @@ use Blush\Console\Commands\SetAccountPassword;
 use Blush\Console\Commands\SetAccountRoles;
 use Blush\Console\Commands\SetUpSite;
 use Blush\Console\Commands\ShowMenu;
+use Blush\Console\Commands\SuspendAccount;
 
 /**
  * The framework's own commands, keyed by name (the "Type enum" of the
@@ -82,12 +84,14 @@ enum BuiltInCommand: string
 	case Publish       = 'publish';
 	case ScheduleRun   = 'schedule:run';
 	case Build         = 'build';
-	case AccountAdd      = 'account:add';
-	case AccountList     = 'account:list';
-	case AccountPassword = 'account:password';
-	case AccountRoles    = 'account:roles';
-	case AccountAuthor   = 'account:author';
-	case AccountRemove   = 'account:remove';
+	case AccountAdd       = 'account:add';
+	case AccountList      = 'account:list';
+	case AccountPassword  = 'account:password';
+	case AccountRoles     = 'account:roles';
+	case AccountAuthor    = 'account:author';
+	case AccountSuspend   = 'account:suspend';
+	case AccountReinstate = 'account:reinstate';
+	case AccountRemove    = 'account:remove';
 
 	/**
 	 * Returns the command's class.
@@ -125,12 +129,14 @@ enum BuiltInCommand: string
 			self::Publish       => Publish::class,
 			self::ScheduleRun   => RunSchedule::class,
 			self::Build         => Build::class,
-			self::AccountAdd      => AddAccount::class,
-			self::AccountList     => ListAccounts::class,
-			self::AccountPassword => SetAccountPassword::class,
-			self::AccountRoles    => SetAccountRoles::class,
-			self::AccountAuthor   => SetAccountAuthor::class,
-			self::AccountRemove   => RemoveAccount::class
+			self::AccountAdd       => AddAccount::class,
+			self::AccountList      => ListAccounts::class,
+			self::AccountPassword  => SetAccountPassword::class,
+			self::AccountRoles     => SetAccountRoles::class,
+			self::AccountAuthor    => SetAccountAuthor::class,
+			self::AccountSuspend   => SuspendAccount::class,
+			self::AccountReinstate => ReinstateAccount::class,
+			self::AccountRemove    => RemoveAccount::class
 		};
 	}
 }

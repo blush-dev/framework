@@ -152,7 +152,7 @@ final class AccountsTest extends TestCase
 		$roles = new Roles(AuthConfig::fromArray(new AuthConfig(roles: [
 			new Role('editor', 'Copy editor', ['content.edit.others']),
 			new Role('reviewer', 'Reviewer', ['content.edit'])
-		])->toArray()));
+		])->toArray()), new MemoryRoleStore());
 
 		$this->assertSame(['administrator', 'editor', 'author', 'contributor', 'reviewer'], array_keys($roles->all()));
 		$this->assertSame('Copy editor', $roles->get('editor')?->label);

@@ -24,8 +24,8 @@ use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 
 /**
- * Lists the admin accounts: username, roles, linked author, and last
- * sign-in. A role an account names that doesn't exist is flagged.
+ * Lists the admin accounts: username, roles, linked author, status, and
+ * last sign-in. A role an account names that doesn't exist is flagged.
  */
 #[Command('account:list', 'List the admin accounts.')]
 final readonly class ListAccounts
@@ -56,13 +56,14 @@ final readonly class ListAccounts
 				$account->username,
 				implode(', ', array_map(fn (string $role): string => $this->roles->has($role) ? $role : "{$role} (unknown)", $account->roles)),
 				$account->author ?? '',
+				$account->status()->value,
 				$account->lastLogin === null
 					? 'never'
 					: DateTimeImmutable::createFromTimestamp($account->lastLogin)->setTimezone($this->app->timezone())->format('Y-m-d H:i')
 			];
 		}
 
-		$output->table(['Username', 'Roles', 'Author', 'Last sign-in'], $rows);
+		$output->table(['Username', 'Roles', 'Author', 'Status', 'Last sign-in'], $rows);
 
 		return ExitCode::Success;
 	}

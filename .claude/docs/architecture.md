@@ -773,7 +773,10 @@ Implemented in M7 (D-135 to D-140).
     stored in it; `__Host-` cookie over HTTPS.
   - `Blush\Auth`: accounts (`FileAccountStore`, `storage/accounts`),
     `Accounts` (create and change, with checks), `Passwords` (Argon2id),
-    `Roles` (built-ins plus `AuthConfig::$roles`), `Capabilities` (the
+    `Roles` (built-ins, then the admin's `RoleStore` in
+    `storage/roles.json`, then `AuthConfig::$roles`, each with its
+    `RoleOrigin`; `RoleEditor` changes the stored ones and reloads them,
+    D-312), `Capabilities` (the
     registry), `Permissions` (roles, ownership through the author link,
     and the live-entry rule, as statuses per own/others' entries that
     both `can()` and the query filter `restrict()` use), `Authenticator` (throttled sign-in, session
@@ -781,8 +784,14 @@ Implemented in M7 (D-135 to D-140).
     the `VerifyCsrf` and `Authenticate` middleware.
   - `Blush\Admin`: `AdminConfig` and the JSON API under
     `{path}/api`: `GET session`, `POST login`, `POST logout`.
-  - CLI: `account:add|list|password|roles|author|remove`; `init` offers
-    the first administrator.
+  - CLI: `account:add|list|password|roles|author|suspend|reinstate|remove`;
+    `init` offers the first administrator.
+  - The admin edits accounts and roles (D-312): `AccountEditController`
+    (new accounts with a one-time `PasswordLink`, roles, author,
+    suspension, removal), `RoleEditController`, and the public
+    `SetPasswordController`, within `PeopleRules` (never more than you
+    have, never your own account, someone always able to manage
+    accounts); `PeopleJson` describes both for the screens.
   - Accounts carry `Preferences` (the admin's color scheme, D-235), set
     through `PATCH {path}/api/preferences`; `SessionReader` lets the
     admin's shell read the session without starting one.
@@ -833,8 +842,10 @@ by source, keeps recents, and writes the directive text). The
   media fields); `grid.ts` moves through their grids. Toasts (`toast.ts`)
   and the command palette (`CommandPalette`, with screens adding
   commands through `useCommands`) are in the layout (D-248). Roles and
-  Accounts are read-only list and detail screens over `GET roles` and
-  `GET accounts` (D-249), as are Content types over `GET types` and
+  Accounts are list and detail screens over `GET roles` and
+  `GET accounts` (D-249), edited since D-312 (`RoleChecks`,
+  `CapabilityChecks`, `AuthorField`, New Account, New Role, and the
+  public Set Password screen), as are Content types over `GET types` and
   `GET types/{name}` (D-250) and Media over `GET media` and
   `GET media/{path}` (D-251). The editor's address is the entry's
   handle, `content/{type}/{key}` (`EntryHandles`, `GET

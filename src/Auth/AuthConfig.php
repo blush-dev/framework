@@ -27,12 +27,16 @@ use Blush\Config\InvalidConfig;
  *
  * - `roles` adds roles, or replaces a built-in one of the same name.
  *   They're config, not data in `user/`, since they decide who can do
- *   what.
+ *   what. The admin keeps its own roles in `storage/roles.json`
+ *   (D-312); a role here wins over one of the same name there, and the
+ *   admin shows it read-only.
  * - `authorTaxonomy` is the taxonomy an account's `author` belongs to
  *   (the built-in `author` type, unless a site renamed it).
  * - `minPasswordLength` is the shortest password accepted.
  * - `maxAttempts` failed sign-ins within `lockout` seconds lock out an
  *   address and username for the rest of that time.
+ * - `passwordLinkLifetime` is how many seconds a link for choosing a
+ *   password lasts (D-312): a week.
  */
 final readonly class AuthConfig implements Config
 {
@@ -45,10 +49,11 @@ final readonly class AuthConfig implements Config
 		public string $authorTaxonomy = 'author',
 		public int $minPasswordLength = 12,
 		public int $maxAttempts = 5,
-		public int $lockout = 900
+		public int $lockout = 900,
+		public int $passwordLinkLifetime = 604800
 	) {
-		if ($minPasswordLength < 8 || $maxAttempts < 1 || $lockout < 1) {
-			throw new InvalidConfig('AuthConfig "minPasswordLength" must be at least 8, and "maxAttempts" and "lockout" at least 1.');
+		if ($minPasswordLength < 8 || $maxAttempts < 1 || $lockout < 1 || $passwordLinkLifetime < 60) {
+			throw new InvalidConfig('AuthConfig "minPasswordLength" must be at least 8, "maxAttempts" and "lockout" at least 1, and "passwordLinkLifetime" at least 60.');
 		}
 	}
 
@@ -59,7 +64,7 @@ final readonly class AuthConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['roles', 'authorTaxonomy', 'minPasswordLength', 'maxAttempts', 'lockout']);
+		$values->assertKnownKeys(['roles', 'authorTaxonomy', 'minPasswordLength', 'maxAttempts', 'lockout', 'passwordLinkLifetime']);
 
 		$roles = [];
 
@@ -76,7 +81,8 @@ final readonly class AuthConfig implements Config
 			authorTaxonomy: $values->string('authorTaxonomy', 'author'),
 			minPasswordLength: $values->int('minPasswordLength', 12),
 			maxAttempts: $values->int('maxAttempts', 5),
-			lockout: $values->int('lockout', 900)
+			lockout: $values->int('lockout', 900),
+			passwordLinkLifetime: $values->int('passwordLinkLifetime', 604800)
 		);
 	}
 
@@ -87,11 +93,12 @@ final readonly class AuthConfig implements Config
 	public function toArray(): array
 	{
 		return [
-			'roles'             => array_map(static fn (Role $role): array => $role->toArray(), $this->roles),
-			'authorTaxonomy'    => $this->authorTaxonomy,
-			'minPasswordLength' => $this->minPasswordLength,
-			'maxAttempts'       => $this->maxAttempts,
-			'lockout'           => $this->lockout
+			'roles'                => array_map(static fn (Role $role): array => $role->toArray(), $this->roles),
+			'authorTaxonomy'       => $this->authorTaxonomy,
+			'minPasswordLength'    => $this->minPasswordLength,
+			'maxAttempts'          => $this->maxAttempts,
+			'lockout'              => $this->lockout,
+			'passwordLinkLifetime' => $this->passwordLinkLifetime
 		];
 	}
 }

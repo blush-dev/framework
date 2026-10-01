@@ -304,6 +304,7 @@ either way.
 | `minPasswordLength` | `12` | The shortest password accepted (at least 8) |
 | `maxAttempts` | `5` | Wrong passwords allowed for one username and address before a lockout |
 | `lockout` | `900` | How many seconds a lockout lasts |
+| `passwordLinkLifetime` | `604800` | How many seconds a [password link](accounts.md#password-links) lasts (a week; at least 60) |
 
 `config/session.php` · `Blush\Session\SessionConfig`
 

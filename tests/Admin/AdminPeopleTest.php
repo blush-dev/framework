@@ -44,7 +44,10 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame(['jane'], $this->role($answer, 'administrator')['accounts'] ?? null);
 		$this->assertSame(['sam'], $this->role($answer, 'author')['accounts'] ?? null);
 		$this->assertTrue($this->role($answer, 'author')['builtIn'] ?? null);
-		$this->assertSame(['label' => 'Reviewer', 'capabilities' => ['content.edit.others'], 'builtIn' => false, 'accounts' => ['sam']], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
+		$this->assertSame(['label' => 'Reviewer', 'description' => '', 'capabilities' => ['content.edit.others'], 'builtIn' => false, 'origin' => 'config', 'accounts' => ['sam'], 'grantable' => true, 'editable' => false], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
+		$this->assertFalse($this->role($answer, 'administrator')['editable'] ?? null, 'The administrator always has everything.');
+		$this->assertTrue($this->role($answer, 'editor')['editable'] ?? null);
+		$this->assertNotSame('', $this->role($answer, 'editor')['description'] ?? '');
 		$this->assertContains('content.edit', array_column(is_array($answer['capabilities'] ?? null) ? $answer['capabilities'] : [], 'name'));
 	}
 
@@ -73,7 +76,10 @@ final class AdminPeopleTest extends TestCase
 		$sam = $accounts[1] ?? null;
 		$this->assertIsArray($sam);
 		$this->assertSame(['author', 'reviewer'], $sam['roles'] ?? null);
-		$this->assertSame(['username', 'roles', 'author', 'created', 'lastLogin'], array_keys($sam), 'No password hash or preferences.');
+		$this->assertSame(['username', 'name', 'roles', 'author', 'created', 'lastLogin', 'status', 'link', 'manages'], array_keys($sam), 'No password hash or preferences.');
+		$this->assertSame('active', $sam['status'] ?? null);
+		$this->assertTrue($sam['manages'] ?? null);
+		$this->assertFalse(is_array($accounts[0] ?? null) ? $accounts[0]['manages'] ?? null : null, 'Not your own account.');
 	}
 
 	public function testNeedsAccountsManage(): void

@@ -18,6 +18,7 @@ use LogicException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AccountSuspended;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\AuthException;
 use Blush\Auth\Authenticator;
@@ -55,7 +56,8 @@ final readonly class SessionController
 	}
 
 	/**
-	 * Signs in with a JSON `username` and `password`.
+	 * Signs in with a JSON `username` and `password`. A suspended
+	 * account is refused with a `403` (D-312).
 	 *
 	 * @throws AuthException  When the account's record is damaged.
 	 * @throws CacheException
@@ -76,6 +78,8 @@ final readonly class SessionController
 			$account = $this->authenticator->attempt($input['username'], $input['password'], ClientIp::of($request));
 		} catch (LockedOut $e) {
 			return self::json(['error' => $e->getMessage()], Status::TooManyRequests, ['Retry-After' => (string) $this->config->lockout]);
+		} catch (AccountSuspended $e) {
+			return self::json(['error' => $e->getMessage()], Status::Forbidden);
 		}
 
 		if ($account === null) {

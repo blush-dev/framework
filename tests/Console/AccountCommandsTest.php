@@ -136,11 +136,25 @@ final class AccountCommandsTest extends TestCase
 
 		$list = $this->command('account:list')->output;
 
-		$this->assertMatchesRegularExpression('/jane\s*\|\s*editor\s*\|\s*jane\s*\|\s*never/', $list);
+		$this->assertMatchesRegularExpression('/jane\s*\|\s*editor\s*\|\s*jane\s*\|\s*active\s*\|\s*never/', $list);
 		$this->assertTrue(new Passwords()->verify('another long password', $this->store()->find('jane')->passwordHash ?? ''));
 
 		$this->assertSame(ExitCode::Success, $this->command('account:author jane')->exitCode);
 		$this->assertNull($this->store()->find('jane')?->author);
+	}
+
+	public function testSuspendsAndReinstatesAnAccount(): void
+	{
+		$this->command('account:add jane', [self::PASSWORD, self::PASSWORD]);
+
+		$this->assertSame(ExitCode::Success, $this->command('account:suspend jane')->exitCode);
+		$this->assertTrue($this->store()->find('jane')?->suspended);
+		$this->assertMatchesRegularExpression('/jane\s*\|.*\|\s*suspended\s*\|/', $this->command('account:list')->output);
+		$this->assertStringContainsString('already suspended', $this->command('account:suspend jane')->output);
+
+		$this->assertSame(ExitCode::Success, $this->command('account:reinstate jane')->exitCode);
+		$this->assertFalse($this->store()->find('jane')?->suspended);
+		$this->assertSame(ExitCode::Failure, $this->command('account:reinstate nobody')->exitCode);
 	}
 
 	public function testRemovesAnAccountAfterAsking(): void

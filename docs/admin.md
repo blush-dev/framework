@@ -698,13 +698,52 @@ that's off says how to turn it back on.
 
 ## Accounts and roles
 
-With `accounts.manage`, **Config → Accounts** lists who can sign in, with
-their roles, linked author, and when they last signed in; choose one for
-its details. **Roles** lists each role with how many capabilities it has
-and who holds it; a role's screen shows every capability it grants or
-doesn't, in groups. Both are read-only for now: roles are set in
-`config/auth.php`, and accounts are changed with the `account:*`
-commands (see [Accounts](accounts.md)).
+With `accounts.manage`, **Config → Accounts** lists who can sign in,
+with their roles, status (Active, Invited, or Suspended), and when they
+last signed in; choose one for its screen. **Roles** lists each role
+with how many capabilities it has and who holds it. See
+[Accounts and roles](accounts.md) for what roles and capabilities are.
+
+### Accounts
+
+- **New Account** asks for a username, its roles, and optionally its
+  author. Blush doesn't send email, so instead of a password the
+  account gets a **password link**: copy it from the account's screen
+  and send it however you like. It's shown only that once, and it
+  works once, for a week. Until it's used, the account is **Invited**.
+- On an account's screen, tick or untick its **roles** (they save
+  right away; an account always keeps one), and link it to an
+  **author**.
+- **Make a password link** is for a forgotten password: the person
+  chooses a new one with it. Their old password keeps working until
+  the link is used, and a new link replaces the old one.
+- The **Danger Zone** suspends an account (it's signed out and can't
+  sign in until you **Reinstate** it) or removes it. Removing an
+  account leaves its author page and the entries crediting it alone.
+
+### Roles
+
+- **New Role** makes a role from a name, a key, a description, and its
+  capabilities. **Duplicate** on any role starts a new one with its
+  capabilities ticked.
+- A role you made can be renamed, described, given or denied
+  capabilities, and deleted once no account holds it.
+- The built-in Editor, Author, and Contributor keep their names, but
+  their capabilities can change; **Reset to built-in** puts them back.
+- The Administrator always has every capability, and roles defined in
+  `config/auth.php` are changed there, so both are shown read-only.
+
+### What you can't do
+
+So that managing people never hands out more than you have, or locks
+everyone out:
+
+- You can't give a role, or a capability, that you don't have yourself,
+  or change an account that can do something you can't.
+- You can't change your own account here. Your password is on **Your
+  profile**; someone else (or `bin/blush`) changes the rest.
+- A change that would leave no account able to manage accounts is
+  refused.
 
 ## Trash
 
@@ -798,8 +837,16 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST media` | Upload a file to the library (see below) |
 | `PATCH media/{path}` | Change a library file's details (see below) |
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
-| `GET roles` | Every capability and role, with the accounts holding each; needs `accounts.manage` |
-| `GET accounts` | Every account's username, roles, author, and created and last sign-in times (Unix); needs `accounts.manage` |
+| `GET roles` | Every capability (`{"name", "label"}`) and role: `{"name", "label", "description", "capabilities", "builtIn", "origin", "accounts", "grantable", "editable"}`, and a changed built-in's `defaults`. `origin` is `built-in`, `changed`, `custom`, or `config`; `grantable` is whether you may give it, and `editable` whether you may change it. Needs `accounts.manage`, as do all of these |
+| `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
+| `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
+| `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
+| `GET accounts` | Every account: `{"username", "name", "roles", "author", "created", "lastLogin", "status", "link", "manages"}`. `name` is its author page's title; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
+| `POST accounts` | Make an account: `{"username", "roles", "author"}`; answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
+| `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (`null` unlinks), and `suspended`; answers `{"account"}` |
+| `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
+| `DELETE accounts/{username}` | Remove an account; answers `204` |
+| `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
 | `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"slug", "name", "version", "description", "parent", "source", "active"}], "invalid": [{"slug", "reason"}]}`. `chain` is the active theme, the themes it builds on, then `default`; `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `site.settings` |
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. Secrets are never sent. Needs `site.settings` |
 | `GET extensions` | Every installed extension, the ones that are on first: `{"extensions": [{"name", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/extensions.php` exists. Needs `site.settings` |

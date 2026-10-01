@@ -23,7 +23,12 @@ use Blush\Content\Writer\WriteException;
 /**
  * Creates and changes accounts, checking what goes into them: a free
  * username, a long enough password, and roles that exist. The `account:*`
- * commands and `init` use it, as the admin will.
+ * commands, `init`, and the admin use it.
+ *
+ * The admin creates an account without a password (`invite()`, D-312):
+ * it gets a one-time link instead, for its person to choose one with
+ * (`usePasswordLink()`). Until then its password hash is of random
+ * bytes nobody knows.
  */
 final readonly class Accounts
 {
@@ -72,7 +77,80 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Sets an account's password, which signs out its sessions.
+	 * Creates and saves an account with a link for choosing its password
+	 * instead of one (D-312), and returns it with the link's token.
+	 *
+	 * @param  list<string> $roles
+	 * @return array{Account, string}
+	 * @throws AuthException When the username is taken or invalid, or a
+	 *                       role doesn't exist.
+	 */
+	public function invite(string $username, array $roles, ?string $author = null): array
+	{
+		return $this->issuePasswordLink($this->create($username, bin2hex(random_bytes(32)), $roles, $author));
+	}
+
+	/**
+	 * Gives an account a new link for choosing a password, replacing any
+	 * it had, and returns it with the link's token. Its password keeps
+	 * working until the link is used.
+	 *
+	 * @return array{Account, string}
+	 */
+	public function issuePasswordLink(Account $account): array
+	{
+		[$link, $token] = PasswordLink::make($this->clock->now()->getTimestamp(), $this->config->passwordLinkLifetime);
+
+		$account = $account->withPasswordLink($link);
+		$this->store->save($account);
+
+		return [$account, $token];
+	}
+
+	/**
+	 * Sets an account's password with its link's token, which ends the
+	 * link (and signs out the account's sessions, as any new password
+	 * does).
+	 *
+	 * @throws AuthException When there's no such account or link, the link
+	 *                       expired or was replaced, the account is
+	 *                       suspended, or the password is too short.
+	 */
+	public function usePasswordLink(string $username, string $token, string $password): Account
+	{
+		$account = $this->store->find(strtolower(trim($username)));
+
+		if ($account === null || $account->passwordLink === null || ! $account->passwordLink->accepts($token, $this->clock->now()->getTimestamp())) {
+			throw new AuthException('This link has expired, was used, or was replaced. Ask an administrator for a new one.');
+		}
+
+		if ($account->suspended) {
+			throw new AuthException('This account is suspended. Ask an administrator to reinstate it.');
+		}
+
+		$this->checkPassword($password);
+
+		$account = $account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null);
+		$this->store->save($account);
+
+		return $account;
+	}
+
+	/**
+	 * Suspends an account, which signs out its sessions, or reinstates
+	 * it.
+	 */
+	public function setSuspended(Account $account, bool $suspended): Account
+	{
+		$account = $account->withSuspended($suspended);
+		$this->store->save($account);
+
+		return $account;
+	}
+
+	/**
+	 * Sets an account's password, which signs out its sessions and ends
+	 * any password link it has.
 	 *
 	 * @throws AuthException When the password is too short.
 	 */
@@ -80,7 +158,7 @@ final readonly class Accounts
 	{
 		$this->checkPassword($password);
 
-		$account = $account->withPasswordHash($this->passwords->hash($password));
+		$account = $account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null);
 		$this->store->save($account);
 
 		return $account;

@@ -24,8 +24,11 @@ import AppearanceView from './views/AppearanceView.vue';
 import ExtensionsView from './views/ExtensionsView.vue';
 import SettingsView from './views/SettingsView.vue';
 import AccountsView from './views/AccountsView.vue';
+import NewAccountView from './views/NewAccountView.vue';
+import NewRoleView from './views/NewRoleView.vue';
 import RoleView from './views/RoleView.vue';
 import RolesView from './views/RolesView.vue';
+import SetPasswordView from './views/SetPasswordView.vue';
 import TypeView from './views/TypeView.vue';
 import MediaFileView from './views/MediaFileView.vue';
 import MediaView from './views/MediaView.vue';
@@ -66,11 +69,17 @@ export const router = createRouter({
 		{ path: '/settings', name: 'settings', component: SettingsView, meta: { title: 'Settings', capability: 'site.settings', area: 'config' } },
 		{ path: '/extensions', name: 'extensions', component: ExtensionsView, meta: { title: 'Extensions', capability: 'site.settings', area: 'config' } },
 		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.manage', area: 'config' } },
+		// New comes before the item it would otherwise be taken for; the
+		// admin makes no account or role named "new" (D-312).
+		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.manage', area: 'config', parent: 'accounts' } },
 		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'config', parent: 'accounts' } },
 		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'config' } },
+		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'accounts.manage', area: 'config', parent: 'roles' } },
 		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.manage', area: 'config', parent: 'roles' } },
 		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your Profile', area: 'config' } },
 		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign In', public: true } },
+		// A password link (D-312): anyone with one may open it.
+		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: 'Choose a Password', public: true } },
 		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: 'Not Found' } }
 	]
 });

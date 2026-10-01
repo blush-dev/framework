@@ -144,7 +144,9 @@ site/
     logs/
     sessions/           One JSON file per session, named by the id's SHA-256 (D-219)
     accounts/           {username}.json admin accounts (D-217, D-219), with any non-default
-                        preferences (D-235); never cleared
+                        preferences (D-235), suspension, and password link hash (D-312);
+                        never cleared
+    roles.json          Roles made or changed in the admin (D-312); never cleared
     trash/              One folder per deleted entry, {Ymd-His}-{6 hex}/: trash.json (entry,
                         bundle, trashed) and the file or bundle folder at user/content/...
                         (D-228, D-237; older folders have no manifest); never cleared

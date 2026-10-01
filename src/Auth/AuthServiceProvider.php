@@ -34,6 +34,7 @@ final class AuthServiceProvider extends ServiceProvider
 		LoginThrottle::class,
 		Passwords::class,
 		Permissions::class,
+		RoleEditor::class,
 		Roles::class
 	];
 
@@ -41,7 +42,8 @@ final class AuthServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS_IF = [
-		AccountStore::class => FileAccountStore::class
+		AccountStore::class => FileAccountStore::class,
+		RoleStore::class    => FileRoleStore::class
 	];
 
 	/**

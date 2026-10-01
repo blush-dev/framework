@@ -1,8 +1,10 @@
 /**
- * The site's roles and accounts (`GET roles`, `GET accounts`, D-249), for
- * the read-only people screens.
+ * The site's roles and accounts (`GET roles`, `GET accounts`, D-249), and
+ * changing them (D-312): accounts made with a password link, changed,
+ * suspended, and removed; roles made, changed, reset, and deleted.
  */
 
+import { ref } from 'vue';
 import { request } from './api';
 
 export interface CapabilityInfo {
@@ -10,27 +12,54 @@ export interface CapabilityInfo {
 	label: string;
 }
 
+// Where a role comes from: built in, a built-in whose capabilities were
+// changed here, made here, or `config/auth.php`.
+export type RoleOrigin = 'built-in' | 'changed' | 'custom' | 'config';
+
 export interface RoleInfo {
 	name: string;
 	label: string;
+	description: string;
 	// `*` grants every capability.
 	capabilities: string[];
 	builtIn: boolean;
+	origin: RoleOrigin;
 	accounts: string[];
+	// Whether you may give it to accounts: you can do all it allows.
+	grantable: boolean;
+	// Whether you may change it.
+	editable: boolean;
+	// A changed built-in's own capabilities.
+	defaults?: string[];
 }
+
+export type AccountStatus = 'active' | 'invited' | 'suspended';
 
 export interface AccountInfo {
 	username: string;
+	// The author page's title, when there is one.
+	name: string | null;
 	roles: string[];
 	author: string | null;
 	created: number;
 	lastLogin: number | null;
+	status: AccountStatus;
+	// The password link it has, if any (never its token).
+	link: { expires: number; expired: boolean } | null;
+	// Whether you may change it (not your own, and it can't do more).
+	manages: boolean;
 }
 
 export interface RoleList {
 	capabilities: CapabilityInfo[];
 	roles: RoleInfo[];
 	all: string;
+}
+
+// A link for choosing a password, to send; shown once.
+export interface PasswordLink {
+	url: string;
+	expires: number;
 }
 
 export function loadRoles(): Promise<RoleList> {
@@ -42,10 +71,84 @@ export async function loadAccounts(): Promise<AccountInfo[]> {
 }
 
 /**
+ * The link just made, kept in memory only so the account's screen can
+ * show it once after creating the account; it's never stored.
+ */
+export const freshLink = ref<{ username: string; link: PasswordLink } | null>(null);
+
+export function createAccount(username: string, roles: string[], author: string | null): Promise<{ account: AccountInfo; link: PasswordLink }> {
+	return request('POST', '/accounts', { username, roles, author });
+}
+
+export async function updateAccount(username: string, changes: { roles?: string[]; author?: string | null; suspended?: boolean }): Promise<AccountInfo> {
+	return (await request<{ account: AccountInfo }>('PATCH', `/accounts/${encodeURIComponent(username)}`, changes)).account;
+}
+
+export function makePasswordLink(username: string): Promise<{ account: AccountInfo; link: PasswordLink }> {
+	return request('POST', `/accounts/${encodeURIComponent(username)}/link`);
+}
+
+export function removeAccount(username: string): Promise<void> {
+	return request('DELETE', `/accounts/${encodeURIComponent(username)}`);
+}
+
+export async function createRole(role: { name: string; label: string; description: string; capabilities: string[] }): Promise<RoleInfo> {
+	return (await request<{ role: RoleInfo }>('POST', '/roles', role)).role;
+}
+
+export async function updateRole(name: string, changes: { label?: string; description?: string; capabilities?: string[] }): Promise<RoleInfo> {
+	return (await request<{ role: RoleInfo }>('PATCH', `/roles/${encodeURIComponent(name)}`, changes)).role;
+}
+
+/**
+ * Deletes a custom role, or resets a changed built-in (and returns it).
+ */
+export async function deleteRole(name: string): Promise<RoleInfo | null> {
+	return (await request<{ role: RoleInfo | null }>('DELETE', `/roles/${encodeURIComponent(name)}`)).role;
+}
+
+/**
+ * Sets a password with a link's account and token, which signs in.
+ */
+export function setPassword(account: string, token: string, password: string): Promise<void> {
+	return request('POST', '/set-password', { account, token, password });
+}
+
+/**
  * Whether a role grants a capability.
  */
-export function grants(role: RoleInfo, capability: string, all: string): boolean {
+export function grants(role: Pick<RoleInfo, 'capabilities'>, capability: string, all: string): boolean {
 	return role.capabilities.includes(all) || role.capabilities.includes(capability);
+}
+
+/**
+ * A role's key from its name: lowercase words joined by hyphens.
+ */
+export function roleKeyOf(label: string): string {
+	return label.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/^[^a-z]+/, '');
+}
+
+/**
+ * Where a role comes from, for reading.
+ */
+export function originOf(role: RoleInfo): string {
+	return {
+		'built-in': 'Built in',
+		changed: 'Built in, changed here',
+		custom: 'Made here',
+		config: 'config/auth.php'
+	}[role.origin];
+}
+
+/**
+ * An account's status as a pill: the word and its look.
+ */
+export function statusPill(status: AccountStatus): { label: string; kind: string } {
+	return {
+		active: { label: 'Active', kind: 'pill--good' },
+		invited: { label: 'Invited', kind: 'pill--warn' },
+		suspended: { label: 'Suspended', kind: 'pill--danger' }
+	}[status];
 }
 
 /**

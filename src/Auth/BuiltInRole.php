@@ -15,7 +15,8 @@ namespace Blush\Auth;
 
 /**
  * The framework's roles (D-217). `config/auth.php` can redefine any of
- * them by name, or add others.
+ * them by name, or add others; the admin can change the capabilities of
+ * all but the administrator (D-312).
  */
 enum BuiltInRole: string
 {
@@ -29,7 +30,20 @@ enum BuiltInRole: string
 	 */
 	public function role(): Role
 	{
-		return new Role($this->value, $this->label(), $this->capabilities());
+		return new Role($this->value, $this->label(), $this->capabilities(), $this->description());
+	}
+
+	/**
+	 * Returns what the role is for, in a line.
+	 */
+	public function description(): string
+	{
+		return match ($this) {
+			self::Administrator => 'Everything, including accounts, roles, content types, and settings.',
+			self::Editor        => 'Publishes and edits anyone\'s entries, and publishes the site. Can\'t change its structure.',
+			self::Author        => 'Writes and publishes their own entries, and uploads media.',
+			self::Contributor   => 'Writes drafts of their own entries. Can\'t publish.'
+		};
 	}
 
 	/**

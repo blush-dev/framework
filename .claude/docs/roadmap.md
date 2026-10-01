@@ -237,7 +237,7 @@ editor, site addresses in tables, and row menus, D-254; Fira Code
 throughout and pinned index pages, D-255), then the rest of media
 metadata (D-238: fields defined like schemas, the media index, and
 embedded metadata), a reference picker,
-editing types and accounts, and the remaining stubbed screens
+editing types and accounts (done: D-311, D-312), and the remaining stubbed screens
 (Appearance, Extensions, Settings). Live preview waits (D-252): inline
 image and embed previews first, then a full preview, above all of
 components. Changing one's own password on Your profile is done (D-273), the
@@ -285,6 +285,13 @@ links are no longer redirected (D-310: `exact` routes). Then editing
 content types (D-311): types in `user/data/types` are edited on their
 screen, created with the three-step wizard, and deleted; config,
 extension, and built-in types stay read-only.
+Then editing accounts and roles (D-312): New Account with a one-time
+password link to copy (Blush sends no email), roles ticked on an
+account's screen, its author, password links for forgotten passwords,
+suspending and removing; New Role and Duplicate, custom roles edited and
+deleted, the built-ins' capabilities changed and reset, kept in
+`storage/roles.json`; never more than you have, never your own account,
+and someone always able to manage accounts.
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages

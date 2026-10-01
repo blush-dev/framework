@@ -7455,3 +7455,106 @@ decision, add a new entry that supersedes it and mark the old one
   Two bugs found that way and fixed: `structuredClone()` refusing Vue's
   proxies, and a number input's model being a number.
 
+
+### D-312: Editing accounts and roles in the admin
+- **Date:** 2026-09-30
+- **Decision:** The Accounts and Roles screens (D-249) edit what they
+  show. Refines D-217's roles: custom roles and changes to the built-ins
+  may also be made in the admin, kept outside git; `config/auth.php`
+  still wins. The author's calls: roles in `storage/roles.json`; one-time
+  password links instead of email; the built-ins' capabilities editable
+  (not the administrator's); and suspension as well as removal.
+  - **Roles (`Blush\Auth`):** `Role` gains an optional `description`
+    (the built-ins have one) and `withCapabilities()`. `RoleStore`
+    (`FileRoleStore`, `storage/roles.json`: `{"roles": [...]}`, `0660`)
+    holds roles made in the admin and the capabilities of a changed
+    built-in (its name and description stay built in; an administrator
+    entry is ignored). `Roles` merges the built-ins, the store, then
+    config, records each role's `RoleOrigin` (`built-in`, `changed`,
+    `custom`, `config`; config and the administrator aren't editable),
+    and is no longer readonly: `reload()` reads them again. A damaged
+    file throws (fail closed). `RoleEditor` creates, updates, and
+    deletes (a custom role, refused while an account holds it) or resets
+    (a changed built-in) roles; capabilities must be registered (`*`
+    never), except ones a role already has. Each change reloads the
+    shared `Roles`, so `Accounts` and `Permissions` see it in the same
+    request.
+  - **Accounts:** `Account` gains `suspended` and a `PasswordLink`
+    (`passwordLink`: the token's SHA-256 and when it expires; both
+    written only when set) and `status()` (`AccountStatus`: `active`,
+    `invited` (never signed in, with a link), `suspended`).
+    `Accounts::invite()` makes an account with a random password and a
+    link; `issuePasswordLink()` replaces any link (the password keeps
+    working until it's used); `usePasswordLink()` checks it (and that the
+    account isn't suspended), sets the password, and ends the link;
+    `setPassword()` ends it too; `setSuspended()`. `AuthConfig::
+    $passwordLinkLifetime` is a week. A suspended account's sessions end
+    (`Authenticator::account()`), and signing in with its right password
+    throws `AccountSuspended` (a `403`).
+  - **Rules (`PeopleRules`)**, for the admin only (the CLI's operator has
+    the site anyway): you give a role, or make or change one, only when
+    you have every registered capability it grants; you change an account
+    only when it can't do anything you can't; never your own account
+    (its password is on Your profile); and after any change an account
+    that isn't suspended still has `accounts.manage` (a role change is
+    put back otherwise). All of it is under `accounts.manage`; no separate
+    capability for roles.
+  - **The API:** `GET roles` adds `description`, `origin`, `grantable`,
+    `editable`, and a changed built-in's `defaults`; `GET accounts` adds
+    `name` (the author page's title), `status`, `link` (`expires`,
+    `expired`), and `manages` (`PeopleJson`). `AccountEditController`:
+    `POST accounts` (`201` with the `link`'s `url` and `expires`, shown
+    once), `PATCH accounts/{username}` (`roles`, `author`, `suspended`),
+    `POST accounts/{username}/link`, `DELETE accounts/{username}`.
+    `RoleEditController`: `POST roles`, `PATCH` and `DELETE
+    roles/{name}`. `SetPasswordController`: `POST set-password` with
+    `{"account", "token", "password"}`, no account needed; a short
+    password is a `422`, a dead link a `410` that counts as a failed
+    sign-in in `LoginThrottle`; success signs in (`204`). The admin makes
+    no account or role named `new` (its screens are `accounts/new` and
+    `roles/new`).
+  - **Links:** `{admin}/set-password#account={username}&token={token}`.
+    The token is in the fragment, so it never reaches a server log or a
+    `Referer`, and the screen takes it out of the address bar on load.
+  - **The screens:** Accounts has **New Account** and a Status column;
+    **New Account** (`/accounts/new`) is a username, roles
+    (`RoleChecks`: each with its description; one you can't give is
+    locked, and so is the last one held), and an author (`AuthorField`, a
+    datalist of the site's authors), then opens the account with the
+    link to copy. An account's screen saves roles as they're ticked (a
+    toast names them), saves the author, makes password links, and has a
+    Danger Zone (Suspend or Reinstate, Remove account); your own account,
+    and one you can't manage, show a notice and no controls. Roles has
+    **New Role** and each role's source; **New Role** (`/roles/new`, also
+    **Duplicate**'s `?from=`) takes a name, a key following it, a
+    description, and capabilities (`CapabilityChecks`, in groups; one you
+    lack is locked). A role's screen edits it with Save and Revert (a
+    built-in's capabilities only) and a Danger Zone (Delete this role, or
+    Reset to built-in); others are read-only with the reason. **Set
+    Password** (`/set-password`) is public.
+  - **CLI:** `account:suspend` and `account:reinstate`; `account:list`
+    has a Status column.
+- **Departures** are in `admin-design/departures.md`: links to copy
+  instead of email invites and resets, no email or entry counts.
+- **Checked:** `composer check` (`AdminPeopleEditTest`: a link that sets
+  the password and signs in, once; expired and wrong links throttled; a
+  new link replacing the old; new accounts' checks; roles, author, and
+  suspension changed; suspension ending sessions and refusing sign-in;
+  removal; never your own account; never more than you have; custom
+  roles made, changed, refused while held, and deleted; a built-in
+  changed and reset; the administrator and config roles left alone;
+  someone always able to manage accounts; `accounts.manage`), plus the
+  commands; `npm run admin:build`; the jtcom trial in Chrome with a
+  throwaway administrator: an account created, its link opened in a
+  second browser (390px, dark) and used, refused a second time, the
+  account suspended (its session ended, sign-in refused) and
+  reinstated, a new link copied, a custom role made, saved, given,
+  refused deletion while held, then deleted after the account was
+  removed; Editor changed and reset; Duplicate; the administrator
+  read-only; 390px with no sideways scroll. Fixed along the way: the
+  shared `Roles` not seeing a role saved in the same container (now
+  `reload()`), and deleting a role asking to leave without saving. The
+  accounts, sessions, and `storage/roles.json` were removed after.
+- **Open:** passkeys; a separate capability for roles if a site needs
+  one; showing entry counts per account.
+- **Why:** the author asked to work on editing accounts and roles.

@@ -18,7 +18,6 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
 use Blush\Auth\AuthException;
-use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
@@ -28,18 +27,16 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
- * Answers the admin's read-only people screens (D-249), for accounts
- * with `accounts.manage`:
+ * Answers the admin's people screens (D-249), for accounts with
+ * `accounts.manage`:
  *
- * - `GET roles`: every capability (`name`, `label`) and every role, with
- *   its `name`, `label`, `capabilities` (`*` for all), whether it's
- *   `builtIn`, and the `accounts` that hold it.
- * - `GET accounts`: every account's `username`, `roles`, `author`,
- *   `created`, and `lastLogin` (Unix times), sorted by username. Password hashes
- *   and preferences stay on the server.
+ * - `GET roles`: every capability (`name`, `label`) and every role, as
+ *   `PeopleJson::role()` describes it.
+ * - `GET accounts`: every account, as `PeopleJson::account()` describes
+ *   it, sorted by username.
  *
- * Roles and capabilities are set in `config/auth.php` and accounts with
- * `account:*` commands, so these only show them.
+ * Changes go through `AccountEditController` and `RoleEditController`
+ * (D-312).
  */
 final readonly class PeopleController
 {
@@ -47,12 +44,15 @@ final readonly class PeopleController
 		private Roles $roles,
 		private Capabilities $capabilities,
 		private AccountStore $accounts,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private PeopleJson $json
 	) {}
 
 	public function roles(ServerRequestInterface $request): ResponseInterface
 	{
-		if (! $this->allowed($request)) {
+		$viewer = $this->viewer($request);
+
+		if ($viewer === null) {
 			return self::forbidden();
 		}
 
@@ -62,33 +62,24 @@ final readonly class PeopleController
 			return self::damaged($error);
 		}
 
-		$roles = [];
-
-		foreach ($this->roles->all() as $role) {
-			$roles[] = [
-				'name'         => $role->name,
-				'label'        => $role->label,
-				'capabilities' => $role->capabilities,
-				'builtIn'      => BuiltInRole::tryFrom($role->name) !== null,
-				'accounts'     => array_values(array_map(
-					static fn (Account $account): string => $account->username,
-					array_filter($accounts, static fn (Account $account): bool => in_array($role->name, $account->roles, true))
-				))
-			];
-		}
-
 		$capabilities = [];
 
 		foreach ($this->capabilities->all() as $name => $label) {
 			$capabilities[] = ['name' => $name, 'label' => $label];
 		}
 
-		return Response::json(['capabilities' => $capabilities, 'roles' => $roles, 'all' => Role::ALL], headers: ['Cache-Control' => 'no-store']);
+		return Response::json([
+			'capabilities' => $capabilities,
+			'roles'        => array_values(array_map(fn (Role $role): array => $this->json->role($role, $this->roles, $accounts, $viewer), $this->roles->all())),
+			'all'          => Role::ALL
+		], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	public function accounts(ServerRequestInterface $request): ResponseInterface
 	{
-		if (! $this->allowed($request)) {
+		$viewer = $this->viewer($request);
+
+		if ($viewer === null) {
 			return self::forbidden();
 		}
 
@@ -98,22 +89,17 @@ final readonly class PeopleController
 			return self::damaged($error);
 		}
 
-		$accounts = array_map(static fn (Account $account): array => [
-			'username'  => $account->username,
-			'roles'     => $account->roles,
-			'author'    => $account->author,
-			'created'   => $account->created,
-			'lastLogin' => $account->lastLogin
-		], $all);
-
-		return Response::json(['accounts' => $accounts], headers: ['Cache-Control' => 'no-store']);
+		return Response::json(['accounts' => array_map(fn (Account $account): array => $this->json->account($account, $viewer), $all)], headers: ['Cache-Control' => 'no-store']);
 	}
 
-	private function allowed(ServerRequestInterface $request): bool
+	/**
+	 * Returns the signed-in account when it may manage accounts.
+	 */
+	private function viewer(ServerRequestInterface $request): ?Account
 	{
 		$account = $request->getAttribute(Account::class);
 
-		return $account instanceof Account && $this->permissions->can($account, Capability::AccountsManage);
+		return $account instanceof Account && $this->permissions->can($account, Capability::AccountsManage) ? $account : null;
 	}
 
 	private static function damaged(AuthException $error): ResponseInterface

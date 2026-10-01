@@ -1,16 +1,17 @@
 <script setup lang="ts">
 /**
  * Roles (D-249): a list screen, then a screen for each role (admin.md §8,
- * List, then detail). Four or so fixed rows need no search or tabs.
- * Roles are set in `config/auth.php`, so this shows them.
+ * List, then detail). A handful of rows needs no search or tabs. **New
+ * Role** makes a custom role (D-312); each role's screen changes it.
  */
 
 import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
+import AdminIcon from '../components/AdminIcon.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { ApiError } from '../api';
 import { plural } from '../format';
-import { loadRoles, type RoleList } from '../people';
+import { loadRoles, originOf, type RoleList } from '../people';
 
 const list  = ref<RoleList | null>(null);
 const error = ref('');
@@ -34,9 +35,11 @@ function granted(capabilities: string[]): string {
 			<h1 tabindex="-1">Roles</h1>
 			<p class="page-header__hint">Named sets of capabilities, given to accounts</p>
 		</div>
+		<div class="page-header__actions">
+			<RouterLink class="button button--primary" :to="{ name: 'role-new' }"><AdminIcon name="plus" />New Role</RouterLink>
+		</div>
 	</header>
 
-	<p class="notice notice--warn"><span>Roles and what they can do are set in <code>config/auth.php</code>, so these screens show them without changing them.</span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<section v-if="!error" class="panel" aria-labelledby="roles-heading" :aria-busy="list === null">
@@ -61,10 +64,13 @@ function granted(capabilities: string[]): string {
 								<span class="entry-title__text">
 									<RouterLink class="entry-title__link" :to="{ name: 'role', params: { name: role.name } }">{{ role.label }}</RouterLink>
 								</span>
-								<span class="entry-title__path">{{ role.name }}{{ role.builtIn ? '' : ' · from config/auth.php' }}</span>
+								<span class="entry-title__path">{{ role.name }} · {{ originOf(role) }}</span>
 							</span>
 						</th>
-						<td>{{ granted(role.capabilities) }}</td>
+						<td>
+							{{ granted(role.capabilities) }}
+							<span v-if="role.description" class="role-summary">{{ role.description }}</span>
+						</td>
 						<td class="table__count mono">{{ role.accounts.length }}</td>
 					</tr>
 				</tbody>
@@ -72,3 +78,11 @@ function granted(capabilities: string[]): string {
 		</div>
 	</section>
 </template>
+
+<style scoped>
+.role-summary {
+	display: block;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+</style>

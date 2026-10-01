@@ -36,6 +36,8 @@ use Blush\Session\StartSession;
  *   - `POST logout`: signs out.
  *   - `PATCH preferences`: changes the account's own preferences.
  *   - `POST password`: changes the account's own password.
+ *   - `POST set-password`: sets a password with a password link, and
+ *     signs in (D-312; no account needed).
  *   - `GET  dashboard`: the site, content counts, and the actions the
  *     account may run.
  *   - `POST actions/{action}`: runs an action.
@@ -59,8 +61,11 @@ use Blush\Session\StartSession;
  *   - `GET  trash` and `GET trash/{id}`, and `POST trash/restore`,
  *     `trash/delete`, and `trash/empty`: the trash (`TrashController`).
  *   - `GET  health`: the content's lint problems.
- *   - `GET  roles` and `GET accounts`: the site's roles and accounts, to
- *     show (`PeopleController`).
+ *   - `GET  roles` and `GET accounts`: the site's roles and accounts
+ *     (`PeopleController`); `POST accounts`, `PATCH` and `DELETE
+ *     accounts/{username}`, and `POST accounts/{username}/link` change
+ *     accounts (`AccountEditController`), and `POST roles`, and `PATCH`
+ *     and `DELETE roles/{name}` change roles (`RoleEditController`).
  *   - `GET  appearance`: the installed themes, to show
  *     (`AppearanceController`).
  *   - `GET  extensions`: the installed extensions and what each adds,
@@ -100,6 +105,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/logout', [SessionController::class, 'logout'])->named('logout')->middleware(Authenticate::class),
 			Route::patch('/preferences', PreferencesController::class)->named('preferences')->middleware(Authenticate::class),
 			Route::post('/password', PasswordController::class)->named('password')->middleware(Authenticate::class),
+			Route::post('/set-password', SetPasswordController::class)->named('set-password'),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
 			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),
@@ -130,7 +136,14 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/trash/empty', [TrashController::class, 'empty'])->named('trash.empty')->middleware(Authenticate::class),
 			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
+			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),
+			Route::patch('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'update'])->named('role.update')->middleware(Authenticate::class),
+			Route::delete('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'delete'])->named('role.delete')->middleware(Authenticate::class),
 			Route::get('/accounts', [PeopleController::class, 'accounts'])->named('accounts')->middleware(Authenticate::class),
+			Route::post('/accounts', [AccountEditController::class, 'create'])->named('account.create')->middleware(Authenticate::class),
+			Route::post('/accounts/{username:[a-z0-9][a-z0-9._-]*}/link', [AccountEditController::class, 'link'])->named('account.link')->middleware(Authenticate::class),
+			Route::patch('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'update'])->named('account.update')->middleware(Authenticate::class),
+			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'delete'])->named('account.delete')->middleware(Authenticate::class),
 			Route::get('/appearance', AppearanceController::class)->named('appearance')->middleware(Authenticate::class),
 			Route::get('/extensions', ExtensionsController::class)->named('extensions')->middleware(Authenticate::class),
 			Route::get('/settings', SettingsController::class)->named('settings')->middleware(Authenticate::class),

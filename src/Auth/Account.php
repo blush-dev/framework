@@ -25,6 +25,8 @@ use NoDiscard;
  *   type by slug. Entries crediting that author are the account's own.
  * - `created` and `lastLogin` are Unix timestamps.
  * - `preferences` are how the person likes the admin (D-235).
+ * - `suspended` accounts can't sign in, and their sessions end (D-312).
+ * - `passwordLink` is a one-time link for choosing a password (D-312).
  */
 final readonly class Account
 {
@@ -44,7 +46,9 @@ final readonly class Account
 		public ?string $author = null,
 		public int $created = 0,
 		public ?int $lastLogin = null,
-		public Preferences $preferences = new Preferences()
+		public Preferences $preferences = new Preferences(),
+		public bool $suspended = false,
+		public ?PasswordLink $passwordLink = null
 	) {
 		if (! self::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
@@ -89,7 +93,7 @@ final readonly class Account
 	#[NoDiscard]
 	public function withAuthor(?string $author): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin, $this->preferences);
+		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink);
 	}
 
 	/**
@@ -99,6 +103,36 @@ final readonly class Account
 	public function withPreferences(Preferences $preferences): self
 	{
 		return clone($this, ['preferences' => $preferences]);
+	}
+
+	/**
+	 * Returns a copy suspended, or not.
+	 */
+	#[NoDiscard]
+	public function withSuspended(bool $suspended): self
+	{
+		return clone($this, ['suspended' => $suspended]);
+	}
+
+	/**
+	 * Returns a copy with a password link, or none.
+	 */
+	#[NoDiscard]
+	public function withPasswordLink(?PasswordLink $link): self
+	{
+		return clone($this, ['passwordLink' => $link]);
+	}
+
+	/**
+	 * Returns where the account stands.
+	 */
+	public function status(): AccountStatus
+	{
+		return match (true) {
+			$this->suspended                                          => AccountStatus::Suspended,
+			$this->lastLogin === null && $this->passwordLink !== null => AccountStatus::Invited,
+			default                                                   => AccountStatus::Active
+		};
 	}
 
 	/**
@@ -132,15 +166,18 @@ final readonly class Account
 			author: is_string($data['author'] ?? null) ? $data['author'] : null,
 			created: is_int($data['created'] ?? null) ? $data['created'] : 0,
 			lastLogin: is_int($data['lastLogin'] ?? null) ? $data['lastLogin'] : null,
-			preferences: Preferences::fromArray(is_array($data['preferences'] ?? null) ? $data['preferences'] : [])
+			preferences: Preferences::fromArray(is_array($data['preferences'] ?? null) ? $data['preferences'] : []),
+			suspended: ($data['suspended'] ?? false) === true,
+			passwordLink: is_array($data['passwordLink'] ?? null) ? PasswordLink::fromArray($data['passwordLink']) : null
 		);
 	}
 
 	/**
 	 * Returns the account as its stored array. Preferences at their
-	 * defaults are left out, and so is `preferences` when all are.
+	 * defaults are left out, and so is `preferences` when all are;
+	 * `suspended` and `passwordLink` are written only when set.
 	 *
-	 * @return array{username: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string>}
+	 * @return array{username: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
 	 */
 	public function toArray(): array
 	{
@@ -153,7 +190,9 @@ final readonly class Account
 			'author'       => $this->author,
 			'created'      => $this->created,
 			'lastLogin'    => $this->lastLogin,
-			...($preferences === [] ? [] : ['preferences' => $preferences])
+			...($preferences === [] ? [] : ['preferences' => $preferences]),
+			...($this->suspended ? ['suspended' => true] : []),
+			...($this->passwordLink === null ? [] : ['passwordLink' => $this->passwordLink->toArray()])
 		];
 	}
 }

@@ -14,27 +14,74 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 /**
- * The site's roles: the built-ins, with `AuthConfig::$roles` replacing or
- * adding by name.
+ * The site's roles, by name: the built-ins, then the roles the admin
+ * keeps (`RoleStore`, D-312: custom roles, and the capabilities of a
+ * built-in other than the administrator), then `AuthConfig::$roles`,
+ * each replacing or adding by name. Each role's origin is kept too.
+ * `RoleEditor` reloads them after a change, so everything sharing them
+ * sees it.
  */
-final readonly class Roles
+final class Roles
 {
 	/**
 	 * Roles by name.
 	 *
 	 * @var array<string, Role>
 	 */
-	private array $roles;
+	private array $roles = [];
 
-	public function __construct(AuthConfig $config)
+	/**
+	 * Where each role comes from, by name.
+	 *
+	 * @var array<string, RoleOrigin>
+	 */
+	private array $origins = [];
+
+	/**
+	 * @throws AuthException When the stored roles are damaged.
+	 */
+	public function __construct(
+		private readonly AuthConfig $config,
+		private readonly RoleStore $store
+	) {
+		$this->reload();
+	}
+
+	/**
+	 * Reads the roles again.
+	 *
+	 * @throws AuthException When the stored roles are damaged.
+	 */
+	public function reload(): void
 	{
-		$roles = [];
+		$roles   = [];
+		$origins = [];
 
-		foreach ([...array_map(static fn (BuiltInRole $role): Role => $role->role(), BuiltInRole::cases()), ...$config->roles] as $role) {
-			$roles[$role->name] = $role;
+		foreach (BuiltInRole::cases() as $builtIn) {
+			$roles[$builtIn->value]   = $builtIn->role();
+			$origins[$builtIn->value] = RoleOrigin::BuiltIn;
 		}
 
-		$this->roles = $roles;
+		foreach ($this->store->all() as $role) {
+			$builtIn = BuiltInRole::tryFrom($role->name);
+
+			if ($builtIn === BuiltInRole::Administrator) {
+				continue;
+			}
+
+			// A built-in keeps its name and description; only what it
+			// can do changes.
+			$roles[$role->name]   = $builtIn?->role()->withCapabilities($role->capabilities) ?? $role;
+			$origins[$role->name] = $builtIn === null ? RoleOrigin::Custom : RoleOrigin::Changed;
+		}
+
+		foreach ($this->config->roles as $role) {
+			$roles[$role->name]   = $role;
+			$origins[$role->name] = RoleOrigin::Config;
+		}
+
+		$this->roles   = $roles;
+		$this->origins = $origins;
 	}
 
 	/**
@@ -45,6 +92,14 @@ final readonly class Roles
 		return $this->roles[$name] ?? null;
 	}
 
+	/**
+	 * Returns where a role comes from, or `null` when there's none by
+	 * that name.
+	 */
+	public function origin(string $name): ?RoleOrigin
+	{
+		return $this->origins[$name] ?? null;
+	}
 	/**
 	 * Whether a role exists.
 	 */
