@@ -110,9 +110,7 @@ final readonly class EntryHydrator
 			$source->__construct($document->body, $document->format);
 		});
 
-		$directory = dirname($path);
-
-		return new Body($source, $this->markdown, $directory === '.' ? '' : $directory, $this->cache, $record->hash);
+		return new Body($source, $this->markdown, $this->cache, $record->hash);
 	}
 
 	/**

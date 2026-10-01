@@ -19,9 +19,8 @@ use Blush\Content\Schema\FieldContext;
 use Blush\Content\Schema\FieldFactory;
 
 /**
- * A reference to a media file: a path relative to the entry (for page
- * bundles), a site path such as `/user/media/2019/01/artemis.jpg`, or an
- * absolute URL. It's stored as written; media resolution comes with the
+ * A reference to a media file: a site path such as
+ * `/user/media/2019/01/artemis.jpg`, or an absolute URL. It's stored as written; media resolution comes with the
  * media layer (M4c).
  */
 final class MediaField extends Field

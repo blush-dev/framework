@@ -1,0 +1,154 @@
+<?php
+
+/**
+ * Media metadata check tests.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Tests\Media;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+use Blush\Console\Commands\LintContent;
+use Blush\Console\Console;
+use Blush\Console\Testing\CommandTester;
+use Blush\Content\Lint\Linter;
+use Blush\Content\Schema\Severity;
+use Blush\Content\Schema\Violation;
+use Blush\Core\Application;
+use Blush\Media\MediaMetadataCheck;
+use Blush\Media\MediaMetadataStore;
+use Blush\Tests\BootsScratchSite;
+
+#[CoversClass(MediaMetadataCheck::class)]
+#[CoversClass(MediaMetadataStore::class)]
+#[CoversClass(LintContent::class)]
+final class MediaMetadataCheckTest extends TestCase
+{
+	use BootsScratchSite;
+
+	/**
+	 * A 2×1 PNG.
+	 */
+	private const string PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEUlEQVR42mP8z8Dwn4GBgQEAFQYCAR4v9JgAAAAASUVORK5CYII=';
+
+	protected function tearDown(): void
+	{
+		$this->removeTemporaryDirectory();
+	}
+
+	private function site(): Application
+	{
+		$png = (string) base64_decode(self::PNG, true);
+
+		foreach (['lake', 'sunset', 'broken', 'listed', 'odd'] as $name) {
+			$this->writeTemporaryFile("user/media/2026/{$name}.png", $png);
+		}
+
+		$this->writeTemporaryFile('user/media/fake.png', 'not a PNG');
+		$this->writeTemporaryFile('user/content/trip/beach.png', $png);
+		$this->writeTemporaryFile('user/content/trip/index.md', "---\ntitle: Trip\n---\n");
+		$this->writeTemporaryFile('user/media/trip/shell.png', $png);
+
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake at dawn\ncaption: Mist on the water\n");
+		$this->writeTemporaryFile('user/data/media/2026/sunset.png.json', '{"alt": "The sun going down"}');
+		$this->writeTemporaryFile('user/data/media/2026/sunset.png.yml', "alt: An older description\n");
+		$this->writeTemporaryFile('user/data/media/2026/broken.png.yml', "alt: [unclosed\n");
+		$this->writeTemporaryFile('user/data/media/2026/listed.png.yml', "- A lake\n- At dawn\n");
+		$this->writeTemporaryFile('user/data/media/2026/odd.png.yml', "alt:\n  nested: value\nmood: calm\n");
+		$this->writeTemporaryFile('user/data/media/2019/gone.png.yml', "alt: Deleted\n");
+		$this->writeTemporaryFile('user/data/media/fake.png.yml', "alt: Not an image\n");
+		$this->writeTemporaryFile('user/data/media/_content/trip/beach.png.yml', "credit: Jane Doe\n");
+		$this->writeTemporaryFile('user/data/media/trip/shell.png.yml', "alt: A shell\n");
+
+		$app = $this->scratchApplication();
+		$app->boot();
+
+		return $app;
+	}
+
+	/**
+	 * Returns the violations as strings, by path.
+	 *
+	 * @param  array<string, list<Violation>> $violations
+	 * @return array<string, list<string>>
+	 */
+	private static function messages(array $violations): array
+	{
+		$messages = array_map(static fn (array $list): array => array_map(
+			static fn (Violation $violation): string => "{$violation->severity->value} {$violation}",
+			$list
+		), array_filter($violations, static fn (array $list): bool => $list !== []));
+
+		ksort($messages);
+
+		return $messages;
+	}
+
+	public function testFindsEveryMetadataFile(): void
+	{
+		$files = $this->site()->container()->make(MediaMetadataStore::class)->files();
+
+		$this->assertSame(['2019/gone.png', '2026/broken.png', '2026/lake.png', '2026/listed.png', '2026/odd.png', '2026/sunset.png', '_content/trip/beach.png', 'fake.png', 'trip/shell.png'], array_keys($files));
+		$this->assertStringEndsWith('user/data/media/2026/sunset.png.json', $files['2026/sunset.png']['path'], 'JSON wins, as the data loader reads it.');
+		$this->assertCount(1, $files['2026/sunset.png']['shadowed']);
+		$this->assertStringEndsWith('user/data/media/2026/sunset.png.yml', $files['2026/sunset.png']['shadowed'][0]);
+		$this->assertSame([], $files['2026/lake.png']['shadowed']);
+	}
+
+	public function testReportsOrphanedUnreadableAndInvalidMetadata(): void
+	{
+		[$checked, $violations] = $this->site()->container()->make(MediaMetadataCheck::class)->check();
+		$messages               = self::messages($violations);
+
+		$this->assertSame(10, $checked, 'Every file, hidden ones too.');
+		$this->assertSame([
+			'user/data/media/2019/gone.png.yml',
+			'user/data/media/2026/broken.png.yml',
+			'user/data/media/2026/listed.png.yml',
+			'user/data/media/2026/odd.png.yml',
+			'user/data/media/2026/sunset.png.yml',
+			'user/data/media/_content/trip/beach.png.yml',
+			'user/data/media/fake.png.yml'
+		], array_keys($messages), 'Well-formed files that describe a file there pass.');
+
+		$this->assertSame(['warning file: describes user/media/2019/gone.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/2019/gone.png.yml']);
+		$this->assertSame(['warning file: describes user/media/_content/trip/beach.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/_content/trip/beach.png.yml'], 'Details for a file beside an entry, which isn\'t media (D-294).');
+		$this->assertSame(['warning file: describes user/media/fake.png, which isn\'t a type of media the site allows.'], $messages['user/data/media/fake.png.yml']);
+		$this->assertSame(['warning file: is hidden by sunset.png.json, which is read instead; merge them into one file.'], $messages['user/data/media/2026/sunset.png.yml']);
+		$this->assertStringStartsWith('error file: can\'t be read, so the file has no details: Invalid YAML', $messages['user/data/media/2026/broken.png.yml'][0]);
+		$this->assertSame(['error file: isn\'t a map of fields, so the file has no details.'], $messages['user/data/media/2026/listed.png.yml']);
+
+		$odd = $messages['user/data/media/2026/odd.png.yml'];
+
+		$this->assertCount(2, $odd);
+		$this->assertStringStartsWith('error alt: ', $odd[0], 'A value that doesn\'t fit its field.');
+		$this->assertSame('notice mood: is not declared by the schema.', $odd[1]);
+	}
+
+	public function testTheLinterReportsMetadataBesideContent(): void
+	{
+		$app = $this->site();
+		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
+
+		$report = $app->container()->make(Linter::class)->lint();
+
+		$this->assertSame(10, $report->metadata);
+		$this->assertTrue($report->hasErrors());
+		$this->assertSame(3, $report->count(Severity::Error));
+		$this->assertSame(4, $report->count(Severity::Warning));
+		$this->assertArrayHasKey('user/data/media/2019/gone.png.yml', $report->violations(Severity::Warning));
+
+		$result = new CommandTester($app->container()->make(Console::class))->run('content:lint');
+
+		$this->assertFalse($result->isSuccessful());
+		$this->assertStringContainsString('user/data/media/2019/gone.png.yml', $result->output);
+		$this->assertStringContainsString('and 10 media metadata files: 3 errors, 4 warnings.', $result->output . $result->errors);
+	}
+}

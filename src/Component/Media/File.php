@@ -26,7 +26,7 @@ use Blush\Component\MediaProp;
  * `::file[The annual report]{src=report.pdf}`. `src` is resolved like an
  * image's; the label is the link text, or the file's name without one.
  * It knows the file's `format` (its extension, such as `PDF`) and, for a
- * file in the media folder or the entry's bundle, its `size` (such as
+ * file in the media folder, its `size` (such as
  * `1.2 MB`, in the site's number format); `details()` joins them.
  *
  * Only the media types the site allows are served (`MediaConfig`), so a

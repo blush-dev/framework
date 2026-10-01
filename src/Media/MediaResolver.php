@@ -25,11 +25,9 @@ use Blush\Support\FilesystemException;
  * - A path under the media URL (`/media/2019/01/artemis.jpg`), or under
  *   `user/media`'s own path (1.x's `/user/media/...`), is a file in
  *   `user/media`.
- * - A relative path (`photo.jpg`) is a file next to the entry, in a page
- *   bundle: `$base` is the entry's folder under `user/content`. Bundle
- *   files are served at `{url}/_content/{path}`. One that isn't there is
- *   tried from the site root, so `user/media/a.mp3` is `/user/media/a.mp3`
- *   (D-190).
+ * - A relative path is read from the site root, so `user/media/a.mp3`
+ *   is `/user/media/a.mp3` (D-190). Media is only ever in `user/media`,
+ *   never beside entries (D-294).
  * - A full URL on the site's own origin (`https://example.com/media/a.jpg`)
  *   is its path (D-190), so a URL that was made absolute resolves again.
  * - Anything else (other sites' URLs, other site paths) isn't local media.
@@ -40,9 +38,30 @@ use Blush\Support\FilesystemException;
 final readonly class MediaResolver
 {
 	/**
-	 * The folder under the media URL that serves page bundle files.
+	 * The library's media, by extension: what the media index and the
+	 * admin's library look for, before reading a file to check its type.
+	 * Caption tracks (`.vtt`) are served, but aren't library files.
+	 *
+	 * @var array<string, string>
 	 */
-	public const string CONTENT = '_content';
+	public const array EXTENSIONS = [
+		'apng' => 'image/apng',
+		'avif' => 'image/avif',
+		'gif'  => 'image/gif',
+		'jpeg' => 'image/jpeg',
+		'jpg'  => 'image/jpeg',
+		'png'  => 'image/png',
+		'svg'  => 'image/svg+xml',
+		'webp' => 'image/webp',
+		'mp3'  => 'audio/mpeg',
+		'oga'  => 'audio/ogg',
+		'ogg'  => 'audio/ogg',
+		'wav'  => 'audio/wav',
+		'm4v'  => 'video/mp4',
+		'mp4'  => 'video/mp4',
+		'ogv'  => 'video/ogg',
+		'webm' => 'video/webm'
+	];
 
 	private Filesystem $filesystem;
 
@@ -55,10 +74,9 @@ final readonly class MediaResolver
 	}
 
 	/**
-	 * Resolves a reference, relative to a folder under `user/content` for
-	 * bundle files.
+	 * Resolves a reference.
 	 */
-	public function resolve(string $reference, string $base = ''): ?MediaFile
+	public function resolve(string $reference): ?MediaFile
 	{
 		$reference = trim($reference);
 		$origin    = $this->app?->origin();
@@ -74,23 +92,25 @@ final readonly class MediaResolver
 		$path = rawurldecode((string) preg_replace('/[?#].*$/s', '', $reference));
 
 		if (! str_starts_with($path, '/')) {
-			$relative = ltrim(trim($base, '/') . '/' . $path, '/');
-
-			return $this->file($this->paths->content, $relative, $this->config->url . '/' . self::CONTENT)
-				?? $this->resolve('/' . $reference);
+			return $this->resolve('/' . $reference);
 		}
 
 		foreach ($this->prefixes() as $prefix) {
 			if (str_starts_with($path, "{$prefix}/")) {
-				$relative = substr($path, strlen($prefix) + 1);
-
-				return str_starts_with($relative, self::CONTENT . '/') && $prefix === $this->config->url
-					? $this->file($this->paths->content, substr($relative, strlen(self::CONTENT) + 1), $prefix . '/' . self::CONTENT)
-					: $this->file($this->paths->media, $relative, $this->config->url);
+				return $this->file($this->paths->media, substr($path, strlen($prefix) + 1), $this->config->url);
 			}
 		}
 
 		return null;
+	}
+
+	/**
+	 * Resolves a media key, as the media index and metadata files name
+	 * files: its path under `user/media` (`2024/sunset.jpg`).
+	 */
+	public function fromKey(string $key): ?MediaFile
+	{
+		return $this->file($this->paths->media, $key, $this->config->url);
 	}
 
 	/**
@@ -159,7 +179,8 @@ final readonly class MediaResolver
 	/**
 	 * Returns a file's MIME type from its contents, reading SVGs (which
 	 * sniff as XML or text) and WebVTT tracks (text, until they have a
-	 * cue) by their extension.
+	 * cue) by their extension, and calling a WAV `audio/wav` whatever
+	 * alias the system's magic database gives it (D-291).
 	 */
 	public static function mimeOf(string $path): string
 	{
@@ -169,6 +190,7 @@ final readonly class MediaResolver
 		return match (true) {
 			$extension === 'svg' && in_array($mime, ['image/svg', 'text/xml', 'application/xml', 'text/plain'], true) => 'image/svg+xml',
 			$extension === 'vtt' && $mime === 'text/plain'                                                          => 'text/vtt',
+			in_array($mime, ['audio/x-wav', 'audio/wave', 'audio/vnd.wave'], true)                                  => 'audio/wav',
 			default                                                                                                  => $mime
 		};
 	}

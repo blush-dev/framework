@@ -6617,3 +6617,387 @@ decision, add a new entry that supersedes it and mark the old one
   (from a web page or a word processor) to Markdown, waits. Pasting
   keeps the browser's plain text, with D-284's link paste and files.
 - **Why:** the author's call.
+
+### D-287: Media metadata fields, by kind
+- **Date:** 2026-09-30
+- **Decision:** Builds D-238's fields and settles three of its open
+  questions, at the author's call:
+  - **Order:** fields first; then the media index; then embedded
+    metadata.
+  - **Field sets by kind:** fields every file has, plus fields for one
+    kind (`MediaKind`: `image`, `video`, `audio`, and `file` for
+    anything else, from the MIME type), not one set for all or sets by
+    folder.
+  - **The media index will be separate** from the content index,
+    rebuilt incrementally, so reindexing content stays fast.
+  - **Embedded metadata will be read in-house**, images first
+    (`exif_read_data()`, `iptcparse()`, XMP through DOM, behind Blush's
+    reader interface); audio and video durations wait.
+- **What's built:**
+  - **Built-in fields** (`MediaSchemas::builtIn()`): `caption`,
+    `credit`, and `description` (Markdown) for every kind, and `alt`
+    ("Alt text") for images. A kind's schema is its own fields first,
+    then every kind's, a kind's field replacing one of every kind's
+    with its name.
+  - **More fields from**, in order, each replacing a field of the same
+    name before it: extensions (`MediaFieldSource`, tagged
+    `media.fields`, like `ContentTypeSource`); the site's
+    `user/data/media-fields.{json,yaml,yml}` (`all` and each kind
+    mapped to lists of field definitions, as a data type's `fields`);
+    and `config/media.php` (`MediaConfig::$fields`, a list of
+    `MediaFieldSet`s, or the same map in array form). They're the
+    content types' field types (D-042), with their validation and
+    admin controls.
+  - **`MediaMetadata`** holds a metadata file's values by key; `alt`
+    and `caption` stay one-line text for Markdown. The store
+    (`MediaMetadataStore::save()`) sets and removes only the keys
+    asked for, under whichever of a field's name and aliases the file
+    uses, keeping other keys and a YAML file's comments.
+  - **API:** `GET media/{path}` adds the file's `fields`, their
+    `values`, the metadata file's other keys (`extra`), and
+    `violations`; `PATCH media/{path}` takes `set` and `remove`, each
+    value checked by its field (a 422 naming the `field`), and `alt`
+    and `caption` on their own as before. A file's `kind` in every
+    answer is its `MediaKind` (a caption track is `file`, not `text`).
+  - **The admin's Details panel** is built from the fields
+    (`FieldControl`, as an entry's form is), sends only what changed,
+    lists the other keys as they are, shows what doesn't fit under its
+    field, and keeps the missing-alt-text warning for images.
+  - **`media.schema.json`** (`composer schemas`): the built-in fields,
+    for editors checking metadata files.
+- **Not yet (D-238):** the media index, embedded metadata, moving
+  metadata with a file, `content:lint` for orphaned or unreadable
+  metadata files, and editing a bundle file's metadata in the admin.
+- **Checked:** `composer check` (`AdminMediaFieldsTest`: kinds from MIME
+  types, the built-in fields by kind, a site's config and data file and
+  an extension's fields in order, a built-in replaced and required,
+  saving with an alias and other keys and comments kept, and values
+  checked by their fields; `AdminPickersTest` and `MediaTest` updated);
+  `npm run admin:build`; the trial site's media screen in headless
+  Chrome with a throwaway account (since removed).
+- **Why:** the author asked to start on media metadata, and answered
+  its open questions.
+
+### D-288: The media index
+- **Date:** 2026-09-30
+- **Decision:** D-238's media index, separate from the content index
+  (D-287).
+  - **What's in it** (`Media\Index`): every file of the types the
+    library lists (`MediaResolver::EXTENSIONS`, moved there from the
+    admin's controller; caption tracks aren't library files) that the
+    site allows, never hidden ones, in `user/media` and in page bundles
+    in `user/content`, keyed as the metadata tree is (`2026/09/lake.jpg`,
+    `_content/trip/beach.jpg`): its URL, MIME type (read from the file
+    by the resolver), size, modified time, dimensions, and metadata
+    file's values and modified time (`MediaRecord`). Metadata files
+    whose media file is gone are listed as `orphans`.
+  - **Stored** in `storage/index/media.php` (`MediaIndex`, a PHP array
+    file, as the content index is), with a fingerprint of the media URL
+    and allowed types; another fingerprint rebuilds it. A concrete
+    class for now, not an interface: nothing else stores media records
+    yet.
+  - **Built incrementally** (`MediaIndexer`): a file is read only when
+    its size, modified time, or metadata file's modified time changed;
+    metadata files are found in one walk of `user/data/media`, taking
+    the data loader's first format when a file has two. Files are in
+    key order, and the index is written only when something changed.
+    The trial site's 290 files: 272 ms to build, 5 ms unchanged.
+  - **Kept fresh** (`MediaLibrary`) as content is: built on first use
+    when missing or built with other settings; in development
+    (`MediaConfig::$autoIndex`, default on) refreshed incrementally on
+    the first use in each request; elsewhere by `media:index [--full]`
+    (new), `publish` (after content; `PublishReport::$media`), the
+    admin's **Reindex content** action (now both indexes), an upload,
+    and a saved Details form.
+  - **Queried** (`MediaQuery`): search in the path and the metadata's
+    text values (any case), kind, library or bundle files, and images
+    without alt text, newest first, then by path, a page at a time.
+    `GET media` now lists from it (no longer walking the folder and
+    reading each file's metadata per request), with `missing=alt`.
+  - **The admin's Media screen** has **Missing alt text** beside the
+    kinds, searches names and details, and marks an image without alt
+    text on its thumbnail (an icon, read out as "No alt text").
+- **Not yet:** `content:lint` and `doctor` reporting orphans (the index
+  lists them, and `media:index` warns); bundle files in the library
+  screen (the index has them; the editor's picker still reads an
+  entry's folder); embedded metadata, which will be cached in these
+  records.
+- **Checked:** `composer check` (`MediaIndexTest`: library and bundle
+  files, skipped hidden and wrong files, metadata values, orphans, only
+  what changed refreshed, removals, queries by search, kind, missing alt
+  text, bundles, and pages, a rebuild for other types, and the command;
+  `AdminPickersTest`: the list's `missing=alt`, search by alt text, and
+  a save showing at once); `npm run admin:build`; the jtcom trial:
+  `media:index`, and the Media screen's filter and search in headless
+  Chrome with a throwaway account (since removed).
+- **Why:** the author asked to start on the media index.
+
+### D-289: Embedded image metadata, read in-house
+- **Date:** 2026-09-30
+- **Decision:** D-238's embedded metadata, images first, read in-house
+  (D-287).
+  - **One set of keys** (`Media\Embedded\EmbeddedMetadata`): `title`,
+    `description`, `creator`, `copyright`, `credit`, `keywords`,
+    `created` (`YYYY-MM-DD HH:MM:SS`, with the offset when given),
+    `camera`, `lens`, `focalLength`, `aperture`, `exposure`, `iso`,
+    `orientation`, and `software`; text made UTF-8 (older files write
+    Latin-1), controls and padding removed. The location (GPS, decimal
+    degrees) is kept apart.
+  - **Three readers**, the Type enum + Registry + Factory + Registrar
+    pattern (`EmbeddedReaderType`, `EmbeddedReaderRegistry` seeded in
+    `MediaServiceProvider`, `EmbeddedReaderFactory`,
+    `EmbeddedReaderRegistrar`), merged in the registry's order, the
+    first value for a key winning (`EmbeddedMetadataReader`): **XMP**
+    (`XmpReader`: the packet found by its markers in the first 8 MB, so
+    any format, SVG's bare `rdf:RDF` too; properties as attributes or
+    elements, language alternatives by the default, lists and bags;
+    no network or external entities), **IPTC** (`IptcReader`: JPEG
+    APP13 through `getimagesize()` and `iptcparse()`), then **EXIF**
+    (`ExifReader`: `exif_read_data()`, skipped without the extension;
+    a model that names its maker isn't named twice). A reader that
+    fails on a file is skipped.
+  - **Cached, not stored:** each image's record in the media index
+    (D-288) has it (`MediaRecord::$embedded`, `null` when the file says
+    nothing), read only when the file changes. The index's fingerprint
+    includes the readers (`EmbeddedMetadataReader::fingerprint()`), so a
+    new reader rereads every file; the snapshot format is version 2.
+  - **Privacy:** `GET media/{path}` answers `embedded` as `values` and
+    `location` (whether there is one), never coordinates. The admin
+    warns that a file carries its location without saying where.
+  - **The admin's From the File panel** lists the values, each with
+    **Use** to copy it into the field it fits (title → caption,
+    description → description, creator or credit → credit), as an edit
+    the form still asks to save.
+- **Also:** panels (`.panel`) are one column that can shrink
+  (`minmax(0, 1fr)`), and the file screen's side column too, so the Use
+  It box's long snippet scrolls in its box instead of widening the
+  panel (the author's report).
+- **Not yet:** rendering fallbacks (a page's image without a caption
+  using the embedded title, and so on); audio and video metadata;
+  stripping the location on upload; embedded artwork; D-270's alt text
+  never falls back to embedded values, which aren't written as alt
+  text.
+- **Checked:** `composer check` (`EmbeddedMetadataTest`, with a JPEG
+  built at run time carrying EXIF, IPTC, and XMP (`TaggedJpeg`): each
+  reader, SVG's RDF, quiet failure on a broken file, the merge order,
+  the index's cache, and text and date normalizing;
+  `AdminMediaFieldsTest`: `embedded` answered with `location: true`
+  and no coordinates); `npm run admin:build`; the jtcom trial (its 290
+  files index in 6 ms unchanged; 61 carry GIMP's XMP, none EXIF or
+  IPTC), and a temporary tagged JPEG's screen in headless Chrome (Use
+  filled the caption, nothing overflowed), since removed.
+- **Why:** the author asked to start on embedded image metadata, and
+  reported the Use It box overflowing.
+
+### D-290: Captions come from the library only; every media file has a title
+- **Date:** 2026-09-30
+- **Decision:** The author's calls, settling D-289's open question.
+  - **Captions come from the library's details, never embedded
+    values.** A caption is still filled in from the library on insert
+    (D-269, D-270); a file's embedded title or description never
+    becomes one, on insert or when a page renders.
+  - **`title` is a built-in field of every media file**
+    (`MediaSchemas::builtIn()`, after an image's own `alt`), one line
+    (`MediaMetadata::$title`), answered with every file (`title`, `''`
+    for none). The admin calls a file by it, falling back to its file
+    name (`mediaName()` in `media.ts`): the library's cards (the file
+    name on hover), the file's screen (its heading, with the file name
+    in the line under it), the media picker's cards and footer (its
+    search matches titles too), and the editor's toasts. The From the
+    File panel's embedded title now fills `title`, not the caption
+    (amends D-289). The index already searches it with the rest of the
+    metadata.
+- **Checked:** `composer check` (`AdminMediaFieldsTest`: the built-in
+  field order with `title`, and a title saved as one line); `npm run
+  admin:build`; on the jtcom trial in headless Chrome with a temporary
+  file and a throwaway account (both since removed): Use filled the
+  title, and the file screen and the library showed it.
+- **Why:** the author's request.
+
+### D-291: Sound and video metadata, read in-house
+- **Date:** 2026-09-30
+- **Decision:** The author's calls on D-238's open questions: sound and
+  video are read in-house (no getID3), and embedded artwork is noted,
+  not extracted.
+  - **More keys** (`EmbeddedMetadata`): `album`, `track` ("3/12"),
+    `genre`, `duration` (seconds, a float to the millisecond),
+    `artwork` ("image/jpeg, 42 KB"), and a video's `width` and
+    `height`; a date may be a year or a year and month.
+  - **Five readers**, registered after the image readers, each reading
+    only its own format (`BinaryFile` seeks and unpacks, so no file is
+    loaded whole):
+    - **ID3** (`Id3Reader`, MP3): ID3v2.2 to 2.4 (the four text
+      encodings, unsynchronization, an extended header skipped, a
+      genre's number dropped, `COMM`, `APIC`), then ID3v1 for what
+      those lack; the duration from the first Layer III frame's Xing or
+      VBRI frame count, else its bit rate and the audio's size.
+    - **MP4** (`Mp4Reader`, MP4, M4A, M4V): boxes walked with `mdat`
+      skipped wherever it is; `mvhd` for the duration, a video
+      `tkhd`'s size, and `ilst` tags (`©nam`, `©ART`, `©alb`, `©day`,
+      `©gen`, `©cmt`, `desc`, `cprt`, `©too`, `trkn`, `covr`), under
+      `udta/meta` or `meta`, with or without its full-box header.
+    - **Ogg** (`OggReader`, Vorbis and Opus): the comment packet put
+      back together from its pages (with a `METADATA_BLOCK_PICTURE`
+      noted); the duration from the last page's granule over the
+      stream's rate (Opus: 48 kHz, less its pre-skip). Theora says
+      nothing.
+    - **RIFF** (`RiffReader`, WAV): the `data` size over `fmt `'s byte
+      rate, and `LIST`/`INFO` tags.
+    - **Matroska** (`MatroskaReader`, WebM): EBML to the first cluster:
+      `Info` (timecode scale, duration, title, writing app, date) and a
+      video track's pixel size; a segment of unknown size runs to the
+      end. Tags after the media aren't read.
+  - **The index** reads images, sound, and video; a video's width and
+    height come from what it says. `EmbeddedMetadataReader::VERSION`
+    is 2, so every file is read again once. Every file answer has
+    `duration` (`MediaRecord::duration()`), which the library's cards,
+    the picker, and the file screen show as `m:ss` (`mediaFacts()` and
+    `formatDuration()` in `media.ts`, replacing two copies of the
+    cards' facts); From the File lists album, track, genre, and
+    artwork.
+  - **A WAV is `audio/wav`** (`MediaResolver::mimeOf()`): the system's
+    magic database calls it `audio/x-wav`, which the allowed types
+    don't list, so WAVs weren't served or listed before.
+- **Checked:** `composer check` (`AudioVideoMetadataTest`, with files
+  built at run time (`TaggedAudioVideo`): each format's tags, duration,
+  and size, Opus's pre-skip, a constant-bit-rate MP3, readers keeping
+  to their formats and reading nothing from junk, and the index
+  keeping durations, a video's size, and a WAV as `audio/wav`);
+  `npm run admin:build`; the jtcom trial: its real MP3 read as 2:44
+  (164.04 s, matching its size at its bit rate) with its title, artist,
+  and encoder, and temporary MP3 and WebM files' cards and screen in
+  headless Chrome with a throwaway account (all since removed).
+- **Why:** the author asked to start on audio and video metadata, and
+  answered its open questions.
+
+### D-292: Page bundles' files in the media library
+- **Date:** 2026-09-30
+- **Decision:** The files beside entries in page bundles (D-099),
+  which the media index already held (D-288), are in the admin's
+  library.
+  - **Where:** `GET media` takes `source`: `library` (the default,
+    `user/media`), `bundles`, or `all`, and answers `bundles`, how many
+    bundle files there are. The Media screen's **Where** control
+    (Library, Beside entries, Everywhere) shows only when there are
+    some, and a bundle file's card says **Beside** its entry.
+  - **A bundle file's address** in `GET` and `PATCH media/{path}` is
+    its index key, `_content/` and its path under `user/content`,
+    confined there; its `reference` is the URL it's served at.
+  - **Its entry** is the nearest folder above it with an `index.md`
+    entry. Every bundle file answers `bundle`: the `name` that entry
+    writes it by (its path under the entry's folder) and the `entry`
+    (`id`, `handle`, `title`, or `null` when none holds it); a library
+    file's is `null`.
+  - **Changing its details** takes `media.upload` and editing its entry
+    (`content.edit` for that entry), so an author can't describe
+    someone else's photos. Its metadata goes to
+    `user/data/media/_content/…` (D-269's layout).
+  - **The file screen** says **Beside** with a link to the entry and
+    its real folder, and Use It gives both what its entry writes
+    (`![](shore.jpg)`) and the address for anywhere else.
+- **Not yet:** uploading into a bundle from the admin (uploads go to
+  `user/media`).
+- **Checked:** `composer check` (`AdminPickersTest`: the library with
+  the bundle count, bundle files with their entry and name, `all`, a
+  bundle file's screen and saved details, a non-media file refused, a
+  bad `source`, and an author refused another's entry's file but not
+  their own); `npm run admin:build`; on the jtcom trial in headless
+  Chrome with a temporary bundle and a throwaway account (both since
+  removed and reindexed): the Where control, the card, the file
+  screen's Beside and Folder, and Use It.
+- **Why:** the author asked to start on bundle files after they were
+  explained.
+
+### D-293: Media metadata in `content:lint`
+- **Date:** 2026-09-30
+- **Decision:** `content:lint` (and the admin's Content health, which
+  runs the same `Linter`) checks the metadata files under
+  `user/data/media` (D-238, D-269) as well as content.
+  `Media\MediaMetadataCheck` reports each by its path from the site
+  root (`user/data/media/2019/gone.png.yml`), beside the content files'
+  paths:
+  - **Errors:** a file that can't be read (its parser's message, without
+    the path it repeats) or isn't a map of fields, and a value that
+    doesn't fit its field in the kind's schema (`MediaSchemas`, D-287).
+    The library reads such a file as none, so this is where a site hears
+    about it.
+  - **Warnings:** a file whose media file is gone (renamed or deleted
+    by hand): "describes user/media/2019/gone.png, which isn't there;
+    move this file with its media file, or delete it"; one whose media
+    file is there but isn't a type the site allows; and one hidden by
+    a file in another format (`sunset.png.yml` beside the
+    `sunset.png.json` that's read).
+  - **Notices** (`--strict`): keys that aren't fields, and aliases, as
+    for front matter.
+  - **Counts:** `LintReport::$metadata` is how many metadata files were
+    checked, hidden ones included; the summary reads "Checked 302 files
+    and 2 media metadata files: …" (the clause is left out when there
+    are none), in the command and in Content health (`metadata` in
+    `GET health`).
+  - **One walk:** `MediaMetadataStore::files()` finds every metadata
+    file by its media key, with the file the data loader reads, its
+    modified time, and the files it hides; the media indexer's orphans
+    (D-288) use it too. `MediaResolver::fromKey()` resolves a media key
+    (`2026/lake.png`, `_content/trip/beach.png`) for both.
+- **Refines D-238:** it planned orphans in `content:lint` and `doctor`.
+  `doctor` checks the install, not content, so it doesn't; `media:index`
+  still warns of orphans as it indexes.
+- **Checked:** `composer check` (`MediaMetadataCheckTest`: the walk
+  with a hidden file, every kind of problem, files that pass, and the
+  linter and command together); `npm run admin:build`; `content:lint`
+  on the jtcom trial (clean, then with a temporary unreadable file and
+  an orphan, since removed).
+- **Why:** the author asked to start on orphaned metadata in
+  `content:lint`.
+
+### D-294: No media beside entries
+- **Date:** 2026-09-30
+- **Decision:** Media is only ever in `user/media`. Page bundle media,
+  files kept in `user/content` beside an entry (`trip/index.md` with
+  `trip/beach.jpg`) and written by name, is removed. **Supersedes** the
+  bundle parts of D-099 (relative references into the entry's folder,
+  served at `{url}/_content/…`), D-179 (media props resolved against the
+  entry's bundle), D-246 (the picker's files beside the entry), and
+  D-292 (bundle files in the library), and the `_content/` metadata
+  layout of D-238 and D-269.
+  - **Folder entries stay:** `slug/index.md` is still the entry `slug`
+    (a 1.x convention, D-078), and renaming, duplicating, or trashing
+    one still moves or copies its folder.
+  - **Resolving:** `MediaResolver::resolve()` takes no base; a relative
+    path is read from the site root (D-190's `user/media/a.mp3`), and
+    `/media/_content/…` is just a path under `user/media`.
+    `MarkdownParser::toHtml()` takes no base, `Directive` has no `base`,
+    `Body` no folder, and `MarkdownContext` (which only carried the
+    base) is gone.
+  - **Serving and export:** the media route serves nothing from
+    `user/content`, and a static export copies only `user/media`.
+  - **The media index** lists only `user/media`; `MediaRecord` loses
+    `isBundle()` and `relative()`, `MediaQuery` loses `bundles`, and
+    the snapshot's version is 3, so an index holding bundle files is
+    rebuilt.
+  - **The admin:** `GET media` loses `entry`, `beside`, `source`, and
+    `bundles`, and files lose `bundle`; `PATCH media/{path}` no longer
+    checks an owning entry. The picker loses Beside This Entry, the
+    Media screen its **Where** control and card line, and a file's
+    screen its Beside fact and by-name snippet.
+  - **Leftovers:** a metadata file under `user/data/media/_content/`
+    is now an orphan, which `content:lint` reports (D-293).
+- **Why:** the author: "Media should always be stored under the /media
+  folder and not bundled with the content." 1.x resolved media from the
+  site root, never beside entries, so no 1.x content relies on it, and
+  the jtcom trial has none.
+- **Checked:** `composer check` (bundle tests removed or rewritten:
+  resolving, serving, export, components, Markdown, the index, the
+  metadata check, and the admin API, each now asserting files beside
+  an entry aren't media); `npm run admin:build`; on the jtcom trial,
+  `media:index` rebuilt (290 files), `content:lint` clean, and the home
+  page and admin answer.
+
+### D-295: Extracting artwork waits
+- **Date:** 2026-09-30
+- **Decision:** Extracting embedded artwork from sound and video files
+  is on hold. D-291's behavior stays: the media index notes that a file
+  has artwork (its type and size) and From the File shows it, but the
+  picture isn't extracted, cached, or shown. The open question stays
+  open for when it's picked up.
+- **Why:** the author asked to save it for later.

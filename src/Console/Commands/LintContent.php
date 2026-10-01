@@ -25,7 +25,9 @@ use Blush\Content\Schema\Severity;
  * Checks every content file's front matter against its type's schema
  * (D-081, D-084), listing errors and warnings by file. `--strict` adds
  * notices: undeclared keys, 1.x aliases in use, and terms with no file.
- * Any error fails the command.
+ * It also checks media metadata files (D-293): unreadable ones, values
+ * that don't fit, and ones whose media file is gone. Any error fails the
+ * command.
  */
 #[Command('content:lint', 'Check content front matter against the schemas.')]
 final readonly class LintContent
@@ -67,7 +69,8 @@ final readonly class LintContent
 			...($strict ? [self::plural($report->count(Severity::Notice), 'notice')] : [])
 		];
 
-		$summary = sprintf('Checked %s: %s.', self::plural($report->checked, 'file'), implode(', ', $counts));
+		$checked = self::plural($report->checked, 'file') . ($report->metadata > 0 ? ' and ' . self::plural($report->metadata, 'media metadata file') : '');
+		$summary = sprintf('Checked %s: %s.', $checked, implode(', ', $counts));
 
 		if ($report->hasErrors()) {
 			$output->error($summary);

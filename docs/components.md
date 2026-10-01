@@ -118,17 +118,16 @@ default.
 ### Media
 
 Three built-in components play or offer files. Their files are found the
-same way as an image's: a name like `clip.mp4` is a file next to the
-entry (in a [page bundle](media.md#next-to-the-entry-bundles)), and `/media/…` is in your media
-folder (the first `/` is optional, so `media/song.mp3` works too). Like
+same way as an image's: `/media/…` is in your media folder (the first
+`/` is optional, so `media/song.mp3` works too). Like
 Markdown's own links, they become full URLs (`https://example.com/media/song.mp3`),
 so they still work in feeds.
 
 | Component | Example                                                                     | Props                                                                                                                                                                                                             |
 |-----------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `audio`   | `::audio[Episode 12]{src=episode.mp3}`                                      | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption.                                                                                                                      |
-| `video`   | `::video[Launch day]{src=launch.mp4 poster=launch.jpg track=launch.vtt}`    | `src`, `poster` (an image shown before it plays), `track` (a WebVTT captions file, in your site's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
-| `file`    | `::file[The annual report]{src=report.pdf}`                                 | `src`. The label is the link text (the file's name without one). It shows the file's type, and its size when it's in your media folder or bundle.                                                                 |
+| `audio`   | `::audio[Episode 12]{src=/media/episode.mp3}`                               | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption.                                                                                                                      |
+| `video`   | `::video[Launch day]{src=/media/launch.mp4 poster=/media/launch.jpg}`       | `src`, `poster` (an image shown before it plays), `track` (a WebVTT captions file, in your site's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
+| `file`    | `::file[The annual report]{src=/media/report.pdf}`                          | `src`. The label is the link text (the file's name without one). It shows the file's type, and its size when it's in your media folder.                                                                           |
 
 Only the [file types your site allows](media.md#allowed-file-types) are
 served, so check the list before offering other kinds of files for

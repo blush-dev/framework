@@ -34,8 +34,13 @@ an object with an outline, a breadcrumb, lists and definition lists,
 Enter carrying list and quote markers, drawn selects, and a calendar
 for dates (D-280); and the reference picker, with the document panel's
 groups (D-281, D-283); and the Markdown editing experience's first set
-(D-284). Next: more of the Markdown editing experience (D-252, D-284's
-open list; live preview waits), media metadata, and the remaining stubbed screens; see
+(D-284, D-285); and media metadata fields by kind (D-287) and the
+media index (D-288), embedded image metadata (D-289), titles (D-290),
+sound and video metadata (D-291), and metadata files in
+`content:lint` (D-293); page bundle media is removed, so media lives
+only in `user/media` (D-294). Next: more
+of media (roadmap), more of the Markdown editing experience (live
+preview waits), and the remaining stubbed screens; see
 `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
 `npm run admin:build` (D-221, D-224). Admin CSS reads design tokens

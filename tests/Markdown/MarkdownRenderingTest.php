@@ -24,7 +24,6 @@ use Blush\Markdown\CommonMark\FigureRenderer;
 use Blush\Markdown\CommonMark\ResolveLinks;
 use Blush\Markdown\CommonMarkParser;
 use Blush\Markdown\MarkdownConfig;
-use Blush\Markdown\MarkdownContext;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaResolver;
 use Blush\Tests\TemporaryDirectory;
@@ -32,7 +31,6 @@ use Blush\Tests\TemporaryDirectory;
 #[CoversClass(CommonMarkParser::class)]
 #[CoversClass(FigureRenderer::class)]
 #[CoversClass(ResolveLinks::class)]
-#[CoversClass(MarkdownContext::class)]
 final class MarkdownRenderingTest extends TestCase
 {
 	use TemporaryDirectory;
@@ -158,13 +156,10 @@ final class MarkdownRenderingTest extends TestCase
 		);
 	}
 
-	public function testBundleMediaResolvesAgainstTheEntry(): void
+	public function testRelativeMediaIsFromTheSiteRootOnly(): void
 	{
-		$this->assertStringContainsString(
-			'src="https://example.com/media/_content/_posts/hello/photo.png"',
-			$this->parser()->toHtml('![Photo](photo.png)', '_posts/hello')
-		);
-		$this->assertStringContainsString('src="photo.png"', $this->parser()->toHtml('![Photo](photo.png)'));
+		$this->assertStringContainsString('src="https://example.com/media/2019/cat.png"', $this->parser()->toHtml('![Cat](user/media/2019/cat.png)'));
+		$this->assertStringContainsString('src="photo.png"', $this->parser()->toHtml('![Photo](photo.png)'), 'Media is never beside an entry (D-294).');
 	}
 
 	public function testRootRelativeLinksBecomeAbsolute(): void

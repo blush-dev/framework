@@ -86,9 +86,8 @@ final class MediaTest extends TestCase
 		$this->assertSame([5, 2], [$cat->width, $cat->height]);
 		$this->assertSame($this->temporaryDirectory() . '/user/media/2019/cat.png', $cat->path);
 		$this->assertSame('/media/2019/cat.png', $media->resolve('/user/media/2019/cat.png')?->url);
-		$this->assertSame('/media/_content/_posts/hello/photo.png', $media->resolve('photo.png', '_posts/hello')?->url);
-		$this->assertSame('/media/_content/_posts/hello/photo.png', $media->resolve('/media/_content/_posts/hello/photo.png')?->url);
-		$this->assertSame('/media/_content/_posts/hello/photo.png', $media->fromUrl('/media/_content/_posts/hello/photo.png')?->url);
+		$this->assertSame('/media/2019/cat.png', $media->resolve('user/media/2019/cat.png')?->url, 'A relative path is from the site root.');
+		$this->assertSame('/media/2019/cat.png', $media->fromKey('2019/cat.png')?->url);
 
 		$svg = $media->resolve('/media/icon.svg');
 
@@ -96,24 +95,28 @@ final class MediaTest extends TestCase
 		$this->assertNull($svg->width);
 
 		$refused = [
-			['https://example.com/cat.png', ''],
-			['//cdn.example/cat.png', ''],
-			['data:image/png;base64,AAAA', ''],
-			['#top', ''],
-			['', ''],
-			['/media/missing.png', ''],
-			['/media/script.php', ''],
-			['/media/.hidden/cat.png', ''],
-			['/media/../content/_posts/hello/photo.png', ''],
-			['../../../.env', '_posts/hello'],
-			['index.md', '_posts/hello'],
-			['/other/cat.png', ''],
-			['/media/_content/../media/2019/cat.png', '']
+			'https://example.com/cat.png',
+			'//cdn.example/cat.png',
+			'data:image/png;base64,AAAA',
+			'#top',
+			'',
+			'/media/missing.png',
+			'/media/script.php',
+			'/media/.hidden/cat.png',
+			'/media/../content/_posts/hello/photo.png',
+			'../../../.env',
+			'/other/cat.png',
+			// Media is only ever in `user/media`, never beside entries (D-294).
+			'photo.png',
+			'/media/_content/_posts/hello/photo.png',
+			'/media/_content/../media/2019/cat.png'
 		];
 
-		foreach ($refused as [$reference, $base]) {
-			$this->assertNull($media->resolve($reference, $base), $reference);
+		foreach ($refused as $reference) {
+			$this->assertNull($media->resolve($reference), $reference);
 		}
+
+		$this->assertNull($media->fromKey('_content/_posts/hello/photo.png'));
 
 		$this->assertNull($media->fromUrl('/user/media/2019/cat.png'));
 		$this->assertSame('/user/media/2019/cat.png', $this->resolver('/user/media/')->resolve('/user/media/2019/cat.png')?->url);
@@ -135,7 +138,7 @@ final class MediaTest extends TestCase
 		$this->assertSame('/files', $config->url);
 		$this->assertTrue($config->allows('IMAGE/PNG'));
 		$this->assertFalse($config->allows('image/jpeg'));
-		$this->assertSame(['url' => '/files', 'types' => ['image/png']], $config->toArray());
+		$this->assertSame(['url' => '/files', 'types' => ['image/png'], 'fields' => [], 'autoIndex' => true], $config->toArray());
 	}
 
 	public function testStreamsMediaWithRanges(): void
@@ -154,7 +157,7 @@ final class MediaTest extends TestCase
 		$this->assertSame(206, $part->getStatusCode());
 		$this->assertSame("\x89PNG\r\n\x1a\n", (string) $part->getBody());
 
-		$this->assertSame(200, $kernel->handle(Request::create('/media/_content/_posts/hello/photo.png'))->getStatusCode());
+		$this->assertSame(404, $kernel->handle(Request::create('/media/_content/_posts/hello/photo.png'))->getStatusCode(), 'Nothing beside an entry is served.');
 		$this->assertSame('sandbox', $kernel->handle(Request::create('/media/icon.svg'))->getHeaderLine('Content-Security-Policy'));
 		$this->assertSame(404, $kernel->handle(Request::create('/media/script.php'))->getStatusCode());
 		$this->assertSame(404, $kernel->handle(Request::create('/media/_content/_posts/hello/index.md'))->getStatusCode());

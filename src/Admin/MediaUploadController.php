@@ -25,6 +25,8 @@ use Blush\Core\Paths;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\MediaConfig;
+use Blush\Media\Index\MediaLibrary;
+use Blush\Media\MediaException;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 
@@ -53,7 +55,8 @@ final readonly class MediaUploadController
 		private MediaResolver $resolver,
 		private Permissions $permissions,
 		private ClockInterface $clock,
-		private MediaMetadataStore $metadata
+		private MediaMetadataStore $metadata,
+		private MediaLibrary $library
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -120,6 +123,13 @@ final readonly class MediaUploadController
 			@unlink($target);
 
 			return self::error(sprintf('%s couldn\'t be added to the library.', $name), Status::UnprocessableContent);
+		}
+
+		// The library lists it at once. An index that can't be written is
+		// refreshed next time; the upload itself worked.
+		try {
+			$this->library->refresh();
+		} catch (MediaException) {
 		}
 
 		return Response::json(MediaListController::describe($file, $reference, $relative, $this->metadata->find($file)), Status::Created, ['Cache-Control' => 'no-store']);

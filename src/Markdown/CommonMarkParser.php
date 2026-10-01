@@ -46,34 +46,26 @@ final class CommonMarkParser implements MarkdownParser
 {
 	private ?MarkdownConverter $converter = null;
 
-	private readonly MarkdownContext $context;
-
 	public function __construct(
 		private readonly MarkdownConfig $config,
 		private readonly Dispatcher $events,
 		private readonly ?MediaResolver $media = null,
 		private readonly ?AppConfig $app = null,
 		private readonly ?DirectiveRenderer $directives = null
-	) {
-		$this->context = new MarkdownContext();
-	}
+	) {}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function toHtml(string $markdown, string $base = ''): string
+	public function toHtml(string $markdown): string
 	{
-		$this->context->base = trim($base, '/');
-
 		try {
 			return $this->converter()->convert($markdown)->getContent();
 		} catch (MarkdownException $e) {
 			throw $e;
 		} catch (Throwable $e) {
 			throw new MarkdownException(sprintf('Unable to convert Markdown: %s', $e->getMessage()), previous: $e);
-		} finally {
-			$this->context->base = '';
 		}
 	}
 
@@ -105,12 +97,12 @@ final class CommonMarkParser implements MarkdownParser
 
 			$environment->addEventListener(
 				DocumentParsedEvent::class,
-				new ResolveLinks($this->context, $this->media, $this->app, $this->config->absoluteLinks),
+				new ResolveLinks($this->media, $this->app, $this->config->absoluteLinks),
 				-100
 			);
 
 			if ($this->config->directives) {
-				$environment->addExtension(new DirectiveExtension($this->directives, $this->context));
+				$environment->addExtension(new DirectiveExtension($this->directives));
 			}
 
 			// league/commonmark's description list renderers leave out

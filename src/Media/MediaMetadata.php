@@ -14,34 +14,68 @@ declare(strict_types=1);
 namespace Blush\Media;
 
 /**
- * What the library says about a media file (D-238, D-269): its alt text,
- * which describes it for anyone who can't see it, and its caption. Each
- * is `''` when it has none. Where a file is used, what's written there
- * wins; the library's are what the editor fills in on insert.
+ * What the library says about a media file (D-238, D-269, D-287): the
+ * values its metadata file holds, by key, for the fields its kind has
+ * (`MediaSchemas`) and any others the file keeps. `title` (what the
+ * library calls it, D-290), `alt`, and `caption` are read as one line of
+ * text each, `''` when there's none, since they're
+ * written into Markdown, where a line break would end them. Where a file
+ * is used, what's written there wins; the library's fill the gaps.
  */
 final readonly class MediaMetadata
 {
+	public string $title;
+
 	public string $alt;
 
 	public string $caption;
 
-	public function __construct(string $alt = '', string $caption = '')
+	/**
+	 * @param array<string, mixed> $values
+	 */
+	public function __construct(public array $values = [])
 	{
-		$this->alt     = self::line($alt);
-		$this->caption = self::line($caption);
+		$this->title   = self::line($values['title'] ?? null);
+		$this->alt     = self::line($values['alt'] ?? null);
+		$this->caption = self::line($values['caption'] ?? null);
 	}
 
 	/**
-	 * Reads a metadata file's data: `alt` and `caption`, when they're text.
+	 * Reads a metadata file's data.
 	 *
 	 * @param array<array-key, mixed> $data
 	 */
 	public static function fromArray(array $data): self
 	{
-		return new self(
-			is_string($data['alt'] ?? null) ? $data['alt'] : '',
-			is_string($data['caption'] ?? null) ? $data['caption'] : ''
-		);
+		$values = [];
+
+		foreach ($data as $key => $value) {
+			$values[(string) $key] = $value;
+		}
+
+		return new self($values);
+	}
+
+	/**
+	 * Returns a copy with values set and keys removed. A value that's
+	 * empty (`null`, `''`, or `[]`) removes its key.
+	 *
+	 * @param array<string, mixed> $set
+	 * @param list<string>         $remove
+	 */
+	public function with(array $set = [], array $remove = []): self
+	{
+		$values = array_diff_key($this->values, array_flip($remove));
+
+		foreach ($set as $key => $value) {
+			if ($value === null || $value === '' || $value === []) {
+				unset($values[$key]);
+			} else {
+				$values[$key] = $value;
+			}
+		}
+
+		return new self($values);
 	}
 
 	/**
@@ -49,23 +83,22 @@ final readonly class MediaMetadata
 	 */
 	public function isEmpty(): bool
 	{
-		return $this->alt === '' && $this->caption === '';
+		return $this->values === [];
 	}
 
 	/**
-	 * @return array{alt: string, caption: string}
+	 * @return array<string, mixed>
 	 */
 	public function toArray(): array
 	{
-		return ['alt' => $this->alt, 'caption' => $this->caption];
+		return $this->values;
 	}
 
 	/**
-	 * Text on one line, trimmed: both are written into Markdown, where a
-	 * line break would end them.
+	 * Text on one line, trimmed.
 	 */
-	private static function line(string $text): string
+	public static function line(mixed $text): string
 	{
-		return trim((string) preg_replace('/\s+/u', ' ', $text));
+		return is_string($text) ? trim((string) preg_replace('/\s+/u', ' ', $text)) : '';
 	}
 }

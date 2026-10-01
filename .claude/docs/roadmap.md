@@ -136,8 +136,8 @@ The current focus: the experience of setting up a Blush site.
   in Markdown (D-176); `group`, `grid`, and `row` (D-177); `audio`,
   `video`, and `file` (D-179); `abbr`, `kbd`, and `time` (D-180); `toc`
   (D-183); `icon`, with a 131-icon Lucide subset (D-187); `progress` and
-  `meter` (D-188); and `button` (D-189). Media props resolve against the
-  entry's bundle (D-179), and media and link props render as full URLs
+  `meter` (D-188); and `button` (D-189). Media props resolved against the
+  entry's bundle (D-179; removed by D-294), and media and link props render as full URLs
   for feeds (D-190).
 - **Embeds (D-181, D-184 to D-186):** start times and accessible names;
   oEmbed providers (YouTube, Vimeo, config, and classes) with cached
@@ -256,7 +256,20 @@ now matches the prototype, offers only the type's taxonomies (D-283),
 and the Markdown editing experience has begun (D-284: formatting keys,
 links, nesting lists with Tab, and files dropped or pasted in), then
 heading levels and moving lines from the keyboard (D-285). Pasting HTML
-as Markdown is on hold (D-286).
+as Markdown is on hold (D-286). Media metadata's fields are in (D-287:
+built-in and a site's or extension's fields by kind, the API, and the
+Details form), then the media index (D-288: separate and incremental,
+`media:index`, publishing, and the library's search and Missing alt
+text filter), then embedded image metadata (D-289: XMP, IPTC, and EXIF
+read in-house, cached in the index, From the File in the admin, the
+location never shown), a title for every file (D-290), and sound and
+video metadata (D-291: tags, durations, and a video's size, read
+in-house; artwork noted), and `content:lint` checks metadata files:
+orphaned, unreadable, hidden, or with values that don't fit (D-293).
+Page bundles' media is removed: media lives only in `user/media`
+(D-294, which also takes back D-292's bundle files in the library).
+Next for media: stripping a photo's location on upload. Extracting
+embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
@@ -685,7 +698,8 @@ tests):
 - A stale index (other types, timezone, or locale) is rebuilt on first
   use in any environment (`IndexFingerprint`, D-098).
 - `Blush\Media`: `MediaConfig`, `MediaResolver` (user media, 1.x
-  `/user/media` paths, and page bundle files), `MediaController` and the
+  `/user/media` paths, and page bundle files, since removed by D-294),
+  `MediaController` and the
   `media` route, `media:publish [--copy]`, and `Response::file()` Range
   support over `LimitedStream`.
 - 1.x Markdown rendering: media URLs and image dimensions, absolute

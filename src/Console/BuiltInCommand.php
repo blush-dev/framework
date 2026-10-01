@@ -25,6 +25,7 @@ use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\IndexContent;
+use Blush\Console\Commands\IndexMedia;
 use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListAccounts;
 use Blush\Console\Commands\ListCommands;
@@ -66,6 +67,7 @@ enum BuiltInCommand: string
 	case ContentList   = 'content:list';
 	case ContentNew    = 'content:new';
 	case ContentPreview = 'content:preview';
+	case MediaIndex    = 'media:index';
 	case MediaPublish  = 'media:publish';
 	case ThemeList     = 'theme:list';
 	case ThemeActivate = 'theme:activate';
@@ -108,6 +110,7 @@ enum BuiltInCommand: string
 			self::ContentList   => ListContent::class,
 			self::ContentNew    => CreateContent::class,
 			self::ContentPreview => PreviewContent::class,
+			self::MediaIndex    => IndexMedia::class,
 			self::MediaPublish  => PublishMedia::class,
 			self::ThemeList     => ListThemes::class,
 			self::ThemeActivate => ActivateTheme::class,

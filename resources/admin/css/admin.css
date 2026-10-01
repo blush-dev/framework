@@ -142,8 +142,11 @@
 
 /* Panels */
 
+/* One column that can shrink, so long content (a snippet that doesn't
+   wrap) scrolls in its own box rather than widening the panel. */
 .panel {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--r-3);

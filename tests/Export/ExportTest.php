@@ -94,7 +94,7 @@ final class ExportTest extends TestCase
 
 	/**
 	 * Writes the standard content with feeds, paged listings, media, and
-	 * a page bundle image.
+	 * an image beside an entry, which isn't media (D-294).
 	 */
 	private function exportableContent(): void
 	{
@@ -167,7 +167,6 @@ final class ExportTest extends TestCase
 			'robots.txt',
 			'404.html',
 			'media/pixel.png',
-			'media/_content/_posts/hello/pixel.png',
 			'themes/default/style.css'
 		];
 
@@ -180,7 +179,8 @@ final class ExportTest extends TestCase
 		$this->assertFileDoesNotExist($this->exported('archives/future/index.html'));
 		$this->assertFileDoesNotExist($this->exported('page/4/index.html'));
 		$this->assertFileDoesNotExist($this->exported('themes/default/theme.json'));
-		$this->assertFileDoesNotExist($this->exported('media/_content/_posts/hello/photo.jpg'));
+		$this->assertFileDoesNotExist($this->exported('media/_content/_posts/hello/pixel.png'));
+		$this->assertFileDoesNotExist($this->exported('_posts/hello/pixel.png'));
 		$this->assertNotContains('/page/4', $report->skipped);
 
 		// Production's robots.txt, though the site runs in development.

@@ -17,17 +17,20 @@ use Blush\Content\Schema\Severity;
 use Blush\Content\Schema\Violation;
 
 /**
- * The problems `Linter` found, by source path.
+ * The problems `Linter` found, by path: a content file's under
+ * `user/content`, a media metadata file's from the site root (D-293).
  */
 final readonly class LintReport
 {
 	/**
-	 * @param int                           $checked How many files were checked.
-	 * @param array<string, list<Violation>> $files   Violations by source path.
+	 * @param int                            $checked  How many content files were checked.
+	 * @param array<string, list<Violation>> $files    Violations by path.
+	 * @param int                            $metadata How many media metadata files were checked.
 	 */
 	public function __construct(
 		public int $checked = 0,
-		public array $files = []
+		public array $files = [],
+		public int $metadata = 0
 	) {}
 
 	/**

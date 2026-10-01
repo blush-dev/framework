@@ -33,8 +33,8 @@ use Blush\View\ViewFactory;
  * `$slot`, and `::acme/tabs` is `acme/tabs`. Only core components have
  * short names (D-171). A directive's `[label]` is also given as the
  * `label` prop. A registered component's `media` props are resolved like
- * an image's, against the entry's folder (D-179): `src=clip.mp4` in a
- * page bundle becomes that file's URL. Those and its link props
+ * an image's (D-179): `src=/media/clip.mp4` becomes that file's URL.
+ * Those and its link props
  * (`#[LinkProp]`) become full URLs when they start with `/`, as
  * Markdown's links do (D-190). A table of contents gets the
  * document's outline as `headings` (D-183). An inline directive's HTML is
@@ -90,7 +90,7 @@ final readonly class ComponentDirectives implements DirectiveRenderer
 			$value = $props[$field->name] ?? null;
 
 			if ($field instanceof MediaField && is_string($value)) {
-				$props[$field->name] = $this->absolute($this->media->resolve($value, $directive->base)->url ?? $value);
+				$props[$field->name] = $this->absolute($this->media->resolve($value)->url ?? $value);
 			}
 		}
 

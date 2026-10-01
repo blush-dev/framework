@@ -37,9 +37,6 @@ A few rules make the file names flexible:
   you say otherwise.
 - **`index.md` is its folder's page.** `about/index.md` is the page at
   `/about`.
-- **A folder with an `index.md` is a "bundle".** Put the page's images next
-  to it (`about/index.md`, `about/me.jpg`) and link them by name. See
-  [Media](media.md).
 - **Set `slug:`** in front matter to choose the URL name yourself.
 - **Folders nest pages.** `about/team.md` is a subpage of the `about`
   page, which themes can use for breadcrumbs and lists of subpages.

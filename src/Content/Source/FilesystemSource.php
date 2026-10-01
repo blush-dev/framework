@@ -28,7 +28,7 @@ use Blush\Support\FilesystemException;
 /**
  * Reads content documents from `user/content` (the default source). A
  * document is any file whose extension a document parser handles; other
- * files (media in page bundles, stray scripts) are ignored, as are hidden
+ * files (stray images or scripts) are ignored, as are hidden
  * files and folders (`.git`, `.DS_Store`). Every path is confined to the
  * content root.
  */

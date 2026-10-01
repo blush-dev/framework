@@ -44,7 +44,7 @@ use Blush\Support\Filesystem;
  *    page, a page at each redirected path (`ExportConfig::$redirectPages`),
  *    and the host files (D-140). A current export keeps its rendered
  *    files instead.
- * 4. Copy theme assets, media, and page bundle files.
+ * 4. Copy theme assets and media.
  * 5. Remove what the previous export wrote and this one didn't, and
  *    record this one in the manifest.
  *

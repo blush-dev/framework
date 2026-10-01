@@ -42,7 +42,9 @@ function summary(result: Health): string {
 		counts.push(plural(result.counts.notice, 'notice'));
 	}
 
-	return `Checked ${plural(result.checked, 'file')}: ${counts.join(', ')}.`;
+	const metadata = result.metadata > 0 ? ` and ${plural(result.metadata, 'media metadata file')}` : '';
+
+	return `Checked ${plural(result.checked, 'file')}${metadata}: ${counts.join(', ')}.`;
 }
 
 onMounted(check);
@@ -81,7 +83,7 @@ onMounted(check);
 			<div class="empty">
 				<AdminIcon name="circle-check" />
 				<p class="empty__heading">No Problems Found</p>
-				<p class="empty__text">Every content file passed{{ health.strict ? ', notices included' : '' }}.</p>
+				<p class="empty__text">Every file passed{{ health.strict ? ', notices included' : '' }}.</p>
 			</div>
 		</div>
 

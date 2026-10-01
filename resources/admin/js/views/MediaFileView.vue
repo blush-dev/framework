@@ -1,27 +1,37 @@
 <script setup lang="ts">
 /**
- * One file in the media library (D-251): a preview, its alt text and
- * caption (D-269), its facts, and what to write to use it.
+ * One file in the media library (D-251): a preview, its metadata, its
+ * facts, and what to write to use it.
  *
- * The alt text and caption are the library's own, kept in `user/data`
- * (`PATCH media/{path}`); the editor fills them in when the file is
- * inserted as an image (D-272: pages don't read them). What an entry
- * writes is its own, and editing it there never changes the library's.
- * They're saved when asked, and leaving with changes unsaved asks first.
+ * The metadata is the library's own, kept in `user/data` (`PATCH
+ * media/{path}`): the fields its kind has (D-287), as a form built from
+ * their definitions, as an entry's are (`FieldControl`), with keys the
+ * fields don't declare shown as they are and what doesn't fit under its
+ * field. What the file says about itself (D-289: its EXIF, IPTC, and
+ * XMP) is shown From the File, each value with **Use** to copy it into
+ * the field it fits (a title into the title, a creator or credit into
+ * the credit; captions only ever come from the library, D-290), and a file that carries its location says so, without
+ * where. Alt text and a caption are filled in when the file is inserted
+ * as an image (D-269), and a page's image without alt text uses the
+ * library's (D-270); what an entry writes is its own. Changes are saved
+ * when asked, only the fields that changed, and leaving with changes
+ * unsaved asks first.
  */
 
 import { computed, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import { ApiError, request, type MediaItem } from '../api';
+import FieldControl from '../components/FieldControl.vue';
+import { ApiError, request, type FieldDescription, type MediaDetail } from '../api';
+import { fromForm, toForm, type FormValue } from '../fields';
 import { attributeText, imageText } from '../markdown';
 import { formatDate, formatSize } from '../format';
-import { forgetFile } from '../media';
+import { forgetFile, formatDuration, mediaFacts, mediaName } from '../media';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
 
 const route = useRoute();
-const file  = ref<MediaItem | null>(null);
+const file  = ref<MediaDetail | null>(null);
 const error = ref('');
 
 const path = computed(() => {
@@ -32,18 +42,79 @@ const path = computed(() => {
 
 const address = computed(() => `/media/${path.value.split('/').map(encodeURIComponent).join('/')}`);
 
-// The fields, as typed.
-const alt     = ref('');
-const caption = ref('');
+// The fields, as typed, and as loaded.
+const form    = ref<Record<string, FormValue>>({});
+const initial = ref<Record<string, FormValue>>({});
 const saving  = ref(false);
 const failure = ref('');
+const invalid = ref<{ field: string; message: string } | null>(null);
 
-const changed = computed(() => file.value !== null && (alt.value.trim() !== file.value.alt || caption.value.trim() !== file.value.caption));
+const fields  = computed<FieldDescription[]>(() => file.value?.fields ?? []);
+const changes = computed(() => fields.value.filter((field) => form.value[field.name] !== initial.value[field.name]));
+const changed = computed(() => changes.value.length > 0);
+const altText = computed(() => typeof form.value.alt === 'string' ? form.value.alt.trim() : '');
+const extra   = computed(() => Object.entries(file.value?.extra ?? {}));
 
-function fill(item: MediaItem): void {
+// What the file says about itself, labeled, with the field each value
+// can fill, if the file's kind has it.
+const EMBEDDED: Record<string, { label: string; field?: string }> = {
+	title: { label: 'Title', field: 'title' },
+	description: { label: 'Description', field: 'description' },
+	creator: { label: 'Creator', field: 'credit' },
+	album: { label: 'Album' },
+	track: { label: 'Track' },
+	genre: { label: 'Genre' },
+	credit: { label: 'Credit', field: 'credit' },
+	copyright: { label: 'Copyright' },
+	keywords: { label: 'Keywords' },
+	created: { label: 'Made' },
+	camera: { label: 'Camera' },
+	lens: { label: 'Lens' },
+	focalLength: { label: 'Focal length' },
+	aperture: { label: 'Aperture' },
+	exposure: { label: 'Exposure' },
+	iso: { label: 'ISO' },
+	orientation: { label: 'Orientation' },
+	artwork: { label: 'Artwork' },
+	software: { label: 'Software' }
+};
+
+const embedded = computed(() => Object.entries(file.value?.embedded.values ?? {}).filter(([key]) => EMBEDDED[key] !== undefined).map(([key, value]) => {
+	const text  = Array.isArray(value) ? value.join(', ') : String(value);
+	const field = EMBEDDED[key]?.field;
+
+	return { key, label: EMBEDDED[key]?.label ?? key, text, field: field !== undefined && fields.value.some((item) => item.name === field) && form.value[field] !== text ? field : undefined };
+}));
+
+// Copies a value into a field, as typing it would; saving is still asked.
+function use(field: string, text: string): void {
+	form.value[field] = text;
+	document.getElementById(`media-${field}`)?.focus();
+}
+
+function fieldLabel(name: string): string {
+	const found = fields.value.find((field) => field.name === name);
+
+	return found?.label ?? name;
+}
+
+function fill(item: MediaDetail): void {
 	file.value    = item;
-	alt.value     = item.alt;
-	caption.value = item.caption;
+	form.value    = Object.fromEntries(item.fields.map((field) => [field.name, toForm(field, item.values[field.name])]));
+	initial.value = { ...form.value };
+	invalid.value = null;
+}
+
+// What's wrong with a field: what the last save refused, or what the
+// file holds that doesn't fit it.
+function errorFor(field: FieldDescription): string | undefined {
+	if (invalid.value?.field === field.name) {
+		return invalid.value.message;
+	}
+
+	const found = file.value?.violations.find((violation) => violation.field === field.name && violation.severity === 'error');
+
+	return found === undefined ? undefined : `${found.message.charAt(0).toUpperCase()}${found.message.slice(1)}`;
 }
 
 watch(path, async () => {
@@ -52,14 +123,14 @@ watch(path, async () => {
 	failure.value = '';
 
 	try {
-		fill(await request<MediaItem>('GET', address.value));
+		fill(await request<MediaDetail>('GET', address.value));
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'The file couldn\'t be loaded.';
 	}
 }, { immediate: true });
 
 watch(file, (value) => {
-	screenTitle.value = value?.name ?? null;
+	screenTitle.value = value === null ? null : mediaName(value);
 });
 
 async function save(): Promise<void> {
@@ -69,13 +140,31 @@ async function save(): Promise<void> {
 
 	saving.value  = true;
 	failure.value = '';
+	invalid.value = null;
+
+	const set: Record<string, unknown> = {};
+	const remove: string[] = [];
+
+	for (const field of changes.value) {
+		const value = fromForm(field, form.value[field.name] ?? '', file.value?.values[field.name]);
+
+		if (value === null) {
+			remove.push(field.name);
+		} else {
+			set[field.name] = value;
+		}
+	}
 
 	try {
-		fill(await request<MediaItem>('PATCH', address.value, { alt: alt.value, caption: caption.value }));
+		fill(await request<MediaDetail>('PATCH', address.value, { set, remove }));
 		forgetFile(file.value?.reference ?? '');
 		toast('Saved');
 	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'It couldn\'t be saved.';
+		if (caught instanceof ApiError && caught.field !== null) {
+			invalid.value = { field: caught.field, message: caught.message };
+		} else {
+			failure.value = caught instanceof ApiError ? caught.message : 'It couldn\'t be saved.';
+		}
 	} finally {
 		saving.value = false;
 	}
@@ -92,14 +181,25 @@ const snippet = computed(() => {
 		return '';
 	}
 
+	return written(item.reference);
+});
+
+// What an entry writes to show it, by a reference.
+function written(reference: string): string {
+	const item = file.value;
+
+	if (item === null) {
+		return '';
+	}
+
 	if (item.kind === 'image') {
-		return imageText(item.reference, item.alt, item.caption).text;
+		return imageText(reference, item.alt, item.caption).text;
 	}
 
 	const name = item.kind === 'video' ? 'video' : (item.kind === 'audio' ? 'audio' : 'file');
 
-	return `::blush/${name}{${attributeText('src', item.reference)}}`;
-});
+	return `::blush/${name}{${attributeText('src', reference)}}`;
+}
 
 async function copy(text: string, what: string): Promise<void> {
 	try {
@@ -114,9 +214,9 @@ async function copy(text: string, what: string): Promise<void> {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ file?.name ?? 'File' }}</h1>
+			<h1 tabindex="-1">{{ file ? mediaName(file) : 'File' }}</h1>
 			<p v-if="file" class="page-header__hint">
-				{{ file.mime }}{{ file.width !== null && file.height !== null ? ` · ${file.width} × ${file.height}` : '' }} · {{ formatSize(file.size) }}
+				<template v-if="file.title"><span class="mono">{{ file.name }}</span> · </template>{{ file.mime }} · {{ mediaFacts(file) }}
 			</p>
 		</div>
 		<div class="page-header__actions">
@@ -129,7 +229,7 @@ async function copy(text: string, what: string): Promise<void> {
 
 	<div v-if="file" class="detail">
 		<section class="panel preview" aria-label="Preview">
-			<img v-if="file.kind === 'image'" :src="file.url" :alt="`Preview of ${file.name}`">
+			<img v-if="file.kind === 'image'" :src="file.url" :alt="`Preview of ${mediaName(file)}`">
 			<video v-else-if="file.kind === 'video'" :src="file.url" controls preload="metadata" />
 			<audio v-else-if="file.kind === 'audio'" :src="file.url" controls preload="metadata" />
 			<AdminIcon v-else name="file" />
@@ -141,16 +241,24 @@ async function copy(text: string, what: string): Promise<void> {
 					<h2 id="text-heading">Details</h2>
 				</header>
 				<div class="panel__body text">
-					<div class="field">
-						<label for="media-alt">Alt text</label>
-						<textarea id="media-alt" v-model="alt" rows="3" placeholder="What it shows, for anyone who can't see it." aria-describedby="media-alt-help" />
-						<p v-if="file.kind === 'image' && alt.trim() === ''" id="media-alt-help" class="field__help text__warn"><AdminIcon name="triangle-alert" />No alt text. Images inserted from the library start without a description.</p>
-						<p v-else id="media-alt-help" class="field__help">Filled in when it's inserted as an image. Changing it here doesn't change what entries already wrote.</p>
-					</div>
-					<div class="field">
-						<label for="media-caption">Caption</label>
-						<input id="media-caption" v-model="caption" autocomplete="off" aria-describedby="media-caption-help">
-						<p id="media-caption-help" class="field__help">Shown under the image where it's inserted, as its quoted title.</p>
+					<p v-if="file.kind === 'image' && fields.some((field) => field.name === 'alt') && altText === ''" class="field__help text__warn"><AdminIcon name="triangle-alert" />No alt text. It's what the image shows, for anyone who can't see it; images inserted from the library start with it, and pages use it where they have none.</p>
+					<FieldControl
+						v-for="field in fields"
+						:key="`${file.reference}-${field.name}`"
+						:field="field"
+						id-prefix="media-"
+						:model-value="form[field.name] ?? ''"
+						:error="errorFor(field)"
+						@update:model-value="form[field.name] = $event"
+					/>
+					<div v-if="extra.length" class="text__extra">
+						<p class="field__help">Also in its metadata file, kept as they are:</p>
+						<dl>
+							<div v-for="[key, value] in extra" :key="key">
+								<dt class="mono">{{ key }}</dt>
+								<dd class="mono">{{ typeof value === 'string' ? value : JSON.stringify(value) }}</dd>
+							</div>
+						</dl>
 					</div>
 					<p v-if="failure" class="field__error" role="alert">{{ failure }}</p>
 					<div class="text__actions">
@@ -159,6 +267,25 @@ async function copy(text: string, what: string): Promise<void> {
 					</div>
 				</div>
 			</form>
+
+			<section v-if="embedded.length || file.embedded.location" class="panel" aria-labelledby="embedded-heading">
+				<header class="panel__header">
+					<h2 id="embedded-heading">From the File</h2>
+					<span class="panel__hint">What it says about itself</span>
+				</header>
+				<div class="panel__body embedded">
+					<p v-if="file.embedded.location" class="field__help text__warn"><AdminIcon name="triangle-alert" />This file carries where it was taken (GPS). The site never shows it, but anyone who downloads the file can read it.</p>
+					<dl v-if="embedded.length" class="facts">
+						<div v-for="item in embedded" :key="item.key">
+							<dt>{{ item.label }}</dt>
+							<dd>
+								<span>{{ item.text }}</span>
+								<button v-if="item.field" type="button" class="button button--ghost button--small" @click="use(item.field, item.text)">Use<span class="visually-hidden"> as the {{ fieldLabel(item.field).toLowerCase() }}</span></button>
+							</dd>
+						</div>
+					</dl>
+				</div>
+			</section>
 
 			<section class="panel" aria-labelledby="details-heading">
 				<header class="panel__header">
@@ -169,6 +296,7 @@ async function copy(text: string, what: string): Promise<void> {
 					<div><dt>Type</dt><dd class="mono">{{ file.mime }}</dd></div>
 					<div><dt>Size</dt><dd>{{ formatSize(file.size) }}</dd></div>
 					<div v-if="file.width !== null && file.height !== null"><dt>Dimensions</dt><dd>{{ file.width }} × {{ file.height }}</dd></div>
+					<div v-if="file.duration !== null"><dt>Length</dt><dd>{{ formatDuration(file.duration) }}</dd></div>
 					<div><dt>Changed</dt><dd>{{ formatDate(file.modified) }}</dd></div>
 				</dl>
 			</section>
@@ -201,9 +329,13 @@ async function copy(text: string, what: string): Promise<void> {
 	gap: 16px;
 }
 
+/* One column at the side's own width, so a long snippet scrolls inside
+   its box rather than widening the column. */
 .detail__side {
 	display: grid;
+	grid-template-columns: minmax(0, 1fr);
 	gap: 16px;
+	min-width: 0;
 }
 
 .preview {
@@ -275,6 +407,40 @@ async function copy(text: string, what: string): Promise<void> {
 	width: 14px;
 	height: 14px;
 	margin-top: 1px;
+}
+
+.embedded {
+	display: grid;
+	gap: var(--s-3);
+}
+
+.embedded .facts dd {
+	display: flex;
+	align-items: baseline;
+	justify-content: flex-end;
+	gap: var(--s-2);
+	min-width: 0;
+}
+
+.embedded .facts dd .button {
+	flex: none;
+}
+
+.text__extra dl {
+	display: grid;
+	gap: 6px;
+	margin: 6px 0 0;
+}
+
+.text__extra dt {
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+}
+
+.text__extra dd {
+	margin: 0;
+	font-size: var(--text-xs);
+	overflow-wrap: anywhere;
 }
 
 .text__actions {

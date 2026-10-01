@@ -18,9 +18,8 @@ use Attribute;
 /**
  * Marks a component's constructor parameter as a media reference (D-179),
  * so it's a `media` field in its definition. In Markdown, the reference
- * is resolved like an image's before the component gets it: a file next
- * to the entry (`clip.mp4`, in a page bundle) or in the media folder
- * becomes its URL.
+ * is resolved like an image's before the component gets it: a file in
+ * the media folder becomes its URL.
  *
  * ```php
  * public function __construct(#[MediaProp] public readonly string $src = '') {}

@@ -112,8 +112,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   while typing after a slash, and Escape leaves the slash as text. The
   panel opened by a slash closes once a component replaces it.
 - **The media picker** (D-246, D-247, D-265, D-268): the library comes
-  from `user/media` newest first, a page at a time with **Show more**,
-  with "Beside This Entry" for a page bundle. The Upload tab (only for
+  from `user/media` newest first, a page at a time with **Show more**
+  (no "Beside This Entry": media is only in `user/media`, D-294). The Upload tab (only for
   `media.upload`; the menu is a plain button without it) takes the
   library's types as the site allows them (images, sound, video; no
   PDFs by default), up to PHP's limit, into `user/media/{year}/{month}/`.
@@ -176,10 +176,11 @@ Each is recorded in `.claude/docs/decisions.md`.
   which §8 keeps for View and Entry.
 - **Media** (D-251, D-268, D-269): **Upload** opens the picker on its
   Upload tab and **Open** goes to the file. A file's screen has a
-  Details panel with Alt text (warned when an image has none) and
-  Caption, saved with **Save**; no file name, credit, "used in",
-  Replace, or Delete yet. Bundle files are in the editor's picker, not
-  the library screen, so their metadata is read but set by hand.
+  Details panel built from the file's fields (D-287: title, alt text
+  (warned when an image has none), caption, credit, description, and a
+  site's own), saved with **Save**; no rename, "used in", Replace, or
+  Delete yet. Only `user/media` is listed (D-294 removed D-292's page
+  bundle files and its **Where** control).
 - **Content types** (D-250): read-only; no field editor, new-type wizard,
   or delete yet. "Show in the sidebar" and a hierarchy switch aren't type
   settings in Blush. Entries counts are what the account may edit.

@@ -82,6 +82,10 @@ final readonly class Publish
 			count($index->removed ?? [])
 		), Verbosity::Verbose);
 
+		if ($report->media !== null) {
+			$output->line(sprintf('Indexed %d media files (%d added, %d changed, %d removed).', $report->media->total, count($report->media->added), count($report->media->changed), count($report->media->removed)), Verbosity::Verbose);
+		}
+
 		foreach (['routes' => $report->routes, 'content types' => $report->types] as $label => $rewritten) {
 			if ($rewritten) {
 				$output->line(sprintf('Recompiled the %s.', $label), Verbosity::Verbose);

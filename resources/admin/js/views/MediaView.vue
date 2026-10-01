@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /**
- * Media (D-251): the library in `user/media`, newest first, as a grid of
- * files with a search and filters by kind, then a screen for each file
+ * Media (D-251): the library in `user/media`, newest first, from the
+ * media index (D-288), as a grid of files with a search (names and
+ * details), filters by kind, and **Missing alt text** for images without
+ * it, each marked in the grid; then a screen for each file
  * (admin.md §8, List, then detail). **Upload** opens the media picker on
  * its Upload tab (D-268): one uploader, one set of rules about what a
  * file may be; **Open** goes to the file's screen.
@@ -10,9 +12,9 @@
 import { ref, watch } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import { mediaFacts, mediaName } from '../media';
 import MediaPicker from '../components/MediaPicker.vue';
 import { ApiError, request, type MediaItem, type MediaList } from '../api';
-import { formatSize } from '../format';
 import type { IconName } from '../icons';
 
 const files   = ref<MediaItem[]>([]);
@@ -21,6 +23,7 @@ const page    = ref(1);
 const pages   = ref(1);
 const search  = ref('');
 const kind    = ref<'any' | 'image' | 'video' | 'audio' | 'file'>('any');
+const missing = ref(false);
 const loading = ref(true);
 const error   = ref('');
 
@@ -40,6 +43,10 @@ async function load(more = false): Promise<void> {
 
 	if (search.value.trim() !== '') {
 		params.set('search', search.value.trim());
+	}
+
+	if (missing.value) {
+		params.set('missing', 'alt');
 	}
 
 	loading.value = true;
@@ -72,7 +79,15 @@ watch(search, () => {
 	typing = setTimeout(() => void load(), 250);
 });
 
-watch(kind, () => void load());
+watch([kind, missing], () => void load());
+
+const filtered = (): boolean => search.value !== '' || kind.value !== 'any' || missing.value;
+
+function clear(): void {
+	search.value  = '';
+	kind.value    = 'any';
+	missing.value = false;
+}
 
 void load();
 
@@ -81,9 +96,7 @@ function icon(file: MediaItem): IconName {
 }
 
 function details(file: MediaItem): string {
-	const size = formatSize(file.size);
-
-	return file.width !== null && file.height !== null ? `${file.width} × ${file.height} · ${size}` : size;
+	return mediaFacts(file);
 }
 
 // A library file's screen is at its path under `user/media`.
@@ -122,11 +135,12 @@ function closed(): void {
 			<div class="segmented" role="group" aria-label="Kind">
 				<button v-for="item in KINDS" :key="item.key" type="button" :aria-pressed="kind === item.key" @click="kind = item.key">{{ item.label }}</button>
 			</div>
+			<button type="button" class="button button--small toggle" :aria-pressed="missing" @click="missing = !missing"><AdminIcon name="triangle-alert" />Missing alt text</button>
 			<p class="panel__hint" aria-live="polite">{{ loading && !files.length ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'file' : 'files'}` }}</p>
 			<label class="search-field search">
 				<AdminIcon name="search" />
-				<span class="visually-hidden">Search file names</span>
-				<input v-model="search" type="search" placeholder="Search file names…" autocomplete="off">
+				<span class="visually-hidden">Search names and details</span>
+				<input v-model="search" type="search" placeholder="Search names and details…" autocomplete="off">
 			</label>
 		</header>
 
@@ -137,10 +151,11 @@ function closed(): void {
 					<RouterLink class="card" :to="{ name: 'media-file', params: { path: path(file) } }">
 						<span class="card__thumb">
 							<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
+							<span v-if="file.kind === 'image' && file.alt === ''" class="card__warn" title="No alt text"><AdminIcon name="triangle-alert" /><span class="visually-hidden">No alt text</span></span>
 							<template v-else><AdminIcon :name="icon(file)" /><span class="card__kind mono">{{ file.kind }}</span></template>
 						</span>
 						<span class="card__text">
-							<span class="card__name">{{ file.name }}</span>
+							<span class="card__name" :title="file.name">{{ mediaName(file) }}</span>
 							<span class="card__meta mono">{{ details(file) }}</span>
 						</span>
 					</RouterLink>
@@ -151,9 +166,9 @@ function closed(): void {
 			</div>
 			<div v-else-if="!error" class="empty">
 				<AdminIcon name="image" />
-				<p class="empty__heading">{{ search || kind !== 'any' ? 'No Files Match' : 'The Library Is Empty' }}</p>
-				<p class="empty__text">{{ search || kind !== 'any' ? 'Try another name or kind.' : 'Images, video, and sound you upload land here, and any entry can use them.' }}</p>
-				<button v-if="search || kind !== 'any'" type="button" class="button" @click="search = ''; kind = 'any'">Clear filters</button>
+				<p class="empty__heading">{{ missing && !search && kind === 'any' ? 'Every Image Has Alt Text' : (filtered() ? 'No Files Match' : 'The Library Is Empty') }}</p>
+				<p class="empty__text">{{ missing && !search && kind === 'any' ? 'Nothing left to describe.' : (filtered() ? 'Try another name or kind.' : 'Images, video, and sound you upload land here, and any entry can use them.') }}</p>
+				<button v-if="filtered()" type="button" class="button" @click="clear">Clear filters</button>
 				<button v-else type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload your first file</button>
 			</div>
 			<p v-if="page < pages" class="more">
@@ -223,6 +238,33 @@ function closed(): void {
 	width: 28px;
 	height: 28px;
 	stroke-width: 1.5;
+}
+
+/* A pressed toggle reads as on: accent ink on a soft fill. */
+.toggle[aria-pressed="true"] {
+	border-color: var(--accent-line);
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
+/* An image without alt text is marked on its thumbnail, with the words
+   read out: never color alone. */
+.card__warn {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: var(--warn-soft);
+	color: var(--warn);
+}
+
+.card__warn :deep(svg) {
+	width: 14px;
+	height: 14px;
 }
 
 /* A kind only where the thumbnail is a placeholder. */

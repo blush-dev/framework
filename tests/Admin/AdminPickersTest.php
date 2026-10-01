@@ -80,8 +80,7 @@ final class AdminPickersTest extends TestCase
 
 		$this->assertIsArray($first);
 		$this->assertSame(['/media/2026/new-photo.png', '2026', 'image', 1, 1], [$first['reference'], $first['folder'], $first['kind'], $first['width'], $first['height']]);
-		$this->assertArrayHasKey('beside', $list);
-		$this->assertNull($list['beside'], 'Only a bundle has files beside it.');
+		$this->assertArrayNotHasKey('beside', $list, 'Nothing beside an entry is media (D-294).');
 	}
 
 	public function testSearchesPagesAndFilters(): void
@@ -98,23 +97,33 @@ final class AdminPickersTest extends TestCase
 		}
 	}
 
-	public function testListsABundlesOwnFiles(): void
+	public function testFiltersByMissingAltTextAndSearchesMetadata(): void
 	{
 		$this->site();
 
-		$beside = $this->media('?entry=trip/index.md')['beside'] ?? null;
+		$names = fn (string $query): array => array_column((array) ($this->media($query)['files'] ?? []), 'name');
 
-		$this->assertIsArray($beside);
-		$this->assertSame(['beach.png'], array_column($beside, 'reference'), 'A bundle file is referred to by name.');
-		$this->assertSame(404, $this->send('GET', '/media?entry=missing.md')->getStatusCode());
+		$this->assertSame(['new-photo.png', 'old.png'], $names('?missing=alt'));
+		$this->assertSame(200, $this->patch('2026/new-photo.png', ['alt' => 'A red kite over the hill'])->getStatusCode());
+		$this->assertSame(['old.png'], $names('?missing=alt'), 'The list follows a save at once.');
+		$this->assertSame(['new-photo.png'], $names('?search=KITE'), 'Alt text is searched.');
+		$this->assertSame(400, $this->send('GET', '/media?missing=caption')->getStatusCode());
+	}
+
+	public function testNothingBesideAnEntryIsMedia(): void
+	{
+		$this->site();
+
+		$this->assertSame(404, $this->send('GET', '/media/_content/trip/beach.png')->getStatusCode(), 'A file beside an entry isn\'t in the library (D-294).');
+		$this->assertSame(404, $this->patch('_content/trip/beach.png', ['alt' => 'Sand and sea'])->getStatusCode());
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/_content/trip/beach.png.yml');
 	}
 
 	public function testChecksWhoMayUseMedia(): void
 	{
 		$this->site(['author']);
 
-		$this->assertSame(404, $this->send('GET', '/media?entry=other.md')->getStatusCode(), 'An author may not look beside someone else\'s entry.');
-		$this->assertSame(200, $this->send('GET', '/media?entry=trip/index.md')->getStatusCode());
+		$this->assertSame(200, $this->send('GET', '/media')->getStatusCode(), 'An author may choose media.');
 	}
 
 	public function testDescribesOneLibraryFile(): void
@@ -251,22 +260,12 @@ final class AdminPickersTest extends TestCase
 		$this->assertFileDoesNotExist($data, 'A file with nothing to say goes.');
 	}
 
-	public function testABundleFilesMetadataIsUnderContent(): void
-	{
-		$this->writeTemporaryFile('user/data/media/_content/trip/beach.png.yaml', "alt: Sand and sea\ncaption: [not, text]\n");
-		$this->site();
-
-		$beside = $this->media('?entry=trip/index.md')['beside'] ?? null;
-
-		$this->assertIsArray($beside);
-		$this->assertSame(['Sand and sea', ''], is_array($beside[0] ?? null) ? [$beside[0]['alt'] ?? null, $beside[0]['caption'] ?? null] : null);
-	}
-
 	public function testChecksChangesToMetadata(): void
 	{
 		$this->site();
 
-		$this->assertSame(400, $this->patch('2026/new-photo.png', ['alt' => 3])->getStatusCode());
+		$this->assertSame(422, $this->patch('2026/new-photo.png', ['alt' => ['not', 'text']])->getStatusCode());
+		$this->assertSame(400, $this->patch('2026/new-photo.png', ['set' => 'x'])->getStatusCode());
 		$this->assertSame(404, $this->patch('2026/missing.png', ['alt' => 'x'])->getStatusCode());
 		$this->assertSame(404, $this->patch('notes.txt', ['alt' => 'x'])->getStatusCode());
 

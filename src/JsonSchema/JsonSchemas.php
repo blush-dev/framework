@@ -18,7 +18,9 @@ use Blush\Component\ComponentName;
 use Blush\Component\Variant;
 use Blush\Content\EntryFields;
 use Blush\Content\Schema\FieldType;
+use Blush\Content\Schema\Schema;
 use Blush\Core\Framework;
+use Blush\Media\MediaSchemas;
 use Blush\Menu\Link\MenuLinkType;
 use Blush\Region\Item\RegionItemType;
 use Blush\Translation\LocaleMap;
@@ -84,6 +86,7 @@ final readonly class JsonSchemas
 		return [
 			'entry.schema.json'     => $this->entry(),
 			'extension.schema.json' => $this->extension(),
+			'media.schema.json'     => $this->media(),
 			'menu.schema.json'      => $this->menu(),
 			'region.schema.json'    => $this->region(),
 			'theme.schema.json'     => $this->theme()
@@ -228,6 +231,33 @@ final readonly class JsonSchemas
 				'autoload'    => $this->autoload('Namespace prefixes, each ending in a backslash, and the folders inside the extension their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.', true),
 				'requires'    => $this->requires('What the extension needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other extensions.')
 			]
+		];
+	}
+
+	/**
+	 * Returns the schema for a media file's metadata file
+	 * (`user/data/media/…`, D-287): the built-in fields, every kind's and
+	 * each kind's together, since a data file doesn't say its kind. A
+	 * site's and extensions' fields differ by site, so other keys are
+	 * allowed.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function media(): array
+	{
+		$fields = [];
+
+		foreach (MediaSchemas::builtIn() as $set) {
+			foreach ($set->fields as $field) {
+				$fields[$field->name] = $field;
+			}
+		}
+
+		return [
+			'$schema'     => self::DRAFT,
+			'title'       => sprintf('%s media metadata', Framework::NAME),
+			'description' => 'A media file\'s metadata, kept in user/data/media: the built-in fields (alt is for images). Sites and extensions add their own.',
+			...new Schema($fields)->jsonSchema()
 		];
 	}
 

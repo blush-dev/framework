@@ -125,29 +125,29 @@ final class MediaComponentsTest extends TestCase
 		$this->assertInstanceOf(MediaField::class, $props[0]);
 	}
 
-	public function testTheyRenderFromABundle(): void
+	public function testTheyRenderLibraryFiles(): void
 	{
 		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
 			---
 			title: Trip
 			---
-			::video[Launch]{src=clip.mp4 poster=poster.png track=clip.vtt muted}
+			::video[Launch]{src=/media/trip/clip.mp4 poster=/media/trip/poster.png track=/media/trip/clip.vtt muted}
 
 			::audio{src=/media/song.mp3 preload=none loop}
 
-			::file[The notes]{src=clip.vtt}
+			::file[The notes]{src=/media/trip/clip.vtt}
 
 			::file{src=https://example.com/report.pdf}
 
 			:::figure[The poster]
-			![A poster](poster.png "Not a second caption")
+			![A poster](/media/trip/poster.png "Not a second caption")
 			:::
 
 			::video{src=missing.mp4}
 			MD);
-		$this->mp4('user/content/trip/clip.mp4');
-		$this->png('user/content/trip/poster.png', 32, 18);
-		$this->writeTemporaryFile('user/content/trip/clip.vtt', "WEBVTT\n");
+		$this->mp4('user/media/trip/clip.mp4');
+		$this->png('user/media/trip/poster.png', 32, 18);
+		$this->writeTemporaryFile('user/media/trip/clip.vtt', "WEBVTT\n");
 		$this->writeTemporaryFile('user/media/song.mp3', self::mp3());
 
 		$app = $this->scratchApplication(['APP_ENV' => 'development']);
@@ -155,16 +155,16 @@ final class MediaComponentsTest extends TestCase
 
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/trip'))->getBody();
 
-		$this->assertStringContainsString('<video class="component-video__player" src="http://localhost/media/_content/trip/clip.mp4" controls playsinline preload="metadata" poster="http://localhost/media/_content/trip/poster.png" width="32" height="18" muted>', $html);
-		$this->assertStringContainsString('<track class="component-video__track" kind="captions" src="http://localhost/media/_content/trip/clip.vtt" srclang="en" label="Captions" default>', $html);
-		$this->assertStringContainsString('<a href="http://localhost/media/_content/trip/clip.mp4">Download the video</a>', $html);
+		$this->assertStringContainsString('<video class="component-video__player" src="http://localhost/media/trip/clip.mp4" controls playsinline preload="metadata" poster="http://localhost/media/trip/poster.png" width="32" height="18" muted>', $html);
+		$this->assertStringContainsString('<track class="component-video__track" kind="captions" src="http://localhost/media/trip/clip.vtt" srclang="en" label="Captions" default>', $html);
+		$this->assertStringContainsString('<a href="http://localhost/media/trip/clip.mp4">Download the video</a>', $html);
 		$this->assertStringContainsString('<figcaption>Launch</figcaption>', $html);
 		$this->assertStringContainsString('<audio class="component-audio__player" src="http://localhost/media/song.mp3" controls preload="none" loop>', $html);
-		$this->assertStringContainsString('<a class="component-file__link" href="http://localhost/media/_content/trip/clip.vtt" download>The notes</a>', $html);
+		$this->assertStringContainsString('<a class="component-file__link" href="http://localhost/media/trip/clip.vtt" download>The notes</a>', $html);
 		$this->assertStringContainsString('<span class="component-file__details">(VTT, 7 B)</span>', $html);
 		$this->assertStringContainsString('<a class="component-file__link" href="https://example.com/report.pdf" download>report.pdf</a>', $html);
 		$this->assertStringContainsString('<span class="component-file__details">(PDF)</span>', $html);
-		$this->assertMatchesRegularExpression('#<figure class="component-figure">\s*<img width="32" height="18" src="http://localhost/media/_content/trip/poster.png" alt="A poster" title="Not a second caption" />\s*<figcaption>The poster</figcaption>#', $html, 'The figure is the container; its image stands alone.');
+		$this->assertMatchesRegularExpression('#<figure class="component-figure">\s*<img width="32" height="18" src="http://localhost/media/trip/poster.png" alt="A poster" title="Not a second caption" />\s*<figcaption>The poster</figcaption>#', $html, 'The figure is the container; its image stands alone.');
 
 		// A file that isn't there stays as written.
 		$this->assertStringContainsString('<video class="component-video__player" src="missing.mp4"', $html);

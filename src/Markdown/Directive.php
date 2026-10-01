@@ -17,9 +17,7 @@ namespace Blush\Markdown;
  * A generic directive found in Markdown (D-026), handed to the
  * `DirectiveRenderer`: its name, kind, attributes, label (plain text),
  * content (HTML: a container's rendered blocks, or the escaped label of a
- * leaf or inline directive), and the base folder under `user/content` of
- * the entry it's in, for resolving bundle media (D-179). A table of
- * contents directive also gets the document's outline (D-183): each
+ * leaf or inline directive). A table of contents directive also gets the document's outline (D-183): each
  * heading's level, plain text, and link target, in order.
  */
 final readonly class Directive
@@ -34,7 +32,6 @@ final readonly class Directive
 		public array $attributes = [],
 		public string $label = '',
 		public string $content = '',
-		public string $base = '',
 		public array $outline = []
 	) {}
 }

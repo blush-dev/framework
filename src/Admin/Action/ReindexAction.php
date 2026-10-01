@@ -17,16 +17,18 @@ use Override;
 use Blush\Auth\Capability;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Index\Indexer;
+use Blush\Media\Index\MediaIndexer;
 
 /**
  * Brings the content index up to date with the files, as `content:index`
- * does. When anything changed, the content version moves on, so cached
+ * does, then the media index, as `media:index` does (D-288). When anything changed, the content version moves on, so cached
  * pages that showed the old content aren't served again.
  */
 final class ReindexAction extends AdminAction
 {
 	public function __construct(
 		private readonly Indexer $indexer,
+		private readonly MediaIndexer $media,
 		private readonly ContentVersion $version
 	) {}
 
@@ -45,7 +47,7 @@ final class ReindexAction extends AdminAction
 	#[Override]
 	public function description(): string
 	{
-		return 'Update the content index from the files, without pulling or clearing other caches.';
+		return 'Update the content and media indexes from the files, without pulling or clearing other caches.';
 	}
 
 	/**
@@ -64,6 +66,7 @@ final class ReindexAction extends AdminAction
 	public function run(): ActionResult
 	{
 		$report = $this->indexer->index();
+		$media  = $this->media->index();
 
 		if ($report->written) {
 			$this->version->bump();
@@ -76,7 +79,7 @@ final class ReindexAction extends AdminAction
 			count($report->added),
 			count($report->changed),
 			count($report->removed)
-		);
+		) . sprintf(' Indexed %d media %s.', $media->total, $media->total === 1 ? 'file' : 'files');
 
 		if ($report->failures === []) {
 			return ActionResult::success($summary);

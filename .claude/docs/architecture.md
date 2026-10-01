@@ -282,9 +282,10 @@ is in that decision.
 - A `_` prefix on a file name, or on a folder between the type's folder
   and the file, means hidden (D-088).
 - A `_drafts/` folder or `status: draft` marks unpublished entries.
-- **Page bundles:** `slug/index.md` is the entry `slug`, listed in the
-  folder above, next to its own media, which resolves relative to the
-  entry. `index` directly in a type's folder is the landing page instead.
+- **Folder entries:** `slug/index.md` is the entry `slug`, listed in the
+  folder above. `index` directly in a type's folder is the landing page
+  instead. Media is never kept beside an entry (D-294): only
+  `user/media` is media.
 - **Data-only entries** (`.yaml`, `.json`) and other user data (menus,
   authors, redirects) live in `user/data/`.
 - `_errors/404.md` and `_errors/500.md` are error pages (1.x's `_error/`
@@ -378,8 +379,8 @@ Implemented in M4a (D-080, D-085, D-086).
   1.x's rendering is built in (D-100): local media links point at the
   media URL and images get their dimensions, root-relative links become
   absolute, and a lone image becomes a `<figure>` with its title as the
-  caption. `toHtml($markdown, $base)` resolves bundle media against the
-  entry's folder.
+  caption. Media references resolve from the site root, never against
+  the entry's folder (D-294), so `toHtml($markdown)` takes no base.
 - **Content components:** generic directives (`:::name`, `::name`,
   `:name[text]`, D-026) parsed by an in-house CommonMark extension and
   rendered through `DirectiveRenderer` as theme or site components
@@ -428,7 +429,10 @@ Implemented in M4b (D-087, D-090).
   `redirect_from`. URLs are resolved by the router's content routes, not
   the repository. A stale index (another fingerprint) is rebuilt on first
   use in any environment (D-098).
-- **`Linter`** checks every file for `content:lint` (D-091).
+- **`Linter`** checks every file for `content:lint` (D-091), then the
+  media metadata files (`Media\MediaMetadataCheck`, D-293: unreadable,
+  out-of-schema, hidden, and orphaned ones, by their path from the site
+  root).
 - **`ContentWriter`** (D-228; `Blush\Content\Writer`, `FilesystemWriter`
   by default): `load` (raw front matter, body, and a revision hash),
   `create`, `update` (`EntryChanges`: set, remove, body), `rename` (a
@@ -475,34 +479,51 @@ Implemented in M4b (D-089).
 
 Implemented in M4c (D-099), apart from image derivatives.
 
-- Originals live in `user/media` and in page bundles.
+- Originals live in `user/media` only (D-294: no page bundle media).
 - **`MediaConfig`:** the media URL (`/media` by default; jtcom uses
   `/user/media`) and the MIME allowlist (1.x's images, audio, and video).
 - **`MediaResolver`:** turns front matter and Markdown references into
   `MediaFile`s (path, URL, MIME, size, dimensions): media URL paths and
-  1.x `/user/media/...` paths into `user/media`, and relative paths into
-  the entry's page bundle (served at `{url}/_content/...`).
+  1.x `/user/media/...` paths into `user/media`; a relative path is read
+  from the site root (D-190). `fromKey()` resolves a media key (its path
+  under `user/media`), as the index and metadata files name files.
 - **Serving** (web root is `public/`): `media:publish` links `public{url}`
   to `user/media` (or copies the allowed files with `--copy`). The
   `MediaController` streams anything unpublished, with ranges, `nosniff`,
   and sandboxed SVGs.
-- **Metadata (D-238, begun in D-269):** fields for media (alt, caption,
-  credit, description, and a site's own), defined like content type
-  schemas but without a body, status, or URLs. Stored in
-  `user/data/media/`, mirroring the media paths (`{path}.yml`; bundle
-  media under `_content/`), never next to the file. Built so far: alt
-  text and caption (`MediaMetadata`), read and written by
-  `MediaMetadataStore` (YAML edited key by key with `YamlMap`, JSON
-  kept JSON, an empty file removed), answered with every file by
-  `GET media` and changed by `PATCH media/{path}`. Pages don't read them
-  (D-272): the editor fills them in on insert, and empty brackets render
-  as `alt=""`. Embedded metadata
-  (EXIF, IPTC, XMP, ID3) is read by per-format readers (in-house or a
-  library behind the interface, undecided) and cached with
-  the media index, reread only when the file changes. Media records sit
-  in the index beside entries for the media library. When rendering, a
-  value set where the media is used wins, then the metadata file, then
-  embedded metadata.
+- **Metadata (D-238, D-269, D-287):** fields for media, defined with
+  content types' field types but without a body, status, or URLs, by
+  kind (`MediaKind`: image, video, audio, file). `MediaSchemas` builds a
+  kind's schema from the built-in sets (`caption`, `credit`,
+  `description` for all; `alt` for images), extensions'
+  (`MediaFieldSource`), `user/data/media-fields`, and `MediaConfig::
+  $fields`, in that order, the kind's own fields first. Values are
+  stored in `user/data/media/`, mirroring the media paths (`{path}.yml`),
+  never next to the file, as
+  `MediaMetadata` (values by key), read and written by
+  `MediaMetadataStore` (only the keys changed, under the name or alias
+  in use; YAML edited key by key with `YamlMap`, JSON kept JSON, an
+  empty file removed). `GET media/{path}` answers the fields, values,
+  other keys, and violations; `PATCH media/{path}` sets and removes
+  fields, checked by their fields. Pages use the library's alt text
+  where an image has none (D-270); captions fill in on insert only.
+  **The media index (D-288)** is separate from the content index:
+  `Media\Index\MediaIndexer` records every library file
+  (type, size, dimensions, metadata values) in `storage/index/media.php`
+  (`MediaIndex`), incrementally by stat and metadata file time, with
+  orphaned metadata files (one walk, `MediaMetadataStore::files()`,
+  shared with `content:lint`); `MediaLibrary` keeps it fresh (on first use,
+  in development each request, after admin writes; else `media:index`
+  and `publish`) and answers `MediaQuery`s (search, kind, missing
+  alt text), which `GET media` lists. **Embedded metadata
+  (D-289, D-291)**: `Media\Embedded` readers (XMP, IPTC, EXIF for
+  images; ID3, MP4, Ogg, RIFF, and Matroska for sound and video, over
+  `BinaryFile`; Type enum,
+  registry, factory, registrar) merged by `EmbeddedMetadataReader` into
+  one set of keys, cached in each image's record and reread only when
+  the file changes; the location is kept apart and never answered.
+  Still planned: when rendering, a value set where the media is used
+  wins, then the metadata file, then embedded metadata.
 - **Variants (planned, D-239):** resized copies imported from WordPress
   (`photo-300x200.jpg`, `-scaled`, `-rotated`, edited `-e{time}`) are
   grouped under their original, which holds the metadata and is the

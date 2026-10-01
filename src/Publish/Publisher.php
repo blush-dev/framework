@@ -18,6 +18,7 @@ use Blush\Cache\Caches;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Index\IndexException;
 use Blush\Content\Index\Indexer;
+use Blush\Media\Index\MediaIndexer;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\InvalidContentType;
@@ -38,7 +39,7 @@ use Blush\Routing\RouteCache;
  *    table if they exist, so `user/data/types` and data-file redirects
  *    take effect (D-097). A change to the types makes the next request
  *    rebuild the index (D-098).
- * 3. Reindex incrementally.
+ * 3. Reindex content incrementally, then media (D-288).
  * 4. Clear the cache store and move the content version on.
  * 5. Dispatch `ContentPublished`.
  *
@@ -52,6 +53,7 @@ final readonly class Publisher
 		private AppConfig $app,
 		private Puller $puller,
 		private Indexer $indexer,
+		private MediaIndexer $media,
 		private ContentTypeCache $types,
 		private RouteCache $routes,
 		private Caches $caches,
@@ -89,6 +91,7 @@ final readonly class Publisher
 			}
 
 			$index  = $this->indexer->index();
+			$media  = $this->media->index();
 			$routes = $compiled && is_file($this->routes->path());
 
 			if ($routes) {
@@ -101,6 +104,7 @@ final readonly class Publisher
 			$report = new PublishReport(
 				pull: $pulled,
 				index: $index,
+				media: $media,
 				routes: $routes,
 				types: $types,
 				cleared: $cleared,

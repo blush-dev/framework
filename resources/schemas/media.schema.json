@@ -1,0 +1,43 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework media metadata",
+	"description": "A media file's metadata, kept in user/data/media: the built-in fields (alt is for images). Sites and extensions add their own.",
+	"type": "object",
+	"properties": {
+		"title": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "What the library calls it, in place of its file name."
+		},
+		"caption": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "Shown with the file where it's used, such as under an image."
+		},
+		"credit": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "Who made it, or where it's from."
+		},
+		"description": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "A longer description, for the library."
+		},
+		"alt": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "Alt text: What the image shows, for anyone who can't see it."
+		}
+	}
+}

@@ -26,7 +26,8 @@ use Blush\Http\Status;
 
 /**
  * Answers `GET {path}/api/health`: the content's problems, as
- * `content:lint` finds them (D-225). Errors and warnings by default;
+ * `content:lint` finds them (D-225), media metadata files included
+ * (D-293). Errors and warnings by default;
  * `?strict=1` adds notices (undeclared keys, 1.x names, virtual terms).
  * It reads every file, so it runs when asked, not on the dashboard.
  *
@@ -63,14 +64,15 @@ final readonly class HealthController
 		}
 
 		return Response::json([
-			'checked' => $report->checked,
-			'strict'  => $strict,
-			'counts'  => [
+			'checked'  => $report->checked,
+			'metadata' => $report->metadata,
+			'strict'   => $strict,
+			'counts'   => [
 				'error'   => $report->count(Severity::Error),
 				'warning' => $report->count(Severity::Warning),
 				'notice'  => $strict ? $report->count(Severity::Notice) : null
 			],
-			'files'   => $files
+			'files'    => $files
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 }

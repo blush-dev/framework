@@ -34,8 +34,6 @@ const props = defineProps<{
 	source: string;
 	image: MarkdownImage;
 	variants: ComponentVariant[];
-	// The entry, for a file beside it.
-	entry?: string;
 }>();
 
 const emit = defineEmits<{
@@ -118,7 +116,7 @@ const libraryAlt = computed(() => file.value?.alt ?? '');
 
 		<div class="options__group">
 			<p class="options__heading">Image</p>
-			<ImagePreview :src="image.src" :entry="entry" @pick="emit('pick')" @remove="emit('remove')" @resolved="file = $event" />
+			<ImagePreview :src="image.src" @pick="emit('pick')" @remove="emit('remove')" @resolved="file = $event" />
 		</div>
 
 		<div class="options__group">

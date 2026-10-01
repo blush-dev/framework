@@ -39,7 +39,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `content:new <type> "<title>"` | Create an entry. `--slug=` sets its URL name; `--draft` makes it a draft. Dated types get a date in the file name. |
 | `content:list` | List every entry. `--type=post` and `--status=draft` (or `published`, `scheduled`) narrow it down. |
 | `content:preview <type> <name>` | Print a [preview link](admin.md#previewing-drafts) to an entry, even a draft. `--hours=` sets how long it works. |
-| `content:lint` | Check front matter for problems. `--strict` also reports unknown keys and 1.x names. |
+| `content:lint` | Check front matter, and media details in `user/data/media/`, for problems. `--strict` also reports unknown keys and 1.x names. |
 | `routes:list` | Show every URL pattern and redirect, and which one wins when two overlap |
 
 ## Publishing and caches
@@ -52,6 +52,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `content:index` | Update the content index. `--full` rebuilds it from scratch. (`publish` does this for you.) |
 | `schedule:run` | For cron: puts scheduled posts live on time, and prunes the cache and idle admin sessions |
 | `build` | Export the site to static files in `storage/export/`. Takes `--base-url=`, `--incremental`, and `--no-crawl`. |
+| `media:index` | Update the media index, which the admin's library lists and searches. `--full` rebuilds it; it also warns of metadata files whose media file is gone. (`publish` does this for you.) |
 | `media:publish` | Link `user/media` into `public/` so the web server serves it. `--copy` copies instead, for hosts without symlinks. |
 
 ## Themes

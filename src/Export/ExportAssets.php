@@ -32,9 +32,9 @@ use Blush\Theme\Themes;
  *   over rendered URLs, as a real file does on the live site.
  * - `themes()`: the active chain's servable theme files, as
  *   `theme:publish` would publish them, at `/themes/{slug}/…`.
- * - `media()`: the allowed files in `user/media` at the media URL, and
- *   page bundle files at `{media URL}/_content/…`, resolved by
- *   `MediaResolver`, so exactly what the media route would serve.
+ * - `media()`: the allowed files in `user/media` at the media URL,
+ *   resolved by `MediaResolver`, so exactly what the media route would
+ *   serve.
  */
 final readonly class ExportAssets
 {
@@ -97,7 +97,7 @@ final readonly class ExportAssets
 	}
 
 	/**
-	 * Copies media and page bundle files. Returns how many were copied.
+	 * Copies the media files. Returns how many were copied.
 	 *
 	 * @throws ExportException
 	 */
@@ -107,10 +107,6 @@ final readonly class ExportAssets
 
 		foreach ($this->filesystem->files($this->paths->media) as $relative => $file) {
 			$count += (int) $this->copyMedia($writer, $this->media->url . '/' . self::encode($relative));
-		}
-
-		foreach ($this->filesystem->files($this->paths->content) as $relative => $file) {
-			$count += (int) $this->copyMedia($writer, self::encode($relative));
 		}
 
 		return $count;

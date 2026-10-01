@@ -29,6 +29,7 @@ use Blush\Content\Type\Pages;
 use Blush\Content\Routing\PageRoutes;
 use Blush\Routing\RouteTable;
 use Blush\Content\Type\Taxonomy;
+use Blush\Media\MediaMetadataCheck;
 
 /**
  * Checks every content file, as `content:lint` reports it. It reads the
@@ -45,6 +46,10 @@ use Blush\Content\Type\Taxonomy;
  *   (`VariantCheck`, D-266);
  * - notices: undeclared keys and 1.x aliases (D-081), and terms that are
  *   referenced but have no file, which become virtual terms.
+ *
+ * It also checks the media metadata files under `user/data/media`
+ * (`MediaMetadataCheck`, D-293): ones that can't be read or whose values
+ * don't fit, and ones whose media file is gone.
  */
 final readonly class Linter
 {
@@ -58,7 +63,8 @@ final readonly class Linter
 		private RecordBuilder $builder,
 		private ContentTypes $types,
 		private RouteTable $routes,
-		private VariantCheck $variants
+		private VariantCheck $variants,
+		private MediaMetadataCheck $media
 	) {}
 
 	/**
@@ -109,7 +115,10 @@ final readonly class Linter
 			}
 		}
 
-		return new LintReport(count($files), $violations);
+		// Media metadata files, by their path from the site root (D-293).
+		[$metadata, $described] = $this->media->check();
+
+		return new LintReport(count($files), [...$violations, ...$described], $metadata);
 	}
 
 	/**

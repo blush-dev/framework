@@ -5,8 +5,7 @@
  * image, the shape it's used in), its address and size on a line under
  * it, and **Replace** and **Remove** on it, over a veil, on hover or
  * keyboard focus. A file that isn't there says so rather than showing a
- * broken frame. A file named without a path is one beside the entry, in
- * its page bundle. With no image, it's a button to choose one. It tells
+ * broken frame. With no image, it's a button to choose one. It tells
  * its owner the library's record for the file (`resolved`), which has
  * its alt text and caption.
  */
@@ -18,11 +17,10 @@ import AdminIcon from './AdminIcon.vue';
 
 const props = withDefaults(defineProps<{
 	src: string;
-	entry?: string;
 	wide?: boolean;
 	// What the buttons name, for screen readers: "the image".
 	noun?: string;
-}>(), { entry: undefined, wide: false, noun: 'the image' });
+}>(), { wide: false, noun: 'the image' });
 
 const emit = defineEmits<{
 	pick: [];
@@ -30,7 +28,7 @@ const emit = defineEmits<{
 	resolved: [file: MediaItem | null];
 }>();
 
-// Where the image is shown from: its library or bundle file, or else its
+// Where the image is shown from: its library file, or else its
 // address; `missing` once it fails to load.
 const url     = ref<string | null>(null);
 const missing = ref(false);
@@ -49,7 +47,7 @@ async function resolve(): Promise<void> {
 		return;
 	}
 
-	const found = await mediaFile(src, props.entry);
+	const found = await mediaFile(src);
 
 	if (src !== props.src) {
 		return;
@@ -59,15 +57,12 @@ async function resolve(): Promise<void> {
 
 	if (found !== null) {
 		url.value = found.url;
-	} else if (/^([a-z][a-z0-9+.-]*:)?\/\//i.test(src) || src.startsWith('/') || props.entry === undefined) {
-		url.value = src;
 	} else {
-		url.value     = null;
-		missing.value = true;
+		url.value = src;
 	}
 }
 
-watch([() => props.src, () => props.entry], () => void resolve(), { immediate: true });
+watch(() => props.src, () => void resolve(), { immediate: true });
 
 function loaded(event: Event): void {
 	const element = event.target as HTMLImageElement;

@@ -13,7 +13,11 @@ declare(strict_types=1);
 
 namespace Blush\Media;
 
+use Override;
 use Blush\Core\ServiceProvider;
+use Blush\Media\Embedded\EmbeddedMetadataReader;
+use Blush\Media\Embedded\EmbeddedReaderRegistrar;
+use Blush\Media\Embedded\EmbeddedReaderRegistry;
 use Blush\Routing\RouteSource;
 
 /**
@@ -25,7 +29,11 @@ final class MediaServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS = [
-		MediaResolver::class
+		MediaResolver::class,
+		MediaSchemas::class,
+		Index\MediaIndex::class,
+		Index\MediaLibrary::class,
+		EmbeddedMetadataReader::class
 	];
 
 	/**
@@ -42,4 +50,24 @@ final class MediaServiceProvider extends ServiceProvider
 	protected const array TAGS = [
 		RouteSource::TAG => [MediaRoutes::class]
 	];
+
+	/**
+	 * The embedded metadata readers' registry, seeded with the built-in
+	 * readers (D-289).
+	 */
+	#[Override]
+	public function register(): void
+	{
+		parent::register();
+
+		$this->container->singleton(
+			EmbeddedReaderRegistry::class,
+			static function (): EmbeddedReaderRegistry {
+				$registry = new EmbeddedReaderRegistry();
+				new EmbeddedReaderRegistrar($registry)->register();
+
+				return $registry;
+			}
+		);
+	}
 }

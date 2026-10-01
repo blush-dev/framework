@@ -29,13 +29,11 @@ final class Body
 	private ?string $html = null;
 
 	/**
-	 * @param string $base The entry's folder under `user/content`, for relative media.
 	 * @param string $hash The source file's content hash, which keys the cache.
 	 */
 	public function __construct(
 		private readonly BodySource $source,
 		private readonly MarkdownParser $markdown,
-		private readonly string $base = '',
 		private readonly ?BodyCache $cache = null,
 		private readonly string $hash = ''
 	) {}
@@ -67,11 +65,11 @@ final class Body
 	 */
 	public function markdown(string $markdown): string
 	{
-		$render = fn (): string => $this->markdown->toHtml($markdown, $this->base);
+		$render = fn (): string => $this->markdown->toHtml($markdown);
 
 		return $this->cache === null
 			? $render()
-			: $this->cache->remember('markdown.' . hash('xxh128', "{$this->base}\0{$markdown}"), $render);
+			: $this->cache->remember('markdown.' . hash('xxh128', $markdown), $render);
 	}
 
 	/**
@@ -141,6 +139,6 @@ final class Body
 	 */
 	private function render(): string
 	{
-		return $this->source->format === BodyFormat::Html ? $this->source->text : $this->markdown->toHtml($this->source->text, $this->base);
+		return $this->source->format === BodyFormat::Html ? $this->source->text : $this->markdown->toHtml($this->source->text);
 	}
 }

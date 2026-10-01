@@ -57,11 +57,12 @@ Implemented in M2 (D-065, D-069).
 | `cache:clear [--config\|--extensions\|--container\|--routes\|--types\|--themes\|--store]` | Clear compiled caches and the cache store, bumping the content version (no flags: all; `--store`: only the store, D-128) |
 | `cache:compile` | Compile config, extensions, themes, routes, content types, and container plans, then clear the cache store and bump the content version (D-060, D-066, D-077, D-092, D-115, D-128) |
 | `content:index [--full]` | Build or refresh the content index, with a progress bar; `-v` lists changes (M4b, D-087) |
-| `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry; `--strict` adds notices for undeclared keys, 1.x aliases, and virtual terms (D-081, D-084, D-091) |
+| `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry; `--strict` adds notices for undeclared keys, 1.x aliases, and virtual terms (D-081, D-084, D-091). Also checks media metadata files in `user/data/media`: unreadable, values that don't fit, hidden by another format, or describing a file that's gone (D-293) |
 | `content:new <type> "<title>" [--slug] [--draft]` | Scaffold a Markdown entry (`Y-m-d.slug.md` for dated types) and refresh the index (D-091) |
 | `content:list [--type] [--status]` | List every indexed entry (M4b) |
 | `content:preview <type> <name> [--hours]` | Print a signed preview link to an entry, whatever its status (D-226) |
 | `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |
+| `media:index [--full]` | Build or refresh the media index, with a progress bar; `-v` lists changes, and metadata files with no media file are warnings (D-288) |
 | `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099) |
 | `theme:list` | List installed themes (framework, Composer, local), the active one, and broken manifests (M5b, D-120) |
 | `theme:activate <slug>` | Set the active theme in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120) |

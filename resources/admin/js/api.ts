@@ -227,6 +227,7 @@ export interface Violation {
 
 export interface Health {
 	checked: number;
+	metadata: number;
 	strict: boolean;
 	counts: { error: number; warning: number; notice: number | null };
 	files: { path: string; violations: Violation[] }[];
@@ -236,7 +237,7 @@ export interface Health {
  * A media file an entry can use (`GET media`, D-246).
  */
 export interface MediaItem {
-	// What to write: the library's URL path, or a bundle file's name.
+	// What to write: the library's URL path.
 	reference: string;
 	name: string;
 	folder: string;
@@ -246,10 +247,30 @@ export interface MediaItem {
 	size: number;
 	width: number | null;
 	height: number | null;
+	// How long a sound or video lasts, in seconds, when known (D-291).
+	duration: number | null;
 	modified: string;
-	// The library's alt text and caption for it, `''` for none (D-269).
+	// What the library calls it (D-290), and its alt text and caption for
+	// it (D-269), `''` for none.
+	title: string;
 	alt: string;
 	caption: string;
+}
+
+/**
+ * One library file with its metadata fields (`GET media/{path}`,
+ * D-287): the fields its kind has, their values, the keys its metadata
+ * file keeps that aren't fields, and what doesn't fit.
+ */
+export interface MediaDetail extends MediaItem {
+	kind: 'image' | 'video' | 'audio' | 'file';
+	fields: FieldDescription[];
+	values: Record<string, unknown>;
+	extra: Record<string, unknown>;
+	violations: { field: string; message: string; severity: 'error' | 'warning' | 'notice' }[];
+	// What the file says about itself (D-289): values read from its EXIF,
+	// IPTC, and XMP, and whether it has a location (never the location).
+	embedded: { values: Record<string, string | number | string[]>; location: boolean };
 }
 
 export interface MediaList {
@@ -260,7 +281,6 @@ export interface MediaList {
 	pages: number;
 	per: number;
 	files: MediaItem[];
-	beside: MediaItem[] | null;
 	// When the account may upload: the largest file the server takes, in
 	// bytes (`null` for no limit), and the extensions the library takes.
 	upload: { limit: number | null; extensions: string[] } | null;

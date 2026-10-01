@@ -91,7 +91,7 @@ of the counts. The actions:
 | Action | What it does | Who can run it |
 |---|---|---|
 | Publish | Put content changes live, like `bin/blush publish` | Anyone with `site.publish` (editors) |
-| Reindex content | Bring the content index up to date with your files | Anyone with `site.publish` |
+| Reindex content | Bring the content and media indexes up to date with your files | Anyone with `site.publish` |
 | Clear caches | Empty the page, body, and fragment caches | Anyone with `cache.clear` (editors) |
 
 Actions you can't run don't appear. Extensions can add their own actions
@@ -383,9 +383,7 @@ The picture button has two ways in: **Media Library** and **Upload a
 File**. Both open the same picker, on its **Library** or **Upload** tab.
 **Image** in the components panel opens it too, showing only images.
 
-The Library tab has the files beside the entry (when it's a
-[page bundle](content.md), such as `trip/index.md`), then the library in
-`user/media`, newest first. Search by file name, or show only images,
+The Library tab has the library in `user/media`, newest first. Search by file name, or show only images,
 video, audio, or other files. Choose a file (it gets a tick), then
 **Insert** (or double-click it). An image goes in as plain Markdown on a
 line of its own, `![](/media/photo.jpg)`, with the cursor where its
@@ -524,10 +522,19 @@ Your changes aren't lost:
 
 ## Media
 
-**Content → Media** shows the files in `user/media`, newest first:
-search by name, or show only images, video, audio, or other files. Choose one for a
-preview, its **Alt text** and **Caption**, its details, and what to write
-to use it, with **Copy** buttons. Alt text describes the file for anyone
+**Content → Media** shows the files in `user/media`, newest first, each
+by its title (or its file name, until it has one):
+search by name or details, show only images, video, audio, or other
+files, or choose **Missing alt text** for the images without it (each
+is marked in the grid too). Choose one for a
+preview, its **Details** (the fields files of its kind have: **Alt
+text** for an image, **Caption**, **Credit**, and **Description**, and
+any your site adds; see [Details about a file](media.md#details-about-a-file)),
+what the file says about itself (**From the File**, with **Use** to
+copy a value into your details, and a warning if it carries its
+location; see [What a file says about itself](media.md#what-a-file-says-about-itself)),
+facts about the file, and what to write to use it, with **Copy**
+buttons. Alt text describes the file for anyone
 who can't see it, and the caption goes under it; both are filled in when
 it's inserted as an image. After that, the entry's copy is its own: the
 page shows what the entry wrote, and an image with empty brackets,
@@ -546,14 +553,13 @@ alt: A lake at dawn, with mist on the water.
 caption: The lake at dawn
 ```
 
-(or `.yaml` or `.json`). A file in a page bundle,
-`user/content/trip/beach.jpg`, has
-`user/data/media/_content/trip/beach.jpg.yml`. You can write these by
-hand; saving from the admin changes only `alt` and `caption` and keeps
-the rest, and removes a file left with nothing in it. If you rename or
+(or `.yaml` or `.json`). You can write these by
+hand; saving from the admin changes only the fields you changed and
+keeps the rest (keys that aren't fields are listed, as they are), and
+removes a file left with nothing in it. If you rename or
 delete a media file by hand, move or delete its metadata file too. **Upload** opens the same picker the editor uses, on its Upload
 tab; **Open** goes to the file you uploaded. You can also put files in
-`user/media` yourself, or beside an entry in its own folder.
+`user/media` yourself.
 
 ## Content types
 
@@ -593,8 +599,8 @@ the entries moved there, most recent first. Each one's **⋯** button has:
 contributors see and handle their own trashed entries; editors see
 everyone's.
 
-On the server, each trashed entry is a folder in `storage/trash/` (a
-bundle's media go with it), so you can also restore one by moving its
+On the server, each trashed entry is a folder in `storage/trash/` (an
+entry in its own folder, `trip/index.md`, takes the folder with it), so you can also restore one by moving its
 file back into `user/content/`.
 
 ## Previewing drafts
@@ -623,7 +629,9 @@ Previews are never cached or indexed by search engines.
 **Content health** checks every content file for problems, as
 `bin/blush content:lint` does: front matter that isn't valid, such as an
 unknown status or a date that isn't one, and two files claiming the same
-entry. Turn on **Include notices** to also see undeclared keys, 1.x
+entry. It checks media details in `user/data/media/` too: one that
+can't be read, a value that doesn't fit its field, or details left for
+a file that's gone. Turn on **Include notices** to also see undeclared keys, 1.x
 names, and terms without their own file. It's for editors and
 administrators.
 
@@ -660,9 +668,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |
 | `GET media` | The media files an entry can use (see below) |
-| `GET media/{path}` | One file in the library, by its path under `user/media` |
+| `GET media/{path}` | One file in the library, by its path under `user/media`, with its details (see below) |
 | `POST media` | Upload a file to the library (see below) |
-| `PATCH media/{path}` | Change a library file's `alt` and `caption` (see below) |
+| `PATCH media/{path}` | Change a library file's details (see below) |
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
 | `GET roles` | Every capability and role, with the accounts holding each; needs `accounts.manage` |
 | `GET accounts` | Every account's username, roles, author, and created and last sign-in times (Unix); needs `accounts.manage` |
@@ -770,11 +778,9 @@ with no term is fine there, and becomes a virtual term.
 time, for accounts that can edit content. Narrow it with `search` (text
 the path must contain), `kind` (`image`, `video`, `audio`, `file` for
 anything else, or `any`),
-`page`, and `per` (48 by default, at most 100). Add `entry` (an id) to
-get `beside` too: the media files next to that entry when it's a page
-bundle, else `null`. The answer has `total`, `page`, `pages`, `per`,
-`files`, and `beside`; each file has its `reference` (what to write in
-content: the library's URL path, or a bundle file's name), `name`,
+`page`, and `per` (48 by default, at most 100). The answer has `total`,
+`page`, `pages`, `per`, and `files`; each file has its `reference`
+(what to write in content: the library's URL path), `name`,
 `folder`, `url`, `mime`, `kind`, `size`, `width` and `height` (images),
 `modified`, and the library's `alt` and `caption` for it (`""` for
 none). Only the file types your site allows are listed. When
@@ -790,9 +796,29 @@ of a type your site allows ([`MediaConfig`](configuration.md)). The
 answer is a 201 with the file, as `GET media` describes one; a file too
 large is a 413, and one of the wrong type a 422.
 
-`PATCH media/{path}` takes `{"alt", "caption"}` (either or both, as
-text) for a file in the library, needs `media.upload`, and answers with
-the file. An empty value removes it.
+`GET media` lists from the media index (see
+[The media index](media.md#the-media-index)): `search` matches a file's
+path or details, and `missing=alt` narrows it to images without alt
+text.
+
+Every file the media API answers has its `title`, `alt`, and
+`caption` (`''` for none), and a sound's or video's `duration` in
+seconds (`null` when unknown). `GET media/{path}` adds what the file says about itself, `embedded`:
+its `values` (read from its EXIF, IPTC, and XMP: `title`,
+`description`, `creator`, `copyright`, `credit`, `keywords`, `created`,
+`camera`, `lens`, `focalLength`, `aperture`, `exposure`, `iso`,
+`orientation`, `software`, and for sound and video `album`, `track`,
+`genre`, `duration` (seconds), `artwork`, `width`, and `height`,
+whichever it has) and `location`, whether
+it carries one (never where). It also adds the file's details: the `fields` its kind has
+(described as a content type's are), their `values`, keys its metadata
+file keeps that aren't fields (`extra`), and `violations` for what
+doesn't fit. `PATCH media/{path}` changes them: `{"set": {field:
+value}, "remove": [field]}`, for a file in the library, needs
+`media.upload`, and answers with the file. An empty value removes a
+field, each value is checked by its field (a 422 naming the `field`
+when it doesn't fit), and `alt` and `caption` may still be sent on
+their own.
 
 ### Editing entries
 
@@ -836,7 +862,7 @@ it, and deleting it is refused with a 422.
 
 `slug` renames the entry: when its front matter has a `slug`, that's
 changed; otherwise its file is renamed first (a dated file keeps its
-date, and a bundle's folder moves with its media), so a refused name
+date, and an entry in its own folder moves the folder), so a refused name
 changes nothing. A slug that isn't one, that another entry of the type
 has, or that's a landing page's is a `422` with `"field": "slug"`. With
 `"redirect": true`, a published entry's old address is added to its

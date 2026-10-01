@@ -202,9 +202,9 @@ $writer->update($entry->id, new EntryChanges(
   since you loaded it, `update()` throws `WriteConflict` and writes
   nothing. Leave it out to skip the check.
 - `create()`, `rename()` (a new slug; a dated file keeps its date, and a
-  bundle's folder moves with its media), `duplicate($id, $slug,
+  an entry in its own folder, `trip/index.md`, moves the folder), `duplicate($id, $slug,
   $changes)` (a copy beside it under the first free name from `$slug`,
-  dated today if it's dated, a bundle's folder copied with its media),
+  dated today if it's dated, an entry's own folder copied whole),
   and `delete()` (the file moves to `storage/trash/`) work the same way.
   `trashed()` lists the trash, `loadTrashed($id)` reads one,
   `restore($id, $changes)` brings an entry back after making the changes
@@ -433,6 +433,57 @@ protected const array TAGS = [
 The kinds and options are the same as in `config/content.php`. A site can
 still redefine one of your types in its `config/content.php`, but not in
 `user/data/types/`. Two extensions can't define the same type.
+
+### Media fields from an extension
+
+An extension can give media files [details](media.md#details-about-a-file)
+of its own, for every file or for one kind. Write a class that
+implements `MediaFieldSource`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Acme\Photos;
+
+use Blush\Content\Schema\Fields\TextField;
+use Blush\Media\MediaFieldSet;
+use Blush\Media\MediaFieldSource;
+use Blush\Media\MediaKind;
+
+final class PhotoFields implements MediaFieldSource
+{
+	public function fieldSets(): iterable
+	{
+		yield new MediaFieldSet([new TextField('camera'), new TextField('lens')], MediaKind::Image);
+	}
+}
+```
+
+Tag it with `MediaFieldSource::TAG` in the extension's provider. A
+site's `user/data/media-fields.yml` or `config/media.php` can redefine
+any of them.
+
+### Reading more from media files
+
+Blush reads XMP, IPTC, and EXIF from images, and MP3, MP4, Ogg, WAV,
+and WebM files
+([What a file says about itself](media.md#what-a-file-says-about-itself)).
+To read another format, implement `Blush\Media\Embedded\EmbeddedReader`
+(`read(string $path, string $mime): EmbeddedMetadata`, returning empty
+metadata for a file it can't read) and register it:
+
+```php
+$this->container->resolving(EmbeddedReaderRegistry::class, static function (EmbeddedReaderRegistry $registry): void {
+	$registry->register('heic', HeicReader::class);
+});
+```
+
+Readers' values are merged in the registry's order, the first value for
+a key winning, so yours fills in what the built-in readers leave out.
+Run `bin/blush media:index` afterwards: the index reads every file again
+when its readers change.
 
 ## Events
 

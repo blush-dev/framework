@@ -17,15 +17,14 @@ use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use Blush\Core\AppConfig;
-use Blush\Markdown\MarkdownContext;
 use Blush\Media\MediaResolver;
 
 /**
  * Rewrites link and image URLs once a document is parsed:
  *
- * - A reference to local media (a `user/media` path, or a file next to
- *   the entry in a page bundle) points at the media URL, and images get
- *   their `width` and `height` from the file (unless they set their own).
+ * - A reference to local media (a `user/media` path) points at the media
+ *   URL, and images get their `width` and `height` from the file (unless
+ *   they set their own).
  * - With `$absolute` on, root-relative URLs (`/archives/…`) become
  *   absolute on the site's origin, as 1.x rendered them (D-078), so bodies
  *   work unchanged in feeds.
@@ -33,7 +32,6 @@ use Blush\Media\MediaResolver;
 final readonly class ResolveLinks
 {
 	public function __construct(
-		private MarkdownContext $context,
 		private ?MediaResolver $media,
 		private ?AppConfig $app,
 		private bool $absolute
@@ -58,7 +56,7 @@ final readonly class ResolveLinks
 
 		foreach ($nodes as $node) {
 			$url  = $node->getUrl();
-			$file = $this->media?->resolve($url, $this->context->base);
+			$file = $this->media?->resolve($url);
 
 			if ($file !== null) {
 				$url = $file->url;

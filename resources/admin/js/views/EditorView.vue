@@ -83,7 +83,7 @@ import { formatDate, plural, titleCase } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, outlineItems, pathTo, sameElement, type ElementRef, type OutlineItem } from '../elements';
 import { attributeText, blocks, directiveHead, imageText, outline, withAttribute, withImage, withoutDirective, withoutImage, wordCount, type Directive, type Edit } from '../markdown';
-import { forgetBeside } from '../media';
+import { mediaName } from '../media';
 import { can } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
@@ -1083,15 +1083,10 @@ function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): voi
  * and anything else as a download.
  */
 function insertFile(file: MediaItem): void {
-	// A file uploaded beside the entry would be new to its list.
-	if (entry.value !== null) {
-		forgetBeside(entry.value.id);
-	}
-
 	if (file.kind === 'image') {
 		bodyEditor.value?.insertBlock((selected) => imageText(file.reference, selected || file.alt, file.caption));
 		tab.value = 'element';
-		toast(`Inserted ${file.name}`);
+		toast(`Inserted ${mediaName(file)}`);
 
 		return;
 	}
@@ -1106,7 +1101,7 @@ function insertFile(file: MediaItem): void {
 	}
 
 	tab.value = 'element';
-	toast(`Inserted ${file.name}`);
+	toast(`Inserted ${mediaName(file)}`);
 }
 
 /**
@@ -1181,7 +1176,7 @@ function pickForImage(): void {
 				...(item.alt === '' && file.alt !== '' ? { alt: file.alt } : {}),
 				...((item.title ?? '') === '' && file.caption !== '' ? { title: file.caption } : {})
 			}));
-			toast(`Chose ${file.name}`);
+			toast(`Chose ${mediaName(file)}`);
 		}
 	};
 }
@@ -1979,7 +1974,7 @@ function fieldKey(field: FieldDescription): string {
 
 							<div v-if="imageField && (!term || form[imageField.name])" class="editor__group">
 								<p class="editor__group-heading">Featured Image</p>
-								<ImagePreview :src="String(form[imageField.name] ?? '')" :entry="entry.id" wide noun="the featured image" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
+								<ImagePreview :src="String(form[imageField.name] ?? '')" wide noun="the featured image" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
 								<p v-if="!form[imageField.name]" class="field__help">Used in listings, link previews, and at the top of the {{ noun }}, as the theme shows it.</p>
 							</div>
 
@@ -2093,7 +2088,6 @@ function fieldKey(field: FieldDescription): string {
 								:source="body"
 								:image="image"
 								:variants="imageStyles"
-								:entry="entry?.id"
 								@edit="applyOption"
 								@remove="removeImage"
 								@pick="pickForImage"
@@ -2135,7 +2129,7 @@ function fieldKey(field: FieldDescription): string {
 		</div>
 
 		<IconPicker v-if="iconsOpen" :preview="iconPreview" @choose="chooseIcon" @close="closeIcons" />
-		<MediaPicker v-if="picking" :entry="entry?.id" :title="picking.title" :action="picking.action" :tab="picking.tab" :kind="picking.kind" @choose="picked" @close="picking = null" />
+		<MediaPicker v-if="picking" :title="picking.title" :action="picking.action" :tab="picking.tab" :kind="picking.kind" @choose="picked" @close="picking = null" />
 	</section>
 </template>
 

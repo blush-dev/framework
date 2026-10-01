@@ -4,8 +4,7 @@
  * D-247, D-265, D-268): a library in a modal, with the room a browsing
  * screen needs, and the same picker wherever a file is chosen (the
  * editor's media menu, media fields and options, an image's Replace, and
- * the Media screen's Upload). It lists the files beside the entry, when
- * it's a page bundle, then the library, newest first (`GET media`), with
+ * the Media screen's Upload). It lists the library, newest first (`GET media`), with
  * a search, kind filters as a segmented control, and more on request.
  * Thumbnails are one 4:3 box, cropped to fill it; only a file that isn't
  * an image says its kind.
@@ -27,6 +26,7 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import AdminIcon from './AdminIcon.vue';
+import { mediaFacts, mediaName } from '../media';
 import { ApiError, request, upload, type MediaItem, type MediaList } from '../api';
 import { formatSize, plural } from '../format';
 import type { IconName } from '../icons';
@@ -35,8 +35,6 @@ import { can } from '../session';
 type Kind = 'any' | 'image' | 'video' | 'audio' | 'file';
 
 const props = defineProps<{
-	// The entry being edited, for the files beside it.
-	entry?: string;
 	title?: string;
 	action?: string;
 	// Which tab it opens on, and which kind the library shows first.
@@ -55,7 +53,6 @@ const searchEl = ref<HTMLInputElement | null>(null);
 const search   = ref('');
 const kind     = ref<Kind>(props.kind ?? 'any');
 const files    = ref<MediaItem[]>([]);
-const beside   = ref<MediaItem[] | null>(null);
 const total    = ref(0);
 const page     = ref(1);
 const pages    = ref(1);
@@ -84,10 +81,6 @@ function isKind(file: MediaItem, key: string): boolean {
 	return key === 'any' || (key === 'file' ? !['image', 'video', 'audio'].includes(file.kind) : file.kind === key);
 }
 
-// Only the files beside the entry that pass the filters.
-const besideShown = computed(() => (beside.value ?? []).filter((file) => isKind(file, kind.value)
-	&& (search.value.trim() === '' || file.name.toLowerCase().includes(search.value.trim().toLowerCase()))));
-
 let latest = 0;
 
 async function load(more = false): Promise<void> {
@@ -96,10 +89,6 @@ async function load(more = false): Promise<void> {
 
 	if (search.value.trim() !== '') {
 		params.set('search', search.value.trim());
-	}
-
-	if (props.entry !== undefined && props.entry !== '') {
-		params.set('entry', props.entry);
 	}
 
 	loading.value = true;
@@ -113,7 +102,6 @@ async function load(more = false): Promise<void> {
 		}
 
 		files.value   = more ? [...files.value, ...answer.files] : answer.files;
-		beside.value  = answer.beside;
 		total.value   = answer.total;
 		page.value    = answer.page;
 		pages.value   = answer.pages;
@@ -144,9 +132,7 @@ function icon(file: MediaItem): IconName {
 }
 
 function details(file: MediaItem): string {
-	const size = formatSize(file.size);
-
-	return file.width !== null && file.height !== null ? `${file.width} × ${file.height} · ${size}` : size;
+	return mediaFacts(file);
 }
 
 // "Up to 64 MB each · JPG, PNG, WebP …", once the server has said.
@@ -325,31 +311,6 @@ onBeforeUnmount(() => {
 			<div class="modal__body picker__body">
 				<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-				<section v-if="besideShown.length" aria-labelledby="media-beside">
-					<h3 id="media-beside" class="modal__count"><span>Beside This Entry</span><span>{{ plural(besideShown.length, 'file') }}</span></h3>
-					<div class="picker__grid">
-						<button
-							v-for="file in besideShown"
-							:key="`beside-${file.reference}`"
-							type="button"
-							class="picker__card"
-							:aria-pressed="selected?.url === file.url"
-							@click="selected = file"
-							@dblclick="use(file)"
-						>
-							<span class="picker__thumb">
-								<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
-								<template v-else><AdminIcon :name="icon(file)" /><span class="picker__kind mono">{{ file.kind }}</span></template>
-								<span class="picker__tick" aria-hidden="true"><AdminIcon name="check" /></span>
-							</span>
-							<span class="picker__meta">
-								<span class="picker__name">{{ file.name }}</span>
-								<span class="picker__sub mono">{{ details(file) }}</span>
-							</span>
-						</button>
-					</div>
-				</section>
-
 				<section aria-labelledby="media-library">
 					<h3 id="media-library" class="modal__count">
 						<span>Library</span>
@@ -371,7 +332,7 @@ onBeforeUnmount(() => {
 								<span class="picker__tick" aria-hidden="true"><AdminIcon name="check" /></span>
 							</span>
 							<span class="picker__meta">
-								<span class="picker__name">{{ file.name }}</span>
+								<span class="picker__name" :title="file.name">{{ mediaName(file) }}</span>
 								<span class="picker__sub mono">{{ details(file) }}</span>
 							</span>
 						</button>
@@ -433,7 +394,7 @@ onBeforeUnmount(() => {
 
 		<div class="modal__foot">
 			<p class="modal__selected" aria-live="polite">
-				<template v-if="selected"><b>{{ selected.name }}</b> · {{ details(selected) }}</template>
+				<template v-if="selected"><b>{{ mediaName(selected) }}</b> · {{ details(selected) }}</template>
 				<template v-else>Choose a file.</template>
 			</p>
 			<button type="button" class="button" @click="dialog?.close()">Cancel</button>

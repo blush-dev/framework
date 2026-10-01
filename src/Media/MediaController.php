@@ -22,7 +22,7 @@ use Blush\Http\StreamException;
 /**
  * Streams media through PHP when the web server can't serve it directly:
  * `user/media` before `media:publish` has run (or on hosts that can't
- * link it), and page bundle files, which are never published. Byte ranges
+ * link it). Byte ranges
  * work, so audio and video can seek. Only allowed types resolve; SVGs are
  * sandboxed so scripts in them can't run on the site's origin.
  */
