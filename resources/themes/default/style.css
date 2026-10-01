@@ -448,12 +448,14 @@ hr {
 
 .component-group,
 .component-grid,
-.component-row {
+.component-row,
+.component-stack {
 	margin-block: var(--space-l);
 }
 
 .component-grid > *,
-.component-row > * {
+.component-row > *,
+.component-stack > * {
 	margin-block: 0;
 }
 

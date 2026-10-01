@@ -83,17 +83,18 @@ Themes can restyle these or add their own.
 
 ### Layout
 
-Three built-in components arrange other blocks. Their layout works in
+Four built-in components arrange other blocks. Their layout works in
 every theme; themes style them further through their `component-group`,
-`component-grid`, and `component-row` classes.
+`component-grid`, `component-row`, and `component-stack` classes.
 
 | Component | Example                           | Props                                                                                                                                                          |
 |-----------|-----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `group`   | `:::group{.highlight}` … `:::`    | Use it to put a class or id on several blocks.                                                                                                                 |
 | `grid`    | `:::grid{columns=3}` … `:::`      | `columns`: the most columns, 1 to 12 (default 2). `min`: the narrowest a column gets before the grid drops a column (default `12rem`; `0` never drops). `gap`. |
 | `row`     | `:::row{justify=between}` … `:::` | `justify`: `start` (default), `center`, `end`, or `between`. `align`: `center` (default), `start`, `end`, `stretch`, or `baseline`. `wrap=false`. `gap`.       |
+| `stack`   | `:::stack{gap=2rem}` … `:::`      | `align`: `stretch` (default), `start`, `center`, or `end`. `gap`. Blocks one above another, with the gap in place of their margins.                            |
 
-All three also take `tag`, the element they render as: `div` (the
+All four also take `tag`, the element they render as: `div` (the
 default), `section`, or `aside`. A section or aside is a landmark, so
 give it a label to name it for screen readers:
 
@@ -103,9 +104,10 @@ give it a label to name it for screen readers:
 :::
 ```
 
-Each block inside a grid is a cell, and each block inside a row is an
-item. To put several blocks in one cell, wrap them in a `group`, and give
-the outer component more colons so the inner ones fit inside it:
+Each block inside a grid is a cell, and each block inside a row or a
+stack is an item. To put several blocks in one cell, wrap them in a
+`group`, and give the outer component more colons so the inner ones fit
+inside it:
 
 ```markdown
 ::::grid{columns=2}

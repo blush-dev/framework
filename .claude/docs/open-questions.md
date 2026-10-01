@@ -10,6 +10,9 @@ Move each item to `decisions.md` once it's answered.
   content repo; a checked sketch matches the config exactly), or an
   extension in `user/extensions/` (WordPress-style, with site PHP such as
   a future blog extension).
+- **Live preview** (D-252): the author is leaning toward a more visual
+  editor in the admin, with live preview on the front end (the site
+  itself) rather than a rendered preview inside the editor. Not settled.
 
 ## Later milestones
 - **Hierarchy** (D-257):

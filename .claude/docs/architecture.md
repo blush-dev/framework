@@ -597,7 +597,7 @@ Views use components, but the system is its own subsystem.
   `$template->component()` builder).
 - **Built-ins:** `Callout` (D-195), `Embed`; the layout components in
   `Component\Layout`
-  (`Group`, `Grid`, `Row`, `CssLength`, D-177); `Component\Media`
+  (`Group`, `Grid`, `Row`, `Stack`, `CssLength`, D-177, D-318); `Component\Media`
   (`Audio`, `Video`, `File`, `Figure`, `Gallery`, `MediaPreload`, D-179); `Component\Inline`
   (`Abbr`, `Kbd`, `Time`, D-180; `Badge`, `Cite`, `Dfn`, `Ins`, `Samp`,
   `Small`, `Variable` for `var`, D-305); `Toc` (D-183, fed the outline by the Markdown

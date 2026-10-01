@@ -7879,3 +7879,28 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked to keep moving with the admin design's
   changes; these were the shell and theming changes the split direction
   made outside the editor.
+
+### D-318: A Stack component, and layout icons that match
+- **Date:** 2026-10-01
+- **Decision:** Asked for by the author.
+  - **Icons:** the admin's inserter draws `group` with Lucide's `group`
+    (dashed corners around two blocks) rather than `folder`, which read
+    as a file folder, and `row` with `columns-3`, since a row's items
+    sit side by side. `rows-3`, the stacked bars `row` had, goes to the
+    new `stack`.
+  - **`stack`** (`Component\Layout\Stack`, a core layout component like
+    `row`; D-175, D-177): blocks one above another with an even gap
+    between them, `:::stack{gap=2rem}` … `:::`. Inline styles
+    (`display: flex; flex-direction: column`), so it works in any theme.
+    Props: `align` (`StackAlign`: `stretch` by default, `start`,
+    `center`, `end`), `gap` (a `CssLength`; otherwise the theme's
+    `--layout-gap`, or `1rem`, as in `row`), and `tag` and `label`
+    (D-298). The default theme takes its items' margins off, as for
+    `grid` and `row`, so the gap is the only space between them. It
+    differs from `group`, which only wraps blocks and leaves their
+    spacing alone. No `justify`: a stack is as tall as its items.
+- **Checked:** `composer check` (`LayoutComponentsTest`: the styles, a
+  bad gap dropped, props from the class, rendering in a bare theme);
+  `npm run admin:build`.
+- **Why:** the author: "Group is a folder doesn't make sense. Row is
+  really a stack (we should have a Stack component)."

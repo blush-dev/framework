@@ -27,6 +27,7 @@ use Blush\Component\Layout\Figure;
 use Blush\Component\Layout\Grid;
 use Blush\Component\Layout\Group;
 use Blush\Component\Layout\Row;
+use Blush\Component\Layout\Stack;
 use Blush\Component\Media\Audio;
 use Blush\Component\Media\File;
 use Blush\Component\Media\Gallery;
@@ -63,6 +64,7 @@ enum ComponentType: string
 	case Row      = 'row';
 	case Samp     = 'samp';
 	case Small    = 'small';
+	case Stack    = 'stack';
 	case Time     = 'time';
 	case Toc      = 'toc';
 	case Var      = 'var';
@@ -98,6 +100,7 @@ enum ComponentType: string
 			self::Row      => Row::class,
 			self::Samp     => Samp::class,
 			self::Small    => Small::class,
+			self::Stack    => Stack::class,
 			self::Time     => Time::class,
 			self::Toc      => Toc::class,
 			self::Var      => Variable::class,
@@ -114,7 +117,7 @@ enum ComponentType: string
 			self::Abbr, self::Badge, self::Callout, self::Cite, self::Dfn, self::Icon,
 			self::Ins, self::Kbd, self::Samp, self::Small, self::Time, self::Var         => ComponentCategory::Text,
 			self::Audio, self::Embed, self::File, self::Gallery, self::Video            => ComponentCategory::Media,
-			self::Figure, self::Grid, self::Group, self::Row                            => ComponentCategory::Layout,
+			self::Figure, self::Grid, self::Group, self::Row, self::Stack              => ComponentCategory::Layout,
 			self::Button, self::Menu, self::Toc                                         => ComponentCategory::Navigation,
 			self::Meter, self::Progress                                                 => ComponentCategory::Data
 		};

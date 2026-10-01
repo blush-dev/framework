@@ -52,8 +52,8 @@ guarded directive syntax, media kinds, and `only` (D-314); and Tab in
 quotes and over lines of code (D-315); the per-line highlight cache
 (D-316); and the shell's rail toggle and section trail, and the
 Editorial admin theme (D-317). Next: more
-of media; and more of the Markdown editing experience (live preview
-waits); see `.claude/docs/roadmap.md`.
+of media; and more of the Markdown editing experience (live
+preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
 `npm run admin:build` (D-221, D-224). Admin CSS reads design tokens
 from `resources/admin/css/tokens.css` only: no literal colors, fonts,

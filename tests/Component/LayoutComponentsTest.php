@@ -29,6 +29,8 @@ use Blush\Component\Layout\LayoutTag;
 use Blush\Component\Layout\Row;
 use Blush\Component\Layout\RowAlign;
 use Blush\Component\Layout\RowJustify;
+use Blush\Component\Layout\Stack;
+use Blush\Component\Layout\StackAlign;
 
 #[CoversClass(CssLength::class)]
 #[CoversClass(Grid::class)]
@@ -38,6 +40,8 @@ use Blush\Component\Layout\RowJustify;
 #[CoversClass(Row::class)]
 #[CoversClass(RowAlign::class)]
 #[CoversClass(RowJustify::class)]
+#[CoversClass(Stack::class)]
+#[CoversClass(StackAlign::class)]
 final class LayoutComponentsTest extends TestCase
 {
 	use BootsScratchSite;
@@ -88,6 +92,21 @@ final class LayoutComponentsTest extends TestCase
 		$this->assertSame('stretch', RowAlign::Stretch->css());
 	}
 
+	public function testStacksSpaceTheirItemsInAColumn(): void
+	{
+		$this->assertSame(
+			'display: flex; flex-direction: column; gap: var(--layout-gap, 1rem); align-items: stretch;',
+			new Stack()->style
+		);
+		$this->assertSame(
+			'--layout-gap: 2rem; display: flex; flex-direction: column; gap: var(--layout-gap, 1rem); align-items: flex-start;',
+			new Stack(StackAlign::Start, gap: '2rem')->style
+		);
+		$this->assertStringNotContainsString('red', new Stack(gap: '1rem; color: red')->style);
+		$this->assertSame('flex-end', StackAlign::End->css());
+		$this->assertSame('center', StackAlign::Center->css());
+	}
+
 	public function testTheirPropsComeFromTheirClasses(): void
 	{
 		$app = $this->scratchApplication();
@@ -100,6 +119,8 @@ final class LayoutComponentsTest extends TestCase
 		$this->assertSame(['columns', 'min', 'gap', 'tag', 'label'], $names('grid'));
 		$this->assertSame(['justify', 'align', 'wrap', 'gap', 'tag', 'label'], $names('row'));
 		$this->assertSame(ComponentContent::Blocks, $registry->get('row')?->content());
+		$this->assertSame(['align', 'gap', 'tag', 'label'], $names('stack'));
+		$this->assertSame(ComponentContent::Blocks, $registry->get('stack')?->content());
 	}
 
 	public function testTheyRenderFromMarkdownInAnyTheme(): void
@@ -136,6 +157,10 @@ final class LayoutComponentsTest extends TestCase
 			:::row{tag=section}
 			Unnamed.
 			:::
+
+			:::stack[Plans]{tag=aside align=center}
+			Stacked.
+			:::
 			MD);
 
 		$app = $this->scratchApplication(['APP_ENV' => 'development']);
@@ -153,5 +178,6 @@ final class LayoutComponentsTest extends TestCase
 		$this->assertStringContainsString("<p>Aside.</p></aside>", $html);
 		$this->assertStringContainsString('<section class="component-row" style="display: flex;', $html);
 		$this->assertStringContainsString("<p>Unnamed.</p></section>", $html);
+		$this->assertStringContainsString("<aside class=\"component-stack\" aria-label=\"Plans\" style=\"display: flex; flex-direction: column; gap: var(--layout-gap, 1rem); align-items: center;\">\n<p>Stacked.</p></aside>", $html);
 	}
 }

@@ -238,7 +238,7 @@ throughout and pinned index pages, D-255), then the rest of media
 metadata (D-238: fields defined like schemas, the media index, and
 embedded metadata), a reference picker,
 editing types and accounts (done: D-311, D-312), and the remaining stubbed screens
-(Appearance, Extensions, Settings). Live preview waits (D-252): inline
+(Appearance, Extensions, Settings). Live preview waits (D-252; unsettled, see `open-questions.md`): inline
 image and embed previews first, then a full preview, above all of
 components. Changing one's own password on Your profile is done (D-273), the
 editor's side of the index page (D-274), Duplicate (D-275), Preview

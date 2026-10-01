@@ -18,10 +18,10 @@ use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 
 /**
- * The base for the components that wrap blocks (`group`, `grid`, and
- * `row`; D-177, D-298). Which element one renders as is its `tag`, apart
- * from how it lays its blocks out, so `:::grid{tag=aside}` is an aside in
- * columns. A `section` or `aside` is named by the label, for screen
+ * The base for the components that wrap blocks (`group`, `grid`, `row`,
+ * and `stack`; D-177, D-298, D-318). Which element one renders as is its
+ * `tag`, apart from how it lays its blocks out, so `:::grid{tag=aside}` is
+ * an aside in columns. A `section` or `aside` is named by the label, for screen
  * readers.
  *
  * Each concrete class promotes `tag` and `label` in its constructor, last,

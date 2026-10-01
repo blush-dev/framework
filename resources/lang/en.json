@@ -335,6 +335,35 @@
 			"label": "Small print",
 			"description": "A side comment or fine print."
 		},
+		"stack": {
+			"label": "Stack",
+			"description": "Blocks one above another, evenly spaced.",
+			"props": {
+				"align": {
+					"label": "Align",
+					"choices": {
+						"stretch": "Stretch",
+						"start": "Start",
+						"center": "Center",
+						"end": "End"
+					}
+				},
+				"gap": {
+					"label": "Gap"
+				},
+				"tag": {
+					"label": "Element",
+					"choices": {
+						"div": "Division",
+						"section": "Section",
+						"aside": "Aside"
+					}
+				},
+				"label": {
+					"label": "Name for screen readers"
+				}
+			}
+		},
 		"time": {
 			"label": "Time",
 			"description": "A date, time, or duration that software can read.",
