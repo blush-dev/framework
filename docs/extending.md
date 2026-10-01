@@ -470,6 +470,42 @@ Tag it with `MediaFieldSource::TAG` in the extension's provider. A
 site's `user/data/media-fields.yml` or `config/media.php` can redefine
 any of them.
 
+### Field sets from an extension
+
+An extension can add fields to content types, its own or the site's,
+with [field sets](content-types.md#field-sets). Write a class that
+implements `FieldSetSource`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Acme\Seo;
+
+use Blush\Field\FieldSet;
+use Blush\Field\FieldSetSource;
+use Blush\Field\Fields\BoolField;
+use Blush\Field\Fields\TextField;
+
+final class SeoFields implements FieldSetSource
+{
+	public function fieldSets(): iterable
+	{
+		yield new FieldSet(
+			'seo',
+			[new TextField('meta_title'), new BoolField('noindex')],
+			['type:post', 'type:page'],
+			'SEO'
+		);
+	}
+}
+```
+
+Tag it with `FieldSetSource::TAG` in the extension's provider. A site's
+`config/fields.php` or `user/data/fields/` can replace any of your sets
+by its name. Two extensions can't define the same set.
+
 ### Field types from an extension
 
 An extension can add a field type for every place fields are defined:

@@ -331,6 +331,17 @@ export interface FieldDescription {
 }
 
 /**
+ * A field set attached to an entry's type (D-337): its name, its label
+ * and help, and its fields' names.
+ */
+export interface FieldSetGroup {
+	name: string;
+	label: string;
+	description: string;
+	fields: string[];
+}
+
+/**
  * A control the admin draws, with its name for people.
  */
 export interface ControlDescription {
@@ -398,6 +409,9 @@ export interface EntryDetail {
 		kind: ContentTypeSummary['kind'];
 		dated: boolean;
 		fields: FieldDescription[];
+		// The field sets attached to the type (D-337), with the names of
+		// their fields, which the editor groups under each set's label.
+		sets: FieldSetGroup[];
 	};
 	values: Record<string, unknown>;
 	extra: Record<string, unknown>;

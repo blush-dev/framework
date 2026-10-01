@@ -41,6 +41,7 @@ use Blush\Content\Writer\WriteConflict;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Field\Field;
+use Blush\Field\FieldSet;
 use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -826,7 +827,10 @@ final readonly class EntryController
 
 	/**
 	 * Describes a type for the editor: its name, kind, whether it's
-	 * dated, and the fields it edits (each without its class).
+	 * dated, the fields it edits (as forms take them), and the field sets
+	 * attached to it (D-337), each with its `name`, `label`,
+	 * `description`, and the names of its `fields`, so the editor groups
+	 * them.
 	 *
 	 * @param  array<array-key, Field> $fields
 	 * @return array<string, mixed>
@@ -837,7 +841,13 @@ final readonly class EntryController
 			'name'   => $type->name,
 			'kind'   => $type->kind()->value,
 			'dated'  => $type->dateArchives !== DateArchives::None,
-			'fields' => array_values(array_map(static fn (Field $field): array => $field->toForm(), $fields))
+			'fields' => array_values(array_map(static fn (Field $field): array => $field->toForm(), $fields)),
+			'sets'   => array_map(static fn (FieldSet $set): array => [
+				'name'        => $set->name,
+				'label'       => $set->label,
+				'description' => $set->description,
+				'fields'      => array_keys($set->schema->fields)
+			], $this->types->setsFor($type->name))
 		];
 	}
 

@@ -8855,3 +8855,59 @@ decision, add a new entry that supersedes it and mark the old one
   draws radio buttons with None, checkboxes, and a slug field with its
   comma help. No console errors but a 404 that no page request made.
 - **Why:** D-337's phase 1, as planned.
+
+### D-339: The Fields API, phase 2: field sets on content types
+- **Date:** 2026-10-01
+- **Decision:** Builds D-337's second phase.
+  - **`FieldSet`** (`Blush\Field`): a `name` (lowercase letters,
+    digits, `_`, `-`), its fields (a `Schema`, so names and aliases are
+    checked), `targets` (`kind:name`, such as `type:post`), a `label`
+    (its name made readable by default), and a `description`.
+    `fromArray()` takes `targets` as one or a list, `fields` as a list or
+    a map, refuses unknown keys, and ignores a JSON file's `$schema`;
+    `toArray()` leaves out a made label.
+  - **`FieldTarget`** (`key()`, `label()`, `accepts()`), and
+    **`ContentTypeTarget`** (`Content\Type`, kind `type`), which takes
+    every field.
+  - **Sources, in order, each replacing a set of the same name:**
+    extensions (`FieldSetSource`, tagged `field.sets`; two extensions
+    can't define one set), `config/fields.php` (`FieldConfig`: `sets`,
+    and `dataSets`, on by default; array sets are kept as `definitions`
+    and built at load, as D-338 does for types), and
+    `user/data/fields/*.{json,yaml,yml}`, named after the file
+    (`FieldSetLoader`). Unlike types, a data set may replace a config
+    or extension set (D-337's order); the origin is kept
+    (`FieldSetOrigin`) for the admin's locking in phase 3.
+  - **`FieldSets`:** the resolved sets in name order, with origins;
+    `for($target)` gives a target's sets.
+  - **Type schemas:** `ContentTypes` holds the sets; `schema()` adds each
+    attached set's fields after the type's own, in set name order,
+    refusing a field the target won't take and any name or alias used
+    before (`InvalidContentType`, naming the type and set), so the
+    loader's check of every type catches it at load. `setsFor()` gives a
+    type's sets. The sets are in `ContentTypes::toArray()`, so they're
+    compiled with the types (`content-types.php`) and change the index
+    fingerprint, which rebuilds the index when a set changes.
+  - **Targets that attach to nothing** are left alone and noted by
+    `content:lint` (`FieldSetCheck`): a `type:` naming no type, or a
+    kind Blush doesn't have. Notes are keyed by the data set's file,
+    `config/fields.php`, or the extension set's name.
+  - **The editor:** an entry's `type.sets` lists the attached sets
+    (`name`, `label`, `description`, field names); the document panel
+    shows a group per set after the type's other fields, and set
+    fields stay out of the panel's special groups (a set's reference
+    field is a form field there, not a taxonomy picker).
+  - **`field-set.schema.json`** for set files (`composer schemas`).
+  - **`docs/`:** Field sets in Content types, Field sets from an
+    extension in Extending, and `config/fields.php` in Configuration.
+- **Found on the way:** spreading two name-keyed field arrays merges
+  equal keys, so a set's field would silently replace the type's;
+  the merge uses lists, so `Schema` sees the clash.
+- **Checked:** `composer check` (`FieldSetTest`, `FieldSetsTest`, a
+  `LinterTest` and an `AdminEditingTest` case); `npm run admin:build`;
+  on the jtcom trial in headless Chrome with a throwaway administrator
+  and a throwaway set on posts (both removed after, with the account's
+  sessions): a new post's panel shows the set's group (label, help, a
+  text field, a checkbox, radio buttons) after the post's fields; the
+  site's home page served and `content:lint` found no errors.
+- **Why:** D-337's phase 2, as planned.

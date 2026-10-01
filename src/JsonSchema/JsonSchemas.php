@@ -19,6 +19,7 @@ use Blush\Component\Variant;
 use Blush\Content\EntryFields;
 use Blush\Core\Framework;
 use Blush\Field\Control;
+use Blush\Field\FieldSet;
 use Blush\Field\FieldType;
 use Blush\Field\Schema;
 use Blush\Media\MediaSchemas;
@@ -87,6 +88,7 @@ final readonly class JsonSchemas
 		return [
 			'entry.schema.json'     => $this->entry(),
 			'extension.schema.json' => $this->extension(),
+			'field-set.schema.json' => $this->fieldSet(),
 			'media.schema.json'     => $this->media(),
 			'menu.schema.json'      => $this->menu(),
 			'region.schema.json'    => $this->region(),
@@ -240,6 +242,51 @@ final readonly class JsonSchemas
 				],
 				'autoload'    => $this->autoload('Namespace prefixes, each ending in a backslash, and the folders inside the extension their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.', true),
 				'requires'    => $this->requires('What the extension needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other extensions.')
+			]
+		];
+	}
+
+	/**
+	 * Returns the schema for a field set file, `user/data/fields/{name}`
+	 * (D-337): its label, help, targets, and fields, as a list of named
+	 * definitions or a map of names to them.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function fieldSet(): array
+	{
+		$field  = ['$ref' => '#/definitions/field'];
+		$target = [
+			'type'        => 'string',
+			'pattern'     => trim(FieldSet::TARGET_PATTERN, '/'),
+			'description' => 'A place the set\'s fields are added: a kind and a name, such as type:post for the post content type.'
+		];
+
+		return [
+			'$schema'              => self::DRAFT,
+			'title'                => sprintf('%s field set', Framework::NAME),
+			'description'          => 'A field set: fields added to each place it targets, such as content types. It\'s named after its file.',
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => [
+				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				'name'        => ['type' => 'string', 'pattern' => trim(FieldSet::NAME_PATTERN, '/'), 'description' => 'The set\'s name, which must match its file\'s.'],
+				'label'       => ['type' => 'string', 'description' => 'The set\'s name for people, heading its fields in the admin. Its name, made readable, by default.'],
+				'description' => ['type' => 'string', 'description' => 'Help text, shown under the label in the admin.'],
+				'targets'     => [
+					'description' => 'Where the fields are added.',
+					'anyOf'       => [$target, ['type' => 'array', 'items' => $target]]
+				],
+				'fields'      => [
+					'description' => 'The fields: a list of definitions with names, or a map of names to definitions.',
+					'anyOf'       => [
+						['type' => 'array', 'items' => ['allOf' => [$field, ['required' => ['name']]]]],
+						['type' => 'object', 'additionalProperties' => $field]
+					]
+				]
+			],
+			'definitions'          => [
+				'field' => $this->field()
 			]
 		];
 	}

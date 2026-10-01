@@ -50,7 +50,8 @@ use Blush\Media\MediaMetadataCheck;
  *
  * It also checks the media metadata files under `user/data/media`
  * (`MediaMetadataCheck`, D-293): ones that can't be read or whose values
- * don't fit, and ones whose media file is gone.
+ * don't fit, and ones whose media file is gone; and notes field set
+ * targets that attach to nothing (`FieldSetCheck`, D-337).
  */
 final readonly class Linter
 {
@@ -65,7 +66,8 @@ final readonly class Linter
 		private ContentTypes $types,
 		private RouteTable $routes,
 		private VariantCheck $variants,
-		private MediaMetadataCheck $media
+		private MediaMetadataCheck $media,
+		private FieldSetCheck $sets
 	) {}
 
 	/**
@@ -119,7 +121,7 @@ final readonly class Linter
 		// Media metadata files, by their path from the site root (D-293).
 		[$metadata, $described] = $this->media->check();
 
-		return new LintReport(count($files), [...$violations, ...$described], $metadata);
+		return new LintReport(count($files), [...$violations, ...$described, ...$this->sets->check()], $metadata);
 	}
 
 	/**

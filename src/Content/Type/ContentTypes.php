@@ -20,6 +20,8 @@ use Override;
 use Blush\Content\EntryFields;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;
+use Blush\Field\FieldSet;
+use Blush\Field\FieldSets;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 
@@ -35,7 +37,9 @@ use Blush\Field\Schema;
  * Each type's full schema is the built-in entry fields, then every
  * taxonomy's term field (which may not reuse a built-in name or alias),
  * then the authors field when the type supports authors (D-329), then
- * the type's own fields (which may replace any of them).
+ * the type's own fields (which may replace any of them), then the fields
+ * of the field sets attached to it (`type:{name}`, D-337), in set name
+ * order, which may not reuse any name or alias before them.
  *
  * @implements IteratorAggregate<string, ContentType>
  */
@@ -59,11 +63,13 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * @param array<string, ContentType> $types   Keyed by name.
 	 * @param array<string, TypeOrigin>  $origins Keyed by name.
 	 * @param ?string                    $home    The home page's type.
+	 * @param FieldSets                  $sets    The site's field sets.
 	 */
 	public function __construct(
 		private readonly array $types,
 		private readonly array $origins = [],
-		public readonly ?string $home = null
+		public readonly ?string $home = null,
+		public readonly FieldSets $sets = new FieldSets()
 	) {
 		foreach ($types as $name => $type) {
 			$this->folders[$type->folder] = $name;
@@ -189,12 +195,24 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns the field sets attached to a type, in name order.
+	 *
+	 * @return list<FieldSet>
+	 * @throws InvalidContentType When there's no such type.
+	 */
+	public function setsFor(string $name): array
+	{
+		return $this->sets->for(new ContentTypeTarget($this->get($name))->key());
+	}
+
+	/**
 	 * Returns a type's full schema: the built-in entry fields, every
 	 * taxonomy's term field, the authors field when the type supports
-	 * authors, a hierarchical taxonomy's `parent`, then the type's own
-	 * fields.
+	 * authors, a hierarchical taxonomy's `parent`, the type's own fields,
+	 * then its field sets' fields.
 	 *
-	 * @throws InvalidContentType When the fields clash.
+	 * @throws InvalidContentType When the fields clash, or the type won't
+	 *                            take a set's field.
 	 */
 	public function schema(string $name): Schema
 	{
@@ -218,20 +236,37 @@ final class ContentTypes implements IteratorAggregate, Countable
 			throw new InvalidContentType(sprintf('Content type "%s" has clashing fields: %s', $name, $e->getMessage()), previous: $e);
 		}
 
+		$target = new ContentTypeTarget($type);
+
+		foreach ($this->sets->for($target->key()) as $set) {
+			foreach ($set->schema->fields as $field) {
+				if (! $target->accepts($field)) {
+					throw new InvalidContentType(sprintf('Content type "%s" doesn\'t take field set "%s" field "%s".', $name, $set->name, $field->name));
+				}
+			}
+
+			try {
+				$schema = new Schema([...array_values($schema->fields), ...array_values($set->schema->fields)], $schema->closed);
+			} catch (InvalidSchema $e) {
+				throw new InvalidContentType(sprintf('Content type "%s" can\'t take field set "%s": %s', $name, $set->name, $e->getMessage()), previous: $e);
+			}
+		}
+
 		return $this->schemas[$name] = $schema;
 	}
 
 	/**
 	 * Returns the types as an array for a compiled cache.
 	 *
-	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, home: ?string}
+	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, home: ?string, sets: list<array<string, mixed>>}
 	 */
 	public function toArray(): array
 	{
 		return [
 			'types'   => array_values(array_map(static fn (ContentType $type): array => $type->toArray(), $this->types)),
 			'origins' => array_map(static fn (TypeOrigin $origin): string => $origin->value, $this->origins),
-			'home'    => $this->home
+			'home'    => $this->home,
+			'sets'    => $this->sets->toArray()
 		];
 	}
 
@@ -261,7 +296,13 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 		$home = $data['home'] ?? null;
 
-		return new self($types, $origins, is_string($home) ? $home : null);
+		try {
+			$sets = FieldSets::fromArray(is_array($data['sets'] ?? null) ? $data['sets'] : [], $fields);
+		} catch (InvalidSchema $e) {
+			throw new InvalidContentType($e->getMessage(), previous: $e);
+		}
+
+		return new self($types, $origins, is_string($home) ? $home : null, $sets);
 	}
 
 	/**

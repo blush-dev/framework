@@ -227,7 +227,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   date means and when the file was last edited), Featured Image, Authors, each
   taxonomy (headed by its plural label; only those grouping the type,
   or that the file uses), Summary, then the type's other fields as a
-  form. Fields in the drawer are filled wells (`--bg`), as the
+  form, then a group for each field set attached to the type (D-339;
+  the direction has no sets), headed by its label with its help below,
+  its fields kept out of the groups before it. Fields in the drawer are filled wells (`--bg`), as the
   prototype's are. People show
   an author's slug, not a role, and no avatar images. A term keeps its
   Visibility and Date (Blush terms have both), and shows Featured Image

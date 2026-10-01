@@ -18,6 +18,8 @@ use Blush\Core\Paths;
 use Blush\Data\DataLoader;
 use Blush\Data\InvalidData;
 use Blush\Field\FieldFactory;
+use Blush\Field\FieldSetLoader;
+use Blush\Field\InvalidSchema;
 
 /**
  * Gathers the content types from every source and checks that they fit
@@ -48,7 +50,8 @@ final readonly class ContentTypeLoader
 		private Paths $paths,
 		private DataLoader $data,
 		private FieldFactory $fields,
-		private Container $container
+		private Container $container,
+		private FieldSetLoader $sets
 	) {}
 
 	/**
@@ -98,7 +101,13 @@ final readonly class ContentTypeLoader
 			$origins[$type->name] = TypeOrigin::Data;
 		}
 
-		$resolved = new ContentTypes($types, $origins, $this->config->home);
+		try {
+			$sets = $this->sets->load();
+		} catch (InvalidSchema $e) {
+			throw new InvalidContentType($e->getMessage(), previous: $e);
+		}
+
+		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets);
 		$this->check($resolved);
 
 		return $resolved;

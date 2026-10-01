@@ -60,6 +60,7 @@ use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
+use Blush\Field\FieldSetLoader;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 
@@ -105,6 +106,7 @@ final class ContentServiceProvider extends ServiceProvider
 	 */
 	protected const array TRANSIENTS = [
 		ContentTypeLoader::class,
+		FieldSetLoader::class,
 		MarkdownDocumentParser::class,
 		HtmlDocumentParser::class,
 		DataDocumentParser::class,

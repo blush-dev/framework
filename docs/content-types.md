@@ -389,6 +389,67 @@ the controls a field can use under **Edited with**.
 Keys you don't declare are still kept, and `content:lint --strict` lists
 them. Set `closed: true` on the type to make them errors instead.
 
+## Field sets
+
+A field set is a group of fields you can add to several types at once:
+SEO fields for posts and pages, say. Put each set in its own file in
+`user/data/fields/`, named for the set, and list the types it's for in
+`targets`, as `type:` and the type's name:
+
+```yaml
+# user/data/fields/seo.yaml
+label: SEO
+description: How the entry appears in search results.
+targets: [type:post, type:page]
+fields:
+  meta_title:
+    type: text
+    label: Title for search engines
+  noindex:
+    type: bool
+    label: Hide from search engines
+```
+
+`fields` takes the same field definitions as a type's, as a list or a
+map. `label` heads the set's fields in the admin's editor, where each set
+has its own group after the type's own fields (its name, made readable,
+when it has no label), and `description` is shown under it.
+
+- A type's fields come first, then each set's, with the sets in name
+  order.
+- A set can't use a field name (or alias) that the type, the built-in
+  fields, or another of its sets already uses. Rename one; Blush stops
+  with a message naming both.
+- A target that isn't a content type, such as a type that's turned off,
+  is skipped. `bin/blush content:lint` notes it.
+
+Sets can also be defined in `config/fields.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Blush\Field\FieldConfig;
+use Blush\Field\FieldSet;
+use Blush\Field\Fields\BoolField;
+use Blush\Field\Fields\TextField;
+
+return new FieldConfig(sets: [
+	new FieldSet('seo', [new TextField('meta_title'), new BoolField('noindex')], ['type:post', 'type:page'], 'SEO')
+]);
+```
+
+Extensions can add sets too
+([Field sets from an extension](extending.md#field-sets-from-an-extension)).
+A set in `config/fields.php` replaces an extension's set of the same
+name, and a set in `user/data/fields/` replaces either. Set `dataSets:
+false` in `config/fields.php` to ignore `user/data/fields/`.
+
+Editors that read JSON Schema can check a set's file: start it with
+`# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/field-set.schema.json`
+(or a `"$schema"` key in JSON).
+
 ## Listing entries
 
 A type's `listing` option sets how its listing page lists entries:

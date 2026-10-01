@@ -126,6 +126,15 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | `dataTypeUrls` | `true` | Whether those types may set their own `urls` |
 | `autoIndex` | `true` | Whether development requests pick up content changes |
 
+### Fields
+
+`config/fields.php` · `Blush\Field\FieldConfig`
+
+| Option | Default | What it does |
+|---|---|---|
+| `sets` | `[]` | Your [field sets](content-types.md#field-sets) |
+| `dataSets` | `true` | Whether sets in `user/data/fields/` are read |
+
 ### Theme
 
 `config/theme.php` · `Blush\Theme\ThemeConfig`

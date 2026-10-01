@@ -274,15 +274,20 @@ Implemented in M3 (D-073 to D-077).
 - **Not yet:** the optional locale segment (D-036) and a base path for
   subdirectory installs (open question).
 
-## Fields (D-337, D-338)
+## Fields (D-337 to D-339)
 The value layer is `Blush\Field` (see Content → Types and schemas). Built
 (D-338): field types describe themselves (`typeLabel()`,
 `typeDescription()`, `controls()`); a field's `control`, checked by
 `canUse()`, with `editedWith()` the one used; `toForm()` for the admin's
 forms; `GET fields/types`, the catalog; definitions as a list or a map
 (`FieldFactory::definitions()`); and config types and media fields in
-array form built with the container's registry. Planned above it, with
-content types as the only consumer until the API is right:
+array form built with the container's registry. Field sets on content
+types are built (D-339): `FieldSet`, `FieldTarget`, `ContentTypeTarget`,
+`FieldSetLoader` (extensions, `config/fields.php`, `user/data/fields`),
+`FieldSets`, sets in `ContentTypes::schema()` and its compiled array,
+`FieldSetCheck` in `content:lint`, and a group per set in the editor.
+The design, with content types the only consumer until the API is
+right:
 
 - **`FieldSet`:** a named, labeled, ordered list of fields with
   `targets` (`type:post`), attached from the set's side. From extension

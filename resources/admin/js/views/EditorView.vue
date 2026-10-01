@@ -226,6 +226,17 @@ function fieldsOf(detail: EntryDetail | NewEntryDetail | null): FieldDescription
 }
 
 const fields    = computed(() => fieldsOf(entry.value));
+
+// The field sets attached to the type (D-337), each a group of its own
+// under its label, with its fields in the set's order. Their fields stay
+// out of the panel's other groups.
+const setGroups = computed(() => (entry.value?.type.sets ?? []).map((set) => ({
+	...set,
+	fields: set.fields.flatMap((name) => fields.value.filter((field) => field.name === name))
+})).filter((set) => set.fields.length > 0));
+
+const inSets    = computed(() => new Set((entry.value?.type.sets ?? []).flatMap((set) => set.fields)));
+const ownFields = computed(() => fields.value.filter((field) => !inSets.value.has(field.name)));
 const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'published'));
 const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
 const noun      = computed(() => entry.value?.index ? 'index page' : (entry.value?.authorsPage ? 'authors page' : labels.value.item));
@@ -942,22 +953,22 @@ async function preview(): Promise<void> {
 // The Document tab's fields, in the order they're touched (admin.md §8,
 // The document panel): visibility and a term's parent as rows under
 // Publish, then the featured image, the authors, each other reference
-// (a taxonomy's terms, as a picker), the summary, and the type's other
-// fields as a form.
-const visibilityField = computed(() => fields.value.find((field) => field.name === 'visibility' && field.type === 'enum'));
-const parentField     = computed(() => fields.value.find((field) => field.name === 'parent' && field.type === 'reference' && field.multiple === false && field.to !== undefined));
+// (a taxonomy's terms, as a picker), the summary, the type's other
+// fields as a form, and then each field set's (D-337).
+const visibilityField = computed(() => ownFields.value.find((field) => field.name === 'visibility' && field.type === 'enum'));
+const parentField     = computed(() => ownFields.value.find((field) => field.name === 'parent' && field.type === 'reference' && field.multiple === false && field.to !== undefined));
 // A term has no author or featured image of its own (admin.md §8), so
 // those show only when its file has one.
 const term = computed(() => entry.value?.type.kind === 'taxonomy');
-const imageField      = computed(() => fields.value.find((field) => field.name === 'image' && field.type === 'media'));
-const authorField     = computed(() => fields.value.find((field) => field.type === 'reference' && field.to !== undefined && field.to === authorType.value));
-const summaryField    = computed(() => fields.value.find((field) => field.name === 'summary' && field.type === 'markdown'));
-const referenceFields = computed(() => fields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && field !== authorField.value));
+const imageField      = computed(() => ownFields.value.find((field) => field.name === 'image' && field.type === 'media'));
+const authorField     = computed(() => ownFields.value.find((field) => field.type === 'reference' && field.to !== undefined && field.to === authorType.value));
+const summaryField    = computed(() => ownFields.value.find((field) => field.name === 'summary' && field.type === 'markdown'));
+const referenceFields = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && field !== authorField.value));
 
 const otherFields = computed(() => {
 	const placed = [visibilityField.value, parentField.value, imageField.value, authorField.value, summaryField.value, ...referenceFields.value];
 
-	return fields.value.filter((field) => !placed.includes(field));
+	return ownFields.value.filter((field) => !placed.includes(field));
 });
 
 function referenceCount(field: FieldDescription): number {
@@ -2596,6 +2607,12 @@ function fieldKey(field: FieldDescription): string {
 							<div v-if="otherFields.length" class="editor__group">
 								<p class="editor__group-heading">{{ labels.singular }} Fields</p>
 								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
+							</div>
+
+							<div v-for="set in setGroups" :key="set.name" class="editor__group">
+								<p class="editor__group-heading">{{ set.label }}</p>
+								<p v-if="set.description" class="editor__group-note">{{ set.description }}</p>
+								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
 							</div>
 
 							<div v-if="Object.keys(entry.extra).length" class="editor__group">

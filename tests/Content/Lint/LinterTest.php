@@ -15,6 +15,7 @@ namespace Blush\Tests\Content\Lint;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Blush\Content\Lint\FieldSetCheck;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
 use Blush\Content\Lint\VariantCheck;
@@ -23,6 +24,7 @@ use Blush\Field\Violation;
 use Blush\Tests\Content\BuildsContentSite;
 
 #[CoversClass(Linter::class)]
+#[CoversClass(FieldSetCheck::class)]
 #[CoversClass(LintReport::class)]
 #[CoversClass(VariantCheck::class)]
 final class LinterTest extends TestCase
@@ -127,6 +129,21 @@ final class LinterTest extends TestCase
 			'warning authors: "sam-smith" has no author entry, so it has no public name or bio; add one.',
 			'notice category: "missing" has no category entry; a virtual term stands in.'
 		], $messages['_posts/2009-01-01.credits.md'] ?? null, 'Authors are people (D-329), so a missing one is a warning; a missing term is a notice.');
+	}
+
+	public function testNotesFieldSetTargetsThatAttachToNothing(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/data/fields/shop.yaml', "targets: [type:post, type:product, menu:primary]\nfields: [{name: price, type: number}]\n");
+
+		$report  = $this->site()->container()->make(Linter::class)->lint();
+		$notices = self::messages($report, Severity::Notice);
+
+		$this->assertSame([
+			'notice targets: "shop" names type:product, which isn\'t a content type, so it isn\'t used there.',
+			'notice targets: "shop" names menu:primary, but fields can\'t attach to a "menu" yet.'
+		], $notices['user/data/fields/shop.yaml'] ?? null);
+		$this->assertFalse($report->hasErrors());
 	}
 
 	public function testCleanContentHasNoErrors(): void

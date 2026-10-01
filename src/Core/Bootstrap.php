@@ -36,6 +36,7 @@ use Blush\Extension\ExtensionManifest;
 use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
 use Blush\Feed\FeedConfig;
+use Blush\Field\FieldConfig;
 use Blush\Http\HttpConfig;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
@@ -266,6 +267,7 @@ final readonly class Bootstrap
 			new RouteConfig(),
 			new MarkdownConfig(),
 			new ContentConfig(),
+			new FieldConfig(),
 			new MediaConfig(),
 			new ThemeConfig(),
 			new FeedConfig(),

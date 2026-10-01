@@ -18,7 +18,8 @@ use Blush\Field\Violation;
 
 /**
  * The problems `Linter` found, by path: a content file's under
- * `user/content`, a media metadata file's from the site root (D-293).
+ * `user/content`, a media metadata file's from the site root (D-293), a
+ * field set's file or name (D-337).
  */
 final readonly class LintReport
 {

@@ -1,0 +1,531 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework field set",
+	"description": "A field set: fields added to each place it targets, such as content types. It's named after its file.",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
+		},
+		"name": {
+			"type": "string",
+			"pattern": "^[a-z0-9][a-z0-9_-]*$",
+			"description": "The set's name, which must match its file's."
+		},
+		"label": {
+			"type": "string",
+			"description": "The set's name for people, heading its fields in the admin. Its name, made readable, by default."
+		},
+		"description": {
+			"type": "string",
+			"description": "Help text, shown under the label in the admin."
+		},
+		"targets": {
+			"description": "Where the fields are added.",
+			"anyOf": [
+				{
+					"type": "string",
+					"pattern": "^[a-z]+:[a-z0-9][a-z0-9_-]*$",
+					"description": "A place the set's fields are added: a kind and a name, such as type:post for the post content type."
+				},
+				{
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^[a-z]+:[a-z0-9][a-z0-9_-]*$",
+						"description": "A place the set's fields are added: a kind and a name, such as type:post for the post content type."
+					}
+				}
+			]
+		},
+		"fields": {
+			"description": "The fields: a list of definitions with names, or a map of names to definitions.",
+			"anyOf": [
+				{
+					"type": "array",
+					"items": {
+						"allOf": [
+							{
+								"$ref": "#/definitions/field"
+							},
+							{
+								"required": [
+									"name"
+								]
+							}
+						]
+					}
+				},
+				{
+					"type": "object",
+					"additionalProperties": {
+						"$ref": "#/definitions/field"
+					}
+				}
+			]
+		}
+	},
+	"definitions": {
+		"field": {
+			"type": "object",
+			"description": "A field definition.",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The key the value is read from. Fields in a map are named by their key."
+				},
+				"type": {
+					"description": "The field type. Extensions may add others.",
+					"default": "text",
+					"anyOf": [
+						{
+							"const": "text",
+							"description": "A line of text."
+						},
+						{
+							"const": "markdown",
+							"description": "Formatted text."
+						},
+						{
+							"const": "date",
+							"description": "A date and time."
+						},
+						{
+							"const": "bool",
+							"description": "true or false."
+						},
+						{
+							"const": "number",
+							"description": "A number."
+						},
+						{
+							"const": "enum",
+							"description": "One of a set of values."
+						},
+						{
+							"const": "list",
+							"description": "Several values."
+						},
+						{
+							"const": "reference",
+							"description": "Other entries, by slug."
+						},
+						{
+							"const": "media",
+							"description": "A media file."
+						},
+						{
+							"const": "slug",
+							"description": "A URL-safe name."
+						},
+						{
+							"const": "object",
+							"description": "A group of fields."
+						},
+						{
+							"type": "string"
+						}
+					]
+				},
+				"required": {
+					"type": "boolean",
+					"description": "Whether a value must be present."
+				},
+				"default": {
+					"description": "The value used when none is given."
+				},
+				"aliases": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Other keys the value may be read from."
+				},
+				"label": {
+					"type": "string",
+					"description": "A human-readable name."
+				},
+				"description": {
+					"type": "string",
+					"description": "Help text."
+				},
+				"control": {
+					"description": "How the admin edits the field, when not its type's default.",
+					"anyOf": [
+						{
+							"const": "text",
+							"description": "One line"
+						},
+						{
+							"const": "textarea",
+							"description": "Several lines"
+						},
+						{
+							"const": "mono",
+							"description": "Code"
+						},
+						{
+							"const": "checkbox",
+							"description": "Checkbox"
+						},
+						{
+							"const": "number",
+							"description": "Number"
+						},
+						{
+							"const": "select",
+							"description": "Menu"
+						},
+						{
+							"const": "radios",
+							"description": "Radio buttons"
+						},
+						{
+							"const": "checks",
+							"description": "Checkboxes"
+						},
+						{
+							"const": "date",
+							"description": "Date picker"
+						},
+						{
+							"const": "lines",
+							"description": "One per line"
+						},
+						{
+							"const": "reference",
+							"description": "Entry picker"
+						},
+						{
+							"const": "media",
+							"description": "Media picker"
+						},
+						{
+							"const": "readonly",
+							"description": "Read-only"
+						}
+					]
+				}
+			},
+			"allOf": [
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "text"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"control": {
+								"enum": [
+									"text",
+									"textarea",
+									"mono"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "markdown"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"control": {
+								"enum": [
+									"textarea"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "date"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"control": {
+								"enum": [
+									"date"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "bool"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"default": {
+								"type": "boolean"
+							},
+							"control": {
+								"enum": [
+									"checkbox"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "number"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"integer": {
+								"type": "boolean",
+								"description": "Whether the value must be a whole number."
+							},
+							"min": {
+								"type": "number",
+								"description": "The smallest value allowed."
+							},
+							"max": {
+								"type": "number",
+								"description": "The largest value allowed."
+							},
+							"default": {
+								"type": "number"
+							},
+							"control": {
+								"enum": [
+									"number"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "enum"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"options": {
+								"type": "array",
+								"description": "The values allowed.",
+								"items": {
+									"type": "string"
+								},
+								"minItems": 1
+							},
+							"default": {
+								"type": "string"
+							},
+							"control": {
+								"enum": [
+									"select",
+									"radios"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "list"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"item": {
+								"$ref": "#/definitions/field",
+								"description": "A field definition for each value; text by default."
+							},
+							"default": {
+								"type": "array"
+							},
+							"control": {
+								"enum": [
+									"lines",
+									"checks",
+									"readonly"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "reference"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"to": {
+								"type": "string",
+								"description": "The content type the entries are of."
+							},
+							"multiple": {
+								"type": "boolean",
+								"description": "Whether the field holds several entries.",
+								"default": true
+							},
+							"control": {
+								"enum": [
+									"reference",
+									"mono"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "media"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"kind": {
+								"enum": [
+									"image",
+									"video",
+									"audio",
+									"file"
+								],
+								"description": "The kind of file it takes, so the admin's picker offers only those."
+							},
+							"control": {
+								"enum": [
+									"media",
+									"mono"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "slug"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"control": {
+								"enum": [
+									"mono"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "object"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"fields": {
+								"type": "array",
+								"description": "The fields in the group.",
+								"items": {
+									"allOf": [
+										{
+											"$ref": "#/definitions/field"
+										},
+										{
+											"required": [
+												"name"
+											]
+										}
+									]
+								}
+							},
+							"closed": {
+								"type": "boolean",
+								"description": "Whether keys the group doesn't declare are errors."
+							},
+							"default": {
+								"type": "object"
+							},
+							"control": {
+								"enum": [
+									"readonly"
+								]
+							}
+						}
+					}
+				}
+			]
+		}
+	}
+}
