@@ -1581,6 +1581,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-117: Theme settings
 - **Date:** 2026-09-25
+- **Status:** The default theme's `excerpts` setting is removed (D-307).
 - **Decision:** Implements the settings part of D-022:
   - A manifest's `settings` map names to field definitions with the
     content field types (`type`, `default`, `label`, `options`, …).
@@ -4736,6 +4737,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-241: The admin's full navigation, planned screens, and a Markdown source editor
 - **Date:** 2026-09-29
+- **Status:** The planned-screen page is removed (D-309).
 - **Decision:** From the author's new clickable prototype
   (`admin-design/blush-admin.html`), with its screens that don't exist
   yet stubbed, and the editor's next step.
@@ -7258,3 +7260,133 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked for a badge and a custom span, and picked
   `ins`, `cite`/`dfn`, and `small`/`var`/`samp` from the HTML inlines
   Markdown can't write.
+
+### D-306: The Appearance screen
+- **Date:** 2026-09-30
+- **Decision:** The first of the three stubbed Config screens (D-241)
+  is built. The author chose **read-only first** for all three
+  (Appearance, Extensions, Settings): they show configuration and where
+  it's set, and writing `config/` from the admin is a later, separate
+  decision (D-039 stands). Appearance came first.
+  - **`GET appearance`** (`AppearanceController`, `site.settings`):
+    the active theme, its chain, whether `config/theme.php` exists,
+    whether `?theme=` previews work (development), every installed
+    theme (slug, name, version, description, parent, source, active),
+    and the broken ones with the reason.
+  - **The screen:** each theme as a row: **Active**, **In use** for the
+    themes the active one builds on, else **Preview** in development and
+    **Copy command** for `theme:activate`. Then broken themes, if any.
+    Departures are in `admin-design/departures.md`.
+  - A Theme Settings form (editing `user/data/theme.json`) was built
+    and taken out in the same session; see D-307.
+- **Checked:** `composer check` (`AdminAppearanceTest`); `npm run
+  admin:build`; the jtcom trial in Chrome with a throwaway
+  administrator (removed after).
+
+### D-307: No theme settings in the admin, and no `excerpts`
+- **Date:** 2026-09-30
+- **Decision:** The default theme's `excerpts` setting is removed:
+  listings always show the excerpt (supersedes that part of D-117).
+  The Appearance screen has no settings form and the API no `PATCH
+  appearance/settings`. Custom theme settings will come later with a
+  proper API. The manifest `settings` mechanism
+  (`SettingsResolver`, `user/data/theme.json`, `$template->setting()`)
+  is unchanged for now.
+- **Why:** the author asked to drop it and do theme settings properly
+  later.
+
+### D-308: The Extensions screen
+- **Date:** 2026-09-30
+- **Decision:** The second stubbed Config screen (D-241), read-only as
+  D-306 settled.
+  - **`GET extensions`** (`ExtensionsController`, `site.settings`):
+    every installed extension, found by running discovery
+    (`ExtensionDiscovery::forPaths()`), since the compiled extension
+    cache holds only enabled ones (`extension:list`, planned in D-041,
+    still isn't built). Each has its name, version, description, source,
+    path, requirements, whether `ExtensionConfig` enables it, and what it
+    `adds`; the ones that are on come first, then by name.
+  - **What an extension adds** is what the admin can attribute without
+    changing any registry or cache: content types from each tagged
+    `ContentTypeSource` (asked for its types, each marked `overridden`
+    when the site's `config/content.php` redefines it), admin actions
+    (`AdminActionRegistry`), and console commands (tagged classes'
+    `#[Command]`, hidden ones left out), each owned by the extension
+    whose PSR-4 prefix or provider namespace is the longest match for
+    the class; and components and icon namespaces by namespace (the
+    extension named it, or every extension under that vendor, as
+    `Provenance` does). An extension that's off adds nothing. Routes,
+    media fields, embed providers, and events aren't listed.
+  - **The screen:** a notice on where extensions are installed and
+    turned off, then one row per extension (sharing the global
+    `.package` classes, promoted from Appearance), with an On or Off
+    pill, what it adds as grouped chips, and for one that's off, how to
+    turn it on. Departures are in `admin-design/departures.md`.
+- **Checked:** `composer check` (`AdminExtensionsTest`, with a fixture
+  extension adding one of everything and one turned off); `npm run
+  admin:build`; the jtcom trial in Chrome with two temporary local
+  extensions and a throwaway administrator (all removed after).
+
+### D-309: The Settings screen, and no more planned screens
+- **Date:** 2026-09-30
+- **Status:** The trailing-slash finding is corrected and fixed by D-310.
+- **Decision:** The last stubbed Config screen (D-241), read-only as
+  D-306 settled, with only the settings Blush has (the author's call;
+  the prototype's other fields wait until they exist).
+  - **`GET settings`** (`SettingsController`, `site.settings`): groups
+    (General: name, address, locale, environment, detailed errors; Dates
+    and Time: time zone, with the time there now; Content: home page,
+    `user/data/types`, built-in types turned off; Addresses: trailing
+    slash, media URL; Feeds: formats, full content, limit; Search
+    Engines: sitemap, asking not to be indexed outside production,
+    disallowed paths; Caching: on, driver, pages, browser max age;
+    Publishing and Previews: webhook, git pull, preview links), each
+    naming the file it's set in by convention (`ConfigRepository`
+    doesn't track files), with items carrying a display value, a kind,
+    whether it's still the default (against a default-constructed
+    config; `null` for one that follows from others), help, and a
+    warning (detailed errors in production). Secrets are never sent,
+    only whether one is set.
+  - **The screen:** a notice (`config/`, `.env`, compile again), then
+    the groups as two columns of panels, each a list of label and value
+    with a Default mark, ending with its file.
+  - **The planned-screen mechanism is removed** (`PlannedView`,
+    `PlannedScreen`, the router's `planned` map; supersedes that part of
+    D-241): every screen in the navigation exists.
+  - **Found, not fixed:** with `trailingSlash` on, the router redirects
+    the admin's API paths to their slash form, which would break the
+    admin's `POST` and `PATCH` requests (noted in the roadmap).
+- **Checked:** `composer check` (`AdminSettingsTest`); `npm run
+  admin:build`; the jtcom trial in Chrome with a throwaway administrator
+  (removed after).
+
+### D-310: Exact routes skip the trailing-slash redirect
+- **Date:** 2026-09-30
+- **Context:** D-309 reported that with `RouteConfig::$trailingSlash` on,
+  the admin's `POST` and `PATCH` requests would be redirected as `GET`s.
+  That was wrong: the router already answers unsafe methods with a 308,
+  which keeps the method and body, and the admin worked in Chrome on the
+  jtcom trial with the setting on. The real costs: every admin request
+  was two round trips (301 or 308, then the slash form), the admin's
+  addresses gained slashes (`/admin/sign-in/`), and webhook senders that
+  don't follow redirects (GitHub's) would fail on the publish webhook.
+- **Decision:** A route can be **exact**: it answers its path as written,
+  with or without the slash, is never redirected to the canonical form,
+  and `UrlGenerator` makes its URLs without `canonicalPath()`.
+  - `Route::$exact` (`->exact()`, `toArray()`/`fromArray()`),
+    `Route::group(..., exact: true)`, `CompiledRoute::$exact` (old route
+    caches read as not exact), the `#[Route]`/`#[Get]`/... attributes'
+    and `#[Group]`'s `exact` argument.
+  - `Router::handle()` skips the redirect when the route the request
+    reaches (by method, `HEAD` falling back to `GET`) is exact.
+  - Exact by default: every admin route (both groups), the publish
+    webhook, and preview links. Media and theme assets end in file
+    extensions, which `canonicalPath()` already leaves alone.
+- **Checked:** `composer check` (`RouterTest`: exact routes in both
+  forms, `HEAD`, `POST`, generated URLs, an attribute route, other
+  routes still redirecting; `RouteCompilerTest`: round trips and groups;
+  `AdminApiTest`: signing in, a `PATCH`, and screens on a trailing-slash
+  site, all 200); the jtcom trial in Chrome with `trailingSlash` on
+  (every admin request a single 200; `/about` still 301s), the setting
+  and a throwaway account removed after.
+

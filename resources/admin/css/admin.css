@@ -706,6 +706,104 @@
 	font-style: italic;
 }
 
+/* Packages: themes and extensions, a row each, with a mark, a name,
+   facts, a description, and what's at the end (a status, actions). */
+
+.packages {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.package {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-4);
+	padding: var(--s-5) var(--pad-x);
+	border-bottom: 1px solid var(--border);
+}
+
+.package:last-child {
+	border-bottom: 0;
+}
+
+.package__mark {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface-2);
+	color: var(--fg-2);
+}
+
+.package--off .package__mark {
+	opacity: 0.55;
+}
+
+.package__main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--s-2);
+	min-width: 0;
+}
+
+.package__main > * {
+	margin: 0;
+}
+
+.package__title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.package__name {
+	font-family: var(--font-display);
+	font-size: var(--h2);
+	font-weight: 600;
+}
+
+.package__fact {
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.package__description {
+	max-width: 68ch;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+.package--off .package__name,
+.package--off .package__description {
+	color: var(--fg-3);
+}
+
+.package__end {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+@media (width <= 760px) {
+	.package {
+		flex-wrap: wrap;
+	}
+
+	.package__end {
+		justify-content: flex-start;
+		width: 100%;
+	}
+}
+
 /* Empty states */
 
 /* A screen with nothing in it gets the most room of anything. */

@@ -246,7 +246,8 @@ Implemented in M3 (D-073 to D-077).
   hash map, then per-method combined regexes (branch reset plus `(*MARK)`,
   32 per chunk). `RouteCache` stores it in `storage/cache/routes.php`
   outside development.
-- **`Router`** (the kernel's handler): canonical trailing-slash redirect,
+- **`Router`** (the kernel's handler): canonical trailing-slash redirect
+  (skipped for `exact` routes, D-310),
   match (`HEAD` falls back to `GET`; wrong method → 405 with `Allow`;
   `OPTIONS` → 204), then the route's middleware and `ControllerHandler`. The
   match and parameters become request attributes, and `RouteMatched` is

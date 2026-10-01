@@ -29,7 +29,10 @@ use NoDiscard;
  * `where()`. A controller parameter typed `int`, `float`, or a backed enum
  * gets a matching constraint automatically. Constraints may not contain
  * capturing groups. Write paths without a trailing slash; `RouteConfig`'s
- * `trailingSlash` setting decides the canonical form.
+ * `trailingSlash` setting decides the canonical form, except for an
+ * `exact()` route, which answers its path as written and is never
+ * redirected to the other form (for APIs, webhooks, and the admin, which
+ * aren't pages people link to).
  *
  * **Handlers** are an invokable class, a `[Class, 'method']` pair, or a
  * PSR-15 `RequestHandlerInterface` class. They're resolved through the
@@ -46,6 +49,7 @@ final readonly class Route
 	 * @param array<string, string>                    $constraints Regexes for parameters, by name.
 	 * @param array<string, string|int|float|bool|null> $defaults   Values for handler parameters not in the path.
 	 * @param list<class-string>                       $middleware  PSR-15 middleware run for this route, outermost first.
+	 * @param bool                                     $exact       Whether it answers its path as written, without the trailing-slash redirect.
 	 * @throws InvalidRoute
 	 */
 	public function __construct(
@@ -56,7 +60,8 @@ final readonly class Route
 		public ?string $name = null,
 		public array $constraints = [],
 		public array $defaults = [],
-		public array $middleware = []
+		public array $middleware = [],
+		public bool $exact = false
 	) {
 		if ($methods === []) {
 			throw new InvalidRoute(sprintf('The route "%s" needs at least one method.', $path));
@@ -150,7 +155,7 @@ final readonly class Route
 
 	/**
 	 * Prefixes the path, name, and middleware of each route, so a set of
-	 * routes can share them.
+	 * routes can share them, and makes them all `exact()` when asked.
 	 *
 	 *     Route::group('/admin', [Route::get('/', Dashboard::class)->named('dashboard')], name: 'admin.', middleware: [Authenticate::class]);
 	 *
@@ -158,7 +163,7 @@ final readonly class Route
 	 * @param  list<class-string> $middleware Runs outside each route's own middleware.
 	 * @return list<self>
 	 */
-	public static function group(string $prefix, array $routes, string $name = '', array $middleware = []): array
+	public static function group(string $prefix, array $routes, string $name = '', array $middleware = [], bool $exact = false): array
 	{
 		$prefix = rtrim($prefix, '/');
 
@@ -166,7 +171,8 @@ final readonly class Route
 			static fn (self $route): self => clone($route, [
 				'path'       => $prefix === '' ? $route->path : ($route->path === '/' ? $prefix : $prefix . $route->path),
 				'name'       => $route->name === null ? null : $name . $route->name,
-				'middleware' => [...$middleware, ...$route->middleware]
+				'middleware' => [...$middleware, ...$route->middleware],
+				'exact'      => $exact || $route->exact
 			]),
 			$routes
 		);
@@ -207,7 +213,8 @@ final readonly class Route
 			name: $name,
 			constraints: self::stringMap($data['constraints'] ?? [], $path),
 			defaults: self::scalarMap($data['defaults'] ?? [], $path),
-			middleware: self::classList($data['middleware'] ?? [], $path)
+			middleware: self::classList($data['middleware'] ?? [], $path),
+			exact: ($data['exact'] ?? false) === true
 		);
 	}
 
@@ -255,6 +262,16 @@ final readonly class Route
 	public function middleware(string ...$middleware): self
 	{
 		return clone($this, ['middleware' => [...$this->middleware, ...array_values($middleware)]]);
+	}
+
+	/**
+	 * Returns a copy that answers its path as written: the trailing-slash
+	 * setting neither redirects it nor changes the URLs made for it.
+	 */
+	#[NoDiscard]
+	public function exact(bool $exact = true): self
+	{
+		return clone($this, ['exact' => $exact]);
 	}
 
 	/**
@@ -345,7 +362,8 @@ final readonly class Route
 	 *     name: ?string,
 	 *     constraints: array<string, string>,
 	 *     defaults: array<string, string|int|float|bool|null>,
-	 *     middleware: list<class-string>
+	 *     middleware: list<class-string>,
+	 *     exact: bool
 	 * }
 	 */
 	public function toArray(): array
@@ -358,7 +376,8 @@ final readonly class Route
 			'name'        => $this->name,
 			'constraints' => $this->constraints,
 			'defaults'    => $this->defaults,
-			'middleware'  => $this->middleware
+			'middleware'  => $this->middleware,
+			'exact'       => $this->exact
 		];
 	}
 }

@@ -38,9 +38,10 @@ groups (D-281, D-283); and the Markdown editing experience's first set
 media index (D-288), embedded image metadata (D-289), titles (D-290),
 sound and video metadata (D-291), and metadata files in
 `content:lint` (D-293); page bundle media is removed, so media lives
-only in `user/media` (D-294). Next: more
-of media (roadmap), more of the Markdown editing experience (live
-preview waits), and the remaining stubbed screens; see
+only in `user/media` (D-294); and the Appearance, Extensions, and Settings screens, read-only
+(D-306, D-308, D-309; the default theme's `excerpts` setting is gone,
+D-307), so every screen in the navigation is built. Next: more of media (roadmap); and
+more of the Markdown editing experience (live preview waits); see
 `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
 `npm run admin:build` (D-221, D-224). Admin CSS reads design tokens

@@ -40,6 +40,12 @@ final readonly class Archive
 		return Response::text("month:{$year}-{$month}:{$page}");
 	}
 
+	#[Get('/feed/status', name: 'status', exact: true)]
+	public function status(): ResponseInterface
+	{
+		return Response::text('status');
+	}
+
 	#[Get('/color/{color}', name: 'color')]
 	public function color(Color $color): ResponseInterface
 	{

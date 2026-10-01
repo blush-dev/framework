@@ -51,7 +51,8 @@ final readonly class UrlGenerator
 			?? throw new UrlGenerationException(sprintf('There is no route named "%s".', $name));
 
 		$values = array_map(self::stringify(...), array_filter($params, static fn (mixed $value): bool => $value !== null));
-		$path   = $this->config->canonicalPath($route->pattern->build($values));
+		$built  = $route->pattern->build($values);
+		$path   = $route->exact ? $built : $this->config->canonicalPath($built);
 		$query  = array_diff_key($values, array_flip($route->pattern->params));
 
 		if ($query !== []) {

@@ -111,12 +111,11 @@ first. Types are named from their `labels` setting, and
 shown with their `icon` (see
 [Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
-**Site** has Appearance, Extensions, Accounts, Roles, and Settings.
-Those screens, Media, and Content types aren't built yet: each says
-what it will do and where to do that for now (a command or a config
-file). You only see the ones your roles allow: Media needs
-`media.upload`, Accounts and Roles `accounts.manage`, and the rest
-`site.settings`.
+**Site** has Settings, Appearance, and Extensions, and **People** has
+Accounts, Roles, Authors, and Your profile. You only see the screens
+your roles allow: Media needs `media.upload`, Accounts and Roles
+`accounts.manage`, and Content types, Settings, Appearance, and
+Extensions `site.settings`.
 
 The tabs above a list show all of them, or only published entries,
 drafts, or scheduled ones, with a count on each. You see your own
@@ -609,6 +608,51 @@ and its fields; **Type settings** on a type's list goes there too. It's
 read-only for now: types are defined in `config/content.php`,
 `user/data/types`, and extensions (see [Content types](content-types.md)).
 
+## Settings
+
+With `site.settings`, **Config → Settings** shows the site-wide settings
+in panels: General (name, address, language, environment, detailed
+error pages), Dates and time, Content (the home page, `user/data/types`,
+built-in types turned off), Addresses (trailing slash, the media
+address), Feeds, Search engines, Caching, and Publishing and previews.
+Each value says when it's still the default, and a risky one is
+flagged, such as detailed error pages on a live site. Secrets are never
+shown, only whether one is set.
+
+It's read-only: settings live in `config/` and `.env`, and each panel
+names the file it's set in (see [Configuration](configuration.md)).
+After changing them on a site you've compiled, run
+`bin/blush cache:compile` again.
+
+## Appearance
+
+With `site.settings`, **Config → Appearance** shows the site's theme:
+every installed theme, with the active one marked **Active** and the
+themes it builds on marked **In use**. A theme that can't be used (its
+`theme.json` is broken) is listed with the reason.
+
+Switching themes isn't done here: the active theme is set in
+`config/theme.php`, so run `bin/blush theme:activate {slug}` (**Copy
+command** beside a theme copies it). In development, **Preview** opens
+the site with that theme (`?theme={slug}`, see [Themes](themes.md)).
+
+How the admin itself looks is set per account, on **Your profile**.
+
+## Extensions
+
+With `site.settings`, **Config → Extensions** lists every installed
+[extension](extending.md#extensions), the ones that are on first, with
+its version, where it's installed, and what it requires. For each one
+that's on, it shows what the admin can see it adding: content types
+(each links to its screen, and says so when `config/content.php`
+redefines it), components, icons, dashboard actions, and commands. An
+extension can add more than that (routes, fields, code that runs on
+every request), so one that lists nothing may still be doing something.
+
+It's read-only: install extensions in `user/extensions` or with
+Composer, and turn one off in `config/extensions.php`. An extension
+that's off says how to turn it back on.
+
 ## Accounts and roles
 
 With `accounts.manage`, **Config → Accounts** lists who can sign in, with
@@ -713,6 +757,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
 | `GET roles` | Every capability and role, with the accounts holding each; needs `accounts.manage` |
 | `GET accounts` | Every account's username, roles, author, and created and last sign-in times (Unix); needs `accounts.manage` |
+| `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"slug", "name", "version", "description", "parent", "source", "active"}], "invalid": [{"slug", "reason"}]}`. `chain` is the active theme, the themes it builds on, then `default`; `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `site.settings` |
+| `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. Secrets are never sent. Needs `site.settings` |
+| `GET extensions` | Every installed extension, the ones that are on first: `{"extensions": [{"name", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/extensions.php` exists. Needs `site.settings` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies last; a taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`. `fields` is how many the type defines, `icon` is `null` for the kind's, and `authors` names the type accounts' authors belong to (`null` when it's disabled). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
 | `GET types/{name}` | One type, with its own `fields`, the `taxonomies` that group it, `public`, `feed`, `sitemap`, and `editable` |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |

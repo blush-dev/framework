@@ -83,7 +83,12 @@ return new RouteConfig(controllers: [App\Http\Hello::class]);
 ```
 
 Route parameters are passed to your method by name, and typed ones
-(`int $year`) only match values of that type. Your routes come after the
+(`int $year`) only match values of that type. A route that isn't a page,
+such as an API or a webhook, can skip the
+[`trailingSlash`](configuration.md#routes-and-redirects) redirect with
+`exact: true` (`#[Post('/hooks/deploy', exact: true)]`, or
+`->exact()` on a `Route`): it answers its path with or without the
+slash, and its URLs are made as written. Your routes come after the
 built-in ones, so they can't break content URLs; `bin/blush routes:list`
 shows any conflicts.
 

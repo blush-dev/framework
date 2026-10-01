@@ -37,6 +37,7 @@ readonly class Route
 	 * @param array<string, string>                     $where      Parameter constraints.
 	 * @param array<string, string|int|float|bool|null> $defaults
 	 * @param list<class-string>                        $middleware
+	 * @param bool                                      $exact      Answer the path as written, without the trailing-slash redirect (`Route::exact()`).
 	 */
 	public function __construct(
 		public string $path,
@@ -44,6 +45,7 @@ readonly class Route
 		public ?string $name = null,
 		public array $where = [],
 		public array $defaults = [],
-		public array $middleware = []
+		public array $middleware = [],
+		public bool $exact = false
 	) {}
 }

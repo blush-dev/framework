@@ -258,7 +258,8 @@ final readonly class RouteCompiler
 			'middleware'    => $route->middleware,
 			'casts'         => $casts,
 			'requestParams' => $requestParams,
-			'priority'      => $priority->value
+			'priority'      => $priority->value,
+			'exact'         => $route->exact
 		];
 	}
 

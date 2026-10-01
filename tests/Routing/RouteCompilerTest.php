@@ -162,7 +162,7 @@ final class RouteCompilerTest extends TestCase
 
 	public function testRoutesDescribeThemselves(): void
 	{
-		$route = Route::get('/a', [Archive::class, 'year'])->middleware(Tag::class)->where('x', '\d+')->defaults(['page' => 1]);
+		$route = Route::get('/a', [Archive::class, 'year'])->middleware(Tag::class)->where('x', '\d+')->defaults(['page' => 1])->exact();
 
 		$this->assertSame(Archive::class . '::year', $route->handlerName());
 		$this->assertSame($route->toArray(), Route::fromArray($route->toArray())->toArray());
@@ -175,6 +175,8 @@ final class RouteCompilerTest extends TestCase
 		$this->assertSame(['/admin', '/admin/users'], array_column(array_map(static fn (Route $route): array => $route->toArray(), $routes), 'path'));
 		$this->assertSame('admin.home', $routes[0]->name);
 		$this->assertSame([Tag::class], $routes[1]->middleware);
+		$this->assertFalse($routes[1]->exact);
+		$this->assertTrue(Route::group('/api', [Route::get('/', Page::class)], exact: true)[0]->exact);
 	}
 
 	public function testRejectsInvalidRoutes(): void
@@ -207,10 +209,11 @@ final class RouteCompilerTest extends TestCase
 
 	public function testRoundTripsThroughArrays(): void
 	{
-		$table = $this->compile([Route::get('/{year}', [Archive::class, 'year'])->named('year')]);
+		$table = $this->compile([Route::get('/{year}', [Archive::class, 'year'])->named('year')->exact()]);
 		$copy  = new RouteTable($table->toArray());
 
 		$this->assertEquals($table->named('year'), $copy->named('year'));
+		$this->assertTrue($copy->named('year')?->exact);
 		$this->assertSame([Archive::class], $copy->controllers());
 	}
 }

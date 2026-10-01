@@ -45,7 +45,7 @@ final readonly class PublishRoutes implements RouteSource
 	public function routes(): iterable
 	{
 		return $this->config->hasWebhook()
-			? [Route::post($this->config->path, WebhookController::class)->named('publish.webhook')]
+			? [Route::post($this->config->path, WebhookController::class)->named('publish.webhook')->exact()]
 			: [];
 	}
 }

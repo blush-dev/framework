@@ -38,13 +38,13 @@ its files:
 ```json
 {
 	"settings": {
-		"excerpts": false
+		"layout": "grid"
 	}
 }
 ```
 
-**`settings`** are the options a theme offers. The default theme has one:
-`excerpts` (show summaries in listings; on by default).
+**`settings`** are the options a theme offers, if any. The default theme
+has none.
 
 A single entry can change its own look too, with front matter:
 

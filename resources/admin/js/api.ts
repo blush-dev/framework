@@ -177,6 +177,87 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 }
 
 /**
+ * An installed theme (`GET appearance`).
+ */
+export interface ThemeSummary {
+	slug: string;
+	name: string;
+	version: string;
+	description: string;
+	parent: string | null;
+	// `framework` (the default theme), `local` (`user/themes`), or `composer`.
+	source: 'framework' | 'local' | 'composer';
+	active: boolean;
+}
+
+/**
+ * The installed themes (`GET appearance`).
+ */
+export interface Appearance {
+	active: string;
+	// The active theme, its ancestors, then the default theme.
+	chain: string[];
+	// Whether `config/theme.php` exists.
+	config: boolean;
+	// Whether `?theme={slug}` previews another theme (development only).
+	preview: boolean;
+	themes: ThemeSummary[];
+	invalid: { slug: string; reason: string }[];
+}
+
+/**
+ * An installed extension and what it adds (`GET extensions`, D-308).
+ */
+export interface ExtensionSummary {
+	name: string;
+	version: string;
+	description: string;
+	source: 'local' | 'composer';
+	// Where it's installed, from the site's root.
+	path: string;
+	// Requirement (`php`, `blush`, `ext-…`, or an extension) to constraint.
+	requires: Record<string, string>;
+	enabled: boolean;
+	adds: {
+		// `overridden` when the site redefines the type in `config/content.php`.
+		types: { name: string; label: string; overridden: boolean }[];
+		components: string[];
+		icons: string[];
+		actions: string[];
+		commands: string[];
+	};
+}
+
+/**
+ * One site-wide setting (`GET settings`, D-309). A `bool`'s value is
+ * `true` or `false` and a `list`'s a list; the rest are text.
+ */
+export interface SettingItem {
+	key: string;
+	label: string;
+	value: string | boolean | string[];
+	kind: 'text' | 'mono' | 'bool' | 'list';
+	// Whether it's still the default; `null` when it follows from others.
+	default: boolean | null;
+	help: string | null;
+	// Why it's risky where it is.
+	warning: string | null;
+}
+
+/**
+ * A group of settings, with the file it's set in by convention and a
+ * note (backticks mark code).
+ */
+export interface SettingGroup {
+	key: string;
+	title: string;
+	hint: string;
+	file: string;
+	note: string | null;
+	items: SettingItem[];
+}
+
+/**
  * A schema field as the server describes it (`Field::toArray()`); the
  * type's own settings (`options`, `item`, `to`, …) sit beside the shared
  * ones.

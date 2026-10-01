@@ -1,8 +1,7 @@
 <?php
 
 /**
- * One entry in a listing: its linked title, byline, and excerpt (unless
- * the `excerpts` setting is off).
+ * One entry in a listing: its linked title, byline, and excerpt.
  *
  * @var Blush\View\Template       $template
  * @var Blush\Content\Entry\Entry $entry
@@ -25,9 +24,7 @@ $title = $entry->title !== '' ? $entry->title : $entry->slug;
 
 	<?= $template->include('parts/entry-meta', entry: $entry) ?>
 
-	<?php if ($template->setting('excerpts', true)) : ?>
-		<div class="entry__excerpt">
-			<?= raw($entry->excerpt()) ?>
-		</div>
-	<?php endif ?>
+	<div class="entry__excerpt">
+		<?= raw($entry->excerpt()) ?>
+	</div>
 </article>

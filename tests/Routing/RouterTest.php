@@ -27,6 +27,7 @@ use Blush\Routing\RoutingServiceProvider;
 use Blush\Routing\Sources\ConfigRedirects;
 use Blush\Routing\Sources\ConfigRoutes;
 use Blush\Routing\Sources\ControllerRoutes;
+use Blush\Routing\UrlGenerator;
 
 #[CoversClass(Router::class)]
 #[CoversClass(ControllerHandler::class)]
@@ -166,6 +167,19 @@ final class RouterTest extends TestCase
 		$this->assertSame('page:about', (string) $this->request('GET', '/about/')->getBody());
 		$this->assertSame('page:xml', (string) $this->request('GET', '/feed.xml')->getBody());
 		$this->assertSame(200, $this->request('GET', '/')->getStatusCode());
+	}
+
+	public function testExactRoutesAnswerTheirPathAsWritten(): void
+	{
+		$this->boot($this->routesConfig(trailingSlash: 'true', routes: "Route::get('/api/status', Page::class)->defaults(['name' => 'status'])->named('status')->exact(),\nRoute::post('/hook', Page::class)->defaults(['name' => 'hook'])->exact(),"));
+
+		$this->assertSame('page:status', (string) $this->request('GET', '/api/status')->getBody(), 'No redirect to /api/status/.');
+		$this->assertSame('page:status', (string) $this->request('GET', '/api/status/')->getBody());
+		$this->assertSame(200, $this->request('HEAD', '/api/status')->getStatusCode());
+		$this->assertSame('page:hook', (string) $this->request('POST', '/hook')->getBody(), 'A webhook is never redirected.');
+		$this->assertSame('/api/status', $this->application?->container()->make(UrlGenerator::class)->to('status'));
+		$this->assertSame('status', (string) $this->request('GET', '/archives/feed/status')->getBody(), 'Route attributes can be exact.');
+		$this->assertSame(301, $this->request('GET', '/about')->getStatusCode(), 'Other routes still redirect.');
 	}
 
 	public function testRedirectsBeforeNotFound(): void

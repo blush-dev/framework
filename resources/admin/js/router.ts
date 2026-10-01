@@ -2,8 +2,7 @@
  * The admin's screens. Every screen but sign-in needs an account, and some
  * a capability (`meta.capability`); the server answers the same page for
  * all of them (`ShellController`) and checks every API request itself.
- * Screens that are planned but not built yet (`meta.planned`) say what
- * they'll do (D-241). Each belongs to one of the section rail's areas
+ * Each belongs to one of the section rail's areas
  * (`meta.area`: `home`, `content`, or `config`); the editor fills the
  * work area edge to edge (`meta.bleed`).
  */
@@ -11,7 +10,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { watch } from 'vue';
 import { config } from './config';
-import { screenTitle, type PlannedScreen } from './screen';
+import { screenTitle } from './screen';
 import { can, loadSession, session } from './session';
 import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
@@ -19,9 +18,11 @@ import EntriesView from './views/EntriesView.vue';
 import HealthView from './views/HealthView.vue';
 import NewEntryView from './views/NewEntryView.vue';
 import NotFoundView from './views/NotFoundView.vue';
-import PlannedView from './views/PlannedView.vue';
 import ProfileView from './views/ProfileView.vue';
 import AccountView from './views/AccountView.vue';
+import AppearanceView from './views/AppearanceView.vue';
+import ExtensionsView from './views/ExtensionsView.vue';
+import SettingsView from './views/SettingsView.vue';
 import AccountsView from './views/AccountsView.vue';
 import RoleView from './views/RoleView.vue';
 import RolesView from './views/RolesView.vue';
@@ -31,42 +32,6 @@ import MediaView from './views/MediaView.vue';
 import TrashedView from './views/TrashedView.vue';
 import TypesView from './views/TypesView.vue';
 import SignInView from './views/SignInView.vue';
-
-const planned: Record<string, { title: string; capability: string; area: 'content' | 'config'; planned: PlannedScreen }> = {
-	appearance: {
-		title: 'Appearance',
-		capability: 'site.settings',
-		area: 'config',
-		planned: {
-			icon: 'paintbrush',
-			hint: 'The theme visitors see. How the admin looks is set on Your profile.',
-			next: "Choose the site's theme and adjust its settings.",
-			today: 'Until then, use `bin/blush theme:list` and `theme:activate`, and adjust settings in `user/data/theme.json`.'
-		}
-	},
-	extensions: {
-		title: 'Extensions',
-		capability: 'site.settings',
-		area: 'config',
-		planned: {
-			icon: 'plug',
-			hint: 'Code that adds content types, components, icons, and actions',
-			next: 'List the installed extensions and what each one adds to the site.',
-			today: 'Until then, extensions live in `user/extensions` or are installed with Composer.'
-		}
-	},
-	settings: {
-		title: 'Settings',
-		capability: 'site.settings',
-		area: 'config',
-		planned: {
-			icon: 'settings',
-			hint: 'Site-wide configuration',
-			next: "Change the site's name, addresses, and other settings from the browser.",
-			today: 'Until then, settings live in `config/` and `.env`.'
-		}
-	}
-};
 
 export const router = createRouter({
 	history: createWebHistory(config.base),
@@ -88,7 +53,6 @@ export const router = createRouter({
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
 		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content Health', capability: 'content.edit.others', area: 'home' } },
-		...Object.entries(planned).map(([name, meta]) => ({ path: `/${name}`, name, component: PlannedView, meta })),
 		// A library file's screen is at its path under `user/media` (D-251).
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', capability: 'media.upload', area: 'content' } },
 		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', capability: 'media.upload', area: 'content', parent: 'media' } },
@@ -96,6 +60,9 @@ export const router = createRouter({
 		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		// People (D-249): each list, then a screen per item (`meta.parent`
 		// marks the list in the navigation).
+		{ path: '/appearance', name: 'appearance', component: AppearanceView, meta: { title: 'Appearance', capability: 'site.settings', area: 'config' } },
+		{ path: '/settings', name: 'settings', component: SettingsView, meta: { title: 'Settings', capability: 'site.settings', area: 'config' } },
+		{ path: '/extensions', name: 'extensions', component: ExtensionsView, meta: { title: 'Extensions', capability: 'site.settings', area: 'config' } },
 		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.manage', area: 'config' } },
 		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'config', parent: 'accounts' } },
 		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'config' } },

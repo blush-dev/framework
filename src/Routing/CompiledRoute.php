@@ -32,7 +32,8 @@ use BackedEnum;
  *     middleware: list<class-string>,
  *     casts: array<string, Cast>,
  *     requestParams: list<string>,
- *     priority: int
+ *     priority: int,
+ *     exact?: bool
  * }
  */
 final readonly class CompiledRoute
@@ -44,6 +45,7 @@ final readonly class CompiledRoute
 	 * @param list<class-string>                        $middleware
 	 * @param array<string, Cast>                       $casts         How to cast path parameters, by name.
 	 * @param list<string>                              $requestParams Handler parameters that take the request.
+	 * @param bool                                      $exact         Whether it answers its path as written (`Route::exact()`).
 	 */
 	public function __construct(
 		public array $methods,
@@ -55,7 +57,8 @@ final readonly class CompiledRoute
 		public array $middleware,
 		public array $casts,
 		public array $requestParams,
-		public RoutePriority $priority
+		public RoutePriority $priority,
+		public bool $exact = false
 	) {}
 
 	/**
@@ -75,7 +78,8 @@ final readonly class CompiledRoute
 			middleware: $data['middleware'],
 			casts: $data['casts'],
 			requestParams: $data['requestParams'],
-			priority: RoutePriority::from($data['priority'])
+			priority: RoutePriority::from($data['priority']),
+			exact: $data['exact'] ?? false
 		);
 	}
 
@@ -112,7 +116,8 @@ final readonly class CompiledRoute
 			'middleware'    => $this->middleware,
 			'casts'         => $this->casts,
 			'requestParams' => $this->requestParams,
-			'priority'      => $this->priority->value
+			'priority'      => $this->priority->value,
+			'exact'         => $this->exact
 		];
 	}
 }

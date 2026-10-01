@@ -273,7 +273,15 @@ Page bundles' media is removed: media lives only in `user/media`
 Stripping a photo's location on upload is out of scope (D-297).
 The entry lists gained the design's filter row (author, taxonomies,
 Updated, `/` to search), column sorting, and a page size (D-300), then bulk selection and the
-bulk bar (D-301).
+bulk bar (D-301). Then the stubbed Config screens, read-only first
+(writing `config/` from the admin is a later decision): Appearance
+(D-306: installed themes and the active chain; theme settings wait for
+a proper API, D-307), then Extensions (D-308: every installed
+extension, on or off, and what each adds), then Settings (D-309: the
+site-wide settings that exist, by group, with defaults marked). Every
+screen in the navigation is built now.
+With `trailingSlash` on, the admin, the publish webhook, and preview
+links are no longer redirected (D-310: `exact` routes).
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages

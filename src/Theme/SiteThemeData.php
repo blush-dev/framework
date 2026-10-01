@@ -25,7 +25,7 @@ use Blush\Data\InvalidData;
  *
  * ```json
  * {
- *     "settings": { "excerpts": false },
+ *     "settings": { "wide": true },
  *     "menus": { "main": "primary" },
  *     "regions": { "aside": "sidebar" }
  * }

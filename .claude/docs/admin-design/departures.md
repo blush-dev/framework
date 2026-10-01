@@ -101,8 +101,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   or taxonomies are for.
 - **Content health keeps quiet text while checking** (D-240): its result is
   a summary, not rows, so there's no shape to sketch.
-- **The full navigation** (D-241): screens that don't exist yet are listed
-  and open a "comes next" page. A taxonomy moves when its `types` change
+- **The full navigation** (D-241): every screen in it is built now
+  (D-309 retired the "comes next" page). A taxonomy moves when its `types` change
   in a config file, not in the admin, so there's no toast announcing the
   move (§8, Sidebar grouping); nav counts are left out until an API gives
   them cheaply.
@@ -206,6 +206,34 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Roles and accounts** (D-249): read-only, with a notice naming where
   each is changed; no Invite, role checkboxes, or danger zone yet; roles
   have no description, and the last sign-in stands in for "last active".
+- **Appearance** (D-306): no **Activate** or **Browse themes**. The
+  active theme is developer config (`config/theme.php`, D-039), so a
+  theme row offers **Copy command** (`theme:activate`) and, in
+  development, **Preview** (`?theme=`); the themes the active one builds
+  on say **In use**, and broken themes are listed with the reason. Rows
+  have no author (manifests don't carry one). No theme settings yet
+  (D-307).
+- **Settings** (D-309): read-only and only the settings Blush has, so
+  no save bar, Revert, inputs, or selects. The prototype's General,
+  Content, Dates and Time, and Permalinks become General, Dates and
+  Time, Content, Addresses, Feeds, Search Engines, Caching, and
+  Publishing and Previews; there's no tagline, administrator email,
+  front page entry, default new entry type, entries per page, trash
+  emptying, date or time format, week start, or permalink structure.
+  Values show a Default mark, help, and warnings; booleans are neutral
+  On/Off pills (warn-colored when risky); each panel ends with the file
+  it's set in.
+- **Extensions** (D-308), the direction's Addons (vocabulary below):
+  read-only, so no on/off switch, turn-off confirmation, **Settings**,
+  **Browse**, or **Upload**; an **On** or **Off** pill instead, and an
+  extension that's off says how to turn it on in `config/extensions.php`.
+  A notice replaces the banner, naming where extensions are installed.
+  "Provides" chips are grouped by kind (content types link to their
+  screens; components, icon namespaces, dashboard actions, commands),
+  attributed by class namespace or component/icon namespace, so they
+  list only what the admin can see. No author (manifests don't carry
+  one); the version, path, and requirements are shown. Rows share the
+  global `.package` classes with Appearance's themes.
 - **Component options** (D-245, D-268): an option set back to its
   default is removed from the directive; a required one left empty
   stays as `key=""`. Removing a container removes its body too (D-272). Option changes

@@ -22,7 +22,9 @@ use Blush\Routing\RouteSource;
 use Blush\Session\StartSession;
 
 /**
- * The admin's routes, only while the admin is on:
+ * The admin's routes, only while the admin is on, all `exact()`: the
+ * trailing-slash setting never redirects them, so each request is one
+ * round trip and the admin's addresses stay as it writes them.
  *
  * - `GET {path}` and every screen under it: the app's page.
  * - `GET {path}/assets/{file}`: the app's built files.
@@ -56,6 +58,12 @@ use Blush\Session\StartSession;
  *   - `GET  health`: the content's lint problems.
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts, to
  *     show (`PeopleController`).
+ *   - `GET  appearance`: the installed themes, to show
+ *     (`AppearanceController`).
+ *   - `GET  extensions`: the installed extensions and what each adds,
+ *     to show (`ExtensionsController`).
+ *   - `GET  settings`: the site-wide settings, to show
+ *     (`SettingsController`).
  *   - `POST previews`: a signed preview link to an entry.
  */
 final readonly class AdminRoutes implements RouteSource
@@ -116,14 +124,17 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::get('/accounts', [PeopleController::class, 'accounts'])->named('accounts')->middleware(Authenticate::class),
+			Route::get('/appearance', AppearanceController::class)->named('appearance')->middleware(Authenticate::class),
+			Route::get('/extensions', ExtensionsController::class)->named('extensions')->middleware(Authenticate::class),
+			Route::get('/settings', SettingsController::class)->named('settings')->middleware(Authenticate::class),
 			Route::post('/previews', PreviewLinkController::class)->named('preview')->middleware(Authenticate::class)
-		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class]);
+		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class], exact: true);
 
 		$app = Route::group($this->config->path, [
 			Route::get('/assets/{file:.+}', AssetController::class)->named('asset'),
 			Route::get('/', ShellController::class)->named('app'),
 			Route::get('/{screen:(?!api/|assets/)[A-Za-z0-9_./-]+}', ShellController::class)->named('screen')
-		], name: 'admin.');
+		], name: 'admin.', exact: true);
 
 		return [...$api, ...$app];
 	}

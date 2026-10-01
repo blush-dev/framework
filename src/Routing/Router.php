@@ -32,8 +32,10 @@ use Blush\Routing\Events\RouteMatched;
  * The kernel's handler: matches the request to a route and runs it.
  *
  * 1. A non-canonical path (trailing slash, per `RouteConfig`) that would
- *    match redirects to the canonical one. When only a fallback route
- *    matches, it's run first, so paths that lead nowhere stay 404s.
+ *    match redirects to the canonical one, unless the route it reaches is
+ *    `exact()` (the admin, webhooks), which answers either form. When
+ *    only a fallback route matches, it's run first, so paths that lead
+ *    nowhere stay 404s.
  * 2. The route table is searched. `HEAD` falls back to `GET`. A path that
  *    matches only other methods is a 405 with an `Allow` header, except
  *    `OPTIONS`, which gets a 204 listing them.
@@ -65,7 +67,7 @@ final readonly class Router implements RequestHandlerInterface
 		$path      = $this->pathOf($request);
 		$canonical = $this->config->canonicalPath($path);
 
-		if ($canonical !== $path && $this->answers($request, $canonical)) {
+		if ($canonical !== $path && ! $this->isExact($request, $path) && $this->answers($request, $canonical)) {
 			return $this->redirect($request, $canonical);
 		}
 
@@ -74,6 +76,19 @@ final readonly class Router implements RequestHandlerInterface
 		} catch (NotFound $notFound) {
 			return $this->redirectFor($request, $path) ?? throw $notFound;
 		}
+	}
+
+	/**
+	 * Returns whether the route a request reaches answers its path as
+	 * written (`Route::exact()`). `HEAD` reaches a `GET` route.
+	 */
+	private function isExact(ServerRequestInterface $request, string $path): bool
+	{
+		$lookup = $this->lookupPath($path);
+		$method = $request->getMethod();
+		$match  = $this->routes->find($method, $lookup) ?? ($method === 'HEAD' ? $this->routes->find('GET', $lookup) : null);
+
+		return $match?->route->exact === true;
 	}
 
 	/**

@@ -99,7 +99,7 @@ final readonly class ControllerRoutes implements RouteSource
 
 		return $group === null
 			? $routes
-			: Route::group($group->prefix, $routes, $group->name, $group->middleware);
+			: Route::group($group->prefix, $routes, $group->name, $group->middleware, $group->exact);
 	}
 
 	/**
@@ -132,7 +132,8 @@ final readonly class ControllerRoutes implements RouteSource
 			name: $attribute->name,
 			constraints: $attribute->where,
 			defaults: $attribute->defaults,
-			middleware: $attribute->middleware
+			middleware: $attribute->middleware,
+			exact: $attribute->exact
 		);
 	}
 }

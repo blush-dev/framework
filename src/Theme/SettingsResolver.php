@@ -28,7 +28,7 @@ use Blush\Data\InvalidData;
  *
  * ```json
  * "settings": {
- *     "excerpts": { "type": "bool", "default": true, "label": "Show excerpts" },
+ *     "wide": { "type": "bool", "default": false, "label": "Wide layout" },
  *     "layout": { "type": "enum", "options": ["grid", "list"], "default": "list" }
  * }
  * ```

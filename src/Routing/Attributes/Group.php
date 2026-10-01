@@ -17,7 +17,7 @@ use Attribute;
 
 /**
  * Prefixes the path, name, and middleware of every route a controller
- * class declares.
+ * class declares, and makes them all exact when asked (`Route::exact()`).
  *
  *     #[Group('/admin', name: 'admin.', middleware: [Authenticate::class])]
  *     final readonly class Dashboard
@@ -31,6 +31,7 @@ final readonly class Group
 	public function __construct(
 		public string $prefix = '',
 		public string $name = '',
-		public array $middleware = []
+		public array $middleware = [],
+		public bool $exact = false
 	) {}
 }

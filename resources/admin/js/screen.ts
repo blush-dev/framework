@@ -5,7 +5,6 @@
  */
 
 import { ref } from 'vue';
-import type { IconName } from './icons';
 
 export const screenTitle = ref<string | null>(null);
 
@@ -16,14 +15,3 @@ export const screenTitle = ref<string | null>(null);
  */
 export const focusMode = ref(false);
 
-/**
- * A screen that's planned but not built (`meta.planned`, D-241): its
- * icon, what it's for, what it will do, and where that's done until then
- * (commands and paths in backticks).
- */
-export interface PlannedScreen {
-	icon: IconName;
-	hint: string;
-	next: string;
-	today: string;
-}

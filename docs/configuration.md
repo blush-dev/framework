@@ -234,7 +234,7 @@ option.
 
 | Option | Default | What it does |
 |---|---|---|
-| `trailingSlash` | `false` | Whether URLs end in `/` (`/about/`). The other form redirects. |
+| `trailingSlash` | `false` | Whether URLs end in `/` (`/about/`). The other form redirects, except for the admin, the publish webhook, preview links, and routes marked `exact` (see [Extending](extending.md#your-own-pages)). |
 | `redirects` | `[]` | Redirects, as `new Redirect('/old', '/new')` |
 | `routes` | `[]` | Your own routes (see [Extending](extending.md#your-own-pages)) |
 | `controllers` | `[]` | Classes whose attributes declare routes |

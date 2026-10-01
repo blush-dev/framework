@@ -12,13 +12,5 @@
 	},
 	"variants": {
 		"image": ["stretch-wide", "stretch-full", "inline-left", "inline-right"]
-	},
-	"settings": {
-		"excerpts": {
-			"type": "bool",
-			"default": true,
-			"label": "Show excerpts in listings",
-			"description": "Listings show each entry's summary, or the start of its body. Turn this off to list titles only."
-		}
 	}
 }

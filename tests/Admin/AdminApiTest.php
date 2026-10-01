@@ -223,4 +223,17 @@ final class AdminApiTest extends TestCase
 
 		$this->assertSame(429, $status);
 	}
+
+	public function testTheAdminIgnoresTheTrailingSlashSetting(): void
+	{
+		$this->writeTemporaryFile('config/routes.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Routing\\RouteConfig(trailingSlash: true);\n");
+		$this->boot();
+
+		$this->assertSame(200, $this->login()->getStatusCode(), 'Signing in isn\'t redirected.');
+		$token = self::json($this->send('GET', '/session'))['csrfToken'] ?? '';
+		$this->assertIsString($token);
+		$this->assertSame(200, $this->send('PATCH', '/preferences', '{"colorScheme": "dark"}', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(200, $this->visit('GET', '/admin/settings')->getStatusCode(), 'Screens aren\'t redirected.');
+		$this->assertSame(200, $this->visit('GET', '/admin')->getStatusCode());
+	}
 }

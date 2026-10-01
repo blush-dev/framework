@@ -43,7 +43,7 @@ final readonly class PreviewRoutes implements RouteSource
 	public function routes(): iterable
 	{
 		return $this->config->isEnabled()
-			? [Route::get($this->config->path, PreviewController::class)->named('preview')]
+			? [Route::get($this->config->path, PreviewController::class)->named('preview')->exact()]
 			: [];
 	}
 }

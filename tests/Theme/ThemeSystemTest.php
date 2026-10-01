@@ -216,7 +216,7 @@ final class ThemeSystemTest extends TestCase
 		$this->assertSame('fallback', $kid->get('missing', 'fallback'));
 		$this->assertSame(['columns'], array_map(static fn ($violation): string => $violation->field, $kid->violations));
 		$this->assertSame(Severity::Error, $kid->violations[0]->severity);
-		$this->assertTrue($resolver->for($app->container()->make(Themes::class)->chain('default'))->get('excerpts'));
+		$this->assertSame([], $resolver->for($app->container()->make(Themes::class)->chain('default'))->values, 'The default theme has no settings.');
 
 		$this->writeTemporaryFile('user/themes/bad/theme.json', '{"name": "Bad", "settings": {"x": {"type": "nope"}}}');
 
@@ -224,22 +224,25 @@ final class ThemeSystemTest extends TestCase
 		$this->boot()->container()->make(SettingsResolver::class)->for($this->app?->container()->make(Themes::class)->chain('bad') ?? throw new LogicException());
 	}
 
-	public function testTheExcerptsSettingControlsListings(): void
+	public function testASettingReachesTemplates(): void
 	{
 		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);\n");
 		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
+		$this->writeTemporaryFile('user/themes/noted/theme.json', '{"name": "Noted", "settings": {"note": {"type": "text", "default": "Plain note"}}}');
+		$this->writeTemporaryFile('user/themes/noted/views/parts/entry-summary.php', "<p><?= e((string) \$template->setting('note')) ?></p>");
+		$this->activeTheme('noted');
 
-		$this->assertStringContainsString('The excerpt text.', $this->get('/'));
+		$this->assertStringContainsString('Plain note', $this->get('/'));
 
-		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"excerpts": false}}');
+		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"note": "Site note"}}');
 
 		// Site data reaches a cached site on publish, which moves the
 		// content version on.
-		$this->assertStringContainsString('The excerpt text.', $this->get('/'));
+		$this->assertStringContainsString('Plain note', $this->get('/'));
 		$this->app?->container()->make(ContentVersion::class)->bump();
 		$this->app = null;
 
-		$this->assertStringNotContainsString('The excerpt text.', $this->get('/'));
+		$this->assertStringContainsString('Site note', $this->get('/'));
 	}
 
 	public function testAnEntryStylesheetReachesThePage(): void

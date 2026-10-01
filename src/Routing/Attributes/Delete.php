@@ -25,14 +25,16 @@ final readonly class Delete extends Route
 	 * @param array<string, string>                     $where
 	 * @param array<string, string|int|float|bool|null> $defaults
 	 * @param list<class-string>                        $middleware
+	 * @param bool                                      $exact      See `Route`.
 	 */
 	public function __construct(
 		string $path,
 		?string $name = null,
 		array $where = [],
 		array $defaults = [],
-		array $middleware = []
+		array $middleware = [],
+		bool $exact = false
 	) {
-		parent::__construct($path, ['DELETE'], $name, $where, $defaults, $middleware);
+		parent::__construct($path, ['DELETE'], $name, $where, $defaults, $middleware, $exact);
 	}
 }
