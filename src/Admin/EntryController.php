@@ -35,6 +35,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EditableEntry;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteConflict;
@@ -733,6 +734,9 @@ final readonly class EntryController
 
 		[$values, $extra] = self::split($fields, $file->frontMatter);
 
+		// The body starts at its first line, without the blank lines after
+		// the front matter; a save keeps those (D-334).
+
 		return [
 			'id'          => $file->id,
 			'handle'      => $this->handles->of($entry),
@@ -753,7 +757,7 @@ final readonly class EntryController
 			'authorsPage' => $people,
 			'values'      => $values,
 			'extra'       => $extra,
-			'body'        => $file->body,
+			'body'        => substr($file->body, strlen(DocumentEditor::gap($file->body))),
 			'can'         => [
 				'edit'      => $this->permissions->can($account, Capability::ContentEdit, $entry),
 				'publish'   => $this->permissions->can($account, Capability::ContentPublish, $entry),

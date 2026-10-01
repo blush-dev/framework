@@ -22,6 +22,7 @@ use Blush\Content\Parser\DataDocumentParser;
 use Blush\Content\Parser\Document;
 use Blush\Content\Parser\DocumentFormat;
 use Blush\Content\Parser\DocumentParsers;
+use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
 
 /**
@@ -29,7 +30,10 @@ use Blush\Content\Parser\InvalidDocument;
  *
  * - **Markdown and HTML:** the front matter is edited key by key
  *   (`YamlMap`), so its formatting stays; the body after it is replaced
- *   as given. A file without front matter gets a block.
+ *   as given. A file without front matter gets a block. A body that
+ *   doesn't start with a blank line keeps the blank lines the file had
+ *   between its front matter and body (one, for a file without a block),
+ *   so an editor can show the body without them.
  * - **YAML entries:** the whole file is the map, with the body under
  *   `body`.
  * - **JSON entries:** decoded, changed, and written back pretty-printed
@@ -56,6 +60,10 @@ final readonly class DocumentEditor
 	{
 		$before = $this->parse($path, $contents);
 		$format = DocumentFormat::tryFrom(strtolower(pathinfo($path, PATHINFO_EXTENSION)));
+
+		if ($format === DocumentFormat::Md || $format === DocumentFormat::Markdown || $format === DocumentFormat::Html) {
+			$changes = self::withGap($contents, $changes);
+		}
 
 		$edited = match ($format) {
 			DocumentFormat::Md, DocumentFormat::Markdown, DocumentFormat::Html => $this->editFrontMatter($contents, $changes, $keys),
@@ -100,6 +108,30 @@ final readonly class DocumentEditor
 		}
 
 		return $bom . $open . $eol . $map->text() . $close . $trail . $ending . ($changes->body ?? ($block === '' ? ltrim($body, "\xEF\xBB\xBF") : $body));
+	}
+
+	/**
+	 * Puts the blank lines between the file's front matter and body ahead
+	 * of a new body that doesn't start with its own.
+	 */
+	private static function withGap(string $contents, EntryChanges $changes): EntryChanges
+	{
+		if ($changes->body === null || $changes->body === '' || self::gap($changes->body) !== '') {
+			return $changes;
+		}
+
+		[$yaml, $body] = FrontMatter::split($contents);
+		$gap           = $yaml === null ? (str_contains($contents, "\r\n") ? "\r\n" : "\n") : self::gap($body);
+
+		return $gap === '' ? $changes : new EntryChanges($changes->set, $changes->remove, $gap . $changes->body);
+	}
+
+	/**
+	 * Returns the blank lines at the start of a body.
+	 */
+	public static function gap(string $body): string
+	{
+		return preg_match('/\A(?:[ \t]*\r?\n)+/', $body, $match) === 1 ? $match[0] : '';
 	}
 
 	/**

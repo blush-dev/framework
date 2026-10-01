@@ -24,6 +24,7 @@ use Blush\Auth\Permissions;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\TrashedEntry;
 use Blush\Content\Writer\WriteException;
@@ -95,7 +96,7 @@ final readonly class TrashController
 		return self::json([
 			...$this->describe($account, $trashed),
 			'frontMatter' => (object) $file->frontMatter,
-			'body'        => $file->body
+			'body'        => substr($file->body, strlen(DocumentEditor::gap($file->body)))
 		]);
 	}
 

@@ -8580,3 +8580,17 @@ decision, add a new entry that supersedes it and mark the old one
   superseded then. The open question is in `open-questions.md`.
 - **Why:** the author called the work a good exploration and wants
   time to think before going further.
+
+### D-334: The editor's body starts at its first line
+- **Date:** 2026-10-01
+- **Decision:** The admin's entry and trash APIs send a body without
+  the blank lines between the front matter and its first line, so the
+  editor doesn't show them as empty lines. `DocumentEditor` keeps the
+  file's blank lines on save: a Markdown or HTML body that doesn't
+  start with a blank line gets the ones the file had (one, for a file
+  without front matter), and a body that does start with one is
+  written as given. `EditableEntry` stays the raw body.
+- **Why:** files conventionally have a blank line after the closing
+  `---` (jtcom's all do), and the editor showed it as an empty first
+  line. Leading blank lines mean nothing in Markdown, and keeping them
+  on save leaves files as they were.

@@ -120,6 +120,23 @@ final class FilesystemWriterTest extends TestCase
 		$this->assertSame("---\ntitle : Ages\n---\nAbout ages.\n", $this->file('topics/age.md'));
 	}
 
+	public function testKeepsTheBlankLinesBeforeTheBody(): void
+	{
+		$id = '_posts/2022-03-29.rekindling-the-flame.md';
+
+		$this->writer()->update($id, new EntryChanges(body: "New words.\n"));
+		$this->assertStringEndsWith("---\n\nNew words.\n", $this->file($id));
+
+		$this->writer()->update($id, new EntryChanges(body: "\n\nSpaced.\n"));
+		$this->assertStringEndsWith("---\n\n\nSpaced.\n", $this->file($id), 'A body that starts with blank lines is written as given.');
+
+		$this->writeTemporaryFile('user/content/topics/age.md', "No front matter.\n");
+		$this->app = $this->site('development');
+
+		$this->writer()->update('topics/age.md', new EntryChanges(set: ['title' => 'Age'], body: "About ages.\n"));
+		$this->assertSame("---\ntitle: Age\n---\n\nAbout ages.\n", $this->file('topics/age.md'));
+	}
+
 	public function testRefusesToOverwriteAChangeMadeMeanwhile(): void
 	{
 		$id    = '_posts/2022-03-29.rekindling-the-flame.md';
