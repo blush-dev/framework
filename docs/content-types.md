@@ -334,7 +334,57 @@ Field types:
 | `object` | A group of fields | `fields`, `closed` |
 
 Every field also takes `required`, `default`, `aliases` (other keys it's
-read from), `label`, and `description`.
+read from), `label`, `description`, and `control`.
+
+`fields` can also be a map of names to definitions, which some people
+find easier to read:
+
+```yaml
+fields:
+  servings:
+    type: number
+    integer: true
+  difficulty:
+    type: enum
+    options: [easy, medium, hard]
+```
+
+### How the admin edits a field
+
+Each field type has a control the admin edits it with. Some types can
+use another one instead: set `control` to pick it.
+
+| Type | Controls (the first is the default) |
+|---|---|
+| `text` | `text` (one line), `textarea` (several lines), `mono` (one line, for code) |
+| `markdown` | `textarea` |
+| `date` | `date` (a date picker) |
+| `bool` | `checkbox` |
+| `number` | `number` |
+| `enum` | `select` (a menu), `radios` (radio buttons) |
+| `list` | `lines` (one per line), `checks` (checkboxes, for a list of `enum` items), `readonly` |
+| `reference` | `reference` (an entry picker, with `to`), `mono` (slugs typed with commas) |
+| `media` | `media` (a media picker), `mono` (a path typed in) |
+| `slug` | `mono` |
+| `object` | `readonly` (edited in the file for now) |
+
+```yaml
+fields:
+  - name: difficulty
+    type: enum
+    options: [easy, medium, hard]
+    control: radios
+  - name: diets
+    type: list
+    control: checks
+    item:
+      type: enum
+      options: [vegetarian, vegan, gluten-free]
+```
+
+A list's items need to fit on one line to be written one per line, so a
+list of `markdown` is shown read-only. The admin's field editor offers
+the controls a field can use under **Edited with**.
 
 Keys you don't declare are still kept, and `content:lint --strict` lists
 them. Set `closed: true` on the type to make them errors instead.
@@ -472,7 +522,7 @@ Run `bin/blush routes:list` to see every URL your types create.
 To declare fields for pages, redefine the built-in `page` type:
 
 ```php
-use Blush\Content\Schema\Fields\TextField;
+use Blush\Field\Fields\TextField;
 use Blush\Content\Type\Pages;
 
 return new ContentConfig(

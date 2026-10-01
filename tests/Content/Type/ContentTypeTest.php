@@ -17,11 +17,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
 use Blush\Content\Query\Order;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\FieldRegistrar;
-use Blush\Content\Schema\FieldRegistry;
-use Blush\Content\Schema\InvalidSchema;
-use Blush\Content\Schema\Fields\TextField;
 use Blush\Content\Type\Authors;
 use Blush\Content\Type\BuiltInType;
 use Blush\Content\Type\Collection;
@@ -36,6 +31,11 @@ use Blush\Content\Type\TypeFeed;
 use Blush\Content\Type\TypeKind;
 use Blush\Content\Type\TypeLabels;
 use Blush\Content\Type\TypeUrls;
+use Blush\Field\FieldFactory;
+use Blush\Field\FieldRegistrar;
+use Blush\Field\FieldRegistry;
+use Blush\Field\Fields\TextField;
+use Blush\Field\InvalidSchema;
 use Blush\Tests\Fixtures\Content\JtcomTypes;
 
 #[CoversClass(ContentType::class)]
@@ -105,7 +105,12 @@ final class ContentTypeTest extends TestCase
 	public function testAcceptsJtcoms1xConfigUnchanged(): void
 	{
 		$config = ContentConfig::fromArray(['types' => JtcomTypes::definitions(), 'home' => 'post']);
-		$types  = array_column(array_map(static fn (ContentType $type): array => ['name' => $type->name, 'type' => $type], $config->types), 'type', 'name');
+		$types  = [];
+
+		foreach ($config->definitions as $definition) {
+			$type               = ContentType::fromArray($definition, $this->fields);
+			$types[$type->name] = $type;
+		}
 
 		$post = $types['post'];
 
@@ -433,7 +438,8 @@ final class ContentTypeTest extends TestCase
 			static fn (): ContentConfig => new ContentConfig(disabled: ['page']),
 			static fn (): ContentConfig => new ContentConfig(disabled: ['nope']),
 			static fn (): ContentConfig => ContentConfig::fromArray(['types' => 'post']),
-			static fn (): ContentConfig => ContentConfig::fromArray(['types' => ['post' => ['routing' => 'x']]])
+			static fn (): ContentConfig => new ContentConfig(types: [new Collection('post')], definitions: [['name' => 'post']]),
+			static fn (): ContentConfig => new ContentConfig(definitions: [['kind' => 'collection']])
 		];
 
 		foreach ($cases as $build) {

@@ -452,7 +452,7 @@ declare(strict_types=1);
 
 namespace Acme\Photos;
 
-use Blush\Content\Schema\Fields\TextField;
+use Blush\Field\Fields\TextField;
 use Blush\Media\MediaFieldSet;
 use Blush\Media\MediaFieldSource;
 use Blush\Media\MediaKind;
@@ -469,6 +469,91 @@ final class PhotoFields implements MediaFieldSource
 Tag it with `MediaFieldSource::TAG` in the extension's provider. A
 site's `user/data/media-fields.yml` or `config/media.php` can redefine
 any of them.
+
+### Field types from an extension
+
+An extension can add a field type for every place fields are defined:
+content types, media details, theme settings, and menu fields. Extend
+`Blush\Field\Field`, and describe the type for the admin with
+`typeLabel()`, `typeDescription()`, and `controls()`, the controls it can
+be edited with (the first is its default; one with no controls is shown
+read-only):
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Acme\Colors;
+
+use Override;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
+
+final class ColorField extends Field
+{
+	public function __construct(string $name = '')
+	{
+		$this->name = $name;
+	}
+
+	#[Override]
+	public function type(): string
+	{
+		return 'color';
+	}
+
+	#[Override]
+	public static function typeLabel(): string
+	{
+		return 'Color';
+	}
+
+	#[Override]
+	public static function controls(): array
+	{
+		return [Control::Mono];
+	}
+
+	#[Override]
+	public function normalize(mixed $value, FieldContext $context): mixed
+	{
+		if (! is_string($value) || preg_match('/^#[0-9a-f]{6}$/i', $value) !== 1) {
+			throw $this->invalid('must be a hex color, such as #ff6600.');
+		}
+
+		return strtolower($value);
+	}
+
+	#[Override]
+	public static function fromArray(array $data, FieldFactory $factory): static
+	{
+		$definition = self::definition($data);
+
+		return self::withShared(new static($definition->string('name')), $definition);
+	}
+}
+```
+
+Register it in the extension's provider's `boot()`:
+
+```php
+use Blush\Field\FieldRegistry;
+
+public function boot(): void
+{
+	$this->container->get(FieldRegistry::class)->register('color', Acme\Colors\ColorField::class);
+}
+```
+
+Then `type: color` works in `user/data/types`, `config/content.php`, and
+the rest, and the admin's field editor offers it. The admin has a fixed
+set of controls (`Blush\Field\Control`), so a field type picks from
+those; it can't bring its own. Options of its own, described by
+`definitionSchema()`, are offered in the field editor when they're
+text, numbers, true or false, a set of values, or a list of text.
 
 ### Reading more from media files
 

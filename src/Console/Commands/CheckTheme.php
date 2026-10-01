@@ -19,7 +19,7 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Console\Style;
-use Blush\Content\Schema\Severity;
+use Blush\Field\Severity;
 use Blush\Theme\ThemeChecker;
 use Blush\Theme\ThemeConfig;
 

@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
-use Blush\Content\Schema\Field;
 use Blush\Content\Parser\DocumentFormat;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Http\AuthorsController;
@@ -27,6 +26,7 @@ use Blush\Content\Type\TypeOrigin;
 use Blush\Core\Paths;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Taxonomy;
+use Blush\Field\Field;
 use Blush\Http\Response;
 use Blush\Http\Status;
 

@@ -17,9 +17,10 @@ use JsonException;
 use Blush\Component\ComponentName;
 use Blush\Component\Variant;
 use Blush\Content\EntryFields;
-use Blush\Content\Schema\FieldType;
-use Blush\Content\Schema\Schema;
 use Blush\Core\Framework;
+use Blush\Field\Control;
+use Blush\Field\FieldType;
+use Blush\Field\Schema;
 use Blush\Media\MediaSchemas;
 use Blush\Menu\Link\MenuLinkType;
 use Blush\Region\Item\RegionItemType;
@@ -452,7 +453,7 @@ final readonly class JsonSchemas
 	{
 		$field = ['$ref' => '#/definitions/field'];
 		$types = array_map(
-			static fn (FieldType $type): array => ['const' => $type->value, 'description' => $type->description()],
+			static fn (FieldType $type): array => ['const' => $type->value, 'description' => $type->className()::typeDescription()],
 			FieldType::cases()
 		);
 
@@ -467,17 +468,21 @@ final readonly class JsonSchemas
 			'default'     => ['description' => 'The value used when none is given.'],
 			'aliases'     => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Other keys the value may be read from.'],
 			'label'       => ['type' => 'string', 'description' => 'A human-readable name.'],
-			'description' => ['type' => 'string', 'description' => 'Help text.']
+			'description' => ['type' => 'string', 'description' => 'Help text.'],
+			'control'     => [
+				'description' => 'How the admin edits the field, when not its type\'s default.',
+				'anyOf'       => array_map(static fn (Control $control): array => ['const' => $control->value, 'description' => $control->label()], Control::cases())
+			]
 		];
 
 		$conditions = [];
 
 		foreach (FieldType::cases() as $type) {
-			$own = $type->className()::definitionSchema($field);
-
-			if ($own === []) {
-				continue;
-			}
+			$class = $type->className();
+			$own   = [
+				...$class::definitionSchema($field),
+				'control' => ['enum' => array_map(static fn (Control $control): string => $control->value, $class::controls())]
+			];
 
 			$conditions[] = [
 				'if'   => ['properties' => ['type' => ['const' => $type->value]], 'required' => ['type']],

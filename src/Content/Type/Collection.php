@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Override;
-use Blush\Content\Schema\Field;
+use Blush\Field\Field;
 
 /**
  * A type whose entries are listed: posts, literature, projects. Its folder

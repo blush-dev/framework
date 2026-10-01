@@ -15,8 +15,8 @@ namespace Blush\Tests\Region;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\Schema\Violation;
 use Blush\Core\Application;
+use Blush\Field\Violation;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Region\Item\ComponentItem;

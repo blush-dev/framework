@@ -8652,3 +8652,206 @@ decision, add a new entry that supersedes it and mark the old one
   the address moves to its handle with the caret still in the body, and
   a second save updates it. No console errors.
 - **Why:** the author asked for it, as in the design mockups.
+
+### D-337: The Fields API: field sets, controls, and Structure → Fields (planned)
+- **Date:** 2026-10-01
+- **Decision:** Fields become an API of their own, so extensions and
+  sites can add fields to screens easily, with a Structure screen for
+  creating and managing them. The value layer stays as it is (`Field`,
+  `FieldType`, the registry and factory, `Schema`; D-019, D-084). Three
+  things are added above it. **Content types are the only consumer
+  until the API is right**; media metadata (D-287), theme settings
+  (D-307), site settings (D-324), accounts, and component props come
+  later. The author's calls: no custom admin controls for now; content
+  types first; the name `FieldSet`. The author left the reuse model to
+  this design (below).
+  - **Field types are reusable everywhere; contexts decide what fits.**
+    A field type knows nothing about where it's used. A **target** (a
+    place fields attach to, such as `type:recipe`) says which fields it
+    accepts (`FieldTarget::accepts(Field)`, all of them by default). A
+    set with a field its target won't take is a problem. Content type
+    targets take every field type, so nothing is refused today; the
+    check exists for later targets (a settings screen with no index for
+    a `reference` to read, for example).
+  - **`FieldSet`:** a named, labeled, ordered list of fields with
+    `targets`, attached from the set's side (as ACF's field groups are,
+    not as Drupal's per-type fields are), so an extension can add
+    fields to a type it doesn't own without editing it:
+
+    ```yaml
+    # user/data/fields/seo.yaml
+    label: SEO
+    description: How the entry appears in search results.
+    targets: [type:post, type:page]
+    fields:
+      - name: meta_title
+        type: text
+      - name: noindex
+        type: bool
+        label: Hide from search engines
+    ```
+
+    Sets come from extensions (`FieldSetSource`, tagged, like
+    `ContentTypeSource`), `config/fields.php`, and
+    `user/data/fields/*.{json,yaml,yml}` (editable in the admin), a
+    later set replacing an earlier one with its name. Config and
+    extension sets are read-only in the admin, as their types are. A
+    target that doesn't exist (a disabled type, an extension that's off)
+    is a notice, not an error. A type's own inline `fields` stay, as the
+    type's own set (D-311 and every existing site are unchanged).
+  - **A type's schema** is the entry fields (`EntryFields`), its own
+    fields, then its sets' fields in set name order. A name used twice
+    across them is an error when types are loaded
+    (`ContentTypeLoader`, "every type's fields must fit together"),
+    never a silent override. Sets are compiled with the types, and a
+    change to one moves the index's fingerprint, so the index rebuilds
+    as it does for a type change.
+  - **Controls, a fixed vocabulary:** a `Control` enum (`text`,
+    `textarea`, `mono`, `checkbox`, `number`, `select`, `radios`,
+    `checks`, `date`, `lines`, `tokens`, `reference`, `media`,
+    `readonly`). Each field type lists the controls it can be edited
+    with, the first being its default; a definition may name another
+    with `control`, checked against that list. An extension's field
+    type picks from the vocabulary; one that names none is shown
+    read-only. `fields.ts`'s type-to-control mapping goes; the admin
+    renders the control the server names.
+  - **Field types describe themselves.** Each field class gives its
+    label ("Formatted text"), description, controls, and definition
+    schema (`definitionSchema()`, D-206), so `FieldType::description()`
+    moves to the classes. `GET fields/types` is the catalog the admin's
+    field definition editor is built from, which ends its hard-coded
+    list of ten types and offers extension types.
+  - **Namespace:** fields aren't only content's, so `Content\Schema`
+    moves to `Blush\Field` (`Field`, `Fields\*`, `Schema`, the registry,
+    factory, and enum), with `FieldSet`, `FieldTarget`, and `Control`
+    beside them. Content types' target lives in `Content\Type`.
+  - **Groundwork fixed on the way:** `ContentConfig::fromArray()` (and
+    `MediaConfig`'s) build a registry of only the built-in field types,
+    so extension field types fail in `config/`; they'll use the
+    container's registry. Definitions are accepted as a list of
+    `{name, …}` or a map of name to definition everywhere (types and
+    media fields use lists; theme settings and menu fields, maps);
+    files are written as lists.
+  - **The admin:**
+    - **Structure → Fields** (`/fields`), beside Content Types: every
+      set with its label, targets, field count, and origin; a set's
+      screen (`/fields/{name}`) edits a data set with
+      `FieldListEditor` and `FieldDefinitionEditor`, plus a target
+      picker; New Field Set and delete, as types have (D-311). The API
+      is `GET`/`POST fields/sets`, `PATCH`/`DELETE fields/sets/{name}`,
+      and `GET fields/types`, under `site.settings`, written by a
+      `DataFieldSetWriter` that checks every change by loading all the
+      types again, putting the file back when that fails.
+    - **A type's screen** lists the sets attached to it, linking to
+      each; its own Fields section stays.
+    - **The editor** shows each set as a document panel group (D-281)
+      under its label, after the type's own fields.
+  - **Phases:**
+    1. The namespace move; field types describing themselves;
+       `Control` and the `control` key; both definition shapes; the
+       registry fix; `GET fields/types`; the admin's definition editor
+       and `FieldControl` built from the catalog and the named control.
+    2. `FieldSet`, its sources, `FieldTarget` and the content type
+       target, sets merged into type schemas (load checks, the
+       compiled cache, the index fingerprint, `content:lint`), the
+       editor's set groups, the editor JSON Schema for set files, and
+       `docs/`.
+    3. Structure → Fields: the API, the writer, and the screens.
+    4. Later consumers, one at a time: media metadata (its
+       `MediaFieldSet`s becoming sets targeting `media:{kind}`), theme
+       settings, site settings, accounts.
+- **Why:** the value layer is already shared by four systems, but
+  about a dozen define, label, and render fields their own way, fields
+  can't be reused across types, and the admin hard-codes which types
+  exist and how each is edited. Attaching from the set's side is what
+  makes "an extension adds fields to these screens" one file. Letting
+  targets, not field types, decide what fits keeps a new field type
+  from having to know every place it might be used. The open parts
+  (placement, broader targets, conditions) are in `open-questions.md`.
+
+### D-338: The Fields API, phase 1: controls, the catalog, and the groundwork
+- **Date:** 2026-10-01
+- **Decision:** Builds D-337's first phase.
+  - **`Blush\Field`:** `Content\Schema` moved there whole (`Field`,
+    `Fields\*`, `Schema`, the enum, registry, factory, and registrar,
+    `Definition`, `Violation`, and the rest), tests to `tests/Field`.
+  - **Field types describe themselves:** static `typeLabel()`,
+    `typeDescription()`, and `controls()` on `Field` (an empty label, no
+    description, and only `readonly` by default, so an extension's type
+    needs nothing new). `FieldType::description()` is gone; the JSON
+    Schemas read the classes.
+  - **`Control`** (`Blush\Field\Control`, each with a `label()`):
+    `text`, `textarea`, `mono`, `checkbox`, `number`, `select`, `radios`,
+    `checks`, `date`, `lines`, `reference`, `media`, `readonly`. D-337's
+    `tokens` is left out: nothing draws it yet, and lists are `lines`.
+    The built-ins: text `text`/`textarea`/`mono`; markdown `textarea`;
+    date `date`; bool `checkbox`; number `number`; enum
+    `select`/`radios`; list `lines`/`checks`/`readonly`; reference
+    `reference`/`mono`; media `media`/`mono`; slug `mono`; object
+    `readonly`.
+  - **A field's control:** `Field::$control` (`null` for the type's
+    default), set with `control()` or a definition's `control`, and
+    refused (`InvalidSchema`, naming what it can use) when it isn't one
+    the field can use. `canUse()` narrows a type's controls by its
+    settings: a list is `lines` when its items are edited on one line
+    (and aren't lists), `checks` when they're `enum`; a reference is
+    `reference` only with `to`. `editedWith()` is the control used: the
+    field's own, or the first its type lists that it can use.
+    `toArray()` writes `control` only when it's set.
+  - **Forms and definitions:** `Field::toForm()` is a field as the
+    admin's forms take it: its definition without `class`, and `control`
+    always the one it's edited with. Entries (`EntryController`), media
+    (`MediaListController`), and component props use it; a type's
+    fields (`TypesController`) stay definitions, so the type editor
+    never writes a default control into the file.
+  - **The catalog:** `GET fields/types` (`FieldTypesController`, any
+    signed-in account): each registered type's `type`, `label` (its key
+    when the class has none), `description`, `controls` (`value` and
+    `label`), and `options` (`definitionSchema()` without `default`),
+    plus every control.
+  - **Both definition shapes:** `FieldFactory::definitions()` takes a
+    list of named definitions or a map of names to them (the key is the
+    name), and `schema()` uses it, so types' `fields`, objects'
+    `fields`, and each media kind's fields take either; files are still
+    written as lists. Theme settings and menu fields stay maps only (their
+    manifests check that) until they're consumers.
+  - **Config builds with the site's field types:** config files run at
+    bootstrap, before extensions register field types, and the config
+    cache rebuilds configs with `fromArray()` too. So
+    `ContentConfig::fromArray()` keeps its types as `definitions`
+    (arrays, each with a `name`; a name used twice across `types` and
+    `definitions` is refused), built by `ContentTypeLoader` with the
+    container's factory; an invalid one now fails when types load,
+    prefixed `config/content.php:`, instead of when config loads.
+    `MediaConfig::fromArray()` keeps `fields` as `definitions`, read by
+    `MediaSchemas`. Objects passed to the constructors work as before.
+  - **JSON Schemas:** the shared field definition has `control`, and
+    each type's `if`/`then` limits it to the type's controls
+    (`composer schemas`).
+  - **The admin:** `fields.ts` has no type-to-control mapping; it draws
+    the control a form's field names (`readonly` for none).
+    `FieldControl` adds `radios` (with **None** for an optional field)
+    and `checks` as a fieldset under the label; `mono` is the
+    monospaced input; a `media` field without the picker is a typed
+    path. The field definition editor's types, names, and item types
+    come from the catalog (`field-types.ts`), with **Edited with** when
+    the field can use more than one control (the type's default first,
+    and a control its settings rule out dropped on **Done**), options
+    for a list of choices, and an extension type's options drawn from
+    its JSON Schemas (text, numbers, true or false, a set of values, or
+    a list of text). The fields list names types from the catalog.
+    `.field input` styles skip radio buttons as they skip checkboxes.
+  - **`docs/`:** Custom fields has the map shape, the `control` key, and
+    each type's controls; Extending has field types from an extension.
+- **Checked:** `composer check` (`ControlTest`, `AdminFieldTypesTest`,
+  and `ContentTypeLoaderTest`'s extension field type in
+  `config/content.php` and late error); `npm run admin:build`; on the
+  jtcom trial in headless Chrome with a throwaway administrator and a
+  throwaway data type (both removed after, with the account's
+  sessions): the catalog lists every built-in type with its controls,
+  the type's fields list names them ("Choice", "List of choice",
+  "Reference to posts"), a list of choices' field editor shows
+  **Edited with: Checkboxes** and its options, and a new entry's panel
+  draws radio buttons with None, checkboxes, and a slug field with its
+  comma help. No console errors but a 404 that no page request made.
+- **Why:** D-337's phase 1, as planned.

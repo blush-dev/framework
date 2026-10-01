@@ -15,7 +15,7 @@ namespace Blush\Tests\Component;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\Schema\Field;
+use Blush\Field\Field;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\BootsScratchSite;

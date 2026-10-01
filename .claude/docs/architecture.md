@@ -274,6 +274,37 @@ Implemented in M3 (D-073 to D-077).
 - **Not yet:** the optional locale segment (D-036) and a base path for
   subdirectory installs (open question).
 
+## Fields (D-337, D-338)
+The value layer is `Blush\Field` (see Content → Types and schemas). Built
+(D-338): field types describe themselves (`typeLabel()`,
+`typeDescription()`, `controls()`); a field's `control`, checked by
+`canUse()`, with `editedWith()` the one used; `toForm()` for the admin's
+forms; `GET fields/types`, the catalog; definitions as a list or a map
+(`FieldFactory::definitions()`); and config types and media fields in
+array form built with the container's registry. Planned above it, with
+content types as the only consumer until the API is right:
+
+- **`FieldSet`:** a named, labeled, ordered list of fields with
+  `targets` (`type:post`), attached from the set's side. From extension
+  `FieldSetSource`s, `config/fields.php`, and `user/data/fields/*`, a
+  later set replacing an earlier one with its name. A type's own inline
+  `fields` are its own set.
+- **`FieldTarget`:** a place fields attach to. It says which fields it
+  accepts (all, by default), so field types stay unaware of where
+  they're used. A missing target is a notice. Content types' target is
+  in `Content\Type`.
+- **A type's schema:** entry fields, its own fields, then its sets'
+  fields by set name; a name used twice is a load error.
+- **`Control`:** the admin's fixed control vocabulary. Each field type
+  lists the controls it can use (the first is the default); a
+  definition picks one with `control`. No custom controls (yet).
+- **The catalog:** field classes describe themselves (label,
+  description, controls, definition schema), served as
+  `GET fields/types` for the admin's definition editor.
+- **The admin:** Structure → Fields lists and edits sets (data sets
+  only), a type's screen lists its sets, and the editor shows each set
+  as a document panel group.
+
 ## Content
 
 Every content convention 1.x supports keeps working (D-078); the inventory
@@ -335,7 +366,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   taxonomies off) decides whether its schema gets the authors field.
   `ContentTypes::termTypes()` is the taxonomies plus the authors type:
   the types the index keeps terms (and virtual terms) for.
-- **`Schema`** (`Blush\Content\Schema`): field types `text`, `markdown`,
+- **`Schema`** (`Blush\Field`, D-338): field types `text`, `markdown`,
   `date`, `bool`, `number`, `enum`, `list`, `reference`, `media`, `slug`,
   and `object` (`FieldType` enum, `FieldRegistry`, `FieldFactory`,
   `FieldRegistrar`, D-019), so extensions can add more. Fields normalize
@@ -349,7 +380,8 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   `layout`, `stylesheet`, `class`, `redirect_from`, and
   `collection`, plus each taxonomy's term field.
 - Schemas drive **validation/casting** (at index time and in `content:lint`),
-  **typed entry fields**, and **admin form generation** later.
+  **typed entry fields**, and **admin forms** (D-233). Field sets,
+  controls, and the field type catalog are planned (D-337; see Fields).
 
 ### Entry
 Implemented in M4b (D-088).

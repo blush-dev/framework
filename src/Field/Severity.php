@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema;
+namespace Blush\Field;
 
 /**
  * How serious a schema violation is. `content:lint` fails on errors, shows

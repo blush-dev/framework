@@ -19,7 +19,7 @@ use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Console\Style;
 use Blush\Content\Lint\Linter;
-use Blush\Content\Schema\Severity;
+use Blush\Field\Severity;
 
 /**
  * Checks every content file's front matter against its type's schema

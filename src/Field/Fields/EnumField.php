@@ -11,13 +11,14 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema\Fields;
+namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\InvalidSchema;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
+use Blush\Field\InvalidSchema;
 
 /**
  * One value from a fixed set of options. Matching ignores case, and the
@@ -45,6 +46,33 @@ final class EnumField extends Field
 	public function type(): string
 	{
 		return 'enum';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeLabel(): string
+	{
+		return 'Choice';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeDescription(): string
+	{
+		return 'One of a set of values.';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function controls(): array
+	{
+		return [Control::Select, Control::Radios];
 	}
 
 	/**

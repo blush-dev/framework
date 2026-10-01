@@ -13,15 +13,15 @@ declare(strict_types=1);
 
 namespace Blush\Content;
 
-use Blush\Content\Schema\Fields\DateField;
-use Blush\Content\Schema\Fields\EnumField;
-use Blush\Content\Schema\Fields\ListField;
-use Blush\Content\Schema\Fields\MarkdownField;
-use Blush\Content\Schema\Fields\MediaField;
-use Blush\Content\Schema\Fields\ObjectField;
-use Blush\Content\Schema\Fields\SlugField;
-use Blush\Content\Schema\Fields\TextField;
-use Blush\Content\Schema\Schema;
+use Blush\Field\Fields\DateField;
+use Blush\Field\Fields\EnumField;
+use Blush\Field\Fields\ListField;
+use Blush\Field\Fields\MarkdownField;
+use Blush\Field\Fields\MediaField;
+use Blush\Field\Fields\ObjectField;
+use Blush\Field\Fields\SlugField;
+use Blush\Field\Fields\TextField;
+use Blush\Field\Schema;
 
 /**
  * The front matter every entry understands (D-027, D-045, D-078), before a

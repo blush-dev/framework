@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Media;
 
-use Blush\Content\Schema\Field;
+use Blush\Field\Field;
 
 /**
  * Metadata fields for media files (D-287): for every kind (`kind` null),

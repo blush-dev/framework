@@ -11,28 +11,28 @@
 
 declare(strict_types=1);
 
-namespace Blush\Tests\Content\Schema;
+namespace Blush\Tests\Field;
 
 use DateTimeImmutable;
 use DateTimeZone;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\FieldRegistrar;
-use Blush\Content\Schema\FieldRegistry;
-use Blush\Content\Schema\Fields\DateField;
-use Blush\Content\Schema\Fields\EnumField;
-use Blush\Content\Schema\Fields\ListField;
-use Blush\Content\Schema\Fields\ObjectField;
-use Blush\Content\Schema\Fields\ReferenceField;
-use Blush\Content\Schema\Fields\TextField;
-use Blush\Content\Schema\FieldType;
-use Blush\Content\Schema\InvalidSchema;
-use Blush\Content\Schema\Schema;
-use Blush\Content\Schema\SchemaResult;
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
+use Blush\Field\FieldRegistrar;
+use Blush\Field\FieldRegistry;
+use Blush\Field\Fields\DateField;
+use Blush\Field\Fields\EnumField;
+use Blush\Field\Fields\ListField;
+use Blush\Field\Fields\ObjectField;
+use Blush\Field\Fields\ReferenceField;
+use Blush\Field\Fields\TextField;
+use Blush\Field\FieldType;
+use Blush\Field\InvalidSchema;
+use Blush\Field\Schema;
+use Blush\Field\SchemaResult;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 use Blush\Tests\Fixtures\Content\ColorField;
 
 #[CoversClass(Schema::class)]

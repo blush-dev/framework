@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema;
+namespace Blush\Field;
 
 /**
  * The outcome of resolving data against a schema: normalized values keyed

@@ -11,12 +11,13 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema\Fields;
+namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
 
 /**
  * A single line or block of plain text. Numbers are accepted and kept as
@@ -36,6 +37,33 @@ final class TextField extends Field
 	public function type(): string
 	{
 		return 'text';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeLabel(): string
+	{
+		return 'Text';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeDescription(): string
+	{
+		return 'A line of text.';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function controls(): array
+	{
+		return [Control::Text, Control::Textarea, Control::Mono];
 	}
 
 	/**

@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Content;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
 
 /**
  * A hex color, standing in for a field type an extension adds.

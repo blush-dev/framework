@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\MediaListController;
-use Blush\Content\Schema\Fields\TextField;
+use Blush\Field\Fields\TextField;
 use Blush\Media\MediaFieldSet;
 use Blush\Media\MediaFieldSource;
 use Blush\Media\MediaKind;

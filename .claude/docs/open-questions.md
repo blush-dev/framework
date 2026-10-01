@@ -19,6 +19,18 @@ Move each item to `decisions.md` once it's answered.
   editor in the admin, with live preview on the front end (the site
   itself) rather than a rendered preview inside the editor. Not settled.
 
+- **Fields API details** (D-337), to settle by phase 2 or 3:
+  - Placement: may a set ask for the editor's main column (below the
+    body) rather than the document panel, and may sets be ordered
+    other than by name?
+  - Broader targets: every type (`type:*`), a kind
+    (`kind:collection`), or a type and its children?
+  - Conditional fields (shown when another field has a value), and
+    editing `object` fields and lists of objects in forms.
+  - Should the type wizard offer existing sets, and should a type's
+    screen attach and detach sets (which writes the set's file)?
+  - When settings and accounts become targets, what each one refuses.
+
 ## Later milestones
 - **Hierarchy** (D-257):
   - Should a hierarchical term's page also list its child terms'

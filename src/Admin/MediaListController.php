@@ -21,15 +21,15 @@ use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Core\Paths;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\InvalidField;
+use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaException;
 use Blush\Media\MediaFile;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\InvalidField;
-use Blush\Content\Schema\Violation;
 use Blush\Core\AppConfig;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
@@ -289,7 +289,7 @@ final readonly class MediaListController
 		return [
 			...self::describe($file, $reference, $relative, $metadata, $record?->duration()),
 			'embedded'   => ['values' => (object) ($embedded->values ?? []), 'location' => $embedded?->location !== null],
-			'fields'     => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $schema->fields)),
+			'fields'     => array_values(array_map(static fn (Field $field): array => $field->toForm(), $schema->fields)),
 			'values'     => $values,
 			'extra'      => $result->extra,
 			'violations' => array_map(static fn (Violation $violation): array => [

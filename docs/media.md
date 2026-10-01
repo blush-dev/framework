@@ -62,7 +62,7 @@ or in [`config/media.php`](configuration.md#media), which wins over the
 data file:
 
 ```php
-use Blush\Content\Schema\Fields\TextField;
+use Blush\Field\Fields\TextField;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaFieldSet;
 use Blush\Media\MediaKind;

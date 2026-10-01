@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\Fields\ReferenceField;
+use Blush\Field\Field;
+use Blush\Field\Fields\ReferenceField;
 
 /**
  * The type whose entries are the people other entries credit (D-329):

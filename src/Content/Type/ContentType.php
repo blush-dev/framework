@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace Blush\Content\Type;
 
-use Blush\Content\Schema\Definition;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\Fields\ReferenceField;
-use Blush\Content\Schema\InvalidSchema;
-use Blush\Content\Schema\Schema;
+use Blush\Field\Definition;
+use Blush\Field\Field;
+use Blush\Field\FieldFactory;
+use Blush\Field\Fields\ReferenceField;
+use Blush\Field\InvalidSchema;
+use Blush\Field\Schema;
 
 /**
  * A content type: the entries in one folder of `user/content`, how they're
@@ -264,7 +264,7 @@ abstract readonly class ContentType
 		$definition = new Definition($data, sprintf('Content type "%s"', $name));
 
 		try {
-			$schema = $fields->schema($definition->maps('fields'), $definition->bool('closed'));
+			$schema = $fields->schema($definition->listOrMap('fields'), $definition->bool('closed'));
 			$common = [
 				'name'        => $name,
 				'folder'      => $definition->nullableString('folder'),

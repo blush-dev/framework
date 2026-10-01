@@ -16,8 +16,8 @@ namespace Blush\Content\Type;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
-use Blush\Content\Schema\Definition;
-use Blush\Content\Schema\InvalidSchema;
+use Blush\Field\Definition;
+use Blush\Field\InvalidSchema;
 
 /**
  * How a listing page lists entries: a type's collection, a taxonomy's term

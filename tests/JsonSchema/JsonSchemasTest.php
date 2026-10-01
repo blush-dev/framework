@@ -15,18 +15,18 @@ namespace Blush\Tests\JsonSchema;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\FieldRegistrar;
-use Blush\Content\Schema\FieldRegistry;
-use Blush\Content\Schema\FieldType;
-use Blush\Content\Schema\Fields\DateField;
-use Blush\Content\Schema\Fields\EnumField;
-use Blush\Content\Schema\Fields\ListField;
-use Blush\Content\Schema\Schema;
 use Blush\Core\Framework;
 use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionSource;
+use Blush\Field\Field;
+use Blush\Field\FieldFactory;
+use Blush\Field\FieldRegistrar;
+use Blush\Field\FieldRegistry;
+use Blush\Field\Fields\DateField;
+use Blush\Field\Fields\EnumField;
+use Blush\Field\Fields\ListField;
+use Blush\Field\FieldType;
+use Blush\Field\Schema;
 use Blush\JsonSchema\JsonSchemas;
 use Blush\Menu\Link\MenuLink;
 use Blush\Menu\Link\MenuLinkType;
@@ -102,8 +102,8 @@ final class JsonSchemasTest extends TestCase
 			$this->assertStringContainsString("\"const\": \"{$type->value}\"", $json);
 		}
 
-		// Each type with options of its own is checked when `type` names it.
-		$this->assertSame(7, substr_count($json, '"if": {'));
+		// Each type's options and controls are checked when `type` names it.
+		$this->assertSame(count(FieldType::cases()), substr_count($json, '"if": {'));
 	}
 
 	public function testDescribesEveryBuiltInMenuLinkKey(): void

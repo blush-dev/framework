@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema;
+namespace Blush\Field;
 
 use InvalidArgumentException;
 use Blush\Content\ContentException;

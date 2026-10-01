@@ -11,12 +11,13 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema\Fields;
+namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
 use Blush\Support\Slug;
 
 /**
@@ -48,6 +49,45 @@ final class ReferenceField extends Field
 	public function type(): string
 	{
 		return 'reference';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeLabel(): string
+	{
+		return 'Reference';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeDescription(): string
+	{
+		return 'Other entries, by slug.';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function controls(): array
+	{
+		return [Control::Reference, Control::Mono];
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * The entry picker needs the type it picks from (`to`); without one,
+	 * slugs are typed.
+	 */
+	#[Override]
+	public function canUse(Control $control): bool
+	{
+		return $control === Control::Mono || ($control === Control::Reference && $this->to !== '');
 	}
 
 	/**

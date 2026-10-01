@@ -11,12 +11,13 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema\Fields;
+namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
 
 /**
  * Markdown source, such as a summary. It is stored as written and rendered
@@ -36,6 +37,33 @@ final class MarkdownField extends Field
 	public function type(): string
 	{
 		return 'markdown';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeLabel(): string
+	{
+		return 'Formatted text';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeDescription(): string
+	{
+		return 'Formatted text.';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function controls(): array
+	{
+		return [Control::Textarea];
 	}
 
 	/**

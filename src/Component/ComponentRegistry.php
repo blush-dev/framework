@@ -17,7 +17,7 @@ use Countable;
 use InvalidArgumentException;
 use Override;
 use ReflectionClass;
-use Blush\Content\Schema\Field;
+use Blush\Field\Field;
 use Blush\Support\RegistrationException;
 
 /**

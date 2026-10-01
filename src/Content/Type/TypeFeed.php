@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Type;
 
-use Blush\Content\Schema\Definition;
-use Blush\Content\Schema\InvalidSchema;
+use Blush\Field\Definition;
+use Blush\Field\InvalidSchema;
 
 /**
  * A content type's feed settings: the taxonomy whose terms become each

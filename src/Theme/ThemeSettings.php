@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
-use Blush\Content\Schema\Schema;
-use Blush\Content\Schema\Violation;
+use Blush\Field\Schema;
+use Blush\Field\Violation;
 
 /**
  * A theme chain's resolved settings: typed values (the site's, else the

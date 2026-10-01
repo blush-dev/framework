@@ -11,12 +11,13 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema\Fields;
+namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
 
 /**
  * A yes-or-no value. Besides booleans, it accepts `0` and `1` and the
@@ -36,6 +37,33 @@ final class BoolField extends Field
 	public function type(): string
 	{
 		return 'bool';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeLabel(): string
+	{
+		return 'Yes or no';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeDescription(): string
+	{
+		return 'true or false.';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function controls(): array
+	{
+		return [Control::Checkbox];
 	}
 
 	/**

@@ -18,12 +18,12 @@ use ReflectionClass;
 use Psr\Clock\ClockInterface;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Parser\DocumentParsers;
-use Blush\Content\Schema\FieldContext;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
+use Blush\Field\FieldContext;
 use Blush\Markdown\MarkdownParser;
 
 /**

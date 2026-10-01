@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Type;
 
-use Blush\Content\Schema\Definition;
-use Blush\Content\Schema\InvalidSchema;
+use Blush\Field\Definition;
+use Blush\Field\InvalidSchema;
 
 /**
  * How a content type's URLs are built: a prefix (the type's folder when

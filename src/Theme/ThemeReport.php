@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 
 /**
  * What `ThemeChecker` found: violations whose field names the area

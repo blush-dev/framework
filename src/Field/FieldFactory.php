@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema;
+namespace Blush\Field;
 
 /**
  * Builds fields and schemas from definition arrays, looking up each
@@ -56,13 +56,39 @@ final readonly class FieldFactory
 	}
 
 	/**
-	 * Builds a schema from a list of field definitions.
+	 * Builds a schema from field definitions, in either shape
+	 * (`definitions()`).
 	 *
-	 * @param  list<array<array-key, mixed>> $fields
+	 * @param  array<array-key, mixed> $fields
 	 * @throws InvalidSchema
 	 */
 	public function schema(array $fields, bool $closed = false): Schema
 	{
-		return new Schema(array_map($this->fromArray(...), $fields), $closed);
+		return new Schema(array_map($this->fromArray(...), self::definitions($fields)), $closed);
+	}
+
+	/**
+	 * Returns field definitions as a list (D-337). They may be written as a
+	 * list of definitions with names, as types and media fields have them,
+	 * or as a map of names to definitions, as theme settings and menu
+	 * fields have them; in a map, the key is the name.
+	 *
+	 * @param  array<array-key, mixed> $fields
+	 * @return list<array<array-key, mixed>>
+	 * @throws InvalidSchema
+	 */
+	public static function definitions(array $fields): array
+	{
+		$list = [];
+
+		foreach ($fields as $key => $definition) {
+			if (! is_array($definition)) {
+				throw new InvalidSchema(sprintf('Fields must be field definitions; found %s.', get_debug_type($definition)));
+			}
+
+			$list[] = is_string($key) ? [...$definition, 'name' => $key] : $definition;
+		}
+
+		return $list;
 	}
 }

@@ -16,11 +16,11 @@ namespace Blush\Media;
 use JsonException;
 use SplFileInfo;
 use Throwable;
-use Blush\Content\Schema\Schema;
 use Blush\Content\Writer\YamlMap;
 use Blush\Core\Paths;
 use Blush\Data\DataException;
 use Blush\Data\DataLoader;
+use Blush\Field\Schema;
 use Blush\Support\Filesystem;
 
 /**

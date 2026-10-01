@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Override;
-use Blush\Content\Schema\Field;
+use Blush\Field\Field;
 
 /**
  * The built-in `page` type: every file no other type claims, from the

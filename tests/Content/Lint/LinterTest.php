@@ -18,8 +18,8 @@ use PHPUnit\Framework\TestCase;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
 use Blush\Content\Lint\VariantCheck;
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 use Blush\Tests\Content\BuildsContentSite;
 
 #[CoversClass(Linter::class)]

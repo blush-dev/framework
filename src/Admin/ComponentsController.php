@@ -19,8 +19,8 @@ use Blush\Component\ComponentListing;
 use Blush\Component\ComponentName;
 use Blush\Component\ComponentType;
 use Blush\Component\Variant;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\Fields\EnumField;
+use Blush\Field\Field;
+use Blush\Field\Fields\EnumField;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Theme\ThemeChain;
@@ -143,7 +143,7 @@ final readonly class ComponentsController
 	 */
 	private function prop(Field $field, ComponentName $component, Views $views): array
 	{
-		$prop  = $field->toArray();
+		$prop  = $field->toForm();
 		$label = $views->componentText($component, "props.{$field->name}.label");
 
 		if ($label !== null) {

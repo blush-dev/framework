@@ -17,13 +17,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Content\ContentServiceProvider;
 use Blush\Content\EntryFields;
-use Blush\Content\Schema\FieldFactory;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\TypeOrigin;
 use Blush\Core\Application;
+use Blush\Field\FieldFactory;
+use Blush\Field\FieldRegistry;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\Fixtures\Content\ColorField;
 use Blush\Tests\Fixtures\Content\JtcomTypes;
 use Blush\Tests\Fixtures\Content\MoreRecipeProvider;
 use Blush\Tests\Fixtures\Content\RecipeProvider;
@@ -70,6 +72,28 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(['author'], array_keys($types->termTypes()));
 		$this->assertNull($types->homeType());
 		$this->assertCount(2, $types);
+	}
+
+	public function testConfigTypesUseFieldTypesExtensionsRegister(): void
+	{
+		// The config file runs before extensions register field types, so
+		// its types are built when types load (D-337).
+		$this->contentConfig("['types' => ['swatch' => ['fields' => ['accent' => ['type' => 'color']]]]]");
+
+		$application = $this->scratchApplication();
+		$application->container()->make(FieldRegistry::class)->register('color', ColorField::class);
+
+		$this->assertInstanceOf(ColorField::class, $this->types($application)->get('swatch')->schema->field('accent'));
+	}
+
+	public function testReportsAnInvalidConfigTypeWhenTypesLoad(): void
+	{
+		$this->contentConfig("['types' => ['post' => ['routing' => 'x']]]");
+
+		$this->expectException(InvalidContentType::class);
+		$this->expectExceptionMessage('config/content.php: ');
+
+		$this->types();
 	}
 
 	public function testLoadsJtcomsTypesAndResolvesFiles(): void

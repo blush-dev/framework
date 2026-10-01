@@ -36,7 +36,9 @@ blush-framework/
     Http/               Request, Response, Uri, Headers, factories, Emitter
     Http/Middleware/
     Routing/            Route, compiler, matcher, UrlGenerator, attributes
-    Content/            Source, Parser, Schema, Type, Index, Entry, Query, Lint, Writer (ContentWriter,
+    Field/              Field base, Fields/ (the built-in types), Control, Schema, FieldType,
+                        registry, factory, registrar (D-337, D-338)
+    Content/            Source, Parser, Type, Index, Entry, Query, Lint, Writer (ContentWriter,
                         FilesystemWriter, DocumentEditor, YamlMap, EntryChanges, D-228)
     Markdown/           Parser interface + adapter; CommonMark/Directive/ (D-112)
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later

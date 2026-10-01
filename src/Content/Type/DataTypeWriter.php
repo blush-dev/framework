@@ -17,11 +17,11 @@ use Closure;
 use JsonException;
 use Throwable;
 use Blush\Container\Attributes\Defer;
-use Blush\Content\Schema\FieldFactory;
 use Blush\Content\Writer\YamlMap;
 use Blush\Core\Paths;
 use Blush\Data\DataException;
 use Blush\Data\DataLoader;
+use Blush\Field\FieldFactory;
 use Blush\Support\Filesystem;
 
 /**

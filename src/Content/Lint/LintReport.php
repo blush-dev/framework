@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Lint;
 
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 
 /**
  * The problems `Linter` found, by path: a content file's under

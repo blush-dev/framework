@@ -28,8 +28,6 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\Violation;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -42,6 +40,8 @@ use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteConflict;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
+use Blush\Field\Field;
+use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Support\Slug;
@@ -837,7 +837,7 @@ final readonly class EntryController
 			'name'   => $type->name,
 			'kind'   => $type->kind()->value,
 			'dated'  => $type->dateArchives !== DateArchives::None,
-			'fields' => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $fields))
+			'fields' => array_values(array_map(static fn (Field $field): array => $field->toForm(), $fields))
 		];
 	}
 

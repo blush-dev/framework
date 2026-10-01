@@ -11,16 +11,17 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema\Fields;
+namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\InvalidSchema;
-use Blush\Content\Schema\Schema;
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
+use Blush\Field\InvalidSchema;
+use Blush\Field\Schema;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 
 /**
  * A map of named values with a schema of its own. Undeclared keys are kept
@@ -41,6 +42,33 @@ final class ObjectField extends Field
 	public function type(): string
 	{
 		return 'object';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeLabel(): string
+	{
+		return 'Group of fields';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeDescription(): string
+	{
+		return 'A group of fields.';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function controls(): array
+	{
+		return [Control::Readonly];
 	}
 
 	/**
@@ -107,7 +135,7 @@ final class ObjectField extends Field
 		$definition = self::definition($data);
 
 		return self::withShared(
-			new static($definition->string('name'), $factory->schema($definition->maps('fields'), $definition->bool('closed'))),
+			new static($definition->string('name'), $factory->schema($definition->listOrMap('fields'), $definition->bool('closed'))),
 			$definition
 		);
 	}

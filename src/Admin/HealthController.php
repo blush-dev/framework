@@ -19,8 +19,8 @@ use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Content\Lint\Linter;
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
 

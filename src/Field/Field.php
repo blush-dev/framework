@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema;
+namespace Blush\Field;
 
 use NoDiscard;
 
@@ -27,6 +27,11 @@ use NoDiscard;
  *
  * A field's aliases are other keys it's read from, such as the 1.x names
  * (D-078). When the canonical key is present too, it wins.
+ *
+ * Each field type describes itself for the admin (D-337): a name for
+ * people (`typeLabel()`), what it holds (`typeDescription()`), and the
+ * controls it can be edited with (`controls()`, the first being the
+ * default). A field may pick another of those with `control`.
  */
 abstract class Field
 {
@@ -65,9 +70,71 @@ abstract class Field
 	public protected(set) string $description = '';
 
 	/**
+	 * The control the field asks to be edited with, or `null` for its
+	 * type's default (see `editedWith()`).
+	 */
+	public protected(set) ?Control $control = null;
+
+	/**
 	 * Returns the field type's registry key, such as `text`.
 	 */
 	abstract public function type(): string;
+
+	/**
+	 * Returns the field type's name for people, such as "Formatted text".
+	 * An empty string leaves the admin to make one from the type's key.
+	 */
+	public static function typeLabel(): string
+	{
+		return '';
+	}
+
+	/**
+	 * Returns what the field type holds, in a sentence.
+	 */
+	public static function typeDescription(): string
+	{
+		return '';
+	}
+
+	/**
+	 * Returns the controls the field type can be edited with, the first
+	 * being its default. A type that names none is shown read-only.
+	 *
+	 * @return list<Control>
+	 */
+	public static function controls(): array
+	{
+		return [Control::Readonly];
+	}
+
+	/**
+	 * Returns whether this field can be edited with a control. Types whose
+	 * controls depend on their settings (a list's items, a reference's
+	 * type) narrow `controls()`.
+	 */
+	public function canUse(Control $control): bool
+	{
+		return in_array($control, static::controls(), true);
+	}
+
+	/**
+	 * Returns the control the field is edited with: its own, or its type's
+	 * default.
+	 */
+	public function editedWith(): Control
+	{
+		return $this->control ?? $this->defaultControl();
+	}
+
+	/**
+	 * Returns the control used when the field names none: the first of its
+	 * type's controls that it can use.
+	 */
+	protected function defaultControl(): Control
+	{
+		return array_find(static::controls(), fn (Control $control): bool => $this->canUse($control)) ?? Control::Readonly;
+	}
 
 	/**
 	 * Validates a raw value and returns its normalized form: plain data
@@ -160,10 +227,23 @@ abstract class Field
 				'default'     => $this->default,
 				'label'       => $this->label,
 				'description' => $this->description,
+				'control'     => $this->control?->value,
 				...$this->options()
 			],
 			static fn (mixed $value): bool => $value !== '' && $value !== [] && $value !== null
 		);
+	}
+
+	/**
+	 * Returns the field as the admin's forms take it (D-229, D-337): its
+	 * definition, without a `class`, and with `control` always set to the
+	 * control it's edited with.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function toForm(): array
+	{
+		return [...array_diff_key($this->toArray(), ['class' => true]), 'control' => $this->editedWith()->value];
 	}
 
 	/**
@@ -221,6 +301,21 @@ abstract class Field
 	}
 
 	/**
+	 * Returns a copy edited with another of its type's controls.
+	 *
+	 * @throws InvalidSchema When the field can't use the control.
+	 */
+	#[NoDiscard]
+	public function control(Control $control): static
+	{
+		if (! $this->canUse($control)) {
+			throw $this->unusable($control);
+		}
+
+		return clone($this, ['control' => $control]);
+	}
+
+	/**
 	 * Returns the type-specific settings for `toArray()`.
 	 *
 	 * @return array<string, mixed>
@@ -246,7 +341,37 @@ abstract class Field
 		$field->label       = $definition->string('label');
 		$field->description = $definition->string('description');
 
+		$control = $definition->nullableString('control');
+
+		if ($control !== null) {
+			$field->control = Control::tryFrom($control) ?? throw new InvalidSchema(sprintf(
+				'Field "%s" has an unknown control "%s"; controls are %s.',
+				$field->name,
+				$control,
+				implode(', ', array_column(Control::cases(), 'value'))
+			));
+
+			if (! $field->canUse($field->control)) {
+				throw $field->unusable($field->control);
+			}
+		}
+
 		return $field;
+	}
+
+	/**
+	 * Builds the exception for a control the field can't use.
+	 */
+	private function unusable(Control $control): InvalidSchema
+	{
+		$usable = array_filter(static::controls(), $this->canUse(...));
+
+		return new InvalidSchema(sprintf(
+			'Field "%s" can\'t use the "%s" control; it can use %s.',
+			$this->name,
+			$control->value,
+			implode(', ', array_map(static fn (Control $item): string => $item->value, $usable))
+		));
 	}
 
 	/**

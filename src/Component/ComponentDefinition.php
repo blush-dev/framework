@@ -17,12 +17,12 @@ use BackedEnum;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\Fields\BoolField;
-use Blush\Content\Schema\Fields\EnumField;
-use Blush\Content\Schema\Fields\MediaField;
-use Blush\Content\Schema\Fields\NumberField;
-use Blush\Content\Schema\Fields\TextField;
+use Blush\Field\Field;
+use Blush\Field\Fields\BoolField;
+use Blush\Field\Fields\EnumField;
+use Blush\Field\Fields\MediaField;
+use Blush\Field\Fields\NumberField;
+use Blush\Field\Fields\TextField;
 
 /**
  * A registered component (D-172): its name, its class (or `null` for a

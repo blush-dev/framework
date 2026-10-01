@@ -25,8 +25,8 @@ use Blush\Component\Callout;
 use Blush\Component\ComponentContent;
 use Blush\Component\ComponentRegistry;
 use Blush\Content\ContentRepository;
-use Blush\Content\Schema\Fields\TextField;
 use Blush\Content\Type\TypeLabels;
+use Blush\Field\Fields\TextField;
 
 #[CoversClass(ComponentsController::class)]
 #[CoversClass(EntriesController::class)]

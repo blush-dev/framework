@@ -13,6 +13,7 @@ import type { ContentTypeSummary, FieldDescription } from '../api';
 import AdminIcon from './AdminIcon.vue';
 import FieldDefinitionEditor from './FieldDefinitionEditor.vue';
 import { label as labelOf } from '../fields';
+import { loadFieldTypes, typeName as nameOfType } from '../field-types';
 
 const props = defineProps<{
 	types: ContentTypeSummary[];
@@ -24,26 +25,11 @@ const fields = defineModel<FieldDescription[]>({ required: true });
 // The open row: an index, `'new'` for a field being added, or `null`.
 const open = ref<number | 'new' | null>(null);
 
-const TYPE_NAMES: Record<string, string> = {
-	text: 'Text',
-	markdown: 'Formatted text',
-	number: 'Number',
-	bool: 'Yes or no',
-	date: 'Date and time',
-	enum: 'Choice',
-	list: 'List',
-	reference: 'Reference',
-	media: 'Media file',
-	slug: 'Slug',
-	object: 'Group of fields'
-};
+// The type names come from the catalog (D-337); until it loads, the keys.
+void loadFieldTypes().catch(() => undefined);
 
 function typeName(field: FieldDescription): string {
-	const name = TYPE_NAMES[field.type] ?? field.type;
-
-	if (field.type === 'list' && field.item) {
-		return `${name} of ${(TYPE_NAMES[field.item.type] ?? field.item.type).toLowerCase()}`;
-	}
+	const name = nameOfType(field);
 
 	if (field.type === 'reference' && field.to) {
 		return `${name} to ${props.types.find((type) => type.name === field.to)?.labels.items ?? field.to}`;

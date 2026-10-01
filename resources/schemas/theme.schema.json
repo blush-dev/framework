@@ -292,9 +292,131 @@
 				"description": {
 					"type": "string",
 					"description": "Help text."
+				},
+				"control": {
+					"description": "How the admin edits the field, when not its type's default.",
+					"anyOf": [
+						{
+							"const": "text",
+							"description": "One line"
+						},
+						{
+							"const": "textarea",
+							"description": "Several lines"
+						},
+						{
+							"const": "mono",
+							"description": "Code"
+						},
+						{
+							"const": "checkbox",
+							"description": "Checkbox"
+						},
+						{
+							"const": "number",
+							"description": "Number"
+						},
+						{
+							"const": "select",
+							"description": "Menu"
+						},
+						{
+							"const": "radios",
+							"description": "Radio buttons"
+						},
+						{
+							"const": "checks",
+							"description": "Checkboxes"
+						},
+						{
+							"const": "date",
+							"description": "Date picker"
+						},
+						{
+							"const": "lines",
+							"description": "One per line"
+						},
+						{
+							"const": "reference",
+							"description": "Entry picker"
+						},
+						{
+							"const": "media",
+							"description": "Media picker"
+						},
+						{
+							"const": "readonly",
+							"description": "Read-only"
+						}
+					]
 				}
 			},
 			"allOf": [
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "text"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"control": {
+								"enum": [
+									"text",
+									"textarea",
+									"mono"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "markdown"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"control": {
+								"enum": [
+									"textarea"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "date"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"control": {
+								"enum": [
+									"date"
+								]
+							}
+						}
+					}
+				},
 				{
 					"if": {
 						"properties": {
@@ -310,6 +432,11 @@
 						"properties": {
 							"default": {
 								"type": "boolean"
+							},
+							"control": {
+								"enum": [
+									"checkbox"
+								]
 							}
 						}
 					}
@@ -341,6 +468,11 @@
 							},
 							"default": {
 								"type": "number"
+							},
+							"control": {
+								"enum": [
+									"number"
+								]
 							}
 						}
 					}
@@ -368,6 +500,12 @@
 							},
 							"default": {
 								"type": "string"
+							},
+							"control": {
+								"enum": [
+									"select",
+									"radios"
+								]
 							}
 						}
 					}
@@ -391,6 +529,13 @@
 							},
 							"default": {
 								"type": "array"
+							},
+							"control": {
+								"enum": [
+									"lines",
+									"checks",
+									"readonly"
+								]
 							}
 						}
 					}
@@ -416,6 +561,12 @@
 								"type": "boolean",
 								"description": "Whether the field holds several entries.",
 								"default": true
+							},
+							"control": {
+								"enum": [
+									"reference",
+									"mono"
+								]
 							}
 						}
 					}
@@ -441,6 +592,33 @@
 									"file"
 								],
 								"description": "The kind of file it takes, so the admin's picker offers only those."
+							},
+							"control": {
+								"enum": [
+									"media",
+									"mono"
+								]
+							}
+						}
+					}
+				},
+				{
+					"if": {
+						"properties": {
+							"type": {
+								"const": "slug"
+							}
+						},
+						"required": [
+							"type"
+						]
+					},
+					"then": {
+						"properties": {
+							"control": {
+								"enum": [
+									"mono"
+								]
 							}
 						}
 					}
@@ -480,6 +658,11 @@
 							},
 							"default": {
 								"type": "object"
+							},
+							"control": {
+								"enum": [
+									"readonly"
+								]
 							}
 						}
 					}

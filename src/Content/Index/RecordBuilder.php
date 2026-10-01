@@ -16,13 +16,13 @@ namespace Blush\Content\Index;
 use DateTimeImmutable;
 use Blush\Content\Parser\DocumentParsers;
 use Blush\Content\Parser\InvalidDocument;
-use Blush\Content\Schema\FieldContext;
 use Blush\Content\Source\SourceFile;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
+use Blush\Field\FieldContext;
 use Blush\Support\Slug;
 
 /**

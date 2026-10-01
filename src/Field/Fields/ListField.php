@@ -11,14 +11,15 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema\Fields;
+namespace Blush\Field\Fields;
 
 use Override;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\InvalidField;
-use Blush\Content\Schema\InvalidSchema;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
+use Blush\Field\InvalidField;
+use Blush\Field\InvalidSchema;
 
 /**
  * A list of values of one field type:
@@ -43,6 +44,52 @@ final class ListField extends Field
 	public function type(): string
 	{
 		return 'list';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeLabel(): string
+	{
+		return 'List';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function typeDescription(): string
+	{
+		return 'Several values.';
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public static function controls(): array
+	{
+		return [Control::Lines, Control::Checks, Control::Readonly];
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * One per line takes items edited on one line (text, numbers, dates,
+	 * slugs, choices); checkboxes take choices.
+	 */
+	#[Override]
+	public function canUse(Control $control): bool
+	{
+		$oneLine = [Control::Text, Control::Mono, Control::Number, Control::Select, Control::Radios, Control::Date, Control::Reference, Control::Media];
+
+		return match ($control) {
+			Control::Lines    => ! $this->item instanceof self && in_array($this->item->editedWith(), $oneLine, true),
+			Control::Checks   => $this->item instanceof EnumField,
+			Control::Readonly => true,
+			default           => false
+		};
 	}
 
 	/**

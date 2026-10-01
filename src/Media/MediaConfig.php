@@ -17,9 +17,6 @@ use Override;
 use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 use Blush\Config\InvalidConfig;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\FieldRegistrar;
-use Blush\Content\Schema\FieldRegistry;
 
 /**
  * The site's media settings, from `config/media.php`:
@@ -39,7 +36,8 @@ use Blush\Content\Schema\FieldRegistry;
  *   (`MediaFieldSet`, D-287), beside the built-in ones (`MediaSchemas`);
  *   a field with a built-in's name replaces it. In array form, a map of
  *   `all`, `image`, `video`, `audio`, and `file` to lists of field
- *   definitions.
+ *   definitions, kept as `definitions` and read when the fields are
+ *   built, with every field type extensions register.
  */
 final readonly class MediaConfig implements Config
 {
@@ -74,13 +72,15 @@ final readonly class MediaConfig implements Config
 	 * @param  list<string>        $types  Allowed MIME types.
 	 * @param  list<MediaFieldSet> $fields    Metadata fields beyond the built-in ones.
 	 * @param  bool                $autoIndex Whether development requests refresh the media index.
+	 * @param  array<array-key, mixed> $definitions `fields` in array form.
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
 		string $url = '/media',
 		public array $types = self::DEFAULT_TYPES,
 		public array $fields = [],
-		public bool $autoIndex = true
+		public bool $autoIndex = true,
+		public array $definitions = []
 	) {
 		$url = '/' . trim($url, '/');
 
@@ -114,13 +114,10 @@ final readonly class MediaConfig implements Config
 			throw new InvalidConfig('MediaConfig "fields" must be a map of kinds to field definitions.');
 		}
 
-		$registry = new FieldRegistry();
-		new FieldRegistrar($registry)->register();
-
 		return new static(
 			url: $values->string('url', '/media'),
 			types: $values->stringList('types', self::DEFAULT_TYPES),
-			fields: MediaSchemas::setsFromArray($fields, new FieldFactory($registry), 'MediaConfig "fields"'),
+			definitions: $fields,
 			autoIndex: $values->bool('autoIndex', true)
 		);
 	}
@@ -137,6 +134,10 @@ final readonly class MediaConfig implements Config
 			foreach ($set->fields as $field) {
 				$fields[$set->kind->value ?? 'all'][] = $field->toArray();
 			}
+		}
+
+		foreach ($this->definitions as $kind => $list) {
+			$fields[$kind] = [...$fields[$kind] ?? [], ...(is_array($list) ? $list : [])];
 		}
 
 		return ['url' => $this->url, 'types' => $this->types, 'fields' => $fields, 'autoIndex' => $this->autoIndex];

@@ -288,7 +288,13 @@ Each is recorded in `.claude/docs/decisions.md`.
   them; the icon is a site icon's name with **Choose** (the icon
   library) rather than a row of ten; field types are all but `object`
   (kept as written), with each type's options, and a field's **Default**
-  follows its type. Delete is in a Danger Zone, confirmed, and refused
+  follows its type. The types and their names come from the site's
+  field type catalog, so an extension's types are offered with their
+  options (D-338); a field whose type has more than one control has
+  **Edited with** (the design has no such choice), and a list of
+  choices takes its options. In the editor's form, `radios` and
+  `checks` fields are a group of radio buttons or checkboxes under the
+  label. Delete is in a Danger Zone, confirmed, and refused
   while a taxonomy groups the type. Save and Revert sit below the
   panels.
 - **Roles and accounts** (D-249, D-312): Blush sends no email, so the

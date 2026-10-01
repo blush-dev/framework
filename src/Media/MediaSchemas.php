@@ -15,14 +15,14 @@ namespace Blush\Media;
 
 use Blush\Config\InvalidConfig;
 use Blush\Container\Container;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\Fields\MarkdownField;
-use Blush\Content\Schema\Fields\TextField;
-use Blush\Content\Schema\InvalidSchema;
-use Blush\Content\Schema\Schema;
 use Blush\Core\Paths;
 use Blush\Data\DataException;
 use Blush\Data\DataLoader;
+use Blush\Field\FieldFactory;
+use Blush\Field\Fields\MarkdownField;
+use Blush\Field\Fields\TextField;
+use Blush\Field\InvalidSchema;
+use Blush\Field\Schema;
 
 /**
  * The metadata fields each kind of media file has (D-238, D-287), as a
@@ -144,7 +144,13 @@ final class MediaSchemas
 	 */
 	private function sets(): array
 	{
-		return $this->sets ??= [...self::builtIn(), ...$this->extensionSets(), ...$this->dataSets(), ...$this->config->fields];
+		return $this->sets ??= [
+			...self::builtIn(),
+			...$this->extensionSets(),
+			...$this->dataSets(),
+			...$this->config->fields,
+			...self::setsFromArray($this->config->definitions, $this->fields, 'config/media.php "fields"')
+		];
 	}
 
 	/**
@@ -186,8 +192,8 @@ final class MediaSchemas
 	}
 
 	/**
-	 * Reads field sets from a map of `all` and each kind to lists of field
-	 * definitions, as the data file and `MediaConfig::fromArray()` have
+	 * Reads field sets from a map of `all` and each kind to field
+	 * definitions (a list, or a map by name), as the data file and `MediaConfig::fromArray()` have
 	 * them.
 	 *
 	 * @param  array<array-key, mixed> $data
@@ -204,22 +210,14 @@ final class MediaSchemas
 				throw new InvalidConfig(sprintf('%s has "%s"; media fields are grouped under %s.', $where, $key, implode(', ', $kinds)));
 			}
 
-			if (! is_array($list) || ! array_is_list($list)) {
-				throw new InvalidConfig(sprintf('%s "%s" must be a list of field definitions.', $where, $key));
+			if (! is_array($list)) {
+				throw new InvalidConfig(sprintf('%s "%s" must be a list or map of field definitions.', $where, $key));
 			}
 
-			$definitions = [];
-
-			foreach ($list as $definition) {
-				if (! is_array($definition)) {
-					throw new InvalidConfig(sprintf('%s "%s" must hold field definitions.', $where, $key));
-				}
-
-				try {
-					$definitions[] = $fields->fromArray($definition);
-				} catch (InvalidSchema $e) {
-					throw new InvalidConfig(sprintf('%s "%s": %s', $where, $key, $e->getMessage()), previous: $e);
-				}
+			try {
+				$definitions = array_map($fields->fromArray(...), FieldFactory::definitions($list));
+			} catch (InvalidSchema $e) {
+				throw new InvalidConfig(sprintf('%s "%s": %s', $where, $key, $e->getMessage()), previous: $e);
 			}
 
 			$sets[] = new MediaFieldSet($definitions, $key === self::ALL ? null : MediaKind::from($key));

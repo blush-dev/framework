@@ -17,9 +17,6 @@ use Override;
 use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 use Blush\Config\InvalidConfig;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\FieldRegistrar;
-use Blush\Content\Schema\FieldRegistry;
 
 /**
  * The site's content settings, from `config/content.php`:
@@ -31,6 +28,10 @@ use Blush\Content\Schema\FieldRegistry;
  *         ],
  *         home: 'post'
  *     );
+ *
+ * In array form (`fromArray()`, and the config cache), `types` are kept
+ * as `definitions` and built when types are loaded, with every field type
+ * extensions register; the config file runs before they do.
  *
  * Types defined here are locked in the admin, and they replace built-in or
  * extension types of the same name. Types may also be defined as data in
@@ -45,6 +46,7 @@ final readonly class ContentConfig implements Config
 {
 	/**
 	 * @param  list<ContentType> $types           The site's types.
+	 * @param  list<array<array-key, mixed>> $definitions The site's types in array form, each with a `name`.
 	 * @param  ?string           $home            A type whose collection is the home page.
 	 * @param  bool              $dataTypes       Whether `user/data/types` is read.
 	 * @param  bool              $dataTypeUrls    Whether data types may set `urls`.
@@ -58,16 +60,25 @@ final readonly class ContentConfig implements Config
 		public bool $dataTypes = true,
 		public bool $dataTypeUrls = true,
 		public array $disabled = [],
-		public bool $autoIndex = true
+		public bool $autoIndex = true,
+		public array $definitions = []
 	) {
 		$names = [];
 
-		foreach ($types as $type) {
-			if (isset($names[$type->name])) {
-				throw new InvalidConfig(sprintf('ContentConfig defines the "%s" type more than once.', $type->name));
+		foreach ($definitions as $definition) {
+			if (! is_string($definition['name'] ?? null) || $definition['name'] === '') {
+				throw new InvalidConfig('ContentConfig type definitions must each have a "name".');
+			}
+		}
+
+		$all = [...array_map(static fn (ContentType $type): string => $type->name, $types), ...array_column($definitions, 'name')];
+
+		foreach ($all as $name) {
+			if (isset($names[$name])) {
+				throw new InvalidConfig(sprintf('ContentConfig defines the "%s" type more than once.', $name));
 			}
 
-			$names[$type->name] = true;
+			$names[$name] = true;
 		}
 
 		foreach ($disabled as $name) {
@@ -100,10 +111,6 @@ final readonly class ContentConfig implements Config
 			throw new InvalidConfig('ContentConfig "types" must be a list or map of type definitions.');
 		}
 
-		$registry = new FieldRegistry();
-		new FieldRegistrar($registry)->register();
-		$fields = new FieldFactory($registry);
-
 		$definitions = [];
 
 		foreach ($types as $key => $type) {
@@ -111,15 +118,11 @@ final readonly class ContentConfig implements Config
 				throw new InvalidConfig('ContentConfig "types" must hold type definitions.');
 			}
 
-			try {
-				$definitions[] = ContentType::fromArray(is_string($key) ? ['name' => $key, ...$type] : $type, $fields);
-			} catch (InvalidContentType $e) {
-				throw new InvalidConfig(sprintf('ContentConfig is invalid: %s', $e->getMessage()), previous: $e);
-			}
+			$definitions[] = is_string($key) ? ['name' => $key, ...$type] : $type;
 		}
 
 		return new static(
-			types: $definitions,
+			definitions: $definitions,
 			home: $values->nullableString('home'),
 			dataTypes: $values->bool('dataTypes', true),
 			dataTypeUrls: $values->bool('dataTypeUrls', true),
@@ -135,7 +138,7 @@ final readonly class ContentConfig implements Config
 	public function toArray(): array
 	{
 		return [
-			'types'           => array_map(static fn (ContentType $type): array => $type->toArray(), $this->types),
+			'types'           => [...array_map(static fn (ContentType $type): array => $type->toArray(), $this->types), ...$this->definitions],
 			'home'            => $this->home,
 			'dataTypes'       => $this->dataTypes,
 			'dataTypeUrls'    => $this->dataTypeUrls,

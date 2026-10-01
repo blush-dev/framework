@@ -15,10 +15,10 @@ namespace Blush\Region;
 
 use Throwable;
 use Psr\Log\LoggerInterface;
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
 use Blush\Core\AppConfig;
 use Blush\Data\InvalidData;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 use Blush\Region\Item\RegionItemFactory;
 use Blush\Theme\SiteThemeData;
 use Blush\Theme\ThemeChain;

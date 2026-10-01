@@ -15,10 +15,10 @@ namespace Blush\Tests\Component;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\Fields\MediaField;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
+use Blush\Field\Field;
+use Blush\Field\Fields\MediaField;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Media\MediaConfig;

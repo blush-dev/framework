@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Index;
 
-use Blush\Content\Schema\Violation;
+use Blush\Field\Violation;
 
 /**
  * A content file turned into an index record, with the problems its front

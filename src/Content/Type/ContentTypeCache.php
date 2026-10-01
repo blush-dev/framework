@@ -15,10 +15,10 @@ namespace Blush\Content\Type;
 
 use Closure;
 use Blush\Container\Attributes\Defer;
-use Blush\Content\Schema\FieldFactory;
 use Blush\Core\AppConfig;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
+use Blush\Field\FieldFactory;
 use Blush\Support\PhpArrayFile;
 
 /**

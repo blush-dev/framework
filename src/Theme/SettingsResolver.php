@@ -13,13 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\InvalidSchema;
-use Blush\Content\Schema\Schema;
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
 use Blush\Data\InvalidData;
+use Blush\Field\FieldContext;
+use Blush\Field\FieldFactory;
+use Blush\Field\InvalidSchema;
+use Blush\Field\Schema;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 
 /**
  * Resolves a theme chain's settings (D-022). A manifest's `settings` are

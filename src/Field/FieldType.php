@@ -11,19 +11,19 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema;
+namespace Blush\Field;
 
-use Blush\Content\Schema\Fields\BoolField;
-use Blush\Content\Schema\Fields\DateField;
-use Blush\Content\Schema\Fields\EnumField;
-use Blush\Content\Schema\Fields\ListField;
-use Blush\Content\Schema\Fields\MarkdownField;
-use Blush\Content\Schema\Fields\MediaField;
-use Blush\Content\Schema\Fields\NumberField;
-use Blush\Content\Schema\Fields\ObjectField;
-use Blush\Content\Schema\Fields\ReferenceField;
-use Blush\Content\Schema\Fields\SlugField;
-use Blush\Content\Schema\Fields\TextField;
+use Blush\Field\Fields\BoolField;
+use Blush\Field\Fields\DateField;
+use Blush\Field\Fields\EnumField;
+use Blush\Field\Fields\ListField;
+use Blush\Field\Fields\MarkdownField;
+use Blush\Field\Fields\MediaField;
+use Blush\Field\Fields\NumberField;
+use Blush\Field\Fields\ObjectField;
+use Blush\Field\Fields\ReferenceField;
+use Blush\Field\Fields\SlugField;
+use Blush\Field\Fields\TextField;
 
 /**
  * The built-in field types, keyed by the `type` used in definitions (the
@@ -62,26 +62,6 @@ enum FieldType: string
 			self::Media     => MediaField::class,
 			self::Slug      => SlugField::class,
 			self::Object    => ObjectField::class
-		};
-	}
-
-	/**
-	 * Describes what the type holds, for the editor schemas (D-206).
-	 */
-	public function description(): string
-	{
-		return match ($this) {
-			self::Text      => 'A line of text.',
-			self::Markdown  => 'Formatted text.',
-			self::Date      => 'A date and time.',
-			self::Bool      => 'true or false.',
-			self::Number    => 'A number.',
-			self::Enum      => 'One of a set of values.',
-			self::List      => 'Several values.',
-			self::Reference => 'Other entries, by slug.',
-			self::Media     => 'A media file.',
-			self::Slug      => 'A URL-safe name.',
-			self::Object    => 'A group of fields.'
 		};
 	}
 }

@@ -323,7 +323,54 @@ export interface FieldDescription {
 	integer?: boolean;
 	min?: number;
 	max?: number;
+	// The control it's edited with (D-337): in a form's fields, always the
+	// one to draw; in a type's definitions, only one chosen over the
+	// type's default.
+	control?: string;
 	[setting: string]: unknown;
+}
+
+/**
+ * A control the admin draws, with its name for people.
+ */
+export interface ControlDescription {
+	value: string;
+	label: string;
+}
+
+/**
+ * A field type (`GET fields/types`, D-337): its key, its name for
+ * people, what it holds, the controls it can be edited with (the first
+ * is its default), and its own definition keys as JSON Schemas.
+ */
+export interface FieldTypeDescription {
+	type: string;
+	label: string;
+	description: string;
+	controls: ControlDescription[];
+	options: Record<string, JsonSchema>;
+}
+
+/**
+ * The part of JSON Schema field types describe their options with.
+ */
+export interface JsonSchema {
+	type?: string | string[];
+	enum?: unknown[];
+	items?: JsonSchema;
+	description?: string;
+	default?: unknown;
+	minimum?: number;
+	maximum?: number;
+	[keyword: string]: unknown;
+}
+
+/**
+ * The field types and every control (`GET fields/types`).
+ */
+export interface FieldTypeCatalog {
+	types: FieldTypeDescription[];
+	controls: ControlDescription[];
 }
 
 /**

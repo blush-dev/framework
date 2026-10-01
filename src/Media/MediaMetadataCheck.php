@@ -15,12 +15,12 @@ namespace Blush\Media;
 
 use Throwable;
 use Blush\Content\Lint\Linter;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\Severity;
-use Blush\Content\Schema\Violation;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Data\DataLoader;
+use Blush\Field\FieldContext;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 
 /**
  * Checks the metadata files under `user/data/media` (D-238, D-293), as

@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Blush\Container\Container;
-use Blush\Content\Schema\FieldFactory;
 use Blush\Core\Paths;
 use Blush\Data\DataLoader;
 use Blush\Data\InvalidData;
+use Blush\Field\FieldFactory;
 
 /**
  * Gathers the content types from every source and checks that they fit
@@ -77,7 +77,7 @@ final readonly class ContentTypeLoader
 			$origins[$type->name] = TypeOrigin::Extension;
 		}
 
-		foreach ($this->config->types as $type) {
+		foreach ($this->configTypes() as $type) {
 			$types[$type->name]   = $type;
 			$origins[$type->name] = TypeOrigin::Config;
 		}
@@ -102,6 +102,28 @@ final readonly class ContentTypeLoader
 		$this->check($resolved);
 
 		return $resolved;
+	}
+
+	/**
+	 * Returns the config's types, building those in array form with every
+	 * registered field type.
+	 *
+	 * @return list<ContentType>
+	 * @throws InvalidContentType
+	 */
+	private function configTypes(): array
+	{
+		$types = $this->config->types;
+
+		foreach ($this->config->definitions as $definition) {
+			try {
+				$types[] = ContentType::fromArray($definition, $this->fields);
+			} catch (InvalidContentType $e) {
+				throw new InvalidContentType(sprintf('config/content.php: %s', $e->getMessage()), previous: $e);
+			}
+		}
+
+		return $types;
 	}
 
 	/**

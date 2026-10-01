@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Schema;
+namespace Blush\Field;
 
 /**
  * Typed access to a field or schema definition array (from a data-defined
@@ -112,6 +112,20 @@ final readonly class Definition
 		$value = $this->data[$key] ?? [];
 
 		return is_array($value) && ($value === [] || ! array_is_list($value)) ? $value : throw $this->invalid($key, 'a map');
+	}
+
+	/**
+	 * Returns a list or a map, such as field definitions in either shape
+	 * (`FieldFactory::definitions()`).
+	 *
+	 * @return array<array-key, mixed>
+	 * @throws InvalidSchema
+	 */
+	public function listOrMap(string $key): array
+	{
+		$value = $this->data[$key] ?? [];
+
+		return is_array($value) ? $value : throw $this->invalid($key, 'a list or a map');
 	}
 
 	/**

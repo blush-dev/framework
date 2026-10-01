@@ -46,6 +46,8 @@ use Blush\Session\StartSession;
  *     `POST types`, `PATCH` and `DELETE types/{name}`, and `POST
  *     types/refresh` edit the ones in `user/data/types`
  *     (`TypeEditController`).
+ *   - `GET  fields/types`: the field types definitions can use, with
+ *     their controls (`FieldTypesController`, D-337).
  *   - `GET  components`: the components the editor's inserter offers.
  *   - `GET  icons`: the icons the editor's icon picker offers.
  *   - `GET  media`: the media files an entry can use, a page at a time,
@@ -122,6 +124,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'update'])->named('type.update')->middleware(Authenticate::class),
 			Route::delete('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'delete'])->named('type.delete')->middleware(Authenticate::class),
 			Route::get('/components', ComponentsController::class)->named('components')->middleware(Authenticate::class),
+			Route::get('/fields/types', FieldTypesController::class)->named('fields.types')->middleware(Authenticate::class),
 			Route::get('/icons', IconsController::class)->named('icons')->middleware(Authenticate::class),
 			Route::get('/media', MediaListController::class)->named('media')->middleware(Authenticate::class),
 			Route::post('/media', MediaUploadController::class)->named('media.upload')->middleware(Authenticate::class),

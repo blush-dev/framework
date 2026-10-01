@@ -11,30 +11,30 @@
 
 declare(strict_types=1);
 
-namespace Blush\Tests\Content\Schema;
+namespace Blush\Tests\Field;
 
 use DateTimeImmutable;
 use DateTimeZone;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\Schema\Definition;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldContext;
-use Blush\Content\Schema\Fields\BoolField;
-use Blush\Content\Schema\Fields\DateField;
-use Blush\Content\Schema\Fields\EnumField;
-use Blush\Content\Schema\Fields\ListField;
-use Blush\Content\Schema\Fields\MarkdownField;
-use Blush\Content\Schema\Fields\MediaField;
-use Blush\Content\Schema\Fields\NumberField;
-use Blush\Content\Schema\Fields\ObjectField;
-use Blush\Content\Schema\Fields\ReferenceField;
-use Blush\Content\Schema\Fields\SlugField;
-use Blush\Content\Schema\Fields\TextField;
-use Blush\Content\Schema\InvalidField;
-use Blush\Content\Schema\InvalidSchema;
-use Blush\Content\Schema\Schema;
+use Blush\Field\Definition;
+use Blush\Field\Field;
+use Blush\Field\FieldContext;
+use Blush\Field\Fields\BoolField;
+use Blush\Field\Fields\DateField;
+use Blush\Field\Fields\EnumField;
+use Blush\Field\Fields\ListField;
+use Blush\Field\Fields\MarkdownField;
+use Blush\Field\Fields\MediaField;
+use Blush\Field\Fields\NumberField;
+use Blush\Field\Fields\ObjectField;
+use Blush\Field\Fields\ReferenceField;
+use Blush\Field\Fields\SlugField;
+use Blush\Field\Fields\TextField;
+use Blush\Field\InvalidField;
+use Blush\Field\InvalidSchema;
+use Blush\Field\Schema;
 
 #[CoversClass(Field::class)]
 #[CoversClass(Definition::class)]

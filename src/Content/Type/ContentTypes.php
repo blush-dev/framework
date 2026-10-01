@@ -18,10 +18,10 @@ use Countable;
 use IteratorAggregate;
 use Override;
 use Blush\Content\EntryFields;
-use Blush\Content\Schema\Field;
-use Blush\Content\Schema\FieldFactory;
-use Blush\Content\Schema\InvalidSchema;
-use Blush\Content\Schema\Schema;
+use Blush\Field\Field;
+use Blush\Field\FieldFactory;
+use Blush\Field\InvalidSchema;
+use Blush\Field\Schema;
 
 /**
  * The site's resolved content types, from every source (`ContentTypeLoader`

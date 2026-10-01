@@ -899,7 +899,7 @@
 
 /* Text inputs, selects, and text areas. */
 .input,
-.field input:not([type="checkbox"]),
+.field input:not([type="checkbox"], [type="radio"]),
 .field select,
 .field textarea {
 	width: 100%;
@@ -922,7 +922,7 @@
 }
 
 .input:hover,
-.field input:not([type="checkbox"]):hover,
+.field input:not([type="checkbox"], [type="radio"]):hover,
 .field select:hover,
 .field textarea:hover {
 	border-color: var(--fg-3);

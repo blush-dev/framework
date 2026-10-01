@@ -671,7 +671,7 @@ wraps and which props it takes, using the same field types as
 `component:list`.
 
 ```php
-use Blush\Content\Schema\Fields\EnumField;
+use Blush\Field\Fields\EnumField;
 use Blush\Component\ComponentContent;
 
 $components->register(
