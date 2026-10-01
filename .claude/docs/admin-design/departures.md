@@ -51,6 +51,11 @@ Each is recorded in `.claude/docs/decisions.md`.
   pending draft, so the editor saves when asked and warns before leaving
   unsaved work.
 - **Status tabs are links** with `aria-current`, since each is a URL (D-233).
+- **New writes nothing until the first save** (D-336): the prototype
+  writes an "Untitled …" draft when New is pressed; here the editor
+  opens on an unwritten entry, and the first save creates the file,
+  named for its title (so it needs one). Abandoned starts leave nothing
+  behind.
 - **Trash is a tab, not an index status** (D-237): trashed files leave the
   index, so the Trash tab lists them separately and "All" doesn't include them.
 - **Term use counts are published entries only** (D-236), matching the site's

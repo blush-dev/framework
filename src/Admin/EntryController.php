@@ -31,6 +31,7 @@ use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Schema\Field;
 use Blush\Content\Schema\Violation;
 use Blush\Content\Status as EntryStatus;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Taxonomy;
@@ -54,6 +55,10 @@ use Blush\Support\Slug;
  *   and field descriptions, what the account may do, and the file's
  *   problems, and its handle (`EntryHandles`, D-253), or `null`.
  * - `GET    content/{type}/{key}`: the same, found by handle.
+ * - `GET    entries/new?type=…`: a new entry of a type, described the same
+ *   way but not yet written (no `id`, `handle`, or `revision`), so the
+ *   editor opens on it and its first save creates it (D-336). It's a
+ *   draft crediting the account's author, with nothing else filled in.
  * - `POST   entries`: creates one (`type`, `title`, optional `slug`,
  *   `set`, `body`, `status`). New entries are drafts unless asked
  *   otherwise, and credit the account's author.
@@ -150,6 +155,53 @@ final readonly class EntryController
 	}
 
 	/**
+	 * Answers a new entry of a type, not yet written, for the editor to
+	 * open on (D-336).
+	 */
+	public function blank(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = self::account($request);
+		$name    = $request->getQueryParams()['type'] ?? null;
+		$type    = is_string($name) ? $this->types->find($name) : null;
+
+		if (! $this->permissions->can($account, Capability::ContentCreate)) {
+			return self::error('You aren\'t allowed to create entries.', Status::Forbidden);
+		}
+
+		if ($type === null) {
+			return self::error('Send a known "type".', Status::BadRequest);
+		}
+
+		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []));
+
+		return self::json([
+			'id'          => null,
+			'handle'      => null,
+			'slug'        => '',
+			'revision'    => null,
+			'modified'    => null,
+			'title'       => '',
+			'status'      => EntryStatus::Draft->value,
+			'own'         => true,
+			'url'         => null,
+			'type'        => $this->typeOf($type, $fields),
+			'index'       => false,
+			'authorsPage' => false,
+			'values'      => $this->authorDefault($account, $type->name),
+			'extra'       => [],
+			'body'        => '',
+			'can'         => [
+				'edit'      => true,
+				'publish'   => $this->permissions->can($account, Capability::ContentPublish),
+				'rename'    => true,
+				'delete'    => false,
+				'duplicate' => false
+			],
+			'violations'  => []
+		]);
+	}
+
+	/**
 	 * Answers an entry for editing, if the account may edit it.
 	 */
 	private function edit(ServerRequestInterface $request, Entry $entry): ResponseInterface
@@ -194,7 +246,11 @@ final readonly class EntryController
 				...self::map($input, 'set')
 			];
 
-			$changes = $this->withStatus(new EntryChanges(set: $set, body: self::stringOr($input, 'body', "\n")), $status, $input, null);
+			$body    = self::stringOr($input, 'body', '');
+
+			// The editor's body starts at its first line (D-334); the
+			// file has a blank line before it.
+			$changes = $this->withStatus(new EntryChanges(set: $set, body: DocumentEditor::gap($body) === '' ? "\n{$body}" : $body), $status, $input, null);
 		} catch (InvalidEdit $e) {
 			return self::error($e->getMessage(), Status::BadRequest);
 		} catch (WriteException $e) {
@@ -679,11 +735,11 @@ final readonly class EntryController
 	/**
 	 * Returns whether the editor offers a field: any that isn't a
 	 * taxonomy's term field, and a term field when its taxonomy groups the
-	 * entry's type or the file uses it.
+	 * type or the file uses it.
 	 *
 	 * @param array<mixed> $frontMatter
 	 */
-	private function groups(Field $field, Entry $entry, array $frontMatter): bool
+	private function groups(Field $field, ContentType $type, array $frontMatter): bool
 	{
 		foreach ($this->types->taxonomies() as $taxonomy) {
 			$term = $taxonomy->termField();
@@ -699,8 +755,8 @@ final readonly class EntryController
 			}
 
 			return $taxonomy->types === []
-				? ! $entry->type->hasTerms()
-				: in_array($entry->type->name, $taxonomy->types, true);
+				? ! $type->hasTerms()
+				: in_array($type->name, $taxonomy->types, true);
 		}
 
 		return true;
@@ -730,7 +786,7 @@ final readonly class EntryController
 		// type (D-283): those naming it in `types`, and those with no
 		// `types` (every type) unless it's a taxonomy itself. One the file
 		// already uses stays, so it can still be edited.
-		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry, $file->frontMatter));
+		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry->type, $file->frontMatter));
 
 		[$values, $extra] = self::split($fields, $file->frontMatter);
 
@@ -747,12 +803,7 @@ final readonly class EntryController
 			'status'      => $entry->status->value,
 			'own'         => $this->permissions->owns($account, $entry),
 			'url'         => $entry->isPublished() ? $this->urls->entry($entry) : null,
-			'type'        => [
-				'name'   => $entry->type->name,
-				'kind'   => $entry->type->kind()->value,
-				'dated'  => $entry->type->dateArchives !== DateArchives::None,
-				'fields' => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $fields))
-			],
+			'type'        => $this->typeOf($entry->type, $fields),
 			'index'       => $index,
 			'authorsPage' => $people,
 			'values'      => $values,
@@ -770,6 +821,23 @@ final readonly class EntryController
 				'message'  => $violation->message,
 				'severity' => $violation->severity->value
 			], $this->linter->lintFile($file->id))
+		];
+	}
+
+	/**
+	 * Describes a type for the editor: its name, kind, whether it's
+	 * dated, and the fields it edits (each without its class).
+	 *
+	 * @param  array<array-key, Field> $fields
+	 * @return array<string, mixed>
+	 */
+	private function typeOf(ContentType $type, array $fields): array
+	{
+		return [
+			'name'   => $type->name,
+			'kind'   => $type->kind()->value,
+			'dated'  => $type->dateArchives !== DateArchives::None,
+			'fields' => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $fields))
 		];
 	}
 

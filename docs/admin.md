@@ -230,9 +230,12 @@ A type with no entries yet skips the tabs and search: it says what the
 type is for (its `description`, if it has one) and offers to create the first one. A site with no content
 at all shows the same offer on the dashboard, one step per type.
 
-**New post** (named for the type you're looking at) asks for a type and
-a title, creates the entry as a draft, and opens it in the editor. It's
-credited to your account's author.
+**New post** (named for the type you're looking at) opens the editor on
+a new post, with the cursor in the title. Nothing is written until you
+save: the first save creates the file, named for the title (or the slug,
+if you give one in the settings), as a draft unless you publish or
+schedule it. A post needs a title to be saved. It's credited to your
+account's author. If you leave before saving, nothing is created.
 
 ## Editing an entry
 

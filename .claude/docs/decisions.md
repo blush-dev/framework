@@ -8603,3 +8603,52 @@ decision, add a new entry that supersedes it and mark the old one
   top already, it only puts the caret at the start of the body.
 - **Why:** the author asked for it; it works like Enter at the end of
   a paragraph, so writing can start above what's there.
+
+### D-336: New entries open in the editor
+- **Date:** 2026-10-01
+- **Supersedes:** D-233's New entry screen (a type and a title first).
+- **Decision:** As in the design direction's prototype, **New post**
+  (and every other way to start an entry) opens the editor itself, with
+  no step in front of it. `/entries/new?type=…` is the editor on a new
+  entry; with no type or an unknown one, it's the first collection's,
+  as before.
+  - **The first save creates it.** `GET entries/new?type=…`
+    (`EntryController::blank()`) describes a new entry the way
+    `GET entries/{id}` describes one, without writing anything: no
+    `id`, `handle`, or `revision`, a draft crediting the account's
+    author, with the type's fields (the taxonomies that group it,
+    D-283) and what the account may do (no trash or duplicate). The
+    editor's first save sends `POST entries` (D-229) with the title,
+    the slug if one's typed (else from the title; the slug field shows
+    that as its placeholder), the fields set, the body, and the status:
+    Save draft, Publish, and Schedule all work. The address then moves
+    to the entry's handle, in place: the screen's title and trail
+    update, and focus stays where it was (`sameScreen()` in
+    `router.ts`). The first draft save says **Saved as a draft**.
+  - **A title is needed to save**, since the file is named for it:
+    saving without one says so where the save state is and puts the
+    caret in the title. The title has the caret when the editor opens.
+  - **Leaving before the first save writes nothing**, and without
+    asking when nothing's typed. Unsaved writing in a new entry is kept
+    in this browser by type (`new:{type}`, D-240) and offered back the
+    next time one of that type is started.
+  - `POST entries` now puts a blank line before a body that doesn't
+    start with one, so the editor's body (which starts at its first
+    line, D-334) is written the way files are.
+  - `NewEntryView` and the one-time "Created" notice are gone.
+- **Departure:** the prototype writes an "Untitled …" draft the moment
+  New is pressed; here nothing is written until the first save, so
+  abandoned starts don't leave untitled files in `user/content`, and the
+  file is named for the title it's given rather than `untitled-…`.
+- **Checked:** `composer check` (`AdminEditingTest::
+  testDescribesANewEntryWithoutWritingIt` and
+  `testANewEntrysBodyFollowsABlankLine`); `npm run admin:build`; on the
+  jtcom trial in headless Chrome with a throwaway administrator (removed
+  after, with the entry it made): New on Posts opens the editor at
+  `/entries/new?type=post` titled New Post with the caret in the title;
+  leaving untouched asks nothing and writes nothing; `/entries/new`
+  picks the first collection; ⌘S without a title doesn't save; with
+  one, the draft is written (credited, a blank line before the body),
+  the address moves to its handle with the caret still in the body, and
+  a second save updates it. No console errors.
+- **Why:** the author asked for it, as in the design mockups.

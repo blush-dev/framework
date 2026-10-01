@@ -1,21 +1,27 @@
 <script setup lang="ts">
 /**
  * The admin's frame: the layout once signed in, the bare screen before.
- * After each navigation (not the first load), focus moves to the new
- * screen's heading, so keyboard and screen reader users land on it.
+ * After each navigation (not the first load, nor one that keeps the
+ * screen), focus moves to the new screen's heading, so keyboard and
+ * screen reader users land on it.
  */
 
 import { nextTick } from 'vue';
 import { RouterView, useRouter } from 'vue-router';
 import AdminLayout from './components/AdminLayout.vue';
+import { sameScreen } from './router';
 import { session } from './session';
 
 const router = useRouter();
 let first = true;
 
-router.afterEach(async () => {
+router.afterEach(async (to, from) => {
 	if (first) {
 		first = false;
+		return;
+	}
+
+	if (sameScreen(to, from)) {
 		return;
 	}
 

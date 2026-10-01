@@ -57,7 +57,8 @@ use Blush\Session\StartSession;
  *   - `GET  entries`: the entries the account may edit, a page at a time.
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
  *     the editing API (`EntryController`), `POST entries/bulk` (D-301),
- *     `POST entries/{id}/duplicate`,
+ *     `POST entries/{id}/duplicate`, `GET entries/new` (a new entry, not
+ *     yet written, D-336),
  *     and `GET content/{type}/{key}`, an entry by its handle (D-253).
  *   - `GET  trash` and `GET trash/{id}`, and `POST trash/restore`,
  *     `trash/delete`, and `trash/empty`: the trash (`TrashController`).
@@ -130,6 +131,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/entries', EntriesController::class)->named('entries')->middleware(Authenticate::class),
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
 			Route::post('/entries/bulk', [EntryController::class, 'bulk'])->named('entry.bulk')->middleware(Authenticate::class),
+			Route::get('/entries/new', [EntryController::class, 'blank'])->named('entry.new')->middleware(Authenticate::class),
 			Route::post('/entries/{id:.+}/duplicate', [EntryController::class, 'duplicate'])->named('entry.duplicate')->middleware(Authenticate::class),
 			Route::get('/entries/{id:.+}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
 			Route::get('/content/{type:[a-z0-9_-]+}/{key:.+}', [EntryController::class, 'named'])->named('entry.named')->middleware(Authenticate::class),

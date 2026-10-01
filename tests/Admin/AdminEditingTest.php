@@ -524,12 +524,49 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(400, $this->call('POST', '/entries', ['type' => 'movie', 'title' => 'Nope'])->getStatusCode());
 	}
 
+	public function testDescribesANewEntryWithoutWritingIt(): void
+	{
+		$this->site(['author']);
+
+		$response = $this->call('GET', '/entries/new?type=post');
+		$entry    = self::json($response);
+
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertArrayHasKey('id', $entry);
+		$this->assertNull($entry['id'], 'It has no file yet.');
+		$this->assertArrayHasKey('revision', $entry);
+		$this->assertNull($entry['revision']);
+		$this->assertSame('draft', $entry['status'] ?? null);
+		$this->assertSame(['authors' => ['jane']], $entry['values'] ?? null, 'Credited to the account\'s author.');
+		$this->assertSame('', $entry['body'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'delete' => false, 'duplicate' => false], $entry['can'] ?? null);
+		$this->assertIsArray($entry['type'] ?? null);
+		$this->assertSame('post', $entry['type']['name'] ?? null);
+		$this->assertTrue($entry['type']['dated'] ?? null);
+		$this->assertSame(['2021-05-05.sams.md', '2022-03-29.flame.md', '2023-01-01.idea.md'], array_values(array_diff((array) scandir($this->temporaryDirectory() . '/user/content/_posts'), ['.', '..'])), 'Nothing is written.');
+
+		$this->assertSame(400, $this->call('GET', '/entries/new?type=movie')->getStatusCode());
+		$this->assertSame(400, $this->call('GET', '/entries/new')->getStatusCode());
+	}
+
+	public function testANewEntrysBodyFollowsABlankLine(): void
+	{
+		$this->site();
+
+		$entry = self::json($this->call('POST', '/entries', ['type' => 'post', 'title' => 'Straight In', 'body' => "First words.\n"]));
+
+		$this->assertIsString($entry['id'] ?? null);
+		$this->assertStringEndsWith("---\n\nFirst words.\n", $this->file($entry['id']));
+		$this->assertSame("First words.\n", $entry['body'] ?? null);
+	}
+
 	public function testContributorsCantCreatePublishedEntries(): void
 	{
 		$this->site(['contributor']);
 
 		$this->assertSame(403, $this->call('POST', '/entries', ['type' => 'post', 'title' => 'Live Now', 'status' => 'published'])->getStatusCode());
 		$this->assertSame(201, $this->call('POST', '/entries', ['type' => 'post', 'title' => 'Just a Draft'])->getStatusCode());
+		$this->assertSame(200, $this->call('GET', '/entries/new?type=post')->getStatusCode(), 'They may start one.');
 	}
 
 	public function testRenamesWithANewSlug(): void

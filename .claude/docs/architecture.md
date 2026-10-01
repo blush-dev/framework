@@ -838,8 +838,9 @@ Implemented in M7 (D-135 to D-140).
   `{path}/assets/{file}` (immutable with `?v=`, `no-cache` without). `AdminConfig::$app` swaps
   in another build. Screens so far: sign-in, the dashboard (entry
   counts and actions, or a setup path on an empty site), a list per
-  content type (D-234; no list of every type, D-240), New entry, and the
-  editor (D-233; forms from schema fields via `fields.ts`, saves that
+  content type (D-234; no list of every type, D-240), and the
+  editor (D-233; a new entry opens in it unwritten, from
+  `GET entries/new`, and its first save creates it, D-336; forms from schema fields via `fields.ts`, saves that
   send only what changed; D-240: unsaved changes kept in the browser
   (`kept.ts`), saves that wait for a connection, failed saves with Try
   again, conflicts with Keep theirs, Compare (`diff.ts`), and Keep mine,

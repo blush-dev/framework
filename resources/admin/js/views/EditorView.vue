@@ -52,6 +52,12 @@
  * A save sends only what changed, so untouched keys stay exactly as the
  * file has them, with the revision it was loaded at. Ctrl+S (⌘S) saves.
  *
+ * **A new entry** (`/entries/new?type=…`, D-336) opens here, with no step
+ * in front: the server describes one that isn't written yet (no id), the
+ * title has the caret, and the first save creates it (the slug from the
+ * title unless one's given) and moves the address to it. Leaving before
+ * then writes nothing.
+ *
  * Nothing typed is lost (D-240):
  *
  * - Unsaved changes are kept in this browser (`kept.ts`) as they're
@@ -83,7 +89,7 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, entryRoute, request, upload, type EntryDetail, type EntryStatus, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
+import { ApiError, entryPath, entryRoute, request, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import BlockOptions from '../components/BlockOptions.vue';
 import ComponentOptions from '../components/ComponentOptions.vue';
@@ -110,6 +116,7 @@ import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept'
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
 import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
 import { mediaName } from '../media';
+import { slugOf } from '../references';
 import { can } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
@@ -139,22 +146,38 @@ function joined(segments: string | string[] | undefined): string {
 	return Array.isArray(segments) ? segments.join('/') : String(segments ?? '');
 }
 
-// What the route names: an entry's handle (`post/hello`), or its path for
-// one without a handle (D-253).
+// What the route names: an entry's handle (`post/hello`), its path for
+// one without a handle (D-253), or a new entry's type (D-336).
 const address = computed(() => {
 	if (props.profile) {
-		return { handle: true, name: props.profile };
+		return { handle: true, fresh: false, name: props.profile };
+	}
+
+	if (route.name === 'entry-new') {
+		return { handle: false, fresh: true, name: typeof route.query.type === 'string' ? route.query.type : '' };
 	}
 
 	return route.name === 'entry'
-		? { handle: true, name: `${joined(route.params.type)}/${joined(route.params.key)}` }
-		: { handle: false, name: joined(route.params.id) };
+		? { handle: true, fresh: false, name: `${joined(route.params.type)}/${joined(route.params.key)}` }
+		: { handle: false, fresh: false, name: joined(route.params.id) };
 });
 
-function isAt(detail: EntryDetail): boolean {
+function isAt(detail: EntryDetail | NewEntryDetail): boolean {
 	const at = address.value;
 
+	if (at.fresh) {
+		return detail.id === null && detail.type.name === at.name;
+	}
+
 	return at.name === (at.handle ? detail.handle : detail.id);
+}
+
+/**
+ * What an entry's unsaved changes are kept under in this browser: its
+ * id, or its type's for a new one.
+ */
+function keptAs(detail: EntryDetail | NewEntryDetail): string {
+	return detail.id ?? `new:${detail.type.name}`;
 }
 
 
@@ -162,13 +185,15 @@ function isAt(detail: EntryDetail): boolean {
  * Keeps the address on the entry's handle, as it moves (a rename) or
  * when it was opened by its path.
  */
-function follow(detail: EntryDetail): void {
-	if (!props.profile && detail.handle !== null && !(address.value.handle && address.value.name === detail.handle)) {
-		void router.replace({ ...entryRoute(detail), query: route.query, hash: route.hash });
+function follow(detail: EntryDetail | NewEntryDetail): void {
+	if (!props.profile && detail.id !== null && detail.handle !== null && !(address.value.handle && address.value.name === detail.handle)) {
+		void router.replace({ ...entryRoute(detail), query: address.value.fresh ? {} : route.query, hash: route.hash });
+	} else if (detail.id !== null && address.value.fresh) {
+		void router.replace(entryRoute(detail));
 	}
 }
 
-const entry    = ref<EntryDetail | null>(null);
+const entry    = ref<EntryDetail | NewEntryDetail | null>(null);
 const title    = ref('');
 const body     = ref('');
 const date     = ref('');
@@ -179,7 +204,6 @@ const error    = ref('');
 const saving   = ref(false);
 const savedAt  = ref<Date | null>(null);
 const notices  = ref(false);
-const created  = ref(route.query.created === '1');
 
 // A save waiting for the connection, one that failed, and a conflict:
 // each remembers the status the save was moving the entry to.
@@ -197,7 +221,7 @@ const keptHere = ref(false);
 // show from then on, clearing as each is filled.
 const attempted = ref(false);
 
-function fieldsOf(detail: EntryDetail | null): FieldDescription[] {
+function fieldsOf(detail: EntryDetail | NewEntryDetail | null): FieldDescription[] {
 	return detail?.type.fields.filter((field) => !PLACED.includes(field.name)) ?? [];
 }
 
@@ -206,7 +230,8 @@ const dateField = computed(() => entry.value?.type.fields.find((field) => field.
 const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
 const noun      = computed(() => entry.value?.index ? 'index page' : (entry.value?.authorsPage ? 'authors page' : labels.value.item));
 const entryType = computed(() => types.value.find((type) => type.name === entry.value?.type.name));
-const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : (entry.value?.authorsPage ? 'Edit authors page' : labels.value.editItem)));
+const fresh     = computed(() => entry.value !== null && entry.value.id === null);
+const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : (entry.value?.authorsPage ? 'Edit authors page' : (fresh.value ? labels.value.newItem : labels.value.editItem))));
 
 // The navigation marks the entry's type; the top bar names what's edited.
 loadTypes().catch(() => undefined);
@@ -225,13 +250,13 @@ watch([entry, labels], () => {
 	const name = entry.value?.type.name;
 
 	screenTrail.value = name === undefined || props.profile ? [] : [{ label: titleCase(labels.value.plural), to: { name: 'type', params: { type: name } } }];
-	screenCrumb.value = props.profile ? null : 'Editing';
+	screenCrumb.value = props.profile ? null : (fresh.value ? 'New' : 'Editing');
 }, { immediate: true });
 
 /**
  * The form state an entry the server sent starts from.
  */
-function stateOf(detail: EntryDetail): EditorState {
+function stateOf(detail: EntryDetail | NewEntryDetail): EditorState {
 	const published = detail.type.fields.find((field) => field.name === 'published');
 
 	return {
@@ -314,7 +339,7 @@ const noticeCount = computed(() => (entry.value?.violations ?? []).filter((viola
 /**
  * Sets the form from an entry the server sent.
  */
-function fill(detail: EntryDetail): void {
+function fill(detail: EntryDetail | NewEntryDetail): void {
 	entry.value = detail;
 	apply(stateOf(detail));
 
@@ -327,24 +352,51 @@ function fill(detail: EntryDetail): void {
 	follow(detail);
 }
 
+/**
+ * The type a new entry is of: the one asked for, else the first
+ * collection (the address follows).
+ */
+async function freshType(asked: string): Promise<string> {
+	const all = await loadTypes();
+
+	if (all.some((item) => item.name === asked)) {
+		return asked;
+	}
+
+	const name = all.find((item) => item.kind === 'collection')?.name ?? all[0]?.name ?? asked;
+
+	await router.replace({ name: 'entry-new', query: { type: name } });
+
+	return name;
+}
+
 async function load(): Promise<void> {
 	error.value = '';
 	offer.value = null;
 
 	try {
 		const at     = address.value;
-		const detail = await request<EntryDetail>('GET', at.handle ? `/content/${at.name.split('/').map(encodeURIComponent).join('/')}` : entryPath(at.name));
+		const path   = at.fresh
+			? `/entries/new?type=${encodeURIComponent(await freshType(at.name))}`
+			: (at.handle ? `/content/${at.name.split('/').map(encodeURIComponent).join('/')}` : entryPath(at.name));
+		const detail = await request<EntryDetail | NewEntryDetail>('GET', path);
 
 		fill(detail);
 
 		// Changes kept from before are offered back, unless they're what
 		// the file already says.
-		const earlier = kept(detail.id);
+		const earlier = kept(keptAs(detail));
 
 		if (earlier !== null && same(earlier.state, current())) {
-			forget(detail.id);
+			forget(keptAs(detail));
 		} else {
 			offer.value = earlier;
+		}
+
+		// A new entry starts at its title.
+		if (detail.id === null && earlier === null) {
+			await nextTick();
+			titleField.value?.focus();
 		}
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be loaded.`;
@@ -366,7 +418,7 @@ function restore(): void {
 	offer.value = null;
 	apply(earlier.state);
 
-	if (earlier.revision !== entry.value.revision) {
+	if (entry.value.id !== null && earlier.revision !== entry.value.revision) {
 		conflict.value = { theirs: entry.value, loading: false };
 	}
 }
@@ -375,7 +427,7 @@ function discard(): void {
 	offer.value = null;
 
 	if (entry.value !== null) {
-		forget(entry.value.id);
+		forget(keptAs(entry.value));
 	}
 }
 
@@ -393,9 +445,9 @@ watch([title, body, date, form], () => {
 		}
 
 		if (dirty.value) {
-			keptHere.value = keep(detail.id, detail.revision, current());
+			keptHere.value = keep(keptAs(detail), detail.revision ?? '', current());
 		} else {
-			forget(detail.id);
+			forget(keptAs(detail));
 			keptHere.value = false;
 		}
 	}, 400);
@@ -465,6 +517,14 @@ async function save(status?: EntryStatus): Promise<void> {
 
 	failure.value = null;
 
+	// A new entry is named for its title, so it needs one to be written.
+	if (detail.id === null && title.value.trim() === '') {
+		failure.value = { message: `Give the ${noun.value} a title to save it.`, status };
+		titleField.value?.focus();
+
+		return;
+	}
+
 	if (!online.value) {
 		waiting.value = { status };
 
@@ -517,20 +577,24 @@ async function save(status?: EntryStatus): Promise<void> {
 
 	saving.value  = true;
 	waiting.value = null;
-	created.value = false;
 
 	try {
-		const saved = await request<EntryDetail>('PATCH', entryPath(detail.id), change);
+		const saved = detail.id === null
+			? await request<EntryDetail>('POST', '/entries', created(detail, change, status))
+			: await request<EntryDetail>('PATCH', entryPath(detail.id), change);
 
 		fill(saved);
-		forget(saved.id);
-		forget(detail.id);
+		forget(keptAs(saved));
+		forget(keptAs(detail));
 		keptHere.value  = false;
 		attempted.value = false;
 		savedAt.value   = new Date();
 
-		// A plain save shows in the save state; a change of status says so.
-		if (status !== undefined && status !== detail.status) {
+		// A plain save shows in the save state; a change of status says
+		// so, and so does a new entry's first.
+		if (detail.id === null && saved.status === 'draft') {
+			toast('Saved as a draft');
+		} else if (status !== undefined && status !== detail.status) {
 			toast(status === 'published' ? 'Published' : (status === 'scheduled' ? 'Scheduled' : 'Switched to draft'));
 		}
 	} catch (caught) {
@@ -551,6 +615,25 @@ async function save(status?: EntryStatus): Promise<void> {
 	} finally {
 		saving.value = false;
 	}
+}
+
+/**
+ * What creates a new entry (D-229) from a save's changes: its type,
+ * title, and slug if one's given, the fields set, the body, and the
+ * status (a draft unless publishing).
+ */
+function created(detail: NewEntryDetail, change: Record<string, unknown>, status?: EntryStatus): Record<string, unknown> {
+	const { title: named, ...set } = change.set as Record<string, unknown>;
+
+	return {
+		type: detail.type.name,
+		title: named,
+		set,
+		status: status ?? 'draft',
+		...(change.slug === undefined || change.slug === '' ? {} : { slug: change.slug }),
+		...(change.body === undefined ? {} : { body: change.body }),
+		...(change.published === undefined ? {} : { published: change.published })
+	};
 }
 
 // A save that was waiting goes ahead once the connection is back.
@@ -582,7 +665,7 @@ async function openConflict(status?: EntryStatus): Promise<void> {
 async function fetchTheirs(): Promise<void> {
 	const open = conflict.value;
 
-	if (open === null || entry.value === null) {
+	if (open === null || entry.value === null || entry.value.id === null) {
 		return;
 	}
 
@@ -695,7 +778,7 @@ function hunks(lines: DiffLine[]): (DiffLine | { kind: 'skip'; count: number })[
 async function trash(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || !window.confirm(`Move “${detail.title || 'Untitled'}” to the trash? You can restore it from the Trash tab.`)) {
+	if (detail === null || detail.id === null || !window.confirm(`Move “${detail.title || 'Untitled'}” to the trash? You can restore it from the Trash tab.`)) {
 		return;
 	}
 
@@ -831,7 +914,7 @@ async function preview(): Promise<void> {
 	const detail = entry.value;
 	const tab    = window.open('about:blank', '_blank');
 
-	if (detail === null) {
+	if (detail === null || detail.id === null) {
 		tab?.close();
 
 		return;
@@ -1902,7 +1985,7 @@ async function copyLink(): Promise<void> {
 async function duplicate(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null) {
+	if (detail === null || detail.id === null) {
 		return;
 	}
 
@@ -2019,7 +2102,7 @@ onBeforeRouteLeave(() => {
 	clearTimeout(keeping);
 
 	if (entry.value !== null) {
-		forget(entry.value.id);
+		forget(keptAs(entry.value));
 	}
 
 	return true;
@@ -2030,11 +2113,6 @@ onMounted(() => {
 	document.addEventListener('pointerdown', press, true);
 	document.addEventListener('pointerdown', outsideLink);
 	window.addEventListener('beforeunload', beforeUnload);
-
-	// The "just created" notice shows once.
-	if (created.value) {
-		void router.replace({ query: {} });
-	}
 });
 
 onBeforeUnmount(() => {
@@ -2202,7 +2280,7 @@ function fieldKey(field: FieldDescription): string {
 					<button type="button" class="menu-item" @click="toggleFocus">
 						<AdminIcon name="maximize-2" />{{ focusMode ? 'Leave focus mode' : 'Focus mode' }}<kbd class="menu-kbd">⌘⇧F</kbd>
 					</button>
-					<button v-if="!(entry.url && entry.status === 'published')" type="button" class="menu-item" @click="preview">
+					<button v-if="entry.id !== null && !(entry.url && entry.status === 'published')" type="button" class="menu-item" @click="preview">
 						<AdminIcon name="eye" />Preview
 					</button>
 					<a v-if="entry.url && entry.status === 'published'" class="menu-item" :href="entry.url" target="_blank" rel="noopener">
@@ -2230,9 +2308,6 @@ function fieldKey(field: FieldDescription): string {
 
 		<div v-if="error" class="editor__notice editor__notice--danger" role="alert">
 			<AdminIcon name="triangle-alert" /><p>{{ error }}</p>
-		</div>
-		<div v-if="created" class="editor__notice editor__notice--good" role="status">
-			<AdminIcon name="circle-check" /><p>Created. It's a draft until you publish it.</p>
 		</div>
 
 		<div v-if="offer" class="editor__notice" role="status">
@@ -2467,7 +2542,7 @@ function fieldKey(field: FieldDescription): string {
 									<div v-if="entry.can.rename && !profile" class="settings__row">
 										<dt><label for="editor-slug">Slug</label></dt>
 										<dd>
-											<input id="editor-slug" v-model="slug" class="settings__input mono" autocomplete="off" autocapitalize="none" spellcheck="false" title="Lowercase letters, numbers, and hyphens" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
+											<input id="editor-slug" v-model="slug" class="settings__input mono" :placeholder="fresh ? slugOf(title) : undefined" autocomplete="off" autocapitalize="none" spellcheck="false" title="Lowercase letters, numbers, and hyphens" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
 										</dd>
 									</div>
 									<div v-if="parentField" class="settings__row">

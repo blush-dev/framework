@@ -7,7 +7,7 @@
  * work area edge to edge (`meta.bleed`).
  */
 
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router';
 import { watch } from 'vue';
 import { config } from './config';
 import { screenBleed, screenCrumb, screenTitle, screenTrail } from './screen';
@@ -16,7 +16,6 @@ import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
 import EntriesView from './views/EntriesView.vue';
 import HealthView from './views/HealthView.vue';
-import NewEntryView from './views/NewEntryView.vue';
 import NotFoundView from './views/NotFoundView.vue';
 import ProfileView from './views/ProfileView.vue';
 import AccountView from './views/AccountView.vue';
@@ -47,7 +46,9 @@ export const router = createRouter({
 		// An entry is edited at its handle, its type and key (D-253); a
 		// page's key spans segments.
 		{ path: '/content/:type/:key+', name: 'entry', component: EditorView, meta: { title: 'Edit Entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
-		{ path: '/entries/new', name: 'entry-new', component: NewEntryView, meta: { title: 'New Entry', capability: 'content.create', section: 'entries', area: 'content' } },
+		// A new entry opens in the editor, unsaved, until its first save
+		// writes it (D-336).
+		{ path: '/entries/new', name: 'entry-new', component: EditorView, meta: { title: 'New Entry', capability: 'content.create', section: 'entries', area: 'content', bleed: true } },
 		// An entry without a handle is edited at its source path, which
 		// also still works for the rest (the editor moves to the handle).
 		{ path: '/entries/:id+', name: 'entry-file', component: EditorView, meta: { title: 'Edit Entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
@@ -114,6 +115,17 @@ router.beforeEach(async (to) => {
 	return true;
 });
 
+/**
+ * Whether a navigation keeps the screen that's open: the editor's
+ * address moving to the entry it opened as, by its handle, or once a new
+ * one is written (D-336).
+ */
+export function sameScreen(to: RouteLocationNormalized, from: RouteLocationNormalized): boolean {
+	const view = (route: RouteLocationNormalized): unknown => route.matched.at(-1)?.components?.default;
+
+	return view(to) === EditorView && view(from) === EditorView && to.name !== from.name;
+}
+
 function setTitle(): void {
 	const meta  = router.currentRoute.value.meta.title;
 	const title = screenTitle.value ?? (typeof meta === 'string' ? meta : 'Admin');
@@ -122,7 +134,7 @@ function setTitle(): void {
 }
 
 router.afterEach((to, from) => {
-	if (to.name !== from.name || to.params.type !== from.params.type) {
+	if (!sameScreen(to, from) && (to.name !== from.name || to.params.type !== from.params.type)) {
 		screenTitle.value = null;
 		screenTrail.value = [];
 		screenCrumb.value = null;

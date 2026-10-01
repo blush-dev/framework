@@ -190,7 +190,8 @@ preference on Your profile (D-232, D-235). Docs: `docs/admin.md`.
 
 M10 has started: writing content back to files (`ContentWriter`,
 D-228), the editing API (D-229), and the first editor screens (D-233):
-a list per content type (D-234), New entry, and the editor with forms
+a list per content type (D-234), New entry (the editor itself since
+D-336), and the editor with forms
 from content schemas and a plain-text Markdown body; then the design
 direction's loading, offline, failed-save, conflict, validation, and
 first-run patterns (D-240); then, from the author's clickable prototype

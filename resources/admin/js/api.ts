@@ -360,6 +360,10 @@ export interface EntryDetail {
 	violations: Violation[];
 }
 
+// A new entry, described but not yet written (D-336): no file, so no id
+// or revision.
+export type NewEntryDetail = Omit<EntryDetail, 'id' | 'revision'> & { id: null; revision: null };
+
 export interface Violation {
 	field: string;
 	message: string;
