@@ -1962,7 +1962,15 @@ watch(titleField, (element) => {
 function titleKey(event: KeyboardEvent): void {
 	if (event.key === 'Enter' && !event.isComposing) {
 		event.preventDefault();
-		bodyEditor.value?.focusAt(0);
+
+		// Like Enter at the end of a paragraph: a new, empty paragraph
+		// above the body's content, if there's any (or an empty line
+		// at the top already), with the caret in it.
+		if (body.value.trim() === '' || body.value.startsWith('\n')) {
+			bodyEditor.value?.focusAt(0);
+		} else {
+			bodyEditor.value?.apply({ from: 0, to: 0, text: '\n\n' }, 0);
+		}
 	}
 }
 

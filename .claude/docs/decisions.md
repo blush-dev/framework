@@ -8594,3 +8594,12 @@ decision, add a new entry that supersedes it and mark the old one
   `---` (jtcom's all do), and the editor showed it as an empty first
   line. Leading blank lines mean nothing in Markdown, and keeping them
   on save leaves files as they were.
+
+### D-335: Enter on the title starts a paragraph at the top of the body
+- **Date:** 2026-10-01
+- **Decision:** In the editor, Enter on the title adds an empty
+  paragraph (a blank line) above the body's content and puts the caret
+  in it, as an undoable edit. With no content, or an empty line at the
+  top already, it only puts the caret at the start of the body.
+- **Why:** the author asked for it; it works like Enter at the end of
+  a paragraph, so writing can start above what's there.

@@ -538,8 +538,10 @@ function carry(event: KeyboardEvent): void {
  * Replaces part of the text the way typing would, so undo takes it back.
  */
 function replace(element: HTMLTextAreaElement, from: number, to: number, text: string): void {
-	element.focus();
+	// Select first: focusing scrolls to the selection, which is at the
+	// end of the text in a field that hasn't had focus yet.
 	element.setSelectionRange(from, to);
+	element.focus();
 
 	// `execCommand` is deprecated but still the only way to edit a text
 	// area that the browser's undo knows about.

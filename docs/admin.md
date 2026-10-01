@@ -236,9 +236,9 @@ credited to your account's author.
 
 ## Editing an entry
 
-The editor is one column of text: the title (press Enter to move to the
-body), then the body in Markdown. It opens with the section panel and
-the settings closed.
+The editor is one column of text: the title (press Enter to start a new
+paragraph at the top of the body), then the body in Markdown. It opens
+with the section panel and the settings closed.
 
 The body stays Markdown, set in Fira Code (the admin's monospace font
 throughout), but the words read first: every mark (`*`, `**`, `#`, `>`,
