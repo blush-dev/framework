@@ -130,7 +130,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const content = entryTypes.map((type) => ({ ...link(type), links: taxonomies.filter((taxonomy) => owner(taxonomy) === type.name).map((taxonomy) => link(taxonomy)) }));
 	const library = can('media.upload') ? [screen('media', 'Media', 'image')] : [];
 
-	const structure = can('site.settings') ? [screen('types', 'Content Types', 'layers')] : [];
+	const structure = can('site.settings') ? [screen('types', 'Content Types', 'layers'), screen('fields', 'Fields', 'group')] : [];
 	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('system', 'System', 'settings')] : [];
 	const customize = can('site.settings') ? [screen('themes', 'Themes', 'paintbrush'), screen('extensions', 'Extensions', 'plug')] : [];
 	// People lists accounts and authors together (D-329); an author's

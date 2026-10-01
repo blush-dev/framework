@@ -19,7 +19,7 @@ Move each item to `decisions.md` once it's answered.
   editor in the admin, with live preview on the front end (the site
   itself) rather than a rendered preview inside the editor. Not settled.
 
-- **Fields API details** (D-337), to settle by phase 2 or 3:
+- **Fields API details** (D-337), still open after phase 3 (D-340):
   - Placement: may a set ask for the editor's main column (below the
     body) rather than the document panel, and may sets be ordered
     other than by name?
@@ -30,6 +30,10 @@ Move each item to `decisions.md` once it's answered.
   - Should the type wizard offer existing sets, and should a type's
     screen attach and detach sets (which writes the set's file)?
   - When settings and accounts become targets, what each one refuses.
+  - Should a data set be able to replace a config set of the same name
+    (it can, D-339), or should config sets be locked as config types
+    are? And should a locked set's screen offer to copy it into
+    `user/data/fields` to customize it?
 
 ## Later milestones
 - **Hierarchy** (D-257):

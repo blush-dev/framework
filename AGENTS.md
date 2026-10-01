@@ -63,8 +63,9 @@ D-333).
 Next: the
 Fields API (D-337: field sets attached to targets, a control
 vocabulary, and Structure → Fields; content types first; phase 1, the
-controls, catalog, and `Blush\Field`, is done, D-338, and phase 2,
-field sets on content types, D-339); more
+controls, catalog, and `Blush\Field`, is done, D-338, phase 2,
+field sets on content types, D-339, and phase 3, Structure → Fields,
+D-340; phase 4 brings other consumers onto it); more
 of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with

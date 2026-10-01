@@ -48,6 +48,10 @@ use Blush\Session\StartSession;
  *     (`TypeEditController`).
  *   - `GET  fields/types`: the field types definitions can use, with
  *     their controls (`FieldTypesController`, D-337).
+ *   - `GET  fields/sets`: the site's field sets, and `GET
+ *     fields/sets/{name}` one; `POST fields/sets`, and `PATCH` and
+ *     `DELETE fields/sets/{name}` edit the ones in `user/data/fields`
+ *     (`FieldSetEditController`, D-337).
  *   - `GET  components`: the components the editor's inserter offers.
  *   - `GET  icons`: the icons the editor's icon picker offers.
  *   - `GET  media`: the media files an entry can use, a page at a time,
@@ -125,6 +129,11 @@ final readonly class AdminRoutes implements RouteSource
 			Route::delete('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'delete'])->named('type.delete')->middleware(Authenticate::class),
 			Route::get('/components', ComponentsController::class)->named('components')->middleware(Authenticate::class),
 			Route::get('/fields/types', FieldTypesController::class)->named('fields.types')->middleware(Authenticate::class),
+			Route::get('/fields/sets', FieldSetsController::class)->named('fields.sets')->middleware(Authenticate::class),
+			Route::post('/fields/sets', [FieldSetEditController::class, 'create'])->named('fields.set.create')->middleware(Authenticate::class),
+			Route::get('/fields/sets/{name:[a-z0-9_-]+}', [FieldSetsController::class, 'show'])->named('fields.set')->middleware(Authenticate::class),
+			Route::patch('/fields/sets/{name:[a-z0-9_-]+}', [FieldSetEditController::class, 'update'])->named('fields.set.update')->middleware(Authenticate::class),
+			Route::delete('/fields/sets/{name:[a-z0-9_-]+}', [FieldSetEditController::class, 'delete'])->named('fields.set.delete')->middleware(Authenticate::class),
 			Route::get('/icons', IconsController::class)->named('icons')->middleware(Authenticate::class),
 			Route::get('/media', MediaListController::class)->named('media')->middleware(Authenticate::class),
 			Route::post('/media', MediaUploadController::class)->named('media.upload')->middleware(Authenticate::class),

@@ -299,6 +299,15 @@ Each is recorded in `.claude/docs/decisions.md`.
   label. Delete is in a Danger Zone, confirmed, and refused
   while a taxonomy groups the type. Save and Revert sit below the
   panels.
+- **Fields** (D-340): the direction has no field sets, so Structure →
+  Fields is built from its rules for collections: a list screen (Name,
+  Added to, Source, Fields; no tabs or search for a short list), a
+  screen per set with **All field sets**, and **New Field Set** as its
+  own screen, not a wizard (General, Added To, Fields, as the set's
+  screen has them). A set's targets are checkboxes of content types; one
+  that isn't a type here is kept and shown as such. A type's screen has
+  a Field Sets panel linking to its sets, which are attached from the
+  set's side.
 - **Roles and accounts** (D-249, D-312): Blush sends no email, so the
   prototype's **Invite** is **New Account**, its own screen (like every
   New) with a username instead of an email and name, and no note; the

@@ -8911,3 +8911,52 @@ decision, add a new entry that supersedes it and mark the old one
   text field, a checkbox, radio buttons) after the post's fields; the
   site's home page served and `content:lint` found no errors.
 - **Why:** D-337's phase 2, as planned.
+
+### D-340: The Fields API, phase 3: Structure → Fields
+- **Date:** 2026-10-01
+- **Decision:** Builds D-337's third phase.
+  - **`DataFieldSetWriter`** (`Content\Type`): `create()`, `update()`,
+    `delete()`, and `path()` for `user/data/fields` sets. Changes come
+    by key (`label`, `description`, `targets`, `fields`; `null`
+    removes), are applied to the file's data, built with
+    `FieldSet::fromArray()`, and each changed key is written as
+    `FieldSet::toArray()` writes it (no label the name gives, no field
+    classes); untouched keys and comments stay. New sets are YAML.
+    Every change reloads all the types and puts the file back when that
+    throws (a field a target already has). Writes take the types' lock.
+    Refused while `FieldConfig::$dataSets` is off. A set's name is its
+    file's and isn't renamed.
+  - **`DataFileKeys`** (`Content\Writer`): the JSON and YAML key editing
+    `DataTypeWriter` had, shared by both writers (`InvalidData` for a
+    file that isn't a JSON object).
+  - **The API**, under `site.settings` for writes: `GET fields/sets`
+    (`FieldSetsController`: each set's `name`, `label`, `description`,
+    `origin`, `editable`, `file`, `targets` as `{key, label, found}`, and
+    a field count; `create`; and every target, each content type by
+    plural label), `GET fields/sets/{name}` (with `fields` as
+    definitions and `options`), and `POST`, `PATCH`, `DELETE`
+    (`FieldSetEditController`, `422` with the reason). A change rewrites
+    compiled types and bumps the content version; the admin then calls
+    `POST types/refresh` to reindex. `GET types/{name}` adds `sets`.
+  - **The screens:** **Fields** under Config → Structure (and the
+    command palette), with the set list; a set's screen, edited
+    (`FieldSetEditor`: General with label, fixed key, and help; Added
+    To, checkboxes of content types; Fields, `FieldListEditor`; Save,
+    Revert, and a Danger Zone) or shown read-only for config and
+    extension sets; **New Field Set**, one screen with the same editor,
+    the key following the label until typed; and a Field Sets panel on
+    every type's screen (`TypeFieldSets`). Departures are in
+    `admin-design/departures.md`.
+  - **`docs/`:** Fields in `admin.md` (and Edited with, from D-338,
+    under Editing a type), with the API rows; Content types points to
+    the screen.
+- **Checked:** `composer check` (`AdminFieldSetsTest`); `npm run
+  admin:build`; on the jtcom trial in headless Chrome with a throwaway
+  administrator (removed after, with its sessions): Fields in the nav,
+  New Field Set with a label (key `claude-check-set`), Posts ticked,
+  and a field, created as `user/data/fields/claude-check-set.yaml` and
+  opened at its screen; its help saved as one new line; the Posts
+  type's screen listing it; then deleted from its Danger Zone, the file
+  gone. Files written in the container reach the host late (Mutagen),
+  so they were read with `ddev exec`.
+- **Why:** D-337's phase 3, as planned.

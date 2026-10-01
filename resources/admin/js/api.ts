@@ -203,6 +203,8 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	// for a type without URLs (D-329); and its authors page, or `null`.
 	authorsWord: string | false | null;
 	authorsPage: { id: string; title: string } | null;
+	// The field sets attached to it (D-337), with how many fields each has.
+	sets: { name: string; label: string; fields: number }[];
 }
 
 /**
@@ -328,6 +330,50 @@ export interface FieldDescription {
 	// type's default.
 	control?: string;
 	[setting: string]: unknown;
+}
+
+/**
+ * A place a field set can attach to (`type:post`), by its name for
+ * people.
+ */
+export interface FieldSetTargetOption {
+	key: string;
+	label: string;
+}
+
+/**
+ * A field set (`GET fields/sets`, D-337): where it's from, whether it's
+ * edited here, its file, the places it's added to (`found` false for one
+ * that doesn't exist), and how many fields it has.
+ */
+export interface FieldSetSummary {
+	name: string;
+	label: string;
+	description: string;
+	origin: 'extension' | 'config' | 'data';
+	editable: boolean;
+	file: string | null;
+	targets: (FieldSetTargetOption & { found: boolean })[];
+	fields: number;
+}
+
+/**
+ * One field set (`GET fields/sets/{name}`): its fields as definitions,
+ * and every place it could be added to.
+ */
+export interface FieldSetDetail extends Omit<FieldSetSummary, 'fields'> {
+	fields: FieldDescription[];
+	options: FieldSetTargetOption[];
+}
+
+/**
+ * The field sets (`GET fields/sets`): whether sets can be created here,
+ * and every place one could be added to.
+ */
+export interface FieldSetList {
+	sets: FieldSetSummary[];
+	create: boolean;
+	targets: FieldSetTargetOption[];
 }
 
 /**

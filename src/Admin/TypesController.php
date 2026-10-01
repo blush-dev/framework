@@ -27,6 +27,7 @@ use Blush\Core\Paths;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Taxonomy;
 use Blush\Field\Field;
+use Blush\Field\FieldSet;
 use Blush\Http\Response;
 use Blush\Http\Status;
 
@@ -49,7 +50,8 @@ use Blush\Http\Status;
  * has none.
  *
  * `GET {path}/api/types/{name}` (`show()`) adds the type's own fields
- * (`Field::toArray()`), the `taxonomies` that group it, whether it's
+ * (`Field::toArray()`), the field `sets` attached to it (`name`,
+ * `label`, and how many `fields`, D-337), the `taxonomies` that group it, whether it's
  * `public`, has a `feed`, is in the `sitemap`, and is `editable` (only
  * `user/data/types` types are, D-311), its `dateArchives`, the prefix its
  * folder gives (`folderPrefix`), the data `file` it's defined in (`null`
@@ -133,7 +135,12 @@ final readonly class TypesController
 			'file'         => $file === null ? null : $this->paths->relative($file),
 			'index'        => $this->index($type),
 			'authorsWord'  => $type->urls === false ? null : $type->urls->authors,
-			'authorsPage'  => $this->page($type, AuthorsController::PAGE, $types->authors()->labels->plural ?? 'Authors')
+			'authorsPage'  => $this->page($type, AuthorsController::PAGE, $types->authors()->labels->plural ?? 'Authors'),
+			'sets'         => array_map(static fn (FieldSet $set): array => [
+				'name'   => $set->name,
+				'label'  => $set->label,
+				'fields' => count($set->schema->fields)
+			], $types->setsFor($name))
 		];
 	}
 

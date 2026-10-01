@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * One content type (D-250): its names and settings, the taxonomies that
- * group it (or, for a taxonomy, the types it groups), and the fields it
- * defines, with a way to its entries. A type from `user/data/types` is
+ * group it (or, for a taxonomy, the types it groups), the fields it
+ * defines and the field sets added to it (D-337), with a way to its
+ * entries. A type from `user/data/types` is
  * edited here (`TypeEditor`, D-311); the rest are defined in code and
  * shown read-only (D-042).
  */
@@ -11,6 +12,7 @@ import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import TypeEditor from '../components/TypeEditor.vue';
+import TypeFieldSets from '../components/TypeFieldSets.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import { ApiError, request, type ContentTypeDetail } from '../api';
 import { humanize, label } from '../fields';
@@ -127,6 +129,8 @@ const related = computed(() => {
 					<p v-if="taxonomy && related.length === 1" class="field__help">One type, so it sits under {{ related[0]?.label }} in the navigation.</p>
 				</div>
 			</section>
+
+			<TypeFieldSets :type="type" />
 		</div>
 
 		<section class="panel" aria-labelledby="fields-heading">

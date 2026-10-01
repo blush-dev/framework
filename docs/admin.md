@@ -44,7 +44,7 @@ The rail at the far left has four sections: **Home** (the dashboard and
 content health), **Content** (each content type's entries, with its own
 taxonomies under it, the taxonomies several types share, and media),
 **People** (your profile, everyone, and roles), and **Config**
-(content types, settings, themes, and extensions). The panel
+(content types, fields, settings, themes, and extensions). The panel
 beside it lists the section you're in. Choosing a section changes the
 panel and nothing else, so you never leave the screen you're on (an
 entry you're writing stays open); choose a link in the panel to go
@@ -342,7 +342,8 @@ the file was last edited.
   [Choosing terms and authors](#choosing-terms-and-authors)), the
   **Summary**, and the content type's other fields, such as the
   subtitle (a few kinds, such as `collection`, show their value
-  read-only); front matter the type doesn't declare, kept as it is; and
+  read-only); each [field set](content-types.md#field-sets) added to the
+  type, under its label; front matter the type doesn't declare, kept as it is; and
   what content health finds in the file, as last saved (notices only if
   you ask). Only the taxonomies that group the content type are offered,
   plus any the file already uses. At its foot,
@@ -734,7 +735,15 @@ type's options (a number's limits and whole numbers, a choice's options,
 a list's item type, a reference's type and whether it takes more than
 one), move fields up or down, or remove one; **Add field** adds one.
 Groups of fields (`object`) are kept as written; edit those in the file.
-Choose **Save** to write what you changed; **Revert** puts it back.
+A field whose type can be edited more than one way has **Edited with**:
+a choice as a menu or radio buttons, text on one line, several, or in
+code type, a list of choices as checkboxes (see
+[How the admin edits a field](content-types.md#how-the-admin-edits-a-field)).
+The field types offered include ones extensions add. Choose **Save** to
+write what you changed; **Revert** puts it back.
+
+**Field Sets** lists the [field sets](#fields) added to the type, each
+linking to its screen, where the types it's added to are chosen.
 
 Only the options you change are written, and nothing at its default:
 the rest of the file stays as you wrote it, comments included. A change
@@ -745,6 +754,34 @@ uses a change on the next request.
 **Delete this type** removes its file. Its entries stay in its folder,
 unlisted until a type claims the folder again. A type a taxonomy groups
 can't be deleted until the taxonomy stops grouping it.
+
+## Fields
+
+With `site.settings`, **Config → Fields** lists every
+[field set](content-types.md#field-sets): groups of fields added to one
+or more content types, beside each type's own. The list shows the types
+each set is added to (one that isn't a content type on this site is
+grayed), where it's defined, and how many fields it has.
+
+Sets in `user/data/fields` are edited on their screen; sets from
+`config/fields.php` and extensions are defined in code, so their screens
+only show them.
+
+**New Field Set** has a label (heading the set's fields in the editor),
+a key (made from the label; it's the file's name, so it can't change
+later), help shown under the label, the content types to add it to,
+and its fields, edited as a type's are. **Create Field Set** writes
+`user/data/fields/{key}.yaml`.
+
+A set's screen edits the same things; choose **Save** to write what you
+changed, or **Revert** to put it back. Only what you change is written,
+and the rest of the file stays as you wrote it, comments included. A set
+can't use a field name a type it's added to already has: that's refused
+with the reason, and the file is left as it was.
+
+**Delete this field set** removes its file, and its fields leave the
+types it was added to. Entries keep their values, shown as other front
+matter.
 
 ## Settings
 
@@ -980,11 +1017,17 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. Secrets are never sent. Needs `site.settings` |
 | `GET extensions` | Every installed extension, the ones that are on first: `{"extensions": [{"name", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/extensions.php` exists. Needs `site.settings` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and authors last. `kind` is `collection`, `taxonomy`, `pages`, or `authors`, and each type's `authors` is whether its entries credit authors. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the authors type adds `"types"`, the types that credit authors. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the authors type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), `authorsWord` (the word its author archives sit under, `false` for none, `null` without URLs), and its `authorsPage` (`{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), `authorsWord` (the word its author archives sit under, `false` for none, `null` without URLs), and its `authorsPage` (`{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
 | `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word author archives sit under; `false` for none, `null` for `authors`), `public`, `sitemap`, `feed`, `authors`, `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, and `authorsPage: true` its authors page (a `422` without author archives). Needs `site.settings` |
 | `PATCH types/{name}` | Change a `user/data/types` type: `{"set", "index", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
+| `GET fields/types` | The field types definitions can use, built in and from extensions: `{"types": [{"type", "label", "description", "controls", "options"}], "controls"}`. `controls` are `{"value", "label"}`, a type's first being its default; `options` are the type's own definition keys as JSON Schemas |
+| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension`, `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether it's a content type here); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label"}`); `create` is whether sets can be created here |
+| `GET fields/sets/{name}` | One set, with its `fields` as definitions and `options`, every place it can be added to |
+| `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
+| `PATCH fields/sets/{name}` | Change a `user/data/fields` set: `{"set"}`, as above (`null` removes a key); answers with the set. A field a target already has is a `422` with the reason |
+| `DELETE fields/sets/{name}` | Delete a `user/data/fields` set's file; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |

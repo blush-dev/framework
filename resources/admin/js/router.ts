@@ -34,6 +34,9 @@ import TrashedView from './views/TrashedView.vue';
 import ThemesView from './views/ThemesView.vue';
 import TypesView from './views/TypesView.vue';
 import NewTypeView from './views/NewTypeView.vue';
+import FieldSetsView from './views/FieldSetsView.vue';
+import FieldSetView from './views/FieldSetView.vue';
+import NewFieldSetView from './views/NewFieldSetView.vue';
 import SignInView from './views/SignInView.vue';
 
 export const router = createRouter({
@@ -65,6 +68,9 @@ export const router = createRouter({
 		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: 'New Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		// The direction's Appearance, named Themes (D-327).
+		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: 'Fields', capability: 'site.settings', area: 'config' } },
+		{ path: '/fields/new', name: 'field-set-new', component: NewFieldSetView, meta: { title: 'New Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
+		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
 		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: 'Themes', capability: 'site.settings', area: 'config' } },
 		{ path: '/appearance', redirect: { name: 'themes' } },
 		// Settings is four screens (D-325); the view titles each.

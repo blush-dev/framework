@@ -14,13 +14,13 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Closure;
-use JsonException;
 use Throwable;
 use Blush\Container\Attributes\Defer;
-use Blush\Content\Writer\YamlMap;
+use Blush\Content\Writer\DataFileKeys;
 use Blush\Core\Paths;
 use Blush\Data\DataException;
 use Blush\Data\DataLoader;
+use Blush\Data\InvalidData;
 use Blush\Field\FieldFactory;
 use Blush\Support\Filesystem;
 
@@ -246,9 +246,12 @@ final readonly class DataTypeWriter
 
 		return $this->locked(function () use ($path, $sets): ContentTypes {
 			$before = is_file($path) ? (string) @file_get_contents($path) : null;
-			$next   = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'json'
-				? self::json($before ?? '', $sets)
-				: self::yaml($before ?? '', $sets);
+
+			try {
+				$next = DataFileKeys::edit($path, $before ?? '', $sets, self::OPTIONS, ['fields' => 3]);
+			} catch (InvalidData $error) {
+				throw new InvalidContentType(str_replace('The file', 'The type\'s file', $error->getMessage()), previous: $error);
+			}
 
 			try {
 				$this->filesystem->writeAtomic($path, $next);
@@ -358,60 +361,6 @@ final readonly class DataTypeWriter
 		$merged = array_filter($merged, static fn (mixed $label): bool => ! (is_string($label) && trim($label) === '') && $label !== null);
 
 		return $merged === [] ? null : $merged;
-	}
-
-	/**
-	 * JSON with keys set or (for `null`) removed.
-	 *
-	 * @param  array<string, mixed> $sets
-	 * @throws InvalidContentType
-	 */
-	private static function json(string $text, array $sets): string
-	{
-		try {
-			$data = trim($text) === '' ? [] : json_decode($text, true, 64, JSON_THROW_ON_ERROR);
-		} catch (JsonException $error) {
-			throw new InvalidContentType('The type\'s file isn\'t valid JSON; fix it by hand first.', previous: $error);
-		}
-
-		if (! is_array($data)) {
-			throw new InvalidContentType('The type\'s file isn\'t a JSON object; fix it by hand first.');
-		}
-
-		foreach ($sets as $key => $value) {
-			foreach (self::OPTIONS[$key] ?? [] as $old) {
-				unset($data[$old]);
-			}
-
-			if ($value === null) {
-				unset($data[$key]);
-			} else {
-				$data[$key] = $value;
-			}
-		}
-
-		return json_encode($data === [] ? (object) [] : $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
-	}
-
-	/**
-	 * YAML with top-level keys set or (for `null`) removed, each list or
-	 * map written as a block.
-	 *
-	 * @param array<string, mixed> $sets
-	 */
-	private static function yaml(string $text, array $sets): string
-	{
-		// An empty file is written as `{}`, which keys can't follow.
-		$map = YamlMap::fromText(trim($text) === '{}' ? '' : $text);
-
-		foreach ($sets as $key => $value) {
-			$map = $map->without(self::OPTIONS[$key] ?? []);
-			$map = $value === null ? $map->without([$key]) : $map->with([$key], $value, $key === 'fields' ? 3 : 2);
-		}
-
-		$yaml = $map->text();
-
-		return trim($yaml) === '' ? "{}\n" : $yaml;
 	}
 
 	/**

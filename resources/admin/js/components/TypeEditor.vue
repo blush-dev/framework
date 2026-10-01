@@ -2,7 +2,8 @@
 /**
  * A content type from `user/data/types`, edited (D-311): General (names,
  * description, icon, with its key and folder fixed), Behavior
- * (`TypeBehaviorFields`, with the authors settings, D-329), and Fields (`FieldListEditor`), saved together
+ * (`TypeBehaviorFields`, with the authors settings, D-329), and Fields (`FieldListEditor`, with the
+ * field sets added to it below, D-337), saved together
  * with **Save** (`PATCH types/{name}`, only what changed) or put back
  * with **Revert**; leaving with changes unsaved asks first. A Danger
  * Zone deletes the type's file; its entries stay where they are.
@@ -18,6 +19,7 @@ import AdminIcon from './AdminIcon.vue';
 import FieldListEditor from './FieldListEditor.vue';
 import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
+import TypeFieldSets from './TypeFieldSets.vue';
 import { ApiError, request, type ContentTypeDetail } from '../api';
 import { changesOf, formOf, type TypeForm } from '../type-form';
 import { toast } from '../toast';
@@ -140,6 +142,8 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 			</header>
 			<FieldListEditor v-model="form.fields" :types="types" id-prefix="field-" />
 		</section>
+
+		<TypeFieldSets :type="type" />
 
 		<div class="type-editor__save">
 			<p v-if="failure" class="field__error" role="alert">{{ failure }}</p>

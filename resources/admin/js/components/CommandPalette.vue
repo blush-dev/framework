@@ -53,6 +53,7 @@ const everywhere = computed<Command[]>(() => {
 		['health', 'Go to Content Health', 'heart-pulse', 'content.edit.others', 'problems lint'],
 		['media', 'Go to Media', 'image', 'media.upload', 'files images library'],
 		['types', 'Go to Content Types', 'layers', 'site.settings'],
+		['fields', 'Go to Fields', 'group', 'site.settings', 'field sets custom fields'],
 		['themes', 'Go to Themes', 'paintbrush', 'site.settings', 'appearance look'],
 		['extensions', 'Go to Extensions', 'plug', 'site.settings', 'addons plugins'],
 		['people', 'Go to People', 'users', can('accounts.manage') ? 'accounts.manage' : 'content.edit', 'accounts authors guests'],

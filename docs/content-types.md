@@ -423,7 +423,9 @@ when it has no label), and `description` is shown under it.
 - A target that isn't a content type, such as a type that's turned off,
   is skipped. `bin/blush content:lint` notes it.
 
-Sets can also be defined in `config/fields.php`:
+The admin's **Config → Fields** creates and edits the sets in
+`user/data/fields/` ([Fields](admin.md#fields)). Sets can also be
+defined in `config/fields.php`, where the admin only shows them:
 
 ```php
 <?php
