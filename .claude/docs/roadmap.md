@@ -269,6 +269,9 @@ orphaned, unreadable, hidden, or with values that don't fit (D-293).
 Page bundles' media is removed: media lives only in `user/media`
 (D-294, which also takes back D-292's bundle files in the library).
 Stripping a photo's location on upload is out of scope (D-297).
+The entry lists gained the design's filter row (author, taxonomies,
+Updated, `/` to search), column sorting, and a page size (D-300), then bulk selection and the
+bulk bar (D-301).
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages

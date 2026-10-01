@@ -86,13 +86,26 @@ final class AdminReferencesTest extends TestCase
 		$this->assertSame(1, count((array) ($this->references('page?limit=1')['items'] ?? [])));
 	}
 
+	public function testForATypeOnlyItsTermsInUse(): void
+	{
+		$this->writeTemporaryFile('user/content/draft.md', "---\ntitle: Draft\nstatus: draft\nmood: gloomy\n---\n");
+		$this->site();
+
+		$topics = (array) ($this->references('topic?for=page')['items'] ?? []);
+		$moods  = (array) ($this->references('mood?for=page')['items'] ?? []);
+
+		$this->assertSame(['web', 'css'], array_column($topics, 'slug'), 'Art is unused; Web stays as CSS\'s parent.');
+		$this->assertSame(['book-reviews', 'gloomy', 'happy'], array_column($moods, 'slug'), 'A draft\'s terms count too.');
+		$this->assertSame([], (array) ($this->references('topic?for=author')['items'] ?? ['x']), 'No author uses a topic.');
+	}
+
 	public function testChecksItsInput(): void
 	{
 		$this->site();
 
 		$this->assertSame(404, $this->send('GET', '/references/nope')->getStatusCode());
 
-		foreach (['?limit=0', '?limit=101', '?search[]=x'] as $query) {
+		foreach (['?limit=0', '?limit=101', '?search[]=x', '?for=nope', '?for[]=page'] as $query) {
 			$this->assertSame(400, $this->send('GET', "/references/mood{$query}")->getStatusCode(), $query);
 		}
 	}

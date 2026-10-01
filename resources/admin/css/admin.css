@@ -391,6 +391,45 @@
 	white-space: nowrap;
 }
 
+/* A header that sorts its column (D-300): its arrow shows on hover and
+   focus, and stays on the column the list is sorted by. */
+.table__sort {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	margin: -4px -6px;
+	padding: 4px 6px;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: inherit;
+	font: inherit;
+	letter-spacing: inherit;
+	text-transform: inherit;
+	cursor: pointer;
+}
+
+.table__sort:hover {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.table__sort-icon {
+	width: 12px;
+	height: 12px;
+	opacity: 0;
+}
+
+.table__sort:hover .table__sort-icon,
+.table__sort:focus-visible .table__sort-icon,
+.table thead th[aria-sort] .table__sort-icon {
+	opacity: 1;
+}
+
+.table thead th[aria-sort] {
+	color: var(--fg);
+}
+
 .table tbody th {
 	font-weight: 400;
 }
@@ -496,6 +535,66 @@
 
 .table tbody.table__pinned tr:last-child > * {
 	border-bottom: 1px solid var(--border-strong);
+}
+
+/* The checkbox column (D-301): a drawn box with `aria-checked`, and the
+   index page's pin in its place. Selected rows take the accent's tint. */
+.table .table__check {
+	width: 44px;
+	padding-right: 0;
+	vertical-align: middle;
+}
+
+.check {
+	display: grid;
+	place-items: center;
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	border: 1px solid var(--border-strong);
+	border-radius: 4px;
+	background: var(--surface);
+	color: transparent;
+	cursor: pointer;
+}
+
+.check:hover {
+	border-color: var(--accent);
+}
+
+.check[aria-checked="true"],
+.check[aria-checked="mixed"] {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: var(--accent-fg);
+}
+
+.check:disabled {
+	opacity: .5;
+	cursor: default;
+}
+
+.check svg {
+	width: 12px;
+	height: 12px;
+	stroke-width: 2.6;
+}
+
+.table__pin {
+	display: grid;
+	place-items: center;
+	width: 16px;
+	color: var(--fg-3);
+}
+
+.table__pin svg {
+	width: 13px;
+	height: 13px;
+}
+
+.table tbody tr.is-selected,
+.table tbody tr.is-selected:hover {
+	background: var(--accent-soft);
 }
 
 .entry-title__pin {

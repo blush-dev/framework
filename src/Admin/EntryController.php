@@ -65,6 +65,14 @@ use Blush\Support\Slug;
  *   with `field: "slug"`. With `redirect: true`, a published entry's old
  *   address is added to its `redirect_from`.
  * - `DELETE entries/{id}?revision=…`: moves it to the trash.
+ * - `POST   entries/bulk`: publishes, moves to draft, or trashes several
+ *   (`action`: `publish`, `draft`, or `trash`; `ids`, at most 100) at
+ *   their current revisions, since a status change or a move to the
+ *   trash loses no one's writing (D-301). Each entry is checked as alone:
+ *   one that can't be changed (not allowed, an index page to trash, a
+ *   required field empty for publishing, a write that fails) is skipped
+ *   with the reason, and the rest go ahead. Answers `done` (ids) and
+ *   `skipped` (`id`, `title`, `reason`).
  * - `POST   entries/{id}/duplicate`: copies it beside itself as a draft
  *   titled "… (Copy)", slugged `{slug}-copy`, with the same authors,
  *   dated now if its type is dated (D-275). Needs `content.create`, and `content.edit` for the
@@ -93,6 +101,13 @@ final readonly class EntryController
 	 * The statuses the shortcut takes.
 	 */
 	private const array STATUSES = ['draft', 'published', 'scheduled'];
+
+	/**
+	 * What a bulk change can do, and the most entries it takes.
+	 */
+	private const array BULK_ACTIONS = ['publish', 'draft', 'trash'];
+
+	private const int BULK_LIMIT = 100;
 
 	public function __construct(
 		private ContentWriter $writer,
@@ -363,6 +378,111 @@ final readonly class EntryController
 		}
 
 		return self::json(['deleted' => $id]);
+	}
+
+	/**
+	 * Publishes, moves to draft, or trashes several entries (D-301).
+	 */
+	public function bulk(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = self::account($request);
+		$input   = self::input($request);
+		$action  = $input['action'] ?? null;
+		$ids     = $input['ids'] ?? null;
+
+		if (! in_array($action, self::BULK_ACTIONS, true)) {
+			return self::error(sprintf('"action" must be one of %s.', implode(', ', self::BULK_ACTIONS)), Status::BadRequest);
+		}
+
+		$given = is_array($ids) ? array_filter($ids, is_string(...)) : [];
+
+		if ($given === [] || count($given) !== count((array) $ids) || count($given) > self::BULK_LIMIT) {
+			return self::error(sprintf('"ids" must list from 1 to %d entry ids.', self::BULK_LIMIT), Status::BadRequest);
+		}
+
+		$done    = [];
+		$skipped = [];
+
+		foreach (array_values(array_unique($given)) as $id) {
+			$entry  = $this->content->find($id);
+			$reason = $entry === null ? 'It\'s no longer there.' : $this->bulkChange($account, $entry, $action);
+
+			if ($reason === null) {
+				$done[] = $id;
+			} else {
+				$skipped[] = ['id' => $id, 'title' => $entry->title ?? '', 'reason' => $reason];
+			}
+		}
+
+		return self::json(['action' => $action, 'done' => $done, 'skipped' => $skipped]);
+	}
+
+	/**
+	 * Makes one entry's part of a bulk change, returning why it couldn't
+	 * be made, or `null` once it's made.
+	 */
+	private function bulkChange(Account $account, Entry $entry, string $action): ?string
+	{
+		if ($action === 'trash') {
+			if (! $this->permissions->can($account, Capability::ContentDelete, $entry)) {
+				return 'You aren\'t allowed to delete it.';
+			}
+
+			if (IndexPage::is($entry)) {
+				return 'It\'s an index page, so it can\'t be moved to the trash.';
+			}
+		} elseif (! $this->permissions->can($account, Capability::ContentEdit, $entry)) {
+			return 'You aren\'t allowed to edit it.';
+		}
+
+		try {
+			$revision = $this->writer->load($entry->id)->revision;
+
+			if ($action === 'trash') {
+				$this->writer->delete($entry->id, $revision);
+
+				return null;
+			}
+
+			$changes = $this->withStatus(new EntryChanges(), $action === 'publish' ? 'published' : 'draft', [], $entry);
+			$refusal = $this->refusal($account, $entry, $changes) ?? ($action === 'publish' ? $this->missing($entry) : null);
+
+			if ($refusal !== null) {
+				return $refusal;
+			}
+
+			$this->writer->update($entry->id, $changes, $revision);
+		} catch (InvalidEdit | WriteException $e) {
+			return $e->getMessage();
+		}
+
+		return null;
+	}
+
+	/**
+	 * Says which required fields an entry leaves empty, which keeps it
+	 * from being published (the editor's rule, admin.md §8 Validation),
+	 * or `null` when none are. An index page is edited without the type's
+	 * fields, so it has none; the publish date isn't checked, since
+	 * publishing sets it.
+	 */
+	private function missing(Entry $entry): ?string
+	{
+		$empty = IndexPage::is($entry) ? [] : array_filter($entry->type->schema->fields, static function (Field $field) use ($entry): bool {
+			$value = $field->name === 'title' ? $entry->title : $entry->field($field->name);
+
+			return $field->required
+				&& $field->name !== 'published'
+				&& ($value === null || $value === [] || (is_string($value) && trim($value) === ''));
+		});
+
+		$names = array_values(array_map(static fn (Field $field): string => $field->label === '' ? ucfirst($field->name) : $field->label, $empty));
+
+		return match (count($names)) {
+			0       => null,
+			1       => sprintf('%s is required to publish.', $names[0]),
+			default => sprintf('%s are required to publish.', implode(', ', $names))
+		};
 	}
 
 	/**

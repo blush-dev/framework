@@ -201,10 +201,10 @@ final class IndexedRepository implements ContentRepository
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function termCounts(string $taxonomy): array
+	public function termCounts(string $taxonomy, ?Query $query = null): array
 	{
 		$snapshot = $this->snapshot();
-		$listed   = array_flip($this->get($this->query()->limit(null))->ids);
+		$listed   = array_flip($this->get(($query ?? $this->query())->limit(null)->offset(0))->ids);
 		$counts   = [];
 
 		foreach ($snapshot->terms[$taxonomy] ?? [] as $slug => $ids) {

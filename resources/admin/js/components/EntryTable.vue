@@ -26,11 +26,22 @@ const collapsed = ref(new Set<string>());
  * A tree page that starts inside a branch begins with the entries above
  * it, marked **Continued** (D-263). Collapsing a branch hides the rows
  * under it on this page.
+ *
+ * When `selectable`, a first column of checkboxes chooses rows for the
+ * bulk bar (`selected`, by entry ID; D-301), and its header selects every
+ * row shown on the page, or none, and is mixed when some are. The index
+ * page isn't selectable: its pin takes the checkbox's place. Rows marked
+ * **Continued** aren't either, since they're another page's.
+ *
+ * When `sortable`, the Title, Status, Authors, and Updated headers are
+ * buttons that ask to sort by their column (`sort`), and the column it's
+ * sorted by is marked with `aria-sort` and an arrow (D-300). A term's
+ * Entries column doesn't sort.
  */
 
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
-import { entryRoute, type EntrySummary } from '../api';
+import { entryRoute, type EntrySort, type EntrySummary } from '../api';
 import { config } from '../config';
 import { formatDate } from '../format';
 import { toast } from '../toast';
@@ -38,19 +49,38 @@ import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import StatusPill from './StatusPill.vue';
 
-const { terms = false, pinned = null, entries } = defineProps<{
+const { terms = false, pinned = null, entries, sortable = false, sort = null, dir = null, dateKey, dateLabel, selectable = false } = defineProps<{
 	entries: EntrySummary[];
 	pinned?: EntrySummary | null;
 	labelledby: string;
 	dateLabel: string;
 	dateKey: 'updated' | 'published';
 	terms?: boolean;
+	sortable?: boolean;
+	sort?: EntrySort | null;
+	dir?: 'asc' | 'desc' | null;
+	selectable?: boolean;
 }>();
+
+const selected = defineModel<string[]>('selected', { default: () => [] });
 
 defineEmits<{
 	trash: [entry: EntrySummary];
 	duplicate: [entry: EntrySummary];
+	sort: [column: EntrySort];
 }>();
+
+// The headers, and what each sorts by (`null` for none).
+const columns = computed<{ label: string; sort: EntrySort | null; class?: string }[]>(() => [
+	{ label: 'Title', sort: 'title' },
+	{ label: 'Status', sort: 'status' },
+	terms ? { label: 'Entries', sort: null, class: 'table__count' } : { label: 'Authors', sort: 'author' },
+	{ label: dateLabel, sort: dateKey === 'updated' ? 'updated' : null }
+]);
+
+function ariaSort(column: EntrySort | null): 'ascending' | 'descending' | undefined {
+	return column !== null && column === sort ? (dir === 'desc' ? 'descending' : 'ascending') : undefined;
+}
 
 // The rows a collapsed branch hides: those under it, by depth.
 const hidden = computed(() => {
@@ -88,6 +118,32 @@ const groups = computed(() => [
 	{ key: 'entries', entries: entries.filter((entry) => !hidden.value.has(entry.id)) }
 ]);
 
+// The rows shown that can be selected, and how many of them are.
+const choosable = computed(() => groups.value.flatMap((group) => group.entries).filter(canSelect).map((entry) => entry.id));
+const chosen    = computed(() => choosable.value.filter((id) => selected.value.includes(id)).length);
+const allState  = computed<'true' | 'false' | 'mixed'>(() => chosen.value === 0 ? 'false' : (chosen.value === choosable.value.length ? 'true' : 'mixed'));
+
+function canSelect(entry: EntrySummary): boolean {
+	return !entry.index && !entry.continued;
+}
+
+function isSelected(entry: EntrySummary): boolean {
+	return selected.value.includes(entry.id);
+}
+
+function choose(entry: EntrySummary): void {
+	selected.value = isSelected(entry) ? selected.value.filter((id) => id !== entry.id) : [...selected.value, entry.id];
+}
+
+// All of the page's rows, or none once all are.
+function chooseAll(): void {
+	const page = new Set(choosable.value);
+
+	selected.value = allState.value === 'true'
+		? selected.value.filter((id) => !page.has(id))
+		: [...new Set([...selected.value, ...choosable.value])];
+}
+
 function toggle(entry: EntrySummary): void {
 	const next = new Set(collapsed.value);
 
@@ -124,23 +180,31 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 		<table class="table" :aria-labelledby="labelledby">
 			<thead>
 				<tr>
-					<th scope="col">Title</th>
-					<th scope="col">Status</th>
-					<th v-if="terms" scope="col" class="table__count">Entries</th>
-					<th v-else scope="col">Authors</th>
-					<th scope="col">{{ dateLabel }}</th>
+					<th v-if="selectable" scope="col" class="table__check">
+						<button type="button" class="check" role="checkbox" :aria-checked="allState" aria-label="Select every row on this page" :disabled="!choosable.length" @click="chooseAll"><AdminIcon :name="allState === 'mixed' ? 'minus' : 'check'" /></button>
+					</th>
+					<th v-for="column in columns" :key="column.label" scope="col" :class="column.class" :aria-sort="sortable ? ariaSort(column.sort) : undefined">
+						<button v-if="sortable && column.sort !== null" type="button" class="table__sort" @click="$emit('sort', column.sort)">
+							{{ column.label }}<AdminIcon :name="ariaSort(column.sort) === 'ascending' ? 'arrow-up' : 'arrow-down'" class="table__sort-icon" />
+						</button>
+						<template v-else>{{ column.label }}</template>
+					</th>
 					<th scope="col" class="table__actions"><span class="visually-hidden">Actions</span></th>
 				</tr>
 			</thead>
 			<tbody v-for="group in groups" :key="group.key" :class="{ 'table__pinned': group.key === 'pinned' }">
-				<tr v-for="entry in group.entries" :key="`${entry.id}${entry.continued ? ':continued' : ''}`">
+				<tr v-for="entry in group.entries" :key="`${entry.id}${entry.continued ? ':continued' : ''}`" :class="{ 'is-selected': selectable && isSelected(entry) }">
+					<td v-if="selectable" class="table__check">
+						<span v-if="entry.index" class="table__pin" title="Pinned: the index page for this type"><AdminIcon name="pin" /><span class="visually-hidden">Pinned</span></span>
+						<button v-else-if="canSelect(entry)" type="button" class="check" role="checkbox" :aria-checked="isSelected(entry) ? 'true' : 'false'" :aria-label="`Select ${entry.title || 'Untitled'}`" @click="choose(entry)"><AdminIcon name="check" /></button>
+					</td>
 					<th scope="row">
 						<span class="title-cell" :style="entry.depth ? { '--depth': entry.depth } : undefined">
 						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.id)" :aria-label="`${collapsed.has(entry.id) ? 'Expand' : 'Collapse'} ${entry.title || 'Untitled'}`" @click="toggle(entry)"><AdminIcon name="chevron-right" /></button>
 						<span v-else-if="entry.depth !== null || (tree && group.key === 'pinned')" class="twist twist--leaf" aria-hidden="true" />
 						<span class="entry-title">
 							<span class="entry-title__text">
-								<span v-if="entry.index" class="entry-title__pin" title="Pinned: the index page for this type"><AdminIcon name="pin" /></span>
+								<span v-if="entry.index && !selectable" class="entry-title__pin" title="Pinned: the index page for this type"><AdminIcon name="pin" /></span>
 								<span v-if="entry.depth === null && entry.ancestors.length" class="entry-title__ancestors">{{ entry.ancestors.join(' › ') }} ›{{ ' ' }}</span>
 								<RouterLink class="entry-title__link" :to="entryRoute(entry)">
 									<template v-if="entry.title">{{ entry.title }}</template>

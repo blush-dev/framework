@@ -130,15 +130,51 @@ followed by the ones under it, indented, and those alphabetically
 beside an entry with others under it collapses or expands that branch;
 the admin remembers which until you close it. When a later page starts
 partway through a branch, the entries above it are shown again at the
-top, marked **Continued**. On another tab or in a search the tree is
-flattened, and a note above the list says how to get it back. Under each title is the entry's address on your
+top, marked **Continued**. On another tab, in a search, with a filter,
+or sorted by a column, the tree is flattened, and a note above the list
+says how to get it back. Under each title is the entry's address on your
 site (for a draft, the address it will have). In other tabs and in
 search results, a page or a term of a hierarchical taxonomy has the
 titles of the entries above it before its own (such as "Web › Web
-design › CSS"). Search matches titles and file
-paths. Click a title to edit the entry. The two buttons beside the
-search switch between roomy rows and compact ones, which leave out the
-address line; your browser remembers the choice.
+design › CSS"). Click a title to edit the entry.
+
+Beside the tabs is a row of filters:
+
+- **Search** matches titles and file paths. Press `/` anywhere on the
+  list to start typing in it.
+- **Author** shows only the entries crediting one author (not on a
+  taxonomy's list, since terms aren't credited).
+- One select for each taxonomy the type uses, such as **Any topic**,
+  shows only the entries filed under one term.
+
+The Author and taxonomy selects offer only the authors and terms this
+type's entries use (drafts included), so a choice never comes up empty.
+A filter with nothing to offer isn't shown.
+- **Updated** shows only the entries changed in the last 7, 30, or 90
+  days.
+
+**Clear filters** turns them all off, and the tabs' counts follow the
+filters. The Trash tab takes only the search. The two buttons at the end
+of the row switch between roomy rows and compact ones, which leave out
+the address line; your browser remembers the choice.
+
+Click the **Title**, **Status**, **Authors**, or **Updated** header to
+sort by that column, and again to turn the order around. Titles, statuses,
+and authors start from A, and Updated from the newest. Below a list longer
+than 10 entries, choose how many show on a page (20 unless you change it).
+The filters, the sort, and the page size are part of the page's address,
+so going back or sharing the link keeps them.
+
+To change several entries at once, tick their checkboxes (the box in the
+header ticks every entry on the page). A bar appears at the bottom with
+how many you've chosen and what you can do to them: **Publish** (if your
+account can publish), **Move to draft**, and **Move to trash** (if it can
+delete). **Clear** unticks them all, and so does moving to another tab,
+filter, sort, or page. Publishing dates an undated entry now, as it does
+in the editor, and leaves out any entry with a required field empty. A
+message at the bottom right says how many changed, and a notice above
+the list names any that didn't, with why. The index page can't be ticked: its pin sits where the
+checkbox would be.
 
 The **⋯** button at the end of each row has **Edit**, then **View** and
 **Copy link** once the entry is live (**View archive** for a term),
@@ -150,8 +186,8 @@ on, if that's taken). Everything else is copied as it is: the body, the
 authors, and the other front matter, except its own `slug` and
 `redirect_from` (the copy is named by its file, and old addresses stay
 the original's); a dated entry is dated today, and
-an entry in its own folder is copied with its media. A notice above the
-list says so, with a link to open the copy. Terms and index pages can't
+an entry in its own folder is copied with its media. A message at the
+bottom right says so; the copy is listed with the drafts. Terms and index pages can't
 be duplicated.
 
 A collection's or taxonomy's **index page** (the `index.md` in its
@@ -688,6 +724,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST entries` | Create an entry: `{"type", "title"}`, and optionally `"slug"`, `"set"`, `"body"`, `"status"` |
 | `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
 | `DELETE entries/{id}?revision=…` | Move an entry to the trash |
+| `POST entries/bulk` | Publish, move to draft, or trash several entries at once (see below) |
 | `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above); answers `201` with the copy as `GET entries/{id}` shows it. Needs `content.create` and the right to edit the entry; an index page is refused with a `422` |
 | `GET trash` | The trashed entries the account may handle, newest first (`?type=` for one type): `{"trash": [{"id", "entry", "title", "type", "bundle", "trashed", "authors", "own"}]}` |
 | `GET trash/{id}` | One trashed entry, as in `GET trash`, with its `frontMatter` and `body`; 404 if it isn't there or the account can't handle it |
@@ -699,6 +736,19 @@ Once signed in, send the token from `session` or `login` in an
 `X-CSRF-Token` header with every `POST`, `PATCH`, and `DELETE`. Errors are JSON too:
 `{"error": "…"}`, with a 400, 401, 403, 404, 413, 422, or 429 status.
 
+### Changing several entries
+
+`POST entries/bulk` takes `action` (`publish`, `draft`, or `trash`) and
+`ids` (1 to 100 entry ids). Each entry is changed as it is now, so no
+`revision` is needed: a status change or a move to the trash doesn't
+overwrite anyone's writing. Each is checked on its own, with the same
+rules as a single change: `content.edit` for the entry, `content.publish`
+for anything that isn't a draft, `content.delete` to trash it, required
+fields filled to publish, and never an index page in the trash. The
+answer is `action`, `done` (the ids changed), and `skipped` (each with
+its `id`, `title`, and the `reason`); an entry that couldn't be changed
+doesn't stop the rest.
+
 ### Listing entries
 
 `GET entries` lists the entries the account may edit: an author's own,
@@ -709,20 +759,29 @@ or everyone's for an editor. Narrow it with:
 | `status` | `draft`, `scheduled`, `published`, or `any` (the default) |
 | `type` | A content type's name |
 | `search` | Text the title or file path must contain, in any case |
+| `author` | An author's slug the entries must credit |
+| `terms` | `taxonomy:slug` pairs, comma separated (`topic:art,era:1990s`); an entry needs every one |
+| `days` | Entries updated in the last so many days, from 1 |
+| `sort` | `title`, `status`, `author`, or `updated` |
+| `dir` | `asc` or `desc`: by default `updated` sorts newest first and the rest A to Z |
 | `page` | The page, from 1 |
 | `per` | Entries per page: 20 by default, at most 100 |
 
-Drafts and the whole list come most recently changed first, scheduled
-entries soonest first, and published entries newest first. The answer
-has `status`, `type`, `search`, `total`, `page`, `pages`, `per`, and
-`entries`, each with its id, handle, title, type, status, dates, file,
+Unless `sort` says otherwise, drafts and the whole list come most
+recently changed first, scheduled entries soonest first, and published
+entries newest first. Sorting by status uses the status as it is now (a
+published entry dated in the future sorts as scheduled), and by author
+the first author's slug. The answer has `status`, `type`, `search`,
+`author`, `terms`, `days` (or `null`), `sort` and `dir` (or `null`
+unsorted), `tree` (whether it's in tree order), `total`, `page`,
+`pages`, `per`, and `entries`, each with its id, handle, title, type, status, dates, file,
 `url` (its path on the site, where it is or will be once published, or
 `null`), authors, whether it's the account's own, `index`,
 `can.delete` and `can.duplicate`, and `ancestors`: the titles of the entries above it, from
 the top down (a page's parent pages, or a hierarchical term's parents;
 empty for the rest). With a `type` whose entries nest (pages, or a
-hierarchical taxonomy), no `status`, and no `search`, entries come in
-tree order instead: each followed by its children, siblings by title,
+hierarchical taxonomy) and no `status`, `search`, `author`, `terms`,
+`days`, or `sort`, entries come in tree order instead: each followed by its children, siblings by title,
 each with its `depth` (0 at the top) and how many `children` it has. A
 page that starts inside a branch begins with the entries above it,
 marked `continued: true` and not counted in `total`. Otherwise `depth`
@@ -774,6 +833,11 @@ title, at most `limit` (20 by default, up to 100), with the `total`
 found. `slugs=a,b` adds those slugs to the answer, found or not, so a
 field can name what it holds. `create` is `true` for a taxonomy: a slug
 with no term is fine there, and becomes a virtual term.
+
+`for=post` (a content type's name) narrows a taxonomy to the terms that
+type's entries use, in any status, counting only the entries the account
+may edit; a hierarchical taxonomy keeps the parents of each, so the tree
+holds together. The entry list's filters use it.
 
 ### Listing media
 

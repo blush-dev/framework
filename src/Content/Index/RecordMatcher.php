@@ -112,6 +112,7 @@ final readonly class RecordMatcher
 			|| ($query->excludedNames !== [] && in_array($record['slug'], $query->excludedNames, true))
 			|| ($search !== null && mb_stripos($record['title'], $search) === false && mb_stripos($record['id'], $search) === false)
 			|| ! $this->matchesDate($record, $query->date)
+			|| ($query->updatedSince !== null && $record['updated'] < $query->updatedSince)
 			|| ! $this->matchesTerms($record, $this->terms)
 			|| ! $this->matchesMeta($record, $query->metaKey, $this->metaValue)
 			|| ! array_all($this->groups, static fn (array $group): bool => array_any($group, static fn (self $matcher): bool => $matcher->matches($record)))

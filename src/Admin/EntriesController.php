@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use DateTimeInterface;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
@@ -43,15 +44,22 @@ use Blush\Http\Status as HttpStatus;
  * - `status`: `draft`, `scheduled`, `published`, or `any` (the default).
  * - `type`: a content type's name.
  * - `search`: text the title or file path must contain (any case).
+ * - `author`: an author's slug the entries must credit (D-300).
+ * - `terms`: `taxonomy:slug` pairs, comma separated; an entry needs each.
+ * - `days`: entries updated in the last so many days.
+ * - `sort`: `title`, `status`, `author`, or `updated`, and `dir`, `asc`
+ *   or `desc` (`updated` newest first unless `dir` says otherwise, the
+ *   rest A to Z).
  * - `page` (from 1) and `per` (20 by default, at most 100).
  *
- * Drafts and the whole list come most recently changed first, scheduled
+ * Unsorted, drafts and the whole list come most recently changed first, scheduled
  * entries soonest first, and published entries newest first. The
  * permission rules, the filters, and paging all run in the index as one
  * query (`Permissions::restrict()`), so only the page's entries are built.
  *
  * A type whose entries nest (pages, and hierarchical taxonomies; D-257)
- * lists as a tree when it's the whole list (no status, no search): each
+ * lists as a tree when it's the whole list (no status, search, filter,
+ * or sort): each
  * entry followed by its children, siblings by title (D-261), each with
  * its `depth` in the tree (0 at the top) for the admin to indent by, and
  * how many `children` it has (D-262). Its entries are all built to order
@@ -80,6 +88,18 @@ final readonly class EntriesController
 	 */
 	public const int MAX_PER_PAGE = 100;
 
+	/**
+	 * The columns a list sorts by.
+	 *
+	 * @var list<string>
+	 */
+	public const array SORTS = ['title', 'status', 'author', 'updated'];
+
+	/**
+	 * The most days `days` reaches back.
+	 */
+	private const int MAX_DAYS = 36500;
+
 	public function __construct(
 		private ContentRepository $content,
 		private ContentTypes $types,
@@ -87,7 +107,8 @@ final readonly class EntriesController
 		private ContentUrls $urls,
 		private Permissions $permissions,
 		private AuthConfig $config,
-		private AppConfig $app
+		private AppConfig $app,
+		private ClockInterface $clock
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -118,6 +139,48 @@ final readonly class EntriesController
 			return self::json(['error' => '"search" must be text.'], HttpStatus::BadRequest);
 		}
 
+		$author = $params['author'] ?? '';
+
+		if (! is_string($author)) {
+			return self::json(['error' => '"author" must be an author\'s slug.'], HttpStatus::BadRequest);
+		}
+
+		$terms = self::terms($params['terms'] ?? '');
+
+		if ($terms === null) {
+			return self::json(['error' => '"terms" must be taxonomy:slug pairs, separated by commas.'], HttpStatus::BadRequest);
+		}
+
+		foreach ($terms as [$taxonomy]) {
+			if (! $this->types->find($taxonomy) instanceof Taxonomy) {
+				return self::json(['error' => sprintf('There is no taxonomy "%s".', $taxonomy)], HttpStatus::BadRequest);
+			}
+		}
+
+		$days = $params['days'] ?? '';
+		$days = $days === '' ? 0 : self::positive($days);
+
+		if ($days === null || $days > self::MAX_DAYS) {
+			return self::json(['error' => sprintf('"days" must be a whole number from 1 to %d.', self::MAX_DAYS)], HttpStatus::BadRequest);
+		}
+
+		$sort = $params['sort'] ?? '';
+
+		if ($sort !== '' && ! in_array($sort, self::SORTS, true)) {
+			return self::json(['error' => '"sort" must be title, status, author, or updated.'], HttpStatus::BadRequest);
+		}
+
+		$order = match ($params['dir'] ?? '') {
+			''      => $sort === 'updated' ? Order::Desc : Order::Asc,
+			'asc'   => Order::Asc,
+			'desc'  => Order::Desc,
+			default => null
+		};
+
+		if ($order === null) {
+			return self::json(['error' => '"dir" must be asc or desc.'], HttpStatus::BadRequest);
+		}
+
 		$page = self::positive($params['page'] ?? '1');
 		$per  = self::positive($params['per'] ?? (string) self::PER_PAGE);
 
@@ -128,11 +191,22 @@ final readonly class EntriesController
 		$query = $this->content->query()->any()->search($search);
 		$query = $status === null ? $query : $query->status($status);
 		$query = $type === null ? $query : $query->type($type);
-		$query = match ($status) {
-			Status::Scheduled => $query->orderBy('published', Order::Asc),
-			Status::Published => $query->orderBy('published', Order::Desc),
-			default           => $query->orderBy('updated', Order::Desc)
+		$query = $author === '' ? $query : $query->whereTerm($this->config->authorTaxonomy, $author);
+		$query = $days === 0 ? $query : $query->updatedSince($this->clock->now()->getTimestamp() - $days * 86400);
+
+		foreach ($terms as [$taxonomy, $slug]) {
+			$query = $query->whereTerm($taxonomy, $slug);
+		}
+
+		$query = match (true) {
+			$sort === 'author'            => $query->orderBy($this->config->authorTaxonomy, $order),
+			$sort !== ''                  => $query->orderBy($sort, $order),
+			$status === Status::Scheduled => $query->orderBy('published', Order::Asc),
+			$status === Status::Published => $query->orderBy('published', Order::Desc),
+			default                       => $query->orderBy('updated', Order::Desc)
 		};
+
+		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '';
 
 		$contentType = $type === null ? null : $this->types->find($type);
 		$pinned      = $contentType !== null && $contentType->kind() !== TypeKind::Pages;
@@ -143,7 +217,7 @@ final readonly class EntriesController
 		$tree        = null;
 		$continued   = [];
 
-		if ($contentType !== null && $status === null && trim($search) === '' && self::nests($contentType)) {
+		if ($contentType !== null && $whole && self::nests($contentType)) {
 			$tree      = self::tree($listed->limit(null)->get()->all());
 			$start     = ($page - 1) * $per;
 			$total     = count($tree['entries']);
@@ -169,6 +243,12 @@ final readonly class EntriesController
 			'status'  => $status->value ?? 'any',
 			'type'    => $type,
 			'search'  => trim($search),
+			'author'  => $author,
+			'terms'   => array_map(static fn (array $term): string => implode(':', $term), $terms),
+			'days'    => $days === 0 ? null : $days,
+			'sort'    => $sort === '' ? null : $sort,
+			'dir'     => $sort === '' ? null : $order->value,
+			'tree'    => $tree !== null,
 			'total'   => $total,
 			'page'    => $page,
 			'pages'   => $pages,
@@ -179,6 +259,33 @@ final readonly class EntriesController
 			],
 			'index'   => $index === null ? null : $this->describe($account, $index, $counts)
 		]);
+	}
+
+	/**
+	 * Reads `terms`: `taxonomy:slug` pairs, comma separated, or `null`
+	 * when it isn't that.
+	 *
+	 * @return ?list<array{string, string}>
+	 */
+	private static function terms(mixed $value): ?array
+	{
+		if (! is_string($value)) {
+			return null;
+		}
+
+		$terms = [];
+
+		foreach (array_filter(array_map(trim(...), explode(',', $value)), static fn (string $pair): bool => $pair !== '') as $pair) {
+			$parts = explode(':', $pair, 2);
+
+			if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+				return null;
+			}
+
+			$terms[] = [$parts[0], $parts[1]];
+		}
+
+		return $terms;
 	}
 
 	/**

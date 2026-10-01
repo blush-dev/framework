@@ -44,7 +44,7 @@ final readonly class ArraySelector
 			}
 		}
 
-		$matches = $this->sort($matches, $query->orderBy, $query->order);
+		$matches = $this->sort($matches, $query->orderBy, $query->order, $now);
 		$ids     = array_column(array_slice($matches, $query->offset, $query->limit), 'id');
 
 		return new Selection($ids, count($matches));
@@ -56,7 +56,7 @@ final readonly class ArraySelector
 	 * @param  list<RecordArray> $records
 	 * @return list<RecordArray>
 	 */
-	private function sort(array $records, string $orderBy, Order $order): array
+	private function sort(array $records, string $orderBy, Order $order, int $now): array
 	{
 		$direction = $order === Order::Desc ? -1 : 1;
 
@@ -64,7 +64,7 @@ final readonly class ArraySelector
 			return $direction === 1 ? $records : array_reverse($records);
 		}
 
-		$keys = array_map(fn (array $record): string|int|float|null => $this->sortValue($record, $orderBy), $records);
+		$keys = array_map(fn (array $record): string|int|float|null => $this->sortValue($record, $orderBy, $now), $records);
 		$positions = array_keys($records);
 
 		usort($positions, static fn (int $a, int $b): int => $direction * self::compare($keys[$a], $keys[$b]));
@@ -77,13 +77,14 @@ final readonly class ArraySelector
 	 *
 	 * @param RecordArray $record
 	 */
-	private function sortValue(array $record, string $orderBy): string|int|float|null
+	private function sortValue(array $record, string $orderBy, int $now): string|int|float|null
 	{
 		$value = match ($orderBy) {
 			'published', 'updated', 'title', 'slug' => $record[$orderBy],
 			'name'                                  => $record['slug'],
+			'status'                                => IndexRecord::effectiveStatus($record['status'], $record['published'], $now)->value,
 			'author'                                => $record['terms']['author'] ?? $record['extra']['author'] ?? null,
-			default                                 => $record['values'][$orderBy] ?? $record['extra'][$orderBy] ?? null
+			default                                 => $record['values'][$orderBy] ?? $record['extra'][$orderBy] ?? $record['terms'][$orderBy] ?? null
 		};
 
 		$value = is_array($value) ? array_first($value) : $value;

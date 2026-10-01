@@ -102,10 +102,22 @@ export interface TrashedDetail extends TrashedSummary {
 	body: string;
 }
 
+export type EntrySort = 'title' | 'status' | 'author' | 'updated';
+
 export interface EntryList {
 	status: EntryStatus | 'any';
 	type: string | null;
 	search: string;
+	// The other filters (D-300): an author's slug (`''` for any),
+	// `taxonomy:slug` pairs, and how many days back it was updated.
+	author: string;
+	terms: string[];
+	days: number | null;
+	// The column it's sorted by and which way, or `null` for the usual
+	// order; and whether it's a tree.
+	sort: EntrySort | null;
+	dir: 'asc' | 'desc' | null;
+	tree: boolean;
 	total: number;
 	page: number;
 	pages: number;

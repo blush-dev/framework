@@ -197,6 +197,57 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(400, $this->send('GET', '/entries?type=missing')->getStatusCode());
 	}
 
+	public function testFiltersByAuthorTermsAndUpdated(): void
+	{
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics"}');
+		$this->writeTemporaryFile('user/content/old.md', "---\ntitle: Old\nauthors: sam\ntopic: [art, books]\nupdated: 2001-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/art.md', "---\ntitle: Art\nauthors: jane\ntopic: art\n---\n");
+		$this->site(['editor']);
+
+		$this->assertEqualsCanonicalizing(["Sam's draft", 'Old'], array_column($this->listed('?author=sam'), 'title'));
+		$this->assertEqualsCanonicalizing(['Old', 'Art'], array_column($this->listed('?terms=topic:art'), 'title'));
+		$this->assertSame(['Old'], array_column($this->listed('?terms=topic:art,topic:books'), 'title'), 'An entry needs every term.');
+		$this->assertSame(['Art'], array_column($this->listed('?terms=topic:art&author=jane'), 'title'));
+		$this->assertNotContains('Old', array_column($this->listed('?days=30'), 'title'));
+		$this->assertContains('Old', array_column($this->listed('?days=36500'), 'title'));
+
+		$list = $this->list('?author=sam&terms=topic:art&days=7');
+
+		$this->assertSame(['sam', ['topic:art'], 7, null, null], [$list['author'], $list['terms'], $list['days'], $list['sort'], $list['dir']]);
+	}
+
+	public function testSortsByAColumn(): void
+	{
+		$this->site(['editor']);
+
+		$this->assertSame(['Broken', "Jane's draft", 'Live', "Sam's draft", 'Soon'], array_column($this->listed('?sort=title'), 'title'));
+		$this->assertSame(['Soon', "Sam's draft", 'Live', "Jane's draft", 'Broken'], array_column($this->listed('?sort=title&dir=desc'), 'title'));
+		$this->assertSame(['draft', 'draft', 'published', 'published', 'scheduled'], array_column($this->listed('?sort=status'), 'status'), 'A scheduled entry sorts as scheduled.');
+		$first = $this->listed('?sort=author&dir=desc')[0] ?? [];
+
+		$this->assertSame(['sam'], $first['authors'] ?? null, 'Authors sort by their slug.');
+
+		$list = $this->list('?sort=updated');
+
+		$this->assertSame(['updated', 'desc'], [$list['sort'], $list['dir']], 'Updated sorts newest first.');
+	}
+
+	public function testFiltersAndSortsFlattenTrees(): void
+	{
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics", "hierarchical": true}');
+		$this->writeTemporaryFile('user/content/topics/books.md', "---\ntitle: Books\n---\n");
+		$this->writeTemporaryFile('user/content/topics/book-reviews.md', "---\ntitle: Book Reviews\nparent: books\nupdated: 2001-01-01\n---\n");
+		$this->site(['editor']);
+
+		$this->assertTrue($this->list('?type=topic')['tree']);
+
+		foreach (['?type=topic&sort=title', '?type=topic&days=30', '?type=topic&status=published'] as $query) {
+			$this->assertFalse($this->list($query)['tree'], $query);
+		}
+
+		$this->assertSame(['Book Reviews', 'Books'], array_column($this->listed('?type=topic&sort=title'), 'title'));
+	}
+
 	public function testCountsHowManyPublishedEntriesUseATerm(): void
 	{
 		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
@@ -398,7 +449,9 @@ final class AdminContentTest extends TestCase
 	{
 		$this->site(['editor']);
 
-		foreach (['?status=pending', '?page=0', '?page=two', '?per=101', '?search[]=x'] as $query) {
+		$queries = ['?status=pending', '?page=0', '?page=two', '?per=101', '?search[]=x', '?author[]=x', '?terms=art', '?terms=missing:art', '?days=0', '?days=soon', '?sort=words', '?dir=up'];
+
+		foreach ($queries as $query) {
 			$this->assertSame(400, $this->send('GET', "/entries{$query}")->getStatusCode(), $query);
 		}
 	}

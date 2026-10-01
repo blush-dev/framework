@@ -47,6 +47,11 @@ use Blush\Support\Slug;
  * separated) are always answered too, found or not, so a field can show
  * what it holds: a slug with nothing behind it is `missing`. A type's
  * landing page isn't something to point at, so it's left out.
+ *
+ * With `for` (a content type's name), a taxonomy answers only the terms
+ * that type's entries use, in any status, among the entries the account
+ * may edit, for the entry list's filters (D-303); a hierarchical
+ * taxonomy keeps a used term's parents, so the tree holds together.
  */
 final readonly class ReferencesController
 {
@@ -88,9 +93,14 @@ final readonly class ReferencesController
 		$search = $params['search'] ?? '';
 		$slugs  = $params['slugs'] ?? '';
 		$limit  = $params['limit'] ?? (string) self::LIMIT;
+		$for    = $params['for'] ?? '';
 
-		if (! is_string($search) || ! is_string($slugs) || ! is_string($limit)) {
-			return self::json(['error' => '"search", "slugs", and "limit" must be text.'], HttpStatus::BadRequest);
+		if (! is_string($search) || ! is_string($slugs) || ! is_string($limit) || ! is_string($for)) {
+			return self::json(['error' => '"search", "slugs", "limit", and "for" must be text.'], HttpStatus::BadRequest);
+		}
+
+		if ($for !== '' && ! $this->types->has($for)) {
+			return self::json(['error' => sprintf('There is no "%s" content type.', $for)], HttpStatus::BadRequest);
 		}
 
 		$limit = ctype_digit($limit) ? (int) $limit : 0;
@@ -103,19 +113,26 @@ final readonly class ReferencesController
 		$counts   = $taxonomy ? $this->content->termCounts($type) : [];
 		$entries  = $this->content->query()->any()->type($type)->withLanding(false)->orderBy('title', Order::Asc)->limit(null)->get()->all();
 		$items    = [];
+		$used     = $taxonomy && $for !== ''
+			? array_filter($this->content->termCounts($type, $this->permissions->restrict($account, Capability::ContentEdit, $this->content->query()->any()->type($for))))
+			: null;
 
 		foreach ($entries as $entry) {
 			$items[$entry->key] = $this->describe($entry, $counts, $taxonomy);
 		}
 
 		// A taxonomy's virtual terms: slugs in use with no file.
-		foreach (array_keys($counts) as $slug) {
+		foreach (array_keys($counts + ($used ?? [])) as $slug) {
 			$slug = (string) $slug;
 
 			if (! isset($items[$slug])) {
 				$term         = $this->content->term($type, $slug);
-				$items[$slug]  = ['slug' => $slug, 'title' => $term->title ?? $slug, 'status' => 'published', 'parent' => null, 'uses' => $counts[$slug], 'depth' => null, 'virtual' => true, 'missing' => false];
+				$items[$slug]  = ['slug' => $slug, 'title' => $term->title ?? $slug, 'status' => 'published', 'parent' => null, 'uses' => $counts[$slug] ?? 0, 'depth' => null, 'virtual' => true, 'missing' => false];
 			}
+		}
+
+		if ($used !== null) {
+			$items = self::inUse($items, array_map(strval(...), array_keys($used)));
 		}
 
 		$tree  = $taxonomy && $contentType->hierarchical;
@@ -160,6 +177,35 @@ final readonly class ReferencesController
 			'virtual' => false,
 			'missing' => false
 		];
+	}
+
+	/**
+	 * The items a type's entries use, and the parents of each, so a tree
+	 * keeps its branches.
+	 *
+	 * @param  array<string, array<string, mixed>> $items
+	 * @param  list<string>                        $used
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function inUse(array $items, array $used): array
+	{
+		$keep = [];
+
+		foreach ($used as $slug) {
+			// Up the parents, stopping at one already kept (or a loop).
+			while (isset($items[$slug]) && ! isset($keep[$slug])) {
+				$keep[$slug] = true;
+				$parent      = $items[$slug]['parent'] ?? null;
+
+				if (! is_string($parent)) {
+					break;
+				}
+
+				$slug = $parent;
+			}
+		}
+
+		return array_intersect_key($items, $keep);
 	}
 
 	/**

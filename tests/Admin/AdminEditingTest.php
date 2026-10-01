@@ -419,6 +419,71 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(400, $this->call('PATCH', "/entries/{$idea}", ['revision' => $this->revision($idea), 'status' => 'live'])->getStatusCode());
 	}
 
+	public function testBulkChangesMoveToDraftPublishAndTrash(): void
+	{
+		$this->site();
+		$idea = '_posts/2023-01-01.idea.md';
+		$sams = '_posts/2021-05-05.sams.md';
+
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'draft', 'ids' => [self::FLAME, $sams]]));
+
+		$this->assertSame([self::FLAME, $sams], $answer['done'] ?? null);
+		$this->assertStringContainsString("\nstatus: draft\n", $this->file(self::FLAME));
+		$this->assertStringContainsString("\nstatus: draft\n", $this->file($sams));
+
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'ids' => [$idea, self::FLAME]]));
+
+		$this->assertSame([$idea, self::FLAME], $answer['done'] ?? null);
+		$this->assertStringNotContainsString('status:', $this->file($idea));
+		$this->assertStringContainsString('published:', $this->file($idea), 'An undated entry is dated as it\'s published.');
+		$this->assertStringContainsString('date      : 2022-03-29 23:00:00 -6', $this->file(self::FLAME), 'A dated entry keeps its date.');
+
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'trash', 'ids' => [$idea, '_posts/missing.md']]));
+
+		$this->assertSame([$idea], $answer['done'] ?? null);
+		$this->assertSame([['id' => '_posts/missing.md', 'title' => '', 'reason' => 'It\'s no longer there.']], $answer['skipped'] ?? null);
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . "/user/content/{$idea}");
+		$this->assertSame($idea, $this->trash()[0]['entry'] ?? null);
+	}
+
+	public function testBulkChangesSkipWhatCantChange(): void
+	{
+		$this->writeTemporaryFile('user/data/types/review.json', '{"folder": "reviews", "fields": [{"name": "rating", "type": "number", "required": true, "label": "Rating"}]}');
+		$this->writeTemporaryFile('user/content/reviews/rated.md', "---\ntitle: Rated\nauthors: jane\nrating: 4\nstatus: draft\n---\n");
+		$this->writeTemporaryFile('user/content/reviews/unrated.md', "---\ntitle: Unrated\nauthors: jane\nstatus: draft\n---\n");
+		$this->site(['author']);
+
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'ids' => ['reviews/rated.md', 'reviews/unrated.md']]));
+
+		$this->assertSame(['reviews/rated.md'], $answer['done'] ?? null);
+		$this->assertSame([['id' => 'reviews/unrated.md', 'title' => 'Unrated', 'reason' => 'Rating is required to publish.']], $answer['skipped'] ?? null);
+		$this->assertStringContainsString("\nstatus: draft\n", $this->file('reviews/unrated.md'));
+
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'trash', 'ids' => ['_posts/2021-05-05.sams.md']]));
+
+		$this->assertSame([], $answer['done'] ?? null);
+		$this->assertSame([['id' => '_posts/2021-05-05.sams.md', 'title' => 'Sam\'s Post', 'reason' => 'You aren\'t allowed to delete it.']], $answer['skipped'] ?? null, 'An author can\'t trash someone else\'s entry.');
+	}
+
+	public function testBulkChangesRefuseMalformedRequests(): void
+	{
+		$this->site();
+
+		$requests = [
+			['action' => 'archive', 'ids' => [self::FLAME]],
+			['action' => 'draft', 'ids' => []],
+			['action' => 'draft', 'ids' => [self::FLAME, 5]],
+			['action' => 'draft', 'ids' => array_fill(0, 101, self::FLAME)],
+			['action' => 'draft']
+		];
+
+		foreach ($requests as $request) {
+			$this->assertSame(400, $this->call('POST', '/entries/bulk', $request)->getStatusCode(), (string) json_encode($request));
+		}
+
+		$this->assertSame(403, $this->send('POST', '/entries/bulk', (string) json_encode(['action' => 'draft', 'ids' => [self::FLAME]]))->getStatusCode(), 'It needs the CSRF token.');
+	}
+
 	public function testContributorsKeepEntriesAsDrafts(): void
 	{
 		$this->site(['contributor']);

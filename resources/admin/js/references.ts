@@ -52,7 +52,11 @@ export function referenceValues(value: string): string[] {
 	return value.split(',').map((item) => item.trim()).filter((item) => item !== '');
 }
 
-export function loadReferences(type: string, options: { search?: string; slugs?: string[]; limit?: number } = {}): Promise<ReferenceList> {
+/**
+ * Loads what a reference to `type` can point at. With `for`, a taxonomy
+ * answers only the terms that type's entries use (D-303).
+ */
+export function loadReferences(type: string, options: { search?: string; slugs?: string[]; limit?: number; for?: string } = {}): Promise<ReferenceList> {
 	const query = new URLSearchParams();
 
 	if (options.search) {
@@ -65,6 +69,10 @@ export function loadReferences(type: string, options: { search?: string; slugs?:
 
 	if (options.limit !== undefined) {
 		query.set('limit', String(options.limit));
+	}
+
+	if (options.for !== undefined) {
+		query.set('for', options.for);
 	}
 
 	const string = query.toString();

@@ -81,7 +81,7 @@ final readonly class Query
 	 * @param list<string>                     $excludedNames Slugs to leave out.
 	 * @param ?int                             $limit         How many entries; `null` for all.
 	 * @param int                              $offset        How many matching entries to skip.
-	 * @param string                           $orderBy       `filename`, `published`, `updated`, `title`, `slug`, `author`, or a field.
+	 * @param string                           $orderBy       `filename`, `published`, `updated`, `title`, `slug`, `status`, `author`, a field, or a taxonomy.
 	 * @param Order                            $order         The sort direction.
 	 * @param list<array{string, list<string>}> $terms        Taxonomy and slugs; an entry needs one of the slugs for each.
 	 * @param ?string                          $metaKey       A field entries must have.
@@ -93,6 +93,7 @@ final readonly class Query
 	 * @param ?string                          $locale        A locale to limit entries to.
 	 * @param ?string                          $search        Text the title or source path must contain, in any case.
 	 * @param list<list<Query>>                $alternatives  Groups of alternatives; an entry must match one in each group.
+	 * @param ?int                             $updatedSince  A Unix time entries must have been updated at or after.
 	 */
 	public function __construct(
 		public array $types = [],
@@ -113,6 +114,7 @@ final readonly class Query
 		public ?string $locale = null,
 		public ?string $search = null,
 		public array $alternatives = [],
+		public ?int $updatedSince = null,
 		private ?QueryRunner $runner = null
 	) {}
 
@@ -293,8 +295,10 @@ final readonly class Query
 
 	/**
 	 * Returns a copy sorted by `filename` (the source path), `published`,
-	 * `updated`, `title`, `slug`, `author`, or any field. Entries without
-	 * the value sort as lowest; ties keep file-name order.
+	 * `updated`, `title`, `slug`, `status` (as it is now, so a scheduled
+	 * entry sorts as `scheduled`), `author`, any field, or else a
+	 * taxonomy's first term. Entries without the value sort as lowest;
+	 * ties keep file-name order.
 	 */
 	#[NoDiscard]
 	public function orderBy(string $key, Order $order = Order::Asc): self
@@ -401,6 +405,16 @@ final readonly class Query
 	public function locale(?string $locale): self
 	{
 		return clone($this, ['locale' => $locale]);
+	}
+
+	/**
+	 * Returns a copy limited to entries updated at or after a Unix time,
+	 * or updated any time for `null`.
+	 */
+	#[NoDiscard]
+	public function updatedSince(?int $time): self
+	{
+		return clone($this, ['updatedSince' => $time]);
 	}
 
 	/**

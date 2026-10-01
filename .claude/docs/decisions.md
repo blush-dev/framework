@@ -7081,3 +7081,139 @@ decision, add a new entry that supersedes it and mark the old one
   open.
 - **Checked:** `npm run admin:build` (type-checked). Not driven in a
   browser.
+
+### D-300: The entry list's filters, sorting, and page size
+- **Date:** 2026-09-30
+- **Decision:** From the design direction's §7 (Tables; Tabs, toolbar,
+  filters) and §8 (Hierarchy; Type-driven variation), and the
+  prototype's list screen:
+  - **`GET entries`** takes `author` (a slug of the author taxonomy,
+    `AuthConfig::$authorTaxonomy`), `terms` (`taxonomy:slug` pairs,
+    comma separated, each required), `days` (updated in the last so many,
+    1 to 36500), and `sort` (`title`, `status`, `author`, `updated`) with
+    `dir` (`asc`/`desc`; by default `updated` is newest first and the
+    rest A to Z). It answers them back, with `tree`. Any of them, like a
+    status or search, flattens a nesting type's tree.
+  - **The query:** `Query::updatedSince()` (a Unix time, matched against
+    the record's `updated`), sorting by `status` as it is now (so a
+    future-dated entry sorts as scheduled), and sorting by a taxonomy's
+    first term when no field has the name (so the author sort follows a
+    renamed author taxonomy).
+  - **The filter row:** search (with an icon and a `/` key, ignored while
+    typing elsewhere), then **Author** (not on a taxonomy's list, nor on
+    the authors' own), one select per taxonomy the type uses (excluding
+    authors), and **Updated** (any time, or the last 7, 30, or 90 days),
+    each a drawn select (`AdminSelect`) sized to its content; **Clear
+    filters** clears them all. Options come from `GET references/{type}`,
+    at most 100 each; a filter whose options don't load, or that has
+    none, isn't shown. The Trash tab keeps only the search.
+  - **Sorting:** the Title, Status, Authors, and Updated headers are
+    buttons (`aria-sort`, an arrow on hover, focus, and the sorted
+    column); clicking again turns the order around. A term's Entries
+    column doesn't sort. A flattened tree's note bar names the sort and
+    has **Clear the sort**.
+  - **Page size:** the pager offers 10, 20, 50, or 100 a page (20 by
+    default), shown once a list has more than 10 entries.
+  - The filters, sort, and page size are in the URL (`author`, `terms`,
+    `days`, `sort`, `dir`, `per`), like the status and search, and the
+    tabs' counts follow the filters.
+- **Not now:** bulk selection and the bulk bar, toasts for the list's
+  actions, and **Unpublished changes** (no autosave).
+- **Why:** the author asked to refine the content lists from the design
+  doc, and picked the filters row and sorting with page size.
+- **Checked:** `composer check` (filtering by author, terms, and days,
+  sorting each column both ways, and filters and sorts flattening a
+  tree; malformed values refused); `npm run admin:build` (type-checked).
+  Not driven in a browser.
+
+### D-301: Bulk selection and the bulk bar
+- **Date:** 2026-09-30
+- **Decision:** From the design direction's §7 (Tables, Bulk bar):
+  - **`POST entries/bulk`** (`EntryController::bulk()`): `action`
+    (`publish`, `draft`, or `trash`) and `ids` (1 to 100). Each entry is
+    changed at its current revision, read on the server: a status change
+    edits only the status (and an undated entry's date), and a trashed
+    entry can be restored, so nothing anyone wrote is lost (the row
+    menu's Move to trash already loads the revision just before
+    deleting). Each is checked alone, with the single-entry rules
+    (`content.edit`, `content.publish` for anything not a draft,
+    `content.delete` and never an index page for the trash), and
+    **publishing needs the type's required fields** (empty, a blank
+    string, or an empty list), the editor's rule now on the server for
+    bulk changes; the publish date isn't checked, since publishing sets
+    it, and an index page has no type fields. An entry that can't be
+    changed is answered in `skipped` with its title and why, and the rest
+    go ahead; `done` lists the ids changed.
+  - **The checkbox column:** `EntryTable`'s `selectable` and
+    `v-model:selected`, drawn checkboxes (`role="checkbox"`,
+    `aria-checked`), a header that selects every row shown on the page
+    (mixed when some are, with a minus), and selected rows tinted
+    `--accent-soft`. The index page's pin moves into the column (it was
+    before the title); Continued rows have no checkbox.
+  - **The bulk bar:** a pill fixed to the bottom center, clear of the
+    safe area, with the count, **Publish** (with `content.publish`),
+    **Move to draft**, a divider, **Move to trash** (with
+    `content.delete`, after a confirmation), and **Clear**. Not on the
+    Trash tab. The selection clears when the type, tab, filters, sort,
+    or page change, and after a change.
+  - **The result** is the list's notice: "Published 3 posts." and, when
+    some were skipped, a warning naming each with its reason.
+- **Not now:** Discard changes (no autosave), bulk actions in the trash,
+  and selecting across pages.
+- **Why:** the author asked for bulk selection next (after D-300).
+- **Checked:** `composer check` (moving to draft, publishing with and
+  without a date, trashing, a missing entry, a required field left
+  empty, an author trashing another's entry, malformed requests, and the
+  CSRF token); `npm run admin:build` (type-checked). Not driven in a
+  browser.
+
+### D-302: The list's actions are toasts
+- **Date:** 2026-09-30
+- **Decision:** Supersedes the list's success notices (D-254, D-275,
+  D-237, and D-301's result notice). On a content type's list, what an
+  action did is a toast in the past tense, as admin.md §7 says: Moved
+  “…” to the trash, Duplicated as a draft: “…”, Restored “…” as a draft,
+  Deleted “…” permanently, Deleted 3 posts permanently, and the bulk
+  bar's Published 3 posts, Moved 3 posts to draft, Moved 3 posts to the
+  trash (or Nothing changed). No trailing period, like the editor's
+  toasts. What an action couldn't do stays a notice above the list, as
+  `toast.ts` says problems do: an error, and the entries a bulk change
+  skipped ("2 posts couldn't be published:", each with why).
+  - **No Open it link:** a toast is gone in 2.6 seconds, too soon for a
+    link, so a duplicate or restored entry is found in the list (both
+    are drafts).
+- **Why:** the author asked to switch the list's actions to toasts.
+- **Checked:** `npm run admin:build` (type-checked). Not driven in a
+  browser.
+
+### D-303: The list's filters offer only terms in use
+- **Date:** 2026-09-30
+- **Decision:** The entry list's Author and taxonomy selects (D-300)
+  offer only the authors and terms the type's entries use, so a choice
+  never finds nothing; a select with nothing to offer isn't shown.
+  - **`GET references/{type}?for={type}`:** a taxonomy answers only the
+    terms that type's entries use, in any status (a draft's terms count),
+    among the entries the account may edit (`Permissions::restrict()`),
+    with virtual terms that only drafts use too. A hierarchical taxonomy
+    keeps each used term's parents (stopping at a loop), so its tree
+    holds together. An unknown `for` is a 400.
+  - **`ContentRepository::termCounts()`** takes an optional query and
+    counts among the entries it finds (limit and offset aside); without
+    one it counts listed entries as before.
+- **Why:** the author asked to hide unused terms, after jtcom's era
+  filter offered seven eras when only Current is used.
+- **Checked:** `composer check` (unused terms left out, a parent kept,
+  a draft's virtual term kept, an unrelated type answering none, bad
+  `for` refused); on the jtcom trial, `era?for=post` answers only
+  `current` and `category?for=post` 24 topics. `npm run admin:build`.
+  Not driven in a browser.
+
+### D-304: Terms are listed alphabetically
+- **Date:** 2026-09-30
+- **Decision:** Wherever the admin lists a taxonomy's terms (the entry
+  list's filters, the reference picker, a hierarchical taxonomy's tree,
+  where siblings sort by title), they're alphabetical by title, never in
+  file order. A term file's numeric prefix (`07.current.md`) orders
+  nothing in the admin. This is how it already works; don't propose file
+  order as an option.
+- **Why:** the author: "Terms should be alphabetical, not file order."

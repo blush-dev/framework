@@ -56,8 +56,26 @@ Each is recorded in `.claude/docs/decisions.md`.
   18px indent, but 20 rows a page rather than all at once, and a page
   that starts inside a branch repeats the rows above it, marked
   **Continued**. Tabs and searches flatten the tree (with the note bar)
-  and show a row's parents before its title. There's no tree/flat switch
-  and no column sorting yet.
+  and show a row's parents before its title. There's no tree/flat switch.
+  Filters and sorting flatten it too (D-300), and the note bar's **Clear
+  the sort** button is how a sort is undone.
+- **The filter row** (D-300): search, Author, one select per taxonomy
+  the type uses (§8 says "its taxonomy", one), and Updated (7, 30, or 90
+  days), but no **Unpublished changes** toggle, since there's no
+  autosave. Author and term selects list only what the type's entries
+  use (D-303), at most 100 items. The status
+  tabs' counts follow the filters (the prototype's ignore them). The
+  Trash tab takes only the search, and nothing sorts it.
+- **Bulk selection** (D-301): the bulk bar has Publish, Move to draft,
+  and Move to trash, but no **Discard changes** (no autosave). Selection
+  is the page's: changing the tab, a filter, the sort, or the page
+  clears it. A bulk change toasts what changed, and a notice names
+  each skipped entry and why (D-302). Continued rows can't be
+  selected. The Trash tab has no checkboxes.
+- **Sorting and page size** (D-300): sorting runs on the server across
+  every page; Authors sorts by the first author's slug, not the name
+  shown. The pager offers 10, 20, 50, or 100 a page (20 by default, not
+  the prototype's 25), shown once a list is longer than 10.
 - **Authors are under People** (D-259), not Content's shared taxonomies:
   they're the public side of accounts.
 - **No list of every type together** (D-240): each content type has its own
@@ -217,8 +235,8 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Row menus** (D-254): Edit, View and Copy link once live (View archive
   for terms), and Move to trash; the trash's are Restore as a draft and
   Delete permanently. Duplicate is there since D-275 (not for terms,
-  as in the prototype), shown with a notice and an Open it link rather
-  than a toast, like the list's other actions. A trashed entry's
+  as in the prototype). The list's actions toast what they did (D-302),
+  so a copy or a restored entry has no Open it link; it's in the list. A trashed entry's
   Preview (D-276) opens a read-only screen in the admin (the prototype's
   "Opened the editor"), not the themed page. The editor's Slug field
   (D-277) sits in the entry tab's Publish group, as the
@@ -226,8 +244,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   for a live entry. The floating list opens above the button when there's
   no room below.
 - **The pinned index page** (D-255): a collection's or taxonomy's
-  landing page. With no checkbox column (no bulk actions yet), the pin
-  sits before the title. It's pinned on the list's first page only, not
+  landing page. Its pin sits in the checkbox column (D-301), or before
+  the title where a table has no checkboxes (a type's first-run screen). It's pinned on the list's first page only, not
   on every page as "survives … paging" says (D-264). In a tree list its
   title leaves the triangle's space like the rows below it. The
   editor's side is done (D-274): the **Index** mark beside the type, a
