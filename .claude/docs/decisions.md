@@ -322,6 +322,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-042: Content types can be defined in PHP or in data, under developer control
 - **Date:** 2026-09-25
+- **Status:** The admin edits data types since D-311.
 - **Decision:** Content types and their schemas share one definition model
   (`ContentTypeDefinition`, with `fromArray()`), loadable from two sources:
   - **Developer (code):** typed PHP in `config/content.php` or extension
@@ -5168,6 +5169,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-250: Content types, read-only, as list and detail screens
 - **Date:** 2026-09-29
+- **Status:** `user/data/types` types are editable since D-311.
 - **Decision:** The Content types stub (D-241) built as the design's
   list and detail screens (`admin.md` §8), read-only.
   - **`GET types`** adds each type's `origin` (`TypeOrigin`: built in,
@@ -7389,4 +7391,67 @@ decision, add a new entry that supersedes it and mark the old one
   site, all 200); the jtcom trial in Chrome with `trailingSlash` on
   (every admin request a single 200; `/about` still 301s), the setting
   and a throwaway account removed after.
+
+### D-311: Editing content types in the admin
+- **Date:** 2026-09-30
+- **Decision:** Implements D-042's "editable (later) in the admin" and
+  the design's type builder, for types in `user/data/types` only. The
+  author chose edit, create, and delete in one pass; the prototype's
+  switches mapped to what exists; and every field type but `object`.
+  - **`DataTypeWriter`** (`Content\Type`): `create()`, `update()`,
+    `delete()`, and `path()`. Changes come by canonical option name
+    (`labels`, `description`, `icon`, `prefix`, `public`, `sitemap`,
+    `feed`, `dateArchives`, `hierarchical`, `types`, `fields`; `null`
+    removes), are applied to the file's own data, built with
+    `ContentType::fromArray()` (so checked as the loader checks), and
+    each changed option is written as `ContentType::toArray()` writes it,
+    leaving out defaults (the singular and plural a name gives, `public`,
+    a prefix the folder gives, `kind: collection`) and replacing its 1.x
+    name (`routing`, `date_archives`, `term_collect`). Untouched keys stay
+    as written: JSON keeps its other keys; YAML is edited with `YamlMap`
+    (its `with()` regains an inline depth, with Symfony's compact nested
+    mappings, so `fields` is a block list of `- name:` items). New types
+    are YAML. Field classes are never written (the registry knows them by
+    type). Every change is checked against all the types: the file is
+    written, `ContentTypeLoader` loads everything again, and when that
+    throws (two types in one folder, a taxonomy naming a missing type),
+    the file is put back. Writes take `storage/cache/types.lock`. Delete
+    first refuses while a taxonomy groups the type, naming it.
+  - **The API** (`TypeEditController`, `site.settings`): `POST types`,
+    `PATCH` and `DELETE types/{name}`, and `POST types/refresh`; `GET
+    types` adds `create` and `urls`, and `GET types/{name}` adds
+    `dateArchives`, `folderPrefix`, `file`, and `index` (found on disk,
+    so a type just created has it). `TypesController::detail()` describes
+    a type among any set of types, since the request that made a change
+    still holds the old ones.
+  - **Applying a change:** the save writes the compiled types again when
+    the site keeps them compiled; the index notices its types changed
+    (its fingerprint) and rebuilds on the next request; and the admin
+    then calls `types/refresh`, which runs with the new types, to compile
+    the routes (when compiled) and reindex. Each change moves the content
+    version on.
+  - **Index pages** (D-255): `index: true` writes `{folder}/index.md`,
+    titled with the plural name, when the folder has no `index` file.
+    It's never removed by the admin.
+  - **The screens:** the type's screen edits a data type (`TypeEditor`:
+    General, Behavior, Fields, Save and Revert, a Danger Zone), built from
+    `TypeBasicsFields`, `TypeBehaviorFields`, and `FieldListEditor` with
+    `FieldDefinitionEditor`; **New Content Type** (`/types/new`) is the
+    three-step wizard with What Gets Created; the types list has the
+    button when data types are read. Departures are in
+    `admin-design/departures.md`.
+- **Checked:** `composer check` (`AdminTypeEditTest`: creating with
+  fields and an index page, defaults left out, editing only what changed
+  with comments and other keys kept, a 1.x name replaced, a folder's
+  prefix left out, a JSON type, compiled types rewritten, refusals that
+  write nothing, deleting and the taxonomy guard, `dataTypes` off, the
+  capability); `npm run admin:build`; the jtcom trial in Chrome with a
+  throwaway administrator: Recipes created with the wizard (a number
+  field, the featured image, the index page; `/recipes` served),
+  edited (a field's maximum, the feed), Cuisines created as a
+  hierarchical taxonomy grouping Recipes and nested under it in the
+  navigation, Recipes' delete refused while Cuisines grouped it, then
+  both deleted; the files, folders, account, and sessions removed after.
+  Two bugs found that way and fixed: `structuredClone()` refusing Vue's
+  proxies, and a number input's model being a number.
 

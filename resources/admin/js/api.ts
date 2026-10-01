@@ -171,9 +171,18 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	public: boolean;
 	feed: boolean;
 	sitemap: boolean;
+	// Whether it's defined in `user/data/types`, so the admin changes it (D-311).
 	editable: boolean;
 	taxonomies: string[];
 	fields: FieldDescription[];
+	// `none`, `year`, `month`, `day`, `hour`, `minute`, or `second`.
+	dateArchives: string;
+	// The URL prefix its folder gives it, without slashes.
+	folderPrefix: string;
+	// The data file it's defined in, from the site's root, or `null`.
+	file: string | null;
+	// Its index page (D-255), or `null`.
+	index: { id: string; title: string } | null;
 }
 
 /**

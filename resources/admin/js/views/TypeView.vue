@@ -2,13 +2,15 @@
 /**
  * One content type (D-250): its names and settings, the taxonomies that
  * group it (or, for a taxonomy, the types it groups), and the fields it
- * defines, with a way to its entries. Read-only for now: a type from
- * `user/data/types` will be editable here, the rest never (D-042).
+ * defines, with a way to its entries. A type from `user/data/types` is
+ * edited here (`TypeEditor`, D-311); the rest are defined in code and
+ * shown read-only (D-042).
  */
 
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import TypeEditor from '../components/TypeEditor.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import { ApiError, request, type ContentTypeDetail } from '../api';
 import { humanize, label } from '../fields';
@@ -77,12 +79,14 @@ const related = computed(() => {
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<div v-if="type" class="detail">
+	<TypeEditor v-if="type?.editable" :type="type" @saved="type = $event" />
+
+	<div v-else-if="type" class="detail">
 		<div class="detail__side">
 			<section class="panel" aria-labelledby="general-heading">
 				<header class="panel__header">
 					<h2 id="general-heading">General</h2>
-					<p class="panel__hint">{{ type.editable ? 'Editable here later' : `Defined in ${origin}` }}</p>
+					<p class="panel__hint">Defined in {{ origin }}, so it's shown here</p>
 				</header>
 				<dl class="panel__body facts">
 					<div><dt>Name (plural)</dt><dd>{{ type.labels.plural }}</dd></div>

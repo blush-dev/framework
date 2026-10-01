@@ -200,9 +200,26 @@ Each is recorded in `.claude/docs/decisions.md`.
   site's own), saved with **Save**; no rename, "used in", Replace, or
   Delete yet. Only `user/media` is listed (D-294 removed D-292's page
   bundle files and its **Where** control).
-- **Content types** (D-250): read-only; no field editor, new-type wizard,
-  or delete yet. "Show in the sidebar" and a hierarchy switch aren't type
-  settings in Blush. Entries counts are what the account may edit.
+- **Content types** (D-250, D-311): types in `user/data/types` are
+  edited, created with the wizard, and deleted; the rest stay read-only.
+  "Show in the sidebar" isn't a type setting in Blush; the hierarchy
+  switch is a taxonomy's (`hierarchical`), since pages nest by folder.
+  Entries counts are what the account may edit. From the design's type
+  builder: the key and folder are fixed after creation (entries are
+  filed by them), so the key isn't "fixed once entries exist" but always;
+  **URL base** is the URL prefix, empty for the folder's; **Has an index
+  page** creates the `index` entry once and then links to it (turning it
+  off isn't offered: an index page is an entry, not a setting); **Has a
+  featured image** adds or removes an `image` media field, for
+  collections only; the switches are checkboxes, as everywhere in the
+  admin; a collection's taxonomies are chosen on the taxonomy (its
+  **Groups**), not on the collection, since that's where Blush keeps
+  them; the icon is a site icon's name with **Choose** (the icon
+  library) rather than a row of ten; field types are all but `object`
+  (kept as written), with each type's options, and a field's **Default**
+  follows its type. Delete is in a Danger Zone, confirmed, and refused
+  while a taxonomy groups the type. Save and Revert sit below the
+  panels.
 - **Roles and accounts** (D-249): read-only, with a notice naming where
   each is changed; no Invite, role checkboxes, or danger zone yet; roles
   have no description, and the last sign-in stands in for "last active".

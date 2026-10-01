@@ -281,7 +281,10 @@ extension, on or off, and what each adds), then Settings (D-309: the
 site-wide settings that exist, by group, with defaults marked). Every
 screen in the navigation is built now.
 With `trailingSlash` on, the admin, the publish webhook, and preview
-links are no longer redirected (D-310: `exact` routes).
+links are no longer redirected (D-310: `exact` routes). Then editing
+content types (D-311): types in `user/data/types` are edited on their
+screen, created with the three-step wizard, and deleted; config,
+extension, and built-in types stay read-only.
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages

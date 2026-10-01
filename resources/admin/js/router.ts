@@ -31,6 +31,7 @@ import MediaFileView from './views/MediaFileView.vue';
 import MediaView from './views/MediaView.vue';
 import TrashedView from './views/TrashedView.vue';
 import TypesView from './views/TypesView.vue';
+import NewTypeView from './views/NewTypeView.vue';
 import SignInView from './views/SignInView.vue';
 
 export const router = createRouter({
@@ -57,6 +58,7 @@ export const router = createRouter({
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', capability: 'media.upload', area: 'content' } },
 		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', capability: 'media.upload', area: 'content', parent: 'media' } },
 		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content Types', capability: 'site.settings', area: 'config' } },
+		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: 'New Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		// People (D-249): each list, then a screen per item (`meta.parent`
 		// marks the list in the navigation).

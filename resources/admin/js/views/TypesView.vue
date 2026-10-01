@@ -2,8 +2,8 @@
 /**
  * Content types (D-250): every type, taxonomies too, as a list screen
  * with tabs by kind and a search, then a screen for each type (admin.md
- * §8, List, then detail). Types are defined in code and files for now, so
- * this shows them.
+ * §8, List, then detail). Types in `user/data/types` are created and
+ * edited here (D-311); the rest are defined in code, so they're shown.
  */
 
 import { computed, ref } from 'vue';
@@ -14,7 +14,7 @@ import SkeletonTable from '../components/SkeletonTable.vue';
 import { request, type ContentTypeSummary, type EntryList } from '../api';
 import { humanize } from '../fields';
 import { plural } from '../format';
-import { loadTypes, types } from '../types';
+import { canCreateTypes, loadTypes, types } from '../types';
 
 const loaded = ref(false);
 const failed = ref(false);
@@ -64,9 +64,12 @@ function origin(type: ContentTypeSummary): string {
 			<h1 tabindex="-1">Content Types</h1>
 			<p class="page-header__hint">The kinds of entries the site has. Taxonomies are content types too.</p>
 		</div>
+		<div v-if="canCreateTypes" class="page-header__actions">
+			<RouterLink class="button button--primary" :to="{ name: 'type-new' }"><AdminIcon name="plus" />New Content Type</RouterLink>
+		</div>
 	</header>
 
-	<p class="notice notice--warn"><span>Types are defined in <code>config/content.php</code>, <code>user/data/types</code>, and extensions, so these screens show them. Creating and changing types here comes later.</span></p>
+	<p class="notice"><span>Types made here live in <code>user/data/types</code>, and their screens edit them. Types from <code>config/content.php</code>, extensions, and Blush itself are defined in code, so their screens show them.</span></p>
 	<p v-if="failed" class="notice notice--error" role="alert">The content types couldn't be loaded.</p>
 
 	<section v-if="!failed" class="panel" aria-labelledby="types-heading" :aria-busy="!loaded">

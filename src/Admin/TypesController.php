@@ -16,8 +16,14 @@ namespace Blush\Admin;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Auth\AuthConfig;
 use Blush\Content\Schema\Field;
+use Blush\Content\Parser\DocumentFormat;
+use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\DataTypeWriter;
+use Blush\Content\Type\InvalidContentType;
+use Blush\Content\Type\TypeOrigin;
+use Blush\Core\Paths;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Taxonomy;
 use Blush\Http\Response;
@@ -41,13 +47,23 @@ use Blush\Http\Status;
  * `GET {path}/api/types/{name}` (`show()`) adds the type's own fields
  * (`Field::toArray()`), the `taxonomies` that group it, whether it's
  * `public`, has a `feed`, is in the `sitemap`, and is `editable` (only
- * `user/data/types` types will be).
+ * `user/data/types` types are, D-311), its `dateArchives`, the prefix its
+ * folder gives (`folderPrefix`), the data `file` it's defined in (`null`
+ * for the rest), and its `index` page (`{"id", "title"}`, or `null`).
+ * The list adds whether types can be created here (`create`: data types
+ * are read) and whether they may set URLs (`urls`).
+ *
+ * `detail()` describes a type among any set of types, so a change can be
+ * answered with the types it made (`TypeEditController`).
  */
 final readonly class TypesController
 {
 	public function __construct(
 		private ContentTypes $types,
-		private AuthConfig $auth
+		private AuthConfig $auth,
+		private ContentConfig $config,
+		private DataTypeWriter $writer,
+		private Paths $paths
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -56,11 +72,13 @@ final readonly class TypesController
 
 		usort($types, static fn (ContentType $a, ContentType $b): int => [$a instanceof Taxonomy, $a->labels->plural] <=> [$b instanceof Taxonomy, $b->labels->plural]);
 
-		$types = array_map($this->summary(...), $types);
+		$types = array_map(fn (ContentType $type): array => $this->summary($this->types, $type), $types);
 
 		return Response::json([
 			'types'   => $types,
-			'authors' => $this->types->find($this->auth->authorTaxonomy) instanceof Taxonomy ? $this->auth->authorTaxonomy : null
+			'authors' => $this->types->find($this->auth->authorTaxonomy) instanceof Taxonomy ? $this->auth->authorTaxonomy : null,
+			'create'  => $this->config->dataTypes,
+			'urls'    => $this->config->dataTypeUrls
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -72,20 +90,76 @@ final readonly class TypesController
 			return Response::json(['error' => sprintf('There\'s no "%s" content type.', $name)], Status::NotFound, ['Cache-Control' => 'no-store']);
 		}
 
+		return Response::json($this->detail($this->types, $type), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Describes a type among a set of types, as `show()` does.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function detail(ContentTypes $types, ContentType $type): array
+	{
+		$name       = $type->name;
 		$taxonomies = array_values(array_map(
 			static fn (Taxonomy $taxonomy): string => $taxonomy->name,
-			array_filter($this->types->taxonomies(), static fn (Taxonomy $taxonomy): bool => $taxonomy->name !== $name && ($taxonomy->types === [] || in_array($name, $taxonomy->types, true)))
+			array_filter($types->taxonomies(), static fn (Taxonomy $taxonomy): bool => $taxonomy->name !== $name && ($taxonomy->types === [] || in_array($name, $taxonomy->types, true)))
 		));
 
-		return Response::json([
-			...$this->summary($type),
-			'public'     => $type->public,
-			'feed'       => $type->hasFeed(),
-			'sitemap'    => $type->sitemap,
-			'editable'   => $this->types->origin($name)->isEditable(),
-			'taxonomies' => $taxonomies,
-			'fields'     => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $type->schema->fields))
-		], headers: ['Cache-Control' => 'no-store']);
+		$editable = $types->origin($name)->isEditable() && $this->config->dataTypes;
+
+		try {
+			$file = $types->origin($name) === TypeOrigin::Data ? $this->writer->path($name) : null;
+		} catch (InvalidContentType) {
+			$file = null;
+		}
+
+		return [
+			...$this->summary($types, $type),
+			'public'       => $type->public,
+			'feed'         => $type->hasFeed(),
+			'sitemap'      => $type->sitemap,
+			'editable'     => $editable && $file !== null,
+			'taxonomies'   => $taxonomies,
+			'fields'       => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $type->schema->fields)),
+			'dateArchives' => $type->dateArchives->value,
+			'folderPrefix' => DataTypeWriter::folderPrefix($type->folder),
+			'file'         => $file === null ? null : $this->paths->relative($file),
+			'index'        => $this->index($type)
+		];
+	}
+
+	/**
+	 * A collection's or taxonomy's index page (D-255), found on disk so a
+	 * type just created has one: the `index` file in its folder.
+	 *
+	 * @return ?array{id: string, title: string}
+	 */
+	private function index(ContentType $type): ?array
+	{
+		if ($type->folder === '') {
+			return null;
+		}
+
+		foreach (DocumentFormat::cases() as $format) {
+			$id = "{$type->folder}/index.{$format->value}";
+
+			if (is_file("{$this->paths->content}/{$id}")) {
+				return ['id' => $id, 'title' => self::title("{$this->paths->content}/{$id}") ?? $type->labels->plural];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The `title` in a file's front matter, if it's on a line of its own.
+	 */
+	private static function title(string $path): ?string
+	{
+		$head = (string) @file_get_contents($path, length: 4096);
+
+		return preg_match('/^title:\s*["\']?(.+?)["\']?\s*$/m', $head, $match) === 1 ? $match[1] : null;
 	}
 
 	/**
@@ -93,7 +167,7 @@ final readonly class TypesController
 	 *
 	 * @return array<string, mixed>
 	 */
-	private function summary(ContentType $type): array
+	private function summary(ContentTypes $types, ContentType $type): array
 	{
 		return [
 			'name'        => $type->name,
@@ -103,7 +177,7 @@ final readonly class TypesController
 			'kind'        => $type->kind()->value,
 			'dated'       => $type->dateArchives !== DateArchives::None,
 			...($type instanceof Taxonomy ? ['types' => $type->types, 'hierarchical' => $type->hierarchical] : []),
-			'origin'      => $this->types->origin($type->name)->value,
+			'origin'      => $types->origin($type->name)->value,
 			'folder'      => $type->folder,
 			'prefix'      => $type->hasUrls() ? '/' . $type->prefix() : null,
 			'fields'      => count($type->schema->fields)

@@ -107,17 +107,20 @@ final readonly class YamlMap
 
 	/**
 	 * Returns a copy that sets a value under the first of `$keys` that's
-	 * present, or adds it as `$keys[0]`.
+	 * present, or adds it as `$keys[0]`. A list or map is written inline
+	 * (`[a, b]`, `{ a: 1 }`) unless `$inline` is deeper: at 2, its items
+	 * go on lines of their own, indented two spaces; at 3, so do the keys
+	 * of a list's maps.
 	 *
 	 * @param list<string> $keys The field's name first, then its aliases.
 	 */
 	#[NoDiscard]
-	public function with(array $keys, mixed $value): self
+	public function with(array $keys, mixed $value, int $inline = 1): self
 	{
 		$key   = $this->present($keys) ?? $keys[0] ?? throw new WriteException('A key is needed to set a value.');
 		$range = $this->find($key);
 		$space = $range === null ? '' : $range[2];
-		$entry = self::dump($key, $value, $space);
+		$entry = self::dump($key, $value, $space, $inline);
 
 		$lines = $range === null
 			? [...$this->lines, ...$entry]
@@ -217,16 +220,16 @@ final readonly class YamlMap
 
 	/**
 	 * Dumps a key and value as lines, with the given space before the
-	 * colon.
+	 * colon, inline from the given level.
 	 *
 	 * @return list<string>
 	 */
-	private static function dump(string $key, mixed $value, string $space): array
+	private static function dump(string $key, mixed $value, string $space, int $inline = 1): array
 	{
 		if (is_string($value) && preg_match(self::TIMESTAMP, $value) === 1) {
 			$lines = ["{$key}: {$value}"];
 		} else {
-			$lines = explode("\n", rtrim(Yaml::dump([$key => $value], 1, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK | Yaml::DUMP_NULL_AS_EMPTY | Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE), "\n"));
+			$lines = explode("\n", rtrim(Yaml::dump([$key => $value], $inline, 2, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK | Yaml::DUMP_NULL_AS_EMPTY | Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_COMPACT_NESTED_MAPPING), "\n"));
 
 			// Text that needs quotes gets double quotes, as people write
 			// them; a JSON string is a valid double-quoted YAML string.

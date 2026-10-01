@@ -19,6 +19,13 @@ export const types = ref<ContentTypeSummary[]>([]);
 export const authorType = ref<string | null>(null);
 
 /**
+ * Whether types can be created here (types in `user/data/types` are
+ * read, D-311), and whether they may set their own URLs.
+ */
+export const canCreateTypes = ref(false);
+export const typeUrls       = ref(true);
+
+/**
  * The type of the entries on screen, or `null` for screens that aren't
  * about one type.
  */
@@ -34,10 +41,12 @@ let loading: Promise<ContentTypeSummary[]> | null = null;
  * time. Types that name an icon load the site's icons too.
  */
 export function loadTypes(): Promise<ContentTypeSummary[]> {
-	loading ??= request<{ types: ContentTypeSummary[]; authors: string | null }>('GET', '/types').then(
+	loading ??= request<{ types: ContentTypeSummary[]; authors: string | null; create: boolean; urls: boolean }>('GET', '/types').then(
 		(answer) => {
-			types.value      = answer.types;
-			authorType.value = answer.authors;
+			types.value          = answer.types;
+			authorType.value     = answer.authors;
+			canCreateTypes.value = answer.create;
+			typeUrls.value       = answer.urls;
 
 			if (answer.types.some((type) => type.icon !== null)) {
 				loadIcons().then((icons) => {
@@ -54,6 +63,16 @@ export function loadTypes(): Promise<ContentTypeSummary[]> {
 	);
 
 	return loading;
+}
+
+/**
+ * Loads the types again, after one changed (D-311), so the navigation and
+ * the screens show it.
+ */
+export function reloadTypes(): Promise<ContentTypeSummary[]> {
+	loading = null;
+
+	return loadTypes();
 }
 
 /**

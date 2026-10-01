@@ -604,9 +604,52 @@ tab; **Open** goes to the file you uploaded. You can also put files in
 With `site.settings`, **Config → Content types** lists every type,
 taxonomies too, with where it's defined, how many fields it has, and how
 many entries. Choose one for its settings, the taxonomies that group it,
-and its fields; **Type settings** on a type's list goes there too. It's
-read-only for now: types are defined in `config/content.php`,
-`user/data/types`, and extensions (see [Content types](content-types.md)).
+and its fields; **Type settings** on a type's list goes there too.
+
+Types in `user/data/types` are edited on their screen; types from
+`config/content.php`, extensions, and Blush itself are defined in code,
+so their screens only show them (see [Content types](content-types.md)).
+
+### Creating a type
+
+**New Content Type** walks through three steps, with **What Gets
+Created** beside them:
+
+1. **Basics:** content (a collection) or a taxonomy, its names, a key
+   (made from the name, such as `recipe`), the folder its entries live in
+   under `user/content` (made from the plural name), a description, and
+   an icon. The key and folder can't change later.
+2. **Behavior:** the URL prefix (the folder's by default), whether it's
+   visible on the site, in the sitemap, and has a feed; for content, date
+   archives and a featured image (an `image` media field); for a
+   taxonomy, whether terms nest and which types its terms group; and an
+   index page, the type's landing page (on by default).
+3. **Fields:** the fields its entries carry beside the title, slug,
+   status, dates, and body.
+
+**Create type** writes `user/data/types/{key}.yaml`, and the index page
+as `index.md` in its folder, titled with the plural name.
+
+### Editing a type
+
+A `user/data/types` type's screen has General (names, description,
+icon), Behavior (as above), and Fields: open a field to change its
+label, key, type, help, whether it's required, its default, and its
+type's options (a number's limits and whole numbers, a choice's options,
+a list's item type, a reference's type and whether it takes more than
+one), move fields up or down, or remove one; **Add field** adds one.
+Groups of fields (`object`) are kept as written; edit those in the file.
+Choose **Save** to write what you changed; **Revert** puts it back.
+
+Only the options you change are written, and nothing at its default:
+the rest of the file stays as you wrote it, comments included. A change
+that doesn't fit with the other types, such as two types in one folder,
+is refused with the reason, and the file is left as it was. The site
+uses a change on the next request.
+
+**Delete this type** removes its file. Its entries stay in its folder,
+unlisted until a type claims the folder again. A type a taxonomy groups
+can't be deleted until the taxonomy stops grouping it.
 
 ## Settings
 
@@ -761,7 +804,11 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. Secrets are never sent. Needs `site.settings` |
 | `GET extensions` | Every installed extension, the ones that are on first: `{"extensions": [{"name", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/extensions.php` exists. Needs `site.settings` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies last; a taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`. `fields` is how many the type defines, `icon` is `null` for the kind's, and `authors` names the type accounts' authors belong to (`null` when it's disabled). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the `taxonomies` that group it, `public`, `feed`, `sitemap`, and `editable` |
+| `GET types/{name}` | One type, with its own `fields`, the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, and its `index` page (`{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `public`, `sitemap`, `feed`, `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page. Needs `site.settings` |
+| `PATCH types/{name}` | Change a `user/data/types` type: `{"set", "index"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
+| `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
+| `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |

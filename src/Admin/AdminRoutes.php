@@ -39,7 +39,10 @@ use Blush\Session\StartSession;
  *   - `GET  dashboard`: the site, content counts, and the actions the
  *     account may run.
  *   - `POST actions/{action}`: runs an action.
- *   - `GET  types`: the site's content types, and `GET types/{name}` one.
+ *   - `GET  types`: the site's content types, and `GET types/{name}` one;
+ *     `POST types`, `PATCH` and `DELETE types/{name}`, and `POST
+ *     types/refresh` edit the ones in `user/data/types`
+ *     (`TypeEditController`).
  *   - `GET  components`: the components the editor's inserter offers.
  *   - `GET  icons`: the icons the editor's icon picker offers.
  *   - `GET  media`: the media files an entry can use, a page at a time,
@@ -100,7 +103,11 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
 			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),
+			Route::post('/types', [TypeEditController::class, 'create'])->named('type.create')->middleware(Authenticate::class),
+			Route::post('/types/refresh', [TypeEditController::class, 'refresh'])->named('types.refresh')->middleware(Authenticate::class),
 			Route::get('/types/{name:[a-z0-9_-]+}', [TypesController::class, 'show'])->named('type')->middleware(Authenticate::class),
+			Route::patch('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'update'])->named('type.update')->middleware(Authenticate::class),
+			Route::delete('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'delete'])->named('type.delete')->middleware(Authenticate::class),
 			Route::get('/components', ComponentsController::class)->named('components')->middleware(Authenticate::class),
 			Route::get('/icons', IconsController::class)->named('icons')->middleware(Authenticate::class),
 			Route::get('/media', MediaListController::class)->named('media')->middleware(Authenticate::class),

@@ -81,7 +81,8 @@ same type.
 Which to pick:
 
 - **YAML** keeps a type with your content, so a copy of `user/` carries
-  it along. It's the only kind a future admin screen can edit.
+  it along. It's the only kind the [admin](admin.md#content-types) can
+  create and edit.
 - **`config/content.php`** keeps it with your site's code.
 - **An extension** keeps it with a feature you can reuse or version on its
   own.
