@@ -11,6 +11,6 @@
 		"footer": "Footer"
 	},
 	"variants": {
-		"image": ["stretch-wide", "stretch-full", "inline-left", "inline-right"]
+		"image": ["inline-left", "inline-right"]
 	}
 }

@@ -103,7 +103,7 @@ final class JsonSchemasTest extends TestCase
 		}
 
 		// Each type with options of its own is checked when `type` names it.
-		$this->assertSame(6, substr_count($json, '"if": {'));
+		$this->assertSame(7, substr_count($json, '"if": {'));
 	}
 
 	public function testDescribesEveryBuiltInMenuLinkKey(): void

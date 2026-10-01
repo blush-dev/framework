@@ -138,6 +138,8 @@ Only `name` is required.
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`menus` and `regions`:** the places your theme shows the site's menus
   and regions. See [Menus and regions](menus.md#for-theme-authors).
+- **`bleed`:** the classes that widen an element past the text column;
+  see [Bleed](#bleed).
 - **`variants`:** styles your theme adds to components, by component,
   such as `{"callout": ["bordered"]}`. See
   [Variants](components.md#variants). Under `image`, the classes it
@@ -441,17 +443,46 @@ template that's also another component's. With `--strict`, it also notes
 registered components and variants without a translated label (see
 [Labels and translations](components.md#labels-and-translations)).
 
+### Bleed
+
+The admin's editor can widen any element at the top of an entry (an
+image, a paragraph, a component) past the text column: **Wide**, into
+the margin, or **Full**, edge to edge. Each is a class on the element,
+`bleed-wide` and `bleed-full` unless your theme names its own; the
+column's own width writes no class at all. Style both:
+
+```css
+.bleed-wide { /* wider than the text, centered on it */ }
+.bleed-full { /* as wide as the page */ }
+```
+
+A theme whose content already uses other names says so in `theme.json`,
+and the editor writes those instead (a child theme inherits them):
+
+```json
+{
+	"bleed": {
+		"wide": "stretch-wide",
+		"full": "stretch-full"
+	}
+}
+```
+
+The default theme styles `bleed-wide` and `bleed-full`, and Blush 1.x's
+`stretch-wide` and `stretch-full` the same way.
+
 ### Image variants
 
-An image in Markdown takes classes, `![A lake](/media/lake.jpg){.stretch-wide}`,
+An image in Markdown takes classes, `![A lake](/media/lake.jpg){.inline-left}`,
 and the site puts them on the image's figure. List the ones your
 stylesheet styles under `variants.image` in `theme.json`, and the
-editor offers them as the image's **Variant**:
+editor offers them as the image's **Variant**. Widths aren't variants:
+they're [bleed](#bleed).
 
 ```json
 {
 	"variants": {
-		"image": ["stretch-wide", "stretch-full"]
+		"image": ["inline-left", "polaroid"]
 	}
 }
 ```
@@ -463,18 +494,17 @@ Give each a label (and a description, if you like) in your theme's
 {
 	"images": {
 		"variants": {
-			"stretch-wide": {
-				"label": "Wide",
-				"description": "Wider than the text, centered on it."
+			"polaroid": {
+				"label": "Polaroid",
+				"description": "A white border, wider at the bottom."
 			}
 		}
 	}
 }
 ```
 
-The default theme offers `stretch-wide` (Wide), `stretch-full` (Full
-Bleed), `inline-left` (Float Left), and `inline-right` (Float Right), and
-styles them. They're only offered while it's the active theme, since
+The default theme offers `inline-left` (Float Left) and `inline-right`
+(Float Right), and styles them. They're only offered while it's the active theme, since
 another theme's stylesheet may not style them; list the ones yours does.
 `theme:check` notes an image variant without a label.
 

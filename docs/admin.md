@@ -220,12 +220,13 @@ a link's brackets, an attribute block's braces) is dimmed, and what it
 wraps keeps full strength. *Emphasis* is slanted, **strong text** is
 bold, headings are bold (lighter from `###` down), quotes are muted, and
 struck text is dimmed. A link's text is colored and its address dimmed;
-an image's text is muted. Inline code and fenced code sit on a gray
-background, with a fence's language named. A task's `[x]` is green.
+an image's text is muted. Inline code sits on a gray background, and a
+fenced code block, fences and all, is one gray box, with its language
+named. A task's `[x]` is green.
 A table's pipes and its `| --- |` row are dimmed, but for the row's
 alignment colons; its header row is bold. In a definition list, a term
 is bold and a definition's `:` is dimmed. Footnotes are
-colored. Attribute blocks, such as `{.stretch-wide}` after an image or a
+colored. Attribute blocks, such as `{.bleed-wide}` after an image or a
 heading, are a gray chip with their class and id names in full
 strength. A component's name is colored, and a component or image the
 settings are showing is boxed (a container on its first and last lines).
@@ -240,10 +241,40 @@ files claiming the same slug) is edited at its file's path instead, such
 as `/admin/entries/_posts/2026-09-29.hello.md`, which works for every
 entry.
 
-The header's left side has a link back to the type's list, then four
-ways to put something in: **+** for a block component, the picture for
-media, the shapes for an icon, and the **A** menu for a component inside
-a sentence. Its right side says whether your changes are
+There's no back button: the type's name in the top bar (**Posts** in
+*Site / Posts / Edit Post*) goes back to its list. The header's left
+side is what you do to the text, in three groups:
+
+- **What goes in the entry**, always there: **+** for a block component
+  or a Markdown element (heading, quote, list, definitions, code block,
+  table, divider), which goes in with its placeholder selected so you
+  can type over it, and the picture for media.
+- While the cursor is in the text, **▴▾** move the element it's in (the
+  one the footer names last) up or down past the one beside it, inside
+  whatever holds it: a list item within its list, a paragraph within its
+  callout, a callout among the entry's other elements (⌥↑ and ⌥↓ do
+  too). An arrow is off when there's nothing to swap with. A numbered
+  list keeps counting from where it started, and the blank lines
+  between elements stay where they are.
+- **What goes in a sentence**, shown only where Markdown's marks mean
+  something (not in a code block, on a component's `:::` line, a
+  divider, or a table's `| --- |` row): **Bold** and **Italic**, lit
+  when the text at the cursor is bold or italic; the **link** form
+  (**Text** and **Address**, filled in from the selection, the word at
+  the cursor, or the link the cursor is in, with **Remove** for a link
+  that's there); the shapes for an icon; and the **A** menu for a
+  component inside a sentence. Inside a component that holds only some
+  things, such as a gallery's images, they go, the component panel
+  offers only what it holds, and the media picker shows only images.
+- **Bleed**, for an element at the top of the entry: how far it reaches
+  past the text column. **Base** is the column's width and writes
+  nothing; **Wide** and **Full** write the classes your theme names (see
+  [Bleed](themes.md#bleed)). The button shows the width in force, and is
+  colored while the element is widened.
+
+One of these is open at a time: opening a menu, the link form, or a
+picker closes the component panel and anything else open. Its right
+side says whether your changes are
 saved and the entry's status, then has the settings button, the main
 button, and a **⋮** menu in two parts: **View** (the settings panel,
 the **Outline**, **Focus mode**, and **Preview**, or **View** once it's
@@ -261,7 +292,8 @@ The main button depends on the entry:
 **Update** and **Save draft** stay off until you change something, since
 there's nothing to save yet.
 
-The settings (⌘/ or Ctrl+/) open beside the text and push it aside;
+The settings (⌘/ or Ctrl+/) open beside the text and push it aside, on
+the element the cursor is in when it's in one, else on the entry's tab;
 close them with their **×** or Escape. Your browser remembers whether
 you left them open, so the next entry you edit opens the same way (on a
 small screen, where they'd cover the text, they always start closed).
@@ -294,29 +326,46 @@ the file was last edited.
 The body is an ordinary text field, so undo, spelling, and your
 browser's shortcuts work as usual. The footer shows where the cursor is
 on the left (see below), and the words and reading time on the right.
+When the cursor leaves the text (you click the title, the margin, or
+the entry's tab), the footer shows only the entry, the element's tab
+says nothing's selected, and the sentence tools and bleed go; using the
+header, the footer, the settings, or a picker doesn't count as leaving.
 
 In a list, Enter starts the next item with the same marker (the next
 number, renumbering the list; an open `[ ]` for a task), and Enter on
 an empty item ends the list, leaving a blank line so what you write next
 is a paragraph. A quote carries its `>` the same way. In a table, Enter
 adds a row with the same columns (and the `| --- |` row a table needs, if
-it hasn't one yet); Enter on an empty row ends the table.
+it hasn't one yet); Enter on an empty row ends the table. Typing three
+backticks alone on a line writes the rest of the code block (an empty
+line and the closing fence), with the cursor left where the language
+goes; Enter from there steps into the block.
 
 Formatting has the usual keys (Ctrl in place of ⌘ on Windows and
 Linux), each turning it on for the selected text, or off when it's
-already there:
+already there (either way it was written: `*` or `_`, `**` or `__`).
+With nothing selected, bold and italic act on the word at the cursor:
 
 | Keys | Does |
 |---|---|
 | ⌘B | **Bold** (`**text**`) |
-| ⌘I | *Italic* (`*text*`) |
+| ⌘I | *Italic* (`_text_`, or `*text*` inside a word, where `_` isn't italic) |
 | ⌘E | Inline code (`` `text` ``) |
 | ⌘⇧X | Strikethrough (`~~text~~`) |
-| ⌘K | With text selected, a link: `[text]()`, with the cursor where the address goes (a selected address becomes `[](address)`). With nothing selected, ⌘K opens the command palette as usual |
+| ⌘K | The link form, for the selected text, the word at the cursor, or the link the cursor is in. Outside the text, ⌘K opens the command palette as usual |
+| ⌘⇧K | Remove the link the cursor is in, leaving its text |
 | ⌘⌥1 to ⌘⌥6 | Make the line (or the selected lines) a heading of that level; the same keys again make it a paragraph. In a quote or list item, the heading goes inside it |
 | ⌘⌥0 | Make the line a paragraph |
-| ⌥↑, ⌥↓ | Move the line (or the selected lines) up or down; a numbered list is renumbered |
-| Tab, Shift+Tab | In a list, nest the item under the one above, or bring it back out; what's nested under it moves with it. Elsewhere, Tab leaves the text as usual |
+| ⌥↑, ⌥↓ | Move the element the cursor is in up or down among the ones beside it |
+| Backspace | Just after a list item's marker, a quote's `>`, or a heading's `#`s: take the marker off, keeping the words (an indented list item comes out a level first) |
+| Tab, Shift+Tab | In a list, nest the item under the one above, or bring it back out; what's nested under it moves with it. In a quote, add a `>` level, or take one off (the last one leaves plain paragraphs): the whole quote, or just the selected lines. Over several selected lines of a code block, indent them two spaces, or take up to two off. Elsewhere, Tab leaves the text as usual |
+
+Text can't land inside the syntax around it by accident: a character
+typed right after an attribute block at the end of a line goes before
+it, at the end of the words; one typed right after a component's
+`:::name{…}` or `::name[…]` goes on a new line below; and anything pasted
+or inserted into a component's own line goes onto a line after it.
+Typing inside the braces or a component's name still edits them.
 
 Pasting an address over selected text makes it a link. Dropping or
 pasting files into the text uploads them to the library and puts each
@@ -377,8 +426,8 @@ so they have no Slug field.
 
 ### Editing an index page
 
-A type's index page opens in the same editor, marked **Index** beside
-its type, and the Document tab says what it is. It introduces the
+A type's index page opens in the same editor, as **Edit Index Page**,
+and the entry's tab (**Index Page**) says what it is. It introduces the
 type's archive rather than being one of its entries, so it leaves out
 what doesn't apply: the type's fields (such as categories or a
 subtitle; any already in the file are kept as they are, under front
@@ -447,7 +496,11 @@ How large a file may be is up to PHP (`upload_max_filesize` and
 `post_max_size`).
 
 The same picker is **Choose** beside every media field and component
-option, such as a video's **Poster image**.
+option, such as a video's **Poster image**. A field or option that takes
+one kind of file (a video's file, its poster, the featured image, an
+image's **Replace**, or a field with a `kind`) shows only that kind,
+without the kind buttons, and its upload refuses a file of another
+kind, saying why.
 
 The shapes button opens your theme's [icons](components.md#icons),
 grouped: the built-in icons by category (Status, Interface, Arrows, and
@@ -500,12 +553,14 @@ back.
 
 ### Images and blocks
 
-An image is plain Markdown, `![A lake](/media/lake.jpg "The lake at dawn"){.stretch-wide}`,
+An image is plain Markdown, `![A lake](/media/lake.jpg "The lake at dawn"){.bleed-wide}`,
 and its panel edits each part of it:
 
-- **Variant**: the looks your theme offers images, such as **Wide**
-  (see [Image variants](themes.md#image-variants)). Each is a class on the
-  image, so choosing one swaps that class and leaves the others.
+- **Variant**: the looks your theme offers images, such as **Float
+  Left** (see [Image variants](themes.md#image-variants)). Each is a
+  class on the image, so choosing one swaps that class and leaves the
+  others, its bleed included. How wide it is is **Bleed**, in the
+  header.
 - **Image**: the picture itself, with its address and size under it.
   Point at it (or tab to it) for **Replace**, which opens the media
   picker, and **Remove**. A file that isn't there says so. A replacement

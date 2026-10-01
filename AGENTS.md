@@ -43,9 +43,15 @@ only in `user/media` (D-294); and the Appearance, Extensions, and Settings scree
 D-307), so every screen in the navigation is built; and editing,
 creating, and deleting `user/data/types` types (D-311); and editing
 accounts and roles, with one-time password links and suspension
-(D-312). Next: more of media (roadmap); and
-more of the Markdown editing experience (live preview waits); see
-`.claude/docs/roadmap.md`.
+(D-312); and, from the direction split into numbered documents, the
+editor's toolbar in three parts, bold and italic toggles, the link
+form, moving elements, bleed with theme-named classes, the code block
+as one box, and the Markdown elements as inserter tiles (D-313); then
+moving the element the caret is in, Backspace taking markers off,
+guarded directive syntax, media kinds, and `only` (D-314); and Tab in
+quotes and over lines of code (D-315). Next: more
+of media; and more of the Markdown editing experience (live preview
+waits); see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with
 `npm run admin:build` (D-221, D-224). Admin CSS reads design tokens
 from `resources/admin/css/tokens.css` only: no literal colors, fonts,
@@ -79,8 +85,8 @@ At the start of a session, read `roadmap.md` (current milestone) and skim
 | [`.claude/docs/cli.md`](.claude/docs/cli.md) | Custom CLI design. |
 | [`.claude/docs/roadmap.md`](.claude/docs/roadmap.md) | Milestones and exit criteria. |
 | [`.claude/docs/open-questions.md`](.claude/docs/open-questions.md) | Unresolved questions. Move each to `decisions.md` once answered. |
-| [`.claude/docs/admin-design/admin.md`](.claude/docs/admin-design/admin.md) | The admin's design direction (prototype stage, D-231), kept exactly as the author uploads it, with its prototype `blush-admin.html`. Read before writing admin UI; don't edit it. `tokens.css` beside it is the original prototype, not the build source. |
-| [`.claude/docs/admin-design/departures.md`](.claude/docs/admin-design/departures.md) | The project's side of the direction: file paths, every departure from it and why, and its settled questions. Read with `admin.md`; record a departure here, not there. |
+| [`.claude/docs/admin-design/00-project-brief.md`](.claude/docs/admin-design/00-project-brief.md) | The admin's design direction (D-231, split into numbered documents in D-313: the brief, foundations, components, editor, screens, conventions, open questions, decisions log, and runbook), kept exactly as the author uploads it, with its prototype `meridian-admin.html` ("Meridian" is the design project's codename only). Read the brief, foundations, and the part you're changing before writing admin UI; don't edit them. `old/` has the earlier single `admin.md`. `tokens.css` beside them is the prototype's, not the build source. |
+| [`.claude/docs/admin-design/departures.md`](.claude/docs/admin-design/departures.md) | The project's side of the direction: file paths, every departure from it and why, and its settled questions. Read with the direction; record a departure here, not there. |
 
 When the user makes a decision in conversation, record it in `decisions.md`
 (and update any affected doc) in the same session.

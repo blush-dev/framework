@@ -69,6 +69,16 @@ abstract class Component
 	public const array VARIANTS = [];
 
 	/**
+	 * What a container holds, when it holds only some things (D-314): the
+	 * keys the admin's inserter uses, `image` for a Markdown image or a
+	 * component's full name. Empty for anything. The admin offers only
+	 * these inside it; the site renders whatever is there.
+	 *
+	 * @var list<string>
+	 */
+	public const array HOLDS = [];
+
+	/**
 	 * The attributes `html()` escapes as URLs.
 	 *
 	 * @var list<string>

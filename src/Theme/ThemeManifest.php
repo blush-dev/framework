@@ -103,6 +103,16 @@ final readonly class ThemeManifest
 			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map component names to lists of variants.', $slug));
 		}
 
+		$bleed = $data['bleed'] ?? [];
+
+		if (
+			! is_array($bleed)
+			|| ($bleed !== [] && array_is_list($bleed))
+			|| ! array_all($bleed, static fn (mixed $class, int|string $width): bool => in_array($width, ['wide', 'full'], true) && is_string($class) && preg_match('/^[A-Za-z_][A-Za-z0-9_-]*$/', $class) === 1)
+		) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "bleed" must map "wide" and "full" to class names.', $slug));
+		}
+
 		/** @var array<string, mixed> $data */
 		return new self(
 			slug: $slug,
@@ -166,6 +176,18 @@ final readonly class ThemeManifest
 	{
 		/** @var array<string, list<mixed>> Checked by `fromArray()`. */
 		return $this->data['variants'] ?? [];
+	}
+
+	/**
+	 * Returns the classes the theme names for the editor's bleed widths
+	 * (D-313), `wide` and `full`, as far as it names them.
+	 *
+	 * @return array{wide?: string, full?: string}
+	 */
+	public function bleed(): array
+	{
+		/** @var array{wide?: string, full?: string} Checked by `fromArray()`. */
+		return $this->data['bleed'] ?? [];
 	}
 
 	/**

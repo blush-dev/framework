@@ -32,7 +32,7 @@ export interface TypeForm {
 /**
  * The field a featured image is (D-281): a media field named `image`.
  */
-export const FEATURED: FieldDescription = { name: 'image', type: 'media', label: 'Featured image' };
+export const FEATURED: FieldDescription = { name: 'image', type: 'media', label: 'Featured image', kind: 'image' };
 
 /**
  * A new type's form.

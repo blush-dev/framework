@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Attribute;
+use Blush\Media\MediaKind;
 
 /**
  * Marks a component's constructor parameter as a media reference (D-179),
@@ -26,9 +27,13 @@ use Attribute;
  * ```
  *
  * A promoted parameter's attributes also land on its property, hence
- * both targets.
+ * both targets. A `kind` says which kind of file it plays (D-314), so the
+ * admin's picker offers only those: `#[MediaProp(MediaKind::Video)]`.
+ * A field that takes any file (a download) names none.
  */
 #[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY)]
 final readonly class MediaProp
 {
+	public function __construct(public ?MediaKind $kind = null)
+	{}
 }

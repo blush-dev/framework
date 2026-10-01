@@ -89,6 +89,25 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns the classes that make an element wider than the text column
+	 * under this chain (D-313): `wide` (into the margin) and `full` (edge to
+	 * edge), each from the first theme naming it, else `bleed-wide` and
+	 * `bleed-full`. The text column's own width is no class at all.
+	 *
+	 * @return array{wide: string, full: string}
+	 */
+	public function bleedClasses(): array
+	{
+		$classes = ['wide' => 'bleed-wide', 'full' => 'bleed-full'];
+
+		foreach (array_reverse($this->themes) as $theme) {
+			$classes = [...$classes, ...$theme->bleed()];
+		}
+
+		return $classes;
+	}
+
+	/**
 	 * Returns the theme slugs, in lookup order.
 	 *
 	 * @return list<string>

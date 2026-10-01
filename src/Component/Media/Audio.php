@@ -17,6 +17,7 @@ use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 use Blush\Component\MediaProp;
+use Blush\Media\MediaKind;
 
 /**
  * Plays an audio file with the browser's controls (D-175, D-179):
@@ -33,7 +34,7 @@ final class Audio extends Component
 	public const ComponentContent CONTENT = ComponentContent::Text;
 
 	public function __construct(
-		#[MediaProp] public readonly string $src = '',
+		#[MediaProp(MediaKind::Audio)] public readonly string $src = '',
 		public readonly MediaPreload $preload = MediaPreload::Metadata,
 		public readonly bool $loop = false,
 		public readonly string $label = ''

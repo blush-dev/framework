@@ -5,8 +5,17 @@
  */
 
 import { ref } from 'vue';
+import type { RouteLocationRaw } from 'vue-router';
 
 export const screenTitle = ref<string | null>(null);
+
+/**
+ * The screens above this one in the top bar's trail, each a way back to
+ * it, between the site's name and the title: the editor's content type
+ * (`Posts`), which is the editor's way out (admin.md §8, The toolbar,
+ * D-313). Each navigation clears it.
+ */
+export const screenTrail = ref<{ label: string; to: RouteLocationRaw }[]>([]);
 
 /**
  * Whether the editor's focus mode is on: the layout drops the section

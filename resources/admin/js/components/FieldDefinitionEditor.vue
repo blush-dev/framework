@@ -48,6 +48,15 @@ const TYPES = [
 	{ value: 'slug', label: 'Slug' }
 ];
 
+// What a media field takes (D-314); the picker offers only those.
+const MEDIA_KINDS = [
+	{ value: '', label: 'Any file' },
+	{ value: 'image', label: 'Images' },
+	{ value: 'video', label: 'Videos' },
+	{ value: 'audio', label: 'Sound' },
+	{ value: 'file', label: 'Other files' }
+];
+
 const ITEM_TYPES = TYPES.filter((type) => ['text', 'number', 'date', 'reference', 'media', 'slug'].includes(type.value));
 
 const draft      = ref<FieldDescription>(copy(props.field));
@@ -253,6 +262,11 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 			<div class="field field--end">
 				<label class="checkbox"><input v-model="multiple" type="checkbox"> More than one</label>
 			</div>
+		</div>
+
+		<div v-if="type === 'media'" class="field">
+			<label :for="id('kind')">Takes</label>
+			<AdminSelect :id="id('kind')" :model-value="draft.kind ?? ''" :options="MEDIA_KINDS" @update:model-value="draft.kind = $event === '' ? undefined : $event as FieldDescription['kind']" />
 		</div>
 
 		<div class="field">

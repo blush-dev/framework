@@ -21,13 +21,29 @@
  * deep, for an element that holds others. The breadcrumb names where the
  * caret is, from the entry down, and each crumb selects what it names.
  *
- * The header's left half has the four ways to put something in (D-247,
- * D-265): block components, in a panel that slides in from the left and
- * stays open (also opened by typing `/`), where **Image** opens the
- * media library; media, a menu of **Media Library** and **Upload a
- * File** (D-268), both ending in the media picker; icons, a library in a
- * modal; and inline components, a short menu. Its right half says what
- * the entry is and what happens to it.
+ * The header's left half is what you do to the document (admin.md §8,
+ * The toolbar; D-313), in the order a writer asks: what goes in the
+ * document, block components, in a panel that slides in from the left
+ * and stays open (also opened by typing `/`; the Markdown elements are
+ * tiles in it too, and **Image** opens the media library), and media, a
+ * menu of **Media Library** and **Upload a File** (D-268); then, while
+ * the caret is in the text, moving the top-level element it's in (⌥↑,
+ * ⌥↓); what goes in a sentence, bold, italic, a link (a small form, ⌘K),
+ * an icon (a library in a modal), and inline components (a short menu),
+ * shown only where emphasis is emphasis; and how wide an element is,
+ * bleed, for a top-level element. Contextual groups are hidden, not
+ * disabled, and come after the fixed ones, so nothing that's always
+ * there moves. One thing is open at a time, and none of it toasts: the
+ * result is in the text. There's no back button: the type in the top
+ * bar's trail is the way out. Its right half says what the entry is and
+ * what happens to it.
+ *
+ * When the caret leaves the text, the selection leaves with it: the
+ * breadcrumb is the entry alone and the element tab says nothing's
+ * selected. The editor's own chrome (the toolbar, footer, drawer, the
+ * inserter, and the pickers) isn't leaving; where a press lands decides
+ * it, not where focus goes. The drawer opens on the element tab when
+ * something's selected.
  *
  * Focus mode (⌘⇧F) leaves only the column; Escape returns. The ⋮ menu,
  * after the primary button, has the rest in two named sections, View and
@@ -76,20 +92,20 @@ import MenuButton from '../components/MenuButton.vue';
 import StatusPill from '../components/StatusPill.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import { BLOCK_KINDS } from '../blocks';
-import { componentIcon, IMAGE_COMPONENT, imageVariants, loadComponents, type ComponentDescription, type ComponentProp } from '../components';
+import { bleedClasses, componentIcon, IMAGE_COMPONENT, imageVariants, loadComponents, MARKDOWN_ELEMENTS, type BleedClasses, type ComponentDescription, type ComponentProp } from '../components';
 import { online } from '../connection';
 import { diffLines, type DiffLine } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
 import { formatDate, plural, titleCase } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
-import { childrenOf, elementAt, elementName, excerpt, holdsContent, outlineItems, pathTo, sameElement, type ElementRef, type OutlineItem } from '../elements';
-import { attributeText, blocks, directiveHead, imageText, outline, withAttribute, withImage, withoutDirective, withoutImage, wordCount, type Directive, type Edit } from '../markdown';
+import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
+import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
 import { mediaName } from '../media';
 import { can } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
-import { focusMode, screenTitle } from '../screen';
+import { focusMode, screenTitle, screenTrail } from '../screen';
 import { config } from '../config';
 import { toast } from '../toast';
 import { useCommands, type Command } from '../commands';
@@ -180,6 +196,13 @@ watch(entry, (value) => {
 
 watch(editTitle, (value) => {
 	screenTitle.value = value;
+}, { immediate: true });
+
+// The trail's type is the way out: the editor has no back button.
+watch([entry, labels], () => {
+	const name = entry.value?.type.name;
+
+	screenTrail.value = name === undefined ? [] : [{ label: titleCase(labels.value.plural), to: { name: 'type', params: { type: name } } }];
 }, { immediate: true });
 
 /**
@@ -925,10 +948,12 @@ const available  = ref<ComponentDescription[]>([]);
 
 const componentsFailed = ref(false);
 const imageStyles      = ref<Awaited<ReturnType<typeof imageVariants>>>([]);
+const bleeds           = ref<BleedClasses>({ wide: 'bleed-wide', full: 'bleed-full' });
 
 loadComponents().then(async (components) => {
 	available.value   = components;
 	imageStyles.value = await imageVariants();
+	bleeds.value      = await bleedClasses();
 }, () => {
 	componentsFailed.value = true;
 });
@@ -948,6 +973,7 @@ async function togglePanel(): Promise<void> {
 		return;
 	}
 
+	closeOverlays();
 	panelSlash.value = false;
 	panelQuery.value = '';
 	panelOpen.value  = true;
@@ -999,23 +1025,49 @@ function slashKey(key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'): void {
 	}
 }
 
-// The panel offers block components, with a Markdown image first among
-// the media (D-268); inline ones have their own menu, less the icon,
+// The panel offers the Markdown elements and block components, the
+// Markdown first in each group, with a Markdown image first among the
+// media (D-268, D-313); inline ones have their own menu, less the icon,
 // which has its own picker.
-const blockComponents  = computed(() => available.value.length === 0 ? [] : [IMAGE_COMPONENT, ...available.value.filter((component) => component.kind !== 'inline')]);
-const inlineComponents = computed(() => available.value.filter((component) => component.kind === 'inline' && component !== iconComponent.value));
+const blockComponents  = computed(() => available.value.length === 0 ? [] : [...MARKDOWN_ELEMENTS, IMAGE_COMPONENT, ...available.value.filter((component) => component.kind !== 'inline')]);
+// Inside a container that holds only some things, only those are offered.
+const panelComponents = computed(() => {
+	const only = holder.value?.only;
 
-// "a callout", "an embed".
-function article(name: string): string {
-	return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${inSentence(name)}`;
+	return only ? blockComponents.value.filter((component) => only.includes(component.name)) : blockComponents.value;
+});
+
+const panelNote = computed(() => {
+	const only = holder.value?.only;
+
+	if (holder.value === undefined || !only) {
+		return undefined;
+	}
+
+	return `${titleCase(holder.value.label)} holds only ${onlyNames(only)}.`;
+});
+
+// "images", "images, buttons".
+function onlyNames(only: string[]): string {
+	return only.map((name) => name === 'image' ? 'images' : `${inSentence(componentFor(name)?.label ?? name)}s`).join(', ');
 }
 
+const panelNoteNames = computed(() => onlyNames(selected.value?.only ?? []));
+
+const inlineComponents = computed(() => available.value.filter((component) => component.kind === 'inline' && component !== iconComponent.value));
+
 function chooseComponent(component: ComponentDescription): void {
+	const markdown = component.markdown;
+
 	if (component === IMAGE_COMPONENT) {
 		pickMedia('library', 'image');
+	} else if (markdown !== undefined) {
+		// The placeholder arrives selected, so the first keystroke replaces it.
+		const at = markdown.pick === '' ? markdown.text.length : markdown.text.indexOf(markdown.pick);
+
+		bodyEditor.value?.insertBlock(() => ({ text: markdown.text, caret: at, end: at + markdown.pick.length }));
 	} else {
 		bodyEditor.value?.insert(component);
-		toast(`Inserted ${article(component.label)}`);
 	}
 
 	// A slash's panel has done its job; one opened from its button stays.
@@ -1027,13 +1079,13 @@ function chooseComponent(component: ComponentDescription): void {
 
 function chooseInline(component: ComponentDescription): void {
 	bodyEditor.value?.insert(component);
-	toast(`Inserted ${article(component.label)}`);
 }
 
 // The icon picker's modal.
 const iconsOpen = ref(false);
 
 function openIcons(): void {
+	closeOverlays();
 	iconsOpen.value = true;
 }
 
@@ -1051,8 +1103,6 @@ function chooseIcon(icon: SiteIcon): void {
 	} else {
 		bodyEditor.value?.insert(iconComponent.value, { name: icon.name });
 	}
-
-	toast(`Inserted the ${inSentence(icon.label)} icon`);
 }
 
 function closeIcons(): void {
@@ -1063,15 +1113,22 @@ function closeIcons(): void {
 // The media picker: inserting a file, or choosing one for a field, a
 // component's option, or an image. It opens on the Library tab, or on
 // Upload from the media menu's Upload a File.
-const picking = ref<{ title: string; action: string; tab?: 'library' | 'upload'; kind?: 'image'; use: (file: MediaItem) => void } | null>(null);
+type MediaKind = 'image' | 'video' | 'audio' | 'file';
+
+const picking = ref<{ title: string; action: string; tab?: 'library' | 'upload'; kind?: MediaKind; locked?: boolean; use: (file: MediaItem) => void } | null>(null);
 const uploads = computed(() => can('media.upload'));
 
 function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): void {
+	// Inside a gallery, only images go in.
+	const only = kind ?? (holder.value?.only?.includes('image') === true ? 'image' : undefined);
+
+	closeOverlays();
 	picking.value = {
-		title: kind === 'image' ? 'Insert an Image' : 'Insert Media',
+		title: only === 'image' ? 'Insert an Image' : 'Insert Media',
 		action: 'Insert',
 		tab: start,
-		kind,
+		kind: only,
+		locked: only !== undefined,
 		use: insertFile
 	};
 }
@@ -1088,7 +1145,6 @@ function insertFile(file: MediaItem): void {
 	if (file.kind === 'image') {
 		bodyEditor.value?.insertBlock((selected) => imageText(file.reference, selected || file.alt, file.caption));
 		tab.value = 'element';
-		toast(`Inserted ${mediaName(file)}`);
 
 		return;
 	}
@@ -1103,7 +1159,6 @@ function insertFile(file: MediaItem): void {
 	}
 
 	tab.value = 'element';
-	toast(`Inserted ${mediaName(file)}`);
 }
 
 /**
@@ -1129,9 +1184,14 @@ async function uploadFiles(files: File[]): Promise<void> {
 }
 
 function pickForField(field: FieldDescription): void {
+	// A field says which kind it takes; a featured image takes images.
+	const kind = field.kind ?? (field === imageField.value ? 'image' : undefined);
+
 	picking.value = {
 		title: titleCase(`Choose ${inSentence(label(field))}`),
 		action: 'Choose',
+		kind,
+		locked: kind !== undefined,
 		use: (file) => {
 			form.value[field.name] = file.reference;
 		}
@@ -1148,6 +1208,8 @@ function pickForOption(prop: ComponentProp): void {
 	picking.value = {
 		title: titleCase(`Choose ${inSentence(label(prop))}`),
 		action: 'Choose',
+		kind: prop.kind,
+		locked: prop.kind !== undefined,
 		use: (file) => {
 			const edit = withAttribute(body.value, item, prop.name, file.reference);
 
@@ -1171,6 +1233,7 @@ function pickForImage(): void {
 		title: item.src === '' ? 'Choose an Image' : 'Replace the Image',
 		action: 'Choose',
 		kind: 'image',
+		locked: true,
 		use: (file) => {
 			// The library's alt text and caption fill what the image lacks.
 			applyOption(withImage(item, {
@@ -1206,15 +1269,15 @@ useCommands(() => {
 		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file library', run: () => pickMedia() },
 		...(uploads.value ? [{ id: 'editor-upload', label: 'Upload a file', icon: 'upload' as const, keywords: 'media image picture video audio add', run: () => pickMedia('upload') }] : []),
 		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
-		{ id: 'editor-bold', label: 'Bold', icon: 'baseline', keywords: 'strong format', shortcut: '⌘B', run: () => bodyEditor.value?.format('**') },
-		{ id: 'editor-italic', label: 'Italic', icon: 'baseline', keywords: 'emphasis format', shortcut: '⌘I', run: () => bodyEditor.value?.format('*') },
-		{ id: 'editor-code', label: 'Inline code', icon: 'code', keywords: 'format monospace', shortcut: '⌘E', run: () => bodyEditor.value?.format('`') },
-		{ id: 'editor-strike', label: 'Strikethrough', icon: 'minus', keywords: 'format delete', shortcut: '⌘⇧X', run: () => bodyEditor.value?.format('~~') },
-		{ id: 'editor-link', label: 'Link', icon: 'link', keywords: 'url address format', shortcut: '⌘K', run: () => bodyEditor.value?.link() },
+		{ id: 'editor-bold', label: 'Bold', icon: 'bold', keywords: 'strong format', shortcut: '⌘B', run: () => bodyEditor.value?.emphasis('strong') },
+		{ id: 'editor-italic', label: 'Italic', icon: 'italic', keywords: 'emphasis format', shortcut: '⌘I', run: () => bodyEditor.value?.emphasis('em') },
+		{ id: 'editor-strike', label: 'Strikethrough', icon: 'minus', keywords: 'format delete', shortcut: '⌘⇧X', run: () => bodyEditor.value?.emphasis('strike') },
+		{ id: 'editor-link', label: 'Link', icon: 'link', keywords: 'url address format', shortcut: '⌘K', run: () => void openLink() },
+		{ id: 'editor-unlink', label: 'Remove link', icon: 'link', keywords: 'url address unlink', shortcut: '⌘⇧K', run: () => bodyEditor.value?.unlink() },
 		...[1, 2, 3, 4, 5, 6].map((level) => ({ id: `editor-heading-${level}`, label: `Heading ${level}`, icon: 'heading' as const, keywords: 'title level format', shortcut: `⌘⌥${level}`, run: () => bodyEditor.value?.heading(level) })),
 		{ id: 'editor-paragraph', label: 'Paragraph', icon: 'pilcrow', keywords: 'text body format heading', shortcut: '⌘⌥0', run: () => bodyEditor.value?.heading(0) },
-		{ id: 'editor-line-up', label: 'Move line up', icon: 'arrow-up-right', keywords: 'reorder swap', shortcut: '⌥↑', run: () => bodyEditor.value?.move(true) },
-		{ id: 'editor-line-down', label: 'Move line down', icon: 'arrow-down', keywords: 'reorder swap', shortcut: '⌥↓', run: () => bodyEditor.value?.move(false) },
+		{ id: 'editor-move-up', label: 'Move element up', icon: 'chevron-up', keywords: 'reorder swap block', shortcut: '⌥↑', run: () => moveElement(true) },
+		{ id: 'editor-move-down', label: 'Move element down', icon: 'chevron-down', keywords: 'reorder swap block', shortcut: '⌥↓', run: () => moveElement(false) },
 		{ id: 'editor-save', label: 'Save', icon: 'file-text', shortcut: '⌘S', run: () => void save() }
 	];
 
@@ -1255,6 +1318,10 @@ const chosen = ref<{ element: ElementRef; caret: number } | null>(null);
  */
 const selection = computed<ElementRef | null>(() => {
 	const choice = chosen.value;
+
+	if (!inText.value) {
+		return null;
+	}
 
 	if (choice !== null && choice.caret === caret.value) {
 		return choice.element;
@@ -1327,6 +1394,53 @@ const path = computed(() => {
 
 // A holder's Content group: the elements directly inside it.
 const content = computed(() => selection.value !== null && holdsContent(markdown.value, allBlocks.value, selection.value) ? childrenOf(items.value, selection.value) : null);
+
+// What's in a container that it doesn't hold (D-314): the author can
+// always type anyway, so its panel says so rather than the site's
+// rendering being the first to notice.
+// Each line of its body is checked, since images one to a line are one
+// paragraph to Markdown.
+const strays = computed<string[]>(() => {
+	const only = selected.value?.only;
+	const item = directive.value;
+
+	if (!only || item === undefined) {
+		return [];
+	}
+
+	const found: string[] = [];
+	let depth = 0;
+
+	for (const line of markdown.value.lines) {
+		if (line.start <= item.start || line.start >= item.end) {
+			continue;
+		}
+
+		// Inside an allowed component, its own lines are its business.
+		if (line.kind === 'open' || line.kind === 'leaf') {
+			const name = componentFor(markdown.value.directives[line.directive ?? -1]?.name ?? '')?.name;
+
+			if (depth === 0 && (name === undefined || !only.includes(name))) {
+				found.push(line.text.trim());
+			}
+
+			depth += line.kind === 'open' ? 1 : 0;
+		} else if (line.kind === 'close') {
+			depth = Math.max(0, depth - 1);
+		} else if (depth === 0 && line.text.trim() !== '' && !(only.includes('image') && imageLine(markdown.value, line.start, line.start + line.text.length))) {
+			found.push(line.text.trim());
+		}
+	}
+
+	return found;
+});
+
+// How many of what it holds are in it: images, for a gallery.
+const held = computed(() => {
+	const item = directive.value;
+
+	return item === undefined ? 0 : markdown.value.images.filter((image) => image.start > item.start && image.end < item.end).length;
+});
 
 // The Outline replaces the Document tab's fields on request, with a way
 // back; picking from it, moving the caret, or changing tabs puts them
@@ -1439,8 +1553,306 @@ function removeImage(): void {
 	}
 }
 
+// Whether the caret is in the text: leaving it drops the selection. A
+// press on the editor's own chrome isn't leaving; the press is recorded
+// as it happens, and the blur that follows asks where it landed. A Tab
+// away carries no press, so where focus goes decides.
+const inText = ref(false);
+let pressed: EventTarget | null = null;
+
+// The chrome: the toolbar, footer, inserter, and drawer (but its entry
+// tab), and the pickers and menus, which float over the page.
+const CHROME = '.editor__head, .editor__foot, .editor__inserter, .editor__side, .menu-button__list, .modal, .picker, [role="dialog"]';
+
+function isChrome(target: EventTarget | null): boolean {
+	if (!(target instanceof Element)) {
+		return false;
+	}
+
+	if (target.closest('#editor-panel-document, #editor-tab-document') !== null) {
+		return false;
+	}
+
+	return target.closest(CHROME) !== null;
+}
+
+function press(event: PointerEvent): void {
+	pressed = event.target;
+}
+
+function textFocused(): void {
+	inText.value = true;
+}
+
+function textBlurred(event: FocusEvent): void {
+	const target = pressed ?? event.relatedTarget;
+
+	pressed = null;
+
+	if (!isChrome(target)) {
+		inText.value = false;
+	}
+}
+
+// What the toolbar's contextual groups act on.
+const extent    = ref(0);
+// A container that holds only some things (D-314, `only`): the innermost
+// one the caret is in, the selected one included.
+const holder = computed<ComponentDescription | undefined>(() => {
+	for (const item of [...path.value].reverse()) {
+		const found = item.kind === 'directive' ? componentFor(markdown.value.directives[item.index]?.name ?? '') : undefined;
+
+		if (found?.only) {
+			return found;
+		}
+	}
+
+	return undefined;
+});
+
+// Nothing a container holds only some of is text, so the sentence tools
+// go inside one.
+const sentence  = computed(() => inText.value && inProse(markdown.value, caret.value) && holder.value === undefined);
+const emphasis  = computed<Record<Emphasis, boolean>>(() => sentence.value ? emphasisAt(markdown.value, Math.min(caret.value, extent.value), Math.max(caret.value, extent.value)) : { strong: false, em: false, strike: false });
+
+// Moving the element the caret is in among its siblings (admin.md §8,
+// Reordering; D-314): a list item within its list, a paragraph within its
+// callout, a top-level element among the rest. A term or definition
+// moves its whole definition list, since one alone would come apart
+// from what it defines.
+const mover = computed<OutlineItem | undefined>(() => {
+	const last   = path.value.at(-1);
+	const parent = path.value.at(-2);
+	const kind   = (item: OutlineItem | undefined): string | undefined => item?.kind === 'block' ? allBlocks.value[item.index]?.kind : undefined;
+
+	return parent !== undefined && kind(parent) === 'definitions' ? parent : last;
+});
+
+const runs      = computed(() => mover.value === undefined ? [] : siblingRuns(body.value, items.value, mover.value.parent));
+const moveIndex = computed(() => runIndex(runs.value, mover.value));
+const moveName  = computed(() => mover.value === undefined ? '' : nameOf(mover.value));
+
+function moveElement(up: boolean): void {
+	const item   = mover.value;
+	let change   = moveIndex.value === -1 ? null : movedElement(body.value, runs.value, moveIndex.value, up, { from: Math.min(caret.value, extent.value), to: Math.max(caret.value, extent.value) });
+
+	// A numbered list counts on from the number it started at.
+	if (change !== null && item?.kind === 'block' && allBlocks.value[item.index]?.kind === 'item') {
+		const list  = items.value[item.parent];
+		const first = list?.kind === 'block' ? markdown.value.lines[allBlocks.value[list.index]?.first ?? -1]?.text : undefined;
+		const start = /^ *(\d{1,9})[.)]/.exec(first ?? '')?.[1];
+
+		change = renumberedAt(change, change.from, start === undefined ? undefined : Number.parseInt(start, 10));
+	}
+
+	if (change !== null) {
+		void bodyEditor.value?.change(change);
+	}
+}
+
+// The link form (⌘K): Text and Address, filled from the selection, the
+// word at the caret, or the link the caret is in.
+const linkOpen   = ref(false);
+const linkText   = ref('');
+const linkUrl    = ref('');
+const linkTarget = ref<{ start: number; end: number; link: MarkdownLink | null } | null>(null);
+const linkForm   = ref<HTMLFormElement | null>(null);
+const linkWrap   = ref<HTMLElement | null>(null);
+
+async function openLink(): Promise<void> {
+	if (!sentence.value) {
+		return;
+	}
+
+	closeOverlays();
+
+	const start = Math.min(caret.value, extent.value);
+	const end   = Math.max(caret.value, extent.value);
+	const link  = linkAt(body.value, start, end);
+
+	if (link !== null) {
+		linkTarget.value = { start: link.start, end: link.end, link };
+		linkText.value   = linkLabel(link.label);
+		linkUrl.value    = link.url;
+	} else {
+		const word     = start === end ? wordAt(body.value, start) : null;
+		const from     = word?.start ?? start;
+		const to       = word?.end ?? end;
+		const selected = body.value.slice(from, to);
+		const address  = /^(?:https?:\/\/|mailto:|\/)\S*$/.test(selected.trim()) && selected.trim() !== '';
+
+		linkTarget.value = { start: from, end: to, link: null };
+		linkText.value   = address ? '' : selected;
+		linkUrl.value    = address ? selected.trim() : '';
+	}
+
+	linkOpen.value = true;
+	await nextTick();
+
+	// The first empty field: the address, when there's text to hang it on.
+	const fields = [...(linkForm.value?.querySelectorAll<HTMLInputElement>('input') ?? [])];
+
+	(fields.find((field) => field.value === '') ?? fields[0])?.focus();
+}
+
+function closeLink(refocus = true): void {
+	if (!linkOpen.value) {
+		return;
+	}
+
+	linkOpen.value = false;
+
+	if (refocus) {
+		const target = linkTarget.value;
+
+		bodyEditor.value?.focusAt(target?.end ?? caret.value);
+	}
+}
+
+function applyLink(): void {
+	const target = linkTarget.value;
+
+	if (target === null || linkUrl.value.trim() === '') {
+		return;
+	}
+
+	linkOpen.value = false;
+	bodyEditor.value?.change(withLink(body.value, target.start, target.end, linkText.value.trim() === '' ? linkUrl.value.trim() : linkText.value, linkUrl.value, target.link));
+}
+
+function removeLink(): void {
+	const link = linkTarget.value?.link ?? null;
+
+	linkOpen.value = false;
+
+	if (link !== null) {
+		bodyEditor.value?.change(withoutLink(body.value, link));
+	}
+}
+
+function toggleLink(): void {
+	if (linkOpen.value) {
+		closeLink();
+	} else {
+		void openLink();
+	}
+}
+
+function linkKey(event: KeyboardEvent): void {
+	if (event.key === 'Escape') {
+		event.preventDefault();
+		event.stopPropagation();
+		closeLink();
+	}
+}
+
+// A press outside the link form closes it.
+function outsideLink(event: PointerEvent): void {
+	if (linkOpen.value && event.target instanceof Node && linkWrap.value?.contains(event.target) !== true) {
+		closeLink(false);
+	}
+}
+
+/**
+ * One thing is open at a time (admin.md §8, The toolbar): opening any of
+ * the toolbar's panels, menus, or modals closes the others. Menus close
+ * themselves on the press that opens something else.
+ */
+function closeOverlays(): void {
+	closePanel(false);
+	closeLink(false);
+}
+
+// Bleed (admin.md §8, Bleed; D-313): how far a top-level element reaches
+// past the text column. Base is no class at all; the theme names the
+// other two.
+type BleedName = 'base' | 'wide' | 'full';
+
+const BLEEDS: Record<BleedName, { label: string; icon: IconName; text: string }> = {
+	base: { label: 'Base', icon: 'bleed-base', text: 'At the width of the text column. It writes no class at all.' },
+	wide: { label: 'Wide', icon: 'bleed-wide', text: 'Wider than the text, as much of the margin as the theme gives.' },
+	full: { label: 'Full', icon: 'bleed-full', text: 'Edge to edge, ignoring the text\'s width.' }
+};
+
+// The element bleed acts on: a top-level element, not an inline one.
+const bleedTarget = computed<ElementRef | null>(() => {
+	const current = selection.value;
+	const item    = current === null ? undefined : items.value.find((entry) => sameElement(entry, current));
+
+	return item === undefined || item.depth !== 0 ? null : current;
+});
+
+// An element's classes and id, wherever its syntax keeps them.
+function partsOf(element: ElementRef): { classes: string[]; id: string } {
+	if (element.kind === 'directive') {
+		const item = markdown.value.directives[element.index];
+
+		return attributeParts(item === undefined ? '' : (directiveHead(body.value, item).attributes?.text ?? ''));
+	}
+
+	if (element.kind === 'image') {
+		return attributeParts(markdown.value.images[element.index]?.attributes?.text ?? '');
+	}
+
+	return attributeParts(allBlocks.value[element.index]?.attributes?.text ?? '');
+}
+
+const bleed = computed<BleedName>(() => {
+	const target = bleedTarget.value;
+	const names  = target === null ? [] : partsOf(target).classes;
+
+	return names.includes(bleeds.value.full) ? 'full' : (names.includes(bleeds.value.wide) ? 'wide' : 'base');
+});
+
+/**
+ * Sets the bleed: the other width's class goes, the chosen one is first,
+ * and every other class and attribute stays. An emptied attribute block
+ * goes, with a list's line.
+ */
+function setBleed(name: BleedName): void {
+	const target = bleedTarget.value;
+
+	if (target === null) {
+		return;
+	}
+
+	const { classes, id } = partsOf(target);
+	const kept = classes.filter((item) => item !== bleeds.value.wide && item !== bleeds.value.full);
+	const next = name === 'base' ? kept : [bleeds.value[name], ...kept];
+	let edit: Edit | null = null;
+
+	if (target.kind === 'directive') {
+		const item = markdown.value.directives[target.index];
+
+		edit = item === undefined ? null : withDirectiveParts(body.value, item, next, id);
+	} else if (target.kind === 'image') {
+		const item = markdown.value.images[target.index];
+
+		edit = item === undefined ? null : withImage(item, { attributes: withParts(item.attributes?.text ?? '', next, id) });
+	} else {
+		const item = allBlocks.value[target.index];
+
+		edit = item === undefined ? null : withBlockParts(body.value, markdown.value, item, next, id);
+	}
+
+	if (edit !== null) {
+		const at    = caret.value;
+		const delta = edit.text.length - (edit.to - edit.from);
+
+		bodyEditor.value?.apply(edit, at <= edit.from ? at : (at >= edit.to ? at + delta : edit.from));
+	}
+}
+
+/**
+ * Opens or closes the drawer. It opens on what the caret is in, or on
+ * the entry's tab with nothing selected, decided on every open.
+ */
 function toggleSide(): void {
 	sideOpen.value = !sideOpen.value;
+
+	if (sideOpen.value) {
+		tab.value = selection.value === null ? 'document' : 'element';
+	}
 }
 
 watch(sideOpen, keepDrawer);
@@ -1582,6 +1994,8 @@ onBeforeRouteLeave(() => {
 
 onMounted(() => {
 	document.addEventListener('keydown', keydown);
+	document.addEventListener('pointerdown', press, true);
+	document.addEventListener('pointerdown', outsideLink);
 	window.addEventListener('beforeunload', beforeUnload);
 
 	// The "just created" notice shows once.
@@ -1594,6 +2008,8 @@ onBeforeUnmount(() => {
 	clearTimeout(keeping);
 	focusMode.value = false;
 	document.removeEventListener('keydown', keydown);
+	document.removeEventListener('pointerdown', press, true);
+	document.removeEventListener('pointerdown', outsideLink);
 	window.removeEventListener('beforeunload', beforeUnload);
 	titleWidth?.disconnect();
 });
@@ -1621,18 +2037,11 @@ function fieldKey(field: FieldDescription): string {
 
 		<header class="editor__head">
 			<template v-if="entry">
-				<RouterLink class="button button--ghost button--icon" :to="{ name: 'type', params: { type: entry.type.name } }">
-					<AdminIcon name="arrow-left" />
-					<span class="visually-hidden">Back to {{ labels.plural }}</span>
-				</RouterLink>
-				<span class="editor__where">{{ labels.plural }}</span>
-				<span v-if="entry.index" class="index-mark editor__hide-small">Index</span>
-				<span class="editor__divider" aria-hidden="true" />
-				<button type="button" class="button button--ghost button--icon" :class="{ 'is-on': panelOpen }" title="Components ( / )" aria-controls="editor-components" :aria-expanded="panelOpen" @click="togglePanel">
+				<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': panelOpen }" title="Components ( / )" aria-controls="editor-components" :aria-expanded="panelOpen" @click="togglePanel">
 					<AdminIcon name="plus" />
 					<span class="visually-hidden">Insert a component</span>
 				</button>
-				<MenuButton v-if="uploads" button-class="button button--ghost editor__wide" label="Insert media" align="start" floating>
+				<MenuButton v-if="uploads" button-class="button button--ghost editor__tool editor__wide" label="Insert media" align="start" floating @open="closeOverlays">
 					<template #button>
 						<AdminIcon name="image" /><AdminIcon name="chevron-down" class="editor__caret" />
 					</template>
@@ -1651,26 +2060,88 @@ function fieldKey(field: FieldDescription): string {
 						</span>
 					</button>
 				</MenuButton>
-				<button v-else type="button" class="button button--ghost button--icon" title="Media" aria-haspopup="dialog" @click="pickMedia()">
+				<button v-else type="button" class="button button--ghost button--icon editor__tool" title="Media" aria-haspopup="dialog" @click="pickMedia()">
 					<AdminIcon name="image" />
 					<span class="visually-hidden">Insert media</span>
 				</button>
-				<button type="button" class="button button--ghost button--icon" title="Icon" aria-haspopup="dialog" @click="openIcons">
-					<AdminIcon name="shapes" />
-					<span class="visually-hidden">Insert an icon</span>
-				</button>
-				<MenuButton v-if="inlineComponents.length" button-class="button button--ghost editor__wide" label="Insert an inline component" align="start" floating>
-					<template #button>
-						<AdminIcon name="baseline" /><AdminIcon name="chevron-down" class="editor__caret" />
-					</template>
-					<button v-for="component in inlineComponents" :key="component.name" type="button" class="menu-item menu-item--described" @click="chooseInline(component)">
-						<AdminIcon :name="componentIcon(component)" />
-						<span>
-							<span class="menu-item__name">{{ component.label }}<template v-if="component.source && component.source.kind !== 'site'"> · {{ component.source.label }}</template></span>
-							<span v-if="component.description" class="menu-item__text">{{ component.description }}</span>
-						</span>
+
+				<template v-if="moveIndex !== -1">
+					<span class="editor__divider" aria-hidden="true" />
+					<span class="editor__spin" role="group" :aria-label="`Move the ${moveName.toLowerCase()}`">
+						<button type="button" class="editor__spin-button" :disabled="moveIndex === 0" :title="`Move the ${moveName.toLowerCase()} up  ⌥↑`" @mousedown.prevent @click="moveElement(true)">
+							<AdminIcon name="chevron-up" />
+							<span class="visually-hidden">Move up</span>
+						</button>
+						<button type="button" class="editor__spin-button" :disabled="moveIndex === runs.length - 1" :title="`Move the ${moveName.toLowerCase()} down  ⌥↓`" @mousedown.prevent @click="moveElement(false)">
+							<AdminIcon name="chevron-down" />
+							<span class="visually-hidden">Move down</span>
+						</button>
+					</span>
+				</template>
+
+				<template v-if="sentence">
+					<span class="editor__divider" aria-hidden="true" />
+					<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': emphasis.strong }" :aria-pressed="emphasis.strong" title="Bold  ⌘B" @mousedown.prevent @click="bodyEditor?.emphasis('strong')">
+						<AdminIcon name="bold" />
+						<span class="visually-hidden">Bold</span>
 					</button>
-				</MenuButton>
+					<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': emphasis.em }" :aria-pressed="emphasis.em" title="Italic  ⌘I" @mousedown.prevent @click="bodyEditor?.emphasis('em')">
+						<AdminIcon name="italic" />
+						<span class="visually-hidden">Italic</span>
+					</button>
+					<span ref="linkWrap" class="editor__pop">
+						<button type="button" class="button button--ghost editor__tool editor__wide" :class="{ 'is-on': linkOpen }" title="Link  ⌘K" aria-haspopup="dialog" :aria-expanded="linkOpen" aria-controls="editor-link" @click="toggleLink">
+							<AdminIcon name="link" /><AdminIcon name="chevron-down" class="editor__caret" />
+							<span class="visually-hidden">Link</span>
+						</button>
+						<form v-if="linkOpen" id="editor-link" ref="linkForm" class="editor__link" role="dialog" aria-label="Link" @submit.prevent="applyLink" @keydown="linkKey">
+							<div class="field">
+								<label for="editor-link-text">Text</label>
+								<input id="editor-link-text" v-model="linkText" type="text" autocomplete="off">
+							</div>
+							<div class="field">
+								<label for="editor-link-url">Address</label>
+								<input id="editor-link-url" v-model="linkUrl" type="text" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://">
+							</div>
+							<p class="editor__link-buttons">
+								<button v-if="linkTarget?.link" type="button" class="button button--small button--ghost" @click="removeLink">Remove</button>
+								<button type="submit" class="button button--small button--primary" :disabled="linkUrl.trim() === ''">{{ linkTarget?.link ? 'Update' : 'Add link' }}</button>
+							</p>
+						</form>
+					</span>
+					<button type="button" class="button button--ghost button--icon editor__tool" title="Icon" aria-haspopup="dialog" @click="openIcons">
+						<AdminIcon name="shapes" />
+						<span class="visually-hidden">Insert an icon</span>
+					</button>
+					<MenuButton v-if="inlineComponents.length" button-class="button button--ghost editor__tool editor__wide" label="Insert an inline component" align="start" floating @open="closeOverlays">
+						<template #button>
+							<AdminIcon name="baseline" /><AdminIcon name="chevron-down" class="editor__caret" />
+						</template>
+						<button v-for="component in inlineComponents" :key="component.name" type="button" class="menu-item menu-item--described" @click="chooseInline(component)">
+							<AdminIcon :name="componentIcon(component)" />
+							<span>
+								<span class="menu-item__name">{{ component.label }}<template v-if="component.source && component.source.kind !== 'site'"> · {{ component.source.label }}</template></span>
+								<span v-if="component.description" class="menu-item__text">{{ component.description }}</span>
+							</span>
+						</button>
+					</MenuButton>
+				</template>
+
+				<template v-if="bleedTarget">
+					<span class="editor__divider" aria-hidden="true" />
+					<MenuButton :button-class="`button button--ghost editor__tool editor__wide${bleed === 'base' ? '' : ' is-on'}`" :label="`Bleed: ${BLEEDS[bleed].label}`" align="start" floating @open="closeOverlays">
+						<template #button>
+							<AdminIcon :name="BLEEDS[bleed].icon" /><AdminIcon name="chevron-down" class="editor__caret" />
+						</template>
+						<button v-for="(option, key) in BLEEDS" :key="key" type="button" class="menu-item menu-item--described" :aria-current="key === bleed ? 'true' : undefined" @click="setBleed(key)">
+							<AdminIcon :name="option.icon" />
+							<span>
+								<span class="menu-item__name">{{ option.label }}</span>
+								<span class="menu-item__text">{{ option.text }}</span>
+							</span>
+						</button>
+					</MenuButton>
+				</template>
 			</template>
 			<span v-else class="skeleton editor__where-skeleton" />
 			<span class="editor__grow" />
@@ -1808,7 +2279,8 @@ function fieldKey(field: FieldDescription): string {
 				<ComponentPanel
 					ref="panel"
 					v-model:query="panelQuery"
-					:components="blockComponents"
+					:components="panelComponents"
+					:note="panelNote"
 					:failed="componentsFailed"
 					:slash="panelSlash"
 					@choose="chooseComponent"
@@ -1842,13 +2314,20 @@ function fieldKey(field: FieldDescription): string {
 							v-model="body"
 							v-model:caret="caret"
 							label="Body (Markdown)"
-							placeholder="Write in Markdown…"
+							placeholder="Write in Markdown. Type / on an empty line, or use +, to add a block."
+							v-model:extent="extent"
+							:parsed="markdown"
+							:blocks="allBlocks"
 							:slash-open="panelOpen && panelSlash"
 							:directive="selection?.kind === 'directive' ? selection.index : -1"
 							:image="selection?.kind === 'image' ? selection.index : -1"
 							@slash="slashed"
 							@slash-key="slashKey"
 							@files="uploadFiles"
+							@link="openLink"
+							@move="moveElement"
+							@focusin="textFocused"
+							@focusout="textBlurred"
 						/>
 					</div>
 
@@ -1916,7 +2395,7 @@ function fieldKey(field: FieldDescription): string {
 													<AdminIcon :name="statusNames[entry.status].icon" /><span class="settings__text">{{ statusNames[entry.status].label }}</span><AdminIcon name="chevron-down" class="settings__caret" />
 												</template>
 												<button v-for="option in statusOptions" :key="option.status" type="button" class="menu-item menu-item--described" :aria-current="option.status === entry.status ? 'true' : undefined" :disabled="option.status !== entry.status && blocked" @click="option.status === entry.status || save(option.status)">
-													<AdminIcon :name="option.status === entry.status ? 'check' : option.icon" />
+													<AdminIcon :name="option.icon" />
 													<span>
 														<span class="menu-item__name">{{ option.label }}</span>
 														<span class="menu-item__text">{{ option.text }}</span>
@@ -1934,7 +2413,7 @@ function fieldKey(field: FieldDescription): string {
 													<AdminIcon :name="visibilityNames[visibility].icon" /><span class="settings__text">{{ visibilityNames[visibility].label }}</span><AdminIcon name="chevron-down" class="settings__caret" />
 												</template>
 												<button v-for="(option, key) in visibilityNames" :key="key" type="button" class="menu-item menu-item--described" :aria-current="key === visibility ? 'true' : undefined" @click="setVisibility(key)">
-													<AdminIcon :name="key === visibility ? 'check' : option.icon" />
+													<AdminIcon :name="option.icon" />
 													<span>
 														<span class="menu-item__name">{{ option.label }}</span>
 														<span class="menu-item__text">{{ option.text }}</span>
@@ -2073,7 +2552,7 @@ function fieldKey(field: FieldDescription): string {
 								@pick="pickForOption"
 							>
 								<div v-if="content" class="options__group">
-									<p class="options__heading">Content</p>
+									<p class="options__heading">Content<span v-if="selected?.only?.includes('image')" class="editor__group-hint">{{ plural(held, 'image') }}</span></p>
 									<p v-if="!content.length" class="field__help">Nothing inside it yet.</p>
 									<ul v-else class="editor__outline">
 										<li v-for="item in content" :key="`${item.kind}-${item.index}`">
@@ -2084,11 +2563,12 @@ function fieldKey(field: FieldDescription): string {
 											</button>
 										</li>
 									</ul>
+									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site may not show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
 								</div>
 							</ComponentOptions>
 							<ImageOptions
 								v-else-if="image"
-								:key="`image-${selection.index}`"
+								:key="`image-${image.start}`"
 								:source="body"
 								:image="image"
 								:variants="imageStyles"
@@ -2098,7 +2578,7 @@ function fieldKey(field: FieldDescription): string {
 							/>
 							<BlockOptions
 								v-else-if="block"
-								:key="`block-${selection.index}`"
+								:key="`block-${block.kind}-${block.start}`"
 								:source="body"
 								:markdown="markdown"
 								:blocks="allBlocks"
@@ -2125,7 +2605,7 @@ function fieldKey(field: FieldDescription): string {
 						<div v-else class="editor__none">
 							<AdminIcon name="list" />
 							<p class="editor__none-heading">Nothing Selected</p>
-							<p class="editor__none-text">The cursor is above the first element. Put it anywhere in the text, and this panel follows it.</p>
+							<p class="editor__none-text">The cursor isn't in the text. Click anywhere in it, and this panel follows what it's in.</p>
 						</div>
 					</div>
 				</div>
@@ -2133,7 +2613,7 @@ function fieldKey(field: FieldDescription): string {
 		</div>
 
 		<IconPicker v-if="iconsOpen" :preview="iconPreview" @choose="chooseIcon" @close="closeIcons" />
-		<MediaPicker v-if="picking" :title="picking.title" :action="picking.action" :tab="picking.tab" :kind="picking.kind" @choose="picked" @close="picking = null" />
+		<MediaPicker v-if="picking" :title="picking.title" :action="picking.action" :tab="picking.tab" :kind="picking.kind" :locked="picking.locked" @choose="picked" @close="picking = null" />
 	</section>
 </template>
 
@@ -2190,18 +2670,79 @@ function fieldKey(field: FieldDescription): string {
 	color: var(--fg-3);
 }
 
-.editor__head .is-on {
+.editor__head :deep(.is-on) {
 	background: var(--accent-soft);
 	color: var(--accent);
 }
 
-.editor__where {
-	max-width: 22ch;
-	overflow: hidden;
+/* Moving an element: two stacked chevrons, one control. */
+.editor__spin {
+	display: inline-flex;
+	flex: none;
+	flex-direction: column;
+	gap: 0;
+}
+
+.editor__spin-button {
+	display: grid;
+	place-items: center;
+	width: 28px;
+	height: 17px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-2);
+	cursor: pointer;
+}
+
+.editor__spin-button:hover:not(:disabled) {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.editor__spin-button:disabled {
 	color: var(--fg-3);
-	font-size: var(--text-sm);
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	opacity: .5;
+	cursor: default;
+}
+
+.editor__spin-button svg {
+	width: 16px;
+	height: 16px;
+}
+
+/* The link form opens under its button. */
+.editor__pop {
+	position: relative;
+	flex: none;
+}
+
+.editor__link {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 40;
+	display: grid;
+	gap: var(--s-3);
+	width: 320px;
+	max-width: calc(100vw - 2 * var(--s-4));
+	padding: var(--s-4);
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface);
+	box-shadow: var(--shadow-2);
+}
+
+.editor__link .field {
+	margin: 0;
+}
+
+.editor__link-buttons {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--s-2);
+	margin: 0;
 }
 
 .editor__where-skeleton {
@@ -3191,12 +3732,13 @@ function fieldKey(field: FieldDescription): string {
 		padding: var(--s-5) var(--s-4) 40vh;
 	}
 
-	.editor__where,
 	.editor__hide-small {
 		display: none;
 	}
 
+	/* The tools wrap to a second row rather than leave the screen. */
 	.editor__head {
+		flex-wrap: wrap;
 		gap: 2px;
 		padding-inline: var(--s-2);
 	}

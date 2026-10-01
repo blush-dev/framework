@@ -323,7 +323,7 @@ Field types:
 | `enum` | One of a set of values | `options` |
 | `list` | Several values | `item` (a field definition for each value; text by default) |
 | `reference` | Other entries, by slug | `to` (the type), `multiple` (default `true`) |
-| `media` | A media file | |
+| `media` | A media file | `kind`: `image`, `video`, `audio`, or `file`, so the admin's picker offers only those (any file when it's left out) |
 | `slug` | A URL-safe name | |
 | `object` | A group of fields | `fields`, `closed` |
 

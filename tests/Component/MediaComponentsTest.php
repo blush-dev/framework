@@ -123,6 +123,13 @@ final class MediaComponentsTest extends TestCase
 			$types
 		);
 		$this->assertInstanceOf(MediaField::class, $props[0]);
+
+		$kinds = array_map(static fn (Field $field): ?string => $field instanceof MediaField ? $field->kind?->value : null, array_slice($props, 0, 3));
+
+		$this->assertSame(['video', 'image', null], $kinds, 'A video plays videos, its poster is an image, and its track is any file.');
+		$audio = new ComponentDefinition(new ComponentName('blush', 'audio'), Audio::class)->props();
+
+		$this->assertSame('audio', ($audio[0] ?? null)?->toArray()['kind'] ?? null);
 	}
 
 	public function testTheyRenderLibraryFiles(): void

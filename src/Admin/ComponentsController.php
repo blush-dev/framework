@@ -46,6 +46,8 @@ use Blush\View\Views;
  *   the rest come from;
  * - `props`, as schema fields (`Field::toArray()`) with their translated
  *   `label` and, for a choice, `choices` labels by value;
+ * - `only`, what a container holds when it's only some things (D-314,
+ *   `Component::HOLDS`), such as the gallery's `["image"]`, else `null`;
  * - `variants` under the active theme (D-266), Default not included: each
  *   with its `name`, translated `label` and `description`, and `source`,
  *   `null` when the component's own namespace declared it, else where it
@@ -55,6 +57,9 @@ use Blush\View\Views;
  * but are edited like one (D-268): its `variants` are the classes the
  * active theme offers (`theme.json`'s `variants.image`), each with its
  * `name` (the class), `label`, `description`, and `source` (`null`).
+ *
+ * `bleed` names the classes the editor's bleed control writes (D-313):
+ * `wide` and `full`, as the active theme names them.
  */
 final readonly class ComponentsController
 {
@@ -91,7 +96,7 @@ final readonly class ComponentsController
 			], $views->imageVariants())
 		];
 
-		return Response::json(['components' => $components, 'image' => $image], headers: ['Cache-Control' => 'no-store']);
+		return Response::json(['components' => $components, 'image' => $image, 'bleed' => $chain->bleedClasses()], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**
@@ -116,6 +121,7 @@ final readonly class ComponentsController
 				default                               => 'leaf'
 			},
 			'category'    => $type?->category()->value,
+			'only'        => $component->definition?->holds() ?: null,
 			'source'      => $type === null ? $this->provenance->of($name->namespace, $chain) : null,
 			'props'       => array_map(
 				fn (Field $field): array => $this->prop($field, $name, $views),

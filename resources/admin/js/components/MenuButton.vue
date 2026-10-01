@@ -8,7 +8,11 @@
  *
  * A `floating` list is placed over the page beside the button (above it
  * when there's no room below), so a scrolling container such as a table
- * can't clip it; scrolling or resizing closes it.
+ * can't clip it; scrolling or resizing that moves the button closes it. Opening tells the page
+ * (`open`), so it can close whatever else it had open.
+ *
+ * An item with `aria-current` is the choice in force, shown by filling
+ * its row as a hovered row is, not with a tick (admin.md §7, D-313).
  */
 
 import { nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue';
@@ -22,11 +26,17 @@ const props = defineProps<{
 	floating?: boolean;
 }>();
 
+const emit = defineEmits<{
+	open: [];
+}>();
+
 const open   = ref(false);
 const root   = ref<HTMLElement | null>(null);
 const button = ref<HTMLButtonElement | null>(null);
 const list   = ref<HTMLElement | null>(null);
 const place  = ref<{ top: string; left: string } | null>(null);
+// Where the button was when its list was placed.
+let anchor: { top: number; left: number } | null = null;
 const id     = useId();
 
 // Space kept between the list and the button or the window's edge.
@@ -44,6 +54,8 @@ function position(): void {
 		return;
 	}
 
+	anchor = { top: box.top, left: box.left };
+
 	const height = element.offsetHeight;
 	const width  = element.offsetWidth;
 	const top    = box.bottom + GAP + height <= window.innerHeight - GAP ? box.bottom + GAP : Math.max(GAP, box.top - GAP - height);
@@ -55,6 +67,10 @@ function position(): void {
 async function toggle(): Promise<void> {
 	open.value = !open.value;
 
+	if (open.value) {
+		emit('open');
+	}
+
 	if (open.value && props.floating) {
 		place.value = null;
 		await nextTick();
@@ -62,9 +78,13 @@ async function toggle(): Promise<void> {
 	}
 }
 
-// A floating list stays where it was put, so moving the page closes it.
+// A floating list stays where it was put, so moving its button closes
+// it. A scroll somewhere else on the page (a panel closing as it opens)
+// doesn't.
 function moved(): void {
-	if (open.value && props.floating) {
+	const box = button.value?.getBoundingClientRect();
+
+	if (open.value && props.floating && (box === undefined || anchor === null || Math.abs(box.top - anchor.top) > 1 || Math.abs(box.left - anchor.left) > 1)) {
 		close();
 	}
 }
@@ -181,6 +201,13 @@ onBeforeUnmount(() => {
 .menu-button__list :deep(.menu-item:hover) {
 	background: var(--surface-2);
 	color: var(--fg);
+}
+
+.menu-button__list :deep(.menu-item[aria-current='true']),
+.menu-button__list :deep(.menu-item[aria-current='true'] svg),
+.menu-button__list :deep(.menu-item[aria-current='true'] .menu-item__name) {
+	background: var(--accent-soft);
+	color: var(--accent);
 }
 
 .menu-button__list :deep(.menu-item:disabled) {

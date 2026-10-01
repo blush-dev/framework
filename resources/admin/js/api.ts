@@ -283,6 +283,8 @@ export interface FieldDescription {
 	item?: FieldDescription;
 	to?: string;
 	multiple?: boolean;
+	// A media field's kind of file (D-314).
+	kind?: 'image' | 'video' | 'audio' | 'file';
 	integer?: boolean;
 	min?: number;
 	max?: number;

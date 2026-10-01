@@ -58,14 +58,6 @@
 	},
 	"images": {
 		"variants": {
-			"stretch-wide": {
-				"label": "Wide",
-				"description": "Wider than the text, centered on it."
-			},
-			"stretch-full": {
-				"label": "Full Bleed",
-				"description": "Edge to edge, ignoring the text's width."
-			},
 			"inline-left": {
 				"label": "Float Left",
 				"description": "Set left, with the text wrapping beside it."

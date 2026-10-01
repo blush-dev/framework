@@ -10,7 +10,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { watch } from 'vue';
 import { config } from './config';
-import { screenTitle } from './screen';
+import { screenTitle, screenTrail } from './screen';
 import { can, loadSession, session } from './session';
 import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
@@ -113,6 +113,7 @@ function setTitle(): void {
 router.afterEach((to, from) => {
 	if (to.name !== from.name || to.params.type !== from.params.type) {
 		screenTitle.value = null;
+		screenTrail.value = [];
 	}
 
 	setTitle();

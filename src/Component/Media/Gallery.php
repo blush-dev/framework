@@ -39,6 +39,11 @@ final class Gallery extends Component
 	public const ComponentContent CONTENT = ComponentContent::Blocks;
 
 	/**
+	 * @inheritDoc
+	 */
+	public const array HOLDS = ['image'];
+
+	/**
 	 * The number of columns, from 1 to 6.
 	 */
 	public readonly int $columns;

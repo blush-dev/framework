@@ -11,7 +11,10 @@
  * an extension.
  *
  * The keyboard moves through the grid (`grid.ts`), a row at a time as
- * the grid lays out; Enter inserts, Escape closes. Opened by typing `/` at the start of a line, the query is typed
+ * the grid lays out; Enter inserts, Escape closes. Inside a container
+ * that holds only some things (a gallery's images, D-314), the editor
+ * passes only those, and `note` says why the list is short.
+ * Opened by typing `/` at the start of a line, the query is typed
  * in the document and the editor forwards the keys with `move()`,
  * `choose()`, and `close`; the search field then shows the query.
  */
@@ -26,6 +29,8 @@ const props = defineProps<{
 	// Typed in the document after `/`, rather than in the search field.
 	slash?: boolean;
 	failed?: boolean;
+	// Why only some components are offered here.
+	note?: string;
 }>();
 
 const query = defineModel<string>('query', { required: true });
@@ -164,6 +169,8 @@ defineExpose({ move, choose, focus });
 			>
 		</label>
 
+		<p v-if="note" class="inserter__note">{{ note }}</p>
+
 		<div id="component-panel-grid" ref="grid" class="inserter__grid" role="listbox" aria-labelledby="component-panel-heading">
 			<p v-if="failed" class="inserter__empty">The components couldn't be loaded.</p>
 			<p v-else-if="!components.length" class="inserter__empty">No components are registered.</p>
@@ -208,6 +215,14 @@ defineExpose({ move, choose, focus });
 </template>
 
 <style scoped>
+.inserter__note {
+	margin: 0;
+	padding: var(--s-2) var(--s-5);
+	border-bottom: 1px solid var(--border);
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
 .inserter {
 	display: flex;
 	flex-direction: column;

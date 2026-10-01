@@ -24,6 +24,16 @@
 
    A new admin theme = one file that repeats this shape under its own
    [data-admin-theme="id"] selector. It adds no new token names.
+
+   Derived values: a component may build a variant of a token with color-mix()
+   — `color-mix(in srgb, var(--accent) 26%, transparent)` for the editor's text
+   selection, say. That is still "no literal colors": the hue comes from the
+   token and follows the theme. What it must never do is write the mixed result
+   out as a hex value, which is how a theme quietly stops applying.
+
+   Note for anyone comparing this with the prototype: the prototype spells the
+   two attributes `data-dir` and `data-theme`. These are the same two axes under
+   the names they should ship with. Nothing else differs.
    ========================================================================== */
 
 /* ---------------------------------------------------------------- neutral -- */

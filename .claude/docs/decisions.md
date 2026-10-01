@@ -7558,3 +7558,276 @@ decision, add a new entry that supersedes it and mark the old one
 - **Open:** passkeys; a separate capability for roles if a site needs
   one; showing entry counts per account.
 - **Why:** the author asked to work on editing accounts and roles.
+
+### D-313: The editor's toolbar, bleed, element moves, and the code block, from the split direction
+- **Date:** 2026-10-01
+- **Decision:** The author split the admin's design direction into
+  numbered documents (`admin-design/00-project-brief.md` to
+  `90-conventions.md`, with `meridian-admin.html`; the single `admin.md`
+  and `blush-admin.html` moved to `admin-design/old/`). "Meridian" is the
+  design project's codename only; the product is Blush. The direction
+  is design; code directions are this project's. The author asked for
+  its editor changes first. Supersedes D-284's ⌘I writing `*` and ⌘K
+  linking only a selection, and D-285's ⌥↑ and ⌥↓ moving lines.
+  - **The toolbar** (`30-editor.md`, The toolbar): no back button and
+    no type name in the header. The top bar's trail is the way out:
+    `Site / Posts / Edit Post`, the type a link (`screenTrail` in
+    `screen.ts`). The left half, in order: components and media (always
+    there); a stacked ▴▾ to move the element (while the caret is in the
+    text); bold, italic, the link form, the icon picker, and the inline
+    menu (only where emphasis is emphasis, `inProse()`: not code, a
+    directive's own line, a rule, a delimiter row, or an attribute
+    line); and bleed (a top-level element). Contextual groups are
+    hidden, not disabled, after the fixed ones. One thing is open at a
+    time (`closeOverlays()`, and `MenuButton`'s new `open` event). The
+    toolbar doesn't toast: inserting a component, Markdown element,
+    icon, or file no longer says "Inserted …" (upload progress still
+    does). The Index mark left the header with the type name; the
+    title says **Edit Index Page**.
+  - **Bold and italic** (`toggleEmphasis()`, `emphasisAt()`): read with
+    the highlighter's patterns, so either mark counts (`*`/`_`,
+    `**`/`__`) and the buttons are pressed (`aria-pressed`) when the
+    caret's text is. Bold writes `**`, italic `_`, but `*` inside a word.
+    Nothing selected means the word at the caret (`wordAt()`); no word,
+    an empty pair. Strikethrough uses the same path; inline code keeps
+    `toggleMark()`.
+  - **Links, as the author asked (the way a familiar block editor does
+    it, not ⌘⇧K as the direction has it):** in the text, ⌘K opens the
+    link form (Text and Address) with or without a selection, filled
+    from the selection, the word at the caret, or the link the caret is
+    in (`linkAt()`, with **Remove**, keeping a link's title); focus goes
+    to the first empty field. ⌘⇧K removes the link at the caret
+    (`withoutLink()`). Outside the text, ⌘K stays the command palette.
+  - **Moving elements** (Reordering): ⌥↑, ⌥↓, the toolbar's ▴▾, and the
+    palette's Move element up and down move the top-level element the
+    caret is in past its neighbor (`topLevel()`, `movedElement()`,
+    `swapped()`): whole lines, elements sharing a line are one run, and
+    the gaps stay where they were. One undoable edit. `movedLines()` is
+    gone. Not done: the element panel's Position row and outline
+    handles (the direction's decisions log moved reordering to the
+    toolbar).
+  - **Bleed** (Bleed): Base (no class), Wide, and Full, in a menu whose
+    button's glyph is the width in force (`bleed-base`, `bleed-wide`,
+    `bleed-full` icons), tinted while widened; for a top-level element,
+    written where its attributes go (`withDirectiveParts()`,
+    `withImage()`, `withBlockParts()`), keeping other classes and the
+    id. **The theme names the classes:** `theme.json`'s `bleed`
+    (`{"wide", "full"}`, class names; `ThemeManifest::bleed()`), the
+    nearest theme in the chain naming each winning
+    (`ThemeChain::bleedClasses()`), else `bleed-wide` and `bleed-full`.
+    `GET components` answers `bleed`. The author's call, since jtcom's
+    1.x content uses `{.stretch-wide}` (D-078): the jtcom trial's theme
+    names `stretch-wide` and `stretch-full`. Widths are no longer image
+    variants: the default theme's are `inline-left` and `inline-right`,
+    and it styles `bleed-*` and 1.x's `stretch-*` alike.
+  - **The code block is one box** (The fenced block is a box): the
+    highlight wraps the fences and lines in one block element, drops the
+    break after a closing fence, and ends with the space a final empty
+    line needs only when the last line isn't a closed block. Horizontal
+    negative margin and padding; no vertical box metrics; the hairline an
+    inset shadow. Checked against a reference `<pre>`: no line out of
+    place in eight cases (middle, end, end with a newline, first, twice,
+    unclosed, unclosed with a newline, a wrapping line).
+  - **The third backtick** (`closingFence()`): three backticks alone on
+    a line, the caret at their end, and an odd number of fence lines
+    write an empty line and the closing fence, as an edit of its own
+    (undo takes back the closer first); the caret stays for the
+    language. Enter at the end of an opening fence over the block's
+    empty first line steps into it (`intoFence()`).
+  - **The drawer opens on what the caret is in**: the element tab when
+    something's selected, else the entry's, decided on each open.
+  - **Leaving the text drops the selection:** the selection, the
+    breadcrumb, the sentence group, move, and bleed follow whether the
+    caret is in the text. A press on the editor's chrome (header,
+    footer, inserter, drawer but its entry tab, menus, dialogs) isn't
+    leaving: the press is recorded on `pointerdown` and the blur asks
+    where it landed; a Tab away is judged by where focus went.
+  - **The Markdown elements are tiles** in the component panel
+    (`MARKDOWN_ELEMENTS`, `markdown/*` names): Heading, Quote, List,
+    Definitions, and Code Block under Text, Table under Data, Divider
+    under Layout, first in each group, named and drawn as `BLOCK_KINDS`
+    does, found by aliases ("hr", "dl"), inserted on lines of their own
+    with the placeholder selected.
+  - **Menus show the choice in force by filling its row** (Status,
+    Visibility, Bleed), with the option's own icon, not a tick.
+  - Smaller: element panels are keyed by where the element starts, not
+    its index; a floating menu closes only when its button moves (a
+    panel closing as it opens no longer shuts it); narrow, the toolbar
+    wraps to a second row, and the trail keeps its separators.
+- **Kept as they were** (departures): Tab leaves the text outside a
+  list (D-245, D-284), the chrome doesn't fade (D-279), the drawer is
+  remembered (D-299), and `spellcheck` stays on.
+- **Not yet, from the direction:** Backspace taking a marker off; the
+  "machinery" guards (an insertion or keystroke moved out of a
+  directive's head or attribute block); a component's `only` (the
+  gallery as a container of images, pickers locked to a kind); renaming
+  the table component Data Table and dropping the divider component;
+  pasting HTML as Markdown (on hold, D-286); the node list and its
+  round-trip check (waits for a visual editor); caching the highlight
+  per line; a placeholder for an empty entry; the shell's trail from
+  the rail section rather than the site name.
+- **Checked:** `composer check` (`ThemesTest`: bleed classes through
+  the chain and refused manifests; `AdminContentTest`: `GET components`'
+  `bleed`; the image variant tests moved to `inline-left`);
+  `npm run admin:build`; a scratch run of the model (emphasis on and
+  off with either mark, `*` inside a word, the word at the caret,
+  links found, written with escapes and `<…>`, and removed, fence
+  completion and stepping in, prose detection, element moves keeping
+  gaps and carrying the caret, the code box's HTML); on the jtcom trial
+  in headless Chrome with a throwaway administrator (since removed),
+  nothing saved: the header's groups appearing and going with the
+  caret, Bold pressed after bold, ⌘K's form filled from the word and
+  Escape back to the text, bleed Wide writing `{.stretch-wide}` and Base
+  removing it, no bleed in a list item, ⌥↑ and its undo, typing three
+  backticks then Enter, the drawer opening on the paragraph, `hr`
+  finding Divider and Heading inserted selected, the code box's
+  alignment probe, light and dark, and 390px with no sideways scroll.
+- **Why:** the author uploaded the split design direction and asked for
+  its editor changes, deciding the three conflicts with earlier
+  decisions (element moves, theme-named bleed classes, and links).
+
+### D-314: Moving the element the caret is in, Backspace, guarded syntax, media kinds, and `only`
+- **Date:** 2026-10-01
+- **Decision:** The rest of the split direction's editor changes
+  (D-313), at the author's request. Supersedes D-313's moving the
+  top-level element, which the author found wrong in use.
+  - **Moving elements** (the author's call, departing from the
+    direction's top level only): ▴▾, ⌥↑, and ⌥↓ move the element the
+    breadcrumb names last among its siblings, inside whatever holds it
+    (`siblingRuns()`, `runIndex()`, `movedElement()`): a list item
+    within its list, a paragraph within its callout, a callout among the
+    top-level elements. A term or definition moves its whole definition
+    list. An arrow is disabled with nothing to swap with. A moved
+    numbered item renumbers its list from the number it started at
+    (`renumberedAt()`). The view follows the move once the highlight has
+    caught up (`change()` waits a tick before scrolling).
+  - **Backspace takes the marker off** (`unmarked()`): just after a list
+    item's marker (with its box), a quote's last `>`, or a heading's
+    hashes, the marker goes and the words stay; an indented item comes
+    out a level first, as Shift+Tab does. Anywhere else it's
+    Backspace.
+  - **You can't write into the machinery** (`safeSpot()`,
+    `typedSpot()`): a typed character right after a trailing attribute
+    block at the end of its line goes before the block; one right after
+    a directive's tag ending in `]` or `}` goes on a new line (inside
+    braces or a name, typing still edits). An inline insertion (a
+    component, an icon) or a paste into a directive's own line goes on a
+    line after it, and one inside an image's attributes after them.
+    Nothing is refused.
+  - **Media kinds:** `MediaField` takes an optional `kind`
+    (`MediaKind`: `image`, `video`, `audio`, `file`; an unknown one is an
+    `InvalidSchema`), written by `toArray()` and offered in the type
+    builder's field editor (**Takes**). `#[MediaProp(MediaKind::…)]`
+    names a component prop's: the video's `src` and the audio's take
+    their kind, a video's `poster` images; the track and a download take
+    any file. The admin's picker is **locked** to a kind for those, for
+    the featured image (`kind: image` from the type builder, or by name
+    for older types), an image's Replace, and the Image tile: no kind
+    filter, the file chooser's `accept` narrowed, and an upload of
+    another kind refused with why, by its extension, before it's sent.
+    Saving doesn't check kinds (a URL's can't be known).
+  - **`only`:** a component's `HOLDS` (list of inserter keys, `image` or
+    full names) is `GET components`' `only`; the gallery holds
+    `['image']`. Inside one (the innermost the caret is in, itself
+    included), the component panel offers only those, with a note
+    ("Gallery holds only images."); the sentence group goes; the media
+    picker is locked to images. Its panel counts the images and names
+    any line that isn't one, line by line, since images one to a line
+    are one Markdown paragraph. The outline lists such a paragraph as
+    its images.
+  - Smaller: the Quote block has its own glyph (`text-quote`), apart
+    from the inline Cite's; the link and icon picker glyphs are the
+    direction's, rescaled to the toolbar's ink height; an empty entry's
+    placeholder names `/` and **+**.
+- **Doesn't apply:** Blush has no table, divider, or code component, so
+  the direction's Data Table rename, dropped divider, and Code Sample
+  question have nothing to change.
+- **Not done:** the highlight cached per line (a keystroke costs about
+  15 ms at 35,000 characters, frame wait included, so it isn't needed
+  yet); Tab moving quote lines or a multi-line selection (Tab still
+  leaves the text outside lists, D-245); the node list and its
+  round-trip check, which wait for a visual editor; pasting HTML as
+  Markdown (D-286).
+- **Checked:** `composer check` (`SchemaTest`: a media field's kind
+  read, written, and refused; `MediaComponentsTest`: the video's and
+  audio's prop kinds; `AdminContentTest`: the gallery's `only`);
+  `npm run admin:build`; a scratch run of `unmarked()`, `safeSpot()`, and
+  `typedSpot()`; on the jtcom trial in headless Chrome with a throwaway
+  administrator (since removed), nothing saved: moves of list items,
+  numbered items (from 1 and from 3), nested items, an item with
+  children, a paragraph in a callout, an only child (both arrows off), a
+  callout, a term (its definition list), and a top-level paragraph, with
+  real clicks; a move in a long post keeping the moved paragraph in
+  view; every chunk of a real post moved down and checked line for line;
+  Backspace in a nested item, a quote, and a heading, and undo; typing
+  after attributes, after a tag, and inside a name; a paste into a tag;
+  a gallery's tiles, note, locked picker, and its panel's count and
+  stray line; and D-313's probes again, all with no console errors.
+- **Why:** the author asked to keep going with the editor changes, and
+  reported the move buttons weren't working as expected.
+
+### D-315: Tab in quotes and over several lines
+- **Date:** 2026-10-01
+- **Decision:** The rest of the direction's "Tab moves a block"
+  (`30-editor.md`'s decisions log), at the author's request, by
+  structure rather than the prototype's two spaces per line, which do
+  nothing to a quote and turn prose into a code block after two
+  presses.
+  - **In a quote** (`quoted()`): Tab adds a `>` level to every quote line,
+    and Shift+Tab takes one off; the last level off leaves paragraphs.
+    With a lone caret it's the whole quote the caret is in; with a
+    selection, its lines (one it ends at the very start of isn't
+    counted). Lazy lines (no `>`) are left as they are.
+  - **Over several lines of code** (`indentedCode()`): with a selection
+    spanning lines that starts in a fenced block's code, Tab puts two
+    spaces in front of each code line and Shift+Tab takes up to two off;
+    blank lines and fences are left alone.
+  - **In a list**, as D-284 has it (`nested()`), which a selection
+    starting in an item already used.
+  - **Elsewhere** (prose, several lines of it, or a lone caret in code),
+    Tab still leaves the text (D-245), so it never traps the keyboard.
+  - Each is one undoable edit, and the selection stays on the same words.
+- **Checked:** `composer check`; `npm run admin:build`; a scratch run
+  (a caret and a selection in a quote, nesting and un-nesting, the last
+  level, a selection ending at a line's start, a non-quote line, code
+  lines indented and outdented, a single code line and prose left
+  alone); on the jtcom trial in headless Chrome with a throwaway
+  administrator (since removed), nothing saved: each key, undo, a list
+  item, and Tab over prose leaving the text, with no console errors.
+- **Why:** the author asked for Tab's behavior in quotes and over
+  multi-line selections.
+
+### D-316: The highlight is cached per line, and the body is read once per keystroke
+- **Date:** 2026-10-01
+- **Decision:** The direction's per-line highlight cache (its decisions
+  log, "The highlight layer is rendered once per line"), at the
+  author's request, after D-314 and D-315 left it as not needed yet.
+  - **`highlight()` keeps each line's HTML** between calls in a
+    module-level map, keyed on everything the line's HTML depends on:
+    its kind and text; what the block scan says it is (a table's header,
+    a term, a definition); for a directive's own line, whether it's the
+    selected one; and for prose, where in it the selected inline
+    directive or image starts, if anywhere. The keys a call uses become
+    the next cache, so lines that went away stop being kept. A fence's
+    HTML is cached by its text; code lines are only escaped, so they
+    aren't cached.
+  - **The body is read once per keystroke:** `MarkdownEditor` takes the
+    editor screen's outline and blocks (`parsed`, `blocks`) rather than
+    reading the body again (a trashed entry's read-only view still reads
+    its own), and `emphasisAt()` takes the outline rather than a source.
+  - Measured on the jtcom trial in headless Chrome (a keystroke's script
+    work through Vue's update, median of 25): 3.1, 7.5, and 13.5 ms at
+    11,600, 40,500, and 75,100 characters before; 2.3, 4.8, and 8.1 ms
+    after. In Node at 75,000 characters, reading the body is 1.5 ms, its
+    blocks 0.2, the outline 1.0, and a warm highlight 0.35. What's left
+    is Vue's update and the browser taking the copy's new HTML; patching
+    the copy line by line in the DOM would be the next step, if long
+    entries need it.
+- **Checked:** `composer check`; `npm run admin:build`; on the jtcom
+  trial in headless Chrome with a throwaway administrator (since
+  removed), nothing saved: the selection's box following the caret
+  across two identical lines with inline components, an image, a
+  container's opener and closer, and the text inside and outside it;
+  typed text appearing and the copy matching the text; the code box's
+  alignment probe; and D-315's Tab probe, with no console errors.
+- **Why:** the author asked for the per-line cache.

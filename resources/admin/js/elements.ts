@@ -14,7 +14,9 @@ import {
 	headingLevel,
 	listItems,
 	listStyle,
+	swapped,
 	unescaped,
+	type Change,
 	type MarkdownBlock,
 	type MarkdownOutline
 } from './markdown';
@@ -116,7 +118,8 @@ export function elementAt(markdown: MarkdownOutline, found: MarkdownBlock[], off
  * Everything the body is made of, in source order: container and leaf
  * directives, images, and blocks (inline directives are inside a
  * sentence, so they aren't listed). A line that's nothing but an image is
- * listed as the image, not a paragraph. Depth is containment: anything
+ * listed as the image, not a paragraph, and so is a paragraph of such
+ * lines (a gallery's images, one to a line). Depth is containment: anything
  * starting before a container, list, list item, or definition list ends
  * is inside it.
  */
@@ -126,8 +129,10 @@ export function outlineItems(source: string, markdown: MarkdownOutline, found: M
 			return markdown.directives[item.index]?.kind !== 'inline';
 		}
 
-		if (item.kind === 'block' && found[item.index]?.kind === 'paragraph') {
-			return !markdown.images.some((image) => image.start === item.start && source.slice(image.end, item.end).trim() === '');
+		const block = item.kind === 'block' ? found[item.index] : undefined;
+
+		if (block?.kind === 'paragraph') {
+			return !markdown.lines.slice(block.first, block.last + 1).every((line) => imageLine(markdown, line.start, line.start + line.text.length));
 		}
 
 		return true;
@@ -148,6 +153,17 @@ export function outlineItems(source: string, markdown: MarkdownOutline, found: M
 
 		return entry;
 	});
+}
+
+/**
+ * Whether the text from `start` to `end` (a line) is nothing but one
+ * image and the spaces around it.
+ */
+export function imageLine(markdown: MarkdownOutline, start: number, end: number): boolean {
+	const line = markdown.lines.find((item) => item.start === start);
+
+	return line !== undefined && markdown.images.some((image) => image.start >= start && image.end <= end
+		&& line.text.slice(0, image.start - start).trim() === '' && line.text.slice(image.end - start).trim() === '');
 }
 
 /**
@@ -275,4 +291,55 @@ export function excerpt(source: string, markdown: MarkdownOutline, found: Markdo
 		.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
 		.replace(/[*_`~]/g, '')
 		.trim();
+}
+
+/**
+ * The runs an element moves among (admin.md §8, Reordering; D-314): the
+ * whole lines of each element sharing its parent (the top level, a
+ * container's body, a list's items), in order. Elements sharing a line (a
+ * paragraph and an image in it) are one run.
+ */
+export function siblingRuns(source: string, items: OutlineItem[], parent: number): { start: number; end: number }[] {
+	const runs: { start: number; end: number }[] = [];
+
+	for (const item of items) {
+		if (item.parent !== parent) {
+			continue;
+		}
+
+		const start = source.lastIndexOf('\n', item.start - 1) + 1;
+		const close = source.indexOf('\n', item.end);
+		const end   = close === -1 ? source.length : close;
+		const last  = runs.at(-1);
+
+		if (last !== undefined && start <= last.end) {
+			last.end = Math.max(last.end, end);
+		} else {
+			runs.push({ start, end });
+		}
+	}
+
+	return runs;
+}
+
+/**
+ * Which run holds an element, or -1.
+ */
+export function runIndex(runs: { start: number; end: number }[], item: OutlineItem | undefined): number {
+	return item === undefined ? -1 : runs.findIndex((run) => run.start <= item.start && item.start <= run.end);
+}
+
+/**
+ * Moves the run at `index` past the one above or below it, carrying the
+ * selection with it; `null` at the edge.
+ */
+export function movedElement(source: string, runs: { start: number; end: number }[], index: number, up: boolean, keep: { from: number; to: number }): Change | null {
+	const other = runs[up ? index - 1 : index + 1];
+	const run   = runs[index];
+
+	if (run === undefined || other === undefined) {
+		return null;
+	}
+
+	return up ? swapped(source, other, run, keep) : swapped(source, run, other, keep);
 }

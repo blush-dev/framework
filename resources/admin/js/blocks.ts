@@ -12,7 +12,7 @@ export const BLOCK_KINDS: Record<BlockKind, { label: string; icon: IconName; des
 	paragraph: { label: 'Paragraph', icon: 'pilcrow', description: 'A paragraph of prose.' },
 	list: { label: 'List', icon: 'list', description: 'A whole list. Its items are elements of their own, inside it.' },
 	item: { label: 'List Item', icon: 'list', description: 'One item of a list. Its attributes are the item\'s, not the whole list\'s.' },
-	quote: { label: 'Quote', icon: 'quote', description: 'A block quotation.' },
+	quote: { label: 'Quote', icon: 'text-quote', description: 'A block quotation.' },
 	code: { label: 'Code Block', icon: 'code', description: 'A fenced code block. The word after the fence is its language.' },
 	table: { label: 'Table', icon: 'table', description: 'A table, written with pipes.' },
 	rule: { label: 'Divider', icon: 'minus', description: 'A horizontal rule between sections.' },

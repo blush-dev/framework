@@ -69,6 +69,17 @@ final readonly class ComponentDefinition
 	}
 
 	/**
+	 * Returns what a container holds, when it's only some things (the
+	 * class's `HOLDS`), else an empty list.
+	 *
+	 * @return list<string>
+	 */
+	public function holds(): array
+	{
+		return $this->class === null ? [] : $this->class::HOLDS;
+	}
+
+	/**
 	 * Returns what the component wraps.
 	 */
 	public function content(): ComponentContent
@@ -124,6 +135,17 @@ final readonly class ComponentDefinition
 	}
 
 	/**
+	 * Returns the media field a `#[MediaProp]` parameter is, with its kind,
+	 * or `null` when it isn't one.
+	 */
+	private static function media(ReflectionParameter $parameter): ?MediaField
+	{
+		$attribute = $parameter->getAttributes(MediaProp::class)[0] ?? null;
+
+		return $attribute === null ? null : new MediaField($parameter->getName(), $attribute->newInstance()->kind);
+	}
+
+	/**
 	 * Returns the field for a constructor parameter, or `null` when it
 	 * isn't a prop.
 	 */
@@ -138,7 +160,7 @@ final readonly class ComponentDefinition
 		$name  = $parameter->getName();
 		$class = $type->getName();
 		$field = match (true) {
-			$class === 'string'                   => $parameter->getAttributes(MediaProp::class) === [] ? new TextField($name) : new MediaField($name),
+			$class === 'string'                   => self::media($parameter) ?? new TextField($name),
 			$class === 'int'                      => new NumberField($name, integer: true),
 			$class === 'float'                    => new NumberField($name),
 			$class === 'bool'                     => new BoolField($name),

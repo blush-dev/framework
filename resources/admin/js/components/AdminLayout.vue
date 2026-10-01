@@ -22,7 +22,7 @@ import { ApiError, type ContentTypeSummary } from '../api';
 import { config } from '../config';
 import { online } from '../connection';
 import type { IconName } from '../icons';
-import { focusMode, screenTitle } from '../screen';
+import { focusMode, screenTitle, screenTrail } from '../screen';
 import { can, session, signOut } from '../session';
 import { authorType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
@@ -368,6 +368,10 @@ async function leave(): Promise<void> {
 				</button>
 				<p class="bar__crumbs">
 					<span class="bar__root">{{ config.site.name }}</span>
+					<template v-for="crumb in screenTrail" :key="crumb.label">
+						<span class="bar__sep" aria-hidden="true">/</span>
+						<RouterLink class="bar__link" :to="crumb.to">{{ crumb.label }}</RouterLink>
+					</template>
 					<span class="bar__sep" aria-hidden="true">/</span>
 					<span class="bar__current">{{ title }}</span>
 				</p>
@@ -750,6 +754,18 @@ async function leave(): Promise<void> {
 	color: var(--fg-3);
 }
 
+.bar__link {
+	overflow: hidden;
+	color: var(--fg-2);
+	text-decoration: none;
+	text-overflow: ellipsis;
+}
+
+.bar__link:hover {
+	color: var(--fg);
+	text-decoration: underline;
+}
+
 .bar__current {
 	overflow: hidden;
 	font-weight: 500;
@@ -884,7 +900,7 @@ async function leave(): Promise<void> {
 	}
 
 	.bar__root,
-	.bar__sep {
+	.bar__root + .bar__sep {
 		display: none;
 	}
 

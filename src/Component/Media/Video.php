@@ -20,6 +20,7 @@ use Blush\Media\MediaResolver;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 use Blush\Component\MediaProp;
+use Blush\Media\MediaKind;
 
 /**
  * Plays a video file with the browser's controls (D-175, D-179):
@@ -57,8 +58,8 @@ final class Video extends Component
 	public function __construct(
 		MediaResolver $media,
 		AppConfig $app,
-		#[MediaProp] public readonly string $src = '',
-		#[MediaProp] public readonly string $poster = '',
+		#[MediaProp(MediaKind::Video)] public readonly string $src = '',
+		#[MediaProp(MediaKind::Image)] public readonly string $poster = '',
 		#[MediaProp] public readonly string $track = '',
 		?int $width = null,
 		?int $height = null,

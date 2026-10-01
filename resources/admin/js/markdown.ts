@@ -355,6 +355,9 @@ export function wordCount(markdown: MarkdownOutline): number {
 	return count;
 }
 
+// Each line's highlighted HTML, by what it depends on (`highlight()`).
+let lineCache = new Map<string, string>();
+
 const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 
 function escape(text: string): string {
@@ -647,39 +650,106 @@ function lineHtml(line: Line, current: Current, role: LineRole | undefined): str
  * closing lines only; its body is the writing, and stays untinted
  * (D-268). Every character of the source is in it, escaped, so it lines
  * up with the text area over it.
+ *
+ * A fenced code block is one box, fences included (admin.md §8, The
+ * fenced block is a box): one block element holding its lines and the
+ * line breaks between them. A block ends its own line, so the break
+ * after a closing fence isn't written as well; an unclosed one runs to
+ * the end. A space at the very end gives a final empty line its height,
+ * as the text area gives it, except after a closed block, which already
+ * ends its line.
+ *
+ * Each line's HTML is kept between calls, keyed on everything it depends
+ * on (its kind and text, what the block scan says it is, and where in it
+ * the selected directive or image is, if anywhere), so a keystroke
+ * rebuilds the line it changed rather than the whole body (D-316). The
+ * lines a call uses are what the next one keeps.
  */
 export function highlight(markdown: MarkdownOutline, directive: number, image = -1, found: MarkdownBlock[] = blocks(markdown)): string {
-	const at    = markdown.images[image]?.start ?? -1;
-	const roles = lineRoles(found);
+	const at      = markdown.images[image]?.start ?? -1;
+	const current = markdown.directives[directive];
+	const roles   = lineRoles(found);
+	const used    = new Map<string, string>();
+	let html      = '';
+	let inCode    = false;
+	let joined    = true;
 
-	return markdown.lines.map((line, index) => {
-		let html: string;
+	// A line's HTML from the cache, or built and kept.
+	const cached = (key: string, build: () => string): string => {
+		let value = used.get(key) ?? lineCache.get(key);
+
+		if (value === undefined) {
+			value = build();
+		}
+
+		used.set(key, value);
+
+		return value;
+	};
+
+	// Where in a line something selected starts, or -1.
+	const within = (line: Line, offset: number): number => offset >= line.start && offset <= line.start + line.text.length ? offset - line.start : -1;
+
+	markdown.lines.forEach((line, index) => {
+		const before = index === 0 || !joined ? '' : '\n';
+
+		joined = true;
 
 		switch (line.kind) {
 			case 'fence': {
-				// A fence is the one place the source is the content, so it
-				// sits on a slab, with its language named.
-				const parts = /^(\s*)(`{3,}|~{3,})(.*)$/.exec(line.text);
+				const fence = cached(`f\u0000${line.text}`, () => {
+					const parts = /^(\s*)(`{3,}|~{3,})(.*)$/.exec(line.text);
 
-				html = `<span class="md-fence">${parts === null ? escape(line.text) : escape(parts[1] ?? '') + markHtml(parts[2] ?? '') + (parts[3] ? `<span class="md-fence__lang">${escape(parts[3])}</span>` : '')}</span>`;
-				break;
+					return parts === null ? escape(line.text) : escape(parts[1] ?? '') + markHtml(parts[2] ?? '') + (parts[3] ? `<span class="md-fence__lang">${escape(parts[3])}</span>` : '');
+				});
+
+				if (inCode) {
+					html  += `${before}${fence}</span>`;
+					inCode = false;
+					joined = false;
+				} else {
+					html  += `${before}<span class="md-codeblock">${fence}`;
+					inCode = true;
+				}
+
+				return;
 			}
 			case 'code':
-				html = `<span class="md-code-block">${escape(line.text)}</span>`;
-				break;
+				html += before + escape(line.text);
+
+				return;
 			case 'open':
 			case 'leaf':
 			case 'close': {
-				const indent = line.text.length - line.text.trimStart().length;
+				const selected = line.directive === directive;
 
-				return escape(line.text.slice(0, indent)) + directiveHtml(line.text.slice(indent), line.directive === directive);
+				html += before + cached(`d\u0000${selected ? 1 : 0}\u0000${line.text}`, () => {
+					const indent = line.text.length - line.text.trimStart().length;
+
+					return escape(line.text.slice(0, indent)) + directiveHtml(line.text.slice(indent), selected);
+				});
+
+				return;
 			}
-			default:
-				html = lineHtml(line, { directive, image: at, line: line.start }, roles.get(index));
-		}
+			default: {
+				// The selected inline directive and image matter only on their
+				// own line, by where they are in it.
+				const inline = current?.kind === 'inline' ? within(line, current.start) : -1;
+				const picked = within(line, at);
+				const role   = roles.get(index) ?? '';
 
-		return html;
-	}).join('\n');
+				html += before + cached(`${line.kind}\u0000${role}\u0000${inline}\u0000${picked}\u0000${line.text}`, () => lineHtml(line, { directive, image: at, line: line.start }, roles.get(index)));
+			}
+		}
+	});
+
+	lineCache = used;
+
+	if (inCode) {
+		return `${html} </span>`;
+	}
+
+	return joined ? `${html} ` : html;
 }
 
 /**
@@ -1614,52 +1684,6 @@ function renumber(text: string[], index: number, start?: number): void {
 	}
 }
 
-/**
- * The number the numbered run with an item on line `index` starts at, or
- * `undefined` when the line isn't a numbered item.
- */
-function runStart(text: string[], index: number): number | undefined {
-	const item = ITEM_LINE.exec(text[index] ?? '');
-
-	if (item === null || !/\d/.test(item[2] ?? '')) {
-		return undefined;
-	}
-
-	const indent   = item[1]?.length ?? 0;
-	const leading  = (line: string): number => /^ */.exec(line)?.[0].length ?? 0;
-	const numbered = (line: string): boolean => {
-		const found = ITEM_LINE.exec(line);
-
-		return found !== null && (found[1]?.length ?? 0) === indent && /\d/.test(found[2] ?? '');
-	};
-
-	let start = Number.parseInt(item[2] ?? '1', 10);
-
-	// Up through the run: its numbered items, what's nested in them, and
-	// single blank lines between them.
-	for (let at = index - 1; at >= 0; at--) {
-		const line = text[at] ?? '';
-
-		if (line.trim() === '') {
-			const above = text[at - 1] ?? '';
-
-			if (above.trim() !== '' && (numbered(above) || leading(above) > indent)) {
-				continue;
-			}
-
-			break;
-		}
-
-		if (numbered(line)) {
-			start = Number.parseInt(ITEM_LINE.exec(line)?.[2] ?? '1', 10);
-		} else if (leading(line) <= indent) {
-			break;
-		}
-	}
-
-	return start;
-}
-
 // A blockquote's markers, and a table's delimiter cells.
 const QUOTE_LINE = /^( {0,3})((?:> ?)+)(.*)$/;
 
@@ -2057,54 +2081,553 @@ export function withHeading(source: string, start: number, end: number, level: n
 }
 
 /**
- * Moves the lines in a selection up or down one line (⌥↑, ⌥↓), past the
- * line there, keeping the selection on them. A numbered list's items are
- * renumbered where they left and where they landed. `null` at the top or
- * bottom.
+ * A token from a line, flattened out of the marks it's nested in, with
+ * its offsets (and its inner text's) in the body.
  */
-export function movedLines(source: string, start: number, end: number, up: boolean): Change | null {
-	const before = source.split('\n');
-	const first  = lineAt(source, start);
-	let last     = lineAt(source, end);
+interface BodyToken {
+	kind: TokenKind;
+	start: number;
+	end: number;
+	inner: { start: number; end: number } | null;
+	// A link's or image's first character, to tell them apart.
+	image: boolean;
+}
 
-	// A selection ending at the start of a line doesn't take that line.
-	if (last > first && end === lineStarts(before)[last]) {
-		last--;
+/**
+ * The line an offset is on, by index, or -1.
+ */
+function lineIndexAt(markdown: MarkdownOutline, offset: number): number {
+	return markdown.lines.findIndex((line) => line.start <= offset && offset <= line.start + line.text.length);
+}
+
+function bodyTokens(line: Line, tokens: Token[] = line.tokens, found: BodyToken[] = []): BodyToken[] {
+	for (const token of tokens) {
+		found.push({
+			kind: token.kind,
+			start: line.start + token.start,
+			end: line.start + token.end,
+			inner: token.inner === undefined ? null : { start: line.start + token.inner.start, end: line.start + token.inner.end },
+			image: line.text[token.start] === '!'
+		});
+
+		if (token.inner !== undefined) {
+			bodyTokens(line, token.inner.tokens, found);
+		}
 	}
 
-	if (up ? first === 0 : last === before.length - 1) {
+	return found;
+}
+
+/**
+ * Whether Markdown's emphasis is emphasis at an offset (admin.md §8, The
+ * toolbar): in prose, a paragraph, heading, list item, quote, a table's
+ * cell, or a container's body; not in code, on a directive's own line, a
+ * rule, or a table's delimiter row, where a pair of stars is two stars.
+ */
+export function inProse(markdown: MarkdownOutline, offset: number): boolean {
+	const line = markdown.lines[lineIndexAt(markdown, offset)];
+
+	if (line === undefined || (line.kind !== 'text' && line.kind !== 'heading')) {
+		return false;
+	}
+
+	return line.marks.at(-1)?.kind !== 'rule' && !(TABLE.test(line.text) && DELIMITER.test(line.text) && line.text.includes('-')) && !isAttributeLine(line);
+}
+
+export type Emphasis = 'strong' | 'em' | 'strike';
+
+/**
+ * The emphasis of a kind that holds a selection (or the caret): the
+ * innermost whose text it's in, or that it selects whole, marks and all.
+ */
+function emphasisSpan(markdown: MarkdownOutline, start: number, end: number, kind: Emphasis): BodyToken | null {
+	const line = markdown.lines[lineIndexAt(markdown, start)];
+
+	if (line === undefined || end > line.start + line.text.length) {
 		return null;
 	}
 
-	const block = before.slice(first, last + 1);
-	const other = before[up ? first - 1 : last + 1] ?? '';
-	const text  = up
-		? [...before.slice(0, first - 1), ...block, other, ...before.slice(last + 1)]
-		: [...before.slice(0, first), other, ...block, ...before.slice(last + 2)];
+	let found: BodyToken | null = null;
 
-	const shift = up ? -1 : 1;
+	for (const token of bodyTokens(line)) {
+		const inner = token.inner;
 
-	// Where each run started before the move is where it starts after.
-	const moves = [
-		{ index: first + shift, start: runStart(before, first) },
-		{ index: up ? last : first, start: runStart(before, up ? first - 1 : last + 1) }
-	];
-
-	for (const move of moves) {
-		renumber(text, move.index, move.start);
-	}
-
-	const lineMap = (line: number): number => {
-		if (line >= first && line <= last) {
-			return line + shift;
+		if (token.kind !== kind || inner === null) {
+			continue;
 		}
 
-		return line === (up ? first - 1 : last + 1) ? (up ? last : first) : line;
+		const holds = (start >= inner.start && end <= inner.end) || (start === token.start && end === token.end);
+
+		if (holds && (found === null || token.end - token.start < found.end - found.start)) {
+			found = token;
+		}
+	}
+
+	return found;
+}
+
+/**
+ * Which emphasis is on for a selection, read with the highlighter's own
+ * patterns, so a button can't say text is bold while the ink beside it
+ * says otherwise. Either mark counts: `*` or `_`, `**` or `__`.
+ */
+export function emphasisAt(markdown: MarkdownOutline, start: number, end: number): Record<Emphasis, boolean> {
+	return {
+		strong: emphasisSpan(markdown, start, end, 'strong') !== null,
+		em: emphasisSpan(markdown, start, end, 'em') !== null,
+		strike: emphasisSpan(markdown, start, end, 'strike') !== null
+	};
+}
+
+// What a word is made of, for "nothing selected means this word".
+const WORD_CHARACTER = /[\p{L}\p{N}'’-]/u;
+
+/**
+ * The word an offset is in or at the edge of, without a leading or
+ * trailing apostrophe or hyphen, or `null`.
+ */
+export function wordAt(source: string, offset: number): { start: number; end: number } | null {
+	let start = offset;
+	let end   = offset;
+
+	while (start > 0 && WORD_CHARACTER.test(source[start - 1] ?? '')) {
+		start--;
+	}
+
+	while (end < source.length && WORD_CHARACTER.test(source[end] ?? '')) {
+		end++;
+	}
+
+	while (start < end && /['’-]/.test(source[start] ?? '')) {
+		start++;
+	}
+
+	while (end > start && /['’-]/.test(source[end - 1] ?? '')) {
+		end--;
+	}
+
+	return start === end ? null : { start, end };
+}
+
+/**
+ * Turns strong, emphasized, or struck text on or off (admin.md §8, The
+ * toolbar): emphasis holding the selection loses its marks, whichever it
+ * was written with; else the marks go around it. Strong is `**` and
+ * struck `~~`; emphasis is `_`, which reads apart from `**` in the
+ * source, but inside a word, where `_` isn't emphasis, `*`. Nothing
+ * selected means the word at the caret, which stays where it was in it;
+ * with no word there either, the marks go in empty with the caret
+ * between them. A selection over more than one line is marked as it is.
+ */
+export function toggleEmphasis(source: string, start: number, end: number, kind: Emphasis): Change {
+	const markdown = outline(source);
+	const span     = emphasisSpan(markdown, start, end, kind);
+
+	if (span !== null && span.inner !== null) {
+		const inner  = span.inner;
+		const size   = inner.start - span.start;
+		const length = inner.end - inner.start;
+		const text   = source.slice(0, span.start) + source.slice(inner.start, inner.end) + source.slice(span.end);
+		const clamp  = (position: number): number => Math.max(span.start, Math.min(span.start + length, position - size));
+
+		return start === span.start && end === span.end ? { text, from: span.start, to: span.start + length } : { text, from: clamp(start), to: clamp(end) };
+	}
+
+	if (source.slice(start, end).includes('\n')) {
+		return toggleMark(source, start, end, kind === 'strong' ? '**' : (kind === 'strike' ? '~~' : '*'));
+	}
+
+	const collapsed = start === end;
+	const word      = collapsed ? wordAt(source, start) : null;
+	let from        = word?.start ?? start;
+	let to          = word?.end ?? end;
+
+	while (from < to && /\s/.test(source[from] ?? '')) {
+		from++;
+	}
+
+	while (to > from && /\s/.test(source[to - 1] ?? '')) {
+		to--;
+	}
+
+	const letter = /[\p{L}\p{N}]/u;
+	const inWord = letter.test(source[from - 1] ?? '') || letter.test(source[to] ?? '');
+	const mark   = kind === 'strong' ? '**' : (kind === 'strike' ? '~~' : (inWord ? '*' : '_'));
+	const text   = source.slice(0, from) + mark + source.slice(from, to) + mark + source.slice(to);
+
+	if (collapsed) {
+		return { text, from: start + mark.length, to: start + mark.length };
+	}
+
+	return { text, from: from + mark.length, to: to + mark.length };
+}
+
+/**
+ * A link in the body: where it is, its label as written, and its target
+ * (the address, and any quoted title after it).
+ */
+export interface MarkdownLink {
+	start: number;
+	end: number;
+	label: string;
+	url: string;
+	// What follows the address in the parentheses (` "a title"`).
+	title: string;
+}
+
+/**
+ * The link (not an image) holding a selection, or the caret, or `null`.
+ */
+export function linkAt(source: string, start: number, end: number): MarkdownLink | null {
+	const markdown = outline(source);
+	const line     = markdown.lines[lineIndexAt(markdown, start)];
+
+	if (line === undefined || end > line.start + line.text.length) {
+		return null;
+	}
+
+	const token = bodyTokens(line).filter((item) => item.kind === 'link' && !item.image && item.inner !== null && item.start <= start && end <= item.end)
+		.sort((a, b) => (a.end - a.start) - (b.end - b.start))[0];
+
+	if (token === undefined || token.inner === null) {
+		return null;
+	}
+
+	const target = /^\s*(<[^>\n]*>|\S*)(.*)$/s.exec(source.slice(token.inner.end + 2, token.end - 1));
+	const url    = target?.[1] ?? '';
+
+	return {
+		start: token.start,
+		end: token.end,
+		label: source.slice(token.inner.start, token.inner.end),
+		url: url.startsWith('<') ? url.slice(1, -1) : url,
+		title: target?.[2] ?? ''
+	};
+}
+
+/**
+ * A link's label as it reads, for a field: without the backslashes that
+ * escape brackets.
+ */
+export function linkLabel(label: string): string {
+	return label.replace(/\\([[\]])/g, '$1');
+}
+
+/**
+ * Writes a link: over `link` when there is one (keeping its title), else
+ * in place of the selection. The label's brackets are escaped, and an
+ * address with spaces or parentheses is wrapped in `<…>`. The caret goes
+ * after it.
+ */
+export function withLink(source: string, start: number, end: number, label: string, url: string, link: MarkdownLink | null): Change {
+	const address = /[\s()<>]/.test(url.trim()) ? `<${url.trim().replace(/[<>]/g, (character) => encodeURIComponent(character))}>` : url.trim();
+	const text    = `[${label.replace(/\s*\n\s*/g, ' ').replace(/([[\]])/g, '\\$1')}](${address}${link?.title ?? ''})`;
+	const from    = link?.start ?? start;
+	const to      = link?.end ?? end;
+
+	return { text: source.slice(0, from) + text + source.slice(to), from: from + text.length, to: from + text.length };
+}
+
+/**
+ * Takes a link away, leaving its label as written, selected.
+ */
+export function withoutLink(source: string, link: MarkdownLink): Change {
+	return { text: source.slice(0, link.start) + link.label + source.slice(link.end), from: link.start, to: link.start + link.label.length };
+}
+
+/**
+ * The closing fence the third backtick writes (admin.md §8, The third
+ * backtick writes the block): when the caret is at the end of three
+ * backticks alone on a line, and the fence lines in the body are an odd
+ * number (this one opened something nothing closes), a line to write on
+ * and a closing fence go after it. The caret stays where it is, where the
+ * language goes. `null` otherwise.
+ */
+export function closingFence(source: string, position: number): Edit | null {
+	const markdown = outline(source);
+	const line     = markdown.lines[lineIndexAt(markdown, position)];
+	const match    = /^( {0,3})```$/.exec(line?.text ?? '');
+
+	if (line === undefined || match === null || position !== line.start + line.text.length || line.kind !== 'fence') {
+		return null;
+	}
+
+	if (markdown.lines.filter((item) => item.kind === 'fence').length % 2 === 0) {
+		return null;
+	}
+
+	const indent = match[1] ?? '';
+
+	return { from: position, to: position, text: `\n${indent}\n${indent}\`\`\`` };
+}
+
+/**
+ * Where Enter at the end of an opening fence goes when the line under it
+ * is the block's empty first line: into it, rather than pushing another
+ * blank line in above code not yet written. `null` otherwise.
+ */
+export function intoFence(source: string, position: number): number | null {
+	const markdown = outline(source);
+	const index    = lineIndexAt(markdown, position);
+	const line     = markdown.lines[index];
+	const next     = markdown.lines[index + 1];
+
+	if (line === undefined || next === undefined || line.kind !== 'fence' || position !== line.start + line.text.length || next.kind !== 'code' || next.text.trim() !== '') {
+		return null;
+	}
+
+	// An opening fence: the one before it, if any, closed its own block.
+	const fences = markdown.lines.slice(0, index).filter((item) => item.kind === 'fence').length;
+
+	return fences % 2 === 0 ? next.start + next.text.length : null;
+}
+
+/**
+ * Swaps two runs of the body, `first` before `second`, leaving what's
+ * between them where it is: the gaps belong to the document, so a wider
+ * break before one element is still there after the move (admin.md §8,
+ * Reordering). A position in either run moves with it; `keep` is the
+ * selection to carry.
+ */
+export function swapped(source: string, first: { start: number; end: number }, second: { start: number; end: number }, keep: { from: number; to: number }): Change {
+	const a    = source.slice(first.start, first.end);
+	const b    = source.slice(second.start, second.end);
+	const gap  = source.slice(first.end, second.start);
+	const text = source.slice(0, first.start) + b + gap + a + source.slice(second.end);
+	const map  = (position: number): number => {
+		if (position >= first.start && position <= first.end) {
+			return first.start + b.length + gap.length + (position - first.start);
+		}
+
+		if (position >= second.start && position <= second.end) {
+			return first.start + (position - second.start);
+		}
+
+		return position;
 	};
 
-	// A selection ending at the start of the line after it still does.
-	const endsAtLine = end > start && end === lineStarts(before)[last + 1];
-	const to         = endsAtLine ? (lineStarts(text)[last + shift + 1] ?? text.join('\n').length) : remap(before, text, end, lineMap);
+	return { text, from: map(keep.from), to: map(keep.to) };
+}
 
-	return { text: text.join('\n'), from: remap(before, text, start, lineMap), to };
+/**
+ * Renumbers the numbered list with an item on the line at `offset`, as
+ * Enter does, from `start` (the number it started at before an item
+ * moved), so a moved item doesn't leave it counting from the wrong one. The selection keeps its distance from its line's end.
+ */
+export function renumberedAt(change: Change, offset: number, start?: number): Change {
+	const before = change.text.split('\n');
+	const after  = [...before];
+
+	renumber(after, lineAt(change.text, offset), start);
+
+	const identity = (line: number): number => line;
+
+	return { text: after.join('\n'), from: remap(before, after, change.from, identity), to: remap(before, after, change.to, identity) };
+}
+
+/**
+ * What Backspace does just after a block's marker (admin.md §8,
+ * Backspace takes the marker off; D-314): an indented list item comes
+ * out a level, as Shift+Tab does; else the marker goes (a list item's
+ * with its box, a quote's last `>`, a heading's hashes) and the words
+ * stay, with the caret where the marker began. `null` anywhere else, so
+ * Backspace deletes a character, or joins the line to the one above, as
+ * it always does.
+ */
+export function unmarked(source: string, position: number): Change | null {
+	const markdown = outline(source);
+	const line     = markdown.lines[lineIndexAt(markdown, position)];
+	const mark     = line?.marks.at(-1);
+
+	if (line === undefined || mark === undefined || mark.kind === 'rule' || position !== line.start + mark.end) {
+		return null;
+	}
+
+	if (mark.kind === 'list' && /^ +/.test(line.text)) {
+		const lifted = nested(source, position, position, true);
+
+		if (lifted !== null) {
+			return lifted;
+		}
+	}
+
+	const from = line.start + (line.marks.at(-2)?.end ?? 0);
+	const text = source.slice(0, from) + source.slice(position);
+
+	return { text, from, to: from };
+}
+
+/**
+ * Where text may go near `position` without breaking the syntax it
+ * lands in (admin.md §8, You cannot write into the machinery; D-314),
+ * and what to put before it. A directive's own line (its opening tag, a
+ * leaf, or a closer) is moved past, onto a line of its own after it: the
+ * body, for a container. Attributes at the end of a line, after a space,
+ * describe the words before them, so text goes before them; inside an
+ * image's attributes, it goes after them. Anywhere else, `position` as
+ * it is.
+ */
+export function safeSpot(source: string, position: number): { at: number; before: string } {
+	const markdown = outline(source);
+	const line     = markdown.lines[lineIndexAt(markdown, position)];
+
+	if (line === undefined) {
+		return { at: position, before: '' };
+	}
+
+	const end = line.start + line.text.length;
+
+	if (line.kind === 'open' || line.kind === 'leaf' || line.kind === 'close') {
+		return position <= line.start + (line.text.length - line.text.trimStart().length) ? { at: position, before: '' } : { at: end, before: '\n' };
+	}
+
+	const trailing = (line.kind === 'text' || line.kind === 'heading') ? TRAILING.exec(line.text) : null;
+
+	if (trailing !== null) {
+		const from = line.start + trailing.index;
+
+		if (position > from) {
+			return { at: from, before: '' };
+		}
+	}
+
+	for (const token of bodyTokens(line)) {
+		if (token.kind === 'attributes' && token.start < position && position < token.end) {
+			return { at: token.end, before: '' };
+		}
+	}
+
+	return { at: position, before: '' };
+}
+
+/**
+ * Where a character typed at `position` goes, when typing it there would
+ * provably break something rather than edit it: right after a trailing
+ * attribute block, at the very end of its line, it goes before the
+ * block, at the end of the words; right after a directive's opening tag
+ * or a leaf that ends in `]` or `}`, onto a new line after it. A
+ * character typed inside braces or a name is someone editing by hand,
+ * and stays. `null` when it stays.
+ */
+export function typedSpot(source: string, position: number): { at: number; before: string } | null {
+	const markdown = outline(source);
+	const line     = markdown.lines[lineIndexAt(markdown, position)];
+
+	if (line === undefined || position !== line.start + line.text.length || position === line.start) {
+		return null;
+	}
+
+	if ((line.kind === 'open' || line.kind === 'leaf') && /[\]}]\s*$/.test(line.text)) {
+		return { at: position, before: '\n' };
+	}
+
+	const trailing = (line.kind === 'text' || line.kind === 'heading') ? TRAILING.exec(line.text) : null;
+
+	return trailing === null ? null : { at: line.start + trailing.index, before: '' };
+}
+
+/**
+ * The lines a selection covers, by index: from the line it starts on to
+ * the one it ends on, not counting a line it ends at the very start of.
+ */
+function selectedLines(source: string, start: number, end: number): { first: number; last: number } {
+	const first = lineAt(source, start);
+	let last    = Math.max(first, lineAt(source, end));
+
+	if (last > first && end === lineStarts(source.split('\n'))[last]) {
+		last--;
+	}
+
+	return { first, last };
+}
+
+/**
+ * Tab and Shift+Tab in a quote (admin.md §8, Tab moves a block; D-315):
+ * one `>` level more, or one less (the last level off leaves a
+ * paragraph), on every quote line of the selection, or with nothing
+ * selected, of the whole quote the caret is in. The selection stays on
+ * the same words. `null` when the selection doesn't start in a quote.
+ */
+export function quoted(source: string, start: number, end: number, outdent: boolean): Change | null {
+	const markdown = outline(source);
+	const index    = lineAt(source, start);
+	const line     = markdown.lines[index];
+
+	if (line === undefined || line.kind !== 'text' && line.kind !== 'heading' || line.marks[0]?.kind !== 'quote') {
+		return null;
+	}
+
+	let { first, last } = selectedLines(source, start, end);
+
+	if (start === end) {
+		const block = blocks(markdown).find((item) => item.kind === 'quote' && item.first <= index && index <= item.last);
+
+		first = block?.first ?? first;
+		last  = block?.last ?? last;
+	}
+
+	const before = source.split('\n');
+	const after  = [...before];
+	let changed  = false;
+
+	for (let at = first; at <= last; at++) {
+		const match = QUOTE_LINE.exec(after[at] ?? '');
+
+		if (match === null || markdown.lines[at]?.marks[0]?.kind !== 'quote') {
+			continue;
+		}
+
+		const [, indent = '', marks = '', rest = ''] = match;
+
+		after[at] = outdent ? indent + marks.replace(/^> ?/, '') + rest : `${indent}> ${marks}${rest}`;
+		changed   = true;
+	}
+
+	if (!changed) {
+		return null;
+	}
+
+	const identity = (line: number): number => line;
+
+	return { text: after.join('\n'), from: remap(before, after, start, identity), to: remap(before, after, end, identity) };
+}
+
+/**
+ * Tab and Shift+Tab over several lines of a fenced code block (D-315):
+ * two spaces in front of each line, or up to two off. Blank lines and the
+ * fences are left alone. `null` unless the selection spans lines and
+ * starts in the block's code.
+ */
+export function indentedCode(source: string, start: number, end: number, outdent: boolean): Change | null {
+	const markdown = outline(source);
+	const { first, last } = selectedLines(source, start, end);
+
+	if (first === last || markdown.lines[first]?.kind !== 'code') {
+		return null;
+	}
+
+	const before = source.split('\n');
+	const after  = [...before];
+	let changed  = false;
+
+	for (let at = first; at <= last; at++) {
+		const text = after[at] ?? '';
+
+		if (markdown.lines[at]?.kind !== 'code' || text.trim() === '') {
+			continue;
+		}
+
+		const next = outdent ? text.replace(/^ {1,2}/, '') : `  ${text}`;
+
+		changed   = changed || next !== text;
+		after[at] = next;
+	}
+
+	if (!changed) {
+		return null;
+	}
+
+	const identity = (line: number): number => line;
+
+	return { text: after.join('\n'), from: remap(before, after, start, identity), to: remap(before, after, end, identity) };
 }

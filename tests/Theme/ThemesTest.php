@@ -108,6 +108,19 @@ final class ThemesTest extends TestCase
 		$this->assertSame(Framework::path('resources/themes/default/lang'), $chain->langDirectories()[2]);
 	}
 
+	public function testBleedClassesComeFromTheChain(): void
+	{
+		$this->writeThemes();
+		$this->writeTemporaryFile('user/themes/parent/theme.json', '{"name": "Parent", "bleed": {"wide": "stretch-wide", "full": "stretch-full"}}');
+		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: Child\nparent: parent\nbleed: {full: edge}\n");
+
+		$themes = $this->themes();
+
+		$this->assertSame(['wide' => 'bleed-wide', 'full' => 'bleed-full'], $themes->chain('default')->bleedClasses());
+		$this->assertSame(['wide' => 'stretch-wide', 'full' => 'stretch-full'], $themes->chain('parent')->bleedClasses());
+		$this->assertSame(['wide' => 'stretch-wide', 'full' => 'edge'], $themes->chain('child')->bleedClasses(), 'The nearest theme naming one wins.');
+	}
+
 	public function testResolvesAssetsThroughTheChain(): void
 	{
 		$this->writeThemes();
@@ -162,6 +175,8 @@ final class ThemesTest extends TestCase
 			'{"name": "X", "styles": "style.css"}' => '"styles" must be a list',
 			'{"name": "X", "styles": ["../x.css"]}' => 'paths inside the theme',
 			'{"name": "X", "version": 2}'          => '"version" must be a string',
+			'{"name": "X", "bleed": {"wide": "a b"}}' => '"bleed" must map',
+			'{"name": "X", "bleed": {"huge": "x"}}'   => '"bleed" must map',
 			'{broken'                              => 'theme.json is invalid'
 		];
 

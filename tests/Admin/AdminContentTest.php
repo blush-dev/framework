@@ -359,6 +359,8 @@ final class AdminContentTest extends TestCase
 		$this->assertSame('container', $this->component($components, 'blush/figure')['kind'] ?? null);
 		$this->assertSame('layout', $this->component($components, 'blush/figure')['category'] ?? null, 'A figure wraps anything, so it\'s layout, not media.');
 		$this->assertSame('leaf', $this->component($components, 'blush/embed')['kind'] ?? null);
+		$this->assertSame(['image'], $this->component($components, 'blush/gallery')['only'] ?? null, 'A gallery holds images.');
+		$this->assertNull($this->component($components, 'blush/callout')['only'] ?? null);
 
 		$this->assertSame(
 			[
@@ -395,9 +397,15 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($image);
 		$this->assertIsArray($image['variants'] ?? null);
 		$this->assertSame(
-			['name' => 'stretch-wide', 'label' => 'Wide', 'description' => 'Wider than the text, centered on it.', 'source' => null],
+			['name' => 'inline-left', 'label' => 'Float Left', 'description' => 'Set left, with the text wrapping beside it.', 'source' => null],
 			$image['variants'][0] ?? null,
 			'Images have the theme\'s variants, each a class.'
+		);
+
+		$this->assertSame(
+			['wide' => 'bleed-wide', 'full' => 'bleed-full'],
+			self::json($this->send('GET', '/components'))['bleed'] ?? null,
+			'Bleed classes default when no theme names them.'
 		);
 	}
 

@@ -510,6 +510,10 @@ final class RecentPosts extends Component
   `components/{namespace}-{name}`.
 - **`CONTENT`** says what the component wraps: `ComponentContent::None`
   (the default), `Text` (a label), or `Blocks` (a `:::` block).
+- **`HOLDS`** says what a `:::` block takes, when it's only some things:
+  `['image']` for Markdown images, or components' full names. The
+  admin's editor then offers only those inside it (the gallery holds
+  images). The site renders whatever is there.
 - **`modifiers()`** returns BEM modifiers for the root element, such as
   `['warning']` for `component-callout--warning`.
 - **`rootAttributes()`** returns other attributes for the root element,
@@ -534,6 +538,11 @@ final class RecentPosts extends Component
 
   public function __construct(#[MediaProp] public readonly string $src = '') {}
   ```
+
+  Name the kind of file it plays, `#[MediaProp(MediaKind::Video)]`
+  (`Blush\Media\MediaKind`: `Image`, `Video`, `Audio`, or `File`), and
+  the admin's picker offers only that kind for it. Leave it out for a
+  prop that takes any file, such as a download.
 
 Register the class in a service provider's `boot()` method:
 

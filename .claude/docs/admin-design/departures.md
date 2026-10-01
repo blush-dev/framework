@@ -1,24 +1,34 @@
 # How the Blush admin departs from the design direction
 
-`admin.md` beside this file is the admin's design direction, kept exactly
-as the author uploads it, so a new version can replace it wholesale. This
-file is the project's side: where the files are, where the admin departs
-from the direction and why, and which of its open questions are settled.
-Read both before writing admin UI, and update this one (not `admin.md`)
-when you depart from the direction.
+The numbered documents beside this file are the admin's design
+direction, kept exactly as the author uploads them, so a new version can
+replace them wholesale: start at `00-project-brief.md`, and read
+`10-foundations.md` and the part for what you're changing (`30-editor.md`
+for the editor, `40-screens.md` for the rest). "Meridian" in them is the
+design project's codename, never used in the product, which is Blush.
+The direction is design; code directions are this project's (D-313).
+Section numbers (§1 to §13) are the original single document's, kept
+through the split. This file is the project's side: where the files
+are, where the admin departs from the direction and why, and which of
+its open questions are settled. Read both before writing admin UI, and
+update this one (not the direction) when you depart from it.
 
 ## Files
 
 ```
-.claude/docs/admin-design/admin.md          the design direction (as uploaded)
-.claude/docs/admin-design/blush-admin.html  its clickable prototype
-.claude/docs/admin-design/departures.md      this file
-.claude/docs/admin-design/tokens.css        the original prototype tokens (reference only)
-resources/admin/css/tokens.css              the tokens the admin builds from
+.claude/docs/admin-design/00-project-brief.md … 90-conventions.md
+                                               the design direction (as uploaded)
+.claude/docs/admin-design/meridian-admin.html  its clickable prototype, standalone
+.claude/docs/admin-design/departures.md        this file
+.claude/docs/admin-design/tokens.css           the prototype's tokens (reference only)
+.claude/docs/admin-design/old/                 the earlier single admin.md and its prototype
+resources/admin/css/tokens.css                 the tokens the admin builds from
 ```
 
-`admin.md`'s own **Files** list, its "Add to `CLAUDE.md`" block, and §11's
-directory layout describe a generic project; `AGENTS.md` and the layout
+The brief's file locations (`design/`, `project_read`, the published
+prototype artifact), its rules for splitting work across conversations,
+`70-build-runbook.md`'s republishing steps, and §11's directory layout
+describe the design project, not this repo; `AGENTS.md` and the layout
 below are this one's. The theming cascade, and that all color, type,
 radius, spacing, and density values come from
 `resources/admin/css/tokens.css` as `var(--token)`, are not negotiable
@@ -171,8 +181,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   hashes. Attributes are on by default in `MarkdownConfig`.
 - **An image is Markdown** (D-268): its variants are the classes the
   active theme lists under `theme.json`'s `variants.image`, not a fixed
-  list; the framework default theme offers Wide, Full Bleed, Float
-  Left, and Float Right only while it's active. The panel keeps a Source
+  list; the framework default theme offers Float Left and Float Right
+  only while it's active. Widths are bleed, not variants (D-313). The panel keeps a Source
   line. Without hover, Replace and Remove stay on the image.
 - **Selects** (D-280): `AdminSelect`, a component, rather than a
   `MutationObserver` enhancing every `<select>`: Vue owns the DOM, and the
@@ -189,10 +199,37 @@ Each is recorded in `.claude/docs/decisions.md`.
   and Authors only when its file has one. The reference picker's New
   {term} writes a real term (a virtual term can't have a parent); typing
   a new tag writes a virtual one.
-- **Formatting keys** (D-284): ⌘K makes a link only with text
-  selected; with nothing selected it stays the command palette's
-  (D-248). The formatting commands are in the palette, not the ⋮ menu,
-  which §8 keeps for View and Entry.
+- **Links** (D-313, the author's call): in the text, ⌘K opens the link
+  form, with or without a selection, and ⌘⇧K removes the link the
+  caret is in; outside the text ⌘K is the command palette. The
+  direction has ⌘⇧K open the form and ⌘K never leave the palette. The
+  formatting commands are in the palette, not the ⋮ menu, which §8
+  keeps for View and Entry. ⌘E (code) and ⌘⇧X (struck) stay, without
+  buttons.
+- **The toolbar** (D-313): as `30-editor.md` has it, but the trail it
+  hands the way out to is `Site / Posts / Edit Post` (the site's name
+  first, as on every screen, until the shell's trail starts at the rail
+  section); and the move control (▴▾) sits between the insert tools and
+  the sentence group, as the prototype has it. It moves the element the
+  caret is in among its siblings (the author's call, D-314), not only
+  the top-level one; a term or definition moves its definition list. Nothing in the toolbar
+  toasts, insertions included (an open question in the direction). No
+  Position row in the element panel and no outline handles, as the
+  direction's decisions log has it. A component's `only` is its PHP
+  class's `HOLDS` (D-314); Blush has no table, divider, or code
+  component for the Data Table and divider decisions to apply to.
+- **Media kinds** (D-314): a media field's `kind` and
+  `#[MediaProp(MediaKind::…)]` say what a picker is locked to; a
+  wrong-kind upload is refused by its extension before it's sent.
+- **Tab moves a block** (D-284, D-315), but by structure rather than
+  the prototype's two spaces per line (which do nothing to a quote and
+  turn prose into code after two presses): a list item nests, a quote
+  gains or loses a `>` level, and several selected lines of code indent
+  two spaces. Elsewhere, a lone caret in code included, Tab still leaves
+  the text (D-245), so it's never a trap for the keyboard.
+- **Bleed** (D-313): the classes are the active theme's (`theme.json`'s
+  `bleed`), `bleed-wide` and `bleed-full` unless it names others, since
+  existing content may use other names (jtcom's `stretch-*`).
 - **Media** (D-251, D-268, D-269): **Upload** opens the picker on its
   Upload tab and **Open** goes to the file. A file's screen has a
   Details panel built from the file's fields (D-287: title, alt text
@@ -338,7 +375,7 @@ Each is recorded in `.claude/docs/decisions.md`.
 
 ## Settled open questions
 
-From `admin.md` §13:
+From §13, now `50-open-questions.md`:
 
 - API conventions: a session cookie and CSRF header, `page`/`per` paging
   with `total` and `pages`, errors as `{"error"}` (`docs/admin.md`);
@@ -352,6 +389,13 @@ From `admin.md` §13:
 - Also settled: icon categories (`GET icons`' `category` and `source`,
   D-265), and where a block's attributes go, uploads (`POST media`), and
   image variants (D-268, D-280).
+- An attribute block on a thematic break: the site's parser reads a
+  divider's attributes on a line of their own above it, not after the
+  dashes, so that's where the editor writes them (D-268, D-280).
+- From the split direction's list (D-313): the link's key is ⌘K in the
+  text (the author's call); insertions don't toast; where the bleed
+  steps land is the theme's, which names and styles the classes; and
+  the source keeps spelling on.
 
 Still open: the content-type builder's screens, type provenance in the
 list header, and how long the breadcrumb may get (D-280 shrinks the

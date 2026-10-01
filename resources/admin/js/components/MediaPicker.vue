@@ -18,6 +18,11 @@
  * the primary button finishes the job; the tab keeps a receipt of what
  * was added. A search that finds nothing offers the Upload tab.
  *
+ * A `locked` picker is for one kind of file (D-314): a video's file, a
+ * poster image, a gallery's images. It has no kind filter, its file
+ * chooser takes only that kind, and a file of another kind dropped on it
+ * is refused, with why, rather than uploaded and then hidden.
+ *
  * Choosing a file selects it (a ring and a tick); the primary button,
  * labeled for the errand, or a double click uses it. Escape, **Cancel**,
  * or the close button leave without one. It's a native dialog, so focus
@@ -40,6 +45,8 @@ const props = defineProps<{
 	// Which tab it opens on, and which kind the library shows first.
 	tab?: 'library' | 'upload';
 	kind?: Kind;
+	// Whether it takes only that kind.
+	locked?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -77,6 +84,22 @@ const KINDS = [
 ] as const;
 
 // What a file that isn't an image, video, or sound is.
+// What kind of file a name claims to be, by its extension, so a locked
+// picker can refuse the wrong kind before uploading it.
+const EXTENSIONS: Record<Exclude<Kind, 'any' | 'file'>, string[]> = {
+	image: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg'],
+	video: ['mp4', 'm4v', 'webm', 'mov', 'ogv'],
+	audio: ['mp3', 'm4a', 'oga', 'ogg', 'wav', 'flac', 'aac', 'opus']
+};
+
+function kindOfName(name: string): Exclude<Kind, 'any'> {
+	const extension = name.split('.').pop()?.toLowerCase() ?? '';
+
+	return (Object.keys(EXTENSIONS) as (keyof typeof EXTENSIONS)[]).find((key) => EXTENSIONS[key].includes(extension)) ?? 'file';
+}
+
+const KIND_NAMES: Record<Exclude<Kind, 'any'>, string> = { image: 'an image', video: 'a video', audio: 'a sound', file: 'a file' };
+
 function isKind(file: MediaItem, key: string): boolean {
 	return key === 'any' || (key === 'file' ? !['image', 'video', 'audio'].includes(file.kind) : file.kind === key);
 }
@@ -148,7 +171,7 @@ const limits = computed(() => {
 	return [info.limit === null ? '' : `Up to ${formatSize(info.limit)} each`, types.join(', ')].filter((part) => part !== '').join(' · ');
 });
 
-const accept = computed(() => accepts.value?.extensions.map((extension) => `.${extension}`).join(',') ?? '');
+const accept = computed(() => accepts.value?.extensions.filter((extension) => !props.locked || kind.value === 'any' || kindOfName(`x.${extension}`) === kind.value).map((extension) => `.${extension}`).join(',') ?? '');
 
 let counter = 0;
 
@@ -169,6 +192,12 @@ async function send(list: FileList | File[] | null | undefined): Promise<void> {
 		const row = { key: ++counter, name: file.name, state: 'sending' as const };
 
 		added.value = [row, ...added.value];
+
+		if (props.locked && kind.value !== 'any' && kindOfName(file.name) !== kind.value) {
+			replace(row.key, { ...row, state: 'failed', message: `It isn't ${KIND_NAMES[kind.value]}, and only ${KIND_NAMES[kind.value].replace(/^an? /, '')} files go here.` });
+
+			continue;
+		}
 
 		try {
 			const item = await upload<MediaItem>('/media', file);
@@ -303,7 +332,7 @@ onBeforeUnmount(() => {
 					<AdminIcon name="search" />
 					<input ref="searchEl" v-model="search" type="search" placeholder="Search file names…" aria-label="Search media" autocomplete="off">
 				</label>
-				<div class="segmented" role="group" aria-label="Kind">
+				<div v-if="!locked" class="segmented" role="group" aria-label="Kind">
 					<button v-for="item in KINDS" :key="item.key" type="button" :aria-pressed="kind === item.key" @click="kind = item.key">{{ item.label }}</button>
 				</div>
 			</div>

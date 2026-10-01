@@ -292,6 +292,21 @@ suspending and removing; New Role and Duplicate, custom roles edited and
 deleted, the built-ins' capabilities changed and reset, kept in
 `storage/roles.json`; never more than you have, never your own account,
 and someone always able to manage accounts.
+Then the split design direction's editor (D-313): the toolbar in three
+parts with no back button (the top bar's trail is the way out), bold
+and italic as toggles, a link form on ⌘K, moving the top-level element
+(⌥↑, ⌥↓, ▴▾), bleed with classes the theme names (`theme.json`'s
+`bleed`), the code block as one box, the third backtick writing the
+block, the drawer opening on the element, leaving the text dropping the
+selection, and the Markdown elements as inserter tiles. Then the rest
+of it (D-314): moving the element the caret is in among its siblings,
+Backspace taking markers off, text kept out of directive tags and
+attribute blocks, media fields and props with a kind (a locked
+picker), and a component's `only` (the gallery holds images); then Tab
+in quotes and over several lines of code (D-315), and the highlight
+cached per line with the body read once per keystroke (D-316). Left
+from the direction: with a visual editor, the node list and its
+round-trip check.
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages

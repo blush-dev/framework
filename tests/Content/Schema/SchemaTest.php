@@ -79,6 +79,19 @@ final class SchemaTest extends TestCase
 		return array_map(static fn (Violation $violation): string => "{$violation->severity->value} {$violation}", $violations);
 	}
 
+	public function testMediaFieldsMayNameTheirKind(): void
+	{
+		$field = $this->factory->fromArray(['name' => 'poster', 'type' => 'media', 'kind' => 'image']);
+
+		$this->assertSame(['name' => 'poster', 'type' => 'media', 'kind' => 'image'], $field->toArray());
+		$this->assertSame(['name' => 'file', 'type' => 'media'], $this->factory->fromArray(['name' => 'file', 'type' => 'media'])->toArray(), 'No kind takes any file.');
+
+		$this->expectException(InvalidSchema::class);
+		$this->expectExceptionMessage('unknown media kind "photo"');
+
+		$this->factory->fromArray(['name' => 'poster', 'type' => 'media', 'kind' => 'photo']);
+	}
+
 	public function testResolvesCanonicalNamesAndAliases(): void
 	{
 		$result = $this->schema()->resolve([

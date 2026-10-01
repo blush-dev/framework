@@ -13,15 +13,26 @@
  *
  * Enter in a list item, quote, or table row carries its marker to the
  * next line, and on an empty one ends it (admin.md §8, Enter carries the
- * marker). Formatting has its usual keys (D-284): ⌘B strong, ⌘I
- * emphasis, ⌘E code, and ⌘⇧X struck text, each on or off; ⌘K with text
- * selected makes it a link (with nothing selected, ⌘K stays the command
- * palette's); ⌘⌥1 to ⌘⌥6 make the line a heading of that level (again,
- * a paragraph) and ⌘⌥0 a paragraph; ⌥↑ and ⌥↓ move the line, or the
- * selected lines, up or down (D-285); and an address pasted over
- * selected text links it. Tab and
- * Shift+Tab nest a list item one level deeper or shallower; anywhere else
- * Tab leaves the field, as in any form. Files dropped or pasted into the
+ * marker). The third backtick alone on a line writes the block's closing
+ * fence, and Enter from the opening fence steps into it (D-313).
+ * Formatting has its usual keys (D-284, D-313): ⌘B strong, ⌘I emphasis
+ * (`toggleEmphasis()`: either mark counts, nothing selected means the
+ * word at the caret), ⌘E code, and ⌘⇧X struck text, each on or off; ⌘K
+ * asks for the link form (`link`), and ⌘⇧K takes away the link the caret
+ * is in; ⌘⌥1 to ⌘⌥6 make the line a heading of that level (again, a
+ * paragraph) and ⌘⌥0 a paragraph; ⌥↑ and ⌥↓ ask to move the element the
+ * caret is in (`move`); and an address pasted over selected text links
+ * it. Backspace just after a block's marker takes the marker off (an
+ * indented list item comes out a level first), leaving the words (D-314).
+ * Text can't land in the syntax around it (D-314, `safeSpot()`,
+ * `typedSpot()`): a character typed after a trailing attribute block
+ * goes before it, one typed after a directive's tag that ends in `]` or
+ * `}` goes on a new line, and an inserted or pasted piece is moved out of
+ * a directive's own line and in front of trailing attributes. Tab and
+ * Shift+Tab nest a list item one level deeper or shallower, give a quote
+ * one `>` level more or less (the whole quote, or the selected lines;
+ * D-315), and indent several selected lines of code by two spaces;
+ * anywhere else Tab leaves the field, as in any form. Files dropped or pasted into the
  * text are passed on (`files`) to upload and insert.
  *
  * Typing `/` at the start of an empty line reports the query after it
@@ -33,9 +44,8 @@
  * takes them back in one step.
  */
 
-import { computed } from 'vue';
-import { ref } from 'vue';
-import { continuation, directiveAt, editBetween, highlight, isAddress, linked, movedLines, nested, outline, toggleMark, withHeading, type Change, type Edit, type InlineMark } from '../markdown';
+import { computed, nextTick, ref } from 'vue';
+import { blocks, closingFence, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
 import { directiveText, type ComponentDescription } from '../components';
 
 const props = defineProps<{
@@ -51,6 +61,10 @@ const props = defineProps<{
 	image?: number;
 	// Shown, not edited: a trashed entry's body (D-276).
 	readonly?: boolean;
+	// The body already read, when the page around has it (D-316), so a
+	// keystroke reads it once.
+	parsed?: MarkdownOutline;
+	blocks?: MarkdownBlock[];
 }>();
 
 const model = defineModel<string>({ required: true });
@@ -58,6 +72,9 @@ const model = defineModel<string>({ required: true });
 // Where the caret is, kept while the field doesn't have focus, so the
 // settings and inserters can follow it.
 const caret = defineModel<number>('caret', { default: 0 });
+
+// Where the selection ends, which is the caret when nothing's selected.
+const extent = defineModel<number>('extent', { default: 0 });
 
 const emit = defineEmits<{
 	// The query typed after a slash at the start of a line, or `null` when
@@ -67,13 +84,16 @@ const emit = defineEmits<{
 	slashKey: [key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'];
 	// Files dropped or pasted into the text.
 	files: [files: File[]];
+	// ⌘K: the link form, for the selection or the word at the caret.
+	link: [];
+	// ⌥↑ and ⌥↓: the element the caret is in, up or down.
+	move: [up: boolean];
 }>();
 
-const markdown = computed(() => outline(model.value));
+const markdown = computed(() => props.parsed ?? outline(model.value));
 const current  = computed(() => props.directive ?? (props.image === undefined ? directiveAt(markdown.value.directives, caret.value) : -1));
 
-// A trailing space gives a final empty line its height, as in the field.
-const html = computed(() => `${highlight(markdown.value, current.value, props.image ?? -1)} `);
+const html = computed(() => highlight(markdown.value, current.value, props.image ?? -1, props.blocks ?? blocks(markdown.value)));
 
 const field  = ref<HTMLTextAreaElement | null>(null);
 const source = ref<HTMLElement | null>(null);
@@ -84,7 +104,10 @@ const slash     = ref<number | null>(null);
 const dismissed = ref<number | null>(null);
 
 function track(event: Event): void {
-	caret.value = (event.target as HTMLTextAreaElement).selectionStart;
+	const element = event.target as HTMLTextAreaElement;
+
+	caret.value  = element.selectionStart;
+	extent.value = element.selectionEnd;
 }
 
 /**
@@ -184,6 +207,18 @@ function dismissSlash(): void {
 function input(event: Event): void {
 	track(event);
 	followSlash();
+
+	// The third backtick writes the rest of the block, as an edit of its
+	// own, so undo takes back the closing fence first.
+	const element = field.value;
+
+	if (event instanceof InputEvent && event.inputType === 'insertText' && event.data === '`' && element !== null && !props.readonly) {
+		const edit = closingFence(element.value, element.selectionStart);
+
+		if (edit !== null) {
+			apply(edit, edit.from);
+		}
+	}
 }
 
 // Clicking elsewhere in the text leaves a slash as text.
@@ -220,7 +255,7 @@ function keydown(event: KeyboardEvent): void {
 	}
 }
 
-const MARKS: Record<string, InlineMark> = { b: '**', i: '*', e: '`', x: '~~' };
+const MARKS: Record<string, Emphasis | '`'> = { b: 'strong', i: 'em', e: '`', x: 'strike' };
 
 /**
  * The editing keys: formatting, a link, and nesting a list item. Returns
@@ -248,7 +283,7 @@ function shortcut(event: KeyboardEvent): boolean {
 
 	if (event.altKey && !command && !event.shiftKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
 		event.preventDefault();
-		move(event.key === 'ArrowUp');
+		emit('move', event.key === 'ArrowUp');
 
 		return true;
 	}
@@ -257,23 +292,52 @@ function shortcut(event: KeyboardEvent): boolean {
 		return false;
 	}
 
-	if (command && (key === 'x' ? event.shiftKey : !event.shiftKey) && MARKS[key] !== undefined) {
+	const mark = MARKS[key];
+
+	if (command && (key === 'x' ? event.shiftKey : !event.shiftKey) && mark !== undefined) {
 		event.preventDefault();
-		format(MARKS[key]);
+
+		if (mark === '`') {
+			applyChange(toggleMark(element.value, element.selectionStart, element.selectionEnd, '`'));
+		} else {
+			emphasis(mark);
+		}
 
 		return true;
 	}
 
-	if (command && !event.shiftKey && key === 'k' && element.selectionStart !== element.selectionEnd) {
+	// In the text, ⌘K is a link, and ⌘⇧K takes one away; the command
+	// palette keeps ⌘K everywhere else.
+	if (command && key === 'k') {
 		event.preventDefault();
 		event.stopPropagation();
-		link();
+
+		if (event.shiftKey) {
+			unlink();
+		} else {
+			emit('link');
+		}
 
 		return true;
 	}
 
+	if (key === 'backspace' && !command && !event.shiftKey && element.selectionStart === element.selectionEnd) {
+		const change = unmarked(element.value, element.selectionStart);
+
+		if (change !== null) {
+			event.preventDefault();
+			applyChange(change);
+
+			return true;
+		}
+	}
+
+	// Tab moves a block (D-284, D-315): a list item nests, a quote gains or
+	// loses a level, and several lines of code indent. Elsewhere it leaves
+	// the text, as in any form.
 	if (key === 'tab' && !command) {
-		const change = nested(element.value, element.selectionStart, element.selectionEnd, event.shiftKey);
+		const [start, end, outdent] = [element.selectionStart, element.selectionEnd, event.shiftKey];
+		const change = nested(element.value, start, end, outdent) ?? quoted(element.value, start, end, outdent) ?? indentedCode(element.value, start, end, outdent);
 
 		if (change !== null) {
 			event.preventDefault();
@@ -301,17 +365,31 @@ function applyChange(change: Change): void {
 
 	replace(element, edit.from, edit.to, edit.text);
 	element.setSelectionRange(change.from, change.to);
-	caret.value = change.from;
+	caret.value  = change.from;
+	extent.value = change.to;
 }
 
 /**
- * Turns a mark on or off for the selection.
+ * Turns strong, emphasized, or struck text on or off for the selection,
+ * or the word at the caret.
  */
-function format(mark: InlineMark): void {
+function emphasis(kind: Emphasis): void {
 	const element = field.value;
 
 	if (element !== null && !props.readonly) {
-		applyChange(toggleMark(element.value, element.selectionStart, element.selectionEnd, mark));
+		applyChange(toggleEmphasis(element.value, element.selectionStart, element.selectionEnd, kind));
+	}
+}
+
+/**
+ * Takes away the link the caret is in, leaving its words.
+ */
+function unlink(): void {
+	const element = field.value;
+	const found   = element === null || props.readonly ? null : linkAt(element.value, element.selectionStart, element.selectionEnd);
+
+	if (element !== null && found !== null) {
+		applyChange(withoutLink(element.value, found));
 	}
 }
 
@@ -327,30 +405,28 @@ function heading(level: number): void {
 	}
 }
 
-/**
- * Moves the selected lines up or down one line.
- */
-function move(up: boolean): void {
-	const element = field.value;
-	const change  = element === null || props.readonly ? null : movedLines(element.value, element.selectionStart, element.selectionEnd, up);
 
-	if (change !== null) {
-		applyChange(change);
+/**
+ * A character typed where it would break the syntax goes where it means
+ * what it looks like instead.
+ */
+function beforeinput(event: InputEvent): void {
+	const element = field.value;
+
+	if (element === null || props.readonly || event.isComposing || event.inputType !== 'insertText' || event.data === null || event.data.length !== 1 || element.selectionStart !== element.selectionEnd) {
+		return;
+	}
+
+	const spot = typedSpot(element.value, element.selectionStart);
+
+	if (spot !== null) {
+		event.preventDefault();
+		apply({ from: spot.at, to: spot.at, text: spot.before + event.data });
 	}
 }
 
-/**
- * Makes the selection a link.
- */
-function link(): void {
-	const element = field.value;
-
-	if (element !== null && !props.readonly) {
-		applyChange(linked(element.value, element.selectionStart, element.selectionEnd));
-	}
-}
-
-// An address pasted over selected words links them; files are passed on.
+// An address pasted over selected words links them; files are passed on;
+// text pasted into a directive's tag or attributes goes where it's safe.
 function paste(event: ClipboardEvent): void {
 	const element = field.value;
 	const data    = event.clipboardData;
@@ -374,6 +450,17 @@ function paste(event: ClipboardEvent): void {
 	if (selected !== '' && !selected.includes('\n') && !isAddress(selected) && isAddress(text)) {
 		event.preventDefault();
 		applyChange(linked(element.value, element.selectionStart, element.selectionEnd, text.trim()));
+
+		return;
+	}
+
+	if (selected === '') {
+		const spot = safeSpot(element.value, element.selectionStart);
+
+		if (spot.at !== element.selectionStart || spot.before !== '') {
+			event.preventDefault();
+			apply({ from: spot.at, to: spot.at, text: spot.before + text });
+		}
 	}
 }
 
@@ -406,6 +493,17 @@ function carry(event: KeyboardEvent): void {
 	const element = field.value;
 
 	if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey || event.isComposing || props.readonly || element === null || element.selectionStart !== element.selectionEnd) {
+		return;
+	}
+
+	// From an opening fence, into the block's empty first line.
+	const into = intoFence(element.value, element.selectionStart);
+
+	if (into !== null) {
+		event.preventDefault();
+		element.setSelectionRange(into, into);
+		caret.value = extent.value = into;
+
 		return;
 	}
 
@@ -448,7 +546,7 @@ function apply(edit: Edit, at?: number): void {
 	const position = at ?? edit.from + edit.text.length;
 
 	element.setSelectionRange(position, position);
-	caret.value = position;
+	caret.value = extent.value = position;
 }
 
 /**
@@ -463,9 +561,21 @@ function focusAt(offset: number): void {
 
 	element.focus({ preventScroll: true });
 	element.setSelectionRange(offset, offset);
-	caret.value = offset;
+	caret.value = extent.value = offset;
+	reveal();
+}
 
-	const rect     = caretRect(offset);
+/**
+ * Scrolls the caret into view when it's near an edge or out of it.
+ */
+function reveal(): void {
+	const element = field.value;
+
+	if (element === null) {
+		return;
+	}
+
+	const rect     = caretRect(element.selectionStart);
 	const scroller = element.closest('[data-scroller]');
 
 	if (scroller instanceof HTMLElement) {
@@ -504,6 +614,14 @@ function place(inline: boolean): { from: number; to: number; before: string; aft
 	let before = '';
 	let after  = '';
 
+	// An inline piece can't go in a directive's tag or attributes.
+	if (inline && from === to) {
+		const spot = safeSpot(value, from);
+
+		from   = to = spot.at;
+		before = spot.before;
+	}
+
 	if (!inline) {
 		if (!alone && inner === '') {
 			// A block can't start mid-line: it goes after this one.
@@ -525,19 +643,22 @@ function place(inline: boolean): { from: number; to: number; before: string; aft
 
 /**
  * Writes `text` where `place()` says, the way typing would, with the
- * caret at `at` in it.
+ * caret at `at` in it, or `at` to `end` selected.
  */
-function write(spot: { from: number; to: number; before: string; after: string }, text: string, at: number): void {
+function write(spot: { from: number; to: number; before: string; after: string }, text: string, at: number, end = at): void {
 	const element = field.value;
 
 	if (element === null) {
 		return;
 	}
 
+	const base = spot.from + spot.before.length;
+
 	slash.value = null;
 	replace(element, spot.from, spot.to, spot.before + text + spot.after);
-	element.setSelectionRange(spot.from + spot.before.length + at, spot.from + spot.before.length + at);
-	caret.value = element.selectionStart;
+	element.setSelectionRange(base + at, base + end);
+	caret.value  = element.selectionStart;
+	extent.value = element.selectionEnd;
 }
 
 /**
@@ -559,16 +680,17 @@ function insert(component: ComponentDescription, values: Record<string, string> 
 
 /**
  * Inserts a block of Markdown (such as an image) on lines of its own,
- * with the caret at `at` in it. `text` is given the selected text, if
- * any, to build from.
+ * with the caret at `caret` in it, or `caret` to `end` selected (a
+ * placeholder, which the first keystroke replaces). `text` is given the
+ * selected text, if any, to build from.
  */
-function insertBlock(build: (selected: string) => { text: string; caret: number }): void {
+function insertBlock(build: (selected: string) => { text: string; caret: number; end?: number }): void {
 	const spot = place(false);
 
 	if (spot !== null) {
-		const { text, caret: at } = build(spot.inner);
+		const { text, caret: at, end } = build(spot.inner);
 
-		write(spot, text, at);
+		write(spot, text, at, end);
 	}
 }
 
@@ -579,9 +701,13 @@ function insertBlock(build: (selected: string) => { text: string; caret: number 
 function insertText(text: string): void {
 	const element = field.value;
 
-	if (element !== null) {
-		apply({ from: element.selectionStart, to: element.selectionEnd, text });
+	if (element === null) {
+		return;
 	}
+
+	const spot = element.selectionStart === element.selectionEnd ? safeSpot(element.value, element.selectionStart) : null;
+
+	apply(spot === null ? { from: element.selectionStart, to: element.selectionEnd, text } : { from: spot.at, to: spot.at, text: spot.before + text });
 }
 
 /**
@@ -593,7 +719,17 @@ function selection(): string {
 	return element === null ? '' : element.value.slice(element.selectionStart, element.selectionEnd);
 }
 
-defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismissSlash, format, link, heading, move });
+/**
+ * Applies a change to the text, then scrolls the caret into view, once
+ * the highlighted copy it's measured on has caught up.
+ */
+async function change(next: Change): Promise<void> {
+	applyChange(next);
+	await nextTick();
+	reveal();
+}
+
+defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selection, dismissSlash, emphasis, unlink, heading });
 </script>
 
 <template>
@@ -610,6 +746,7 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 				:readonly="props.readonly"
 				:aria-label="props.label"
 				:placeholder="props.placeholder"
+				@beforeinput="beforeinput"
 				@input="input"
 				@keydown="keydown"
 				@keyup="track"
@@ -779,12 +916,20 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 	font-weight: 500;
 }
 
-/* A fence is the one place the source is the content, so the whole block
-   sits on a slab. Tinted runs clone their box across wrapped lines. */
-.md__highlight :deep(.md-fence),
-.md__highlight :deep(.md-code-block) {
-	padding-block: 1px;
+/* A fenced block is the one place the source is the content, so the
+   whole run, fences included, is one box (admin.md §8, The fenced block
+   is a box). Horizontally, a negative margin cancels the padding, so the
+   text keeps the column's width and wraps where the field wraps it.
+   Vertically, nothing: the line height's own leading is the inset, and
+   padding, margins, or a border would add height the field doesn't
+   have, so the hairline is an inset shadow. */
+.md__highlight :deep(.md-codeblock) {
+	display: block;
+	margin-inline: calc(-1 * var(--s-3));
+	padding-inline: var(--s-3);
+	border-radius: var(--r-2);
 	background: var(--surface-2);
+	box-shadow: inset 0 0 0 1px var(--border);
 	color: var(--fg-2);
 }
 
@@ -800,8 +945,6 @@ defineExpose({ apply, focusAt, insert, insertBlock, insertText, selection, dismi
 	color: var(--fg-2);
 }
 
-.md__highlight :deep(.md-fence),
-.md__highlight :deep(.md-code-block),
 .md__highlight :deep(.md-code),
 .md__highlight :deep(.md-attr),
 .md__highlight :deep(.md-directive.is-current),

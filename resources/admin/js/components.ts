@@ -5,6 +5,7 @@
  */
 
 import { request, type FieldDescription } from './api';
+import { BLOCK_KINDS } from './blocks';
 import { attributeText } from './markdown';
 import type { IconName } from './icons';
 
@@ -26,6 +27,14 @@ export interface ComponentDescription {
 	props: ComponentProp[];
 	// Its variants under the active theme, Default not included (D-266).
 	variants: ComponentVariant[];
+	// What a container holds, when it's only some things (D-314): `image`,
+	// or components' full names.
+	only?: string[] | null;
+	// A Markdown element's tile (D-313): its icon, the other names it's
+	// found by, and what it writes, with the placeholder to select.
+	icon?: IconName;
+	aliases?: string;
+	markdown?: { text: string; pick: string };
 }
 
 export interface ComponentVariant {
@@ -94,6 +103,15 @@ const ICONS: Record<string, IconName> = {
 interface ComponentsAnswer {
 	components: ComponentDescription[];
 	image: { variants: ComponentVariant[] };
+	bleed: BleedClasses;
+}
+
+/**
+ * The classes the active theme names for the bleed widths (D-313).
+ */
+export interface BleedClasses {
+	wide: string;
+	full: string;
 }
 
 let loading: Promise<ComponentsAnswer> | null = null;
@@ -124,6 +142,13 @@ export async function imageVariants(): Promise<ComponentVariant[]> {
 }
 
 /**
+ * Loads the classes the bleed control writes, with the components.
+ */
+export async function bleedClasses(): Promise<BleedClasses> {
+	return (await load()).bleed;
+}
+
+/**
  * Markdown images in the component panel (D-268): not a component, but
  * listed under Media where people look for one. Choosing it opens the
  * media library, which writes plain Markdown.
@@ -139,6 +164,39 @@ export const IMAGE_COMPONENT: ComponentDescription = {
 	props: [],
 	variants: []
 };
+
+/**
+ * A Markdown element as a tile in the inserter (admin.md §8, The Markdown
+ * elements are in the same panel; D-313): named and drawn as the editor
+ * names it everywhere else, in a category group with the components, and
+ * written with its placeholder selected.
+ */
+function markdownElement(kind: keyof typeof BLOCK_KINDS, category: string, aliases: string, description: string, text: string, pick: string): ComponentDescription {
+	return {
+		name: `markdown/${kind}`,
+		label: BLOCK_KINDS[kind].label,
+		description,
+		content: 'none',
+		kind: 'leaf',
+		category,
+		source: null,
+		props: [],
+		variants: [],
+		icon: BLOCK_KINDS[kind].icon,
+		aliases,
+		markdown: { text, pick }
+	};
+}
+
+export const MARKDOWN_ELEMENTS: ComponentDescription[] = [
+	markdownElement('heading', 'text', 'h1 h2 h3 title', 'A heading, at level 2: the entry\'s title is the page\'s level 1.', '## Heading', 'Heading'),
+	markdownElement('quote', 'text', 'blockquote citation', 'A block quotation. Every line carries the marker.', '> Quoted text.', 'Quoted text.'),
+	markdownElement('list', 'text', 'bullet numbered ordered task checklist ul ol', 'A list. Its type, bulleted, numbered, or task, is in the settings.', '- First item\n- Second item', 'First item'),
+	markdownElement('definitions', 'text', 'definition dl terms glossary', 'Terms, each with one or more definitions under it.', 'Term\n: Its definition.', 'Term'),
+	markdownElement('code', 'text', 'fence fenced pre snippet', 'A fenced code block. The word after the fence is its language.', '```\ncode\n```', 'code'),
+	markdownElement('table', 'data', 'grid rows columns pipe', 'A table written with pipes. Enter on its last row adds another.', '| Column | Column |\n| --- | --- |\n| Cell | Cell |', 'Column'),
+	markdownElement('rule', 'layout', 'divider hr rule thematic break separator', 'A horizontal rule between sections.', '---', '')
+];
 
 /**
  * The group a component is shown in.
@@ -190,7 +248,7 @@ export function groupsOf(components: ComponentDescription[]): ComponentGroup[] {
  * The icon a component is drawn with.
  */
 export function componentIcon(component: ComponentDescription): IconName {
-	return (component.category !== null ? ICONS[component.name.replace(/^blush\//, '')] : undefined) ?? groupOf(component).icon;
+	return component.icon ?? (component.category !== null ? ICONS[component.name.replace(/^blush\//, '')] : undefined) ?? groupOf(component).icon;
 }
 
 /**
@@ -199,7 +257,7 @@ export function componentIcon(component: ComponentDescription): IconName {
  */
 export function matches(component: ComponentDescription, query: string): boolean {
 	const words = query.trim().toLowerCase().split(/\s+/).filter((word) => word !== '');
-	const text  = `${component.label} ${component.name} ${component.description} ${groupOf(component).label}`.toLowerCase();
+	const text  = `${component.label} ${component.name} ${component.aliases ?? ''} ${component.description} ${groupOf(component).label}`.toLowerCase();
 
 	return words.every((word) => text.includes(word));
 }

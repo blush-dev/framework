@@ -121,12 +121,17 @@ figcaption {
 }
 
 /*
+ * Bleed (D-313): `bleed-wide` and `bleed-full` widen any element past the
+ * column, centered on it, into the margin or edge to edge. 1.x content's
+ * `stretch-wide` and `stretch-full` mean the same.
+ *
  * Image variants (theme.json's variants.image): classes a lone image's
- * figure carries, `![…](…){.stretch-wide}`. Wide and full bleed break out
- * of the column, centered on it; the floats sit beside the text, until
- * there's no room beside it.
+ * figure carries, `![…](…){.inline-left}`. The floats sit beside the
+ * text, until there's no room beside it.
  */
 
+.bleed-wide,
+.bleed-full,
 .stretch-wide,
 .stretch-full {
 	width: var(--stretch);
@@ -134,19 +139,24 @@ figcaption {
 	margin-inline: calc((100% - var(--stretch)) / 2);
 }
 
+.bleed-wide,
 .stretch-wide {
 	--stretch: min(100vw - 2 * var(--space-m), var(--wide));
 }
 
+.bleed-full,
 .stretch-full {
 	--stretch: 100vw;
 }
 
+.bleed-wide img,
+.bleed-full img,
 .stretch-wide img,
 .stretch-full img {
 	width: 100%;
 }
 
+.bleed-full figcaption,
 .stretch-full figcaption {
 	padding-inline: var(--space-m);
 }

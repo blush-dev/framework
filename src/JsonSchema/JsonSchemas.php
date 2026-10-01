@@ -170,9 +170,18 @@ final readonly class JsonSchemas
 						'items'       => ['$ref' => '#/definitions/regionItem']
 					]
 				]),
+				'bleed'       => [
+					'type'                 => 'object',
+					'description'          => 'The classes the admin\'s editor writes to widen an element past the text column (D-313): "wide" into the margin, "full" edge to edge. Each defaults to "bleed-wide" and "bleed-full"; the theme styles them.',
+					'additionalProperties' => false,
+					'properties'           => [
+						'wide' => ['type' => 'string', 'pattern' => '^[A-Za-z_][A-Za-z0-9_-]*$', 'description' => 'The class for wider than the text, into the margin.'],
+						'full' => ['type' => 'string', 'pattern' => '^[A-Za-z_][A-Za-z0-9_-]*$', 'description' => 'The class for edge to edge.']
+					]
+				],
 				'variants'    => [
 					'type'                 => 'object',
-					'description'          => 'Variants the theme adds to components, by component name (such as "callout" or "notebook/card"), and under "image", the classes it offers Markdown images (such as "stretch-wide"). Their labels and descriptions are in the theme\'s lang/ catalog, under components.{name}.variants.{variant} (images.variants.{variant} for images).',
+					'description'          => 'Variants the theme adds to components, by component name (such as "callout" or "notebook/card"), and under "image", the classes it offers Markdown images (such as "inline-left"). Their labels and descriptions are in the theme\'s lang/ catalog, under components.{name}.variants.{variant} (images.variants.{variant} for images).',
 					'propertyNames'        => ['pattern' => '^' . ComponentName::SYNTAX . '$'],
 					'additionalProperties' => [
 						'type'  => 'array',
