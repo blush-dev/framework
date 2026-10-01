@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * A new account (D-312; the prototype's Invite, as its own screen like
- * every New): a username, its roles, and optionally its author. Blush
+ * every New): a username, its roles, and optionally a name (D-322) and
+ * an author. Blush
  * sends no email, so **Create account** makes the account with a link
  * for choosing a password, and opens the account's screen with the link
  * to copy and send. The link is shown that once.
@@ -19,13 +20,15 @@ const router   = useRouter();
 const roles    = ref<RoleInfo[]>([]);
 const username = ref('');
 const chosen   = ref<string[]>([]);
+const name     = ref('');
 const author   = ref('');
 const busy     = ref(false);
 const error    = ref('');
-const field    = ref<'username' | 'roles' | 'author' | null>(null);
+const field    = ref<'username' | 'name' | 'roles' | 'author' | null>(null);
 const loadFail = ref('');
 
 const usernameInput = ref<HTMLInputElement | null>(null);
+const nameInput     = ref<HTMLInputElement | null>(null);
 
 loadRoles().then((list) => {
 	roles.value  = list.roles;
@@ -45,18 +48,18 @@ async function submit(): Promise<void> {
 	field.value = null;
 
 	try {
-		const answer = await createAccount(username.value.trim().toLowerCase(), chosen.value, author.value === '' ? null : author.value);
+		const answer = await createAccount(username.value.trim().toLowerCase(), chosen.value, author.value === '' ? null : author.value, name.value.trim() === '' ? null : name.value);
 
 		freshLink.value = { username: answer.account.username, link: answer.link };
-		toast(`Created ${answer.account.username}`);
+		toast(`Created ${answer.account.displayName}`);
 		await router.push({ name: 'account', params: { username: answer.account.username } });
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be created.';
-		field.value = caught instanceof ApiError && (caught.field === 'username' || caught.field === 'roles' || caught.field === 'author') ? caught.field : null;
+		field.value = caught instanceof ApiError && (caught.field === 'username' || caught.field === 'name' || caught.field === 'roles' || caught.field === 'author') ? caught.field : null;
 
-		if (field.value === 'username' || field.value === null) {
+		if (field.value === 'username' || field.value === 'name' || field.value === null) {
 			await nextTick();
-			usernameInput.value?.focus();
+			(field.value === 'name' ? nameInput : usernameInput).value?.focus();
 		}
 	} finally {
 		busy.value = false;
@@ -89,6 +92,12 @@ async function submit(): Promise<void> {
 					<p v-if="usernameProblem" id="account-username-help" class="field__error">{{ usernameProblem }}</p>
 					<p v-else-if="field === 'username'" id="account-username-help" class="field__error">{{ error }}</p>
 					<p v-else id="account-username-help" class="field__help">What they sign in with. Fixed once it's made.</p>
+				</div>
+				<div class="field">
+					<label for="account-name">Name</label>
+					<input id="account-name" ref="nameInput" v-model="name" autocomplete="off" maxlength="100" :aria-invalid="field === 'name' ? 'true' : undefined" aria-describedby="account-name-help">
+					<p v-if="field === 'name'" id="account-name-help" class="field__error">{{ error }}</p>
+					<p v-else id="account-name-help" class="field__help">What the admin calls them. Optional; they can change it on their profile.</p>
 				</div>
 				<div class="field">
 					<label for="account-author">Author</label>

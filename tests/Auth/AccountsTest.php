@@ -113,6 +113,40 @@ final class AccountsTest extends TestCase
 		$this->assertNull($this->store()->find('jane')?->author);
 	}
 
+	public function testNamesAccounts(): void
+	{
+		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane Author\n---\n");
+
+		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], 'jane', "  Jane\t\n  Doe ");
+
+		$this->assertSame('Jane Doe', $account->name, 'Spaces and line breaks are tidied.');
+		$this->assertSame('Jane Doe', $this->accounts()->displayName($account));
+		$this->assertStringContainsString('"name": "Jane Doe"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json'));
+		$this->assertEquals($account, $this->store()->find('jane'));
+
+		$account = $this->accounts()->setName($account, 'José Ñúñez 李');
+		$this->assertSame('José Ñúñez 李', $this->store()->find('jane')?->name);
+		$this->assertSame(Account::NAME_LENGTH, mb_strlen($this->accounts()->setName($account, str_repeat('é', Account::NAME_LENGTH))->name ?? ''));
+
+		$account = $this->accounts()->setName($account, '   ');
+		$this->assertNull($account->name);
+		$this->assertSame('Jane Author', $this->accounts()->displayName($account), 'Then the author page\'s title.');
+		$this->assertSame('jane', $this->accounts()->displayName($account->withAuthor(null)), 'Then the username.');
+
+		foreach ([str_repeat('a', Account::NAME_LENGTH + 1), "Jane\u{0007}"] as $bad) {
+			try {
+				$this->accounts()->setName($account, $bad);
+				$this->fail('Named the account ' . json_encode($bad));
+			} catch (AuthException $e) {
+				$this->assertStringContainsString('A name is up to', $e->getMessage());
+			}
+		}
+
+		$this->assertFalse(Account::isValidName(' Jane'));
+		$this->assertFalse(Account::isValidName("Jane\u{2028}Doe"));
+		$this->assertFalse(Account::isValidName(''));
+	}
+
 	public function testListsAndDeletesAccounts(): void
 	{
 		$this->accounts()->create('sam', 'a long enough password', ['editor']);

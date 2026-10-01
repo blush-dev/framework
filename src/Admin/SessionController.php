@@ -18,12 +18,14 @@ use LogicException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\Accounts;
 use Blush\Auth\AccountSuspended;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\AuthException;
 use Blush\Auth\Authenticator;
 use Blush\Auth\LockedOut;
 use Blush\Auth\Permissions;
+use Blush\Auth\Roles;
 use Blush\Cache\CacheException;
 use Blush\Http\ClientIp;
 use Blush\Http\Response;
@@ -40,6 +42,8 @@ final readonly class SessionController
 	public function __construct(
 		private Authenticator $authenticator,
 		private Permissions $permissions,
+		private Accounts $accounts,
+		private Roles $roles,
 		private AuthConfig $config
 	) {}
 
@@ -116,8 +120,10 @@ final readonly class SessionController
 		return [
 			'account'   => [
 				'username'     => $account->username,
+				'name'         => $account->name,
+				'displayName'  => $this->accounts->displayName($account),
 				'author'       => $account->author,
-				'roles'        => $account->roles,
+				'roles'        => array_map(fn (string $name): array => ['name' => $name, 'label' => $this->roles->get($name)->label ?? $name], $account->roles),
 				'capabilities' => $this->permissions->capabilities($account),
 				'lastLogin'    => $account->lastLogin,
 				'preferences'  => $account->preferences->toArray()

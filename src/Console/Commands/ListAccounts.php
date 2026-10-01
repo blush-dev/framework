@@ -24,8 +24,9 @@ use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 
 /**
- * Lists the admin accounts: username, roles, linked author, status, and
- * last sign-in. A role an account names that doesn't exist is flagged.
+ * Lists the admin accounts: username, name (D-322), roles, linked
+ * author, status, and last sign-in. A role an account names that doesn't
+ * exist is flagged.
  */
 #[Command('account:list', 'List the admin accounts.')]
 final readonly class ListAccounts
@@ -54,6 +55,7 @@ final readonly class ListAccounts
 		foreach ($accounts as $account) {
 			$rows[] = [
 				$account->username,
+				$account->name ?? '',
 				implode(', ', array_map(fn (string $role): string => $this->roles->has($role) ? $role : "{$role} (unknown)", $account->roles)),
 				$account->author ?? '',
 				$account->status()->value,
@@ -63,7 +65,7 @@ final readonly class ListAccounts
 			];
 		}
 
-		$output->table(['Username', 'Roles', 'Author', 'Status', 'Last sign-in'], $rows);
+		$output->table(['Username', 'Name', 'Roles', 'Author', 'Status', 'Last sign-in'], $rows);
 
 		return ExitCode::Success;
 	}

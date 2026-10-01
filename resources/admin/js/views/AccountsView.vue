@@ -60,7 +60,7 @@ Promise.all([loadAccounts(), loadRoles()]).then(([list, roles]) => {
 						<th scope="row">
 							<span class="entry-title">
 								<span class="entry-title__text">
-									<RouterLink class="entry-title__link" :to="{ name: 'account', params: { username: account.username } }">{{ account.name ?? account.username }}</RouterLink>
+									<RouterLink class="entry-title__link" :to="{ name: 'account', params: { username: account.username } }">{{ account.displayName }}</RouterLink>
 									<span v-if="account.username === session.account?.username" class="tag">You</span>
 								</span>
 								<span class="entry-title__path">{{ account.username }}</span>

@@ -27,6 +27,9 @@ use NoDiscard;
  * - `preferences` are how the person likes the admin (D-235).
  * - `suspended` accounts can't sign in, and their sessions end (D-312).
  * - `passwordLink` is a one-time link for choosing a password (D-312).
+ * - `name` is what the admin calls the person (D-322): any text, up to
+ *   100 characters, on one line. Without one, the admin falls back to
+ *   the author page's title, then the username.
  */
 final readonly class Account
 {
@@ -36,8 +39,13 @@ final readonly class Account
 	public const string USERNAME = '/^[a-z0-9][a-z0-9._-]{0,63}$/';
 
 	/**
+	 * The longest a name may be, in characters.
+	 */
+	public const int NAME_LENGTH = 100;
+
+	/**
 	 * @param list<string> $roles
-	 * @throws AuthException For an invalid username or author slug.
+	 * @throws AuthException For an invalid username, author slug, or name.
 	 */
 	public function __construct(
 		public string $username,
@@ -48,7 +56,8 @@ final readonly class Account
 		public ?int $lastLogin = null,
 		public Preferences $preferences = new Preferences(),
 		public bool $suspended = false,
-		public ?PasswordLink $passwordLink = null
+		public ?PasswordLink $passwordLink = null,
+		public ?string $name = null
 	) {
 		if (! self::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
@@ -56,6 +65,10 @@ final readonly class Account
 
 		if ($author !== null && preg_match('/^[\p{Ll}\p{Lo}\p{N}][\p{Ll}\p{Lo}\p{N}_-]*$/u', $author) !== 1) {
 			throw new AuthException(sprintf('"%s" isn\'t an author slug.', $author));
+		}
+
+		if ($name !== null && ! self::isValidName($name)) {
+			throw new AuthException(sprintf('A name is up to %d characters on one line.', self::NAME_LENGTH));
 		}
 	}
 
@@ -65,6 +78,30 @@ final readonly class Account
 	public static function isValidUsername(string $username): bool
 	{
 		return preg_match(self::USERNAME, $username) === 1;
+	}
+
+	/**
+	 * Whether a string can be a name: not empty, no space at either end,
+	 * no control characters or line breaks, and not too long.
+	 */
+	public static function isValidName(string $name): bool
+	{
+		return $name !== ''
+			&& $name === trim($name)
+			&& mb_check_encoding($name, 'UTF-8')
+			&& preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $name) !== 1
+			&& mb_strlen($name) <= self::NAME_LENGTH;
+	}
+
+	/**
+	 * Tidies a name as typed: spaces and line breaks become single spaces,
+	 * trimmed at either end. Returns `null` for an empty name.
+	 */
+	public static function tidyName(string $name): ?string
+	{
+		$name = trim(preg_replace('/[\s\p{Z}]+/u', ' ', $name) ?? $name);
+
+		return $name === '' ? null : $name;
 	}
 
 	/**
@@ -93,7 +130,18 @@ final readonly class Account
 	#[NoDiscard]
 	public function withAuthor(?string $author): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink);
+		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name);
+	}
+
+	/**
+	 * Returns a copy with another name, or none.
+	 *
+	 * @throws AuthException For an invalid name.
+	 */
+	#[NoDiscard]
+	public function withName(?string $name): self
+	{
+		return new self($this->username, $this->passwordHash, $this->roles, $this->author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $name);
 	}
 
 	/**
@@ -168,16 +216,17 @@ final readonly class Account
 			lastLogin: is_int($data['lastLogin'] ?? null) ? $data['lastLogin'] : null,
 			preferences: Preferences::fromArray(is_array($data['preferences'] ?? null) ? $data['preferences'] : []),
 			suspended: ($data['suspended'] ?? false) === true,
-			passwordLink: is_array($data['passwordLink'] ?? null) ? PasswordLink::fromArray($data['passwordLink']) : null
+			passwordLink: is_array($data['passwordLink'] ?? null) ? PasswordLink::fromArray($data['passwordLink']) : null,
+			name: is_string($data['name'] ?? null) ? self::tidyName($data['name']) : null
 		);
 	}
 
 	/**
 	 * Returns the account as its stored array. Preferences at their
 	 * defaults are left out, and so is `preferences` when all are;
-	 * `suspended` and `passwordLink` are written only when set.
+	 * `name`, `suspended`, and `passwordLink` are written only when set.
 	 *
-	 * @return array{username: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
+	 * @return array{username: string, name?: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
 	 */
 	public function toArray(): array
 	{
@@ -185,6 +234,7 @@ final readonly class Account
 
 		return [
 			'username'     => $this->username,
+			...($this->name === null ? [] : ['name' => $this->name]),
 			'passwordHash' => $this->passwordHash,
 			'roles'        => $this->roles,
 			'author'       => $this->author,

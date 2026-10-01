@@ -19,7 +19,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import CapabilityChecks from '../components/CapabilityChecks.vue';
 import { ApiError } from '../api';
 import { plural } from '../format';
-import { capabilityGroups, deleteRole, grants, loadRoles, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
+import { capabilityGroups, deleteRole, grants, initials, loadRoles, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
 
@@ -219,9 +219,9 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 					<p class="panel__hint">{{ role.accounts.length ? plural(role.accounts.length, 'account') : 'Nobody' }}</p>
 				</header>
 				<ul v-if="role.accounts.length" class="panel__body people">
-					<li v-for="username in role.accounts" :key="username">
-						<span class="people__avatar" aria-hidden="true">{{ username.charAt(0) }}</span>
-						<RouterLink :to="{ name: 'account', params: { username } }">{{ username }}</RouterLink>
+					<li v-for="holder in role.accounts" :key="holder.username">
+						<span class="people__avatar" aria-hidden="true">{{ initials(holder.displayName) }}</span>
+						<RouterLink :to="{ name: 'account', params: { username: holder.username } }">{{ holder.displayName }}</RouterLink>
 					</li>
 				</ul>
 				<div v-else class="empty">

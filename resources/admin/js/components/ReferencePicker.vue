@@ -32,6 +32,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { ApiError, request, type FieldDescription } from '../api';
 import { label } from '../fields';
 import { plural } from '../format';
+import { initials } from '../people';
 import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
 import { can } from '../session';
 import { labelsOf } from '../types';
@@ -346,10 +347,6 @@ const selectOptions = computed(() => {
 const parentOptions = computed(() => [{ value: '', label: 'None, at the top level' }, ...(tree.value ?? []).map((item) => ({ value: item.slug, label: item.title, depth: item.depth ?? 0 }))]);
 
 const persons = computed(() => values.value.map((value) => itemOf(value)));
-
-function initials(name: string): string {
-	return name.split(/\s+/).filter((part) => part !== '').slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join('') || '?';
-}
 </script>
 
 <template>

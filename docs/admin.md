@@ -70,8 +70,9 @@ the round button at the top right has **Your profile** and **Sign out**.
 
 ## Your profile
 
-**Your profile** shows your account (username, roles, linked author,
-and when you last signed in), your **author page**, and the admin's
+**Your profile** shows your account (your **name**, which you can
+change, and your username, roles, linked author, and when you last
+signed in), your **author page**, and the admin's
 **theme** and **color scheme**. Your author page is the entry of your linked author: your name
 in bylines, your bio, and your archive. **Edit your author page** opens
 it in the editor; it's yours to edit even though no entry credits it. If
@@ -91,7 +92,8 @@ for a while, as with signing in.
 
 ## The dashboard
 
-The dashboard shows how many entries you have, by status, and the actions
+The dashboard greets you by your [name](accounts.md#names) ("Good
+afternoon, Sam Smith") and shows how many entries you have, by status, and the actions
 your account may run. On a site with no content yet, it shows the steps
 to write the first page and the first entry of each other type instead
 of the counts. The actions:
@@ -774,14 +776,14 @@ with how many capabilities it has and who holds it. See
 
 ### Accounts
 
-- **New Account** asks for a username, its roles, and optionally its
-  author. Blush doesn't send email, so instead of a password the
+- **New Account** asks for a username, its roles, and optionally a
+  [name](accounts.md#names) and its author. Blush doesn't send email, so instead of a password the
   account gets a **password link**: copy it from the account's screen
   and send it however you like. It's shown only that once, and it
   works once, for a week. Until it's used, the account is **Invited**.
 - On an account's screen, tick or untick its **roles** (they save
-  right away; an account always keeps one), and link it to an
-  **author**.
+  right away; an account always keeps one), change its **name**, and
+  link it to an **author**.
 - **Make a password link** is for a forgotten password: the person
   chooses a new one with it. Their old password keeps working until
   the link is used, and a new link replaces the old one.
@@ -893,11 +895,12 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 
 | Request | What it does |
 |---|---|
-| `GET session` | The signed-in account (its username, roles, capabilities, and preferences) and a CSRF token, or `{"account": null}` |
+| `GET session` | The signed-in account (its username, `name`, `displayName`, `roles` (each `{"name", "label"}`), capabilities, and preferences) and a CSRF token, or `{"account": null}` |
 | `POST login` | Sign in with `{"username", "password"}` |
 | `POST logout` | Sign out |
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
 | `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`) and `adminTheme` (`neutral` or `editorial`), such as `{"colorScheme": "dark"}`; answers `{"preferences"}` |
+| `PATCH profile` | Change the account's own name: `{"name"}` (`null` or empty removes it); answers `{"name", "displayName"}`. A name over 100 characters is a `422` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |
@@ -906,13 +909,13 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST media` | Upload a file to the library (see below) |
 | `PATCH media/{path}` | Change a library file's details (see below) |
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
-| `GET roles` | Every capability (`{"name", "label"}`) and role: `{"name", "label", "description", "capabilities", "builtIn", "origin", "accounts", "grantable", "editable"}`, and a changed built-in's `defaults`. `origin` is `built-in`, `changed`, `custom`, or `config`; `grantable` is whether you may give it, and `editable` whether you may change it. Needs `accounts.manage`, as do all of these |
+| `GET roles` | Every capability (`{"name", "label"}`) and role: `{"name", "label", "description", "capabilities", "builtIn", "origin", "accounts", "grantable", "editable"}` (`accounts` is each holder's `{"username", "displayName"}`), and a changed built-in's `defaults`. `origin` is `built-in`, `changed`, `custom`, or `config`; `grantable` is whether you may give it, and `editable` whether you may change it. Needs `accounts.manage`, as do all of these |
 | `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
 | `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
 | `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
-| `GET accounts` | Every account: `{"username", "name", "roles", "author", "created", "lastLogin", "status", "link", "manages"}`. `name` is its author page's title; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
-| `POST accounts` | Make an account: `{"username", "roles", "author"}`; answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
-| `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (`null` unlinks), and `suspended`; answers `{"account"}` |
+| `GET accounts` | Every account: `{"username", "name", "displayName", "roles", "author", "created", "lastLogin", "status", "link", "manages"}`. `name` is its own name or `null`; `displayName` is what the admin calls it: the name, else its author page's title, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
+| `POST accounts` | Make an account: `{"username", "roles", "author", "name"}` (the last two optional); answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
+| `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (`null` unlinks), `name` (`null` or empty removes it), and `suspended`; answers `{"account"}` |
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
 | `DELETE accounts/{username}` | Remove an account; answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |

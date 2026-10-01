@@ -35,6 +35,7 @@ use Blush\Session\StartSession;
  *   - `POST login`: signs in (`{"username", "password"}`).
  *   - `POST logout`: signs out.
  *   - `PATCH preferences`: changes the account's own preferences.
+ *   - `PATCH profile`: changes the account's own name (D-322).
  *   - `POST password`: changes the account's own password.
  *   - `POST set-password`: sets a password with a password link, and
  *     signs in (D-312; no account needed).
@@ -104,6 +105,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/login', [SessionController::class, 'login'])->named('login'),
 			Route::post('/logout', [SessionController::class, 'logout'])->named('logout')->middleware(Authenticate::class),
 			Route::patch('/preferences', PreferencesController::class)->named('preferences')->middleware(Authenticate::class),
+			Route::patch('/profile', ProfileController::class)->named('profile')->middleware(Authenticate::class),
 			Route::post('/password', PasswordController::class)->named('password')->middleware(Authenticate::class),
 			Route::post('/set-password', SetPasswordController::class)->named('set-password'),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),

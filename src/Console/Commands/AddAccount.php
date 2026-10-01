@@ -45,7 +45,8 @@ final readonly class AddAccount
 		Prompt $prompt,
 		#[Argument('The username (lowercase letters, digits, ".", "_", and "-").')] string $username,
 		#[Option('A role for the account; repeat for more. Defaults to administrator.')] array $role = [],
-		#[Option('The slug of the author entry the account writes as.')] ?string $author = null
+		#[Option('The slug of the author entry the account writes as.')] ?string $author = null,
+		#[Option('What the admin calls the person, quoted when it has spaces.')] ?string $name = null
 	): ExitCode {
 		$roles = $role === [] ? [BuiltInRole::Administrator->value] : $role;
 
@@ -53,7 +54,7 @@ final readonly class AddAccount
 			$this->accounts->checkRoles($roles);
 
 			$password = $prompt->newSecret('Password:', 'Password again:', $this->accounts->passwordProblem(...));
-			$account  = $this->accounts->create($username, $password, $roles, $author);
+			$account  = $this->accounts->create($username, $password, $roles, $author, $name);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 

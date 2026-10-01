@@ -15,12 +15,11 @@ namespace Blush\Admin;
 
 use Psr\Clock\ClockInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AuthConfig;
+use Blush\Auth\Accounts;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Role;
 use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
-use Blush\Content\ContentRepository;
 
 /**
  * Describes accounts and roles for the admin's people screens (D-249,
@@ -31,14 +30,14 @@ final readonly class PeopleJson
 {
 	public function __construct(
 		private PeopleRules $rules,
-		private ContentRepository $content,
-		private AuthConfig $config,
+		private Accounts $accounts,
 		private ClockInterface $clock
 	) {}
 
 	/**
-	 * Describes an account: its `username`, `name` (its author page's
-	 * title, or `null`), `roles`, `author`, `created` and `lastLogin`
+	 * Describes an account: its `username`, its own `name` (or `null`),
+	 * its `displayName` (D-322: the name, else the author page's title,
+	 * else the username), `roles`, `author`, `created` and `lastLogin`
 	 * (Unix times), `status`, its password `link` (`expires`, and whether
 	 * it has `expired`; `null` for none), and whether the viewer
 	 * `manages` it.
@@ -50,24 +49,26 @@ final readonly class PeopleJson
 		$link = $account->passwordLink;
 
 		return [
-			'username'  => $account->username,
-			'name'      => $account->author === null ? null : $this->content->named($this->config->authorTaxonomy, $account->author)?->title,
-			'roles'     => $account->roles,
-			'author'    => $account->author,
-			'created'   => $account->created,
-			'lastLogin' => $account->lastLogin,
-			'status'    => $account->status()->value,
-			'link'      => $link === null ? null : ['expires' => $link->expires, 'expired' => $link->expires <= $this->clock->now()->getTimestamp()],
-			'manages'   => $this->rules->manages($viewer, $account)
+			'username'    => $account->username,
+			'name'        => $account->name,
+			'displayName' => $this->accounts->displayName($account),
+			'roles'       => $account->roles,
+			'author'      => $account->author,
+			'created'     => $account->created,
+			'lastLogin'   => $account->lastLogin,
+			'status'      => $account->status()->value,
+			'link'        => $link === null ? null : ['expires' => $link->expires, 'expired' => $link->expires <= $this->clock->now()->getTimestamp()],
+			'manages'     => $this->rules->manages($viewer, $account)
 		];
 	}
 
 	/**
 	 * Describes a role: its `name`, `label`, `description`,
 	 * `capabilities` (`*` for all), whether it's `builtIn`, its `origin`,
-	 * the `accounts` that hold it, whether the viewer may give it to
-	 * accounts (`grantable`), and whether the viewer may change it
-	 * (`editable`). A changed built-in also has its `defaults`.
+	 * the `accounts` that hold it (each its `username` and
+	 * `displayName`), whether the viewer may give it to accounts
+	 * (`grantable`), and whether the viewer may change it (`editable`). A
+	 * changed built-in also has its `defaults`.
 	 *
 	 * @param  list<Account> $accounts
 	 * @return array<string, mixed>
@@ -86,7 +87,7 @@ final readonly class PeopleJson
 			'builtIn'      => $builtIn !== null,
 			'origin'       => $origin->value,
 			'accounts'     => array_values(array_map(
-				static fn (Account $account): string => $account->username,
+				fn (Account $account): array => ['username' => $account->username, 'displayName' => $this->accounts->displayName($account)],
 				array_filter($accounts, static fn (Account $account): bool => in_array($role->name, $account->roles, true))
 			)),
 			'grantable'    => $grantable,

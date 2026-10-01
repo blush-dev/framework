@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * Your profile (D-235): who you're signed in as, your author page, and
- * how you like the admin. Preferences belong to the account, not the
+ * Your profile (D-235): who you're signed in as, your name (D-322: what
+ * the admin calls you; your author page's title is your public name),
+ * your author page, and how you like the admin. Preferences belong to the account, not the
  * site, so they follow you to any device and never change what anyone
  * else sees. (The site's own look is its theme, which is something
  * else.)
@@ -23,7 +24,7 @@ import { adminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { formatDate } from '../format';
 import type { IconName } from '../icons';
-import { can, session } from '../session';
+import { can, saveName, session } from '../session';
 import { toast } from '../toast';
 import { authorType, loadTypes } from '../types';
 
@@ -91,6 +92,32 @@ async function createAuthor(): Promise<void> {
 	} catch (caught) {
 		authorError.value = caught instanceof ApiError ? caught.message : 'Your author page couldn\'t be created.';
 		creating.value    = false;
+	}
+}
+
+// Your name: typed, then saved; an empty one takes it away.
+const name      = ref(session.account?.name ?? '');
+const nameBusy  = ref(false);
+const nameError = ref('');
+
+watch(() => account.value?.name, (value) => {
+	name.value = value ?? '';
+});
+
+const nameChanged = computed(() => name.value.trim() !== (account.value?.name ?? ''));
+
+async function submitName(): Promise<void> {
+	nameBusy.value  = true;
+	nameError.value = '';
+
+	try {
+		await saveName(name.value);
+		name.value = account.value?.name ?? '';
+		toast(account.value?.name ? `Saved. The admin calls you ${account.value.name}.` : `Removed your name. The admin calls you ${account.value?.displayName ?? ''}.`);
+	} catch (caught) {
+		nameError.value = caught instanceof ApiError ? caught.message : 'Your name couldn\'t be saved.';
+	} finally {
+		nameBusy.value = false;
 	}
 }
 
@@ -183,6 +210,15 @@ async function choose(scheme: ColorScheme): Promise<void> {
 			<header class="panel__header">
 				<h2 id="account-heading">Account</h2>
 			</header>
+			<form class="panel__body field profile__name" :aria-busy="nameBusy" @submit.prevent="submitName">
+				<label for="profile-name">Name</label>
+				<div class="profile__name-row">
+					<input id="profile-name" v-model="name" class="input" autocomplete="name" maxlength="100" :placeholder="account.displayName" :aria-invalid="nameError !== '' || undefined" aria-describedby="profile-name-help">
+					<button v-if="nameChanged" type="submit" class="button button--small" :disabled="nameBusy">{{ nameBusy ? 'Saving…' : 'Save' }}</button>
+				</div>
+				<p v-if="nameError" id="profile-name-help" class="field__error" role="alert">{{ nameError }}</p>
+				<p v-else id="profile-name-help" class="field__help">What the admin calls you. Only people who sign in see it; your name on the site is your author page's.</p>
+			</form>
 			<dl class="panel__body profile__facts">
 				<div>
 					<dt>Username</dt>
@@ -190,7 +226,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 				</div>
 				<div>
 					<dt>Roles</dt>
-					<dd>{{ account.roles.join(', ') || '—' }}</dd>
+					<dd>{{ account.roles.map((role) => role.label).join(', ') || '—' }}</dd>
 				</div>
 				<div>
 					<dt>Author</dt>
@@ -311,6 +347,26 @@ async function choose(scheme: ColorScheme): Promise<void> {
 
 .profile__password {
 	border-top: 1px solid var(--border);
+}
+
+.profile__name {
+	border-bottom: 1px solid var(--border);
+}
+
+.profile__name > * {
+	margin: 0;
+}
+
+.profile__name-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 24rem;
+}
+
+.profile__name-row .input {
+	flex: 1;
+	min-width: 0;
 }
 
 .profile__password p {

@@ -8036,3 +8036,69 @@ decision, add a new entry that supersedes it and mark the old one
   structure read back with `outline()`. Not checked in a browser:
   creating a temporary administrator account for it wasn't allowed.
 - **Why:** the author asked for pasting and moving to support nesting.
+
+### D-322: Accounts have a name, used across the admin
+- **Date:** 2026-10-01
+- **Decision:** An account may have a **name**: what the admin calls the
+  person. The author asked for "a display name or first/last name";
+  it's one free-text field, not first and last, because names don't
+  split that way everywhere (one name, family name first, several
+  surnames) and the admin only ever shows the whole name.
+  - **`Account::$name`** (`?string`, stored as `name` only when set):
+    one line of up to 100 characters (`Account::NAME_LENGTH`), no
+    control characters. `Account::tidyName()` turns runs of spaces and
+    line breaks into one space and trims (an empty name is `null`);
+    `isValidName()` checks the rest, and the constructor throws an
+    `AuthException` for an invalid one.
+  - **What the admin shows** is `Accounts::displayName()`: the name,
+    else the linked author page's title (what D-312 showed), else the
+    username. The author page's title stays the public name in bylines;
+    the account's name is private to the admin.
+  - **The API:** `GET session` and `PeopleJson` send `name` (its own,
+    or `null`) and `displayName`; a role's `accounts` are now each
+    holder's `{"username", "displayName"}`, not usernames. `POST
+    accounts` and `PATCH accounts/{username}` take `name` (`null` or
+    empty removes it; a bad one is a `422` with `field: name`). `PATCH
+    profile` (`ProfileController`) sets your own, for any account,
+    answering `{"name", "displayName"}`.
+  - **The screens:** the account menu's avatar shows up to two initials
+    of the display name (`initials()` in `people.ts`, shared with the
+    reference picker), and the menu shows the name, then the username
+    when they differ; Accounts, an account's screen (its title,
+    heading, avatar, toasts, and confirmations), a role's Held By list,
+    and Set Password's "signed in as" use the display name. New Account
+    has an optional Name field; an account's screen edits it (Save
+    appears once it changes); Your profile has a Name field at the top
+    of Account.
+  - **CLI:** `account:add --name=`, `account:name <username> [name]`
+    (no name removes it), and a Name column in `account:list`.
+- **Checked:** `composer check` (`AccountsTest::testNamesAccounts`:
+  tidying, the 100-character limit in characters, control characters
+  and line separators refused, the fallbacks; `AdminApiTest::
+  testAccountsNameThemselves`: `PATCH profile`, the session, CSRF, bad
+  input, and no name not stored; `AdminPeopleEditTest::
+  testNamesAccounts`; `AccountCommandsTest::testNamesAnAccount`; the
+  new shapes in `AdminPeopleTest`); `npm run admin:build`. Not checked
+  in a browser.
+- **Why:** the author asked for a name on accounts, used throughout the
+  admin.
+
+### D-323: The dashboard greets by name; roles show their labels
+- **Date:** 2026-10-01
+- **Decision:** Follows D-322.
+  - **The dashboard's heading** is the prototype's greeting: "Good
+    morning", "afternoon" (from noon), or "evening" (from 6 p.m. to 5
+    a.m.), by the browser's clock, then the account's `displayName`
+    (the whole name; the prototype's "Justin" is a first name, which a
+    single name field can't pick out reliably).
+  - **Roles are shown by their saved label**, never their key, outside
+    the Roles screens (which show the key on purpose). `GET session`'s
+    `roles` are now each `{"name", "label"}` (a role that no longer
+    exists shows its key), since an account without `accounts.manage`
+    can't read `GET roles`; the account menu and Your profile use the
+    labels, where they showed lowercase keys.
+- **Checked:** `composer check` (`AdminApiTest`: the session's role
+  labels); `npm run admin:build`. Not checked in a browser.
+- **Why:** the author asked for the name in the greeting, and saw
+  lowercase role keys in several places.
+

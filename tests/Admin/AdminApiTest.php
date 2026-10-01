@@ -20,6 +20,7 @@ use Blush\Admin\AdminConfig;
 use Blush\Admin\AdminRoutes;
 use Blush\Admin\PasswordController;
 use Blush\Admin\PreferencesController;
+use Blush\Admin\ProfileController;
 use Blush\Admin\SessionController;
 use Blush\Auth\Accounts;
 use Blush\Auth\AccountStore;
@@ -36,6 +37,7 @@ use Blush\Http\ClientIp;
 #[CoversClass(AdminRoutes::class)]
 #[CoversClass(SessionController::class)]
 #[CoversClass(PreferencesController::class)]
+#[CoversClass(ProfileController::class)]
 #[CoversClass(PasswordController::class)]
 #[CoversClass(Preferences::class)]
 #[CoversClass(Authenticator::class)]
@@ -171,6 +173,36 @@ final class AdminApiTest extends TestCase
 		$file = (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json');
 
 		$this->assertStringNotContainsString('preferences', $file, 'Defaults aren\'t stored.');
+	}
+
+	public function testAccountsNameThemselves(): void
+	{
+		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane Author\n---\n");
+		$this->boot(roles: ['contributor']);
+		$token = self::json($this->login())['csrfToken'] ?? null;
+		$this->assertIsString($token);
+
+		$session = self::account($this->send('GET', '/session'));
+
+		$this->assertArrayHasKey('name', $session);
+		$this->assertNull($session['name']);
+		$this->assertSame('Jane Author', $session['displayName'] ?? null, 'Without a name, the author page\'s title.');
+		$this->assertSame([['name' => 'contributor', 'label' => 'Contributor']], $session['roles'] ?? null, 'Roles carry their labels.');
+
+		$answer = $this->send('PATCH', '/profile', '{"name": "  Jane\n Doe "}', ['X-CSRF-Token' => $token]);
+
+		$this->assertSame(200, $answer->getStatusCode());
+		$this->assertSame(['name' => 'Jane Doe', 'displayName' => 'Jane Doe'], self::json($answer));
+		$this->assertSame('Jane Doe', $this->app->container()->make(AccountStore::class)->find('jane')?->name);
+		$this->assertSame('Jane Doe', self::account($this->send('GET', '/session'))['displayName'] ?? null);
+
+		$this->assertSame(422, $this->send('PATCH', '/profile', json_encode(['name' => str_repeat('a', 101)]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(400, $this->send('PATCH', '/profile', '{"name": 5}', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(400, $this->send('PATCH', '/profile', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(403, $this->send('PATCH', '/profile', '{"name": "Mallory"}')->getStatusCode(), 'CSRF is checked.');
+
+		$this->assertSame(['name' => null, 'displayName' => 'Jane Author'], self::json($this->send('PATCH', '/profile', '{"name": " "}', ['X-CSRF-Token' => $token])));
+		$this->assertStringNotContainsString('"name"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json'), 'No name isn\'t stored.');
 	}
 
 	public function testAccountsChangeTheirOwnPassword(): void

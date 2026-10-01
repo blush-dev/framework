@@ -48,9 +48,10 @@ final readonly class Accounts
 	 *
 	 * @param  list<string> $roles
 	 * @throws AuthException When the username is taken or invalid, the
-	 *                       password is too short, or a role doesn't exist.
+	 *                       password is too short, a role doesn't exist,
+	 *                       or the name is too long.
 	 */
-	public function create(string $username, string $password, array $roles, ?string $author = null): Account
+	public function create(string $username, string $password, array $roles, ?string $author = null, ?string $name = null): Account
 	{
 		if (! Account::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
@@ -68,7 +69,8 @@ final readonly class Accounts
 			passwordHash: $this->passwords->hash($password),
 			roles: array_values(array_unique($roles)),
 			author: $author,
-			created: $this->clock->now()->getTimestamp()
+			created: $this->clock->now()->getTimestamp(),
+			name: $name === null ? null : Account::tidyName($name)
 		);
 
 		$this->store->save($account);
@@ -82,12 +84,12 @@ final readonly class Accounts
 	 *
 	 * @param  list<string> $roles
 	 * @return array{Account, string}
-	 * @throws AuthException When the username is taken or invalid, or a
-	 *                       role doesn't exist.
+	 * @throws AuthException When the username is taken or invalid, a role
+	 *                       doesn't exist, or the name is too long.
 	 */
-	public function invite(string $username, array $roles, ?string $author = null): array
+	public function invite(string $username, array $roles, ?string $author = null, ?string $name = null): array
 	{
-		return $this->issuePasswordLink($this->create($username, bin2hex(random_bytes(32)), $roles, $author));
+		return $this->issuePasswordLink($this->create($username, bin2hex(random_bytes(32)), $roles, $author, $name));
 	}
 
 	/**
@@ -191,6 +193,35 @@ final readonly class Accounts
 		$this->store->save($account);
 
 		return $account;
+	}
+
+	/**
+	 * Names an account, tidying the name as typed, or takes its name away
+	 * (`null` or an empty name).
+	 *
+	 * @throws AuthException When the name is too long or has line breaks.
+	 */
+	public function setName(Account $account, ?string $name): Account
+	{
+		$account = $account->withName($name === null ? null : Account::tidyName($name));
+		$this->store->save($account);
+
+		return $account;
+	}
+
+	/**
+	 * Returns what the admin calls an account (D-322): its name, else its
+	 * author page's title, else its username.
+	 */
+	public function displayName(Account $account): string
+	{
+		if ($account->name !== null) {
+			return $account->name;
+		}
+
+		$title = $account->author === null ? '' : ($this->content->named($this->config->authorTaxonomy, $account->author)->title ?? '');
+
+		return $title !== '' ? $title : $account->username;
 	}
 
 	/**

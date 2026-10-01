@@ -784,7 +784,7 @@ Implemented in M7 (D-135 to D-140).
     the `VerifyCsrf` and `Authenticate` middleware.
   - `Blush\Admin`: `AdminConfig` and the JSON API under
     `{path}/api`: `GET session`, `POST login`, `POST logout`.
-  - CLI: `account:add|list|password|roles|author|suspend|reinstate|remove`;
+  - CLI: `account:add|list|password|roles|name|author|suspend|reinstate|remove`;
     `init` offers the first administrator.
   - The admin edits accounts and roles (D-312): `AccountEditController`
     (new accounts with a one-time `PasswordLink`, roles, author,
@@ -801,6 +801,16 @@ Implemented in M7 (D-135 to D-140).
     sign-in, and `refresh()` keeps the session signed in with a new id.
     `Authenticator::account()` forgets a stale sign-in (and its CSRF
     token), and `VerifyCsrf` doesn't refuse a session that's signed out.
+  - An account may have a `name` (D-322), what the admin calls the
+    person: one line, up to 100 characters (`Account::tidyName()`,
+    `isValidName()`). `Accounts::displayName()` is the name, else the
+    author page's title, else the username; `GET session`, `PeopleJson`
+    (accounts and each role's holders) send it as `displayName`, and the
+    dashboard greets by it (D-323). The session's `roles` carry each
+    role's label, so the admin never shows a role's key outside Roles. Set on
+    New Account, an account's screen (`PATCH accounts/{username}`), Your
+    profile (`PATCH {path}/api/profile`, `ProfileController`), and
+    `account:add --name` / `account:name`.
 - **The admin app (D-220 to D-224):** a Vue 3 SPA (`resources/admin`,
   built to `public/admin` with plain file names) over the private JSON
   API. `ShellController` serves one page at `{path}` and every screen

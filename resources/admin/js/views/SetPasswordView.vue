@@ -72,7 +72,7 @@ async function submit(): Promise<void> {
 		</template>
 
 		<form v-else class="set-password__form" :aria-busy="busy" @submit.prevent="submit">
-			<p v-if="session.account && session.account.username !== account" class="notice notice--warn"><span>You're signed in as {{ session.account.username }}. Choosing this password signs you in as {{ account }} instead.</span></p>
+			<p v-if="session.account && session.account.username !== account" class="notice notice--warn"><span>You're signed in as {{ session.account.displayName }}. Choosing this password signs you in as {{ account }} instead.</span></p>
 			<p class="set-password__intro">For the <strong class="mono">{{ account }}</strong> account on {{ config.site.name }}. You'll sign in with it from now on.</p>
 			<input type="text" name="username" autocomplete="username" :value="account" readonly hidden>
 			<p class="field">

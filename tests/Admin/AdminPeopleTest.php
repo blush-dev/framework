@@ -30,7 +30,7 @@ final class AdminPeopleTest extends TestCase
 	{
 		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('reviewer', 'Reviewer', ['content.edit.others'])]);\n");
 		$this->boot(roles: $roles);
-		$this->app->container()->make(Accounts::class)->create('sam', 'another long password', ['author', 'reviewer']);
+		$this->app->container()->make(Accounts::class)->create('sam', 'another long password', ['author', 'reviewer'], name: 'Sam Smith');
 		$this->login();
 	}
 
@@ -41,10 +41,10 @@ final class AdminPeopleTest extends TestCase
 		$answer = self::json($this->send('GET', '/roles'));
 
 		$this->assertSame(['*'], $this->role($answer, 'administrator')['capabilities'] ?? null);
-		$this->assertSame(['jane'], $this->role($answer, 'administrator')['accounts'] ?? null);
-		$this->assertSame(['sam'], $this->role($answer, 'author')['accounts'] ?? null);
+		$this->assertSame([['username' => 'jane', 'displayName' => 'jane']], $this->role($answer, 'administrator')['accounts'] ?? null);
+		$this->assertSame([['username' => 'sam', 'displayName' => 'Sam Smith']], $this->role($answer, 'author')['accounts'] ?? null);
 		$this->assertTrue($this->role($answer, 'author')['builtIn'] ?? null);
-		$this->assertSame(['label' => 'Reviewer', 'description' => '', 'capabilities' => ['content.edit.others'], 'builtIn' => false, 'origin' => 'config', 'accounts' => ['sam'], 'grantable' => true, 'editable' => false], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
+		$this->assertSame(['label' => 'Reviewer', 'description' => '', 'capabilities' => ['content.edit.others'], 'builtIn' => false, 'origin' => 'config', 'accounts' => [['username' => 'sam', 'displayName' => 'Sam Smith']], 'grantable' => true, 'editable' => false], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
 		$this->assertFalse($this->role($answer, 'administrator')['editable'] ?? null, 'The administrator always has everything.');
 		$this->assertTrue($this->role($answer, 'editor')['editable'] ?? null);
 		$this->assertNotSame('', $this->role($answer, 'editor')['description'] ?? '');
@@ -76,7 +76,8 @@ final class AdminPeopleTest extends TestCase
 		$sam = $accounts[1] ?? null;
 		$this->assertIsArray($sam);
 		$this->assertSame(['author', 'reviewer'], $sam['roles'] ?? null);
-		$this->assertSame(['username', 'name', 'roles', 'author', 'created', 'lastLogin', 'status', 'link', 'manages'], array_keys($sam), 'No password hash or preferences.');
+		$this->assertSame('Sam Smith', $sam['name'] ?? null);
+		$this->assertSame(['username', 'name', 'displayName', 'roles', 'author', 'created', 'lastLogin', 'status', 'link', 'manages'], array_keys($sam), 'No password hash or preferences.');
 		$this->assertSame('active', $sam['status'] ?? null);
 		$this->assertTrue($sam['manages'] ?? null);
 		$this->assertFalse(is_array($accounts[0] ?? null) ? $accounts[0]['manages'] ?? null : null, 'Not your own account.');

@@ -24,7 +24,7 @@ export interface RoleInfo {
 	capabilities: string[];
 	builtIn: boolean;
 	origin: RoleOrigin;
-	accounts: string[];
+	accounts: { username: string; displayName: string }[];
 	// Whether you may give it to accounts: you can do all it allows.
 	grantable: boolean;
 	// Whether you may change it.
@@ -37,8 +37,11 @@ export type AccountStatus = 'active' | 'invited' | 'suspended';
 
 export interface AccountInfo {
 	username: string;
-	// The author page's title, when there is one.
+	// Its own name, if it has one (D-322).
 	name: string | null;
+	// What the admin calls it: the name, else the author page's title,
+	// else the username.
+	displayName: string;
 	roles: string[];
 	author: string | null;
 	created: number;
@@ -76,11 +79,11 @@ export async function loadAccounts(): Promise<AccountInfo[]> {
  */
 export const freshLink = ref<{ username: string; link: PasswordLink } | null>(null);
 
-export function createAccount(username: string, roles: string[], author: string | null): Promise<{ account: AccountInfo; link: PasswordLink }> {
-	return request('POST', '/accounts', { username, roles, author });
+export function createAccount(username: string, roles: string[], author: string | null, name: string | null): Promise<{ account: AccountInfo; link: PasswordLink }> {
+	return request('POST', '/accounts', { username, roles, author, name });
 }
 
-export async function updateAccount(username: string, changes: { roles?: string[]; author?: string | null; suspended?: boolean }): Promise<AccountInfo> {
+export async function updateAccount(username: string, changes: { roles?: string[]; author?: string | null; name?: string | null; suspended?: boolean }): Promise<AccountInfo> {
 	return (await request<{ account: AccountInfo }>('PATCH', `/accounts/${encodeURIComponent(username)}`, changes)).account;
 }
 
@@ -138,6 +141,13 @@ export function originOf(role: RoleInfo): string {
 		custom: 'Made here',
 		config: 'config/auth.php'
 	}[role.origin];
+}
+
+/**
+ * Up to two initials from a name, for an avatar: "Jane Doe" is JD.
+ */
+export function initials(name: string): string {
+	return name.split(/\s+/).filter((part) => part !== '').slice(0, 2).map((part) => Array.from(part)[0]?.toUpperCase() ?? '').join('') || '?';
 }
 
 /**

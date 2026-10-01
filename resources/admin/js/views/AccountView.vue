@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * One account (D-249, D-312; the prototype's account screen): who it is,
- * its author, its password link, and its roles, which save as they're
+ * its name (D-322), its author, its password link, and its roles, which save as they're
  * ticked. A Danger Zone suspends or reinstates it and removes it.
  *
  * Blush sends no email, so a password is never set here: **Make a
@@ -20,7 +20,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import AuthorField from '../components/AuthorField.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import { ApiError } from '../api';
-import { freshLink, loadAccounts, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, type AccountInfo, type PasswordLink, type RoleList } from '../people';
+import { freshLink, initials, loadAccounts, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, type AccountInfo, type PasswordLink, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { session } from '../session';
 import { toast } from '../toast';
@@ -43,7 +43,7 @@ const yours   = computed(() => account.value?.username === session.account?.user
 const label   = (name: string): string => roles.value?.roles.find((role) => role.name === name)?.label ?? name;
 
 watch(account, (value) => {
-	screenTitle.value = value ? (value.name ?? value.username) : null;
+	screenTitle.value = value ? value.displayName : null;
 }, { immediate: true });
 
 function replace(changed: AccountInfo): void {
@@ -71,12 +71,45 @@ watch(held, async (value, old) => {
 		const changed = await updateAccount(current.username, { roles: value });
 
 		replace(changed);
-		toast(`${changed.username} is now ${changed.roles.map(label).join(' and ')}`);
+		toast(`${changed.displayName} is now ${changed.roles.map(label).join(' and ')}`);
 	} catch (caught) {
 		rolesError.value = caught instanceof ApiError ? caught.message : 'The roles couldn\'t be saved.';
 		held.value       = old;
 	}
 });
+
+// The name: typed, then saved; an empty one takes it away.
+const name      = ref('');
+const nameBusy  = ref(false);
+const nameError = ref('');
+
+watch(account, (value) => {
+	name.value = value?.name ?? '';
+}, { immediate: true });
+
+const nameChanged = computed(() => name.value.trim() !== (account.value?.name ?? ''));
+
+async function saveName(): Promise<void> {
+	const current = account.value;
+
+	if (current === undefined) {
+		return;
+	}
+
+	nameBusy.value  = true;
+	nameError.value = '';
+
+	try {
+		const changed = await updateAccount(current.username, { name: name.value.trim() === '' ? null : name.value });
+
+		replace(changed);
+		toast(changed.name === null ? `Removed ${current.username}'s name` : `Renamed ${current.username} to ${changed.name}`);
+	} catch (caught) {
+		nameError.value = caught instanceof ApiError ? caught.message : 'The name couldn\'t be saved.';
+	} finally {
+		nameBusy.value = false;
+	}
+}
 
 // The author: typed or picked, then saved.
 const author      = ref('');
@@ -101,7 +134,7 @@ async function saveAuthor(): Promise<void> {
 
 	try {
 		replace(await updateAccount(current.username, { author: author.value === '' ? null : author.value }));
-		toast(author.value === '' ? `Unlinked ${current.username}'s author` : `Linked ${current.username} to ${author.value}`);
+		toast(author.value === '' ? `Unlinked ${current.displayName}'s author` : `Linked ${current.displayName} to ${author.value}`);
 	} catch (caught) {
 		authorError.value = caught instanceof ApiError ? caught.message : 'The author couldn\'t be saved.';
 	} finally {
@@ -129,7 +162,7 @@ onBeforeUnmount(() => {
 async function makeLink(): Promise<void> {
 	const current = account.value;
 
-	if (current === undefined || (current.link !== null && !current.link.expired && !window.confirm(`Make a new link for ${current.username}? The one they have stops working.`))) {
+	if (current === undefined || (current.link !== null && !current.link.expired && !window.confirm(`Make a new link for ${current.displayName}? The one they have stops working.`))) {
 		return;
 	}
 
@@ -174,7 +207,7 @@ const dangerError = ref('');
 async function setSuspended(suspended: boolean): Promise<void> {
 	const current = account.value;
 
-	if (current === undefined || (suspended && !window.confirm(`Suspend ${current.username}? They're signed out and can't sign in until you reinstate them.`))) {
+	if (current === undefined || (suspended && !window.confirm(`Suspend ${current.displayName}? They're signed out and can't sign in until you reinstate them.`))) {
 		return;
 	}
 
@@ -184,7 +217,7 @@ async function setSuspended(suspended: boolean): Promise<void> {
 	try {
 		replace(await updateAccount(current.username, { suspended }));
 		link.value = null;
-		toast(suspended ? `Suspended ${current.username}` : `Reinstated ${current.username}`);
+		toast(suspended ? `Suspended ${current.displayName}` : `Reinstated ${current.displayName}`);
 	} catch (caught) {
 		dangerError.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be changed.';
 	} finally {
@@ -195,7 +228,7 @@ async function setSuspended(suspended: boolean): Promise<void> {
 async function remove(): Promise<void> {
 	const current = account.value;
 
-	if (current === undefined || !window.confirm(`Remove ${current.username}? They're signed out and can't sign in again. Their author page and the entries crediting it stay.`)) {
+	if (current === undefined || !window.confirm(`Remove ${current.displayName}? They're signed out and can't sign in again. Their author page and the entries crediting it stay.`)) {
 		return;
 	}
 
@@ -204,7 +237,7 @@ async function remove(): Promise<void> {
 
 	try {
 		await removeAccount(current.username);
-		toast(`Removed ${current.username}`);
+		toast(`Removed ${current.displayName}`);
 		await router.push({ name: 'accounts' });
 	} catch (caught) {
 		dangerError.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be removed.';
@@ -216,7 +249,7 @@ async function remove(): Promise<void> {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ account ? (account.name ?? account.username) : 'Account' }}</h1>
+			<h1 tabindex="-1">{{ account ? account.displayName : 'Account' }}</h1>
 			<p v-if="account" class="page-header__hint">
 				{{ account.roles.map(label).join(' and ') || 'No roles' }} · last signed in {{ account.lastLogin ? when(account.lastLogin) : 'never' }}
 			</p>
@@ -231,16 +264,16 @@ async function remove(): Promise<void> {
 	<p v-else-if="accounts && !account" class="notice notice--error" role="alert">There's no “{{ route.params.username }}” account.</p>
 
 	<p v-if="account && yours" class="notice notice--warn"><span>This is your account, so its roles and standing are changed by someone else, or with <code>bin/blush</code>. Your password is on <RouterLink :to="{ name: 'profile' }">Your profile</RouterLink>.</span></p>
-	<p v-else-if="account && !account.manages" class="notice notice--warn"><span>{{ account.username }} can do things you can't, so you can't change it.</span></p>
+	<p v-else-if="account && !account.manages" class="notice notice--warn"><span>{{ account.displayName }} can do things you can't, so you can't change it.</span></p>
 
 	<div v-if="account" class="detail">
 		<div class="detail__side">
 			<section class="panel" aria-labelledby="account-heading">
 				<header class="panel__header account-head">
-					<span class="account-head__avatar" aria-hidden="true">{{ (account.name ?? account.username).charAt(0) }}</span>
+					<span class="account-head__avatar" aria-hidden="true">{{ initials(account.displayName) }}</span>
 					<span class="account-head__who">
-						<h2 id="account-heading">{{ account.name ?? account.username }}</h2>
-						<span v-if="account.name" class="account-head__username mono">{{ account.username }}</span>
+						<h2 id="account-heading">{{ account.displayName }}</h2>
+						<span v-if="account.displayName !== account.username" class="account-head__username mono">{{ account.username }}</span>
 					</span>
 					<span class="pill" :class="statusPill(account.status).kind">{{ statusPill(account.status).label }}</span>
 				</header>
@@ -250,6 +283,16 @@ async function remove(): Promise<void> {
 						<div><dt>Last signed in</dt><dd>{{ when(account.lastLogin) }}</dd></div>
 						<div v-if="!account.manages"><dt>Author</dt><dd :class="{ mono: account.author }">{{ account.author ?? 'None' }}</dd></div>
 					</dl>
+
+					<form v-if="account.manages" class="field" @submit.prevent="saveName">
+						<label for="account-name">Name</label>
+						<div class="inline-save">
+							<input id="account-name" v-model="name" class="input account-name" autocomplete="off" maxlength="100" :placeholder="account.displayName" :aria-invalid="nameError !== '' || undefined" aria-describedby="account-name-help">
+							<button v-if="nameChanged" type="submit" class="button button--small" :disabled="nameBusy">{{ nameBusy ? 'Saving…' : 'Save' }}</button>
+						</div>
+						<p v-if="nameError" id="account-name-help" class="field__error" role="alert">{{ nameError }}</p>
+						<p v-else id="account-name-help" class="field__help">What the admin calls them. Without one, it's their author page's title, or else their username.</p>
+					</form>
 
 					<form v-if="account.manages" class="field" @submit.prevent="saveAuthor">
 						<label for="account-author">Author</label>
@@ -264,7 +307,7 @@ async function remove(): Promise<void> {
 					<div v-if="account.manages" class="password-link">
 						<h3>Password</h3>
 						<template v-if="link">
-							<p class="field__help">Send this link to {{ account.name ?? account.username }} however you like. It's shown once, works once, and lasts until {{ when(link.expires) }}.</p>
+							<p class="field__help">Send this link to {{ account.displayName }} however you like. It's shown once, works once, and lasts until {{ when(link.expires) }}.</p>
 							<div class="inline-save">
 								<input class="input mono password-link__url" :value="link.url" readonly aria-label="Password link" @focus="selectAll">
 								<button type="button" class="button button--small" @click="copyLink"><AdminIcon name="copy" />Copy</button>
@@ -337,6 +380,7 @@ async function remove(): Promise<void> {
 	border-radius: 50%;
 	background: var(--surface-3);
 	color: var(--fg-2);
+	font-size: var(--text-sm);
 	font-weight: 600;
 	text-transform: uppercase;
 }
@@ -389,6 +433,11 @@ async function remove(): Promise<void> {
 	display: flex;
 	align-items: center;
 	gap: var(--s-2);
+}
+
+.account-name {
+	flex: 1;
+	min-width: 0;
 }
 
 .password-link {

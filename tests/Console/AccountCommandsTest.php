@@ -136,11 +136,31 @@ final class AccountCommandsTest extends TestCase
 
 		$list = $this->command('account:list')->output;
 
-		$this->assertMatchesRegularExpression('/jane\s*\|\s*editor\s*\|\s*jane\s*\|\s*active\s*\|\s*never/', $list);
+		$this->assertMatchesRegularExpression('/jane\s*\|\s*\|\s*editor\s*\|\s*jane\s*\|\s*active\s*\|\s*never/', $list);
 		$this->assertTrue(new Passwords()->verify('another long password', $this->store()->find('jane')->passwordHash ?? ''));
 
 		$this->assertSame(ExitCode::Success, $this->command('account:author jane')->exitCode);
 		$this->assertNull($this->store()->find('jane')?->author);
+	}
+
+	public function testNamesAnAccount(): void
+	{
+		$this->command(['account:add', 'jane', '--name=  Jane   Doe '], [self::PASSWORD, self::PASSWORD]);
+
+		$this->assertSame('Jane Doe', $this->store()->find('jane')?->name);
+
+		$this->assertSame(ExitCode::Success, $this->command(['account:name', 'jane', 'Jane Q. Doe'])->exitCode);
+		$this->assertSame('Jane Q. Doe', $this->store()->find('jane')?->name);
+		$this->assertMatchesRegularExpression('/jane\s*\|\s*Jane Q\. Doe\s*\|/', $this->command('account:list')->output);
+
+		$this->assertSame(ExitCode::Failure, $this->command(['account:name', 'jane', str_repeat('a', 101)])->exitCode);
+		$this->assertSame(ExitCode::Failure, $this->command(['account:name', 'nobody', 'Nobody'])->exitCode);
+
+		$result = $this->command('account:name jane');
+
+		$this->assertSame(ExitCode::Success, $result->exitCode);
+		$this->assertNull($this->store()->find('jane')?->name);
+		$this->assertStringContainsString('the admin calls it "jane"', $result->output);
 	}
 
 	public function testSuspendsAndReinstatesAnAccount(): void

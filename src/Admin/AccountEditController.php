@@ -31,14 +31,16 @@ use Blush\Http\Status;
  * Creates, changes, and removes accounts from the admin (D-312), for
  * accounts with `accounts.manage`, within `PeopleRules`:
  *
- * - `POST accounts`: `{"username", "roles", "author"}` makes an account
+ * - `POST accounts`: `{"username", "roles", "author", "name"}` (the
+ *   last two optional) makes an account
  *   with no password and a one-time link for choosing one (not named
  *   `new`, the admin's screen for making one). The answer
  *   (`201`) is the `account` and its `link`: the `url` to send and when
  *   it `expires`. The link's token is in the URL's fragment, so it never
  *   reaches a server log, and it's shown this once.
  * - `PATCH accounts/{username}`: any of `roles`, `author` (`null`
- *   unlinks), and `suspended`; answers with the `account`.
+ *   unlinks), `name` (`null` or empty takes it away, D-322), and
+ *   `suspended`; answers with the `account`.
  * - `POST accounts/{username}/link`: a new password link, replacing any
  *   other; the account's password keeps working until it's used.
  * - `DELETE accounts/{username}`: removes the account (`204`). Its
@@ -72,6 +74,7 @@ final readonly class AccountEditController
 		$username = is_string($input['username'] ?? null) ? strtolower(trim($input['username'])) : '';
 		$roles    = self::strings($input['roles'] ?? null);
 		$author   = is_string($input['author'] ?? null) && trim($input['author']) !== '' ? trim($input['author']) : null;
+		$name     = is_string($input['name'] ?? null) ? Account::tidyName($input['name']) : null;
 
 		if (! Account::isValidUsername($username)) {
 			return self::error('Use lowercase letters, digits, ".", "_", and "-" for the username (up to 64), starting with a letter or digit.', field: 'username');
@@ -86,6 +89,10 @@ final readonly class AccountEditController
 			return self::error(sprintf('There\'s already an account named "%s".', $username), field: 'username');
 		}
 
+		if ($name !== null && ! Account::isValidName($name)) {
+			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
+		}
+
 		$refusal = $this->checkRoles($actor, $roles ?? []);
 
 		if ($refusal !== null) {
@@ -93,7 +100,7 @@ final readonly class AccountEditController
 		}
 
 		try {
-			[$account, $token] = $this->accounts->invite($username, $roles ?? [], $author);
+			[$account, $token] = $this->accounts->invite($username, $roles ?? [], $author, $name);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
 		}
@@ -119,12 +126,19 @@ final readonly class AccountEditController
 		$roles     = array_key_exists('roles', $input) ? self::strings($input['roles']) : $account->roles;
 		$suspended = $input['suspended'] ?? $account->suspended;
 		$author    = array_key_exists('author', $input) ? $input['author'] : $account->author;
+		$name      = array_key_exists('name', $input) ? $input['name'] : $account->name;
 
-		if ($roles === null || ! is_bool($suspended) || ($author !== null && ! is_string($author))) {
-			return self::error('Send any of a list of "roles", an "author" (or null), and "suspended" (true or false).', Status::BadRequest);
+		if ($roles === null || ! is_bool($suspended) || ($author !== null && ! is_string($author)) || ($name !== null && ! is_string($name))) {
+			return self::error('Send any of a list of "roles", an "author" (or null), a "name" (or null), and "suspended" (true or false).', Status::BadRequest);
 		}
 
 		$author  = is_string($author) && trim($author) !== '' ? trim($author) : null;
+		$name    = is_string($name) ? Account::tidyName($name) : null;
+
+		if ($name !== null && ! Account::isValidName($name)) {
+			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
+		}
+
 		$refusal = $roles === $account->roles ? null : $this->checkRoles($actor, $roles);
 
 		if ($refusal !== null) {
@@ -141,6 +155,7 @@ final readonly class AccountEditController
 			$account = $roles === $account->roles ? $account : $this->accounts->setRoles($account, $roles);
 			$account = $suspended === $account->suspended ? $account : $this->accounts->setSuspended($account, $suspended);
 			$account = $author === $account->author ? $account : $this->accounts->setAuthor($account, $author);
+			$account = $name === $account->name ? $account : $this->accounts->setName($account, $name);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
 		}

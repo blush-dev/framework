@@ -29,6 +29,7 @@ import { config } from '../config';
 import { online } from '../connection';
 import type { IconName } from '../icons';
 import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
+import { initials } from '../people';
 import { can, session, signOut } from '../session';
 import { authorType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
@@ -432,13 +433,14 @@ async function leave(): Promise<void> {
 					<AdminIcon name="external-link" />
 					<span>View site</span><span class="visually-hidden"> (new tab)</span>
 				</a>
-				<MenuButton button-class="account" :label="`Account: ${session.account?.username ?? ''}`">
+				<MenuButton button-class="account" :label="`Account: ${session.account?.displayName ?? ''}`">
 					<template #button>
-						<span aria-hidden="true">{{ session.account?.username.charAt(0) }}</span>
+						<span aria-hidden="true">{{ initials(session.account?.displayName ?? '') }}</span>
 					</template>
 					<p class="account__who">
-						<span>{{ session.account?.username }}</span>
-						<span class="account__roles">{{ session.account?.roles.join(', ') }}</span>
+						<span>{{ session.account?.displayName }}</span>
+						<span v-if="session.account && session.account.displayName !== session.account.username" class="account__username mono">{{ session.account.username }}</span>
+						<span class="account__roles">{{ session.account?.roles.map((role) => role.label).join(', ') }}</span>
 					</p>
 					<RouterLink class="menu-item" :to="{ name: 'profile' }">
 						<AdminIcon name="users" />Your Profile
@@ -874,8 +876,9 @@ async function leave(): Promise<void> {
 	border-radius: 50%;
 	background: var(--surface-3);
 	color: var(--fg-2);
-	font-size: var(--text-sm);
+	font-size: var(--text-xs);
 	font-weight: 600;
+	letter-spacing: 0.02em;
 	text-transform: uppercase;
 	cursor: pointer;
 }
@@ -893,6 +896,7 @@ async function leave(): Promise<void> {
 	font-weight: 500;
 }
 
+.account__username,
 .account__roles {
 	color: var(--fg-3);
 	font-size: var(--text-xs);

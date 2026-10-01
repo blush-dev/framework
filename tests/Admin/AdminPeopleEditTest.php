@@ -367,4 +367,36 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame(403, $this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss'])->getStatusCode());
 		$this->assertSame(403, $this->write('DELETE', '/roles/editor')->getStatusCode());
 	}
+
+	public function testNamesAccounts(): void
+	{
+		$this->site();
+
+		$created = $this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['author'], 'name' => ' Sam  Smith ']);
+		$account = self::json($created)['account'] ?? null;
+
+		$this->assertSame(201, $created->getStatusCode());
+		$this->assertIsArray($account);
+		$this->assertSame('Sam Smith', $account['name'] ?? null);
+		$this->assertSame('Sam Smith', $account['displayName'] ?? null);
+
+		$tooLong = $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['author'], 'name' => str_repeat('a', 101)]);
+
+		$this->assertSame(422, $tooLong->getStatusCode());
+		$this->assertSame('name', self::json($tooLong)['field'] ?? null);
+		$this->assertNull($this->store()->find('lee'), 'Nothing is made.');
+
+		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['name' => 'Samuel Smith'])->getStatusCode());
+		$this->assertSame('Samuel Smith', $this->store()->find('sam')?->name);
+		$this->assertSame(422, $this->write('PATCH', '/accounts/sam', ['name' => str_repeat('a', 101)])->getStatusCode());
+		$this->assertSame(400, $this->write('PATCH', '/accounts/sam', ['name' => 5])->getStatusCode());
+
+		$cleared = self::json($this->write('PATCH', '/accounts/sam', ['name' => null]))['account'] ?? null;
+
+		$this->assertIsArray($cleared);
+		$this->assertArrayHasKey('name', $cleared);
+		$this->assertNull($cleared['name']);
+		$this->assertSame('sam', $cleared['displayName'] ?? null, 'Without a name or author page, the username.');
+		$this->assertSame(['author'], $this->store()->find('sam')?->roles, 'Other fields stay.');
+	}
 }

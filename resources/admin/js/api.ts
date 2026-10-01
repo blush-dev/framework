@@ -8,8 +8,14 @@ import { config } from './config';
 
 export interface Account {
 	username: string;
+	// Its own name, if it has one (D-322).
+	name: string | null;
+	// What the admin calls it: the name, else the author page's title,
+	// else the username.
+	displayName: string;
 	author: string | null;
-	roles: string[];
+	// Each role's key and its saved label, for showing (D-323).
+	roles: { name: string; label: string }[];
 	capabilities: string[];
 	lastLogin: number | null;
 	preferences: Preferences;

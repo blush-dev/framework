@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The dashboard: the site at a glance and the actions the account may
- * run. Actions are described by the server (`AdminAction` classes,
+ * The dashboard: a greeting by the account's name (D-322, D-323), the
+ * site at a glance, and the actions the account may run. Actions are described by the server (`AdminAction` classes,
  * D-222), so ones an extension adds in PHP show up here with no
  * JavaScript. Results are announced in a polite live region.
  *
@@ -13,7 +13,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import { can } from '../session';
+import { can, session } from '../session';
 import { ApiError, request, type ActionDescription, type ActionResult, type Dashboard } from '../api';
 import { loadTypes, types } from '../types';
 
@@ -74,6 +74,14 @@ const steps = computed(() => [
 
 const empty = computed(() => dashboard.value?.content.total === 0);
 
+// "Good afternoon, Jane Doe", by the browser's clock.
+const greeting = computed(() => {
+	const hour = new Date().getHours();
+	const part = hour < 5 ? 'evening' : hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+
+	return session.account ? `Good ${part}, ${session.account.displayName}` : 'Dashboard';
+});
+
 onMounted(() => {
 	void load();
 
@@ -86,7 +94,7 @@ onMounted(() => {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Dashboard</h1>
+			<h1 tabindex="-1">{{ greeting }}</h1>
 			<p v-if="dashboard" class="page-header__hint">{{ dashboard.site.name }} · <span class="mono">{{ dashboard.site.environment }}</span></p>
 		</div>
 	</header>

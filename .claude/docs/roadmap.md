@@ -311,6 +311,11 @@ Then, from the direction's shell and theming (D-317): a rail button
 toggles its panel, the top bar's collapse button is gone, the trail
 starts at the section (`Content / Posts / Editing`), and the Editorial
 admin theme ships as a per-account choice beside the color scheme.
+Accounts have a name (D-322): what the admin calls the person,
+everywhere it shows an account, with the author page's title and then
+the username as fallbacks; set on New Account, an account's screen,
+Your profile, and the CLI; the dashboard greets by it, and roles show
+their labels, not keys (D-323).
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages

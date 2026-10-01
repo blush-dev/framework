@@ -51,6 +51,19 @@ export async function signOut(): Promise<void> {
 }
 
 /**
+ * Sets the signed-in account's own name, or takes it away with an empty
+ * one (D-322); throws an `ApiError` when the server refuses.
+ */
+export async function saveName(name: string): Promise<void> {
+	const answer = await request<{ name: string | null; displayName: string }>('PATCH', '/profile', { name });
+
+	if (state.account !== null) {
+		state.account.name        = answer.name;
+		state.account.displayName = answer.displayName;
+	}
+}
+
+/**
  * Whether the signed-in account has a capability.
  */
 export function can(capability: string): boolean {
