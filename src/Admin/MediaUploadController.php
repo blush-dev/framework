@@ -29,6 +29,7 @@ use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaException;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
+use Blush\Support\UrlPath;
 
 /**
  * Answers `POST {path}/api/media` (D-268): one file, as the multipart
@@ -116,7 +117,7 @@ final readonly class MediaUploadController
 		}
 
 		$relative  = substr($target, strlen($this->paths->media) + 1);
-		$reference = $this->config->url . '/' . implode('/', array_map(rawurlencode(...), explode('/', $relative)));
+		$reference = $this->config->url . '/' . UrlPath::encode($relative);
 		$file      = $this->resolver->resolve($reference);
 
 		if ($file === null) {

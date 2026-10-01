@@ -42,7 +42,6 @@ Move each item to `decisions.md` once it's answered.
   - Adopting WordPress variants as Blush sizes (D-239): when a generated
     size matches a variant's dimensions, serve the existing file instead
     of generating one, or always generate?
-  - Stripping location data on upload: off, on, or a setting?
   - Extracting embedded artwork (D-291 notes it only; on hold, D-295):
     a cached image the library and themes can show, as a sound's
     thumbnail?
@@ -141,12 +140,6 @@ Move each item to `decisions.md` once it's answered.
 - **Lint zero months and days** (D-227, held by the author for later):
   placeholder dates such as `2019-00-00` roll back to a real date
   (`2018-11-30`) without a `content:lint` warning.
-- **Shared path-encoding helper** (noted 2026-09-27):
-  `implode('/', array_map(rawurlencode(...), explode('/', $path)))`
-  appears in `MediaResolver`, `RoutePattern`, `ExportAssets`,
-  `NetlifyFiles`, and `Exporter` (and the standalone
-  `resources/static-server.php`, which can't share it). Extract it to
-  one helper (such as a `Support` URL-path method).
 - **Benchmark regressions in CI** (D-044, D-101): CI machines differ from
   the author's, so absolute baselines don't transfer. Options: compare
   against a baseline measured in the same CI run (the base branch), or

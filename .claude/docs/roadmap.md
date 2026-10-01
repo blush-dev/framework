@@ -268,8 +268,8 @@ in-house; artwork noted), and `content:lint` checks metadata files:
 orphaned, unreadable, hidden, or with values that don't fit (D-293).
 Page bundles' media is removed: media lives only in `user/media`
 (D-294, which also takes back D-292's bundle files in the library).
-Next for media: stripping a photo's location on upload. Extracting
-embedded artwork waits (D-295).
+Stripping a photo's location on upload is out of scope (D-297).
+Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open

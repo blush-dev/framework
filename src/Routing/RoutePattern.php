@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Routing;
 
+use Blush\Support\UrlPath;
+
 /**
  * A parsed path pattern such as `/archives/{year:\d{4}}/{slug}`. It knows
  * the pattern's literal text and parameters, builds the regex the matcher
@@ -182,7 +184,7 @@ final readonly class RoutePattern
 				throw new UrlGenerationException(sprintf('The route "%s" needs a value for "%s".', $this->path, $name));
 			}
 
-			$value = implode('/', array_map(rawurlencode(...), explode('/', $values[$name])));
+			$value = UrlPath::encode($values[$name]);
 
 			if (preg_match("~^(?:{$regex})$~", $value) !== 1) {
 				throw new UrlGenerationException(sprintf(

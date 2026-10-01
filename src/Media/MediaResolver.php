@@ -17,6 +17,7 @@ use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
+use Blush\Support\UrlPath;
 
 /**
  * Turns a media reference, as written in front matter or Markdown, into a
@@ -164,7 +165,7 @@ final readonly class MediaResolver
 
 		$image    = str_starts_with($mime, 'image/') && $mime !== 'image/svg+xml' ? @getimagesize($path) : false;
 		$relative = substr($path, strlen($this->filesystem->normalize($root)) + 1);
-		$url      = $urlPrefix . '/' . implode('/', array_map(rawurlencode(...), explode('/', $relative)));
+		$url      = $urlPrefix . '/' . UrlPath::encode($relative);
 
 		return new MediaFile(
 			$path,

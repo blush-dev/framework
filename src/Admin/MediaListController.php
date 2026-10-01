@@ -40,6 +40,7 @@ use Blush\Media\MediaSchemas;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 use Blush\Support\Filesystem;
+use Blush\Support\UrlPath;
 
 /**
  * Answers `GET {path}/api/media` (D-246): the media files an entry can use,
@@ -314,7 +315,7 @@ final readonly class MediaListController
 	private function libraryFile(string $path): array
 	{
 		$path      = trim($path, '/');
-		$reference = $this->config->url . '/' . implode('/', array_map(rawurlencode(...), explode('/', $path)));
+		$reference = $this->config->url . '/' . UrlPath::encode($path);
 		$file      = $this->guess(new SplFileInfo($path)) === null ? null : $this->resolver->resolve($reference);
 
 		return [$file, $reference];

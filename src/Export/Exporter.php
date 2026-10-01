@@ -29,6 +29,7 @@ use Blush\Export\Host\HostFilesFactory;
 use Blush\Routing\RouteConfig;
 use Blush\Routing\RouteTable;
 use Blush\Support\Filesystem;
+use Blush\Support\UrlPath;
 
 /**
  * Exports the site to static files (D-011): what `build` runs, and later
@@ -282,7 +283,7 @@ final readonly class Exporter
 		$to        = htmlspecialchars($redirect->to, ENT_QUOTES | ENT_HTML5);
 		$canonical = htmlspecialchars(str_starts_with($redirect->to, '/') ? $url . $redirect->to : $redirect->to, ENT_QUOTES | ENT_HTML5);
 
-		$writer->write(ExportLayout::file(implode('/', array_map(rawurlencode(...), explode('/', $path))), 'text/html'), <<<HTML
+		$writer->write(ExportLayout::file(UrlPath::encode($path), 'text/html'), <<<HTML
 			<!DOCTYPE html>
 			<html>
 			<head>

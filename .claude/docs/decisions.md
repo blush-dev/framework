@@ -7001,3 +7001,31 @@ decision, add a new entry that supersedes it and mark the old one
   picture isn't extracted, cached, or shown. The open question stays
   open for when it's picked up.
 - **Why:** the author asked to save it for later.
+
+### D-296: One helper for encoding URL paths
+- **Date:** 2026-09-30
+- **Decision:** `Blush\Support\UrlPath::encode()` percent-encodes a
+  decoded path one segment at a time, keeping its slashes. It replaces
+  the seven inline copies of
+  `implode('/', array_map(rawurlencode(...), explode('/', $path)))`:
+  `MediaResolver`, `RoutePattern::build()`, `Exporter`'s redirect pages,
+  `ExportAssets` and `NetlifyFiles` (each lose a private `encode()`),
+  and the admin's `MediaListController` and `MediaUploadController`.
+  `resources/static-server.php` keeps its own copy, since it runs
+  without the framework. A static method beside `Slug`, since it's a
+  pure function with nothing to inject.
+- **Why:** the open question noted 2026-09-27 (five copies then, seven
+  by now); a quick win the author picked.
+- **Checked:** `composer check` (`UrlPathTest`: spaces, reserved
+  characters, `%`, Unicode, and slashes kept as they are).
+
+### D-297: Blush doesn't strip a photo's location
+- **Date:** 2026-09-30
+- **Decision:** Blush won't remove location (GPS) data from uploaded
+  photos, on upload or by a setting. D-289's behavior stays: the
+  location is read, kept apart, never shown or answered, and a file's
+  screen warns that it's there. Removing it is up to the person
+  uploading, with their own photo software (as `docs/media.md` already
+  says). This closes the open question and the roadmap's "next for
+  media" item.
+- **Why:** the author: "That's outside our responsibility."

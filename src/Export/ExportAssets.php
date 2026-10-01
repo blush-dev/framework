@@ -17,6 +17,7 @@ use Blush\Core\Paths;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaResolver;
 use Blush\Support\Filesystem;
+use Blush\Support\UrlPath;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
@@ -106,7 +107,7 @@ final readonly class ExportAssets
 		$count = 0;
 
 		foreach ($this->filesystem->files($this->paths->media) as $relative => $file) {
-			$count += (int) $this->copyMedia($writer, $this->media->url . '/' . self::encode($relative));
+			$count += (int) $this->copyMedia($writer, $this->media->url . '/' . UrlPath::encode($relative));
 		}
 
 		return $count;
@@ -123,14 +124,5 @@ final readonly class ExportAssets
 		$file = $this->resolver->resolve($reference);
 
 		return $file !== null && $writer->copy(ltrim(rawurldecode($file->url), '/'), $file->path);
-	}
-
-	/**
-	 * Percent-encodes each segment of a relative file path, as a media
-	 * reference expects.
-	 */
-	private static function encode(string $relative): string
-	{
-		return implode('/', array_map(rawurlencode(...), explode('/', $relative)));
 	}
 }

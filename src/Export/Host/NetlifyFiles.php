@@ -16,6 +16,7 @@ namespace Blush\Export\Host;
 use Override;
 use Blush\Export\ExportRedirect;
 use Blush\Routing\RoutePattern;
+use Blush\Support\UrlPath;
 
 /**
  * Writes `_redirects` and `_headers`, the files Netlify and Cloudflare
@@ -67,8 +68,8 @@ final class NetlifyFiles extends HostFiles
 		}
 
 		foreach ($context->indexes as $path => [$file, $type]) {
-			$redirects[] = sprintf('%s /%s 200', self::encode($path), self::encode($file));
-			array_push($headers, self::encode($path), "  Content-Type: {$type}", '/' . self::encode($file), "  Content-Type: {$type}");
+			$redirects[] = sprintf('%s /%s 200', UrlPath::encode($path), UrlPath::encode($file));
+			array_push($headers, UrlPath::encode($path), "  Content-Type: {$type}", '/' . UrlPath::encode($file), "  Content-Type: {$type}");
 		}
 
 		return new HostOutput(
@@ -90,7 +91,7 @@ final class NetlifyFiles extends HostFiles
 
 		foreach ($parts as $index => $part) {
 			if (is_string($part)) {
-				$from .= self::encode($part);
+				$from .= UrlPath::encode($part);
 				continue;
 			}
 
@@ -122,13 +123,5 @@ final class NetlifyFiles extends HostFiles
 	private static function spansSegments(string $regex): bool
 	{
 		return preg_match("~^(?:{$regex})$~", 'a/b') === 1;
-	}
-
-	/**
-	 * Percent-encodes a decoded path, keeping its slashes.
-	 */
-	private static function encode(string $path): string
-	{
-		return implode('/', array_map(rawurlencode(...), explode('/', $path)));
 	}
 }
