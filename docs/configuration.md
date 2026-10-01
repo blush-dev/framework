@@ -10,6 +10,28 @@ Blush has two places for settings:
 Every setting has a sensible default, so you only configure what you want
 to change.
 
+A few settings can also be changed in the admin's
+[Settings](admin.md#settings) screens: the site's name, language, and
+time zone, the home page, the trailing slash, feeds, and the sitemap. The
+admin saves them in `user/data/settings.json`, in sections named for the
+config files, with the same keys:
+
+```json
+{
+    "app": { "name": "Field Notes", "timezone": "Europe/Brussels" },
+    "content": { "home": "post" },
+    "routes": { "trailingSlash": true },
+    "feed": { "formats": ["rss", "json"], "content": true, "limit": 20 },
+    "sitemap": { "enabled": true, "disallow": ["/drafts/"] }
+}
+```
+
+Only those keys are allowed. A value saved there wins over the one from
+`config/` or `.env`; remove it from the file (or choose **Use
+`config/…`'s value** in the admin) to go back to the config's value.
+Compiling (`bin/blush cache:compile`) leaves the file out, so saving
+there needs no compiling.
+
 ## `.env`
 
 | Variable | Default | What it does |

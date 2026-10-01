@@ -35,7 +35,7 @@ const go = (name: string, params?: Record<string, string>): (() => void) => () =
 
 // Going places and creating entries, as the account may.
 const everywhere = computed<Command[]>(() => {
-	const found: Command[] = [{ id: 'dashboard', label: 'Go to the dashboard', icon: 'layout-dashboard', keywords: 'home', run: go('dashboard') }];
+	const found: Command[] = [{ id: 'dashboard', label: 'Go to the dashboard', icon: 'gauge', keywords: 'home', run: go('dashboard') }];
 
 	if (can('content.edit')) {
 		for (const type of types.value) {
@@ -53,11 +53,10 @@ const everywhere = computed<Command[]>(() => {
 		['health', 'Go to Content Health', 'heart-pulse', 'content.edit.others', 'problems lint'],
 		['media', 'Go to Media', 'image', 'media.upload', 'files images library'],
 		['types', 'Go to Content Types', 'layers', 'site.settings'],
-		['appearance', 'Go to Appearance', 'paintbrush', 'site.settings', 'theme'],
+		['themes', 'Go to Themes', 'paintbrush', 'site.settings', 'appearance look'],
 		['extensions', 'Go to Extensions', 'plug', 'site.settings', 'addons plugins'],
 		['accounts', 'Go to Accounts', 'users', 'accounts.manage', 'people'],
-		['roles', 'Go to Roles', 'shield', 'accounts.manage', 'capabilities'],
-		['settings', 'Go to Settings', 'settings', 'site.settings']
+		['roles', 'Go to Roles', 'shield', 'accounts.manage', 'capabilities']
 	];
 
 	for (const [name, label, icon, capability, keywords] of screens) {
@@ -66,8 +65,22 @@ const everywhere = computed<Command[]>(() => {
 		}
 	}
 
+	// The Settings screens (D-325).
+	const settings: [string, string, string][] = [
+		['general', 'Go to General Settings', 'site name language locale time zone timezone environment'],
+		['reading', 'Go to Reading Settings', 'home page front page feeds rss atom json'],
+		['search', 'Go to Addresses and Search Settings', 'trailing slash urls sitemap robots seo'],
+		['system', 'Go to System Settings', 'content types caching cache publishing webhook git previews']
+	];
+
+	if (can('site.settings')) {
+		for (const [screen, label, keywords] of settings) {
+			found.push({ id: `settings-${screen}`, label, icon: 'settings', keywords, run: go('settings', { screen }) });
+		}
+	}
+
 	found.push(
-		{ id: 'profile', label: 'Go to Your Profile', icon: 'users', keywords: 'account password', run: go('profile') },
+		{ id: 'profile', label: 'Go to Your Profile', icon: 'circle-user-round', keywords: 'account password', run: go('profile') },
 		{
 			id: 'scheme',
 			label: colorScheme.value === 'dark' ? 'Use the light color scheme' : 'Use the dark color scheme',

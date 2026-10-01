@@ -247,8 +247,13 @@ export interface ExtensionSummary {
 }
 
 /**
- * One site-wide setting (`GET settings`, D-309). A `bool`'s value is
- * `true` or `false` and a `list`'s a list; the rest are text.
+ * One site-wide setting (`GET settings/{screen}`, D-309, D-325). A
+ * `bool`'s value is `true` or `false` and a `list`'s a list; the rest are
+ * text. `file` is where it's set by convention (`null` when it follows
+ * from others). One the admin can change (D-324) adds the `setting` it
+ * saves as (`feed.limit`), its control, the value the form starts from,
+ * and whether it's saved in `user/data/settings.json`; its `file` is
+ * where the value comes from when it isn't.
  */
 export interface SettingItem {
 	key: string;
@@ -260,17 +265,27 @@ export interface SettingItem {
 	help: string | null;
 	// Why it's risky where it is.
 	warning: string | null;
+	file: string | null;
+	setting?: string;
+	control?: 'text' | 'mono' | 'select' | 'checkbox' | 'checks' | 'number' | 'lines';
+	input?: SettingValue;
+	options?: { value: string; label: string }[] | null;
+	saved?: boolean;
 }
 
 /**
- * A group of settings, with the file it's set in by convention and a
- * note (backticks mark code).
+ * A setting's value as the form holds it: a home page of `''` is the page
+ * at `user/content/index.md`, and lines are a list.
+ */
+export type SettingValue = string | number | boolean | string[];
+
+/**
+ * A panel of settings, with a note (backticks mark code).
  */
 export interface SettingGroup {
 	key: string;
 	title: string;
 	hint: string;
-	file: string;
 	note: string | null;
 	items: SettingItem[];
 }

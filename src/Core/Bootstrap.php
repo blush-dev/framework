@@ -45,6 +45,7 @@ use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
 use Blush\Session\SessionConfig;
+use Blush\Settings\SettingsFile;
 use Blush\Sitemap\SitemapConfig;
 use Blush\Support\PhpArrayFile;
 use Blush\Theme\ThemeCache;
@@ -59,7 +60,10 @@ use Blush\Theme\Themes;
  *
  * 1. `.env` is loaded under the process environment.
  * 2. Config comes from the compiled cache when present, otherwise from the
- *    `config/*.php` files, with defaults for anything unconfigured.
+ *    `config/*.php` files, with defaults for anything unconfigured. The
+ *    settings saved in the admin (`user/data/settings.json`, D-324) are
+ *    laid over it on every build, and never compiled, so a save needs no
+ *    compiling.
  * 3. Outside development, the container reads compiled resolution plans.
  * 4. The bootstrap itself, `Paths`, `Env`, the config repository, and
  *    every config object are bound in the container.
@@ -141,7 +145,7 @@ final readonly class Bootstrap
 		$planner = new ReflectionPlanner();
 		$built   = $this->build(static fn (): Planner => $planner);
 
-		new ConfigCache($this->file(CompiledCache::Config))->write($built->config);
+		new ConfigCache($this->file(CompiledCache::Config))->write($this->config($this->env(), settings: false));
 		new ExtensionCache($this->file(CompiledCache::Extensions))->write($built->extensions->all());
 		new ThemeCache($this->file(CompiledCache::Themes))->write($built->themes);
 
@@ -246,14 +250,15 @@ final readonly class Bootstrap
 
 	/**
 	 * Returns the compiled config, or loads the config files, filling in
-	 * defaults for anything unconfigured and applying the overrides.
+	 * defaults for anything unconfigured, laying the saved settings over
+	 * it (unless compiling), and applying the overrides.
 	 */
-	private function config(Env $env): ConfigRepository
+	private function config(Env $env, bool $settings = true): ConfigRepository
 	{
 		$config = new ConfigCache($this->file(CompiledCache::Config))->read()
 			?? new ConfigLoader($env, $this->paths)->load($this->paths->config);
 
-		return $config->withDefaults(
+		$config = $config->withDefaults(
 			AppConfig::fromEnv($env),
 			new LogConfig(),
 			new ExtensionConfig(),
@@ -273,7 +278,13 @@ final readonly class Bootstrap
 			new AuthConfig(),
 			new AdminConfig(),
 			PreviewConfig::fromEnv($env)
-		)->with(...$this->overrides);
+		);
+
+		if ($settings) {
+			$config = new SettingsFile($this->paths)->read()->apply($config);
+		}
+
+		return $config->with(...$this->overrides);
 	}
 
 	/**

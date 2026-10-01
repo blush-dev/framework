@@ -71,8 +71,11 @@ use Blush\Session\StartSession;
  *     (`AppearanceController`).
  *   - `GET  extensions`: the installed extensions and what each adds,
  *     to show (`ExtensionsController`).
- *   - `GET  settings`: the site-wide settings, to show
- *     (`SettingsController`).
+ *   - `GET  settings/{screen}`: a Settings screen's settings
+ *     (`SettingsController`, D-325); `PATCH settings` saves the ones
+ *     the admin can change in `user/data/settings.json`, and `POST
+ *     settings/refresh` compiles and reindexes after
+ *     (`SettingsEditController`, D-324).
  *   - `POST previews`: a signed preview link to an entry.
  */
 final readonly class AdminRoutes implements RouteSource
@@ -148,7 +151,9 @@ final readonly class AdminRoutes implements RouteSource
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'delete'])->named('account.delete')->middleware(Authenticate::class),
 			Route::get('/appearance', AppearanceController::class)->named('appearance')->middleware(Authenticate::class),
 			Route::get('/extensions', ExtensionsController::class)->named('extensions')->middleware(Authenticate::class),
-			Route::get('/settings', SettingsController::class)->named('settings')->middleware(Authenticate::class),
+			Route::patch('/settings', [SettingsEditController::class, 'update'])->named('settings.update')->middleware(Authenticate::class),
+			Route::post('/settings/refresh', [SettingsEditController::class, 'refresh'])->named('settings.refresh')->middleware(Authenticate::class),
+			Route::get('/settings/{screen:[a-z]+}', SettingsController::class)->named('settings')->middleware(Authenticate::class),
 			Route::post('/previews', PreviewLinkController::class)->named('preview')->middleware(Authenticate::class)
 		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class], exact: true);
 

@@ -8102,3 +8102,181 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked for the name in the greeting, and saw
   lowercase role keys in several places.
 
+
+### D-324: Editable settings live in `user/data/settings.json`, on one page
+- **Date:** 2026-10-01
+- **Status:** The single page with anchors, and the file's flat keys,
+  are superseded by D-325 (four screens; sections in the file).
+- **Decision:** The Settings screen (D-309) becomes editable, for the
+  settings a site owner changes. This is the "later, separate decision"
+  D-306 left open about writing config from the admin.
+  - **Storage:** the admin writes owner settings to
+    `user/data/settings.json`, a data file over the values from
+    `config/`. It's data, not code, so D-039 holds: the admin still
+    never writes `config/` or `.env`. The file travels with `user/`
+    (its own repo, pulled by the publish webhook). Settings tied to the
+    developer or the environment (site address, environment, detailed
+    errors, caching, secrets, and so on) stay read-only and keep naming
+    the file they're set in.
+  - **One page, not tabs or sub-pages:** the groups stay panels on a
+    single scrolling page, with one save bar for the whole screen.
+    Tabs under the page header filter lists by state in the direction,
+    so they'd mean something else here, and they'd hide unsaved
+    changes. Nested sidebar pages would hold one to three fields each.
+  - **Anchors:** each group has an address, `/settings#<group>`, which
+    scrolls to its panel. A sticky list of the groups beside the panels
+    on wide screens and the command palette use the same anchors.
+  - **Editable** (`Settings\Setting`, the file's keys): `name`,
+    `locale`, `timezone` (AppConfig), `home` (ContentConfig; a
+    collection with addresses, or `null` for `user/content/index.md`),
+    `trailingSlash` (RouteConfig), `feedFormats`, `feedContent`,
+    `feedLimit` (1 to 100; FeedConfig), `sitemap` and `sitemapDisallow`
+    (paths starting with `/`, at most 50; SitemapConfig). Everything
+    else is read-only under **Set in code**: the site address,
+    environment, detailed errors, and media address (per environment);
+    `dataTypes` and built-in types turned off (structure); caching;
+    publishing and previews (secrets); and indexing, which follows the
+    environment.
+  - **The saved value always wins** (the author's option 1): `config/`
+    gives the values, `settings.json` lays the saved ones over them.
+    `Settings::apply()` rebuilds each config object with
+    `fromArray([...toArray(), ...saved])`, so it's checked as a config
+    file is. A way for developers to lock a setting waits until someone
+    needs one.
+  - **The file** (`SettingsFile`): JSON only (the bootstrap reads it
+    before the data parsers exist), pretty-printed in the enum's order,
+    written atomically under `storage/cache/settings.lock`, and removed
+    when nothing is saved. A missing file is no settings; a broken one
+    stops the site with an `InvalidSetting` naming it, as a broken
+    config file does.
+  - **Boot and compiling:** `Bootstrap` lays the settings over the
+    config (compiled or not) on every build, before `withConfig()`
+    overrides; `compile()` writes the config without them, so a save
+    needs no compiling.
+  - **The API** (`SettingsEditController`, `site.settings`): `PATCH
+    settings` with `{"set", "unset"}`, all checked before anything is
+    written (a refusal is a `422` with the reason); answers `{"saved",
+    "refresh"}`. A change to the home page, time zone, trailing slash,
+    feed formats, or sitemap deletes the compiled content types and
+    routes (they're built from source until compiled again) and asks
+    for a refresh; `POST settings/refresh`, running with the new
+    settings, compiles them again when the site is compiled and
+    reindexes. Every save moves the content version on. `GET settings`
+    groups gain `editable`; editable items gain `setting`, `control`,
+    `input`, `options`, `saved`, and the config `file` they fall back to.
+  - **The screen:** editable panels as a form (text, selects, checkboxes,
+    a number, lines), each setting saying whether it's saved here or
+    from its config file, with **Use `config/…`'s value** for a saved
+    one (a change until saved); live help for the time zone's time and
+    the trailing slash's example, and warnings when the trailing slash
+    changes or the sitemap goes off; the prototype's floating save bar;
+    leaving with changes asks first. A link to a group on the same
+    screen doesn't move focus to the heading (`App.vue`). Departures
+    are in `admin-design/departures.md`.
+- **Checked:** `composer check` (`AdminSettingsTest`: groups and the
+  editable shape, saving over `.env`, normalizing, unsetting and the
+  file removed, every refusal writing nothing, the capability,
+  compiling leaving the settings out, a save clearing the compiled
+  routes and types and the refresh compiling them; `SettingsTest`:
+  apply, order, the file, broken files); `npm run admin:build`; on the
+  jtcom trial with a throwaway administrator through the API: a saved
+  name in the page title, the trailing slash redirecting `/about`, a
+  taxonomy refused as the home page, then both unset (account and file
+  gone after). The screen itself wasn't checked in a browser.
+- **Why:** the author picked `user/data/settings.json` over rewriting
+  `config/*.php` (fragile, and it would break hand-written config), one
+  page with anchors over tabs or nested pages, the editable list as
+  proposed, and the saved value winning.
+
+### D-325: Settings is four screens, the Config panel four groups, and the file has sections
+- **Date:** 2026-10-01
+- **Decision:** Supersedes D-324's single page and flat file. The author
+  asked for separate screens as settings grow (the one page was already
+  long), with the Config panel split into **Structure** (Content Types),
+  **Settings**, **Customize** (Appearance, Extensions), and **People**.
+  - **Four screens, by task, not by config file:** General
+    (`/settings/general`: site name, language, time zone; shown: the
+    site address, environment, detailed errors), Reading (`reading`:
+    the home page; feeds), Addresses and Search (`search`: trailing
+    slash, sitemap, skipped paths; shown: the media address, asking not
+    to be indexed), and System (`system`, all set in code: where types
+    come from, caching, publishing and previews). `/settings` goes to
+    General. A setting set in code sits beside the editable ones it
+    relates to and names its file; System says it's all code. Each
+    screen has its own save bar, and moving to another screen with
+    changes unsaved asks first (`onBeforeRouteUpdate`). The anchors,
+    the list of groups, and the "Set in code" divider are gone; the
+    command palette goes to each screen.
+  - **The API:** `GET settings/{screen}` (a `404` for any other), each
+    item with the `file` it's set in (`null` when it follows from
+    others); groups lose `editable` and `file`.
+  - **The file has sections** named for the config files by convention
+    (`app`, `content`, `routes`, `feed`, `sitemap`), each holding the
+    keys that config object takes, so the names match `config/`:
+    `{"app": {"name": "…"}, "feed": {"limit": 20}}`. A `Setting`'s
+    value is `{section}.{key}` (`feed.limit`), which is also what
+    `PATCH settings` takes in `set` and `unset`. One file, not one per
+    config: a save that touches several configs stays one atomic write,
+    and a request reads one file. Screens and sections needn't match
+    (Reading spans `content` and `feed`).
+  - **"Customize"** over "Extend": plain, familiar for themes and
+    add-ons, and it fits Appearance.
+- **Checked:** `composer check` (`AdminSettingsTest`: the four screens
+  and an unknown one, the item shape, dotted keys, the nested file;
+  `SettingsTest`: sections, `find()`, files, broken files including a
+  section that isn't an object and a key outside the list); `npm run
+  admin:build`; on the jtcom trial in headless Chrome with a throwaway
+  administrator: each screen rendered, a save writing the nested file,
+  the unsaved-changes prompt when moving to another screen, and **Use
+  `config/feed.php`'s value** on both settings removing the file (the
+  account removed after).
+- **Why:** the author's call, for room to grow and names that match
+  `config/`.
+
+### D-326: People is its own rail section
+- **Date:** 2026-10-01
+- **Status:** The panel's order is amended by D-327 (Your Profile first).
+- **Decision:** The section rail has four sections: Home, Content,
+  **People** (`users`), and Config. People's panel holds Accounts and
+  Roles (with `accounts.manage`), the author type's entries, and Your
+  Profile, in one group without a heading; Config keeps Structure,
+  Settings, and Customize (D-325). Account, role, and profile screens
+  are `meta.area: 'people'`, and an author's entries open People's
+  panel, as they opened Config's. Your Profile gets its own icon
+  (`circle-user-round`, Lucide 1.48.0), since `users` is now the
+  section's and Accounts'. This departs from the foundations' "three
+  sections, not more" (recorded in `admin-design/departures.md`).
+- **Checked:** `npm run admin:build`; the jtcom trial in headless Chrome
+  with a throwaway administrator: Accounts under People, the rail's four
+  sections, and Config's three groups (the account removed after).
+- **Why:** the author asked for People in its own sidebar, above
+  Config: it's looked for by name, every account uses it (Your
+  Profile), and Config was long once Settings had four screens.
+
+### D-327: Your Profile first in People, and Appearance is Themes
+- **Date:** 2026-10-01
+- **Decision:** People's panel puts Your Profile first, then Accounts,
+  Roles, and Authors (amends D-326). The Appearance screen (D-306) is
+  named **Themes**: the navigation, its heading, the trail, and the
+  command palette ("Go to Themes", still found by "appearance"); its
+  address is `/themes`, with `/appearance` redirecting; the view is
+  `ThemesView`. The API keeps `GET appearance`. Customize is Themes and
+  Extensions.
+- **Checked:** `npm run admin:build`.
+- **Why:** the author asked for both; the screen only lists themes.
+
+### D-328: The work area contains what's absolutely positioned
+- **Date:** 2026-10-01
+- **Decision:** `.main`, the work area's scroller, is `position:
+  relative`. Without a positioned ancestor, an absolutely positioned
+  element (`.visually-hidden`, such as the pager's "Rows per page"
+  label) was placed against the body at its spot far down a long
+  list, so the whole document scrolled past the rail and the work
+  area onto the bare background. The screen's end padding stays the
+  direction's 96px (80px on a phone).
+- **Checked:** `npm run admin:build`; the jtcom trial in headless Chrome
+  with a throwaway administrator (removed after): the document doesn't
+  scroll on any screen in the navigation, the lists, or the editor, at
+  1360px and 390px wide.
+- **Why:** the author could scroll below the sidebar and content on
+  content lists.

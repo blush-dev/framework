@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * The site's look (the design direction's Appearance, D-306): the
+ * Themes (the design direction's Appearance, D-306, named Themes in
+ * D-327): the
  * installed themes, with the active one and the themes it builds on.
  * How the admin looks is set per account, on Your profile.
  *
@@ -24,7 +25,7 @@ const active = computed(() => appearance.value?.themes.find((theme) => theme.act
 request<Appearance>('GET', '/appearance').then((item) => {
 	appearance.value = item;
 }).catch((caught: unknown) => {
-	error.value = caught instanceof ApiError ? caught.message : 'The site\'s appearance couldn\'t be loaded.';
+	error.value = caught instanceof ApiError ? caught.message : 'The themes couldn\'t be loaded.';
 });
 
 const SOURCES: Record<ThemeSummary['source'], string> = {
@@ -68,7 +69,7 @@ async function copy(text: string): Promise<void> {
 <template>
 	<header class="page-header">
 		<div class="page-header__text">
-			<h1 tabindex="-1">Appearance</h1>
+			<h1 tabindex="-1">Themes</h1>
 			<p class="page-header__hint">The theme visitors see. How the admin looks is set per account, on Your profile.</p>
 		</div>
 	</header>

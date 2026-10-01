@@ -52,7 +52,11 @@ guarded directive syntax, media kinds, and `only` (D-314); and Tab in
 quotes and over lines of code (D-315); the per-line highlight cache
 (D-316); and the shell's rail toggle and section trail, and the
 Editorial admin theme (D-317); and account names, used across the
-admin, with roles shown by their labels (D-322, D-323). Next: more
+admin, with roles shown by their labels (D-322, D-323); and editable
+settings on four screens, saved in `user/data/settings.json` over
+`config/` (D-324, D-325); and People as its own rail section, and Appearance named Themes
+(D-326, D-327).
+Next: more
 of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with

@@ -3,7 +3,7 @@
  * a capability (`meta.capability`); the server answers the same page for
  * all of them (`ShellController`) and checks every API request itself.
  * Each belongs to one of the section rail's areas
- * (`meta.area`: `home`, `content`, or `config`); the editor fills the
+ * (`meta.area`: `home`, `content`, `people`, or `config`); the editor fills the
  * work area edge to edge (`meta.bleed`).
  */
 
@@ -20,7 +20,6 @@ import NewEntryView from './views/NewEntryView.vue';
 import NotFoundView from './views/NotFoundView.vue';
 import ProfileView from './views/ProfileView.vue';
 import AccountView from './views/AccountView.vue';
-import AppearanceView from './views/AppearanceView.vue';
 import ExtensionsView from './views/ExtensionsView.vue';
 import SettingsView from './views/SettingsView.vue';
 import AccountsView from './views/AccountsView.vue';
@@ -33,6 +32,7 @@ import TypeView from './views/TypeView.vue';
 import MediaFileView from './views/MediaFileView.vue';
 import MediaView from './views/MediaView.vue';
 import TrashedView from './views/TrashedView.vue';
+import ThemesView from './views/ThemesView.vue';
 import TypesView from './views/TypesView.vue';
 import NewTypeView from './views/NewTypeView.vue';
 import SignInView from './views/SignInView.vue';
@@ -63,20 +63,24 @@ export const router = createRouter({
 		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content Types', capability: 'site.settings', area: 'config' } },
 		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: 'New Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
-		// People (D-249): each list, then a screen per item (`meta.parent`
-		// marks the list in the navigation).
-		{ path: '/appearance', name: 'appearance', component: AppearanceView, meta: { title: 'Appearance', capability: 'site.settings', area: 'config' } },
-		{ path: '/settings', name: 'settings', component: SettingsView, meta: { title: 'Settings', capability: 'site.settings', area: 'config' } },
+		// The direction's Appearance, named Themes (D-327).
+		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: 'Themes', capability: 'site.settings', area: 'config' } },
+		{ path: '/appearance', redirect: { name: 'themes' } },
+		// Settings is four screens (D-325); the view titles each.
+		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
+		{ path: '/settings/:screen(general|reading|search|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'config' } },
 		{ path: '/extensions', name: 'extensions', component: ExtensionsView, meta: { title: 'Extensions', capability: 'site.settings', area: 'config' } },
-		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.manage', area: 'config' } },
+		// People, its own section (D-249, D-326): each list, then a screen
+		// per item (`meta.parent` marks the list in the navigation).
+		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.manage', area: 'people' } },
 		// New comes before the item it would otherwise be taken for; the
 		// admin makes no account or role named "new" (D-312).
-		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.manage', area: 'config', parent: 'accounts' } },
-		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'config', parent: 'accounts' } },
-		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'config' } },
-		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'accounts.manage', area: 'config', parent: 'roles' } },
-		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.manage', area: 'config', parent: 'roles' } },
-		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your Profile', area: 'config' } },
+		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.manage', area: 'people', parent: 'accounts' } },
+		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'people', parent: 'accounts' } },
+		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'people' } },
+		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
+		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
+		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your Profile', area: 'people' } },
 		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign In', public: true } },
 		// A password link (D-312): anyone with one may open it.
 		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: 'Choose a Password', public: true } },

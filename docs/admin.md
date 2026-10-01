@@ -40,11 +40,11 @@ its URLs exist.
 
 ## Getting around
 
-The rail at the far left has three sections: **Home** (the dashboard and
+The rail at the far left has four sections: **Home** (the dashboard and
 content health), **Content** (each content type's entries, with its own
-taxonomies under it, the taxonomies several types share, and media), and
-**Config** (content types, the site's settings, and people, including
-authors). The panel
+taxonomies under it, the taxonomies several types share, and media),
+**People** (your profile, accounts, roles, and authors), and **Config**
+(content types, settings, themes, and extensions). The panel
 beside it lists the section you're in. Choosing a section changes the
 panel and nothing else, so you never leave the screen you're on (an
 entry you're writing stays open); choose a link in the panel to go
@@ -114,18 +114,19 @@ collections (such as Posts) and Pages, each with the taxonomies that
 group only that type under it (a taxonomy whose `types` setting names
 one type, such as Categories under Posts), then **Media**.
 **Structure** has **Content types** and the taxonomies that group
-several types or every type, each saying which. Authors are under
+several types or every type, each saying which. Authors are in
 **People**, beside accounts, since they're the public side of accounts.
 Each type opens a list of its entries you can edit, newest changes
 first. Types are named from their `labels` setting, and
 shown with their `icon` (see
 [Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
-**Site** has Settings, Appearance, and Extensions, and **People** has
-Accounts, Roles, Authors, and Your profile. You only see the screens
-your roles allow: Media needs `media.upload`, Accounts and Roles
-`accounts.manage`, and Content types, Settings, Appearance, and
-Extensions `site.settings`.
+**People** has Your profile, Accounts, Roles, and Authors. In
+**Config**, **Settings** has General, Reading, Addresses and Search, and
+System, and **Customize** has Themes and Extensions. You only see the
+screens your roles allow: Media needs `media.upload`, Accounts and Roles
+`accounts.manage`, and Content types, Settings, Themes, and Extensions
+`site.settings`.
 
 The tabs above a list show all of them, or only published entries,
 drafts, or scheduled ones, with a count on each. You see your own
@@ -723,23 +724,45 @@ can't be deleted until the taxonomy stops grouping it.
 
 ## Settings
 
-With `site.settings`, **Config → Settings** shows the site-wide settings
-in panels: General (name, address, language, environment, detailed
-error pages), Dates and time, Content (the home page, `user/data/types`,
-built-in types turned off), Addresses (trailing slash, the media
-address), Feeds, Search engines, Caching, and Publishing and previews.
-Each value says when it's still the default, and a risky one is
-flagged, such as detailed error pages on a live site. Secrets are never
-shown, only whether one is set.
+With `site.settings`, the **Settings** group in **Config** has four
+screens:
 
-It's read-only: settings live in `config/` and `.env`, and each panel
-names the file it's set in (see [Configuration](configuration.md)).
-After changing them on a site you've compiled, run
-`bin/blush cache:compile` again.
+- **General:** the site's name, its language and region (such as
+  `en_US`), and its time zone, with the time there now. Beside them,
+  shown but not changed here: the site's address, the environment, and
+  detailed error pages.
+- **Reading:** the home page (the page at `user/content/index.md`, or the
+  latest entries of a collection) and feeds: the formats (RSS, Atom,
+  JSON Feed; none turns feeds off), whether they carry each entry's full
+  content, and how many entries each holds (1 to 100).
+- **Addresses and Search:** whether addresses end in a slash (`/about/`;
+  the other form redirects, so old links keep working), whether the
+  site has a sitemap and `robots.txt`, and the paths `robots.txt` asks
+  search engines to skip, one a line. Shown: the media address, and
+  whether search engines are asked not to index the site (outside
+  production, they are).
+- **System:** shown only: where content types come from, caching, and
+  publishing and previews.
 
-## Appearance
+Change something and a bar at the bottom counts your unsaved changes,
+with **Revert** and **Save changes**; leaving the screen with changes
+unsaved asks first. Saving keeps them in `user/data/settings.json`, where
+they win over `config/` and `.env`, and they take effect on the next
+page load, with nothing to compile. Under each setting, the admin says
+whether it's saved there or comes from its config file. A saved one has
+**Use `config/…`'s value**, which goes back to the config's value when
+you save.
 
-With `site.settings`, **Config → Appearance** shows the site's theme:
+A setting that's only shown says when it's still the default and names
+the file it's set in, and a risky one is flagged, such as detailed error
+pages on a live site. Secrets are never shown, only whether one is set.
+Those settings live in `config/` and `.env` (see
+[Configuration](configuration.md)); after changing them on a site
+you've compiled, run `bin/blush cache:compile` again.
+
+## Themes
+
+With `site.settings`, **Config → Themes** shows the site's theme:
 every installed theme, with the active one marked **Active** and the
 themes it builds on marked **In use**. A theme that can't be used (its
 `theme.json` is broken) is listed with the reason.
@@ -768,7 +791,7 @@ that's off says how to turn it back on.
 
 ## Accounts and roles
 
-With `accounts.manage`, **Config → Accounts** lists who can sign in,
+With `accounts.manage`, **People → Accounts** lists who can sign in,
 with their roles, status (Active, Invited, or Suspended), and when they
 last signed in; choose one for its screen. **Roles** lists each role
 with how many capabilities it has and who holds it. See

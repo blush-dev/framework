@@ -125,6 +125,14 @@ Each is recorded in `.claude/docs/decisions.md`.
   is the section, the screens above (the editor's type, or a detail
   screen's list from its route's `meta.parent`), and the screen; on a
   narrow screen the section crumb goes first.
+- **Four sections, not three** (D-326): Home, Content, **People**, and
+  Config, where the foundations say "three sections, not more" with
+  people under Config. The author's call: People passes the
+  foundations' own test (someone goes looking for it by name), it's the
+  one section every account uses (Your Profile), and it kept Config
+  long once Settings became four screens (D-325). People's panel is
+  Your Profile, Accounts, Roles, and Authors, with no headings (D-327);
+  Config keeps Structure, Settings, and Customize.
 - **Both admin themes ship** (D-317): Neutral and Editorial, a theme
   choice on Your profile beside the color scheme, with Editorial's
   fonts (Karla and Newsreader) served with the admin like the others.
@@ -275,6 +283,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   in this release" banner and note are gone: **New Role** and
   **Duplicate** make roles, a role's screen has capability checkboxes
   with Save and Revert and a Danger Zone, and read-only roles say why.
+- **Appearance is named Themes** (D-327), in the navigation, its
+  heading, and its address (`/themes`; `/appearance` redirects): the
+  screen lists themes and nothing else. The API keeps `GET appearance`.
 - **Appearance** (D-306): no **Activate** or **Browse themes**. The
   active theme is developer config (`config/theme.php`, D-039), so a
   theme row offers **Copy command** (`theme:activate`) and, in
@@ -282,16 +293,28 @@ Each is recorded in `.claude/docs/decisions.md`.
   on say **In use**, and broken themes are listed with the reason. Rows
   have no author (manifests don't carry one). No theme settings yet
   (D-307).
-- **Settings** (D-309): read-only and only the settings Blush has, so
-  no save bar, Revert, inputs, or selects. The prototype's General,
-  Content, Dates and Time, and Permalinks become General, Dates and
-  Time, Content, Addresses, Feeds, Search Engines, Caching, and
-  Publishing and Previews; there's no tagline, administrator email,
-  front page entry, default new entry type, entries per page, trash
-  emptying, date or time format, week start, or permalink structure.
-  Values show a Default mark, help, and warnings; booleans are neutral
-  On/Off pills (warn-colored when risky); each panel ends with the file
-  it's set in.
+- **Settings** (D-309, D-324, D-325): only the settings Blush has, as
+  four screens in a **Settings** group of the Config panel (General,
+  Reading, Addresses and Search, System), not the prototype's one page.
+  The Config panel's groups are Structure, Settings, and Customize
+  (Themes and Extensions); People is its own section (D-326). The
+  prototype's panels become General's Site, Dates and Time, and
+  Environment; Reading's Home Page and Feeds; Addresses and Search's
+  Addresses and Search Engines; and System's Content Types, Caching,
+  and Publishing and Previews. Settings set in code (`config/` and
+  `.env` are developer code, D-039) sit beside the editable ones they
+  relate to, read-only, naming their file; System is all read-only.
+  There's no tagline, administrator email, front page entry, default
+  new entry type, entries per page, trash emptying, date or time format,
+  week start, or permalink structure. The panels are one column of
+  label and control rows, not the prototype's two-column field grid.
+  The prototype's switch is a checkbox, as everywhere in the admin. The
+  save bar is the prototype's (count, Revert, Save changes), per
+  screen, and also carries a refused save's reason. Each editable
+  setting says whether it's saved in `user/data/settings.json` or comes
+  from its config file, and a saved one can go back to the config's
+  value. Read-only values show a Default mark, help, and warnings;
+  booleans are neutral On/Off pills (warn-colored when risky).
 - **Extensions** (D-308), the direction's Addons (vocabulary below):
   read-only, so no on/off switch, turn-off confirmation, **Settings**,
   **Browse**, or **Upload**; an **On** or **Off** pill instead, and an

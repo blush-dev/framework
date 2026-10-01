@@ -9,7 +9,7 @@ writes as.
 
 `bin/blush init` offers to create the first account, an administrator,
 when there are none. After that, create them in [the admin](admin.md#accounts-and-roles)
-(**Config → Accounts → New Account**), or with the `account:*`
+(**People → Accounts → New Account**), or with the `account:*`
 commands:
 
 ```sh
@@ -137,7 +137,7 @@ Extensions can add their own.
 
 ### Your own roles
 
-Make roles in the admin (**Config → Roles → New Role**), or start one
+Make roles in the admin (**People → Roles → New Role**), or start one
 from an existing role with **Duplicate**. The admin can also change
 what the built-in Editor, Author, and Contributor can do (and reset
 them), but never the Administrator, who can always do everything. Roles

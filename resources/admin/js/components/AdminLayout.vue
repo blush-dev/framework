@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The signed-in layout (D-231, D-244): a labeled section rail (Home,
- * Content, Config), the panel beside it with only the active section's
+ * Content, People, Config; D-326), the panel beside it with only the active section's
  * links, a top bar, and the work area, the only part that scrolls.
  *
  * Choosing a section changes what the panel offers and nothing else: the
@@ -38,7 +38,7 @@ import MenuButton from './MenuButton.vue';
 import ToastHost from './ToastHost.vue';
 import TypeIcon from './TypeIcon.vue';
 
-type Area = 'home' | 'content' | 'config';
+type Area = 'home' | 'content' | 'people' | 'config';
 
 interface NavLink {
 	key: string;
@@ -79,8 +79,10 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * Each section's links, in groups (D-241, D-244). **Home**: the admin's
  * own screens and shortcuts. **Content**: each content type with the
  * taxonomies that group only it nested under it, the taxonomies shared
- * by several types (or every type), and Media. **Config**: content types,
- * the site, and people, with authors: the public side of accounts.
+ * by several types (or every type), and Media. **People** (D-326): Your
+ * Profile, accounts, roles, and authors (the public side of accounts).
+ * **Config** (D-325): Structure (content types), Settings (its four
+ * screens), and Customize (Themes and Extensions; D-327).
  * Links the account can't use aren't shown.
  */
 const sections = computed<Record<Area, NavGroup[]>>(() => {
@@ -90,10 +92,13 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		home.push(screen('health', 'Content Health', 'heart-pulse'));
 	}
 
-	const shortcuts: NavLink[] = [screen('profile', 'Your Profile', 'users')];
+	const shortcuts: NavLink[] = [screen('profile', 'Your Profile', 'circle-user-round')];
+
+	// A Settings screen (D-325).
+	const settingsScreen = (key: string, label: string, icon: IconName): NavLink => ({ key: `settings-${key}`, label, icon, to: { name: 'settings', params: { screen: key } }, current: false });
 
 	if (can('site.settings')) {
-		shortcuts.push(screen('settings', 'Settings', 'settings'));
+		shortcuts.push({ ...settingsScreen('general', 'Settings', 'settings'), key: 'settings' });
 	}
 
 	const inEntries = route.meta.section === 'entries';
@@ -127,22 +132,25 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const library = can('media.upload') ? [screen('media', 'Media', 'image')] : [];
 
 	const structure = can('site.settings') ? [screen('types', 'Content Types', 'layers')] : [];
-	const site      = can('site.settings') ? [screen('settings', 'Settings', 'settings'), screen('appearance', 'Appearance', 'paintbrush'), screen('extensions', 'Extensions', 'plug')] : [];
-	const people    = [...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users'), screen('roles', 'Roles', 'shield')] : []), ...authors.map((type) => link(type)), screen('profile', 'Your Profile', 'users')];
+	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('system', 'System', 'settings')] : [];
+	const customize = can('site.settings') ? [screen('themes', 'Themes', 'paintbrush'), screen('extensions', 'Extensions', 'plug')] : [];
+	const people    = [screen('profile', 'Your Profile', 'circle-user-round'), ...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users'), screen('roles', 'Roles', 'shield')] : []), ...authors.map((type) => link(type))];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
 
 	return {
 		home: groups([{ key: 'home', links: home }, { key: 'shortcuts', heading: 'Shortcuts', links: shortcuts }]),
 		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Taxonomies', links: shared }, { key: 'library', heading: 'Library', links: library }]),
-		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'site', heading: 'Site', links: site }, { key: 'people', heading: 'People', links: people }])
+		people: groups([{ key: 'people', links: people }]),
+		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'settings', heading: 'Settings', links: settings }, { key: 'customize', heading: 'Customize', links: customize }])
 	};
 });
 
 // The rail's sections; one with nothing in it for this account is left out.
 const areas = computed(() => ([
-	{ key: 'home', label: 'Home', icon: 'layout-dashboard' },
+	{ key: 'home', label: 'Home', icon: 'gauge' },
 	{ key: 'content', label: 'Content', icon: 'file-text' },
+	{ key: 'people', label: 'People', icon: 'users' },
 	{ key: 'config', label: 'Config', icon: 'settings' }
 ] as const).filter((area) => sections.value[area.key].length > 0));
 
@@ -151,10 +159,10 @@ const routeArea = computed<Area>(() => {
 
 	// Authors are listed with people, so their screens are too.
 	if (route.meta.section === 'entries' && currentType.value !== null && currentType.value === authorType.value) {
-		return 'config';
+		return 'people';
 	}
 
-	return area === 'content' || area === 'config' ? area : 'home';
+	return area === 'content' || area === 'people' || area === 'config' ? area : 'home';
 });
 
 // The section the panel shows: the screen's, until another is chosen.
@@ -172,7 +180,11 @@ const panelSub = computed(() => {
 		return count === 0 ? 'Entries and media' : `${count} content ${count === 1 ? 'type' : 'types'}`;
 	}
 
-	return area.value === 'config' ? 'Types, the site, and people' : config.site.name;
+	if (area.value === 'people') {
+		return 'Accounts, roles, and authors';
+	}
+
+	return area.value === 'config' ? 'Types, settings, and the look' : config.site.name;
 });
 
 /**
@@ -225,7 +237,7 @@ const trail = computed<{ label: string; to: RouteLocationRaw }[]>(() => {
 	return parent !== undefined && typeof label === 'string' ? [{ label, to: { name: route.meta.parent as string } }] : [];
 });
 
-const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', config: 'Config' })[routeArea.value]);
+const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'People', config: 'Config' })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
 
 // The collapsed panel is a per-browser convenience; storage may be off.
@@ -921,7 +933,11 @@ async function leave(): Promise<void> {
 	height: 16px;
 }
 
+/* Positioned, so an absolute descendant (a visually hidden label) is
+   placed in the scroller, not against the body, where one far down a
+   long screen would make the whole document scroll. */
 .main {
+	position: relative;
 	flex: 1;
 	min-height: 0;
 	overflow: auto;

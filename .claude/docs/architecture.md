@@ -70,6 +70,12 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   Every config class implements `fromArray()`/`toArray()`. The merged config
   is compiled to `storage/cache/config.php`. Config objects are bound in the
   container by class.
+- **Settings** (`Blush\Settings`, D-324, D-325): the few settings the
+  admin can change (`Setting`, `{section}.{key}` such as `feed.limit`)
+  are saved in `user/data/settings.json` (`SettingsFile`), in sections
+  named for the config files, and laid over the config on every build
+  (`Settings::apply()`, through each object's `toArray()`/`fromArray()`),
+  so a saved value wins. Compiling leaves them out.
 - **Errors** (`Blush\Error`, D-059):
   - Every exception implements `Blush\Core\BlushException` (D-055).
   - `ErrorHandler` converts warnings to exceptions, logs deprecations, and

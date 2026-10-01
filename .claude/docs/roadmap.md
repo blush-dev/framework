@@ -316,6 +316,14 @@ everywhere it shows an account, with the author page's title and then
 the username as fallbacks; set on New Account, an account's screen,
 Your profile, and the CLI; the dashboard greets by it, and roles show
 their labels, not keys (D-323).
+Settings became editable (D-324): the owner's settings (name, language,
+time zone, home page, trailing slash, feeds, sitemap) are saved in
+`user/data/settings.json` over `config/`; then four Settings screens
+(General, Reading, Addresses and Search, System) in a Config panel of
+Structure, Settings, Customize, and People, and the file in sections
+named for the config files (D-325). People became its own rail section,
+between Content and Config (D-326), with Your Profile first; Appearance
+is named Themes (D-327).
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
