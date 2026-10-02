@@ -1041,11 +1041,22 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   - Composer plugins keep the rest of their manifest in `composer.json`
     `extra.blush` (`label`, `namespace`, `provider`, `requires`).
   - Local plugins' `plugin.json` declares name, label, namespace,
-    version, description, a PSR-4 map, the provider, and requirements.
-    Blush registers the autoloader (`Extension\LocalAutoloader`).
+    version, description, a PSR-4 map, the provider, requirements, and
+    optionally `authors` and `license` (else its `composer.json`'s,
+    D-385). Blush registers the autoloader (`Extension\LocalAutoloader`).
   - Every discovered plugin is enabled unless `PluginConfig`
-    (`config/plugins.php`) narrows it (`enabled` allow-list, `disabled`).
-    Discovery is compiled to `storage/cache/plugins.php` (D-058).
+    (`config/plugins.php`) narrows it (`enabled` allow-list, `disabled`),
+    or the admin's saved list (`plugins.disabled` in
+    `user/data/settings.json`) replaces `disabled` (D-385). Discovery is
+    compiled to `storage/cache/plugins.php` (D-058), every installed
+    plugin, on or off.
+  - **Requirements are enforced** (D-385, `PluginRequirements`): an
+    enabled plugin runs only when its `requires` are met: `blush`, `php`,
+    `ext-{name}`, and other plugins by `vendor/name` (installed at a
+    fitting version and running), as Composer-style constraints
+    (`Extension\VersionConstraint`). `Plugins` holds the ones that run,
+    every installed one, and what the rest don't meet; providers register
+    a plugin's requirements first.
   - Planned CLI: `plugin:list`, `plugin:new`, `plugin:check`.
 - **Themes:** see `theming.md`. Known by name everywhere (`active`,
   `parent`, `?theme=`, `/themes/{vendor}/{name}/…`,
@@ -1053,11 +1064,15 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   `blush/default`. Broken ones are listed by where they were found.
 - **Icon packs** (`Icon\IconPack`): SVGs in the pack's folder (or its
   manifest's `folder`), each `{namespace}/{icon}`, labeled from its
-  `lang/`. Every installed pack is on; discovery is lenient (broken packs
-  are listed) and compiled to `storage/cache/icon-packs.php`. Their
-  folders seed `IconRegistry`, so themes and the site can restyle them.
-- **Admin:** Customize lists Themes, Plugins, and Icon Packs, read-only,
-  with **Install** buttons as placeholders for installing from the admin
+  `lang/`. A pack is on unless `IconConfig` (`config/icons.php`,
+  `disabled`) or the admin's saved list (`icons.disabled`) turns it off
+  (D-385); discovery is lenient (broken packs are listed) and compiled to
+  `storage/cache/icon-packs.php`. The folders of the packs that are on
+  seed `IconRegistry`, so themes and the site can restyle them.
+- **Admin:** Extensions lists Themes, Plugins, and Icon Packs. Themes
+  are activated and deleted (D-381); plugins and icon packs are turned on
+  and off and deleted (D-385), each saved in `user/data/settings.json`.
+  **Install** buttons are placeholders for installing from the admin
   (planned; D-039 and D-166 stand until then).
 
 ## Hosting (D-040)

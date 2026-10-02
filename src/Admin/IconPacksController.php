@@ -18,69 +18,119 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
+use Blush\Core\Framework;
 use Blush\Core\Paths;
+use Blush\Extension\ExtensionAuthor;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Icon\IconPack;
 use Blush\Icon\IconPacks;
+use Blush\Icon\IconPackSource;
+use Blush\Settings\Setting;
+use Blush\Settings\SettingsFile;
 
 /**
- * Answers `GET {path}/api/icon-packs` (D-378), for accounts with
- * `site.settings`: every installed icon pack, by label, with its `name`,
- * `label`, `namespace`, `version`, `description`, `source` (`local` or
- * `composer`), `path` (from the site's root), how many icons it has
- * (`count`), and the first of their names (`icons`, in full:
- * `brands/github`); then the `invalid` ones, by `where` they were found,
- * with the reason.
+ * Answers the Icon Packs screens (D-378, D-385), for accounts with
+ * `site.settings`. Only icon packs are listed, not the icons themes and
+ * plugins carry, plus Blush's own set:
  *
- * Packs are installed in `user/icons` or with Composer, and every
- * installed pack is on, so the screen only shows them. Packs are data,
- * so they're the first kind the admin will install (planned).
+ * - `GET icon-packs`: every installed pack, by label, with its `name`,
+ *   `label`, `namespace`, `version`, `description`, `authors` (D-384's
+ *   shape), `source` (`local` or `composer`), `path` (from the site's
+ *   root), `folder` (its folder in `user/icons`, or `null`), whether it's
+ *   `enabled`, how many icons it has (`count`), the first twelve
+ *   (`icons`, each `{"name", "svg"}`, the name in full, `weather/sun`),
+ *   and whether it's `deletable` (a folder in `user/icons`); the `core`
+ *   set the same way (`label`, `version`, `count`, `icons`, with short
+ *   names, as the icon component takes them); the `invalid` ones, by
+ *   `where` they were found, with the `reason` and whether they're
+ *   `deletable`; `saved` (the admin's list of packs turned off is in
+ *   `user/data/settings.json`); and `config` (whether `config/icons.php`
+ *   exists).
+ * - `GET icon-packs/{vendor}/{name}`: one pack, with every icon.
+ * - `GET icon-packs/core`: the core set, with every icon.
+ *
+ * An icon's `svg` is its file, for the admin to draw as a mask (so no
+ * markup from it runs), or empty when it's too large to send.
  */
 final readonly class IconPacksController
 {
 	/**
-	 * How many icon names a pack lists.
+	 * How many icons the list sends for each pack.
 	 */
 	private const int SAMPLE = 12;
+
+	/**
+	 * Larger files aren't sent; the screen shows the name instead.
+	 */
+	private const int MAX_SVG = 16384;
 
 	public function __construct(
 		private IconPacks $packs,
 		private Paths $paths,
+		private SettingsFile $settings,
 		private Permissions $permissions
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteSettings)) {
-			return Response::json(['error' => 'You aren\'t allowed to see the site\'s icon packs.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		if (! $this->allowed($request)) {
+			return self::forbidden();
 		}
 
-		$packs = array_values(array_map($this->pack(...), $this->packs->all()));
+		$packs = array_values(array_map(fn (IconPack $pack): array => $this->pack($pack, self::SAMPLE), $this->packs->all()));
 
 		usort($packs, static fn (array $a, array $b): int => strcasecmp($a['label'], $b['label']));
 
 		$invalid = [];
+		$folder  = $this->paths->relative($this->paths->icons) . '/';
 
 		foreach ($this->packs->invalid() as $where => $reason) {
-			$invalid[] = ['where' => $where, 'reason' => $reason];
+			$invalid[] = ['where' => $where, 'reason' => $reason, 'deletable' => str_starts_with($where, $folder) && is_dir("{$this->paths->root}/{$where}")];
 		}
 
-		return Response::json(['packs' => $packs, 'invalid' => $invalid], headers: ['Cache-Control' => 'no-store']);
+		return Response::json([
+			'packs'   => $packs,
+			'core'    => self::coreSet(self::SAMPLE),
+			'invalid' => $invalid,
+			'saved'   => $this->settings->read()->has(Setting::IconPacks),
+			'config'  => is_file("{$this->paths->config}/icons.php")
+		], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	public function show(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
+	{
+		if (! $this->allowed($request)) {
+			return self::forbidden();
+		}
+
+		$pack = $this->packs->find("{$vendor}/{$name}");
+
+		if ($pack === null) {
+			return Response::json(['error' => sprintf('No icon pack named %s/%s is installed.', $vendor, $name)], Status::NotFound, ['Cache-Control' => 'no-store']);
+		}
+
+		return Response::json(['pack' => $this->pack($pack)], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	public function core(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->allowed($request)
+			? Response::json(['core' => self::coreSet()], headers: ['Cache-Control' => 'no-store'])
+			: self::forbidden();
 	}
 
 	/**
-	 * Describes a pack.
+	 * Describes a pack, with its first `$limit` icons, or all of them.
 	 *
-	 * @return array{name: string, label: string, namespace: string, version: string, description: string, source: string, path: string, count: int, icons: list<string>}
+	 * @return array{name: string, label: string, namespace: string, version: string, description: string, authors: list<array<string, string>>, source: string, path: string, folder: ?string, enabled: bool, deletable: bool, count: int, icons: list<array{name: string, svg: string}>}
 	 */
-	private function pack(IconPack $pack): array
+	private function pack(IconPack $pack, ?int $limit = null): array
 	{
-		$files = glob($pack->iconsPath() . '/*.svg') ?: [];
-
-		sort($files);
+		$files  = self::files($pack->iconsPath());
+		$folder = $pack->source === IconPackSource::Local && dirname($pack->path) === $this->paths->icons
+			? $this->paths->relative($pack->path)
+			: null;
 
 		return [
 			'name'        => $pack->name,
@@ -88,10 +138,72 @@ final readonly class IconPacksController
 			'namespace'   => $pack->namespace,
 			'version'     => $pack->version,
 			'description' => $pack->description,
+			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $pack->authors),
 			'source'      => $pack->source->value,
 			'path'        => $this->paths->relative($pack->path),
+			'folder'      => $folder,
+			'enabled'     => $this->packs->isEnabled($pack->name),
+			'deletable'   => $folder !== null,
 			'count'       => count($files),
-			'icons'       => array_map(static fn (string $file): string => "{$pack->namespace}/" . basename($file, '.svg'), array_slice($files, 0, self::SAMPLE))
+			'icons'       => self::icons(array_slice($files, 0, $limit), "{$pack->namespace}/")
 		];
+	}
+
+	/**
+	 * Describes the core set, with its first `$limit` icons, or all.
+	 *
+	 * @return array{label: string, version: string, count: int, icons: list<array{name: string, svg: string}>}
+	 */
+	private static function coreSet(?int $limit = null): array
+	{
+		$files = self::files(Framework::path('resources/icons/blush'));
+
+		return [
+			'label'   => 'Core',
+			'version' => Framework::VERSION,
+			'count'   => count($files),
+			'icons'   => self::icons(array_slice($files, 0, $limit), '')
+		];
+	}
+
+	/**
+	 * A folder's SVG files, by name.
+	 *
+	 * @return list<string>
+	 */
+	private static function files(string $folder): array
+	{
+		$files = glob("{$folder}/*.svg") ?: [];
+
+		sort($files);
+
+		return $files;
+	}
+
+	/**
+	 * Icons from their files, named with a prefix (`weather/`, or nothing
+	 * for core icons).
+	 *
+	 * @param  list<string> $files
+	 * @return list<array{name: string, svg: string}>
+	 */
+	private static function icons(array $files, string $prefix): array
+	{
+		return array_map(static fn (string $file): array => [
+			'name' => $prefix . basename($file, '.svg'),
+			'svg'  => is_readable($file) && filesize($file) <= self::MAX_SVG ? (string) file_get_contents($file) : ''
+		], $files);
+	}
+
+	private function allowed(ServerRequestInterface $request): bool
+	{
+		$account = $request->getAttribute(Account::class);
+
+		return $account instanceof Account && $this->permissions->can($account, Capability::SiteSettings);
+	}
+
+	private static function forbidden(): ResponseInterface
+	{
+		return Response::json(['error' => 'You aren\'t allowed to see the site\'s icon packs.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 	}
 }

@@ -33,6 +33,7 @@ use Blush\Extension\LocalAutoloader;
 use Blush\Feed\FeedConfig;
 use Blush\Field\FieldConfig;
 use Blush\Http\HttpConfig;
+use Blush\Icon\IconConfig;
 use Blush\Icon\IconPackCache;
 use Blush\Icon\IconPackDiscovery;
 use Blush\Icon\IconPacks;
@@ -71,12 +72,14 @@ use Blush\Theme\Themes;
  * 3. Outside development, the container reads compiled resolution plans.
  * 4. The bootstrap itself, `Paths`, `Env`, the config repository, and
  *    every config object are bound in the container.
- * 5. Plugins are discovered (or read from cache), filtered by config, and
- *    local ones are autoloaded.
+ * 5. Plugins are discovered (or read from cache), filtered by config and
+ *    the settings, and by their requirements (D-385), and the local ones
+ *    that run are autoloaded.
  * 6. Themes and icon packs are discovered (or read from cache), and the
  *    active theme chain's local themes are autoloaded. A theme or icon
  *    pack whose namespace an installed plugin (or, for a pack, a theme)
- *    claims is left out as broken (D-378).
+ *    claims is left out as broken (D-378), and packs turned off
+ *    (`IconConfig`, D-385) are kept but add no icons.
  * 7. Providers register in order: framework, plugins, the active theme
  *    chain's (ancestors first), then the site's (D-054). A broken theme
  *    chain registers no theme providers, so the CLI still runs to fix it;
@@ -152,7 +155,7 @@ final readonly class Bootstrap
 		$built   = $this->build(static fn (): Planner => $planner);
 
 		new ConfigCache($this->file(CompiledCache::Config))->write($this->config($this->env(), settings: false));
-		new PluginCache($this->file(CompiledCache::Plugins))->write($built->plugins->all());
+		new PluginCache($this->file(CompiledCache::Plugins))->write($built->plugins->installed());
 		new ThemeCache($this->file(CompiledCache::Themes))->write($built->themes);
 		new IconPackCache($this->file(CompiledCache::IconPacks))->write($built->iconPacks);
 
@@ -217,6 +220,7 @@ final readonly class Bootstrap
 			$this->discoverThemes($app->environment),
 			$this->discoverIconPacks($app->environment)
 		);
+		$iconPacks = $iconPacks->withDisabled($config->get(IconConfig::class)->disabled);
 
 		$themeProviders = [];
 		$autoloader     = new LocalAutoloader();
@@ -273,6 +277,7 @@ final readonly class Bootstrap
 			AppConfig::fromEnv($env),
 			new LogConfig(),
 			new PluginConfig(),
+			new IconConfig(),
 			new HttpConfig(),
 			new RouteConfig(),
 			new MarkdownConfig(),

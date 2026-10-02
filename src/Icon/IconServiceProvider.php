@@ -42,7 +42,7 @@ final class IconServiceProvider extends ServiceProvider
 		$this->container->singleton(IconRegistry::class, static function (ServiceResolver $resolver) use ($packs): IconRegistry {
 			$registry = new IconRegistry();
 
-			foreach ($packs ? $resolver->make(IconPacks::class)->all() : [] as $pack) {
+			foreach ($packs ? $resolver->make(IconPacks::class)->enabled() : [] as $pack) {
 				$registry->add($pack->namespace, $pack->iconsPath());
 			}
 

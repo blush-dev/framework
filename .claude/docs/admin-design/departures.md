@@ -21,6 +21,8 @@ update this one (not the direction) when you depart from it.
 .claude/docs/admin-design/meridian-admin.html  its clickable prototype, standalone
 .claude/docs/admin-design/meridian-profiles.html, meridian-role-capabilities.html
                                                sketches of single screens (D-351, D-359)
+.claude/docs/admin-design/blush-themes-screen.html, blush-extensions.html
+                                               sketches of the Extensions screens (D-381, D-385)
 .claude/docs/admin-design/departures.md        this file
 .claude/docs/admin-design/tokens.css           the prototype's tokens (reference only)
 .claude/docs/admin-design/old/                 the earlier single admin.md and its prototype
@@ -471,31 +473,59 @@ Each is recorded in `.claude/docs/decisions.md`.
   with **Clear it** where the built-ins have the config's value. A site
   with no collection to show shows its home page read-only.
 - **Plugins** (D-308, named Plugins in D-379), the direction's Addons
-  (vocabulary below): read-only, so no on/off switch, turn-off
-  confirmation, **Settings**, or **Browse**; an **On** or **Off** pill
-  instead, and a plugin that's off says how to turn it on in
-  `config/plugins.php`. **Upload** is **Install Plugin**, disabled, a
-  placeholder until the admin installs extensions (D-378). A notice
-  replaces the banner, naming where plugins are installed. A row shows
-  the plugin's label, then its `vendor/name`.
-  "Provides" chips are grouped by kind (content types link to their
-  screens; components, icon namespaces, dashboard actions, commands),
-  attributed by class namespace or component/icon namespace, so they
-  list only what the admin can see. No author (manifests don't carry
-  one); the version, path, and requirements are shown. Rows share the
-  global `.package` classes with Appearance's themes.
+  (vocabulary below), follows the extensions sketch
+  (`blush-extensions.html`) since D-385: rows with a switch, a details
+  screen (`/plugins/{vendor}/{name}`) with Details and Requires panels.
+  Departures from the sketch:
+  - **The switch saves in `user/data/settings.json`** over
+    `config/plugins.php` (the sketch's note says it writes
+    `config/plugins.php`; the admin never writes `config/`, D-039), and
+    the note under the rows says which, with **Use
+    `config/plugins.php`'s list** once it's saved, as Themes does.
+  - **Requirements** are Composer-style constraints checked by
+    `VersionConstraint`, not the sketch's major-version match, and also
+    cover `ext-{name}` (shown as "the PHP extension {name}") and
+    requirements Blush can't check. A plugin that's turned on but can't
+    run says so ("It's turned on, but nothing it adds runs").
+  - A plugin `config/plugins.php`'s `enabled` list leaves out can't be
+    turned on here, and says why, as one with unmet requirements does.
+  - **Delete** is only for a folder plugin that's off (the author's
+    call; the sketch deletes any folder plugin), and not one
+    `config/plugins.php` turns on by name. A plugin that's on says to
+    turn it off first.
+  - The toast names the plugins that started or stopped with the one
+    switched.
+  - No broken-plugin rows: a plugin manifest that doesn't parse still
+    fails discovery (D-058), so the screen reports the error instead.
+  - Rows are by label, so a row doesn't move when it's switched.
+  - The details screen adds Name and Namespace rows; Author is every
+    author, as on a theme's (D-384); License is the manifest's or its
+    `composer.json`'s.
 - **Component options** (D-245, D-268): an option set back to its
   default is removed from the directive; a required one left empty
   stays as `key=""`. Removing a container removes its body too (D-272). Option changes
   are applied to the text directly, so they aren't in the field's own
   undo (a list's List Type too). Classes and ID are fields; other
   undeclared attributes are listed.
-- **Icon Packs** (D-379) has no screen in the direction: it's drawn as
-  Plugins is (`.package` rows, an **On** pill, the count of icons and the
-  first of their names as chips, broken packs after), with **Install
-  Icon Pack** disabled as the placeholder. **Themes** has **Install
-  Theme**, which opens the sketch's modal with **Upload** disabled
-  (D-381).
+- **Icon Packs** (D-379) follows the extensions sketch since D-385:
+  cards with two rows of six glyphs, a switch, a details screen
+  (`/icon-packs/{vendor}/{name}`) with an icon browser and Details.
+  Departures from the sketch:
+  - Only icon packs are listed, not icons themes and plugins carry (the
+    author's call). The sketch's Core card is Blush's own icons
+    (`resources/icons/blush`), with its own details screen at
+    `/icon-packs/core`; its icons go by their names alone, not `core/`.
+  - The switch saves in `user/data/settings.json` over
+    `config/icons.php` (new, `IconConfig`), with **Use
+    `config/icons.php`'s list** once it's saved.
+  - Broken packs are cards titled by where they were found, with no
+    glyphs, and can be deleted when they're folders in `user/icons`.
+  - Glyphs are drawn as CSS masks of each SVG (as the icon inserter
+    does), not inline markup, so nothing in a pack's files runs.
+  - The details screen adds a Name row and every author (D-384, from the
+    manifest or its `composer.json`); the core set's names Lucide.
+  - **Install Icon Pack** opens the sketch's modal with **Upload**
+    disabled (D-378), as **Install Plugin** and **Install Theme** do.
 - **Vocabulary follows Blush** where it differs: extensions (plugins,
   themes, and icon packs; D-378), not addons, and
   whatever taxonomies a site defines (no built-in Topic).

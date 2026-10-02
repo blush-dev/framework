@@ -16,41 +16,61 @@ namespace Blush\Plugin;
 use Blush\Extension\ExtensionException;
 
 /**
- * The site's enabled plugins, in name order. Bound in the container, so
- * commands like `plugin:list` and `doctor` can inspect them.
+ * The site's plugins: the ones that run, in name order, and every
+ * installed one. Bound in the container, so commands like `doctor` and
+ * the admin can inspect them.
+ *
+ * An enabled plugin whose `requires` aren't met doesn't run (D-385); it's
+ * kept with the requirements it doesn't meet (`unmet()`).
  */
 final readonly class Plugins
 {
 	/**
-	 * Enabled manifests keyed by name.
+	 * The manifests that run, keyed by name.
 	 *
 	 * @var array<string, PluginManifest>
 	 */
 	private array $manifests;
 
 	/**
-	 * @param list<PluginManifest> $manifests
+	 * Every installed manifest, keyed by name.
+	 *
+	 * @var array<string, PluginManifest>
 	 */
-	public function __construct(array $manifests = [])
-	{
-		$keyed = [];
+	private array $installed;
 
-		foreach ($manifests as $manifest) {
-			$keyed[$manifest->name] = $manifest;
-		}
+	/**
+	 * The enabled plugins that can't run, by name, in name order.
+	 *
+	 * @var array<string, list<Requirement>>
+	 */
+	private array $unmet;
 
-		ksort($keyed);
+	/**
+	 * @param list<PluginManifest>             $manifests The plugins that run.
+	 * @param ?list<PluginManifest>            $installed Every installed plugin, or `null` for the ones that run.
+	 * @param array<string, list<Requirement>> $unmet     The enabled plugins that can't run, by name.
+	 */
+	public function __construct(
+		array $manifests = [],
+		?array $installed = null,
+		array $unmet = []
+	) {
+		ksort($unmet);
 
-		$this->manifests = $keyed;
+		$this->manifests = self::keyed($manifests);
+		$this->installed = $installed === null ? $this->manifests : self::keyed($installed);
+		$this->unmet     = $unmet;
 	}
 
 	/**
-	 * Filters discovered manifests down to the ones config enables.
+	 * Filters discovered manifests down to the ones config enables and
+	 * whose requirements are met.
 	 *
 	 * @param  list<PluginManifest> $discovered
 	 * @throws ExtensionException When config enables a plugin that isn't installed.
 	 */
-	public static function enabled(array $discovered, PluginConfig $config): self
+	public static function enabled(array $discovered, PluginConfig $config, PluginRequirements $requirements = new PluginRequirements()): self
 	{
 		$names   = array_map(static fn (PluginManifest $manifest): string => $manifest->name, $discovered);
 		$missing = array_diff($config->enabled ?? [], $names);
@@ -62,13 +82,22 @@ final readonly class Plugins
 			));
 		}
 
-		return new self(array_values(array_filter(
+		$enabled = array_values(array_filter(
 			$discovered,
 			static fn (PluginManifest $manifest): bool => $config->isEnabled($manifest->name)
-		)));
+		));
+		$unmet = $requirements->settle($enabled, self::keyed($discovered));
+
+		return new self(
+			array_values(array_filter($enabled, static fn (PluginManifest $manifest): bool => ! isset($unmet[$manifest->name]))),
+			$discovered,
+			$unmet
+		);
 	}
 
 	/**
+	 * The plugins that run.
+	 *
 	 * @return list<PluginManifest>
 	 */
 	public function all(): array
@@ -77,7 +106,28 @@ final readonly class Plugins
 	}
 
 	/**
-	 * Whether the named plugin is enabled.
+	 * Every installed plugin, on or off, in name order.
+	 *
+	 * @return list<PluginManifest>
+	 */
+	public function installed(): array
+	{
+		return array_values($this->installed);
+	}
+
+	/**
+	 * The enabled plugins that can't run, by name, each with the
+	 * requirements it doesn't meet.
+	 *
+	 * @return array<string, list<Requirement>>
+	 */
+	public function unmet(): array
+	{
+		return $this->unmet;
+	}
+
+	/**
+	 * Whether the named plugin runs.
 	 */
 	public function has(string $name): bool
 	{
@@ -85,7 +135,7 @@ final readonly class Plugins
 	}
 
 	/**
-	 * Returns the named plugin's manifest, or `null`.
+	 * Returns the named plugin's manifest, if it runs, or `null`.
 	 */
 	public function get(string $name): ?PluginManifest
 	{
@@ -93,15 +143,55 @@ final readonly class Plugins
 	}
 
 	/**
-	 * Returns every enabled plugin's provider class, in name order.
+	 * Returns the provider class of every plugin that runs, the plugins it
+	 * requires before it, otherwise in name order.
 	 *
 	 * @return list<class-string>
 	 */
 	public function providers(): array
 	{
-		return array_map(
-			static fn (PluginManifest $manifest): string => $manifest->providerClass(),
-			$this->all()
-		);
+		$ordered = [];
+		$visit   = function (PluginManifest $manifest) use (&$visit, &$ordered): void {
+			if (array_key_exists($manifest->name, $ordered)) {
+				return;
+			}
+
+			// Marked first, so a requirement that loops back ends here.
+			$ordered[$manifest->name] = null;
+
+			foreach (array_keys($manifest->requires) as $name) {
+				if (isset($this->manifests[$name])) {
+					$visit($this->manifests[$name]);
+				}
+			}
+
+			unset($ordered[$manifest->name]);
+			$ordered[$manifest->name] = $manifest->providerClass();
+		};
+
+		foreach ($this->manifests as $manifest) {
+			$visit($manifest);
+		}
+
+		return array_values(array_filter($ordered, is_string(...)));
+	}
+
+	/**
+	 * Keys manifests by name, in name order.
+	 *
+	 * @param  list<PluginManifest> $manifests
+	 * @return array<string, PluginManifest>
+	 */
+	private static function keyed(array $manifests): array
+	{
+		$keyed = [];
+
+		foreach ($manifests as $manifest) {
+			$keyed[$manifest->name] = $manifest;
+		}
+
+		ksort($keyed);
+
+		return $keyed;
 	}
 }

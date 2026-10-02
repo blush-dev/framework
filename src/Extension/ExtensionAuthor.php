@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
-use JsonException;
-
 /**
  * Someone who made an extension (D-384), as a manifest's `authors` lists
  * them, in the shape of `composer.json`'s `authors`: a `name`, and an
@@ -103,19 +101,21 @@ final readonly class ExtensionAuthor
 	 */
 	public static function fromComposer(string $folder): array
 	{
-		$file = "{$folder}/composer.json";
-		$json = is_file($file) ? @file_get_contents($file) : false;
+		return self::lenient(ComposerJson::read($folder)['authors'] ?? []);
+	}
 
-		try {
-			$data = $json === false ? null : json_decode($json, true, 32, JSON_THROW_ON_ERROR);
-		} catch (JsonException) {
-			return [];
-		}
-
-		$entries = is_array($data) && is_array($data['authors'] ?? null) && array_is_list($data['authors']) ? $data['authors'] : [];
+	/**
+	 * Reads a list of authors leniently, as a package's `composer.json`
+	 * or Composer's `installed.json` has them, keeping only the entries
+	 * that fit; none when it isn't a list.
+	 *
+	 * @return list<self>
+	 */
+	public static function lenient(mixed $entries): array
+	{
 		$authors = [];
 
-		foreach ($entries as $entry) {
+		foreach (is_array($entries) && array_is_list($entries) ? $entries : [] as $entry) {
 			try {
 				$authors[] = self::fromArray($entry);
 			} catch (ExtensionException) {

@@ -941,27 +941,45 @@ How the admin itself looks is set per account, on **Your Account**.
 ## Plugins
 
 With `site.settings`, **Config → Plugins** lists every installed
-[plugin](extending.md#plugins), the ones that are on first, with its
-label, name, version, where it's installed, and what it requires. For
-each one that's on, it shows what the admin can see it adding: content
-types (each links to its screen, and says so when `config/content.php`
-redefines it), components, icons, dashboard actions, and commands. A
-plugin can add more than that (routes, fields, code that runs on every
-request), so one that lists nothing may still be doing something.
+[plugin](extending.md#plugins) by label, with its name, version, and
+description, and a switch. Turning a plugin on or off takes effect
+straight away, and a message says so, naming any other plugins that
+started or stopped with it (the ones that [require](extending.md#requirements)
+it). What a plugin adds shows on the screens it belongs to, not here.
 
-It's read-only: install plugins in `user/plugins` or with Composer, and
-turn one off in `config/plugins.php`. A plugin that's off says how to
-turn it back on. **Install Plugin** is a placeholder for installing from
-here, which isn't available yet.
+A plugin whose requirements aren't met can't be turned on, and says
+what it needs, such as "Needs Blush ^3.0 (this site runs 2.1.0)." So
+can't a plugin `config/plugins.php`'s `enabled` list leaves out. The
+switches are saved in `user/data/settings.json`, over
+`config/plugins.php`'s `disabled` list; once they are, the note under
+the list has **Use `config/plugins.php`'s list** to go back to it.
+
+A plugin's name, or **Plugin details** in its **⋯** menu, opens its
+details: who made it, its version, license, folder, and namespace, the
+plugins that require it, and each of its requirements, checked against
+this site. **Delete plugin** removes a plugin's folder from
+`user/plugins` once it's off; a Composer plugin is removed with
+`composer remove` instead. **Install Plugin** says how to install one;
+installing from here isn't available yet.
 
 ## Icon packs
 
-With `site.settings`, **Config → Icon Packs** lists every installed
-[icon pack](extending.md#icon-packs) by label, with its name, version,
-where it's installed, how many icons it has, and the first of their
-names. Every installed pack is on. A pack that can't be used is listed
-by where it was found, with the reason. Install packs in `user/icons` or
-with Composer; **Install Icon Pack** is a placeholder.
+With `site.settings`, **Config → Icon Packs** shows every installed
+[icon pack](extending.md#icon-packs) by label, as a card of its first
+icons, with its version, where it's installed, how many icons it has,
+and a switch. A pack that's off adds no icons, so anywhere one of them
+is used shows nothing. Blush's own icons are the **Core** card, always
+on. A pack that can't be used is listed by where it was found, with the
+reason. Only icon packs are listed, not the icons themes and plugins
+carry.
+
+The switches are saved in `user/data/settings.json`, over
+`config/icons.php`'s `disabled` list, with **Use `config/icons.php`'s
+list** to go back. A pack's name, or **Icon pack details** in its menu,
+opens every icon in it, with a filter; click one to copy how it's used
+(`weather/sun`). **Delete icon pack** removes a pack's folder (or a
+broken pack's) from `user/icons`. **Install Icon Pack** says how to
+install one.
 
 ## Accounts and roles
 
@@ -1241,8 +1259,13 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
 | `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"name", "label", "namespace", "version", "description", "parent", "source", "active"}], "invalid": [{"where", "reason"}]}`. Themes are by name (`vendor/name`), the active one first, then by label; `chain` is the active theme, the themes it builds on, then `blush/default`; `invalid` names where each broken theme was found (`user/themes/{folder}`, or a package's name); `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `site.settings` |
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. Secrets are never sent. Needs `site.settings` |
-| `GET plugins` | Every installed plugin, the ones that are on first: `{"plugins": [{"name", "label", "namespace", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/plugins.php` exists. Needs `site.settings` |
-| `GET icon-packs` | Every installed icon pack, by label: `{"packs": [{"name", "label", "namespace", "version", "description", "source", "path", "count", "icons"}], "invalid": [{"where", "reason"}]}`. `count` is how many icons it has, and `icons` the first of their full names (`brands/github`). Needs `site.settings` |
+| `GET plugins` | Every installed plugin, by label: `{"plugins": [{"name", "label", "namespace", "version", "description", "authors", "license", "source", "path", "folder", "enabled", "running", "requirements", "blocked", "requiredBy", "locked", "deletable"}], "saved", "config"}`. `source` is `local` or `composer`; `path` is from the site's root, and `folder` is its folder in `user/plugins` (`null` for Composer); `enabled` is whether it's turned on, and `running` whether it runs (it doesn't when its requirements aren't met); each of `requirements` is `{"name", "constraint", "kind", "met", "note", "label"}` (`kind` is `blush`, `php`, `extension`, `plugin`, or `unknown`), checked as if it were on for one that's off; `blocked` says why it can't run, or is `null`; `requiredBy` names the plugins that require it; `locked` says why it can't be turned on here; `deletable` is a folder plugin that isn't running. `saved` is whether the admin's list is in `settings.json`; `config` is whether `config/plugins.php` exists. Needs `site.settings` |
+| `PUT plugins/{vendor}/{name}` | Turns a plugin on or off: send `{"enabled": true}` or `false`. Saves `plugins.disabled` in `user/data/settings.json`. Answers `{"enabled", "started", "stopped", "refresh"}`: the labels of other plugins that start or stop with it, and that `POST settings/refresh` should follow. A plugin `config/plugins.php`'s `enabled` list leaves out is a `409`; one whose requirements aren't met a `422`. Needs `site.settings` |
+| `DELETE plugins/{folder}` | Deletes a plugin's folder from `user/plugins`: `{"deleted"}`. One that's running, or that `config/plugins.php` turns on by name, is a `409`. Needs `site.settings` |
+| `GET icon-packs` | Every installed icon pack, by label: `{"packs": [{"name", "label", "namespace", "version", "description", "authors", "source", "path", "folder", "enabled", "deletable", "count", "icons"}], "core": {"label", "version", "count", "icons"}, "invalid": [{"where", "reason", "deletable"}], "saved", "config"}`. `count` is how many icons it has, and `icons` the first twelve, each `{"name", "svg"}` (`brands/github`; a core icon's name alone), the `svg` empty when the file is too large. `saved` is whether the admin's list is in `settings.json`; `config` is whether `config/icons.php` exists. Needs `site.settings` |
+| `GET icon-packs/{vendor}/{name}`, `GET icon-packs/core` | One pack (`{"pack"}`) or the core set (`{"core"}`), with every icon. Needs `site.settings` |
+| `PUT icon-packs/{vendor}/{name}` | Turns a pack on or off: send `{"enabled": true}` or `false`. Saves `icons.disabled` in `user/data/settings.json`. Needs `site.settings` |
+| `DELETE icon-packs/{folder}` | Deletes a pack's folder (or a broken pack's) from `user/icons`: `{"deleted"}`. Needs `site.settings` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `pages`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
 | `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection or taxonomy from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
 | `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |

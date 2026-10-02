@@ -83,10 +83,16 @@ use Blush\Session\StartSession;
  *     `DELETE themes/{folder}` deletes one from `user/themes`
  *     (`ThemeEditController`, D-381). `PATCH settings` activates one
  *     (`theme.active`).
- *   - `GET  plugins`: the installed plugins and what each adds,
- *     to show (`PluginsController`).
- *   - `GET  icon-packs`: the installed icon packs, to show
- *     (`IconPacksController`).
+ *   - `GET  plugins`: the installed plugins, each checked against
+ *     the site (`PluginsController`); `PUT plugins/{vendor}/{name}`
+ *     turns one on or off, and `DELETE plugins/{folder}` deletes one
+ *     from `user/plugins` (`PluginEditController`, D-385).
+ *   - `GET  icon-packs`: the installed icon packs and the core set,
+ *     `GET icon-packs/{vendor}/{name}` and `GET icon-packs/core` one
+ *     with every icon (`IconPacksController`); `PUT
+ *     icon-packs/{vendor}/{name}` turns one on or off, and `DELETE
+ *     icon-packs/{folder}` deletes one from `user/icons`
+ *     (`IconPackEditController`, D-385).
  *   - `GET  settings/{screen}`: a Settings screen's settings
  *     (`SettingsController`, D-325); `PATCH settings` saves the ones
  *     the admin can change in `user/data/settings.json`, and `POST
@@ -182,7 +188,13 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/appearance', AppearanceController::class)->named('appearance')->middleware(Authenticate::class),
 			Route::delete('/themes/{folder:[A-Za-z0-9_][A-Za-z0-9._-]*}', [ThemeEditController::class, 'delete'])->named('theme.delete')->middleware(Authenticate::class),
 			Route::get('/plugins', PluginsController::class)->named('plugins')->middleware(Authenticate::class),
+			Route::put('/plugins/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [PluginEditController::class, 'toggle'])->named('plugin.toggle')->middleware(Authenticate::class),
+			Route::delete('/plugins/{folder:[A-Za-z0-9_][A-Za-z0-9._-]*}', [PluginEditController::class, 'delete'])->named('plugin.delete')->middleware(Authenticate::class),
 			Route::get('/icon-packs', IconPacksController::class)->named('icon-packs')->middleware(Authenticate::class),
+			Route::get('/icon-packs/core', [IconPacksController::class, 'core'])->named('icon-packs.core')->middleware(Authenticate::class),
+			Route::get('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [IconPacksController::class, 'show'])->named('icon-pack')->middleware(Authenticate::class),
+			Route::put('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [IconPackEditController::class, 'toggle'])->named('icon-pack.toggle')->middleware(Authenticate::class),
+			Route::delete('/icon-packs/{folder:[A-Za-z0-9_][A-Za-z0-9._-]*}', [IconPackEditController::class, 'delete'])->named('icon-pack.delete')->middleware(Authenticate::class),
 			Route::patch('/settings', [SettingsEditController::class, 'update'])->named('settings.update')->middleware(Authenticate::class),
 			Route::post('/settings/refresh', [SettingsEditController::class, 'refresh'])->named('settings.refresh')->middleware(Authenticate::class),
 			Route::get('/settings/{screen:[a-z]+}', SettingsController::class)->named('settings')->middleware(Authenticate::class),

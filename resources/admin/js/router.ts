@@ -20,7 +20,9 @@ import EntriesView from './views/EntriesView.vue';
 import HealthView from './views/HealthView.vue';
 import NotFoundView from './views/NotFoundView.vue';
 import AccountView from './views/AccountView.vue';
+import PluginView from './views/PluginView.vue';
 import PluginsView from './views/PluginsView.vue';
+import IconPackView from './views/IconPackView.vue';
 import IconPacksView from './views/IconPacksView.vue';
 import SettingsView from './views/SettingsView.vue';
 import AccountsView from './views/AccountsView.vue';
@@ -84,8 +86,12 @@ export const router = createRouter({
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
 		{ path: '/settings/:screen(general|reading|search|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'config' } },
 		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'site.settings', area: 'config' } },
+		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: 'Plugin', capability: 'site.settings', area: 'config', parent: 'plugins' } },
 		{ path: '/extensions', redirect: { name: 'plugins' } },
 		{ path: '/icon-packs', name: 'icon-packs', component: IconPacksView, meta: { title: 'Icon Packs', capability: 'site.settings', area: 'config' } },
+		// The core set has a details screen too, though it isn't a pack (D-385).
+		{ path: '/icon-packs/core', name: 'icon-pack-core', component: IconPackView, meta: { title: 'Core', capability: 'site.settings', area: 'config', parent: 'icon-packs' } },
+		{ path: '/icon-packs/:vendor/:name', name: 'icon-pack', component: IconPackView, meta: { title: 'Icon Pack', capability: 'site.settings', area: 'config', parent: 'icon-packs' } },
 		// People, its own section (D-249, D-326): each list, then a screen
 		// per item (`meta.parent` marks the list in the navigation).
 		// Accounts and profiles are two lists (D-353): who can sign in,

@@ -30,6 +30,7 @@ export const icons = {
 	'circle-check': '<circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/>',
 	'circle-pause': '<circle cx="12" cy="12" r="10"/><path d="M10 15V9"/><path d="M14 15V9"/>',
 	'circle-user-round': '<path d="M17.925 20.056a6 6 0 0 0-11.851.001"/><circle cx="12" cy="11" r="4"/><circle cx="12" cy="12" r="10"/>',
+	'circle-x': '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
 	'clock': '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
 	'code': '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>',
 	'columns-3': '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>',

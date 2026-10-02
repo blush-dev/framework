@@ -75,7 +75,8 @@ final class TranslationServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Returns each icon pack namespace's catalog folder.
+	 * Returns the catalog folder of each icon pack that's on, by
+	 * namespace.
 	 *
 	 * @return array<string, list<string>>
 	 */
@@ -83,7 +84,7 @@ final class TranslationServiceProvider extends ServiceProvider
 	{
 		$domains = [];
 
-		foreach ($packs->all() as $pack) {
+		foreach ($packs->enabled() as $pack) {
 			$domains[$pack->namespace][] = $pack->langPath();
 		}
 

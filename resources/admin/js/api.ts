@@ -336,7 +336,22 @@ export interface Appearance {
 }
 
 /**
- * An installed plugin and what it adds (`GET plugins`, D-308, D-378).
+ * One of a plugin's `requires`, checked against the site (D-385).
+ */
+export interface PluginRequirement {
+	// `blush`, `php`, `ext-{name}`, or another plugin's `vendor/name`.
+	name: string;
+	constraint: string;
+	kind: 'blush' | 'php' | 'extension' | 'plugin' | 'unknown';
+	met: boolean;
+	// What the site has: `this site runs 8.5.1`, `isn't installed`, `is turned off`.
+	note: string;
+	// The required plugin's label, when it's installed.
+	label: string;
+}
+
+/**
+ * An installed plugin (`GET plugins`, D-308, D-378, D-385).
  */
 export interface PluginSummary {
 	// The key it's known by: `vendor/name`.
@@ -346,24 +361,52 @@ export interface PluginSummary {
 	namespace: string;
 	version: string;
 	description: string;
+	authors: ExtensionAuthor[];
+	license: string;
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;
-	// Requirement (`php`, `blush`, `ext-…`, or another extension) to constraint.
-	requires: Record<string, string>;
+	// Its folder in `user/plugins`, or `null` for a Composer plugin.
+	folder: string | null;
+	// Turned on, and whether it runs: an enabled one doesn't when its
+	// requirements aren't met.
 	enabled: boolean;
-	adds: {
-		// `overridden` when the site redefines the type in `config/content.php`.
-		types: { name: string; label: string; overridden: boolean }[];
-		components: string[];
-		icons: string[];
-		actions: string[];
-		commands: string[];
-	};
+	running: boolean;
+	// For one that's off, checked as if it were turned on.
+	requirements: PluginRequirement[];
+	// Why it can't run, or `null`.
+	blocked: string | null;
+	// The plugins that require it, by name.
+	requiredBy: string[];
+	// Why it can't be turned on here (`config/plugins.php`), or `null`.
+	locked: string | null;
+	// A folder plugin that isn't running.
+	deletable: boolean;
 }
 
 /**
- * An installed icon pack (`GET icon-packs`, D-378).
+ * The installed plugins (`GET plugins`).
+ */
+export interface Plugins {
+	plugins: PluginSummary[];
+	// Whether the plugins turned off are saved in `user/data/settings.json`.
+	saved: boolean;
+	// Whether `config/plugins.php` exists.
+	config: boolean;
+}
+
+/**
+ * An icon, drawn from its SVG (as a mask, so nothing in the file runs).
+ */
+export interface PackIcon {
+	// As it's referenced: `weather/sun`, or a core icon's short name.
+	name: string;
+	// Empty when the file is too large to send.
+	svg: string;
+}
+
+/**
+ * An installed icon pack (`GET icon-packs`, D-378, D-385).
  */
 export interface IconPackSummary {
 	// The key it's known by: `vendor/name`.
@@ -373,21 +416,41 @@ export interface IconPackSummary {
 	namespace: string;
 	version: string;
 	description: string;
+	authors: ExtensionAuthor[];
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;
+	// Its folder in `user/icons`, or `null` for a Composer pack.
+	folder: string | null;
+	enabled: boolean;
+	deletable: boolean;
 	count: number;
-	// The first of its icons' full names.
-	icons: string[];
+	// The first twelve on the list; every one from `GET icon-packs/{name}`.
+	icons: PackIcon[];
 }
 
 /**
- * The installed icon packs (`GET icon-packs`), and the broken ones by
- * where they were found.
+ * Blush's own icons, always on (`GET icon-packs`, `GET icon-packs/core`).
+ */
+export interface CoreIcons {
+	label: string;
+	version: string;
+	count: number;
+	icons: PackIcon[];
+}
+
+/**
+ * The installed icon packs (`GET icon-packs`), the core set, and the
+ * broken ones by where they were found.
  */
 export interface IconPacks {
 	packs: IconPackSummary[];
-	invalid: { where: string; reason: string }[];
+	core: CoreIcons;
+	invalid: { where: string; reason: string; deletable: boolean }[];
+	// Whether the packs turned off are saved in `user/data/settings.json`.
+	saved: boolean;
+	// Whether `config/icons.php` exists.
+	config: boolean;
 }
 
 /**
@@ -764,7 +827,7 @@ export function setCsrfToken(token: string | null): void {
 /**
  * Sends a request and returns the decoded answer (`undefined` for a 204).
  */
-export async function request<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
 	const headers: Record<string, string> = { Accept: 'application/json' };
 
 	if (body !== undefined) {

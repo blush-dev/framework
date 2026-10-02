@@ -384,12 +384,19 @@ buttons are placeholders.
 	"provider": "Acme\\Hello\\HelloServiceProvider",
 	"autoload": {
 		"psr-4": { "Acme\\Hello\\": "src/" }
-	}
+	},
+	"requires": { "blush": "^2.0" },
+	"authors": [{ "name": "Jane Doe", "homepage": "https://example.com" }],
+	"license": "MIT"
 }
 ```
 
 `name`, `label`, `namespace`, and `provider` are required. Blush finds
-the plugin and loads its classes; no Composer step needed.
+the plugin and loads its classes; no Composer step needed. `authors`
+(each with a `name`, and optionally an `email`, `homepage`, and `role`,
+as in `composer.json`) and `license` are shown in the admin; leave them
+out and the `composer.json` beside `plugin.json` is used, if there is
+one.
 
 For autocomplete in your editor, add a `$schema` key pointing at the
 schema Blush ships (the path is relative to `plugin.json`):
@@ -423,8 +430,25 @@ under `extra.blush`:
 }
 ```
 
-Every installed plugin is on. Turn one off by its name in
+Every installed plugin is on. Turn one off on the admin's
+[Plugins](admin.md#plugins) screen, or by its name in
 [`config/plugins.php`](configuration.md#plugins-and-middleware).
+
+### Requirements
+
+`requires` maps what a plugin needs to a Composer-style version
+constraint (`^2.0`, `~1.2`, `>=8.4`, `1.*`, `^1.0 || ^2.0`):
+
+- `blush`: the Blush version.
+- `php`: the PHP version.
+- `ext-{name}`: a PHP extension that must be loaded (`"ext-intl": "*"`).
+- Another plugin, by its name: `"acme/shop": "^2.0"` needs Shop
+  installed at a version that fits, and turned on.
+
+A plugin whose requirements aren't met doesn't run, even when it's on,
+and the Plugins screen says why. Anything else in `requires` can't be
+checked, so it isn't met. Turning a plugin off also stops every plugin
+that requires it, and a plugin's requirements are loaded before it.
 
 ### Components from a plugin
 
@@ -661,11 +685,13 @@ code. Put it in `user/icons/{folder}/`, with an `icons.json` (or
 	"namespace": "brands",
 	"version": "1.0.0",
 	"description": "Logos for social links.",
-	"folder": "svg"
+	"folder": "svg",
+	"authors": [{ "name": "Jane Doe" }]
 }
 ```
 
-`name`, `label`, and `namespace` are required. Each `{icon}.svg` in the
+`name`, `label`, and `namespace` are required. `authors` works as a
+plugin's does. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is
 `{namespace}/{icon}`: `svg/github.svg` is `brands/github`, used as
 `:icon[GitHub]{name=brands/github}` or `$template->icon('brands/github')`.
@@ -680,7 +706,10 @@ Labels go in the pack's `lang/en.json`, under `icons.{icon}.label`:
 ```
 
 Every installed pack is on, and its icons appear in `bin/blush
-icon:list` and the admin's icon inserter. A theme can restyle one with
+icon:list` and the admin's icon inserter. Turn one off on the admin's
+[Icon Packs](admin.md#icon-packs) screen, or by its name in
+[`config/icons.php`](configuration.md#plugins-and-middleware); its icons
+then show nowhere. A theme can restyle one with
 `icons/brands/github.svg`, and your site with
 `resources/icons/brands/github.svg` (see [Icons](components.md#icons)).
 

@@ -144,6 +144,8 @@ final class PluginTest extends TestCase
 			'{"name": "ok/name", "label": "OK", "namespace": "blush", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "Not Valid", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok"}',
+			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "authors": [{"email": "a@example.test"}]}',
+			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "license": ["MIT"]}',
 			'not json'
 		];
 

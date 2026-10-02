@@ -29,6 +29,8 @@ use Blush\Field\Fields\EnumField;
 use Blush\Field\Fields\ListField;
 use Blush\Field\Fields\NumberField;
 use Blush\Field\Fields\TextField;
+use Blush\Icon\IconConfig;
+use Blush\Plugin\PluginConfig;
 use Blush\Routing\RouteConfig;
 use Blush\Sitemap\SitemapConfig;
 use Blush\Theme\ThemeConfig;
@@ -44,7 +46,9 @@ use Blush\Theme\ThemeConfig;
  * with the controls every form uses, on its screen (`screen()`), the
  * screen's own fields before any field set's; `normalize()` still checks
  * its value, more closely than the field type does. The active theme
- * (D-381) is on no Settings screen: the Themes screen saves it.
+ * (D-381) is on no Settings screen: the Themes screen saves it. Nor are
+ * the plugins and icon packs turned off (D-385), which their screens
+ * save.
  */
 enum Setting: string
 {
@@ -59,6 +63,8 @@ enum Setting: string
 	case Sitemap         = 'sitemap.enabled';
 	case SitemapDisallow = 'sitemap.disallow';
 	case Theme           = 'theme.active';
+	case Plugins         = 'plugins.disabled';
+	case IconPacks       = 'icons.disabled';
 
 	/**
 	 * The most entries a feed may hold.
@@ -84,7 +90,7 @@ enum Setting: string
 	public function screen(): ?SettingsScreen
 	{
 		return match ($this) {
-			self::Theme                                                   => null,
+			self::Theme, self::Plugins, self::IconPacks                   => null,
 			self::Name, self::Locale, self::Timezone                      => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search
@@ -112,7 +118,9 @@ enum Setting: string
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
 			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.'),
-			self::Theme           => new TextField('active')->labeled('Theme')->control(Control::Mono)
+			self::Theme           => new TextField('active')->labeled('Theme')->control(Control::Mono),
+			self::Plugins         => new ListField('disabled')->labeled('Plugins turned off'),
+			self::IconPacks       => new ListField('disabled')->labeled('Icon packs turned off')
 		};
 
 		return $field->named($this->key());
@@ -198,6 +206,8 @@ enum Setting: string
 			'routes'  => RouteConfig::class,
 			'feed'    => FeedConfig::class,
 			'theme'   => ThemeConfig::class,
+			'plugins' => PluginConfig::class,
+			'icons'   => IconConfig::class,
 			default   => SitemapConfig::class
 		};
 	}
@@ -213,13 +223,14 @@ enum Setting: string
 	/**
 	 * Whether a change needs the compiled routes and content types written
 	 * again, and the content reindexed: the home page, the time zone dates
-	 * are read in, what has addresses, and the theme (its provider runs at
-	 * boot, so what's compiled is built again with it, to be safe).
+	 * are read in, what has addresses, and the theme and plugins (their
+	 * providers run at boot, so what's compiled is built again with them,
+	 * to be safe).
 	 */
 	public function needsRefresh(): bool
 	{
 		return match ($this) {
-			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Theme => true,
+			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Theme, self::Plugins => true,
 			default => false
 		};
 	}
@@ -242,6 +253,8 @@ enum Setting: string
 			self::FeedLimit       => self::limit($value),
 			self::SitemapDisallow => self::disallow($value),
 			self::Theme           => self::theme($value),
+			self::Plugins         => self::names($value, 'plugins'),
+			self::IconPacks       => self::names($value, 'icon packs'),
 			default               => is_bool($value) ? $value : throw new InvalidSetting(sprintf('"%s" must be true or false.', $this->value))
 		};
 	}
@@ -336,6 +349,32 @@ enum Setting: string
 		return is_string($value) && ExtensionName::isValid($value)
 			? $value
 			: throw new InvalidSetting('The theme must be a theme\'s name (vendor/name), such as "acme/nova".');
+	}
+
+	/**
+	 * Checks a list of extensions' names, and returns it without repeats,
+	 * in order; whether they're installed doesn't matter, so a list
+	 * outlives a plugin that's removed and put back.
+	 *
+	 * @return list<string>
+	 * @throws InvalidSetting
+	 */
+	private static function names(mixed $value, string $kind): array
+	{
+		if (! is_array($value) || ! array_is_list($value)) {
+			throw new InvalidSetting(sprintf('The %s turned off must be a list of names.', $kind));
+		}
+
+		foreach ($value as $name) {
+			if (! is_string($name) || ! ExtensionName::isValid($name)) {
+				throw new InvalidSetting(sprintf('"%s" isn\'t a name; the %s turned off are named vendor/name, such as "acme/gallery".', is_string($name) ? $name : get_debug_type($name), $kind));
+			}
+		}
+
+		$names = array_values(array_unique($value));
+		sort($names);
+
+		return $names;
 	}
 
 	/**

@@ -134,8 +134,12 @@ Move each item to `decisions.md` once it's answered.
   what an admin theme's manifest holds and how it joins `AdminTheme`
   (D-317); how installing from the admin works, especially for kinds
   that run code (D-039, D-166), and the placeholders' buttons with it;
-  whether `user/extensions/{kind}/` should be allowed too; and
-  `plugin:list`, `plugin:new`, and `plugin:check` (planned since D-041).
+  whether `user/extensions/{kind}/` should be allowed too;
+  `plugin:list`, `plugin:new`, and `plugin:check` (planned since D-041);
+  and whether a plugin manifest that doesn't parse should be listed as
+  broken (as themes and packs are) instead of failing discovery (D-058),
+  so the Plugins screen can show it as the extensions sketch does
+  (D-385).
 - **Requiring components to be registered** (D-266's direction): how
   a template-only component registers without PHP (a JSON file beside
   the template, with its text in the catalog?), and what happens to
@@ -181,9 +185,11 @@ Move each item to `decisions.md` once it's answered.
   The M3 router and `UrlGenerator` assume the site is at the host's root,
   and so does static export: `build --base-url` takes only an origin
   (D-135).
-- **Extension requirements** (D-058): what constraint syntax to support for
-  `plugin:check` and `theme:check`, likely a Composer semver subset (`^`, `~`, comparison
-  operators, `||`).
+- **Theme and icon pack requirements**: plugins' `requires` are
+  enforced with Composer-style constraints since D-385
+  (`VersionConstraint`); whether a theme's `requires` (only a notice in
+  `theme:check` now) should block activating it, and whether packs get
+  `requires` at all.
 
 - **CLI publishing and opcache** (found while writing `docs/`, D-141):
   `publish` from the CLI rewrites the index and compiled caches, but its

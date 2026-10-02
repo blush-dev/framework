@@ -244,7 +244,9 @@ final readonly class JsonSchemas
 					'description' => 'The class name of the plugin\'s service provider.'
 				],
 				'autoload'    => $this->autoload('Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.', true),
-				'requires'    => $this->requires('What the plugin needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other extensions.')
+				'requires'    => $this->requires('What the plugin needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren\'t met doesn\'t run.'),
+				'authors'     => $this->authors('plugin'),
+				'license'     => ['type' => 'string', 'description' => 'How the plugin may be used, as an SPDX identifier such as "MIT". Without it, the license in the composer.json beside this file is used.']
 			]
 		];
 	}
@@ -271,7 +273,8 @@ final readonly class JsonSchemas
 					'type'        => 'string',
 					'pattern'     => self::FOLDER_PATTERN,
 					'description' => 'The folder inside the pack its *.svg files are in, such as "svg". Defaults to the pack\'s own folder. Each {icon}.svg is {namespace}/{icon}.'
-				]
+				],
+				'authors'     => $this->authors('icon pack')
 			]
 		];
 	}

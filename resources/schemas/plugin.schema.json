@@ -66,10 +66,47 @@
 		},
 		"requires": {
 			"type": "object",
-			"description": "What the plugin needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other extensions.",
+			"description": "What the plugin needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren't met doesn't run.",
 			"additionalProperties": {
 				"type": "string"
 			}
+		},
+		"authors": {
+			"type": "array",
+			"description": "Who made the plugin, as composer.json lists authors. Without it, the authors in the composer.json beside this file are used.",
+			"items": {
+				"type": "object",
+				"required": [
+					"name"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"description": "Their name."
+					},
+					"email": {
+						"type": "string",
+						"format": "email",
+						"description": "Their email address."
+					},
+					"homepage": {
+						"type": "string",
+						"format": "uri",
+						"pattern": "^https?://",
+						"description": "Their website."
+					},
+					"role": {
+						"type": "string",
+						"description": "What they did, such as \"Developer\" or \"Designer\"."
+					}
+				}
+			}
+		},
+		"license": {
+			"type": "string",
+			"description": "How the plugin may be used, as an SPDX identifier such as \"MIT\". Without it, the license in the composer.json beside this file is used."
 		}
 	}
 }

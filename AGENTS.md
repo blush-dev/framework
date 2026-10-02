@@ -79,7 +79,11 @@ palette, activating a theme in `user/data/settings.json`, and deleting
 `user/themes` folders, with a details screen for each theme (D-381,
 D-383);
 and components rendering themselves, a theme's template winning
-(D-382).
+(D-382); and, from the extensions sketch
+(`.claude/docs/admin-design/blush-extensions.html`), the Plugins and
+Icon Packs screens: switches saved in `user/data/settings.json`,
+plugins' `requires` enforced at boot, packs that can be turned off,
+deleting, and a details screen for each (D-385).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

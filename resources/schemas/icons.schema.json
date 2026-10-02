@@ -48,6 +48,39 @@
 			"type": "string",
 			"pattern": "^/?[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$",
 			"description": "The folder inside the pack its *.svg files are in, such as \"svg\". Defaults to the pack's own folder. Each {icon}.svg is {namespace}/{icon}."
+		},
+		"authors": {
+			"type": "array",
+			"description": "Who made the icon pack, as composer.json lists authors. Without it, the authors in the composer.json beside this file are used.",
+			"items": {
+				"type": "object",
+				"required": [
+					"name"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"description": "Their name."
+					},
+					"email": {
+						"type": "string",
+						"format": "email",
+						"description": "Their email address."
+					},
+					"homepage": {
+						"type": "string",
+						"format": "uri",
+						"pattern": "^https?://",
+						"description": "Their website."
+					},
+					"role": {
+						"type": "string",
+						"description": "What they did, such as \"Developer\" or \"Designer\"."
+					}
+				}
+			}
 		}
 	}
 }

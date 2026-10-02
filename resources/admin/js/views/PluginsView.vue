@@ -1,52 +1,48 @@
 <script setup lang="ts">
 /**
- * The site's plugins (the design direction's Addons, D-308; one kind of
- * extension, D-378): every installed one, on or off, with what each
- * adds: content types (linked to their screens), components, icons,
- * admin actions, and commands.
+ * Plugins (the design direction's Addons, D-308; drawn as the extensions
+ * sketch in D-385): every installed plugin as a row, by label, with a
+ * switch. Rows, not cards: a plugin has nothing to look at, and the row
+ * holds only what its manifest says. What a plugin registers shows on
+ * the screens it belongs to, not here.
  *
- * Read-only: plugins are installed in `user/plugins` or with Composer
- * and turned off in `config/plugins.php` (D-039), so a notice says
- * where, and a plugin that's off says how to turn it back on.
- * Installing from the admin is planned (D-378); its button is a
- * placeholder.
+ * The switch turns a plugin on or off at once (`usePlugins()`), saved in
+ * `user/data/settings.json` over `config/plugins.php`, and a toast says
+ * so, naming the plugins that started or stopped with it. A plugin
+ * whose requirements aren't met can't be turned on, and says why; so
+ * can't one `config/plugins.php`'s `enabled` list leaves out. **Delete**
+ * removes a folder plugin that's off. A plugin's name, and **Plugin
+ * details** in its menu, open its details screen (`PluginView`).
+ *
+ * Installing from the admin is planned (D-378): **Install Plugin** says
+ * how to install one for now.
  */
 
 import { computed, ref } from 'vue';
-import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import { ApiError, request, type PluginSummary } from '../api';
-import { plural } from '../format';
+import AdminModal from '../components/AdminModal.vue';
+import MenuButton from '../components/MenuButton.vue';
+import ToggleSwitch from '../components/ToggleSwitch.vue';
+import type { PluginSummary } from '../api';
+import { pluginRoute, usePlugins } from '../plugins';
+import { copy } from '../themes';
 
-const plugins = ref<PluginSummary[] | null>(null);
-const error   = ref('');
+const { answer, error, busy, plugins, load, toggle, useConfig, remove: removePlugin } = usePlugins();
+const installing = ref(false);
 
-request<{ plugins: PluginSummary[] }>('GET', '/plugins').then((answer) => {
-	plugins.value = answer.plugins;
-}).catch((caught: unknown) => {
-	error.value = caught instanceof ApiError ? caught.message : 'The plugins couldn\'t be loaded.';
-});
+void load();
 
-const on = computed(() => (plugins.value ?? []).filter((plugin) => plugin.enabled).length);
+const on = computed(() => plugins.value.filter((plugin) => plugin.running).length);
 
-// What a plugin adds, as labeled groups, leaving out the empty ones.
-function groups(plugin: PluginSummary): { label: string; items: string[] }[] {
-	const { components, icons, actions, commands } = plugin.adds;
-
-	return [
-		{ label: 'Components', items: components },
-		{ label: 'Icons', items: icons.map((namespace) => `${namespace}/…`) },
-		{ label: 'Dashboard actions', items: actions },
-		{ label: 'Commands', items: commands }
-	].filter((group) => group.items.length > 0);
+// Why a plugin that isn't running can't be turned on, or `null`.
+function blocked(plugin: PluginSummary): string | null {
+	return plugin.running ? null : plugin.locked ?? plugin.blocked;
 }
 
-function adds(plugin: PluginSummary): boolean {
-	return plugin.adds.types.length > 0 || groups(plugin).length > 0;
-}
-
-function requirements(plugin: PluginSummary): string {
-	return Object.entries(plugin.requires).map(([name, constraint]) => `${name} ${constraint}`).join(', ');
+async function remove(plugin: PluginSummary): Promise<void> {
+	if (await removePlugin(plugin)) {
+		await load();
+	}
 }
 </script>
 
@@ -57,137 +53,303 @@ function requirements(plugin: PluginSummary): string {
 			<p class="page-header__hint">Code that adds content types, components, icons, and actions to the site.</p>
 		</div>
 		<div class="page-header__actions">
-			<button type="button" class="button" disabled aria-describedby="install-note"><AdminIcon name="upload" />Install Plugin</button>
+			<button type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Plugin</button>
 		</div>
 	</header>
 
-	<p id="install-note" class="notice"><span>Installing from here is coming. For now, put plugins in <code>user/plugins</code> or install them with Composer. Every installed plugin is on unless <code>config/plugins.php</code> turns it off. What one adds appears in the screens it belongs to.</span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<section v-if="!error" class="panel" aria-labelledby="plugins-heading" :aria-busy="plugins === null">
-		<header class="panel__header">
-			<h2 id="plugins-heading">Installed</h2>
-			<p v-if="plugins?.length" class="panel__hint">{{ plural(plugins.length, 'plugin') }}, {{ on }} on</p>
-		</header>
+	<div class="count-row">
+		<span>{{ answer ? `${plugins.length} ${plugins.length === 1 ? 'plugin' : 'plugins'} · ${on} on` : 'Loading plugins' }}</span>
+		<span class="count-row__rule" />
+	</div>
 
-		<div v-if="plugins === null" class="panel__body" aria-hidden="true">
-			<span class="skeleton skeleton--heading" /><span class="skeleton" /><span class="skeleton" />
+	<template v-if="answer">
+		<div v-if="plugins.length === 0" class="panel">
+			<div class="empty">
+				<AdminIcon name="plug" />
+				<h3 class="empty__heading">No Plugins Yet</h3>
+				<p class="empty__text">Put one in <code>user/plugins</code>, or install one with Composer (package type <code>blush-plugin</code>).</p>
+			</div>
 		</div>
 
-		<div v-else-if="plugins.length === 0" class="empty">
-			<AdminIcon name="plug" />
-			<h3 class="empty__heading">No Plugins Yet</h3>
-			<p class="empty__text">Put one in <code>user/plugins</code>, or install one with Composer (package type <code>blush-plugin</code>).</p>
-		</div>
-
-		<ul v-else class="packages">
-			<li v-for="plugin in plugins" :key="plugin.name" class="package" :class="{ 'package--off': !plugin.enabled }">
-				<span class="package__mark"><AdminIcon name="plug" /></span>
-				<div class="package__main">
-					<p class="package__title">
-						<span class="package__name">{{ plugin.label }}</span>
-						<span class="package__fact mono">{{ plugin.name }}</span>
-						<span class="package__fact mono">{{ plugin.version }}</span>
-						<span class="package__fact" :class="{ mono: plugin.source === 'local' }">{{ plugin.source === 'local' ? plugin.path : 'Composer' }}</span>
+		<ul v-else class="plugins">
+			<li v-for="plugin in plugins" :key="plugin.name" class="plugin" :class="{ 'is-off': !plugin.running }">
+				<span class="plugin__mark" aria-hidden="true"><AdminIcon name="plug" /></span>
+				<div class="plugin__main">
+					<p class="plugin__name">
+						<RouterLink class="plugin__label" :to="pluginRoute(plugin.name)">{{ plugin.label }}</RouterLink>
+						<span v-if="blocked(plugin)" class="pill pill--warn">Can't turn on</span>
+						<span class="plugin__package mono">{{ plugin.name }} {{ plugin.version }}</span>
 					</p>
-					<p v-if="plugin.description" class="package__description">{{ plugin.description }}</p>
-					<dl v-if="plugin.enabled && adds(plugin)" class="adds">
-						<div v-if="plugin.adds.types.length">
-							<dt>Content types</dt>
-							<dd>
-								<ul class="adds__chips">
-									<li v-for="type in plugin.adds.types" :key="type.name">
-										<RouterLink :to="{ name: 'content-type', params: { name: type.name } }">{{ type.label }}</RouterLink>
-										<span v-if="type.overridden" class="adds__note">redefined in <code>config/content.php</code></span>
-									</li>
-								</ul>
-							</dd>
-						</div>
-						<div v-for="group in groups(plugin)" :key="group.label">
-							<dt>{{ group.label }}</dt>
-							<dd>
-								<ul class="adds__chips">
-									<li v-for="item in group.items" :key="item"><span class="mono">{{ item }}</span></li>
-								</ul>
-							</dd>
-						</div>
-					</dl>
-					<p v-else-if="plugin.enabled" class="package__description">Nothing the admin lists; it may add routes, fields, or code that runs.</p>
-					<p v-else class="package__description">Off in <code>config/plugins.php</code>. Remove it from <code>disabled</code> (or add it to <code>enabled</code>) to turn it on.</p>
-					<p v-if="requirements(plugin)" class="package__fact">Requires <span class="mono">{{ requirements(plugin) }}</span></p>
+					<p v-if="plugin.description" class="plugin__description">{{ plugin.description }}</p>
+					<p v-if="blocked(plugin)" class="plugin__message">
+						<AdminIcon name="triangle-alert" /><span>{{ blocked(plugin) }}</span>
+					</p>
 				</div>
-				<div class="package__end">
-					<span class="pill" :class="{ 'pill--good': plugin.enabled }">{{ plugin.enabled ? 'On' : 'Off' }}</span>
+				<div class="plugin__end">
+					<ToggleSwitch
+						:checked="plugin.running"
+						:label="plugin.label"
+						:locked="blocked(plugin) !== null"
+						:busy="busy === plugin.name"
+						:reason="blocked(plugin)"
+						@change="toggle(plugin, $event)"
+					/>
+					<MenuButton button-class="button button--ghost button--small button--icon" :label="`More actions for ${plugin.label}`" floating>
+						<template #button>
+							<AdminIcon name="ellipsis" />
+						</template>
+						<RouterLink class="menu-item" :to="pluginRoute(plugin.name)"><AdminIcon name="info" />Plugin details</RouterLink>
+						<button type="button" class="menu-item" @click="copy(plugin.path, 'the folder path')"><AdminIcon name="copy" />Copy folder path</button>
+						<template v-if="plugin.deletable">
+							<hr class="menu-rule">
+							<button type="button" class="menu-item menu-item--danger" @click="remove(plugin)"><AdminIcon name="trash-2" />Delete plugin</button>
+						</template>
+					</MenuButton>
 				</div>
 			</li>
 		</ul>
-	</section>
+	</template>
+
+	<ul v-else-if="!error" class="plugins" aria-hidden="true">
+		<li v-for="row in 4" :key="row" class="plugin">
+			<span class="plugin__mark" />
+			<div class="plugin__main">
+				<span class="skeleton skeleton--title" />
+				<span class="skeleton skeleton--wide" />
+			</div>
+		</li>
+	</ul>
+
+	<p v-if="answer" class="notice plugins__note">
+		<span>
+			Plugins live in <code>user/plugins</code> or come from Composer.
+			<template v-if="answer.saved">
+				Which are off was set here, and is saved in <code>user/data/settings.json</code> over <code>config/plugins.php</code>.
+				<button type="button" class="link-button" @click="useConfig">Use <code>config/plugins.php</code>'s list</button>
+			</template>
+			<template v-else>Every installed plugin is on unless <code>config/plugins.php</code> turns it off<template v-if="!answer.config"> (there's no such file yet)</template>; turning one on or off here saves it in <code>user/data/settings.json</code>, over that file.</template>
+			What a plugin adds shows on the screens it belongs to, not here.
+		</span>
+	</p>
+
+	<AdminModal :open="installing" title="Install Plugin" @close="installing = false">
+		<p>A plugin is a folder in <code>user/plugins/</code>. Put one there and it shows up in this list.</p>
+		<p>A plugin published as a package is installed with <code>composer require vendor/plugin</code> instead. Composer keeps it up to date, and it can't be deleted from this screen.</p>
+		<div class="install-drop">
+			<AdminIcon name="upload" />
+			<span>Uploading a plugin's <strong>.zip</strong> is coming.</span>
+			<span class="install-drop__hint">It will be unpacked into <span class="mono">user/plugins/</span>, and stay off until you turn it on.</span>
+		</div>
+		<template #footer>
+			<button type="button" class="button" autofocus @click="installing = false">Close</button>
+			<button type="button" class="button button--primary" disabled>Upload</button>
+		</template>
+	</AdminModal>
 </template>
 
 <style scoped>
-/* Widths as classes: the admin's CSP blocks inline style attributes. */
-.skeleton--heading {
-	width: 40%;
-}
-
-.adds {
-	display: grid;
-	gap: var(--s-2);
-	margin: 0;
-}
-
-.adds > div {
+.count-row {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	gap: 6px var(--s-3);
-}
-
-.adds dt {
-	min-width: 9em;
+	align-items: center;
+	gap: var(--s-3);
+	margin-bottom: var(--s-4);
 	color: var(--fg-3);
-	font-size: var(--text-xs);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
 }
 
-.adds dd {
+.count-row__rule {
 	flex: 1;
-	min-width: 0;
-	margin: 0;
+	height: 1px;
+	background: var(--border);
 }
 
-.adds__chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
+.plugins {
 	margin: 0;
 	padding: 0;
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--r-3);
+	background: var(--surface);
 	list-style: none;
 }
 
-.adds__chips > li {
-	display: inline-flex;
-	align-items: baseline;
-	gap: 6px;
-	padding: 2px 10px;
-	border: 1px solid var(--border);
-	border-radius: 99px;
+.plugin {
+	display: grid;
+	grid-template-columns: 38px minmax(0, 1fr) auto;
+	align-items: start;
+	gap: var(--s-4);
+	padding: var(--s-4) var(--pad-x);
+	border-top: 1px solid var(--border);
+	transition: background .14s ease-out;
+}
+
+.plugin:first-child {
+	border-top: 0;
+}
+
+.plugin:hover {
 	background: var(--surface-2);
+}
+
+.plugin__mark {
+	display: grid;
+	place-items: center;
+	width: 38px;
+	height: 38px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface-2);
+	color: var(--fg-2);
+}
+
+.plugin:hover .plugin__mark {
+	background: var(--surface-3);
+}
+
+.plugin.is-off .plugin__mark,
+.plugin.is-off .plugin__label,
+.plugin.is-off .plugin__description {
+	opacity: .62;
+}
+
+.plugin__main {
+	display: flex;
+	flex-direction: column;
+	gap: var(--s-2);
+	min-width: 0;
+}
+
+.plugin__main > * {
+	margin: 0;
+}
+
+.plugin__name {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-2);
+}
+
+.plugin__label {
+	color: var(--fg);
+	font-family: var(--font-title);
+	font-size: var(--title-size);
+	font-weight: 600;
+	letter-spacing: var(--title-track);
+	text-decoration: none;
+	overflow-wrap: anywhere;
+}
+
+.plugin__label:hover {
+	color: var(--accent);
+}
+
+.plugin__package {
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+}
+
+.plugin__description {
+	max-width: 70ch;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	line-height: 1.5;
+}
+
+/* A problem is said where the switch is, saying what's needed. */
+.plugin__message {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-2);
+	max-width: 70ch;
+	padding: var(--s-3);
+	border-radius: var(--r-1);
+	background: var(--warn-soft);
+	color: var(--warn);
+	font-size: var(--text-xs);
+	line-height: 1.45;
+}
+
+.plugin__message .icon {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	margin-top: 1px;
+}
+
+.plugin__end {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+	padding-top: 2px;
+}
+
+.menu-rule {
+	margin: 5px -1px;
+	border: 0;
+	border-top: 1px solid var(--border);
+}
+
+.skeleton--title {
+	width: 34%;
+	height: 13px;
+}
+
+.skeleton--wide {
+	width: 70%;
+}
+
+.plugins__note {
+	margin-top: var(--s-6);
 	color: var(--fg-2);
 	font-size: var(--text-sm);
 }
 
-.adds__chips a {
-	color: inherit;
-	text-decoration: none;
-}
-
-.adds__chips a:hover {
-	color: var(--fg);
+.link-button {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--accent);
+	font: inherit;
 	text-decoration: underline;
+	text-underline-offset: .15em;
+	cursor: pointer;
 }
 
-.adds__note {
+.install-drop {
+	display: grid;
+	justify-items: center;
+	gap: var(--s-1);
+	margin-top: var(--s-4);
+	padding: var(--s-5);
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--r-2);
 	color: var(--fg-3);
+	font-size: var(--text-sm);
+	text-align: center;
+}
+
+.install-drop__hint {
 	font-size: var(--text-xs);
+}
+
+@media (width <= 640px) {
+	.plugin {
+		grid-template-columns: 30px minmax(0, 1fr);
+	}
+
+	.plugin__mark {
+		width: 30px;
+		height: 30px;
+	}
+
+	.plugin__end {
+		grid-column: 2;
+	}
 }
 </style>

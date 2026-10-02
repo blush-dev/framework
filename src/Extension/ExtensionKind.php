@@ -32,7 +32,7 @@ enum ExtensionKind: string
 	/** Presentation, which may run PHP (D-020). One chain is active. */
 	case Theme = 'theme';
 
-	/** SVG icons in the pack's namespace. Every installed pack is on. */
+	/** SVG icons in the pack's namespace. Many are on at once (D-385). */
 	case IconPack = 'icon-pack';
 
 	/**

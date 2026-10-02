@@ -345,6 +345,13 @@ from each theme's declared palette (`theme.json`'s `preview`),
 **Activate** saving `theme.active` in `user/data/settings.json`, and
 **Delete** for `user/themes` folders the site doesn't use; and its
 theme details screen (D-383).
+Then the Plugins and Icon Packs screens from the extensions sketch
+(D-385, `admin-design/blush-extensions.html`): switches saved in
+`user/data/settings.json` (`plugins.disabled`, `icons.disabled`), with
+plugins' `requires` enforced at boot (other plugins by `vendor/name`)
+and packs that can be turned off (`config/icons.php`); **Delete** for
+folder plugins that are off and folder packs; and a details screen for
+each (a plugin's requirements, a pack's icons).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
@@ -364,8 +371,11 @@ dynamically).
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
   fourth kind on the shared pieces (joining `AdminTheme`, D-317);
   installing from the admin, data-only kinds (icon packs) first, where
-  the Install buttons are placeholders now; and `plugin:list`,
-  `plugin:new`, and `plugin:check`. See `open-questions.md`.
+  the Install buttons are placeholders now; `plugin:list`,
+  `plugin:new`, and `plugin:check` (which could report unmet
+  requirements, D-385); and broken plugin manifests listed instead of
+  failing discovery, as broken themes and packs are. See
+  `open-questions.md`.
 - **Fields API (D-337; paused, D-348: a baseline, with more design
   work to do before building further; phases 1 to 3 done, D-338 to
   D-340; phase 4: media, D-341, and site settings, D-343, done; theme

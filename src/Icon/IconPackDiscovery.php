@@ -16,6 +16,7 @@ namespace Blush\Icon;
 use DirectoryIterator;
 use Throwable;
 use Blush\Core\Paths;
+use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ManifestFile;
@@ -88,6 +89,11 @@ final readonly class IconPackDiscovery
 					if ($data['name'] !== $where) {
 						throw new ExtensionException(sprintf('The icon pack in Composer package "%s" is named "%s"; a Composer icon pack\'s name is its package\'s.', $where, is_string($data['name']) ? $data['name'] : ''));
 					}
+				}
+
+				// A manifest without authors takes its composer.json's (D-384).
+				if (! array_key_exists('authors', $data)) {
+					$data['authors'] = array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::fromComposer($path));
 				}
 
 				$pack = IconPack::fromArray($path, $data, $source);

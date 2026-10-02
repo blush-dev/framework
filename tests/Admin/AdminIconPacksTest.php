@@ -15,10 +15,13 @@ namespace Blush\Tests\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
+use Blush\Admin\IconPackEditController;
 use Blush\Admin\IconPacksController;
 use Blush\Admin\Provenance;
 
 #[CoversClass(IconPacksController::class)]
+#[CoversClass(IconPackEditController::class)]
 #[CoversClass(Provenance::class)]
 final class AdminIconPacksTest extends TestCase
 {
@@ -40,6 +43,7 @@ final class AdminIconPacksTest extends TestCase
 	private function site(array $roles = ['administrator']): void
 	{
 		$this->writeTemporaryFile('user/icons/brands/icons.json', '{"name": "acme/brands", "label": "Brand Logos", "namespace": "brands", "version": "2.0.0", "description": "Logos."}');
+		$this->writeTemporaryFile('user/icons/brands/composer.json', '{"authors": [{"name": "Acme", "role": "Drawing"}]}');
 		$this->writeTemporaryFile('user/icons/brands/lang/en.json', '{"icons": {"github": {"label": "GitHub"}}}');
 
 		foreach (['github', 'mastodon'] as $icon) {
@@ -72,19 +76,85 @@ final class AdminIconPacksTest extends TestCase
 			'namespace'   => 'brands',
 			'version'     => '2.0.0',
 			'description' => 'Logos.',
+			'authors'     => [['name' => 'Acme', 'role' => 'Drawing']],
 			'source'      => 'local',
 			'path'        => 'user/icons/brands',
+			'folder'      => 'user/icons/brands',
+			'enabled'     => true,
+			'deletable'   => true,
 			'count'       => 2,
-			'icons'       => ['brands/github', 'brands/mastodon']
+			'icons'       => [['name' => 'brands/github', 'svg' => self::SVG], ['name' => 'brands/mastodon', 'svg' => self::SVG]]
 		], $packs[1] ?? null);
 
 		$arrows = $packs[0] ?? null;
 		$this->assertIsArray($arrows);
 		$this->assertSame(14, $arrows['count'] ?? null);
-		$this->assertCount(12, is_array($arrows['icons'] ?? null) ? $arrows['icons'] : [], 'Only the first of them are listed.');
-		$this->assertSame(['user/icons/broken'], array_column(is_array($answer['invalid'] ?? null) ? $answer['invalid'] : [], 'where'));
+		$this->assertCount(12, is_array($arrows['icons'] ?? null) ? $arrows['icons'] : [], 'Only the first of them are sent.');
+		$this->assertSame([['where' => 'user/icons/broken', 'reason' => 'The icon pack in ' . $this->temporaryDirectory() . '/user/icons/broken needs a "name": vendor/name, such as "acme/brands".', 'deletable' => true]], $answer['invalid'] ?? null);
+		$this->assertFalse($answer['saved'] ?? null);
 
-		$this->assertSame(2, self::json($this->send('GET', '/counts'))['iconPacks'] ?? null);
+		$core = $answer['core'] ?? null;
+		$this->assertIsArray($core);
+		$this->assertSame('Core', $core['label'] ?? null);
+		$this->assertGreaterThan(12, $core['count'] ?? 0);
+		$icons = is_array($core['icons'] ?? null) ? $core['icons'] : [];
+		$first = is_array($icons[0] ?? null) ? $icons[0] : [];
+		$this->assertCount(12, $icons);
+		$this->assertStringNotContainsString('/', is_string($first['name'] ?? null) ? $first['name'] : '/', 'Core icons go by their names alone.');
+
+		$this->assertSame(4, self::json($this->send('GET', '/counts'))['iconPacks'] ?? null, 'Two packs, the broken one, and the core set.');
+	}
+
+	public function testShowsEveryIconOfAPack(): void
+	{
+		$this->site();
+
+		$pack = self::json($this->send('GET', '/icon-packs/acme/arrows'))['pack'] ?? null;
+		$this->assertIsArray($pack);
+		$this->assertCount(14, is_array($pack['icons'] ?? null) ? $pack['icons'] : []);
+
+		$core = self::json($this->send('GET', '/icon-packs/core'))['core'] ?? null;
+		$this->assertIsArray($core);
+		$this->assertSame($core['count'] ?? null, count(is_array($core['icons'] ?? null) ? $core['icons'] : []));
+
+		$this->assertSame(404, $this->send('GET', '/icon-packs/acme/missing')->getStatusCode());
+	}
+
+	public function testTurnsPacksOnAndOff(): void
+	{
+		$this->site();
+
+		$response = $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['icons' => ['disabled' => ['acme/brands']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
+
+		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
+		$this->app->boot();
+
+		$answer = self::json($this->send('GET', '/icon-packs'));
+		$this->assertTrue($answer['saved'] ?? null);
+		$this->assertSame([true, false], array_column(is_array($answer['packs'] ?? null) ? $answer['packs'] : [], 'enabled'));
+
+		$icons = self::json($this->send('GET', '/icons'))['icons'] ?? null;
+		$this->assertIsArray($icons);
+		$this->assertNull(array_find($icons, static fn (mixed $icon): bool => is_array($icon) && ($icon['name'] ?? null) === 'brands/github'), 'A pack that\'s off adds no icons.');
+
+		$this->assertSame(200, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => true])->getStatusCode());
+		$this->assertSame(['icons' => ['disabled' => []]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
+		$this->assertSame(404, $this->write('PUT', '/icon-packs/acme/missing', ['enabled' => true])->getStatusCode());
+	}
+
+	public function testDeletesPackFolders(): void
+	{
+		$this->site();
+
+		$response = $this->write('DELETE', '/icon-packs/brands');
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['deleted' => 'user/icons/brands'], self::json($response));
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/icons/brands');
+
+		$this->assertSame(200, $this->write('DELETE', '/icon-packs/broken')->getStatusCode(), 'A broken pack can be deleted.');
+		$this->assertSame(404, $this->write('DELETE', '/icon-packs/missing')->getStatusCode());
 	}
 
 	public function testThePickerNamesAPacksIconsByIt(): void
@@ -106,5 +176,18 @@ final class AdminIconPacksTest extends TestCase
 		$this->site(['editor']);
 
 		$this->assertSame(403, $this->send('GET', '/icon-packs')->getStatusCode());
+		$this->assertSame(403, $this->send('GET', '/icon-packs/core')->getStatusCode());
+		$this->assertSame(403, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false])->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/icon-packs/brands')->getStatusCode());
+	}
+
+	/**
+	 * @param array<string, mixed> $data
+	 */
+	private function write(string $method, string $path, array $data = []): ResponseInterface
+	{
+		$token = self::json($this->send('GET', '/session'))['csrfToken'] ?? '';
+
+		return $this->send($method, $path, $data === [] ? '' : (json_encode($data) ?: ''), ['X-CSRF-Token' => is_string($token) ? $token : '']);
 	}
 }

@@ -159,4 +159,26 @@ final class BootstrapTest extends TestCase
 		$this->assertFileDoesNotExist("{$root}/storage/cache/config.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/container.php");
 	}
+
+	public function testCompileKeepsPluginsThatAreOff(): void
+	{
+		$root      = $this->fixtureSite();
+		$bootstrap = $this->bootstrap($root, ['APP_ENV' => 'production']);
+
+		@mkdir("{$root}/user/data", 0777, true);
+		file_put_contents("{$root}/user/data/settings.json", '{"plugins": {"disabled": ["acme/disabled", "fixture/hello"]}}');
+
+		$bootstrap->compile();
+
+		$app = $bootstrap->createApplication();
+		$this->assertFalse($app->container()->make(Plugins::class)->has('fixture/hello'));
+
+		// Turned on in the admin later, it's found in the cache (D-385).
+		unlink("{$root}/user/data/settings.json");
+
+		$app              = $bootstrap->createApplication();
+		$this->autoloader = $app->container()->make(LocalAutoloader::class);
+
+		$this->assertTrue($app->container()->make(Plugins::class)->has('fixture/hello'));
+	}
 }

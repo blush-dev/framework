@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Plugin;
 
+use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
@@ -24,9 +25,13 @@ use Blush\Extension\ExtensionNamespace;
  * plus a service provider (D-041).
  *
  * `requires` maps a requirement to a version constraint, Composer style:
- * `php`, `blush`, `ext-{name}` for PHP extensions, and other extensions by
- * name. It's recorded now and checked by `plugin:check` and `doctor`
- * later.
+ * `php`, `blush`, `ext-{name}` for PHP extensions, and other plugins by
+ * name (`vendor/name`). A plugin whose requirements aren't met doesn't
+ * run (D-385, `PluginRequirements`).
+ *
+ * `authors` (D-384's shape) and `license` (a string, `MIT`) say who made
+ * it and how it may be used; the finders fill either from `composer.json`
+ * when the manifest leaves it out.
  */
 final readonly class PluginManifest
 {
@@ -39,6 +44,7 @@ final readonly class PluginManifest
 	 * @param string                $provider Fully qualified class name of the plugin's service provider.
 	 * @param array<string, string> $autoload PSR-4 namespace prefix => directory relative to `$path`.
 	 * @param array<string, string> $requires Requirement => version constraint.
+	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 * @throws ExtensionException
 	 */
 	public function __construct(
@@ -51,7 +57,9 @@ final readonly class PluginManifest
 		public string $version = '0.0.0',
 		public string $description = '',
 		public array $autoload = [],
-		public array $requires = []
+		public array $requires = [],
+		public array $authors = [],
+		public string $license = ''
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf(
@@ -122,6 +130,12 @@ final readonly class PluginManifest
 	{
 		$source = $data['source'] ?? null;
 
+		try {
+			$authors = ExtensionAuthor::list($data['authors'] ?? []);
+		} catch (ExtensionException $error) {
+			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
+		}
+
 		return new self(
 			name: self::string($data, 'name'),
 			label: self::string($data, 'label'),
@@ -134,7 +148,9 @@ final readonly class PluginManifest
 			version: self::string($data, 'version', '0.0.0'),
 			description: self::string($data, 'description', ''),
 			autoload: self::map($data, 'autoload'),
-			requires: self::map($data, 'requires')
+			requires: self::map($data, 'requires'),
+			authors: $authors,
+			license: self::string($data, 'license', '')
 		);
 	}
 
@@ -155,7 +171,9 @@ final readonly class PluginManifest
 			'version'     => $this->version,
 			'description' => $this->description,
 			'autoload'    => $this->autoload,
-			'requires'    => $this->requires
+			'requires'    => $this->requires,
+			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
+			'license'     => $this->license
 		];
 	}
 

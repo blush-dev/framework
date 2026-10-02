@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Icon;
 
+use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
@@ -32,13 +33,16 @@ use Blush\Extension\ExtensionNamespace;
  *     }
  *
  * Each `{icon}.svg` is `{namespace}/{icon}` (`brands/github`), its label
- * from the pack's `lang/` catalog (`icons.{icon}.label`).
+ * from the pack's `lang/` catalog (`icons.{icon}.label`). Its `authors`
+ * are in D-384's shape, from its `composer.json` when the manifest has
+ * none (D-385).
  */
 final readonly class IconPack
 {
 	/**
 	 * @param string $path   The pack's absolute folder.
 	 * @param string $folder The folder its SVGs are in, relative to `$path` (`''` for the pack's own).
+	 * @param list<ExtensionAuthor> $authors Who made it.
 	 * @throws ExtensionException
 	 */
 	public function __construct(
@@ -49,7 +53,8 @@ final readonly class IconPack
 		public IconPackSource $source = IconPackSource::Local,
 		public string $version = '',
 		public string $description = '',
-		public string $folder = ''
+		public string $folder = '',
+		public array $authors = []
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf('The icon pack in %s needs a "name": vendor/name, such as "acme/brands".', $path));
@@ -86,6 +91,12 @@ final readonly class IconPack
 			}
 		}
 
+		try {
+			$authors = ExtensionAuthor::list($data['authors'] ?? []);
+		} catch (ExtensionException $error) {
+			throw new ExtensionException(sprintf('The icon pack in %s: %s', $path, $error->getMessage()), previous: $error);
+		}
+
 		/** @var array<string, string> $data Checked above. */
 		return new self(
 			name: $data['name'] ?? '',
@@ -95,7 +106,8 @@ final readonly class IconPack
 			source: $source,
 			version: $data['version'] ?? '',
 			description: $data['description'] ?? '',
-			folder: trim($data['folder'] ?? '', '/')
+			folder: trim($data['folder'] ?? '', '/'),
+			authors: $authors
 		);
 	}
 
@@ -103,7 +115,7 @@ final readonly class IconPack
 	 * Returns what the cache stores, as `fromArray()` (with the path and
 	 * source) reads it back.
 	 *
-	 * @return array{path: string, source: string, data: array<string, string>}
+	 * @return array{path: string, source: string, data: array<string, string|list<array<string, string>>>}
 	 */
 	public function toArray(): array
 	{
@@ -116,7 +128,8 @@ final readonly class IconPack
 				'namespace'   => $this->namespace,
 				'version'     => $this->version,
 				'description' => $this->description,
-				'folder'      => $this->folder
+				'folder'      => $this->folder,
+				'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors)
 			]
 		];
 	}

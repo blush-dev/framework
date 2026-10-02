@@ -7318,7 +7318,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-308: The Extensions screen
 - **Date:** 2026-09-30
-- **Status:** It's the Plugins screen (`/plugins`, `GET plugins`), attributing by namespace, since D-379.
+- **Status:** It's the Plugins screen (`/plugins`, `GET plugins`), attributing by namespace, since D-379; drawn as the extensions sketch, with a switch and no list of what each plugin adds, since D-385.
 - **Decision:** The second stubbed Config screen (D-241), read-only as
   D-306 settled.
   - **`GET extensions`** (`ExtensionsController`, `site.settings`):
@@ -10400,7 +10400,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-378: Extensions are a type system: plugins, themes, icon packs, and admin themes
 - **Date:** 2026-10-02
 - **Status:** Built (plugins, themes, and icon packs) by D-379; admin
-  themes and installing from the admin are still planned. Supersedes
+  themes and installing from the admin are still planned. Icon packs
+  can be turned off since D-385. Supersedes
   D-041's naming (its
   "extensions" are now **plugins**) and D-171's rule for where a theme's
   or extension's component namespace comes from; amends D-058 and
@@ -10458,6 +10459,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-379: Extension kinds, built
 - **Date:** 2026-10-02
+- **Status:** Plugins and icon packs can be turned on and off and deleted
+  in the admin, plugins' `requires` are enforced, and icon packs can be
+  turned off (`config/icons.php`), since D-385.
 - **Decision:** Implements D-378 for plugins, themes, and icon packs,
   and settles the details `open-questions.md` listed.
   - **Themes are referred to by name** (the author's call): config's
@@ -10707,6 +10711,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-384: Themes list their authors, as composer.json does
 - **Date:** 2026-10-02
+- **Status:** Plugins and icon packs take `authors` too since D-385.
 - **Decision:** `theme.json` takes `authors`, in `composer.json`'s shape
   (the author's call): a list of objects, each with a `name`, and an
   optional `email`, `homepage`, and `role`.
@@ -10734,3 +10739,100 @@ decision, add a new entry that supersedes it and mark the old one
   author too.
 - **Why:** the author asked for it, matching composer.json so a theme
   that's also a package says it once.
+
+### D-385: The Plugins and Icon Packs screens from the extensions sketch
+- **Date:** 2026-10-02
+- **Decision:** Builds the author's extensions sketch
+  (`admin-design/blush-extensions.html`) for plugins and icon packs; its
+  themes part is already built (D-381, D-383), and the author asked to
+  leave Themes as it is. Amends D-308 and D-379 (both screens were
+  read-only), D-378 ("every installed pack is on"), and D-384 (plugins
+  and packs had no authors). The author chose each part Blush didn't
+  have:
+  - **Plugins turn on and off in `user/data/settings.json`**
+    (`Setting::Plugins`, `plugins.disabled`, on no Settings screen),
+    over `config/plugins.php`'s `disabled`, as Activate does for themes
+    (D-381); D-039 holds. `PUT plugins/{vendor}/{name}` with
+    `{"enabled"}` saves it, refusing a plugin `config/plugins.php`'s
+    `enabled` list leaves out (`409`) or whose requirements aren't met
+    (`422`), and answers which other plugins `started` or `stopped`
+    with it. It needs a refresh, since providers run at boot.
+  - **Requirements are enforced at boot** (the author's call), and
+    other plugins are required by their `vendor/name` in `requires`
+    (the author asked that `plugin.json` can name required plugins;
+    `requires` already mapped names to constraints, so a `vendor/name`
+    key is a plugin). `PluginRequirements` checks `blush`
+    (`Framework::VERSION`), `php`, `ext-{name}` (loaded, at a fitting
+    version), and plugins (installed at a fitting version, and
+    running); anything else isn't met. `Plugins::enabled()` runs only
+    the enabled plugins whose requirements are met, repeating until
+    none is left out (so turning one off stops what needs it, all the
+    way down), and keeps the rest with what they don't meet
+    (`unmet()`). Providers register a plugin's requirements before it.
+    Constraints are Composer's (`VersionConstraint`: `^`, `~`,
+    comparisons, wildcards, hyphen ranges, `||`), ignoring stability, so
+    `2.0.0-dev` satisfies `^2.0`; there's no Composer dependency.
+  - **The plugin cache holds every installed plugin** (`compile()`
+    wrote only the enabled ones), so one turned on in the admin is found
+    on a compiled site. `Plugins::installed()` lists them.
+  - **Icon packs can be turned off** (the author's call):
+    `IconConfig` (`config/icons.php`, `disabled`) and
+    `Setting::IconPacks` (`icons.disabled`) over it. `IconPacks` keeps
+    every pack, with `enabled()` and `isEnabled()`; only packs that are
+    on seed `IconRegistry` and the translator. `PUT
+    icon-packs/{vendor}/{name}`. Blush's own icons are a locked **Core**
+    card, always on. Only packs are listed, not icons themes and plugins
+    carry (the author's note).
+  - **Delete:** `DELETE plugins/{folder}` removes a folder plugin from
+    `user/plugins` only when it isn't running (the author's call) and
+    `config/plugins.php` doesn't turn it on by name (the site would fail
+    without it); `DELETE icon-packs/{folder}` removes a folder pack, or a
+    broken one, from `user/icons`. Each clears its cache and drops the
+    name from the saved list.
+  - **Manifests:** plugins take `authors` (D-384's shape) and `license`
+    (a string); packs take `authors`. Either comes from the
+    `composer.json` beside the manifest when it's left out
+    (`ComposerJson`), or, for a Composer plugin, its package entry; a
+    list of licenses reads "MIT or GPL-2.0-or-later". The schemas have
+    them.
+  - **The API:** `GET plugins` gives each plugin's `authors`,
+    `license`, `folder`, `enabled`, `running`, `requirements` (each
+    checked: `{"name", "constraint", "kind", "met", "note", "label"}`,
+    as if turned on for one that's off), `blocked` (why it can't run),
+    `requiredBy`, `locked`, and `deletable`, plus `saved`; it no longer
+    lists what each plugin `adds` (the sketch: what a plugin registers
+    shows on its own screens, and one that's off registers nothing).
+    `GET icon-packs` gives each pack's `authors`, `folder`, `enabled`,
+    `deletable`, and its first twelve icons as `{"name", "svg"}`, the
+    `core` set, broken packs' `deletable`, and `saved`; `GET
+    icon-packs/{vendor}/{name}` and `GET icon-packs/core` send every
+    icon. The nav count for Icon Packs includes broken packs and the core
+    set, as the screen lists them.
+  - **The screens:** Plugins as rows with a switch (`ToggleSwitch`, a
+    checkbox with the `switch` role and an On/Off word), a menu
+    (**Plugin details**, **Copy folder path**, **Delete plugin**), why a
+    plugin can't be turned on, and a toast naming the plugins that
+    started or stopped with it; a plugin's details screen
+    (`/plugins/{vendor}/{name}`) with Details and Requires panels.
+    Icon Packs as cards of two rows of six glyphs (CSS masks, so nothing
+    in a pack's SVG runs) with a switch, then Core, then broken packs; a
+    pack's details screen (`/icon-packs/{vendor}/{name}`, and
+    `/icon-packs/core`) with a filterable browser that copies an icon's
+    reference. **Install Plugin** and **Install Icon Pack** open the
+    sketch's modal, uploading marked as coming. Departures are in
+    `admin-design/departures.md`.
+- **Checked:** `composer check` (1,301 tests; new
+  `VersionConstraintTest`, `PluginRequirementsTest`, the rewritten
+  `AdminPluginsTest` and `AdminIconPacksTest`, and `BootstrapTest` for
+  a compiled site finding a plugin turned on later); `npm run
+  admin:build`; on the jtcom trial in headless Chrome with a throwaway
+  administrator, two throwaway plugins (one needing Word Count, one
+  needing Blush 3), a throwaway pack of twenty icons, and a broken one:
+  both lists and every details screen, turning Word Count off (Word
+  Report stopped with it) and on, turning Weather off and on, deleting
+  a plugin and a broken pack, the install modal, the icon filter and
+  copying, dark mode, and phone width (all removed after, with the
+  account).
+- **Why:** the author asked for the sketch's plugin and icon pack
+  screens, and chose settings.json, enforcing requirements at boot,
+  switching packs off, and deleting only plugins that are off.

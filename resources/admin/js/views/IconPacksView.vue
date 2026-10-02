@@ -1,28 +1,62 @@
 <script setup lang="ts">
 /**
- * The site's icon packs (D-378): SVG icons in a namespace of their own,
- * one kind of extension, with no code. Every installed pack is on, so
- * each row shows what it is, how many icons it has, and the first of
- * their names; broken packs follow, with the reason.
+ * Icon Packs (D-378; drawn as the extensions sketch in D-385): every
+ * installed pack as a card, by label, then Blush's own core set, then
+ * broken packs. Cards, because a pack's icons are its preview: each shows
+ * the same two rows of six, padded with empty cells when a pack is short
+ * and ending in a count when it's long. Only packs are listed, not the
+ * icons themes and plugins carry.
  *
- * Read-only: packs are installed in `user/icons` or with Composer.
+ * A pack's switch turns it on or off at once (`useIconPacks()`), saved in
+ * `user/data/settings.json` over `config/icons.php`; a pack that's off
+ * adds no icons. The core set is always on. **Delete** removes a folder
+ * pack (or a broken one) from `user/icons`. A pack's name, and **Icon
+ * pack details** in its menu, open its details screen (`IconPackView`).
+ *
  * Installing from the admin is planned (packs are data, so they're the
- * first kind it will take); its button is a placeholder.
+ * first kind it will take): **Install Icon Pack** says how for now.
  */
 
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
-import { ApiError, request, type IconPacks } from '../api';
-import { plural } from '../format';
+import AdminModal from '../components/AdminModal.vue';
+import MenuButton from '../components/MenuButton.vue';
+import ToggleSwitch from '../components/ToggleSwitch.vue';
+import type { CoreIcons, IconPackSummary, PackIcon } from '../api';
+import { iconPackRoute, packIconMask, useIconPacks } from '../icon-packs';
+import { copy, folderName } from '../themes';
 
-const packs = ref<IconPacks | null>(null);
-const error = ref('');
+const { answer, error, busy, load, toggle: togglePack, useConfig, remove: removePack } = useIconPacks();
+const installing = ref(false);
 
-request<IconPacks>('GET', '/icon-packs').then((answer) => {
-	packs.value = answer;
-}).catch((caught: unknown) => {
-	error.value = caught instanceof ApiError ? caught.message : 'The icon packs couldn\'t be loaded.';
-});
+void load();
+
+// The cells a card shows.
+const CELLS = 12;
+
+const packs   = computed(() => answer.value?.packs ?? []);
+const count   = computed(() => packs.value.length + (answer.value?.invalid.length ?? 0) + (answer.value ? 1 : 0));
+const showing = computed(() => (answer.value?.core.count ?? 0) + packs.value.filter((pack) => pack.enabled).reduce((total, pack) => total + pack.count, 0));
+
+// A card's cells: its first icons, the rest as a count, then blanks.
+function cells(pack: IconPackSummary | CoreIcons): { icons: PackIcon[]; more: number; blanks: number } {
+	const over  = pack.count > CELLS;
+	const icons = pack.icons.slice(0, over ? CELLS - 1 : CELLS);
+
+	return { icons, more: over ? pack.count - icons.length : 0, blanks: CELLS - icons.length - (over ? 1 : 0) };
+}
+
+async function toggle(pack: IconPackSummary, on: boolean): Promise<void> {
+	if (await togglePack(pack, on)) {
+		await load();
+	}
+}
+
+async function remove(label: string, folder: string, pack: IconPackSummary | null = null): Promise<void> {
+	if (await removePack(label, folder, pack)) {
+		await load();
+	}
+}
 </script>
 
 <template>
@@ -32,103 +66,411 @@ request<IconPacks>('GET', '/icon-packs').then((answer) => {
 			<p class="page-header__hint">Sets of icons for content, menus, and buttons, each in a namespace of its own.</p>
 		</div>
 		<div class="page-header__actions">
-			<button type="button" class="button" disabled aria-describedby="install-note"><AdminIcon name="upload" />Install Icon Pack</button>
+			<button type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Icon Pack</button>
 		</div>
 	</header>
 
-	<p id="install-note" class="notice"><span>Installing from here is coming. For now, put icon packs in <code>user/icons</code> or install them with Composer. Every installed pack is on, and its icons appear in the icon inserter.</span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<template v-if="!error">
-		<section class="panel" aria-labelledby="packs-heading" :aria-busy="packs === null">
-			<header class="panel__header">
-				<h2 id="packs-heading">Installed</h2>
-				<p v-if="packs?.packs.length" class="panel__hint">{{ plural(packs.packs.length, 'icon pack') }}</p>
-			</header>
+	<div class="count-row">
+		<span>{{ answer ? `${count} ${count === 1 ? 'pack' : 'packs'} · ${showing} icons available` : 'Loading icon packs' }}</span>
+		<span class="count-row__rule" />
+	</div>
 
-			<div v-if="packs === null" class="panel__body" aria-hidden="true">
-				<span class="skeleton skeleton--heading" /><span class="skeleton" /><span class="skeleton" />
+	<div v-if="answer" class="packs">
+		<article v-for="pack in packs" :key="pack.name" class="pack" :class="{ 'is-off': !pack.enabled }">
+			<div class="pack__glyphs" aria-hidden="true">
+				<span v-for="icon in cells(pack).icons" :key="icon.name"><span v-if="icon.svg" class="pack__glyph" :style="{ maskImage: packIconMask(icon) }" /></span>
+				<span v-if="cells(pack).more"><span class="pack__more">+{{ cells(pack).more }}</span></span>
+				<span v-for="blank in cells(pack).blanks" :key="`blank-${blank}`" />
 			</div>
-
-			<div v-else-if="packs.packs.length === 0" class="empty">
-				<AdminIcon name="shapes" />
-				<h3 class="empty__heading">No Icon Packs Yet</h3>
-				<p class="empty__text">Put one in <code>user/icons</code>, with an <code>icons.json</code>, or install one with Composer (package type <code>blush-icons</code>).</p>
+			<div class="pack__body">
+				<p class="pack__name">
+					<RouterLink class="pack__label" :to="iconPackRoute(pack.name)">{{ pack.label }}</RouterLink>
+					<span v-if="pack.version" class="pack__version mono">{{ pack.version }}</span>
+				</p>
+				<p v-if="pack.description" class="pack__description">{{ pack.description }}</p>
+				<ul class="pack__facts">
+					<li v-if="pack.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ pack.name }}</span></span></li>
+					<li v-else><AdminIcon name="folder" /><span class="mono">{{ pack.path }}</span></li>
+					<li><AdminIcon name="shapes" /><span>{{ pack.count }} {{ pack.count === 1 ? 'icon' : 'icons' }} in <span class="mono">{{ pack.namespace }}/</span></span></li>
+				</ul>
 			</div>
+			<div class="pack__foot">
+				<ToggleSwitch :checked="pack.enabled" :label="pack.label" :busy="busy === pack.name" @change="toggle(pack, $event)" />
+				<MenuButton class="pack__more-actions" button-class="button button--ghost button--small button--icon" :label="`More actions for ${pack.label}`" floating>
+					<template #button>
+						<AdminIcon name="ellipsis" />
+					</template>
+					<RouterLink class="menu-item" :to="iconPackRoute(pack.name)"><AdminIcon name="info" />Icon pack details</RouterLink>
+					<button type="button" class="menu-item" @click="copy(pack.path, 'the folder path')"><AdminIcon name="copy" />Copy folder path</button>
+					<template v-if="pack.deletable && pack.folder">
+						<hr class="menu-rule">
+						<button type="button" class="menu-item menu-item--danger" @click="remove(pack.label, pack.folder, pack)"><AdminIcon name="trash-2" />Delete icon pack</button>
+					</template>
+				</MenuButton>
+			</div>
+		</article>
 
-			<ul v-else class="packages">
-				<li v-for="pack in packs.packs" :key="pack.name" class="package">
-					<span class="package__mark"><AdminIcon name="shapes" /></span>
-					<div class="package__main">
-						<p class="package__title">
-							<span class="package__name">{{ pack.label }}</span>
-							<span class="package__fact mono">{{ pack.name }}</span>
-							<span v-if="pack.version" class="package__fact mono">{{ pack.version }}</span>
-							<span class="package__fact" :class="{ mono: pack.source === 'local' }">{{ pack.source === 'local' ? pack.path : 'Composer' }}</span>
-						</p>
-						<p v-if="pack.description" class="package__description">{{ pack.description }}</p>
-						<p class="package__description">{{ plural(pack.count, 'icon') }} in <span class="mono">{{ pack.namespace }}/…</span></p>
-						<ul v-if="pack.icons.length" class="pack__icons">
-							<li v-for="icon in pack.icons" :key="icon"><span class="mono">{{ icon }}</span></li>
-							<li v-if="pack.count > pack.icons.length" class="pack__more">and {{ pack.count - pack.icons.length }} more</li>
-						</ul>
-					</div>
-					<div class="package__end">
-						<span class="pill pill--good">On</span>
-					</div>
-				</li>
-			</ul>
-		</section>
+		<article class="pack">
+			<div class="pack__glyphs" aria-hidden="true">
+				<span v-for="icon in cells(answer.core).icons" :key="icon.name"><span v-if="icon.svg" class="pack__glyph" :style="{ maskImage: packIconMask(icon) }" /></span>
+				<span v-if="cells(answer.core).more"><span class="pack__more">+{{ cells(answer.core).more }}</span></span>
+				<span v-for="blank in cells(answer.core).blanks" :key="`blank-${blank}`" />
+			</div>
+			<div class="pack__body">
+				<p class="pack__name">
+					<RouterLink class="pack__label" :to="{ name: 'icon-pack-core' }">{{ answer.core.label }}</RouterLink>
+					<span class="pill">Built in</span>
+					<span class="pack__version mono">{{ answer.core.version }}</span>
+				</p>
+				<p class="pack__description">Blush's own icons: always on, and always available to content.</p>
+				<ul class="pack__facts">
+					<li><AdminIcon name="package" />Ships with Blush</li>
+					<li><AdminIcon name="shapes" /><span>{{ answer.core.count }} icons, by name alone</span></li>
+				</ul>
+			</div>
+			<div class="pack__foot">
+				<ToggleSwitch :checked="true" :label="answer.core.label" locked reason="The core set is always on." />
+				<RouterLink class="button button--ghost button--small pack__more-actions" :to="{ name: 'icon-pack-core' }">Details</RouterLink>
+			</div>
+		</article>
 
-		<section v-if="packs?.invalid.length" class="panel" aria-labelledby="invalid-heading">
-			<header class="panel__header">
-				<h2 id="invalid-heading">Can't Be Used</h2>
-				<p class="panel__hint">Installed, with a broken manifest</p>
-			</header>
-			<ul class="packages">
-				<li v-for="pack in packs.invalid" :key="pack.where" class="package">
-					<span class="package__mark"><AdminIcon name="triangle-alert" /></span>
-					<div class="package__main">
-						<p class="package__title"><span class="package__name mono">{{ pack.where }}</span></p>
-						<p class="package__description">{{ pack.reason }}</p>
-					</div>
-				</li>
-			</ul>
-		</section>
-	</template>
+		<article v-for="pack in answer.invalid" :key="pack.where" class="pack">
+			<div class="pack__broken"><AdminIcon name="triangle-alert" /><span>No icons</span></div>
+			<div class="pack__body">
+				<p class="pack__name">
+					<span class="pack__label mono">{{ pack.where }}</span>
+					<span class="pill pill--warn">Can't be used</span>
+				</p>
+				<p class="pack__message">
+					<AdminIcon name="triangle-alert" /><span>{{ pack.reason }} Its icons can't be used until that's fixed.</span>
+				</p>
+			</div>
+			<div v-if="pack.deletable" class="pack__foot">
+				<MenuButton class="pack__more-actions" button-class="button button--ghost button--small button--icon" :label="`More actions for ${pack.where}`" floating>
+					<template #button>
+						<AdminIcon name="ellipsis" />
+					</template>
+					<button type="button" class="menu-item" @click="copy(pack.where, 'the folder path')"><AdminIcon name="copy" />Copy folder path</button>
+					<hr class="menu-rule">
+					<button type="button" class="menu-item menu-item--danger" @click="remove(folderName(pack.where), pack.where)"><AdminIcon name="trash-2" />Delete icon pack</button>
+				</MenuButton>
+			</div>
+		</article>
+	</div>
+
+	<div v-else-if="!error" class="packs" aria-hidden="true">
+		<div v-for="card in 3" :key="card" class="pack">
+			<div class="pack__placeholder" />
+			<div class="pack__body">
+				<span class="skeleton skeleton--title" />
+				<span class="skeleton skeleton--wide" />
+				<span class="skeleton skeleton--half" />
+			</div>
+		</div>
+	</div>
+
+	<p v-if="answer" class="notice packs__note">
+		<span>
+			Icon packs live in <code>user/icons</code> or come from Composer. An icon is used as <code>pack/name</code> wherever content, a menu, or a button takes one; the namespace is what lets two packs use the same name.
+			<template v-if="answer.saved">
+				Which are off was set here, and is saved in <code>user/data/settings.json</code> over <code>config/icons.php</code>.
+				<button type="button" class="link-button" @click="useConfig">Use <code>config/icons.php</code>'s list</button>
+			</template>
+			<template v-else>Every installed pack is on unless <code>config/icons.php</code> turns it off<template v-if="!answer.config"> (there's no such file yet)</template>; turning one on or off here saves it in <code>user/data/settings.json</code>, over that file.</template>
+		</span>
+	</p>
+
+	<AdminModal :open="installing" title="Install Icon Pack" @close="installing = false">
+		<p>An icon pack is a folder in <code>user/icons/</code>, with an <code>icons.json</code>. Put one there and it shows up in this list.</p>
+		<p>A pack published as a package is installed with <code>composer require vendor/pack</code> instead. Composer keeps it up to date, and it can't be deleted from this screen.</p>
+		<div class="install-drop">
+			<AdminIcon name="upload" />
+			<span>Uploading a pack's <strong>.zip</strong> is coming.</span>
+			<span class="install-drop__hint">It will be unpacked into <span class="mono">user/icons/</span>. Its namespace comes from the pack, so two packs can use the same icon name.</span>
+		</div>
+		<template #footer>
+			<button type="button" class="button" autofocus @click="installing = false">Close</button>
+			<button type="button" class="button button--primary" disabled>Upload</button>
+		</template>
+	</AdminModal>
 </template>
 
 <style scoped>
-/* Widths as classes: the admin's CSP blocks inline style attributes. */
-.skeleton--heading {
-	width: 40%;
+.count-row {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	margin-bottom: var(--s-4);
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
 }
 
-.panel + .panel {
-	margin-top: var(--s-4);
+.count-row__rule {
+	flex: 1;
+	height: 1px;
+	background: var(--border);
 }
 
-.pack__icons {
+.packs {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+	gap: var(--s-4);
+}
+
+.pack {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--r-3);
+	background: var(--surface);
+	box-shadow: var(--shadow-1);
+	transition: border-color .14s ease-out;
+}
+
+.pack:hover {
+	border-color: var(--border-strong);
+}
+
+/* The same two rows of six on every card. */
+.pack__glyphs {
+	display: grid;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 1px;
+	border-bottom: 1px solid var(--border);
+	background: var(--border);
+}
+
+.pack__glyphs > span {
+	display: grid;
+	place-items: center;
+	aspect-ratio: 1;
+	background: var(--surface-2);
+	color: var(--fg-2);
+}
+
+.pack.is-off .pack__glyphs > span {
+	color: var(--fg-3);
+}
+
+.pack__glyph {
+	width: 20px;
+	height: 20px;
+	background: currentColor;
+	mask-position: center;
+	mask-repeat: no-repeat;
+	mask-size: contain;
+}
+
+.pack__more {
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-2xs);
+}
+
+.pack__placeholder,
+.pack__broken {
+	aspect-ratio: 3 / 1;
+	border-bottom: 1px solid var(--border);
+	background: var(--surface-2);
+}
+
+.pack__broken {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--s-2);
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.pack__broken .icon {
+	width: 16px;
+	height: 16px;
+}
+
+.pack__body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--s-2);
+	padding: var(--s-4) var(--pad-x) var(--s-3);
+}
+
+.pack__name {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	align-items: center;
+	gap: var(--s-2);
 	margin: 0;
+}
+
+.pack__label {
+	min-width: 0;
+	color: var(--fg);
+	font-family: var(--font-title);
+	font-size: var(--title-size);
+	font-weight: 600;
+	letter-spacing: var(--title-track);
+	overflow-wrap: anywhere;
+}
+
+.pack__label:any-link {
+	text-decoration: none;
+}
+
+.pack__label:any-link:hover {
+	color: var(--accent);
+}
+
+.pack__label.mono {
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+}
+
+.pack.is-off .pack__label,
+.pack.is-off .pack__description {
+	opacity: .62;
+}
+
+.pack__version {
+	margin-left: auto;
+	padding-left: var(--s-2);
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+}
+
+.pack__description {
+	margin: 0;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	line-height: 1.5;
+}
+
+.pack__facts {
+	display: grid;
+	gap: 5px;
+	margin: var(--s-1) 0 0;
 	padding: 0;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
 	list-style: none;
 }
 
-.pack__icons > li {
-	padding: 2px 10px;
-	border: 1px solid var(--border);
-	border-radius: 99px;
-	background: var(--surface-2);
+.pack__facts li {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+	min-width: 0;
+}
+
+.pack__facts .icon {
+	flex: none;
+	width: 13px;
+	height: 13px;
+}
+
+.pack__facts .mono {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--fg-2);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.pack__message {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-2);
+	margin: var(--s-2) 0 0;
+	padding: var(--s-3);
+	border-radius: var(--r-1);
+	background: var(--warn-soft);
+	color: var(--warn);
+	font-size: var(--text-xs);
+	line-height: 1.45;
+}
+
+.pack__message .icon {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	margin-top: 1px;
+}
+
+.pack__foot {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+	padding: var(--s-3) var(--pad-x);
+	border-top: 1px solid var(--border);
+}
+
+.pack__more-actions {
+	margin-left: auto;
+}
+
+.menu-rule {
+	margin: 5px -1px;
+	border: 0;
+	border-top: 1px solid var(--border);
+}
+
+.skeleton--title {
+	width: 48%;
+	height: 14px;
+}
+
+.skeleton--wide {
+	width: 88%;
+}
+
+.skeleton--half {
+	width: 64%;
+}
+
+.packs__note {
+	margin-top: var(--s-6);
 	color: var(--fg-2);
 	font-size: var(--text-sm);
 }
 
-.pack__icons > .pack__more {
-	border-color: transparent;
+.link-button {
+	padding: 0;
+	border: 0;
 	background: none;
+	color: var(--accent);
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: .15em;
+	cursor: pointer;
+}
+
+.install-drop {
+	display: grid;
+	justify-items: center;
+	gap: var(--s-1);
+	margin-top: var(--s-4);
+	padding: var(--s-5);
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--r-2);
 	color: var(--fg-3);
+	font-size: var(--text-sm);
+	text-align: center;
+}
+
+.install-drop__hint {
+	font-size: var(--text-xs);
+}
+
+@media (width <= 640px) {
+	.pack__glyphs {
+		grid-template-columns: repeat(4, 1fr);
+	}
 }
 </style>

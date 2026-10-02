@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Plugin;
 
 use Override;
+use Blush\Extension\ComposerJson;
+use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ManifestFile;
@@ -74,6 +76,15 @@ final readonly class LocalPluginFinder implements PluginFinder
 	{
 		$data     = ManifestFile::read($file);
 		$autoload = is_array($data['autoload'] ?? null) ? $data['autoload'] : [];
+
+		// What the manifest leaves out, its composer.json may say.
+		if (! array_key_exists('authors', $data) || ! array_key_exists('license', $data)) {
+			$composer = ComposerJson::read(dirname($file));
+			$data    += [
+				'authors' => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($composer['authors'] ?? [])),
+				'license' => ComposerJson::license($composer['license'] ?? null)
+			];
+		}
 
 		try {
 			return PluginManifest::fromArray([

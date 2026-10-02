@@ -48,7 +48,8 @@ use Blush\Theme\Themes;
  * - `contentTypes`, `fieldSets`, `themes`, `plugins`, and `iconPacks`
  *   (installed), with `site.settings` (`themes` since D-372, counting
  *   broken ones since D-381, as the Themes screen lists them;
- *   `iconPacks` since D-378).
+ *   `iconPacks` since D-378, counting broken ones and the core set since
+ *   D-385, as the Icon Packs screen lists them).
  *
  * A count the account may not see is left out.
  */
@@ -107,7 +108,7 @@ final readonly class CountsController
 			$counts['contentTypes'] = count($this->types->all());
 			$counts['fieldSets']    = count($this->types->sets->all());
 			$counts['themes']       = count($this->themes->all()) + count($this->themes->invalid());
-			$counts['iconPacks']    = count($this->iconPacks->all());
+			$counts['iconPacks']    = count($this->iconPacks->all()) + count($this->iconPacks->invalid()) + 1;
 
 			try {
 				$counts['plugins'] = count(PluginDiscovery::forPaths($this->paths)->discover());

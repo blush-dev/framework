@@ -12,9 +12,10 @@ to change.
 
 A few settings can also be changed in the admin's
 [Settings](admin.md#settings) screens: the site's name, language, and
-time zone, the home page, the trailing slash, feeds, and the sitemap,
-and the [Themes](admin.md#themes) screen activates a theme. The
-admin saves them in `user/data/settings.json`, in sections named for the
+time zone, the home page, the trailing slash, feeds, and the sitemap;
+the [Themes](admin.md#themes) screen activates a theme; and the
+[Plugins](admin.md#plugins) and [Icon Packs](admin.md#icon-packs)
+screens turn plugins and icon packs on and off. The admin saves them in `user/data/settings.json`, in sections named for the
 config files, with the same keys:
 
 ```json
@@ -24,7 +25,9 @@ config files, with the same keys:
     "routes": { "trailingSlash": true },
     "feed": { "formats": ["rss", "json"], "content": true, "limit": 20 },
     "sitemap": { "enabled": true, "disallow": ["/drafts/"] },
-    "theme": { "active": "acme/notebook" }
+    "theme": { "active": "acme/notebook" },
+    "plugins": { "disabled": ["acme/gallery"] },
+    "icons": { "disabled": ["acme/brands"] }
 }
 ```
 
@@ -378,6 +381,15 @@ either way.
 - `config/plugins.php` · `Blush\Plugin\PluginConfig`: `enabled` (only
   these plugins) and `disabled` (never these), by name
   (`new PluginConfig(disabled: ['acme/hello'])`). Every installed plugin
-  is on by default.
+  is on by default. Turning plugins on and off in the admin saves its own
+  `disabled` list in `user/data/settings.json`, in place of this one; a
+  plugin the `enabled` list leaves out can't be turned on there. A plugin
+  that's on still runs only when its
+  [requirements](extending.md#requirements) are met.
+- `config/icons.php` · `Blush\Icon\IconConfig`: `disabled`, the
+  [icon packs](extending.md#icon-packs) to turn off, by name
+  (`new IconConfig(disabled: ['acme/brands'])`). Every installed pack is
+  on by default, and the admin's own list replaces this one when it's
+  saved.
 - `config/http.php` · `Blush\Http\HttpConfig`: `middleware`, a list of
   PSR-15 middleware classes run on every request.

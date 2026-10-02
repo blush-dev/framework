@@ -16,21 +16,53 @@ namespace Blush\Icon;
 /**
  * The installed icon packs (D-378), as `IconPackDiscovery` (or its
  * cache) found them: valid packs by name, plus the broken ones, by where
- * they were found, with the reason. Every installed pack is on.
+ * they were found, with the reason. A pack is on unless it's turned off
+ * (D-385: `IconConfig`'s `disabled`, or the admin's saved list), and only
+ * the ones that are on add their icons.
  */
 final readonly class IconPacks
 {
 	/**
-	 * @param array<string, IconPack> $packs   Valid packs, by name.
-	 * @param array<string, string>   $invalid Broken packs, by where they were found, with the reason.
+	 * @param array<string, IconPack> $packs    Valid packs, by name.
+	 * @param array<string, string>   $invalid  Broken packs, by where they were found, with the reason.
+	 * @param list<string>            $disabled The packs turned off, by name.
 	 */
 	public function __construct(
 		private array $packs = [],
-		private array $invalid = []
+		private array $invalid = [],
+		private array $disabled = []
 	) {}
 
 	/**
-	 * Returns every valid pack, by name.
+	 * Returns a copy with these packs turned off, by name.
+	 *
+	 * @param list<string> $names
+	 */
+	public function withDisabled(array $names): self
+	{
+		return new self($this->packs, $this->invalid, $names);
+	}
+
+	/**
+	 * Returns the valid packs that are on, by name.
+	 *
+	 * @return array<string, IconPack>
+	 */
+	public function enabled(): array
+	{
+		return array_filter($this->packs, $this->isEnabled(...), ARRAY_FILTER_USE_KEY);
+	}
+
+	/**
+	 * Whether a pack is on: installed, and not turned off.
+	 */
+	public function isEnabled(string $name): bool
+	{
+		return isset($this->packs[$name]) && ! in_array($name, $this->disabled, true);
+	}
+
+	/**
+	 * Returns every valid pack, on or off, by name.
 	 *
 	 * @return array<string, IconPack>
 	 */
@@ -84,6 +116,6 @@ final readonly class IconPacks
 			}
 		}
 
-		return new self($packs, $invalid);
+		return new self($packs, $invalid, $this->disabled);
 	}
 }

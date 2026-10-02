@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Plugin;
 
 use Override;
+use Blush\Extension\ComposerJson;
+use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Support\ComposerPackages;
@@ -91,7 +93,9 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			'path'        => is_string($package['path'] ?? null) ? $package['path'] : '',
 			'version'     => is_string($package['version'] ?? null) ? $package['version'] : '0.0.0',
 			'description' => is_string($package['description'] ?? null) ? $package['description'] : '',
-			'requires'    => $blush['requires'] ?? []
+			'requires'    => $blush['requires'] ?? [],
+			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($package['authors'] ?? [])),
+			'license'     => ComposerJson::license($package['license'] ?? null)
 		]);
 	}
 }

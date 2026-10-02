@@ -1,0 +1,1708 @@
+<!doctype html>
+<html lang="en" data-admin-theme="neutral">
+<!--
+  Blush admin — Config › Extensions
+  Three screens that share one shell: Themes, Plugins and Icon Packs, each with
+  a list and a detail screen. Click anything in the Config panel to move.
+
+  To see the other theme states, change the two attributes above:
+    data-admin-theme="neutral" | "editorial"
+    data-color-scheme="light" | "dark"        (omit to follow the OS)
+
+  Source map:
+    <style>   1 tokens · 2 base · 3 shell · 4 controls · 5 theme card
+              6 theme preview · 7 extension row · 8 icon pack · 9 detail
+              10 overlays · 11 narrow widths
+    <body>    icon sprite · shell · screen mount · overlays
+    <script>  data (themes, plugins, packs) · shared parts · themes ·
+              plugins · icon packs · router · actions · overlays · wiring
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extensions — Blush</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Karla:wght@400;500;600&family=Newsreader:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* == 1. TOKENS ==============================================================
+   Copy of design/tokens.css. Component CSS below reads tokens only — the sole
+   literal colors are a site theme's own declared values, applied as inline
+   custom properties on a preview (see §6).
+   ========================================================================= */
+:root {
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff;
+  --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --base:13px; --h1:26px; --h1-track:-.024em;
+  --title-size:13.5px; --title-weight:500; --title-track:-.005em;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px;
+  --ctl:34px; --ctl-sm:30px; --stat-v:30px;
+  --railbar:74px; --rail:262px; --bar:62px; --work-max:1400px; --measure:72ch;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-color-scheme="light"]) {
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12;
+  --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme: dark;
+} }
+:root[data-color-scheme="dark"] {
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12;
+  --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+:root[data-admin-theme="editorial"] {
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa;
+  --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em;
+  --title-size:15.5px; --title-weight:500; --title-track:0;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px; --stat-v:34px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e;
+  --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme: dark;
+} }
+:root[data-color-scheme="dark"][data-admin-theme="editorial"] {
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e;
+  --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme: dark;
+}
+
+/* == 2. BASE =============================================================== */
+*, *::before, *::after { box-sizing:border-box }
+html, body { height:100% }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font-ui);
+  font-size:var(--base); line-height:1.45; -webkit-font-smoothing:antialiased }
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px }
+.mono, td, th, time { font-variant-numeric:tabular-nums }
+.mono { font-family:var(--font-mono) }
+.ic { width:16px; height:16px; flex:none; stroke:currentColor; fill:none;
+  stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
+.ic-lg { width:20px; height:20px }
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0) }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important;
+    animation-iteration-count:1 !important; transition-duration:.01ms !important }
+}
+
+/* == 3. SHELL ============================================================== */
+/* minmax(0,1fr) on the row, and min-height:0 on every flex child below it:
+   without those, a column that holds a scroll pane refuses to shrink under
+   its content, so the pane never scrolls and the overflow is clipped instead. */
+.app { display:grid; grid-template-columns:var(--railbar) var(--rail) 1fr;
+  grid-template-rows:minmax(0, 1fr);
+  height:100%; background:var(--surface); position:relative; overflow:hidden }
+
+.railbar { border-right:1px solid var(--border); display:flex; flex-direction:column;
+  align-items:center; padding-top:var(--s-3); gap:var(--s-1); background:var(--surface); z-index:3 }
+.brand { width:40px; height:40px; border-radius:var(--r-2); background:var(--fg); color:var(--bg);
+  display:grid; place-items:center; font-family:var(--font-display); font-weight:600;
+  font-size:17px; margin-bottom:var(--s-4) }
+.rail-btn { width:56px; border:0; background:none; color:var(--fg-2); cursor:pointer;
+  border-radius:var(--r-2); padding:9px 0 7px; display:grid; justify-items:center; gap:5px;
+  font:inherit; font-size:10.5px; line-height:1 }
+.rail-btn:hover { background:var(--surface-2); color:var(--fg) }
+.rail-btn[aria-current="true"] { background:var(--accent-soft); color:var(--accent) }
+
+.panel { border-right:1px solid var(--border); display:flex; flex-direction:column;
+  min-width:0; min-height:0; background:var(--surface); z-index:3 }
+.panel-head { padding:var(--s-4) var(--s-5); border-bottom:1px solid var(--border) }
+.panel-head h2 { margin:0; font-family:var(--font-display); font-size:16px; font-weight:600;
+  letter-spacing:-.01em }
+.panel-head p { margin:2px 0 0; color:var(--fg-3); font-size:11.5px }
+.panel-body { padding:var(--s-4) var(--s-3); overflow-y:auto; flex:1; min-height:0 }
+.grp { margin-bottom:var(--s-5) }
+.grp h3 { margin:0 0 var(--s-2); padding:0 var(--s-3); font-size:11px; letter-spacing:.07em;
+  text-transform:uppercase; color:var(--fg-3); font-weight:600 }
+.nav-item { display:flex; align-items:center; gap:var(--s-3); padding:7px var(--s-3);
+  border-radius:var(--r-1); color:var(--fg-2); text-decoration:none; font-size:13px; position:relative }
+.nav-item:hover { background:var(--surface-2); color:var(--fg) }
+.nav-item[aria-current="page"] { background:var(--accent-soft); color:var(--accent); font-weight:500 }
+.nav-item[aria-current="page"]::before { content:""; position:absolute; left:-12px; top:6px;
+  bottom:6px; width:3px; border-radius:0 2px 2px 0; background:var(--accent) }
+.nav-item .n { margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--fg-3) }
+
+.main { display:flex; flex-direction:column; min-width:0; min-height:0; background:var(--bg) }
+.topbar { height:var(--bar); flex:none; display:flex; align-items:center; gap:var(--s-3);
+  padding:0 var(--s-5); border-bottom:1px solid var(--border); background:var(--surface) }
+.topbar .burger { display:none; flex:none }
+.topbar > .btn, .topbar .avatar { flex:none }
+.trail { display:flex; align-items:center; gap:var(--s-2); font-size:12.5px; color:var(--fg-3);
+  min-width:0; white-space:nowrap; overflow:hidden }
+.trail a { color:var(--fg-2); text-decoration:none }
+.trail a:hover { color:var(--fg) }
+.trail b { color:var(--fg); font-weight:500; text-overflow:ellipsis; overflow:hidden }
+.topbar .sp { margin-left:auto }
+.tsearch { display:flex; align-items:center; gap:var(--s-2); height:var(--ctl); width:300px;
+  padding:0 var(--s-3); border:1px solid var(--border); border-radius:var(--r-1);
+  background:var(--surface-2); color:var(--fg-3); font-size:12.5px; cursor:text }
+.tsearch kbd { margin-left:auto; font-family:var(--font-mono); font-size:10.5px;
+  border:1px solid var(--border-strong); border-radius:4px; padding:1px 5px }
+.avatar { width:30px; height:30px; border-radius:50%; background:var(--surface-3); color:var(--fg-2);
+  display:grid; place-items:center; font-size:11px; font-weight:600 }
+
+/* The work area is the only scroll container, and it only scrolls down. */
+.work { overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain;
+  padding:var(--s-6); flex:1; min-height:0; position:relative }
+.wrap { max-width:1180px; min-width:0 }
+.scrim { position:absolute; inset:0; background:rgba(17,20,27,.42); z-index:10; display:none }
+:root[data-color-scheme="dark"] .scrim { background:rgba(0,0,0,.6) }
+
+/* == 4. CONTROLS =========================================================== */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--s-1);
+  height:var(--ctl); padding:0 var(--s-3); border-radius:var(--r-1);
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--fg);
+  font:inherit; font-size:12.5px; cursor:pointer; text-decoration:none;
+  box-shadow:var(--shadow-1); white-space:nowrap; transition:background .14s ease-out }
+.btn:hover { background:var(--surface-2) }
+.btn[disabled] { opacity:.55; cursor:default }
+.btn[disabled]:hover { background:var(--surface) }
+.btn-sm { height:var(--ctl-sm); padding:0 10px; font-size:12px }
+.btn-primary { background:var(--accent); border-color:var(--accent); color:var(--accent-fg) }
+.btn-primary:hover { background:var(--accent-hover); border-color:var(--accent-hover) }
+.btn-danger { color:var(--danger); border-color:var(--danger-dot) }
+.btn-danger:hover { background:var(--danger-soft) }
+.btn-ghost { background:none; border-color:transparent; color:var(--fg-2) }
+.btn-ghost:hover { background:var(--surface-2); color:var(--fg) }
+.btn-icon { width:var(--ctl-sm); height:var(--ctl-sm); padding:0 }
+/* The spinner has two homes in the whole admin. A working button is one. */
+.spin { width:13px; height:13px; border-radius:50%; flex:none; border:2px solid currentColor;
+  border-top-color:transparent; animation:spin .7s linear infinite }
+@keyframes spin { to { transform:rotate(360deg) } }
+
+/* Status is never color alone: every pill is a dot and a word. */
+.pill { display:inline-flex; align-items:center; gap:5px; height:20px; padding:0 9px 0 7px;
+  border-radius:999px; font-size:11px; font-weight:600; white-space:nowrap;
+  border:1px solid transparent; margin-block:-2px; vertical-align:middle }
+.pill .dot { width:6px; height:6px; border-radius:50%; flex:none }
+.pill-active  { background:var(--good-soft); color:var(--good); border-color:var(--good-dot) }
+.pill-active  .dot { background:var(--good-dot) }
+.pill-builtin { background:var(--surface-2); color:var(--fg-2); border-color:var(--border-strong) }
+.pill-builtin .dot { background:var(--border-strong) }
+.pill-broken  { background:var(--warn-soft); color:var(--warn); border-color:var(--warn-dot) }
+.pill-broken  .dot { background:var(--warn-dot) }
+
+.page-head { display:flex; align-items:flex-start; gap:var(--s-4); margin-bottom:var(--s-6) }
+.page-head h1 { margin:0; font-family:var(--font-display); font-size:var(--h1);
+  letter-spacing:var(--h1-track); font-weight:600; text-wrap:balance }
+.page-head .lede { margin:var(--s-2) 0 0; color:var(--fg-2); font-size:13.5px; max-width:62ch }
+.page-head .lede a, .inline-link { color:var(--accent); text-decoration:none;
+  border-bottom:1px solid var(--accent-line) }
+.page-head .lede a:hover, .inline-link:hover { border-bottom-color:currentColor }
+.page-head .acts { margin-left:auto; flex:none; padding-top:4px; display:flex; gap:var(--s-2) }
+.back { display:inline-flex; align-items:center; gap:var(--s-1); color:var(--fg-2);
+  text-decoration:none; font-size:12.5px; margin-bottom:var(--s-3) }
+.back:hover { color:var(--fg) }
+.count-row { display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-4);
+  font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--fg-3); font-weight:600 }
+.count-row .rule { flex:1; height:1px; background:var(--border) }
+
+/* Neutral inline explanation. Not warn — §5 reserves amber for state. */
+.notice { display:flex; gap:var(--s-3); align-items:flex-start; margin-top:var(--s-6);
+  padding:var(--s-4) var(--pad-x); background:var(--surface); border:1px solid var(--border);
+  border-left:3px solid var(--border-strong); border-radius:var(--r-2); color:var(--fg-2);
+  font-size:12.5px }
+.notice .ic { margin-top:1px; color:var(--fg-3) }
+.notice p { margin:0; min-width:0; overflow-wrap:anywhere }
+code { font-family:var(--font-mono); font-size:11.5px; color:var(--fg);
+  background:var(--surface-2); border:1px solid var(--border); border-radius:4px; padding:1px 5px }
+
+
+/* == 5. THEME CARD ========================================================= */
+.themes { display:grid; gap:var(--s-4); grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)) }
+.tcard { display:flex; flex-direction:column; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--r-3); overflow:hidden;
+  box-shadow:var(--shadow-1); transition:border-color .14s ease-out }
+.tcard:hover { border-color:var(--border-strong) }
+.tcard[data-active="true"] { border-color:var(--accent-line); box-shadow:0 0 0 1px var(--accent-line) }
+.tcard[data-busy="true"] { opacity:.72 }
+
+.tbody { padding:var(--s-4) var(--pad-x) var(--s-3); display:flex; flex-direction:column;
+  gap:var(--s-2); flex:1 }
+.tname { display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap }
+.tname a { font-family:var(--font-title); font-size:15px; font-weight:600;
+  letter-spacing:var(--title-track); color:var(--fg); text-decoration:none }
+.tname a:hover { color:var(--accent) }
+.tname .ver { font-family:var(--font-mono); font-size:11px; color:var(--fg-3);
+  margin-left:auto; padding-left:var(--s-2) }
+.tdesc { margin:0; color:var(--fg-2); font-size:12.5px; line-height:1.5 }
+.tfacts { margin:var(--s-1) 0 0; padding:0; list-style:none; display:grid; gap:5px;
+  font-size:11.5px; color:var(--fg-3) }
+.tfacts li { display:flex; align-items:center; gap:var(--s-2); min-width:0 }
+.tfacts li.warn { color:var(--warn) }
+.tfacts .ic { width:13px; height:13px; opacity:.9 }
+.tfacts .mono { color:var(--fg-2); min-width:0; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap }
+.tfacts a { color:var(--fg-2); text-decoration:none; border-bottom:1px solid var(--border-strong) }
+.tfacts a:hover { color:var(--accent); border-bottom-color:var(--accent-line) }
+
+/* A failure is reported where the action lives, and leads with what is safe. */
+.tmsg { display:flex; gap:var(--s-2); align-items:flex-start; margin:var(--s-2) 0 0;
+  padding:var(--s-3); border-radius:var(--r-1); font-size:11.5px; line-height:1.45 }
+.tmsg .ic { width:14px; height:14px; margin-top:1px }
+.tmsg-danger { background:var(--danger-soft); color:var(--danger) }
+.tmsg-warn   { background:var(--warn-soft);   color:var(--warn) }
+
+.tfoot { display:flex; align-items:center; gap:var(--s-2); padding:var(--s-3) var(--pad-x);
+  border-top:1px solid var(--border); background:var(--surface) }
+.tfoot .sp { margin-left:auto }
+
+/* skeleton: the card's own shape, so nothing shifts when the data lands */
+.skel { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-3);
+  overflow:hidden }
+.skel .pv { background:var(--surface-2) }
+.skel .b { padding:var(--s-4) var(--pad-x) var(--s-5); display:grid; gap:11px }
+.sb { height:11px; border-radius:4px; background:var(--surface-2); position:relative; overflow:hidden }
+.sb::after { content:""; position:absolute; inset:0;
+  background:linear-gradient(90deg, transparent, var(--surface-3), transparent);
+  animation:shim 1.4s ease-in-out infinite }
+.skel:nth-child(2) .sb::after { animation-delay:.07s }
+.skel:nth-child(3) .sb::after { animation-delay:.14s }
+@keyframes shim { to { transform:translateX(100%) } }
+@media (prefers-reduced-motion: reduce) { .sb::after { display:none } }
+
+/* == 6. PREVIEW ============================================================
+   Drawn from what the theme declares: six colors and a layout keyword. Each
+   color is one light-dark() pair, so the preview shows the theme's light
+   palette in a light admin and its dark palette in a dark one — the same
+   mechanism the admin's own tokens use. No screenshot to go stale, and no
+   webfont fetched to render a face the admin cannot honestly promise.
+   ========================================================================= */
+.pv { aspect-ratio:16/10; width:100%; overflow:hidden; position:relative;
+  border-bottom:1px solid var(--border); background:var(--surface-2) }
+.pv-in { position:absolute; inset:0; width:1200px; height:750px; transform-origin:0 0 }
+
+.mini { width:100%; height:100%; background:var(--t-bg); display:flex; flex-direction:column }
+.mini .bar { background:var(--t-surface); border-bottom:2px solid var(--t-border); height:86px;
+  display:flex; align-items:center; gap:30px; padding:0 64px; flex:none }
+.mini .mark { width:120px; height:19px; border-radius:4px; background:var(--t-text) }
+.mini .lk { width:58px; height:12px; border-radius:3px; background:var(--t-muted); opacity:.55 }
+.mini .lk:first-of-type { background:var(--t-accent); opacity:1 }
+.mini .body { flex:1; display:flex; gap:44px; padding:54px 64px 0; min-height:0 }
+.mini .col { display:flex; flex-direction:column; gap:22px; min-width:0; flex:1 }
+.mini .h { height:46px; border-radius:7px; background:var(--t-text) }
+.mini .h.s { width:62% }
+.mini .acc { height:14px; width:140px; border-radius:4px; background:var(--t-accent) }
+.mini .ln { height:14px; border-radius:4px; background:var(--t-muted); opacity:.42 }
+.mini .ln.a { width:96% } .mini .ln.b { width:88% } .mini .ln.c { width:60% }
+.mini .card { background:var(--t-surface); border:2px solid var(--t-border); border-radius:12px;
+  flex:1; min-height:0; display:flex; flex-direction:column; gap:16px; padding:22px }
+.mini .card .ph { height:52%; border-radius:8px; background:var(--t-accent); opacity:.22 }
+.mini .side { width:270px; flex:none; background:var(--t-surface); border:2px solid var(--t-border);
+  border-radius:12px; padding:24px; display:flex; flex-direction:column; gap:18px }
+.mini .hero { height:168px; border-radius:12px; background:var(--t-accent); flex:none;
+  margin:0 64px 34px; display:flex; align-items:center; padding:0 34px }
+.mini .hero i { display:block; height:22px; width:46%; border-radius:5px; background:var(--t-bg);
+  opacity:.85 }
+.mini .row3 { display:flex; gap:26px; padding:0 64px 40px; flex:1; min-height:0 }
+
+/* a theme that will not load gets no picture, because there is nothing to draw */
+.pv-none { width:100%; height:100%; display:grid; place-items:center; gap:10px;
+  align-content:center; background:var(--surface-2); color:var(--fg-3) }
+.pv-none .ic { width:26px; height:26px }
+.pv-none span { font-size:12px }
+
+/* == 7. EXTENSION ROW ======================================================
+   Plugins are a list, not a card grid. A plugin has nothing to look at — what
+   you want to know is what it is and whether it is on — so the card's photo
+   slot would be dead space repeated down the page, and §2 says the table is
+   the product. Icon packs get cards (§8) because their contents *are* a
+   picture, and are readable off disk without running anything.
+   ========================================================================= */
+.rows { border:1px solid var(--border); border-radius:var(--r-3); background:var(--surface);
+  overflow:hidden }
+.row { display:grid; grid-template-columns:38px minmax(0,1fr) auto; gap:var(--s-4);
+  padding:var(--s-4) var(--pad-x); align-items:start;
+  border-top:1px solid var(--border); transition:background .14s ease-out }
+.row:first-child { border-top:0 }
+.row:hover { background:var(--surface-2) }
+.row[data-off="true"] .badge, .row[data-off="true"] .rname a,
+.row[data-off="true"] .rdesc { opacity:.62 }
+
+.badge { width:38px; height:38px; border-radius:var(--r-2); background:var(--surface-2);
+  border:1px solid var(--border); display:grid; place-items:center; color:var(--fg-2) }
+.row:hover .badge { background:var(--surface-3) }
+
+.rname { display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap; margin-bottom:3px }
+.rname a { font-family:var(--font-title); font-size:var(--title-size); font-weight:600;
+  letter-spacing:var(--title-track); color:var(--fg); text-decoration:none }
+.rname a:hover { color:var(--accent) }
+.rname .pkg { font-family:var(--font-mono); font-size:11px; color:var(--fg-3) }
+.rdesc { margin:0 0 var(--s-3); color:var(--fg-2); font-size:12.5px; max-width:70ch }
+
+.ract { display:flex; align-items:center; gap:var(--s-2); padding-top:2px }
+
+/* A switch is a setting that takes effect when it moves, so it carries a word
+   as well as a fill and it raises a toast. A checkbox would do neither. */
+.switch { display:inline-flex; align-items:center; gap:var(--s-2); cursor:pointer;
+  user-select:none }
+.switch input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0) }
+.switch .track { width:34px; height:20px; border-radius:999px; background:var(--surface-3);
+  border:1px solid var(--border-strong); position:relative; flex:none;
+  transition:background .14s ease-out, border-color .14s ease-out }
+.switch .knob { position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%;
+  background:var(--surface); box-shadow:var(--shadow-2); transition:transform .14s ease-out }
+.switch input:checked + .track { background:var(--good-dot); border-color:var(--good-dot) }
+.switch input:checked + .track .knob { transform:translateX(14px) }
+.switch input:focus-visible + .track { outline:2px solid var(--accent); outline-offset:2px }
+.switch .word { font-size:11.5px; font-weight:600; color:var(--fg-3); width:22px }
+.switch input:checked ~ .word { color:var(--good) }
+.switch[data-locked="true"] { cursor:default }
+.switch[data-locked="true"] .track { opacity:.5 }
+.switch[data-locked="true"] .word { opacity:.6 }
+
+/* == 8. ICON PACK ==========================================================
+   A pack's icons are its preview, so the card shows the glyphs themselves
+   rather than a list of their names — a name tells you nothing about the mark.
+   ========================================================================= */
+.glyphs { display:grid; grid-template-columns:repeat(6, 1fr); gap:1px;
+  background:var(--border); border-bottom:1px solid var(--border) }
+.glyphs div { aspect-ratio:1; background:var(--surface-2); display:grid; place-items:center;
+  color:var(--fg-2) }
+.glyphs .ic { width:20px; height:20px }
+.glyphs .more { font-family:var(--font-mono); font-size:11px; color:var(--fg-3) }
+
+/* the detail screen's browser: every glyph, at a size you can judge */
+.browse { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
+  gap:var(--s-2) }
+.gcell { display:grid; justify-items:center; gap:var(--s-2); padding:var(--s-4) var(--s-2);
+  border:1px solid var(--border); border-radius:var(--r-2); background:var(--surface);
+  font:inherit; cursor:pointer; color:var(--fg-2); text-align:center; min-width:0 }
+.gcell:hover { background:var(--surface-2); border-color:var(--border-strong); color:var(--fg) }
+.gcell .ic { width:24px; height:24px }
+.gcell code { font-size:10.5px; max-width:100%; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; background:none; border:0; padding:0; color:var(--fg-3) }
+.gcell:hover code { color:var(--fg-2) }
+
+.browse-bar { display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-4) }
+.field { display:flex; align-items:center; gap:var(--s-2); height:var(--ctl); flex:1;
+  max-width:320px; padding:0 var(--s-3); border:1px solid var(--border-strong);
+  border-radius:var(--r-1); background:var(--surface); color:var(--fg-3) }
+.field input { border:0; background:none; font:inherit; font-size:12.5px; color:var(--fg);
+  width:100%; outline:none }
+.browse-count { font-size:11.5px; color:var(--fg-3) }
+
+/* == 8b. SHARED DETAIL BITS ================================================ */
+.req { margin:0; padding:0; list-style:none; display:grid; gap:6px; font-size:12.5px }
+.req li { display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap }
+.req a { color:var(--accent); text-decoration:none }
+.req a:hover { text-decoration:underline }
+.req span:last-child { color:var(--fg-3) }
+.req .ic { width:14px; height:14px }
+.req .ok  { color:var(--good) }
+.req .bad { color:var(--danger) }
+.req .mono { color:var(--fg-2) }
+
+.addlist { display:grid; gap:var(--s-4) }
+.addgroup h3 { margin:0 0 var(--s-2); font-size:11px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--fg-3); font-weight:600;
+  display:flex; align-items:center; gap:var(--s-2) }
+.addgroup h3 .ic { width:13px; height:13px }
+.addgroup ul { margin:0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:6px }
+.addgroup li { font-family:var(--font-mono); font-size:11.5px; color:var(--fg-2);
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-1);
+  padding:3px 8px }
+.addgroup li .plain { font-family:var(--font-ui) }
+
+/* == 9. DETAIL SCREENS ====================================================== */
+.detail-stack { display:grid; gap:var(--s-5) }
+.detail { display:grid; gap:var(--s-5); grid-template-columns:minmax(0,1fr) 380px;
+  align-items:start }
+/* two panels of equal weight — what a plugin's manifest honestly holds */
+.detail-2up { display:grid; gap:var(--s-5); grid-template-columns:1fr 1fr; align-items:start }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-3);
+  box-shadow:var(--shadow-1); overflow:hidden }
+.card > h2 { margin:0; padding:var(--pad-panel) var(--pad-x); font-family:var(--font-display);
+  font-size:14px; font-weight:600; display:flex; align-items:center; gap:var(--s-2) }
+.card > h2 .hint { color:var(--fg-3); font-weight:400; font-size:11.5px }
+.card-in { padding:0 var(--pad-x) var(--s-5) }
+
+/* two previews side by side: this is where both halves of light-dark() show */
+.pv-pair { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-4) }
+.pv-pair figure { margin:0 }
+.pv-pair figcaption { margin-top:var(--s-2); font-size:11px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--fg-3); font-weight:600 }
+.pv-pair .pv { border:1px solid var(--border); border-radius:var(--r-2) }
+
+/* key/value rows */
+.kv { margin:0; display:grid; grid-template-columns:auto 1fr; gap:var(--s-3) var(--s-4);
+  font-size:12.5px; align-items:baseline }
+.kv dt { color:var(--fg-3) }
+.kv dd { margin:0; color:var(--fg); min-width:0; overflow-wrap:anywhere }
+.kv dd a { color:var(--accent); text-decoration:none }
+.kv dd a:hover { text-decoration:underline }
+.warn-ink { color:var(--warn) }
+
+/* Palette: the two halves side by side, each a specimen rather than a legend.
+   The role and the exact value sit on the swatch, inked in whichever of the
+   theme's own text or background colors clears it (see inkOn). The frame is
+   admin chrome, so a white tile on a white card still has an edge. */
+.pal-pair { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-6) }
+/* Each half is bounded by its own heading rule, so the two groups do not read
+   as one six-column grid where a dark Light tile meets a dark Dark tile. */
+.pal-pair h3 { margin:0 0 var(--s-3); padding-bottom:var(--s-2);
+  border-bottom:1px solid var(--border); font-size:11px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--fg-3); font-weight:600 }
+.pal-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--s-2) }
+.sw { aspect-ratio:3/2; border-radius:var(--r-2); border:1px solid var(--border-strong);
+  padding:var(--s-3); display:flex; flex-direction:column; justify-content:flex-end; gap:1px;
+  min-width:0; overflow:hidden }
+.sw b { font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; font-weight:600;
+  opacity:.72 }
+.sw span { font-size:11.5px; font-variant-numeric:tabular-nums }
+
+.danger-zone { display:flex; align-items:center; gap:var(--s-4); padding:var(--s-4) var(--pad-x);
+  border:1px solid var(--border); border-radius:var(--r-3); background:var(--surface) }
+.danger-zone p { margin:0; font-size:12.5px; color:var(--fg-2) }
+.danger-zone .btn { margin-left:auto; flex:none }
+
+/* == 10. OVERLAYS =========================================================== */
+.menu { position:fixed; z-index:120; min-width:190px; max-width:320px; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--r-2); box-shadow:var(--shadow-2);
+  padding:5px; display:none }
+.menu[data-open="true"] { display:block }
+.menu button { display:flex; align-items:center; gap:var(--s-2); width:100%; text-align:left;
+  font:inherit; font-size:12.5px; color:var(--fg); background:none; border:0; padding:7px var(--s-2);
+  border-radius:var(--r-1); cursor:pointer }
+.menu button:hover, .menu button:focus-visible { background:var(--surface-2); outline:none }
+.menu button.danger { color:var(--danger) }
+.menu button.danger:hover, .menu button.danger:focus-visible { background:var(--danger-soft) }
+.menu hr { border:0; border-top:1px solid var(--border); margin:5px -1px }
+
+dialog.modal { border:0; padding:0; background:transparent; max-width:none; max-height:none }
+dialog.modal::backdrop { background:rgba(17,20,27,.42) }
+:root[data-color-scheme="dark"] dialog.modal::backdrop { background:rgba(0,0,0,.6) }
+.modal-card { width:min(470px, calc(100vw - 48px)); background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--r-3); box-shadow:var(--shadow-3);
+  overflow:hidden }
+.modal-card h2 { margin:0; padding:var(--s-5) var(--s-5) 0; font-family:var(--font-display);
+  font-size:17px; font-weight:600 }
+.modal-body { padding:0 var(--s-5); margin-top:var(--s-3); color:var(--fg-2); font-size:13px }
+.modal-body p { margin:0 0 var(--s-3) }
+.modal-body p:last-child { margin-bottom:0 }
+.modal-foot { display:flex; justify-content:flex-end; gap:var(--s-2); padding:var(--s-5);
+  margin-top:var(--s-2) }
+.drop { margin-top:var(--s-4); border:1px dashed var(--border-strong); border-radius:var(--r-2);
+  padding:var(--s-5); text-align:center; color:var(--fg-3); font-size:12.5px }
+.drop .ic { color:var(--fg-3); margin-bottom:var(--s-2) }
+
+.toasts { position:absolute; right:var(--s-5); bottom:var(--s-5); z-index:130 }
+.toast { display:flex; align-items:center; gap:var(--s-2); background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--r-2); box-shadow:var(--shadow-2);
+  padding:10px var(--s-4); font-size:12.5px; color:var(--fg); animation:tin .16s ease-out }
+.toast .ic { color:var(--good) }
+.toast.bad .ic { color:var(--danger) }
+@keyframes tin { from { opacity:0; transform:translateY(6px) } }
+
+/* == 11. NARROW WIDTHS ====================================================== */
+@media (max-width:1180px) { .detail, .detail-2up { grid-template-columns:minmax(0,1fr) } }
+@media (max-width:760px) { .pal-pair { grid-template-columns:1fr } }
+@media (max-width:1100px) {
+  .app { grid-template-columns:var(--railbar) 1fr }
+  /* the drawer sits above the scrim, the scrim above everything else */
+  .panel { position:absolute; left:var(--railbar); top:0; bottom:0; width:var(--rail);
+    transform:translateX(-110%); transition:transform .16s ease-out; z-index:11 }
+  .app[data-drawer="open"] .panel { transform:none }
+  .app[data-drawer="open"] .scrim { display:block }
+}
+@media (max-width:860px) {
+  /* Once the rail and panel are an off-canvas drawer there is no second column
+     to hold still, so the document scrolls instead of a pane inside it. That is
+     what a touch device expects, and it survives a short viewport. */
+  html, body { height:auto }
+  .app { grid-template-columns:1fr; grid-template-rows:auto;
+    height:auto; min-height:100%; overflow:visible }
+  .work { overflow:visible; padding:var(--s-5) }
+  .topbar { position:sticky; top:0; z-index:5 }
+  .railbar, .panel, .scrim, .toasts { position:fixed }
+  .railbar { left:0; top:0; height:100%; width:var(--railbar); z-index:11;
+    transform:translateX(-100%); transition:transform .16s ease-out }
+  .panel { left:var(--railbar); top:0; height:100%;
+    transform:translateX(calc(-100% - var(--railbar))) }
+  .app[data-drawer="open"] .railbar { transform:none }
+  .scrim { inset:0 }
+  .toasts { right:var(--s-4); bottom:var(--s-4) }
+  .topbar .burger { display:inline-flex }
+  .tsearch { width:auto; padding:0 10px; flex:none }
+  .tsearch span, .tsearch kbd { display:none }
+  .pv-pair { grid-template-columns:1fr }
+}
+@media (max-width:640px) {
+  .themes { grid-template-columns:1fr }
+  .work { padding:var(--s-4) }
+  .trail a, .trail span { display:none }          /* breadcrumb root drops first */
+  .topbar > .btn:not(.burger) { width:var(--ctl); padding:0 }
+  .topbar > .btn:not(.burger) .lbl { display:none }
+  .page-head { flex-wrap:wrap }
+  .page-head .acts { margin-left:0; width:100% }
+  .page-head h1 { font-size:22px }
+  .toasts { left:var(--s-4); right:var(--s-4) }
+  .danger-zone { flex-wrap:wrap }
+  .danger-zone .btn { margin-left:0 }
+}
+
+/* grid shared by theme cards and icon-pack cards */
+.cards { display:grid; gap:var(--s-4); grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)) }
+@media (max-width:640px) { .cards { grid-template-columns:1fr }
+  .glyphs { grid-template-columns:repeat(4, 1fr) }
+  .row { grid-template-columns:30px minmax(0,1fr); }
+  .row .ract { grid-column:2; justify-content:flex-start }
+}
+
+</style>
+</head>
+<body>
+
+<svg class="sr" aria-hidden="true"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></symbol>
+<symbol id="i-content" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+<symbol id="i-types" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+<symbol id="i-fields" viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></symbol>
+<symbol id="i-general" viewBox="0 0 24 24"><path d="M21 6H10"/><path d="M6 6H3"/><path d="M21 12h-7"/><path d="M10 12H3"/><path d="M21 18h-4"/><path d="M13 18H3"/><circle cx="8" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="15" cy="18" r="2"/></symbol>
+<symbol id="i-reading" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+<symbol id="i-system" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M9 2v2"/><path d="M15 20v2"/><path d="M9 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/></symbol>
+<symbol id="i-theme" viewBox="0 0 24 24"><path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"/><path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"/><path d="M14.5 17.5 4.5 15"/></symbol>
+<symbol id="i-extension" viewBox="0 0 24 24"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-fallback" viewBox="0 0 24 24"><path d="m15 10 5 5-5 5"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+<symbol id="i-package" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+<symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M9 20h6"/><path d="M12 4v16"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></symbol>
+<symbol id="i-composer" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/><path d="M13.5 4 10.5 20"/></symbol>
+
+<symbol id="i-icons" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.6-1.1L11.4 3a.7.7 0 0 1 1.2 0l3.7 5.9a.7.7 0 0 1-.6 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></symbol>
+<symbol id="i-component" viewBox="0 0 24 24"><path d="M5.5 8.5 9 12l-3.5 3.5L2 12z"/><path d="m12 2 3.5 3.5L12 9 8.5 5.5z"/><path d="M18.5 8.5 22 12l-3.5 3.5L15 12z"/><path d="m12 15 3.5 3.5L12 22l-3.5-3.5z"/></symbol>
+<symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-screen" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+<symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-no" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+</defs></svg>
+
+<div class="app" id="app">
+
+  <nav class="railbar" aria-label="Sections">
+    <div class="brand" aria-hidden="true">J</div>
+    <button class="rail-btn" type="button"><svg class="ic ic-lg"><use href="#i-home"/></svg>Home</button>
+    <button class="rail-btn" type="button"><svg class="ic ic-lg"><use href="#i-content"/></svg>Content</button>
+    <button class="rail-btn" type="button"><svg class="ic ic-lg"><use href="#i-users"/></svg>Users</button>
+    <button class="rail-btn" type="button" aria-current="true"><svg class="ic ic-lg"><use href="#i-config"/></svg>Config</button>
+  </nav>
+
+  <nav class="panel" aria-label="Config">
+    <div class="panel-head"><h2>Config</h2><p>Types, settings, and the look</p></div>
+    <div class="panel-body">
+      <div class="grp"><h3>Structure</h3>
+        <a class="nav-item" href="#"><svg class="ic"><use href="#i-types"/></svg>Content Types<span class="n">10</span></a>
+        <a class="nav-item" href="#"><svg class="ic"><use href="#i-fields"/></svg>Fields<span class="n">2</span></a></div>
+      <div class="grp"><h3>Settings</h3>
+        <a class="nav-item" href="#"><svg class="ic"><use href="#i-general"/></svg>General</a>
+        <a class="nav-item" href="#"><svg class="ic"><use href="#i-reading"/></svg>Reading</a>
+        <a class="nav-item" href="#"><svg class="ic"><use href="#i-globe"/></svg>Addresses and Search</a>
+        <a class="nav-item" href="#"><svg class="ic"><use href="#i-system"/></svg>System</a></div>
+      <!-- One group, because all three are installable packages. The running
+           admin calls it Extensions on one screen and Customize on another. -->
+      <div class="grp"><h3>Extensions</h3>
+        <a class="nav-item" href="#" data-nav="themes"><svg class="ic"><use href="#i-theme"/></svg>Themes<span class="n" id="n-themes"></span></a>
+        <a class="nav-item" href="#" data-nav="plugins"><svg class="ic"><use href="#i-extension"/></svg>Plugins<span class="n" id="n-plugins"></span></a>
+        <a class="nav-item" href="#" data-nav="packs"><svg class="ic"><use href="#i-icons"/></svg>Icon Packs<span class="n" id="n-packs"></span></a></div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-ghost btn-icon burger" type="button" id="burger"
+        aria-label="Open navigation" aria-expanded="false"><svg class="ic"><use href="#i-menu"/></svg></button>
+      <nav class="trail" id="trail" aria-label="Breadcrumb"></nav>
+      <div class="sp"></div>
+      <div class="tsearch"><svg class="ic"><use href="#i-search"/></svg><span>Search or jump to…</span><kbd>⌘K</kbd></div>
+      <a class="btn" href="#" aria-label="View site"><svg class="ic"><use href="#i-external"/></svg><span class="lbl">View site</span></a>
+      <div class="avatar" title="Justin Tadlock">JT</div>
+    </header>
+
+    <main class="work" id="work"><div class="wrap" id="screen"></div>
+      <div class="toasts" id="toasts" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+</div>
+
+<div class="menu" id="menu" role="menu"></div>
+<dialog class="modal" id="modal"><div class="modal-card">
+  <h2 id="m-title"></h2><div class="modal-body" id="m-body"></div>
+  <div class="modal-foot" id="m-foot"></div>
+</div></dialog>
+
+
+<script>
+/* == DATA: THEMES ==========================================================
+   Six colors, each a light/dark pair the admin emits as light-dark(), plus one
+   layout keyword for the preview. `type` is a fact printed in the admin's own
+   face — the admin never loads a theme's fonts.
+
+   `install` is how the thing got onto the server, and it decides whether the
+   admin may remove it. It means the same on all three screens:
+     folder    under user/ — the admin can delete it
+     composer  a Composer dependency, owned by composer.json
+     builtin   ships with Blush
+   ========================================================================= */
+const THEMES = [
+  { slug:'justin-tadlock', name:'Justin Tadlock', version:'2.0.0',
+    install:'folder', source:'user/themes',
+    author:'Justin Tadlock', uri:'https://justintadlock.com', fallback:'default',
+    layout:'centered', type:'Serif headings · sans body',
+    desc:'The justintadlock.com theme, ported from Blush 1.x.',
+    pal:{ bg:['#fbf8f3','#15120e'], surface:['#ffffff','#1d1915'], text:['#1d1b17','#f0e9dd'],
+          muted:['#6d6659','#a0937f'], accent:['#8f4a2a','#d98b5f'], border:['#e6ded0','#2e2820'] } },
+
+  { slug:'quill', name:'Quill', version:'0.9.2', install:'folder', source:'user/themes',
+    author:'Blush Collective', uri:'https://example.com/quill', fallback:'default',
+    layout:'centered', type:'Serif headings · sans body',
+    desc:'A reading-first theme for long essays.',
+    pal:{ bg:['#fcfcfa','#14161c'], surface:['#ffffff','#1b1e26'], text:['#1a1a18','#eceff5'],
+          muted:['#6e6e68','#8b93a4'], accent:['#3a6ea5','#7fb2ff'], border:['#e6e6e0','#262a35'] } },
+
+  /* a Composer dependency, and its fallback names a theme that is not installed */
+  { slug:'ledger', name:'Ledger', version:'3.1.0',
+    install:'composer', package:'blush-themes/ledger', source:'vendor/blush-themes',
+    author:'Blush Collective', uri:'https://example.com/ledger', fallback:'aurora',
+    layout:'sidebar', type:'Sans throughout · mono code',
+    desc:'Documentation and changelogs, with a sidebar.',
+    pal:{ bg:['#f7f7f5','#111310'], surface:['#ffffff','#191c18'], text:['#1b1b19','#e9ece7'],
+          muted:['#6f6f68','#8e958a'], accent:['#2b6b4f','#6fbf96'], border:['#e3e3de','#232720'] } },
+
+  /* falls back to another installed theme, so deleting Quill blocks this one */
+  { slug:'atlas', name:'Atlas', version:'0.4.0', install:'folder', source:'user/themes',
+    author:'Nia Okafor', uri:'https://example.com/atlas', fallback:'quill',
+    layout:'wide', type:'Sans throughout',
+    desc:'Photography and travel writing, image-led.',
+    pal:{ bg:['#f2f4f6','#0f1317'], surface:['#ffffff','#171c22'], text:['#12171d','#e7ecf1'],
+          muted:['#5f6b78','#8995a3'], accent:['#0f6d8c','#5fb8d8'], border:['#dde3e9','#222a32'] } },
+
+  /* the folder is there but the admin cannot read it */
+  { slug:'marquee', name:'Marquee', version:null, install:'folder', source:'user/themes',
+    broken:'theme.json is missing or unreadable', desc:'', type:null, fallback:null },
+
+  { slug:'default', name:'Default', version:'1.0.0', install:'builtin', source:null,
+    builtin:true, root:true, author:'Blush', uri:null, fallback:null,
+    layout:'centered', type:'System sans throughout',
+    desc:'Plain, accessible, modern CSS with no build step.',
+    pal:{ bg:['#ffffff','#0f1115'], surface:['#f7f8fa','#171a20'], text:['#16181d','#e8eaef'],
+          muted:['#6b7280','#949cab'], accent:['#1f4ed8','#7aa2ff'], border:['#e5e7eb','#262b34'] } },
+];
+
+/* == DATA: PLUGINS =========================================================
+   Only what the manifest says. The admin cannot list what a plugin registers
+   without booting it, and booting an inactive plugin is the one thing being
+   inactive has to prevent — so this screen never claims to know. That holds
+   for icons a plugin might ship too: unknown until it runs, so unmentioned.
+
+   `requires` is a list of [kind, …]:
+     ['core', range]              the Blush version
+     ['php', range]               the PHP version
+     ['plugin', package, range]   another plugin, by package and version
+
+   Plugins arrive the same two ways a theme does: a folder under
+   user/plugins/, or a Composer package.
+   ========================================================================= */
+const SITE = { blush:'2.1.4', php:'8.3.2' };
+
+const PLUGINS = [
+  { slug:'word-count', name:'Word Count', pkg:'example/word-count', version:'1.0.0',
+    install:'folder', source:'user/plugins', on:true, author:'Blush',
+    uri:'https://example.com/word-count', license:'MIT',
+    desc:'Counts the words in published entries, from the dashboard or the command line.',
+    requires:[['core','^2.0']] },
+
+  { slug:'shop', name:'Shop', pkg:'blush/shop', version:'2.3.0',
+    install:'composer', source:'vendor/blush', on:true, author:'Blush Collective',
+    uri:'https://example.com/shop', license:'GPL-2.0-or-later',
+    desc:'Products, categories and brands, with a price and a buy button for entries.',
+    requires:[['core','^2.0'], ['php','^8.2']] },
+
+  /* depends on another plugin, so turning Shop off blocks this one */
+  { slug:'shop-reports', name:'Shop Reports', pkg:'example/shop-reports', version:'0.2.0',
+    install:'folder', source:'user/plugins', on:true, author:'Nia Okafor',
+    uri:'https://example.com/shop-reports', license:'MIT',
+    desc:'Sales and stock figures on the dashboard, read from the Shop tables.',
+    requires:[['core','^2.0'], ['plugin','blush/shop','^2.0']] },
+
+  { slug:'redirects', name:'Redirects', pkg:'example/redirects', version:'1.2.0',
+    install:'folder', source:'user/plugins', on:true, author:'Nia Okafor',
+    uri:'https://example.com/redirects', license:'MIT',
+    desc:'Maps old URLs to new ones and keeps a log of what hit them.',
+    requires:[['core','^2.0']] },
+
+  { slug:'mailing-list', name:'Mailing List', pkg:'blush/mailing-list', version:'0.8.1',
+    install:'composer', source:'vendor/blush', on:false, author:'Blush Collective',
+    uri:'https://example.com/mailing-list', license:'MIT',
+    desc:'A subscribe component for entries, and the people who used it under Users.',
+    requires:[['core','^2.0']] },
+
+  /* installed, readable, and cannot run here */
+  { slug:'comments', name:'Comments', pkg:'example/comments', version:'0.4.0',
+    install:'folder', source:'user/plugins', on:false, author:'Community',
+    uri:'https://example.com/comments', license:'MIT',
+    desc:'Threaded comments on entries, moderated from the admin.',
+    requires:[['core','^3.0'], ['php','^8.2']] },
+
+  /* wants a plugin nobody has installed */
+  { slug:'crm-sync', name:'CRM Sync', pkg:'example/crm-sync', version:'0.1.0',
+    install:'folder', source:'user/plugins', on:false, author:'Community',
+    uri:null, license:'MIT',
+    desc:'Pushes subscribers to an external CRM on a schedule.',
+    requires:[['core','^2.0'], ['plugin','blush/mailing-list','^0.8'], ['plugin','acme/crm','^1.0']] },
+
+  /* the file is there but the admin cannot load it */
+  { slug:'analytics', name:'Analytics', pkg:'example/analytics', version:'1.1.0',
+    install:'folder', source:'user/plugins', on:false, author:'Community',
+    uri:null, license:'MIT',
+    desc:'Page views per entry, read from the server log.',
+    broken:'plugin.php could not be loaded — a parse error on line 42',
+    requires:[['core','^2.0']] },
+];
+
+/* == DATA: ICON PACKS ======================================================
+   A pack ships its own SVG, so the glyphs live with the data rather than in
+   the admin's sprite. Every path is drawn on the same 24 grid, and the admin's
+   one .ic rule paints all of them — §4's whole argument for a single set.
+   ========================================================================= */
+const G = {
+  quote:'<path d="M10 11H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v7c0 2-1 3-3 4"/><path d="M20 11h-4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v7c0 2-1 3-3 4"/>',
+  pilcrow:'<path d="M13 4v16"/><path d="M17 4v16"/><path d="M19 4H9.5a4.5 4.5 0 0 0 0 9H13"/>',
+  asterisk:'<path d="M12 6v12"/><path d="m17.2 9-10.4 6"/><path d="m6.8 9 10.4 6"/>',
+  hash:'<path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/>',
+  bookmark:'<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.8 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+  list:'<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+  heading:'<path d="M6 12h12"/><path d="M6 20V4"/><path d="M18 20V4"/>',
+  bold:'<path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/>',
+  italic:'<path d="M19 4h-9"/><path d="M14 20H5"/><path d="m15 4-4 16"/>',
+  rule:'<path d="M3 12h18"/><path d="M7 7h10"/><path d="M7 17h10"/>',
+  footnote:'<path d="M4 6h10"/><path d="M4 12h10"/><path d="M4 18h6"/><path d="M19 4v8"/><path d="m16 7 3-3 3 3"/>',
+
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/>',
+  cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9"/>',
+  rain:'<path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/>',
+  snow:'<path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="M8 15h.01"/><path d="M8 19h.01"/><path d="M12 17h.01"/><path d="M12 21h.01"/><path d="M16 15h.01"/><path d="M16 19h.01"/>',
+  wind:'<path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/>',
+  droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>',
+  sunrise:'<path d="M12 2v8"/><path d="m4.9 10.9 1.4 1.4"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.1 10.9-1.4 1.4"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
+  thermometer:'<path d="M14 4v10.5a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0"/>',
+
+  tally:'<path d="M4 4v16"/><path d="M9 4v16"/><path d="M14 4v16"/><path d="M19 4v16"/><path d="m3 20 18-16"/>',
+  report:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  trend:'<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
+
+  page:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.6-4.6a2 2 0 0 0-2.8 0L3 21"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
+  tag:'<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.8 8.8a2 2 0 0 0 2.8 0l7.2-7.2a2 2 0 0 0 0-2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  star:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2-5.5-2.9-5.5 2.9 1-6.2L3 9.6l6.2-.9Z"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-9.1 5.7a2 2 0 0 1-2 0L2 7"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  pin:'<path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11"/><circle cx="12" cy="10" r="2.5"/>',
+  play:'<path d="M6 4.5 19 12 6 19.5z"/>',
+  bell:'<path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M4 17h16l-1.5-2.2a2 2 0 0 1-.5-1.4V10a6 6 0 1 0-12 0v3.4a2 2 0 0 1-.5 1.4Z"/>',
+  chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/>',
+};
+
+const pk = (ns, names) => names.map(n => ({ n, d: G[n] }));
+
+const PACKS = [
+  { slug:'editorial', name:'Editorial Marks', pkg:'blush/editorial-icons', version:'1.2.0',
+    install:'composer', source:'vendor/blush', ns:'editorial', on:true,
+    author:'Blush Collective',
+    desc:'Punctuation and structure marks, for prose and for the editor toolbar.',
+    icons: pk('editorial', ['quote','pilcrow','asterisk','hash','bookmark','link',
+                            'list','heading','bold','italic','rule','footnote']) },
+
+  { slug:'weather', name:'Weather', pkg:'example/weather-icons', version:'0.3.0',
+    install:'folder', source:'user/icons', ns:'weather', on:true, author:'Nia Okafor',
+    desc:'Conditions and times of day, for a forecast component.',
+    icons: pk('weather', ['sun','cloud','rain','snow','wind','droplet','moon',
+                          'sunrise','thermometer']) },
+
+  { slug:'core', name:'Core', pkg:null, version:'2.1.0', install:'builtin', ns:'core',
+    on:true, author:'Blush',
+    desc:'The set every screen is drawn with. Always on, and always available to content.',
+    icons: pk('core', ['page','image','calendar','tag','star','mail','lock','pin',
+                       'play','bell','chat','share','quote','link','list','hash',
+                       'asterisk','bookmark']) },
+];
+/* == STATE AND SHARED PARTS ================================================ */
+const state = { screen:'themes', detail:null, active:'justin-tadlock',
+                loading:true, busy:null, failed:null, query:'' };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const getTheme  = s => THEMES.find(t => t.slug === s);
+const getPlugin = s => PLUGINS.find(p => p.slug === s);
+const getPack   = s => PACKS.find(p => p.slug === s);
+const live = list => list.filter(x => !x.removed);
+
+/* Where a thing came from decides whether the admin may remove it, and it
+   reads the same on all three screens. */
+const deletable = x =>
+  x.install === 'folder' && !(x.kind === 'theme' && x.slug === state.active);
+const removeHint = x => `composer remove ${x.package || x.pkg}`;
+
+function originFact(x) {
+  if (x.install === 'builtin')  return `<li><svg class="ic"><use href="#i-package"/></svg>Ships with Blush</li>`;
+  if (x.install === 'composer') return `<li><svg class="ic"><use href="#i-composer"/></svg>Composer ·
+    <span class="mono">${esc(x.package || x.pkg)}</span></li>`;
+  return `<li><svg class="ic"><use href="#i-folder"/></svg><span class="mono">${esc(x.source)}/${esc(x.slug)}</span></li>`;
+}
+
+function originRow(x) {
+  if (x.install === 'builtin')  return 'Blush';
+  if (x.install === 'composer') return `Composer · <span class="mono">${esc(x.package || x.pkg)}</span>`;
+  return 'A folder you added';
+}
+
+function composerNotice(x, noun) {
+  return `<div class="notice" style="margin-top:0"><svg class="ic"><use href="#i-composer"/></svg>
+    <p>Composer manages this ${noun}, so it cannot be deleted here. Remove it from the project
+      with <code>${esc(removeHint(x))}</code>, and it leaves this list on the next install.</p></div>`;
+}
+
+function dangerZone(x, noun, extra = '') {
+  if (x.install === 'composer') return composerNotice(x, noun);
+  if (x.install === 'builtin' || x.install === 'plugin') return '';
+  if (!deletable(x)) return '';
+  return `<div class="danger-zone">
+    <p>Deleting removes the folder from the server.${extra}</p>
+    <button class="btn btn-danger" type="button" data-delete="${x.kind}:${x.slug}">
+      <svg class="ic"><use href="#i-trash"/></svg>Delete ${noun}</button></div>`;
+}
+
+/* A switch is a setting that takes effect the moment it moves, so it carries a
+   word as well as a fill, and flipping it raises a toast. Locked means the
+   state is real but not yours to change here. */
+function switchCtl(kind, x, on, locked, why) {
+  return `<label class="switch" data-locked="${!!locked}"${why ? ` title="${esc(why)}"` : ''}>
+    <input type="checkbox" ${on ? 'checked' : ''} ${locked ? 'disabled' : ''}
+      data-toggle="${kind}:${x.slug}" aria-label="${on ? 'On' : 'Off'} — ${esc(x.name)}">
+    <span class="track"><span class="knob"></span></span>
+    <span class="word">${on ? 'On' : 'Off'}</span></label>`;
+}
+
+/* The overflow menu's contents, in one place, so the trigger is only drawn
+   when the menu holds something the row does not already offer. A menu whose
+   only item repeats the title link is as much a bug as a menu of dead ones. */
+function menuItems(kind, x) {
+  const noun = kind === 'pack' ? 'Icon pack' : kind[0].toUpperCase() + kind.slice(1);
+  const items = [['open', 'i-arrow', `${noun} details`]];
+  if (x.install === 'folder' || x.install === 'composer') items.push(['copy', 'i-copy', 'Copy folder path']);
+  if (deletable({ ...x, kind })) items.push(['delete', 'i-trash', `Delete ${noun.toLowerCase()}`, true]);
+  return items;
+}
+function menuTrigger(kind, x) {
+  if (menuItems(kind, x).length < 2) return '';
+  return `<button class="btn btn-ghost btn-sm btn-icon" type="button" data-menu="${kind}:${x.slug}"
+    aria-haspopup="menu" aria-expanded="false" aria-label="More actions for ${esc(x.name)}">
+    <svg class="ic"><use href="#i-more"/></svg></button>`;
+}
+
+function pageHead(title, lede, actions) {
+  return `<div class="page-head"><div><h1>${title}</h1>
+    <p class="lede">${lede}</p></div><div class="acts">${actions}</div></div>`;
+}
+const countRow = text => `<div class="count-row"><span>${text}</span><span class="rule"></span></div>`;
+const backTo = (screen, label) =>
+  `<a class="back" href="#" data-go="${screen}"><svg class="ic"><use href="#i-left"/></svg>${label}</a>`;
+
+function detailRows(pairs) {
+  return `<dl class="kv">${pairs.filter(Boolean)
+    .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+}
+
+function skeletonCard() {
+  return `<div class="skel"><div class="pv"></div><div class="b">
+    <div class="sb" style="width:48%;height:14px"></div>
+    <div class="sb" style="width:88%"></div><div class="sb" style="width:64%"></div></div></div>`;
+}
+function skeletonRows() {
+  return `<div class="rows">${`<div class="row"><div class="badge"></div>
+    <div><div class="sb" style="width:34%;height:13px;margin-bottom:10px"></div>
+    <div class="sb" style="width:70%"></div></div><div></div></div>`.repeat(4)}</div>`;
+}
+
+/* == THEMES ================================================================ */
+THEMES.forEach(t => t.kind = 'theme');
+const ROLES = ['bg','surface','text','muted','accent','border'];
+const dependents = slug => live(THEMES).filter(t => t.fallback === slug);
+
+/* Why a theme may not be activated, or null. Both cases end the same way — a
+   theme that cannot resolve every template must not go in front of visitors —
+   so they share one pill naming the consequence, with the cause underneath. */
+function blocker(t) {
+  if (t.broken) return `${t.broken}, so this theme cannot be activated.`;
+  if (t.fallback) {
+    const parent = getTheme(t.fallback);
+    if (!parent || parent.removed)
+      return `Anything this theme does not define would have nowhere to resolve to, so it
+        cannot be activated. Install ${t.fallback}, or point this theme at another fallback.`;
+  }
+  return null;
+}
+
+const paletteVars = t => ROLES.map(r => `--t-${r}:light-dark(${t.pal[r][0]},${t.pal[r][1]})`).join(';');
+
+function miniBody(t) {
+  const col = `<div class="col"><div class="h"></div><div class="h s"></div><div class="acc"></div>
+    <div class="ln a"></div><div class="ln b"></div><div class="ln a"></div><div class="ln c"></div>
+    <div class="card"><div class="ph"></div><div class="ln a"></div><div class="ln c"></div></div></div>`;
+  const tile = `<div class="card"><div class="ph"></div><div class="ln a"></div><div class="ln c"></div></div>`;
+  if (t.layout === 'sidebar') return `<div class="body">${col}
+    <div class="side"><div class="ln a"></div><div class="ln b"></div><div class="ln a"></div>
+      <div class="ln c"></div><div class="ln b"></div><div class="ln a"></div></div></div>`;
+  if (t.layout === 'wide') return `<div class="hero"><i></i></div><div class="row3">${tile}${tile}${tile}</div>`;
+  return `<div class="body" style="padding-inline:170px">${col}</div>`;
+}
+
+function preview(t, scheme) {
+  if (t.broken) return `<div class="pv"><div class="pv-none">
+    <svg class="ic"><use href="#i-alert"/></svg><span>No preview</span></div></div>`;
+  return `<div class="pv" style="${scheme ? `color-scheme:${scheme};` : ''}${paletteVars(t)}">
+    <div class="pv-in"><div class="mini">
+      <div class="bar"><div class="mark"></div><div class="lk"></div><div class="lk"></div><div class="lk"></div></div>
+      ${miniBody(t)}</div></div></div>`;
+}
+
+function fitPreviews() {
+  document.querySelectorAll('.pv').forEach(pv => {
+    const inner = pv.querySelector('.pv-in');
+    if (inner) inner.style.transform = `scale(${pv.clientWidth / 1200})`;
+  });
+}
+
+function fallbackFact(t) {
+  if (t.root) return `<li><svg class="ic"><use href="#i-fallback"/></svg>Every theme falls back to this one</li>`;
+  if (!t.fallback) return '';
+  const parent = getTheme(t.fallback);
+  if (!parent || parent.removed) return `<li class="warn"><svg class="ic"><use href="#i-alert"/></svg>
+    <span>Falls back to <span class="mono">${esc(t.fallback)}</span>, which is not installed</span></li>`;
+  return `<li><svg class="ic"><use href="#i-fallback"/></svg>Falls back to
+    <a href="#" data-go="themes:${parent.slug}">${esc(parent.name)}</a></li>`;
+}
+
+function themeCard(t) {
+  const active = t.slug === state.active, busy = t.slug === state.busy,
+        failed = t.slug === state.failed, blocked = blocker(t);
+
+  const badge = active ? `<span class="pill pill-active"><span class="dot"></span>Active</span>`
+    : blocked ? `<span class="pill pill-broken"><span class="dot"></span>Can't activate</span>`
+    : t.builtin ? `<span class="pill pill-builtin"><span class="dot"></span>Built in</span>` : '';
+
+  let action;
+  if (active)       action = `<a class="btn btn-sm" href="#"><svg class="ic"><use href="#i-external"/></svg>View site</a>`;
+  else if (busy)    action = `<button class="btn btn-sm" type="button" disabled><span class="spin"></span>Activating…</button>`;
+  else if (blocked) action = `<button class="btn btn-sm" type="button" disabled>Activate</button>`;
+  else if (failed)  action = `<button class="btn btn-sm btn-danger" type="button" data-activate="${t.slug}">Try again</button>`;
+  else              action = `<button class="btn btn-sm" type="button" data-activate="${t.slug}">Activate</button>`;
+
+  const message = failed
+    ? `<div class="tmsg tmsg-danger"><svg class="ic"><use href="#i-alert"/></svg><span>Your site is
+        still serving ${esc(getTheme(state.active).name)} — nothing changed. The theme folder could
+        not be read.</span></div>`
+    : blocked ? `<div class="tmsg tmsg-warn"><svg class="ic"><use href="#i-alert"/></svg>
+        <span>${esc(blocked)}</span></div>` : '';
+
+  return `<article class="tcard" data-active="${active}" data-busy="${busy}">
+    ${preview(t)}
+    <div class="tbody">
+      <div class="tname"><a href="#" data-go="themes:${t.slug}">${esc(t.name)}</a>${badge}
+        ${t.version ? `<span class="ver">${esc(t.version)}</span>` : ''}</div>
+      ${t.desc ? `<p class="tdesc">${esc(t.desc)}</p>` : ''}
+      <ul class="tfacts">${originFact(t)}
+        ${t.type ? `<li><svg class="ic"><use href="#i-type"/></svg>${esc(t.type)}</li>` : ''}
+        ${fallbackFact(t)}</ul>
+      ${message}
+    </div>
+    <div class="tfoot">${action}<span class="sp"></span>
+      ${menuTrigger('theme', t)}</div>
+  </article>`;
+}
+
+function themesList() {
+  const list = live(THEMES).slice().sort((a, b) => (b.slug === state.active) - (a.slug === state.active));
+  return pageHead('Themes',
+      `The theme visitors see. The admin's own appearance is yours alone and is set on
+       <a href="#">Your Account</a>.`,
+      `<button class="btn btn-primary" type="button" data-install="theme">
+         <svg class="ic"><use href="#i-upload"/></svg>Install Theme</button>`)
+    + countRow(state.loading ? 'Loading themes' : `${list.length} themes · 1 active`)
+    + `<div class="cards">${state.loading ? skeletonCard().repeat(3) : list.map(themeCard).join('')}</div>`
+    + `<div class="notice"><svg class="ic"><use href="#i-info"/></svg>
+        <p>Themes live in <code>user/themes/</code> or come from Composer. One can also be
+          activated from the command line, which is how a deploy usually does it:
+          <code>bin/blush theme:activate {slug}</code>. The active theme is recorded in
+          <code>config/theme.php</code>.</p></div>`;
+}
+
+/* the hex goes on the swatch, so the ink has to clear it — and both candidates
+   come from the theme's own palette, so a swatch never introduces a color the
+   theme has not declared (WCAG relative luminance) */
+const chan = v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+const luminance = hex => { const n = parseInt(hex.slice(1), 16);
+  return 0.2126 * chan(n >> 16 & 255) + 0.7152 * chan(n >> 8 & 255) + 0.0722 * chan(n & 255); };
+const contrast = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05); };
+const inkOn = (fill, t, half) =>
+  contrast(fill, t.pal.text[half]) >= contrast(fill, t.pal.bg[half]) ? t.pal.text[half] : t.pal.bg[half];
+
+function paletteHalf(t, half, label) {
+  const tiles = ROLES.map(role => {
+    const fill = t.pal[role][half];
+    return `<div class="sw" style="background:${fill};color:${inkOn(fill, t, half)}">
+      <b>${role}</b><span class="mono">${fill}</span></div>`;
+  }).join('');
+  return `<section><h3>${label}</h3><div class="pal-grid">${tiles}</div></section>`;
+}
+
+const palettePanel = t => `<div class="card">
+  <h2>Palette <span class="hint">six roles, declared as light-dark() pairs</span></h2>
+  <div class="card-in"><div class="pal-pair">
+    ${paletteHalf(t, 0, 'Light')}${paletteHalf(t, 1, 'Dark')}</div></div></div>`;
+
+function themeDetail(t) {
+  const active = t.slug === state.active, blocked = blocker(t), deps = dependents(t.slug);
+  const parent = t.fallback ? getTheme(t.fallback) : null;
+
+  const action = active
+    ? `<span class="pill pill-active"><span class="dot"></span>Active</span>
+       <a class="btn" href="#"><svg class="ic"><use href="#i-external"/></svg>View site</a>`
+    : blocked
+      ? `<span class="pill pill-broken"><span class="dot"></span>Can't activate</span>
+         <button class="btn" type="button" disabled>Activate</button>`
+      : `<button class="btn btn-primary" type="button" data-activate="${t.slug}">Activate ${esc(t.name)}</button>`;
+
+  const rows = detailRows([
+    ['Version', t.version ? `<span class="mono">${esc(t.version)}</span>` : '—'],
+    ['Installed by', originRow(t)],
+    ['Folder', t.builtin ? 'Ships with Blush' : `<span class="mono">${esc(t.source)}/${esc(t.slug)}</span>`],
+    ['Author', t.uri ? `<a href="${esc(t.uri)}">${esc(t.author)}</a>` : esc(t.author || '—')],
+    ['Type', esc(t.type || '—')],
+    ['Falls back to', t.root ? 'Nothing — every theme falls back to this one'
+      : !t.fallback ? '—'
+      : (!parent || parent.removed)
+        ? `<span class="warn-ink mono">${esc(t.fallback)}</span><span class="warn-ink"> — not installed</span>`
+        : `<a href="#" data-go="themes:${parent.slug}">${esc(parent.name)}</a>`],
+    ['Used as fallback by', deps.length
+      ? deps.map(d => `<a href="#" data-go="themes:${d.slug}">${esc(d.name)}</a>`).join(', ') : 'Nothing'],
+  ]);
+
+  const previewPanel = t.broken
+    ? `<div class="card"><h2>Preview</h2><div class="card-in">
+         <div class="tmsg tmsg-warn"><svg class="ic"><use href="#i-alert"/></svg>
+           <span>${esc(t.broken)}. There is nothing to draw and nothing to activate until the
+           folder is fixed.</span></div></div></div>`
+    : `<div class="card"><h2>Preview <span class="hint">drawn from the declared palette</span></h2>
+         <div class="card-in">
+           ${blocked ? `<div class="tmsg tmsg-warn" style="margin-top:0;margin-bottom:var(--s-4)">
+             <svg class="ic"><use href="#i-alert"/></svg><span>${esc(blocked)}</span></div>` : ''}
+           <div class="pv-pair">
+             <figure>${preview(t, 'light')}<figcaption>Light</figcaption></figure>
+             <figure>${preview(t, 'dark')}<figcaption>Dark</figcaption></figure></div></div></div>`;
+
+  return backTo('themes', 'All themes')
+    + pageHead(esc(t.name), esc(t.desc || 'This theme has no description.'), action)
+    + `<div class="detail-stack">
+         <div class="detail">${previewPanel}
+           <div class="card"><h2>Details</h2><div class="card-in">${rows}</div></div></div>
+         ${t.broken ? '' : palettePanel(t)}
+         ${dangerZone(t, 'theme', deps.length
+            ? ` ${deps.length} theme${deps.length > 1 ? 's falls' : ' falls'} back to this one.` : '')}
+       </div>`;
+}
+
+/* == PLUGINS ===============================================================
+   Rows, not cards: a plugin has no picture, and the list has only what the
+   manifest says — a name, a package, a version, a sentence, and a switch.
+   ========================================================================= */
+PLUGINS.forEach(p => p.kind = 'plugin');
+
+/* A caret range is satisfied when the major version matches. Enough for a
+   sketch; the real admin hands this to Composer's own comparator. */
+const major = v => parseInt(String(v).replace(/^\D*/, ''), 10);
+const satisfies = (range, version) => major(range) === major(version);
+
+/* One requirement, resolved against this site. A plugin requirement is
+   checked live, so turning Shop off blocks everything that needs it. */
+function requirement(r) {
+  const [kind] = r;
+  if (kind === 'core') return { name:'blush', range:r[1], ok:satisfies(r[1], SITE.blush),
+    note:`this site runs ${SITE.blush}` };
+  if (kind === 'php')  return { name:'php', range:r[1], ok:satisfies(r[1], SITE.php),
+    note:`this site runs ${SITE.php}` };
+
+  const [, pkg, range] = r;
+  const dep = live(PLUGINS).find(o => o.pkg === pkg);
+  if (!dep)            return { name:pkg, range, ok:false, note:'not installed', dep:null };
+  const versionOk = satisfies(range, dep.version);
+  if (!versionOk)      return { name:pkg, range, ok:false, dep, label:dep.name,
+    note:`version ${dep.version} is installed` };
+  const running = dep.on && !pluginBlocker(dep);
+  return { name:pkg, range, ok:running, dep, label:dep.name,
+    note: running ? '' : 'installed but turned off' };
+}
+
+const requirements = p => (p.requires || []).map(requirement);
+
+/* Why a plugin may not be turned on, or null. */
+function pluginBlocker(p) {
+  if (p.broken) return p.broken;
+  const miss = requirements(p).filter(r => !r.ok);
+  if (!miss.length) return null;
+  return 'Needs ' + miss.map(r => {
+    if (r.dep === null) return `the ${r.name} plugin, which is not installed`;
+    if (r.dep)          return `${r.label} ${r.range}, ${r.note}`;
+    return `${r.name} ${r.range}, ${r.note}`;
+  }).join(', and ') + '.';
+}
+
+function pluginRow(p) {
+  const blocked = pluginBlocker(p);
+  const on = p.on && !blocked;
+  const badge = blocked
+    ? `<span class="pill pill-broken"><span class="dot"></span>Can't turn on</span>` : '';
+
+  return `<div class="row" data-off="${!on}">
+    <div class="badge"><svg class="ic"><use href="#i-extension"/></svg></div>
+    <div>
+      <div class="rname"><a href="#" data-go="plugins:${p.slug}">${esc(p.name)}</a>${badge}
+        <span class="pkg">${esc(p.pkg)} ${esc(p.version)}</span></div>
+      <p class="rdesc"${blocked ? '' : ' style="margin-bottom:0"'}>${esc(p.desc)}</p>
+      ${blocked ? `<div class="tmsg tmsg-warn" style="margin:0;max-width:70ch">
+          <svg class="ic"><use href="#i-alert"/></svg><span>${esc(blocked)}</span></div>` : ''}
+    </div>
+    <div class="ract">
+      ${switchCtl('plugin', p, on, !!blocked, blocked || '')}
+      ${menuTrigger('plugin', p)}
+    </div></div>`;
+}
+
+function pluginsList() {
+  const list = live(PLUGINS);
+  const on = list.filter(p => p.on && !pluginBlocker(p)).length;
+  return pageHead('Plugins',
+      'Code that adds content types, components, icons and actions to the site.',
+      `<button class="btn btn-primary" type="button" data-install="plugin">
+         <svg class="ic"><use href="#i-upload"/></svg>Install Plugin</button>`)
+    + countRow(state.loading ? 'Loading plugins' : `${list.length} plugins · ${on} on`)
+    + (state.loading ? skeletonRows() : `<div class="rows">${list.map(pluginRow).join('')}</div>`)
+    + `<div class="notice"><svg class="ic"><use href="#i-info"/></svg>
+        <p>Plugins live in <code>user/plugins/</code> or come from Composer. Turning one off
+          writes to <code>config/plugins.php</code>, so a deploy keeps the same answer. What a
+          plugin registers appears on the screens it belongs to, not here.</p></div>`;
+}
+
+function pluginDetail(p) {
+  const blocked = pluginBlocker(p);
+  const on = p.on && !blocked;
+  const reqs = requirements(p);
+  const needs = live(PLUGINS).filter(o => o !== p &&
+    (o.requires || []).some(r => r[0] === 'plugin' && r[1] === p.pkg));
+
+  const action = blocked
+    ? `<span class="pill pill-broken"><span class="dot"></span>Can't turn on</span>`
+    : switchCtl('plugin', p, on, false);
+
+  const details = detailRows([
+    ['Version', `<span class="mono">${esc(p.version)}</span>`],
+    ['Package', `<span class="mono">${esc(p.pkg)}</span>`],
+    ['Installed by', originRow(p)],
+    ['Folder', `<span class="mono">${esc(p.source)}/${esc(p.slug)}</span>`],
+    ['Author', p.uri ? `<a href="${esc(p.uri)}">${esc(p.author)}</a>` : esc(p.author)],
+    ['License', `<span class="mono">${esc(p.license)}</span>`],
+    needs.length && ['Required by', needs.map(o =>
+      `<a href="#" data-go="plugins:${o.slug}">${esc(o.name)}</a>`).join(', ')],
+  ]);
+
+  const reqList = `<ul class="req">${reqs.map(r => `<li>
+      <svg class="ic ${r.ok ? 'ok' : 'bad'}"><use href="#i-${r.ok ? 'ok' : 'no'}"/></svg>
+      <span class="mono">${esc(r.name)} ${esc(r.range)}</span>
+      ${r.dep ? `<a href="#" data-go="plugins:${r.dep.slug}">${esc(r.label)}</a>` : ''}
+      ${r.note ? `<span class="${r.ok ? '' : 'warn-ink'}">— ${esc(r.note)}</span>` : ''}
+    </li>`).join('')}</ul>`;
+
+  return backTo('plugins', 'All plugins')
+    + pageHead(esc(p.name), esc(p.desc), action)
+    + `<div class="detail-stack">
+        ${blocked ? `<div class="tmsg tmsg-warn" style="margin:0"><svg class="ic"><use href="#i-alert"/></svg>
+          <span>${esc(blocked)} Nothing it registers is active, and it cannot be turned on.</span></div>` : ''}
+        <div class="detail-2up">
+          <div class="card"><h2>Details</h2><div class="card-in">${details}</div></div>
+          <div class="card"><h2>Requires <span class="hint">checked against this site</span></h2>
+            <div class="card-in">${reqList}</div></div>
+        </div>
+        ${dangerZone(p, 'plugin')}
+      </div>`;
+}
+
+/* == ICON PACKS ============================================================
+   Cards, because a pack's icons are its preview. Listing the names instead of
+   the marks is the one thing this screen must not do.
+   ========================================================================= */
+PACKS.forEach(k => k.kind = 'pack');
+
+const glyph = (g, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 24 24">${g.d}</svg>`;
+const packOn = k => k.on;
+
+/* Every card's preview is the same two rows of six, whatever the pack holds:
+   a short pack pads with empty cells, a long one spends the last on a count.
+   Ragged previews are what make a grid of cards look untended. */
+const CELLS = 12;
+
+function packCard(k) {
+  const on = packOn(k);
+  const over = k.icons.length > CELLS;
+  const shown = k.icons.slice(0, over ? CELLS - 1 : CELLS);
+  const rest = k.icons.length - shown.length;
+  const pad = CELLS - shown.length - (over ? 1 : 0);
+  const locked = k.install === 'builtin';
+  const why = locked ? 'The core set is always on.' : '';
+
+  return `<article class="tcard" data-active="false">
+    <div class="glyphs">${shown.map(g => `<div>${glyph(g)}</div>`).join('')}
+      ${over ? `<div><span class="more">+${rest}</span></div>` : ''}
+      ${'<div></div>'.repeat(pad)}</div>
+    <div class="tbody">
+      <div class="tname"><a href="#" data-go="packs:${k.slug}">${esc(k.name)}</a>
+        ${k.install === 'builtin' ? `<span class="pill pill-builtin"><span class="dot"></span>Built in</span>` : ''}
+        ${k.version ? `<span class="ver">${esc(k.version)}</span>` : ''}</div>
+      <p class="tdesc">${esc(k.desc)}</p>
+      <ul class="tfacts">${originFact(k)}
+        <li><svg class="ic"><use href="#i-icons"/></svg>${k.icons.length} icons in
+          <span class="mono">${esc(k.ns)}/</span></li></ul>
+    </div>
+    <div class="tfoot">${switchCtl('pack', k, on, locked, why)}<span class="sp"></span>
+      ${menuTrigger('pack', k)}</div>
+  </article>`;
+}
+
+function packsList() {
+  const list = live(PACKS);
+  const total = list.filter(packOn).reduce((n, k) => n + k.icons.length, 0);
+  return pageHead('Icon Packs',
+      'Sets of icons for content, menus and buttons, each in a namespace of its own.',
+      `<button class="btn btn-primary" type="button" data-install="pack">
+         <svg class="ic"><use href="#i-upload"/></svg>Install Icon Pack</button>`)
+    + countRow(state.loading ? 'Loading icon packs'
+        : `${list.length} packs · ${total} icons available`)
+    + `<div class="cards">${state.loading ? skeletonCard().repeat(3) : list.map(packCard).join('')}</div>`
+    + `<div class="notice"><svg class="ic"><use href="#i-info"/></svg>
+        <p>Icon packs live in <code>user/icons/</code> or come from Composer. An icon is
+          referenced as <code>pack/name</code> wherever content, a menu or a button takes one, and
+          the namespace is what lets two packs use the same name.</p></div>`;
+}
+
+function packDetail(k) {
+  const on = packOn(k);
+  const locked = k.install === 'builtin';
+  const why = locked ? 'The core set is always on.' : '';
+  const q = state.query.trim().toLowerCase();
+  const hits = k.icons.filter(g => g.n.includes(q));
+
+  const rows = detailRows([
+    ['Version', k.version ? `<span class="mono">${esc(k.version)}</span>` : '—'],
+    ['Namespace', `<span class="mono">${esc(k.ns)}/</span>`],
+    ['Icons', `${k.icons.length}`],
+    ['Installed by', originRow(k)],
+    k.install === 'folder' && ['Folder', `<span class="mono">${esc(k.source)}/${esc(k.slug)}</span>`],
+    ['Author', esc(k.author)],
+  ]);
+
+  const browser = `<div class="card">
+    <h2>Icons <span class="hint">click one to copy its reference</span></h2>
+    <div class="card-in">
+      <div class="browse-bar">
+        <div class="field"><svg class="ic"><use href="#i-search"/></svg>
+          <input type="search" id="gq" placeholder="Filter icons" value="${esc(state.query)}"
+            aria-label="Filter icons"></div>
+        <span class="browse-count">${hits.length === k.icons.length
+          ? `${k.icons.length} icons` : `${hits.length} of ${k.icons.length}`}</span>
+      </div>
+      ${hits.length ? `<div class="browse">${hits.map(g =>
+        `<button class="gcell" type="button" data-copy="${esc(k.ns)}/${esc(g.n)}">
+           ${glyph(g)}<code>${esc(k.ns)}/${esc(g.n)}</code></button>`).join('')}</div>`
+      : `<p class="rdesc" style="margin:0">No icon in this pack matches
+          “${esc(state.query)}”.</p>`}
+    </div></div>`;
+
+  return backTo('packs', 'All icon packs')
+    + pageHead(esc(k.name), esc(k.desc),
+        switchCtl('pack', k, on, locked, why))
+    + `<div class="detail-stack">
+        ${locked ? `<div class="notice" style="margin-top:0"><svg class="ic"><use href="#i-info"/></svg>
+          <p>${esc(why)}</p></div>` : ''}
+        <div class="detail">${browser}
+          <div class="card"><h2>Details</h2><div class="card-in">${rows}</div></div></div>
+        ${dangerZone(k, 'icon pack')}
+      </div>`;
+}
+
+/* == ROUTER ================================================================ */
+const SCREENS = {
+  themes:  { label:'Themes',     list:themesList,  detail:themeDetail,  get:getTheme },
+  plugins: { label:'Plugins',    list:pluginsList, detail:pluginDetail, get:getPlugin },
+  packs:   { label:'Icon Packs', list:packsList,   detail:packDetail,   get:getPack },
+};
+
+function render() {
+  const s = SCREENS[state.screen];
+  const item = state.detail ? s.get(state.detail) : null;
+  $('#screen').innerHTML = item ? s.detail(item) : s.list();
+
+  $('#trail').innerHTML = `<a href="#">Config</a><span>/</span>` + (item
+    ? `<a href="#" data-go="${state.screen}">${s.label}</a><span>/</span><b>${esc(item.name)}</b>`
+    : `<b>${s.label}</b>`);
+
+  document.querySelectorAll('[data-nav]').forEach(a =>
+    a.toggleAttribute('aria-current', a.dataset.nav === state.screen) ||
+    a.setAttribute('aria-current', a.dataset.nav === state.screen ? 'page' : 'false'));
+  document.querySelectorAll('[data-nav]').forEach(a => {
+    if (a.dataset.nav === state.screen) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+
+  $('#n-themes').textContent  = live(THEMES).length;
+  $('#n-plugins').textContent = live(PLUGINS).length;
+  $('#n-packs').textContent   = live(PACKS).length;
+  fitPreviews();
+}
+
+/* "themes" goes to a list, "themes:quill" to a detail screen. */
+function go(target) {
+  const [screen, slug] = String(target).split(':');
+  if (SCREENS[screen]) { state.screen = screen; state.detail = slug || null; }
+  state.failed = null;
+  state.query = '';
+  $('#work').scrollTop = 0;       // the pane scrolls on desktop…
+  scrollTo(0, 0);                 // …the document scrolls on a phone
+  render();
+}
+/* == ACTIONS =============================================================== */
+function activate(slug) {
+  state.busy = slug; state.failed = null; render();
+  setTimeout(() => {
+    state.busy = null;
+    // Atlas stands in for an activation the server refuses.
+    if (slug === 'atlas') { state.failed = slug; render(); toast(`Could not activate ${getTheme(slug).name}`, false); }
+    else { state.active = slug; render(); toast(`Activated ${getTheme(slug).name}`); }
+  }, 1000);
+}
+
+/* A switch takes effect the moment it moves, so this says what happened in the
+   past tense rather than asking first. Turning a plugin off takes the icons it
+   contributed with it, which the toast names so nobody has to notice. */
+function togglePlugin(slug) {
+  const p = getPlugin(slug);
+  p.on = !p.on;
+  // Anything that required it is now blocked; requirements() picks that up.
+  const hit = live(PLUGINS).filter(o => o !== p && pluginBlocker(o) && o.on).length;
+  render();
+  toast(p.on ? `Turned on ${p.name}` : `Turned off ${p.name}`);
+}
+
+function togglePack(slug) {
+  const k = getPack(slug);
+  k.on = !k.on;
+  render();
+  toast(k.on ? `Turned on ${k.name}` : `Turned off ${k.name} — ${k.icons.length} icons are no longer available`);
+}
+
+function remove(kind, slug) {
+  const x = kind === 'theme' ? getTheme(slug) : kind === 'plugin' ? getPlugin(slug) : getPack(slug);
+  x.removed = true;
+  // A deleted theme's dependents keep pointing at a name that is now gone,
+  // which blocks them rather than silently re-parenting them. blocker() sees it.
+  if (state.detail === slug) go(kind === 'theme' ? 'themes' : kind === 'plugin' ? 'plugins' : 'packs');
+  else render();
+  toast(`Deleted ${x.name}`);
+}
+
+let toastTimer;
+function toast(msg, good = true) {
+  $('#toasts').innerHTML = `<div class="toast ${good ? '' : 'bad'}" role="status">
+    <svg class="ic"><use href="#i-${good ? 'check' : 'alert'}"/></svg>${esc(msg)}</div>`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('#toasts').innerHTML = '', 2600);
+}
+
+/* == MODALS ================================================================ */
+const modal = $('#modal');
+function openModal(title, body, foot) {
+  $('#m-title').textContent = title;
+  $('#m-body').innerHTML = body;
+  $('#m-foot').innerHTML = foot;
+  modal.showModal();
+  modal.querySelector('[data-focus]')?.focus();
+}
+modal.addEventListener('click', e => { if (e.target.closest('[data-close]')) modal.close(); });
+
+function confirmActivate(t) {
+  openModal(`Activate ${t.name}`,
+    `<p>Visitors will see the ${esc(t.name)} theme the moment this is saved. Your content,
+      URLs and settings are unchanged, and you can switch back at any time.</p>`,
+    `<button class="btn" type="button" data-close data-focus>Cancel</button>
+     <button class="btn btn-primary" type="button" data-close data-confirm-activate="${t.slug}">Activate ${esc(t.name)}</button>`);
+}
+
+function confirmDelete(kind, slug) {
+  const x = kind === 'theme' ? getTheme(slug) : kind === 'plugin' ? getPlugin(slug) : getPack(slug);
+  const noun = kind === 'icon pack' ? 'icon pack' : kind;
+  let extra = '';
+  if (kind === 'theme') {
+    const deps = dependents(slug);
+    if (deps.length) extra = `<p>${deps.map(d => esc(d.name)).join(' and ')}
+      fall${deps.length > 1 ? '' : 's'} back to ${esc(x.name)}, and will not be activatable until
+      ${deps.length > 1 ? 'they are' : 'it is'} pointed at a theme that is installed.</p>`;
+  }
+  if (kind === 'plugin') {
+    const needs = live(PLUGINS).filter(o => (o.requires || [])
+      .some(r => r[0] === 'plugin' && r[1] === x.pkg));
+    extra = `<p>Everything it registered stops existing. Content that used it keeps its text
+      and loses the rendering.</p>`
+      + (needs.length ? `<p>${needs.map(o => esc(o.name)).join(' and ')} require${needs.length > 1 ? '' : 's'}
+          it, and will not be able to turn on.</p>` : '');
+  }
+  if (kind === 'pack') extra = `<p>${x.icons.length} icons in
+    <span class="mono">${esc(x.ns)}/</span> stop resolving. Anywhere one is referenced falls back
+    to no icon.</p>`;
+
+  openModal(`Delete ${x.name}`,
+    `<p>The folder <code>${esc(x.source)}/${esc(x.slug)}</code> and everything in it is removed
+      from the server. This cannot be undone.</p>${extra}`,
+    `<button class="btn" type="button" data-close data-focus>Cancel</button>
+     <button class="btn btn-danger" type="button" data-close data-confirm-delete="${kind}:${slug}">Delete ${esc(x.name)}</button>`);
+}
+
+/* The same two routes for all three kinds: a folder under user/{kind}/, or a
+   Composer package. Only the folder and the last line differ. */
+const INSTALL = {
+  theme:  { title:'Install Theme',     dir:'user/themes',  noun:'A theme',
+            tail:'Nothing is activated — the site keeps the theme it has.' },
+  plugin: { title:'Install Plugin',    dir:'user/plugins', noun:'A plugin',
+            tail:'It arrives off, so nothing it registers runs until you turn it on.' },
+  pack:   { title:'Install Icon Pack', dir:'user/icons',   noun:'An icon pack',
+            tail:'Its namespace comes from the pack, so two packs can use the same icon name.' },
+};
+
+function installModal(kind) {
+  const i = INSTALL[kind];
+  openModal(i.title,
+    `<p>${i.noun} is a folder under <code>${i.dir}/</code>. Put one there and it appears in
+      this list.</p>
+     <p>One published as a package is installed with <code>composer require vendor/name</code>
+      instead. Composer owns it from then on, so it cannot be deleted from this screen.</p>
+     <div class="drop"><svg class="ic ic-lg"><use href="#i-upload"/></svg>
+       <div>Drop a <strong>.zip</strong> here, or choose a file</div>
+       <div style="margin-top:6px;font-size:11.5px">It is unpacked into
+         <span class="mono">${i.dir}/</span>. ${i.tail}</div></div>`,
+    `<button class="btn" type="button" data-close data-focus>Cancel</button>
+     <button class="btn btn-primary" type="button" data-close disabled>Upload</button>`);
+}
+
+/* == ROW MENU ============================================================== */
+const menu = $('#menu');
+let menuFor = null;
+
+function closeMenu(restoreFocus) {
+  if (!menuFor) return;
+  const btn = document.querySelector(`[data-menu="${menuFor}"]`);
+  menu.dataset.open = 'false';
+  if (btn) { btn.setAttribute('aria-expanded', 'false'); if (restoreFocus) btn.focus(); }
+  menuFor = null;
+}
+
+function openMenu(ref, btn) {
+  const [kind, slug] = ref.split(':');
+  const x = kind === 'theme' ? getTheme(slug) : kind === 'plugin' ? getPlugin(slug) : getPack(slug);
+  const screen = kind === 'theme' ? 'themes' : kind === 'plugin' ? 'plugins' : 'packs';
+
+  const items = [];
+  menuItems(kind, x).forEach(([mi, icon, label, danger], i, all) => {
+    // Delete is last and always behind a rule: it never sits next to a safe action.
+    if (danger) items.push('<hr>');
+    items.push(`<button type="button" role="menuitem"${danger ? ' class="danger"' : ''} data-mi="${mi}">
+      <svg class="ic"><use href="#${icon}"/></svg>${label}</button>`);
+  });
+
+  menu.innerHTML = items.join('');
+  menu.dataset.open = 'true';
+  menuFor = ref;
+  btn.setAttribute('aria-expanded', 'true');
+  menu.dataset.screen = screen;
+
+  const r = btn.getBoundingClientRect(), m = menu.getBoundingClientRect();
+  let top = r.bottom + 6;
+  if (top + m.height > innerHeight - 8) top = r.top - m.height - 6;   // flip above
+  menu.style.top = `${top}px`;
+  menu.style.left = `${Math.max(8, Math.min(r.right - m.width, innerWidth - m.width - 8))}px`;
+  menu.querySelector('button').focus();
+}
+
+menu.addEventListener('keydown', e => {
+  const items = [...menu.querySelectorAll('button')];
+  const i = items.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+  if (e.key === 'ArrowUp')   { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+  if (e.key === 'Escape')    { e.preventDefault(); closeMenu(true); }
+});
+
+menu.addEventListener('click', e => {
+  const item = e.target.closest('[data-mi]'); if (!item) return;
+  const ref = menuFor, [kind, slug] = ref.split(':');
+  const x = kind === 'theme' ? getTheme(slug) : kind === 'plugin' ? getPlugin(slug) : getPack(slug);
+  const screen = menu.dataset.screen;
+  closeMenu(false);
+  if (item.dataset.mi === 'open')   go(`${screen}:${slug}`);
+  if (item.dataset.mi === 'copy')   { navigator.clipboard?.writeText(`${x.source}/${x.slug}`);
+                                      toast(`Copied ${x.source}/${x.slug}`); }
+  if (item.dataset.mi === 'delete') confirmDelete(kind, slug);
+});
+
+/* == WIRING ================================================================ */
+document.addEventListener('click', e => {
+  const menuBtn = e.target.closest('[data-menu]');
+  if (!menuBtn && !e.target.closest('#menu')) closeMenu(false);
+
+  const nav = e.target.closest('[data-nav]');
+  if (nav) { e.preventDefault(); go(nav.dataset.nav); return; }
+
+  const link = e.target.closest('[data-go]');
+  if (link) { e.preventDefault(); go(link.dataset.go); return; }
+
+  if (menuBtn) { e.preventDefault();
+    menuFor === menuBtn.dataset.menu ? closeMenu(true) : openMenu(menuBtn.dataset.menu, menuBtn); return; }
+
+  const act = e.target.closest('[data-activate]');
+  if (act) { e.preventDefault(); confirmActivate(getTheme(act.dataset.activate)); }
+
+  const del = e.target.closest('[data-delete]');
+  if (del) { e.preventDefault(); const [k, s] = del.dataset.delete.split(':'); confirmDelete(k, s); }
+
+  const ins = e.target.closest('[data-install]');
+  if (ins) { e.preventDefault(); installModal(ins.dataset.install); }
+
+  const copy = e.target.closest('[data-copy]');
+  if (copy) { navigator.clipboard?.writeText(copy.dataset.copy); toast(`Copied ${copy.dataset.copy}`); }
+
+  const okA = e.target.closest('[data-confirm-activate]');
+  if (okA) activate(okA.dataset.confirmActivate);
+
+  const okD = e.target.closest('[data-confirm-delete]');
+  if (okD) { const [k, s] = okD.dataset.confirmDelete.split(':'); remove(k, s); }
+});
+
+document.addEventListener('change', e => {
+  const sw = e.target.closest('[data-toggle]'); if (!sw) return;
+  const [kind, slug] = sw.dataset.toggle.split(':');
+  if (kind === 'plugin') togglePlugin(slug); else togglePack(slug);
+});
+
+/* The icon filter keeps focus across the re-render, so typing is continuous. */
+document.addEventListener('input', e => {
+  if (e.target.id !== 'gq') return;
+  state.query = e.target.value;
+  render();
+  const f = $('#gq'); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(true); });
+addEventListener('resize', fitPreviews);
+
+$('#burger').addEventListener('click', () => {
+  const open = $('#app').dataset.drawer === 'open';
+  $('#app').dataset.drawer = open ? '' : 'open';
+  $('#burger').setAttribute('aria-expanded', String(!open));
+});
+$('#scrim').addEventListener('click', () => {
+  $('#app').dataset.drawer = ''; $('#burger').setAttribute('aria-expanded', 'false');
+});
+
+render();
+setTimeout(() => { state.loading = false; render(); }, 900);   // skeletons, then data
+
+</script>
+</body>
+</html>
