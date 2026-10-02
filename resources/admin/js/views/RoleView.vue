@@ -11,8 +11,9 @@
  * custom role. **Duplicate** starts a new role from this one's
  * capabilities.
  *
- * The administrator always has everything, so its capabilities are one
- * statement rather than every box ticked. Roles from `config/auth.php`,
+ * The administrator always has everything, and the member nothing
+ * (D-365), so each one's capabilities are one statement rather than
+ * every box. Roles from `config/auth.php`,
  * and a role that can do things you can't, are shown read-only, with
  * the reason.
  */
@@ -24,7 +25,7 @@ import CapabilitySections from '../components/CapabilitySections.vue';
 import MenuButton from '../components/MenuButton.vue';
 import { ApiError } from '../api';
 import { plural } from '../format';
-import { deleteRole, initials, loadRoles, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
+import { deleteRole, initials, loadRoles, MEMBER, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { can } from '../session';
 import { toast } from '../toast';
@@ -43,6 +44,8 @@ loadRoles().then((answer) => {
 const role       = computed(() => list.value?.roles.find((item) => item.name === route.params.name));
 const all        = computed(() => list.value?.all ?? '*');
 const everything = computed(() => role.value?.capabilities.includes(all.value) ?? false);
+// The member never has a capability (D-365).
+const nothing    = computed(() => role.value?.name === MEMBER);
 const custom     = computed(() => role.value?.origin === 'custom');
 
 watch(role, (value) => {
@@ -53,7 +56,7 @@ watch(role, (value) => {
 const lockedBecause = computed(() => {
 	const value = role.value;
 
-	if (value === undefined || value.editable || everything.value) {
+	if (value === undefined || value.editable || everything.value || nothing.value) {
 		return '';
 	}
 
@@ -231,7 +234,7 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 				</div>
 			</div>
 			<div class="page-header__actions">
-				<RouterLink v-if="!everything && can('roles.manage')" class="button" :to="{ name: 'role-new', query: { from: role.name } }"><AdminIcon name="copy" />Duplicate</RouterLink>
+				<RouterLink v-if="!everything && !nothing && can('roles.manage')" class="button" :to="{ name: 'role-new', query: { from: role.name } }"><AdminIcon name="copy" />Duplicate</RouterLink>
 				<RouterLink class="button" :to="{ name: 'roles' }"><AdminIcon name="arrow-left" />All roles</RouterLink>
 				<MenuButton button-class="button button--icon" label="More actions">
 					<template #button><AdminIcon name="ellipsis" /></template>
@@ -289,6 +292,21 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 					<p>{{ role.label }} holds every capability on every content type, and any type or capability an extension adds later is included the moment it appears. There's nothing to grant here, so there's nothing to draw.</p>
 					<p>To give someone a narrower set of powers, start a new role from Editor and take things away. At least one account must keep a role that manages accounts.</p>
 					<RouterLink v-if="holders.length" class="button" :to="holdersLink"><AdminIcon name="users" />{{ holders.length === 1 ? 'See the account that holds it' : 'See the accounts that hold it' }}</RouterLink>
+				</div>
+			</div>
+		</section>
+
+		<section v-else-if="nothing" class="panel" aria-labelledby="capabilities-heading">
+			<header class="panel__header">
+				<h2 id="capabilities-heading">Capabilities</h2>
+				<p class="panel__hint">Not editable on this role</p>
+			</header>
+			<div class="role__everything">
+				<AdminIcon name="user-round" />
+				<div>
+					<h3>Nothing but Their Own Account</h3>
+					<p>{{ role.label }} can sign in and look after their own account (their name, password, and preferences), and nothing else. It's what an account holds when it holds no other role: a new account starts with it, and taking someone's last role leaves them with it.</p>
+					<p>It never gets a capability, so whoever can make accounts but not give roles hands out nothing. To let someone do more, give them another role.</p>
 				</div>
 			</div>
 		</section>

@@ -82,8 +82,7 @@ final class AccountsTest extends TestCase
 			['jane', 'a long enough password', ['editor'], 'There\'s already an account named "jane".'],
 			['Jane!', 'a long enough password', ['editor'], 'can\'t be a username'],
 			['sam', 'short', ['editor'], 'at least 12 characters'],
-			['sam', 'a long enough password', ['boss'], 'There\'s no "boss" role'],
-			['sam', 'a long enough password', [], 'at least one role']
+			['sam', 'a long enough password', ['boss'], 'There\'s no "boss" role']
 		];
 
 		foreach ($cases as [$username, $password, $roles, $message]) {
@@ -94,6 +93,16 @@ final class AccountsTest extends TestCase
 				$this->assertStringContainsString($message, $e->getMessage());
 			}
 		}
+	}
+
+	public function testNoRolesIsTheMember(): void
+	{
+		$sam = $this->accounts()->create('sam', 'a long enough password', []);
+
+		$this->assertSame(['member'], $sam->roles, 'No roles is the member\'s (D-365).');
+		$this->assertSame(['editor'], $this->accounts()->setRoles($sam, ['member', 'editor'])->roles, 'The member only when there\'s nothing else.');
+		$this->assertSame(['member'], $this->accounts()->setRoles($sam, [])->roles);
+		$this->assertSame(['author', 'editor'], Accounts::settle(['author', 'editor', 'author']));
 	}
 
 	public function testChangesAccounts(): void
@@ -210,13 +219,15 @@ final class AccountsTest extends TestCase
 	{
 		$roles = new Roles(AuthConfig::fromArray(new AuthConfig(roles: [
 			new Role('editor', 'Copy editor', ['content.*.edit.others']),
-			new Role('reviewer', 'Reviewer', ['content.*.edit'])
+			new Role('reviewer', 'Reviewer', ['content.*.edit']),
+			new Role('member', 'Member', ['site.settings'])
 		])->toArray()), new MemoryRoleStore());
 
-		$this->assertSame(['administrator', 'editor', 'author', 'contributor', 'reviewer'], array_keys($roles->all()));
+		$this->assertSame(['administrator', 'editor', 'author', 'contributor', 'member', 'reviewer'], array_keys($roles->all()));
 		$this->assertSame('Copy editor', $roles->get('editor')?->label);
 		$this->assertFalse($roles->get('editor')->allows('site.publish'));
 		$this->assertTrue($roles->get('administrator')?->allows('anything.at.all'));
+		$this->assertSame([], $roles->get('member')?->capabilities, 'Config can\'t give the member anything (D-365).');
 	}
 
 	public function testRejectsBadRoles(): void

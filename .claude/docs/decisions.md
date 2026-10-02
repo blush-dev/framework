@@ -9918,3 +9918,36 @@ decision, add a new entry that supersedes it and mark the old one
   Subscriber at 1280px (light) and 390px (dark) with a throwaway
   administrator (removed after).
 - **Why:** the author asked for it.
+
+### D-365: The Member role, what holding no other role means
+- **Date:** 2026-10-02
+- **Decision:** A built-in `member` role (Member: "Signs in and looks
+  after their own account. Nothing else.") that never has a
+  capability, the mirror of the administrator: the admin can't change
+  or delete it (`RoleOrigin::editable()`), `storage/roles.json` and
+  `config/auth.php` can't redefine it (`Roles` skips it). Signing in
+  and Your Account need no capability, so a member manages their own
+  name, password, and preferences.
+  - **Held alone:** `Accounts::settle()` keeps each role once and the
+    member only when there's nothing else; no roles is `[member]`. So
+    D-312's "an account always keeps one role" is gone: taking the last
+    role leaves a member (`create()` and `setRoles()` settle).
+  - **Creating without giving roles:** `POST accounts` needs
+    `accounts.roles` for any first roles but the member's; without it,
+    the account is a member. Settles D-362's open question.
+  - **The admin:** New Account ticks Member to start, always; without
+    `accounts.roles` the checkboxes are locked, with a line saying so.
+    `RoleChecks`: ticking another role unticks Member, unticking the
+    last ticks it, and ticking Member takes the rest; Member alone
+    can't be unticked. Member's screen is one statement ("Nothing but
+    Their Own Account"), like the administrator's, with no Duplicate;
+    the Roles list says "Their own account".
+  - The jtcom trial's custom Subscriber role is the same idea and is
+    left for the author to remove.
+- **Checked:** `composer check` (`AccountsTest::testNoRolesIsTheMember`,
+  config can't give the member anything; `AdminPeopleEditTest::
+  testCreatingWithoutGivingRolesMakesMembers` and
+  `testMembersHaveNothing`); `npm run admin:build`; on the jtcom trial
+  with a throwaway administrator (removed after): New Account with
+  Member ticked and Editor replacing it, Member's screen, and Roles.
+- **Why:** the author proposed it, and asked for it.

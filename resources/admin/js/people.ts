@@ -18,6 +18,10 @@ export interface CapabilityInfo {
 	action?: ContentAction;
 }
 
+// The role an account holds when it holds nothing else, which never has
+// a capability (D-365).
+export const MEMBER = 'member';
+
 // Whether a role's screen shows each capability's key; it lasts while
 // the admin's open, on every role.
 export const showKeys = ref(false);

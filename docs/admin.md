@@ -944,14 +944,16 @@ sign-in. **New Account** makes one; **Roles** lists each role with its
 description, the content types it reaches (every type, some, or none)
 and how many site capabilities it has, and how many accounts hold it.
 
-- **New Account** asks for a username, its roles, and optionally a
+- **New Account** asks for a username, its roles (**Member** is ticked
+  to start, and stays the only choice if you can't give roles), and
+  optionally a
   [name](accounts.md#names) and its profile, picked from the profiles
   no other account has. Blush doesn't send email, so instead of a password the
   account gets a **password link**: copy it from the account's screen
   and send it however you like. It's shown only that once, and it
   works once, for a week. Until it's used, the account is **Invited**.
 - On an account's screen, tick or untick its **roles** (they save
-  right away; an account always keeps one) and change its **name**
+  right away; unticking the last one leaves the account a **Member**) and change its **name**
   while it has no profile. Once it has one, the profile's title is its
   name.
 - **Public Profile** on an account's screen shows its profile: linked

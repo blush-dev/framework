@@ -68,7 +68,7 @@ final readonly class Accounts
 		$account = new Account(
 			username: $username,
 			passwordHash: $this->passwords->hash($password),
-			roles: array_values(array_unique($roles)),
+			roles: self::settle($roles),
 			author: $author,
 			created: $this->clock->now()->getTimestamp(),
 			name: $name === null ? null : Account::tidyName($name)
@@ -168,7 +168,7 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Sets an account's roles.
+	 * Sets an account's roles; none is the member's (D-365).
 	 *
 	 * @param  list<string> $roles
 	 * @throws AuthException When a role doesn't exist.
@@ -177,7 +177,7 @@ final readonly class Accounts
 	{
 		$this->checkRoles($roles);
 
-		$account = $account->withRoles($roles);
+		$account = $account->withRoles(self::settle($roles));
 		$this->store->save($account);
 
 		return $account;
@@ -312,17 +312,29 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Checks that there's at least one role and that each exists.
+	 * Returns the roles an account holds (D-365): each once, and the
+	 * member only when there's nothing else, so an account always has a
+	 * role and the member is what having none means.
+	 *
+	 * @param  list<string> $roles
+	 * @return list<string>
+	 */
+	public static function settle(array $roles): array
+	{
+		$member = BuiltInRole::Member->value;
+		$others = array_values(array_unique(array_filter($roles, static fn (string $role): bool => $role !== $member)));
+
+		return $others === [] ? [$member] : $others;
+	}
+
+	/**
+	 * Checks that each role exists. None at all is the member's (D-365).
 	 *
 	 * @param  list<string> $roles
 	 * @throws AuthException
 	 */
 	public function checkRoles(array $roles): void
 	{
-		if ($roles === []) {
-			throw new AuthException('An account needs at least one role.');
-		}
-
 		foreach ($roles as $role) {
 			if (! $this->roles->has($role)) {
 				throw new AuthException(sprintf('There\'s no "%s" role; the roles are: %s.', $role, implode(', ', array_keys($this->roles->all()))));

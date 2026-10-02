@@ -376,10 +376,13 @@ dynamically).
   appears), the account's Public profile panel, and the type editor's
   People panel. Later: Import from accounts, profile capabilities,
   and schema.org `Person` with structured data in general.
-- **Role capabilities (done, D-359):** per-type capabilities
-  (`content.{type}.{action}`, `content.*.…` for every type) and a role's
-  screen as capability sections, from the author's sketch. Later: the
-  sketch's open questions (`open-questions.md`).
+- **Role capabilities (done, D-359 to D-364):** per-type capabilities
+  (`content.{type}.{action}`, `content.*.…` for every type, additive)
+  and a role's screen as capability sections, from the author's sketch;
+  the Roles list's readouts; seven capabilities for managing accounts
+  and roles. Stopped here (2026-10-02): the author is bringing new
+  Users and Accounts screens next. Later: the open questions under
+  Role capabilities in `open-questions.md`.
 - **Relationships (D-242, planned):** a reverse index for every
   reference field, keyed by field, with a template API and "Used by" in
   the admin; then "lists what references it" as a setting for any type,

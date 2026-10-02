@@ -50,7 +50,7 @@ final class AdminPeopleEditTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator']): void
 	{
-		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('manager', 'Manager', ['accounts.view', 'accounts.create', 'accounts.edit', 'accounts.roles', 'accounts.suspend', 'accounts.delete', 'roles.manage', 'content.*.create', 'content.*.edit', 'content.*.delete']), new Blush\\Auth\\Role('viewer', 'Viewer', ['accounts.view', 'accounts.suspend', 'content.*.create', 'content.*.edit', 'content.*.delete'])]);\n");
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('manager', 'Manager', ['accounts.view', 'accounts.create', 'accounts.edit', 'accounts.roles', 'accounts.suspend', 'accounts.delete', 'roles.manage', 'content.*.create', 'content.*.edit', 'content.*.delete']), new Blush\\Auth\\Role('viewer', 'Viewer', ['accounts.view', 'accounts.suspend', 'content.*.create', 'content.*.edit', 'content.*.delete']), new Blush\\Auth\\Role('creator', 'Creator', ['accounts.view', 'accounts.create'])]);\n");
 		$this->boot(roles: $roles);
 		$this->login();
 	}
@@ -92,6 +92,16 @@ final class AdminPeopleEditTest extends TestCase
 		$error = self::json($response)['error'] ?? '';
 
 		return is_string($error) ? $error : '';
+	}
+
+	/**
+	 * Returns the roles of the account an answer describes.
+	 */
+	private static function rolesOf(ResponseInterface $response): mixed
+	{
+		$account = self::json($response)['account'] ?? null;
+
+		return is_array($account) ? $account['roles'] ?? null : null;
 	}
 
 	/**
@@ -200,9 +210,9 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'bad name', 'roles' => ['author']]))['field'] ?? null);
 		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'jane', 'roles' => ['author']]))['field'] ?? null);
 		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'new', 'roles' => ['author']]))['field'] ?? null, 'The New Account screen is accounts/new.');
-		$this->assertSame('roles', self::json($this->write('POST', '/accounts', ['username' => 'sam', 'roles' => []]))['field'] ?? null);
 		$this->assertSame('roles', self::json($this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['ghost']]))['field'] ?? null);
 		$this->assertNull($this->store()->find('sam'));
+		$this->assertSame(['member'], self::rolesOf($this->write('POST', '/accounts', ['username' => 'sam', 'roles' => []])), 'No roles is a member (D-365).');
 	}
 
 	public function testChangesAnAccountsRolesAuthorAndSuspension(): void
@@ -283,7 +293,7 @@ final class AdminPeopleEditTest extends TestCase
 
 		$roles = self::json($this->send('GET', '/roles'))['roles'] ?? [];
 		$this->assertIsArray($roles);
-		$this->assertSame(['contributor', 'manager', 'viewer'], array_column(array_filter($roles, static fn (mixed $role): bool => is_array($role) && ($role['grantable'] ?? false) === true), 'name'));
+		$this->assertSame(['contributor', 'member', 'manager', 'viewer', 'creator'], array_column(array_filter($roles, static fn (mixed $role): bool => is_array($role) && ($role['grantable'] ?? false) === true), 'name'));
 
 		$this->assertSame(201, $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['contributor']])->getStatusCode());
 	}
@@ -386,6 +396,26 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['author']])->getStatusCode());
 		$this->assertSame(403, $this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss'])->getStatusCode());
 		$this->assertSame(403, $this->write('DELETE', '/roles/editor')->getStatusCode());
+	}
+
+	public function testCreatingWithoutGivingRolesMakesMembers(): void
+	{
+		$this->site(['creator']);
+
+		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['contributor']])->getStatusCode(), 'Giving roles needs accounts.roles (D-365).');
+		$this->assertSame(['member'], self::rolesOf($this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['member']])));
+	}
+
+	public function testMembersHaveNothing(): void
+	{
+		$this->site();
+
+		$this->assertSame(422, $this->write('PATCH', '/roles/member', ['capabilities' => ['menus.edit']])->getStatusCode());
+		$this->assertSame(422, $this->write('DELETE', '/roles/member')->getStatusCode());
+
+		$this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['author']]);
+		$this->assertSame(['member'], self::rolesOf($this->write('PATCH', '/accounts/sam', ['roles' => []])), 'Taking the last role leaves the member.');
+		$this->assertSame(['editor'], self::rolesOf($this->write('PATCH', '/accounts/sam', ['roles' => ['member', 'editor']])));
 	}
 
 	public function testNamesAccounts(): void

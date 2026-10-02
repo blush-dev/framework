@@ -2,11 +2,12 @@
 /**
  * An account's roles as checkboxes (D-312; the prototype's role list),
  * each with what it's for. A role you can't give (it can do things you
- * can't) is shown but can't be ticked or unticked, and the last role
- * ticked can't be unticked: an account always has one.
+ * can't) is shown but can't be ticked or unticked. Member (D-365) is
+ * what holding nothing else means: ticking another role unticks it,
+ * unticking the last one ticks it, and ticking it takes the rest.
  */
 
-import type { RoleInfo } from '../people';
+import { MEMBER, type RoleInfo } from '../people';
 
 const props = defineProps<{
 	roles: RoleInfo[];
@@ -19,13 +20,16 @@ const props = defineProps<{
 const model = defineModel<string[]>({ required: true });
 
 function toggle(name: string, on: boolean): void {
-	model.value = on ? [...model.value, name] : model.value.filter((item) => item !== name);
+	const others = on
+		? (name === MEMBER ? [] : [...model.value.filter((item) => item !== MEMBER), name])
+		: model.value.filter((item) => item !== name && item !== MEMBER);
+
+	model.value = others.length === 0 ? [MEMBER] : others;
 }
 
+// Member alone can't be unticked: there'd be nothing left.
 function locked(role: RoleInfo): boolean {
-	const held = model.value.includes(role.name);
-
-	return props.disabled === true || !role.grantable || (held && model.value.length === 1);
+	return props.disabled === true || !role.grantable || (role.name === MEMBER && model.value.length === 1 && model.value[0] === MEMBER);
 }
 </script>
 

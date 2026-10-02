@@ -11,10 +11,6 @@ Move each item to `decisions.md` once it's answered.
   still wait.
 - **Role capabilities** (D-359), from the sketch's own list and what
   building it raised:
-  - Whether New Account's first roles need `accounts.roles` as well as
-    `accounts.create` (D-362). Not now: every account needs a role, so
-    `accounts.create` alone would do nothing without a default role
-    for new accounts (a new setting) or the two always going together.
   - Whether open sections persist per account (the sketch: on the
     account record, not browser storage); they don't now.
   - What an account's screen shows of its roles' capabilities (the

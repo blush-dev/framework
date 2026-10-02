@@ -13,7 +13,8 @@ import { RouterLink, useRouter } from 'vue-router';
 import ProfilePicker from '../components/ProfilePicker.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import { ApiError } from '../api';
-import { createAccount, freshLink, loadRoles, type RoleInfo } from '../people';
+import { createAccount, freshLink, loadRoles, MEMBER, type RoleInfo } from '../people';
+import { can } from '../session';
 import { toast } from '../toast';
 
 const router   = useRouter();
@@ -32,8 +33,9 @@ const nameInput     = ref<HTMLInputElement | null>(null);
 
 loadRoles().then((list) => {
 	roles.value  = list.roles;
-	// Author, as the prototype starts, or the first role you can give.
-	chosen.value = [list.roles.find((role) => role.name === 'author' && role.grantable)?.name ?? list.roles.find((role) => role.grantable)?.name ?? ''].filter(Boolean);
+	// Member, always (D-365): giving more is a choice, and needs
+	// `accounts.roles`.
+	chosen.value = [MEMBER];
 }, (caught: unknown) => {
 	loadFail.value = caught instanceof ApiError ? caught.message : 'The roles couldn\'t be loaded.';
 });
@@ -111,10 +113,11 @@ async function submit(): Promise<void> {
 		<section class="panel" aria-labelledby="roles-heading">
 			<header class="panel__header">
 				<h2 id="roles-heading">Roles</h2>
-				<p class="panel__hint">An account can hold more than one</p>
+				<p class="panel__hint">{{ can('accounts.roles') ? 'An account can hold more than one' : 'New accounts are Members' }}</p>
 			</header>
 			<div class="panel__body">
-				<RoleChecks v-model="chosen" :roles="roles" id-prefix="account-role-" :invalid="field === 'roles'" :described-by="field === 'roles' ? 'account-roles-error' : undefined" />
+				<p v-if="!can('accounts.roles')" class="field__help new-account__member">You can't give roles, so the account starts as a Member. Someone who can give roles can change that on its screen.</p>
+				<RoleChecks v-model="chosen" :roles="roles" id-prefix="account-role-" :disabled="!can('accounts.roles')" :invalid="field === 'roles'" :described-by="field === 'roles' ? 'account-roles-error' : undefined" />
 				<p v-if="field === 'roles'" id="account-roles-error" class="field__error">{{ error }}</p>
 			</div>
 		</section>
@@ -162,5 +165,9 @@ async function submit(): Promise<void> {
 	.new-account {
 		grid-template-columns: minmax(0, 1fr);
 	}
+}
+
+.new-account__member {
+	margin-bottom: var(--s-3);
 }
 </style>

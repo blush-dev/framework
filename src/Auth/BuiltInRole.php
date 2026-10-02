@@ -15,8 +15,12 @@ namespace Blush\Auth;
 
 /**
  * The framework's roles (D-217). `config/auth.php` can redefine any of
- * them by name, or add others; the admin can change the capabilities of
- * all but the administrator (D-312).
+ * them but the member by name, or add others; the admin can change the
+ * capabilities of all but the administrator and the member (D-312).
+ *
+ * The member (D-365) never has a capability: it's what an account holds
+ * when it holds nothing else (`Accounts::settle()`), so making an
+ * account without being allowed to give roles hands out nothing.
  */
 enum BuiltInRole: string
 {
@@ -24,6 +28,7 @@ enum BuiltInRole: string
 	case Editor        = 'editor';
 	case Author        = 'author';
 	case Contributor   = 'contributor';
+	case Member        = 'member';
 
 	/**
 	 * Returns the role.
@@ -42,7 +47,8 @@ enum BuiltInRole: string
 			self::Administrator => 'Everything, including accounts, roles, content types, and settings.',
 			self::Editor        => 'Publishes and edits anyone\'s entries, and publishes the site. Can\'t change its structure.',
 			self::Author        => 'Writes and publishes their own entries, and uploads media.',
-			self::Contributor   => 'Writes drafts of their own entries. Can\'t publish.'
+			self::Contributor   => 'Writes drafts of their own entries. Can\'t publish.',
+			self::Member        => 'Signs in and looks after their own account. Nothing else.'
 		};
 	}
 
@@ -66,7 +72,8 @@ enum BuiltInRole: string
 			self::Administrator => [],
 			self::Editor        => ContentAction::cases(),
 			self::Author        => [ContentAction::Create, ContentAction::Edit, ContentAction::Publish, ContentAction::Delete],
-			self::Contributor   => [ContentAction::Create, ContentAction::Edit, ContentAction::Delete]
+			self::Contributor   => [ContentAction::Create, ContentAction::Edit, ContentAction::Delete],
+			self::Member        => []
 		};
 
 		$site = match ($this) {

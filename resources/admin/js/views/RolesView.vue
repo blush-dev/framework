@@ -15,7 +15,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { ApiError } from '../api';
 import { plural } from '../format';
-import { grants, loadRoles, originOf, type RoleInfo, type RoleList } from '../people';
+import { grants, loadRoles, MEMBER, originOf, type RoleInfo, type RoleList } from '../people';
 import { can } from '../session';
 
 const list  = ref<RoleList | null>(null);
@@ -94,6 +94,7 @@ function siteCount(role: RoleInfo): string {
 						<td class="roles__description">{{ role.description }}</td>
 						<td class="roles__capabilities">
 							<template v-if="role.capabilities.includes(list.all)">Everything</template>
+							<template v-else-if="role.name === MEMBER">Their own account</template>
 							<template v-else>
 								{{ reach(role) }}
 								<span class="roles__site">{{ siteCount(role) }}</span>

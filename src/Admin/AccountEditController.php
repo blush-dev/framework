@@ -20,6 +20,7 @@ use Blush\Auth\Account;
 use Blush\Auth\Accounts;
 use Blush\Auth\AccountStore;
 use Blush\Auth\AuthException;
+use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Auth\Roles;
@@ -32,8 +33,9 @@ use Blush\Http\Status;
  * `PeopleRules`. Each needs `accounts.view` and its own capability
  * (D-362):
  *
- * - `POST accounts` (`accounts.create`, which also gives its first
- *   roles): `{"username", "roles", "author", "name"}` (the
+ * - `POST accounts` (`accounts.create`; its first roles also need
+ *   `accounts.roles`, else it's a member, D-365): `{"username",
+ *   "roles", "author", "name"}` (the
  *   last two optional) makes an account
  *   with no password and a one-time link for choosing one (not named
  *   `new`, the admin's screen for making one). The answer
@@ -107,14 +109,21 @@ final readonly class AccountEditController
 			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
 		}
 
-		$refusal = $this->checkRoles($actor, $roles ?? []);
+		$roles = Accounts::settle($roles ?? []);
+
+		// Without giving roles, a new account is a member (D-365).
+		if ($roles !== [BuiltInRole::Member->value] && ! $this->permissions->can($actor, Capability::AccountsRoles)) {
+			return self::error('You can\'t give roles, so a new account is a Member.', Status::Forbidden, 'roles');
+		}
+
+		$refusal = $this->checkRoles($actor, $roles);
 
 		if ($refusal !== null) {
 			return $refusal;
 		}
 
 		try {
-			[$account, $token] = $this->accounts->invite($username, $roles ?? [], $author, $name);
+			[$account, $token] = $this->accounts->invite($username, $roles, $author, $name);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
 		}
@@ -146,6 +155,7 @@ final readonly class AccountEditController
 			return self::error('Send any of a list of "roles", an "author" (or null), a "name" (or null), and "suspended" (true or false).', Status::BadRequest);
 		}
 
+		$roles   = Accounts::settle($roles);
 		$author  = is_string($author) && trim($author) !== '' ? trim($author) : null;
 		$name    = is_string($name) ? Account::tidyName($name) : null;
 		$needs   = array_filter([

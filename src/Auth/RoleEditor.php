@@ -165,7 +165,9 @@ final readonly class RoleEditor
 			? $role
 			: throw new AuthException($origin === RoleOrigin::Config
 				? sprintf('The %s role is defined in config/auth.php, so it\'s changed there.', $role->label)
-				: sprintf('The %s role always has every capability.', $role->label));
+				: ($name === BuiltInRole::Member->value
+					? sprintf('The %s role never has a capability.', $role->label)
+					: sprintf('The %s role always has every capability.', $role->label)));
 	}
 
 	/**

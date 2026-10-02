@@ -16,8 +16,9 @@ namespace Blush\Auth;
 /**
  * The site's roles, by name: the built-ins, then the roles the admin
  * keeps (`RoleStore`, D-312: custom roles, and the capabilities of a
- * built-in other than the administrator), then `AuthConfig::$roles`,
- * each replacing or adding by name. Each role's origin is kept too.
+ * built-in other than the administrator and the member), then
+ * `AuthConfig::$roles`, each replacing or adding by name (but never the
+ * member, D-365). Each role's origin is kept too.
  * `RoleEditor` reloads them after a change, so everything sharing them
  * sees it.
  */
@@ -65,7 +66,7 @@ final class Roles
 		foreach ($this->store->all() as $role) {
 			$builtIn = BuiltInRole::tryFrom($role->name);
 
-			if ($builtIn === BuiltInRole::Administrator) {
+			if ($builtIn === BuiltInRole::Administrator || $builtIn === BuiltInRole::Member) {
 				continue;
 			}
 
@@ -76,6 +77,11 @@ final class Roles
 		}
 
 		foreach ($this->config->roles as $role) {
+			// The member never has a capability (D-365), even from config.
+			if ($role->name === BuiltInRole::Member->value) {
+				continue;
+			}
+
 			$roles[$role->name]   = $role;
 			$origins[$role->name] = RoleOrigin::Config;
 		}

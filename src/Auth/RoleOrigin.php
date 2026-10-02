@@ -33,10 +33,11 @@ enum RoleOrigin: string
 
 	/**
 	 * Whether the admin may change the role. The administrator always
-	 * keeps every capability, and config belongs to the site's code.
+	 * keeps every capability, the member never has one (D-365), and
+	 * config belongs to the site's code.
 	 */
 	public function editable(string $name): bool
 	{
-		return $this !== self::Config && $name !== BuiltInRole::Administrator->value;
+		return $this !== self::Config && $name !== BuiltInRole::Administrator->value && $name !== BuiltInRole::Member->value;
 	}
 }
