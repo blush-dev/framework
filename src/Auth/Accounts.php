@@ -47,11 +47,15 @@ final readonly class Accounts
 	 * Creates and saves an account.
 	 *
 	 * @param  list<string> $roles
+	 * Every account needs an email address (D-370); `$email` is required,
+	 * though it comes last so the other arguments keep their places.
+	 *
 	 * @throws AuthException When the username is taken or invalid, the
 	 *                       password is too short, a role doesn't exist,
-	 *                       or the name is too long.
+	 *                       the name is too long, or the email address is
+	 *                       missing, invalid, or another account's.
 	 */
-	public function create(string $username, string $password, array $roles, ?string $author = null, ?string $name = null): Account
+	public function create(string $username, string $password, array $roles, ?string $author = null, ?string $name = null, string $email = ''): Account
 	{
 		if (! Account::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
@@ -60,6 +64,8 @@ final readonly class Accounts
 		if ($this->store->find($username) !== null) {
 			throw new AuthException(sprintf('There\'s already an account named "%s".', $username));
 		}
+
+		$email = $this->checkEmail($email, $username);
 
 		$this->checkPassword($password);
 		$this->checkRoles($roles);
@@ -71,7 +77,8 @@ final readonly class Accounts
 			roles: self::settle($roles),
 			author: $author,
 			created: $this->clock->now()->getTimestamp(),
-			name: $name === null ? null : Account::tidyName($name)
+			name: $name === null ? null : Account::tidyName($name),
+			email: $email
 		);
 
 		$this->store->save($account);
@@ -86,11 +93,12 @@ final readonly class Accounts
 	 * @param  list<string> $roles
 	 * @return array{Account, string}
 	 * @throws AuthException When the username is taken or invalid, a role
-	 *                       doesn't exist, or the name is too long.
+	 *                       doesn't exist, the name is too long, or the
+	 *                       email address won't do.
 	 */
-	public function invite(string $username, array $roles, ?string $author = null, ?string $name = null): array
+	public function invite(string $username, array $roles, ?string $author = null, ?string $name = null, string $email = ''): array
 	{
-		return $this->issuePasswordLink($this->create($username, bin2hex(random_bytes(32)), $roles, $author, $name));
+		return $this->issuePasswordLink($this->create($username, bin2hex(random_bytes(32)), $roles, $author, $name, $email));
 	}
 
 	/**
@@ -215,16 +223,60 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Returns what the admin calls an account: one name per person
-	 * (D-329), so its author page's title when it has one, else its own
-	 * name (D-322), else its username.
+	 * Gives an account another email address (D-370).
+	 *
+	 * @throws AuthException When it's missing, invalid, or another
+	 *                       account's.
+	 */
+	public function setEmail(Account $account, string $email): Account
+	{
+		$account = $account->withEmail($this->checkEmail($email, $account->username));
+		$this->store->save($account);
+
+		return $account;
+	}
+
+	/**
+	 * Returns an email address, trimmed, once it's checked: present,
+	 * valid, and no other account's (in any case).
+	 *
+	 * @throws AuthException When it isn't.
+	 */
+	public function checkEmail(string $email, ?string $username = null): string
+	{
+		$email = trim($email);
+
+		if ($email === '') {
+			throw new AuthException('Every account needs an email address.');
+		}
+
+		if (! Account::isValidEmail($email)) {
+			throw new AuthException(sprintf('"%s" isn\'t an email address.', $email));
+		}
+
+		$other = array_find($this->store->all(), static fn (Account $account): bool => $account->username !== $username && $account->email !== null && mb_strtolower($account->email) === mb_strtolower($email));
+
+		if ($other !== null) {
+			throw new AuthException(sprintf('%s already has that email address.', $this->displayName($other)));
+		}
+
+		return $email;
+	}
+
+	/**
+	 * Returns what the admin calls an account: its own name (D-322,
+	 * D-370), else its profile's title, else its username.
 	 */
 	public function displayName(Account $account): string
 	{
+		if ($account->name !== null) {
+			return $account->name;
+		}
+
 		$authors = $this->types->profiles()?->name;
 		$title   = $account->author === null || $authors === null ? '' : ($this->content->named($authors, $account->author)->title ?? '');
 
-		return $title !== '' ? $title : ($account->name ?? $account->username);
+		return $title !== '' ? $title : $account->username;
 	}
 
 	/**

@@ -4,11 +4,27 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
-- **Profiles** (D-351 to D-353): who may edit their own profile and
-  who may edit anyone's (capabilities the roles don't have yet);
-  whether Profiles shows bylines per field; the sketch's **Import from
-  accounts** (profiles for accounts without one), not built. Account fields (the Fields API's `account` target, D-344)
-  still wait.
+- **Profiles** (D-351 to D-353, D-369): who may edit their own profile
+  and who may edit anyone's (capabilities the roles don't have yet; the
+  revised sketch calls it the first capability that depends on the
+  row's identity rather than its type); whether Profiles shows bylines
+  per field; **Import from accounts** (profiles for accounts without
+  one, in the first sketch, gone from the revised one), not built.
+  Account fields (the Fields API's `account` target, D-344) still wait.
+  The revised sketch's own open list, D-369:
+  - Whether a profile is a taxonomy-kind type or a third kind: it's
+    public prose, so it probably wants pending changes (moot while the
+    admin has none, D-233).
+  - What a byline shows for an entry whose author has no profile (an
+    entry credits profiles, never accounts, so today it shows none,
+    though the account has a display name, D-370).
+  - Whether `/` belongs to list search: the entries list's search shows
+    and answers it, and no document names it, beside ⌘K.
+  - Whether a profile can be merged into another: two guest profiles
+    for one person is the predictable mess, and there's no screen for
+    it.
+  - A fourth rail section: the direction's §6 names three; Users is the
+    admin's fourth (D-326), so the diagram in §6 is one short.
 - **Role capabilities** (D-359), from the sketch's own list and what
   building it raised:
   - Whether open sections persist per account (the sketch: on the
@@ -51,6 +67,16 @@ Move each item to `decisions.md` once it's answered.
     (it can, D-339), or should config sets be locked as config types
     are? And should a locked set's screen offer to copy it into
     `user/data/fields` to customize it?
+
+- **Autosave** (asked 2026-10-02, D-374; on hold by the author's call,
+  D-375): saving the editor's changes
+  on their own. D-233 held it back because the writer had nowhere to
+  keep a pending draft: an autosave into the file would publish
+  half-written edits to a live entry. It needs a place for pending
+  changes first (a sidecar or `storage/` copy per entry, read by the
+  editor and the preview, merged on Publish), which is also the
+  direction's "pending changes" and the profiles sketch's open question.
+  Autosaving drafts alone is possible today.
 
 ## Later milestones
 - **Hierarchy** (D-257):

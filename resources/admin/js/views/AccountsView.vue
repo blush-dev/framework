@@ -1,190 +1,311 @@
 <script setup lang="ts">
 /**
- * Accounts (D-353): the people who can sign in, by name. A public
- * presence is a separate thing, a profile, so the Profile column shows
- * the link from this side: the profile's name (with its status when it
- * isn't live, since nothing shows on the site until it is), the slug of
- * one credited without a file, or none. Guests (profiles with no
- * account) aren't here; they're under Profiles.
+ * Accounts (D-353; the profiles sketch's list, D-369): the people who
+ * can sign in. A public presence is a separate thing, a profile, so the
+ * Profile column shows the link from this side: the profile's name (with
+ * its status when it isn't live, since nothing shows on the site until
+ * it is), the slug of one credited without a file, or none. Guests
+ * (profiles with no account) aren't here; they're under Profiles.
  *
- * Tabs split accounts by status, and a search narrows by name,
- * username, or profile. **New Account** is here.
+ * It has the entries list's shape (§7): status tabs under the page
+ * header (`?status=`), then one row of filters (a search over names,
+ * usernames, emails, and profiles; a role; whether there's a profile) with the
+ * count, and a line saying which filters are in force. An account's name
+ * is its profile's title, so one without a profile shows its username,
+ * in a dashed avatar. Each row's ⋮ opens it, its profile, or makes a
+ * password link; **New account** is here.
  */
 
 import { computed, ref } from 'vue';
-import { RouterLink } from 'vue-router';
+import { confirmAction } from '../confirm';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
+import MenuButton from '../components/MenuButton.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { ApiError } from '../api';
-import { loadAccounts, loadRoles, statusPill, when, type AccountInfo, type AccountStatus } from '../people';
-import { can, session } from '../session';
+import { plural } from '../format';
+import { freshLink, initials, loadAccounts, loadRoles, makePasswordLink, statusPill, when, type AccountInfo, type AccountStatus } from '../people';
+import { can, canType, session } from '../session';
+import { toast } from '../toast';
+import { profileType } from '../types';
 
+const route    = useRoute();
+const router   = useRouter();
 const accounts = ref<AccountInfo[] | null>(null);
 const labels   = ref<Record<string, string>>({});
 const error    = ref('');
-const tab      = ref<'all' | AccountStatus>('all');
 const search   = ref('');
+const role     = ref('');
+const profile  = ref<'' | 'linked' | 'none'>('');
 
 Promise.all([loadAccounts(), loadRoles()]).then(([list, roles]) => {
-	labels.value   = Object.fromEntries(roles.roles.map((role) => [role.name, role.label]));
+	labels.value   = Object.fromEntries(roles.roles.map((item) => [item.name, item.label]));
 	accounts.value = [...list].sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
 }, (caught: unknown) => {
 	error.value = caught instanceof ApiError ? caught.message : 'The accounts couldn\'t be loaded.';
 });
+
+const STATUSES: AccountStatus[] = ['active', 'invited', 'suspended'];
+
+const tab = computed<'all' | AccountStatus>(() => STATUSES.find((status) => status === route.query.status) ?? 'all');
 
 const tabs = computed(() => {
 	const all = accounts.value ?? [];
 
 	return [
 		{ key: 'all' as const, label: 'All', count: all.length },
-		...(['active', 'invited', 'suspended'] as const).map((status) => ({ key: status, label: statusPill(status).label, count: all.filter((account) => account.status === status).length }))
+		...STATUSES.map((status) => ({ key: status, label: statusPill(status).label, count: all.filter((account) => account.status === status).length }))
 	];
 });
+
+const roleOptions = computed<SelectOption[]>(() => [
+	{ value: '', label: 'Any role' },
+	...Object.entries(labels.value).sort(([, a], [, b]) => a.localeCompare(b)).map(([value, label]) => ({ value, label }))
+]);
+
+const profileOptions: SelectOption[] = [
+	{ value: '', label: 'Any profile' },
+	{ value: 'linked', label: 'Has a profile' },
+	{ value: 'none', label: 'No profile' }
+];
+
+const filtered = computed(() => search.value.trim() !== '' || role.value !== '' || profile.value !== '');
 
 const shown = computed(() => {
 	const words = search.value.trim().toLowerCase();
 
 	return (accounts.value ?? []).filter((account) => (tab.value === 'all' || account.status === tab.value)
-		&& (words === '' || `${account.displayName} ${account.username} ${account.author ?? ''} ${account.profile?.title ?? ''}`.toLowerCase().includes(words)));
+		&& (role.value === '' || account.roles.includes(role.value))
+		&& (profile.value === '' || (profile.value === 'linked') === (account.author !== null))
+		&& (words === '' || `${account.displayName} ${account.username} ${account.email ?? ''} ${account.author ?? ''} ${account.profile?.title ?? ''}`.toLowerCase().includes(words)));
 });
+
+// What the filters in force narrow the list to, in words.
+const report = computed(() => {
+	const parts = [
+		search.value.trim() === '' ? '' : `matching “${search.value.trim()}”`,
+		role.value === '' ? '' : `with the ${labels.value[role.value] ?? role.value} role`,
+		profile.value === 'linked' ? 'that have a profile' : (profile.value === 'none' ? 'with no profile' : '')
+	].filter((part) => part !== '');
+
+	return `Showing accounts ${parts.join(', ')}.`;
+});
+
+function clear(): void {
+	search.value  = '';
+	role.value    = '';
+	profile.value = '';
+}
+
+const hasName = (account: AccountInfo): boolean => account.displayName !== account.username;
+
+async function copyEmail(email: string): Promise<void> {
+	try {
+		await navigator.clipboard.writeText(email);
+		toast(`Copied ${email}`);
+	} catch {
+		toast('The email address couldn\'t be copied');
+	}
+}
+const mine    = (account: AccountInfo): boolean => account.username === session.account?.username;
+
+// Makes a password link, then shows it on the account's screen.
+async function makeLink(account: AccountInfo): Promise<void> {
+	if (account.link !== null && !account.link.expired && !await confirmAction({ title: `Make a New Link for ${account.displayName}?`, body: 'The one they have stops working.', confirm: 'Make a new link' })) {
+		return;
+	}
+
+	try {
+		const answer = await makePasswordLink(account.username);
+
+		freshLink.value = { username: account.username, link: answer.link };
+		await router.push({ name: 'account', params: { username: account.username } });
+	} catch (caught) {
+		toast(caught instanceof ApiError ? caught.message : 'The link couldn\'t be made.');
+	}
+}
 </script>
 
 <template>
-	<header class="page-header">
-		<div class="page-header__text">
-			<h1 tabindex="-1">Accounts</h1>
-			<p class="page-header__hint">People who can sign in. A public presence is a separate, optional thing: a profile.</p>
-		</div>
-		<div class="page-header__actions">
-			<RouterLink v-if="can('accounts.create')" class="button button--primary" :to="{ name: 'account-new' }"><AdminIcon name="plus" />New Account</RouterLink>
-		</div>
-	</header>
+	<div class="people">
+		<header class="page-header">
+			<div class="page-header__text">
+				<h1 tabindex="-1">Accounts</h1>
+				<p class="page-header__hint">Users who can sign in. A public presence is a separate, optional thing: a profile.</p>
+			</div>
+			<div class="page-header__actions">
+				<RouterLink v-if="can('accounts.create')" class="button button--primary" :to="{ name: 'account-new' }"><AdminIcon name="plus" />New account</RouterLink>
+			</div>
+		</header>
 
-	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
+		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<template v-if="!error">
-		<section class="panel" aria-labelledby="accounts-heading" :aria-busy="accounts === null">
-			<header class="panel__header">
-				<h2 id="accounts-heading" class="visually-hidden">Accounts</h2>
-				<nav class="tabs" aria-label="Status">
-					<button v-for="item in tabs" :key="item.key" type="button" class="tabs__tab" :aria-pressed="tab === item.key" @click="tab = item.key">
-						{{ item.label }} <span class="tabs__count">{{ item.count }}</span>
-					</button>
-				</nav>
-				<label class="search">
+		<template v-if="!error">
+			<nav class="status-tabs" aria-label="Standing">
+				<RouterLink v-for="item in tabs" :key="item.key" class="status-tabs__tab" :to="{ query: item.key === 'all' ? {} : { status: item.key } }" :aria-current="tab === item.key ? 'page' : undefined">
+					{{ item.label }}
+					<span v-if="accounts" class="status-tabs__count">{{ item.count }}</span>
+				</RouterLink>
+			</nav>
+
+			<div class="toolbar" role="search">
+				<label class="search-field">
 					<AdminIcon name="search" />
 					<span class="visually-hidden">Search accounts</span>
-					<input v-model="search" type="search" placeholder="Search names, usernames, and profiles…" autocomplete="off">
+					<input v-model="search" type="search" placeholder="Search accounts" autocomplete="off">
 				</label>
-			</header>
-			<SkeletonTable v-if="accounts === null" :columns="['Account', 'Roles', 'Profile', 'Last signed in']" :rows="3" label="Loading the accounts…" />
-			<div v-else-if="shown.length === 0" class="empty">
-				<AdminIcon name="key-round" />
-				<p class="empty__text">{{ search || tab !== 'all' ? 'No accounts match the search and tab.' : 'No accounts yet.' }}</p>
-				<button v-if="search || tab !== 'all'" type="button" class="button" @click="search = ''; tab = 'all'">Clear filters</button>
+				<div class="accounts-filter">
+					<label class="visually-hidden" for="accounts-role">Role</label>
+					<AdminSelect id="accounts-role" v-model="role" :options="roleOptions" />
+				</div>
+				<div v-if="profileType" class="accounts-filter">
+					<label class="visually-hidden" for="accounts-profile">Profile</label>
+					<AdminSelect id="accounts-profile" v-model="profile" :options="profileOptions" />
+				</div>
+				<span class="toolbar__count" aria-live="polite">{{ accounts ? plural(shown.length, 'account', 'accounts') : 'Loading…' }}</span>
 			</div>
-			<div v-else class="table-wrap">
-				<table class="table" aria-labelledby="accounts-heading">
-					<thead>
-						<tr>
-							<th scope="col">Account</th>
-							<th scope="col">Roles</th>
-							<th scope="col">Profile</th>
-							<th scope="col">Last signed in</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr v-for="account in shown" :key="account.username">
-							<th scope="row">
-								<span class="entry-title">
-									<span class="entry-title__text">
-										<RouterLink class="entry-title__link" :to="{ name: 'account', params: { username: account.username } }">{{ account.displayName }}</RouterLink>
-										{{ ' ' }}<span v-if="account.username === session.account?.username" class="tag">You</span>
-										{{ ' ' }}<span v-if="account.status !== 'active'" class="pill" :class="statusPill(account.status).kind">{{ statusPill(account.status).label }}</span>
+
+			<p v-if="filtered" class="filter-report">
+				{{ report }}
+				<button type="button" class="button button--ghost button--small" @click="clear">Clear filters</button>
+			</p>
+
+			<section class="panel" aria-labelledby="accounts-heading" :aria-busy="accounts === null">
+				<h2 id="accounts-heading" class="visually-hidden">{{ tabs.find((item) => item.key === tab)?.label }} accounts</h2>
+				<SkeletonTable v-if="accounts === null" :columns="['Account', 'Email', 'Roles', 'Profile', 'Last signed in']" :rows="3" label="Loading the accounts…" />
+				<div v-else-if="shown.length === 0" class="empty">
+					<AdminIcon :name="filtered ? 'search' : 'key-round'" />
+					<p class="empty__heading">{{ filtered ? 'No Account Matches' : `No ${tab === 'all' ? '' : statusPill(tab).label + ' '}Accounts` }}</p>
+					<p class="empty__text">{{ filtered ? 'Nothing here fits the filters in force. Clearing them brings the other accounts back.' : 'Nobody is in that state right now. The All tab shows every account, whatever its standing.' }}</p>
+					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+					<RouterLink v-else-if="tab !== 'all'" class="button" :to="{ query: {} }">Show all accounts</RouterLink>
+				</div>
+				<div v-else class="table-wrap">
+					<table class="table accounts-table" aria-labelledby="accounts-heading">
+						<thead>
+							<tr>
+								<th scope="col">Account</th>
+								<th scope="col">Email</th>
+								<th scope="col">Roles</th>
+								<th v-if="profileType" scope="col">Profile</th>
+								<th scope="col">Last signed in</th>
+								<th scope="col" class="table__actions"><span class="visually-hidden">Actions</span></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="account in shown" :key="account.username">
+								<th scope="row">
+									<span class="account-cell">
+										<span class="avatar" :class="{ 'avatar--guest': !account.profile }" aria-hidden="true">{{ hasName(account) ? initials(account.displayName) : '—' }}</span>
+										<span class="account-cell__text">
+											<span class="account-cell__name">
+												<RouterLink class="account-cell__link" :to="{ name: 'account', params: { username: account.username } }">{{ account.displayName }}</RouterLink>
+												<span v-if="mine(account)" class="tag--you">You</span>
+												<span v-if="account.status !== 'active'" class="pill" :class="statusPill(account.status).kind">{{ statusPill(account.status).label }}</span>
+											</span>
+											<span v-if="hasName(account)" class="account-cell__username">{{ account.username }}</span>
+											<span v-else class="account-cell__none">No display name or profile</span>
+										</span>
 									</span>
-									<span class="entry-title__path">{{ account.username }}</span>
-								</span>
-							</th>
-							<td>{{ account.roles.map((name) => labels[name] ?? name).join(', ') || '—' }}</td>
-							<td>
-								<template v-if="account.profile">
-									<RouterLink :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">{{ account.profile.title || account.profile.slug }}</RouterLink>
-									{{ ' ' }}<StatusPill v-if="account.profile.status !== 'published'" :status="account.profile.status" />
-								</template>
-								<template v-else-if="account.author">
-									<span class="mono">{{ account.author }}</span>
-									{{ ' ' }}<span class="tag" title="Entries may credit this slug, but there's no profile file yet">No profile yet</span>
-								</template>
-								<template v-else>None</template>
-							</td>
-							<td>{{ when(account.lastLogin) }}</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</section>
-	</template>
+								</th>
+								<td class="muted">
+									<template v-if="account.email">{{ account.email }}</template>
+									<span v-else class="pill pill--warn" title="Every account needs an email address">No email</span>
+								</td>
+								<td class="muted">{{ account.roles.map((name) => labels[name] ?? name).join(', ') || '—' }}</td>
+								<td v-if="profileType">
+									<template v-if="account.profile">
+										<RouterLink v-if="canType(profileType, 'edit')" class="lnk" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">{{ account.profile.title || account.profile.slug }}</RouterLink>
+										<template v-else>{{ account.profile.title || account.profile.slug }}</template>
+										{{ ' ' }}<StatusPill v-if="account.profile.status !== 'published'" :status="account.profile.status" />
+									</template>
+									<template v-else-if="account.author">
+										<span class="mono">{{ account.author }}</span>
+										{{ ' ' }}<span class="tag" title="Entries may credit this slug, but there's no profile file yet">No file yet</span>
+									</template>
+									<span v-else class="muted">None</span>
+								</td>
+								<td class="muted">{{ when(account.lastLogin) }}</td>
+								<td class="table__actions">
+									<MenuButton button-class="row-more" :label="`Actions for ${account.displayName}`" floating>
+										<template #button>
+											<AdminIcon name="ellipsis" />
+										</template>
+										<RouterLink class="menu-item" :to="{ name: 'account', params: { username: account.username } }"><AdminIcon name="key-round" />Open account</RouterLink>
+										<RouterLink v-if="account.profile && profileType && canType(profileType, 'edit')" class="menu-item" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }"><AdminIcon name="user-round" />Open profile</RouterLink>
+										<RouterLink v-else-if="!account.author && account.manages && can('accounts.edit')" class="menu-item" :to="{ name: 'account', params: { username: account.username } }"><AdminIcon name="plus" />Create a profile</RouterLink>
+										<button v-if="account.email" type="button" class="menu-item" @click="copyEmail(account.email)"><AdminIcon name="copy" />Copy email address</button>
+										<button v-if="account.manages && can('accounts.edit') && account.status !== 'suspended'" type="button" class="menu-item" @click="makeLink(account)"><AdminIcon name="key-round" />{{ account.link ? 'Make a new password link' : 'Make a password link' }}</button>
+									</MenuButton>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<p class="panel__note">An account's display name is what the admin calls it; without one, it's the profile's title, then the username.</p>
+			</section>
+		</template>
+	</div>
 </template>
 
 <style scoped>
-.panel__header {
-	flex-wrap: wrap;
+/* A filter's select is as wide as it needs, not the row (§7, Selects). */
+.accounts-filter {
+	flex: none;
+	width: auto;
+	min-width: 8rem;
+	max-width: 16rem;
 }
 
-.tabs {
+.accounts-table {
+	min-width: 760px;
+}
+
+.account-cell {
 	display: flex;
-	gap: 4px;
+	align-items: center;
+	gap: var(--s-3);
+	min-width: 0;
 }
 
-.tabs__tab {
-	padding: 5px 12px;
-	border: 1px solid transparent;
-	border-radius: var(--r-1);
-	background: none;
-	color: var(--fg-2);
-	font-weight: 500;
-	cursor: pointer;
+.account-cell__text {
+	display: grid;
+	min-width: 0;
 }
 
-.tabs__tab:hover {
+.account-cell__name {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+	min-width: 0;
+}
+
+.account-cell__link {
+	overflow: hidden;
 	color: var(--fg);
+	font-family: var(--font-title);
+	font-size: var(--title-size);
+	font-weight: var(--title-weight);
+	letter-spacing: var(--title-track);
+	text-decoration: none;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.tabs__tab[aria-pressed="true"] {
-	border-color: var(--border);
-	background: var(--surface-2);
-	color: var(--fg);
+.account-cell__link:hover {
+	color: var(--accent);
 }
 
-.tabs__count {
+.account-cell__username {
 	color: var(--fg-3);
+	font-family: var(--font-mono);
 	font-size: var(--text-xs);
 }
 
-.search {
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	height: 30px;
-	margin-left: auto;
-	padding: 0 9px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--bg);
+.account-cell__none {
 	color: var(--fg-3);
-}
-
-.search:focus-within {
-	border-color: var(--accent);
-}
-
-.search input {
-	width: 14rem;
-	min-width: 0;
-	border: 0;
-	background: none;
-	color: var(--fg);
-	outline: none;
+	font-size: var(--text-xs);
 }
 </style>

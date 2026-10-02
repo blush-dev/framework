@@ -62,7 +62,7 @@ final class AccountsTest extends TestCase
 
 	public function testCreatesAnAccountFile(): void
 	{
-		$account = $this->accounts()->create('jane', 'a long enough password', ['editor', 'editor'], 'jane-doe');
+		$account = $this->accounts()->create('jane', 'a long enough password', ['editor', 'editor'], 'jane-doe', email: 'jane@example.test');
 		$file    = $this->temporaryDirectory() . '/storage/accounts/jane.json';
 
 		$this->assertSame(['editor'], $account->roles);
@@ -76,7 +76,7 @@ final class AccountsTest extends TestCase
 
 	public function testRefusesBadAccounts(): void
 	{
-		$this->accounts()->create('jane', 'a long enough password', ['editor']);
+		$this->accounts()->create('jane', 'a long enough password', ['editor'], email: 'jane@example.test');
 
 		$cases = [
 			['jane', 'a long enough password', ['editor'], 'There\'s already an account named "jane".'],
@@ -87,7 +87,7 @@ final class AccountsTest extends TestCase
 
 		foreach ($cases as [$username, $password, $roles, $message]) {
 			try {
-				$this->accounts()->create($username, $password, $roles);
+				$this->accounts()->create($username, $password, $roles, email: "{$username}@example.test");
 				$this->fail("Created {$username}.");
 			} catch (AuthException $e) {
 				$this->assertStringContainsString($message, $e->getMessage());
@@ -97,7 +97,7 @@ final class AccountsTest extends TestCase
 
 	public function testNoRolesIsTheMember(): void
 	{
-		$sam = $this->accounts()->create('sam', 'a long enough password', []);
+		$sam = $this->accounts()->create('sam', 'a long enough password', [], email: 'sam@example.test');
 
 		$this->assertSame(['member'], $sam->roles, 'No roles is the member\'s (D-365).');
 		$this->assertSame(['editor'], $this->accounts()->setRoles($sam, ['member', 'editor'])->roles, 'The member only when there\'s nothing else.');
@@ -107,7 +107,7 @@ final class AccountsTest extends TestCase
 
 	public function testChangesAccounts(): void
 	{
-		$account = $this->accounts()->create('jane', 'a long enough password', ['author']);
+		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], email: 'jane@example.test');
 		$account = $this->accounts()->setPassword($account, 'another long password');
 		$account = $this->accounts()->setRoles($account, ['editor', 'contributor']);
 		$account = $this->accounts()->setAuthor($account, 'jane');
@@ -126,11 +126,11 @@ final class AccountsTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\n---\n");
 
-		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], 'jane', "  Jane\t\n  Doe ");
+		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], 'jane', "  Jane\t\n  Doe ", email: 'jane@example.test');
 
 		$this->assertSame('Jane Doe', $account->name, 'Spaces and line breaks are tidied.');
-		$this->assertSame('Jane Author', $this->accounts()->displayName($account), 'One name per person: the author page\'s title (D-329).');
-		$this->assertSame('Jane Doe', $this->accounts()->displayName($account->withAuthor(null)), 'Without an author page, the account\'s own name.');
+		$this->assertSame('Jane Doe', $this->accounts()->displayName($account), 'An account\'s own name comes first (D-370).');
+		$this->assertSame('Jane Doe', $this->accounts()->displayName($account->withAuthor(null)));
 		$this->assertStringContainsString('"name": "Jane Doe"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json'));
 		$this->assertEquals($account, $this->store()->find('jane'));
 
@@ -140,7 +140,7 @@ final class AccountsTest extends TestCase
 
 		$account = $this->accounts()->setName($account, '   ');
 		$this->assertNull($account->name);
-		$this->assertSame('Jane Author', $this->accounts()->displayName($account));
+		$this->assertSame('Jane Author', $this->accounts()->displayName($account), 'Without one, its profile\'s title.');
 		$this->assertSame('jane', $this->accounts()->displayName($account->withAuthor(null)), 'Then the username.');
 
 		foreach ([str_repeat('a', Account::NAME_LENGTH + 1), "Jane\u{0007}"] as $bad) {
@@ -157,10 +157,33 @@ final class AccountsTest extends TestCase
 		$this->assertFalse(Account::isValidName(''));
 	}
 
+	public function testEveryAccountNeedsAnEmailAddress(): void
+	{
+		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], email: ' jane@example.test ');
+
+		$this->assertSame('jane@example.test', $account->email, 'Trimmed (D-370).');
+		$this->assertStringContainsString('"email": "jane@example.test"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json'));
+
+		foreach (['' => 'needs an email address', 'not an email' => 'isn\'t an email address', 'JANE@example.test' => 'already has that email address'] as $email => $problem) {
+			try {
+				$this->accounts()->create('sam', 'a long enough password', ['author'], email: $email);
+				$this->fail('Made an account with ' . json_encode($email));
+			} catch (AuthException $e) {
+				$this->assertStringContainsString($problem, $e->getMessage());
+			}
+		}
+
+		$this->assertSame('jane@new.example', $this->accounts()->setEmail($account, 'jane@new.example')->email);
+		$this->assertSame('jane@new.example', $this->store()->find('jane')?->email);
+
+		$this->writeTemporaryFile('storage/accounts/old.json', (string) json_encode(['username' => 'old', 'passwordHash' => 'x', 'roles' => ['author']]));
+		$this->assertNull($this->store()->find('old')?->email, 'One saved before emails has none until it\'s given one.');
+	}
+
 	public function testListsAndDeletesAccounts(): void
 	{
-		$this->accounts()->create('sam', 'a long enough password', ['editor']);
-		$this->accounts()->create('jane', 'a long enough password', ['editor']);
+		$this->accounts()->create('sam', 'a long enough password', ['editor'], email: 'sam@example.test');
+		$this->accounts()->create('jane', 'a long enough password', ['editor'], email: 'jane@example.test');
 
 		$this->assertSame(['jane', 'sam'], array_map(static fn (Account $account): string => $account->username, $this->store()->all()));
 
@@ -195,14 +218,14 @@ final class AccountsTest extends TestCase
 	public function testLinksAProfileToOneAccount(): void
 	{
 		$accounts = $this->accounts();
-		$jane     = $accounts->create('jane', 'a long enough password', ['author'], 'jane');
-		$sam      = $accounts->create('sam', 'a long enough password', ['author']);
+		$jane     = $accounts->create('jane', 'a long enough password', ['author'], 'jane', email: 'jane@example.test');
+		$sam      = $accounts->create('sam', 'a long enough password', ['author'], email: 'sam@example.test');
 
 		$this->assertSame('jane', $accounts->linkedTo('jane')?->username);
 		$this->assertNull($accounts->linkedTo('jane', except: 'jane'));
 		$this->assertSame('jane', $accounts->setAuthor($jane, 'jane')->author, 'Its own stays its own.');
 
-		foreach ([static fn () => $accounts->setAuthor($sam, 'jane'), static fn () => $accounts->create('lee', 'a long enough password', ['author'], 'jane')] as $link) {
+		foreach ([static fn () => $accounts->setAuthor($sam, 'jane'), static fn () => $accounts->create('lee', 'a long enough password', ['author'], 'jane', email: 'lee@example.test')] as $link) {
 			try {
 				$link();
 				$this->fail('A second account.');

@@ -11,6 +11,7 @@
  */
 
 import { computed, onMounted, ref } from 'vue';
+import { confirmAction } from '../confirm';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import { canAnyType, canType, session } from '../session';
@@ -31,7 +32,7 @@ async function load(): Promise<void> {
 }
 
 async function run(action: ActionDescription): Promise<void> {
-	if (action.confirm !== null && !window.confirm(action.confirm)) {
+	if (action.confirm !== null && !await confirmAction({ title: `${action.label}?`, body: action.confirm, confirm: action.label })) {
 		return;
 	}
 

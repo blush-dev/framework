@@ -19,6 +19,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
+import { confirmLeave } from '../confirm';
 import { onBeforeRouteLeave, RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldControl from '../components/FieldControl.vue';
@@ -179,7 +180,7 @@ async function save(): Promise<void> {
 	}
 }
 
-onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving? Your changes will be lost.'));
+onBeforeRouteLeave(() => !changed.value || confirmLeave());
 
 // What an entry would write to show it: an image is Markdown, with the
 // library's alt text and caption (D-267, D-268); the rest are components.
@@ -222,6 +223,7 @@ async function copy(text: string, what: string): Promise<void> {
 
 <template>
 	<header class="page-header">
+		<RouterLink class="page-back" :to="{ name: 'media' }"><AdminIcon name="chevron-left" />All media</RouterLink>
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ file ? mediaName(file) : 'File' }}</h1>
 			<p v-if="file" class="page-header__hint">
@@ -229,7 +231,6 @@ async function copy(text: string, what: string): Promise<void> {
 			</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink class="button" :to="{ name: 'media' }"><AdminIcon name="arrow-left" />All media</RouterLink>
 			<a v-if="file" class="button" :href="file.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />Open<span class="visually-hidden"> the file (new tab)</span></a>
 		</div>
 	</header>

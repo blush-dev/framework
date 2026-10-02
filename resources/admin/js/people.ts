@@ -22,6 +22,10 @@ export interface CapabilityInfo {
 // a capability (D-365).
 export const MEMBER = 'member';
 
+// The profile picker's choice for making a new profile (D-369): a slug
+// never has a ":".
+export const NEW_PROFILE = ':new';
+
 // Whether a role's screen shows each capability's key; it lasts while
 // the admin's open, on every role.
 export const showKeys = ref(false);
@@ -54,10 +58,12 @@ export type AccountStatus = 'active' | 'invited' | 'suspended';
 
 export interface AccountInfo {
 	username: string;
+	// Its email address (D-370); `null` only for one saved before emails.
+	email: string | null;
 	// Its own name, if it has one (D-322).
 	name: string | null;
-	// What the admin calls it: its profile's title, else the name, else
-	// the username (D-329).
+	// What the admin calls it: its own name, else its profile's title,
+	// else its username (D-370).
 	displayName: string;
 	roles: string[];
 	// The slug of the profile it's linked to, if any.
@@ -159,7 +165,8 @@ export function writeArchivePage(slug: string, type: string, field: string): Pro
 	return request('POST', `/profiles/${encodeURIComponent(slug)}/pages`, { type, field });
 }
 
-// Moves that page to the trash, so the archive shows the bio again.
+// Moves that page to the trash, so the archive shows the profile's body
+// again (D-370).
 export function removeArchivePage(slug: string, type: string, field: string): Promise<{ removed: string }> {
 	return request('DELETE', `/profiles/${encodeURIComponent(slug)}/pages/${encodeURIComponent(type)}/${encodeURIComponent(field)}`);
 }
@@ -178,11 +185,11 @@ export async function loadAccounts(): Promise<AccountInfo[]> {
  */
 export const freshLink = ref<{ username: string; link: PasswordLink } | null>(null);
 
-export function createAccount(username: string, roles: string[], author: string | null, name: string | null): Promise<{ account: AccountInfo; link: PasswordLink }> {
-	return request('POST', '/accounts', { username, roles, author, name });
+export function createAccount(account: { username: string; email: string; name: string | null; roles: string[]; author: string | null }): Promise<{ account: AccountInfo; link: PasswordLink }> {
+	return request('POST', '/accounts', account);
 }
 
-export async function updateAccount(username: string, changes: { roles?: string[]; author?: string | null; name?: string | null; suspended?: boolean }): Promise<AccountInfo> {
+export async function updateAccount(username: string, changes: { roles?: string[]; author?: string | null; name?: string | null; email?: string; suspended?: boolean }): Promise<AccountInfo> {
 	return (await request<{ account: AccountInfo }>('PATCH', `/accounts/${encodeURIComponent(username)}`, changes)).account;
 }
 

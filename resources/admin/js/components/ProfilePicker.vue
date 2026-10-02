@@ -4,12 +4,13 @@
  * select (`AdminSelect`), not a typed slug. Every profile is listed by
  * name, with its status when it isn't live yet; one already linked to
  * another account is shown but can't be chosen, since a profile belongs
- * to one account. `''` is none.
+ * to one account. `''` is none, and, when it may `create`, `NEW_PROFILE`
+ * asks for a new one (New Account, D-369).
  */
 
 import { computed, ref } from 'vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
-import { loadLinkable, type LinkableProfile } from '../people';
+import { loadLinkable, NEW_PROFILE, type LinkableProfile } from '../people';
 
 const props = defineProps<{
 	id: string;
@@ -19,6 +20,12 @@ const props = defineProps<{
 	none?: string;
 	describedBy?: string;
 	invalid?: boolean;
+	// Whether to offer "Create a new profile…".
+	create?: boolean;
+}>();
+
+const emit = defineEmits<{
+	loaded: [profiles: LinkableProfile[]];
 }>();
 
 const model    = defineModel<string>({ required: true });
@@ -27,6 +34,7 @@ const failed   = ref(false);
 
 loadLinkable().then((list) => {
 	profiles.value = list;
+	emit('loaded', list);
 }, () => {
 	failed.value = true;
 });
@@ -40,6 +48,7 @@ function labelOf(profile: LinkableProfile): string {
 
 const options = computed<SelectOption[]>(() => [
 	{ value: '', label: failed.value ? 'The profiles couldn\'t be loaded' : (profiles.value === null ? 'Loading the profiles…' : (props.none ?? 'None')) },
+	...(props.create ? [{ value: NEW_PROFILE, label: 'Create a new profile…' }] : []),
 	...(profiles.value ?? []).map((profile) => ({
 		value: profile.slug,
 		label: labelOf(profile),

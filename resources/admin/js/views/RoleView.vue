@@ -19,6 +19,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
+import { confirmAction, confirmLeave } from '../confirm';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import CapabilitySections from '../components/CapabilitySections.vue';
@@ -161,10 +162,10 @@ async function remove(): Promise<void> {
 	}
 
 	const question = custom.value
-		? `Delete the ${value.label} role?`
-		: `Reset ${value.label} to the capabilities it's built with? Your changes to it are lost.`;
+		? { title: `Delete the ${value.label} Role?`, body: 'This can\'t be undone.', confirm: 'Delete the role', danger: true }
+		: { title: `Reset ${value.label}?`, body: 'It goes back to the capabilities it\'s built with, and your changes to it are lost.', confirm: 'Reset the role', danger: true };
 
-	if (!window.confirm(question)) {
+	if (!await confirmAction(question)) {
 		return;
 	}
 
@@ -208,12 +209,13 @@ async function copyJson(): Promise<void> {
 	}
 }
 
-onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving? Your changes will be lost.'));
+onBeforeRouteLeave(() => !changed.value || confirmLeave());
 </script>
 
 <template>
 	<form v-if="role" class="role" @submit.prevent="save">
 		<header class="page-header">
+			<RouterLink class="page-back" :to="{ name: 'roles' }"><AdminIcon name="chevron-left" />All roles</RouterLink>
 			<div class="page-header__text role__head">
 				<h1 tabindex="-1">{{ role.label }}</h1>
 				<p v-if="role.description" class="page-header__hint">{{ role.description }}</p>
@@ -235,7 +237,6 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 			</div>
 			<div class="page-header__actions">
 				<RouterLink v-if="!everything && !nothing && can('roles.manage')" class="button" :to="{ name: 'role-new', query: { from: role.name } }"><AdminIcon name="copy" />Duplicate</RouterLink>
-				<RouterLink class="button" :to="{ name: 'roles' }"><AdminIcon name="arrow-left" />All roles</RouterLink>
 				<MenuButton button-class="button button--icon" label="More actions">
 					<template #button><AdminIcon name="ellipsis" /></template>
 					<button v-if="role.editable && custom" type="button" class="menu-item" @click="renaming = true"><AdminIcon name="pen-line" />Rename this role</button>
@@ -323,11 +324,9 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 
 	<template v-else>
 		<header class="page-header">
+			<RouterLink class="page-back" :to="{ name: 'roles' }"><AdminIcon name="chevron-left" />All roles</RouterLink>
 			<div class="page-header__text">
 				<h1 tabindex="-1">Role</h1>
-			</div>
-			<div class="page-header__actions">
-				<RouterLink class="button" :to="{ name: 'roles' }"><AdminIcon name="arrow-left" />All roles</RouterLink>
 			</div>
 		</header>
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>

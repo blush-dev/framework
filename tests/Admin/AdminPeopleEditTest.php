@@ -143,7 +143,7 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site();
 
-		$created = $this->write('POST', '/accounts', ['username' => 'Sam', 'roles' => ['author'], 'author' => 'sam']);
+		$created = $this->write('POST', '/accounts', ['username' => 'Sam', 'email' => 'sam@example.test', 'roles' => ['author'], 'author' => 'sam']);
 
 		$this->assertSame(201, $created->getStatusCode());
 		$this->assertSame('invited', self::account($created)['status'] ?? null);
@@ -175,7 +175,7 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site();
 
-		[$sam] = $this->accounts()->invite('sam', ['author']);
+		[$sam] = $this->accounts()->invite('sam', ['author'], email: 'sam@example.test');
 		$this->store()->save($sam->withPasswordLink(new PasswordLink(hash('sha256', 'old'), 1)));
 
 		$this->cookie = null;
@@ -191,7 +191,7 @@ final class AdminPeopleEditTest extends TestCase
 	public function testANewLinkReplacesTheOldAndKeepsThePassword(): void
 	{
 		$this->site();
-		$this->accounts()->create('sam', self::OTHER, ['author']);
+		$this->accounts()->create('sam', self::OTHER, ['author'], email: 'sam@example.test');
 
 		$first  = self::linkParts($this->write('POST', '/accounts/sam/link'));
 		$second = self::linkParts($this->write('POST', '/accounts/sam/link'));
@@ -207,18 +207,21 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site();
 
-		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'bad name', 'roles' => ['author']]))['field'] ?? null);
-		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'jane', 'roles' => ['author']]))['field'] ?? null);
-		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'new', 'roles' => ['author']]))['field'] ?? null, 'The New Account screen is accounts/new.');
-		$this->assertSame('roles', self::json($this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['ghost']]))['field'] ?? null);
+		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'bad name', 'email' => 'bad-name@example.test', 'roles' => ['author']]))['field'] ?? null);
+		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'jane', 'email' => 'jane@example.test', 'roles' => ['author']]))['field'] ?? null);
+		$this->assertSame('username', self::json($this->write('POST', '/accounts', ['username' => 'new', 'email' => 'new@example.test', 'roles' => ['author']]))['field'] ?? null, 'The New Account screen is accounts/new.');
+		$this->assertSame('roles', self::json($this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'sam@example.test', 'roles' => ['ghost']]))['field'] ?? null);
+		$this->assertSame('email', self::json($this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['author']]))['field'] ?? null, 'Every account needs an email address (D-370).');
+		$this->assertSame('email', self::json($this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'nope', 'roles' => ['author']]))['field'] ?? null);
+		$this->assertSame('email', self::json($this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'JANE@example.test', 'roles' => ['author']]))['field'] ?? null, 'Another account\'s.');
 		$this->assertNull($this->store()->find('sam'));
-		$this->assertSame(['member'], self::rolesOf($this->write('POST', '/accounts', ['username' => 'sam', 'roles' => []])), 'No roles is a member (D-365).');
+		$this->assertSame(['member'], self::rolesOf($this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'sam@example.test', 'roles' => []])), 'No roles is a member (D-365).');
 	}
 
 	public function testChangesAnAccountsRolesAuthorAndSuspension(): void
 	{
 		$this->site();
-		$this->accounts()->create('sam', self::OTHER, ['author']);
+		$this->accounts()->create('sam', self::OTHER, ['author'], email: 'sam@example.test');
 
 		$changed = $this->write('PATCH', '/accounts/sam', ['roles' => ['editor', 'author'], 'author' => 'sam']);
 
@@ -235,7 +238,7 @@ final class AdminPeopleEditTest extends TestCase
 	public function testSuspendingSignsOutAndBlocksSignIn(): void
 	{
 		$this->site();
-		$this->accounts()->create('sam', self::OTHER, ['author']);
+		$this->accounts()->create('sam', self::OTHER, ['author'], email: 'sam@example.test');
 
 		$this->signInAs('sam');
 		$sam = $this->cookie;
@@ -261,7 +264,7 @@ final class AdminPeopleEditTest extends TestCase
 	public function testRemovesAnAccount(): void
 	{
 		$this->site();
-		$this->accounts()->create('sam', self::OTHER, ['author']);
+		$this->accounts()->create('sam', self::OTHER, ['author'], email: 'sam@example.test');
 
 		$this->assertSame(204, $this->write('DELETE', '/accounts/sam')->getStatusCode());
 		$this->assertNull($this->store()->find('sam'));
@@ -274,6 +277,10 @@ final class AdminPeopleEditTest extends TestCase
 
 		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['roles' => ['author']])->getStatusCode());
 		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['suspended' => true])->getStatusCode());
+		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['author' => null, 'roles' => ['author']])->getStatusCode(), 'Only the link, on your own.');
+		$this->assertSame(200, $this->write('PATCH', '/accounts/jane', ['author' => null])->getStatusCode(), 'Your own profile link is yours to change (D-373).');
+		$this->assertNull($this->store()->find('jane')?->author);
+		$this->assertSame(200, $this->write('PATCH', '/accounts/jane', ['author' => 'jane'])->getStatusCode());
 		$this->assertSame(403, $this->write('POST', '/accounts/jane/link')->getStatusCode());
 		$this->assertSame(403, $this->write('DELETE', '/accounts/jane')->getStatusCode());
 		$this->assertSame(['administrator'], $this->store()->find('jane')?->roles);
@@ -282,10 +289,10 @@ final class AdminPeopleEditTest extends TestCase
 	public function testNeverGrantsMoreThanYouHave(): void
 	{
 		$this->site(['manager']);
-		$this->accounts()->create('sam', self::OTHER, ['contributor']);
-		$this->accounts()->create('ada', self::OTHER, ['administrator']);
+		$this->accounts()->create('sam', self::OTHER, ['contributor'], email: 'sam@example.test');
+		$this->accounts()->create('ada', self::OTHER, ['administrator'], email: 'ada@example.test');
 
-		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['editor']])->getStatusCode(), 'Editors publish; managers don\'t.');
+		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'lee', 'email' => 'lee@example.test', 'roles' => ['editor']])->getStatusCode(), 'Editors publish; managers don\'t.');
 		$this->assertSame(403, $this->write('PATCH', '/accounts/sam', ['roles' => ['administrator']])->getStatusCode());
 		$this->assertSame(403, $this->write('PATCH', '/accounts/ada', ['suspended' => true])->getStatusCode(), 'An administrator can do more.');
 		$this->assertSame(403, $this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss', 'capabilities' => ['site.settings']])->getStatusCode());
@@ -295,7 +302,7 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertIsArray($roles);
 		$this->assertSame(['contributor', 'member', 'manager', 'viewer', 'creator'], array_column(array_filter($roles, static fn (mixed $role): bool => is_array($role) && ($role['grantable'] ?? false) === true), 'name'));
 
-		$this->assertSame(201, $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['contributor']])->getStatusCode());
+		$this->assertSame(201, $this->write('POST', '/accounts', ['username' => 'lee', 'email' => 'lee@example.test', 'roles' => ['contributor']])->getStatusCode());
 	}
 
 	public function testMakesChangesAndDeletesACustomRole(): void
@@ -313,7 +320,7 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame('Proofreader', self::role($changed)['label'] ?? null);
 		$this->assertSame(['content.*.edit'], self::role($changed)['capabilities'] ?? null);
 
-		$this->accounts()->create('sam', self::OTHER, ['reviewer']);
+		$this->accounts()->create('sam', self::OTHER, ['reviewer'], email: 'sam@example.test');
 		$held = $this->write('DELETE', '/roles/reviewer');
 		$this->assertSame(422, $held->getStatusCode());
 		$this->assertStringContainsString('sam', self::error($held));
@@ -357,7 +364,7 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site();
 		$this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss', 'capabilities' => ['accounts.view', 'accounts.create', 'accounts.edit', 'accounts.roles', 'accounts.suspend', 'accounts.delete', 'roles.manage', 'content.*.edit']]);
-		$this->accounts()->create('sam', self::OTHER, ['boss']);
+		$this->accounts()->create('sam', self::OTHER, ['boss'], email: 'sam@example.test');
 		$jane = $this->store()->find('jane');
 		$this->assertNotNull($jane);
 		$this->accounts()->setRoles($jane, ['boss']);
@@ -372,12 +379,12 @@ final class AdminPeopleEditTest extends TestCase
 	public function testEachChangeNeedsItsCapability(): void
 	{
 		$this->site(['viewer']);
-		$this->accounts()->create('sam', self::OTHER, ['contributor']);
-		$this->accounts()->create('ada', self::OTHER, ['administrator']);
+		$this->accounts()->create('sam', self::OTHER, ['contributor'], email: 'sam@example.test');
+		$this->accounts()->create('ada', self::OTHER, ['administrator'], email: 'ada@example.test');
 
 		$this->assertSame(200, $this->send('GET', '/accounts')->getStatusCode(), 'Seeing accounts (D-362).');
 		$this->assertSame(200, $this->send('GET', '/roles')->getStatusCode());
-		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['contributor']])->getStatusCode());
+		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'lee', 'email' => 'lee@example.test', 'roles' => ['contributor']])->getStatusCode());
 		$this->assertSame(403, $this->write('PATCH', '/accounts/sam', ['roles' => ['author']])->getStatusCode());
 		$this->assertSame(403, $this->write('PATCH', '/accounts/sam', ['name' => 'Sam'])->getStatusCode());
 		$this->assertSame(403, $this->write('POST', '/accounts/sam/link')->getStatusCode());
@@ -393,7 +400,7 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site(['editor']);
 
-		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['author']])->getStatusCode());
+		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'sam@example.test', 'roles' => ['author']])->getStatusCode());
 		$this->assertSame(403, $this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss'])->getStatusCode());
 		$this->assertSame(403, $this->write('DELETE', '/roles/editor')->getStatusCode());
 	}
@@ -402,8 +409,8 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site(['creator']);
 
-		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['contributor']])->getStatusCode(), 'Giving roles needs accounts.roles (D-365).');
-		$this->assertSame(['member'], self::rolesOf($this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['member']])));
+		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'sam@example.test', 'roles' => ['contributor']])->getStatusCode(), 'Giving roles needs accounts.roles (D-365).');
+		$this->assertSame(['member'], self::rolesOf($this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'sam@example.test', 'roles' => ['member']])));
 	}
 
 	public function testMembersHaveNothing(): void
@@ -413,7 +420,7 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame(422, $this->write('PATCH', '/roles/member', ['capabilities' => ['menus.edit']])->getStatusCode());
 		$this->assertSame(422, $this->write('DELETE', '/roles/member')->getStatusCode());
 
-		$this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['author']]);
+		$this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'sam@example.test', 'roles' => ['author']]);
 		$this->assertSame(['member'], self::rolesOf($this->write('PATCH', '/accounts/sam', ['roles' => []])), 'Taking the last role leaves the member.');
 		$this->assertSame(['editor'], self::rolesOf($this->write('PATCH', '/accounts/sam', ['roles' => ['member', 'editor']])));
 	}
@@ -422,7 +429,7 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site();
 
-		$created = $this->write('POST', '/accounts', ['username' => 'sam', 'roles' => ['author'], 'name' => ' Sam  Smith ']);
+		$created = $this->write('POST', '/accounts', ['username' => 'sam', 'email' => 'sam@example.test', 'roles' => ['author'], 'name' => ' Sam  Smith ']);
 		$account = self::json($created)['account'] ?? null;
 
 		$this->assertSame(201, $created->getStatusCode());
@@ -430,7 +437,7 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame('Sam Smith', $account['name'] ?? null);
 		$this->assertSame('Sam Smith', $account['displayName'] ?? null);
 
-		$tooLong = $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['author'], 'name' => str_repeat('a', 101)]);
+		$tooLong = $this->write('POST', '/accounts', ['username' => 'lee', 'email' => 'lee@example.test', 'roles' => ['author'], 'name' => str_repeat('a', 101)]);
 
 		$this->assertSame(422, $tooLong->getStatusCode());
 		$this->assertSame('name', self::json($tooLong)['field'] ?? null);

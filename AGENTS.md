@@ -64,7 +64,12 @@ and editing code collections and taxonomies through a file in
 D-350); and per-type capabilities (`content.{type}.{action}`, with
 `content.*.…` for every type), with a role's screen drawn as capability
 sections (D-359, from `.claude/docs/admin-design/meridian-role-capabilities.html`);
-and a Calendar on Home, of dated entries by month (D-368).
+and a Calendar on Home, of dated entries by month (D-368); and, from
+the revised profiles sketch, Your Account as the account screen on
+your own row and the sketch's cleanups (D-369), with accounts keeping
+their display name, every account needing an email, and the Users
+screens drawn as the sketch is (D-370); and counts in the section
+panel, with Your Account at `/accounts/{username}` (D-371).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

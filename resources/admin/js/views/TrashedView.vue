@@ -8,6 +8,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
+import { confirmAction } from '../confirm';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, request, type TrashedDetail } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
@@ -80,7 +81,7 @@ async function restore(): Promise<void> {
 async function purge(): Promise<void> {
 	const detail = item.value;
 
-	if (detail === null || !window.confirm(`Delete “${name.value}” permanently? This can't be undone.`)) {
+	if (detail === null || !await confirmAction({ title: `Delete “${name.value}” Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete permanently', danger: true })) {
 		return;
 	}
 
@@ -101,6 +102,7 @@ async function purge(): Promise<void> {
 
 <template>
 	<header class="page-header">
+		<RouterLink class="page-back" :to="back"><AdminIcon name="chevron-left" />Trash</RouterLink>
 		<div class="page-header__text">
 			<h1 tabindex="-1">
 				<template v-if="item">{{ name }}</template>
@@ -111,7 +113,6 @@ async function purge(): Promise<void> {
 			</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink class="button" :to="back"><AdminIcon name="arrow-left" />Trash</RouterLink>
 			<template v-if="item">
 				<button type="button" class="button button--danger" :disabled="busy" @click="purge"><AdminIcon name="trash-2" />Delete permanently</button>
 				<button type="button" class="button button--primary" :disabled="busy" @click="restore"><AdminIcon name="refresh-cw" />Restore as a draft</button>

@@ -116,6 +116,18 @@
 	--bar: 62px;         /* the top bar and the site header */
 	--work-max: 1400px;
 
+	/* Each bundled admin theme's preview, for the theme picker's swatches
+	   (D-370): its own background, surface, accent, and ink in this color
+	   scheme, whichever theme is showing. Admin themes don't redefine them. */
+	--preview-neutral-bg: #f5f6f9;
+	--preview-neutral-surface: #ffffff;
+	--preview-neutral-accent: #2f5fe0;
+	--preview-neutral-fg: #11141b;
+	--preview-editorial-bg: #f6f2ec;
+	--preview-editorial-surface: #fffdfa;
+	--preview-editorial-accent: #17595e;
+	--preview-editorial-fg: #23201b;
+
 	color-scheme: light;
 }
 
@@ -147,6 +159,14 @@
 		--shadow-1: none;
 		--shadow-2: 0 2px 8px rgb(0 0 0 / 30%);
 		--shadow-3: 0 10px 28px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 30%);
+		--preview-neutral-bg: #0b0d12;
+		--preview-neutral-surface: #13161d;
+		--preview-neutral-accent: #7295f7;
+		--preview-neutral-fg: #e9ebf0;
+		--preview-editorial-bg: #15120e;
+		--preview-editorial-surface: #1d1915;
+		--preview-editorial-accent: #72bec2;
+		--preview-editorial-fg: #f0e9dd;
 
 		color-scheme: dark;
 	}
@@ -179,6 +199,15 @@
 	--shadow-1: none;
 	--shadow-2: 0 2px 8px rgb(0 0 0 / 30%);
 	--shadow-3: 0 10px 28px rgb(0 0 0 / 45%), 0 2px 6px rgb(0 0 0 / 30%);
+
+	--preview-neutral-bg: #0b0d12;
+	--preview-neutral-surface: #13161d;
+	--preview-neutral-accent: #7295f7;
+	--preview-neutral-fg: #e9ebf0;
+	--preview-editorial-bg: #15120e;
+	--preview-editorial-surface: #1d1915;
+	--preview-editorial-accent: #72bec2;
+	--preview-editorial-fg: #f0e9dd;
 
 	color-scheme: dark;
 }

@@ -51,14 +51,16 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Sets the signed-in account's own name, or takes it away with an empty
- * one (D-322); throws an `ApiError` when the server refuses.
+ * Changes the signed-in account's own name (an empty one takes it away,
+ * D-322) or email address (D-370); throws an `ApiError` when the server
+ * refuses, naming the `field`.
  */
-export async function saveName(name: string): Promise<void> {
-	const answer = await request<{ name: string | null; displayName: string }>('PATCH', '/profile', { name });
+export async function saveOwnDetails(changes: { name?: string | null; email?: string }): Promise<void> {
+	const answer = await request<{ name: string | null; email: string | null; displayName: string }>('PATCH', '/profile', changes);
 
 	if (state.account !== null) {
 		state.account.name        = answer.name;
+		state.account.email       = answer.email;
 		state.account.displayName = answer.displayName;
 	}
 }

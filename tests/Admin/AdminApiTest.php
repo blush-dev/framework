@@ -192,17 +192,26 @@ final class AdminApiTest extends TestCase
 		$answer = $this->send('PATCH', '/profile', '{"name": "  Jane\n Doe "}', ['X-CSRF-Token' => $token]);
 
 		$this->assertSame(200, $answer->getStatusCode());
-		$this->assertSame(['name' => 'Jane Doe', 'displayName' => 'Jane Author'], self::json($answer), 'Its author page\'s title stays its one name (D-329).');
+		$this->assertSame(['name' => 'Jane Doe', 'email' => 'jane@example.test', 'displayName' => 'Jane Doe'], self::json($answer), 'Its own name comes first (D-370).');
 		$this->assertSame('Jane Doe', $this->app->container()->make(AccountStore::class)->find('jane')?->name);
-		$this->assertSame('Jane Author', self::account($this->send('GET', '/session'))['displayName'] ?? null);
+		$this->assertSame('Jane Doe', self::account($this->send('GET', '/session'))['displayName'] ?? null);
 
 		$this->assertSame(422, $this->send('PATCH', '/profile', json_encode(['name' => str_repeat('a', 101)]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(400, $this->send('PATCH', '/profile', '{"name": 5}', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(400, $this->send('PATCH', '/profile', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(403, $this->send('PATCH', '/profile', '{"name": "Mallory"}')->getStatusCode(), 'CSRF is checked.');
 
-		$this->assertSame(['name' => null, 'displayName' => 'Jane Author'], self::json($this->send('PATCH', '/profile', '{"name": " "}', ['X-CSRF-Token' => $token])));
+		$this->assertSame(['name' => null, 'email' => 'jane@example.test', 'displayName' => 'Jane Author'], self::json($this->send('PATCH', '/profile', '{"name": " "}', ['X-CSRF-Token' => $token])), 'Without one, its profile\'s title.');
 		$this->assertStringNotContainsString('"name"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json'), 'No name isn\'t stored.');
+
+		$this->assertSame('jane@new.example', self::json($this->send('PATCH', '/profile', '{"email": "jane@new.example"}', ['X-CSRF-Token' => $token]))['email'] ?? null, 'Its own email address (D-370).');
+		$this->assertSame('jane@new.example', self::account($this->send('GET', '/session'))['email'] ?? null);
+
+		$bad = $this->send('PATCH', '/profile', '{"email": "nope"}', ['X-CSRF-Token' => $token]);
+
+		$this->assertSame(422, $bad->getStatusCode());
+		$this->assertSame('email', self::json($bad)['field'] ?? null);
+		$this->assertSame(422, $this->send('PATCH', '/profile', '{"email": ""}', ['X-CSRF-Token' => $token])->getStatusCode(), 'It can\'t be taken away.');
 	}
 
 	public function testAccountsChangeTheirOwnPassword(): void

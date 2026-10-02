@@ -63,15 +63,13 @@ function typeOf(key: string): string {
 
 <template>
 	<header class="page-header">
+		<RouterLink class="page-back" :to="{ name: 'fields' }"><AdminIcon name="chevron-left" />All field sets</RouterLink>
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ set?.label ?? 'Field Set' }}</h1>
 			<p v-if="set" class="page-header__hint">
 				Field set · <span class="mono">{{ set.name }}</span> · from {{ origin }}
 			</p>
 			<p v-if="set?.description" class="page-header__hint">{{ set.description }}</p>
-		</div>
-		<div class="page-header__actions">
-			<RouterLink class="button" :to="{ name: 'fields' }"><AdminIcon name="arrow-left" />All field sets</RouterLink>
 		</div>
 	</header>
 

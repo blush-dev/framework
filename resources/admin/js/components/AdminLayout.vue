@@ -31,11 +31,13 @@ import { online } from '../connection';
 import type { IconName } from '../icons';
 import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { initials } from '../people';
+import { loadCounts, navCounts } from '../counts';
 import { can, canAnyType, canType, session, signOut } from '../session';
 import { profileType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import CommandPalette from './CommandPalette.vue';
 import MenuButton from './MenuButton.vue';
+import ConfirmHost from './ConfirmHost.vue';
 import ToastHost from './ToastHost.vue';
 import TypeIcon from './TypeIcon.vue';
 
@@ -53,6 +55,8 @@ interface NavLink {
 	detail?: string;
 	// Links nested under this one, such as its type's own taxonomies.
 	links?: NavLink[];
+	// How many things its list holds (D-371), when known.
+	count?: number;
 }
 
 interface NavGroup {
@@ -71,6 +75,14 @@ onMounted(() => {
 	if (canAnyType('edit')) {
 		loadTypes().catch(() => undefined);
 	}
+
+	void loadCounts();
+});
+
+// A screen is where things are made and removed, so leaving one counts
+// again.
+watch(() => route.fullPath, () => {
+	void loadCounts();
 });
 
 // A detail screen marks its list (`meta.parent`).
@@ -97,7 +109,13 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		home.push(screen('health', 'Content Health', 'heart-pulse'));
 	}
 
-	const shortcuts: NavLink[] = [screen('profile', 'Your Account', 'circle-user-round')];
+	// Your Account is your own account's screen (D-371), so it's current
+	// there, and Accounts isn't.
+	const own       = session.account?.username ?? '';
+	const onOwn     = route.name === 'account' && route.params.username === own;
+	const yourLink: NavLink = { key: 'profile', label: 'Your Account', icon: 'circle-user-round', to: { name: 'account', params: { username: own } }, current: onOwn };
+
+	const shortcuts: NavLink[] = [{ ...yourLink, current: false }];
 
 	// A Settings screen (D-325).
 	const settingsScreen = (key: string, label: string, icon: IconName): NavLink => ({ key: `settings-${key}`, label, icon, to: { name: 'settings', params: { screen: key } }, current: false });
@@ -105,6 +123,9 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	if (can('site.settings')) {
 		shortcuts.push({ ...settingsScreen('general', 'Settings', 'settings'), key: 'settings' });
 	}
+
+	// A link to a list, with how many things it holds (D-371).
+	const counted = (link: NavLink, count: number | undefined): NavLink => ({ ...link, count });
 
 	const inEntries = route.meta.section === 'entries';
 	const link = (type: ContentTypeSummary, detail?: string): NavLink => ({
@@ -114,7 +135,8 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		type,
 		to: { name: 'type', params: { type: type.name } },
 		current: inEntries && currentType.value === type.name,
-		detail
+		detail,
+		count: navCounts.value?.types[type.name]
 	});
 
 	// By the names the menu shows, which a site may shorten (D-278); only
@@ -133,11 +155,11 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	});
 
 	const content = entryTypes.map((type) => ({ ...link(type), links: taxonomies.filter((taxonomy) => owner(taxonomy) === type.name).map((taxonomy) => link(taxonomy)) }));
-	const library = can('media.upload') ? [screen('media', 'Media', 'image')] : [];
+	const library = can('media.upload') ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
 
-	const structure = can('site.settings') ? [screen('types', 'Content Types', 'layers'), screen('fields', 'Fields', 'group')] : [];
+	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
 	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('system', 'System', 'settings')] : [];
-	const customize = can('site.settings') ? [screen('themes', 'Themes', 'paintbrush'), screen('extensions', 'Extensions', 'plug')] : [];
+	const customize = can('site.settings') ? [counted(screen('themes', 'Themes', 'paintbrush'), navCounts.value?.themes), counted(screen('extensions', 'Extensions', 'plug'), navCounts.value?.extensions)] : [];
 	// Accounts and Profiles are two lists (D-353): who can sign in, and
 	// who's credited on the site. A profile's screens, and its type's
 	// list and editor, mark Profiles.
@@ -147,13 +169,14 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		label: profiles.labels.menu,
 		icon: 'user-round',
 		to: { name: 'type', params: { type: profiles.name } },
-		current: route.meta.parent === 'profiles' || (inEntries && currentType.value === profiles.name)
+		current: route.meta.parent === 'profiles' || (inEntries && currentType.value === profiles.name),
+		count: navCounts.value?.types[profiles.name]
 	}] : [];
 	const people    = [
-		screen('profile', 'Your Account', 'circle-user-round'),
-		...(can('accounts.view') ? [screen('accounts', 'Accounts', 'key-round')] : []),
+		yourLink,
+		...(can('accounts.view') ? [{ ...counted(screen('accounts', 'Accounts', 'key-round'), navCounts.value?.accounts), current: route.meta.parent === 'accounts' && !onOwn }] : []),
 		...profileLink,
-		...(can('accounts.view') ? [screen('roles', 'Roles', 'shield')] : [])
+		...(can('accounts.view') ? [counted(screen('roles', 'Roles', 'shield'), navCounts.value?.roles)] : [])
 	];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
@@ -201,7 +224,7 @@ const panelSub = computed(() => {
 	}
 
 	if (area.value === 'people') {
-		return 'Your account, accounts, profiles, and roles';
+		return 'Accounts, profiles, and roles';
 	}
 
 	return area.value === 'config' ? 'Types, settings, and the look' : config.site.name;
@@ -261,6 +284,11 @@ const title = computed(() => screenTitle.value ?? (typeof route.meta.title === '
 const trail = computed<{ label: string; to: RouteLocationRaw }[]>(() => {
 	if (screenTrail.value.length > 0) {
 		return screenTrail.value;
+	}
+
+	// Your own account is Your Account, not one of the Accounts (D-371).
+	if (route.name === 'account' && route.params.username === session.account?.username) {
+		return [];
 	}
 
 	const parent = typeof route.meta.parent === 'string' ? router.getRoutes().find((item) => item.name === route.meta.parent) : undefined;
@@ -431,6 +459,7 @@ async function leave(): Promise<void> {
 									<TypeIcon v-if="link.type" :type="link.type" />
 									<AdminIcon v-else :name="link.icon" />
 									<span class="panel-nav__label">{{ link.label }}<span v-if="link.detail" class="panel-nav__detail">{{ link.detail }}</span></span>
+									<span v-if="link.count !== undefined" class="panel-nav__count"><span class="visually-hidden">, </span>{{ link.count.toLocaleString() }}</span>
 								</RouterLink>
 								<ul v-if="link.links?.length" class="panel-nav__nest">
 									<li v-for="child in link.links" :key="child.key">
@@ -438,6 +467,7 @@ async function leave(): Promise<void> {
 											<TypeIcon v-if="child.type" :type="child.type" />
 											<AdminIcon v-else :name="child.icon" />
 											<span class="panel-nav__label">{{ child.label }}</span>
+											<span v-if="child.count !== undefined" class="panel-nav__count"><span class="visually-hidden">, </span>{{ child.count.toLocaleString() }}</span>
 										</RouterLink>
 									</li>
 								</ul>
@@ -486,7 +516,7 @@ async function leave(): Promise<void> {
 						<span v-if="session.account && session.account.displayName !== session.account.username" class="account__username mono">{{ session.account.username }}</span>
 						<span class="account__roles">{{ session.account?.roles.map((role) => role.label).join(', ') }}</span>
 					</p>
-					<RouterLink class="menu-item" :to="{ name: 'profile' }">
+					<RouterLink class="menu-item" :to="{ name: 'account', params: { username: session.account?.username ?? '' } }">
 						<AdminIcon name="circle-user-round" />Your Account
 					</RouterLink>
 					<button type="button" class="menu-item" :disabled="leaving" @click="leave">
@@ -511,6 +541,7 @@ async function leave(): Promise<void> {
 		</div>
 
 		<ToastHost />
+		<ConfirmHost />
 		<CommandPalette v-if="paletteOpen" @close="paletteOpen = false" />
 	</div>
 </template>
@@ -704,10 +735,21 @@ async function leave(): Promise<void> {
 }
 
 .panel-nav__label {
+	flex: 1 1 auto;
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* How many things a list holds (D-371), at the link's end. */
+
+.panel-nav__count {
+	flex: none;
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	font-weight: 400;
 }
 
 /* A shared taxonomy names what it groups on a second line. */

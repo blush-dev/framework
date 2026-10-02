@@ -19,7 +19,6 @@ import EditorView from './views/EditorView.vue';
 import EntriesView from './views/EntriesView.vue';
 import HealthView from './views/HealthView.vue';
 import NotFoundView from './views/NotFoundView.vue';
-import ProfileView from './views/ProfileView.vue';
 import AccountView from './views/AccountView.vue';
 import ExtensionsView from './views/ExtensionsView.vue';
 import SettingsView from './views/SettingsView.vue';
@@ -93,11 +92,15 @@ export const router = createRouter({
 		// New comes before the item it would otherwise be taken for; the
 		// admin makes no account or role named "new" (D-312).
 		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.create', area: 'people', parent: 'accounts' } },
-		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.view', area: 'people', parent: 'accounts' } },
+		// An account's screen; your own is Your Account, which any account
+		// may open (D-371), while others' need `accounts.view`.
+		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', area: 'people', parent: 'accounts' }, beforeEnter: (to) => to.params.username === session.account?.username || can('accounts.view') ? true : { name: 'dashboard' } },
 		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.view', area: 'people' } },
 		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'roles.manage', area: 'people', parent: 'roles' } },
 		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.view', area: 'people', parent: 'roles' } },
-		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your Account', area: 'people' } },
+		// Your Account is your own account's address (D-371); `/profile`
+		// and the `profile` name lead there.
+		{ path: '/profile', name: 'profile', component: AccountView, meta: { title: 'Your Account', area: 'people' }, beforeEnter: () => ({ name: 'account', params: { username: session.account?.username ?? '' } }) },
 		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign In', public: true } },
 		// A password link (D-312): anyone with one may open it.
 		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: 'Choose a Password', public: true } },

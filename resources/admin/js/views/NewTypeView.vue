@@ -14,6 +14,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
+import { confirmAction } from '../confirm';
 import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldListEditor from '../components/FieldListEditor.vue';
@@ -146,7 +147,7 @@ async function create(): Promise<void> {
 	}
 }
 
-onBeforeRouteLeave(() => !dirty.value || window.confirm('Leave without creating the type? What you\'ve filled in will be lost.'));
+onBeforeRouteLeave(() => !dirty.value || confirmAction({ title: 'Leave Without Creating the Type?', body: 'What you\'ve filled in will be lost.', confirm: 'Leave', cancel: 'Stay', danger: true }));
 
 const archiveLabel = computed(() => DATE_ARCHIVES.find((option) => option.value === form.value.dateArchives)?.label ?? 'None');
 const groupLabels  = computed(() => form.value.types.map((name) => types.value.find((type) => type.name === name)?.labels.plural ?? name));

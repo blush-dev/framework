@@ -5,15 +5,21 @@
  */
 
 import { config } from './config';
+import type { AccountProfile } from './people';
 
 export interface Account {
 	username: string;
+	// Its email address (D-370); `null` only for one saved before emails.
+	email: string | null;
 	// Its own name, if it has one (D-322).
 	name: string | null;
-	// What the admin calls it: its profile's title, else the name,
-	// else the username.
+	// What the admin calls it: its own name, else its profile's title,
+	// else its username (D-370).
 	displayName: string;
 	author: string | null;
+	// That profile, when it has a file (for Your Account, D-369).
+	profile: AccountProfile | null;
+	created: number;
 	// Each role's key and its saved label, for showing (D-323).
 	roles: { name: string; label: string }[];
 	capabilities: string[];

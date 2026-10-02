@@ -35,7 +35,8 @@ use Blush\Session\Session;
 /**
  * Signs accounts in and out of the admin, and tells the admin who's
  * signed in. A signed-in answer carries the account (never its password
- * hash), the capabilities it has, and the CSRF token later requests send.
+ * hash) with its email and profile (D-369, D-370, for Your Account), the capabilities it
+ * has, and the CSRF token later requests send.
  */
 final readonly class SessionController
 {
@@ -44,7 +45,8 @@ final readonly class SessionController
 		private Permissions $permissions,
 		private Accounts $accounts,
 		private Roles $roles,
-		private AuthConfig $config
+		private AuthConfig $config,
+		private PeopleJson $json
 	) {}
 
 	/**
@@ -120,9 +122,12 @@ final readonly class SessionController
 		return [
 			'account'   => [
 				'username'     => $account->username,
+				'email'        => $account->email,
 				'name'         => $account->name,
 				'displayName'  => $this->accounts->displayName($account),
 				'author'       => $account->author,
+				'profile'      => $this->json->profile($account),
+				'created'      => $account->created,
 				'roles'        => array_map(fn (string $name): array => ['name' => $name, 'label' => $this->roles->get($name)->label ?? $name], $account->roles),
 				'capabilities' => $this->permissions->capabilities($account),
 				'lastLogin'    => $account->lastLogin,

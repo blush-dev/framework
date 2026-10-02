@@ -374,8 +374,13 @@ dynamically).
   export, lint, and the jtcom trial. (2, done, D-353) The admin: Accounts and
   Profiles as two lists under People, the profile screen (where it
   appears), the account's Public profile panel, and the type editor's
-  People panel. Later: Import from accounts, profile capabilities,
-  and schema.org `Person` with structured data in general.
+  People panel. (3, done, D-369, D-370) The revised sketch: Your Account
+  is the account screen on your own row, its cleanups to Accounts, New
+  Account, Profiles, and a profile's screen, drawn as the sketch is;
+  accounts keep a display name and need an email address. Later:
+  profile capabilities, the revised sketch's open list
+  (`open-questions.md`), and schema.org `Person` with structured data
+  in general.
 - **Role capabilities (done, D-359 to D-364):** per-type capabilities
   (`content.{type}.{action}`, `content.*.…` for every type, additive)
   and a role's screen as capability sections, from the author's sketch;

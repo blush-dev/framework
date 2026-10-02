@@ -45,9 +45,10 @@ final readonly class PeopleJson
 	) {}
 
 	/**
-	 * Describes an account: its `username`, its own `name` (or `null`),
-	 * its `displayName` (D-329: the profile's title, else the name, else
-	 * the username), `roles`, `author` (the linked profile's slug), its
+	 * Describes an account: its `username`, its `email` (D-370), its own
+	 * `name` (or `null`), its `displayName` (D-370: the name, else the
+	 * profile's title, else the username), `roles`, `author` (the linked
+	 * profile's slug), its
 	 * `profile` (D-353: `{"id", "handle", "slug", "title", "status",
 	 * "url", "uses"}`, or `null` without a file), `created` and `lastLogin`
 	 * (Unix times), `status`, its password `link` (`expires`, and whether
@@ -62,6 +63,7 @@ final readonly class PeopleJson
 
 		return [
 			'username'    => $account->username,
+			'email'       => $account->email,
 			'name'        => $account->name,
 			'displayName' => $this->accounts->displayName($account),
 			'roles'       => $account->roles,
@@ -83,7 +85,7 @@ final readonly class PeopleJson
 	 *
 	 * @return ?array{id: string, handle: ?string, slug: string, title: string, status: string, url: ?string, uses: int}
 	 */
-	private function profile(Account $account): ?array
+	public function profile(Account $account): ?array
 	{
 		$profiles = $this->types->profiles();
 		$entry    = $account->author === null || $profiles === null ? null : $this->content->named($profiles->name, $account->author);

@@ -3,8 +3,8 @@
  * A content type from `user/data/types`, edited (D-311), or a collection
  * or taxonomy from code, changed through a file there (D-349): General
  * (names, description, icon, with its key and folder fixed), Behavior
- * (`TypeBehaviorFields`), People (`TypePeopleFields`, its people fields,
- * D-353), Addresses
+ * (`TypeBehaviorFields`), Profiles (`TypePeopleFields`, its profile fields,
+ * D-353, D-369), Addresses
  * (`TypeRoutesFields`, each route key's path, D-350), and Fields
  * (`FieldListEditor`, with the field sets added to it below, D-337;
  * read-only when the code's fields are classes of its own), saved
@@ -19,6 +19,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
+import { confirmAction, confirmLeave } from '../confirm';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import FieldListEditor from './FieldListEditor.vue';
@@ -106,7 +107,7 @@ function revert(): void {
 async function reset(): Promise<void> {
 	removal.value = '';
 
-	if (!window.confirm(`Reset ${props.type.labels.plural} to how ${source.value} defines it? ${file.value} is removed, and every change made here with it.`)) {
+	if (!await confirmAction({ title: `Reset ${props.type.labels.plural}?`, body: `It goes back to how ${source.value} defines it: **${file.value}** is removed, and every change made here with it.`, confirm: 'Reset the type', danger: true })) {
 		return;
 	}
 
@@ -124,7 +125,7 @@ async function reset(): Promise<void> {
 async function remove(): Promise<void> {
 	removal.value = '';
 
-	if (!window.confirm(`Delete the ${props.type.labels.plural} type? Its file in user/data/types is removed; its entries stay in user/content/${props.type.folder}, but nothing lists them until a type claims the folder again.`)) {
+	if (!await confirmAction({ title: `Delete the ${props.type.labels.plural} Type?`, body: [`Its file in user/data/types is removed.`, `Its entries stay in **user/content/${props.type.folder}**, but nothing lists them until a type claims the folder again.`], confirm: 'Delete the type', danger: true })) {
 		return;
 	}
 
@@ -141,7 +142,7 @@ async function remove(): Promise<void> {
 	}
 }
 
-onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving? Your changes will be lost.'));
+onBeforeRouteLeave(() => !changed.value || confirmLeave());
 </script>
 
 <template>
@@ -172,13 +173,28 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 		</section>
 
 		<section v-if="profilesLabel !== null && form.people !== null" class="panel" aria-labelledby="people-heading">
+			<header class="panel__header type-people-header">
+				<h2 id="people-heading">{{ profilesLabel }}</h2>
+				<p class="panel__hint">Each field credits a profile, under this type's own word for it</p>
+				<div class="panel__actions">
+					<TypePeopleFields v-model="form.people" v-model:list-pages="pages" part="add" id-prefix="add-" :prefix="prefix" :urls="typeUrls && type.prefix !== null" :saved="type.people" :profiles-label="profilesLabel" />
+				</div>
+			</header>
+			<div class="type-people-rows">
+				<TypePeopleFields v-model="form.people" v-model:list-pages="pages" part="fields" id-prefix="people-" :prefix="prefix" :urls="typeUrls && type.prefix !== null" :saved="type.people" :profiles-label="profilesLabel" />
+			</div>
+			<p class="panel__note">Every field points at the one <strong>{{ profilesLabel }}</strong> collection. A person is one profile with one slug; these are this type's words for how they're credited.</p>
+		</section>
+
+		<section v-if="profilesLabel !== null && form.people !== null && form.people.length" class="panel" aria-labelledby="archives-heading">
 			<header class="panel__header">
-				<h2 id="people-heading">People</h2>
-				<p class="panel__hint">Each field names one relation to {{ profilesLabel }}</p>
+				<h2 id="archives-heading">Archives</h2>
+				<p class="panel__hint">Whether a field's addresses route at all</p>
 			</header>
 			<div class="panel__body">
-				<TypePeopleFields v-model="form.people" v-model:list-pages="pages" id-prefix="people-" :prefix="prefix" :urls="typeUrls && type.prefix !== null" :saved="type.people" :profiles-label="profilesLabel" />
+				<TypePeopleFields v-model="form.people" v-model:list-pages="pages" part="archives" id-prefix="archives-" :prefix="prefix" :urls="typeUrls && type.prefix !== null" :saved="type.people" :profiles-label="profilesLabel" />
 			</div>
+			<p class="panel__note">Same switch as the type's own index page, and the same rule: turning it off stops the routing and deletes nothing that was written. Pages written for that field's archives are kept and marked unreachable on each profile.</p>
 		</section>
 
 		<section v-if="type.routes.length" class="panel" aria-labelledby="addresses-heading">
@@ -232,6 +248,16 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 </template>
 
 <style scoped>
+/* The profile fields' rows run edge to edge under a ruled header, as the
+   profiles sketch has them. */
+.type-people-header {
+	border-bottom: 0;
+}
+
+.type-people-rows {
+	border-top: 1px solid var(--border);
+}
+
 .type-editor {
 	display: grid;
 	gap: var(--s-4);

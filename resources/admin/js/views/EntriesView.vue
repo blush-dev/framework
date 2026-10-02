@@ -29,6 +29,7 @@
  */
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { confirmAction } from '../confirm';
 import { RouterLink, useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
 import { ApiError, entryPath, request, type ContentTypeSummary, type EntryDetail, type EntryList, type EntrySort, type EntryStatus, type EntrySummary, type TrashedSummary } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
@@ -49,7 +50,7 @@ type Tab = EntryStatus | 'any' | 'trash';
 const statusTabs: { status: EntryStatus | 'any'; label: string }[] = [
 	{ status: 'any', label: 'All' },
 	{ status: 'published', label: 'Published' },
-	{ status: 'draft', label: 'Drafts' },
+	{ status: 'draft', label: 'Draft' },
 	{ status: 'scheduled', label: 'Scheduled' }
 ];
 
@@ -96,6 +97,9 @@ const status = computed<Tab>(() => {
 
 const inTrash = computed(() => status.value === 'trash');
 
+// The profiles type's list, drawn as the profiles sketch has it (D-370).
+const profilesList = computed(() => info.value?.kind === 'profiles');
+
 const type   = computed(() => String(route.params.type ?? ''));
 const info   = computed(() => findType(type.value));
 const search = computed(() => text(route.query.search));
@@ -106,6 +110,8 @@ const ready  = computed(() => loaded.value === key.value);
 // The filters beyond the search, which the trash doesn't take.
 const author = computed(() => inTrash.value ? '' : text(route.query.author));
 const days   = computed(() => inTrash.value || !DAYS.includes(Number(route.query.days)) ? '' : text(route.query.days));
+// Profiles' own filter (D-369): linked to an account, or a guest.
+const linkedTo = computed(() => !inTrash.value && info.value?.kind === 'profiles' && (route.query.account === 'linked' || route.query.account === 'guest') ? route.query.account : '');
 const chosen = computed<Record<string, string>>(() => inTrash.value ? {} : Object.fromEntries(
 	text(route.query.terms).split(',').map((pair) => pair.split(':')).filter((parts) => parts.length === 2 && parts[0] !== '' && parts[1] !== '')
 ));
@@ -115,7 +121,7 @@ const sort = computed<EntrySort | ''>(() => SORTS.includes(route.query.sort as E
 const dir  = computed<'asc' | 'desc' | ''>(() => sort.value === '' ? '' : (route.query.dir === 'asc' || route.query.dir === 'desc' ? route.query.dir : (sort.value === 'updated' ? 'desc' : 'asc')));
 const per  = computed(() => PER_OPTIONS.includes(Number(route.query.per)) ? Number(route.query.per) : PER_PAGE);
 
-const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || Object.keys(chosen.value).length > 0);
+const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || linkedTo.value !== '' || Object.keys(chosen.value).length > 0);
 
 function text(value: unknown): string {
 	return typeof value === 'string' ? value : '';
@@ -193,7 +199,7 @@ function go(changes: LocationQueryRaw): void {
 
 function clear(): void {
 	query.value = '';
-	go({ search: undefined, author: undefined, terms: undefined, days: undefined, page: undefined });
+	go({ search: undefined, author: undefined, terms: undefined, days: undefined, account: undefined, page: undefined });
 }
 
 // The filters' selects write the URL; the first page shows what they find.
@@ -206,6 +212,17 @@ const daysValue = computed({
 	get: () => days.value,
 	set: (value: string) => go({ days: value || undefined, page: undefined })
 });
+
+const linkedValue = computed({
+	get: () => linkedTo.value,
+	set: (value: string) => go({ account: value || undefined, page: undefined })
+});
+
+const linkedOptions: SelectOption[] = [
+	{ value: '', label: 'Any account' },
+	{ value: 'linked', label: 'Linked to an account' },
+	{ value: 'guest', label: 'Guest' }
+];
 
 function chooseTerm(taxonomy: string, slug: string): void {
 	const next = { ...chosen.value, [taxonomy]: slug };
@@ -351,6 +368,10 @@ function params(extra: Record<string, string>): string {
 		values.set('days', days.value);
 	}
 
+	if (linkedTo.value !== '') {
+		values.set('account', linkedTo.value);
+	}
+
 	return values.toString();
 }
 
@@ -426,7 +447,7 @@ async function load(): Promise<void> {
 	}
 }
 
-watch(() => [status.value, type.value, search.value, page.value, author.value, days.value, route.query.terms, sort.value, dir.value, per.value], () => {
+watch(() => [status.value, type.value, search.value, page.value, author.value, days.value, linkedTo.value, route.query.terms, sort.value, dir.value, per.value], () => {
 	selected.value = [];
 	void load();
 }, { immediate: true });
@@ -458,8 +479,8 @@ async function act(name: string, action: () => Promise<string>): Promise<void> {
  * Moves an entry to the trash, as the editor does: at the revision it's
  * at now, so an edit made meanwhile isn't thrown away unseen.
  */
-function moveToTrash(entry: EntrySummary): void {
-	if (!window.confirm(`Move ${nameOf(entry)} to the trash? You can restore it from the Trash tab.`)) {
+async function moveToTrash(entry: EntrySummary): Promise<void> {
+	if (!await confirmAction({ title: `Move ${nameOf(entry)} to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to trash', danger: true })) {
 		return;
 	}
 
@@ -492,11 +513,11 @@ const canPublish = computed(() => canType(type.value, 'publish'));
  * (`POST entries/bulk`, D-301), then says how many changed and lists any
  * that couldn't, with why.
  */
-function bulk(action: BulkAction): void {
+async function bulk(action: BulkAction): Promise<void> {
 	const ids   = [...selected.value];
 	const count = plural(ids.length, labels.value.item, labels.value.items);
 
-	if (action === 'trash' && !window.confirm(`Move ${count} to the trash? You can restore them from the Trash tab.`)) {
+	if (action === 'trash' && !await confirmAction({ title: `Move ${count} to the Trash?`, body: 'You can restore them from the Trash tab.', confirm: 'Move to trash', danger: true })) {
 		return;
 	}
 
@@ -527,8 +548,8 @@ function restore(item: TrashedSummary): void {
 	});
 }
 
-function purge(item: TrashedSummary): void {
-	if (!window.confirm(`Delete ${nameOf(item)} permanently? This can't be undone.`)) {
+async function purge(item: TrashedSummary): Promise<void> {
+	if (!await confirmAction({ title: `Delete ${nameOf(item)} Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete permanently', danger: true })) {
 		return;
 	}
 
@@ -539,10 +560,10 @@ function purge(item: TrashedSummary): void {
 	});
 }
 
-function emptyTrash(): void {
+async function emptyTrash(): Promise<void> {
 	const count = trash.value?.length ?? 0;
 
-	if (!window.confirm(`Delete ${plural(count, labels.value.item, labels.value.items)} in the trash permanently? This can't be undone.`)) {
+	if (!await confirmAction({ title: 'Empty the Trash?', body: `${plural(count, labels.value.item, labels.value.items)} in the trash will be deleted permanently. This can't be undone.`, confirm: 'Empty the trash', danger: true })) {
 		return;
 	}
 
@@ -586,208 +607,185 @@ const emptyText = computed(() => {
 		return `${heading.value} you move to the trash wait here until you restore them or delete them permanently.`;
 	}
 
-	return status.value === 'any' ? `There are no ${labels.value.items} you can edit.` : `No ${tabs.value.find((tab) => tab.status === status.value)?.label.toLowerCase()} among the ${labels.value.items}.`;
+	return status.value === 'any' ? `There are no ${labels.value.items} you can edit.` : `No ${status.value === 'draft' ? 'drafts' : tabs.value.find((tab) => tab.status === status.value)?.label.toLowerCase()} among the ${labels.value.items}.`;
 });
 </script>
 
 <template>
-	<header class="page-header">
-		<div class="page-header__text">
-			<h1 tabindex="-1">{{ heading }}</h1>
-			<p class="page-header__hint">{{ info?.kind === 'profiles' ? 'Public identities. Every byline on the site points at one.' : (terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit`) }}</p>
-		</div>
-		<div v-if="(canType(type, 'create') && !nothingYet) || can('site.settings')" class="page-header__actions">
-			<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type settings</RouterLink>
-			<RouterLink v-if="canType(type, 'create') && !nothingYet" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">{{ labels.newItem }}</RouterLink>
-		</div>
-	</header>
-
-	<section v-if="nothingYet" class="panel" aria-labelledby="entries-heading">
-		<!-- A type with an index page is never empty: the index page is
-		     already there, so the first-run state sits under it (D-255). -->
-		<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms && info?.kind !== 'profiles'" :profiles="info?.kind === 'profiles'" />
-		<div class="empty">
-			<AdminIcon :name="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" />
-			<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
-			<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
-			<RouterLink v-if="canType(type, 'create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
-		</div>
-	</section>
-
-	<template v-else>
-		<nav class="tabs" aria-label="Status">
-			<RouterLink v-for="tab in tabs" :key="tab.status" class="tabs__tab" :to="{ query: tabQuery(tab.status) }" :aria-current="status === tab.status ? 'page' : undefined">
-				{{ tab.label }}
-				<span v-if="counts[tab.status] !== undefined" class="tabs__count">{{ counts[tab.status] }}</span>
-			</RouterLink>
-		</nav>
-
-		<div class="toolbar" role="search">
-			<label class="search-field entries-search">
-				<AdminIcon name="search" />
-				<span class="visually-hidden">{{ labels.searchItems }}</span>
-				<input id="entries-search" ref="searchField" v-model="query" type="search" :placeholder="labels.searchItems" autocomplete="off" aria-keyshortcuts="/">
-				<kbd class="entries-search__key" aria-hidden="true">/</kbd>
-			</label>
-			<template v-if="!inTrash">
-				<div v-if="authorOptions.length" class="entries-filter">
-					<label class="visually-hidden" for="entries-author">Author</label>
-					<AdminSelect id="entries-author" v-model="authorValue" :options="authorOptions" />
-				</div>
-				<div v-for="filter in termFilters" :key="filter.taxonomy" class="entries-filter">
-					<label class="visually-hidden" :for="`entries-${filter.taxonomy}`">{{ filter.label }}</label>
-					<AdminSelect :id="`entries-${filter.taxonomy}`" :model-value="chosen[filter.taxonomy] ?? ''" :options="filter.options" @update:model-value="chooseTerm(filter.taxonomy, $event)" />
-				</div>
-				<div class="entries-filter">
-					<label class="visually-hidden" for="entries-days">Updated</label>
-					<AdminSelect id="entries-days" v-model="daysValue" :options="dayOptions" />
-				</div>
-			</template>
-			<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
-			<div v-if="!inTrash" class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
-				<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
-					<AdminIcon name="rows-3" /><span class="visually-hidden">Roomy</span>
-				</button>
-				<button type="button" :aria-pressed="compact" title="Compact rows" @click="compact = true">
-					<AdminIcon name="rows-4" /><span class="visually-hidden">Compact</span>
-				</button>
+	<!-- Profiles are drawn as the profiles sketch has them (D-370); every
+	     other type's list keeps the direction's look. -->
+	<div :class="profilesList ? 'people' : 'entries-root'">
+		<header class="page-header">
+			<div class="page-header__text">
+				<h1 tabindex="-1">{{ heading }}</h1>
+				<p class="page-header__hint">{{ info?.kind === 'profiles' ? 'Public identities. Every byline on the site points at one.' : (terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit`) }}</p>
 			</div>
-		</div>
+			<div v-if="(canType(type, 'create') && !nothingYet) || can('site.settings')" class="page-header__actions">
+				<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type settings</RouterLink>
+				<RouterLink v-if="canType(type, 'create') && !nothingYet" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">{{ labels.newItem }}</RouterLink>
+			</div>
+		</header>
 
-		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-
-		<div v-if="skipped" class="notice notice--warn" role="status">
-			{{ skipped.text }}
-			<ul>
-				<li v-for="(item, index) in skipped.items" :key="index"><strong>{{ item.title }}</strong>: {{ item.reason }}</li>
-			</ul>
-		</div>
-
-		<section v-if="!error || ready" class="panel" :class="{ 'panel--compact': compact }" aria-labelledby="entries-heading" :aria-busy="loading || busy !== null">
-			<header class="panel__header">
-				<h2 id="entries-heading">{{ tabs.find((tab) => tab.status === status)?.label }}</h2>
-				<p class="panel__hint" aria-live="polite">
-					<template v-if="!ready">&nbsp;</template>
-					<template v-else-if="inTrash">{{ plural(trashShown.length, labels.item, labels.items) }} · Restored entries come back as drafts</template>
-					<template v-else-if="list">{{ plural(list.total, labels.item, labels.items) }}<template v-if="info?.kind === 'profiles'"> · Bylines counts the published entries crediting each</template><template v-else-if="terms"> · Entries counts the published entries using each</template></template>
-				</p>
-				<div v-if="ready && inTrash && trash?.length" class="panel__actions">
-					<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty trash</button>
-				</div>
-			</header>
-
-			<SkeletonTable v-if="!ready" :columns="skeletonColumns" :rows="skeletonRows" :label="`Loading ${labels.items}…`" />
-
-			<template v-else-if="inTrash">
-				<TrashTable v-if="trashShown.length" :items="trashShown" labelledby="entries-heading" :busy="busy" @restore="restore" @purge="purge" />
-
-				<div v-else class="empty">
-					<AdminIcon name="circle-check" />
-					<p class="empty__heading">{{ filtered ? 'Nothing in the Trash Matches' : 'The Trash Is Empty' }}</p>
-					<p class="empty__text">{{ emptyText }}</p>
-					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
-				</div>
-			</template>
-
-			<template v-else-if="list">
-				<p v-if="flattened && list.entries.length" class="notebar">
-					<AdminIcon name="info" />{{ flattened }}
-					<button v-if="sort" type="button" class="button button--ghost button--small notebar__action" @click="clearSort">Clear the sort</button>
-				</p>
-				<EntryTable
-					v-if="list.entries.length || pinnedOf(list).length"
-					:entries="list.entries"
-					:pinned="pinnedOf(list)"
-					labelledby="entries-heading"
-					date-label="Updated"
-					date-key="updated"
-					:terms="terms && info?.kind !== 'profiles'"
-					:profiles="info?.kind === 'profiles'"
-					v-model:selected="selected"
-					selectable
-					sortable
-					:sort="sort || null"
-					:dir="dir || null"
-					@trash="moveToTrash"
-					@duplicate="duplicate"
-					@sort="sortBy"
-				/>
-
-				<div v-if="!list.entries.length" class="empty">
-					<AdminIcon name="files" />
-					<p class="empty__heading">{{ filtered ? `No ${heading} Match` : `No ${heading}` }}</p>
-					<p class="empty__text">{{ emptyText }}</p>
-					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
-				</div>
-
-				<nav v-if="list.total > PER_OPTIONS[0]!" class="pager" aria-label="Pages">
-					<span class="pager__status">{{ list.pages > 1 ? `Page ${list.page} of ${list.pages}` : `All ${plural(list.total, labels.item, labels.items)}` }}</span>
-					<div class="pager__end">
-						<label class="visually-hidden" for="entries-per">Rows per page</label>
-						<div class="entries-filter">
-							<AdminSelect id="entries-per" v-model="perValue" :options="perOptions" />
-						</div>
-						<template v-if="list.pages > 1">
-							<RouterLink v-if="page > 1" class="button button--small" :to="{ query: { ...route.query, page: page - 1 === 1 ? undefined : page - 1 } }"><AdminIcon name="chevron-left" />Previous</RouterLink>
-							<RouterLink v-if="page < list.pages" class="button button--small" :to="{ query: { ...route.query, page: page + 1 } }">Next<AdminIcon name="chevron-right" /></RouterLink>
-						</template>
-					</div>
-				</nav>
-			</template>
+		<section v-if="nothingYet" class="panel" aria-labelledby="entries-heading">
+			<!-- A type with an index page is never empty: the index page is
+			     already there, so the first-run state sits under it (D-255). -->
+			<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms && info?.kind !== 'profiles'" :profiles="info?.kind === 'profiles'" />
+			<div class="empty">
+				<AdminIcon :name="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" />
+				<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
+				<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
+				<RouterLink v-if="canType(type, 'create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
+			</div>
 		</section>
 
-		<div v-if="selected.length && !inTrash" class="bulk-bar" role="region" aria-label="Bulk actions">
-			<span class="bulk-bar__count" aria-live="polite">{{ selected.length }} selected</span>
-			<span class="bulk-bar__divider" aria-hidden="true" />
-			<button v-if="canPublish" type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('publish')"><AdminIcon name="circle-check" />Publish</button>
-			<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('draft')"><AdminIcon name="file-text" />Move to draft</button>
-			<template v-if="canTrash">
+		<template v-else>
+			<nav class="status-tabs" aria-label="Status">
+				<RouterLink v-for="tab in tabs" :key="tab.status" class="status-tabs__tab" :to="{ query: tabQuery(tab.status) }" :aria-current="status === tab.status ? 'page' : undefined">
+					{{ tab.label }}
+					<span v-if="counts[tab.status] !== undefined" class="status-tabs__count">{{ counts[tab.status] }}</span>
+				</RouterLink>
+			</nav>
+
+			<div class="toolbar" role="search">
+				<label class="search-field entries-search">
+					<AdminIcon name="search" />
+					<span class="visually-hidden">{{ labels.searchItems }}</span>
+					<input id="entries-search" ref="searchField" v-model="query" type="search" :placeholder="labels.searchItems" autocomplete="off" aria-keyshortcuts="/">
+					<kbd class="entries-search__key" aria-hidden="true">/</kbd>
+				</label>
+				<template v-if="!inTrash">
+					<div v-if="authorOptions.length" class="entries-filter">
+						<label class="visually-hidden" for="entries-author">Author</label>
+						<AdminSelect id="entries-author" v-model="authorValue" :options="authorOptions" />
+					</div>
+					<div v-for="filter in termFilters" :key="filter.taxonomy" class="entries-filter">
+						<label class="visually-hidden" :for="`entries-${filter.taxonomy}`">{{ filter.label }}</label>
+						<AdminSelect :id="`entries-${filter.taxonomy}`" :model-value="chosen[filter.taxonomy] ?? ''" :options="filter.options" @update:model-value="chooseTerm(filter.taxonomy, $event)" />
+					</div>
+					<div v-if="info?.kind === 'profiles'" class="entries-filter">
+						<label class="visually-hidden" for="entries-account">Account</label>
+						<AdminSelect id="entries-account" v-model="linkedValue" :options="linkedOptions" />
+					</div>
+					<div class="entries-filter">
+						<label class="visually-hidden" for="entries-days">Updated</label>
+						<AdminSelect id="entries-days" v-model="daysValue" :options="dayOptions" />
+					</div>
+				</template>
+				<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
+				<span v-if="profilesList" class="toolbar__count" aria-live="polite">{{ !ready ? 'Loading…' : (inTrash ? plural(trashShown.length, labels.item, labels.items) : (list ? plural(list.total, labels.item, labels.items) : '')) }}</span>
+				<div v-if="!inTrash && !profilesList" class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
+					<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
+						<AdminIcon name="rows-3" /><span class="visually-hidden">Roomy</span>
+					</button>
+					<button type="button" :aria-pressed="compact" title="Compact rows" @click="compact = true">
+						<AdminIcon name="rows-4" /><span class="visually-hidden">Compact</span>
+					</button>
+				</div>
+			</div>
+
+			<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
+
+			<div v-if="skipped" class="notice notice--warn" role="status">
+				{{ skipped.text }}
+				<ul>
+					<li v-for="(item, index) in skipped.items" :key="index"><strong>{{ item.title }}</strong>: {{ item.reason }}</li>
+				</ul>
+			</div>
+
+			<section v-if="!error || ready" class="panel" :class="{ 'panel--compact': compact }" aria-labelledby="entries-heading" :aria-busy="loading || busy !== null">
+				<h2 v-if="profilesList && !inTrash" id="entries-heading" class="visually-hidden">{{ tabs.find((tab) => tab.status === status)?.label }}</h2>
+				<header v-else class="panel__header">
+					<h2 id="entries-heading">{{ tabs.find((tab) => tab.status === status)?.label }}</h2>
+					<p class="panel__hint" aria-live="polite">
+						<template v-if="!ready">&nbsp;</template>
+						<template v-else-if="inTrash">{{ plural(trashShown.length, labels.item, labels.items) }} · Restored entries come back as drafts</template>
+						<template v-else-if="list">{{ plural(list.total, labels.item, labels.items) }}<template v-if="info?.kind === 'profiles'"> · Bylines counts the published entries crediting each</template><template v-else-if="terms"> · Entries counts the published entries using each</template></template>
+					</p>
+					<div v-if="ready && inTrash && trash?.length" class="panel__actions">
+						<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty trash</button>
+					</div>
+				</header>
+
+				<SkeletonTable v-if="!ready" :columns="skeletonColumns" :rows="skeletonRows" :label="`Loading ${labels.items}…`" />
+
+				<template v-else-if="inTrash">
+					<TrashTable v-if="trashShown.length" :items="trashShown" labelledby="entries-heading" :busy="busy" @restore="restore" @purge="purge" />
+
+					<div v-else class="empty">
+						<AdminIcon name="circle-check" />
+						<p class="empty__heading">{{ filtered ? 'Nothing in the Trash Matches' : 'The Trash Is Empty' }}</p>
+						<p class="empty__text">{{ emptyText }}</p>
+						<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+					</div>
+				</template>
+
+				<template v-else-if="list">
+					<p v-if="flattened && list.entries.length" class="notebar">
+						<AdminIcon name="info" />{{ flattened }}
+						<button v-if="sort" type="button" class="button button--ghost button--small notebar__action" @click="clearSort">Clear the sort</button>
+					</p>
+					<EntryTable
+						v-if="list.entries.length || pinnedOf(list).length"
+						:entries="list.entries"
+						:pinned="pinnedOf(list)"
+						labelledby="entries-heading"
+						date-label="Updated"
+						date-key="updated"
+						:terms="terms && info?.kind !== 'profiles'"
+						:profiles="info?.kind === 'profiles'"
+						v-model:selected="selected"
+						selectable
+						sortable
+						:sort="sort || null"
+						:dir="dir || null"
+						@trash="moveToTrash"
+						@duplicate="duplicate"
+						@sort="sortBy"
+					/>
+
+					<div v-if="!list.entries.length" class="empty">
+						<AdminIcon name="files" />
+						<p class="empty__heading">{{ filtered ? `No ${heading} Match` : `No ${heading}` }}</p>
+						<p class="empty__text">{{ emptyText }}</p>
+						<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+					</div>
+
+					<nav v-if="list.total > PER_OPTIONS[0]!" class="pager" aria-label="Pages">
+						<span class="pager__status">{{ list.pages > 1 ? `Page ${list.page} of ${list.pages}` : `All ${plural(list.total, labels.item, labels.items)}` }}</span>
+						<div class="pager__end">
+							<label class="visually-hidden" for="entries-per">Rows per page</label>
+							<div class="entries-filter">
+								<AdminSelect id="entries-per" v-model="perValue" :options="perOptions" />
+							</div>
+							<template v-if="list.pages > 1">
+								<RouterLink v-if="page > 1" class="button button--small" :to="{ query: { ...route.query, page: page - 1 === 1 ? undefined : page - 1 } }"><AdminIcon name="chevron-left" />Previous</RouterLink>
+								<RouterLink v-if="page < list.pages" class="button button--small" :to="{ query: { ...route.query, page: page + 1 } }">Next<AdminIcon name="chevron-right" /></RouterLink>
+							</template>
+						</div>
+					</nav>
+				</template>
+
+				<p v-if="profilesList && !inTrash && ready" class="panel__note"><strong>Guest</strong> is a profile with no account: it can be credited and has an archive, but can't sign in. <strong>Bylines</strong> counts every published entry of every type that credits the profile.</p>
+			</section>
+
+			<div v-if="selected.length && !inTrash" class="bulk-bar" role="region" aria-label="Bulk actions">
+				<span class="bulk-bar__count" aria-live="polite">{{ selected.length }} selected</span>
 				<span class="bulk-bar__divider" aria-hidden="true" />
-				<button type="button" class="button button--ghost button--small button--danger" :disabled="busy !== null" @click="bulk('trash')"><AdminIcon name="trash-2" />Move to trash</button>
-			</template>
-			<button type="button" class="button button--ghost button--small" @click="selected = []">Clear</button>
-		</div>
-	</template>
+				<button v-if="canPublish" type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('publish')"><AdminIcon name="circle-check" />Publish</button>
+				<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('draft')"><AdminIcon name="file-text" />Move to draft</button>
+				<template v-if="canTrash">
+					<span class="bulk-bar__divider" aria-hidden="true" />
+					<button type="button" class="button button--ghost button--small button--danger" :disabled="busy !== null" @click="bulk('trash')"><AdminIcon name="trash-2" />Move to trash</button>
+				</template>
+				<button type="button" class="button button--ghost button--small" @click="selected = []">Clear</button>
+			</div>
+		</template>
+	</div>
 </template>
 
 <style scoped>
-.tabs {
-	display: flex;
-	gap: var(--s-1);
-	margin-top: -8px;
-	overflow-x: auto;
-	border-bottom: 1px solid var(--border);
-}
-
-.tabs__tab {
-	display: inline-flex;
-	align-items: center;
-	gap: 7px;
-	padding: 12px 14px;
-	border-bottom: 2px solid transparent;
-	margin-bottom: -1px;
-	color: var(--fg-2);
-	font-weight: 500;
-	text-decoration: none;
-	white-space: nowrap;
-}
-
-.tabs__tab:hover {
-	color: var(--fg);
-}
-
-.tabs__tab[aria-current="page"] {
-	border-bottom-color: var(--accent);
-	color: var(--fg);
-}
-
-.tabs__count {
-	padding: 0 6px;
-	border-radius: 999px;
-	background: var(--surface-2);
-	color: var(--fg-2);
-	font-family: var(--font-mono);
-	font-size: var(--text-xs);
+.entries-root {
+	display: contents;
 }
 
 .entries-search {

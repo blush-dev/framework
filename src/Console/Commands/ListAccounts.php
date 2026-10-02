@@ -56,6 +56,7 @@ final readonly class ListAccounts
 			$rows[] = [
 				$account->username,
 				$account->name ?? '',
+				$account->email ?? '(none)',
 				implode(', ', array_map(fn (string $role): string => $this->roles->has($role) ? $role : "{$role} (unknown)", $account->roles)),
 				$account->author ?? '',
 				$account->status()->value,
@@ -65,7 +66,7 @@ final readonly class ListAccounts
 			];
 		}
 
-		$output->table(['Username', 'Name', 'Roles', 'Author', 'Status', 'Last sign-in'], $rows);
+		$output->table(['Username', 'Name', 'Email', 'Roles', 'Author', 'Status', 'Last sign-in'], $rows);
 
 		return ExitCode::Success;
 	}

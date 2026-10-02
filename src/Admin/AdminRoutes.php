@@ -124,6 +124,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/password', PasswordController::class)->named('password')->middleware(Authenticate::class),
 			Route::post('/set-password', SetPasswordController::class)->named('set-password'),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
+			Route::get('/counts', CountsController::class)->named('counts')->middleware(Authenticate::class),
 			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),
 			Route::post('/types', [TypeEditController::class, 'create'])->named('type.create')->middleware(Authenticate::class),

@@ -19,6 +19,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
+import { confirmAction, confirmLeave } from '../confirm';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import FieldListEditor from './FieldListEditor.vue';
@@ -204,7 +205,7 @@ async function remove(): Promise<void> {
 
 	removal.value = '';
 
-	if (set === null || !window.confirm(`Delete the ${set.label} field set? Its file in user/data/fields is removed, and its fields leave the types it's added to. Entries keep their values in their files.`)) {
+	if (set === null || !await confirmAction({ title: `Delete the ${set.label} Field Set?`, body: ['Its file in user/data/fields is removed, and its fields leave the types it\'s added to.', 'Entries keep their values in their files.'], confirm: 'Delete the field set', danger: true })) {
 		return;
 	}
 
@@ -219,7 +220,7 @@ async function remove(): Promise<void> {
 	}
 }
 
-onBeforeRouteLeave(() => done.value || !changed.value || window.confirm('Leave without saving? Your changes will be lost.'));
+onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
 </script>
 
 <template>

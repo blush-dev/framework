@@ -46,15 +46,18 @@ final readonly class AddAccount
 		#[Argument('The username (lowercase letters, digits, ".", "_", and "-").')] string $username,
 		#[Option('A role for the account; repeat for more. Defaults to administrator.')] array $role = [],
 		#[Option('The slug of the author entry the account writes as.')] ?string $author = null,
-		#[Option('What the admin calls the person, quoted when it has spaces.')] ?string $name = null
+		#[Option('What the admin calls the person, quoted when it has spaces.')] ?string $name = null,
+		#[Option('Their email address, which every account needs; asked for when left out.')] ?string $email = null
 	): ExitCode {
 		$roles = $role === [] ? [BuiltInRole::Administrator->value] : $role;
 
 		try {
 			$this->accounts->checkRoles($roles);
 
+			$email = $this->accounts->checkEmail($email ?? $prompt->ask('Email address:', null, $this->emailProblem(...)));
+
 			$password = $prompt->newSecret('Password:', 'Password again:', $this->accounts->passwordProblem(...));
-			$account  = $this->accounts->create($username, $password, $roles, $author, $name);
+			$account  = $this->accounts->create($username, $password, $roles, $author, $name, $email);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 
@@ -64,5 +67,19 @@ final readonly class AddAccount
 		$output->success(sprintf('Created the "%s" account (%s).', $account->username, implode(', ', $account->roles)));
 
 		return $account->author === null ? ExitCode::Success : AuthorPage::offer($output, $prompt, $this->accounts, $account->author);
+	}
+
+	/**
+	 * Returns why an email address won't do, or `null`.
+	 */
+	private function emailProblem(string $email): ?string
+	{
+		try {
+			$this->accounts->checkEmail($email);
+		} catch (AuthException $e) {
+			return $e->getMessage();
+		}
+
+		return null;
 	}
 }

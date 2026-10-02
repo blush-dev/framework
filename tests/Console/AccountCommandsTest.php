@@ -74,7 +74,7 @@ final class AccountCommandsTest extends TestCase
 
 	public function testAddsAnAdministratorByDefault(): void
 	{
-		$result = $this->command('account:add jane', ['short', 'mismatched password', 'something else', self::PASSWORD, self::PASSWORD]);
+		$result = $this->command('account:add jane --email=jane@example.test', ['short', 'mismatched password', 'something else', self::PASSWORD, self::PASSWORD]);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('Passwords must be at least 12 characters.', $result->errors);
@@ -85,7 +85,7 @@ final class AccountCommandsTest extends TestCase
 
 	public function testAddsAnAccountWithRolesAndAnAuthor(): void
 	{
-		$result = $this->command('account:add sam --role=editor --role=author --author=sam', [self::PASSWORD, self::PASSWORD, 'yes', 'Sam Smith']);
+		$result = $this->command('account:add sam --email=sam@example.test --role=editor --role=author --author=sam', [self::PASSWORD, self::PASSWORD, 'yes', 'Sam Smith']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('The "sam" author has no page for its name and bio yet. Create it?', $result->output);
@@ -98,7 +98,7 @@ final class AccountCommandsTest extends TestCase
 
 	public function testAnAuthorPageCanWait(): void
 	{
-		$result = $this->command('account:add lee --role=author --author=lee', [self::PASSWORD, self::PASSWORD, 'no']);
+		$result = $this->command('account:add lee --email=lee@example.test --role=author --author=lee', [self::PASSWORD, self::PASSWORD, 'no']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('Bylines show "lee" until the author has a page', $result->errors . $result->output);
@@ -108,7 +108,7 @@ final class AccountCommandsTest extends TestCase
 
 	public function testRefusesAnUnknownRoleBeforeAskingForAPassword(): void
 	{
-		$result = $this->command('account:add sam --role=boss', ['unused']);
+		$result = $this->command('account:add sam --email=sam@example.test --role=boss', ['unused']);
 
 		$this->assertSame(ExitCode::Failure, $result->exitCode);
 		$this->assertStringContainsString('There\'s no "boss" role', $result->errors);
@@ -117,7 +117,7 @@ final class AccountCommandsTest extends TestCase
 
 	public function testNeedsATerminalForPasswords(): void
 	{
-		$result = $this->command('account:add jane -n');
+		$result = $this->command('account:add jane --email=jane@example.test -n');
 
 		$this->assertSame(ExitCode::Invalid, $result->exitCode);
 		$this->assertStringContainsString('the console is not interactive', $result->errors);
@@ -127,7 +127,7 @@ final class AccountCommandsTest extends TestCase
 	{
 		$this->assertStringContainsString('No accounts yet.', $this->command('account:list')->output);
 
-		$this->command('account:add jane --role=author', [self::PASSWORD, self::PASSWORD]);
+		$this->command('account:add jane --email=jane@example.test --role=author', [self::PASSWORD, self::PASSWORD]);
 
 		$this->assertSame(ExitCode::Failure, $this->command('account:roles jane --role=editor --role=gone')->exitCode);
 		$this->assertSame(ExitCode::Success, $this->command('account:roles jane --role=editor')->exitCode);
@@ -136,7 +136,7 @@ final class AccountCommandsTest extends TestCase
 
 		$list = $this->command('account:list')->output;
 
-		$this->assertMatchesRegularExpression('/jane\s*\|\s*\|\s*editor\s*\|\s*jane\s*\|\s*active\s*\|\s*never/', $list);
+		$this->assertMatchesRegularExpression('/jane\s*\|\s*\|\s*jane@example\.test\s*\|\s*editor\s*\|\s*jane\s*\|\s*active\s*\|\s*never/', $list);
 		$this->assertTrue(new Passwords()->verify('another long password', $this->store()->find('jane')->passwordHash ?? ''));
 
 		$this->assertSame(ExitCode::Success, $this->command('account:author jane')->exitCode);
@@ -145,7 +145,7 @@ final class AccountCommandsTest extends TestCase
 
 	public function testNamesAnAccount(): void
 	{
-		$this->command(['account:add', 'jane', '--name=  Jane   Doe '], [self::PASSWORD, self::PASSWORD]);
+		$this->command(['account:add', 'jane', '--email=jane@example.test', '--name=  Jane   Doe '], [self::PASSWORD, self::PASSWORD]);
 
 		$this->assertSame('Jane Doe', $this->store()->find('jane')?->name);
 
@@ -163,9 +163,20 @@ final class AccountCommandsTest extends TestCase
 		$this->assertStringContainsString('the admin calls it "jane"', $result->output);
 	}
 
+	public function testSetsAnAccountsEmail(): void
+	{
+		$this->command('account:add jane --email=jane@example.test', [self::PASSWORD, self::PASSWORD]);
+
+		$this->assertSame(ExitCode::Success, $this->command('account:email jane jane@new.example')->exitCode);
+		$this->assertSame('jane@new.example', $this->store()->find('jane')?->email);
+		$this->assertSame(ExitCode::Failure, $this->command('account:email jane nope')->exitCode, 'D-370');
+		$this->assertNotSame(ExitCode::Success, $this->command('account:add sam -n', [])->exitCode, 'An account needs an email address.');
+		$this->assertNull($this->store()->find('sam'));
+	}
+
 	public function testSuspendsAndReinstatesAnAccount(): void
 	{
-		$this->command('account:add jane', [self::PASSWORD, self::PASSWORD]);
+		$this->command('account:add jane --email=jane@example.test', [self::PASSWORD, self::PASSWORD]);
 
 		$this->assertSame(ExitCode::Success, $this->command('account:suspend jane')->exitCode);
 		$this->assertTrue($this->store()->find('jane')?->suspended);
@@ -179,7 +190,7 @@ final class AccountCommandsTest extends TestCase
 
 	public function testRemovesAnAccountAfterAsking(): void
 	{
-		$this->command('account:add jane', [self::PASSWORD, self::PASSWORD]);
+		$this->command('account:add jane --email=jane@example.test', [self::PASSWORD, self::PASSWORD]);
 
 		$this->assertSame(ExitCode::Failure, $this->command('account:remove jane', ['no'])->exitCode);
 		$this->assertNotNull($this->store()->find('jane'));

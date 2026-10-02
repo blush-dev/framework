@@ -57,14 +57,14 @@ use Blush\Http\Status;
  *   "label", "entries"` (published entries crediting them there),
  *   `"archive"` (the archive's address, or `null` without one), `"page"`
  *   (the page written for it, `{"id", "handle", "title", "status"}`, or
- *   `null`)`}`), whether an account is `linked`, and, for whoever
+ *   `null`; kept, and unreachable, while the field has no archive)`}`), whether an account is `linked`, and, for whoever
  *   manages accounts, the `account` (as `PeopleJson::account()` has it).
  * - `POST profiles/{slug}/pages` (`{"type", "field"}`): writes the page
  *   for the profile's archive under a field (`_cooks/jane` in the type's
  *   folder), a draft titled with the profile's name, and answers `201`
  *   with its `{"id", "handle"}`. Needs to create entries of that type.
  * - `DELETE profiles/{slug}/pages/{type}/{field}`: moves that page to the
- *   trash, so the archive shows the profile's bio again. Needs
+ *   trash (D-370), so the archive shows the profile's body again. Needs
  *   to delete the page.
  */
 final readonly class ProfilesController
@@ -210,7 +210,7 @@ final readonly class ProfilesController
 
 		[$viewer, , $profile] = $found;
 
-		$place = $this->place($type, $field);
+		$place = $this->place($type, $field, archive: false);
 		$page  = $place === null ? null : $this->content->named($place[0]->name, $place[1]->personPage($profile->slug));
 
 		if ($page === null) {
@@ -273,7 +273,7 @@ final readonly class ProfilesController
 
 		foreach ($types as $type) {
 			foreach ($type->people as $field) {
-				$page   = $this->urls->hasArchive($type, $field) ? $this->content->named($type->name, $field->personPage($profile->slug)) : null;
+				$page   = $type->folder === '' ? null : $this->content->named($type->name, $field->personPage($profile->slug));
 				$rows[] = [
 					'type'      => $type->name,
 					'typeLabel' => $type->labels->plural,
@@ -291,16 +291,17 @@ final readonly class ProfilesController
 
 	/**
 	 * Returns a type and its people field when the field has archives,
-	 * which is what a written page needs.
+	 * which is what writing a page needs (removing one doesn't, since a
+	 * page outlives its archive being turned off).
 	 *
 	 * @return ?array{ContentType, PeopleField}
 	 */
-	private function place(string $type, string $field): ?array
+	private function place(string $type, string $field, bool $archive = true): ?array
 	{
 		$contentType = $this->types->find($type);
 		$people      = $contentType?->peopleField($field);
 
-		return $contentType !== null && $people !== null && $contentType->folder !== '' && $this->urls->hasArchive($contentType, $people) ? [$contentType, $people] : null;
+		return $contentType !== null && $people !== null && $contentType->folder !== '' && (! $archive || $this->urls->hasArchive($contentType, $people)) ? [$contentType, $people] : null;
 	}
 
 	/**

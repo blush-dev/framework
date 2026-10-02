@@ -35,16 +35,17 @@ use Blush\Http\Status;
  *
  * - `POST accounts` (`accounts.create`; its first roles also need
  *   `accounts.roles`, else it's a member, D-365): `{"username",
- *   "roles", "author", "name"}` (the
- *   last two optional) makes an account
+ *   "email", "roles", "author", "name"}` (the last two optional; every
+ *   account needs an email, D-370) makes an account
  *   with no password and a one-time link for choosing one (not named
  *   `new`, the admin's screen for making one). The answer
  *   (`201`) is the `account` and its `link`: the `url` to send and when
  *   it `expires`. The link's token is in the URL's fragment, so it never
  *   reaches a server log, and it's shown this once.
- * - `PATCH accounts/{username}`: any of `roles` (`accounts.roles`),
- *   `author` (`null` unlinks) and `name` (`null` or empty takes it
- *   away, D-322; both `accounts.edit`), and `suspended`
+ * - `PATCH accounts/{username}` (your own only for `author`, D-373):
+ *   any of `roles` (`accounts.roles`),
+ *   `author` (`null` unlinks), `name` (`null` or empty takes it
+ *   away, D-322), and `email` (D-370; all three `accounts.edit`), and `suspended`
  *   (`accounts.suspend`); answers with the `account`.
  * - `POST accounts/{username}/link` (`accounts.edit`): a new password
  *   link, replacing any other; the account's password keeps working
@@ -91,6 +92,7 @@ final readonly class AccountEditController
 		$roles    = self::strings($input['roles'] ?? null);
 		$author   = is_string($input['author'] ?? null) && trim($input['author']) !== '' ? trim($input['author']) : null;
 		$name     = is_string($input['name'] ?? null) ? Account::tidyName($input['name']) : null;
+		$email    = is_string($input['email'] ?? null) ? trim($input['email']) : '';
 
 		if (! Account::isValidUsername($username)) {
 			return self::error('Use lowercase letters, digits, ".", "_", and "-" for the username (up to 64), starting with a letter or digit.', field: 'username');
@@ -109,6 +111,12 @@ final readonly class AccountEditController
 			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
 		}
 
+		try {
+			$email = $this->accounts->checkEmail($email);
+		} catch (AuthException $e) {
+			return self::error($e->getMessage(), field: 'email');
+		}
+
 		$roles = Accounts::settle($roles ?? []);
 
 		// Without giving roles, a new account is a member (D-365).
@@ -123,7 +131,7 @@ final readonly class AccountEditController
 		}
 
 		try {
-			[$account, $token] = $this->accounts->invite($username, $roles, $author, $name);
+			[$account, $token] = $this->accounts->invite($username, $roles, $author, $name, $email);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
 		}
@@ -139,20 +147,21 @@ final readonly class AccountEditController
 			return self::forbidden();
 		}
 
-		$account = $this->target($actor, $username);
+		$input   = self::input($request);
+		$account = $this->ownLink($actor, $username, $input) ?? $this->target($actor, $username);
 
 		if ($account instanceof ResponseInterface) {
 			return $account;
 		}
 
-		$input     = self::input($request);
 		$roles     = array_key_exists('roles', $input) ? self::strings($input['roles']) : $account->roles;
 		$suspended = $input['suspended'] ?? $account->suspended;
 		$author    = array_key_exists('author', $input) ? $input['author'] : $account->author;
 		$name      = array_key_exists('name', $input) ? $input['name'] : $account->name;
+		$email     = array_key_exists('email', $input) ? $input['email'] : $account->email;
 
-		if ($roles === null || ! is_bool($suspended) || ($author !== null && ! is_string($author)) || ($name !== null && ! is_string($name))) {
-			return self::error('Send any of a list of "roles", an "author" (or null), a "name" (or null), and "suspended" (true or false).', Status::BadRequest);
+		if ($roles === null || ! is_bool($suspended) || ($author !== null && ! is_string($author)) || ($name !== null && ! is_string($name)) || ($email !== null && ! is_string($email))) {
+			return self::error('Send any of a list of "roles", an "author" (or null), a "name" (or null), an "email", and "suspended" (true or false).', Status::BadRequest);
 		}
 
 		$roles   = Accounts::settle($roles);
@@ -161,7 +170,7 @@ final readonly class AccountEditController
 		$needs   = array_filter([
 			Capability::AccountsRoles->value   => $roles !== $account->roles,
 			Capability::AccountsSuspend->value => $suspended !== $account->suspended,
-			Capability::AccountsEdit->value    => $author !== $account->author || $name !== $account->name
+			Capability::AccountsEdit->value    => $author !== $account->author || $name !== $account->name || ($email !== null && trim($email) !== $account->email)
 		]);
 
 		foreach (array_keys($needs) as $capability) {
@@ -172,6 +181,14 @@ final readonly class AccountEditController
 
 		if ($name !== null && ! Account::isValidName($name)) {
 			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
+		}
+
+		if ($email !== null && trim($email) !== $account->email) {
+			try {
+				$email = $this->accounts->checkEmail($email, $account->username);
+			} catch (AuthException $e) {
+				return self::error($e->getMessage(), field: 'email');
+			}
 		}
 
 		$refusal = $roles === $account->roles ? null : $this->checkRoles($actor, $roles);
@@ -191,6 +208,7 @@ final readonly class AccountEditController
 			$account = $suspended === $account->suspended ? $account : $this->accounts->setSuspended($account, $suspended);
 			$account = $author === $account->author ? $account : $this->accounts->setAuthor($account, $author);
 			$account = $name === $account->name ? $account : $this->accounts->setName($account, $name);
+			$account = $email === null || $email === $account->email ? $account : $this->accounts->setEmail($account, $email);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
 		}
@@ -242,6 +260,19 @@ final readonly class AccountEditController
 		$this->store->delete($account->username);
 
 		return new Response(Status::NoContent, ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Returns the actor's own account when the change is only its profile
+	 * link (D-373): an administrator links and unlinks their own profile
+	 * as anyone's, though their roles and standing are another's to
+	 * change. Else `null`, for `target()` to decide.
+	 *
+	 * @param array<mixed> $input
+	 */
+	private function ownLink(Account $actor, string $username, array $input): ?Account
+	{
+		return $username === $actor->username && array_keys($input) === ['author'] && $this->permissions->can($actor, Capability::AccountsEdit) ? $actor : null;
 	}
 
 	/**

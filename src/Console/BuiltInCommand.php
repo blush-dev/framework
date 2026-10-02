@@ -44,6 +44,7 @@ use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\RunSchedule;
 use Blush\Console\Commands\Serve;
 use Blush\Console\Commands\SetAccountAuthor;
+use Blush\Console\Commands\SetAccountEmail;
 use Blush\Console\Commands\SetAccountName;
 use Blush\Console\Commands\SetAccountPassword;
 use Blush\Console\Commands\SetAccountRoles;
@@ -91,6 +92,7 @@ enum BuiltInCommand: string
 	case AccountRoles     = 'account:roles';
 	case AccountAuthor    = 'account:author';
 	case AccountName      = 'account:name';
+	case AccountEmail     = 'account:email';
 	case AccountSuspend   = 'account:suspend';
 	case AccountReinstate = 'account:reinstate';
 	case AccountRemove    = 'account:remove';
@@ -137,6 +139,7 @@ enum BuiltInCommand: string
 			self::AccountRoles     => SetAccountRoles::class,
 			self::AccountAuthor    => SetAccountAuthor::class,
 			self::AccountName      => SetAccountName::class,
+			self::AccountEmail     => SetAccountEmail::class,
 			self::AccountSuspend   => SuspendAccount::class,
 			self::AccountReinstate => ReinstateAccount::class,
 			self::AccountRemove    => RemoveAccount::class

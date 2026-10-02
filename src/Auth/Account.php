@@ -29,7 +29,11 @@ use NoDiscard;
  * - `passwordLink` is a one-time link for choosing a password (D-312).
  * - `name` is what the admin calls the person (D-322): any text, up to
  *   100 characters, on one line. Without one, the admin falls back to
- *   the author page's title, then the username.
+ *   the profile's title, then the username.
+ * - `email` is the person's email address (D-370). Every account needs
+ *   one; it's `null` only for an account saved before emails, which the
+ *   admin asks to be given one. It's for the people who manage accounts:
+ *   Blush sends no email.
  */
 final readonly class Account
 {
@@ -44,8 +48,13 @@ final readonly class Account
 	public const int NAME_LENGTH = 100;
 
 	/**
+	 * The longest an email address may be, in characters.
+	 */
+	public const int EMAIL_LENGTH = 254;
+
+	/**
 	 * @param list<string> $roles
-	 * @throws AuthException For an invalid username, author slug, or name.
+	 * @throws AuthException For an invalid username, author slug, name, or email.
 	 */
 	public function __construct(
 		public string $username,
@@ -57,7 +66,8 @@ final readonly class Account
 		public Preferences $preferences = new Preferences(),
 		public bool $suspended = false,
 		public ?PasswordLink $passwordLink = null,
-		public ?string $name = null
+		public ?string $name = null,
+		public ?string $email = null
 	) {
 		if (! self::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
@@ -70,6 +80,19 @@ final readonly class Account
 		if ($name !== null && ! self::isValidName($name)) {
 			throw new AuthException(sprintf('A name is up to %d characters on one line.', self::NAME_LENGTH));
 		}
+
+		if ($email !== null && ! self::isValidEmail($email)) {
+			throw new AuthException(sprintf('"%s" isn\'t an email address.', $email));
+		}
+	}
+
+	/**
+	 * Whether a string can be an email address: one `@` with something on
+	 * either side, a dot in the domain, no spaces, and not too long.
+	 */
+	public static function isValidEmail(string $email): bool
+	{
+		return mb_strlen($email) <= self::EMAIL_LENGTH && filter_var($email, FILTER_VALIDATE_EMAIL, FILTER_FLAG_EMAIL_UNICODE) !== false;
 	}
 
 	/**
@@ -130,7 +153,7 @@ final readonly class Account
 	#[NoDiscard]
 	public function withAuthor(?string $author): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name);
+		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $this->email);
 	}
 
 	/**
@@ -141,7 +164,18 @@ final readonly class Account
 	#[NoDiscard]
 	public function withName(?string $name): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $this->author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $name);
+		return new self($this->username, $this->passwordHash, $this->roles, $this->author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $name, $this->email);
+	}
+
+	/**
+	 * Returns a copy with another email address.
+	 *
+	 * @throws AuthException For an invalid one.
+	 */
+	#[NoDiscard]
+	public function withEmail(string $email): self
+	{
+		return new self($this->username, $this->passwordHash, $this->roles, $this->author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $email);
 	}
 
 	/**
@@ -217,16 +251,18 @@ final readonly class Account
 			preferences: Preferences::fromArray(is_array($data['preferences'] ?? null) ? $data['preferences'] : []),
 			suspended: ($data['suspended'] ?? false) === true,
 			passwordLink: is_array($data['passwordLink'] ?? null) ? PasswordLink::fromArray($data['passwordLink']) : null,
-			name: is_string($data['name'] ?? null) ? self::tidyName($data['name']) : null
+			name: is_string($data['name'] ?? null) ? self::tidyName($data['name']) : null,
+			email: is_string($data['email'] ?? null) && $data['email'] !== '' ? $data['email'] : null
 		);
 	}
 
 	/**
 	 * Returns the account as its stored array. Preferences at their
 	 * defaults are left out, and so is `preferences` when all are;
-	 * `name`, `suspended`, and `passwordLink` are written only when set.
+	 * `name`, `email`, `suspended`, and `passwordLink` are written only
+	 * when set.
 	 *
-	 * @return array{username: string, name?: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
+	 * @return array{username: string, email?: string, name?: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
 	 */
 	public function toArray(): array
 	{
@@ -234,6 +270,7 @@ final readonly class Account
 
 		return [
 			'username'     => $this->username,
+			...($this->email === null ? [] : ['email' => $this->email]),
 			...($this->name === null ? [] : ['name' => $this->name]),
 			'passwordHash' => $this->passwordHash,
 			'roles'        => $this->roles,

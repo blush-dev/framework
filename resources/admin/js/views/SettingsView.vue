@@ -23,6 +23,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
+import { confirmLeave } from '../confirm';
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldInput from '../components/FieldInput.vue';
@@ -224,7 +225,7 @@ function shown(item: SettingItem): string {
 	return item.value;
 }
 
-const leave = (): boolean => count.value === 0 || window.confirm('Leave without saving? Your changes will be lost.');
+const leave = (): boolean | Promise<boolean> => count.value === 0 || confirmLeave();
 
 watch(() => props.screen, () => {
 	groups.value  = null;

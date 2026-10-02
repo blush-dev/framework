@@ -56,7 +56,7 @@ trait BootsAdmin
 
 		$this->app = $this->scratchApplication($environment);
 		$this->app->boot();
-		$this->app->container()->make(Accounts::class)->create('jane', self::PASSWORD, $roles, 'jane');
+		$this->app->container()->make(Accounts::class)->create('jane', self::PASSWORD, $roles, 'jane', email: 'jane@example.test');
 	}
 
 	/**

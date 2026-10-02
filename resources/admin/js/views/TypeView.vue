@@ -69,6 +69,7 @@ const related = computed(() => {
 
 <template>
 	<header class="page-header">
+		<RouterLink class="page-back" :to="{ name: 'types' }"><AdminIcon name="chevron-left" />All types</RouterLink>
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ type?.labels.plural ?? 'Content Type' }}</h1>
 			<p v-if="type" class="page-header__hint">
@@ -77,7 +78,6 @@ const related = computed(() => {
 			<p v-if="type?.description" class="page-header__hint">{{ type.description }}</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink class="button" :to="{ name: 'types' }"><AdminIcon name="arrow-left" />All types</RouterLink>
 			<RouterLink v-if="type" class="button button--primary" :to="{ name: 'type', params: { type: type.name } }"><AdminIcon name="files" />View {{ type.labels.items }}</RouterLink>
 		</div>
 	</header>

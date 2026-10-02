@@ -51,6 +51,8 @@ use Blush\Http\Status as HttpStatus;
  * - `author`: an author's slug the entries must credit (D-300).
  * - `terms`: `taxonomy:slug` pairs, comma separated; an entry needs each.
  * - `days`: entries updated in the last so many days.
+ * - `account`: for profiles, `linked` (an account is linked to them) or
+ *   `guest` (none is; D-369).
  * - `sort`: `title`, `status`, `author`, or `updated`, and `dir`, `asc`
  *   or `desc` (`updated` newest first unless `dir` says otherwise, the
  *   rest A to Z).
@@ -170,6 +172,12 @@ final readonly class EntriesController
 			return self::json(['error' => sprintf('"days" must be a whole number from 1 to %d.', self::MAX_DAYS)], HttpStatus::BadRequest);
 		}
 
+		$link = $params['account'] ?? '';
+
+		if (! in_array($link, ['', 'linked', 'guest'], true)) {
+			return self::json(['error' => '"account" must be linked or guest.'], HttpStatus::BadRequest);
+		}
+
 		$sort = $params['sort'] ?? '';
 
 		if ($sort !== '' && ! in_array($sort, self::SORTS, true)) {
@@ -213,12 +221,19 @@ final readonly class EntriesController
 			default                       => $query->orderBy('updated', Order::Desc)
 		};
 
-		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '';
+		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '';
 
 		$contentType = $type === null ? null : $this->types->find($type);
 		$pinned      = $contentType !== null && $contentType->kind() !== TypeKind::Pages;
 		$query       = $this->permissions->restrict($account, ContentAction::Edit, $query);
 		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...PeoplePage::listPages($contentType))->exceptIn(...PeoplePage::personFolders($contentType)) : $query;
+		$linked      = $contentType instanceof Profiles ? $this->linked($account) : [];
+		$listed      = match (true) {
+			! $contentType instanceof Profiles || $link === '' => $listed,
+			// A slug never has a "/", so with none linked, nothing is.
+			$link === 'linked'                                 => $listed->names(...(array_map(strval(...), array_keys($linked)) ?: ['/'])),
+			default                                            => $listed->exceptNames(...PeoplePage::listPages($contentType), ...array_map(strval(...), array_keys($linked)))
+		};
 		$index       = $pinned && $page === 1 ? $this->index($query) : null;
 		$people      = $pinned && $page === 1 ? $this->peoplePage($query, $contentType) : null;
 		$counts      = [];
@@ -247,8 +262,6 @@ final readonly class EntriesController
 			}
 		}
 
-		$linked = $contentType instanceof Profiles ? $this->linked($account) : [];
-
 		return self::json([
 			'status'      => $status->value ?? 'any',
 			'type'        => $type,
@@ -256,6 +269,7 @@ final readonly class EntriesController
 			'author'      => $author,
 			'terms'       => array_map(static fn (array $term): string => implode(':', $term), $terms),
 			'days'        => $days === 0 ? null : $days,
+			'account'     => $link === '' ? null : $link,
 			'sort'        => $sort === '' ? null : $sort,
 			'dir'         => $sort === '' ? null : $order->value,
 			'tree'        => $tree !== null,

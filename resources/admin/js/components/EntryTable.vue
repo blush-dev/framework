@@ -48,6 +48,7 @@ import { entryRoute, type EntrySort, type EntrySummary } from '../api';
 import { listRoute } from '../types';
 import { config } from '../config';
 import { formatDate } from '../format';
+import { initials } from '../people';
 import { toast } from '../toast';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
@@ -60,8 +61,10 @@ const { terms = false, profiles = false, pinned = [], entries, sortable = false,
 	dateLabel: string;
 	dateKey: 'updated' | 'published';
 	terms?: boolean;
-	// Profiles (D-353): named, with the account each is linked to (a
-	// guest without one) and how many published entries credit them.
+	// Profiles (D-353, D-369): named, beside an avatar (dashed for a
+	// guest), with the account each is linked to (a guest without one)
+	// and how many published entries credit them. A name opens the
+	// profile's screen, and the menu adds **Edit profile**.
 	profiles?: boolean;
 	sortable?: boolean;
 	sort?: EntrySort | null;
@@ -219,6 +222,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 						<span class="title-cell" :style="entry.depth ? { '--depth': entry.depth } : undefined">
 						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.id)" :aria-label="`${collapsed.has(entry.id) ? 'Expand' : 'Collapse'} ${entry.title || 'Untitled'}`" @click="toggle(entry)"><AdminIcon name="chevron-right" /></button>
 						<span v-else-if="entry.depth !== null || (tree && group.key === 'pinned')" class="twist twist--leaf" aria-hidden="true" />
+						<span v-if="profiles" class="avatar" :class="{ 'avatar--guest': !entry.linked }" aria-hidden="true">{{ initials(entry.title || '?') }}</span>
 						<span class="entry-title">
 							<span class="entry-title__text">
 								<span v-if="(entry.index || entry.authorsPage) && !selectable" class="entry-title__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /></span>
@@ -229,7 +233,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 								</RouterLink>
 								<template v-if="entry.index">{{ ' ' }}<span class="index-mark">Index</span></template>
 								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">{{ entry.peopleLabel ?? 'People' }}</span></template>
-								{{ ' ' }}<span v-if="entry.own" class="tag">Yours</span>
+								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span><span v-else-if="entry.own" class="tag">Yours</span>
 								{{ ' ' }}<span v-if="entry.continued" class="tag" title="Listed on an earlier page; shown again above the entries under it">Continued</span>
 							</span>
 							<span v-if="entry.url" class="entry-title__path">{{ entry.url }}</span>
@@ -238,7 +242,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 					</th>
 					<td><StatusPill :status="entry.status" /></td>
 					<td v-if="profiles">
-						<template v-if="entry.account">{{ entry.account.displayName }}{{ ' ' }}<span class="entry-title__path mono">{{ entry.account.username }}</span></template>
+						<template v-if="entry.account"><RouterLink class="lnk" :to="{ name: 'account', params: { username: entry.account.username } }">{{ entry.account.displayName }}</RouterLink>{{ ' ' }}<span class="entry-title__path mono">{{ entry.account.username }}</span></template>
 						<template v-else-if="entry.linked">Linked</template>
 						<span v-else class="tag" title="No account is linked to this profile">Guest</span>
 					</td>
@@ -253,14 +257,15 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 							<template #button>
 								<AdminIcon name="ellipsis" />
 							</template>
-							<RouterLink class="menu-item" :to="entryRoute(entry)"><AdminIcon name="pen-line" />Edit</RouterLink>
+							<RouterLink v-if="profiles" class="menu-item" :to="listRoute(entry)"><AdminIcon name="user-round" />Open</RouterLink>
+							<RouterLink class="menu-item" :to="entryRoute(entry)"><AdminIcon name="pen-line" />{{ profiles ? 'Edit profile' : 'Edit' }}</RouterLink>
 							<template v-if="liveUrl(entry)">
 								<a class="menu-item" :href="liveUrl(entry) ?? undefined" target="_blank" rel="noopener">
 									<AdminIcon name="external-link" />{{ terms ? 'View archive' : 'View' }}<span class="visually-hidden"> (new tab)</span>
 								</a>
 								<button type="button" class="menu-item" @click="copyLink(entry)"><AdminIcon name="link" />Copy link</button>
 							</template>
-							<button v-if="entry.can.duplicate && !terms" type="button" class="menu-item" @click="$emit('duplicate', entry)"><AdminIcon name="copy" />Duplicate</button>
+							<button v-if="entry.can.duplicate && !terms && !profiles" type="button" class="menu-item" @click="$emit('duplicate', entry)"><AdminIcon name="copy" />Duplicate</button>
 							<template v-if="entry.can.delete">
 								<div class="menu-divider" />
 								<button type="button" class="menu-item menu-item--danger" @click="$emit('trash', entry)"><AdminIcon name="trash-2" />Move to trash</button>
@@ -272,3 +277,11 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 		</table>
 	</div>
 </template>
+
+<style scoped>
+/* A profile's avatar, beside its name and address. */
+.title-cell > .avatar {
+	align-self: center;
+	margin-right: var(--s-2);
+}
+</style>

@@ -27,12 +27,10 @@ request<FieldSetList>('GET', '/fields/sets').then((answer) => {
 
 <template>
 	<header class="page-header">
+		<RouterLink class="page-back" :to="{ name: 'fields' }"><AdminIcon name="chevron-left" />All field sets</RouterLink>
 		<div class="page-header__text">
 			<h1 tabindex="-1">New Field Set</h1>
 			<p class="page-header__hint">Fields to add to one or more content types, beside their own.</p>
-		</div>
-		<div class="page-header__actions">
-			<RouterLink class="button" :to="{ name: 'fields' }"><AdminIcon name="arrow-left" />All field sets</RouterLink>
 		</div>
 	</header>
 

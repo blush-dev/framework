@@ -47,6 +47,38 @@
 	padding-top: 3px;
 }
 
+/* The back link above a detail screen's title, naming its collection
+   (§8): one per screen, always in this place (D-369). It takes a line
+   of its own at the top of the header. */
+
+.page-back {
+	display: inline-flex;
+	flex-basis: 100%;
+	align-items: center;
+	gap: var(--s-1);
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	text-decoration: none;
+}
+
+.page-back:hover {
+	color: var(--accent);
+}
+
+.page-back .icon {
+	width: 14px;
+	height: 14px;
+}
+
+/* A detail screen's identity: an avatar beside the title. */
+
+.page-header__id {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	min-width: 0;
+}
+
 /* Buttons */
 
 .button {
@@ -120,7 +152,7 @@
 
 .button--danger:hover,
 .button--danger:active {
-	border-color: var(--danger-dot);
+	border-color: transparent;
 	background: var(--danger-soft);
 	color: var(--danger);
 }
@@ -250,7 +282,67 @@
 	background: var(--accent);
 }
 
-/* A quiet label beside a title, such as "Yours". */
+/* Where an archive's body comes from (D-369): shape, not hue, since
+   neither is a status. A filled dot is its own; a ring is borrowed. */
+
+.pill--written {
+	background: var(--surface-3);
+	color: var(--fg);
+}
+
+.pill--written::before {
+	background: var(--fg-2);
+}
+
+.pill--inherited::before {
+	background: transparent;
+	box-shadow: inset 0 0 0 1.5px var(--border-strong);
+}
+
+/* A person's initials in a circle; dashed for a guest profile, or an
+   account with no profile. */
+
+.avatar {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: var(--surface-3);
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: .02em;
+	text-transform: uppercase;
+}
+
+.avatar--large {
+	width: 44px;
+	height: 44px;
+	font-size: var(--h2);
+}
+
+.avatar--guest {
+	border: 1px dashed var(--border-strong);
+	background: transparent;
+	color: var(--fg-3);
+}
+
+/* A panel's closing note: what its contents mean, on a quieter ground. */
+
+.panel__note {
+	margin: 0;
+	padding: var(--s-3) var(--pad-x);
+	border-top: 1px solid var(--border);
+	border-radius: 0 0 var(--r-3) var(--r-3);
+	background: var(--surface-2);
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+/* A quiet label beside a title, such as "You" (the one marker for what's
+   yours, D-369). */
 .tag {
 	display: inline-block;
 	padding: 0 6px;
@@ -966,6 +1058,48 @@
 	accent-color: var(--accent);
 }
 
+/* Status tabs under a list's page header, each named for its status
+   (§7), with filters in one row below them. */
+
+.status-tabs {
+	display: flex;
+	gap: var(--s-1);
+	margin-top: -8px;
+	overflow-x: auto;
+	border-bottom: 1px solid var(--border);
+}
+
+.status-tabs__tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 12px 14px;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	color: var(--fg-2);
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.status-tabs__tab:hover {
+	color: var(--fg);
+}
+
+.status-tabs__tab[aria-current="page"] {
+	border-bottom-color: var(--accent);
+	color: var(--fg);
+}
+
+.status-tabs__count {
+	padding: 0 6px;
+	border-radius: 999px;
+	background: var(--surface-2);
+	color: var(--fg-2);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
 /* Toolbars: filters and toggles above a list. */
 
 .toolbar {
@@ -975,7 +1109,8 @@
 	gap: var(--s-2) var(--s-3);
 }
 
-/* Notices */
+/* Notices: a quiet box, or a soft colored ground for success, a
+   warning, or an error, with no darker edge (D-377). */
 
 .notice {
 	display: grid;
@@ -995,7 +1130,7 @@
 }
 
 .notice--success {
-	border-color: var(--good-dot);
+	border-color: transparent;
 	background: var(--good-soft);
 	color: var(--good);
 }
@@ -1007,7 +1142,7 @@
 }
 
 .notice--warn {
-	border-color: var(--warn-dot);
+	border-color: transparent;
 	background: var(--warn-soft);
 	color: var(--warn);
 }
@@ -1402,4 +1537,578 @@
 	font-family: var(--font-mono);
 	font-size: var(--text-sm);
 	white-space: pre;
+}
+
+/* The Users screens (Accounts, an account and Your Account, New Account,
+   Profiles, a profile), drawn as the profiles sketch has them (D-369,
+   D-370): a `.people` root spaces its sections further apart, panel
+   headers carry no rule, and its pills, tags, tabs, notices, facts, and
+   role rows are the sketch's. Other screens keep the direction's. */
+
+.people {
+	display: flex;
+	flex-direction: column;
+	gap: var(--s-6);
+	min-width: 0;
+}
+
+.people > * {
+	margin: 0;
+}
+
+.people .page-header {
+	margin: 0;
+}
+
+.people .page-header__hint {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-2);
+	font-size: var(--base);
+}
+
+.people .page-header__sep {
+	color: var(--fg-3);
+}
+
+.people .panel__header {
+	min-height: 0;
+	border-bottom: 0;
+}
+
+.people .panel__hint {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.people .panel__header + .table-wrap,
+.people .panel__header + .res-wrap {
+	border-top: 1px solid var(--border);
+}
+
+/* Pills a size down, so a row's state sits beside its name. */
+.people .pill {
+	height: 20px;
+	gap: 5px;
+	padding: 0 var(--s-2);
+	font-size: var(--text-xs);
+}
+
+/* A label in caps: Guest, Index. */
+.people .tag {
+	display: inline-flex;
+	align-items: center;
+	height: 18px;
+	padding: 0 6px;
+	border-radius: var(--r-1);
+	background: var(--surface-2);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: .05em;
+	vertical-align: middle;
+}
+
+/* What's yours: one marker (D-369). */
+.tag--you,
+.people .tag--you {
+	display: inline-flex;
+	align-items: center;
+	height: 17px;
+	padding: 0 5px;
+	border: 0;
+	border-radius: 4px;
+	background: var(--surface-3);
+	color: var(--fg-2);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	vertical-align: middle;
+}
+
+/* A link in running text or a cell, unadorned until hovered. */
+.lnk {
+	color: var(--accent);
+	text-decoration: none;
+}
+
+.lnk:hover {
+	color: var(--accent);
+	text-decoration: underline;
+}
+
+.muted {
+	color: var(--fg-3);
+}
+
+/* The sketch's tabs: words with a count, underlined when current. */
+.people .status-tabs {
+	gap: var(--s-4);
+	margin: 0;
+}
+
+.people .status-tabs__tab {
+	gap: var(--s-2);
+	padding: 0 0 var(--s-3);
+	font-size: var(--base);
+	font-weight: 400;
+}
+
+.people .status-tabs__tab[aria-current="page"] {
+	font-weight: 500;
+}
+
+.people .status-tabs__count {
+	padding: 0;
+	background: none;
+	color: var(--fg-3);
+}
+
+.people .toolbar {
+	gap: var(--s-2);
+}
+
+.people .toolbar .search-field {
+	flex: 0 1 240px;
+}
+
+.people .toolbar__count {
+	margin-left: auto;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+/* A table at the top of its panel keeps the panel's rounded corners:
+   its wrapper clips the header's ground to them (D-373). */
+.people .panel > .table-wrap:first-child,
+.people .panel > .visually-hidden:first-child + .table-wrap {
+	border-radius: calc(var(--r-3) - 1px) calc(var(--r-3) - 1px) 0 0;
+}
+
+/* What the filters in force narrow a list to. */
+.filter-report {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-3);
+	margin: 0;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.people .table td {
+	vertical-align: middle;
+}
+
+/* A notice: a quiet box unless it's a problem, with the admin's usual
+   rounded corners (D-373) and no ruled edge (D-376). */
+.people .notice {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-3);
+	padding: var(--s-3) var(--s-4);
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface-2);
+	color: var(--fg-2);
+}
+
+.people .notice > .icon {
+	margin-top: 2px;
+	color: var(--fg-3);
+}
+
+.people .notice strong {
+	color: var(--fg);
+	font-weight: 600;
+}
+
+.people .notice__text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.people .notice__buttons {
+	flex: none;
+	margin-left: auto;
+}
+
+.people .notice--warn {
+	border-color: transparent;
+	background: var(--warn-soft);
+	color: var(--warn);
+}
+
+.people .notice--warn > .icon,
+.people .notice--warn strong {
+	color: var(--warn);
+}
+
+.people .notice--error {
+	border-color: transparent;
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+/* Two panels side by side, one under the other when there's no room. */
+.people .pair {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+	align-items: start;
+	gap: var(--s-6);
+}
+
+/* Facts in a grid, each labeled in caps above its value. */
+.kv {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--s-4) var(--s-5);
+	max-width: 720px;
+	margin: 0;
+}
+
+.kv > div {
+	min-width: 0;
+}
+
+.kv dt {
+	margin-bottom: 3px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+}
+
+.kv dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Facts as ruled rows, each value at the row's end. */
+.fact-rows {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+}
+
+.fact-rows > div {
+	display: flex;
+	align-items: baseline;
+	gap: var(--s-3);
+	padding: var(--s-2) 0;
+	border-bottom: 1px solid var(--border);
+}
+
+.fact-rows > div:last-child {
+	border-bottom: 0;
+}
+
+.fact-rows dt {
+	flex: none;
+	color: var(--fg-2);
+}
+
+.fact-rows dd {
+	min-width: 0;
+	margin: 0 0 0 auto;
+	text-align: right;
+	overflow-wrap: anywhere;
+}
+
+/* A person: an avatar beside their name and username. */
+.who {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	min-width: 0;
+}
+
+.who__text {
+	display: grid;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.who__name {
+	font-weight: 600;
+}
+
+.who__meta {
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
+/* The link between an account and a profile: who, where, and what
+   state, with its actions at the end of one row; dashed when there's
+   nothing linked. */
+.link-box {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-3);
+	padding: var(--s-4);
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface-2);
+}
+
+.link-box--blank {
+	border-style: dashed;
+	background: transparent;
+}
+
+.link-box__text {
+	display: grid;
+	flex: 1 1 180px;
+	min-width: 0;
+}
+
+.link-box__name {
+	margin-bottom: 1px;
+	font-weight: 500;
+}
+
+.link-box__path {
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
+.link-box__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 5px;
+	margin-top: 3px;
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+}
+
+.link-box__buttons {
+	display: flex;
+	flex: none;
+	flex-wrap: wrap;
+	gap: var(--s-2);
+	margin-left: auto;
+}
+
+/* A row of buttons in a panel, under a rule. */
+.panel__buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--s-2);
+	border-top: 1px solid var(--border);
+}
+
+.panel__body.panel__buttons > * + * {
+	margin-top: 0;
+}
+
+/* A form's submit button and why it does what it does. */
+.submit-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-4);
+}
+
+.submit-row__why {
+	max-width: 46ch;
+	margin: 0;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+/* What a choice will do, said under it as it's made. */
+.will {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-2);
+	margin: var(--s-2) 0 0;
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+}
+
+.will .icon {
+	width: 13px;
+	height: 13px;
+	margin-top: 1px;
+	color: var(--fg-3);
+}
+
+.will strong {
+	color: var(--fg);
+	font-weight: 600;
+}
+
+/* Fields a choice opens, set under it. */
+.sub-fields {
+	display: flex;
+	flex-direction: column;
+	gap: var(--s-4);
+	margin-top: var(--s-3);
+	padding: var(--s-4);
+	border: 1px solid var(--border);
+	border-left: 2px solid var(--accent-line);
+	border-radius: var(--r-2);
+	background: var(--surface-2);
+}
+
+.sub-fields > * {
+	margin: 0;
+}
+
+.people .table thead th {
+	color: var(--fg-3);
+	font-weight: 600;
+}
+
+.people .table .table__meta {
+	color: var(--fg-3);
+}
+
+.people .table td.table__count {
+	color: var(--fg);
+	font-family: var(--font-mono);
+	text-align: right;
+}
+
+/* Prompts (D-373; the profiles sketch's modals): a title, a body, and a footer
+   of buttons on a quieter ground, over a dimmed page. */
+
+.prompt {
+	width: min(460px, calc(100vw - 32px));
+	margin: auto;
+	max-height: 86vh;
+	padding: 0;
+	overflow: visible;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-3);
+	background: var(--surface);
+	box-shadow: var(--shadow-3);
+	color: var(--fg);
+}
+
+.prompt--wide {
+	width: min(620px, calc(100vw - 32px));
+}
+
+.prompt::backdrop {
+	background: color-mix(in srgb, var(--fg) 28%, transparent);
+}
+
+.prompt:focus {
+	outline: none;
+}
+
+.prompt__head {
+	padding: var(--s-5) var(--s-5) var(--s-3);
+}
+
+.prompt__head h2 {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: var(--h2);
+	font-weight: 600;
+	letter-spacing: -.01em;
+	text-wrap: balance;
+}
+
+.prompt__body {
+	max-height: 54vh;
+	padding: 0 var(--s-5) var(--s-5);
+	overflow-y: auto;
+	color: var(--fg-2);
+}
+
+.prompt__body > p {
+	max-width: 56ch;
+	margin: 0 0 var(--s-3);
+}
+
+.prompt__body > p:last-child {
+	margin-bottom: 0;
+}
+
+.prompt__body strong {
+	color: var(--fg);
+	font-weight: 600;
+}
+
+.prompt__foot {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--s-2);
+	padding: var(--s-4) var(--s-5);
+	border-top: 1px solid var(--border);
+	border-radius: 0 0 calc(var(--r-3) - 1px) calc(var(--r-3) - 1px);
+	background: var(--surface-2);
+}
+
+.prompt__foot:empty {
+	display: none;
+}
+
+/* A list to pick one from, in a modal: a person and what identifies them. */
+
+.pick-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--s-2);
+	margin-top: var(--s-3);
+}
+
+.pick {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	width: 100%;
+	padding: var(--s-3);
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface);
+	color: var(--fg);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.pick:hover {
+	background: var(--surface-2);
+}
+
+.pick[aria-pressed="true"] {
+	border-color: var(--accent);
+	background: var(--accent-soft);
+}
+
+.pick:disabled {
+	cursor: not-allowed;
+	opacity: .55;
+}
+
+.pick__text {
+	display: grid;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.pick__name {
+	font-weight: 600;
+}
+
+.pick__meta {
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
+.pick__aside {
+	flex: none;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
 }

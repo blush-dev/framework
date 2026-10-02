@@ -1,9 +1,10 @@
 # Accounts and roles
 
 Accounts are the people who can sign in to [the admin](admin.md). Each
-one has a username, a password, one or more **roles**, and optionally a
-**name** (see [Names](#names)) and an **author**: the author entry it
-writes as.
+one has a username, an **email address** (every account needs one; see
+[Email addresses](#email-addresses)), a password, one or more
+**roles**, and optionally a **display name** (see [Names](#names)) and
+a **profile**: its public side on the site.
 
 ## Creating accounts
 
@@ -13,22 +14,24 @@ when there are none. After that, create them in [the admin](admin.md#accounts-an
 commands:
 
 ```sh
-bin/blush account:add jane                        # an administrator
-bin/blush account:add sam --role=author --author=sam --name="Sam Smith"
+bin/blush account:add jane --email=jane@example.com     # an administrator
+bin/blush account:add sam --email=sam@example.com --role=author --author=sam --name="Sam Smith"
 bin/blush account:list
 ```
 
-`account:add` asks for the password twice and doesn't show it, so it
-never ends up in your shell history. That means it needs a terminal.
+`account:add` asks for the email address when `--email` is left out,
+and for the password twice without showing it, so it never ends up in
+your shell history. That means it needs a terminal.
 Passwords must be at least 12 characters.
 
 | Command | What it does |
 |---|---|
-| `account:add <username>` | Create an account. `--role=` (repeat for more; administrator by default) `--author=` (its profile; see [Profiles](#profiles)), and `--name=` (see [Names](#names)) |
-| `account:list` | List the accounts, their names, roles, and authors, and when each last signed in |
+| `account:add <username>` | Create an account. `--email=` (asked for when left out), `--role=` (repeat for more; administrator by default), `--author=` (its profile; see [Profiles](#profiles)), and `--name=` (see [Names](#names)) |
+| `account:list` | List the accounts, their names, emails, roles, and authors, and when each last signed in |
 | `account:password <username>` | Set a new password, which signs the account out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |
 | `account:name <username> ["name"]` | Name an account, or leave out the name to remove it |
+| `account:email <username> <email>` | Change an account's email address |
 | `account:author <username> [slug]` | Link an account to a profile, or leave out the slug to unlink it |
 | `account:suspend <username>` | Sign an account out and stop it signing in, keeping it |
 | `account:reinstate <username>` | Let a suspended account sign in again |
@@ -67,22 +70,33 @@ a password link until it's reinstated; nothing else about it changes.
 **Removing** an account deletes its file. Either way, its profile and
 the entries crediting it stay.
 
+## Email addresses
+
+Every account needs an email address: `account:add`, `init`, and **New
+Account** ask for one, and no two accounts may share one (in any
+case). It's for the people who manage accounts, shown on the account's
+screen and in the Accounts list; Blush sends no email, so password
+links are still yours to send. Change it with `account:email`, on the
+account's screen, or on **Your account**.
+
+An account made before email addresses has none until it's given one;
+the admin marks it **No email** and asks for one.
+
 ## Names
 
-An account's **name** is what the admin calls the person: in the
+An account's **display name** is what the admin calls the person: in the
 account menu, the account lists, and messages like "Suspended Sam
 Smith." It's any text up to 100 characters on one line, so write it the
 way the person writes it ("Sam Smith", "Dr. Ana María Ruiz", "李明").
 Only people who sign in see it.
 
-Set it when creating an account (`--name=`, or **Name** on **New
-Account**), change it with `account:name`, on the account's screen, or
-on **Your account**, where everyone can change their own.
+Set it when creating an account (`--name=`, or **Display name** on
+**New Account**), change it with `account:name`, on the account's
+screen, or on **Your account**, where everyone can change their own.
 
-A person has one name. Once the account has a profile, the profile's
-title is its name, in the admin and on the site, and the account's own
-name is set aside (the Name field goes away). Without a profile, the
-admin uses the account's name, then its username.
+The display name is the account's own, in the admin; on the site, the
+person's name is their profile's title. An account without a display
+name goes by its profile's title, then its username.
 
 ## Profiles
 

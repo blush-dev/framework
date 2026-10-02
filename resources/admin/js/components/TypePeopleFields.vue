@@ -1,22 +1,25 @@
 <script setup lang="ts">
 /**
  * How a type's entries credit people (D-353; the profiles sketch's
- * People panel): one card per people field, each a relation to the one
- * profiles type in this type's own words. Recipes credit cooks and
+ * Profiles and Archives panels, D-369, D-370): one row per profile
+ * field, each a relation to the one profiles type in this type's own
+ * words, and, as its own `part`, each field's archive switch. Recipes credit cooks and
  * photographers; both point at the same profiles, so a person has one
  * profile and one slug however a type names them.
  *
- * A field has its names, its key in front matter (fixed once saved,
- * since entries are written with it), how many people an entry takes and
- * whether it needs one, and whether it has archives under the type, at
- * which word. Turning archives off stops the routing and deletes
+ * A row has the field's label (its singular follows it), its archive
+ * base (the word in the address), and what entries take (one, or one
+ * or more; optional or required); a new field's front matter key is set
+ * under it (fixed once saved, since entries are written with it). The
+ * Archives part switches each field's archives on or off. Turning archives off stops the routing and deletes
  * nothing. A field with archives can have a page introducing its list
  * (`_cooks` in the folder), which, like the index page, a type gets once
- * and keeps. **Add a people field** adds another; the first is the
+ * and keeps. **Add a profile field** adds another; the first is the
  * type's main byline.
  */
 
 import { computed } from 'vue';
+import { confirmAction } from '../confirm';
 import { RouterLink } from 'vue-router';
 import type { PeopleFieldInfo } from '../api';
 import AdminIcon from './AdminIcon.vue';
@@ -33,16 +36,39 @@ const props = defineProps<{
 	saved: PeopleFieldInfo[];
 	// What the site calls its profiles ("Profiles").
 	profilesLabel: string;
+	// The rows of fields, each field's archive switch, or the button
+	// that adds a field (for the panel's header).
+	part: 'fields' | 'archives' | 'add';
 }>();
 
 const people    = defineModel<PeopleForm[]>({ required: true });
 // The fields to give a list page when saved.
 const listPages = defineModel<string[]>('listPages', { default: () => [] });
 
-const ARITY = [
-	{ value: 'many', label: 'One or more' },
-	{ value: 'one', label: 'One' }
+// How many an entry takes, and whether it needs any, as one choice.
+const TAKES = [
+	{ value: 'many-optional', label: 'One or more, optional' },
+	{ value: 'many-required', label: 'One or more, required' },
+	{ value: 'one-optional', label: 'One, optional' },
+	{ value: 'one-required', label: 'One, required' }
 ];
+
+function takesOf(item: PeopleForm): string {
+	return `${item.multiple ? 'many' : 'one'}-${item.required ? 'required' : 'optional'}`;
+}
+
+function setTakes(item: PeopleForm, value: string): void {
+	item.multiple = value.startsWith('many');
+	item.required = value.endsWith('required');
+}
+
+function takesHint(item: PeopleForm): string {
+	if (item.required) {
+		return 'Gates publishing, like any required field';
+	}
+
+	return item.multiple ? 'An entry may credit no one' : `An entry may name no ${(item.singular || singularOf(item.plural) || 'one').toLowerCase()}`;
+}
 
 const taken = computed(() => new Set(people.value.map((item) => item.field)));
 
@@ -58,11 +84,15 @@ function archiveBase(item: PeopleForm): string {
 
 // A new field's key follows its name until it's saved.
 function rename(item: PeopleForm, plural: string): void {
+	// The singular follows the label while it's the label's own.
+	if (item.added || item.singular === '' || item.singular === singularOf(item.plural)) {
+		item.singular = singularOf(plural);
+	}
+
 	item.plural = plural;
 
 	if (item.added) {
-		item.field    = keyOf(plural);
-		item.singular = singularOf(plural);
+		item.field = keyOf(plural);
 	}
 }
 
@@ -76,13 +106,19 @@ function add(): void {
 	people.value = [...people.value, { field, plural: '', singular: '', aliases: [], archives: props.urls, word: '', multiple: true, required: false, added: true }];
 }
 
-function remove(item: PeopleForm): void {
-	if (!item.added && !window.confirm(`Stop crediting ${item.plural.toLowerCase() || item.field}? Entries keep what they wrote under "${item.field}", but nothing reads it, and its archives stop.`)) {
+async function remove(item: PeopleForm): Promise<void> {
+	if (!item.added && !await confirmAction({ title: `Remove the ${item.plural || item.field} Field?`, body: [`Every entry that credits someone in it loses that credit: what they wrote under **${item.field}** stays, but nothing reads it. Its archive stops routing.`, 'Any page written for it is kept, but unreachable. Nothing changes until you save the type.'], confirm: 'Remove the field', danger: true })) {
 		return;
 	}
 
 	people.value    = people.value.filter((other) => other !== item);
 	listPages.value = listPages.value.filter((field) => field !== item.field);
+}
+
+// The word shows as the field's name until it's changed; that is the
+// default, so it's kept as none.
+function setWord(item: PeopleForm, word: string): void {
+	item.word = word.trim() === item.field ? '' : word;
 }
 
 function wantPage(field: string, on: boolean): void {
@@ -91,110 +127,228 @@ function wantPage(field: string, on: boolean): void {
 </script>
 
 <template>
-	<div class="type-people">
-		<p v-if="people.length === 0" class="field__help">Entries of this type credit no one. Add a people field to credit {{ profilesLabel.toLowerCase() }} here.</p>
+	<template v-if="part === 'fields'">
+		<p v-if="people.length === 0" class="type-people__none">Entries of this type credit no one. Add a profile field to credit {{ profilesLabel.toLowerCase() }} here.</p>
 
-		<fieldset v-for="(item, index) in people" :key="index" class="type-people__field">
-			<legend class="type-people__legend">
-				{{ item.plural || 'New people field' }}
-				<span v-if="index === 0" class="tag" title="Bylines and feeds name these people">Main byline</span>
-			</legend>
-
-			<div class="type-people__grid">
-				<div class="field">
-					<label :for="`${idPrefix}${index}-plural`">Name</label>
-					<input :id="`${idPrefix}${index}-plural`" :value="item.plural" autocomplete="off" required placeholder="Cooks" @input="rename(item, ($event.target as HTMLInputElement).value)">
-				</div>
-				<div class="field">
-					<label :for="`${idPrefix}${index}-singular`">One of them</label>
-					<input :id="`${idPrefix}${index}-singular`" v-model="item.singular" autocomplete="off" :placeholder="singularOf(item.plural) || 'Cook'">
-				</div>
-				<div class="field">
-					<label :for="`${idPrefix}${index}-field`">Front matter key</label>
-					<input :id="`${idPrefix}${index}-field`" v-model="item.field" class="mono" autocomplete="off" spellcheck="false" :disabled="!item.added" :aria-describedby="`${idPrefix}${index}-field-help`">
-					<p :id="`${idPrefix}${index}-field-help`" class="field__help">
-						{{ item.added ? 'What entries write it as.' : 'Fixed: entries are written with it.' }}
-						<template v-if="item.aliases.length">Also read from <span class="mono">{{ item.aliases.join(', ') }}</span>.</template>
-					</p>
-				</div>
-				<div class="field">
-					<label :for="`${idPrefix}${index}-arity`">Entries take</label>
-					<AdminSelect :id="`${idPrefix}${index}-arity`" :model-value="item.multiple ? 'many' : 'one'" :options="ARITY" @update:model-value="item.multiple = $event === 'many'" />
-					<label class="checkbox"><input v-model="item.required" type="checkbox"> Required to publish</label>
-				</div>
+		<div v-for="(item, index) in people" :key="index" class="type-people__row">
+			<div class="field">
+				<label :for="`${idPrefix}${index}-plural`">Label <span v-if="index === 0" class="tag--you" title="Bylines and feeds name these people">Main byline</span></label>
+				<input :id="`${idPrefix}${index}-plural`" :value="item.plural" autocomplete="off" required placeholder="Interviewers" :aria-describedby="`${idPrefix}${index}-plural-help`" @input="rename(item, ($event.target as HTMLInputElement).value)">
+				<p :id="`${idPrefix}${index}-plural-help`" class="field__help">Singular: {{ item.singular || singularOf(item.plural) || '…' }}<template v-if="!item.added"> · key <span class="mono">{{ item.field }}</span><template v-if="item.aliases.length">, also <span class="mono">{{ item.aliases.join(', ') }}</span></template></template></p>
 			</div>
-
-			<div class="type-people__archive">
-				<label class="checkbox"><input v-model="item.archives" type="checkbox" :disabled="!urls"> Each one has an archive here</label>
-				<div v-if="item.archives" class="field type-people__word">
-					<label :for="`${idPrefix}${index}-word`">Word in the address</label>
-					<input :id="`${idPrefix}${index}-word`" v-model="item.word" class="mono" :placeholder="item.field" :disabled="!urls" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}${index}-word-help`">
-					<p :id="`${idPrefix}${index}-word-help`" class="field__help">The list is at <code>{{ archiveBase(item) }}</code> and each person's archive at <code>{{ archiveBase(item) }}/{slug}</code>. Bylines link there.</p>
-				</div>
-				<p v-else class="field__help">{{ urls ? 'Credit still shows on entries, linking to each profile\'s own page. Nothing routes here, and nothing written for these archives is deleted.' : 'These types can\'t set their URLs, so their archives are as the site has them.' }}</p>
-				<template v-if="item.archives && !item.added">
-					<p v-if="listPageOf(item.field)" class="field__help">Its list page: <RouterLink :to="{ name: 'entry-file', params: { id: listPageOf(item.field)!.id.split('/') } }">{{ listPageOf(item.field)!.title }}</RouterLink>, which introduces the list. It's an entry, edited like one.</p>
-					<template v-else>
-						<label class="checkbox"><input type="checkbox" :checked="listPages.includes(item.field)" @change="wantPage(item.field, ($event.target as HTMLInputElement).checked)"> Has a page introducing the list</label>
-						<p v-if="listPages.includes(item.field)" class="field__help">An entry is created at <code>_{{ item.field }}</code> in the folder, titled {{ item.plural }}, and pinned in its list. It has no address of its own.</p>
-					</template>
-				</template>
+			<div class="field">
+				<label :for="`${idPrefix}${index}-word`">Archive base</label>
+				<span class="type-people__base" :class="{ 'type-people__base--off': !item.archives }">
+					<span class="type-people__affix">/{{ prefix }}/</span>
+					<input :id="`${idPrefix}${index}-word`" :value="item.word || item.field" class="mono" :disabled="!urls || !item.archives" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}${index}-word-help`" @input="setWord(item, ($event.target as HTMLInputElement).value)">
+					<span class="type-people__affix">/…</span>
+				</span>
+				<p :id="`${idPrefix}${index}-word-help`" class="field__help">{{ item.archives ? `The list at ${archiveBase(item)}, each person under it` : 'Archives are off, below' }}</p>
 			</div>
-
-			<div class="type-people__remove">
-				<button type="button" class="button button--ghost button--small" @click="remove(item)"><AdminIcon name="x" />Remove</button>
+			<div class="field">
+				<label :for="`${idPrefix}${index}-takes`">Entries take</label>
+				<AdminSelect :id="`${idPrefix}${index}-takes`" :model-value="takesOf(item)" :options="TAKES" :described-by="`${idPrefix}${index}-takes-help`" @update:model-value="setTakes(item, $event)" />
+				<p :id="`${idPrefix}${index}-takes-help`" class="field__help">{{ takesHint(item) }}</p>
 			</div>
-		</fieldset>
-
-		<div>
-			<button type="button" class="button button--small" @click="add"><AdminIcon name="plus" />Add a people field</button>
+			<button type="button" class="button button--ghost button--small button--icon type-people__remove" :aria-label="`Remove the ${item.plural || 'new'} field`" title="Remove" @click="remove(item)"><AdminIcon name="x" /></button>
+			<div v-if="item.added" class="field type-people__key">
+				<label :for="`${idPrefix}${index}-field`">Front matter key</label>
+				<input :id="`${idPrefix}${index}-field`" v-model="item.field" class="mono" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}${index}-field-help`">
+				<p :id="`${idPrefix}${index}-field-help`" class="field__help">What entries write it as; fixed once it's saved.</p>
+			</div>
 		</div>
-		<p class="field__help">Every field credits the one {{ profilesLabel.toLowerCase() }} collection. These are this type's words for how a person is credited, so a person keeps one profile and one slug everywhere.</p>
+	</template>
+
+	<button v-else-if="part === 'add'" type="button" class="button button--small" @click="add"><AdminIcon name="plus" />Add a profile field</button>
+
+	<div v-else-if="part === 'archives'" class="type-people__switches">
+		<p v-if="people.length === 0" class="field__help">No profile fields, so no archives.</p>
+		<div v-for="(item, index) in people" :key="index" class="field">
+			<span class="type-people__switch-label">{{ item.plural || 'New field' }} archive</span>
+			<label class="switch">
+				<input v-model="item.archives" type="checkbox" role="switch" :disabled="!urls">
+				<span class="switch__track" aria-hidden="true" />
+				<span class="switch__word">{{ item.archives ? 'On' : 'Off' }}</span>
+				<span class="visually-hidden">{{ item.plural || 'New field' }} archive</span>
+			</label>
+			<p class="field__help">
+				<template v-if="!urls">This type can't set its URLs, so its archives are as the site has them.</template>
+				<template v-else-if="item.archives">Routes <span class="mono">{{ archiveBase(item) }}/&lt;slug&gt;</span> for every credited profile.</template>
+				<template v-else>Credit still shows on the entry. Nothing routes, and any page already written is kept and marked unreachable.</template>
+			</p>
+			<template v-if="item.archives && !item.added">
+				<p v-if="listPageOf(item.field)" class="field__help">Its list page: <RouterLink class="lnk" :to="{ name: 'entry-file', params: { id: listPageOf(item.field)!.id.split('/') } }">{{ listPageOf(item.field)!.title }}</RouterLink>.</p>
+				<label v-else class="checkbox"><input type="checkbox" :checked="listPages.includes(item.field)" @change="wantPage(item.field, ($event.target as HTMLInputElement).checked)"> A page introducing the list</label>
+			</template>
+		</div>
 	</div>
 </template>
 
 <style scoped>
-.type-people {
-	display: grid;
-	gap: var(--s-4);
-}
-
-.type-people__field {
-	display: grid;
-	gap: var(--s-4);
+.type-people__none {
 	margin: 0;
-	padding: var(--s-4);
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
+	padding: var(--s-4) var(--pad-x);
+	color: var(--fg-2);
 }
 
-.type-people__legend {
-	display: flex;
-	align-items: center;
-	gap: var(--s-2);
-	padding: 0 var(--s-1);
-	color: var(--fg);
-	font-weight: 500;
+/* A field per row: label, archive base, what entries take, and remove. */
+.type-people__row:last-child {
+	border-bottom: 0;
 }
 
-.type-people__grid {
+.type-people__row {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+	grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, .9fr) auto;
 	align-items: start;
-	gap: var(--s-4);
+	gap: var(--s-3) var(--s-4);
+	padding: var(--s-4) var(--pad-x);
+	border-bottom: 1px solid var(--border);
 }
 
-.type-people__archive {
-	display: grid;
-	gap: var(--s-2);
-}
-
-.type-people__word {
-	max-width: 24rem;
+.type-people__row > * {
+	margin: 0;
 }
 
 .type-people__remove {
+	margin-top: 25px;
+}
+
+.type-people__key {
+	grid-column: 1 / 2;
+}
+
+.type-people__base {
 	display: flex;
-	justify-content: flex-end;
+	align-items: center;
+	height: var(--ctl);
+	padding: 0 var(--s-3);
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-1);
+	background: var(--surface);
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+}
+
+.type-people__base:focus-within {
+	border-color: var(--accent);
+}
+
+.type-people__base--off {
+	background: var(--surface-2);
+}
+
+.field .type-people__base input {
+	flex: 1;
+	min-width: 3ch;
+	height: auto;
+	padding: 0;
+	border: 0;
+	background: none;
+	box-shadow: none;
+	color: var(--fg);
+	font: inherit;
+	outline: none;
+}
+
+.type-people__affix {
+	flex: none;
+	white-space: nowrap;
+}
+
+.type-people__switches {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: var(--s-4);
+}
+
+.type-people__switches > * {
+	margin: 0;
+}
+
+.type-people__switch-label {
+	color: var(--fg);
+}
+
+/* A switch takes effect as the form's other fields do, on Save. */
+.switch {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--s-2);
+	cursor: pointer;
+}
+
+.switch input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+}
+
+.switch__track {
+	position: relative;
+	flex: none;
+	width: 32px;
+	height: 18px;
+	border-radius: 999px;
+	background: var(--border-strong);
+}
+
+.switch__track::after {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: var(--surface);
+	content: "";
+}
+
+.switch input:checked + .switch__track {
+	background: var(--accent);
+}
+
+.switch input:checked + .switch__track::after {
+	right: 2px;
+	left: auto;
+}
+
+.switch input:focus-visible + .switch__track {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.switch input:disabled + .switch__track {
+	opacity: .5;
+}
+
+.switch__word {
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+	font-weight: 500;
+}
+
+@media (width <= 900px) {
+	.type-people__row {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	}
+
+	.type-people__remove {
+		grid-column: 2;
+		justify-self: end;
+		margin-top: 0;
+	}
+}
+
+@media (width <= 560px) {
+	.type-people__row {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.type-people__remove {
+		grid-column: 1;
+		justify-self: start;
+	}
 }
 </style>

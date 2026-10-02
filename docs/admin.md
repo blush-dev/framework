@@ -52,6 +52,9 @@ entry you're writing stays open); choose a link in the panel to go
 there. Choosing the section that's already showing hides the panel,
 leaving just the rail (your browser remembers it), and choosing it
 again brings the panel back. You only see what your account can use.
+A link to a list shows how many things are in it: each content type's
+entries you can edit, media files, accounts, roles, content types,
+field sets, themes, and installed extensions. The counts update as you move between screens.
 
 The top bar says where you are: the section, then the screens above
 this one, then this one, such as *Content / Posts / Editing* or *Config
@@ -72,18 +75,28 @@ the round button at the top right has **Your account** and **Sign out**.
 
 ## Your account
 
-**Your account** has your username, roles, linked profile, and when you last signed in, your **name** (what the admin
-calls you until you have a profile), your password, and the admin's
-**theme** and **color scheme**.
+**Your account** is your own account's screen, at its own address
+(`/admin/accounts/{your username}`; `/admin/profile` goes there): the same one an
+administrator sees from **Accounts**, with two differences. Your
+password, email address, display name, and the admin's look are yours
+to change, and your roles and standing aren't (another administrator
+changes those). It shows your username, email address, display name
+(what the admin calls you), when the account was made and last signed
+in, your roles, and your **Public Profile**: the
+[profile](content-types.md#built-in-types) your account is linked to,
+your public name and bio on the site. **Change name or email** changes
+your display name (left empty, the admin uses your profile's title,
+then your username) and your email address, which every account needs.
+**Open profile**
+shows the profile's screen, where **Edit profile** opens it in the
+editor like any entry; its slug can't change, since your account is
+linked by it. When your account is linked to a profile with no file
+yet, **Create it** starts it as a draft (publish it to show your name)
+and opens it. If you can edit accounts (`accounts.edit`), you can also
+unlink your profile, link an existing one, or create one, as on anyone's
+account.
 
-**Public Profile** at the top shows the
-[profile](content-types.md#built-in-types) your account is linked to:
-your public name and bio on the site. **Edit your profile** opens it in
-the editor like any entry, where the title is your name (in the admin
-and on the site) and the body is your bio; its slug can't change, since
-your account is linked by it. When your account is linked to a profile
-with no file yet, **Create your profile** starts it as a draft (publish
-it to show your name) and opens it. The theme is **Neutral** (cool gray
+**Theme and Color Scheme** sets how the admin looks to you. The theme is **Neutral** (cool gray
 with a blue accent, the default) or **Editorial** (warm paper, a teal
 accent, and serif titles). The color scheme is light, dark, or your
 device's setting (the default). Each choice is saved with your
@@ -127,7 +140,7 @@ first. Types are named from their `labels` setting, and
 shown with their `icon` (see
 [Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
-**Users** has Your account, Accounts, Profiles, and Roles. In
+**Users** has Your Account, Accounts, Profiles, and Roles. In
 **Config**, **Settings** has General, Reading, Addresses and Search, and
 System, and **Customize** has Themes and Extensions. You only see the
 screens your roles allow: Media needs `media.upload`, Accounts and
@@ -140,7 +153,8 @@ Content types, Settings, Themes, and Extensions
 The tabs above a list show all of them, or only published entries,
 drafts, or scheduled ones, with a count on each. You see your own
 entries if you're an author or contributor, and everyone's if you're an
-editor; entries credited to your account's author are marked "Yours".
+editor; entries credited to your account's profile are marked "Yours"
+(and your own profile, in Profiles, "You").
 Drafts come most recently changed first, and scheduled entries in the
 order they'll go live. Pages, and the terms of a hierarchical taxonomy,
 list as a tree on the **All** tab when you aren't searching: each one
@@ -417,7 +431,9 @@ leave it.
 
 Ctrl+S (⌘S on a Mac) saves without changing the status. Saving changes
 only what you changed: every other line of the file stays exactly as it
-was. Leaving the editor with unsaved changes asks first.
+was. Going to another admin screen with unsaved changes asks first, and
+so do the reload shortcuts (⌘R, Ctrl+R, F5); either way your changes
+are kept, as below. Closing the tab or leaving the admin doesn't ask.
 
 If you can't publish, you can save drafts but not publish them.
 
@@ -634,9 +650,10 @@ is a task, and done.
 
 Your changes aren't lost:
 
-- **Unsaved changes stay in your browser** as you type. If the tab
-  closes or the browser crashes, open the entry again and choose
-  **Restore them** (or **Throw them away**).
+- **Unsaved changes stay in your browser** as you type, and as you
+  leave the editor or the page. If you go elsewhere in the admin, the
+  tab closes, you reload, or the browser crashes, open the entry again and choose **Restore them** (or **Throw
+  them away**). They're only in that browser until you save.
 - **Offline**, a bar under the top bar says so, and you can keep
   writing. A save you ask for shows **Waiting for a connection** and goes
   ahead once you're back online.
@@ -737,17 +754,25 @@ authors page, when chosen, as `_authors.md`, titled "Authors".
 ### Editing a type
 
 A type's screen has General (names, description, icon), Behavior (as
-above), **People**, Addresses, and Fields.
+above), **Profiles** (named for your site's profiles type), Addresses,
+and Fields.
 
-**People** lists the type's [people fields](content-types.md#crediting-people),
-the first marked **Main byline**: each one's name and the name for one
-of them, its front matter key (fixed once saved), whether entries take
-one or more and whether one is required to publish, and whether each
-person **has an archive** here, at which **word in the address**, with
-a **page introducing the list**. **Add a people field** adds another
-(a recipe's cooks and photographers, say); **Remove** stops crediting
-through one, leaving what entries wrote. Turning archives off stops
-the routing and deletes nothing. Addresses shows each field's archive
+**Profiles** lists the type's profile fields ([people fields](content-types.md#crediting-people)
+in its settings), a row each: each credits a profile, under this
+type's own word for it. The first is marked **Main byline**. A row has
+the field's **label** (its singular, and its front matter key, are
+shown under it; a new field's key can be set until it's saved), its
+**archive base** (the word in the address), and what **entries take**:
+one, or one or more, optional or required to publish. **Add a profile
+field** adds another (a recipe's cooks and photographers, say); **×**
+removes one, which stops crediting through it but leaves what entries
+wrote.
+
+**Archives** has a switch for each field: on, each person has an
+archive under the type; off, nothing routes and nothing is deleted (a
+page written for one person's archive is kept, and marked
+**Unreachable** on their profile). A field with archives can have a
+**page introducing the list**. Addresses shows each field's archive
 addresses while it has them.
 
 **Addresses** lists every address the type has: its listing and later
@@ -905,33 +930,44 @@ The **Users** section's panel has **Your Account**, **Accounts**, **Profiles**, 
 things: an account signs in, and a profile is a public identity that
 bylines point at. One person usually has both, linked; a profile with
 no account is a **guest profile**, and an account with no profile
-doesn't appear on the site. ⌘K finds either: accounts by name or
+doesn't appear on the site. An account's display name is its own, in
+the admin; without one, it goes by its profile's title, then its
+username. Every account has an email address. ⌘K finds either: accounts by name or
 username, profiles among the entries. See
 [Accounts and roles](accounts.md) for what roles and capabilities are.
 
 ### Profiles
 
 **Profiles** is the profiles type's list, like any type's, with a
-**Name**, its **Status**, the **Account** linked to it (a **Guest** tag
-without one), how many published entries credit it (**Bylines**), and
-when it was updated. **New profile** starts one. A name opens the
-profile's screen:
+**Name** (beside its initials, dashed for a guest), its **Status**, the
+**Account** linked to it (a **Guest** tag without one), how many
+published entries credit it (**Bylines**), and when it was updated.
+Besides the usual filters, **Any account** shows only the profiles
+linked to an account, or only guests. **New profile** starts one. A
+name opens the profile's screen:
 
-- The header has its address, status, bylines, and linked account, with
-  **View** and **Edit profile** (the editor, where the title, the line
-  under the name, the avatar, and the bio are written).
-- **Identity** shows what a byline renders: the name, slug, the line
-  under the name, and the avatar.
+- **All profiles** above the name goes back to the list. The header has
+  its address, status, and bylines, with **View**, **Publish** (for a
+  draft), **Edit profile** (the editor, where the title, the byline
+  title, the avatar, and the bio are written), and a **⋮** to unlink
+  or link an account, or move the profile to the trash.
+- **Identity** shows what a byline renders: the display name, slug,
+  **byline title** (shown under the name), and the avatar.
+- **Linked Account** shows the account (at most one), its standing and
+  last sign-in, with **Open account** and, if you manage it,
+  **Unlink**. Unlinking leaves the profile and its bylines, as a guest
+  profile, and the account goes by its username. A guest profile can
+  be linked here to an account that has no profile.
 - **Where This Profile Appears** lists the profile's own page, then each
-  people field of each type that credits people: its archive address
-  (or **No archive**), how many entries credit them there, and what
-  introduces that archive: the profile's bio, or a page written for it.
-  **Write one** creates that page, a draft titled with the profile's
-  name, and opens it; **Use the profile's** moves it to the trash so
-  the archive shows the bio again.
-- **Linked Account** shows the account, with **Open account** and, if
-  you manage it, **Unlink**. Unlinking leaves the profile and its
-  bylines, as a guest profile.
+  profile field of each type that credits people: its archive address,
+  how many entries credit them there, and where the archive's body
+  comes from: **Inherited** (the profile's own) or **Written** (a page
+  written for that archive). **Write one** creates that page, a draft
+  titled with the profile's name, and opens it; **Edit** opens it, or
+  **Move to trash** puts the archive back on the profile's body (the
+  page can be restored from its type's Trash tab). A field whose archive is off
+  says so, and a page written for it shows **Unreachable**. Types that
+  credit no one are listed last.
 
 You see the profiles you may edit: your own, or anyone's with
 `content.profile.edit.others` (or the type's name on your site).
@@ -939,39 +975,46 @@ You see the profiles you may edit: your own, or anyone's with
 ### Accounts
 
 **Accounts** lists the people who can sign in, by name, with tabs for
-their status and a search. Each row shows the username, roles, its
-**Profile** (its name, with its status when it isn't published yet, or
-the slug when it's linked to a profile with no file), and the last
-sign-in. **New Account** makes one; **Roles** lists each role with its
+their standing (All, Active, Invited, Suspended) and, below them, a
+search, a role, and whether they have a profile. Each row shows the
+display name and username (an account with no profile is in a dashed
+circle), the email address (**No email** for one made before they were
+asked for), roles, its **Profile** (its name, with its status when
+it isn't published yet, or the slug when it's linked to a profile with
+no file), and the last sign-in; its **⋮** opens the account or its
+profile, copies the email address, or makes a password link. **New account** makes one; **Roles** lists each role with its
 description, the content types it reaches (every type, some, or none)
 and how many site capabilities it has, and how many accounts hold it.
 
-- **New Account** asks for a username, its roles (**Member** is ticked
-  to start, and stays the only choice if you can't give roles), and
-  optionally a
-  [name](accounts.md#names) and its profile, picked from the profiles
-  no other account has. Blush doesn't send email, so instead of a password the
+- **New Account** asks for a username, an email address (required, and
+  no other account's), an optional display name, its roles (**Member**
+  is ticked to start, and stays the only choice if you can't give
+  roles), and its profile: none, **Create a new profile…** (a display name and a slug,
+  made as a draft and linked), or one of the profiles no other account
+  has. A note says what the account will be called. Blush doesn't send email, so instead of a password the
   account gets a **password link**: copy it from the account's screen
   and send it however you like. It's shown only that once, and it
   works once, for a week. Until it's used, the account is **Invited**.
-- On an account's screen, tick or untick its **roles** (they save
-  right away; unticking the last one leaves the account a **Member**) and change its **name**
-  while it has no profile. Once it has one, the profile's title is its
-  name.
+- An account's screen has **All accounts** above its name, then its
+  username, standing, roles, and last sign-in. **Edit details** changes
+  its display name and email address. Tick or untick its **roles**,
+  then **Save roles** (or **Discard**); unticking the last one leaves
+  the account a **Member**. An account with no email address says so,
+  with **Add an email address**.
 - **Public Profile** on an account's screen shows its profile: linked
   (**Open profile**, **Unlink**), linked but not yet public
   (**Publish**), linked to a slug with no file yet (**Create it**), or
-  none. With none, **Link an existing one** picks a profile from a
-  list of them by name (one another account is linked to is shown but
-  can't be chosen: a profile belongs to one account), and
-  **Create one** makes a draft from a name you give, links it, and
+  none. With none, **Link an existing one** opens a list of the
+  profiles no other account has (a profile belongs to one account) to
+  pick from, and **Create one** asks for a display name and slug, makes
+  a draft, links it, and
   opens it.
-- **Make a password link** is for a forgotten password: the person
-  chooses a new one with it. Their old password keeps working until
-  the link is used, and a new link replaces the old one.
-- The **Danger Zone** suspends an account (it's signed out and can't
-  sign in until you **Reinstate** it) or removes it. Removing an
-  account leaves its profile and the entries crediting it alone.
+- **Actions** has **Make a password link**, for a forgotten password:
+  the person chooses a new one with it. Their old password keeps
+  working until the link is used, and a new link replaces the old one.
+  It also suspends an account (it's signed out and can't sign in until
+  you **Reinstate** it) or deletes it. Deleting an account leaves its
+  profile (as a guest profile) and the entries crediting it alone.
 
 ### Roles
 
@@ -1127,13 +1170,13 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 
 | Request | What it does |
 |---|---|
-| `GET session` | The signed-in account (its username, `name`, `displayName`, `roles` (each `{"name", "label"}`), capabilities, and preferences) and a CSRF token, or `{"account": null}` |
+| `GET session` | The signed-in account (its username, `email`, `name`, `displayName`, `author`, `profile` (as `GET accounts` has it), `created`, `roles` (each `{"name", "label"}`), capabilities, and preferences) and a CSRF token, or `{"account": null}` |
 | `POST login` | Sign in with `{"username", "password"}` |
 | `POST logout` | Sign out |
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
 | `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`) and `adminTheme` (`neutral` or `editorial`), such as `{"colorScheme": "dark"}`; answers `{"preferences"}` |
-| `PATCH profile` | Change the account's own name: `{"name"}` (`null` or empty removes it); answers `{"name", "displayName"}`. A name over 100 characters is a `422` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
+| `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `media` (the library's files; `media.upload`), `accounts` and `roles` (`accounts.view`), and `contentTypes`, `fieldSets`, `themes`, and `extensions` (installed; `site.settings`) |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |
 | `GET media` | The media files an entry can use (see below) |
@@ -1145,13 +1188,14 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
 | `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
 | `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
-| `GET accounts` | Every account: `{"username", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `name` is its own name or `null`; `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `displayName` is what the admin calls it, its one name: its profile's title, else the name, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
+| `PATCH profile` | Change the account's own `name` (`null` or empty removes it) or `email`, or both; answers `{"name", "email", "displayName"}`. A name over 100 characters, or an email address that's missing, invalid, or another account's, is a `422` naming the `field` |
+| `GET accounts` | Every account: `{"username", "email", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `email` is its email address (`null` only for one made before they were asked for); `name` is its own display name or `null`; `displayName` is what the admin calls it: its name, else its profile's title, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
 | `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `status` `null` for one credited without a file and `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.view` |
-| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "id", "handle", "url", "uses"}` (`status`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"id", "handle", "title", "status"}`) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
+| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "id", "handle", "url", "uses"}` (`status`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"id", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
 | `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs to create entries of that type |
-| `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's bio again; answers `{"removed"}`. Needs to delete that page |
-| `POST accounts` | Make an account: `{"username", "roles", "author", "name"}` (the last two optional); answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
-| `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (its profile's slug, `null` unlinks; a profile another account has is a `422` with `field: author`), `name` (`null` or empty removes it), and `suspended`; answers `{"account"}` |
+| `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's body again; answers `{"removed"}`. Needs to delete that page |
+| `POST accounts` | Make an account: `{"username", "email", "roles", "author", "name"}` (`email` is required; the last two are optional); a missing, invalid, or taken email address is a `422` with `field: email`; answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
+| `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (its profile's slug, `null` unlinks; a profile another account has is a `422` with `field: author`), `name` (`null` or empty removes it), `email`, and `suspended`; answers `{"account"}`. Your own account takes only `author` (with `accounts.edit`) |
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
 | `DELETE accounts/{username}` | Remove an account; answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
@@ -1219,6 +1263,7 @@ or everyone's for an editor. Narrow it with:
 | `author` | An author's slug the entries must credit |
 | `terms` | `taxonomy:slug` pairs, comma separated (`topic:art,era:1990s`); an entry needs every one |
 | `days` | Entries updated in the last so many days, from 1 |
+| `account` | For profiles: `linked` (an account is linked to them) or `guest` (none is) |
 | `sort` | `title`, `status`, `author`, or `updated` |
 | `dir` | `asc` or `desc`: by default `updated` sorts newest first and the rest A to Z |
 | `page` | The page, from 1 |

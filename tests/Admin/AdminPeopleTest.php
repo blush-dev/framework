@@ -17,11 +17,13 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\PeopleController;
+use Blush\Admin\CountsController;
 use Blush\Admin\ProfilesController;
 use Blush\Auth\Accounts;
 
 #[CoversClass(PeopleController::class)]
 #[CoversClass(ProfilesController::class)]
+#[CoversClass(CountsController::class)]
 final class AdminPeopleTest extends TestCase
 {
 	use BootsAdmin;
@@ -33,7 +35,7 @@ final class AdminPeopleTest extends TestCase
 	{
 		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('reviewer', 'Reviewer', ['content.*.edit.others'])]);\n");
 		$this->boot(roles: $roles);
-		$this->app->container()->make(Accounts::class)->create('sam', 'another long password', ['author', 'reviewer'], name: 'Sam Smith');
+		$this->app->container()->make(Accounts::class)->create('sam', 'another long password', ['author', 'reviewer'], name: 'Sam Smith', email: 'sam@example.test');
 		$this->login();
 	}
 
@@ -97,6 +99,38 @@ final class AdminPeopleTest extends TestCase
 		return $this->send($method, $path, $data === [] ? '' : (json_encode($data) ?: ''), ['X-CSRF-Token' => is_string($token) ? $token : '']);
 	}
 
+	public function testCountsTheSectionPanelsLists(): void
+	{
+		$this->profiles();
+		$this->site();
+
+		$counts = self::json($this->send('GET', '/counts'));
+		$types  = is_array($counts['types'] ?? null) ? $counts['types'] : [];
+
+		$this->assertSame(2, $types['profile'] ?? null, 'Each type\'s entries, as its list counts them (D-371).');
+		$this->assertSame(1, $types['post'] ?? null);
+		$this->assertSame(2, $counts['accounts'] ?? null);
+		$this->assertIsInt($counts['roles'] ?? null);
+		$this->assertIsInt($counts['contentTypes'] ?? null);
+		$this->assertArrayHasKey('extensions', $counts);
+		$this->assertSame(0, $counts['media'] ?? null, 'The library\'s files (D-372).');
+		$this->assertGreaterThanOrEqual(1, $counts['themes'] ?? null, 'The default theme, at least.');
+	}
+
+	public function testCountsOnlyWhatTheAccountMaySee(): void
+	{
+		$this->profiles();
+		$this->site(['contributor']);
+
+		$counts = self::json($this->send('GET', '/counts'));
+
+		$this->assertArrayNotHasKey('accounts', $counts);
+		$this->assertArrayNotHasKey('contentTypes', $counts);
+		$this->assertArrayNotHasKey('themes', $counts);
+		$this->assertArrayNotHasKey('media', $counts, 'A contributor can\'t upload.');
+		$this->assertSame(0, is_array($counts['types'] ?? null) ? $counts['types']['post'] ?? null : null, 'A contributor edits only their own.');
+	}
+
 	public function testAccountsCarryTheirProfiles(): void
 	{
 		$this->profiles();
@@ -126,6 +160,13 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame([false, true], array_column($entries, 'linked'));
 		$this->assertSame([null, ['username' => 'jane', 'displayName' => 'Jane Author']], array_column($entries, 'account'));
 		$this->assertSame([1, 1], array_column($entries, 'uses'), 'Bylines: the published entries crediting each.');
+
+		$linked = self::json($this->send('GET', '/entries?type=profile&account=linked'))['entries'] ?? null;
+		$guests = self::json($this->send('GET', '/entries?type=profile&account=guest'))['entries'] ?? null;
+
+		$this->assertSame(['Jane Author'], array_column(is_array($linked) ? $linked : [], 'title'), 'Linked to an account (D-369).');
+		$this->assertSame(['Gwen Guest'], array_column(is_array($guests) ? $guests : [], 'title'), 'Guests.');
+		$this->assertSame(400, $this->send('GET', '/entries?type=profile&account=other')->getStatusCode());
 	}
 
 	public function testDescribesAProfileAndWhereItAppears(): void
@@ -232,7 +273,7 @@ final class AdminPeopleTest extends TestCase
 
 		$this->assertSame(422, $taken->getStatusCode());
 		$this->assertSame(['error' => 'The "jane" profile is Jane Author\'s already; a profile belongs to one account.', 'field' => 'author'], self::json($taken));
-		$this->assertSame(422, $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['author'], 'author' => 'jane'])->getStatusCode());
+		$this->assertSame(422, $this->write('POST', '/accounts', ['username' => 'lee', 'email' => 'lee@example.test', 'roles' => ['author'], 'author' => 'jane'])->getStatusCode());
 		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => 'gwen'])->getStatusCode(), 'A guest profile is free.');
 		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => 'gwen'])->getStatusCode(), 'Its own stays its own.');
 	}
@@ -264,7 +305,8 @@ final class AdminPeopleTest extends TestCase
 		$this->assertIsArray($sam);
 		$this->assertSame(['author', 'reviewer'], $sam['roles'] ?? null);
 		$this->assertSame('Sam Smith', $sam['name'] ?? null);
-		$this->assertSame(['username', 'name', 'displayName', 'roles', 'author', 'profile', 'created', 'lastLogin', 'status', 'link', 'manages'], array_keys($sam), 'No password hash or preferences.');
+		$this->assertSame('Sam Smith', $sam['displayName'] ?? null);
+		$this->assertSame(['username', 'email', 'name', 'displayName', 'roles', 'author', 'profile', 'created', 'lastLogin', 'status', 'link', 'manages'], array_keys($sam), 'No password hash or preferences.');
 		$this->assertSame('active', $sam['status'] ?? null);
 		$this->assertTrue($sam['manages'] ?? null);
 		$this->assertFalse(is_array($accounts[0] ?? null) ? $accounts[0]['manages'] ?? null : null, 'Not your own account.');

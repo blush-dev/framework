@@ -96,29 +96,55 @@ Each is recorded in `.claude/docs/decisions.md`.
   **Accounts** (who signs in, as the prototype has it), **Profiles**
   (the profiles type's entry list), and Roles: two lists with one link
   between them, from the profiles sketch (`meridian-profiles.html`),
-  which put Profiles under Content and accounts under Config; the
-  author kept the section's locations. The Profiles list is the entries list
+  whose revision (D-369) puts them there too. The Profiles list is the entries list
   with the type's own columns (Name, Status, Account with a **Guest**
   tag, Bylines, Updated); a name opens the profile's screen (Identity,
   Where This Profile Appears, Linked Account), not the editor. An
   account's screen has a **Public Profile** panel in the sketch's three
   states, plus a fourth: linked to a slug with no file (**Create it**).
-- **Your Account** (D-235, D-355, D-358; Your Profile in the direction,
-  renamed as the sketch suggests): the account's
-  settings (name, password, roles, theme, color scheme) as panels, with
-  a **Public Profile** panel above them linking to the profile in the
-  editor. The editor never holds account settings (D-332's Account tab
-  is gone). One name per person: the profile's title, so the Name field
-  shows only for accounts without one.
+  From the revised sketch (D-369), where the admin differs: linking
+  picks from every profile, with those another account has shown but
+  disabled (D-356), not only the free ones, in New Account's select
+  (the account and profile screens' modals list only the free ones,
+  D-373); notices keep the admin's rounded corners and have no ruled
+  edge, where the sketch's are square with a darker left border (the
+  author's calls, D-373, D-376); the
+  profiles bulk bar is the entries list's (Publish, Move to draft, Move
+  to trash), without **Copy links**; suspending is undone with
+  **Reinstate** (the CLI's word), not **Reactivate**; a written archive
+  page goes to the trash from a row's **Edit** menu (the author keeps
+  it restorable, D-370), where the sketch deletes it for good. The
+  section panel shows the sketch's counts beside every list's link
+  (D-371, and Media and Themes, D-372; the direction's panel has
+  none). The screens themselves are drawn as the
+  sketch is, under a `.people` root (D-370), so other screens keep the
+  direction's spacing, tabs, and pills. "You" marks your own account and profile in those two
+  lists; entry lists keep "Yours" for entries crediting you.
+- **Your Account** (D-235, D-355, D-358, D-369; Your Profile in the
+  direction, renamed as the sketch suggests): the account screen on
+  your own row, as the revised profiles sketch has it, at its own
+  address (`/accounts/{you}`, D-371; `/profile` goes there), with your password and the
+  admin's theme and color scheme, your name and email, and your roles
+  read-only. The editor never holds account settings (D-332's Account
+  tab is gone). Where the sketch gives an account no name of its own,
+  the admin keeps one (the author's call, D-370): its display name,
+  else its profile's title, else its username.
 - **A people field's list page** (D-329, D-332, D-353): `_authors` (or
   `_cooks`) in its folder, pinned under the index page tagged with the
   field's name, edited like an index page (no type fields or date, slug
   fixed), but trashable. A page written for one person's archive
   (`_cooks/jane`) isn't listed anywhere; it's written, edited, and
   removed from the profile's screen, as the sketch says. The type
-  editor has a **People** panel (the sketch's, in a card per field);
-  the new-type wizard keeps a single Authors group, and more fields are
+  editor's panel for them is named for the profiles type (**Profiles**,
+  D-369; the sketch's), a row per field and a separate Archives panel
+  of switches (D-370), with the singular shown under the label rather
+  than edited, and a new field's front matter key set under its row; the
+  new-type wizard keeps a single Authors group, and more fields are
   added on the type's screen.
+- **One back button, above the title** (D-369, from the profiles
+  sketch's cleanups): every detail screen's link back to its collection
+  ("All accounts", "All types") is a quiet link on a line of its own
+  above the title (`.page-back`), not a button among the actions.
 - **No list of every type together** (D-240): each content type has its own
   list, and there's no "All entries" screen. The dashboard's Drafts and
   Scheduled figures are plain numbers.
@@ -132,7 +158,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   editor keeps a copy of unsaved changes in `localStorage` as they're made
   and offers them back when the entry is opened again. That's what makes the
   offline bar's "changes stay in this browser" true. A save made offline
-  waits and goes ahead when the connection is back.
+  waits and goes ahead when the connection is back. Since nothing is
+  lost, leaving the page gets no browser warning (D-374), and the reload
+  shortcuts ask in the admin's own modal.
 - **Conflicts say when, not who** (D-240): a file can change through git or a
   text editor, so the notice gives the time the file was written and "from
   the admin or by editing the file itself". **Keep mine** saves this
@@ -340,17 +368,17 @@ Each is recorded in `.claude/docs/decisions.md`.
   kept and shown as such. A type's screen has
   a Field Sets panel linking to its sets, which are attached from the
   set's side.
-- **Roles and accounts** (D-249, D-312): Blush sends no email, so the
-  prototype's **Invite** is **New Account**, its own screen (like every
-  New) with a username instead of an email and name, and no note; the
-  account gets a one-time password link shown on its screen to copy,
-  and **Send a password reset** is **Make a password link**. Accounts
-  have no email field, and a name field only until they have an author
-  page, whose title is then their name (D-332), linked with an Author
-  field; People's Credited column counts the entries crediting each
-  person; the last sign-in
-  stands in for "last active". Roles save as they're ticked, as in the
-  prototype. Removing an account reassigns nothing (entries credit
+- **Roles and accounts** (D-249, D-312, D-369): Blush sends no email,
+  so the prototype's **Invite** is **New Account**, its own screen
+  (like every New) with a username and an email (required, D-370), and
+  no note; the account gets a one-time password link shown on its
+  screen to copy, and **Send a password reset** and **Resend the
+  invitation** are **Make a password link**, and **Email it** isn't
+  there. **Change email** is the sketch's dialog as an inline form
+  with the display name (**Change name or email**), and changes it at
+  once, since there's nothing to confirm by email. Accounts keep a
+  display name (D-370); the last sign-in stands in for "last active". An account's roles are ticked, then saved (**Save roles**,
+  **Discard**), as the profiles sketch has it. Removing an account reassigns nothing (entries credit
   authors, not accounts). Roles are editable, so the prototype's "fixed
   in this release" banner and note are gone: **New Role** and
   **Duplicate** make roles, and read-only roles say why.

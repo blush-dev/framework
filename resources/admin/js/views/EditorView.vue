@@ -61,7 +61,10 @@
  * Nothing typed is lost (D-240):
  *
  * - Unsaved changes are kept in this browser (`kept.ts`) as they're
- *   made; opening the entry again offers them back.
+ *   made, and as the page goes; opening the entry again offers them
+ *   back. So leaving the page gets no browser warning (D-374), the
+ *   reload shortcuts ask in the admin's own modal, and leaving for
+ *   another admin screen asks, saying they stay in this browser (D-375).
  * - Offline, a save waits for the connection and then goes ahead; the
  *   save state says **Waiting for a connection**.
  * - A save that fails says so where the save state is, and offers to
@@ -89,6 +92,7 @@
  */
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { confirmAction } from '../confirm';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, entryPath, entryRoute, request, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
@@ -443,22 +447,26 @@ function discard(): void {
 // form keeps nothing. While an offer is open, what's kept stays as it is.
 let keeping: ReturnType<typeof setTimeout> | undefined;
 
+function keepNow(): void {
+	clearTimeout(keeping);
+
+	const detail = entry.value;
+
+	if (detail === null || offer.value !== null) {
+		return;
+	}
+
+	if (dirty.value) {
+		keptHere.value = keep(keptAs(detail), detail.revision ?? '', current());
+	} else {
+		forget(keptAs(detail));
+		keptHere.value = false;
+	}
+}
+
 watch([title, body, date, form], () => {
 	clearTimeout(keeping);
-	keeping = setTimeout(() => {
-		const detail = entry.value;
-
-		if (detail === null || offer.value !== null) {
-			return;
-		}
-
-		if (dirty.value) {
-			keptHere.value = keep(keptAs(detail), detail.revision ?? '', current());
-		} else {
-			forget(keptAs(detail));
-			keptHere.value = false;
-		}
-	}, 400);
+	keeping = setTimeout(keepNow, 400);
 }, { deep: true });
 
 // Required fields left empty, with where each is shown.
@@ -786,7 +794,7 @@ function hunks(lines: DiffLine[]): (DiffLine | { kind: 'skip'; count: number })[
 async function trash(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || detail.id === null || !window.confirm(`Move “${detail.title || 'Untitled'}” to the trash? You can restore it from the Trash tab.`)) {
+	if (detail === null || detail.id === null || !await confirmAction({ title: `Move “${detail.title || 'Untitled'}” to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to trash', danger: true })) {
 		return;
 	}
 
@@ -2094,35 +2102,67 @@ function keydown(event: KeyboardEvent): void {
 	}
 }
 
-function beforeUnload(event: BeforeUnloadEvent): void {
+/**
+ * Leaving the page (closing the tab, reloading, another address) gets no
+ * warning (D-374): the browser's own can't be drawn as the admin's, and
+ * nothing is lost, since unsaved changes are kept in this browser and
+ * offered back. What was typed in the last moment is kept as the page
+ * goes.
+ */
+function pageHide(): void {
 	if (dirty.value) {
-		event.preventDefault();
+		keepNow();
 	}
 }
 
-onBeforeRouteLeave(() => {
+/**
+ * The reload shortcuts (⌘R, Ctrl+R, F5) are the one way off the page
+ * the admin sees first, so with unsaved changes it asks in its own modal
+ * instead of reloading straight away (D-374).
+ */
+async function reloadKey(event: KeyboardEvent): Promise<void> {
+	const reload = event.key === 'F5' || ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'r');
+
+	if (!reload || !dirty.value) {
+		return;
+	}
+
+	event.preventDefault();
+	keepNow();
+
+	if (await confirmAction({
+		title: 'Reload Without Saving?',
+		body: [`Your unsaved changes to this ${noun.value} stay in this browser only, and are offered back when the editor opens again.`],
+		confirm: 'Reload',
+		cancel: 'Stay'
+	})) {
+		window.location.reload();
+	}
+}
+
+// Leaving for another admin screen keeps unsaved changes in this
+// browser, as leaving the page does (D-375), so asking says where they go.
+onBeforeRouteLeave(async () => {
 	if (!dirty.value) {
 		return true;
 	}
 
-	if (!window.confirm('Leave without saving? Your changes will be lost.')) {
-		return false;
-	}
+	keepNow();
 
-	clearTimeout(keeping);
-
-	if (entry.value !== null) {
-		forget(keptAs(entry.value));
-	}
-
-	return true;
+	return confirmAction({
+		title: 'Leave Without Saving?',
+		body: [`Your unsaved changes to this ${noun.value} stay in this browser only, and are offered back when you open it here again.`],
+		confirm: 'Leave',
+		cancel: 'Stay'
+	});
 });
 
 onMounted(() => {
 	document.addEventListener('keydown', keydown);
 	document.addEventListener('pointerdown', press, true);
 	document.addEventListener('pointerdown', outsideLink);
-	window.addEventListener('beforeunload', beforeUnload);
+	window.addEventListener('pagehide', pageHide);
+	window.addEventListener('keydown', reloadKey, true);
 });
 
 onBeforeUnmount(() => {
@@ -2131,7 +2171,8 @@ onBeforeUnmount(() => {
 	document.removeEventListener('keydown', keydown);
 	document.removeEventListener('pointerdown', press, true);
 	document.removeEventListener('pointerdown', outsideLink);
-	window.removeEventListener('beforeunload', beforeUnload);
+	window.removeEventListener('pagehide', pageHide);
+	window.removeEventListener('keydown', reloadKey, true);
 	titleWidth?.disconnect();
 });
 
@@ -2322,7 +2363,7 @@ function fieldKey(field: FieldDescription): string {
 
 		<div v-if="offer" class="editor__notice" role="status">
 			<AdminIcon name="triangle-alert" />
-			<p>This browser kept changes to this {{ noun }} that weren't saved, from {{ formatDate(offer.kept) }}.</p>
+			<p>Your unsaved changes to this {{ noun }} from {{ formatDate(offer.kept) }} were kept in this browser when you left. Restore them to carry on where you were.</p>
 			<p class="editor__notice-buttons">
 				<button type="button" class="button button--small" @click="discard">Throw them away</button>
 				<button type="button" class="button button--small button--primary" @click="restore">Restore them</button>

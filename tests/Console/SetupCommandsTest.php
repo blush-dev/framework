@@ -159,11 +159,12 @@ final class SetupCommandsTest extends TestCase
 	{
 		$this->writeTemporaryFile('.env', "APP_NAME=Mine\n");
 
-		$result = $this->command('init', ['no', 'yes', '', 'a long enough password', 'a long enough password']);
+		$result = $this->command('init', ['no', 'yes', '', 'not an email', 'admin@example.test', 'a long enough password', 'a long enough password']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('Created the "admin" account.', $result->output);
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/accounts/admin.json');
+		$this->assertStringContainsString('"email": "admin@example.test"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/admin.json'), 'It asks for an email address (D-370).');
 
 		$result = $this->command('init', ['no']);
 

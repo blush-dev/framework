@@ -8047,6 +8047,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-322: Accounts have a name, used across the admin
 - **Date:** 2026-10-01
+- **Status:** D-369 took the name away; D-370 restores it, first in
+  `displayName` (the name, else the profile's title, else the
+  username).
 - **Decision:** An account may have a **name**: what the admin calls the
   person. The author asked for "a display name or first/last name";
   it's one free-text field, not first and last, because names don't
@@ -9368,7 +9371,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-351: Accounts, profiles, and bylines (planned)
 - **Date:** 2026-10-01
-- **Status:** Built: step 1 in D-352 (which also amends it: the line under a profile's name is `subtitle`, not `tagline`) and step 2 in D-353.
+- **Status:** Built: step 1 in D-352 (which also amends it: the line under a profile's name is `subtitle`, not `tagline`) and step 2 in D-353. Its "one name" is D-370's: the account's own name, else the profile's title, else the username.
 - **Decision:** Supersedes D-329 to D-333, from the author's sketch
   `.claude/docs/admin-design/meridian-profiles.html` (a sketch, kept as
   uploaded like the direction). The sketch's model is adopted; its
@@ -10020,3 +10023,362 @@ decision, add a new entry that supersedes it and mark the old one
     most 500 a month (`total` says how many there were).
 - **Why:** the author asked what Home screens should exist and chose to
   start with a calendar: the one view across types that no list gives.
+
+### D-369: The revised profiles sketch: accounts have no name, and its cleanups
+- **Date:** 2026-10-02
+- **Status:** Your Account's address is `/accounts/{you}` since D-371. Amended by D-370: accounts keep their own name (first in
+  `displayName`), every account has an email, a written archive page
+  goes to the trash again, and the screens are drawn as the sketch is.
+- **Decision:** Applies the author's revised profiles sketch
+  (`admin-design/meridian-profiles.html`, replacing the one D-351 came
+  from) "to clarify how accounts and profiles should work and behave".
+  Its model is D-351's (three nouns, one Profiles collection, archives
+  that fall back to the profile); what's new:
+  - **An account has no name of its own** (supersedes D-322). Its name
+    is its profile's title, everywhere; without a profile, its username
+    (`Accounts::displayName()`). `Account::$name`, `withName()`,
+    `tidyName()`, `isValidName()`, and `NAME_LENGTH` are gone, as are
+    `Accounts::setName()`, `PATCH profile` (`Admin\ProfileController`),
+    and `account:name` and `account:add --name`. A `name` already in an
+    account's file is ignored and dropped on its next save; `POST` and
+    `PATCH accounts` ignore one. `account:list`'s Name column is the
+    profile's title (its Author column is Profile).
+  - **Your Account is the account screen on your own row**: one screen,
+    two doors (`/profile`, and `/accounts/{you}`, which goes there). The
+    content never differs by how you arrived; only the trail does
+    (Users / Your Account). `ProfileView` and `AccountSettings` are gone;
+    `AccountView` shows your own from the session (which now carries the
+    account's `profile` and `created`), so it works without
+    `accounts.view`, with **Change password** and **Theme and Color
+    Scheme** (`AccountPreferences`) on your own.
+  - **The account screen**: **All accounts** above the title; an avatar
+    (dashed with no profile), the name, and a line of username,
+    standing pill, roles, and last sign-in; an **Actions** menu (open
+    the profile, make a password link, suspend or reinstate, delete),
+    replacing the Danger Zone. A neutral note on your own account ("This
+    is your account…", no command-line path) or one you can't change.
+    An invited account's link waits in a notice with **Make a new
+    link**. **Account** (username and dates, and a note on where the
+    name comes from) beside **Roles**, which are now ticked and then
+    saved (**Save roles**, **Discard**), not saved as ticked. **Public
+    Profile** spans the width, in its four states.
+  - **Accounts** takes the entries list's shape (§7): status tabs under
+    the header (as links, `?status=`), then a row with a search, a role
+    select, a profile select (Has a profile / No profile), and the count;
+    a line names the filters in force with **Clear filters**. Rows have
+    an avatar, the name (the username in mono and "No profile, so no
+    name" when there's none), a **You** tag, the standing pill, and a ⋮
+    (Open account, Open profile or Create a profile, Make a password
+    link). **New account** is in sentence case.
+  - **New Account**: the Name field is gone. Profile is None, **Create a
+    new profile…** (Display name and Slug, the slug following the name
+    when left empty; usernames never suggest slugs, D-329), or an
+    existing one, with a note saying what the account will be named.
+    The account is made first, linked to the slug, then the profile as a
+    draft, so a refusal leaves an account its screen can **Create it**
+    for.
+  - **Profiles list**: an **Any account** filter (Linked to an account,
+    Guest; `GET entries`'s `account=linked|guest` for the profiles
+    type), an avatar on each name (dashed for a guest), **You** on your
+    own (one marker: "Yours" stays on entries crediting you), and a ⋮
+    with **Open** and **Edit profile** (no Duplicate). The status tab is
+    **Draft**, not Drafts, on every list: a tab is named for its status.
+  - **A profile's screen**: **All profiles** above the title, and the
+    trail Users / Profiles / the name; **Publish** for a draft beside
+    View and Edit profile, and a ⋮ (unlink or link an account, move to
+    trash). Identity's "Under the name" is **Byline title**. **Linked
+    Account** ("At most one, and optional") shows the account's standing
+    and last sign-in; a guest profile can be linked to an account with
+    no profile there. **Where This Profile Appears** has a **Content**
+    column of pills, **Written** (a filled dot) and **Inherited** (a
+    ring), neutral since neither is a status; a written page's **Edit**
+    menu has **Delete the page**, which deletes it for good (`DELETE
+    profiles/{slug}/pages/…` purges it from the trash too: such a page
+    has no trash); a field whose archive is off keeps its row, with a
+    written page marked **Unreachable** (`appears` now sends the page
+    whatever the archive) and **Type settings**; types that credit no one
+    are listed last ("No profile field").
+  - **The type editor's** People panel is named for the profiles type
+    (**Profiles**), "Each field credits a profile, under this type's own
+    word for it", with **Add a profile field**, Label and Singular, and
+    the sketch's wording for removing one.
+  - **One back button, above the title**, on every detail screen
+    (`.page-back`: accounts, profiles, types, roles, field sets, media,
+    a trashed entry, New Account, New Field Set), not among the actions.
+  - Shared styles: `.avatar` (`--large`, `--guest`), `.pill--written`
+    and `--inherited`, `.panel__note`, `.page-header__id`, and the
+    status tabs (`.status-tabs`, from the entries list). Two Lucide
+    icons: `unlink` and `circle-pause`.
+  - **Departures kept** (in `departures.md`): no email (so no Email
+    column, Change email, or emailed invitations); linking picks from
+    every profile with linked ones disabled (D-356); the browser's
+    confirmations; Reinstate, not Reactivate; no Copy links in the
+    profiles bulk bar; archive switches inside each field's card.
+  - The sketch's open list is in `open-questions.md` (a third kind for
+    profiles, a byline with no profile, `/` in list search, merging
+    profiles, the fourth rail section).
+- **Checked:** `composer check` (`AccountsTest::
+  testNamesAccountsByTheirProfiles`, `AdminApiTest::
+  testTheSessionNamesAccountsByTheirProfiles`, `AdminPeopleEditTest::
+  testAccountsHaveNoNameOfTheirOwn`, `AccountCommandsTest::
+  testListsAccountsByTheirProfilesNames`, the profiles list's account
+  filter and a written page deleted for good in `AdminPeopleTest`);
+  `npm run admin:build`; on the jtcom trial in headless Chrome with two
+  throwaway accounts (an administrator and a member, removed after with
+  their sessions): Your Account for both, Accounts and its tabs, an
+  invited account, New Account making an account with a new profile
+  (its link shown, the profile a draft, opened from Public Profile),
+  deleting it from Actions (its profile left a guest, then removed),
+  the Profiles list and its Guest filter, a profile's screen and its
+  trail, the type editor's Profiles panel, and Accounts, an account, and
+  a profile at 390px. No console errors.
+- **Why:** the author added the revised sketch and asked for it to be
+  implemented.
+
+### D-370: Accounts keep their name, need an email, and the Users screens look like the sketch
+- **Date:** 2026-10-02
+- **Decision:** The author's corrections to D-369.
+  - **Accounts keep their own display name** (D-322 restored, D-369's
+    removal reversed): `Account::$name`, `Accounts::setName()`, `PATCH
+    profile`, `account:name`, and `--name` are back. It now comes
+    first: `displayName` is the account's name, else its profile's
+    title, else its username. The profile's title stays the person's
+    name on the site. New Account has an optional **Display name**; an
+    account's screen shows it and edits it (**Edit details**, or
+    **Change name or email** on Your Account).
+  - **Every account needs an email address.** `Account::$email`
+    (written as `email` when set; `isValidEmail()`: PHP's email filter,
+    Unicode allowed, up to 254 characters). `Accounts::create()` and
+    `invite()` take a required `email` (last, so the other arguments
+    keep their places) and `checkEmail()` refuses one that's missing,
+    invalid, or another account's in any case; `setEmail()` changes it.
+    An account saved before emails loads with `null`, and the admin
+    marks it **No email** (Accounts) and asks for one (a warning notice
+    with **Add an email address**); nothing else changes for it.
+    `POST accounts` requires `email` (`422`, `field: email`); `PATCH
+    accounts/{username}` (`accounts.edit`) and `PATCH profile` (your
+    own) change it. `account:add` asks for it unless `--email=` gives
+    it, `init` asks for the first administrator's, `account:email`
+    changes one, and `account:list` shows it. Blush still sends no
+    email: it's for the people who manage accounts (the Accounts list's
+    Email column and **Copy email address**, the account's facts, a
+    profile's Linked Account), and password links are still copied.
+  - **A written archive page goes to the trash again** (D-369's purge
+    reversed): **Move to trash** in the row's Edit menu, restorable
+    from the type's Trash tab.
+  - **The Users screens are drawn as the sketch is**, under a `.people`
+    root (Accounts, an account and Your Account, New Account, the
+    Profiles list, a profile), so other screens keep the direction's
+    look: 36px between sections, panel headers without a rule, the
+    sketch's status tabs (words with a plain count), filter row (a
+    240px search, compact selects, the count at its end), smaller
+    pills, caps tags and the **You** marker (`.tag--you`), neutral
+    notices with a ruled edge, unadorned links (`.lnk`), muted
+    secondary cells, facts as a labeled grid (`.kv`) or ruled rows
+    (`.fact-rows`), the link box, `.sub-fields` and `.will` on New
+    Account, and a `.submit-row`. Roles are rows with a drawn checkbox
+    and a filled selection (`RoleChecks`), not cards. Theme choices
+    are swatches of each theme in the current scheme, from new
+    `--preview-{theme}-{bg,surface,accent,fg}` tokens (light and dark,
+    not redefined by an admin theme). The profile's header menu is a
+    vertical ellipsis, its Where This Profile Appears tints the
+    profile's own row and fades a field whose archive is off. The type
+    editor's Profiles panel is the sketch's rows (Label with its
+    singular and key under it, Archive base, Entries take as one
+    choice of four, and ×), with **Add a profile field** in its header,
+    and a separate **Archives** panel of switches (with each field's
+    list page).
+  - Not drawn: the section panel's counts beside Accounts, Profiles,
+    and Roles (the shell is the direction's, which has none, and the
+    content panel would need them too).
+- **Checked:** `composer check` (`AccountsTest::
+  testEveryAccountNeedsAnEmailAddress` and the restored names test,
+  `AccountCommandsTest::testSetsAnAccountsEmail`, `SetupCommandsTest`
+  asking for an email, `AdminApiTest` changing your own email,
+  `AdminPeopleEditTest` refusing a missing, invalid, or taken email,
+  and the archive page trashed again in `AdminPeopleTest`); `npm run
+  admin:build`; on the jtcom trial in headless Chrome, beside the
+  sketch rendered at the same size, with throwaway accounts (removed
+  after, with their sessions and profile): Your Account in light and
+  dark (changing its name and email), Accounts (the trial's three
+  accounts show **No email**), New Account refusing a taken email then
+  making an account with a new profile, editing another account's
+  email, deleting it, the Profiles list, a profile, and the type
+  editor. No console errors beyond the refused request.
+- **Why:** the author: written archive pages stay trashable, accounts
+  still need their own display name, every account needs an email,
+  and the design must match the sketch.
+
+### D-371: Counts in the section panel, and Your Account at its own address
+- **Date:** 2026-10-02
+- **Decision:** The author's follow-ups to D-370.
+  - **The section panel shows counts**, as the profiles sketch does:
+    beside each content type's link (and its nested taxonomies, and
+    shared ones), Accounts, Profiles, Roles, Content Types, Fields, and
+    Extensions, in mono at the link's end (a comma before it for screen
+    readers). Media, Themes (D-372 adds them), and the screens that aren't lists
+    have none. `GET counts` (`CountsController`) answers `{"types": {name:
+    n}}`, each type the account may edit counted as its list counts
+    it for the account (any status, without the index page and people
+    pages; `Permissions::restrict()`), with `accounts` and `roles` for
+    `accounts.view` and `contentTypes`, `fieldSets`, and `extensions`
+    (installed) for `site.settings`; a count the account may not see is
+    left out. The admin loads it with the shell and again after every
+    change of screen (`counts.ts`), so a made or removed thing shows on
+    the next screen; one load at a time, and a failed one keeps the
+    counts it had.
+  - **Your Account is `/accounts/{username}`** for your own username,
+    replacing D-369's `/profile` screen. `/profile` (the `profile`
+    route, which other links still name) redirects there. The account
+    route no longer needs `accounts.view` for your own account (its
+    `beforeEnter`), so every account reaches it; others' still need it.
+    On your own, the panel marks Your Account (not Accounts), the trail
+    is Users / Your Account, and the title is Your Account;
+    `AccountView` knows it's yours by the username.
+- **Checked:** `composer check` (`AdminPeopleTest::
+  testCountsTheSectionPanelsLists` and `testCountsOnlyWhatTheAccountMaySee`);
+  `npm run admin:build`; on the jtcom trial in headless Chrome with a
+  throwaway administrator and member (removed after, with their
+  sessions): every section's counts (Posts' matching its list), Your
+  Account from the Home panel and from `/profile` both at
+  `/accounts/{username}` with its trail and panel marking, another
+  account's trail, and the member reaching their own account but sent
+  to the dashboard from another's. No console errors.
+- **Why:** the author asked for the counts, and for Your Account to be
+  the account's own address rather than a special page.
+
+### D-372: Counts beside Media and Themes too
+- **Date:** 2026-10-02
+- **Decision:** Amends D-371's "Media, Themes … have none": the section
+  panel counts them too. `GET counts` adds `media` (the files in the
+  library, from its index: `MediaLibrary::query()`'s total) for
+  `media.upload`, the permission the Media link needs, and `themes`
+  (installed, valid themes, `Themes::all()`) for `site.settings`. Every
+  link to a list in the panel now has a count.
+- **Checked:** `composer check` (`AdminPeopleTest`'s counts tests: the
+  two new counts, and both left out for a contributor); `npm run
+  admin:build`; on the jtcom trial in headless Chrome with a throwaway
+  administrator (removed after, with its session): Media 291 and Themes
+  2 in their panels. No console errors.
+- **Why:** the author asked for them.
+
+### D-373: Modal confirmations everywhere, linking as the sketch does, and three fixes
+- **Date:** 2026-10-02
+- **Decision:** The author's follow-ups to D-370.
+  - **Every confirmation is a modal drawn as the profiles sketch's**,
+    never the browser's `confirm()`: `confirmAction({title, body,
+    confirm, cancel, danger})` (`confirm.ts`) resolves `true` or
+    `false`, shown one at a time by `ConfirmHost` in the layout. A title
+    is a question in title case ("Delete Jane Doe?"); the body is
+    paragraphs, where `**…**` marks words to stand out and nothing else
+    is markup, so typed names stay text; the confirming button names
+    the act ("Delete the account"), red with the focus on Cancel when
+    it destroys something. `confirmLeave()` is the usual "Leave Without
+    Saving?" for unsaved changes (route guards may wait on it). All of
+    the admin's 28 `window.confirm()` calls are converted; the browser's
+    own leave-the-page prompt (`beforeunload`) can't be drawn and
+    stays. `AdminModal` is the shell (a native `<dialog>`, shown
+    modally, Escape or the backdrop to close, focus back where it was),
+    styled as `.prompt` (`.modal` was the library pickers' already).
+  - **Linking is the sketch's modals.** On an account's screen, **Link
+    an existing one** opens **Link a Profile**: a list of the profiles
+    no account has, each picked by pressing it, then **Link the
+    profile** (or, with none free, **No Profile to Link** and **Create
+    a profile**); **Create one** opens **Create a Profile** (display
+    name, prefilled from the account's, and slug), which creates the
+    draft, links it, and opens the profile's screen; **Unlink** asks in
+    a modal. On a profile's screen, **Link an account** opens **Link an
+    Account** (the accounts with no profile, with their roles), and
+    **Unlink** asks the same way. The inline forms and select are gone.
+  - **Your own profile link is yours to change**: with `accounts.edit`,
+    `PATCH accounts/{you}` with only `author` is allowed
+    (`AccountEditController::ownLink()`), so Your Account has **Open
+    profile**, **Unlink**, **Link an existing one**, and **Create one**,
+    and a profile's screen can unlink or link you. Your roles and
+    standing stay another's to change.
+  - **Fixes:** notices on the Users screens have the admin's usual
+    rounded corners (the sketch's are square on the ruled edge), as do
+    New Account's sub-fields; a table at the top of its panel (Accounts,
+    Profiles) is clipped to the panel's rounded corners; and the
+    Profiles list's Bylines header isn't drawn in the count column's
+    mono (only its cells are).
+- **Checked:** `composer check` (`AdminPeopleEditTest`: your own link
+  changed alone, and refused with your roles); `npm run admin:build`;
+  on the jtcom trial in headless Chrome with a throwaway administrator
+  (removed after, with its sessions, the profile it made, and that
+  profile's trash entry): Link a Profile, Create a Profile (landing on
+  the new profile's screen), Unlink on the profile's screen, Link an
+  Account, Unlink on Your Account, and Move to trash from the Profiles
+  list, all in modals, with no native dialog shown and no console
+  errors; the Accounts and Profiles tables' rounded corners.
+- **Why:** the author asked for them.
+
+### D-374: No browser warning on leaving the editor; reload shortcuts ask in a modal
+- **Date:** 2026-10-02
+- **Decision:** The browser's leave-the-page warning (`beforeunload`)
+  can't be drawn as the admin's modals (D-373), nor replaced: a page
+  can only ask for it, and closing a tab, reloading from the toolbar,
+  or typing an address can't be intercepted. The author's call, both
+  of the options offered:
+  - **No warning.** The editor stops asking for it. Nothing is lost:
+    unsaved changes are kept in this browser as they're made (D-240),
+    and now also on `pagehide`, so the last keystrokes before leaving
+    are kept too (`keepNow()`, which the 400ms keep also uses). The
+    offer when the entry opens again says so: "Your unsaved changes to
+    this post from … were kept in this browser when you left. Restore
+    them to carry on where you were."
+  - **The reload shortcuts ask in the admin's modal**: ⌘R, Ctrl+R, or
+    F5 with unsaved changes keeps them at once, then asks **Reload
+    Without Saving?** (Reload / Stay), and reloads on Reload.
+  - Going to another admin screen still asks **Leave Without Saving?**
+    (D-375 keeps the changes there too).
+- **Checked:** `npm run admin:build`; on the jtcom trial in headless
+  Chrome with a throwaway administrator (removed after, with its
+  sessions; nothing saved): ⌘R in an edited post showed the modal and
+  reloaded to the offer; typing and then going to another address
+  showed no native dialog, and the offer had the last words typed.
+- **Why:** the author asked for both.
+- **Asked, not decided:** autosave (see `open-questions.md`).
+
+### D-375: Leaving the editor keeps unsaved changes in the browser too
+- **Date:** 2026-10-02
+- **Decision:** Amends D-374. Going to another admin screen with unsaved
+  changes no longer throws away the copy kept in this browser: it's
+  kept (at once, `keepNow()`) and offered back when the entry opens
+  again, as after leaving the page. The question says so: **Leave
+  Without Saving?** "Your unsaved changes to this post stay in this
+  browser only, and are offered back when you open it here again."
+  (Leave / Stay). The reload shortcuts' question says "stay in this
+  browser only" too. "Only" is the point: they aren't on the server,
+  so another browser or device won't see them.
+  - The pending-changes store and autosave (D-374's question) are on
+    hold, by the author's call; `open-questions.md` keeps them.
+- **Checked:** `npm run admin:build`; on the jtcom trial in headless
+  Chrome with a throwaway administrator (removed after, with its
+  sessions; nothing saved): typing in a post, going back in the admin
+  showed the question with its new words, Leave, then reopening the post
+  offered the changes back.
+- **Why:** the author asked whether the question should say the
+  changes stay in this browser, and wanted them kept.
+
+### D-376: Notices on the Users screens lose their ruled edge
+- **Date:** 2026-10-02
+- **Decision:** The notices on the Users screens (`.people .notice`:
+  info, warning, and error) drop the sketch's darker 2px left border;
+  they're a quiet box (or the warning's or error's soft ground) with
+  the admin's usual rounded corners (D-373). New Account's sub-fields
+  keep their accent edge, since they aren't a notice.
+- **Checked:** `npm run admin:build`.
+- **Why:** the author asked for it.
+
+### D-377: The admin's other notices lose their darker edge too
+- **Date:** 2026-10-02
+- **Decision:** Follows D-376 across the admin. The other notices never
+  had a left border; their darker edge was a full 1px outline in the
+  state's dot color on success, warning, and error notices
+  (`.notice--success`, `--warn`, `--error`). That outline is gone
+  (transparent), so they're the soft colored ground alone, as on the
+  Users screens. The neutral notice keeps its quiet 1px border.
+- **Checked:** `npm run admin:build`.
+- **Why:** the author asked for the left border gone on the admin's
+  other notices too.

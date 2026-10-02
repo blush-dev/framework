@@ -144,9 +144,13 @@ final readonly class SetUpSite
 			return Account::isValidUsername($username) ? null : 'Use lowercase letters, digits, ".", "_", and "-".';
 		});
 
+		$email = $prompt->ask('Email address', null, static function (string $email): ?string {
+			return Account::isValidEmail(trim($email)) ? null : 'That isn\'t an email address.';
+		});
+
 		try {
 			$password = $prompt->newSecret('Password:', 'Password again:', $this->manager->passwordProblem(...));
-			$this->manager->create($username, $password, [BuiltInRole::Administrator->value]);
+			$this->manager->create($username, $password, [BuiltInRole::Administrator->value], email: $email);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 
