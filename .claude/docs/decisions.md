@@ -9977,3 +9977,46 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author found that pressing `Home` on the Dashboard with
   Home already in the panel did nothing; it should act as the rail
   toggle instead.
+
+### D-368: A calendar on Home
+- **Date:** 2026-10-02
+- **Decision:** Home gets a **Calendar** screen (`/calendar`, after the
+  Dashboard in Home's panel, `calendar-days` icon, and "Go to the
+  calendar" in the command palette), for any account that edits some
+  type's entries. It's the first of the screens the author and Claude
+  talked over for Home, as screens about the whole site rather than one
+  type: Activity (who changed what) was judged extension territory, and
+  Publishing (cache state, the last export, and buttons to clear and
+  export) is of interest but not decided.
+  - **What it shows** (the author's choice): every entry the account may
+    edit that has a published date, on that day in the site's timezone:
+    published, scheduled, and drafts with a date, so what went out and
+    what's queued read together. Undated drafts aren't on it. Without a
+    type filter, it holds pages and collections only: the trial showed
+    that the admin writes a date on the profiles (and terms) it makes,
+    and adding a person or a topic isn't publishing something on a day.
+    Asking for a taxonomy or profiles type by name shows its dated
+    entries. Landing pages are never on it.
+  - **Read-only** (the author's choice): a Monday-first month grid
+    (as the date picker's), today ringed, out-of-month days shaded and
+    empty, previous / next / **Today**, a status control (All,
+    Published, Scheduled, Drafts), and a type select (pages and
+    collections the account edits, by menu label). Each entry is its
+    status icon (a check, a clock, a pen), title, and time on a 12-hour
+    clock, with the status and type in words for screen readers and the
+    tooltip; scheduled entries are tinted too, but never by color
+    alone. An entry opens the editor. The month, status, and type are in
+    the address. At 760px and below the grid becomes a list of the days
+    with entries. The calendar never reschedules: the author doesn't
+    plan to add dragging to a new day, so a date is changed in the
+    editor.
+  - **API:** `GET calendar` (`CalendarController`): `month`
+    (`YYYY-MM`, the site's current month by default), `status`, and
+    `type`; answers `{"month", "today", "status", "type", "total",
+    "entries"}`, each entry `{"id", "handle", "title", "type", "status",
+    "published", "day", "time"}` with `day` and `time` in the site's
+    timezone, whatever the browser's. One index query
+    (`Query::date()`, `Permissions::restrict()`), in date order, at
+    most 500 a month (`total` says how many there were).
+- **Why:** the author asked what Home screens should exist and chose to
+  start with a calendar: the one view across types that no list gives.

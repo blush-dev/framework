@@ -13,6 +13,7 @@ import { watch } from 'vue';
 import { config } from './config';
 import { screenCrumb, screenTitle, screenTrail } from './screen';
 import { can, canAnyType, canType, loadSession, session, type ContentAction } from './session';
+import CalendarView from './views/CalendarView.vue';
 import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
 import EntriesView from './views/EntriesView.vue';
@@ -62,6 +63,8 @@ export const router = createRouter({
 		{ path: '/trash/:id+', name: 'trashed', component: TrashedView, meta: { title: 'In the Trash', contentAction: 'delete', section: 'entries', area: 'content' } },
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
+		// Dated entries by month (D-368); `?month=YYYY-MM`.
+		{ path: '/calendar', name: 'calendar', component: CalendarView, meta: { title: 'Calendar', contentAction: 'edit', area: 'home' } },
 		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content Health', contentAction: 'edit.others', area: 'home' } },
 		// A library file's screen is at its path under `user/media` (D-251).
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', capability: 'media.upload', area: 'content' } },

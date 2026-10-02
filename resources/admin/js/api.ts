@@ -547,6 +547,30 @@ export interface Violation {
 	severity: 'error' | 'warning' | 'notice';
 }
 
+/**
+ * A month of dated entries (`GET calendar`, D-368): each on its `day`
+ * at its `time`, both in the site's timezone. `today` is the site's date.
+ */
+export interface CalendarEntry {
+	id: string;
+	handle: string | null;
+	title: string;
+	type: string;
+	status: EntryStatus;
+	published: string;
+	day: number;
+	time: string;
+}
+
+export interface CalendarMonth {
+	month: string;
+	today: string;
+	status: EntryStatus | 'any';
+	type: string | null;
+	total: number;
+	entries: CalendarEntry[];
+}
+
 export interface Health {
 	checked: number;
 	metadata: number;

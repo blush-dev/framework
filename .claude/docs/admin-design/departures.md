@@ -122,6 +122,12 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **No list of every type together** (D-240): each content type has its own
   list, and there's no "All entries" screen. The dashboard's Drafts and
   Scheduled figures are plain numbers.
+- **A calendar on Home** (D-368): not in the direction. The one view
+  across types, by date rather than as a list: published, scheduled,
+  and dated drafts of pages and collections on a Monday-first month
+  grid (the date picker's shape at screen size), read-only, becoming a
+  list of days with entries on a narrow screen. Status is an icon and
+  words, as pills are.
 - **Unsaved changes are kept in the browser** (D-240): without autosave, the
   editor keeps a copy of unsaved changes in `localStorage` as they're made
   and offers them back when the entry is opened again. That's what makes the
@@ -151,8 +157,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   autosave there are no unpublished changes to live entries), no theme
   button in the top bar (the color scheme is an account preference on Your
   profile), and no site switcher; the site's mark links to the site. The
-  account's menu is in the top bar. Home's panel has the Dashboard and
-  Content health, then shortcuts. The rail never navigates, as §6 says.
+  account's menu is in the top bar. Home's panel has the Dashboard, the
+  Calendar (D-368), and Content health, then shortcuts. The rail never navigates, as §6 says.
   As the decisions log's *The shell* has it (D-317), a rail button
   toggles its panel and the top bar has no collapse button; the trail
   is the section, the screens above (the editor's type, or a detail

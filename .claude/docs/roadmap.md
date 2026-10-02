@@ -383,6 +383,14 @@ dynamically).
   and roles. Stopped here (2026-10-02): the author is bringing new
   Users and Accounts screens next. Later: the open questions under
   Role capabilities in `open-questions.md`.
+- **Home's screens (D-368):** what belongs under Home besides the
+  Dashboard and Content health. (1, done, D-368) The **Calendar**: a
+  month of dated entries (published, scheduled, and drafts with a
+  date), read-only. Next maybe: **Publishing** (the cache, the last
+  export, and buttons to clear and export; the author is interested,
+  not decided). The calendar stays read-only: no dragging to
+  reschedule (the author's call). Activity (who
+  changed what) is extension territory, not core.
 - **Relationships (D-242, planned):** a reverse index for every
   reference field, keyed by field, with a template API and "Used by" in
   the admin; then "lists what references it" as a setting for any type,

@@ -2,8 +2,9 @@
 
 The admin is where people with an [account](accounts.md) run the site
 from a browser. So far it has a dashboard (your content at a glance, and
-buttons to publish, reindex, and clear caches), a list of each content
-type's entries, an editor, and a content health check.
+buttons to publish, reindex, and clear caches), a calendar of what's
+published and scheduled, a list of each content type's entries, an
+editor, and a content health check.
 
 > **The admin is early.** The editor edits Markdown as text; a live
 > preview, a form for a component's options, and a media library come
@@ -40,8 +41,8 @@ its URLs exist.
 
 ## Getting around
 
-The rail at the far left has four sections: **Home** (the dashboard and
-content health), **Content** (each content type's entries, with its own
+The rail at the far left has four sections: **Home** (the dashboard, the
+calendar, and content health), **Content** (each content type's entries, with its own
 taxonomies under it, the taxonomies several types share, and media),
 **Users** (your profile, accounts, profiles, and roles), and **Config**
 (content types, fields, settings, themes, and extensions). The panel
@@ -1069,6 +1070,27 @@ adds one), so they can't be changed to show another entry or to last
 longer. Changing `APP_SECRET` ends every link you've given out.
 Previews are never cached or indexed by search engines.
 
+## Calendar
+
+The **Calendar** (under Home) shows a month of entries on the day
+they're published, in the site's timezone (`APP_TIMEZONE`): what has
+gone out, what's scheduled, and drafts that already have a date. A
+draft without a date isn't on it. Each entry shows its status (a check
+for published, a clock for scheduled, a pen for a draft), its title,
+and its time; choose one to open it in the editor. You see the entries
+you may edit.
+
+Move between months with the arrows, and back to this one with
+**Today**. Narrow it to published, scheduled, or draft entries, or to
+one content type. It shows pages and collections; terms and profiles
+are on it only when you choose their type with
+`?type=` in the address. The month and filters are in the address, so a
+month can be bookmarked. On a phone, the calendar lists only the days
+that have entries.
+
+To change an entry's date, open it and change **Published** in the
+editor.
+
 ## Content health
 
 **Content health** checks every content file for problems, as
@@ -1151,6 +1173,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE fields/sets/{name}` | Delete a `user/data/fields` set's file; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
+| `GET calendar` | A month of the dated entries the account may edit: `month` (`YYYY-MM`, the site's current month by default), `status` (`draft`, `scheduled`, `published`, or `any`), and `type` (pages and collections without one). Answers `{"month", "today", "status", "type", "total", "entries"}`; each entry is `{"id", "handle", "title", "type", "status", "published", "day", "time"}`, with `day` and `time` (`HH:MM`) in the site's timezone. At most 500 entries; `total` counts them all |
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs to edit anyone's entries of some type |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
 | `GET entries/{id}` | An entry for editing (see below) |

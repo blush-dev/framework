@@ -89,6 +89,10 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
 const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const home: NavLink[] = [screen('dashboard', 'Dashboard', 'gauge')];
 
+	if (canAnyType('edit')) {
+		home.push(screen('calendar', 'Calendar', 'calendar-days'));
+	}
+
 	if (canAnyType('edit.others')) {
 		home.push(screen('health', 'Content Health', 'heart-pulse'));
 	}

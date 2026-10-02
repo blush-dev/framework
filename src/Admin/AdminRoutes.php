@@ -70,6 +70,8 @@ use Blush\Session\StartSession;
  *   - `GET  trash` and `GET trash/{id}`, and `POST trash/restore`,
  *     `trash/delete`, and `trash/empty`: the trash (`TrashController`).
  *   - `GET  health`: the content's lint problems.
+ *   - `GET  calendar`: a month of dated entries (`CalendarController`,
+ *     D-368).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
  *     (`PeopleController`); `GET profiles`, `GET profiles/{slug}`, and `POST` and
  *     `DELETE` the pages written for its archives (`ProfilesController`,
@@ -158,6 +160,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/trash/delete', [TrashController::class, 'delete'])->named('trash.delete')->middleware(Authenticate::class),
 			Route::post('/trash/empty', [TrashController::class, 'empty'])->named('trash.empty')->middleware(Authenticate::class),
 			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
+			Route::get('/calendar', CalendarController::class)->named('calendar')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),
 			Route::patch('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'update'])->named('role.update')->middleware(Authenticate::class),
