@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Component\Layout;
 
 use Override;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 
 /**
  * Puts blocks side by side, wrapping onto more lines when they don't fit
@@ -74,5 +76,15 @@ final class Row extends Layout
 			. 'display: flex; flex-wrap: ' . ($this->wrap ? 'wrap' : 'nowrap') . '; '
 			. 'gap: var(--layout-gap, ' . self::GAP . '); '
 			. "justify-content: {$this->justify->css()}; align-items: {$this->align->css()};";
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/row.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/row.php'));
 	}
 }

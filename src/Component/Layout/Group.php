@@ -13,6 +13,10 @@ declare(strict_types=1);
 
 namespace Blush\Component\Layout;
 
+use Override;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
+
 /**
  * Wraps blocks so they can be styled together (D-175, D-177, D-298):
  * `:::group{.alignwide}` … `:::`. It renders a `<div>`, or a `<section>`
@@ -25,4 +29,14 @@ final class Group extends Layout
 		public readonly LayoutTag $tag = LayoutTag::Div,
 		public readonly string $label = ''
 	) {}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/group.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/group.php'));
+	}
 }

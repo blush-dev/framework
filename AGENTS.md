@@ -72,7 +72,14 @@ screens drawn as the sketch is (D-370); and counts in the section
 panel, with Your Account at `/accounts/{username}` (D-371); and
 extensions as a type system: plugins (once "extensions"), themes, and
 icon packs, each known by a `vendor/name` with a label and a declared
-namespace, and admin themes planned (D-378, D-379).
+namespace, and admin themes planned (D-378, D-379); and, from the themes
+sketch (`.claude/docs/admin-design/blush-themes-screen.html`), the
+Themes screen as cards with previews drawn from each theme's declared
+palette, activating a theme in `user/data/settings.json`, and deleting
+`user/themes` folders, with a details screen for each theme (D-381,
+D-383);
+and components rendering themselves, a theme's template winning
+(D-382).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

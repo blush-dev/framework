@@ -705,8 +705,19 @@ Views use components, but the system is its own subsystem.
   (D-189).
 - **Props:** `MediaProp` marks media props, which directives resolve
   against the entry's folder; `LinkProp` marks link props (D-190).
+- **Rendering itself (D-382):** `Component::render()` is abstract and
+  returns the component's own markup: HTML, a `ComponentView` (a
+  template file it ships, by path, rendered like a chain template with
+  `$template` and `$component`), or `null` (none; `TemplateComponent`'s).
+  `Views::component()` uses the chain's template first, then `render()`.
+  Every core component's `render()` returns its file in
+  `resources/components/` (moved out of the default theme), and
+  `ComponentListing::rendersItself()` reads `render()`'s return type, so
+  a class that can't return `null` is never "missing a template".
 - **Directives:** `ComponentDirectives` (the default `DirectiveRenderer`)
-  renders Markdown directives as components (D-112).
+  renders Markdown directives as components (D-112). One in the
+  namespace of a theme outside the chain (D-171) renders itself, or as
+  plain content when it can't.
 
 ## Built-in controllers and outputs
 

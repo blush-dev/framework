@@ -260,6 +260,34 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 }
 
 /**
+ * The palette roles a theme's preview declares (D-381), in order.
+ */
+export const PALETTE_ROLES = ['background', 'surface', 'text', 'muted', 'accent', 'border'] as const;
+
+export type PaletteRole = typeof PALETTE_ROLES[number];
+
+/**
+ * What the admin sketches a theme's preview from (`theme.json`'s
+ * `preview`, D-381): a layout, a line about its type, and its palette,
+ * each color a light and a dark hex value.
+ */
+export interface ThemePreview {
+	layout: 'centered' | 'sidebar' | 'wide';
+	type: string;
+	palette: Record<PaletteRole, [string, string]> | null;
+}
+
+/**
+ * Someone who made an extension (D-384), as `composer.json` lists them.
+ */
+export interface ExtensionAuthor {
+	name: string;
+	email?: string;
+	homepage?: string;
+	role?: string;
+}
+
+/**
  * An installed theme (`GET appearance`).
  */
 export interface ThemeSummary {
@@ -274,6 +302,15 @@ export interface ThemeSummary {
 	// `framework` (the default theme), `local` (`user/themes`), or `composer`.
 	source: 'framework' | 'local' | 'composer';
 	active: boolean;
+	// Where it's installed, from the site's root; `null` for the default theme.
+	folder: string | null;
+	preview: ThemePreview | null;
+	// Who made it: its manifest's `authors`, else its `composer.json`'s.
+	authors: ExtensionAuthor[];
+	// Why it can't be activated (a theme it falls back to is missing), or `null`.
+	blocked: string | null;
+	// Whether it's a folder in `user/themes` the active theme doesn't use.
+	deletable: boolean;
 }
 
 /**
@@ -282,16 +319,20 @@ export interface ThemeSummary {
 export interface Appearance {
 	// The active theme's name.
 	active: string;
-	// The active theme, its ancestors, then the default theme, by name.
+	// The active theme, its ancestors, then the default theme, by name;
+	// empty when it can't be built, with the `problem`.
 	chain: string[];
+	problem: string | null;
 	// Whether `config/theme.php` exists.
 	config: boolean;
+	// Whether the active theme is saved in `user/data/settings.json`.
+	saved: boolean;
 	// Whether `?theme={name}` previews another theme (development only).
 	preview: boolean;
 	themes: ThemeSummary[];
 	// Broken themes, by where they were found (`user/themes/{folder}`, or
 	// a Composer package's name).
-	invalid: { where: string; reason: string }[];
+	invalid: { where: string; reason: string; deletable: boolean }[];
 }
 
 /**

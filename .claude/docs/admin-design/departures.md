@@ -410,13 +410,39 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Appearance is named Themes** (D-327), in the navigation, its
   heading, and its address (`/themes`; `/appearance` redirects): the
   screen lists themes and nothing else. The API keeps `GET appearance`.
-- **Appearance** (D-306): no **Activate** or **Browse themes**. The
-  active theme is developer config (`config/theme.php`, D-039), so a
-  theme row offers **Copy command** (`theme:activate`) and, in
-  development, **Preview** (`?theme=`); the themes the active one builds
-  on say **In use**, and broken themes are listed with the reason. Rows
-  have no author (manifests don't carry one). No theme settings yet
-  (D-307).
+- **Themes** (D-381) follows the themes sketch
+  (`blush-themes-screen.html`), not the prototype's Appearance (D-306's
+  read-only rows are gone). Where it differs from the sketch:
+  - **Theme details** (D-383) adds Name and Namespace rows; Author is
+    the manifest's `authors` (D-384), each linked to their homepage
+    with their role and an email link, and the folder row has a copy
+    button. A palette whose light and dark colors are the same shows
+    one **Light and dark** group. A theme without a palette is sketched
+    in the admin's colors, with a note on declaring one. A folder theme
+    the active one uses says why it can't be deleted (the sketch shows
+    nothing). Broken themes have no details screen, since they have no
+    name to address them by.
+  - **Activate** saves in `user/data/settings.json` (D-324), and the
+    note under the cards says so, with **Use `config/theme.php`'s
+    theme** when it's saved; the sketch's note names only
+    `config/theme.php`.
+  - **Delete** is refused for any theme the active one falls back to,
+    not only the active theme.
+  - The menu adds **Preview on the site** (development, `?theme=`) and
+    **Copy activate command**; it's left out when it would be empty.
+    Menu items and card buttons are in sentence case, as the admin's
+    other menus are.
+  - A theme with no parent says it falls back to Default (the sketch
+    names a fallback for every theme); the default theme says every
+    theme falls back to it.
+  - A blocked theme's message is the server's reason when it isn't a
+    missing parent (a broken ancestor, a loop).
+  - Broken themes are cards titled by where they were found, without
+    the folder fact the title already says.
+  - **Install Theme**'s drop area says uploading is coming; **Upload**
+    is disabled (D-378).
+  - No author on the cards (it's on the details, D-384). The palette role
+    `bg` is `background`. No theme settings yet (D-307).
 - **Settings** (D-309, D-324, D-325): only the settings Blush has, as
   four screens in a **Settings** group of the Config panel (General,
   Reading, Addresses and Search, System), not the prototype's one page.
@@ -468,7 +494,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   Plugins is (`.package` rows, an **On** pill, the count of icons and the
   first of their names as chips, broken packs after), with **Install
   Icon Pack** disabled as the placeholder. **Themes** has **Install
-  Theme**, disabled, too.
+  Theme**, which opens the sketch's modal with **Upload** disabled
+  (D-381).
 - **Vocabulary follows Blush** where it differs: extensions (plugins,
   themes, and icon packs; D-378), not addons, and
   whatever taxonomies a site defines (no built-in Topic).

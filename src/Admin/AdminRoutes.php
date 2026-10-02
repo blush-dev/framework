@@ -79,8 +79,10 @@ use Blush\Session\StartSession;
  *     accounts/{username}`, and `POST accounts/{username}/link` change
  *     accounts (`AccountEditController`), and `POST roles`, and `PATCH`
  *     and `DELETE roles/{name}` change roles (`RoleEditController`).
- *   - `GET  appearance`: the installed themes, to show
- *     (`AppearanceController`).
+ *   - `GET  appearance`: the installed themes (`AppearanceController`);
+ *     `DELETE themes/{folder}` deletes one from `user/themes`
+ *     (`ThemeEditController`, D-381). `PATCH settings` activates one
+ *     (`theme.active`).
  *   - `GET  plugins`: the installed plugins and what each adds,
  *     to show (`PluginsController`).
  *   - `GET  icon-packs`: the installed icon packs, to show
@@ -178,6 +180,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'update'])->named('account.update')->middleware(Authenticate::class),
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'delete'])->named('account.delete')->middleware(Authenticate::class),
 			Route::get('/appearance', AppearanceController::class)->named('appearance')->middleware(Authenticate::class),
+			Route::delete('/themes/{folder:[A-Za-z0-9_][A-Za-z0-9._-]*}', [ThemeEditController::class, 'delete'])->named('theme.delete')->middleware(Authenticate::class),
 			Route::get('/plugins', PluginsController::class)->named('plugins')->middleware(Authenticate::class),
 			Route::get('/icon-packs', IconPacksController::class)->named('icon-packs')->middleware(Authenticate::class),
 			Route::patch('/settings', [SettingsEditController::class, 'update'])->named('settings.update')->middleware(Authenticate::class),

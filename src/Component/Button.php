@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Override;
+use Blush\Core\Framework;
 use Blush\Icon\IconName;
 use Blush\Icon\Icons;
 use Blush\Theme\ThemeException;
@@ -138,5 +139,15 @@ final class Button extends Component
 	{
 		// With only the icon, the label names the link.
 		return $this->isIconOnly() ? ['aria-label' => $this->label, 'title' => $this->label] : [];
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/button.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/button.php'));
 	}
 }

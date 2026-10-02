@@ -139,6 +139,20 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:activate', 'missing'])->exitCode);
 	}
 
+	public function testActivatingClearsTheThemeSavedInTheAdmin(): void
+	{
+		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('user/themes/dusk/theme.json', '{"name": "acme/dusk", "label": "Dusk", "namespace": "dusk"}');
+		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"name": "Field Notes"}, "theme": {"active": "acme/dusk"}}');
+
+		$result = $this->command(['theme:activate', 'acme/nova']);
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertStringContainsString('Cleared the theme activated in the admin', $result->output);
+		$this->assertSame(['app' => ['name' => 'Field Notes']], json_decode((string) file_get_contents($this->root() . '/user/data/settings.json'), true), 'Other settings stay.');
+		$this->assertSame('acme/nova', $this->config()->active);
+	}
+
 	private function config(): ThemeConfig
 	{
 		$config = require $this->root() . '/config/theme.php';
@@ -206,7 +220,7 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertMatchesRegularExpression('#\| app/badge\s*\| Badge\s*\|\s*\|\s*\|\s*\| resources/views/components/app-badge\.php#', $result->output);
-		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\| Blush\\\\Component\\\\Callout\s*\| .*themes/default/views/components/callout\.php#', $result->output);
+		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| yes\s*\| Blush\\\\Component\\\\Callout\s*\| [^|]*\| \(its own\)#', $result->output);
 		$this->assertMatchesRegularExpression('#\| blush/embed\s*\| Embed\s*\| yes\s*\| Blush\\\\Component\\\\Embed#', $result->output);
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
 		$this->assertStringContainsString('resources/views/components/loose.php isn\'t named for a component, so nothing renders it. Name it {namespace}-loose.php.', $result->output . $result->errors);

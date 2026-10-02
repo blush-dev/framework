@@ -17,6 +17,7 @@ use DirectoryIterator;
 use Throwable;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
+use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ManifestFile;
 use Blush\Support\ComposerPackages;
@@ -29,6 +30,9 @@ use Blush\Support\ComposerPackages;
  * It runs before the container exists (theme providers register at boot),
  * so it reads manifests itself: `theme.json`, else `theme.yaml` or
  * `theme.yml` (D-032).
+ *
+ * A manifest without `authors` takes them from the `composer.json` in
+ * its folder (D-384), so a package lists them once.
  *
  * A Composer theme's manifest is the `theme.json` in its package, and
  * its name is the package's: a manifest without a `name` takes it, and
@@ -99,6 +103,15 @@ final readonly class ThemeDiscovery
 
 					if ($data['name'] !== $where) {
 						throw new ThemeException(sprintf('The theme in Composer package "%s" is named "%s"; a Composer theme\'s name is its package\'s.', $where, is_string($data['name']) ? $data['name'] : ''));
+					}
+				}
+
+				// A manifest without authors takes its composer.json's (D-384).
+				if (! array_key_exists('authors', $data)) {
+					$authors = ExtensionAuthor::fromComposer($path);
+
+					if ($authors !== []) {
+						$data['authors'] = array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $authors);
 					}
 				}
 

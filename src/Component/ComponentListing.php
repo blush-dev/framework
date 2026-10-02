@@ -81,12 +81,31 @@ final readonly class ComponentListing
 	}
 
 	/**
-	 * Returns whether it has no template to render: no file in the chain,
-	 * and no class that picks another view (by overriding `template()`).
+	 * Returns whether its class always renders itself (D-382): its
+	 * `render()` can't return `null`, so it has markup of its own when the
+	 * chain has no template for it.
+	 */
+	public function rendersItself(): bool
+	{
+		$class = $this->className();
+
+		if ($class === null) {
+			return false;
+		}
+
+		$type = new ReflectionMethod($class, 'render')->getReturnType();
+
+		return $type !== null && ! $type->allowsNull();
+	}
+
+	/**
+	 * Returns whether it has nothing to render with: no file in the chain,
+	 * no class that picks another view (by overriding `template()`), and
+	 * no markup of its own (`rendersItself()`).
 	 */
 	public function isMissingTemplate(): bool
 	{
-		if ($this->files !== []) {
+		if ($this->files !== [] || $this->rendersItself()) {
 			return false;
 		}
 

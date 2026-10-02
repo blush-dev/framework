@@ -34,6 +34,7 @@ import TypeView from './views/TypeView.vue';
 import MediaFileView from './views/MediaFileView.vue';
 import MediaView from './views/MediaView.vue';
 import TrashedView from './views/TrashedView.vue';
+import ThemeView from './views/ThemeView.vue';
 import ThemesView from './views/ThemesView.vue';
 import TypesView from './views/TypesView.vue';
 import NewTypeView from './views/NewTypeView.vue';
@@ -77,6 +78,7 @@ export const router = createRouter({
 		{ path: '/fields/new', name: 'field-set-new', component: NewFieldSetView, meta: { title: 'New Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
 		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
 		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: 'Themes', capability: 'site.settings', area: 'config' } },
+		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: 'Theme', capability: 'site.settings', area: 'config', parent: 'themes' } },
 		{ path: '/appearance', redirect: { name: 'themes' } },
 		// Settings is four screens (D-325); the view titles each.
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },

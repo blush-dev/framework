@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
+use Blush\Extension\ExtensionAuthor;
+use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 
@@ -29,8 +31,11 @@ use Blush\Extension\ExtensionNamespace;
  * map Blush registers for it. Its `settings` are field definitions
  * (D-022), and its `menus` and `regions` declare the locations the site
  * fills (D-199, D-201), each a label or an object. Its `variants` list
- * component variants by component (D-266). Keys this version doesn't
- * read (image sizes) are kept in `$data`.
+ * component variants by component (D-266). Its `preview` is what the
+ * admin sketches it from (D-381). Keys this version doesn't read (image
+ * sizes) are kept in `$data`. Its `authors` are in `composer.json`'s
+ * shape (D-384); discovery fills them in from the `composer.json` in its
+ * folder when the manifest has none.
  */
 final readonly class ThemeManifest
 {
@@ -44,6 +49,8 @@ final readonly class ThemeManifest
 	 * @param array<string, mixed>  $data     The whole manifest.
 	 * @param ?string               $provider A service provider class.
 	 * @param array<string, string> $autoload PSR-4 prefixes and their folders, relative to the theme.
+	 * @param ?ThemePreview         $preview  What the admin draws its preview from, if it says.
+	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 */
 	public function __construct(
 		public string $name,
@@ -58,7 +65,9 @@ final readonly class ThemeManifest
 		public array $data = [],
 		public ThemeSource $source = ThemeSource::Local,
 		public ?string $provider = null,
-		public array $autoload = []
+		public array $autoload = [],
+		public ?ThemePreview $preview = null,
+		public array $authors = []
 	) {}
 
 	/**
@@ -137,6 +146,18 @@ final readonly class ThemeManifest
 			throw new ThemeException(sprintf('The "%s" theme\'s "bleed" must map "wide" and "full" to class names.', $theme));
 		}
 
+		$preview = $data['preview'] ?? null;
+
+		if ($preview !== null && (! is_array($preview) || ($preview !== [] && array_is_list($preview)))) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "preview" must be an object with "layout", "type", and "palette".', $theme));
+		}
+
+		try {
+			$authors = ExtensionAuthor::list($data['authors'] ?? []);
+		} catch (ExtensionException $error) {
+			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
+		}
+
 		/** @var array<string, mixed> $data */
 		return new self(
 			name: $theme,
@@ -151,7 +172,9 @@ final readonly class ThemeManifest
 			data: $data,
 			source: $source,
 			provider: $provider,
-			autoload: self::autoload($theme, $data)
+			autoload: self::autoload($theme, $data),
+			preview: $preview === null ? null : ThemePreview::fromArray($theme, $preview),
+			authors: $authors
 		);
 	}
 

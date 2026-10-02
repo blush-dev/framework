@@ -332,7 +332,9 @@ final readonly class Views
 	 * content and slots (D-195, D-196), and its variant (D-266): the
 	 * `variant` prop, if the component has it under the chain. A
 	 * variant's own template (`components/callout-bordered`) is used when
-	 * the chain has one.
+	 * the chain has one. Without a template in the chain, the component
+	 * renders itself (`render()`, D-382): its HTML, or the template file it
+	 * ships with.
 	 *
 	 * @param  array<string, mixed> $props
 	 * @throws ViewException
@@ -357,9 +359,27 @@ final readonly class Views
 		$views = $view === null ? $parsed->views() : [$view];
 		$views = $variant === null ? $views : [...array_map(static fn (string $name): string => "{$name}-{$variant->name}", $views), ...$views];
 
-		[$view, $file] = $this->finder->nearest($views) ?? throw ViewNotFound::forNames($views);
+		$found = $this->finder->nearest($views);
 
-		return $this->renderFile($view, $file, ['component' => $component], $context);
+		if ($found !== null) {
+			return $this->renderFile($found[0], $found[1], ['component' => $component], $context);
+		}
+
+		$own = $component->render();
+
+		if (is_string($own)) {
+			return $own;
+		}
+
+		if ($own === null) {
+			throw ViewNotFound::forNames($views);
+		}
+
+		if (! is_file($own->file)) {
+			throw new ViewException(sprintf('The "%s" component\'s template, %s, doesn\'t exist.', $parsed, $own->file));
+		}
+
+		return $this->renderFile($parsed->views()[0], $own->file, [...$own->data, 'component' => $component], $context);
 	}
 
 	/**

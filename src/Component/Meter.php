@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Component;
 
+use Override;
 use Blush\Core\AppConfig;
+use Blush\Core\Framework;
 
 /**
  * A measurement within a known range, as a `<meter>` gauge (D-175, D-188):
@@ -149,5 +151,15 @@ final class Meter extends Component
 			'optimum'    => $this->optimumAttribute,
 			'aria-label' => trim($this->label) === '' ? $this->t('meter.label') : null
 		]);
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/meter.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/meter.php'));
 	}
 }

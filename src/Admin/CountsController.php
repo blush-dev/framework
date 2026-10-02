@@ -46,7 +46,8 @@ use Blush\Theme\Themes;
  * - `media`: the files in the library, with `media.upload` (D-372).
  * - `accounts` and `roles`, with `accounts.view`.
  * - `contentTypes`, `fieldSets`, `themes`, `plugins`, and `iconPacks`
- *   (installed), with `site.settings` (`themes` since D-372,
+ *   (installed), with `site.settings` (`themes` since D-372, counting
+ *   broken ones since D-381, as the Themes screen lists them;
  *   `iconPacks` since D-378).
  *
  * A count the account may not see is left out.
@@ -105,7 +106,7 @@ final readonly class CountsController
 		if ($this->permissions->can($account, Capability::SiteSettings)) {
 			$counts['contentTypes'] = count($this->types->all());
 			$counts['fieldSets']    = count($this->types->sets->all());
-			$counts['themes']       = count($this->themes->all());
+			$counts['themes']       = count($this->themes->all()) + count($this->themes->invalid());
 			$counts['iconPacks']    = count($this->iconPacks->all());
 
 			try {

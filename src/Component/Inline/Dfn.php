@@ -16,6 +16,8 @@ namespace Blush\Component\Inline;
 use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 
 /**
  * The defining instance of a term, in the sentence that defines it
@@ -49,5 +51,15 @@ final class Dfn extends Component
 	protected function rootAttributes(): array
 	{
 		return ['title' => trim($this->title)];
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/dfn.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/dfn.php'));
 	}
 }

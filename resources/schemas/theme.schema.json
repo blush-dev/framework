@@ -44,6 +44,39 @@
 			"type": "string",
 			"description": "What the theme is for."
 		},
+		"authors": {
+			"type": "array",
+			"description": "Who made the theme, as composer.json lists authors. Without it, the authors in the composer.json beside this file are used.",
+			"items": {
+				"type": "object",
+				"required": [
+					"name"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"name": {
+						"type": "string",
+						"minLength": 1,
+						"description": "Their name."
+					},
+					"email": {
+						"type": "string",
+						"format": "email",
+						"description": "Their email address."
+					},
+					"homepage": {
+						"type": "string",
+						"format": "uri",
+						"pattern": "^https?://",
+						"description": "Their website."
+					},
+					"role": {
+						"type": "string",
+						"description": "What they did, such as \"Developer\" or \"Designer\"."
+					}
+				}
+			}
+		},
 		"parent": {
 			"type": "string",
 			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
@@ -158,6 +191,155 @@
 						}
 					}
 				]
+			}
+		},
+		"preview": {
+			"type": "object",
+			"description": "What the admin's Themes screen sketches the theme's preview from, instead of a screenshot.",
+			"additionalProperties": false,
+			"properties": {
+				"layout": {
+					"enum": [
+						"centered",
+						"sidebar",
+						"wide"
+					],
+					"default": "centered",
+					"description": "The page shape: \"centered\" (one column), \"sidebar\" (text beside a sidebar), or \"wide\" (a hero over a row of cards)."
+				},
+				"type": {
+					"type": "string",
+					"description": "A line about the theme's type, such as \"Serif headings · sans body\". The admin shows it in its own font."
+				},
+				"palette": {
+					"type": "object",
+					"description": "The theme's colors, each a hex color or a [light, dark] pair.",
+					"required": [
+						"background",
+						"surface",
+						"text",
+						"muted",
+						"accent",
+						"border"
+					],
+					"additionalProperties": false,
+					"properties": {
+						"background": {
+							"oneOf": [
+								{
+									"type": "string",
+									"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+									"description": "One hex color for both the light and dark palettes."
+								},
+								{
+									"type": "array",
+									"items": {
+										"type": "string",
+										"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+									},
+									"minItems": 2,
+									"maxItems": 2,
+									"description": "The light palette's color, then the dark one's."
+								}
+							]
+						},
+						"surface": {
+							"oneOf": [
+								{
+									"type": "string",
+									"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+									"description": "One hex color for both the light and dark palettes."
+								},
+								{
+									"type": "array",
+									"items": {
+										"type": "string",
+										"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+									},
+									"minItems": 2,
+									"maxItems": 2,
+									"description": "The light palette's color, then the dark one's."
+								}
+							]
+						},
+						"text": {
+							"oneOf": [
+								{
+									"type": "string",
+									"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+									"description": "One hex color for both the light and dark palettes."
+								},
+								{
+									"type": "array",
+									"items": {
+										"type": "string",
+										"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+									},
+									"minItems": 2,
+									"maxItems": 2,
+									"description": "The light palette's color, then the dark one's."
+								}
+							]
+						},
+						"muted": {
+							"oneOf": [
+								{
+									"type": "string",
+									"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+									"description": "One hex color for both the light and dark palettes."
+								},
+								{
+									"type": "array",
+									"items": {
+										"type": "string",
+										"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+									},
+									"minItems": 2,
+									"maxItems": 2,
+									"description": "The light palette's color, then the dark one's."
+								}
+							]
+						},
+						"accent": {
+							"oneOf": [
+								{
+									"type": "string",
+									"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+									"description": "One hex color for both the light and dark palettes."
+								},
+								{
+									"type": "array",
+									"items": {
+										"type": "string",
+										"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+									},
+									"minItems": 2,
+									"maxItems": 2,
+									"description": "The light palette's color, then the dark one's."
+								}
+							]
+						},
+						"border": {
+							"oneOf": [
+								{
+									"type": "string",
+									"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+									"description": "One hex color for both the light and dark palettes."
+								},
+								{
+									"type": "array",
+									"items": {
+										"type": "string",
+										"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+									},
+									"minItems": 2,
+									"maxItems": 2,
+									"description": "The light palette's color, then the dark one's."
+								}
+							]
+						}
+					}
+				}
 			}
 		},
 		"bleed": {

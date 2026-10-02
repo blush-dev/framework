@@ -45,4 +45,13 @@ final class Card extends Component
 	{
 		return $this->secret;
 	}
+
+	/**
+	 * No markup of its own: its template is a theme's.
+	 */
+	#[Override]
+	public function render(): null
+	{
+		return null;
+	}
 }

@@ -19,6 +19,7 @@ use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
+use Blush\Extension\ExtensionName;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
 use Blush\Field\Control;
@@ -30,6 +31,7 @@ use Blush\Field\Fields\NumberField;
 use Blush\Field\Fields\TextField;
 use Blush\Routing\RouteConfig;
 use Blush\Sitemap\SitemapConfig;
+use Blush\Theme\ThemeConfig;
 
 /**
  * A setting the site owner may change in the admin (D-324, D-325). Its
@@ -41,7 +43,8 @@ use Blush\Sitemap\SitemapConfig;
  * Each is described as a field (`field()`, D-343), so the admin edits it
  * with the controls every form uses, on its screen (`screen()`), the
  * screen's own fields before any field set's; `normalize()` still checks
- * its value, more closely than the field type does.
+ * its value, more closely than the field type does. The active theme
+ * (D-381) is on no Settings screen: the Themes screen saves it.
  */
 enum Setting: string
 {
@@ -55,6 +58,7 @@ enum Setting: string
 	case FeedLimit       = 'feed.limit';
 	case Sitemap         = 'sitemap.enabled';
 	case SitemapDisallow = 'sitemap.disallow';
+	case Theme           = 'theme.active';
 
 	/**
 	 * The most entries a feed may hold.
@@ -75,11 +79,12 @@ enum Setting: string
 	}
 
 	/**
-	 * The Settings screen it's on.
+	 * The Settings screen it's on, or `null` for one another screen saves.
 	 */
-	public function screen(): SettingsScreen
+	public function screen(): ?SettingsScreen
 	{
 		return match ($this) {
+			self::Theme                                                   => null,
 			self::Name, self::Locale, self::Timezone                      => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search
@@ -106,7 +111,8 @@ enum Setting: string
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
-			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.')
+			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.'),
+			self::Theme           => new TextField('active')->labeled('Theme')->control(Control::Mono)
 		};
 
 		return $field->named($this->key());
@@ -191,6 +197,7 @@ enum Setting: string
 			'content' => ContentConfig::class,
 			'routes'  => RouteConfig::class,
 			'feed'    => FeedConfig::class,
+			'theme'   => ThemeConfig::class,
 			default   => SitemapConfig::class
 		};
 	}
@@ -206,12 +213,13 @@ enum Setting: string
 	/**
 	 * Whether a change needs the compiled routes and content types written
 	 * again, and the content reindexed: the home page, the time zone dates
-	 * are read in, and what has addresses.
+	 * are read in, what has addresses, and the theme (its provider runs at
+	 * boot, so what's compiled is built again with it, to be safe).
 	 */
 	public function needsRefresh(): bool
 	{
 		return match ($this) {
-			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap => true,
+			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Theme => true,
 			default => false
 		};
 	}
@@ -233,6 +241,7 @@ enum Setting: string
 			self::FeedFormats     => self::formats($value),
 			self::FeedLimit       => self::limit($value),
 			self::SitemapDisallow => self::disallow($value),
+			self::Theme           => self::theme($value),
 			default               => is_bool($value) ? $value : throw new InvalidSetting(sprintf('"%s" must be true or false.', $this->value))
 		};
 	}
@@ -314,6 +323,19 @@ enum Setting: string
 		return is_int($value) && $value >= 1 && $value <= self::FEED_LIMIT_MAX
 			? $value
 			: throw new InvalidSetting(sprintf('A feed holds from 1 to %d entries.', self::FEED_LIMIT_MAX));
+	}
+
+	/**
+	 * Checks a theme's name; whether it's installed is checked where the
+	 * themes are known.
+	 *
+	 * @throws InvalidSetting
+	 */
+	private static function theme(mixed $value): string
+	{
+		return is_string($value) && ExtensionName::isValid($value)
+			? $value
+			: throw new InvalidSetting('The theme must be a theme\'s name (vendor/name), such as "acme/nova".');
 	}
 
 	/**

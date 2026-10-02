@@ -13,8 +13,17 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Fixtures\Component;
 
+use Override;
 use Blush\Component\Component;
 
 final class Orphan extends Component
 {
+	/**
+	 * No markup of its own, and no template.
+	 */
+	#[Override]
+	public function render(): null
+	{
+		return null;
+	}
 }

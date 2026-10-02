@@ -79,7 +79,12 @@ exist (D-032).
 		"archiveLayout": { "type": "enum", "options": ["grid", "list"], "default": "list" }
 	},
 	"provider": "Nova\\ThemeProvider",
-	"autoload": { "psr-4": { "Nova\\": "src/" } }
+	"autoload": { "psr-4": { "Nova\\": "src/" } },
+	"preview": {
+		"layout": "sidebar",
+		"type": "Serif headings · sans body",
+		"palette": { "background": ["#fcfcfa", "#14161c"], "surface": "#ffffff", "text": ["#1a1a18", "#eceff5"], "muted": "#6e6e68", "accent": ["#3a6ea5", "#7fb2ff"], "border": "#e6e6e0" }
+	}
 }
 ```
 - Blush ships a JSON Schema (`resources/schemas/theme.schema.json`, D-206)
@@ -90,6 +95,18 @@ exist (D-032).
 - `settings` use the **same field types as content schemas**, so the future
   admin renders both with one form system. Definitions merge down the chain;
   values come from `user/data/theme.json` (D-117).
+- `authors` (D-384) are `composer.json`'s shape (`ExtensionAuthor`:
+  `name`, optional `email`, `homepage`, `role`), checked strictly;
+  without them, `ThemeDiscovery` takes the valid entries from the
+  `composer.json` in the theme's folder, so they're cached with the
+  manifest.
+- `preview` (D-381) is what the admin's Themes screen sketches the theme
+  from instead of a screenshot (`ThemePreview`): a `layout` (`centered`,
+  `sidebar`, `wide`), a `type` line shown in the admin's own font, and a
+  six-role `palette` (`background`, `surface`, `text`, `muted`,
+  `accent`, `border`), each a hex color or a `[light, dark]` pair, drawn
+  through `light-dark()` so the sketch follows the admin's color scheme.
+  A malformed `preview` breaks the manifest, as other keys do.
 - `name`, `label`, and `namespace` are required (D-378). `parent`, the
   config's `active`, `?theme=`, asset URLs, and site overrides all use
   the name. The namespace is unique across installed extensions; the
@@ -128,6 +145,7 @@ site overrides (resources/views, config, user/data)
 | Theme defaults | `user/themes/{folder}/theme.json` | Theme author |
 | Site code config | `config/theme.php` → `ThemeConfig` (active theme, component overrides) | Developer |
 | Site data | `user/data/theme.json` (setting values, location maps), `user/data/menus/`, `user/data/regions/` | Site owner, later the admin |
+| Admin settings | `user/data/settings.json`'s `theme.active` (D-381), over `config/theme.php`; `theme:activate` clears it | Site owner, through the admin's Themes screen |
 
 ## Templates
 
@@ -227,6 +245,11 @@ aren't candidates (D-104).
   highest-precedence directory wins whichever name it uses
   (`ViewFinder::nearest()`). Subfolders of `components/` aren't
   components.
+- **Components render themselves (D-382):** with no template for it in
+  the chain, a component's class draws it (`render()`: HTML, a template
+  file it ships, or `null` for none). Core components' templates are
+  the framework's (`resources/components/`), not the default theme's,
+  which now has no `components/` folder; a theme's template still wins.
 - **Templates get `$component` (D-195, D-196):** a component's template
   gets `$component` and `$template`; content is `content()`, named slots
   `$component->slots->name`, and role methods (`caption()`, `text()`,
@@ -243,10 +266,11 @@ aren't candidates (D-104).
   `CONTENT`, plus its template. Every core component has one.
 - **A template-only component** is just its template; its `$component`
   is a `TemplateComponent`, read with `prop()`. It renders without being
-  registered. Whether to require a class for every component is open.
+  registered. Template-only components stay (D-382): only a class must
+  have a `render()`.
 - **Classes (D-182):** a component's classes are BEM-style with a
   `component-` prefix (`component-callout`, `component-callout--warning`,
-  `component-callout__title`); the default theme's core components use
+  `component-callout__title`); Blush's core component templates use
   it.
 - **Variants (D-266):** a named style of any component, `variant=name`,
   whose modifier is `component-{name}--{variant}` (or the variant's own

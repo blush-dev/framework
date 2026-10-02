@@ -13,7 +13,7 @@
 | M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed (dynamically, D-142) |
 | M9 | **Admin stage 2:** operations dashboard. | Publish, clear, reindex, and export from a browser |
 | M10 | **Admin stage 3:** editor and media library. | Create and edit entries in a browser |
-| Later | Plugin views in the view chain, so plugins can ship component templates (D-174; on hold, D-380); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
+| Later | Plugin views in the view chain (D-174; on hold, D-380; a plugin's components render themselves since D-382); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
 
 ---
 
@@ -339,6 +339,12 @@ extensions, renamed), themes (known by `vendor/name`), and icon packs
 (new, in `user/icons`), each manifest with a `name`, `label`, and
 declared `namespace` checked across kinds, and Customize as Themes,
 Plugins, and Icon Packs with install placeholders.
+Then the Themes screen from the themes sketch (D-381,
+`admin-design/blush-themes-screen.html`): cards with a preview drawn
+from each theme's declared palette (`theme.json`'s `preview`),
+**Activate** saving `theme.active` in `user/data/settings.json`, and
+**Delete** for `user/themes` folders the site doesn't use; and its
+theme details screen (D-383).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open

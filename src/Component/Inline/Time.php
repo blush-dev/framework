@@ -19,9 +19,11 @@ use Exception;
 use IntlDateFormatter;
 use IntlDatePatternGenerator;
 use Override;
-use Blush\Core\AppConfig;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
+use Blush\Core\AppConfig;
+use Blush\Core\Framework;
 
 /**
  * A date, time, or duration that machines can read (D-175, D-180):
@@ -144,5 +146,15 @@ final class Time extends Component
 		$formatter = new IntlDateFormatter($app->locale, IntlDateFormatter::NONE, IntlDateFormatter::NONE, $app->timezone, null, $pattern ?: null);
 
 		return $formatter->format($date) ?: $date->format('c');
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/time.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/time.php'));
 	}
 }

@@ -16,6 +16,8 @@ namespace Blush\Component\Inline;
 use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 
 /**
  * Text added after the fact, the pair to Markdown's `~~deleted~~`
@@ -68,5 +70,15 @@ final class Ins extends Component
 	protected function rootAttributes(): array
 	{
 		return ['datetime' => $this->machine, 'cite' => trim($this->cite)];
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/ins.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/ins.php'));
 	}
 }

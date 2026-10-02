@@ -21,7 +21,7 @@ use SplFileInfo;
 
 /**
  * Small, safe filesystem operations shared by the framework: atomic writes,
- * path confinement, and listing files. Stateless, so it can be created wherever it's needed or
+ * path confinement, listing files, and removing a folder. Stateless, so it can be created wherever it's needed or
  * injected where a test needs to observe it.
  */
 final class Filesystem
@@ -158,6 +158,50 @@ final class Filesystem
 			if ($file instanceof SplFileInfo && $file->isFile()) {
 				yield substr($file->getPathname(), strlen($root) + 1) => $file;
 			}
+		}
+	}
+
+	/**
+	 * Removes a folder and everything in it. Symlinks are removed, never
+	 * followed, so nothing outside the folder goes; a folder that is
+	 * itself a symlink loses only the link. A missing folder is nothing to
+	 * remove.
+	 *
+	 * @throws FilesystemException When something can't be removed.
+	 */
+	public function removeDirectory(string $path): void
+	{
+		if (is_link($path)) {
+			if (! @unlink($path)) {
+				throw new FilesystemException(sprintf('Unable to remove "%s".', $path));
+			}
+
+			return;
+		}
+
+		if (! is_dir($path)) {
+			return;
+		}
+
+		$items = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+			RecursiveIteratorIterator::CHILD_FIRST
+		);
+
+		foreach ($items as $item) {
+			if (! $item instanceof SplFileInfo) {
+				continue;
+			}
+
+			$removed = $item->isDir() && ! $item->isLink() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+
+			if (! $removed) {
+				throw new FilesystemException(sprintf('Unable to remove "%s".', $item->getPathname()));
+			}
+		}
+
+		if (! @rmdir($path)) {
+			throw new FilesystemException(sprintf('Unable to remove "%s".', $path));
 		}
 	}
 }

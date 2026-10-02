@@ -16,6 +16,8 @@ namespace Blush\Component\Inline;
 use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 
 /**
  * An abbreviation with its expansion as `title` (D-180, D-195):
@@ -49,5 +51,15 @@ final class Abbr extends Component
 	protected function rootAttributes(): array
 	{
 		return ['title' => trim($this->title)];
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/abbr.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/abbr.php'));
 	}
 }

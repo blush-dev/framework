@@ -16,6 +16,7 @@ namespace Blush\Component;
 use DOMException;
 use Dom\XMLDocument;
 use Override;
+use Blush\Core\Framework;
 use Blush\Icon\IconName;
 use Blush\Icon\Icons;
 use Blush\Theme\ThemeException;
@@ -118,5 +119,15 @@ final class Icon extends Component
 		}
 
 		return (string) $document->saveXml($root);
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/icon.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/icon.php'));
 	}
 }

@@ -16,6 +16,8 @@ namespace Blush\Component\Layout;
 use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 use Blush\View\Escaper;
 
 /**
@@ -60,5 +62,15 @@ final class Figure extends Component
 	public function caption(): string
 	{
 		return Escaper::html(trim($this->label));
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/figure.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/figure.php'));
 	}
 }

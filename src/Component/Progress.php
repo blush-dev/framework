@@ -15,6 +15,7 @@ namespace Blush\Component;
 
 use Override;
 use Blush\Core\AppConfig;
+use Blush\Core\Framework;
 
 /**
  * How far along something is, as a `<progress>` bar (D-175, D-188):
@@ -114,5 +115,15 @@ final class Progress extends Component
 			'value'      => $this->valueAttribute,
 			'aria-label' => trim($this->label) === '' ? $this->t('progress.label') : null
 		]);
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/progress.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/progress.php'));
 	}
 }

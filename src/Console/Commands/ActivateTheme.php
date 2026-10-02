@@ -21,6 +21,10 @@ use Blush\Console\Output;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
+use Blush\Settings\InvalidSetting;
+use Blush\Settings\Setting;
+use Blush\Settings\Settings;
+use Blush\Settings\SettingsFile;
 use Blush\Support\Filesystem;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
@@ -30,7 +34,9 @@ use Blush\Theme\Themes;
  * created; an existing one is edited only when its `active` value is a
  * plain string literal, so hand-written config is never mangled. The
  * compiled config (and theme cache) are cleared, since they hold the old
- * value.
+ * value. A theme activated in the admin is saved in
+ * `user/data/settings.json` over `config/theme.php` (D-381), so that's
+ * cleared too, or the command wouldn't change the theme.
  */
 #[Command('theme:activate', 'Make a theme the active one.')]
 final readonly class ActivateTheme
@@ -39,7 +45,8 @@ final readonly class ActivateTheme
 		private Themes $themes,
 		private Paths $paths,
 		private Bootstrap $bootstrap,
-		private Filesystem $filesystem
+		private Filesystem $filesystem,
+		private SettingsFile $settings
 	) {}
 
 	/**
@@ -82,6 +89,15 @@ final readonly class ActivateTheme
 		}
 
 		$this->bootstrap->clearCompiled(CompiledCache::Config, CompiledCache::Themes);
+
+		try {
+			if ($this->settings->read()->has(Setting::Theme)) {
+				$this->settings->update(static fn (Settings $settings): Settings => $settings->without(Setting::Theme));
+				$output->comment(sprintf('Cleared the theme activated in the admin (%s).', $this->paths->relative($this->settings->path())));
+			}
+		} catch (InvalidSetting $error) {
+			$output->warning(sprintf('The theme activated in the admin may still win over config/theme.php: %s', $error->getMessage()));
+		}
 
 		$output->success(sprintf('Activated the "%s" theme in %s.', $name, $this->paths->relative($file)));
 

@@ -16,7 +16,9 @@ namespace Blush\Component\Media;
 use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
 use Blush\Component\MediaProp;
+use Blush\Core\Framework;
 use Blush\Media\MediaKind;
 
 /**
@@ -71,5 +73,15 @@ final class Audio extends Component
 			'preload'  => $this->preload->value,
 			'loop'     => $this->loop
 		]);
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/audio.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/audio.php'));
 	}
 }

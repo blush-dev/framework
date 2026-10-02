@@ -12,7 +12,8 @@ to change.
 
 A few settings can also be changed in the admin's
 [Settings](admin.md#settings) screens: the site's name, language, and
-time zone, the home page, the trailing slash, feeds, and the sitemap. The
+time zone, the home page, the trailing slash, feeds, and the sitemap,
+and the [Themes](admin.md#themes) screen activates a theme. The
 admin saves them in `user/data/settings.json`, in sections named for the
 config files, with the same keys:
 
@@ -22,7 +23,8 @@ config files, with the same keys:
     "content": { "home": "post" },
     "routes": { "trailingSlash": true },
     "feed": { "formats": ["rss", "json"], "content": true, "limit": 20 },
-    "sitemap": { "enabled": true, "disallow": ["/drafts/"] }
+    "sitemap": { "enabled": true, "disallow": ["/drafts/"] },
+    "theme": { "active": "acme/notebook" }
 }
 ```
 

@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Component\Layout;
 
 use Override;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 
 /**
  * Lays blocks out in columns (D-175, D-177): `:::grid{columns=3}` … `:::`.
@@ -84,5 +86,15 @@ final class Grid extends Layout
 
 		return ($gap === null ? '' : "--layout-gap: {$gap}; ")
 			. "display: grid; gap: {$space}; grid-template-columns: {$template};";
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/grid.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/grid.php'));
 	}
 }

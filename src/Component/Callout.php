@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Override;
+use Blush\Core\Framework;
 use Blush\View\Escaper;
 
 /**
@@ -62,5 +63,15 @@ final class Callout extends Component
 	protected function rootAttributes(): array
 	{
 		return ['role' => 'note'];
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/callout.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/callout.php'));
 	}
 }

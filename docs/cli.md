@@ -62,7 +62,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | Command | What it does |
 |---|---|
 | `theme:list` | List installed themes (name, label, namespace, version, parent, source), which is active, and any that are broken |
-| `theme:activate <name>` | Switch themes, by name (`theme:activate acme/notebook`) |
+| `theme:activate <name>` | Switch themes, by name (`theme:activate acme/notebook`), in `config/theme.php`; clears a theme activated in the admin |
 | `theme:new <name>` | Create a theme named `vendor/name` in `user/themes/{name}`. `--label=` titles it, `--namespace=` sets its namespace (both default from the part after `/`), and `--parent=` builds it on another theme, by name. Its `theme.json` points editors at the [schema](themes.md#autocomplete-in-your-editor). |
 | `theme:check [name]` | Check a theme's manifest, settings, components, menus and regions, and accessibility basics. `--strict` shows notices too. |
 | `theme:why <view>` | Show which file a template name uses, such as `theme:why single-post` |

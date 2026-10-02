@@ -7281,6 +7281,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-306: The Appearance screen
 - **Date:** 2026-09-30
+- **Status:** The screen's read-only rows are replaced by D-381's cards,
+  which activate a theme (saved in `user/data/settings.json`) and
+  delete theme folders.
 - **Decision:** The first of the three stubbed Config screens (D-241)
   is built. The author chose **read-only first** for all three
   (Appearance, Extensions, Settings): they show configuration and where
@@ -10543,3 +10546,191 @@ decision, add a new entry that supersedes it and mark the old one
   and the Plugins screen in headless Chrome with a throwaway
   administrator (removed after, with its session).
 - **Why:** the author asked for both.
+
+### D-381: The Themes screen from the themes sketch
+- **Date:** 2026-10-02
+- **Status:** Its theme details screen is built in D-383.
+- **Decision:** Builds the list half of the author's themes sketch
+  (`admin-design/blush-themes-screen.html`); its theme details screen
+  comes later. Amends D-306 (Activate) and D-379 (Install Theme). The
+  author chose all three of the parts the sketch needed that Blush
+  didn't have:
+  - **Activate saves in `user/data/settings.json`** (option 1 of
+    two; the other kept the screen read-only). `Setting::Theme`,
+    `theme.active`, on no Settings screen (`screen()` is `null`), lays
+    over `ThemeConfig` as every owner setting does (D-324), so D-039
+    holds: the admin still never writes `config/`. The screen saves it
+    with `PATCH settings`, which now refuses a theme that isn't
+    installed or whose chain can't be built (`422`). It counts as
+    needing a refresh, since a theme's provider runs at boot.
+    `theme:activate` clears a saved theme, so the command (a deploy's
+    way) always takes effect, and says so.
+  - **Delete is built:** `DELETE themes/{folder}`
+    (`ThemeEditController`, `site.settings`) removes a folder in
+    `user/themes` holding a theme or a broken one
+    (`Filesystem::removeDirectory()`, which removes symlinks without
+    following them), and clears the theme cache. The active theme, and
+    any theme it falls back to, are refused (`409`), which is wider than
+    the sketch's rule (the sketch only refuses the active one).
+    Composer themes and the default theme aren't folders in
+    `user/themes`, so they're never deleted. A theme that fell back to
+    the deleted one keeps naming it and can't be activated (the
+    sketch's rule: no quiet re-parenting).
+  - **Previews are drawn from a `preview` key in `theme.json`**
+    (`ThemePreview`, `PreviewLayout`): `layout` (`centered`, `sidebar`,
+    `wide`), a `type` line, and a `palette` of six roles, each a hex
+    color or a `[light, dark]` pair, kept as six-digit lowercase hex.
+    The sketch's `bg` is `background`. All six roles are required once
+    there's a palette; a malformed `preview` breaks the manifest, as
+    other keys do. A theme without a palette is sketched in the admin's
+    own quiet tokens. The default theme declares its palette (from its
+    stylesheet's `light-dark()` colors); the schema has it.
+  - **`GET appearance`** adds each theme's `folder`, `preview`, why
+    it's `blocked` (its chain's error), and whether it's `deletable`;
+    invalid themes their `deletable`; and `saved` (the active theme is
+    in `settings.json`) and `problem` (the active chain's error; the
+    screen still loads, so another theme can be activated). The nav
+    count for Themes includes broken themes, as the screen lists them.
+  - **The screen:** cards as the sketch draws them (`ThemeSketch`
+    draws the preview with container units instead of a scaled
+    1200-pixel canvas, so it needs no measuring), the active one first;
+    **Activate** asks, shows **Activating…**, and a failure says the
+    site is unchanged with **Try again**; a missing parent is a warn
+    fact and a message saying what to do; broken themes are cards with
+    no preview, titled by where they were found. The menu has
+    **Preview on the site** (development), **Copy folder path**,
+    **Copy activate command**, and **Delete theme**; with nothing in it
+    (the active default theme), it isn't shown. The bottom note says
+    where the active theme is set, with **Use `config/theme.php`'s
+    theme** when it's saved. **Install Theme** opens the sketch's modal,
+    with uploading marked as coming and **Upload** disabled (D-378).
+    Departures are in `admin-design/departures.md`.
+- **Checked:** `composer check` (1,250 tests; `AdminAppearanceTest`:
+  the new fields, activating over the config, refusals, deleting, and
+  the themes the site uses kept; `ThemePreviewTest`; `FilesystemTest`
+  for links; `ThemeCommandsTest` for clearing the saved theme);
+  `npm run admin:build`; on the jtcom trial (whose theme now declares a
+  preview) in headless Chrome with a throwaway administrator and three
+  throwaway themes (a sidebar layout, a missing parent, a broken
+  manifest): light and dark, phone width, the menu, the confirmations,
+  activating, **Use `config/theme.php`'s theme**, deleting, and the
+  install modal (all removed after, with the sessions).
+- **Why:** the author asked for the sketch's primary screen, and chose
+  settings.json, building Delete, and a `preview` key.
+
+### D-382: Components render themselves
+- **Date:** 2026-10-02
+- **Decision:** Every component class has a `render()` (abstract on
+  `Component`), its own markup, used when no template for it is in the
+  theme chain (or the site's views). The author's idea, as proposed:
+  required of classes, not of template-only components.
+  - **What it returns:** a string of HTML (printed as is, so the class
+    escapes it); a `ComponentView` (`$this->view($path, ...$data)`), a
+    template file it ships, by absolute path, rendered as a chain
+    template is (`$template`, `$component`, the data; the view name
+    stays `components/{key}`, so context providers still apply); or
+    `null`, no markup of its own (`TemplateComponent`'s, and a class
+    whose template is only a theme's).
+  - **Order:** a variant's template, then `template()` or
+    `components/{key}`, in the chain, nearest first; then `render()`;
+    then, for `null`, `ViewNotFound` as before.
+  - **Core components:** each class's `render()` returns its file in
+    `resources/components/`, the templates moved out of the default
+    theme (which has no `components/` folder now). A theme still
+    overrides one by name. The menu's and table of contents' nested
+    lists are drawn inside their templates (`menu.php`, `toc.php`) by a
+    recursive closure, each level in its own scope, since a file outside
+    the chain can't be included by view name. The author chose one file
+    each over separate list files: the lists can't be overridden on
+    their own any more (the `components/toc/list` and
+    `components/menu/list` partials are gone), so a theme overrides the
+    whole component.
+  - **Listings:** `ComponentListing::rendersItself()` is true when the
+    class's `render()` can't return `null` (its declared return type),
+    and such a component is never missing a template, for
+    `component:list` (whose Template column says `(its own)`) and
+    `theme:check`.
+  - **Themes outside the chain:** amends D-381's fix. A directive for a
+    component in the namespace of an installed theme outside the chain
+    (the active one's, while another is previewed with `?theme=`) renders
+    with `render()`; one that can't render (`ViewNotFound`) is plain
+    content, as an unknown directive is. The jtcom trial's
+    `PostArchives` and `EntryTerms` return their theme template files,
+    so the archives render while Default is previewed.
+  - D-174 (plugin views in the chain) stays on hold; a plugin's
+    components render themselves meanwhile.
+- **Checked:** `composer check`; `ComponentsTest` (a string `render()`, a
+  core component from its own file, a chain template winning, listings,
+  and an outside theme's component rendering itself or nothing);
+  existing menu and table of contents tests for nesting; on the jtcom
+  trial, the home and archive pages, and the archives with
+  `?theme=blush/default`.
+- **Why:** the author asked for it, so a component renders wherever its
+  content is, with themes overriding a default instead of having to
+  supply every template.
+
+### D-383: A theme's details screen
+- **Date:** 2026-10-02
+- **Status:** Its Author row is added in D-384.
+- **Decision:** Builds the themes sketch's detail screen, which D-381
+  left for later, at `/themes/{vendor}/{name}` (`ThemeView`, route
+  `theme`, under Themes in the trail and the panel). It reads `GET
+  appearance`, so no new API.
+  - **The screen:** the back link, the theme's label and description,
+    and its action (**Active** and **View site**; **Can't activate**;
+    or **Activate {label}**, with a failure said under the header, as
+    on the cards). A Preview panel with two sketches pinned to light and
+    dark (`ThemeSketch`'s `scheme`), the blocked reason above them; a
+    Details panel (name, version, who installed it, folder with a copy
+    button, namespace, type, the theme it falls back to, and the themes
+    that fall back to it, each linked); a Palette panel of swatches,
+    each inked in whichever of the theme's text or background colors
+    contrasts more (WCAG luminance), and one **Light and dark** group
+    when the halves match; then the delete zone, the Composer note, or
+    why a theme the site uses can't be deleted. Deleting goes back to
+    the list.
+  - **On the list:** a card's label and its fallback link to details,
+    and the menu has **Theme details** first, so it's never empty.
+  - **Shared code:** loading, activating, deleting, and the blocked
+    message moved to `themes.ts` (`useThemes()`), used by both screens.
+  - Broken themes have no details screen (they have no name), and
+    departures are in `admin-design/departures.md`.
+- **Checked:** `npm run admin:build`; on the jtcom trial in headless
+  Chrome with a throwaway administrator and three throwaway themes: a
+  palette theme with a child, a theme with a missing parent and no
+  palette, the active jtcom theme (one palette group), an unknown name,
+  dark mode, phone width, and the flows (a card's link, activating from
+  details, the parent's in-use note, **Use `config/theme.php`'s
+  theme**, deleting back to the list), all removed after, with the
+  sessions.
+- **Why:** the author asked for the sketch's detail view.
+
+### D-384: Themes list their authors, as composer.json does
+- **Date:** 2026-10-02
+- **Decision:** `theme.json` takes `authors`, in `composer.json`'s shape
+  (the author's call): a list of objects, each with a `name`, and an
+  optional `email`, `homepage`, and `role`.
+  - **`ExtensionAuthor`** (in `Blush\Extension`, so plugins and icon
+    packs can take it up later) reads an entry strictly: unknown keys, a
+    missing or empty name, a bad email, or a homepage that isn't an
+    `http`/`https` URL break the manifest, as other keys do.
+  - **The fallback:** a manifest without `authors` takes them from the
+    `composer.json` in its folder (a Composer package's, or a
+    `user/themes` theme kept as a package), read leniently: entries that
+    don't fit are skipped, and an unreadable file is no authors, since
+    it isn't the manifest. `ThemeDiscovery` fills them into the
+    manifest's data, so the theme cache keeps them. A manifest's own
+    `authors`, even `[]`, wins.
+  - The schema has `authors`; `GET appearance` gives each theme's
+    `authors` (empty values left out); a theme's details screen has an
+    Author (or Authors) row: each name, linked to their homepage, their
+    role, and an email link. The default theme lists its author.
+  - Plugins and icon packs don't have `authors` yet.
+- **Checked:** `composer check` (`ExtensionAuthorTest`; `ThemesTest`
+  for broken `authors`; `AdminAppearanceTest` for a manifest's own and
+  `composer.json`'s); `npm run admin:build`; the default theme's details
+  on the jtcom trial in headless Chrome with a throwaway administrator
+  (removed after, with its sessions). The trial's theme lists its
+  author too.
+- **Why:** the author asked for it, matching composer.json so a theme
+  that's also a package says it once.

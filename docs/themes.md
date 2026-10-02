@@ -34,6 +34,11 @@ is set in `config/theme.php`, which `theme:activate` writes for you:
 return new ThemeConfig(active: 'acme/notebook');
 ```
 
+A theme activated in the admin's [Themes screen](admin.md#themes) is
+saved in `user/data/settings.json` instead, and wins over
+`config/theme.php`. `theme:activate` clears that saved theme, so the
+command always takes effect.
+
 A theme whose manifest is broken is listed by `theme:list` (and the
 admin's Themes screen) by where it was found, such as
 `user/themes/notebook`, with the reason.
@@ -167,11 +172,26 @@ user/themes/notebook/
 	"namespace": "notebook",
 	"version": "1.0.0",
 	"description": "A theme for writers.",
+	"authors": [
+		{ "name": "Jane Doe", "email": "jane@example.com", "homepage": "https://example.com", "role": "Designer" }
+	],
 	"parent": "blush/default",
 	"styles": ["style.css"],
 	"scripts": ["app.js"],
 	"menus": { "primary": "Primary", "social": "Social" },
 	"regions": { "sidebar": "Sidebar" },
+	"preview": {
+		"layout": "centered",
+		"type": "Serif headings · sans body",
+		"palette": {
+			"background": ["#fdfcfb", "#141312"],
+			"surface": ["#f3f1ee", "#1f1d1b"],
+			"text": ["#1d1b19", "#ece9e5"],
+			"muted": ["#5c5752", "#aaa39c"],
+			"accent": ["#a3285b", "#f08bb4"],
+			"border": ["#dcd8d3", "#3a3633"]
+		}
+	},
 	"settings": {
 		"showDate": {
 			"type": "bool",
@@ -195,6 +215,12 @@ user/themes/notebook/
   installed extensions (plugins, themes, icon packs) may share one: two
   themes that do are both broken, and a theme whose namespace a plugin
   has is broken too.
+- **`authors`:** who made the theme, in the same shape as
+  `composer.json`'s `authors`: each has a `name`, and may have an
+  `email`, a `homepage` (an `http` or `https` address), and a `role`.
+  Leave it out and the authors in the `composer.json` beside
+  `theme.json` are used, so a theme that's also a Composer package lists
+  them once. The admin shows them on the theme's details.
 - **`parent`:** the name of the theme this one builds on, instead of
   starting from the default. Anything this theme doesn't include comes
   from its parent.
@@ -212,6 +238,30 @@ user/themes/notebook/
   such as `{"callout": ["bordered"]}`. See
   [Variants](components.md#variants). Under `image`, the classes it
   offers images; see [Image variants](#image-variants).
+- **`preview`:** what the admin's Themes screen draws your theme's
+  preview from; see [The admin's preview](#the-admins-preview).
+
+#### The admin's preview
+
+The admin's Themes screen shows each theme as a small sketch of a page,
+drawn from colors the theme declares rather than a screenshot, so it
+never goes stale. Give it a `preview`:
+
+- **`layout`:** the page's shape: `centered` (one column, the default),
+  `sidebar` (text beside a sidebar), or `wide` (a wide banner over a row
+  of cards).
+- **`type`:** a short line about your type, such as `Serif headings ·
+  sans body`. It's shown as text; the admin doesn't load your fonts.
+- **`palette`:** six colors: `background`, `surface` (cards and the
+  header), `text`, `muted` (secondary text), `accent` (links and
+  buttons), and `border`. Each is a hex color, or a `["light", "dark"]`
+  pair; one color is used for both. All six are needed. The sketch
+  shows the light colors when the admin is light and the dark ones when
+  it's dark.
+
+A theme without a `preview`, or without a `palette`, is sketched in the
+admin's own gray. A `preview` that doesn't fit these rules makes the
+manifest broken, like any other key.
 
 #### Autocomplete in your editor
 

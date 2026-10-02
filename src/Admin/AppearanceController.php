@@ -20,33 +20,47 @@ use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
+use Blush\Extension\ExtensionAuthor;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Settings\InvalidSetting;
+use Blush\Settings\Setting;
+use Blush\Settings\SettingsFile;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
-use Blush\Theme\ThemeResolver;
+use Blush\Theme\ThemeSource;
 use Blush\Theme\Themes;
 
 /**
- * Answers `GET {path}/api/appearance` (D-306), for accounts with
+ * Answers `GET {path}/api/appearance` (D-306, D-381), for accounts with
  * `site.settings`: the `active` theme's name, its `chain` (the theme,
- * its ancestors, then the default theme, by name), whether
- * `config/theme.php` exists (`config`), whether `?theme=` previews work
- * (`preview`, in development only), every installed theme (`name`,
- * `label`, `namespace`, `version`, `description`, `parent`, `source`,
- * and whether it's `active`; D-378), and the `invalid` ones, by `where`
- * they were found, with the reason.
+ * its ancestors, then the default theme, by name; empty, with the
+ * `problem`, when it can't be built), whether `config/theme.php` exists
+ * (`config`), whether the active theme is `saved` in
+ * `user/data/settings.json` (over `config/theme.php`), whether
+ * `?theme=` previews work (`preview`, in development only), every
+ * installed theme, and the `invalid` ones.
  *
- * The active theme is developer configuration (`config/theme.php`,
- * D-039), so the screen only shows it; `theme:activate` changes it.
+ * Each theme has its `name`, `label`, `namespace`, `version`,
+ * `description`, `parent`, `source`, and whether it's `active` (D-378);
+ * its `folder` (where it's installed, `null` for the default theme);
+ * its `authors` (D-384, `composer.json`'s shape);
+ * its `preview` (what the admin sketches it from, or `null`); why it's
+ * `blocked` from being activated (a theme it falls back to is missing,
+ * or `null`); and whether it's `deletable` (a folder in `user/themes`
+ * the active theme doesn't use). Each invalid theme has `where` it was
+ * found, the `reason`, and whether it's `deletable`.
+ *
+ * The Themes screen activates a theme with `PATCH settings`
+ * (`theme.active`), and deletes one with `DELETE themes/{folder}`.
  */
 final readonly class AppearanceController
 {
 	public function __construct(
 		private Themes $themes,
 		private ThemeConfig $config,
-		private ThemeResolver $resolver,
+		private SettingsFile $settings,
 		private AppConfig $app,
 		private Paths $paths,
 		private Permissions $permissions
@@ -60,10 +74,20 @@ final readonly class AppearanceController
 			return self::error('You aren\'t allowed to see the site\'s appearance.', Status::Forbidden);
 		}
 
+		$active  = $this->config->active;
+		$chain   = [];
+		$problem = null;
+
 		try {
-			$chain = $this->resolver->active();
+			$chain = $this->themes->chain($active)->names();
 		} catch (ThemeException $error) {
-			return self::error($error->getMessage(), Status::InternalServerError);
+			$problem = $error->getMessage();
+		}
+
+		try {
+			$saved = $this->settings->read()->has(Setting::Theme);
+		} catch (InvalidSetting) {
+			$saved = false;
 		}
 
 		$themes = array_values(array_map(fn (ThemeManifest $theme): array => [
@@ -74,26 +98,53 @@ final readonly class AppearanceController
 			'description' => $theme->description,
 			'parent'      => $theme->parent,
 			'source'      => $theme->source->value,
-			'active'      => $theme->name === $this->config->active
+			'active'      => $theme->name === $active,
+			'folder'      => $theme->source === ThemeSource::Framework ? null : $this->paths->relative($theme->path),
+			'preview'     => $theme->preview?->toArray(),
+			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $theme->authors),
+			'blocked'     => $this->blocked($theme),
+			'deletable'   => $theme->source === ThemeSource::Local && $theme->name !== $active && ! in_array($theme->name, $chain, true)
 		], $this->themes->all()));
 
 		// The active theme first, then by label.
 		usort($themes, static fn (array $a, array $b): int => [! $a['active'], $a['label']] <=> [! $b['active'], $b['label']]);
 
+		$local   = $this->paths->relative($this->paths->themes) . '/';
 		$invalid = [];
 
 		foreach ($this->themes->invalid() as $where => $reason) {
-			$invalid[] = ['where' => $where, 'reason' => $reason];
+			$invalid[] = [
+				'where'     => $where,
+				'reason'    => $reason,
+				'deletable' => str_starts_with($where, $local) && ! str_contains(substr($where, strlen($local)), '/') && is_dir("{$this->paths->themes}/" . substr($where, strlen($local)))
+			];
 		}
 
 		return Response::json([
-			'active'  => $chain->active()->name,
-			'chain'   => $chain->names(),
+			'active'  => $active,
+			'chain'   => $chain,
+			'problem' => $problem,
 			'config'  => is_file("{$this->paths->config}/theme.php"),
+			'saved'   => $saved,
 			'preview' => $this->app->environment->isDevelopment(),
 			'themes'  => $themes,
 			'invalid' => $invalid
 		], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Why a theme can't be activated: a theme it falls back to is
+	 * missing or broken, or its parents loop.
+	 */
+	private function blocked(ThemeManifest $theme): ?string
+	{
+		try {
+			$this->themes->chain($theme->name);
+		} catch (ThemeException $error) {
+			return $error->getMessage();
+		}
+
+		return null;
 	}
 
 	private static function error(string $message, Status $status): ResponseInterface

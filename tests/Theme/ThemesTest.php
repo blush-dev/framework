@@ -187,6 +187,8 @@ final class ThemesTest extends TestCase
 			"{{$x}, \"version\": 2}"                   => '"version" must be a string',
 			"{{$x}, \"bleed\": {\"wide\": \"a b\"}}"  => '"bleed" must map',
 			"{{$x}, \"bleed\": {\"huge\": \"x\"}}"    => '"bleed" must map',
+			"{{$x}, \"authors\": [{\"email\": \"a@b.c\"}]}" => 'needs a "name"',
+			"{{$x}, \"authors\": {\"name\": \"Jane\"}}" => '"authors" must be a list',
 			'{"name": "blush/default", "label": "X", "namespace": "bad"}' => 'framework default theme',
 			'{broken'                                   => 'theme.json is invalid'
 		];

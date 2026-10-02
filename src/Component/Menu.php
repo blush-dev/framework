@@ -15,6 +15,7 @@ namespace Blush\Component;
 
 use Override;
 use Blush\Core\AppConfig;
+use Blush\Core\Framework;
 use Blush\Menu\Menu as SiteMenu;
 use Blush\Menu\MenuItem;
 use Blush\Menu\Menus;
@@ -206,5 +207,15 @@ final class Menu extends Component
 		$base = $this->id !== '' ? $this->id : 'menu-' . ($this->menu()->location ?? 'nav');
 
 		return "{$base}-{$trail}";
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/menu.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/menu.php'));
 	}
 }

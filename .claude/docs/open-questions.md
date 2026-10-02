@@ -244,7 +244,7 @@ Move each item to `decisions.md` once it's answered.
     component or view in a region is caught only in the log.
   - The default theme ships no script for submenu toggles (they stay
     `hidden`, and submenus stay open); decide whether it should.
-  - The default `components/menu/list.php` leaves template whitespace
+  - The core `resources/components/menu.php`'s list (D-382) leaves template whitespace
     inside each link; tighten it if it causes spacing issues.
   - A `menu` in an entry body (`::menu`) renders once for every page, so
     nothing is marked current there.

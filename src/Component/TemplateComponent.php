@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Component;
 
+use Override;
+
 /**
  * The `$component` of a component with no class of its own (D-195): its
  * template reads its props with `$component->prop('size', 'small')` and
@@ -21,4 +23,12 @@ namespace Blush\Component;
  */
 final class TemplateComponent extends Component
 {
+	/**
+	 * It has no markup of its own: its template is all it has.
+	 */
+	#[Override]
+	public function render(): null
+	{
+		return null;
+	}
 }

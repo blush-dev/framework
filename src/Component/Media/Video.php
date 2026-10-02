@@ -15,12 +15,14 @@ namespace Blush\Component\Media;
 
 use Locale;
 use Override;
-use Blush\Core\AppConfig;
-use Blush\Media\MediaResolver;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
 use Blush\Component\MediaProp;
+use Blush\Core\AppConfig;
+use Blush\Core\Framework;
 use Blush\Media\MediaKind;
+use Blush\Media\MediaResolver;
 
 /**
  * Plays a video file with the browser's controls (D-175, D-179):
@@ -130,5 +132,15 @@ final class Video extends Component
 			'label'   => $this->t('media.captions'),
 			'default' => true
 		]);
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/video.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/video.php'));
 	}
 }

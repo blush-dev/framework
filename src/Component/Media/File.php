@@ -15,11 +15,13 @@ namespace Blush\Component\Media;
 
 use NumberFormatter;
 use Override;
-use Blush\Core\AppConfig;
-use Blush\Media\MediaResolver;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
 use Blush\Component\MediaProp;
+use Blush\Core\AppConfig;
+use Blush\Core\Framework;
+use Blush\Media\MediaResolver;
 
 /**
  * A download link for a file (D-175, D-179):
@@ -117,5 +119,15 @@ final class File extends Component
 		$formatter->setAttribute(NumberFormatter::MAX_FRACTION_DIGITS, $unit === 0 ? 0 : 1);
 
 		return ($formatter->format($amount) ?: (string) round($amount, 1)) . ' ' . $units[$unit];
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/file.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/file.php'));
 	}
 }

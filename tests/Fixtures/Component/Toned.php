@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Fixtures\Component;
 
+use Override;
 use Blush\Content\ContentRepository;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
@@ -38,5 +39,14 @@ final class Toned extends Component
 	public function internal(): string
 	{
 		return $this->internal;
+	}
+
+	/**
+	 * No markup of its own: its template is a theme's.
+	 */
+	#[Override]
+	public function render(): null
+	{
+		return null;
 	}
 }

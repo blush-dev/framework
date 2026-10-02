@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Component\Layout;
 
 use Override;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 
 /**
  * Puts blocks one above another with an even space between them
@@ -71,5 +73,15 @@ final class Stack extends Layout
 			. 'display: flex; flex-direction: column; '
 			. 'gap: var(--layout-gap, ' . self::GAP . '); '
 			. "align-items: {$this->align->css()};";
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/stack.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/stack.php'));
 	}
 }

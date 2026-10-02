@@ -27,6 +27,8 @@ use Blush\Field\Schema;
 use Blush\Media\MediaSchemas;
 use Blush\Menu\Link\MenuLinkType;
 use Blush\Region\Item\RegionItemType;
+use Blush\Theme\PreviewLayout;
+use Blush\Theme\ThemePreview;
 use Blush\Translation\LocaleMap;
 
 /**
@@ -133,6 +135,7 @@ final readonly class JsonSchemas
 				...$this->identity('theme'),
 				'version'     => ['type' => 'string', 'description' => 'The theme\'s version, such as 1.0.0.'],
 				'description' => ['type' => 'string', 'description' => 'What the theme is for.'],
+				'authors'     => $this->authors('theme'),
 				'parent'      => [
 					'type'        => 'string',
 					'pattern'     => trim(ExtensionName::PATTERN, '#'),
@@ -176,6 +179,7 @@ final readonly class JsonSchemas
 						'items'       => ['$ref' => '#/definitions/regionItem']
 					]
 				]),
+				'preview'     => $this->themePreview(),
 				'bleed'       => [
 					'type'                 => 'object',
 					'description'          => 'The classes the admin\'s editor writes to widen an element past the text column (D-313): "wide" into the margin, "full" edge to edge. Each defaults to "bleed-wide" and "bleed-full"; the theme styles them.',
@@ -647,6 +651,73 @@ final readonly class JsonSchemas
 			'type'                 => 'object',
 			'description'          => $description,
 			'additionalProperties' => ['type' => 'string']
+		];
+	}
+
+	/**
+	 * Returns the schema for a theme manifest's `preview` (D-381).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function themePreview(): array
+	{
+		$color = [
+			'oneOf' => [
+				['type' => 'string', 'pattern' => ThemePreview::COLOR, 'description' => 'One hex color for both the light and dark palettes.'],
+				[
+					'type'        => 'array',
+					'items'       => ['type' => 'string', 'pattern' => ThemePreview::COLOR],
+					'minItems'    => 2,
+					'maxItems'    => 2,
+					'description' => 'The light palette\'s color, then the dark one\'s.'
+				]
+			]
+		];
+
+		return [
+			'type'                 => 'object',
+			'description'          => 'What the admin\'s Themes screen sketches the theme\'s preview from, instead of a screenshot.',
+			'additionalProperties' => false,
+			'properties'           => [
+				'layout'  => [
+					'enum'        => array_column(PreviewLayout::cases(), 'value'),
+					'default'     => PreviewLayout::Centered->value,
+					'description' => 'The page shape: "centered" (one column), "sidebar" (text beside a sidebar), or "wide" (a hero over a row of cards).'
+				],
+				'type'    => ['type' => 'string', 'description' => 'A line about the theme\'s type, such as "Serif headings · sans body". The admin shows it in its own font.'],
+				'palette' => [
+					'type'                 => 'object',
+					'description'          => 'The theme\'s colors, each a hex color or a [light, dark] pair.',
+					'required'             => ThemePreview::ROLES,
+					'additionalProperties' => false,
+					'properties'           => array_fill_keys(ThemePreview::ROLES, $color)
+				]
+			]
+		];
+	}
+
+	/**
+	 * Returns the schema for a manifest's `authors` (D-384), in
+	 * `composer.json`'s shape.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function authors(string $kind): array
+	{
+		return [
+			'type'        => 'array',
+			'description' => sprintf('Who made the %s, as composer.json lists authors. Without it, the authors in the composer.json beside this file are used.', $kind),
+			'items'       => [
+				'type'                 => 'object',
+				'required'             => ['name'],
+				'additionalProperties' => false,
+				'properties'           => [
+					'name'     => ['type' => 'string', 'minLength' => 1, 'description' => 'Their name.'],
+					'email'    => ['type' => 'string', 'format' => 'email', 'description' => 'Their email address.'],
+					'homepage' => ['type' => 'string', 'format' => 'uri', 'pattern' => '^https?://', 'description' => 'Their website.'],
+					'role'     => ['type' => 'string', 'description' => 'What they did, such as "Developer" or "Designer".']
+				]
+			]
 		];
 	}
 }

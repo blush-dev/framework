@@ -16,6 +16,8 @@ namespace Blush\Component\Media;
 use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 
 /**
  * Its content (usually images) in up to 1 to 6 columns (D-113, D-195,
@@ -71,5 +73,15 @@ final class Gallery extends Component
 	protected function rootAttributes(): array
 	{
 		return ['style' => "--gallery-columns: {$this->columns}"];
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/gallery.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/gallery.php'));
 	}
 }

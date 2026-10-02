@@ -453,7 +453,9 @@ of whoever added it (see [Labels and translations](#labels-and-translations)).
 ## Making a component
 
 A component is a PHP class for its props and logic, plus a template that
-draws it. (A component can also be [just a template](#a-template-only-component).)
+draws it. Every class draws itself by default with its `render()`
+method, and a theme draws it its own way with a template. (A component
+can also be [just a template](#a-template-only-component).)
 
 ### The class
 
@@ -472,6 +474,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Order;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
 
 final class RecentPosts extends Component
 {
@@ -499,6 +502,14 @@ final class RecentPosts extends Component
 		return $this->content->query()->type('post')
 			->orderBy('published', Order::Desc)->limit($this->limit)->get();
 	}
+
+	/**
+	 * Draws it when the theme has no template for it.
+	 */
+	public function render(): ComponentView
+	{
+		return $this->view(dirname(__DIR__, 2) . '/resources/views/components/app-recent-posts.php');
+	}
 }
 ```
 
@@ -516,6 +527,8 @@ final class RecentPosts extends Component
   `->content()` or `label:`.
 - **Methods do the work**, such as `posts()` above, so the template doesn't
   have to.
+- **`render()`** is required: the component's own markup. See
+  [Rendering itself](#rendering-itself).
 - **`shouldRender()`** returns `false` to draw nothing.
 - **`template()`** returns another view to draw with, instead of
   `components/{namespace}-{name}`.
@@ -565,6 +578,36 @@ public function boot(): void
 	$this->container->get(ComponentRegistry::class)->register('app/recent-posts', View\RecentPosts::class);
 }
 ```
+
+### Rendering itself
+
+Every component class has a `render()` method, which draws it when no
+theme in use (and not your site) has a template for it. It returns one
+of three things:
+
+- **A template file it ships with**, `$this->view($path)`, with any more
+  variables as named arguments: `$this->view($path, columns: 2)`. The
+  file is drawn like a theme's template, with `$template` and
+  `$component`.
+- **Its HTML, as a string.** Nothing escapes it for you, so build it
+  with `$this->attributes()`, `self::html([...])`, and
+  `Blush\View\Escaper`:
+
+  ```php
+  public function render(): string
+  {
+  	return '<span ' . $this->attributes() . '>' . Escaper::html($this->text) . '</span>';
+  }
+  ```
+- **`null`**, when it has no markup of its own and a theme must give it a
+  template. Declare the return type as `null` (or a nullable type), and
+  `theme:check` warns when no template is found.
+
+A template in the theme chain or your site's `views/components/` always
+wins, so themes restyle a component without touching its class. This is
+how a component keeps working everywhere: a plugin's component in any
+theme, and a theme's components in its content while another theme is
+previewed with `?theme=`.
 
 ### The template
 
@@ -632,19 +675,21 @@ the rest of a theme's classes.
 
 To change how a built-in component looks, add your own template with its
 name, `views/components/callout.php` or `views/components/blush-callout.php`.
-Yours wins. The built-in components' classes are in `Blush\Component`, so
-your template gets the same `$component`: see the default theme's
-templates in `resources/themes/default/views/components/` for what each one
-uses.
+Yours wins. The built-in components draw themselves with Blush's own
+templates, in `resources/components/` (the class's `render()`), and
+your template gets the same `$component` (their classes are in
+`Blush\Component`): start from Blush's file for the one you're
+changing.
 
 A file in `views/components/` that isn't named for a component (such as a
 theme's `badge.php` instead of `notebook-badge.php`) is never drawn;
 `component:list` and `theme:check` point it out. Files in subfolders of
-`components/` aren't components, so you can keep partials there (the
-default theme's `toc` draws its nested lists with
-`components/toc/list.php`).
+`components/` aren't components, so you can keep partials there.
+Blush's `menu` and `toc` draw their nested lists inside their own
+template, so to change the lists, override the whole component.
 
-`theme:check` warns about a registered class with no template.
+`theme:check` warns about a registered class with no template and no
+markup of its own.
 
 ### A template-only component
 
@@ -749,8 +794,10 @@ components, and the variants in its `theme.json`, that have no label.
 | Your site's `resources/views/components/` (and classes in `src/`, registered by your provider) | With every theme. See [Extending Blush](extending.md).                           |
 
 Your site's files come first, then the active theme's, then its parents',
-then the default theme's. `bin/blush theme:why components/callout` shows
-which file is used and what it overrides.
+then the default theme's, and last the component's own `render()`.
+`bin/blush theme:why components/callout` shows which file is used and
+what it overrides; `component:list` says `(its own)` for a component
+that no file overrides.
 
 Put a component in a theme when it's part of that theme's design (in the
 theme's namespace), and in your site when your content depends on it (in

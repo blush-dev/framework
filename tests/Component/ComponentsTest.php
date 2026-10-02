@@ -28,6 +28,7 @@ use Blush\Tests\Fixtures\Embed\FixtureFetcher;
 use Blush\Tests\Fixtures\Component\Card;
 use Blush\Tests\Fixtures\View\Greeting;
 use Blush\Tests\Fixtures\Component\Orphan;
+use Blush\Tests\Fixtures\Component\Stamp;
 use Blush\Tests\Fixtures\Component\Tone;
 use Blush\Tests\Fixtures\Component\Toned;
 use Blush\Support\RegistrationException;
@@ -227,10 +228,13 @@ final class ComponentsTest extends TestCase
 		$this->assertSame(Callout::class, $components['blush/callout']->className());
 		$this->assertTrue($components['blush/callout']->isRegistered());
 		$this->assertFalse($components['app/box']->isRegistered());
-		$this->assertCount(2, $components['blush/callout']->files);
+		$this->assertCount(1, $components['blush/callout']->files, 'Only the site\'s: core components render themselves (D-382).');
 		$this->assertStringEndsWith('resources/views/components/callout.php', (string) $components['blush/callout']->file());
 		$this->assertStringEndsWith('resources/views/components/blush-gallery.php', (string) $components['blush/gallery']->file());
-		$this->assertStringEndsWith('themes/default/views/components/gallery.php', $components['blush/gallery']->files[1]);
+		$this->assertSame([], $components['blush/meter']->files);
+		$this->assertTrue($components['blush/meter']->rendersItself());
+		$this->assertFalse($components['blush/meter']->isMissingTemplate());
+		$this->assertFalse($components['app/orphan']->rendersItself(), 'Its render() can return null.');
 		$this->assertNull($components['app/card']->file());
 
 		// Text comes from the namespace's catalog, or is made from the name.
@@ -458,5 +462,51 @@ final class ComponentsTest extends TestCase
 		$kernel = $this->app->container()->make(Kernel::class);
 
 		$this->assertStringContainsString('alt callout: <p>Hi</p>', (string) $kernel->handle(Request::create('/?theme=acme/alt'))->getBody());
+	}
+
+	public function testComponentsOfThemesOutsideTheChainRenderThemselvesOrNothing(): void
+	{
+		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'nova badge');
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\nBefore\n\n::nova/badge\n\n::nova/stamp{text=Stamped}\n\nAfter\n");
+
+		$this->boot('development');
+
+		// As the active theme's provider would.
+		$registry = $this->app->container()->make(ComponentRegistry::class);
+		$registry->register('nova/badge');
+		$registry->register('nova/stamp', Stamp::class);
+
+		$kernel = $this->app->container()->make(Kernel::class);
+
+		$this->assertStringContainsString('nova badge', (string) $kernel->handle(Request::create('/'))->getBody());
+
+		$preview = $kernel->handle(Request::create('/?theme=blush/default'));
+		$body    = (string) $preview->getBody();
+
+		$this->assertSame(200, $preview->getStatusCode(), $body);
+		$this->assertStringContainsString('After', $body);
+		$this->assertStringNotContainsString('nova badge', $body, 'The previewed chain doesn\'t have Nova\'s template.');
+		$this->assertStringContainsString('<span class="component-stamp">Stamped</span>', $body, 'A component with markup of its own still renders (D-382).');
+	}
+
+	public function testComponentsRenderThemselvesUnlessTheChainHasATemplate(): void
+	{
+		$views    = $this->boot();
+		$registry = $this->app->container()->make(ComponentRegistry::class);
+		$registry->register('app/stamp', Stamp::class);
+
+		$this->assertSame('<span class="component-stamp">Paid &amp; done</span>', $views->component('app/stamp', ['text' => 'Paid & done'], '', new Slots(), new ViewContext()));
+		$this->assertStringContainsString('<aside class="component-callout"', $views->component('callout', [], '<p>Hi</p>', new Slots(), new ViewContext()), 'A core component renders the framework\'s template.');
+
+		$this->view('components/app-stamp', 'site stamp: <?= e($component->text) ?>');
+		$this->view('components/callout', 'site callout');
+
+		$views = $this->boot();
+		$this->app->container()->make(ComponentRegistry::class)->register('app/stamp', Stamp::class);
+
+		$this->assertSame('site stamp: Paid', $views->component('app/stamp', ['text' => 'Paid'], '', new Slots(), new ViewContext()), 'A template in the chain wins.');
+		$this->assertSame('site callout', $views->component('callout', [], '', new Slots(), new ViewContext()));
 	}
 }

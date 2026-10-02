@@ -4,8 +4,27 @@
 	"label": "Default",
 	"namespace": "default",
 	"version": "1.0.0",
+	"authors": [
+		{
+			"name": "Justin Tadlock",
+			"homepage": "https://justintadlock.com",
+			"role": "Developer"
+		}
+	],
 	"description": "The Blush framework default theme: plain, accessible, modern CSS with no build step. Every theme falls back to it.",
 	"styles": ["style.css"],
+	"preview": {
+		"layout": "centered",
+		"type": "System sans throughout",
+		"palette": {
+			"background": ["#fdfcfb", "#141312"],
+			"surface": ["#f3f1ee", "#1f1d1b"],
+			"text": ["#1d1b19", "#ece9e5"],
+			"muted": ["#5c5752", "#aaa39c"],
+			"accent": ["#a3285b", "#f08bb4"],
+			"border": ["#dcd8d3", "#3a3633"]
+		}
+	},
 	"menus": {
 		"primary": "Primary"
 	},

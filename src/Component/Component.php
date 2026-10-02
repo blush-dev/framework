@@ -23,6 +23,12 @@ use Blush\View\ViewContext;
  * gets the component as `$component`, so its props and computed values
  * are `$component->label` and `$component->heading()`.
  *
+ * Every component class renders itself by default (D-382): `render()`
+ * returns its HTML, or the template file it ships with (`view()`), or
+ * `null` when it has no markup of its own and needs a theme's template.
+ * A template in the theme chain (or the site's views) wins over it, so
+ * themes restyle a component by giving it a template.
+ *
  * ```php
  * final class Card extends Component
  * {
@@ -30,6 +36,11 @@ use Blush\View\ViewContext;
  *         public readonly string $title,
  *         public readonly int $columns = 2
  *     ) {}
+ *
+ *     public function render(): ComponentView
+ *     {
+ *         return $this->view(__DIR__ . '/views/card.php');
+ *     }
  * }
  * ```
  *
@@ -206,6 +217,15 @@ abstract class Component
 	}
 
 	/**
+	 * Returns the component's own markup, used when the theme chain has
+	 * no template for it: its HTML, the template file it ships with
+	 * (`view()`), or `null` when it has none and needs a theme's
+	 * template. A string is printed as it is, so escape what goes in it
+	 * (`attributes()` and `html()` do).
+	 */
+	abstract public function render(): string|ComponentView|null;
+
+	/**
 	 * Returns whether the component renders anything at all.
 	 */
 	public function shouldRender(): bool
@@ -298,6 +318,17 @@ abstract class Component
 		}
 
 		return implode(' ', $html);
+	}
+
+	/**
+	 * Returns a template file the component ships with, for `render()`.
+	 *
+	 * @param string $file The template's absolute path.
+	 */
+	protected function view(string $file, mixed ...$data): ComponentView
+	{
+		/** @var array<string, mixed> $data */
+		return new ComponentView($file, $data);
 	}
 
 	/**

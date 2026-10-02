@@ -13,8 +13,11 @@ declare(strict_types=1);
 
 namespace Blush\Component\Inline;
 
+use Override;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
+use Blush\Component\ComponentView;
+use Blush\Core\Framework;
 
 /**
  * A short label set off from the text, such as "New" or "Beta" (D-305):
@@ -43,5 +46,15 @@ final class Badge extends Component
 	public function text(): string
 	{
 		return $this->contentOr($this->label);
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/badge.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/badge.php'));
 	}
 }

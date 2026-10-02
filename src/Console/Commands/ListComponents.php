@@ -75,7 +75,11 @@ final readonly class ListComponents
 				$component->isRegistered() ? 'yes' : '',
 				$component->className() ?? '',
 				implode(', ', array_map(static fn (Variant $variant): string => $variant->name, $component->variants)),
-				$file === null ? '(none)' : $this->paths->relative($file)
+				match (true) {
+					$file !== null              => $this->paths->relative($file),
+					$component->rendersItself() => '(its own)',
+					default                     => '(none)'
+				}
 			];
 		}
 

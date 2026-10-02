@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Override;
+use Blush\Core\Framework;
 use Blush\Embed\Embeds;
 use Blush\View\Escaper;
 
@@ -208,5 +209,15 @@ final class Embed extends Component
 		}
 
 		return $this->portrait ? [$this->provider, 'portrait'] : [$this->provider];
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/embed.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/embed.php'));
 	}
 }

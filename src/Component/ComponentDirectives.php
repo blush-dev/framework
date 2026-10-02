@@ -24,7 +24,9 @@ use Blush\Markdown\DirectiveRenderer;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaResolver;
 use Blush\Theme\ThemeResolver;
+use Blush\Theme\Themes;
 use Blush\View\ViewFactory;
+use Blush\View\ViewNotFound;
 
 /**
  * Renders Markdown directives as the components of the same name (D-026),
@@ -40,7 +42,10 @@ use Blush\View\ViewFactory;
  * document's outline as `headings` (D-183). An inline directive's HTML is
  * trimmed, so a template's line breaks don't add spaces to the sentence.
  * An unknown name returns `null`, so the directive renders as plain
- * content.
+ * content. A component in the namespace of an installed theme outside
+ * the chain (D-171), such as the active theme's while another is
+ * previewed with `?theme=`, has no template in this chain, so it renders
+ * itself (`render()`, D-382), or, when it can't, as plain content too.
  *
  * Components rendered this way get a bare context: what they add to the
  * `Head` doesn't reach the page.
@@ -58,7 +63,8 @@ final readonly class ComponentDirectives implements DirectiveRenderer
 		private ThemeResolver $themes,
 		private MediaResolver $media,
 		private MarkdownConfig $markdown,
-		private AppConfig $app
+		private AppConfig $app,
+		private Themes $installed
 	) {}
 
 	/**
@@ -68,11 +74,15 @@ final readonly class ComponentDirectives implements DirectiveRenderer
 	public function render(Directive $directive): ?string
 	{
 		$factory = ($this->views)();
-		$views   = $factory->forChain($this->themes->current());
+		$chain   = $this->themes->current();
+		$views   = $factory->forChain($chain);
+		$name    = ComponentName::parse($directive->name);
 
-		if (! $views->hasComponent($directive->name)) {
+		if ($name === null || ! $views->hasComponent($directive->name)) {
 			return null;
 		}
+
+		$outside = $this->installed->isOutside($name->namespace, $chain);
 
 		$props = $directive->attributes;
 
@@ -102,7 +112,15 @@ final readonly class ComponentDirectives implements DirectiveRenderer
 			}
 		}
 
-		$html = $views->component($directive->name, $props, $directive->content, new Slots(), $factory->fragment());
+		try {
+			$html = $views->component($directive->name, $props, $directive->content, new Slots(), $factory->fragment());
+		} catch (ViewNotFound $error) {
+			if (! $outside) {
+				throw $error;
+			}
+
+			return null;
+		}
 
 		// Inside a sentence, a template's surrounding line breaks would
 		// show as spaces.

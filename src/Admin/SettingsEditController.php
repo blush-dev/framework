@@ -36,6 +36,8 @@ use Blush\Settings\Setting;
 use Blush\Settings\Settings;
 use Blush\Settings\SettingsFile;
 use Blush\Settings\SiteSettings;
+use Blush\Theme\ThemeException;
+use Blush\Theme\Themes;
 
 /**
  * Saves the site-wide settings the admin can change (D-324, D-325), for accounts
@@ -53,12 +55,14 @@ use Blush\Settings\SiteSettings;
  *   (when the site is compiled) and reindexes, so the next requests see
  *   the change.
  *
- * A value that doesn't fit, or a home page that isn't a collection with
- * addresses, is a `422` with the reason, and nothing is written.
+ * A value that doesn't fit, a home page that isn't a collection with
+ * addresses, or a theme (`theme.active`, saved by the Themes screen,
+ * D-381) that isn't installed or can't build its chain, is a `422` with
+ * the reason, and nothing is written.
  *
  * Settings are read when the site boots, so the next request has them.
  * A change to what has addresses or how dates are read (the home page,
- * time zone, trailing slash, feed formats, or sitemap) also deletes the
+ * time zone, trailing slash, feed formats, sitemap, or theme) also deletes the
  * compiled content types and routes, so the site builds them from the
  * new settings until the admin's `settings/refresh`, which runs with
  * them, compiles them again. Every save moves the content version on,
@@ -76,7 +80,8 @@ final readonly class SettingsEditController
 		private Bootstrap $bootstrap,
 		private Permissions $permissions,
 		private SiteSettings $site,
-		private FieldContext $context
+		private FieldContext $context,
+		private Themes $themes
 	) {}
 
 	public function update(ServerRequestInterface $request): ResponseInterface
@@ -118,6 +123,7 @@ final readonly class SettingsEditController
 			];
 			$check = Settings::none()->with($builtIns);
 			$this->assertHome($check);
+			$this->assertTheme($check);
 
 			$changed  = [...array_filter(Setting::cases(), $check->has(...)), ...$removed];
 			$settings = $this->file->update(static fn (Settings $settings): Settings => $settings->without(...$removed)->with($builtIns)->withSite($site));
@@ -212,6 +218,27 @@ final readonly class SettingsEditController
 
 		if (! array_key_exists($home, Setting::homeChoices($this->types))) {
 			throw new InvalidSetting(sprintf('"%s" can\'t be the home page: it must be a collection type with addresses.', $home));
+		}
+	}
+
+	/**
+	 * Checks that a theme being made active is installed, with every
+	 * theme it falls back to.
+	 *
+	 * @throws InvalidSetting
+	 */
+	private function assertTheme(Settings $settings): void
+	{
+		$theme = $settings->get(Setting::Theme);
+
+		if (! is_string($theme)) {
+			return;
+		}
+
+		try {
+			$this->themes->chain($theme);
+		} catch (ThemeException $error) {
+			throw new InvalidSetting($error->getMessage(), previous: $error);
 		}
 	}
 

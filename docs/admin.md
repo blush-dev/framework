@@ -897,20 +897,46 @@ you've compiled, run `bin/blush cache:compile` again.
 
 ## Themes
 
-With `site.settings`, **Config → Themes** shows the site's theme:
-every installed theme, by its label and name, with the active one
-marked **Active** and the themes it builds on marked **In use**. A theme
-that can't be used (its `theme.json` is broken, or another extension
-has its namespace) is listed by where it was found, with the reason.
+With `site.settings`, **Config → Themes** shows every installed theme as
+a card, the active one first and marked **Active**. Each card has a
+sketch of a page in the theme's colors (from its `theme.json`'s
+`preview`, see [The admin's preview](themes.md#the-admins-preview)),
+its label, version, and description, where it's installed, and the
+theme it falls back to.
 
-Switching themes isn't done here: the active theme is set in
-`config/theme.php`, so run `bin/blush theme:activate {name}` (**Copy
-command** beside a theme copies it). In development, **Preview** opens
-the site with that theme (`?theme={name}`, see [Themes](themes.md)).
-Installing a theme from here isn't available yet; **Install Theme** is a
-placeholder.
+- **Activate** asks first, then switches the site to that theme. It's
+  saved in `user/data/settings.json`, over `config/theme.php`, and takes
+  effect on the next page load. If it doesn't go through, the card says
+  so; the site keeps the theme it had.
+- A theme that falls back to a theme that isn't installed says
+  **Can't activate**, with what to do. So does a theme whose `theme.json`
+  is broken (or whose namespace another extension has), listed by where
+  it was found, with the reason.
+- The **⋯** menu opens the theme's details, copies its folder path or
+  its `theme:activate` command, and in development, **Preview on the site** opens the site
+  with that theme (`?theme={name}`, see [Themes](themes.md)).
+- **Delete theme** (in the menu) removes a theme's folder from
+  `user/themes`, after asking. The active theme, and any theme it falls
+  back to, can't be deleted; activate another first. Themes installed
+  with Composer are removed with `composer remove`, and the default
+  theme can't be removed. A theme that fell back to the one you deleted
+  can't be activated until it's pointed at one that's installed.
 
-How the admin itself looks is set per account, on **Your account**.
+A theme's label, or **Theme details** in its menu, opens its details:
+its preview in both its light and dark colors, its name, version,
+folder, namespace, and type, the theme it falls back to and the themes
+that fall back to it, and its palette's six colors. **Activate** and
+**Delete theme** are there too; a theme the site uses says why it can't
+be deleted, and a Composer theme gives the `composer remove` command.
+Broken themes have no details page.
+
+When the active theme was set here, the note under the cards has
+**Use `config/theme.php`'s theme**, which removes the saved one.
+Running `bin/blush theme:activate {name}` also clears it. Installing a
+theme from here isn't available yet: **Install Theme** says how to
+install one.
+
+How the admin itself looks is set per account, on **Your Account**.
 
 ## Plugins
 

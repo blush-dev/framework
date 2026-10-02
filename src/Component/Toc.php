@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Override;
+use Blush\Core\Framework;
 
 /**
  * A table of contents for the entry it's in (D-175, D-183):
@@ -130,5 +131,15 @@ final class Toc extends Component
 		}
 
 		return $items;
+	}
+
+	/**
+	 * Renders the framework's template for it, `resources/components/toc.php`
+	 * (D-382), when the theme chain has none of its own.
+	 */
+	#[Override]
+	public function render(): ComponentView
+	{
+		return $this->view(Framework::path('resources/components/toc.php'));
 	}
 }

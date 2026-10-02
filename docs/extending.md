@@ -431,8 +431,11 @@ Every installed plugin is on. Turn one off by its name in
 A plugin's [components](components.md) use its namespace: `acme/hello`,
 with the namespace `hello`, registers `hello/tabs`, not `tabs`. Their
 text (labels, descriptions) goes in the plugin's `lang/en.json`, under
-`components.tabs`. Plugins can't ship component templates yet, so the
-theme or site provides `views/components/hello-tabs.php`.
+`components.tabs`. A plugin's component draws itself with its
+`render()`, usually a template file in the plugin returned by
+`$this->view(__DIR__ . '/../views/tabs.php')` (see
+[Rendering itself](components.md#rendering-itself)); a theme or your
+site restyles it with `views/components/hello-tabs.php`.
 
 ### Icons from a plugin
 

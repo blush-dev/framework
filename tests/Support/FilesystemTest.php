@@ -96,4 +96,25 @@ final class FilesystemTest extends TestCase
 
 		new PhpArrayFile($path)->read();
 	}
+
+	public function testRemovesAFolderWithoutFollowingLinks(): void
+	{
+		$this->writeTemporaryFile('theme/views/page.php', '<p>Page</p>');
+		$this->writeTemporaryFile('theme/.hidden', 'x');
+		$this->writeTemporaryFile('outside/keep.txt', 'keep');
+		symlink($this->temporaryDirectory() . '/outside', $this->temporaryDirectory() . '/theme/linked');
+
+		new Filesystem()->removeDirectory($this->temporaryDirectory() . '/theme');
+
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/theme');
+		$this->assertFileExists($this->temporaryDirectory() . '/outside/keep.txt', 'A link is removed, not followed.');
+
+		symlink($this->temporaryDirectory() . '/outside', $this->temporaryDirectory() . '/link');
+		new Filesystem()->removeDirectory($this->temporaryDirectory() . '/link');
+
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/link');
+		$this->assertFileExists($this->temporaryDirectory() . '/outside/keep.txt', 'A folder that is a link loses only the link.');
+
+		new Filesystem()->removeDirectory($this->temporaryDirectory() . '/missing');
+	}
 }
