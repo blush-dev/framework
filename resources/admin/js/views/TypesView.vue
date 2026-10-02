@@ -56,7 +56,7 @@ const shown = computed(() => {
  * Where a type comes from, for people.
  */
 function origin(type: ContentTypeSummary): string {
-	return { 'built-in': 'Built in', extension: 'An extension', config: 'config/content.php', data: 'user/data/types' }[type.origin];
+	return { 'built-in': 'Built in', extension: 'A plugin', config: 'config/content.php', data: 'user/data/types' }[type.origin];
 }
 </script>
 
@@ -71,7 +71,7 @@ function origin(type: ContentTypeSummary): string {
 		</div>
 	</header>
 
-	<p class="notice"><span>Types made here live in <code>user/data/types</code>, and their screens edit them. Collections and taxonomies from <code>config/content.php</code> and extensions are edited too, with the changes saved in <code>user/data/types</code> over the code's. The pages and authors types stay as their code defines them, so their screens show them.</span></p>
+	<p class="notice"><span>Types made here live in <code>user/data/types</code>, and their screens edit them. Collections and taxonomies from <code>config/content.php</code> and plugins are edited too, with the changes saved in <code>user/data/types</code> over the code's. The pages and authors types stay as their code defines them, so their screens show them.</span></p>
 	<p v-if="failed" class="notice notice--error" role="alert">The content types couldn't be loaded.</p>
 
 	<section v-if="!failed" class="panel" aria-labelledby="types-heading" :aria-busy="!loaded">

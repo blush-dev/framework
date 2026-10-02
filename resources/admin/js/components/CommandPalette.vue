@@ -68,7 +68,8 @@ const everywhere = computed<Command[]>(() => {
 		['types', 'Go to Content Types', 'layers', 'site.settings'],
 		['fields', 'Go to Fields', 'group', 'site.settings', 'field sets custom fields'],
 		['themes', 'Go to Themes', 'paintbrush', 'site.settings', 'appearance look'],
-		['extensions', 'Go to Extensions', 'plug', 'site.settings', 'addons plugins'],
+		['plugins', 'Go to Plugins', 'plug', 'site.settings', 'addons extensions'],
+		['icon-packs', 'Go to Icon Packs', 'shapes', 'site.settings', 'icons extensions'],
 		['accounts', 'Go to Accounts', 'key-round', 'accounts.view', 'people users sign in'],
 		['roles', 'Go to Roles', 'shield', 'accounts.view', 'capabilities']
 	];

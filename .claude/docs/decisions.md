@@ -245,12 +245,14 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-034: Themes live in `user/themes`
 - **Date:** 2026-09-25
+- **Status:** Themes are known by name, not folder, and publish to `public/themes/{vendor}/{name}` since D-379.
 - **Decision:** Local themes live in `user/themes/{slug}`. Themes installed
   through Composer may also be read from `vendor/`. Theme assets are published
   to `public/themes/{slug}`.
 
 ### D-035: Per-request theme switching: `?theme=` in dev only
 - **Date:** 2026-09-25
+- **Status:** `?theme=` takes the theme's name since D-379.
 - **Decision:** In the dev environment only, `?theme={slug}` renders a request
   with another theme. No other theme switching for now (admin preview comes
   later). Focus is on getting the basic architecture in.
@@ -306,6 +308,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-041: Extensions: Composer packages first, local folders too
 - **Date:** 2026-09-25
+- **Status:** Naming superseded by D-378 (planned): these are **plugins**, one kind of extension.
 - **Decision:** The end-user term is **extensions**. "Apps" was rejected because
   it collides with the site's `App\` namespace and the idea of the site itself
   being the app.
@@ -553,7 +556,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-058: Extension discovery details
 - **Date:** 2026-09-25
-- **Status:** YAML manifests delivered by D-092.
+- **Status:** YAML manifests delivered by D-092. Applies to plugins
+  (`user/plugins`, `plugin.json`, `PluginConfig`) since D-379.
 - **Decision:** Implements D-041.
   - Composer extensions declare `extra.blush.provider` (and optional
     `requires`).
@@ -1551,6 +1555,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-115: Theme discovery, Composer themes, and the theme cache
 - **Date:** 2026-09-25
+- **Status:** Themes are keyed by name and a Composer theme's name is its package's (no `extra.blush.slug`) since D-379.
 - **Decision:** Refines D-105.
   - `ThemeDiscovery` runs before the container (theme providers register
     at boot), reading manifests itself (`theme.json`, else `.yaml`/`.yml`).
@@ -1635,7 +1640,9 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-119: Theme assets: build manifests, `stylesheet`, and publishing
 - **Date:** 2026-09-25
 - **Status:** Partially superseded by D-194 (versions are content
-  hashes, not mtimes, and built files are versioned too).
+  hashes, not mtimes, and built files are versioned too). Assets are
+  published under the theme's name, `public/themes/{vendor}/{name}`, since
+  D-379.
 - **Decision:** Implements D-031 and the rest of D-034:
   - `ThemeAssets` (per chain) resolves `asset()` and the manifest's
     `styles`/`scripts`: for each theme, nearest first, a Vite-style
@@ -2609,6 +2616,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-171: Component names are namespaced; short names are core only
 - **Date:** 2026-09-28
+- **Status:** Where a theme's or extension's namespace comes from is superseded by D-378 (planned): every extension declares it in its manifest, checked for clashes.
 - **Decision:** Every component has a namespaced name, `{namespace}/{name}`
   (`blush/callout`, `acme/tabs`, `jtcom/post-archives`), and the directive
   syntax allows the `/` (`::acme/tabs{…}`).
@@ -2996,6 +3004,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-187: Icons: a Lucide subset, named like components
 - **Date:** 2026-09-28
+- **Status:** Icon packs (D-378, D-379) add their folders to `IconRegistry`; a theme's own icons use its namespace.
 - **Decision:** Blush ships icons and a core `icon` component.
   - **The core set** is a front-end subset of Lucide 1.48.0 (ISC): 131
     icons (arrows and navigation, people, files and writing, messages and
@@ -7306,6 +7315,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-308: The Extensions screen
 - **Date:** 2026-09-30
+- **Status:** It's the Plugins screen (`/plugins`, `GET plugins`), attributing by namespace, since D-379.
 - **Decision:** The second stubbed Config screen (D-241), read-only as
   D-306 settled.
   - **`GET extensions`** (`ExtensionsController`, `site.settings`):
@@ -8266,6 +8276,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-327: Your Profile first in People, and Appearance is Themes
 - **Date:** 2026-10-01
+- **Status:** Customize is Themes, Plugins, and Icon Packs since D-379, and is headed Extensions since D-380.
 - **Decision:** People's panel puts Your Profile first, then Accounts,
   Roles, and Authors (amends D-326). The Appearance screen (D-306) is
   named **Themes**: the navigation, its heading, the trail, and the
@@ -10382,3 +10393,153 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `npm run admin:build`.
 - **Why:** the author asked for the left border gone on the admin's
   other notices too.
+
+### D-378: Extensions are a type system: plugins, themes, icon packs, and admin themes
+- **Date:** 2026-10-02
+- **Status:** Built (plugins, themes, and icon packs) by D-379; admin
+  themes and installing from the admin are still planned. Supersedes
+  D-041's naming (its
+  "extensions" are now **plugins**) and D-171's rule for where a theme's
+  or extension's component namespace comes from; amends D-058 and
+  D-187. D-020 stands (themes add no content types, routes, or
+  commands), but themes can run PHP (a `provider`, templates).
+- **Decision:** **Extensions** is the umbrella term for everything a
+  site installs. Each extension is one of a few **kinds**:
+  - **Plugin:** today's extensions (D-041): a manifest plus a service
+    provider, many on at once.
+  - **Theme:** as now (D-020): one active chain.
+  - **Icon pack:** SVG icons in its namespace, many on at once.
+    Today icons come only from the framework, themes, and plugins'
+    `IconRegistry` folders (D-187); a pack ships them on its own.
+  - **Admin theme:** planned, not first. It would add to the admin's
+    theme choice (`AdminTheme`, neutral and Editorial, D-317), one per
+    account, so build the shared pieces with it in mind.
+  - Other kinds (language packs, starter kits) are on hold.
+  - **Every manifest has `name` and `label`.** `name` is always the
+    key: a required `vendor/name` (`justintadlock/jtcom`, `acme/tabs`),
+    the same as the Composer package name for a Composer package.
+    `label` is always the readable title ("Justin Tadlock"). That
+    changes theme manifests, whose `name` is the label today.
+  - **Every manifest declares its `namespace`,** explicitly, not read
+    from `composer.json` or the folder: the namespace its components,
+    icons, and translation domain use (`jtcom`, for `::jtcom/…` and
+    `jtcom/github`). Blush checks that no two installed extensions
+    claim the same one, and `blush` and `app` are reserved. This
+    answers D-171's open clash question.
+  - **One folder per kind, one level deep:** `user/plugins/{folder}`,
+    `user/themes/{folder}`, `user/icons/{folder}`, and later
+    `user/admin-themes/{folder}`. The folder is only where it lives
+    (conventionally the package's short name); its identity is the
+    manifest's `name`, and two with the same `name` are an error.
+    `user/extensions/{kind}/` may come later.
+  - **Each kind's manifest is named for it** (`plugin.json`,
+    `theme.json`, and so on, or `.yaml`), and Composer package types
+    likewise (`blush-plugin`, `blush-theme`, `blush-icons`).
+  - **Shared pieces:** one discovery pipeline (local folders and
+    Composer's `installed.json`, by kind), one manifest base (`name`,
+    `label`, `namespace`, `version`, `description`, `requires`), one
+    namespace check, one compiled cache, provenance and what each adds,
+    and a check command per kind.
+  - **Kinds say whether they run code.** Plugins and themes do; icon
+    packs (and admin themes, if they stay CSS and data) don't. Every
+    extension will be installable from the admin eventually, but that's
+    future work; for now the kinds carry the flag, and the admin may
+    show placeholders for installing. D-039 and D-166 stand until that
+    work decides how code installs from a browser.
+- **Why:** the author expects more kinds of extensions than plugins,
+  and the code already has two package systems (extensions and themes)
+  with icons attached to both. Naming the kinds and sharing the
+  machinery makes a new kind cheap, and a required `vendor/name` plus a
+  declared namespace gives every package one identity and every
+  namespace one owner.
+
+### D-379: Extension kinds, built
+- **Date:** 2026-10-02
+- **Decision:** Implements D-378 for plugins, themes, and icon packs,
+  and settles the details `open-questions.md` listed.
+  - **Themes are referred to by name** (the author's call): config's
+    `active`, a theme's `parent`, `?theme=`, `theme:*` arguments and
+    `--theme=`, asset URLs (`/themes/{vendor}/{name}/…`), published
+    assets (`public/themes/{vendor}/{name}/`), and site overrides
+    (`resources/views/themes/{vendor}/{name}/`). The default theme is
+    `blush/default` (label Default, namespace `default`). A theme's
+    namespace replaces its slug wherever the slug was a namespace:
+    components, icons, variants, and `{namespace}-card.php`.
+  - **Reserved namespaces:** `blush`, `app`, `theme` (the chain's
+    translation domain), and `default` (the default theme's).
+  - **Namespace clashes:** two plugins sharing one fail discovery, like
+    two sharing a name (D-058); two themes, or two icon packs, are both
+    broken; across kinds, installed plugins (even turned off) claim
+    first, then themes, then icon packs, and `Bootstrap` records each
+    loser as broken ("Its namespace, "x", is the plugin acme/x's.").
+  - **Folders:** a folder is only where an extension lives. Two in one
+    kind's folder with the same name are both broken (plugins: an
+    error). A Composer package's name is the extension's: a manifest
+    without `name` takes it, and one naming another is broken
+    (`extra.blush.slug` is gone). Broken themes and packs are listed by
+    where they were found (`user/themes/{folder}`, or the package
+    name), so `Themes::find()` no longer throws.
+  - **Plugins** (`Blush\Plugin`, was `Blush\Extension`): `user/plugins`,
+    `plugin.json`, `blush-plugin` (with `extra.blush` holding `label`,
+    `namespace`, `provider`, `requires`), `config/plugins.php`
+    (`PluginConfig`), `storage/cache/plugins.php`, `cache:clear
+    --plugins`. A plugin's translation domain and the components and
+    icons the admin attributes to it go by its namespace, not its
+    vendor. `Blush\Extension` keeps what every kind shares
+    (`ExtensionKind`, `ExtensionName`, `ExtensionNamespace`,
+    `ManifestFile`, `LocalAutoloader`, `ExtensionException`). Content
+    types' and field sets' `extension` origin keeps its value (only
+    plugins add them, and the admin says "A plugin").
+  - **Icon packs** (`Icon\IconPack`): `user/icons/{folder}/icons.json`
+    (`name`, `label`, `namespace`, optional `version`, `description`, and
+    `folder`, the subfolder its SVGs are in) or `blush-icons` packages.
+    Every installed pack is on. Their folders seed `IconRegistry`, so
+    lookup is site, themes, packs and plugins, core, and a theme
+    restyles one with `icons/{namespace}/{icon}.svg`; labels come from
+    the pack's `lang/`, its namespace's domain. Cached in
+    `storage/cache/icon-packs.php` outside development (`cache:clear
+    --icon-packs`). Schema `icons.schema.json`; `plugin.schema.json`
+    replaces `extension.schema.json`, and every manifest schema shares
+    `name`, `label`, and `namespace`.
+  - **Admin:** Customize is Themes, Plugins (`/plugins`, `/extensions`
+    redirects; `GET plugins`), and Icon Packs (`/icon-packs`; `GET
+    icon-packs`), each read-only with a disabled **Install** button as
+    the placeholder for installing from the admin. Rows show the label,
+    then the name. Counts add `plugins` (was `extensions`) and
+    `iconPacks`. Provenance kinds are `theme`, `site`, `icon-pack`, and
+    `plugin` (was `extension`). `GET appearance` gives each theme's
+    `name`, `label`, and `namespace`, the chain by name, and broken
+    themes by `where`.
+  - **CLI:** `theme:new <vendor/name> [--parent] [--label]
+    [--namespace]` (the folder and namespace default to the part after
+    the `/`), `theme:activate <name>`, `theme:check [name]`, and
+    `theme:list` shows Name, Label, Namespace, Version, Parent, Source.
+- **Checked:** `composer check` (1,232 tests; new `IconPacksTest`,
+  `ExtensionNamespacesTest`, `AdminIconPacksTest`); `npm run
+  admin:build`; the jtcom trial (its manifest is now
+  `justintadlock/jtcom`, namespace `jtcom`, and `config/theme.php`
+  names it): pages and theme assets serve at the new URLs, its icons
+  render, `theme:check` is clean, and Themes, Plugins, and Icon Packs
+  look right in headless Chrome with a throwaway administrator and pack
+  (removed after).
+- **Why:** D-378, with the author choosing names over namespaces or
+  folders for theme references.
+
+
+### D-380: The Config panel's Customize group is Extensions
+- **Date:** 2026-10-02
+- **Decision:** Amends D-327 and D-379. The Config panel's third group
+  is headed **Extensions** (was Customize), holding Themes, Plugins, and
+  Icon Packs, so the admin uses the umbrella term D-378 settled.
+  - The jtcom trial (never committed) has an example of each new kind:
+    the `example/word-count` plugin (`user/plugins/word-count`: a
+    `wordcount:report` command, a **Count words** dashboard action, and
+    a `wordcount/tally` icon) and the `example/weather` icon pack
+    (`user/icons/weather`: five Lucide icons in `svg/`, labeled from its
+    `lang/`). The plugin has no component, since plugin views (D-174)
+    aren't built.
+- **Checked:** `npm run admin:build`; on the jtcom trial, `wordcount:report`,
+  `icon:list`, `GET plugins`, the action through `POST actions/count-words`,
+  and the Plugins screen in headless Chrome with a throwaway
+  administrator (removed after, with its session).
+- **Why:** the author asked for both.

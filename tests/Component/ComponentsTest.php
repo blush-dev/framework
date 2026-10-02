@@ -252,18 +252,18 @@ final class ComponentsTest extends TestCase
 		$this->assertSame(['loose.php'], array_map(basename(...), $views->strayComponentFiles()));
 	}
 
-	public function testThemeAndExtensionComponentsUseTheirOwnCatalogs(): void
+	public function testThemeAndPluginComponentsUseTheirOwnCatalogs(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "Alt"}');
+		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
 		$this->writeTemporaryFile('user/themes/alt/lang/en.json', '{"components": {"card": {"label": "Alt card"}}}');
-		$this->writeTemporaryFile('user/extensions/hello/extension.json', '{"name": "fixture/hello", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Component\\\\OrphanProvider"}');
-		$this->writeTemporaryFile('user/extensions/hello/lang/en.json', '{"components": {"tabs": {"label": "Tabs"}}}');
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'alt');\n");
+		$this->writeTemporaryFile('user/plugins/hello/plugin.json', '{"name": "fixture/hello", "label": "Hello", "namespace": "hello", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Component\\\\OrphanProvider"}');
+		$this->writeTemporaryFile('user/plugins/hello/lang/en.json', '{"components": {"tabs": {"label": "Tabs"}}}');
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/alt');\n");
 
 		$views = $this->boot();
 
 		$this->assertSame('Alt card', $views->componentText(new ComponentName('alt', 'card'), 'label'));
-		$this->assertSame('Tabs', $views->componentText(new ComponentName('fixture', 'tabs'), 'label'));
+		$this->assertSame('Tabs', $views->componentText(new ComponentName('hello', 'tabs'), 'label'));
 		$this->assertNull($views->componentText(new ComponentName('other', 'tabs'), 'label'));
 	}
 
@@ -449,7 +449,7 @@ final class ComponentsTest extends TestCase
 
 	public function testDirectivesUseTheRequestsTheme(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "Alt"}');
+		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
 		$this->writeTemporaryFile('user/themes/alt/views/components/callout.php', 'alt callout: <?= $component->content() ?>');
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n:::callout\nHi\n:::\n");
 
@@ -457,6 +457,6 @@ final class ComponentsTest extends TestCase
 
 		$kernel = $this->app->container()->make(Kernel::class);
 
-		$this->assertStringContainsString('alt callout: <p>Hi</p>', (string) $kernel->handle(Request::create('/?theme=alt'))->getBody());
+		$this->assertStringContainsString('alt callout: <p>Hi</p>', (string) $kernel->handle(Request::create('/?theme=acme/alt'))->getBody());
 	}
 }

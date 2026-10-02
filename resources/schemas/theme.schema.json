@@ -1,10 +1,12 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"title": "Blush Framework theme manifest",
-	"description": "A theme's theme.json: its name, assets, settings, and the menu and region locations it shows.",
+	"description": "A theme's theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.",
 	"type": "object",
 	"required": [
-		"name"
+		"name",
+		"label",
+		"namespace"
 	],
 	"properties": {
 		"$schema": {
@@ -13,8 +15,26 @@
 		},
 		"name": {
 			"type": "string",
+			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
+			"description": "The theme's name, the key it's known by: vendor/name, such as \"acme/gallery\". For a Composer package, its package name."
+		},
+		"label": {
+			"type": "string",
 			"minLength": 1,
-			"description": "The theme's name."
+			"description": "The theme's title, as people read it."
+		},
+		"namespace": {
+			"type": "string",
+			"pattern": "^[a-z0-9][a-z0-9_-]*$",
+			"not": {
+				"enum": [
+					"blush",
+					"app",
+					"theme",
+					"default"
+				]
+			},
+			"description": "The namespace the theme's components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one."
 		},
 		"version": {
 			"type": "string",
@@ -26,8 +46,8 @@
 		},
 		"parent": {
 			"type": "string",
-			"pattern": "^[a-z0-9][a-z0-9_-]*$",
-			"description": "The slug of the theme this one builds on. Anything this theme doesn't include comes from its parent."
+			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
+			"description": "The name of the theme this one builds on, such as \"blush/default\". Anything this theme doesn't include comes from its parent."
 		},
 		"styles": {
 			"type": "array",

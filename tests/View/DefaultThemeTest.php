@@ -81,7 +81,7 @@ final class DefaultThemeTest extends TestCase
 		'profile.single'                    => '/profiles/sam',
 		'profile.single.paged'              => '/profiles/sam/page/2',
 		'media'                             => '/media/pixel.png',
-		'theme.asset'                       => '/themes/default/style.css',
+		'theme.asset'                       => '/themes/blush/default/style.css',
 		'sitemap'                           => '/sitemap',
 		'sitemap.xml'                       => '/sitemap.xml',
 		'sitemap.type'                      => '/sitemap/post',

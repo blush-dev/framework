@@ -208,12 +208,14 @@ final class MenusTest extends TestCase
 	public function testThemeLocationsSetDepthFieldsAndLabels(): void
 	{
 		$this->writeTemporaryFile('user/themes/nova/theme.json', json_encode([
-			'name'   => 'Nova',
-			'menus'  => [
+			'name'      => 'acme/nova',
+			'label'     => 'Nova',
+			'namespace' => 'nova',
+			'menus'     => [
 				'primary' => ['label' => 'Main', 'depth' => 1, 'fields' => ['columns' => ['type' => 'number', 'integer' => true, 'default' => 1]]]
 			]
 		], JSON_THROW_ON_ERROR));
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'nova');\n");
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");
 		$this->writeTemporaryFile('user/data/menus/primary.yaml', <<<'YAML'
 			- entry: page/about
 			  columns: 3
@@ -259,7 +261,7 @@ final class MenusTest extends TestCase
 			'warning menu primary: item 5: "colour" isn\'t a menu item key or a field the location declares.',
 			'warning menu primary: item 6: has no link and no children.',
 			'warning menu primary: item 7: must be a map of keys to values.',
-			'notice menu extra: No location of the "default" theme shows it.',
+			'notice menu extra: No location of the "blush/default" theme shows it.',
 			'warning menu extra: "title" isn\'t a menu key; a menu has "label" and "items".',
 			'warning menu extra: "items" must be a list.'
 		], $messages);
@@ -278,14 +280,14 @@ final class MenusTest extends TestCase
 
 	public function testChecksLocationDeclarations(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "Nova", "menus": {"primary": {"depth": 0}}, "regions": {"side": {"items": {"a": 1}}}}');
+		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "menus": {"primary": {"depth": 0}}, "regions": {"side": {"items": {"a": 1}}}}');
 
 		$app    = $this->app();
-		$report = $app->container()->make(ThemeChecker::class)->check('nova');
+		$report = $app->container()->make(ThemeChecker::class)->check('acme/nova');
 		$errors = array_map(strval(...), $report->violations);
 
-		$this->assertContains('menus: The "nova" theme\'s menu location "primary" has a "depth" that isn\'t a whole number from 1.', $errors);
-		$this->assertContains('regions: The "nova" theme\'s region location "side" has "items" that aren\'t a list.', $errors);
+		$this->assertContains('menus: The "acme/nova" theme\'s menu location "primary" has a "depth" that isn\'t a whole number from 1.', $errors);
+		$this->assertContains('regions: The "acme/nova" theme\'s region location "side" has "items" that aren\'t a list.', $errors);
 		$this->assertTrue($report->hasErrors());
 	}
 
@@ -294,6 +296,6 @@ final class MenusTest extends TestCase
 		$this->expectException(ThemeException::class);
 		$this->expectExceptionMessage('"menus" must map location names');
 
-		ThemeManifest::fromArray('nova', '/tmp/nova', ['name' => 'Nova', 'menus' => ['primary']]);
+		ThemeManifest::fromArray('/tmp/nova', ['name' => 'acme/nova', 'label' => 'Nova', 'namespace' => 'nova', 'menus' => ['primary']]);
 	}
 }

@@ -13,12 +13,16 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
+use Blush\Extension\ExtensionName;
+use Blush\Extension\ExtensionNamespace;
+
 /**
- * A theme, as its `theme.json` (or `.yaml`, D-032) describes it: a name,
- * a version, an optional parent, and the stylesheets and scripts every
- * page loads. Only `name` is required; `styles` defaults to
- * `["style.css"]`, so the smallest theme is a manifest and a stylesheet
- * (D-021).
+ * A theme, as its `theme.json` (or `.yaml`, D-032) describes it: its
+ * name (`vendor/name`, the key it's known by), label, and namespace
+ * (D-378), a version, an optional parent (by name), and the stylesheets
+ * and scripts every page loads. Only `name`, `label`, and `namespace` are
+ * required; `styles` defaults to `["style.css"]`, so the smallest theme
+ * is a manifest and a stylesheet (D-021).
  *
  * A theme with PHP names a `provider` (a service provider, registered
  * before the site's, D-054) and, for a local theme, the `autoload.psr-4`
@@ -31,7 +35,10 @@ namespace Blush\Theme;
 final readonly class ThemeManifest
 {
 	/**
+	 * @param string               $name    The theme's `vendor/name`.
 	 * @param string               $path    The theme's absolute folder.
+	 * @param string               $label   The theme's title.
+	 * @param string               $namespace What its components, icons, and catalog keys go by.
 	 * @param list<string>         $styles  Stylesheet paths, relative to the theme (resolved through the chain).
 	 * @param list<string>         $scripts Script paths, relative to the theme.
 	 * @param array<string, mixed>  $data     The whole manifest.
@@ -39,9 +46,10 @@ final readonly class ThemeManifest
 	 * @param array<string, string> $autoload PSR-4 prefixes and their folders, relative to the theme.
 	 */
 	public function __construct(
-		public string $slug,
-		public string $path,
 		public string $name,
+		public string $path,
+		public string $label,
+		public string $namespace,
 		public string $version = '',
 		public ?string $parent = null,
 		public string $description = '',
@@ -54,35 +62,51 @@ final readonly class ThemeManifest
 	) {}
 
 	/**
-	 * Builds a manifest from parsed data.
+	 * Builds a manifest from parsed data, found in a folder.
 	 *
 	 * @param  array<array-key, mixed> $data
-	 * @throws ThemeException When a value has the wrong type.
+	 * @throws ThemeException When a value is missing or has the wrong type.
 	 */
-	public static function fromArray(string $slug, string $path, array $data, ThemeSource $source = ThemeSource::Local): self
+	public static function fromArray(string $path, array $data, ThemeSource $source = ThemeSource::Local): self
 	{
-		$name = $data['name'] ?? null;
+		$theme = $data['name'] ?? null;
 
-		if (! is_string($name) || trim($name) === '') {
-			throw new ThemeException(sprintf('The "%s" theme\'s manifest needs a "name".', $slug));
+		if (! is_string($theme) || ! ExtensionName::isValid($theme)) {
+			throw new ThemeException(sprintf('The theme in %s needs a "name": vendor/name, such as "acme/nova".', $path));
+		}
+
+		$label = $data['label'] ?? null;
+
+		if (! is_string($label) || trim($label) === '') {
+			throw new ThemeException(sprintf('The "%s" theme\'s manifest needs a "label".', $theme));
+		}
+
+		$namespace = $data['namespace'] ?? null;
+
+		if (! is_string($namespace) || ! ExtensionNamespace::isValid($namespace) || (ExtensionNamespace::isReserved($namespace) && $source !== ThemeSource::Framework)) {
+			throw new ThemeException(sprintf(
+				'The "%s" theme\'s manifest needs a "namespace": lowercase letters, digits, hyphens, and underscores, and not %s.',
+				$theme,
+				implode(', ', ExtensionNamespace::RESERVED)
+			));
 		}
 
 		$parent = $data['parent'] ?? null;
 
-		if ($parent !== null && (! is_string($parent) || ! Themes::isValidSlug($parent))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "parent" must be a theme slug.', $slug));
+		if ($parent !== null && (! is_string($parent) || ! ExtensionName::isValid($parent))) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "parent" must be a theme\'s name (vendor/name).', $theme));
 		}
 
 		$provider = $data['provider'] ?? null;
 
 		if ($provider !== null && (! is_string($provider) || preg_match('/^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)*$/', $provider) !== 1)) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "provider" must be a class name.', $slug));
+			throw new ThemeException(sprintf('The "%s" theme\'s "provider" must be a class name.', $theme));
 		}
 
 		$settings = $data['settings'] ?? [];
 
 		if (! is_array($settings) || ($settings !== [] && array_is_list($settings)) || ! array_all($settings, static fn (mixed $item): bool => is_array($item))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "settings" must map names to field definitions.', $slug));
+			throw new ThemeException(sprintf('The "%s" theme\'s "settings" must map names to field definitions.', $theme));
 		}
 
 		foreach (['menus', 'regions'] as $key) {
@@ -93,14 +117,14 @@ final readonly class ThemeManifest
 				|| ($locations !== [] && array_is_list($locations))
 				|| ! array_all($locations, static fn (mixed $value, int|string $name): bool => (is_string($value) || is_array($value)) && preg_match('/^[a-z0-9][a-z0-9_-]*$/', (string) $name) === 1)
 			) {
-				throw new ThemeException(sprintf('The "%s" theme\'s "%s" must map location names (lowercase letters, digits, hyphens, underscores) to labels or objects.', $slug, $key));
+				throw new ThemeException(sprintf('The "%s" theme\'s "%s" must map location names (lowercase letters, digits, hyphens, underscores) to labels or objects.', $theme, $key));
 			}
 		}
 
 		$variants = $data['variants'] ?? [];
 
 		if (! is_array($variants) || ($variants !== [] && array_is_list($variants)) || ! array_all($variants, static fn (mixed $list): bool => is_array($list) && array_is_list($list))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map component names to lists of variants.', $slug));
+			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map component names to lists of variants.', $theme));
 		}
 
 		$bleed = $data['bleed'] ?? [];
@@ -110,23 +134,24 @@ final readonly class ThemeManifest
 			|| ($bleed !== [] && array_is_list($bleed))
 			|| ! array_all($bleed, static fn (mixed $class, int|string $width): bool => in_array($width, ['wide', 'full'], true) && is_string($class) && preg_match('/^[A-Za-z_][A-Za-z0-9_-]*$/', $class) === 1)
 		) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "bleed" must map "wide" and "full" to class names.', $slug));
+			throw new ThemeException(sprintf('The "%s" theme\'s "bleed" must map "wide" and "full" to class names.', $theme));
 		}
 
 		/** @var array<string, mixed> $data */
 		return new self(
-			slug: $slug,
+			name: $theme,
 			path: $path,
-			name: trim($name),
-			version: self::string($slug, $data, 'version'),
+			label: trim($label),
+			namespace: $namespace,
+			version: self::string($theme, $data, 'version'),
 			parent: $parent,
-			description: self::string($slug, $data, 'description'),
-			styles: self::paths($slug, $data, 'styles', ['style.css']),
-			scripts: self::paths($slug, $data, 'scripts', []),
+			description: self::string($theme, $data, 'description'),
+			styles: self::paths($theme, $data, 'styles', ['style.css']),
+			scripts: self::paths($theme, $data, 'scripts', []),
 			data: $data,
 			source: $source,
 			provider: $provider,
-			autoload: self::autoload($slug, $data)
+			autoload: self::autoload($theme, $data)
 		);
 	}
 
@@ -222,11 +247,11 @@ final readonly class ThemeManifest
 	 * @param  array<array-key, mixed> $data
 	 * @throws ThemeException
 	 */
-	private static function string(string $slug, array $data, string $key): string
+	private static function string(string $theme, array $data, string $key): string
 	{
 		$value = $data[$key] ?? '';
 
-		return is_string($value) ? $value : throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a string.', $slug, $key));
+		return is_string($value) ? $value : throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a string.', $theme, $key));
 	}
 
 	/**
@@ -236,20 +261,20 @@ final readonly class ThemeManifest
 	 * @return array<string, string>
 	 * @throws ThemeException
 	 */
-	private static function autoload(string $slug, array $data): array
+	private static function autoload(string $theme, array $data): array
 	{
 		$autoload = $data['autoload'] ?? [];
 		$map      = is_array($autoload) ? ($autoload['psr-4'] ?? []) : null;
 
 		if (! is_array($map)) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "autoload" must be {"psr-4": {"Prefix\\\\": "src/"}}.', $slug));
+			throw new ThemeException(sprintf('The "%s" theme\'s "autoload" must be {"psr-4": {"Prefix\\\\": "src/"}}.', $theme));
 		}
 
 		$psr4 = [];
 
 		foreach ($map as $prefix => $directory) {
 			if (! is_string($prefix) || ! is_string($directory) || ! ThemeChain::isValidAssetPath(trim($directory, '/'))) {
-				throw new ThemeException(sprintf('The "%s" theme\'s "autoload.psr-4" must map namespace prefixes to folders inside the theme.', $slug));
+				throw new ThemeException(sprintf('The "%s" theme\'s "autoload.psr-4" must map namespace prefixes to folders inside the theme.', $theme));
 			}
 
 			$psr4[rtrim($prefix, '\\') . '\\'] = trim($directory, '/');
@@ -266,19 +291,19 @@ final readonly class ThemeManifest
 	 * @return list<string>
 	 * @throws ThemeException
 	 */
-	private static function paths(string $slug, array $data, string $key, array $default): array
+	private static function paths(string $theme, array $data, string $key, array $default): array
 	{
 		$value = $data[$key] ?? $default;
 
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a list of paths.', $slug, $key));
+			throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a list of paths.', $theme, $key));
 		}
 
 		$paths = [];
 
 		foreach ($value as $path) {
 			if (! is_string($path) || ! ThemeChain::isValidAssetPath($path)) {
-				throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a list of paths inside the theme.', $slug, $key));
+				throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a list of paths inside the theme.', $theme, $key));
 			}
 
 			$paths[] = $path;

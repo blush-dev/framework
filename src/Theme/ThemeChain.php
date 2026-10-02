@@ -108,13 +108,23 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns the theme slugs, in lookup order.
+	 * Returns the theme names, in lookup order.
 	 *
 	 * @return list<string>
 	 */
-	public function slugs(): array
+	public function names(): array
 	{
-		return array_map(static fn (ThemeManifest $theme): string => $theme->slug, $this->themes);
+		return array_map(static fn (ThemeManifest $theme): string => $theme->name, $this->themes);
+	}
+
+	/**
+	 * Returns the themes' namespaces, in lookup order.
+	 *
+	 * @return list<string>
+	 */
+	public function namespaces(): array
+	{
+		return array_map(static fn (ThemeManifest $theme): string => $theme->namespace, $this->themes);
 	}
 
 	/**

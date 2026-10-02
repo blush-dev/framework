@@ -95,7 +95,8 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * by several types (or every type), and Media. **Users** (D-326, D-354):
  * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
  * **Config** (D-325): Structure (content types), Settings (its four
- * screens), and Customize (Themes and Extensions; D-327).
+ * screens), and Extensions (Themes, Plugins, and Icon Packs; D-327, D-378,
+ * D-380).
  * Links the account can't use aren't shown.
  */
 const sections = computed<Record<Area, NavGroup[]>>(() => {
@@ -159,7 +160,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 
 	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
 	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('system', 'System', 'settings')] : [];
-	const customize = can('site.settings') ? [counted(screen('themes', 'Themes', 'paintbrush'), navCounts.value?.themes), counted(screen('extensions', 'Extensions', 'plug'), navCounts.value?.extensions)] : [];
+	const extensions = can('site.settings') ? [counted(screen('themes', 'Themes', 'paintbrush'), navCounts.value?.themes), counted(screen('plugins', 'Plugins', 'plug'), navCounts.value?.plugins), counted(screen('icon-packs', 'Icon Packs', 'shapes'), navCounts.value?.iconPacks)] : [];
 	// Accounts and Profiles are two lists (D-353): who can sign in, and
 	// who's credited on the site. A profile's screens, and its type's
 	// list and editor, mark Profiles.
@@ -185,7 +186,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		home: groups([{ key: 'home', links: home }, { key: 'shortcuts', heading: 'Shortcuts', links: shortcuts }]),
 		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Taxonomies', links: shared }, { key: 'library', heading: 'Library', links: library }]),
 		people: groups([{ key: 'people', links: people }]),
-		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'settings', heading: 'Settings', links: settings }, { key: 'customize', heading: 'Customize', links: customize }])
+		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'settings', heading: 'Settings', links: settings }, { key: 'extensions', heading: 'Extensions', links: extensions }])
 	};
 });
 

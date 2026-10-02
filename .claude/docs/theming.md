@@ -39,7 +39,7 @@ user/themes/nova/
   views/
     layouts/        base.php, …
     parts/          header.php, footer.php, pagination.php, …
-    components/     {slug}-card.php, gallery.php (core overrides), … (D-171)
+    components/     {namespace}-card.php, gallery.php (core overrides), … (D-171, D-378)
     single.php  collection.php  …   (template hierarchy files)
   src/              Optional PHP: ThemeProvider, component classes, context providers
   lang/             Message catalogs (D-028)
@@ -49,16 +49,21 @@ user/themes/nova/
   screenshot.webp
 ```
 
-Themes live in `user/themes/{slug}`, each optionally its own repo
+Themes live in `user/themes/{folder}`, each optionally its own repo
 (D-166, D-167). Composer-installed themes may live in `vendor/` (D-034).
-With the same slug, `user/themes` beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
+A theme is one kind of extension (D-378): it's known by its manifest's
+`name` (`vendor/name`), not its folder, and its components, icons, and
+catalog keys go by its declared `namespace`. With the same name,
+`user/themes` beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
 exist (D-032).
 
 ### `theme.json`
 ```json
 {
 	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json",
-	"name": "Nova",
+	"name": "acme/nova",
+	"label": "Nova",
+	"namespace": "nova",
 	"version": "1.0.0",
 	"parent": null,
 	"requires": { "blush": "^2.0", "features": ["search"] },
@@ -85,11 +90,17 @@ exist (D-032).
 - `settings` use the **same field types as content schemas**, so the future
   admin renders both with one form system. Definitions merge down the chain;
   values come from `user/data/theme.json` (D-117).
-- `provider` registers after extensions' and before the site's, ancestors
-  first; `autoload.psr-4` is registered for local themes (D-116).
-- Themes may also be Composer packages of type `blush-theme` (slug from
-  `extra.blush.slug`, else the package name); a local theme with the same
-  slug wins (D-115).
+- `name`, `label`, and `namespace` are required (D-378). `parent`, the
+  config's `active`, `?theme=`, asset URLs, and site overrides all use
+  the name. The namespace is unique across installed extensions; the
+  reserved ones are `blush`, `app`, `theme`, and `default` (the default
+  theme's own).
+- `provider` registers after plugins' and before the site's, ancestors
+  first; `autoload.psr-4` is registered for local themes (D-116). Themes
+  run PHP, but still add no content types, routes, or commands (D-020).
+- Themes may also be Composer packages of type `blush-theme`, named by
+  the package (a manifest without `name` takes it; another name is
+  broken); a local theme with the same name wins (D-115, D-378).
 
 ## Resolution chain
 
@@ -97,14 +108,15 @@ exist (D-032).
 site overrides (resources/views, config, user/data)
   → active theme
     → its parent(s) (any depth, cycle-checked)
-      → framework default theme (`resources/themes/default`, slug `default`;
-        includes the core content components, D-033)
+      → framework default theme (`resources/themes/default`, named
+        `blush/default`, namespace `default`; includes the core content
+        components, D-033)
 ```
 - Views resolve through `resources/views/themes/{active}`, then
   `resources/views`, then each theme's `views/` (D-103).
 - The chain applies to views, components, assets, settings defaults,
   and message catalogs.
-- Theme-scoped site overrides go in `resources/views/themes/{slug}/…` and apply
+- Theme-scoped site overrides go in `resources/views/themes/{vendor}/{name}/…` and apply
   only while that theme is active.
 - `theme:why <view>` (CLI) shows which file in the chain wins. This makes
   layering easy to debug.
@@ -113,7 +125,7 @@ site overrides (resources/views, config, user/data)
 
 | Layer | Where | Who edits |
 |---|---|---|
-| Theme defaults | `user/themes/{slug}/theme.json` | Theme author |
+| Theme defaults | `user/themes/{folder}/theme.json` | Theme author |
 | Site code config | `config/theme.php` → `ThemeConfig` (active theme, component overrides) | Developer |
 | Site data | `user/data/theme.json` (setting values, location maps), `user/data/menus/`, `user/data/regions/` | Site owner, later the admin |
 
@@ -271,8 +283,8 @@ aren't candidates (D-104).
   `blush/*` names are refused; a provider may replace a core component.
 - **Text (D-172, D-173):** `Views::componentText($name, 'label')` reads
   `components.{name}.{key}` from the namespace's catalog domain: `blush`,
-  `theme` (the chain's slugs), `app` (`resources/lang`), or the vendor
-  (enabled extensions' `lang/`). Missing text falls back to
+  `theme` (the chain's namespaces), `app` (`resources/lang`), or the
+  namespace itself (enabled plugins' and icon packs' `lang/`, D-378). Missing text falls back to
   `ComponentName::label()`.
 - **Discovery (D-164, D-173):** `ComponentType` declares the core
   components and their classes (the registrar seeds them all).
@@ -357,7 +369,7 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
 - A theme lists its stylesheets and scripts in `theme.json`, and templates and
   components can request more.
 - `Head` prints each asset once, in order.
-- **Serving:** the `theme.asset` route (`/themes/{slug}/{path}`) streams
+- **Serving:** the `theme.asset` route (`/themes/{vendor}/{name}/{path}`) streams
   allowed files from any installed theme until they're published (D-105).
 - **Resolving:** from a Vite-style manifest if present:
   `public/.vite/manifest.json` (D-155), `dist/.vite/manifest.json`, or
@@ -368,7 +380,7 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
   `resources/`, `src/`, `vendor/`, and `node_modules/` folders and its
   `*.config.js` files (D-168) are never served.
 - **Publishing:** `theme:publish` copies servable theme assets (never PHP,
-  views, or manifests; never a symlink) to `public/themes/{slug}/`. Static
+  views, or manifests; never a symlink) to `public/themes/{vendor}/{name}/`. Static
   export includes them.
 
 ## Media and images
@@ -427,13 +439,14 @@ call `$template->t()`. A child theme overrides its ancestors message by message
 
 ## CLI
 
-`theme:list`, `theme:activate <slug>`, `theme:new <slug> [--parent=]`,
-`theme:check [slug]`, `theme:why <view>`, `theme:publish [--all]` (D-120; see
+`theme:list`, `theme:activate <name>`, `theme:new <vendor/name> [--parent=]
+[--label=] [--namespace=]`, `theme:check [name]`, `theme:why <view>`,
+`theme:publish [--all]` (D-120, D-378; see
 `cli.md`).
 
 ## Theme switching (D-035)
 
-In the dev environment only, `?theme={slug}` renders the request with another
+In the dev environment only, `?theme={name}` renders the request with another
 theme. Anything more (such as admin preview) comes later.
 
 ## Open questions

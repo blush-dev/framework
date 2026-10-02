@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Tests\Fixtures\Extension;
+namespace Blush\Tests\Fixtures\Plugin;
 
 use Override;
 use Blush\Core\ServiceProvider;

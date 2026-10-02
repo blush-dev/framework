@@ -19,7 +19,8 @@ use Blush\Routing\RoutePriority;
 use Blush\Routing\RouteSource;
 
 /**
- * The theme asset route (`theme.asset`): `/themes/{theme}/{path}`,
+ * The theme asset route (`theme.asset`): `/themes/{theme}/{path}`, the
+ * theme by its name (`/themes/acme/nova/style.css`, D-378),
  * streamed by `ThemeAssetController`. It's a system route, so content
  * can't take over asset URLs. Themes themselves never add routes (D-020).
  */
@@ -42,7 +43,7 @@ final readonly class ThemeRoutes implements RouteSource
 	public function routes(): iterable
 	{
 		return [
-			Route::get(ThemeChain::ASSET_URL . '/{theme:[a-z0-9][a-z0-9_-]*}/{path:.+}', ThemeAssetController::class)->named('theme.asset')
+			Route::get(ThemeChain::ASSET_URL . '/{theme:[a-z0-9][a-z0-9_.-]*/[a-z0-9][a-z0-9_.-]*}/{path:.+}', ThemeAssetController::class)->named('theme.asset')
 		];
 	}
 }

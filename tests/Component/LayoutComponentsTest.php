@@ -125,7 +125,7 @@ final class LayoutComponentsTest extends TestCase
 
 	public function testTheyRenderFromMarkdownInAnyTheme(): void
 	{
-		$this->writeTemporaryFile('user/themes/bare/theme.json', '{"name": "Bare"}');
+		$this->writeTemporaryFile('user/themes/bare/theme.json', '{"name": "acme/bare", "label": "Bare", "namespace": "bare"}');
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
 			title: Home
@@ -166,7 +166,7 @@ final class LayoutComponentsTest extends TestCase
 		$app = $this->scratchApplication(['APP_ENV' => 'development']);
 		$app->boot();
 
-		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/?theme=bare'))->getBody();
+		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/?theme=acme/bare'))->getBody();
 
 		$this->assertStringContainsString('<div class="component-grid features" id="features" style="--layout-gap: 2rem; display: grid;', $html);
 		$this->assertStringContainsString('minmax(max(min(10rem, 100%), calc((100% - (3 - 1) * var(--layout-gap, 1.5rem)) / 3)), 1fr));">', $html);

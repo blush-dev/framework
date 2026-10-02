@@ -18,17 +18,28 @@ work:
 ## Managing themes
 
 ```sh
-bin/blush theme:list              # installed themes, and which is active
-bin/blush theme:activate notebook # switch themes
+bin/blush theme:list                   # installed themes, and which is active
+bin/blush theme:activate acme/notebook # switch themes
 ```
 
-Themes live in `user/themes/{slug}/`, and each can be its own git
-repository. They can also be installed with Composer (package type
-`blush-theme`). If two share a slug, `user/themes/` wins. The active theme
-is set in
-`config/theme.php`, which `theme:activate` writes for you.
+A theme is known by its **name**, `vendor/name` (`acme/notebook`), which
+its `theme.json` gives. Themes live in `user/themes/{folder}/`, and each
+can be its own git repository; the folder is only where it lives. They
+can also be installed with Composer (package type `blush-theme`), where
+the theme's name is the package's. If two share a name, `user/themes/`
+wins. The framework's default theme is `blush/default`. The active theme
+is set in `config/theme.php`, which `theme:activate` writes for you:
 
-In development, add `?theme=notebook` to any URL to preview another theme.
+```php
+return new ThemeConfig(active: 'acme/notebook');
+```
+
+A theme whose manifest is broken is listed by `theme:list` (and the
+admin's Themes screen) by where it was found, such as
+`user/themes/notebook`, with the reason.
+
+In development, add `?theme=acme/notebook` to any URL to preview another
+theme.
 
 ## Settings
 
@@ -55,7 +66,7 @@ stylesheet: /media/zine.css  # an extra stylesheet
 
 ## Your own settings
 
-A site, a theme's author, or an extension can add settings to the
+A site, a theme's author, or a plugin can add settings to the
 admin's **Settings** screens with a [field set](content-types.md#field-sets)
 aimed at one: `settings:general`, `settings:reading`, or
 `settings:search`.
@@ -96,7 +107,8 @@ For example, to change the site footer, copy the default theme's
 `views/parts/footer.php` to `resources/views/parts/footer.php`.
 
 To override a template for one theme only, use
-`resources/views/themes/{slug}/` instead.
+`resources/views/themes/{vendor}/{name}/` instead, by the theme's name
+(`resources/views/themes/acme/notebook/`).
 
 Not sure which file is in charge of a view? Ask:
 
@@ -109,17 +121,21 @@ bin/blush theme:why parts/footer
 Create one:
 
 ```sh
-bin/blush theme:new notebook
-bin/blush theme:activate notebook
+bin/blush theme:new acme/notebook
+bin/blush theme:activate acme/notebook
 ```
 
-That makes the smallest valid theme:
+That makes the smallest valid theme, in a folder named for the part
+after the `/`:
 
 ```
 user/themes/notebook/
-  theme.json    {"$schema": "…", "name": "Notebook", "version": "1.0.0", "styles": ["style.css"]}
+  theme.json    {"$schema": "…", "name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.0.0", "styles": ["style.css"]}
   style.css
 ```
+
+`--label`, `--namespace`, and `--parent` (another theme's name) set those
+instead of the defaults.
 
 Every template your theme doesn't include comes from the default theme.
 Its **stylesheet** doesn't, though: only the active theme's `styles` are
@@ -146,10 +162,12 @@ user/themes/notebook/
 
 ```json
 {
-	"name": "Notebook",
+	"name": "acme/notebook",
+	"label": "Notebook",
+	"namespace": "notebook",
 	"version": "1.0.0",
 	"description": "A theme for writers.",
-	"parent": "default",
+	"parent": "blush/default",
 	"styles": ["style.css"],
 	"scripts": ["app.js"],
 	"menus": { "primary": "Primary", "social": "Social" },
@@ -164,10 +182,26 @@ user/themes/notebook/
 }
 ```
 
-Only `name` is required.
+`name`, `label`, and `namespace` are required.
 
-- **`parent`:** build on another theme instead of starting from the
-  default. Anything this theme doesn't include comes from its parent.
+- **`name`:** the key the theme is known by, `vendor/name` in lowercase
+  letters, digits, `-`, `_`, and `.`. Config, `parent`, `?theme=`, and
+  asset URLs all use it. A Composer theme's name is its package's; leave
+  it out and the package's is used.
+- **`label`:** the theme's title, as people read it.
+- **`namespace`:** what your theme's components, icons, and translations
+  go by (`notebook/badge`). Lowercase letters, digits, `-`, and `_`.
+  `blush`, `app`, `theme`, and `default` are reserved, and no two
+  installed extensions (plugins, themes, icon packs) may share one: two
+  themes that do are both broken, and a theme whose namespace a plugin
+  has is broken too.
+- **`parent`:** the name of the theme this one builds on, instead of
+  starting from the default. Anything this theme doesn't include comes
+  from its parent.
+- **`provider`** and **`autoload`:** a theme can run PHP, through a
+  service provider of its own (see [Components](#components)). It still
+  can't add content types, routes, or commands; those belong to the site
+  or a [plugin](extending.md#plugins).
 - **`settings`:** options site owners set in `user/data/theme.json`. They
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`menus` and `regions`:** the places your theme shows the site's menus
@@ -188,7 +222,7 @@ PhpStorm can suggest keys, show what each one does, and flag mistakes.
 ```json
 {
 	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json",
-	"name": "Notebook"
+	"name": "acme/notebook"
 }
 ```
 
@@ -197,13 +231,15 @@ comment on the first line instead:
 
 ```yaml
 # yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json
-name: Notebook
+name: acme/notebook
+label: Notebook
+namespace: notebook
 ```
 
 A new site's `.vscode/settings.json` also maps every `user/themes/*/theme.json`
 (and `.yaml`) to the schema, so VS Code finds it even without `$schema`.
 
-The schema covers the built-in field types. A field type from an extension
+The schema covers the built-in field types. A field type from a plugin
 is allowed, but the editor can't suggest its options.
 
 ### Templates
@@ -421,9 +457,10 @@ theme has can also be used in Markdown, by the same name.
 [Components](components.md) covers writing them; this section covers
 where they go in a theme.
 
-A theme's components are in its namespace, which is its slug: the
-`notebook` theme's badge is `notebook/badge`. A template-only component is
-a file in `views/components/` named `{slug}-{name}.php`, such as
+A theme's components are in its namespace, which its `theme.json`
+declares: the `notebook` namespace's badge is `notebook/badge`. A
+template-only component is a file in `views/components/` named
+`{namespace}-{name}.php`, such as
 `views/components/notebook-badge.php`. Use it in a template with
 `<?= $template->component('notebook/badge', tone: 'new')->content('New') ?>`,
 or in Markdown with `:notebook/badge[New]{tone=new}`.
@@ -454,7 +491,9 @@ map in `theme.json`:
 
 ```json
 {
-	"name": "Notebook",
+	"name": "acme/notebook",
+	"label": "Notebook",
+	"namespace": "notebook",
 	"provider": "Notebook\\ThemeProvider",
 	"autoload": { "psr-4": { "Notebook\\": "src/" } }
 }

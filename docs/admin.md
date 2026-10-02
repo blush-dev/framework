@@ -45,7 +45,7 @@ The rail at the far left has four sections: **Home** (the dashboard, the
 calendar, and content health), **Content** (each content type's entries, with its own
 taxonomies under it, the taxonomies several types share, and media),
 **Users** (your profile, accounts, profiles, and roles), and **Config**
-(content types, fields, settings, themes, and extensions). The panel
+(content types, fields, settings, themes, plugins, and icon packs). The panel
 beside it lists the section you're in. Choosing a section changes the
 panel and nothing else, so you never leave the screen you're on (an
 entry you're writing stays open); choose a link in the panel to go
@@ -54,7 +54,7 @@ leaving just the rail (your browser remembers it), and choosing it
 again brings the panel back. You only see what your account can use.
 A link to a list shows how many things are in it: each content type's
 entries you can edit, media files, accounts, roles, content types,
-field sets, themes, and installed extensions. The counts update as you move between screens.
+field sets, themes, plugins, and icon packs. The counts update as you move between screens.
 
 The top bar says where you are: the section, then the screens above
 this one, then this one, such as *Content / Posts / Editing* or *Config
@@ -123,7 +123,7 @@ of the counts. The actions:
 | Reindex content | Bring the content and media indexes up to date with your files | Anyone with `site.publish` |
 | Clear caches | Empty the page, body, and fragment caches | Anyone with `cache.clear` (editors) |
 
-Actions you can't run don't appear. Extensions can add their own actions
+Actions you can't run don't appear. Plugins can add their own actions
 (see [Extending Blush](extending.md#admin-actions)).
 
 ## Entries
@@ -142,12 +142,12 @@ shown with their `icon` (see
 
 **Users** has Your Account, Accounts, Profiles, and Roles. In
 **Config**, **Settings** has General, Reading, Addresses and Search, and
-System, and **Customize** has Themes and Extensions. You only see the
+System, and **Extensions** has Themes, Plugins, and Icon Packs. You only see the
 screens your roles allow: Media needs `media.upload`, Accounts and
 Roles `accounts.view` (and New Account `accounts.create`, New Role
 `roles.manage`), Profiles editing profiles, each content type
 editing its entries, and
-Content types, Settings, Themes, and Extensions
+Content types, Settings, Themes, Plugins, and Icon Packs
 `site.settings`.
 
 The tabs above a list show all of them, or only published entries,
@@ -515,7 +515,7 @@ needs are written empty for you to fill in, such as
 
 The list has every registered component with a class that your active
 theme can draw: the built-in ones, your theme's, your site's, and your
-extensions' (grouped by where they come from). See
+plugins' (grouped by where they come from). See
 [Registering a component](components.md#registering-a-component) to
 add yours.
 
@@ -559,7 +559,8 @@ kind, saying why.
 
 The shapes button opens your theme's [icons](components.md#icons),
 grouped: the built-in icons by category (Status, Interface, Arrows, and
-so on), then your theme's, your site's, and your extensions'. Pick a
+so on), then your theme's, your site's, your icon packs', and your
+plugins'. Pick a
 group on the left, or search by name or what it shows (`home` finds the
 house), then choose one and **Insert** (or double-click it; after a
 search, Enter inserts the first match). It goes in at the cursor as
@@ -718,7 +719,7 @@ many entries. Choose one for its settings, the taxonomies that group it,
 and its fields; **Type settings** on a type's list goes there too.
 
 Types in `user/data/types` are edited on their screen. So are
-collections and taxonomies from `config/content.php` and extensions:
+collections and taxonomies from `config/content.php` and plugins:
 what you change is saved in `user/data/types/{key}.yaml` over the code's
 definition (see [Changing a type from code](content-types.md#changing-a-type-from-code)).
 The pages and profiles types defined in code stay as they are, so their
@@ -796,7 +797,7 @@ A field whose type can be edited more than one way has **Edited with**:
 a choice as a menu or radio buttons, text on one line, several, or in
 code type, a list of choices as checkboxes (see
 [How the admin edits a field](content-types.md#how-the-admin-edits-a-field)).
-The field types offered include ones extensions add. Choose **Save** to
+The field types offered include ones plugins add. Choose **Save** to
 write what you changed; **Revert** puts it back.
 
 **Field Sets** lists the [field sets](#fields) added to the type, each
@@ -815,7 +816,7 @@ can't be deleted until the taxonomy stops grouping it.
 A type from code says where it's defined and where changes go. Its file
 keeps only what differs from the code, and is removed when everything
 is back at the code's values. **Reset to config/content.php** (or to
-the extension) removes the file, undoing every change made here; a type
+the plugin) removes the file, undoing every change made here; a type
 from code can't be deleted here. If some of its fields are field
 classes from code, its fields are shown but changed in code.
 
@@ -829,7 +830,7 @@ site doesn't have is grayed), where it's defined, and how many fields it
 has.
 
 Sets in `user/data/fields` are edited on their screen; sets from
-`config/fields.php` and extensions are defined in code, so their screens
+`config/fields.php` and plugins are defined in code, so their screens
 only show them.
 
 **New Field Set** has a label (heading the set's fields in the editor),
@@ -897,31 +898,44 @@ you've compiled, run `bin/blush cache:compile` again.
 ## Themes
 
 With `site.settings`, **Config → Themes** shows the site's theme:
-every installed theme, with the active one marked **Active** and the
-themes it builds on marked **In use**. A theme that can't be used (its
-`theme.json` is broken) is listed with the reason.
+every installed theme, by its label and name, with the active one
+marked **Active** and the themes it builds on marked **In use**. A theme
+that can't be used (its `theme.json` is broken, or another extension
+has its namespace) is listed by where it was found, with the reason.
 
 Switching themes isn't done here: the active theme is set in
-`config/theme.php`, so run `bin/blush theme:activate {slug}` (**Copy
+`config/theme.php`, so run `bin/blush theme:activate {name}` (**Copy
 command** beside a theme copies it). In development, **Preview** opens
-the site with that theme (`?theme={slug}`, see [Themes](themes.md)).
+the site with that theme (`?theme={name}`, see [Themes](themes.md)).
+Installing a theme from here isn't available yet; **Install Theme** is a
+placeholder.
 
 How the admin itself looks is set per account, on **Your account**.
 
-## Extensions
+## Plugins
 
-With `site.settings`, **Config → Extensions** lists every installed
-[extension](extending.md#extensions), the ones that are on first, with
-its version, where it's installed, and what it requires. For each one
-that's on, it shows what the admin can see it adding: content types
-(each links to its screen, and says so when `config/content.php`
-redefines it), components, icons, dashboard actions, and commands. An
-extension can add more than that (routes, fields, code that runs on
-every request), so one that lists nothing may still be doing something.
+With `site.settings`, **Config → Plugins** lists every installed
+[plugin](extending.md#plugins), the ones that are on first, with its
+label, name, version, where it's installed, and what it requires. For
+each one that's on, it shows what the admin can see it adding: content
+types (each links to its screen, and says so when `config/content.php`
+redefines it), components, icons, dashboard actions, and commands. A
+plugin can add more than that (routes, fields, code that runs on every
+request), so one that lists nothing may still be doing something.
 
-It's read-only: install extensions in `user/extensions` or with
-Composer, and turn one off in `config/extensions.php`. An extension
-that's off says how to turn it back on.
+It's read-only: install plugins in `user/plugins` or with Composer, and
+turn one off in `config/plugins.php`. A plugin that's off says how to
+turn it back on. **Install Plugin** is a placeholder for installing from
+here, which isn't available yet.
+
+## Icon packs
+
+With `site.settings`, **Config → Icon Packs** lists every installed
+[icon pack](extending.md#icon-packs) by label, with its name, version,
+where it's installed, how many icons it has, and the first of their
+names. Every installed pack is on. A pack that can't be used is listed
+by where it was found, with the reason. Install packs in `user/icons` or
+with Composer; **Install Icon Pack** is a placeholder.
 
 ## Accounts and roles
 
@@ -1020,7 +1034,7 @@ and how many site capabilities it has, and how many accounts hold it.
 
 A role's screen shows its key, where it comes from, and who holds it,
 then its capabilities in sections: **Site Capabilities** (Media,
-Structure, Site, People, and any an extension adds) and **Content
+Structure, Site, People, and any a plugin adds) and **Content
 Capabilities**, **Every Type** first, then one section for each
 content type. Each section says in a sentence what the role can do; open it
 to tick or untick its capabilities. **Expand all** opens every section,
@@ -1176,7 +1190,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
 | `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`) and `adminTheme` (`neutral` or `editorial`), such as `{"colorScheme": "dark"}`; answers `{"preferences"}` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
-| `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `media` (the library's files; `media.upload`), `accounts` and `roles` (`accounts.view`), and `contentTypes`, `fieldSets`, `themes`, and `extensions` (installed; `site.settings`) |
+| `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `media` (the library's files; `media.upload`), `accounts` and `roles` (`accounts.view`), and `contentTypes`, `fieldSets`, `themes`, `plugins`, and `iconPacks` (installed; `site.settings`) |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |
 | `GET media` | The media files an entry can use (see below) |
@@ -1199,9 +1213,10 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
 | `DELETE accounts/{username}` | Remove an account; answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
-| `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"slug", "name", "version", "description", "parent", "source", "active"}], "invalid": [{"slug", "reason"}]}`. `chain` is the active theme, the themes it builds on, then `default`; `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `site.settings` |
+| `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"name", "label", "namespace", "version", "description", "parent", "source", "active"}], "invalid": [{"where", "reason"}]}`. Themes are by name (`vendor/name`), the active one first, then by label; `chain` is the active theme, the themes it builds on, then `blush/default`; `invalid` names where each broken theme was found (`user/themes/{folder}`, or a package's name); `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `site.settings` |
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. Secrets are never sent. Needs `site.settings` |
-| `GET extensions` | Every installed extension, the ones that are on first: `{"extensions": [{"name", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/extensions.php` exists. Needs `site.settings` |
+| `GET plugins` | Every installed plugin, the ones that are on first: `{"plugins": [{"name", "label", "namespace", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/plugins.php` exists. Needs `site.settings` |
+| `GET icon-packs` | Every installed icon pack, by label: `{"packs": [{"name", "label", "namespace", "version", "description", "source", "path", "count", "icons"}], "invalid": [{"where", "reason"}]}`. `count` is how many icons it has, and `icons` the first of their full names (`brands/github`). Needs `site.settings` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `pages`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
 | `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection or taxonomy from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
 | `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
@@ -1209,8 +1224,8 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
-| `GET fields/types` | The field types definitions can use, built in and from extensions: `{"types": [{"type", "label", "description", "controls", "options"}], "controls"}`. `controls` are `{"value", "label"}`, a type's first being its default; `options` are the type's own definition keys as JSON Schemas |
-| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension`, `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
+| `GET fields/types` | The field types definitions can use, built in and from plugins: `{"types": [{"type", "label", "description", "controls", "options"}], "controls"}`. `controls` are `{"value", "label"}`, a type's first being its default; `options` are the type's own definition keys as JSON Schemas |
+| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension` (from a plugin), `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
 | `GET fields/sets/{name}` | One set, with its `fields` as definitions, `options`, every place it can be added to, and `kinds` |
 | `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets` (all one kind), `slot`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
 | `PATCH fields/sets/{name}` | Change a `user/data/fields` set: `{"set"}`, as above (`null` removes a key); answers with the set. A field a target already has is a `422` with the reason |
@@ -1313,7 +1328,7 @@ has:
 | `content` | What it wraps: `none`, `text` (its `[label]`), or `blocks` |
 | `kind` | How it's written: `container` (`:::`), `leaf` (`::`), or `inline` (`:`) |
 | `category` | A built-in component's group (`text`, `media`, `layout`, `navigation`, `data`), else `null` |
-| `source` | Where the rest come from: `{"kind": "theme", "site", or "extension", "label"}`, else `null` |
+| `source` | Where the rest come from: `{"kind": "theme", "site", "icon-pack", or "plugin", "label"}`, else `null` |
 | `props` | Its props as schema fields, each with its `label` and, for a choice, `choices` labels by value |
 | `variants` | Its variants under the active theme, not including Default: `{"name", "label", "description", "source"}`, where `source` is `null` when the component's own namespace declared it, else like the component's |
 

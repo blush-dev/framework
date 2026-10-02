@@ -203,7 +203,7 @@ Each is recorded in `.claude/docs/decisions.md`.
   long once Settings became four screens (D-325). Users' panel is
   Your Account, Accounts, Profiles, and Roles, with no headings (D-327,
   D-353);
-  Config keeps Structure, Settings, and Customize.
+  Config keeps Structure, Settings, and Extensions (named Customize until D-380).
 - **Both admin themes ship** (D-317): Neutral and Editorial, a theme
   choice on Your profile beside the color scheme, with Editorial's
   fonts (Karla and Newsreader) served with the admin like the others.
@@ -215,7 +215,7 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **The component inserter** (D-243, D-247, D-265, D-268): block
   components only, with **Image** first under Media (it opens the media
   picker on images); core ones are grouped by category (Text, Media, Layout,
-  Navigation, Data), and a theme's, the site's, or an extension's by where
+  Navigation, Data), and a theme's, the site's, or a plugin's by where
   they come from, which the strip at the foot names. Components are written by full name
   (`blush/callout`, D-171). An inline component goes at the caret; a leaf
   or container on lines of its own, with a blank line either side;
@@ -420,8 +420,8 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Settings** (D-309, D-324, D-325): only the settings Blush has, as
   four screens in a **Settings** group of the Config panel (General,
   Reading, Addresses and Search, System), not the prototype's one page.
-  The Config panel's groups are Structure, Settings, and Customize
-  (Themes and Extensions); People is its own section (D-326). The
+  The Config panel's groups are Structure, Settings, and Extensions (D-380)
+  (Themes, Plugins, and Icon Packs; D-379); People is its own section (D-326). The
   prototype's panels become General's Site, Dates and Time, and
   Environment; Reading's Home Page and Feeds; Addresses and Search's
   Addresses and Search Engines; and System's Content Types, Caching,
@@ -444,11 +444,14 @@ Each is recorded in `.claude/docs/decisions.md`.
   field set on it adds a panel of its settings (the design has none),
   with **Clear it** where the built-ins have the config's value. A site
   with no collection to show shows its home page read-only.
-- **Extensions** (D-308), the direction's Addons (vocabulary below):
-  read-only, so no on/off switch, turn-off confirmation, **Settings**,
-  **Browse**, or **Upload**; an **On** or **Off** pill instead, and an
-  extension that's off says how to turn it on in `config/extensions.php`.
-  A notice replaces the banner, naming where extensions are installed.
+- **Plugins** (D-308, named Plugins in D-379), the direction's Addons
+  (vocabulary below): read-only, so no on/off switch, turn-off
+  confirmation, **Settings**, or **Browse**; an **On** or **Off** pill
+  instead, and a plugin that's off says how to turn it on in
+  `config/plugins.php`. **Upload** is **Install Plugin**, disabled, a
+  placeholder until the admin installs extensions (D-378). A notice
+  replaces the banner, naming where plugins are installed. A row shows
+  the plugin's label, then its `vendor/name`.
   "Provides" chips are grouped by kind (content types link to their
   screens; components, icon namespaces, dashboard actions, commands),
   attributed by class namespace or component/icon namespace, so they
@@ -461,7 +464,13 @@ Each is recorded in `.claude/docs/decisions.md`.
   are applied to the text directly, so they aren't in the field's own
   undo (a list's List Type too). Classes and ID are fields; other
   undeclared attributes are listed.
-- **Vocabulary follows Blush** where it differs: extensions, not addons, and
+- **Icon Packs** (D-379) has no screen in the direction: it's drawn as
+  Plugins is (`.package` rows, an **On** pill, the count of icons and the
+  first of their names as chips, broken packs after), with **Install
+  Icon Pack** disabled as the placeholder. **Themes** has **Install
+  Theme**, disabled, too.
+- **Vocabulary follows Blush** where it differs: extensions (plugins,
+  themes, and icon packs; D-378), not addons, and
   whatever taxonomies a site defines (no built-in Topic).
 - **Type-driven variation uses `labels`** (D-278), not §8's `label` and
   `singular`: the New button, the search field, the empty state, and every
@@ -516,13 +525,13 @@ Each is recorded in `.claude/docs/decisions.md`.
   except the icon, which has its own picker. The icon picker's groups are
   Blush's own fourteen categories for the core icons
   (`resources/icons/blush/categories.json`, `GET icons`' `category`),
-  then a theme's, the site's, or an extension's icons by where they come
+  then a theme's, the site's, an icon pack's, or a plugin's icons by where they come
   from. A search selects its best match, so a name and Enter inserts it;
   otherwise nothing is chosen until clicked. The media picker's kinds are
   All, Images, Video, Audio, and Files (`GET media`'s `kind=file`).
 - **The Variant select** (D-266, D-280) is an `AdminSelect` with Default
   first, then the component's variants under the active theme (a theme's
-  or an extension's variant of another's component names where it comes
+  or a plugin's variant of another's component names where it comes
   from), with the chosen one's description under it. A variant the
   component doesn't have here is kept, shown as "not available here".
   Variants aren't previewed.

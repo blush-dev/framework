@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Local extension autoloader.
+ * Local autoloader.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -14,11 +14,13 @@ declare(strict_types=1);
 namespace Blush\Extension;
 
 use Closure;
+use Blush\Plugin\Plugins;
+use Blush\Plugin\PluginSource;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeSource;
 
 /**
- * A PSR-4 autoloader for local extensions and themes (Composer packages
+ * A PSR-4 autoloader for local plugins and themes (Composer packages
  * are autoloaded by Composer). Each prefix maps to a directory inside its extension, and a
  * class file is only loaded from inside that directory.
  */
@@ -39,12 +41,12 @@ final class LocalAutoloader
 	private ?Closure $loader = null;
 
 	/**
-	 * Adds the PSR-4 maps of every local extension.
+	 * Adds the PSR-4 maps of every local plugin.
 	 */
-	public function addExtensions(Extensions $extensions): void
+	public function addPlugins(Plugins $plugins): void
 	{
-		foreach ($extensions->all() as $manifest) {
-			if ($manifest->source === ExtensionSource::Local) {
+		foreach ($plugins->all() as $manifest) {
+			if ($manifest->source === PluginSource::Local) {
 				$this->addMap($manifest->path, $manifest->autoload);
 			}
 		}

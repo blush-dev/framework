@@ -129,9 +129,13 @@ Move each item to `decisions.md` once it's answered.
   the front-end subset. Brand logos are the theme's (D-203).
 - **Refreshing embeds**: `storage/cache/store/embeds` is only emptied by
   hand; a `cache:clear --embeds` or `embed:refresh` command may help.
-- **Component namespace clashes** (D-171): a theme's namespace is its
-  slug and an extension's is its vendor, so the two could collide.
-  Decide whether Blush checks or reserves namespaces.
+- **Extension kinds, still open** (D-378, D-379; references, assets,
+  icon pack manifests, and Composer manifests are settled in D-379):
+  what an admin theme's manifest holds and how it joins `AdminTheme`
+  (D-317); how installing from the admin works, especially for kinds
+  that run code (D-039, D-166), and the placeholders' buttons with it;
+  whether `user/extensions/{kind}/` should be allowed too; and
+  `plugin:list`, `plugin:new`, and `plugin:check` (planned since D-041).
 - **Requiring components to be registered** (D-266's direction): how
   a template-only component registers without PHP (a JSON file beside
   the template, with its text in the catalog?), and what happens to
@@ -178,7 +182,7 @@ Move each item to `decisions.md` once it's answered.
   and so does static export: `build --base-url` takes only an origin
   (D-135).
 - **Extension requirements** (D-058): what constraint syntax to support for
-  `extension:check`, likely a Composer semver subset (`^`, `~`, comparison
+  `plugin:check` and `theme:check`, likely a Composer semver subset (`^`, `~`, comparison
   operators, `||`).
 
 - **CLI publishing and opcache** (found while writing `docs/`, D-141):

@@ -182,13 +182,13 @@ final class ViewsTest extends TestCase
 	public function testFindsViewsThroughTheChain(): void
 	{
 		$this->view('parts/footer', 'site footer');
-		$this->writeTemporaryFile('resources/views/themes/default/parts/footer.php', 'theme-scoped footer');
+		$this->writeTemporaryFile('resources/views/themes/blush/default/parts/footer.php', 'theme-scoped footer');
 
 		$views = $this->views();
 		$files = $views->finder->all('parts/footer');
 
 		$this->assertCount(3, $files);
-		$this->assertStringEndsWith('resources/views/themes/default/parts/footer.php', $files[0]);
+		$this->assertStringEndsWith('resources/views/themes/blush/default/parts/footer.php', $files[0]);
 		$this->assertSame(Framework::path('resources/themes/default/views/parts/footer.php'), $files[2]);
 		$this->assertTrue($views->exists('single'));
 		$this->assertFalse($views->exists('nope'));

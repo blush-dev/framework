@@ -57,13 +57,13 @@ final class RenderedBodies implements BodyCache
 	}
 
 	/**
-	 * Returns the slug of the theme the current request renders with, or
+	 * Returns the name of the theme the current request renders with, or
 	 * `''` when its chain is broken (rendering reports that).
 	 */
 	private function theme(): string
 	{
 		try {
-			return $this->themes->current()->active()->slug;
+			return $this->themes->current()->active()->name;
 		} catch (ThemeException) {
 			return '';
 		}

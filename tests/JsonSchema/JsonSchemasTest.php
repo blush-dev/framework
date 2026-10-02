@@ -16,8 +16,8 @@ namespace Blush\Tests\JsonSchema;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Core\Framework;
-use Blush\Extension\ExtensionManifest;
-use Blush\Extension\ExtensionSource;
+use Blush\Plugin\PluginManifest;
+use Blush\Plugin\PluginSource;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
@@ -172,18 +172,20 @@ final class JsonSchemasTest extends TestCase
 
 	public function testManifestsAcceptASchemaKey(): void
 	{
-		$theme = ThemeManifest::fromArray('nova', '/themes/nova', ['$schema' => 'theme.schema.json', 'name' => 'Nova']);
+		$theme = ThemeManifest::fromArray('/themes/nova', ['$schema' => 'theme.schema.json', 'name' => 'acme/nova', 'label' => 'Nova', 'namespace' => 'nova']);
 
-		$this->assertSame('Nova', $theme->name);
+		$this->assertSame('acme/nova', $theme->name);
 
-		$extension = ExtensionManifest::fromArray([
-			'$schema'  => 'extension.schema.json',
-			'name'     => 'acme/gallery',
-			'provider' => 'Acme\\Gallery\\GalleryServiceProvider',
-			'source'   => ExtensionSource::Local,
-			'path'     => '/extensions/gallery'
+		$plugin = PluginManifest::fromArray([
+			'$schema'   => 'plugin.schema.json',
+			'name'      => 'acme/gallery',
+			'label'     => 'Gallery',
+			'namespace' => 'gallery',
+			'provider'  => 'Acme\\Gallery\\GalleryServiceProvider',
+			'source'    => PluginSource::Local,
+			'path'      => '/plugins/gallery'
 		]);
 
-		$this->assertSame('acme/gallery', $extension->name);
+		$this->assertSame('acme/gallery', $plugin->name);
 	}
 }

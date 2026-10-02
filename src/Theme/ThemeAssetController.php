@@ -20,8 +20,9 @@ use Blush\Http\Response;
 use Blush\Http\StreamException;
 
 /**
- * Streams a theme's asset (`/themes/{theme}/{path}`) through PHP, for
- * themes whose assets haven't been published to the public folder. Only
+ * Streams a theme's asset (`/themes/{theme}/{path}`, the theme by its
+ * name, D-378) through PHP, for themes whose assets haven't been
+ * published to the public folder. Only
  * files with an allowed extension, outside the theme's private folders,
  * are served (`ThemeChain::isServable()`), and SVGs are sandboxed.
  */

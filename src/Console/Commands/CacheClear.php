@@ -42,22 +42,24 @@ final readonly class CacheClear
 	public function __invoke(
 		Output $output,
 		#[Option('Clear the compiled config.')] bool $config = false,
-		#[Option('Clear the extension discovery cache.')] bool $extensions = false,
+		#[Option('Clear the plugin discovery cache.')] bool $plugins = false,
 		#[Option('Clear the compiled container plans.')] bool $container = false,
 		#[Option('Clear the compiled route table.')] bool $routes = false,
 		#[Option('Clear the compiled content types.')] bool $types = false,
 		#[Option('Clear the theme discovery cache.')] bool $themes = false,
+		#[Option('Clear the icon pack discovery cache.')] bool $iconPacks = false,
 		#[Option('Clear the cache store and move the content version on.')] bool $store = false
 	): ExitCode {
-		$compiled = $config || $extensions || $container || $routes || $types || $themes;
+		$compiled = $config || $plugins || $container || $routes || $types || $themes || $iconPacks;
 
 		$caches = array_values(array_filter([
 			$config ? CompiledCache::Config : null,
-			$extensions ? CompiledCache::Extensions : null,
+			$plugins ? CompiledCache::Plugins : null,
 			$container ? CompiledCache::Container : null,
 			$routes ? CompiledCache::Routes : null,
 			$types ? CompiledCache::ContentTypes : null,
-			$themes ? CompiledCache::Themes : null
+			$themes ? CompiledCache::Themes : null,
+			$iconPacks ? CompiledCache::IconPacks : null
 		]));
 
 		if ($compiled || ! $store) {

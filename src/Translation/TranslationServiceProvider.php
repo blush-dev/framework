@@ -20,13 +20,15 @@ use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Core\ServiceProvider;
 use Blush\Data\DataLoader;
-use Blush\Extension\Extensions;
+use Blush\Icon\IconPacks;
+use Blush\Plugin\Plugins;
 
 /**
  * Binds the translator in the site locale, with the framework's own
  * `blush` domain, the site's `app` domain (`resources/lang`), and a
- * domain for each extension vendor (every enabled extension's `lang`
- * folder, under the first part of its name: `acme/hello` is in `acme`).
+ * domain for each enabled plugin and installed icon pack, its namespace
+ * (its `lang` folder: `acme/hello`, with the namespace `hello`, is in
+ * `hello`; D-378).
  * These match component namespaces (D-171, D-172). The view layer adds
  * the `theme` domain for the theme chain it renders with.
  */
@@ -38,7 +40,8 @@ final class TranslationServiceProvider extends ServiceProvider
 	#[Override]
 	public function register(): void
 	{
-		$extensions = $this->container->has(Extensions::class);
+		$plugins = $this->container->has(Plugins::class);
+		$packs   = $this->container->has(IconPacks::class);
 
 		$this->container->singleton(
 			Translator::class,
@@ -48,27 +51,40 @@ final class TranslationServiceProvider extends ServiceProvider
 				[
 					'blush' => [Framework::path('resources/lang')],
 					'app'   => [$resolver->make(Paths::class)->resources . '/lang'],
-					...($extensions ? self::vendorDomains($resolver->make(Extensions::class)) : [])
+					...($plugins ? self::pluginDomains($resolver->make(Plugins::class)) : []),
+					...($packs ? self::packDomains($resolver->make(IconPacks::class)) : [])
 				]
 			)
 		);
 	}
 
 	/**
-	 * Returns each extension vendor's catalog folders.
+	 * Returns each plugin namespace's catalog folders.
 	 *
 	 * @return array<string, list<string>>
 	 */
-	private static function vendorDomains(Extensions $extensions): array
+	private static function pluginDomains(Plugins $plugins): array
 	{
 		$domains = [];
 
-		foreach ($extensions->all() as $extension) {
-			$vendor = strstr($extension->name, '/', true);
+		foreach ($plugins->all() as $plugin) {
+			$domains[$plugin->namespace][] = "{$plugin->path}/lang";
+		}
 
-			if ($vendor !== false && ! in_array($vendor, ['blush', 'app', 'theme'], true)) {
-				$domains[$vendor][] = "{$extension->path}/lang";
-			}
+		return $domains;
+	}
+
+	/**
+	 * Returns each icon pack namespace's catalog folder.
+	 *
+	 * @return array<string, list<string>>
+	 */
+	private static function packDomains(IconPacks $packs): array
+	{
+		$domains = [];
+
+		foreach ($packs->all() as $pack) {
+			$domains[$pack->namespace][] = $pack->langPath();
 		}
 
 		return $domains;

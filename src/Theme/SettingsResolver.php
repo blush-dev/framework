@@ -42,7 +42,7 @@ use Blush\Field\Violation;
 final class SettingsResolver
 {
 	/**
-	 * Settings resolved so far, by active theme slug.
+	 * Settings resolved so far, by active theme name.
 	 *
 	 * @var array<string, ThemeSettings>
 	 */
@@ -62,7 +62,7 @@ final class SettingsResolver
 	 */
 	public function for(ThemeChain $chain): ThemeSettings
 	{
-		return $this->settings[$chain->active()->slug] ??= $this->resolve($chain);
+		return $this->settings[$chain->active()->name] ??= $this->resolve($chain);
 	}
 
 	/**
@@ -83,7 +83,7 @@ final class SettingsResolver
 				try {
 					$schema = $schema->with($this->fields->fromArray([...$definition, 'name' => $name]));
 				} catch (InvalidSchema $error) {
-					throw new ThemeException(sprintf('The "%s" theme\'s setting "%s" is invalid: %s', $theme->slug, $name, $error->getMessage()), 0, $error);
+					throw new ThemeException(sprintf('The "%s" theme\'s setting "%s" is invalid: %s', $theme->name, $name, $error->getMessage()), 0, $error);
 				}
 			}
 		}

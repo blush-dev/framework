@@ -20,7 +20,8 @@ import EntriesView from './views/EntriesView.vue';
 import HealthView from './views/HealthView.vue';
 import NotFoundView from './views/NotFoundView.vue';
 import AccountView from './views/AccountView.vue';
-import ExtensionsView from './views/ExtensionsView.vue';
+import PluginsView from './views/PluginsView.vue';
+import IconPacksView from './views/IconPacksView.vue';
 import SettingsView from './views/SettingsView.vue';
 import AccountsView from './views/AccountsView.vue';
 import ProfileDetailView from './views/ProfileDetailView.vue';
@@ -80,7 +81,9 @@ export const router = createRouter({
 		// Settings is four screens (D-325); the view titles each.
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
 		{ path: '/settings/:screen(general|reading|search|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'config' } },
-		{ path: '/extensions', name: 'extensions', component: ExtensionsView, meta: { title: 'Extensions', capability: 'site.settings', area: 'config' } },
+		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'site.settings', area: 'config' } },
+		{ path: '/extensions', redirect: { name: 'plugins' } },
+		{ path: '/icon-packs', name: 'icon-packs', component: IconPacksView, meta: { title: 'Icon Packs', capability: 'site.settings', area: 'config' } },
 		// People, its own section (D-249, D-326): each list, then a screen
 		// per item (`meta.parent` marks the list in the navigation).
 		// Accounts and profiles are two lists (D-353): who can sign in,

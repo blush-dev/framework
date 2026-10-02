@@ -19,8 +19,8 @@ use InvalidArgumentException;
  * A named look (or behavior) of a component (D-266): `variant=bordered`
  * in Markdown. Its registrant is the namespace whose catalog has its text
  * (`components.{name}.variants.{variant}.label` and `.description`):
- * core (`blush`), a theme's slug, the site (`app`), or an extension's
- * vendor; a theme's variants apply only while it's in the chain.
+ * core (`blush`), a theme's or plugin's namespace (D-378), or the site
+ * (`app`); a theme's variants apply only while it's in the chain.
  *
  * It adds the root element's modifier class, `component-{name}--{name}`,
  * unless it names another `modifier`. Every component also has Default,

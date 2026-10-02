@@ -35,11 +35,11 @@ final class AdminAppearanceTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator']): void
 	{
-		$this->writeTemporaryFile('user/themes/notebook/theme.json', '{"name": "Notebook", "version": "1.2.0", "description": "Lined paper."}');
-		$this->writeTemporaryFile('user/themes/pocket/theme.json', '{"name": "Pocket", "parent": "notebook"}');
-		$this->writeTemporaryFile('user/themes/plate/theme.json', '{"name": "Plate"}');
+		$this->writeTemporaryFile('user/themes/notebook/theme.json', '{"name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.2.0", "description": "Lined paper."}');
+		$this->writeTemporaryFile('user/themes/pocket/theme.json', '{"name": "acme/pocket", "label": "Pocket", "namespace": "pocket", "parent": "acme/notebook"}');
+		$this->writeTemporaryFile('user/themes/plate/theme.json', '{"name": "acme/plate", "label": "Plate", "namespace": "plate"}');
 		$this->writeTemporaryFile('user/themes/broken/theme.json', '{"name": 5}');
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'pocket');\n");
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/pocket');\n");
 		$this->boot(roles: $roles);
 		$this->login();
 	}
@@ -50,21 +50,22 @@ final class AdminAppearanceTest extends TestCase
 
 		$answer = self::json($this->send('GET', '/appearance'));
 
-		$this->assertSame('pocket', $answer['active'] ?? null);
-		$this->assertSame(['pocket', 'notebook', 'default'], $answer['chain'] ?? null);
+		$this->assertSame('acme/pocket', $answer['active'] ?? null);
+		$this->assertSame(['acme/pocket', 'acme/notebook', 'blush/default'], $answer['chain'] ?? null);
 		$this->assertTrue($answer['config'] ?? null);
 		$this->assertTrue($answer['preview'] ?? null, 'Previews work in development.');
 
 		$themes = is_array($answer['themes'] ?? null) ? $answer['themes'] : [];
 		$first  = $themes[0] ?? null;
 		$this->assertIsArray($first);
-		$this->assertSame('pocket', $first['slug'] ?? null, 'The active theme comes first.');
+		$this->assertSame('acme/pocket', $first['name'] ?? null, 'The active theme comes first.');
 		$this->assertTrue($first['active'] ?? null);
-		$this->assertSame('notebook', $first['parent'] ?? null);
+		$this->assertSame('acme/notebook', $first['parent'] ?? null);
+		$this->assertSame(['acme/pocket', 'blush/default', 'acme/notebook', 'acme/plate'], array_column($themes, 'name'), 'Then by label.');
 
-		$notebook = array_find($themes, static fn (mixed $theme): bool => is_array($theme) && ($theme['slug'] ?? null) === 'notebook');
-		$this->assertSame(['slug' => 'notebook', 'name' => 'Notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false], $notebook);
-		$this->assertSame(['broken'], array_column(is_array($answer['invalid'] ?? null) ? $answer['invalid'] : [], 'slug'));
+		$notebook = array_find($themes, static fn (mixed $theme): bool => is_array($theme) && ($theme['name'] ?? null) === 'acme/notebook');
+		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false], $notebook);
+		$this->assertSame(['user/themes/broken'], array_column(is_array($answer['invalid'] ?? null) ? $answer['invalid'] : [], 'where'));
 	}
 
 	public function testNeedsSiteSettings(): void

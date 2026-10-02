@@ -112,7 +112,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame(2, $counts['accounts'] ?? null);
 		$this->assertIsInt($counts['roles'] ?? null);
 		$this->assertIsInt($counts['contentTypes'] ?? null);
-		$this->assertArrayHasKey('extensions', $counts);
+		$this->assertArrayHasKey('plugins', $counts);
 		$this->assertSame(0, $counts['media'] ?? null, 'The library\'s files (D-372).');
 		$this->assertGreaterThanOrEqual(1, $counts['themes'] ?? null, 'The default theme, at least.');
 	}

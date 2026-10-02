@@ -26,12 +26,13 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\Paths;
-use Blush\Extension\ExtensionDiscovery;
 use Blush\Extension\ExtensionException;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Icon\IconPacks;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
+use Blush\Plugin\PluginDiscovery;
 use Blush\Theme\Themes;
 
 /**
@@ -44,8 +45,9 @@ use Blush\Theme\Themes;
  *   its index page or people pages, as `GET entries` counts them).
  * - `media`: the files in the library, with `media.upload` (D-372).
  * - `accounts` and `roles`, with `accounts.view`.
- * - `contentTypes`, `fieldSets`, `themes`, and `extensions` (installed),
- *   with `site.settings` (`themes` since D-372).
+ * - `contentTypes`, `fieldSets`, `themes`, `plugins`, and `iconPacks`
+ *   (installed), with `site.settings` (`themes` since D-372,
+ *   `iconPacks` since D-378).
  *
  * A count the account may not see is left out.
  */
@@ -59,7 +61,8 @@ final readonly class CountsController
 		private Roles $roles,
 		private Paths $paths,
 		private MediaLibrary $media,
-		private Themes $themes
+		private Themes $themes,
+		private IconPacks $iconPacks
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -103,11 +106,12 @@ final readonly class CountsController
 			$counts['contentTypes'] = count($this->types->all());
 			$counts['fieldSets']    = count($this->types->sets->all());
 			$counts['themes']       = count($this->themes->all());
+			$counts['iconPacks']    = count($this->iconPacks->all());
 
 			try {
-				$counts['extensions'] = count(ExtensionDiscovery::forPaths($this->paths)->discover());
+				$counts['plugins'] = count(PluginDiscovery::forPaths($this->paths)->discover());
 			} catch (ExtensionException) {
-				// Left out, as the Extensions screen reports the problem.
+				// Left out, as the Plugins screen reports the problem.
 			}
 		}
 

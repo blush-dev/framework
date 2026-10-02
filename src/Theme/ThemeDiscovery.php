@@ -17,39 +17,31 @@ use DirectoryIterator;
 use Throwable;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
-use Blush\Data\SymfonyYamlParser;
+use Blush\Extension\ExtensionKind;
+use Blush\Extension\ManifestFile;
 use Blush\Support\ComposerPackages;
 
 /**
- * Finds every installed theme (D-034): the framework `default` theme,
+ * Finds every installed theme (D-034): the framework default theme,
  * Composer packages of type `blush-theme`, and folders in `user/themes`
- * (D-166).
+ * (D-166). Each is known by its manifest's `name` (D-378), not its
+ * folder.
  * It runs before the container exists (theme providers register at boot),
  * so it reads manifests itself: `theme.json`, else `theme.yaml` or
  * `theme.yml` (D-032).
  *
- * With the same slug, a `user/themes` theme replaces a Composer theme;
- * nothing replaces `default`. A theme whose manifest is broken is recorded as
- * invalid instead of failing discovery, so one bad folder can't take the
- * site (or the CLI that would fix it) down.
- *
- * A Composer theme's slug is `extra.blush.slug`, or the package name after
- * the `/`.
+ * A Composer theme's manifest is the `theme.json` in its package, and
+ * its name is the package's: a manifest without a `name` takes it, and
+ * one with another name is broken. With the same name, a `user/themes`
+ * theme replaces a Composer theme; nothing replaces `blush/default`, and
+ * two `user/themes` folders with one name are both broken. A theme whose
+ * manifest is broken is recorded as invalid, by where it was found
+ * (`user/themes/{folder}`, or its package name), instead of failing
+ * discovery, so one bad folder can't take the site (or the CLI that would
+ * fix it) down.
  */
 final readonly class ThemeDiscovery
 {
-	/**
-	 * The Composer package type for Blush themes.
-	 */
-	public const string PACKAGE_TYPE = 'blush-theme';
-
-	/**
-	 * Manifest file names, in precedence order.
-	 *
-	 * @var list<string>
-	 */
-	public const array MANIFESTS = ['theme.json', 'theme.yaml', 'theme.yml'];
-
 	public function __construct(private Paths $paths)
 	{}
 
@@ -58,19 +50,15 @@ final readonly class ThemeDiscovery
 	 */
 	public function discover(): Themes
 	{
-		$themes  = [];
 		$invalid = [];
 		$found   = [];
 
 		try {
-			foreach (new ComposerPackages($this->paths->vendor)->ofType(self::PACKAGE_TYPE) as $package) {
-				$name  = is_string($package['name'] ?? null) ? $package['name'] : '';
-				$extra = is_array($package['extra'] ?? null) ? $package['extra'] : [];
-				$blush = is_array($extra['blush'] ?? null) ? $extra['blush'] : [];
-				$slug  = is_string($blush['slug'] ?? null) ? $blush['slug'] : substr((string) strrchr('/' . $name, '/'), 1);
+			foreach (new ComposerPackages($this->paths->vendor)->ofType(ExtensionKind::Theme->packageType()) as $package) {
+				$name = is_string($package['name'] ?? null) ? $package['name'] : '';
 
 				if (is_string($package['path'] ?? null)) {
-					$found[$slug] = [$package['path'], ThemeSource::Composer];
+					$found[] = [$name, $package['path'], ThemeSource::Composer];
 				}
 			}
 		} catch (Throwable $error) {
@@ -78,36 +66,104 @@ final readonly class ThemeDiscovery
 		}
 
 		if (is_dir($this->paths->themes)) {
+			$folders = [];
+
 			foreach (new DirectoryIterator($this->paths->themes) as $folder) {
 				if ($folder->isDir() && ! $folder->isDot()) {
-					$found[$folder->getFilename()] = [$folder->getPathname(), ThemeSource::Local];
+					$folders[] = $folder->getPathname();
 				}
+			}
+
+			sort($folders);
+
+			foreach ($folders as $folder) {
+				$found[] = [$this->paths->relative($folder), $folder, ThemeSource::Local];
 			}
 		}
 
-		$found[Themes::DEFAULT] = [Framework::path('resources/themes/' . Themes::DEFAULT), ThemeSource::Framework];
+		$found[] = [Themes::DEFAULT, Framework::path('resources/themes/default'), ThemeSource::Framework];
 
-		ksort($found);
+		$themes = [];
+		$local  = [];
 
-		foreach ($found as $slug => [$path, $source]) {
-			$slug = (string) $slug;
-
-			if (! Themes::isValidSlug($slug)) {
-				continue;
-			}
-
+		foreach ($found as [$where, $path, $source]) {
 			try {
 				$data = self::read($path);
 
-				if ($data !== null) {
-					$themes[$slug] = ThemeManifest::fromArray($slug, $path, $data, $source);
+				if ($data === null) {
+					continue;
 				}
+
+				if ($source === ThemeSource::Composer) {
+					$data['name'] ??= $where;
+
+					if ($data['name'] !== $where) {
+						throw new ThemeException(sprintf('The theme in Composer package "%s" is named "%s"; a Composer theme\'s name is its package\'s.', $where, is_string($data['name']) ? $data['name'] : ''));
+					}
+				}
+
+				$theme = ThemeManifest::fromArray($path, $data, $source);
 			} catch (ThemeException $error) {
-				$invalid[$slug] = $error->getMessage();
+				$invalid[$where] = $error->getMessage();
+
+				continue;
+			}
+
+			if ($theme->name === Themes::DEFAULT && $source !== ThemeSource::Framework) {
+				$invalid[$where] = sprintf('"%s" is the framework default theme\'s name.', Themes::DEFAULT);
+
+				continue;
+			}
+
+			if ($source === ThemeSource::Local && isset($local[$theme->name])) {
+				$invalid[$where]                = sprintf('%s is also named "%s".', $local[$theme->name], $theme->name);
+				$invalid[$local[$theme->name]] = sprintf('%s is also named "%s".', $where, $theme->name);
+				unset($themes[$theme->name]);
+
+				continue;
+			}
+
+			if ($source === ThemeSource::Local) {
+				$local[$theme->name] = $where;
+			}
+
+			$themes[$theme->name] = $theme;
+		}
+
+		ksort($themes);
+
+		// Two themes claiming one namespace are both broken (D-378), but
+		// the default theme keeps its own.
+		$claims = [];
+
+		foreach ($themes as $theme) {
+			$claims[$theme->namespace][] = $theme;
+		}
+
+		foreach (array_filter($claims, static fn (array $claimants): bool => count($claimants) > 1) as $namespace => $claimants) {
+			$names = array_map(static fn (ThemeManifest $theme): string => $theme->name, $claimants);
+
+			foreach ($claimants as $theme) {
+				if ($theme->source !== ThemeSource::Framework) {
+					$invalid[self::where($theme, $this->paths)] = sprintf('The themes %s all have the namespace "%s".', implode(', ', $names), $namespace);
+					unset($themes[$theme->name]);
+				}
 			}
 		}
 
 		return new Themes($themes, $invalid);
+	}
+
+	/**
+	 * Returns where a theme was found, as `Themes::invalid()` keys it.
+	 */
+	public static function where(ThemeManifest $theme, Paths $paths): string
+	{
+		return match ($theme->source) {
+			ThemeSource::Local     => $paths->relative($theme->path),
+			ThemeSource::Composer,
+			ThemeSource::Framework => $theme->name
+		};
 	}
 
 	/**
@@ -117,16 +173,13 @@ final readonly class ThemeDiscovery
 	 */
 	public static function manifestFiles(string $path): array
 	{
-		return array_values(array_filter(
-			array_map(static fn (string $name): string => "{$path}/{$name}", self::MANIFESTS),
-			is_file(...)
-		));
+		return ManifestFile::find($path, ExtensionKind::Theme);
 	}
 
 	/**
 	 * Reads a theme folder's manifest, or returns `null` when it has none.
 	 *
-	 * @return ?array<array-key, mixed>
+	 * @return ?array<string, mixed>
 	 * @throws ThemeException When the manifest can't be parsed.
 	 */
 	private static function read(string $path): ?array
@@ -137,20 +190,10 @@ final readonly class ThemeDiscovery
 			return null;
 		}
 
-		$contents = (string) file_get_contents($file);
-
 		try {
-			$data = str_ends_with($file, '.json')
-				? json_decode($contents, true, 512, JSON_THROW_ON_ERROR)
-				: new SymfonyYamlParser()->parse($contents);
+			return ManifestFile::read($file);
 		} catch (Throwable $error) {
-			throw new ThemeException(sprintf('The theme manifest %s is invalid: %s', $file, $error->getMessage()), 0, $error);
+			throw new ThemeException($error->getMessage(), 0, $error);
 		}
-
-		if (! is_array($data)) {
-			throw new ThemeException(sprintf('The theme manifest %s must hold an object.', $file));
-		}
-
-		return $data;
 	}
 }

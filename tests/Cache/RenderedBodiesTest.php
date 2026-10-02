@@ -74,8 +74,8 @@ final class RenderedBodiesTest extends TestCase
 		$app = $this->site();
 		$this->assertSame("<p>Spring is here.</p>\n", $app->container()->make(ContentRepository::class)->named('post', 'spring')?->body());
 
-		$this->writeTemporaryFile('user/themes/child/theme.json', '{"name": "Child"}');
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'child');\n");
+		$this->writeTemporaryFile('user/themes/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child"}');
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/child');\n");
 
 		$this->repository()->named('post', 'spring')?->body();
 		$this->assertSame(2, $this->stored('bodies'));

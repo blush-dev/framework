@@ -167,7 +167,7 @@ final class ExportTest extends TestCase
 			'robots.txt',
 			'404.html',
 			'media/pixel.png',
-			'themes/default/style.css'
+			'themes/blush/default/style.css'
 		];
 
 		foreach ($files as $file) {
@@ -178,7 +178,7 @@ final class ExportTest extends TestCase
 		$this->assertFileDoesNotExist($this->exported('archives/unfinished/index.html'));
 		$this->assertFileDoesNotExist($this->exported('archives/future/index.html'));
 		$this->assertFileDoesNotExist($this->exported('page/4/index.html'));
-		$this->assertFileDoesNotExist($this->exported('themes/default/theme.json'));
+		$this->assertFileDoesNotExist($this->exported('themes/blush/default/theme.json'));
 		$this->assertFileDoesNotExist($this->exported('media/_content/_posts/hello/pixel.png'));
 		$this->assertFileDoesNotExist($this->exported('_posts/hello/pixel.png'));
 		$this->assertNotContains('/page/4', $report->skipped);
@@ -236,7 +236,7 @@ final class ExportTest extends TestCase
 		$this->writeTemporaryFile('public/.htaccess', 'Deny from all');
 		$this->writeTemporaryFile('public/robots.txt', "User-agent: *\nAllow: /\n");
 		$this->writeTemporaryFile('public/favicon.ico', 'icon');
-		$this->writeTemporaryFile('public/themes/default/old.css', 'stale');
+		$this->writeTemporaryFile('public/themes/blush/default/old.css', 'stale');
 
 		$this->export($this->site());
 
@@ -244,7 +244,7 @@ final class ExportTest extends TestCase
 		$this->assertSame('icon', file_get_contents($this->exported('favicon.ico')));
 		$this->assertFileDoesNotExist($this->exported('index.php'));
 		$this->assertStringNotContainsString('Deny from all', (string) file_get_contents($this->exported('.htaccess')));
-		$this->assertFileDoesNotExist($this->exported('themes/default/old.css'));
+		$this->assertFileDoesNotExist($this->exported('themes/blush/default/old.css'));
 	}
 
 	public function testCrawlingFindsLinkedPagesAndBrokenLinks(): void

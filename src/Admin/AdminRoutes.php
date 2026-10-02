@@ -81,8 +81,10 @@ use Blush\Session\StartSession;
  *     and `DELETE roles/{name}` change roles (`RoleEditController`).
  *   - `GET  appearance`: the installed themes, to show
  *     (`AppearanceController`).
- *   - `GET  extensions`: the installed extensions and what each adds,
- *     to show (`ExtensionsController`).
+ *   - `GET  plugins`: the installed plugins and what each adds,
+ *     to show (`PluginsController`).
+ *   - `GET  icon-packs`: the installed icon packs, to show
+ *     (`IconPacksController`).
  *   - `GET  settings/{screen}`: a Settings screen's settings
  *     (`SettingsController`, D-325); `PATCH settings` saves the ones
  *     the admin can change in `user/data/settings.json`, and `POST
@@ -176,7 +178,8 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'update'])->named('account.update')->middleware(Authenticate::class),
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'delete'])->named('account.delete')->middleware(Authenticate::class),
 			Route::get('/appearance', AppearanceController::class)->named('appearance')->middleware(Authenticate::class),
-			Route::get('/extensions', ExtensionsController::class)->named('extensions')->middleware(Authenticate::class),
+			Route::get('/plugins', PluginsController::class)->named('plugins')->middleware(Authenticate::class),
+			Route::get('/icon-packs', IconPacksController::class)->named('icon-packs')->middleware(Authenticate::class),
 			Route::patch('/settings', [SettingsEditController::class, 'update'])->named('settings.update')->middleware(Authenticate::class),
 			Route::post('/settings/refresh', [SettingsEditController::class, 'refresh'])->named('settings.refresh')->middleware(Authenticate::class),
 			Route::get('/settings/{screen:[a-z]+}', SettingsController::class)->named('settings')->middleware(Authenticate::class),

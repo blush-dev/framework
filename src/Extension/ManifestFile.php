@@ -1,0 +1,73 @@
+<?php
+
+/**
+ * Manifest file.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Extension;
+
+use JsonException;
+use Blush\Data\InvalidData;
+use Blush\Data\SymfonyYamlParser;
+
+/**
+ * Finds and reads an extension's manifest file, for every kind: JSON,
+ * else YAML (D-032). Extensions are found before the container exists,
+ * so YAML is read with the framework's parser directly.
+ */
+final readonly class ManifestFile
+{
+	/**
+	 * The manifest formats, in precedence order.
+	 *
+	 * @var list<string>
+	 */
+	public const array FORMATS = ['json', 'yaml', 'yml'];
+
+	/**
+	 * Returns a folder's manifest files of a kind, the winning one first
+	 * and then any it shadows.
+	 *
+	 * @return list<string>
+	 */
+	public static function find(string $folder, ExtensionKind $kind): array
+	{
+		return array_values(array_filter(
+			array_map(static fn (string $format): string => "{$folder}/{$kind->manifest()}.{$format}", self::FORMATS),
+			is_file(...)
+		));
+	}
+
+	/**
+	 * Reads a manifest file as a map of keys to values.
+	 *
+	 * @return array<string, mixed>
+	 * @throws ExtensionException When it can't be parsed or isn't a map.
+	 */
+	public static function read(string $file): array
+	{
+		$contents = (string) file_get_contents($file);
+
+		try {
+			$data = str_ends_with($file, '.json')
+				? json_decode($contents, true, 512, JSON_THROW_ON_ERROR)
+				: new SymfonyYamlParser()->parse($contents);
+		} catch (JsonException | InvalidData $e) {
+			throw new ExtensionException(sprintf('The manifest %s is invalid: %s', $file, $e->getMessage()), previous: $e);
+		}
+
+		if (! is_array($data) || array_is_list($data)) {
+			throw new ExtensionException(sprintf('The manifest %s must be a map of keys to values.', $file));
+		}
+
+		/** @var array<string, mixed> Not a list, so its keys are strings. */
+		return $data;
+	}
+}

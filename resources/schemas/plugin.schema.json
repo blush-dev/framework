@@ -1,0 +1,75 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework plugin manifest",
+	"description": "A local plugin's plugin.json: its name, label, namespace, service provider, and the classes autoloaded for it.",
+	"type": "object",
+	"required": [
+		"name",
+		"label",
+		"namespace",
+		"provider"
+	],
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
+		},
+		"name": {
+			"type": "string",
+			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
+			"description": "The plugin's name, the key it's known by: vendor/name, such as \"acme/gallery\". For a Composer package, its package name."
+		},
+		"label": {
+			"type": "string",
+			"minLength": 1,
+			"description": "The plugin's title, as people read it."
+		},
+		"namespace": {
+			"type": "string",
+			"pattern": "^[a-z0-9][a-z0-9_-]*$",
+			"not": {
+				"enum": [
+					"blush",
+					"app",
+					"theme",
+					"default"
+				]
+			},
+			"description": "The namespace the plugin's components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one."
+		},
+		"version": {
+			"type": "string",
+			"default": "0.0.0",
+			"description": "The plugin's version, such as 1.0.0."
+		},
+		"description": {
+			"type": "string",
+			"description": "What the plugin does."
+		},
+		"provider": {
+			"type": "string",
+			"description": "The class name of the plugin's service provider."
+		},
+		"autoload": {
+			"type": "object",
+			"description": "Classes to autoload.",
+			"properties": {
+				"psr-4": {
+					"type": "object",
+					"description": "Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {\"Acme\\\\Gallery\\\\\": \"src/\"}.",
+					"additionalProperties": {
+						"type": "string",
+						"pattern": "^(?!/)(?!.*\\.\\.).+$"
+					}
+				}
+			}
+		},
+		"requires": {
+			"type": "object",
+			"description": "What the plugin needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other extensions.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		}
+	}
+}

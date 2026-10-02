@@ -60,7 +60,7 @@ const changed = computed(() => Object.keys(changes.value).length > 0 || index.va
 
 // A type from code, changed through a file in user/data/types (D-349).
 const code   = computed(() => props.type.origin !== 'data');
-const source = computed(() => props.type.origin === 'config' ? 'config/content.php' : 'an extension');
+const source = computed(() => props.type.origin === 'config' ? 'config/content.php' : 'a plugin');
 const file   = computed(() => props.type.file ?? `user/data/types/${props.type.name}.yaml`);
 
 // The prefix the addresses sit under, as the form has it.

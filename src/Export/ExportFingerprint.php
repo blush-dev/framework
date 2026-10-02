@@ -25,9 +25,9 @@ use Blush\Support\Filesystem;
  *
  * - the export's origin and options, and the framework version;
  * - `.env`, `config/`, `user/data`, `user/media` (images give Markdown
- *   their dimensions), `user/themes`, `user/extensions`, `public/`,
- *   `resources/`, and the site's `src/`;
- * - installed Composer packages (themes and extensions from Composer),
+ *   their dimensions), `user/themes`, `user/plugins`, `user/icons`,
+ *   `public/`, `resources/`, and the site's `src/`;
+ * - installed Composer packages (extensions from Composer),
  *   and the framework's own `src/` and `resources/`, so framework
  *   development is covered too.
  */
@@ -53,7 +53,8 @@ final readonly class ExportFingerprint
 			$this->paths->data,
 			$this->paths->media,
 			$this->paths->themes,
-			$this->paths->extensions,
+			$this->paths->plugins,
+			$this->paths->icons,
 			$this->paths->public,
 			$this->paths->resources,
 			$this->paths->root . '/src',

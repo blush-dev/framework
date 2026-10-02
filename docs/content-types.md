@@ -71,14 +71,14 @@ return new ContentConfig(
 );
 ```
 
-**In an extension**, with the same classes, when the types belong with
+**In a plugin**, with the same classes, when the types belong with
 code you install, like a plugin registering post types in WordPress. See
-[Content types from an extension](extending.md#content-types-from-an-extension).
+[Content types from a plugin](extending.md#content-types-from-a-plugin).
 
 ### Changing a type from code
 
 A file in `user/data/types/` named after a collection or taxonomy from
-`config/content.php` or an extension changes that type rather than
+`config/content.php` or a plugin changes that type rather than
 defining a new one. Each option it sets replaces the code's, and the
 rest stay as the code has them:
 
@@ -98,10 +98,10 @@ All three do the same thing, and every option below works in each. (In
 YAML, use the option names as keys.) A type's name uses lowercase letters,
 digits, and underscores.
 
-If two places define the same type, `config/content.php` replaces an
-extension's type, and both replace a built-in one. A YAML type may
-replace a built-in type, but not one from an extension or
-`config/content.php`; that's an error. Two extensions can't define the
+If two places define the same type, `config/content.php` replaces a
+plugin's type, and both replace a built-in one. A YAML type may
+replace a built-in type, but not one from a plugin or
+`config/content.php`; that's an error. Two plugins can't define the
 same type.
 
 Which to pick:
@@ -110,7 +110,7 @@ Which to pick:
   it along. It's the only kind the [admin](admin.md#content-types) can
   create and edit.
 - **`config/content.php`** keeps it with your site's code.
-- **An extension** keeps it with a feature you can reuse or version on its
+- **A plugin** keeps it with a feature you can reuse or version on its
   own.
 
 ## Names, descriptions, and icons in the admin
@@ -479,9 +479,9 @@ return new FieldConfig(sets: [
 ]);
 ```
 
-Extensions can add sets too
-([Field sets from an extension](extending.md#field-sets-from-an-extension)).
-A set in `config/fields.php` replaces an extension's set of the same
+Plugins can add sets too
+([Field sets from a plugin](extending.md#field-sets-from-a-plugin)).
+A set in `config/fields.php` replaces a plugin's set of the same
 name, and a set in `user/data/fields/` replaces either. Set `dataSets:
 false` in `config/fields.php` to ignore `user/data/fields/`.
 

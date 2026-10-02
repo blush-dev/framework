@@ -23,7 +23,7 @@ export interface ComponentDescription {
 	kind: 'container' | 'leaf' | 'inline';
 	// A core component's group; `null` for the rest, which have a source.
 	category: string | null;
-	source: { kind: 'theme' | 'site' | 'extension'; label: string } | null;
+	source: { kind: 'theme' | 'site' | 'icon-pack' | 'plugin'; label: string } | null;
 	props: ComponentProp[];
 	// Its variants under the active theme, Default not included (D-266).
 	variants: ComponentVariant[];
@@ -42,7 +42,7 @@ export interface ComponentVariant {
 	label: string;
 	description: string;
 	// Where it comes from, when not from the component's own namespace.
-	source: { kind: 'theme' | 'site' | 'extension'; label: string } | null;
+	source: { kind: 'theme' | 'site' | 'icon-pack' | 'plugin'; label: string } | null;
 }
 
 /**
@@ -64,7 +64,7 @@ const CATEGORIES: Record<string, { label: string; icon: IconName }> = {
 	data: { label: 'Data', icon: 'sliders-horizontal' }
 };
 
-const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', site: 'house', extension: 'plug' };
+const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', site: 'house', 'icon-pack': 'shapes', plugin: 'plug' };
 
 const ICONS: Record<string, IconName> = {
 	abbr: 'book-open',
@@ -209,13 +209,13 @@ export function groupOf(component: ComponentDescription): ComponentGroup {
 		return { key: component.category, label: category?.label ?? component.category, icon: category?.icon ?? 'layers' };
 	}
 
-	const source = component.source ?? { kind: 'extension', label: component.name.split('/')[0] ?? '' };
+	const source = component.source ?? { kind: 'plugin', label: component.name.split('/')[0] ?? '' };
 
 	return {
 		key: `${source.kind}:${source.label}`,
 		label: source.label,
 		icon: SOURCE_ICONS[source.kind] ?? 'plug',
-		source: source.kind === 'theme' ? 'Theme' : (source.kind === 'site' ? undefined : 'Extension')
+		source: source.kind === 'theme' ? 'Theme' : (source.kind === 'site' ? undefined : 'Plugin')
 	};
 }
 

@@ -19,15 +19,15 @@ use Blush\Core\AppConfig;
 /**
  * Picks the theme chain a request renders with: the configured active
  * theme, or, in development only, an installed theme named by
- * `?theme={slug}` (D-035). An unknown `?theme=` is ignored.
+ * `?theme={name}` (D-035). An unknown `?theme=` is ignored.
  *
- * Chains are built once per slug and kept. The chain a request picked is
+ * Chains are built once per theme and kept. The chain a request picked is
  * remembered as `current()`, which Markdown directives render with.
  */
 final class ThemeResolver
 {
 	/**
-	 * Chains built so far, by slug.
+	 * Chains built so far, by theme name.
 	 *
 	 * @var array<string, ThemeChain>
 	 */
@@ -61,10 +61,10 @@ final class ThemeResolver
 	 */
 	public function forRequest(ServerRequestInterface $request): ThemeChain
 	{
-		$slug = $request->getQueryParams()['theme'] ?? null;
+		$name = $request->getQueryParams()['theme'] ?? null;
 
-		return $this->current = $this->app->environment->isDevelopment() && is_string($slug) && $this->themes->has($slug)
-			? $this->chain($slug)
+		return $this->current = $this->app->environment->isDevelopment() && is_string($name) && $this->themes->has($name)
+			? $this->chain($name)
 			: $this->active();
 	}
 
@@ -85,8 +85,8 @@ final class ThemeResolver
 	 *
 	 * @throws ThemeException
 	 */
-	public function chain(string $slug): ThemeChain
+	public function chain(string $name): ThemeChain
 	{
-		return $this->chains[$slug] ??= $this->themes->chain($slug);
+		return $this->chains[$name] ??= $this->themes->chain($name);
 	}
 }

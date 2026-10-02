@@ -31,7 +31,9 @@ blush-framework/
     Event/              Event system (from x3p0-event)
     Config/  Env/  Error/  Log/  Clock/
     Data/               DataLoader + JSON/YAML parser registry (D-032)
-    Extension/          Extension manifests, discovery, local autoloading (D-041)
+    Extension/          Shared by every kind (D-378): ExtensionKind, ExtensionName,
+                        ExtensionNamespace, ManifestFile, LocalAutoloader
+    Plugin/             Plugins (D-041, D-378): PluginManifest, discovery, cache, config
     Translation/        Translator, catalogs, formatters (D-028)
     Http/               Request, Response, Uri, Headers, factories, Emitter
     Http/Middleware/
@@ -54,7 +56,9 @@ blush-framework/
                         ContentCache, RenderedBodies, PageCache (D-127 to D-130)
     Embed/              oEmbed providers, registry, EmbedData, Embeds, Fetcher, EmbedConfig (D-184)
     Feed/               Feed formats, config, builder, controller, routes, head links (D-122)
-    Icon/               IconName, Icons (lookup through site, themes, extensions, core), IconRegistry (D-187)
+    Icon/               IconName, Icons (lookup through site, themes, packs and plugins, core),
+                        IconRegistry (D-187), icon packs: IconPack, IconPacks,
+                        IconPackDiscovery, IconPackCache (D-378)
     Sitemap/            Sitemap config, builder, controller, robots.txt, routes (D-123)
     Publish/            Publisher, PublishConfig, Puller + GitPuller, webhook (D-131, D-132)
     Setup/              SetupChecks, CheckResult, CheckStatus, SetupPage (init, doctor, D-218)
@@ -125,21 +129,26 @@ site/
                         settings.json, the admin's saved settings by config section
                         (JSON only, D-324, D-325)
     themes/             Local themes, each optionally its own repo (Composer themes may
-                        live in vendor/). A built theme keeps sources in {slug}/resources/
-                        (never served), its build in {slug}/public/, and its build
-                        config (package.json, vite.config.js) in {slug}/ (D-155, D-167)
-    extensions/         Local extensions, each optionally its own repo (Composer
-                        extensions live in vendor/)
+                        live in vendor/). A built theme keeps sources in {folder}/resources/
+                        (never served), its build in {folder}/public/, and its build
+                        config (package.json, vite.config.js) in {folder}/ (D-155, D-167)
+    plugins/            Local plugins (D-378; was extensions/), {folder}/plugin.json each,
+                        optionally its own repo (Composer plugins live in vendor/)
+                        Each extension kind has a folder, one level deep, named
+                        for nothing but where it lives (its manifest's name is
+                        its key); admin-themes/ is planned
+    icons/              Local icon packs (D-378), {folder}/icons.json and SVGs each
   public/               Web root: index.php, .htaccess, and published assets ONLY
                         (themes/, and media at MediaConfig::$url, D-099). Relocatable
                         (e.g. cPanel public_html, D-046)
-  resources/views/      Site-level view overrides (resources/views/themes/{slug}/ for theme-scoped ones)
+  resources/views/      Site-level view overrides (resources/views/themes/{vendor}/{name}/ for theme-scoped ones)
   resources/lang/       The site's `app` translation domain, e.g. its components' text (D-173)
   resources/icons/      The site's own icons (`app/{name}`), and `{ns}/{name}.svg` overrides (D-187)
   src/                  App\ namespace: providers, components, controllers
   storage/
-    cache/              Compiled config.php, extensions.php, container.php, routes.php,
-                        content-types.php, themes.php (D-060, D-077, D-092, D-115);
+    cache/              Compiled config.php, plugins.php, container.php, routes.php,
+                        content-types.php, themes.php, icon-packs.php (D-060, D-077,
+                        D-092, D-115, D-378);
                         content-version.json (D-128); store/{namespace}/ (D-127);
                         publish.lock (D-131); export/ (the export application's cache
                         and manifest.json) and export.lock (D-135, D-137)

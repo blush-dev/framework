@@ -69,7 +69,10 @@ the revised profiles sketch, Your Account as the account screen on
 your own row and the sketch's cleanups (D-369), with accounts keeping
 their display name, every account needing an email, and the Users
 screens drawn as the sketch is (D-370); and counts in the section
-panel, with Your Account at `/accounts/{username}` (D-371).
+panel, with Your Account at `/accounts/{username}` (D-371); and
+extensions as a type system: plugins (once "extensions"), themes, and
+icon packs, each known by a `vendor/name` with a label and a declared
+namespace, and admin themes planned (D-378, D-379).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

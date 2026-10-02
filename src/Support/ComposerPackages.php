@@ -17,8 +17,8 @@ use JsonException;
 
 /**
  * Reads the packages Composer installed, from
- * `vendor/composer/installed.json`, for discovering extensions
- * (`blush-extension`) and themes (`blush-theme`) by package type.
+ * `vendor/composer/installed.json`, for discovering extensions by
+ * package type (`blush-plugin`, `blush-theme`, `blush-icons`; D-378).
  */
 final readonly class ComposerPackages
 {

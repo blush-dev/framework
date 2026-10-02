@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Extension config.
+ * Plugin config.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,23 +11,23 @@
 
 declare(strict_types=1);
 
-namespace Blush\Extension;
+namespace Blush\Plugin;
 
 use Override;
 use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 
 /**
- * Which discovered extensions are enabled, from `config/extensions.php`.
- * By default every discovered extension is enabled, since installing one is
+ * Which discovered plugins are enabled, from `config/plugins.php`.
+ * By default every discovered plugin is enabled, since installing one is
  * the intent to use it. List names in `enabled` to allow only those, and in
  * `disabled` to switch individual ones off.
  */
-final readonly class ExtensionConfig implements Config
+final readonly class PluginConfig implements Config
 {
 	/**
-	 * @param ?list<string> $enabled  Only these extensions, or `null` for all.
-	 * @param list<string>  $disabled Extensions to switch off.
+	 * @param ?list<string> $enabled  Only these plugins, or `null` for all.
+	 * @param list<string>  $disabled Plugins to switch off.
 	 */
 	public function __construct(
 		public ?array $enabled = null,
@@ -36,7 +36,7 @@ final readonly class ExtensionConfig implements Config
 	}
 
 	/**
-	 * Whether the named extension is enabled.
+	 * Whether the named plugin is enabled.
 	 */
 	public function isEnabled(string $name): bool
 	{

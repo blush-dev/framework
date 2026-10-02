@@ -24,7 +24,7 @@ use Blush\Core\AppConfig;
 use Blush\Core\Environment;
 use Blush\Core\Paths;
 use Blush\Env\Env;
-use Blush\Extension\ExtensionConfig;
+use Blush\Plugin\PluginConfig;
 use Blush\Log\Level;
 use Blush\Log\LogConfig;
 use Blush\Log\LogDriver;
@@ -38,7 +38,7 @@ use Blush\Tests\TemporaryDirectory;
 #[CoversClass(ConfigValues::class)]
 #[CoversClass(AppConfig::class)]
 #[CoversClass(LogConfig::class)]
-#[CoversClass(ExtensionConfig::class)]
+#[CoversClass(PluginConfig::class)]
 final class ConfigTest extends TestCase
 {
 	use TemporaryDirectory;
@@ -65,7 +65,7 @@ final class ConfigTest extends TestCase
 		$this->writeTemporaryFile('config/log.php', <<<'PHP'
 			<?php
 			declare(strict_types=1);
-			return [new Blush\Log\LogConfig(level: Blush\Log\Level::Debug), new Blush\Extension\ExtensionConfig(disabled: ['x'])];
+			return [new Blush\Log\LogConfig(level: Blush\Log\Level::Debug), new Blush\Plugin\PluginConfig(disabled: ['x'])];
 			PHP);
 
 		$config = $this->loader()->load($this->temporaryDirectory() . '/config');
@@ -76,7 +76,7 @@ final class ConfigTest extends TestCase
 		$this->assertSame('America/Chicago', $app->timezone);
 		$this->assertStringStartsWith('Site at blush-tests-', $app->name);
 		$this->assertSame(Level::Debug, $config->get(LogConfig::class)->level);
-		$this->assertFalse($config->get(ExtensionConfig::class)->isEnabled('x'));
+		$this->assertFalse($config->get(PluginConfig::class)->isEnabled('x'));
 	}
 
 	public function testMissingDirectoryLoadsNothing(): void
@@ -105,11 +105,11 @@ final class ConfigTest extends TestCase
 	{
 		$config = new ConfigRepository(new LogConfig(level: Level::Error))
 			->withDefaults(new LogConfig(), new AppConfig())
-			->with(new ExtensionConfig(enabled: []));
+			->with(new PluginConfig(enabled: []));
 
 		$this->assertSame(Level::Error, $config->get(LogConfig::class)->level);
 		$this->assertTrue($config->has(AppConfig::class));
-		$this->assertSame([], $config->get(ExtensionConfig::class)->enabled);
+		$this->assertSame([], $config->get(PluginConfig::class)->enabled);
 		$this->assertNull(new ConfigRepository()->find(AppConfig::class));
 
 		$this->expectException(InvalidConfig::class);
@@ -123,7 +123,7 @@ final class ConfigTest extends TestCase
 		$config = new ConfigRepository(
 			new AppConfig(name: 'Cached', environment: Environment::Staging, providers: [BindingProvider::class]),
 			new LogConfig(driver: LogDriver::Stderr),
-			new ExtensionConfig(enabled: ['a'], disabled: ['b'])
+			new PluginConfig(enabled: ['a'], disabled: ['b'])
 		);
 
 		$this->assertNull($cache->read());

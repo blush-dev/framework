@@ -1,5 +1,7 @@
 {
 	"name": "fixture/hello",
+	"label": "Hello",
+	"namespace": "hello",
 	"version": "1.2.0",
 	"description": "Says hello.",
 	"provider": "Fixture\\Hello\\HelloServiceProvider",

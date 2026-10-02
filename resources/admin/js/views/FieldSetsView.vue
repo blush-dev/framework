@@ -26,7 +26,7 @@ request<FieldSetList>('GET', '/fields/sets').then((answer) => {
  * Where a set comes from, for people.
  */
 function origin(set: FieldSetSummary): string {
-	return { extension: 'An extension', config: 'config/fields.php', data: 'user/data/fields' }[set.origin];
+	return { extension: 'A plugin', config: 'config/fields.php', data: 'user/data/fields' }[set.origin];
 }
 </script>
 
@@ -41,7 +41,7 @@ function origin(set: FieldSetSummary): string {
 		</div>
 	</header>
 
-	<p class="notice"><span>Sets made here live in <code>user/data/fields</code>, and their screens edit them. Sets from <code>config/fields.php</code> and extensions are defined in code, so their screens show them.</span></p>
+	<p class="notice"><span>Sets made here live in <code>user/data/fields</code>, and their screens edit them. Sets from <code>config/fields.php</code> and plugins are defined in code, so their screens show them.</span></p>
 	<p v-if="failed" class="notice notice--error" role="alert">The field sets couldn't be loaded.</p>
 
 	<section v-if="!failed" class="panel" aria-labelledby="sets-heading" :aria-busy="list === null">

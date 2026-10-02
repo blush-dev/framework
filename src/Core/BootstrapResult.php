@@ -15,8 +15,9 @@ namespace Blush\Core;
 
 use Blush\Config\ConfigRepository;
 use Blush\Container\ServiceContainer;
-use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
+use Blush\Icon\IconPacks;
+use Blush\Plugin\Plugins;
 use Blush\Theme\Themes;
 
 /**
@@ -31,9 +32,10 @@ final readonly class BootstrapResult
 		public Application $application,
 		public ServiceContainer $container,
 		public ConfigRepository $config,
-		public Extensions $extensions,
+		public Plugins $plugins,
 		public LocalAutoloader $autoloader,
-		public Themes $themes
+		public Themes $themes,
+		public IconPacks $iconPacks
 	) {
 	}
 }

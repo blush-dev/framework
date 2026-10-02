@@ -35,20 +35,21 @@ final readonly class ListThemes
 	{
 		$rows = [];
 
-		foreach ($this->themes->all() as $slug => $theme) {
+		foreach ($this->themes->all() as $name => $theme) {
 			$rows[] = [
-				$slug === $this->config->active ? "* {$slug}" : "  {$slug}",
-				$theme->name,
+				$name === $this->config->active ? "* {$name}" : "  {$name}",
+				$theme->label,
+				$theme->namespace,
 				$theme->version,
 				$theme->parent ?? '',
 				$theme->source->value
 			];
 		}
 
-		$output->table(['Slug', 'Name', 'Version', 'Parent', 'Source'], $rows);
+		$output->table(['Name', 'Label', 'Namespace', 'Version', 'Parent', 'Source'], $rows);
 
-		foreach ($this->themes->invalid() as $slug => $message) {
-			$output->warning("{$slug}: {$message}");
+		foreach ($this->themes->invalid() as $where => $message) {
+			$output->warning("{$where}: {$message}");
 		}
 
 		if (! $this->themes->has($this->config->active)) {

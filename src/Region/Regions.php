@@ -44,7 +44,7 @@ use Blush\View\Views;
 final class Regions
 {
 	/**
-	 * Each theme's locations, by theme slug.
+	 * Each theme's locations, by theme name.
 	 *
 	 * @var array<string, array<string, RegionLocation>>
 	 */
@@ -127,23 +127,23 @@ final class Regions
 	 */
 	public function locations(ThemeChain $chain): array
 	{
-		$slug = $chain->active()->slug;
+		$active = $chain->active()->name;
 
-		if (isset($this->locations[$slug])) {
-			return $this->locations[$slug];
+		if (isset($this->locations[$active])) {
+			return $this->locations[$active];
 		}
 
 		$locations = [];
 
 		foreach (array_reverse($chain->themes) as $theme) {
 			foreach ($theme->regions() as $name => $declaration) {
-				$locations[$name] = RegionLocation::fromDeclaration($name, $declaration, $theme->slug);
+				$locations[$name] = RegionLocation::fromDeclaration($name, $declaration, $theme->name);
 			}
 		}
 
 		ksort($locations, SORT_STRING);
 
-		return $this->locations[$slug] = $locations;
+		return $this->locations[$active] = $locations;
 	}
 
 	/**
@@ -217,7 +217,7 @@ final class Regions
 			}
 
 			if (! isset($shown[$name])) {
-				$problems[] = new Violation("region {$name}", sprintf('No location of the "%s" theme shows it.', $chain->active()->slug), Severity::Notice);
+				$problems[] = new Violation("region {$name}", sprintf('No location of the "%s" theme shows it.', $chain->active()->name), Severity::Notice);
 			}
 		}
 

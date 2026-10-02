@@ -184,7 +184,7 @@ The rest are for the whole site:
 | `accounts.delete` | Removing accounts |
 | `roles.manage` | Making, changing, resetting, and deleting roles |
 
-Extensions can add their own.
+Plugins can add their own.
 
 ### Your own roles
 

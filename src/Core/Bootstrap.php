@@ -29,18 +29,21 @@ use Blush\Content\Type\ContentTypeCache;
 use Blush\Env\Env;
 use Blush\Embed\EmbedConfig;
 use Blush\Export\ExportConfig;
-use Blush\Extension\ExtensionCache;
-use Blush\Extension\ExtensionConfig;
-use Blush\Extension\ExtensionDiscovery;
-use Blush\Extension\ExtensionManifest;
-use Blush\Extension\Extensions;
 use Blush\Extension\LocalAutoloader;
 use Blush\Feed\FeedConfig;
 use Blush\Field\FieldConfig;
 use Blush\Http\HttpConfig;
+use Blush\Icon\IconPackCache;
+use Blush\Icon\IconPackDiscovery;
+use Blush\Icon\IconPacks;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
+use Blush\Plugin\PluginCache;
+use Blush\Plugin\PluginConfig;
+use Blush\Plugin\PluginDiscovery;
+use Blush\Plugin\PluginManifest;
+use Blush\Plugin\Plugins;
 use Blush\Preview\PreviewConfig;
 use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteCache;
@@ -68,11 +71,13 @@ use Blush\Theme\Themes;
  * 3. Outside development, the container reads compiled resolution plans.
  * 4. The bootstrap itself, `Paths`, `Env`, the config repository, and
  *    every config object are bound in the container.
- * 5. Extensions are discovered (or read from cache), filtered by config, and
+ * 5. Plugins are discovered (or read from cache), filtered by config, and
  *    local ones are autoloaded.
- * 6. Themes are discovered (or read from cache), and the active theme
- *    chain's local themes are autoloaded.
- * 7. Providers register in order: framework, extensions, the active theme
+ * 6. Themes and icon packs are discovered (or read from cache), and the
+ *    active theme chain's local themes are autoloaded. A theme or icon
+ *    pack whose namespace an installed plugin (or, for a pack, a theme)
+ *    claims is left out as broken (D-378).
+ * 7. Providers register in order: framework, plugins, the active theme
  *    chain's (ancestors first), then the site's (D-054). A broken theme
  *    chain registers no theme providers, so the CLI still runs to fix it;
  *    rendering reports the problem.
@@ -131,8 +136,8 @@ final readonly class Bootstrap
 	}
 
 	/**
-	 * Compiles the config, extension, theme, route, content type, and
-	 * container-plan caches. The routes, content types, and container
+	 * Compiles the config, plugin, theme, icon pack, route, content type,
+	 * and container-plan caches. The routes, content types, and container
 	 * plans are gathered by booting a fresh application, so every
 	 * provider and bootable service gets planned, and then by planning
 	 * every class the booted container knows about and every route's
@@ -147,8 +152,9 @@ final readonly class Bootstrap
 		$built   = $this->build(static fn (): Planner => $planner);
 
 		new ConfigCache($this->file(CompiledCache::Config))->write($this->config($this->env(), settings: false));
-		new ExtensionCache($this->file(CompiledCache::Extensions))->write($built->extensions->all());
+		new PluginCache($this->file(CompiledCache::Plugins))->write($built->plugins->all());
 		new ThemeCache($this->file(CompiledCache::Themes))->write($built->themes);
+		new IconPackCache($this->file(CompiledCache::IconPacks))->write($built->iconPacks);
 
 		$built->application->boot();
 
@@ -203,15 +209,18 @@ final readonly class Bootstrap
 			$container->instance($object::class, $object);
 		}
 
-		$extensions = Extensions::enabled(
-			$this->discoverExtensions($app->environment),
-			$config->get(ExtensionConfig::class)
+		$installed = $this->discoverPlugins($app->environment);
+		$plugins   = Plugins::enabled($installed, $config->get(PluginConfig::class));
+
+		[$themes, $iconPacks] = $this->settleNamespaces(
+			$installed,
+			$this->discoverThemes($app->environment),
+			$this->discoverIconPacks($app->environment)
 		);
 
-		$themes         = $this->discoverThemes($app->environment);
 		$themeProviders = [];
 		$autoloader     = new LocalAutoloader();
-		$autoloader->addExtensions($extensions);
+		$autoloader->addPlugins($plugins);
 
 		try {
 			$chain = $themes->chain($config->get(ThemeConfig::class)->active);
@@ -231,14 +240,15 @@ final readonly class Bootstrap
 			}
 		}
 
-		$container->instance(Extensions::class, $extensions);
+		$container->instance(Plugins::class, $plugins);
 		$container->instance(Themes::class, $themes);
+		$container->instance(IconPacks::class, $iconPacks);
 		$container->instance(LocalAutoloader::class, $autoloader);
 
 		$application = new Application($container);
-		$application->register(...$extensions->providers(), ...$themeProviders, ...$app->providers);
+		$application->register(...$plugins->providers(), ...$themeProviders, ...$app->providers);
 
-		return new BootstrapResult($application, $container, $config, $extensions, $autoloader, $themes);
+		return new BootstrapResult($application, $container, $config, $plugins, $autoloader, $themes, $iconPacks);
 	}
 
 	/**
@@ -262,7 +272,7 @@ final readonly class Bootstrap
 		$config = $config->withDefaults(
 			AppConfig::fromEnv($env),
 			new LogConfig(),
-			new ExtensionConfig(),
+			new PluginConfig(),
 			new HttpConfig(),
 			new RouteConfig(),
 			new MarkdownConfig(),
@@ -301,18 +311,18 @@ final readonly class Bootstrap
 	}
 
 	/**
-	 * Returns every installed extension: from the cache outside
+	 * Returns every installed plugin: from the cache outside
 	 * development when it exists, otherwise by discovery.
 	 *
-	 * @return list<ExtensionManifest>
+	 * @return list<PluginManifest>
 	 */
-	private function discoverExtensions(Environment $environment): array
+	private function discoverPlugins(Environment $environment): array
 	{
 		$cached = $environment->isDevelopment()
 			? null
-			: new ExtensionCache($this->file(CompiledCache::Extensions))->read();
+			: new PluginCache($this->file(CompiledCache::Plugins))->read();
 
-		return $cached ?? ExtensionDiscovery::forPaths($this->paths)->discover();
+		return $cached ?? PluginDiscovery::forPaths($this->paths)->discover();
 	}
 
 	/**
@@ -326,6 +336,58 @@ final readonly class Bootstrap
 			: new ThemeCache($this->file(CompiledCache::Themes))->read();
 
 		return $cached ?? new ThemeDiscovery($this->paths)->discover();
+	}
+
+	/**
+	 * Returns every installed icon pack: from the cache outside
+	 * development when it exists, otherwise by discovery.
+	 */
+	private function discoverIconPacks(Environment $environment): IconPacks
+	{
+		$cached = $environment->isDevelopment()
+			? null
+			: new IconPackCache($this->file(CompiledCache::IconPacks))->read();
+
+		return $cached ?? new IconPackDiscovery($this->paths)->discover();
+	}
+
+	/**
+	 * Leaves out the themes and icon packs whose namespace an extension
+	 * before them claims (D-378): installed plugins first, since they're
+	 * code a site may depend on, then themes, then icon packs. Each one
+	 * left out is recorded as broken, naming the claimant. (Plugins that
+	 * share one fail discovery, and themes or packs that do are broken.)
+	 *
+	 * @param  list<PluginManifest> $plugins
+	 * @return array{Themes, IconPacks}
+	 */
+	private function settleNamespaces(array $plugins, Themes $themes, IconPacks $packs): array
+	{
+		$claims  = [];
+		$reasons = [];
+
+		foreach ($plugins as $plugin) {
+			$claims[$plugin->namespace] = "the plugin {$plugin->name}";
+		}
+
+		foreach ($themes->all() as $theme) {
+			if (isset($claims[$theme->namespace])) {
+				$reasons[$theme->name] = [ThemeDiscovery::where($theme, $this->paths), sprintf('Its namespace, "%s", is %s\'s.', $theme->namespace, $claims[$theme->namespace])];
+			} else {
+				$claims[$theme->namespace] = "the theme {$theme->name}";
+			}
+		}
+
+		$themes  = $themes->without($reasons);
+		$reasons = [];
+
+		foreach ($packs->all() as $pack) {
+			if (isset($claims[$pack->namespace])) {
+				$reasons[$pack->name] = [IconPackDiscovery::where($pack, $this->paths), sprintf('Its namespace, "%s", is %s\'s.', $pack->namespace, $claims[$pack->namespace])];
+			}
+		}
+
+		return [$themes, $packs->without($reasons)];
 	}
 
 	/**

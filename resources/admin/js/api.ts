@@ -263,8 +263,11 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
  * An installed theme (`GET appearance`).
  */
 export interface ThemeSummary {
-	slug: string;
+	// The key it's known by: `vendor/name` (D-378).
 	name: string;
+	label: string;
+	// What its components, icons, and catalog keys go by.
+	namespace: string;
 	version: string;
 	description: string;
 	parent: string | null;
@@ -277,28 +280,35 @@ export interface ThemeSummary {
  * The installed themes (`GET appearance`).
  */
 export interface Appearance {
+	// The active theme's name.
 	active: string;
-	// The active theme, its ancestors, then the default theme.
+	// The active theme, its ancestors, then the default theme, by name.
 	chain: string[];
 	// Whether `config/theme.php` exists.
 	config: boolean;
-	// Whether `?theme={slug}` previews another theme (development only).
+	// Whether `?theme={name}` previews another theme (development only).
 	preview: boolean;
 	themes: ThemeSummary[];
-	invalid: { slug: string; reason: string }[];
+	// Broken themes, by where they were found (`user/themes/{folder}`, or
+	// a Composer package's name).
+	invalid: { where: string; reason: string }[];
 }
 
 /**
- * An installed extension and what it adds (`GET extensions`, D-308).
+ * An installed plugin and what it adds (`GET plugins`, D-308, D-378).
  */
-export interface ExtensionSummary {
+export interface PluginSummary {
+	// The key it's known by: `vendor/name`.
 	name: string;
+	label: string;
+	// What its components, icons, and translations go by.
+	namespace: string;
 	version: string;
 	description: string;
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;
-	// Requirement (`php`, `blush`, `ext-…`, or an extension) to constraint.
+	// Requirement (`php`, `blush`, `ext-…`, or another extension) to constraint.
 	requires: Record<string, string>;
 	enabled: boolean;
 	adds: {
@@ -309,6 +319,34 @@ export interface ExtensionSummary {
 		actions: string[];
 		commands: string[];
 	};
+}
+
+/**
+ * An installed icon pack (`GET icon-packs`, D-378).
+ */
+export interface IconPackSummary {
+	// The key it's known by: `vendor/name`.
+	name: string;
+	label: string;
+	// What its icons go by: `{namespace}/{icon}`.
+	namespace: string;
+	version: string;
+	description: string;
+	source: 'local' | 'composer';
+	// Where it's installed, from the site's root.
+	path: string;
+	count: number;
+	// The first of its icons' full names.
+	icons: string[];
+}
+
+/**
+ * The installed icon packs (`GET icon-packs`), and the broken ones by
+ * where they were found.
+ */
+export interface IconPacks {
+	packs: IconPackSummary[];
+	invalid: { where: string; reason: string }[];
 }
 
 /**

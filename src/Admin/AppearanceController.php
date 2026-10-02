@@ -30,12 +30,13 @@ use Blush\Theme\Themes;
 
 /**
  * Answers `GET {path}/api/appearance` (D-306), for accounts with
- * `site.settings`: the `active` theme's slug, its `chain` (the theme,
- * its ancestors, then the default theme), whether `config/theme.php`
- * exists (`config`), whether `?theme=` previews work (`preview`, in
- * development only), every installed theme (`slug`, `name`, `version`,
- * `description`, `parent`, `source`, and whether it's `active`), and the
- * `invalid` ones with the reason.
+ * `site.settings`: the `active` theme's name, its `chain` (the theme,
+ * its ancestors, then the default theme, by name), whether
+ * `config/theme.php` exists (`config`), whether `?theme=` previews work
+ * (`preview`, in development only), every installed theme (`name`,
+ * `label`, `namespace`, `version`, `description`, `parent`, `source`,
+ * and whether it's `active`; D-378), and the `invalid` ones, by `where`
+ * they were found, with the reason.
  *
  * The active theme is developer configuration (`config/theme.php`,
  * D-039), so the screen only shows it; `theme:activate` changes it.
@@ -66,27 +67,28 @@ final readonly class AppearanceController
 		}
 
 		$themes = array_values(array_map(fn (ThemeManifest $theme): array => [
-			'slug'        => $theme->slug,
 			'name'        => $theme->name,
+			'label'       => $theme->label,
+			'namespace'   => $theme->namespace,
 			'version'     => $theme->version,
 			'description' => $theme->description,
 			'parent'      => $theme->parent,
 			'source'      => $theme->source->value,
-			'active'      => $theme->slug === $this->config->active
+			'active'      => $theme->name === $this->config->active
 		], $this->themes->all()));
 
-		// The active theme first, then by name.
-		usort($themes, static fn (array $a, array $b): int => [! $a['active'], $a['name']] <=> [! $b['active'], $b['name']]);
+		// The active theme first, then by label.
+		usort($themes, static fn (array $a, array $b): int => [! $a['active'], $a['label']] <=> [! $b['active'], $b['label']]);
 
 		$invalid = [];
 
-		foreach ($this->themes->invalid() as $slug => $reason) {
-			$invalid[] = ['slug' => $slug, 'reason' => $reason];
+		foreach ($this->themes->invalid() as $where => $reason) {
+			$invalid[] = ['where' => $where, 'reason' => $reason];
 		}
 
 		return Response::json([
-			'active'  => $chain->active()->slug,
-			'chain'   => $chain->slugs(),
+			'active'  => $chain->active()->name,
+			'chain'   => $chain->names(),
 			'config'  => is_file("{$this->paths->config}/theme.php"),
 			'preview' => $this->app->environment->isDevelopment(),
 			'themes'  => $themes,

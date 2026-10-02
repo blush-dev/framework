@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Extension manifest.
+ * Plugin manifest.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,56 +11,71 @@
 
 declare(strict_types=1);
 
-namespace Blush\Extension;
+namespace Blush\Plugin;
+
+use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionName;
+use Blush\Extension\ExtensionNamespace;
 
 /**
- * Describes one extension: its name, version, service provider, where it
- * lives, and (for local extensions) the PSR-4 map Blush autoloads it with.
- * An extension is a manifest plus a service provider (D-041).
+ * Describes one plugin: its name (`vendor/name`, D-378), label,
+ * namespace, version, service provider, where it lives, and (for local
+ * plugins) the PSR-4 map Blush autoloads it with. A plugin is a manifest
+ * plus a service provider (D-041).
  *
  * `requires` maps a requirement to a version constraint, Composer style:
  * `php`, `blush`, `ext-{name}` for PHP extensions, and other extensions by
- * name. It's recorded now and checked by `extension:check` and `doctor`.
+ * name. It's recorded now and checked by `plugin:check` and `doctor`
+ * later.
  */
-final readonly class ExtensionManifest
+final readonly class PluginManifest
 {
-	/**
-	 * Matches an extension name: a Composer-style `vendor/name`, or a bare
-	 * slug for local extensions.
-	 */
-	private const string NAME_PATTERN = '#^[a-z0-9]([_.-]?[a-z0-9]+)*(/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*)?$#';
-
 	/**
 	 * Matches a fully qualified class name.
 	 */
 	private const string CLASS_PATTERN = '/^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)*$/';
 
 	/**
-	 * @param string                $provider Fully qualified class name of the extension's service provider.
+	 * @param string                $provider Fully qualified class name of the plugin's service provider.
 	 * @param array<string, string> $autoload PSR-4 namespace prefix => directory relative to `$path`.
 	 * @param array<string, string> $requires Requirement => version constraint.
 	 * @throws ExtensionException
 	 */
 	public function __construct(
 		public string $name,
+		public string $label,
+		public string $namespace,
 		public string $provider,
-		public ExtensionSource $source,
+		public PluginSource $source,
 		public string $path,
 		public string $version = '0.0.0',
 		public string $description = '',
 		public array $autoload = [],
 		public array $requires = []
 	) {
-		if (preg_match(self::NAME_PATTERN, $name) !== 1) {
+		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf(
-				'Extension name "%s" is invalid; use a lowercase slug or vendor/name.',
+				'Plugin name "%s" is invalid; use vendor/name, such as "acme/gallery".',
 				$name
+			));
+		}
+
+		if (trim($label) === '') {
+			throw new ExtensionException(sprintf('Plugin "%s" needs a "label".', $name));
+		}
+
+		if (! ExtensionNamespace::isValid($namespace) || ExtensionNamespace::isReserved($namespace)) {
+			throw new ExtensionException(sprintf(
+				'Plugin "%s" namespace "%s" is invalid; use lowercase letters, digits, hyphens, and underscores, and not %s.',
+				$name,
+				$namespace,
+				implode(', ', ExtensionNamespace::RESERVED)
 			));
 		}
 
 		if (preg_match(self::CLASS_PATTERN, ltrim($provider, '\\')) !== 1) {
 			throw new ExtensionException(sprintf(
-				'Extension "%s" must name its service provider class; "%s" is not a class name.',
+				'Plugin "%s" must name its service provider class; "%s" is not a class name.',
 				$name,
 				$provider
 			));
@@ -69,7 +84,7 @@ final readonly class ExtensionManifest
 		foreach ($autoload as $prefix => $directory) {
 			if (! str_ends_with($prefix, '\\') || preg_match(self::CLASS_PATTERN, rtrim($prefix, '\\')) !== 1) {
 				throw new ExtensionException(sprintf(
-					'Extension "%s" autoload prefix "%s" must be a namespace ending in a backslash.',
+					'Plugin "%s" autoload prefix "%s" must be a namespace ending in a backslash.',
 					$name,
 					$prefix
 				));
@@ -77,7 +92,7 @@ final readonly class ExtensionManifest
 
 			if ($directory === '' || str_starts_with($directory, '/') || str_contains($directory, '..')) {
 				throw new ExtensionException(sprintf(
-					'Extension "%s" autoload directory "%s" must be a relative path inside the extension.',
+					'Plugin "%s" autoload directory "%s" must be a relative path inside the plugin.',
 					$name,
 					$directory
 				));
@@ -109,10 +124,12 @@ final readonly class ExtensionManifest
 
 		return new self(
 			name: self::string($data, 'name'),
+			label: self::string($data, 'label'),
+			namespace: self::string($data, 'namespace'),
 			provider: self::string($data, 'provider'),
-			source: $source instanceof ExtensionSource
+			source: $source instanceof PluginSource
 				? $source
-				: ExtensionSource::tryFrom(is_string($source) ? $source : '') ?? throw new ExtensionException('Extension "source" is invalid.'),
+				: PluginSource::tryFrom(is_string($source) ? $source : '') ?? throw new ExtensionException('Plugin "source" is invalid.'),
 			path: self::string($data, 'path'),
 			version: self::string($data, 'version', '0.0.0'),
 			description: self::string($data, 'description', ''),
@@ -130,6 +147,8 @@ final readonly class ExtensionManifest
 	{
 		return [
 			'name'        => $this->name,
+			'label'       => $this->label,
+			'namespace'   => $this->namespace,
 			'provider'    => $this->provider,
 			'source'      => $this->source,
 			'path'        => $this->path,
@@ -152,7 +171,7 @@ final readonly class ExtensionManifest
 
 		if (! is_string($value)) {
 			throw new ExtensionException(sprintf(
-				'Extension manifest "%s"%s must be a string.',
+				'Plugin manifest "%s"%s must be a string.',
 				$key,
 				is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : ''
 			));
@@ -174,12 +193,12 @@ final readonly class ExtensionManifest
 		$map   = [];
 
 		if (! is_array($value)) {
-			throw new ExtensionException(sprintf('Extension manifest "%s" must be an object.', $key));
+			throw new ExtensionException(sprintf('Plugin manifest "%s" must be an object.', $key));
 		}
 
 		foreach ($value as $name => $item) {
 			if (! is_string($name) || ! is_string($item)) {
-				throw new ExtensionException(sprintf('Extension manifest "%s" must map strings to strings.', $key));
+				throw new ExtensionException(sprintf('Plugin manifest "%s" must map strings to strings.', $key));
 			}
 
 			$map[$name] = $item;

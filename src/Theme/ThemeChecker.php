@@ -61,20 +61,20 @@ final readonly class ThemeChecker
 	/**
 	 * Checks a theme and its chain.
 	 */
-	public function check(string $slug): ThemeReport
+	public function check(string $name): ThemeReport
 	{
 		$problems = [];
 
 		foreach ($this->themes->invalid() as $invalid => $message) {
-			if ($invalid !== $slug) {
+			if ($invalid !== $name) {
 				$problems[] = new Violation("theme {$invalid}", $message, Severity::Warning);
 			}
 		}
 
 		try {
-			$chain = $this->themes->chain($slug);
+			$chain = $this->themes->chain($name);
 		} catch (ThemeException $error) {
-			return new ThemeReport($slug, [new Violation('manifest', $error->getMessage()), ...$problems]);
+			return new ThemeReport($name, [new Violation('manifest', $error->getMessage()), ...$problems]);
 		}
 
 		foreach ($chain as $theme) {
@@ -90,7 +90,7 @@ final readonly class ThemeChecker
 			...$this->layout($chain)
 		];
 
-		return new ThemeReport($slug, $problems);
+		return new ThemeReport($name, $problems);
 	}
 
 	/**
@@ -103,15 +103,15 @@ final readonly class ThemeChecker
 		$problems = [];
 
 		foreach (array_slice(ThemeDiscovery::manifestFiles($theme->path), 1) as $shadowed) {
-			$problems[] = new Violation('manifest', sprintf('%s is ignored; the "%s" theme\'s %s wins (D-032).', basename($shadowed), $theme->slug, basename(ThemeDiscovery::manifestFiles($theme->path)[0])), Severity::Warning);
+			$problems[] = new Violation('manifest', sprintf('%s is ignored; the "%s" theme\'s %s wins (D-032).', basename($shadowed), $theme->name, basename(ThemeDiscovery::manifestFiles($theme->path)[0])), Severity::Warning);
 		}
 
 		if ($theme->provider !== null && ! is_subclass_of($theme->provider, ServiceProvider::class)) {
-			$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider %s isn\'t a service provider class (check its "autoload").', $theme->slug, $theme->provider));
+			$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider %s isn\'t a service provider class (check its "autoload").', $theme->name, $theme->provider));
 		}
 
 		if (isset($theme->data['requires'])) {
-			$problems[] = new Violation('requires', sprintf('The "%s" theme\'s "requires" isn\'t checked yet.', $theme->slug), Severity::Notice);
+			$problems[] = new Violation('requires', sprintf('The "%s" theme\'s "requires" isn\'t checked yet.', $theme->name), Severity::Notice);
 		}
 
 		return $problems;
@@ -139,7 +139,7 @@ final readonly class ThemeChecker
 	 * provider registers them when it's the active theme). A component
 	 * with a registered class but no template in the chain (and no other
 	 * view of its own) fails whenever it's used; a template in the theme's `components/` that
-	 * isn't named for a component (`{slug}-{name}.php`, or a core
+	 * isn't named for a component (`{namespace}-{name}.php`, or a core
 	 * component's name) is never rendered (D-171); and the theme's
 	 * registered components should have a translated label for the
 	 * admin's inserter (a notice, D-172). Its `theme.json` variants
@@ -174,7 +174,7 @@ final readonly class ThemeChecker
 				$problems[] = new Violation("component {$name}", sprintf('The "%s" component (%s) has no %s.php template in the chain.', $name, $component->className() ?? 'no class', array_last($component->name->views())), Severity::Warning);
 			}
 
-			if ($component->isRegistered() && $component->label === null && $component->name->namespace === $theme->slug) {
+			if ($component->isRegistered() && $component->label === null && $component->name->namespace === $theme->namespace) {
 				$problems[] = new Violation("component {$name}", sprintf('The "%s" component has no label; add "components.%s.label" to the theme\'s lang/ catalog.', $name, $component->name->name), Severity::Notice);
 			}
 		}
@@ -184,7 +184,7 @@ final readonly class ThemeChecker
 		foreach ($stray as $file) {
 			if (str_starts_with($file, $theme->viewsPath() . '/')) {
 				$fileName   = basename($file, '.php');
-				$problems[] = new Violation("component {$fileName}", sprintf('components/%s.php isn\'t named for a component, so it never renders; name it components/%s-%s.php.', $fileName, $theme->slug, $fileName), Severity::Warning);
+				$problems[] = new Violation("component {$fileName}", sprintf('components/%s.php isn\'t named for a component, so it never renders; name it components/%s-%s.php.', $fileName, $theme->namespace, $fileName), Severity::Warning);
 			}
 		}
 
@@ -219,7 +219,7 @@ final readonly class ThemeChecker
 			}
 
 			foreach ($list as $item) {
-				$variant = ComponentVariants::manifestItem($item, $theme->slug);
+				$variant = ComponentVariants::manifestItem($item, $theme->namespace);
 
 				if ($variant === null) {
 					$problems[] = new Violation("variants {$name}", sprintf('theme.json lists a variant of "%s" that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', $name), Severity::Warning);
@@ -254,7 +254,7 @@ final readonly class ThemeChecker
 		$problems = [];
 
 		foreach ($list as $item) {
-			$variant = ComponentVariants::manifestItem($item, $theme->slug);
+			$variant = ComponentVariants::manifestItem($item, $theme->namespace);
 
 			if ($variant === null) {
 				$problems[] = new Violation('variants image', 'theme.json lists an image variant that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', Severity::Warning);

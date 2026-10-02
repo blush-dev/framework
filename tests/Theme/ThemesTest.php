@@ -67,9 +67,9 @@ final class ThemesTest extends TestCase
 
 	private function writeThemes(): void
 	{
-		$this->writeTemporaryFile('user/themes/parent/theme.json', '{"name": "Parent", "version": "1.0.0", "styles": ["css/parent.css"]}');
+		$this->writeTemporaryFile('user/themes/parent/theme.json', '{"name": "acme/parent", "label": "Parent", "namespace": "parent", "version": "1.0.0", "styles": ["css/parent.css"]}');
 		$this->writeTemporaryFile('user/themes/parent/css/parent.css', 'body { color: red; }');
-		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: Child\nparent: parent\nstyles: [style.css, css/parent.css]\nsettings: {dark: {type: bool, default: true}}\n");
+		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: acme/child\nlabel: Child\nnamespace: child\nparent: acme/parent\nstyles: [style.css, css/parent.css]\nsettings: {dark: {type: bool, default: true}}\n");
 		$this->writeTemporaryFile('user/themes/child/style.css', 'body {}');
 	}
 
@@ -79,10 +79,11 @@ final class ThemesTest extends TestCase
 		$default = $themes->find(Themes::DEFAULT);
 
 		$this->assertNotNull($default);
-		$this->assertSame('Default', $default->name);
+		$this->assertSame('Default', $default->label);
+		$this->assertSame('default', $default->namespace);
 		$this->assertSame(Framework::path('resources/themes/default'), $default->path);
-		$this->assertSame(['default'], $themes->chain('default')->slugs());
-		$this->assertSame(['default'], array_keys($themes->all()));
+		$this->assertSame(['blush/default'], $themes->chain('blush/default')->names());
+		$this->assertSame(['blush/default'], array_keys($themes->all()));
 	}
 
 	public function testReadsManifestsAndChains(): void
@@ -91,18 +92,21 @@ final class ThemesTest extends TestCase
 		$this->writeTemporaryFile('user/themes/not-a-theme/readme.txt', '');
 
 		$themes = $this->themes();
-		$child  = $themes->find('child');
-		$chain  = $themes->chain('child');
+		$child  = $themes->find('acme/child');
+		$chain  = $themes->chain('acme/child');
 
 		$this->assertNotNull($child);
-		$this->assertSame('parent', $child->parent);
+		$this->assertSame('acme/parent', $child->parent);
+		$this->assertSame('Child', $child->label);
+		$this->assertSame('child', $child->namespace);
 		$this->assertSame(['style.css', 'css/parent.css'], $child->styles);
 		$this->assertSame(['dark' => ['type' => 'bool', 'default' => true]], $child->settings());
-		$this->assertSame(['child', 'parent', 'default'], $chain->slugs());
+		$this->assertSame(['acme/child', 'acme/parent', 'blush/default'], $chain->names());
+		$this->assertSame(['child', 'parent', 'default'], $chain->namespaces());
 		$this->assertCount(3, $chain);
-		$this->assertSame('child', $chain->active()->slug);
-		$this->assertSame(['default', 'child', 'parent'], array_keys($themes->all()));
-		$this->assertNull($themes->find('not-a-theme'));
+		$this->assertSame('acme/child', $chain->active()->name);
+		$this->assertSame(['blush/default', 'acme/child', 'acme/parent'], array_keys($themes->all()));
+		$this->assertNull($themes->find('acme/not-a-theme'));
 		$this->assertNull($themes->find('../etc'));
 		$this->assertSame($this->temporaryDirectory() . '/user/themes/child/views', $chain->viewDirectories()[0]);
 		$this->assertSame(Framework::path('resources/themes/default/lang'), $chain->langDirectories()[2]);
@@ -111,26 +115,26 @@ final class ThemesTest extends TestCase
 	public function testBleedClassesComeFromTheChain(): void
 	{
 		$this->writeThemes();
-		$this->writeTemporaryFile('user/themes/parent/theme.json', '{"name": "Parent", "bleed": {"wide": "stretch-wide", "full": "stretch-full"}}');
-		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: Child\nparent: parent\nbleed: {full: edge}\n");
+		$this->writeTemporaryFile('user/themes/parent/theme.json', '{"name": "acme/parent", "label": "Parent", "namespace": "parent", "bleed": {"wide": "stretch-wide", "full": "stretch-full"}}');
+		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: acme/child\nlabel: Child\nnamespace: child\nparent: acme/parent\nbleed: {full: edge}\n");
 
 		$themes = $this->themes();
 
-		$this->assertSame(['wide' => 'bleed-wide', 'full' => 'bleed-full'], $themes->chain('default')->bleedClasses());
-		$this->assertSame(['wide' => 'stretch-wide', 'full' => 'stretch-full'], $themes->chain('parent')->bleedClasses());
-		$this->assertSame(['wide' => 'stretch-wide', 'full' => 'edge'], $themes->chain('child')->bleedClasses(), 'The nearest theme naming one wins.');
+		$this->assertSame(['wide' => 'bleed-wide', 'full' => 'bleed-full'], $themes->chain('blush/default')->bleedClasses());
+		$this->assertSame(['wide' => 'stretch-wide', 'full' => 'stretch-full'], $themes->chain('acme/parent')->bleedClasses());
+		$this->assertSame(['wide' => 'stretch-wide', 'full' => 'edge'], $themes->chain('acme/child')->bleedClasses(), 'The nearest theme naming one wins.');
 	}
 
 	public function testResolvesAssetsThroughTheChain(): void
 	{
 		$this->writeThemes();
 
-		$chain  = $this->themes()->chain('child');
+		$chain  = $this->themes()->chain('acme/child');
 		$assets = new ThemeAssets($chain);
 		$hash   = hash_file('crc32b', $this->temporaryDirectory() . '/user/themes/parent/css/parent.css');
 
-		$this->assertSame("/themes/parent/css/parent.css?v={$hash}", $assets->url('css/parent.css'));
-		$this->assertStringStartsWith('/themes/child/style.css?v=', (string) $assets->url('style.css'));
+		$this->assertSame("/themes/acme/parent/css/parent.css?v={$hash}", $assets->url('css/parent.css'));
+		$this->assertStringStartsWith('/themes/acme/child/style.css?v=', (string) $assets->url('style.css'));
 		$this->assertNull($assets->url('missing.css'));
 		$this->assertNull($assets->url('theme.yaml'));
 		$this->assertNull($chain->asset('views/layouts/base.php'));
@@ -146,21 +150,21 @@ final class ThemesTest extends TestCase
 
 	public function testBrokenChainsThrow(): void
 	{
-		$this->writeTemporaryFile('user/themes/a/theme.json', '{"name": "A", "parent": "b"}');
-		$this->writeTemporaryFile('user/themes/b/theme.json', '{"name": "B", "parent": "a"}');
-		$this->writeTemporaryFile('user/themes/orphan/theme.json', '{"name": "Orphan", "parent": "gone"}');
+		$this->writeTemporaryFile('user/themes/a/theme.json', '{"name": "acme/a", "label": "A", "namespace": "a", "parent": "acme/b"}');
+		$this->writeTemporaryFile('user/themes/b/theme.json', '{"name": "acme/b", "label": "B", "namespace": "b", "parent": "acme/a"}');
+		$this->writeTemporaryFile('user/themes/orphan/theme.json', '{"name": "acme/orphan", "label": "Orphan", "namespace": "orphan", "parent": "acme/gone"}');
 
 		$themes = $this->themes();
 		$cases  = [
-			'a'       => 'loop back to "a"',
-			'orphan'  => 'ancestor "gone" is not installed',
-			'missing' => '"missing" theme is not installed'
+			'acme/a'       => 'loop back to "acme/a"',
+			'acme/orphan'  => 'ancestor "acme/gone" is not installed',
+			'acme/missing' => '"acme/missing" theme is not installed'
 		];
 
-		foreach ($cases as $slug => $message) {
+		foreach ($cases as $name => $message) {
 			try {
-				$themes->chain($slug);
-				$this->fail("{$slug} should not chain.");
+				$themes->chain($name);
+				$this->fail("{$name} should not chain.");
 			} catch (ThemeException $error) {
 				$this->assertStringContainsString($message, $error->getMessage());
 			}
@@ -169,52 +173,57 @@ final class ThemesTest extends TestCase
 
 	public function testInvalidManifestsThrow(): void
 	{
+		$x     = '"name": "acme/bad", "label": "X", "namespace": "bad"';
 		$cases = [
-			'{"version": "1"}'                     => 'needs a "name"',
-			'{"name": "X", "parent": "Bad Slug"}'  => '"parent" must be a theme slug',
-			'{"name": "X", "styles": "style.css"}' => '"styles" must be a list',
-			'{"name": "X", "styles": ["../x.css"]}' => 'paths inside the theme',
-			'{"name": "X", "version": 2}'          => '"version" must be a string',
-			'{"name": "X", "bleed": {"wide": "a b"}}' => '"bleed" must map',
-			'{"name": "X", "bleed": {"huge": "x"}}'   => '"bleed" must map',
-			'{broken'                              => 'theme.json is invalid'
+			'{"version": "1"}'                          => 'needs a "name"',
+			'{"name": "bad", "label": "X", "namespace": "bad"}' => 'needs a "name"',
+			'{"name": "acme/bad", "namespace": "bad"}'  => 'needs a "label"',
+			'{"name": "acme/bad", "label": "X"}'        => 'needs a "namespace"',
+			'{"name": "acme/bad", "label": "X", "namespace": "app"}' => 'needs a "namespace"',
+			"{{$x}, \"parent\": \"Bad Slug\"}"         => '"parent" must be a theme\'s name',
+			"{{$x}, \"parent\": \"bad\"}"              => '"parent" must be a theme\'s name',
+			"{{$x}, \"styles\": \"style.css\"}"        => '"styles" must be a list',
+			"{{$x}, \"styles\": [\"../x.css\"]}"       => 'paths inside the theme',
+			"{{$x}, \"version\": 2}"                   => '"version" must be a string',
+			"{{$x}, \"bleed\": {\"wide\": \"a b\"}}"  => '"bleed" must map',
+			"{{$x}, \"bleed\": {\"huge\": \"x\"}}"    => '"bleed" must map',
+			'{"name": "blush/default", "label": "X", "namespace": "bad"}' => 'framework default theme',
+			'{broken'                                   => 'theme.json is invalid'
 		];
 
 		foreach ($cases as $json => $message) {
 			$this->writeTemporaryFile('user/themes/bad/theme.json', $json);
 
-			try {
-				$this->themes()->find('bad');
-				$this->fail("{$json} should not load.");
-			} catch (ThemeException $error) {
-				$this->assertStringContainsString($message, $error->getMessage());
-			}
+			$themes = $this->themes();
+
+			$this->assertFalse($themes->has('acme/bad'), "{$json} should not load.");
+			$this->assertStringContainsString($message, $themes->invalid()['user/themes/bad'] ?? '', $json);
 		}
 	}
 
-	public function testConfigValidatesTheActiveSlug(): void
+	public function testConfigValidatesTheActiveName(): void
 	{
-		$this->assertSame('nova', ThemeConfig::fromArray(['active' => 'nova'])->active);
-		$this->assertSame(['active' => 'default'], new ThemeConfig()->toArray());
+		$this->assertSame('acme/nova', ThemeConfig::fromArray(['active' => 'acme/nova'])->active);
+		$this->assertSame(['active' => 'blush/default'], new ThemeConfig()->toArray());
 
 		$this->expectException(InvalidConfig::class);
 
-		new ThemeConfig('Not Valid');
+		new ThemeConfig('nova');
 	}
 
 	public function testTheQueryStringSwitchesThemesInDevelopmentOnly(): void
 	{
 		$this->writeThemes();
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'parent');\n");
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/parent');\n");
 
 		$production  = $this->boot()->container()->make(ThemeResolver::class);
 		$development = $this->boot('development')->container()->make(ThemeResolver::class);
 
-		$this->assertSame('parent', $production->active()->active()->slug);
-		$this->assertSame('parent', $production->forRequest(Request::create('/?theme=child'))->active()->slug);
-		$this->assertSame('child', $development->forRequest(Request::create('/?theme=child'))->active()->slug);
-		$this->assertSame('parent', $development->forRequest(Request::create('/?theme=nope'))->active()->slug);
-		$this->assertSame($development->chain('child'), $development->chain('child'));
+		$this->assertSame('acme/parent', $production->active()->active()->name);
+		$this->assertSame('acme/parent', $production->forRequest(Request::create('/?theme=acme/child'))->active()->name);
+		$this->assertSame('acme/child', $development->forRequest(Request::create('/?theme=acme/child'))->active()->name);
+		$this->assertSame('acme/parent', $development->forRequest(Request::create('/?theme=nope'))->active()->name);
+		$this->assertSame($development->chain('acme/child'), $development->chain('acme/child'));
 	}
 
 	public function testServesThemeAssets(): void
@@ -224,17 +233,17 @@ final class ThemesTest extends TestCase
 		$this->writeTemporaryFile('user/themes/child/views/single.php', '<?php echo "secret";');
 
 		$app = $this->boot();
-		$css = $this->get($app, '/themes/parent/css/parent.css');
-		$svg = $this->get($app, '/themes/child/icon.svg');
+		$css = $this->get($app, '/themes/acme/parent/css/parent.css');
+		$svg = $this->get($app, '/themes/acme/child/icon.svg');
 
 		$this->assertSame(200, $css->getStatusCode());
 		$this->assertSame('text/css', $css->getHeaderLine('Content-Type'));
 		$this->assertSame('nosniff', $css->getHeaderLine('X-Content-Type-Options'));
 		$this->assertSame('body { color: red; }', (string) $css->getBody());
 		$this->assertSame('sandbox', $svg->getHeaderLine('Content-Security-Policy'));
-		$this->assertSame(200, $this->get($app, '/themes/default/style.css')->getStatusCode());
+		$this->assertSame(200, $this->get($app, '/themes/blush/default/style.css')->getStatusCode());
 
-		foreach (['/themes/child/views/single.php', '/themes/child/theme.yaml', '/themes/child/missing.css', '/themes/nope/style.css', '/themes/child/css/parent.css'] as $uri) {
+		foreach (['/themes/acme/child/views/single.php', '/themes/acme/child/theme.yaml', '/themes/acme/child/missing.css', '/themes/acme/nope/style.css', '/themes/nope/style.css', '/themes/acme/child/css/parent.css'] as $uri) {
 			$this->assertSame(404, $this->get($app, $uri)->getStatusCode(), $uri);
 		}
 	}

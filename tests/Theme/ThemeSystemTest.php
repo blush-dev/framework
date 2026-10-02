@@ -71,9 +71,9 @@ final class ThemeSystemTest extends TestCase
 		return $this->app;
 	}
 
-	private function activeTheme(string $slug): void
+	private function activeTheme(string $name): void
 	{
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: '{$slug}');\n");
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: '{$name}');\n");
 	}
 
 	private function get(string $uri): string
@@ -85,15 +85,15 @@ final class ThemeSystemTest extends TestCase
 	{
 		$this->writeTemporaryFile('vendor/composer/installed.json', json_encode(['packages' => [
 			['name' => 'acme/nova-theme', 'type' => 'blush-theme', 'install-path' => '../acme/nova-theme'],
-			['name' => 'acme/renamed', 'type' => 'blush-theme', 'install-path' => '../acme/renamed', 'extra' => ['blush' => ['slug' => 'dusk']]],
+			['name' => 'acme/renamed', 'type' => 'blush-theme', 'install-path' => '../acme/renamed'],
 			['name' => 'acme/local-wins', 'type' => 'blush-theme', 'install-path' => '../acme/local-wins'],
 			['name' => 'acme/library', 'type' => 'library']
 		]], JSON_THROW_ON_ERROR));
-		$this->writeTemporaryFile('vendor/acme/nova-theme/theme.json', '{"name": "Nova"}');
-		$this->writeTemporaryFile('vendor/acme/renamed/theme.yaml', 'name: Dusk');
-		$this->writeTemporaryFile('vendor/acme/local-wins/theme.json', '{"name": "From Composer"}');
-		$this->writeTemporaryFile('user/themes/local-wins/theme.json', '{"name": "From user/themes"}');
-		$this->writeTemporaryFile('user/themes/default/theme.json', '{"name": "Not the default"}');
+		$this->writeTemporaryFile('vendor/acme/nova-theme/theme.json', '{"label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('vendor/acme/renamed/theme.yaml', "name: acme/dusk\nlabel: Dusk\nnamespace: dusk\n");
+		$this->writeTemporaryFile('vendor/acme/local-wins/theme.json', '{"name": "acme/local-wins", "label": "From Composer", "namespace": "local-wins"}');
+		$this->writeTemporaryFile('user/themes/local-wins/theme.json', '{"name": "acme/local-wins", "label": "From user/themes", "namespace": "local-wins"}');
+		$this->writeTemporaryFile('user/themes/default/theme.json', '{"name": "blush/default", "label": "Not the default", "namespace": "not-default"}');
 		$this->writeTemporaryFile('user/themes/broken/theme.json', '{"name": 5}');
 	}
 
@@ -104,18 +104,19 @@ final class ThemeSystemTest extends TestCase
 		$themes = new ThemeDiscovery(Paths::fromRoot($this->temporaryDirectory()))->discover();
 		$all    = $themes->all();
 
-		$this->assertSame(['default', 'dusk', 'local-wins', 'nova-theme'], array_keys($all));
-		$this->assertSame(ThemeSource::Framework, $all['default']->source);
-		$this->assertSame('Default', $all['default']->name);
-		$this->assertSame(ThemeSource::Composer, $all['nova-theme']->source);
-		$this->assertSame('Dusk', $all['dusk']->name);
-		$this->assertSame('From user/themes', $all['local-wins']->name);
-		$this->assertSame(ThemeSource::Local, $all['local-wins']->source);
-		$this->assertStringContainsString('"name"', $themes->invalid()['broken']);
-		$this->assertFalse($themes->has('broken'));
-
-		$this->expectException(ThemeException::class);
-		$themes->find('broken');
+		$this->assertSame(['blush/default', 'acme/local-wins', 'acme/nova-theme'], array_keys($all));
+		$this->assertSame(ThemeSource::Framework, $all['blush/default']->source);
+		$this->assertSame('Default', $all['blush/default']->label);
+		$this->assertSame(ThemeSource::Composer, $all['acme/nova-theme']->source);
+		$this->assertSame('Nova', $all['acme/nova-theme']->label, 'A Composer theme takes its package\'s name.');
+		$this->assertSame('From user/themes', $all['acme/local-wins']->label);
+		$this->assertSame(ThemeSource::Local, $all['acme/local-wins']->source);
+		$this->assertSame(['acme/renamed', 'user/themes/broken', 'user/themes/default'], array_keys($themes->invalid()));
+		$this->assertStringContainsString('package\'s', $themes->invalid()['acme/renamed']);
+		$this->assertStringContainsString('"name"', $themes->invalid()['user/themes/broken']);
+		$this->assertStringContainsString('framework default theme', $themes->invalid()['user/themes/default']);
+		$this->assertFalse($themes->has('acme/broken'));
+		$this->assertNull($themes->find('acme/broken'));
 	}
 
 	public function testThemesCompileToACacheUsedOutsideDevelopment(): void
@@ -129,26 +130,28 @@ final class ThemeSystemTest extends TestCase
 		$themes = $cache->read();
 
 		$this->assertNotNull($themes);
-		$this->assertSame(['default', 'dusk', 'local-wins', 'nova-theme'], array_keys($themes->all()));
-		$this->assertArrayHasKey('broken', $themes->invalid());
+		$this->assertSame(['blush/default', 'acme/local-wins', 'acme/nova-theme'], array_keys($themes->all()));
+		$this->assertArrayHasKey('user/themes/broken', $themes->invalid());
 
-		$this->writeTemporaryFile('user/themes/later/theme.json', '{"name": "Later"}');
+		$this->writeTemporaryFile('user/themes/later/theme.json', '{"name": "acme/later", "label": "Later", "namespace": "later"}');
 
-		$this->assertFalse($this->boot()->container()->make(Themes::class)->has('later'));
+		$this->assertFalse($this->boot()->container()->make(Themes::class)->has('acme/later'));
 
 		$this->app?->container()->make(LocalAutoloader::class)->unregister();
 		$bootstrap->clearCompiled(CompiledCache::Themes);
 
-		$this->assertTrue($this->boot()->container()->make(Themes::class)->has('later'));
+		$this->assertTrue($this->boot()->container()->make(Themes::class)->has('acme/later'));
 	}
 
 	public function testThemeProvidersRegisterAndAutoload(): void
 	{
 		$this->writeTemporaryFile('user/themes/pro/theme.json', json_encode([
-			'name'     => 'Pro',
-			'parent'   => 'base',
-			'provider' => 'ProTheme\\ProThemeProvider',
-			'autoload' => ['psr-4' => ['ProTheme\\' => 'src/']]
+			'name'      => 'acme/pro',
+			'label'     => 'Pro',
+			'namespace' => 'pro',
+			'parent'    => 'acme/base',
+			'provider'  => 'ProTheme\\ProThemeProvider',
+			'autoload'  => ['psr-4' => ['ProTheme\\' => 'src/']]
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('user/themes/pro/src/ProThemeProvider.php', <<<'PHP'
 			<?php
@@ -186,8 +189,8 @@ final class ThemeSystemTest extends TestCase
 			}
 			PHP);
 		$this->writeTemporaryFile('user/themes/pro/views/parts/footer.php', '<footer><?= e($note ?? "no note") ?></footer>');
-		$this->writeTemporaryFile('user/themes/base/theme.json', '{"name": "Base", "provider": "Missing\\\\Provider"}');
-		$this->activeTheme('pro');
+		$this->writeTemporaryFile('user/themes/base/theme.json', '{"name": "acme/base", "label": "Base", "namespace": "base", "provider": "Missing\\\\Provider"}');
+		$this->activeTheme('acme/pro');
 
 		$this->assertStringContainsString('<footer>Pro note</footer>', $this->get('/'));
 		$this->assertSame(['Missing\\Provider', 'ProTheme\\ProThemeProvider'], $this->app?->container()->make(ThemeResolver::class)->active()->providers());
@@ -196,8 +199,10 @@ final class ThemeSystemTest extends TestCase
 	public function testSettingsResolveThroughTheChain(): void
 	{
 		$this->writeTemporaryFile('user/themes/kid/theme.json', json_encode([
-			'name'     => 'Kid',
-			'settings' => [
+			'name'      => 'acme/kid',
+			'label'     => 'Kid',
+			'namespace' => 'kid',
+			'settings'  => [
 				'layout'   => ['type' => 'enum', 'options' => ['grid', 'list'], 'default' => 'list'],
 				'excerpts' => ['type' => 'bool', 'default' => false],
 				'columns'  => ['type' => 'number', 'default' => 2]
@@ -207,7 +212,7 @@ final class ThemeSystemTest extends TestCase
 
 		$app      = $this->boot();
 		$resolver = $app->container()->make(SettingsResolver::class);
-		$kid      = $resolver->for($app->container()->make(Themes::class)->chain('kid'));
+		$kid      = $resolver->for($app->container()->make(Themes::class)->chain('acme/kid'));
 
 		$this->assertSame('grid', $kid->get('layout'));
 		$this->assertFalse($kid->get('excerpts'));
@@ -216,21 +221,21 @@ final class ThemeSystemTest extends TestCase
 		$this->assertSame('fallback', $kid->get('missing', 'fallback'));
 		$this->assertSame(['columns'], array_map(static fn ($violation): string => $violation->field, $kid->violations));
 		$this->assertSame(Severity::Error, $kid->violations[0]->severity);
-		$this->assertSame([], $resolver->for($app->container()->make(Themes::class)->chain('default'))->values, 'The default theme has no settings.');
+		$this->assertSame([], $resolver->for($app->container()->make(Themes::class)->chain('blush/default'))->values, 'The default theme has no settings.');
 
-		$this->writeTemporaryFile('user/themes/bad/theme.json', '{"name": "Bad", "settings": {"x": {"type": "nope"}}}');
+		$this->writeTemporaryFile('user/themes/bad/theme.json', '{"name": "acme/bad", "label": "Bad", "namespace": "bad", "settings": {"x": {"type": "nope"}}}');
 
 		$this->expectException(ThemeException::class);
-		$this->boot()->container()->make(SettingsResolver::class)->for($this->app?->container()->make(Themes::class)->chain('bad') ?? throw new LogicException());
+		$this->boot()->container()->make(SettingsResolver::class)->for($this->app?->container()->make(Themes::class)->chain('acme/bad') ?? throw new LogicException());
 	}
 
 	public function testASettingReachesTemplates(): void
 	{
 		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);\n");
 		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
-		$this->writeTemporaryFile('user/themes/noted/theme.json', '{"name": "Noted", "settings": {"note": {"type": "text", "default": "Plain note"}}}');
+		$this->writeTemporaryFile('user/themes/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted", "settings": {"note": {"type": "text", "default": "Plain note"}}}');
 		$this->writeTemporaryFile('user/themes/noted/views/parts/entry-summary.php', "<p><?= e((string) \$template->setting('note')) ?></p>");
-		$this->activeTheme('noted');
+		$this->activeTheme('acme/noted');
 
 		$this->assertStringContainsString('Plain note', $this->get('/'));
 
@@ -250,9 +255,9 @@ final class ThemeSystemTest extends TestCase
 		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);\n");
 		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('user/data/fields/brand.yaml', "targets: [settings:general]\nfields:\n  tagline:\n    default: Plain tagline\n");
-		$this->writeTemporaryFile('user/themes/noted/theme.json', '{"name": "Noted"}');
+		$this->writeTemporaryFile('user/themes/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted"}');
 		$this->writeTemporaryFile('user/themes/noted/views/parts/entry-summary.php', "<p><?= e((string) \$template->site('tagline')) ?>|<?= e((string) \$template->site('missing', 'none')) ?></p>");
-		$this->activeTheme('noted');
+		$this->activeTheme('acme/noted');
 
 		$this->assertStringContainsString('Plain tagline|none', $this->get('/'), 'A field\'s default, then the fallback.');
 
@@ -266,17 +271,17 @@ final class ThemeSystemTest extends TestCase
 
 	public function testAnEntryStylesheetReachesThePage(): void
 	{
-		$this->writeTemporaryFile('user/themes/tinted/theme.json', '{"name": "Tinted"}');
+		$this->writeTemporaryFile('user/themes/tinted/theme.json', '{"name": "acme/tinted", "label": "Tinted", "namespace": "tinted"}');
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\nstylesheet: extra.css\n---\nHi");
 		$this->writeTemporaryFile('user/themes/tinted/extra.css', '');
-		$this->activeTheme('tinted');
+		$this->activeTheme('acme/tinted');
 
-		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/tinted/extra.css\?v=[0-9a-f]{8}">#', $this->get('/'));
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/acme/tinted/extra.css\?v=[0-9a-f]{8}">#', $this->get('/'));
 	}
 
 	public function testPublicManifestsBuildFromResources(): void
 	{
-		$this->writeTemporaryFile('user/themes/vite/theme.json', '{"name": "Vite", "styles": ["resources/scss/style.scss"], "scripts": ["resources/js/app.js"]}');
+		$this->writeTemporaryFile('user/themes/vite/theme.json', '{"name": "acme/vite", "label": "Vite", "namespace": "vite", "styles": ["resources/scss/style.scss"], "scripts": ["resources/js/app.js"]}');
 		$this->writeTemporaryFile('user/themes/vite/public/.vite/manifest.json', json_encode([
 			'resources/js/app.js'         => ['file' => 'assets/app-4f2a.js'],
 			'resources/scss/style.scss'   => ['file' => 'assets/style-77aa.css'],
@@ -285,40 +290,40 @@ final class ThemeSystemTest extends TestCase
 		$this->writeTemporaryFile('user/themes/vite/resources/js/app.js', 'source');
 		$this->writeTemporaryFile('user/themes/vite/public/assets/app-4f2a.js', 'built');
 		$this->writeTemporaryFile('user/themes/vite/public/img/icon.png', 'png');
-		$this->activeTheme('vite');
+		$this->activeTheme('acme/vite');
 
 		$html   = $this->get('/');
-		$assets = new ThemeAssets($this->app?->container()->make(Themes::class)->chain('vite') ?? throw new LogicException());
+		$assets = new ThemeAssets($this->app?->container()->make(Themes::class)->chain('acme/vite') ?? throw new LogicException());
 
-		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/vite/public/assets/style-77aa.css">', $html);
-		$this->assertStringContainsString('<script src="http://localhost/themes/vite/public/assets/app-4f2a.js?v=' . hash('crc32b', 'built') . '" type="module"></script>', $html);
-		$this->assertSame('/themes/vite/public/assets/karla-1b2c.woff2', $assets->url('resources/fonts/karla.woff2'));
-		$this->assertSame('/themes/vite/public/img/icon.png?v=' . hash('crc32b', 'png'), $assets->url('public/img/icon.png'));
+		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/acme/vite/public/assets/style-77aa.css">', $html);
+		$this->assertStringContainsString('<script src="http://localhost/themes/acme/vite/public/assets/app-4f2a.js?v=' . hash('crc32b', 'built') . '" type="module"></script>', $html);
+		$this->assertSame('/themes/acme/vite/public/assets/karla-1b2c.woff2', $assets->url('resources/fonts/karla.woff2'));
+		$this->assertSame('/themes/acme/vite/public/img/icon.png?v=' . hash('crc32b', 'png'), $assets->url('public/img/icon.png'));
 		$this->assertFalse(ThemeChain::isServable('resources/js/app.js'));
 		$this->assertTrue(ThemeChain::isServable('public/assets/app-4f2a.js'));
 	}
 
 	public function testBuildManifestsResolveAssets(): void
 	{
-		$this->writeTemporaryFile('user/themes/built/theme.json', '{"name": "Built", "styles": ["src/main.css"], "scripts": ["src/main.js"]}');
+		$this->writeTemporaryFile('user/themes/built/theme.json', '{"name": "acme/built", "label": "Built", "namespace": "built", "styles": ["src/main.css"], "scripts": ["src/main.js"]}');
 		$this->writeTemporaryFile('user/themes/built/dist/.vite/manifest.json', json_encode([
 			'src/main.js'  => ['file' => 'assets/main-4f2a.js', 'css' => ['assets/main-9c1b.css', '../escape.css']],
 			'src/main.css' => ['file' => 'assets/style-77aa.css']
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('user/themes/built/logo.svg', '<svg/>');
-		$this->activeTheme('built');
+		$this->activeTheme('acme/built');
 
 		$html   = $this->get('/');
-		$assets = new ThemeAssets($this->app?->container()->make(Themes::class)->chain('built') ?? throw new LogicException());
+		$assets = new ThemeAssets($this->app?->container()->make(Themes::class)->chain('acme/built') ?? throw new LogicException());
 
-		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/built/dist/assets/main-9c1b.css">', $html);
-		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/built/dist/assets/style-77aa.css">', $html);
-		$this->assertStringContainsString('<script src="http://localhost/themes/built/dist/assets/main-4f2a.js" type="module"></script>', $html);
+		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/acme/built/dist/assets/main-9c1b.css">', $html);
+		$this->assertStringContainsString('<link rel="stylesheet" href="http://localhost/themes/acme/built/dist/assets/style-77aa.css">', $html);
+		$this->assertStringContainsString('<script src="http://localhost/themes/acme/built/dist/assets/main-4f2a.js" type="module"></script>', $html);
 		$this->assertStringNotContainsString('escape.css', $html);
 		$this->assertTrue($assets->isBuilt('src/main.js'));
 		$this->assertFalse($assets->isBuilt('logo.svg'));
-		$this->assertStringStartsWith('/themes/built/logo.svg?v=', (string) $assets->url('logo.svg'));
-		$this->assertStringStartsWith('/themes/default/style.css?v=', (string) $assets->url('style.css'));
+		$this->assertStringStartsWith('/themes/acme/built/logo.svg?v=', (string) $assets->url('logo.svg'));
+		$this->assertStringStartsWith('/themes/blush/default/style.css?v=', (string) $assets->url('style.css'));
 		$this->assertSame([], $assets->css('logo.svg'));
 
 		$this->writeTemporaryFile('user/themes/built/dist/.vite/manifest.json', '{broken');

@@ -32,7 +32,7 @@ use Blush\Theme\Themes;
  *   step copies from their source). They're copied first, so they win
  *   over rendered URLs, as a real file does on the live site.
  * - `themes()`: the active chain's servable theme files, as
- *   `theme:publish` would publish them, at `/themes/{slug}/…`.
+ *   `theme:publish` would publish them, at `/themes/{vendor}/{name}/…`.
  * - `media()`: the allowed files in `user/media` at the media URL,
  *   resolved by `MediaResolver`, so exactly what the media route would
  *   serve.
@@ -89,7 +89,7 @@ final readonly class ExportAssets
 		foreach ($chain->themes as $theme) {
 			foreach ($this->filesystem->files($theme->path) as $relative => $file) {
 				if (ThemeChain::isServable($relative)) {
-					$count += (int) $writer->copy(ltrim(ThemeChain::ASSET_URL, '/') . "/{$theme->slug}/{$relative}", $file->getPathname());
+					$count += (int) $writer->copy(ltrim(ThemeChain::ASSET_URL, '/') . "/{$theme->name}/{$relative}", $file->getPathname());
 				}
 			}
 		}

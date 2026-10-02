@@ -56,7 +56,7 @@ final class MenuCommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('#primary\s*\|\s*Primary\s*\|\s*primary\s*\|\s*1\s*\|\s*user/data/menus/primary\.yaml#', $result->output);
 		$this->assertMatchesRegularExpression('#\(none\)\s*\|\s*\|\s*footer\s*\|\s*1\s*\|\s*user/data/menus/footer\.yaml#', $result->output);
 		$this->assertStringContainsString('menu primary: item 2: No entry "page/gone".', $result->output . $result->errors);
-		$this->assertStringContainsString('menu footer: No location of the "default" theme shows it.', $result->output . $result->errors);
+		$this->assertStringContainsString('menu footer: No location of the "blush/default" theme shows it.', $result->output . $result->errors);
 	}
 
 	public function testListsAnEmptySite(): void

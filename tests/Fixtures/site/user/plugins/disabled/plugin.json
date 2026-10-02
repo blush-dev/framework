@@ -1,4 +1,6 @@
 {
 	"name": "acme/disabled",
+	"label": "Disabled",
+	"namespace": "disabled",
 	"provider": "Acme\\Disabled\\DoesNotExistProvider"
 }

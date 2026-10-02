@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Extensions.
+ * Plugins.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,23 +11,25 @@
 
 declare(strict_types=1);
 
-namespace Blush\Extension;
+namespace Blush\Plugin;
+
+use Blush\Extension\ExtensionException;
 
 /**
- * The site's enabled extensions, in name order. Bound in the container, so
- * commands like `extension:list` and `doctor` can inspect them.
+ * The site's enabled plugins, in name order. Bound in the container, so
+ * commands like `plugin:list` and `doctor` can inspect them.
  */
-final readonly class Extensions
+final readonly class Plugins
 {
 	/**
 	 * Enabled manifests keyed by name.
 	 *
-	 * @var array<string, ExtensionManifest>
+	 * @var array<string, PluginManifest>
 	 */
 	private array $manifests;
 
 	/**
-	 * @param list<ExtensionManifest> $manifests
+	 * @param list<PluginManifest> $manifests
 	 */
 	public function __construct(array $manifests = [])
 	{
@@ -45,29 +47,29 @@ final readonly class Extensions
 	/**
 	 * Filters discovered manifests down to the ones config enables.
 	 *
-	 * @param  list<ExtensionManifest> $discovered
-	 * @throws ExtensionException When config enables an extension that isn't installed.
+	 * @param  list<PluginManifest> $discovered
+	 * @throws ExtensionException When config enables a plugin that isn't installed.
 	 */
-	public static function enabled(array $discovered, ExtensionConfig $config): self
+	public static function enabled(array $discovered, PluginConfig $config): self
 	{
-		$names   = array_map(static fn (ExtensionManifest $manifest): string => $manifest->name, $discovered);
+		$names   = array_map(static fn (PluginManifest $manifest): string => $manifest->name, $discovered);
 		$missing = array_diff($config->enabled ?? [], $names);
 
 		if ($missing !== []) {
 			throw new ExtensionException(sprintf(
-				'Config enables extension(s) that are not installed: %s.',
+				'Config enables plugin(s) that are not installed: %s.',
 				implode(', ', $missing)
 			));
 		}
 
 		return new self(array_values(array_filter(
 			$discovered,
-			static fn (ExtensionManifest $manifest): bool => $config->isEnabled($manifest->name)
+			static fn (PluginManifest $manifest): bool => $config->isEnabled($manifest->name)
 		)));
 	}
 
 	/**
-	 * @return list<ExtensionManifest>
+	 * @return list<PluginManifest>
 	 */
 	public function all(): array
 	{
@@ -75,7 +77,7 @@ final readonly class Extensions
 	}
 
 	/**
-	 * Whether the named extension is enabled.
+	 * Whether the named plugin is enabled.
 	 */
 	public function has(string $name): bool
 	{
@@ -83,22 +85,22 @@ final readonly class Extensions
 	}
 
 	/**
-	 * Returns the named extension's manifest, or `null`.
+	 * Returns the named plugin's manifest, or `null`.
 	 */
-	public function get(string $name): ?ExtensionManifest
+	public function get(string $name): ?PluginManifest
 	{
 		return $this->manifests[$name] ?? null;
 	}
 
 	/**
-	 * Returns every enabled extension's provider class, in name order.
+	 * Returns every enabled plugin's provider class, in name order.
 	 *
 	 * @return list<class-string>
 	 */
 	public function providers(): array
 	{
 		return array_map(
-			static fn (ExtensionManifest $manifest): string => $manifest->providerClass(),
+			static fn (PluginManifest $manifest): string => $manifest->providerClass(),
 			$this->all()
 		);
 	}

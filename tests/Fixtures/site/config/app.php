@@ -9,7 +9,7 @@ declare(strict_types=1);
 use Blush\Core\AppConfig;
 use Blush\Core\Environment;
 use Blush\Env\Env;
-use Blush\Tests\Fixtures\Extension\SiteServiceProvider;
+use Blush\Tests\Fixtures\Plugin\SiteServiceProvider;
 
 /** @var Env $env */
 

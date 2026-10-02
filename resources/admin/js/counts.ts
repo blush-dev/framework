@@ -17,7 +17,8 @@ export interface NavCounts {
 	contentTypes?: number;
 	fieldSets?: number;
 	themes?: number;
-	extensions?: number;
+	plugins?: number;
+	iconPacks?: number;
 }
 
 export const navCounts = ref<NavCounts | null>(null);

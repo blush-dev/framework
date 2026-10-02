@@ -25,13 +25,13 @@ use Blush\Core\Environment;
 use Blush\Core\Paths;
 use Blush\Error\ErrorHandler;
 use Blush\Event\Dispatcher;
-use Blush\Extension\Extensions;
+use Blush\Plugin\Plugins;
 use Blush\Extension\LocalAutoloader;
 use Blush\Http\Kernel;
 use Blush\Http\Middleware\HandleErrors;
 use Blush\Log\Logger;
-use Blush\Tests\Fixtures\Extension\ComposerExtensionProvider;
-use Blush\Tests\Fixtures\Extension\SiteServiceProvider;
+use Blush\Tests\Fixtures\Plugin\ComposerPluginProvider;
+use Blush\Tests\Fixtures\Plugin\SiteServiceProvider;
 use Blush\Tests\FixtureSite;
 use Blush\View\ThemedPageRenderer;
 
@@ -72,11 +72,11 @@ final class BootstrapTest extends TestCase
 
 		$providers = array_map(static fn (object $provider): string => $provider::class, $app->providers());
 
-		$this->assertContains(ComposerExtensionProvider::class, $providers);
+		$this->assertContains(ComposerPluginProvider::class, $providers);
 		$this->assertContains('Fixture\Hello\HelloServiceProvider', $providers);
 		$this->assertSame(SiteServiceProvider::class, array_last($providers));
-		$this->assertFalse($container->make(Extensions::class)->has('acme/disabled'));
-		$this->assertTrue($container->get('composer-ext.registered'));
+		$this->assertFalse($container->make(Plugins::class)->has('acme/disabled'));
+		$this->assertTrue($container->get('composer-plugin.registered'));
 
 		$app->boot();
 
@@ -139,20 +139,20 @@ final class BootstrapTest extends TestCase
 		$this->assertArrayHasKey(HandleErrors::class, $compiled);
 
 		$this->assertFileExists("{$root}/storage/cache/config.php");
-		$this->assertFileExists("{$root}/storage/cache/extensions.php");
+		$this->assertFileExists("{$root}/storage/cache/plugins.php");
 		$this->assertFileExists("{$root}/storage/cache/container.php");
 
-		// Once compiled, the config files and extension folders are no
+		// Once compiled, the config files and plugin folders are no
 		// longer read.
 		unlink("{$root}/config/app.php");
-		unlink("{$root}/user/extensions/hello/extension.json");
+		unlink("{$root}/user/plugins/hello/plugin.json");
 
 		$app              = $bootstrap->createApplication();
 		$this->autoloader = $app->container()->make(LocalAutoloader::class);
 
 		$this->assertSame('Fixture Site', $app->container()->make(AppConfig::class)->name);
 		$this->assertSame(Environment::Production, $app->container()->make(AppConfig::class)->environment);
-		$this->assertTrue($app->container()->make(Extensions::class)->has('fixture/hello'));
+		$this->assertTrue($app->container()->make(Plugins::class)->has('fixture/hello'));
 
 		$bootstrap->clearCompiled();
 

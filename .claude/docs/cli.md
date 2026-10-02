@@ -54,8 +54,8 @@ Implemented in M2 (D-065, D-069).
 | `list` | List the commands (the default) |
 | `help <command>` | Show a command's usage |
 | `serve [--host] [-p\|--port] [--static]` | Dev server (`php -S` + `resources/server.php`); `--static` previews the static export through `resources/static-server.php`, applying its `_redirects` (D-138, D-140) |
-| `cache:clear [--config\|--extensions\|--container\|--routes\|--types\|--themes\|--store]` | Clear compiled caches and the cache store, bumping the content version (no flags: all; `--store`: only the store, D-128) |
-| `cache:compile` | Compile config, extensions, themes, routes, content types, and container plans, then clear the cache store and bump the content version (D-060, D-066, D-077, D-092, D-115, D-128) |
+| `cache:clear [--config\|--plugins\|--container\|--routes\|--types\|--themes\|--icon-packs\|--store]` | Clear compiled caches and the cache store, bumping the content version (no flags: all; `--store`: only the store, D-128) |
+| `cache:compile` | Compile config, plugins, themes, icon packs, routes, content types, and container plans, then clear the cache store and bump the content version (D-060, D-066, D-077, D-092, D-115, D-128) |
 | `content:index [--full]` | Build or refresh the content index, with a progress bar; `-v` lists changes (M4b, D-087) |
 | `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry; `--strict` adds notices for undeclared keys, 1.x aliases, and virtual terms (D-081, D-084, D-091). Also checks media metadata files in `user/data/media`: unreadable, values that don't fit, hidden by another format, or describing a file that's gone (D-293) |
 | `content:new <type> "<title>" [--slug] [--draft]` | Scaffold a Markdown entry (`Y-m-d.slug.md` for dated types) and refresh the index (D-091) |
@@ -65,10 +65,10 @@ Implemented in M2 (D-065, D-069).
 | `media:index [--full]` | Build or refresh the media index, with a progress bar; `-v` lists changes, and metadata files with no media file are warnings (D-288) |
 | `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099) |
 | `theme:list` | List installed themes (framework, Composer, local), the active one, and broken manifests (M5b, D-120) |
-| `theme:activate <slug>` | Set the active theme in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120) |
-| `theme:new <slug> [--parent] [--name]` | Create a minimal theme (manifest plus stylesheet) in `user/themes` (D-120); the manifest has a `$schema` key (D-206) |
-| `theme:publish [--all]` | Copy servable theme assets to `public/themes/{slug}`, removing stale ones; the active chain, or every theme (D-119) |
-| `theme:check [slug] [--strict]` | Check the chain, manifests, provider, settings, components without a template (D-164), component files not named for a component, registered components without a label (notice; D-173), and the base layout's landmarks and skip link (D-030, D-121, D-160) |
+| `theme:activate <name>` | Set the active theme (by its `vendor/name`, D-378) in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120) |
+| `theme:new <vendor/name> [--parent] [--label] [--namespace]` | Create a minimal theme (manifest plus stylesheet) in `user/themes/{name part}` (D-120, D-378); the namespace defaults to the part after the `/`, and the manifest has a `$schema` key (D-206) |
+| `theme:publish [--all]` | Copy servable theme assets to `public/themes/{vendor}/{name}`, removing stale ones; the active chain, or every theme (D-119) |
+| `theme:check [name] [--strict]` | Check the chain, manifests, provider, settings, components without a template (D-164), component files not named for a component, registered components without a label (notice; D-173), and the base layout's landmarks and skip link (D-030, D-121, D-160) |
 | `theme:why <view> [--theme]` | Show which file in the view chain wins for a view, and what it shadows (D-120) |
 | `icon:list [--theme]` | List every icon the chain can show: full name, label, and winning file (D-187) |
 | `menu:list [--theme]` | List the chain's menu locations, the site menu each shows, resolved item counts, and files; site menus no location shows; problems (D-204) |

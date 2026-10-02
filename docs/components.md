@@ -15,12 +15,16 @@ extra to register.
 A component's name has two parts, `{namespace}/{name}`, so components from
 different places never clash:
 
-| Namespace             | Whose components                          | Example         |
-|-----------------------|-------------------------------------------|-----------------|
-| `blush`               | The built-in ones                         | `blush/callout` |
-| The theme's slug      | A theme's own                             | `notebook/card` |
-| `app`                 | Your site's own                           | `app/post-list` |
-| An extension's vendor | An extension's (`acme/hello` uses `acme`) | `acme/tabs`     |
+| Namespace              | Whose components  | Example         |
+|------------------------|-------------------|-----------------|
+| `blush`                | The built-in ones | `blush/callout` |
+| The theme's namespace  | A theme's own     | `notebook/card` |
+| `app`                  | Your site's own   | `app/post-list` |
+| The plugin's namespace | A plugin's own    | `tabs/tabs`     |
+
+A theme or [plugin](extending.md#plugins) declares its namespace in its
+manifest (`"namespace": "notebook"`), and no two installed extensions can
+share one.
 
 **Only the built-in components have short names:** `callout` is
 `blush/callout`. Everything else is always written with its namespace.
@@ -255,19 +259,22 @@ In a template, `<?= $template->icon('house') ?>` shows a decorative
 icon, and `<?= $template->icon('rss', 'RSS feed') ?>` a labeled one.
 
 Icons are named like components: the built-in ones are `blush/{name}`
-(or just `{name}`), and your own are in your theme's or site's
-namespace. To add some, put SVG files in a folder:
+(or just `{name}`), and your own are in your theme's, site's, or an
+[icon pack's](extending.md#icon-packs) namespace. To add some, put SVG
+files in a folder:
 
-| Where                                   | Name                                |
-|-----------------------------------------|-------------------------------------|
-| Your theme's `icons/badge.svg`          | `notebook/badge` (the theme's slug) |
-| Your site's `resources/icons/badge.svg` | `app/badge`                         |
+| Where                                   | Name                                     |
+|-----------------------------------------|------------------------------------------|
+| Your theme's `icons/badge.svg`          | `notebook/badge` (the theme's namespace) |
+| Your site's `resources/icons/badge.svg` | `app/badge`                              |
+| An icon pack's `github.svg`             | `brands/github` (the pack's namespace)   |
 
-To give a built-in icon your own look, add a file named after it in a
-`blush` subfolder: a theme's `icons/blush/house.svg`, or your site's
+To give another namespace's icon your own look, add a file named after
+it in a subfolder named for its namespace: a theme's
+`icons/blush/house.svg` or `icons/brands/github.svg`, or your site's
 `resources/icons/blush/house.svg`. The site's file wins, then the
-active theme's, then its parents'. Draw icons in `currentColor` so they
-take the text's color.
+active theme's, then its parents', then icon packs' and plugins'. Draw
+icons in `currentColor` so they take the text's color.
 
 Labels shown in lists (and, later, the admin) are translatable, under
 `icons.{name}.label` in the same catalog as the namespace's
@@ -360,12 +367,12 @@ Back up your site before updating.
 
 - **Every component has Default,** which is what you get without
   `variant` (or with `variant=default`). It's always there, and no theme
-  or extension can rename or replace it, so content that has never been
+  or plugin can rename or replace it, so content that has never been
   given a variant keeps following the theme.
 - **A variant the component doesn't have renders as Default,** such as
   one from a theme that isn't active. `content:lint` warns about these.
 - **Variants belong to whoever declares them.** The built-in components
-  come with a few; a theme, your site, or an extension can add more to
+  come with a few; a theme, your site, or a plugin can add more to
   any component. A theme's apply only while it (or a child of it) is
   active.
 
@@ -382,7 +389,7 @@ none), and `$component->isVariant('warning')` checks it.
 When a variant needs more than a class, give it its own template:
 `views/components/callout-bordered.php` draws a callout with
 `variant=bordered`, and the component's own template draws the rest.
-(For a theme's own component, that's `{slug}-{name}-{variant}.php`.)
+(For a theme's own component, that's `{namespace}-{name}-{variant}.php`.)
 Variants are meant mostly for looks, but nothing stops one from doing
 more.
 
@@ -405,7 +412,9 @@ component:
 
 ```json
 {
-	"name": "Notebook",
+	"name": "acme/notebook",
+	"label": "Notebook",
+	"namespace": "notebook",
 	"variants": {
 		"callout": ["bordered", "compact"],
 		"notebook/card": ["wide"]
@@ -413,7 +422,7 @@ component:
 }
 ```
 
-Your site, an extension, or a theme's provider can add (or remove)
+Your site, a plugin, or a theme's provider can add (or remove)
 variants from PHP, by listening for `ComponentVariantsCollecting`. It
 fires once per component, the first time its variants are needed, so the
 order providers boot in doesn't matter. The second argument is the
@@ -717,11 +726,12 @@ under `components.{name}`:
 }
 ```
 
-| Namespace        | Catalog                                          |
-|------------------|--------------------------------------------------|
-| The theme's slug | The theme's `lang/en.json` (one per language)    |
-| `app`            | Your site's `resources/lang/en.json`             |
-| A vendor         | Each of that vendor's extensions' `lang/en.json` |
+| Namespace                | Catalog                                       |
+|--------------------------|-----------------------------------------------|
+| The theme's namespace    | The theme's `lang/en.json` (one per language) |
+| `app`                    | Your site's `resources/lang/en.json`          |
+| A plugin's namespace     | The plugin's `lang/en.json`                   |
+| An icon pack's namespace | The pack's `lang/en.json`                     |
 
 A variant someone else adds to your component, such as a theme's
 `bordered` callout, has its text in their catalog, under the same

@@ -264,7 +264,7 @@ final readonly class Views
 	/**
 	 * Returns the templates in the chain's `components/` folders that
 	 * aren't named for any component or variant, such as a theme's
-	 * `card.php` that should be `{slug}-card.php`. Nothing can render them.
+	 * `card.php` that should be `{namespace}-card.php`. Nothing can render them.
 	 *
 	 * @return list<string>
 	 */
@@ -310,7 +310,7 @@ final readonly class Views
 	/**
 	 * Returns a message from a namespace's catalog domain: `blush` for
 	 * core, `theme` for the chain's themes, and otherwise the namespace
-	 * itself (`app`, or an extension's vendor).
+	 * itself (`app`, or a plugin's or icon pack's namespace).
 	 *
 	 * @param array<string, mixed> $params
 	 */
@@ -318,7 +318,7 @@ final readonly class Views
 	{
 		$domain = match (true) {
 			$namespace === ComponentName::CORE                => 'blush',
-			in_array($namespace, $this->chain->slugs(), true) => 'theme',
+			in_array($namespace, $this->chain->namespaces(), true) => 'theme',
 			default                                           => $namespace
 		};
 
@@ -371,7 +371,7 @@ final readonly class Views
 			return new ViewException(sprintf(
 				'"%s" isn\'t a core component, so it needs its namespace, such as "%s/%s" (D-171).',
 				$name,
-				$this->chain->active()->slug,
+				$this->chain->active()->namespace,
 				$name
 			));
 		}
@@ -390,7 +390,7 @@ final readonly class Views
 		return array_values(array_unique([
 			ComponentName::CORE,
 			ComponentName::SITE,
-			...$this->chain->slugs(),
+			...$this->chain->namespaces(),
 			...$this->services->components->namespaces()
 		]));
 	}

@@ -22,9 +22,9 @@ use JsonException;
  * 1. A Vite-style manifest (`public/.vite/manifest.json`, D-155, or
  *    `dist/.vite/manifest.json`, or either without `.vite/`) that lists
  *    the path gives its built file:
- *    `resources/js/app.js` → `/themes/nova/public/js/app.js?v=4f2a9c1b`.
+ *    `resources/js/app.js` → `/themes/acme/nova/public/js/app.js?v=4f2a9c1b`.
  * 2. Otherwise a file at the path gives its URL:
- *    `/themes/nova/style.css?v=77aa03de`.
+ *    `/themes/acme/nova/style.css?v=77aa03de`.
  *
  * Either way, `?v=` is a hash of the file's contents (D-194), so a URL
  * changes only when its file does.
@@ -48,7 +48,7 @@ final class ThemeAssets
 	];
 
 	/**
-	 * Manifests read so far, by slug: the entries and their base folder.
+	 * Manifests read so far, by theme name: the entries and their base folder.
 	 *
 	 * @var array<string, array{array<string, mixed>, string}>
 	 */
@@ -137,7 +137,7 @@ final class ThemeAssets
 	 */
 	private function versioned(ThemeManifest $theme, string $path): string
 	{
-		$url  = sprintf('%s/%s/%s', ThemeChain::ASSET_URL, $theme->slug, $path);
+		$url  = sprintf('%s/%s/%s', ThemeChain::ASSET_URL, $theme->name, $path);
 		$file = "{$theme->path}/{$path}";
 
 		if (! is_file($file)) {
@@ -158,7 +158,7 @@ final class ThemeAssets
 	 */
 	private function entry(ThemeManifest $theme, string $path): array
 	{
-		[$entries, $base] = $this->manifests[$theme->slug] ??= self::read($theme);
+		[$entries, $base] = $this->manifests[$theme->name] ??= self::read($theme);
 		$entry            = $entries[$path] ?? null;
 
 		return [is_array($entry) ? $entry : null, $base];
@@ -180,7 +180,7 @@ final class ThemeAssets
 			try {
 				$data = json_decode((string) file_get_contents("{$theme->path}/{$file}"), true, 512, JSON_THROW_ON_ERROR);
 			} catch (JsonException $error) {
-				throw new ThemeException(sprintf('The "%s" theme\'s %s is invalid: %s', $theme->slug, $file, $error->getMessage()), 0, $error);
+				throw new ThemeException(sprintf('The "%s" theme\'s %s is invalid: %s', $theme->name, $file, $error->getMessage()), 0, $error);
 			}
 
 			/** @var array<string, mixed> $entries */

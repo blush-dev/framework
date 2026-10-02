@@ -103,10 +103,12 @@ final class RegionsTest extends TestCase
 	public function testThemeDefaultsUntilTheSiteFillsTheRegion(): void
 	{
 		$this->writeTemporaryFile('user/themes/nova/theme.json', json_encode([
-			'name'    => 'Nova',
-			'regions' => ['footer' => ['label' => 'Footer', 'items' => [['markdown' => 'Theme default.']]]]
+			'name'      => 'acme/nova',
+			'label'     => 'Nova',
+			'namespace' => 'nova',
+			'regions'   => ['footer' => ['label' => 'Footer', 'items' => [['markdown' => 'Theme default.']]]]
 		], JSON_THROW_ON_ERROR));
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'nova');\n");
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");
 
 		$this->assertStringContainsString('<p>Theme default.</p>', $this->page($this->app(), '/about'));
 
@@ -136,7 +138,7 @@ final class RegionsTest extends TestCase
 
 		$this->assertSame([
 			'warning region aside: "title" isn\'t a region key; a region has "items".',
-			'notice region aside: No location of the "default" theme shows it.',
+			'notice region aside: No location of the "blush/default" theme shows it.',
 			'warning region footer: item 2: "markdown" must be Markdown text, or a map of locales to it.',
 			'warning region footer: item 3: "component" must be a component name, such as "menu" or "acme/card".',
 			'warning region footer: item 4: must have exactly one of "component", "entry", "markdown", "view".',

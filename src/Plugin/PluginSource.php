@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Extension source.
+ * Plugin source.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,16 +11,16 @@
 
 declare(strict_types=1);
 
-namespace Blush\Extension;
+namespace Blush\Plugin;
 
 /**
- * Where an extension was found (D-041).
+ * Where a plugin was found (D-041, D-378).
  */
-enum ExtensionSource: string
+enum PluginSource: string
 {
-	/** A Composer package of type `blush-extension`, autoloaded by Composer. */
+	/** A Composer package of type `blush-plugin`, autoloaded by Composer. */
 	case Composer = 'composer';
 
-	/** A folder in `user/extensions/`, autoloaded by Blush. */
+	/** A folder in `user/plugins/`, autoloaded by Blush. */
 	case Local = 'local';
 }

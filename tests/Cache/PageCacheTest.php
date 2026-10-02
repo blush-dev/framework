@@ -89,7 +89,7 @@ final class PageCacheTest extends TestCase
 		$this->assertSame('', $this->get($app, '/archives/spring', method: 'POST')->getHeaderLine(PageCache::HEADER));
 		$this->assertSame('', $this->get($app, '/nowhere')->getHeaderLine(PageCache::HEADER));
 		$this->assertSame('', $this->get($app, '/archives/spring/')->getHeaderLine(PageCache::HEADER));
-		$this->assertSame('', $this->get($app, '/themes/default/style.css')->getHeaderLine(PageCache::HEADER));
+		$this->assertSame('', $this->get($app, '/themes/blush/default/style.css')->getHeaderLine(PageCache::HEADER));
 
 		$this->assertSame('miss', $this->get($app, '/archives/spring', method: 'HEAD')->getHeaderLine(PageCache::HEADER));
 		$this->assertSame('hit', $this->get($app, '/archives/spring')->getHeaderLine(PageCache::HEADER));
@@ -142,14 +142,14 @@ final class PageCacheTest extends TestCase
 		$this->standardContent();
 
 		$app  = $this->site();
-		$file = $this->get($app, '/themes/default/style.css');
+		$file = $this->get($app, '/themes/blush/default/style.css');
 
 		$this->assertFalse($file->hasHeader('ETag'));
 
 		$modified = $file->getHeaderLine('Last-Modified');
 
-		$this->assertSame(304, $this->get($app, '/themes/default/style.css', ['If-Modified-Since' => $modified])->getStatusCode());
-		$this->assertSame(200, $this->get($app, '/themes/default/style.css', ['If-Modified-Since' => 'Mon, 01 Jan 2001 00:00:00 GMT'])->getStatusCode());
+		$this->assertSame(304, $this->get($app, '/themes/blush/default/style.css', ['If-Modified-Since' => $modified])->getStatusCode());
+		$this->assertSame(200, $this->get($app, '/themes/blush/default/style.css', ['If-Modified-Since' => 'Mon, 01 Jan 2001 00:00:00 GMT'])->getStatusCode());
 	}
 
 	public function testReindexingMovesTheVersionOn(): void

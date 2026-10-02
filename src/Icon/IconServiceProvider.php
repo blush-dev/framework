@@ -13,11 +13,14 @@ declare(strict_types=1);
 
 namespace Blush\Icon;
 
+use Override;
+use Blush\Container\ServiceResolver;
 use Blush\Core\ServiceProvider;
 
 /**
- * Binds icon lookup (D-187): the registry extensions add icon folders to,
- * and `Icons`.
+ * Binds icon lookup (D-187): the registry plugins add icon folders to,
+ * holding every installed icon pack's folder from the start (D-378), and
+ * `Icons`.
  */
 final class IconServiceProvider extends ServiceProvider
 {
@@ -25,7 +28,25 @@ final class IconServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS = [
-		IconRegistry::class,
 		Icons::class
 	];
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function register(): void
+	{
+		$packs = $this->container->has(IconPacks::class);
+
+		$this->container->singleton(IconRegistry::class, static function (ServiceResolver $resolver) use ($packs): IconRegistry {
+			$registry = new IconRegistry();
+
+			foreach ($packs ? $resolver->make(IconPacks::class)->all() : [] as $pack) {
+				$registry->add($pack->namespace, $pack->iconsPath());
+			}
+
+			return $registry;
+		});
+	}
 }

@@ -48,7 +48,7 @@ final class Icons
 	 */
 	public function file(IconName $name, ThemeChain $chain): ?string
 	{
-		$key = implode(',', $chain->slugs()) . " {$name}";
+		$key = implode(',', $chain->names()) . " {$name}";
 
 		if (! array_key_exists($key, $this->found)) {
 			$this->found[$key] = array_find($this->candidates($name, $chain), static fn (string $file): bool => is_file($file)) ?? false;
@@ -112,7 +112,7 @@ final class Icons
 		$files = [$name->namespace === IconName::SITE ? "{$icons}/{$name->name}.svg" : "{$icons}/{$name->namespace}/{$name->name}.svg"];
 
 		foreach ($chain as $theme) {
-			$files[] = $theme->slug === $name->namespace
+			$files[] = $theme->namespace === $name->namespace
 				? "{$theme->path}/icons/{$name->name}.svg"
 				: "{$theme->path}/icons/{$name->namespace}/{$name->name}.svg";
 		}
@@ -138,7 +138,7 @@ final class Icons
 		$folders = [IconName::CORE => [Framework::path('resources/icons/blush')], IconName::SITE => ["{$this->paths->resources}/icons"]];
 
 		foreach ($chain as $theme) {
-			$folders[$theme->slug][] = "{$theme->path}/icons";
+			$folders[$theme->namespace][] = "{$theme->path}/icons";
 		}
 
 		foreach ($this->registry->all() as $namespace => $added) {

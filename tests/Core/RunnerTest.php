@@ -74,12 +74,12 @@ final class RunnerTest extends TestCase
 		$this->runner = new ConsoleRunner($root, environment: []);
 
 		// The fixture runs in development, which never reads the
-		// extension cache, so a placeholder is safe to clear.
+		// plugin cache, so a placeholder is safe to clear.
 		mkdir("{$root}/storage/cache", 0775, true);
-		file_put_contents("{$root}/storage/cache/extensions.php", '<?php return [];');
+		file_put_contents("{$root}/storage/cache/plugins.php", '<?php return [];');
 
-		$this->assertSame(0, $this->runner->run(['blush', '--quiet', 'cache:clear', '--extensions']));
-		$this->assertFileDoesNotExist("{$root}/storage/cache/extensions.php");
+		$this->assertSame(0, $this->runner->run(['blush', '--quiet', 'cache:clear', '--plugins']));
+		$this->assertFileDoesNotExist("{$root}/storage/cache/plugins.php");
 	}
 
 	public function testConsoleRunnerFailsCleanlyWhenConfigIsBroken(): void

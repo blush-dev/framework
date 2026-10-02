@@ -65,7 +65,7 @@ final class ComponentVariants
 		}
 
 		foreach (array_reverse($chain->themes) as $theme) {
-			foreach (self::fromManifest($theme->variants(), $name, $theme->slug) as $variant) {
+			foreach (self::fromManifest($theme->variants(), $name, $theme->namespace) as $variant) {
 				$variants[$variant->name] = $variant;
 			}
 		}
@@ -89,7 +89,7 @@ final class ComponentVariants
 
 		foreach (array_reverse($themes) as $theme) {
 			foreach ($theme->variants()[self::IMAGE] ?? [] as $item) {
-				$variant = self::manifestItem($item, $theme->slug);
+				$variant = self::manifestItem($item, $theme->namespace);
 
 				if ($variant !== null) {
 					$variants[$variant->name] = $variant;

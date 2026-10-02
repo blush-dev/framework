@@ -20,9 +20,10 @@ namespace Blush\Core;
 enum CompiledCache: string
 {
 	case Config       = 'config';
-	case Extensions   = 'extensions';
+	case Plugins      = 'plugins';
 	case Container    = 'container';
 	case Routes       = 'routes';
 	case ContentTypes = 'content-types';
 	case Themes       = 'themes';
+	case IconPacks    = 'icon-packs';
 }

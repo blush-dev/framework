@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Extension finder interface.
+ * Plugin finder interface.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,17 +11,19 @@
 
 declare(strict_types=1);
 
-namespace Blush\Extension;
+namespace Blush\Plugin;
+
+use Blush\Extension\ExtensionException;
 
 /**
- * Finds extensions from one source.
+ * Finds plugins from one source.
  */
-interface ExtensionFinder
+interface PluginFinder
 {
 	/**
-	 * Returns the manifests of every extension this source provides.
+	 * Returns the manifests of every plugin this source provides.
 	 *
-	 * @return list<ExtensionManifest>
+	 * @return list<PluginManifest>
 	 * @throws ExtensionException
 	 */
 	public function find(): array;

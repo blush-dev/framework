@@ -40,25 +40,26 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 - **`Bootstrap`** (`Blush\Core\Bootstrap`): builds a site's application from
   its root. It loads `.env` and config (compiled or from files, with
   defaults), picks the planner, and binds `Paths`, `Env`, and every config
-  object. It also discovers and autoloads extensions, then registers providers
+  object. It also discovers plugins, themes, and icon packs (settling their
+  namespaces, D-378), autoloads the local ones, then registers providers
   in source order. `compile()`/`clearCompiled()` manage the
   `storage/cache/*.php` files (D-060).
 - **Runners** (D-064, D-068): `Core\Runner` is the shared start of every
   entry point. It registers a bare error handler, builds and boots the
   application, then hands over to the configured `ErrorHandler`.
   `Http\HttpRunner` and `Console\ConsoleRunner` extend it.
-- **Theme providers** register between extensions' and the site's
+- **Theme providers** register between plugins' and the site's
   (D-116).
 - **Service providers** keep the declarative constants from x3p0
   (`SINGLETONS`, `TRANSIENTS`, `ALIASES`, `TAGS`, `BOOTABLE`).
 - **Provider sources**, in order:
   1. Framework defaults
-  2. Enabled extensions (D-041), from Composer packages and from
-     `user/extensions`, discovered and cached
+  2. Enabled plugins (D-041, D-378), from Composer packages and from
+     `user/plugins`, discovered and cached
   3. The active theme chain's providers
   4. The site's providers from config
 - **`Paths`:** a readonly value object for root, config, user, content, media,
-  data, themes, extensions, public, resources, storage, cache, index, logs,
+  data, themes, plugins, icons, public, resources, storage, cache, index, logs,
   sessions, export, and vendor. Any path can be overridden (D-046), and
   `join()` confines a relative path to its base.
 - **`Env`** (`Blush\Env`, D-056): an in-house `.env` loader (read-only, no
@@ -128,7 +129,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 - **Schema validation:** data files have schemas (the same field-type system as
   content). JSON Schemas are published for editor autocomplete.
 - **Editor JSON Schemas (D-206):** `Blush\JsonSchema\JsonSchemas` builds
-  `resources/schemas/{theme,extension,menu,region}.schema.json`
+  `resources/schemas/{theme,plugin,icons,menu,region}.schema.json`
   (`composer schemas`; a test fails when they're stale). Field definitions
   come from each built-in type's `Field::definitionSchema()`, checked with
   `if`/`then` on `type`; menu items and region items from each kind's
@@ -166,9 +167,10 @@ Implemented in M5a for the `blush` and `theme` domains (D-107).
 
 - **`Translator`:** CMS-wide, in-house, using ICU MessageFormat via `ext-intl`
   (`MessageFormatter`) for plurals, select, and number/date arguments.
-- **Catalogs:** per domain (`blush`, extension slugs, `theme`, `site`), per
-  locale, stored as data files (`lang/{locale}.json`). Resolved through the
-  same chains as views (site → theme chain → extension → framework).
+- **Catalogs:** per domain (`blush`, plugin and icon pack namespaces,
+  `theme`, `site`), per locale, stored as data files (`lang/{locale}.json`).
+  Resolved through the same chains as views (site → theme chain → plugin
+  → framework).
 - **Locale fallback:** `en_US` → `en` → the default locale.
 - **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers
   (`IntlDateFormatter`, `NumberFormatter`) use the site locale and timezone.
@@ -239,7 +241,7 @@ Implemented in M3 (D-073 to D-077).
   2. Routes generated from content types (`ContentRoutes`, D-093)
   3. Controllers with `#[Get]`, `#[Post]`, … attributes, listed in
      `RouteConfig::$controllers` or tagged `ControllerRoutes::TAG` by site or
-     extension providers. Themes can't add routes (D-020).
+     plugin providers. Themes can't add routes (D-020).
   4. `config/routes.php` (`RouteConfig::$routes`)
   5. Fallbacks (`PageRoutes`): the home page at `/` (and `/page/{page}`
      with a home type) and the page catch-all. Fallbacks are soft: one
@@ -728,7 +730,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 
 | Layer | Key / invalidation |
 |---|---|
-| Config, routes, extensions, content types, container plans | Compiled PHP files; cleared by `cache:clear` or deploy |
+| Config, routes, plugins, themes, icon packs, content types, container plans | Compiled PHP files; cleared by `cache:clear` or deploy |
 | Content index | Per-file mtime/size/hash, incremental |
 | Rendered bodies, summaries, excerpts | Content version + theme + rendering settings + content hash (`RenderedBodies`) |
 | Fragments | `ContentCache::remember(namespace, key, fn)`, per content version; in templates, `$template->cache($key, fn)` (per active theme too, D-152) |
@@ -766,7 +768,7 @@ Implemented in M7 (D-135 to D-140).
   origin as `AppConfig::$url`, in-memory caching without the page cache,
   and compiled caches in `storage/cache/export` (so always fresh).
 - **`Crawler`:** tagged `UrlSource`s (content, feeds, sitemaps, and
-  extensions'), `ExportConfig::$paths`, paging by asking for the next
+  plugins'), `ExportConfig::$paths`, paging by asking for the next
   page until one isn't a 200, and link crawling (`ExportConfig::$crawl`)
   that also reports broken links.
 - **`ExportLayout`:** `/about` → `about/index.html`, `/feed` →
@@ -777,7 +779,7 @@ Implemented in M7 (D-135 to D-140).
   touched.
 - **Incremental** (`build --incremental`, D-139): nothing is rendered
   when the content version and `ExportFingerprint` (a stat of config,
-  data, media, themes, extensions, `public/`, and code) match the
+  data, media, themes, plugins, icon packs, `public/`, and code) match the
   manifest; the previous pages are kept and assets synced.
 - **Redirects** (D-139): the table's literal redirects are export URLs
   (rendering confirms them); every redirect met is exported, with a
@@ -809,8 +811,9 @@ Implemented in M7 (D-135 to D-140).
 ## Icons (D-187)
 
 - `IconName` (`{namespace}/{name}`, short names are core), `Icons` (finds
-  a name's SVG for a theme chain: site, themes, `IconRegistry` folders,
-  then the framework's Lucide subset in `resources/icons/blush`), and
+  a name's SVG for a theme chain: site, themes, `IconRegistry` folders
+  (installed icon packs', D-378, and plugins'), then the framework's
+  Lucide subset in `resources/icons/blush`), and
   the `icon` component (inline SVG, `1em`, `currentColor`, decorative
   or labeled). Labels are catalog text (`icons.{name}.label`).
 
@@ -997,22 +1000,54 @@ by source, keeps recents, and writes the directive text). The
   `AdminActionRegistry`, with `publish`, `reindex`, and `clear-caches`
   built in.
 
-## Extensions (D-041)
+## Extensions (D-041, D-378)
 
-- **What an extension is:** a manifest plus a service provider. It can
-  register content types, routes, CLI commands, components, listeners,
-  parsers, field types, cache drivers, and translations.
-- **Composer extensions** (package type `blush-extension`): the manifest lives
-  in `composer.json` `extra.blush`. They're discovered from
-  `vendor/composer/installed.json`.
-- **Local extensions** live in `user/extensions/{slug}/`. Their
-  `extension.json|yaml` manifest declares name, version, a PSR-4 namespace and
-  path, the provider, and requirements (Blush version, PHP extensions, other
-  extensions). Blush registers the autoloader.
-- **Enabling:** every discovered extension is enabled unless
-  `ExtensionConfig` narrows it (`enabled` allow-list, `disabled`). Discovery
-  results are compiled to `storage/cache/extensions.php` (D-058).
-- **CLI:** `extension:list`, `extension:new`, `extension:check`.
+*Extensions* is the umbrella for everything a site installs. Each is one
+of a few **kinds** (`Extension\ExtensionKind`): **plugins**, **themes**,
+and **icon packs**; **admin themes** are planned on the same pieces.
+
+- **Shared by every kind** (`Blush\Extension`): a manifest named for its
+  kind (`plugin.json`, `theme.json`, `icons.json`, or `.yaml`/`.yml`;
+  `ManifestFile`, JSON wins), a folder per kind one level deep
+  (`user/plugins/{folder}`, `user/themes/{folder}`, `user/icons/{folder}`),
+  a Composer package type per kind (`blush-plugin`, `blush-theme`,
+  `blush-icons`), and whether it runs code (plugins and themes do; icon
+  packs don't, so they're the first the admin will install).
+- **Identity:** every manifest has `name`, the key (`vendor/name`,
+  Composer's rule, `ExtensionName`; a Composer package's own name), and
+  `label`, the readable title. The folder is only where it lives.
+- **Namespace:** every manifest declares one (`ExtensionNamespace`):
+  what its components, icons, and translation domain go by. Reserved:
+  `blush`, `app`, `theme`, and `default` (the default theme's). No two
+  installed extensions share one: two plugins doing so fail discovery;
+  two themes, or two icon packs, are both broken; across kinds,
+  `Bootstrap` lets installed plugins (even ones turned off) claim first,
+  then themes, then icon packs, and records each loser as broken.
+- **Plugins** (`Blush\Plugin`): a manifest plus a service provider. A
+  plugin can register content types, routes, CLI commands, components,
+  listeners, parsers, field types, cache drivers, and translations (its
+  `lang/` is its namespace's domain).
+  - Composer plugins keep the rest of their manifest in `composer.json`
+    `extra.blush` (`label`, `namespace`, `provider`, `requires`).
+  - Local plugins' `plugin.json` declares name, label, namespace,
+    version, description, a PSR-4 map, the provider, and requirements.
+    Blush registers the autoloader (`Extension\LocalAutoloader`).
+  - Every discovered plugin is enabled unless `PluginConfig`
+    (`config/plugins.php`) narrows it (`enabled` allow-list, `disabled`).
+    Discovery is compiled to `storage/cache/plugins.php` (D-058).
+  - Planned CLI: `plugin:list`, `plugin:new`, `plugin:check`.
+- **Themes:** see `theming.md`. Known by name everywhere (`active`,
+  `parent`, `?theme=`, `/themes/{vendor}/{name}/…`,
+  `resources/views/themes/{vendor}/{name}`); the default theme is
+  `blush/default`. Broken ones are listed by where they were found.
+- **Icon packs** (`Icon\IconPack`): SVGs in the pack's folder (or its
+  manifest's `folder`), each `{namespace}/{icon}`, labeled from its
+  `lang/`. Every installed pack is on; discovery is lenient (broken packs
+  are listed) and compiled to `storage/cache/icon-packs.php`. Their
+  folders seed `IconRegistry`, so themes and the site can restyle them.
+- **Admin:** Customize lists Themes, Plugins, and Icon Packs, read-only,
+  with **Install** buttons as placeholders for installing from the admin
+  (planned; D-039 and D-166 stand until then).
 
 ## Hosting (D-040)
 
@@ -1047,8 +1082,8 @@ by source, keeps recents, and writes the directive text). The
 ## Performance (D-044)
 
 - **Goal:** as fast as possible.
-- **Precompiled** (opcache-friendly PHP files): config, routes, extension and
-  provider discovery, the content index, and container resolution plans.
+- **Precompiled** (opcache-friendly PHP files): config, routes, extension (plugin,
+  theme, icon pack) and provider discovery, the content index, and container resolution plans.
 - **Lazy:** services (deferred and lazy objects), entry bodies, and
   Markdown rendering.
 - **Layers:** page cache (including files the web server can serve without

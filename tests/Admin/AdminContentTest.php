@@ -418,7 +418,7 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['kind' => 'site', 'label' => 'This site'], $note['source'] ?? null);
 		$this->assertArrayHasKey('category', $note);
 		$this->assertNull($note['category']);
-		$this->assertSame(['kind' => 'extension', 'label' => 'acme'], $this->component($components, 'acme/panel')['source'] ?? null);
+		$this->assertSame(['kind' => 'plugin', 'label' => 'acme'], $this->component($components, 'acme/panel')['source'] ?? null);
 		$this->assertNotContains('acme/tabs', array_column($components, 'name'), 'Only components with a class are offered.');
 
 		$image = self::json($this->send('GET', '/components'))['image'] ?? null;

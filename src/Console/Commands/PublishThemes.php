@@ -28,7 +28,7 @@ use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
 
 /**
- * Copies theme assets to `public/themes/{slug}` (D-034) so the web server
+ * Copies theme assets to `public/themes/{vendor}/{name}` (D-034, D-378) so the web server
  * serves them without starting PHP. Only servable files are copied (the
  * extensions `ThemeChain::ASSET_TYPES` allows, outside `views/`, `src/`,
  * and the other private folders), never PHP or manifests, which is why
@@ -65,7 +65,7 @@ final readonly class PublishThemes
 		foreach ($themes as $theme) {
 			[$copied, $current, $removed] = $this->publish($output, $theme);
 
-			$output->line(sprintf('%s: copied %d, %d already current, removed %d.', $theme->slug, $copied, $current, $removed));
+			$output->line(sprintf('%s: copied %d, %d already current, removed %d.', $theme->name, $copied, $current, $removed));
 		}
 
 		$output->success(sprintf('Published %d theme(s) to %s.', count($themes), $this->paths->relative($this->paths->public . ThemeChain::ASSET_URL)));
@@ -81,7 +81,7 @@ final readonly class PublishThemes
 	 */
 	private function publish(Output $output, ThemeManifest $theme): array
 	{
-		$target  = $this->paths->public . ThemeChain::ASSET_URL . "/{$theme->slug}";
+		$target  = $this->paths->public . ThemeChain::ASSET_URL . "/{$theme->name}";
 		$copied  = 0;
 		$current = 0;
 		$kept    = [];
@@ -106,7 +106,7 @@ final readonly class PublishThemes
 			copy($file->getPathname(), $destination);
 			touch($destination, (int) $file->getMTime());
 
-			$output->line("Copied {$theme->slug}/{$relative}", Verbosity::Verbose);
+			$output->line("Copied {$theme->name}/{$relative}", Verbosity::Verbose);
 			$copied++;
 		}
 

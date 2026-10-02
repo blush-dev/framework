@@ -66,14 +66,14 @@ final class Menus
 	private array $resolved = [];
 
 	/**
-	 * Each theme's locations, by theme slug.
+	 * Each theme's locations, by theme name.
 	 *
 	 * @var array<string, array<string, MenuLocation>>
 	 */
 	private array $locations = [];
 
 	/**
-	 * Each location's field schema, by theme slug and location.
+	 * Each location's field schema, by theme name and location.
 	 *
 	 * @var array<string, Schema>
 	 */
@@ -101,7 +101,7 @@ final class Menus
 	public function forLocation(ThemeChain $chain, string $location, string $locale = ''): ?Menu
 	{
 		$locale = $locale === '' ? $this->app->locale : $locale;
-		$key    = "{$chain->active()->slug}|{$location}|{$locale}";
+		$key    = "{$chain->active()->name}|{$location}|{$locale}";
 
 		if (array_key_exists($key, $this->resolved)) {
 			return $this->resolved[$key];
@@ -126,23 +126,23 @@ final class Menus
 	 */
 	public function locations(ThemeChain $chain): array
 	{
-		$slug = $chain->active()->slug;
+		$active = $chain->active()->name;
 
-		if (isset($this->locations[$slug])) {
-			return $this->locations[$slug];
+		if (isset($this->locations[$active])) {
+			return $this->locations[$active];
 		}
 
 		$locations = [];
 
 		foreach (array_reverse($chain->themes) as $theme) {
 			foreach ($theme->menus() as $name => $declaration) {
-				$locations[$name] = MenuLocation::fromDeclaration($name, $declaration, $theme->slug);
+				$locations[$name] = MenuLocation::fromDeclaration($name, $declaration, $theme->name);
 			}
 		}
 
 		ksort($locations, SORT_STRING);
 
-		return $this->locations[$slug] = $locations;
+		return $this->locations[$active] = $locations;
 	}
 
 	/**
@@ -195,10 +195,10 @@ final class Menus
 
 			foreach ($files as $name => $file) {
 				if (! isset($shown[$name])) {
-					$problems[] = new Violation("menu {$name}", sprintf('No location of the "%s" theme shows it.', $chain->active()->slug), Severity::Notice);
+					$problems[] = new Violation("menu {$name}", sprintf('No location of the "%s" theme shows it.', $chain->active()->name), Severity::Notice);
 
 					// Resolve it on its own, to check its items.
-					$this->build(new MenuLocation($name), $file, $chain->active()->slug, $this->app->locale, $problems);
+					$this->build(new MenuLocation($name), $file, $chain->active()->name, $this->app->locale, $problems);
 				}
 			}
 
@@ -223,7 +223,7 @@ final class Menus
 			return null;
 		}
 
-		return $this->build($this->locations($chain)[$location] ?? new MenuLocation($location), $file, $chain->active()->slug, $locale, $problems);
+		return $this->build($this->locations($chain)[$location] ?? new MenuLocation($location), $file, $chain->active()->name, $locale, $problems);
 	}
 
 	/**

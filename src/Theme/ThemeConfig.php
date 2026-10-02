@@ -17,14 +17,15 @@ use Override;
 use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 use Blush\Config\InvalidConfig;
+use Blush\Extension\ExtensionName;
 
 /**
  * The site's theme settings, from `config/theme.php`:
  *
- *     return new ThemeConfig(active: 'nova');
+ *     return new ThemeConfig(active: 'acme/nova');
  *
- * `active` is the slug of a theme in `user/themes`, or `default` for the
- * framework default theme.
+ * `active` is an installed theme's name (`vendor/name`, D-378), or
+ * `blush/default` for the framework default theme.
  */
 final readonly class ThemeConfig implements Config
 {
@@ -33,8 +34,8 @@ final readonly class ThemeConfig implements Config
 	 */
 	public function __construct(public string $active = Themes::DEFAULT)
 	{
-		if (! Themes::isValidSlug($active)) {
-			throw new InvalidConfig(sprintf('ThemeConfig "active" must be a theme slug; "%s" given.', $active));
+		if (! ExtensionName::isValid($active)) {
+			throw new InvalidConfig(sprintf('ThemeConfig "active" must be a theme\'s name (vendor/name); "%s" given.', $active));
 		}
 	}
 

@@ -37,10 +37,10 @@ final readonly class CheckTheme
 
 	public function __invoke(
 		Output $output,
-		#[Argument('The theme\'s slug; defaults to the active theme.')] ?string $slug = null,
+		#[Argument('The theme\'s name (vendor/name); defaults to the active theme.')] ?string $name = null,
 		#[Option('Also show notices.')] bool $strict = false
 	): ExitCode {
-		$report = $this->checker->check($slug ?? $this->config->active);
+		$report = $this->checker->check($name ?? $this->config->active);
 
 		foreach ($report->violations as $violation) {
 			if ($violation->severity === Severity::Notice && ! $strict) {

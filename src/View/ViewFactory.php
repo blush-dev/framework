@@ -34,7 +34,7 @@ use Blush\Translation\Translator;
 final class ViewFactory
 {
 	/**
-	 * Views built so far, by active theme slug.
+	 * Views built so far, by active theme name.
 	 *
 	 * @var array<string, Views>
 	 */
@@ -55,7 +55,7 @@ final class ViewFactory
 	 */
 	public function forChain(ThemeChain $chain): Views
 	{
-		return $this->views[$chain->active()->slug] ??= new Views(
+		return $this->views[$chain->active()->name] ??= new Views(
 			new ViewFinder($this->directories($chain)),
 			new ThemeAssets($chain),
 			$this->translator->withDirectories('theme', $chain->langDirectories()),
@@ -72,7 +72,7 @@ final class ViewFactory
 	public function directories(ThemeChain $chain): array
 	{
 		return [
-			"{$this->paths->resources}/views/themes/{$chain->active()->slug}",
+			"{$this->paths->resources}/views/themes/{$chain->active()->name}",
 			"{$this->paths->resources}/views",
 			...$chain->viewDirectories()
 		];

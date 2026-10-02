@@ -13,7 +13,7 @@
 | M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed (dynamically, D-142) |
 | M9 | **Admin stage 2:** operations dashboard. | Publish, clear, reindex, and export from a browser |
 | M10 | **Admin stage 3:** editor and media library. | Create and edit entries in a browser |
-| Later | Extension views in the view chain (D-174); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
+| Later | Plugin views in the view chain, so plugins can ship component templates (D-174; on hold, D-380); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
 
 ---
 
@@ -334,6 +334,11 @@ authors types stay as their code has them. And every URL path of a type
 placeholders it needs. Still to consider for routes: a Routes screen
 listing every route, editing redirects, and routes defined in data.
 Extracting embedded artwork waits (D-295).
+Then extensions as a type system (D-378, D-379): plugins (today's
+extensions, renamed), themes (known by `vendor/name`), and icon packs
+(new, in `user/icons`), each manifest with a `name`, `label`, and
+declared `namespace` checked across kinds, and Customize as Themes,
+Plugins, and Icon Packs with install placeholders.
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
@@ -350,6 +355,11 @@ dynamically).
 
 ### Still to scope
 
+- **Extension kinds, what's left (D-378, D-379):** admin themes as a
+  fourth kind on the shared pieces (joining `AdminTheme`, D-317);
+  installing from the admin, data-only kinds (icon packs) first, where
+  the Install buttons are placeholders now; and `plugin:list`,
+  `plugin:new`, and `plugin:check`. See `open-questions.md`.
 - **Fields API (D-337; paused, D-348: a baseline, with more design
   work to do before building further; phases 1 to 3 done, D-338 to
   D-340; phase 4: media, D-341, and site settings, D-343, done; theme

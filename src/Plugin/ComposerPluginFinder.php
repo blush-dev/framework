@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Composer extension finder.
+ * Composer plugin finder.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,20 +11,26 @@
 
 declare(strict_types=1);
 
-namespace Blush\Extension;
+namespace Blush\Plugin;
 
 use Override;
+use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionKind;
 use Blush\Support\ComposerPackages;
 use Blush\Support\FilesystemException;
 
 /**
- * Finds extensions installed with Composer: packages of type `blush-extension`
- * listed in `vendor/composer/installed.json`. The package's `extra.blush`
- * object supplies the provider and any requirements:
+ * Finds plugins installed with Composer: packages of type `blush-plugin`
+ * listed in `vendor/composer/installed.json`. The package's name is the
+ * plugin's, and its `extra.blush` object supplies the rest of the
+ * manifest (D-378):
  *
- *     "type": "blush-extension",
+ *     "name": "acme/gallery",
+ *     "type": "blush-plugin",
  *     "extra": {
  *         "blush": {
+ *             "label": "Gallery",
+ *             "namespace": "gallery",
  *             "provider": "Acme\\Gallery\\GalleryServiceProvider",
  *             "requires": { "blush": "^2.0" }
  *         }
@@ -32,13 +38,8 @@ use Blush\Support\FilesystemException;
  *
  * Composer autoloads these packages itself.
  */
-final readonly class ComposerExtensionFinder implements ExtensionFinder
+final readonly class ComposerPluginFinder implements PluginFinder
 {
-	/**
-	 * The Composer package type for Blush extensions.
-	 */
-	public const string PACKAGE_TYPE = 'blush-extension';
-
 	public function __construct(private string $vendorPath)
 	{
 	}
@@ -50,7 +51,7 @@ final readonly class ComposerExtensionFinder implements ExtensionFinder
 	public function find(): array
 	{
 		try {
-			$packages = new ComposerPackages($this->vendorPath)->ofType(self::PACKAGE_TYPE);
+			$packages = new ComposerPackages($this->vendorPath)->ofType(ExtensionKind::Plugin->packageType());
 		} catch (FilesystemException $e) {
 			throw new ExtensionException($e->getMessage(), previous: $e);
 		}
@@ -64,24 +65,29 @@ final readonly class ComposerExtensionFinder implements ExtensionFinder
 	 * @param  array<array-key, mixed> $package
 	 * @throws ExtensionException
 	 */
-	private function manifest(array $package): ExtensionManifest
+	private function manifest(array $package): PluginManifest
 	{
 		$name  = is_string($package['name'] ?? null) ? $package['name'] : '';
 		$extra = is_array($package['extra'] ?? null) ? $package['extra'] : [];
 		$blush = is_array($extra['blush'] ?? null) ? $extra['blush'] : [];
 
-		if (! isset($blush['provider'])) {
-			throw new ExtensionException(sprintf(
-				'Composer package "%s" is a %s but has no "extra.blush.provider".',
-				$name,
-				self::PACKAGE_TYPE
-			));
+		foreach (['label', 'namespace', 'provider'] as $key) {
+			if (! isset($blush[$key])) {
+				throw new ExtensionException(sprintf(
+					'Composer package "%s" is a %s but has no "extra.blush.%s".',
+					$name,
+					ExtensionKind::Plugin->packageType(),
+					$key
+				));
+			}
 		}
 
-		return ExtensionManifest::fromArray([
+		return PluginManifest::fromArray([
 			'name'        => $name,
+			'label'       => $blush['label'],
+			'namespace'   => $blush['namespace'],
 			'provider'    => $blush['provider'],
-			'source'      => ExtensionSource::Composer,
+			'source'      => PluginSource::Composer,
 			'path'        => is_string($package['path'] ?? null) ? $package['path'] : '',
 			'version'     => is_string($package['version'] ?? null) ? $package['version'] : '0.0.0',
 			'description' => is_string($package['description'] ?? null) ? $package['description'] : '',

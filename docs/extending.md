@@ -336,15 +336,49 @@ includes it.
 
 ## Extensions
 
-An extension packages the same kind of code for reuse across sites. It's a
-manifest plus a service provider.
+Extensions are what a site installs. There are three kinds:
 
-**A local extension** lives in `user/extensions/{slug}/`, with an
-`extension.json`:
+- **Plugins** package the same kind of code as your site's, for reuse
+  across sites: a manifest plus a service provider. Below.
+- **[Themes](themes.md)** control how the site looks.
+- **[Icon packs](#icon-packs)** are SVG icons, with no code.
+
+Every extension's manifest has the same three keys:
+
+- **`name`:** the key it's known by, `vendor/name` (`acme/hello`), in
+  lowercase letters, digits, `-`, `_`, and `.`. For a Composer package,
+  it's the package's name.
+- **`label`:** its title, as people read it.
+- **`namespace`:** what its components, icons, and translations go by
+  (`hello`, for `hello/tabs`). Lowercase letters, digits, `-`, and `_`.
+  `blush`, `app`, `theme`, and `default` are reserved.
+
+No two installed extensions may share a namespace. Two plugins that do
+are an error. Two themes, or two icon packs, that do are both broken.
+Across kinds, installed plugins (even ones turned off) come first, then
+themes, then icon packs, and the one that comes later is listed as broken
+on the admin's screens, naming who has the namespace.
+
+Each extension lives in a folder of its own under `user/`
+(`user/plugins/`, `user/themes/`, `user/icons/`); the folder's name is
+only where it lives. Each can be its own git repository. If `user/` is
+one too, ignore `plugins/`, `themes/`, and `icons/` there (see
+[the site layout](README.md#how-a-blush-site-is-laid-out)).
+
+The admin lists them under **Extensions** (Themes, Plugins, and Icon
+Packs). Installing from the admin isn't available yet; its **Install**
+buttons are placeholders.
+
+## Plugins
+
+**A local plugin** lives in `user/plugins/{folder}/`, with a
+`plugin.json` (or `plugin.yaml`):
 
 ```json
 {
 	"name": "acme/hello",
+	"label": "Hello",
+	"namespace": "hello",
 	"version": "1.0.0",
 	"description": "Says hello.",
 	"provider": "Acme\\Hello\\HelloServiceProvider",
@@ -354,58 +388,73 @@ manifest plus a service provider.
 }
 ```
 
-Blush finds it and loads its classes; no Composer step needed.
+`name`, `label`, `namespace`, and `provider` are required. Blush finds
+the plugin and loads its classes; no Composer step needed.
 
 For autocomplete in your editor, add a `$schema` key pointing at the
-schema Blush ships (the path is relative to `extension.json`):
+schema Blush ships (the path is relative to `plugin.json`):
 
 ```json
 {
-	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/extension.schema.json",
+	"$schema": "../../../vendor/blush-dev/framework/resources/schemas/plugin.schema.json",
 	"name": "acme/hello"
 }
 ```
 
-In `extension.yaml`, use a first-line comment instead:
-`# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/extension.schema.json`.
+In `plugin.yaml`, use a first-line comment instead:
+`# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/plugin.schema.json`.
 
-**A Composer extension** is a package of type `blush-extension`, with the
-same manifest in its `composer.json` under `extra.blush`.
+**A Composer plugin** is a package of type `blush-plugin`. Its name is
+the package's, and the rest of the manifest goes in its `composer.json`
+under `extra.blush`:
 
-Every installed extension is on. Turn one off in
-[`config/extensions.php`](configuration.md#extensions-and-middleware).
+```json
+{
+	"name": "acme/hello",
+	"type": "blush-plugin",
+	"extra": {
+		"blush": {
+			"label": "Hello",
+			"namespace": "hello",
+			"provider": "Acme\\Hello\\HelloServiceProvider",
+			"requires": { "blush": "^2.0" }
+		}
+	}
+}
+```
 
-Each extension can be its own git repository. If `user/` is one too,
-ignore `extensions/` there (see [the site layout](README.md#how-a-blush-site-is-laid-out)).
+Every installed plugin is on. Turn one off by its name in
+[`config/plugins.php`](configuration.md#plugins-and-middleware).
 
-### Components from an extension
+### Components from a plugin
 
-An extension's [components](components.md) use its vendor as their
-namespace: `acme/hello` registers `acme/tabs`, not `tabs`. Their text
-(labels, descriptions) goes in the extension's `lang/en.json`, under
-`components.tabs`. Extensions can't ship component templates yet, so the
-theme or site provides `views/components/acme-tabs.php`.
+A plugin's [components](components.md) use its namespace: `acme/hello`,
+with the namespace `hello`, registers `hello/tabs`, not `tabs`. Their
+text (labels, descriptions) goes in the plugin's `lang/en.json`, under
+`components.tabs`. Plugins can't ship component templates yet, so the
+theme or site provides `views/components/hello-tabs.php`.
 
-### Icons from an extension
+### Icons from a plugin
 
-An extension's icons use its vendor as their namespace. Add its folder
-of SVG files in the provider's `boot()`:
+A plugin's icons use its namespace too. Add its folder of SVG files in
+the provider's `boot()`:
 
 ```php
 use Blush\Icon\IconRegistry;
 
 public function boot(): void
 {
-	$this->container->get(IconRegistry::class)->add('acme', __DIR__ . '/../icons');
+	$this->container->get(IconRegistry::class)->add('hello', __DIR__ . '/../icons');
 }
 ```
 
-Each `icons/{name}.svg` is then `acme/{name}`, with its label in the
-extension's `lang/en.json` under `icons.{name}.label`.
+Each `icons/{name}.svg` is then `hello/{name}`, with its label in the
+plugin's `lang/en.json` under `icons.{name}.label`. Icons that need no
+code are simpler as an [icon pack](#icon-packs).
 
-### Content types from an extension
+### Content types from a plugin
 
-An extension can define [content types](content-types.md), much like a
+A plugin can define [content types](content-types.md), much like a
 WordPress plugin registering post types. Write a class that implements
 `ContentTypeSource` and returns the types:
 
@@ -437,7 +486,7 @@ final class ContentTypes implements ContentTypeSource
 }
 ```
 
-Tag it in the extension's provider:
+Tag it in the plugin's provider:
 
 ```php
 protected const array TAGS = [
@@ -447,11 +496,11 @@ protected const array TAGS = [
 
 The kinds and options are the same as in `config/content.php`. A site can
 still redefine one of your types in its `config/content.php`, but not in
-`user/data/types/`. Two extensions can't define the same type.
+`user/data/types/`. Two plugins can't define the same type.
 
-### Field sets from an extension
+### Field sets from a plugin
 
-An extension can add fields to content types, its own or the site's,
+A plugin can add fields to content types, its own or the site's,
 and to media files' [details](media.md#details-about-a-file), with
 [field sets](content-types.md#field-sets) (`media:image` and so on). Write a class that
 implements `FieldSetSource`:
@@ -482,18 +531,18 @@ final class SeoFields implements FieldSetSource
 }
 ```
 
-Tag it with `FieldSetSource::TAG` in the extension's provider. A site's
+Tag it with `FieldSetSource::TAG` in the plugin's provider. A site's
 `config/fields.php` or `user/data/fields/` can replace any of your sets
-by its name. Two extensions can't define the same set.
+by its name. Two plugins can't define the same set.
 
 A set aimed at a Settings screen (`settings:general`, and so on) adds
 settings the site owner fills in ([Your own settings](themes.md#your-own-settings)).
 Read them in PHP from `Blush\Settings\SiteSettings`, which the
 container gives you: `$site->get('tagline')`, or `$site->all()`.
 
-### Field types from an extension
+### Field types from a plugin
 
-An extension can add a field type for every place fields are defined:
+A plugin can add a field type for every place fields are defined:
 content types, media details, theme settings, and menu fields. Extend
 `Blush\Field\Field`, and describe the type for the admin with
 `typeLabel()`, `typeDescription()`, and `controls()`, the controls it can
@@ -558,7 +607,7 @@ final class ColorField extends Field
 }
 ```
 
-Register it in the extension's provider's `boot()`:
+Register it in the plugin's provider's `boot()`:
 
 ```php
 use Blush\Field\FieldRegistry;
@@ -595,6 +644,49 @@ Readers' values are merged in the registry's order, the first value for
 a key winning, so yours fills in what the built-in readers leave out.
 Run `bin/blush media:index` afterwards: the index reads every file again
 when its readers change.
+
+## Icon packs
+
+An icon pack is a set of SVG icons in a namespace of its own, with no
+code. Put it in `user/icons/{folder}/`, with an `icons.json` (or
+`icons.yaml`):
+
+```json
+{
+	"name": "acme/brands",
+	"label": "Brand Logos",
+	"namespace": "brands",
+	"version": "1.0.0",
+	"description": "Logos for social links.",
+	"folder": "svg"
+}
+```
+
+`name`, `label`, and `namespace` are required. Each `{icon}.svg` in the
+pack's `folder` (the pack's own folder, without one) is
+`{namespace}/{icon}`: `svg/github.svg` is `brands/github`, used as
+`:icon[GitHub]{name=brands/github}` or `$template->icon('brands/github')`.
+Labels go in the pack's `lang/en.json`, under `icons.{icon}.label`:
+
+```json
+{
+	"icons": {
+		"github": { "label": "GitHub" }
+	}
+}
+```
+
+Every installed pack is on, and its icons appear in `bin/blush
+icon:list` and the admin's icon inserter. A theme can restyle one with
+`icons/brands/github.svg`, and your site with
+`resources/icons/brands/github.svg` (see [Icons](components.md#icons)).
+
+For autocomplete, point `$schema` at
+`vendor/blush-dev/framework/resources/schemas/icons.schema.json`.
+
+**A Composer icon pack** is a package of type `blush-icons`, with its
+`icons.json` in the package. Its name is the package's, so the manifest
+can leave `name` out; one naming something else is broken.
 
 ## Events
 

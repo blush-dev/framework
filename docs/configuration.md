@@ -62,7 +62,7 @@ With `APP_ENV=development`:
 
 - New and changed content shows up on the next request.
 - Caching is off.
-- You can preview themes with `?theme={slug}`.
+- You can preview themes with `?theme={name}`, such as `?theme=acme/notebook`.
 
 Outside production (in development *and* staging), `robots.txt` asks
 search engines not to index the site.
@@ -144,7 +144,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 
 | Option | Default | What it does |
 |---|---|---|
-| `active` | `'default'` | The active theme's slug |
+| `active` | `'blush/default'` | The active theme's name, such as `'acme/notebook'` |
 
 `bin/blush theme:activate` writes this file for you.
 
@@ -371,10 +371,11 @@ either way.
 | `file` | `'blush.log'` | The log file, in `storage/logs/` |
 | `channel` | `'blush'` | The name on each line |
 
-### Extensions and middleware
+### Plugins and middleware
 
-- `config/extensions.php` · `Blush\Extension\ExtensionConfig`: `enabled`
-  (only these extensions) and `disabled` (never these). Every installed
-  extension is on by default.
+- `config/plugins.php` · `Blush\Plugin\PluginConfig`: `enabled` (only
+  these plugins) and `disabled` (never these), by name
+  (`new PluginConfig(disabled: ['acme/hello'])`). Every installed plugin
+  is on by default.
 - `config/http.php` · `Blush\Http\HttpConfig`: `middleware`, a list of
   PSR-15 middleware classes run on every request.

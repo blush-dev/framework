@@ -43,14 +43,14 @@ final class ThemedRenderingTest extends TestCase
 		return (string) $this->get($uri, $app)->getBody();
 	}
 
-	private function activeTheme(string $slug): void
+	private function activeTheme(string $name): void
 	{
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: '{$slug}');\n");
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: '{$name}');\n");
 	}
 
 	private function childTheme(): void
 	{
-		$this->writeTemporaryFile('user/themes/child/theme.json', '{"name": "Child", "styles": ["style.css", "extra.css"], "scripts": ["app.js"]}');
+		$this->writeTemporaryFile('user/themes/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child", "styles": ["style.css", "extra.css"], "scripts": ["app.js"]}');
 		$this->writeTemporaryFile('user/themes/child/extra.css', '');
 		$this->writeTemporaryFile('user/themes/child/app.js', '');
 		$this->writeTemporaryFile('user/themes/child/lang/en.json', '{"powered_by": "Made with {generator}"}');
@@ -68,7 +68,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<title>Blush</title>', $home);
 		$this->assertStringContainsString('<body class="is-home type-post">', $home);
 		$this->assertStringContainsString('<a class="skip-link" href="#main">Skip to content</a>', $home);
-		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/default/style.css\?v=[0-9a-f]{8}">#', $home);
+		$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/themes/blush/default/style.css\?v=[0-9a-f]{8}">#', $home);
 		$this->assertStringContainsString('<link rel="canonical" href="http://localhost/">', $home);
 		$this->assertStringContainsString('<a href="/archives/spring">spring</a>', $home);
 		$this->assertStringContainsString('<time datetime="2008-04-05T09:00:00-05:00">April 5, 2008</time>', $home);
@@ -131,7 +131,7 @@ final class ThemedRenderingTest extends TestCase
 		]);
 		$this->childTheme();
 		$this->writeTemporaryFile('user/themes/child/lang/en.json', '{"document_title": {"page": "Page {page} of the archives"}}');
-		$this->activeTheme('child');
+		$this->activeTheme('acme/child');
 
 		$this->assertStringContainsString('<title>Page 2 of the archives | Blush</title>', $this->body('/page/2'));
 	}
@@ -140,15 +140,15 @@ final class ThemedRenderingTest extends TestCase
 	{
 		$this->standardContent();
 		$this->childTheme();
-		$this->activeTheme('child');
+		$this->activeTheme('acme/child');
 
 		$app    = $this->site();
 		$single = $this->body('/archives/spring', $app);
 
 		$this->assertStringContainsString('<h1 class="post">Post: spring</h1>', $single);
 		$this->assertStringContainsString('Made with Blush Framework', $single);
-		$this->assertMatchesRegularExpression('#href="http://localhost/themes/default/style.css\?v=[0-9a-f]{8}">\n<link rel="stylesheet" href="http://localhost/themes/child/extra.css\?v=[0-9a-f]{8}">#', $single);
-		$this->assertMatchesRegularExpression('#<script src="http://localhost/themes/child/app.js\?v=[0-9a-f]{8}" defer></script>#', $single);
+		$this->assertMatchesRegularExpression('#href="http://localhost/themes/blush/default/style.css\?v=[0-9a-f]{8}">\n<link rel="stylesheet" href="http://localhost/themes/acme/child/extra.css\?v=[0-9a-f]{8}">#', $single);
+		$this->assertMatchesRegularExpression('#<script src="http://localhost/themes/acme/child/app.js\?v=[0-9a-f]{8}" defer></script>#', $single);
 		$this->assertStringContainsString('<h1 class="entry__title">Biography</h1>', $this->body('/about/biography', $app));
 	}
 
@@ -156,10 +156,10 @@ final class ThemedRenderingTest extends TestCase
 	{
 		$this->standardContent();
 		$this->childTheme();
-		$this->activeTheme('child');
+		$this->activeTheme('acme/child');
 		$this->writeTemporaryFile('resources/views/single-post.php', 'site override');
-		$this->writeTemporaryFile('resources/views/themes/child/single-post.php', 'child-scoped override');
-		$this->writeTemporaryFile('resources/views/themes/other/single.php', 'other-scoped override');
+		$this->writeTemporaryFile('resources/views/themes/acme/child/single-post.php', 'child-scoped override');
+		$this->writeTemporaryFile('resources/views/themes/acme/other/single.php', 'other-scoped override');
 
 		// Template changes reach a cached site on deploy (`cache:clear`);
 		// this test changes them between requests.
@@ -167,7 +167,7 @@ final class ThemedRenderingTest extends TestCase
 
 		$this->assertSame('child-scoped override', $this->body('/archives/spring'));
 
-		unlink($this->temporaryDirectory() . '/resources/views/themes/child/single-post.php');
+		unlink($this->temporaryDirectory() . '/resources/views/themes/acme/child/single-post.php');
 
 		$this->assertSame('site override', $this->body('/archives/spring'));
 	}
@@ -309,7 +309,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->standardContent();
 		$this->childTheme();
 
-		$this->assertStringContainsString('Post: spring', $this->body('/archives/spring?theme=child', $this->site('development')));
-		$this->assertStringNotContainsString('Post: spring', $this->body('/archives/spring?theme=child', $this->site('production')));
+		$this->assertStringContainsString('Post: spring', $this->body('/archives/spring?theme=acme/child', $this->site('development')));
+		$this->assertStringNotContainsString('Post: spring', $this->body('/archives/spring?theme=acme/child', $this->site('production')));
 	}
 }

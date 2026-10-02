@@ -1,0 +1,53 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework icon pack manifest",
+	"description": "An icon pack's icons.json: its name, label, namespace, and the folder its SVG icons are in.",
+	"type": "object",
+	"required": [
+		"name",
+		"label",
+		"namespace"
+	],
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
+		},
+		"name": {
+			"type": "string",
+			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
+			"description": "The icon pack's name, the key it's known by: vendor/name, such as \"acme/gallery\". For a Composer package, its package name."
+		},
+		"label": {
+			"type": "string",
+			"minLength": 1,
+			"description": "The icon pack's title, as people read it."
+		},
+		"namespace": {
+			"type": "string",
+			"pattern": "^[a-z0-9][a-z0-9_-]*$",
+			"not": {
+				"enum": [
+					"blush",
+					"app",
+					"theme",
+					"default"
+				]
+			},
+			"description": "The namespace the icon pack's components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one."
+		},
+		"version": {
+			"type": "string",
+			"description": "The pack's version, such as 1.0.0."
+		},
+		"description": {
+			"type": "string",
+			"description": "What the icons are."
+		},
+		"folder": {
+			"type": "string",
+			"pattern": "^/?[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$",
+			"description": "The folder inside the pack its *.svg files are in, such as \"svg\". Defaults to the pack's own folder. Each {icon}.svg is {namespace}/{icon}."
+		}
+	}
+}

@@ -132,11 +132,11 @@ final class VariantsTest extends TestCase
 
 	public function testAThemesVariantsApplyOnlyWhileItIsActive(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "Alt", "variants": {"callout": ["bordered", {"name": "compact", "modifier": "tight"}, "Bad Name"]}}');
+		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt", "variants": {"callout": ["bordered", {"name": "compact", "modifier": "tight"}, "Bad Name"]}}');
 		$this->writeTemporaryFile('user/themes/alt/lang/en.json', '{"components": {"callout": {"variants": {"bordered": {"label": "Bordered", "description": "A rule down the left."}}}}}');
-		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": "Other"}');
+		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
 
-		$views = $this->boot('alt');
+		$views = $this->boot('acme/alt');
 
 		$this->app->container()->make(ListenerRegistry::class)->listen(ComponentVariantsCollecting::class, static function (ComponentVariantsCollecting $event): void {
 			$event->add('from-alt', 'alt');
@@ -153,18 +153,18 @@ final class VariantsTest extends TestCase
 
 		// Under another theme, alt's variants are gone, a listener's too.
 		$container = $this->app->container();
-		$other     = $container->make(ViewFactory::class)->forChain($container->make(Themes::class)->chain('other'));
+		$other     = $container->make(ViewFactory::class)->forChain($container->make(Themes::class)->chain('acme/other'));
 
 		$this->assertSame(['info', 'tip', 'warning', 'danger'], self::names($other->variants($name)));
 	}
 
 	public function testImagesHaveTheThemesVariants(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "Alt", "variants": {"image": ["inline-left", "polaroid", "Bad Name"]}}');
+		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt", "variants": {"image": ["inline-left", "polaroid", "Bad Name"]}}');
 		$this->writeTemporaryFile('user/themes/alt/lang/en.json', '{"images": {"variants": {"polaroid": {"label": "Polaroid", "description": "A white border."}}}}');
-		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": "Other"}');
+		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
 
-		$views    = $this->boot('alt');
+		$views    = $this->boot('acme/alt');
 		$variants = $views->imageVariants();
 
 		$this->assertSame(['inline-left', 'polaroid'], self::names($variants), 'An invalid name is skipped, and the default theme\'s aren\'t styled here.');
@@ -176,9 +176,9 @@ final class VariantsTest extends TestCase
 		$themes    = $container->make(Themes::class);
 		$factory   = $container->make(ViewFactory::class);
 
-		$this->assertSame([], $factory->forChain($themes->chain('other'))->imageVariants());
+		$this->assertSame([], $factory->forChain($themes->chain('acme/other'))->imageVariants());
 
-		$default = $factory->forChain($themes->chain('default'))->imageVariants();
+		$default = $factory->forChain($themes->chain('blush/default'))->imageVariants();
 
 		$this->assertSame(['inline-left', 'inline-right'], self::names($default));
 		$this->assertSame('default', $default[1]->registrant);
@@ -197,13 +197,13 @@ final class VariantsTest extends TestCase
 
 	public function testManifestsListVariantsByComponent(): void
 	{
-		$manifest = ThemeManifest::fromArray('alt', '/tmp/alt', ['name' => 'Alt', 'variants' => ['blush/callout' => ['bordered']]]);
+		$manifest = ThemeManifest::fromArray('/tmp/alt', ['name' => 'acme/alt', 'label' => 'Alt', 'namespace' => 'alt', 'variants' => ['blush/callout' => ['bordered']]]);
 		$name     = new ComponentName('blush', 'callout');
 
 		$this->assertSame(['bordered'], self::names(ComponentVariants::fromManifest($manifest->variants(), $name, 'alt')));
 		$this->assertSame([], ComponentVariants::fromManifest($manifest->variants(), new ComponentName('blush', 'button'), 'alt'));
 
 		$this->expectException(ThemeException::class);
-		ThemeManifest::fromArray('alt', '/tmp/alt', ['name' => 'Alt', 'variants' => ['bordered']]);
+		ThemeManifest::fromArray('/tmp/alt', ['name' => 'acme/alt', 'label' => 'Alt', 'namespace' => 'alt', 'variants' => ['bordered']]);
 	}
 }

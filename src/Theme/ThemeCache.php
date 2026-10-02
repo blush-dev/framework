@@ -17,7 +17,7 @@ use Blush\Support\PhpArrayFile;
 
 /**
  * The compiled list of installed themes (`storage/cache/themes.php`),
- * read everywhere but development, like the extension cache (D-058).
+ * read everywhere but development, like the plugin cache (D-058).
  */
 final readonly class ThemeCache
 {
@@ -38,13 +38,12 @@ final readonly class ThemeCache
 		$themes = [];
 
 		try {
-			foreach ($data['themes'] as $slug => $theme) {
+			foreach ($data['themes'] as $name => $theme) {
 				if (! is_array($theme) || ! is_string($theme['path'] ?? null) || ! is_array($theme['data'] ?? null)) {
 					return null;
 				}
 
-				$themes[(string) $slug] = ThemeManifest::fromArray(
-					(string) $slug,
+				$themes[(string) $name] = ThemeManifest::fromArray(
 					$theme['path'],
 					$theme['data'],
 					ThemeSource::tryFrom(is_string($theme['source'] ?? null) ? $theme['source'] : '') ?? ThemeSource::Local

@@ -47,7 +47,7 @@ const people   = computed(() => type.value?.kind === 'profiles');
 
 const origin = computed(() => ({
 	'built-in': 'Built in',
-	extension: 'An extension',
+	extension: 'A plugin',
 	config: 'config/content.php',
 	data: 'user/data/types'
 })[type.value?.origin ?? 'config']);

@@ -131,6 +131,11 @@ final class BuiltInCommandsTest extends TestCase
 		$this->assertFileExists("{$root}/storage/cache/container.php");
 		$this->assertFileExists("{$root}/storage/cache/routes.php");
 		$this->assertFileExists("{$root}/storage/cache/content-types.php");
+		$this->assertFileExists("{$root}/storage/cache/icon-packs.php");
+
+		$this->assertTrue($tester->run('cache:clear --icon-packs')->isSuccessful());
+		$this->assertFileDoesNotExist("{$root}/storage/cache/icon-packs.php");
+		$this->assertFileExists("{$root}/storage/cache/themes.php");
 
 		$partial = $tester->run('cache:clear --config -v');
 
@@ -138,13 +143,13 @@ final class BuiltInCommandsTest extends TestCase
 		$this->assertStringContainsString('Cleared storage/cache/config.php', $partial->output);
 		$this->assertStringNotContainsString('cache store', $partial->output);
 		$this->assertFileDoesNotExist("{$root}/storage/cache/config.php");
-		$this->assertFileExists("{$root}/storage/cache/extensions.php");
+		$this->assertFileExists("{$root}/storage/cache/plugins.php");
 
 		$all = $tester->run('cache:clear');
 
-		$this->assertStringContainsString('Cleared 6 compiled cache(s).', $all->output);
+		$this->assertStringContainsString('Cleared 7 compiled cache(s).', $all->output);
 		$this->assertStringContainsString('Cleared the cache store (pages, bodies, fragments); the content version is now', $all->output);
-		$this->assertFileDoesNotExist("{$root}/storage/cache/extensions.php");
+		$this->assertFileDoesNotExist("{$root}/storage/cache/plugins.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/container.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/routes.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/content-types.php");

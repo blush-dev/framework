@@ -32,7 +32,7 @@ you can edit, copy, and keep in git.
 | [Configuration](configuration.md) | `.env` and every `config/` option |
 | [Going live](going-live.md) | Caching, publishing, webhooks, and static export |
 | [Command line](cli.md) | Every `bin/blush` command |
-| [Extending Blush](extending.md) | Service providers, custom routes, commands, and extensions |
+| [Extending Blush](extending.md) | Service providers, custom routes, commands, and extensions: plugins and icon packs |
 | [Coming from Blush 1.x](coming-from-1x.md) | What carries over and what changed |
 
 ## How a Blush site is laid out
@@ -46,7 +46,8 @@ my-site/
     media/        Images, audio, and video
     data/         Editable data: menus, regions, redirects, theme settings, content types
     themes/       Themes you've made or installed
-    extensions/   Extensions you've made or installed
+    plugins/      Plugins you've made or installed
+    icons/        Icon packs you've made or installed
   resources/
     views/        Template overrides for whatever theme is active
     lang/         Translations for your own components and icons (the `app` namespace)
@@ -62,12 +63,13 @@ and `.env`.** Everything in `storage/` is generated and safe to delete,
 except `storage/accounts/`, which holds the admin's accounts, and
 `storage/trash/`, which holds entries deleted from the admin.
 
-`user/` holds everything that's yours: what you write, and the themes and
-extensions you add. Each theme and extension can be its own git
-repository. If you keep `user/` itself in git, ignore those two folders
-there so each repository stays separate:
+`user/` holds everything that's yours: what you write, and the
+[extensions](extending.md#extensions) you add: themes, plugins, and icon
+packs. Each can be its own git repository. If you keep `user/` itself in
+git, ignore those folders there so each repository stays separate:
 
 ```gitignore
 /themes/
-/extensions/
+/plugins/
+/icons/
 ```

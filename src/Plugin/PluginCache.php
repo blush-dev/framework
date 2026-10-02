@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Extension cache.
+ * Plugin cache.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,15 +11,16 @@
 
 declare(strict_types=1);
 
-namespace Blush\Extension;
+namespace Blush\Plugin;
 
+use Blush\Extension\ExtensionException;
 use Blush\Support\PhpArrayFile;
 
 /**
- * Compiles discovered extension manifests to a PHP file, so production
- * requests don't scan `installed.json` or `user/extensions` (D-041, D-044).
+ * Compiles discovered plugin manifests to a PHP file, so production
+ * requests don't scan `installed.json` or `user/plugins` (D-041, D-044).
  */
-final readonly class ExtensionCache
+final readonly class PluginCache
 {
 	public function __construct(private PhpArrayFile $file)
 	{
@@ -28,7 +29,7 @@ final readonly class ExtensionCache
 	/**
 	 * Returns the cached manifests, or `null` when nothing is cached.
 	 *
-	 * @return ?list<ExtensionManifest>
+	 * @return ?list<PluginManifest>
 	 * @throws ExtensionException When the cache is invalid.
 	 */
 	public function read(): ?array
@@ -43,10 +44,10 @@ final readonly class ExtensionCache
 
 		foreach ($data as $manifest) {
 			if (! is_array($manifest)) {
-				throw new ExtensionException(sprintf('The extension cache "%s" is invalid.', $this->file->path));
+				throw new ExtensionException(sprintf('The plugin cache "%s" is invalid.', $this->file->path));
 			}
 
-			$manifests[] = ExtensionManifest::fromArray($manifest);
+			$manifests[] = PluginManifest::fromArray($manifest);
 		}
 
 		return $manifests;
@@ -55,12 +56,12 @@ final readonly class ExtensionCache
 	/**
 	 * Writes the manifests to the cache.
 	 *
-	 * @param list<ExtensionManifest> $manifests
+	 * @param list<PluginManifest> $manifests
 	 */
 	public function write(array $manifests): void
 	{
 		$this->file->write(array_map(
-			static fn (ExtensionManifest $manifest): array => $manifest->toArray(),
+			static fn (PluginManifest $manifest): array => $manifest->toArray(),
 			$manifests
 		));
 	}

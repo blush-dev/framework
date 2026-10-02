@@ -18,8 +18,8 @@ use Stringable;
 
 /**
  * A component's name, `{namespace}/{name}` (D-171): `blush` for the core
- * components, a theme's slug, `app` for the site's own, or an extension's
- * vendor. Only core components may be written without their namespace
+ * components, a theme's or plugin's namespace (D-378), or `app` for the
+ * site's own. Only core components may be written without their namespace
  * (`callout` is `blush/callout`); any other short name isn't a component.
  *
  * A component's template is `components/{namespace}-{name}.php`. A core

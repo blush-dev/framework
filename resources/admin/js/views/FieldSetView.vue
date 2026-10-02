@@ -43,7 +43,7 @@ watch(set, (value) => {
 });
 
 const origin = computed(() => ({
-	extension: 'an extension',
+	extension: 'a plugin',
 	config: 'config/fields.php',
 	data: 'user/data/fields'
 })[set.value?.origin ?? 'config']);

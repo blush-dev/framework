@@ -18,6 +18,8 @@ use Blush\Component\ComponentName;
 use Blush\Component\Variant;
 use Blush\Content\EntryFields;
 use Blush\Core\Framework;
+use Blush\Extension\ExtensionName;
+use Blush\Extension\ExtensionNamespace;
 use Blush\Field\Control;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldType;
@@ -29,7 +31,7 @@ use Blush\Translation\LocaleMap;
 
 /**
  * Builds the JSON Schemas editors use to autocomplete and check Blush's
- * data files (D-206, D-207, D-211): `theme.json`, `extension.json`, the
+ * data files (D-206, D-207, D-211): `theme.json`, `plugin.json`, the
  * site's menu and region files, and entries' built-in front matter. They're written to `resources/schemas`
  * with `composer schemas`, and a test fails when the committed files are
  * stale.
@@ -38,7 +40,7 @@ use Blush\Translation\LocaleMap;
  * allow keys the schema doesn't describe (a component's props, a theme's
  * menu fields), and menu and region files allow only their own keys.
  * The built-in field types, menu links, and region items describe
- * themselves; an extension's are allowed but not described.
+ * themselves; a plugin's are allowed but not described.
  *
  * Class names and namespace prefixes have no pattern, as in Composer's
  * schema (D-210): PhpStorm reads backslashes in patterns and values
@@ -58,7 +60,7 @@ final readonly class JsonSchemas
 	private const string DRAFT = 'http://json-schema.org/draft-07/schema#';
 
 	/**
-	 * Matches a theme slug or a location name.
+	 * Matches a location name.
 	 */
 	private const string SLUG_PATTERN = '^[a-z0-9][a-z0-9_-]*$';
 
@@ -73,10 +75,10 @@ final readonly class JsonSchemas
 	private const string FOLDER_PATTERN = '^/?[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$';
 
 	/**
-	 * Matches an extension's autoload folder: relative, and not leaving
-	 * the extension.
+	 * Matches a plugin's autoload folder: relative, and not leaving the
+	 * plugin.
 	 */
-	private const string EXTENSION_PATH_PATTERN = '^(?!/)(?!.*\\.\\.).+$';
+	private const string PLUGIN_PATH_PATTERN = '^(?!/)(?!.*\\.\\.).+$';
 
 	/**
 	 * Returns every schema, by file name.
@@ -87,10 +89,11 @@ final readonly class JsonSchemas
 	{
 		return [
 			'entry.schema.json'     => $this->entry(),
-			'extension.schema.json' => $this->extension(),
 			'field-set.schema.json' => $this->fieldSet(),
+			'icons.schema.json'     => $this->iconPack(),
 			'media.schema.json'     => $this->media(),
 			'menu.schema.json'      => $this->menu(),
+			'plugin.schema.json'    => $this->plugin(),
 			'region.schema.json'    => $this->region(),
 			'theme.schema.json'     => $this->theme()
 		];
@@ -122,18 +125,18 @@ final readonly class JsonSchemas
 		return [
 			'$schema'     => self::DRAFT,
 			'title'       => sprintf('%s theme manifest', Framework::NAME),
-			'description' => 'A theme\'s theme.json: its name, assets, settings, and the menu and region locations it shows.',
+			'description' => 'A theme\'s theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.',
 			'type'        => 'object',
-			'required'    => ['name'],
+			'required'    => ['name', 'label', 'namespace'],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
-				'name'        => ['type' => 'string', 'minLength' => 1, 'description' => 'The theme\'s name.'],
+				...$this->identity('theme'),
 				'version'     => ['type' => 'string', 'description' => 'The theme\'s version, such as 1.0.0.'],
 				'description' => ['type' => 'string', 'description' => 'What the theme is for.'],
 				'parent'      => [
 					'type'        => 'string',
-					'pattern'     => self::SLUG_PATTERN,
-					'description' => 'The slug of the theme this one builds on. Anything this theme doesn\'t include comes from its parent.'
+					'pattern'     => trim(ExtensionName::PATTERN, '#'),
+					'description' => 'The name of the theme this one builds on, such as "blush/default". Anything this theme doesn\'t include comes from its parent.'
 				],
 				'styles'      => [
 					'type'        => 'array',
@@ -215,33 +218,56 @@ final readonly class JsonSchemas
 	}
 
 	/**
-	 * Returns the schema for a local extension's `extension.json`.
+	 * Returns the schema for a local plugin's `plugin.json` (D-378).
 	 *
 	 * @return array<string, mixed>
 	 */
-	public function extension(): array
+	public function plugin(): array
 	{
 		return [
 			'$schema'     => self::DRAFT,
-			'title'       => sprintf('%s extension manifest', Framework::NAME),
-			'description' => 'A local extension\'s extension.json: its name, service provider, and the classes autoloaded for it.',
+			'title'       => sprintf('%s plugin manifest', Framework::NAME),
+			'description' => 'A local plugin\'s plugin.json: its name, label, namespace, service provider, and the classes autoloaded for it.',
 			'type'        => 'object',
-			'required'    => ['name', 'provider'],
+			'required'    => ['name', 'label', 'namespace', 'provider'],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
-				'name'        => [
-					'type'        => 'string',
-					'pattern'     => '^[a-z0-9]([_.-]?[a-z0-9]+)*(/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*)?$',
-					'description' => 'The extension\'s name: a lowercase slug, or vendor/name.'
-				],
-				'version'     => ['type' => 'string', 'default' => '0.0.0', 'description' => 'The extension\'s version, such as 1.0.0.'],
-				'description' => ['type' => 'string', 'description' => 'What the extension does.'],
+				...$this->identity('plugin'),
+				'version'     => ['type' => 'string', 'default' => '0.0.0', 'description' => 'The plugin\'s version, such as 1.0.0.'],
+				'description' => ['type' => 'string', 'description' => 'What the plugin does.'],
 				'provider'    => [
 					'type'        => 'string',
-					'description' => 'The class name of the extension\'s service provider.'
+					'description' => 'The class name of the plugin\'s service provider.'
 				],
-				'autoload'    => $this->autoload('Namespace prefixes, each ending in a backslash, and the folders inside the extension their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.', true),
-				'requires'    => $this->requires('What the extension needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other extensions.')
+				'autoload'    => $this->autoload('Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.', true),
+				'requires'    => $this->requires('What the plugin needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other extensions.')
+			]
+		];
+	}
+
+	/**
+	 * Returns the schema for an icon pack's `icons.json` (D-378).
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function iconPack(): array
+	{
+		return [
+			'$schema'     => self::DRAFT,
+			'title'       => sprintf('%s icon pack manifest', Framework::NAME),
+			'description' => 'An icon pack\'s icons.json: its name, label, namespace, and the folder its SVG icons are in.',
+			'type'        => 'object',
+			'required'    => ['name', 'label', 'namespace'],
+			'properties'  => [
+				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				...$this->identity('icon pack'),
+				'version'     => ['type' => 'string', 'description' => 'The pack\'s version, such as 1.0.0.'],
+				'description' => ['type' => 'string', 'description' => 'What the icons are.'],
+				'folder'      => [
+					'type'        => 'string',
+					'pattern'     => self::FOLDER_PATTERN,
+					'description' => 'The folder inside the pack its *.svg files are in, such as "svg". Defaults to the pack\'s own folder. Each {icon}.svg is {namespace}/{icon}.'
+				]
 			]
 		];
 	}
@@ -565,13 +591,37 @@ final readonly class JsonSchemas
 	}
 
 	/**
+	 * Returns the keys every extension's manifest has (D-378): its
+	 * `name`, `label`, and `namespace`.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function identity(string $kind): array
+	{
+		return [
+			'name'      => [
+				'type'        => 'string',
+				'pattern'     => trim(ExtensionName::PATTERN, '#'),
+				'description' => sprintf('The %s\'s name, the key it\'s known by: vendor/name, such as "acme/gallery". For a Composer package, its package name.', $kind)
+			],
+			'label'     => ['type' => 'string', 'minLength' => 1, 'description' => sprintf('The %s\'s title, as people read it.', $kind)],
+			'namespace' => [
+				'type'        => 'string',
+				'pattern'     => trim(ExtensionNamespace::PATTERN, '/'),
+				'not'         => ['enum' => ExtensionNamespace::RESERVED],
+				'description' => sprintf('The namespace the %s\'s components, icons, and translations go by, such as "gallery" for gallery/slideshow. No two installed extensions may share one.', $kind)
+			]
+		];
+	}
+
+	/**
 	 * Returns the schema for an `autoload` object and its PSR-4 map.
 	 *
-	 * An extension's folders are checked more loosely than a theme's.
+	 * A plugin's folders are checked more loosely than a theme's.
 	 *
 	 * @return array<string, mixed>
 	 */
-	private function autoload(string $description, bool $extension = false): array
+	private function autoload(string $description, bool $plugin = false): array
 	{
 		return [
 			'type'        => 'object',
@@ -580,7 +630,7 @@ final readonly class JsonSchemas
 				'psr-4' => [
 					'type'                 => 'object',
 					'description'          => $description,
-					'additionalProperties' => ['type' => 'string', 'pattern' => $extension ? self::EXTENSION_PATH_PATTERN : self::FOLDER_PATTERN]
+					'additionalProperties' => ['type' => 'string', 'pattern' => $plugin ? self::PLUGIN_PATH_PATTERN : self::FOLDER_PATTERN]
 				]
 			]
 		];

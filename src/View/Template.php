@@ -376,7 +376,7 @@ final class Template
 
 		return $this->views->services->cache?->remember(
 			CacheNamespace::Fragments,
-			$this->views->chain->active()->slug . '.' . $key,
+			$this->views->chain->active()->name . ' ' . $key,
 			$html
 		) ?? $html();
 	}

@@ -83,7 +83,7 @@ final readonly class ListMenus
 		}
 
 		if ($rows === []) {
-			$output->line(sprintf('The "%s" theme declares no menu locations, and the site has no menus.', $chain->active()->slug));
+			$output->line(sprintf('The "%s" theme declares no menu locations, and the site has no menus.', $chain->active()->name));
 
 			return ExitCode::Success;
 		}

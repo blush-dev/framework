@@ -47,10 +47,10 @@ final readonly class ActivateTheme
 	 */
 	public function __invoke(
 		Output $output,
-		#[Argument('The theme\'s slug.')] string $slug
+		#[Argument('The theme\'s name (vendor/name).')] string $name
 	): ExitCode {
 		try {
-			$this->themes->chain($slug);
+			$this->themes->chain($name);
 		} catch (ThemeException $error) {
 			throw new InvalidInput($error->getMessage(), 0, $error);
 		}
@@ -65,25 +65,25 @@ final readonly class ActivateTheme
 
 				use Blush\\Theme\\ThemeConfig;
 
-				return new ThemeConfig(active: '{$slug}');
+				return new ThemeConfig(active: '{$name}');
 
 				PHP);
 		} else {
 			$source  = (string) file_get_contents($file);
-			$pattern = '/(\bactive\s*:\s*|[\'"]active[\'"]\s*=>\s*)([\'"])[a-z0-9_-]*\2/';
+			$pattern = '#(\bactive\s*:\s*|[\'"]active[\'"]\s*=>\s*)([\'"])[a-z0-9_./-]*\2#';
 
 			if (preg_match_all($pattern, $source) !== 1) {
-				$output->error(sprintf('Couldn\'t find one plain "active" value in %s; set active: \'%s\' there yourself.', $this->paths->relative($file), $slug));
+				$output->error(sprintf('Couldn\'t find one plain "active" value in %s; set active: \'%s\' there yourself.', $this->paths->relative($file), $name));
 
 				return ExitCode::Failure;
 			}
 
-			$this->filesystem->writeAtomic($file, (string) preg_replace($pattern, "\${1}'{$slug}'", $source));
+			$this->filesystem->writeAtomic($file, (string) preg_replace($pattern, "\${1}'{$name}'", $source));
 		}
 
 		$this->bootstrap->clearCompiled(CompiledCache::Config, CompiledCache::Themes);
 
-		$output->success(sprintf('Activated the "%s" theme in %s.', $slug, $this->paths->relative($file)));
+		$output->success(sprintf('Activated the "%s" theme in %s.', $name, $this->paths->relative($file)));
 
 		return ExitCode::Success;
 	}

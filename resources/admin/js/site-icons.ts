@@ -15,7 +15,7 @@ export interface SiteIcon {
 	keywords: string[];
 	// A core icon's group; `null` for the rest, which have a source.
 	category: string | null;
-	source: { kind: 'theme' | 'site' | 'extension'; label: string } | null;
+	source: { kind: 'theme' | 'site' | 'icon-pack' | 'plugin'; label: string } | null;
 	svg: string;
 }
 
@@ -47,7 +47,7 @@ const CATEGORIES: Record<string, { label: string; icon: IconName }> = {
 	things: { label: 'Things', icon: 'lightbulb' }
 };
 
-const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', site: 'house', extension: 'plug' };
+const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', site: 'house', 'icon-pack': 'shapes', plugin: 'plug' };
 
 /**
  * The group an icon is shown in.
@@ -59,7 +59,7 @@ export function iconGroupOf(icon: SiteIcon): IconGroup {
 		return { key: icon.category, label: category?.label ?? icon.category, icon: category?.icon ?? 'layers' };
 	}
 
-	const source = icon.source ?? { kind: 'extension', label: icon.name.split('/')[0] ?? '' };
+	const source = icon.source ?? { kind: 'plugin', label: icon.name.split('/')[0] ?? '' };
 
 	return { key: `${source.kind}:${source.label}`, label: source.label, icon: SOURCE_ICONS[source.kind] ?? 'plug' };
 }
