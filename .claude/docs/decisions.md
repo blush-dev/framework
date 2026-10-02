@@ -9951,3 +9951,15 @@ decision, add a new entry that supersedes it and mark the old one
   with a throwaway administrator (removed after): New Account with
   Member ticked and Editor replacing it, Member's screen, and Roles.
 - **Why:** the author proposed it, and asked for it.
+
+### D-366: Home's rail icon is a house; the Dashboard's is a gauge
+- **Date:** 2026-10-02
+- **Decision:** The rail's Home section uses `house` (it was `gauge`), and
+  the Dashboard's panel item uses `gauge` (it was `layout-dashboard`).
+  The rail's icon matches its label, and the gauge means the Dashboard
+  screen wherever it appears: the panel and the command palette's "Go to
+  the dashboard", which already used it. `layout-dashboard` stays on the
+  Neutral admin theme option and the Editorial palette entry. `house`
+  also tags the site as a source in the inserters; that's a label inside
+  an inserter, not navigation, so the overlap was accepted.
+- **Why:** the author disliked the Dashboard's icon and proposed the swap.

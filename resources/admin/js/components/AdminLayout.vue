@@ -86,7 +86,7 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * Links the account can't use aren't shown.
  */
 const sections = computed<Record<Area, NavGroup[]>>(() => {
-	const home: NavLink[] = [screen('dashboard', 'Dashboard', 'layout-dashboard')];
+	const home: NavLink[] = [screen('dashboard', 'Dashboard', 'gauge')];
 
 	if (canAnyType('edit.others')) {
 		home.push(screen('health', 'Content Health', 'heart-pulse'));
@@ -163,7 +163,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 
 // The rail's sections; one with nothing in it for this account is left out.
 const areas = computed(() => ([
-	{ key: 'home', label: 'Home', icon: 'gauge' },
+	{ key: 'home', label: 'Home', icon: 'house' },
 	{ key: 'content', label: 'Content', icon: 'file-text' },
 	{ key: 'people', label: 'Users', icon: 'user' },
 	{ key: 'config', label: 'Config', icon: 'settings' }
