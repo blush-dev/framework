@@ -1,8 +1,11 @@
 <?php
 
 /**
- * An entry's byline: its publish date, its authors (each linking to
- * their archive in the entry's type, when it has them), and its terms.
+ * An entry's byline: its publish date, the people it credits (D-351),
+ * and its terms. The type's first people field is the byline ("By
+ * Jane"); any others follow with their own label ("Photographer: Sam").
+ * Each person links to their archive under the field, else their
+ * profile's page.
  *
  * @var Blush\View\Template       $template
  * @var Blush\Content\Entry\Entry $entry
@@ -11,14 +14,26 @@
 declare(strict_types=1);
 
 $published = $entry->type->name === 'page' ? null : $entry->published;
-$authors   = array_map(static function (Blush\Content\Entry\Entry $author) use ($template, $entry): string {
-	$link = $template->authorUrl($author, $entry);
+$credits   = [];
 
-	return $link === ''
-		? '<span class="entry-meta__author">' . e($author->title) . '</span>'
-		: '<a class="entry-meta__author" href="' . url($link) . '">' . e($author->title) . '</a>';
-}, $template->authors($entry));
-$terms     = [];
+foreach (array_values($entry->type->people) as $position => $field) {
+	$names = array_map(static function (Blush\Content\Entry\Entry $person) use ($template, $entry, $field): string {
+		$link = $template->bylineUrl($person, $entry, $field->field);
+
+		return $link === ''
+			? '<span class="entry-meta__person">' . e($person->title) . '</span>'
+			: '<a class="entry-meta__person" href="' . url($link) . '">' . e($person->title) . '</a>';
+	}, $template->people($entry, $field->field));
+
+	if ($names !== []) {
+		$credits[] = [
+			$position === 0 ? $template->t('people.byline') : $template->t('people.credit', label: count($names) > 1 ? $field->plural : $field->singular),
+			implode(', ', $names)
+		];
+	}
+}
+
+$terms = [];
 
 foreach (array_keys($entry->terms) as $taxonomy) {
 	foreach ($template->terms($entry, $taxonomy) as $term) {
@@ -27,15 +42,15 @@ foreach (array_keys($entry->terms) as $taxonomy) {
 }
 
 ?>
-<?php if ($published !== null || $authors !== [] || $terms !== []) : ?>
+<?php if ($published !== null || $credits !== [] || $terms !== []) : ?>
 	<p class="entry-meta">
 		<?php if ($published !== null) : ?>
 			<time datetime="<?= attr($published->format(DATE_ATOM)) ?>"><?= e($template->date($published)) ?></time>
 		<?php endif ?>
 
-		<?php if ($authors !== []) : ?>
-			<span class="entry-meta__authors"><?= e($template->t('authors.byline')) ?> <?= raw(implode(', ', $authors)) ?></span>
-		<?php endif ?>
+		<?php foreach ($credits as [$label, $names]) : ?>
+			<span class="entry-meta__people"><?= e($label) ?> <?= raw($names) ?></span>
+		<?php endforeach ?>
 
 		<?php if ($terms !== []) : ?>
 			<span class="entry-meta__terms">

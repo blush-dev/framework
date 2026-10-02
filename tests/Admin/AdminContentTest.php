@@ -279,11 +279,11 @@ final class AdminContentTest extends TestCase
 
 	public function testCountsHowManyPublishedEntriesUseATerm(): void
 	{
-		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
-		$this->writeTemporaryFile('user/content/authors/nobody.md', "---\ntitle: Nobody\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/nobody.md', "---\ntitle: Nobody\n---\n");
 		$this->site(['editor']);
 
-		$terms = array_column($this->listed('?type=author'), 'uses', 'title');
+		$terms = array_column($this->listed('?type=profile'), 'uses', 'title');
 
 		$this->assertEqualsCanonicalizing(['Jane' => 1, 'Nobody' => 0], $terms, 'Only "Live" counts: drafts and scheduled entries aren\'t published.');
 		$pages = $this->listed('?type=page');
@@ -349,8 +349,8 @@ final class AdminContentTest extends TestCase
 
 		$this->assertContains(['name' => 'page', 'labels' => TypeLabels::named('page')->all(), 'kind' => 'pages', 'dated' => false], $described, 'Only taxonomies name types.');
 		$this->assertContains(['name' => 'genre', 'labels' => TypeLabels::named('genre')->all(), 'kind' => 'taxonomy', 'dated' => false, 'types' => ['page']], $described);
-		$this->assertContains(['name' => 'author', 'labels' => TypeLabels::named('author')->all(), 'kind' => 'authors', 'dated' => false, 'types' => ['page']], $described, 'The authors type names the types that credit authors.');
-		$this->assertSame([true, false, false], array_map(static fn (string $name): mixed => array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === $name)['authors'] ?? null, ['page', 'genre', 'author']), 'Whether each type credits authors.');
+		$this->assertContains(['name' => 'profile', 'labels' => TypeLabels::named('profile')->all(), 'kind' => 'profiles', 'dated' => false, 'types' => ['page']], $described, 'The profiles type names the types that credit people.');
+		$this->assertSame([true, false, false], array_map(static fn (string $name): mixed => array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === $name)['authors'] ?? null, ['page', 'genre', 'profile']), 'Whether each type credits people.');
 
 		$genre = array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === 'genre');
 
@@ -358,11 +358,10 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['data', '_genre', '/genre'], [$genre['origin'] ?? null, $genre['folder'] ?? null, $genre['prefix'] ?? null]);
 		$this->assertSame(['Kinds of writing.', 'book-open', true], [$genre['description'] ?? null, $genre['icon'] ?? null, $genre['hierarchical'] ?? null]);
 
-		$last = end($types);
+		$kinds = array_map(static fn (mixed $type): mixed => is_array($type) ? $type['kind'] ?? null : null, $types);
 
-		$this->assertIsArray($last);
-		$this->assertSame('taxonomy', $last['kind'] ?? null, 'Taxonomies come last.');
-		$this->assertSame('author', self::json($this->send('GET', '/types'))['authors'] ?? null);
+		$this->assertSame(['taxonomy', 'profiles'], array_slice($kinds, -2), 'Term types come last, by name.');
+		$this->assertSame('profile', self::json($this->send('GET', '/types'))['authors'] ?? null);
 	}
 
 	public function testDescribesTheComponentsTheInserterOffers(): void
@@ -498,8 +497,8 @@ final class AdminContentTest extends TestCase
 	public function testReportsContentHealth(): void
 	{
 		// Credited authors without entries are warnings (D-329).
-		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
-		$this->writeTemporaryFile('user/content/authors/sam.md', "---\ntitle: Sam\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\ntitle: Sam\n---\n");
 		$this->site(['editor']);
 
 		$health = self::json($this->send('GET', '/health'));

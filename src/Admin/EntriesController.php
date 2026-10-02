@@ -18,6 +18,9 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
+use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
@@ -29,7 +32,7 @@ use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Pages;
-use Blush\Content\Http\AuthorsController;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
@@ -108,7 +111,9 @@ final readonly class EntriesController
 		private ContentUrls $urls,
 		private Permissions $permissions,
 		private AppConfig $app,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private AccountStore $accounts,
+		private Accounts $names
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -188,7 +193,7 @@ final readonly class EntriesController
 			return self::json(['error' => sprintf('"page" must be a whole number from 1, and "per" from 1 to %d.', self::MAX_PER_PAGE)], HttpStatus::BadRequest);
 		}
 
-		$authors = $this->types->authors()->name ?? '';
+		$authors = $this->types->profiles()->name ?? '';
 		$query   = $this->content->query()->any()->search($search);
 		$query = $status === null ? $query : $query->status($status);
 		$query = $type === null ? $query : $query->type($type);
@@ -212,9 +217,9 @@ final readonly class EntriesController
 		$contentType = $type === null ? null : $this->types->find($type);
 		$pinned      = $contentType !== null && $contentType->kind() !== TypeKind::Pages;
 		$query       = $this->permissions->restrict($account, Capability::ContentEdit, $query);
-		$listed      = $pinned ? $query->withLanding(false)->exceptNames(AuthorsController::PAGE) : $query;
+		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...PeoplePage::listPages($contentType))->exceptIn(...PeoplePage::personFolders($contentType)) : $query;
 		$index       = $pinned && $page === 1 ? $this->index($query) : null;
-		$people      = $pinned && $page === 1 ? $this->authorsPage($query) : null;
+		$people      = $pinned && $page === 1 ? $this->peoplePage($query, $contentType) : null;
 		$counts      = [];
 		$tree        = null;
 		$continued   = [];
@@ -241,6 +246,8 @@ final readonly class EntriesController
 			}
 		}
 
+		$linked = $contentType instanceof Profiles ? $this->linked($account) : [];
+
 		return self::json([
 			'status'      => $status->value ?? 'any',
 			'type'        => $type,
@@ -256,8 +263,8 @@ final readonly class EntriesController
 			'pages'       => $pages,
 			'per'         => $per,
 			'entries'     => [
-				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree, continued: true), $continued),
-				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree), $shown)
+				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree, continued: true, linked: $linked), $continued),
+				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree, linked: $linked), $shown)
 			],
 			'index'       => $index === null ? null : $this->describe($account, $index, $counts),
 			'authorsPage' => $people === null ? null : $this->describe($account, $people, $counts)
@@ -400,13 +407,15 @@ final readonly class EntriesController
 	}
 
 	/**
-	 * Returns the type's authors page (D-329), if the list's query finds
-	 * it.
+	 * Returns the type's first people list page (D-351), if the list's
+	 * query finds it.
 	 */
-	private function authorsPage(Query $query): ?Entry
+	private function peoplePage(Query $query, ContentType $type): ?Entry
 	{
-		foreach ($query->names(AuthorsController::PAGE)->get() as $entry) {
-			if (AuthorsPage::is($entry) && $entry->locale === $this->app->locale) {
+		$names = PeoplePage::listPages($type);
+
+		foreach ($names === [] ? [] : $query->names(...$names)->exceptIn(...PeoplePage::personFolders($type))->get() as $entry) {
+			if (PeoplePage::is($entry) && $entry->locale === $this->app->locale) {
 				return $entry;
 			}
 		}
@@ -424,15 +433,18 @@ final readonly class EntriesController
 	 * parents. In a tree-ordered list, `depth` (0 at the top) and
 	 * `children` (how many) place it, and `continued` marks an entry that
 	 * heads a later page for the entries under it; otherwise the first
-	 * two are `null` (D-262, D-263).
+	 * two are `null` (D-262, D-263). A profile (D-353) says whether an
+	 * account is `linked` to it and, for whoever manages accounts, which
+	 * (`account`: `{"username", "displayName"}`, else `null`).
 	 *
 	 * @param  array<string, array<string, int>>                                                     $counts Term counts by taxonomy.
 	 * @param  ?array{entries: list<Entry>, depths: array<string, int>, children: array<string, int>} $tree   The list's tree, if it's one.
+	 * @param  array<string, ?array{username: string, displayName: string}>                          $linked Accounts by the profile they link to (`null` when the viewer can't see which).
 	 * @return array<string, mixed>
 	 */
-	private function describe(Account $account, Entry $entry, array $counts, ?array $tree = null, bool $continued = false): array
+	private function describe(Account $account, Entry $entry, array $counts, ?array $tree = null, bool $continued = false, array $linked = []): array
 	{
-		$authors = $this->types->authors()?->name;
+		$authors = $this->types->profiles()?->name;
 
 		return [
 			'id'          => $entry->id,
@@ -447,17 +459,46 @@ final readonly class EntriesController
 			'authors'     => $authors === null ? [] : $entry->terms($authors),
 			'own'         => $this->permissions->owns($account, $entry),
 			'index'       => IndexPage::is($entry),
-			'authorsPage' => AuthorsPage::is($entry),
+			'authorsPage' => PeoplePage::is($entry),
+			'peopleLabel' => PeoplePage::fieldOf($entry)->plural ?? null,
 			'can'         => [
 				'delete'    => ! IndexPage::is($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry),
-				'duplicate' => ! $entry->landing && ! AuthorsPage::is($entry) && $this->permissions->can($account, Capability::ContentCreate)
+				'duplicate' => ! $entry->landing && ! PeoplePage::is($entry) && $this->permissions->can($account, Capability::ContentCreate)
 			],
 			'uses'        => $entry->type->hasTerms() ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors'   => $this->ancestors($entry),
 			'depth'       => $tree === null ? null : ($tree['depths'][$entry->id] ?? 0),
 			'children'    => $tree === null ? null : ($tree['children'][$entry->id] ?? 0),
-			'continued'   => $continued
+			'continued'   => $continued,
+			...($entry->type instanceof Profiles ? ['linked' => array_key_exists($entry->key, $linked), 'account' => $linked[$entry->key] ?? null] : [])
 		];
+	}
+
+	/**
+	 * Returns the accounts linked to profiles, by profile slug: each one's
+	 * `username` and `displayName` when the viewer manages accounts, else
+	 * `null`, so a list can still tell a guest profile from a linked one.
+	 *
+	 * @return array<string, ?array{username: string, displayName: string}>
+	 */
+	private function linked(Account $viewer): array
+	{
+		try {
+			$accounts = $this->accounts->all();
+		} catch (AuthException) {
+			return [];
+		}
+
+		$manages = $this->permissions->can($viewer, Capability::AccountsManage);
+		$linked  = [];
+
+		foreach ($accounts as $account) {
+			if ($account->author !== null && ! array_key_exists($account->author, $linked)) {
+				$linked[$account->author] = $manages ? ['username' => $account->username, 'displayName' => $this->names->displayName($account)] : null;
+			}
+		}
+
+		return $linked;
 	}
 
 	/**

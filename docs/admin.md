@@ -71,19 +71,19 @@ the round button at the top right has **Your profile** and **Sign out**.
 ## Your profile
 
 **Your profile** is one person: you. Once your account is linked to
-an author with an author page, it's the editor for that page, where the
-title is your name (in the admin and on the site) and the body is your
-bio. Your account's own settings are the editor's **Account** tab:
-your username, roles, linked author, and when you last signed in, your
-password, and the admin's **theme** and **color scheme**. The address
-stays `/profile`, and your page's slug can't change there, since your
-account is linked by it.
+a [profile](content-types.md#built-in-types) that has a file, it's the
+editor for it, where the title is your name (in the admin and on the
+site) and the body is your bio. Your account's own settings are the
+editor's **Account** tab: your username, roles, linked profile, and
+when you last signed in, your password, and the admin's **theme** and
+**color scheme**. The address stays `/profile`, and your profile's slug
+can't change there, since your account is linked by it.
 
-Without an author page, Your profile shows those settings on their own,
-with your **name** (what the admin calls you until you have an author
-page) and, when your account is linked to an author, **Create your
-author page**, which starts it as a draft (publish it to show your
-name) and opens it here. The theme is **Neutral** (cool gray
+Without a profile file, Your profile shows those settings on their
+own, with your **name** (what the admin calls you until you have a
+profile) and, when your account is linked to one, **Create your
+profile**, which starts it as a draft (publish it to show your name)
+and opens it here. The theme is **Neutral** (cool gray
 with a blue accent, the default) or **Editorial** (warm paper, a teal
 accent, and serif titles). The color scheme is light, dark, or your
 device's setting (the default). Each choice is saved with your
@@ -215,13 +215,15 @@ counted in the list's totals, and it can't be moved to the trash (see
 tabs and search: it shows only when it matches them. Pages have no index page; the site's home page is listed
 with the other pages.
 
-A type with [author archives](content-types.md#author-archives) may
-have an **authors page** (`_authors.md` in its folder, which introduces
-its list of authors). It's pinned under the index page with an
-**Authors** tag, set apart from the totals the same way, and opens in
-the editor as **Edit Authors Page**, without the type's fields or a
-date, and with its slug fixed. Unlike the index page, it can be moved to
-the trash.
+A type whose [people field](content-types.md#crediting-people) has
+archives may have a **list page** for it (`_authors.md` or `_cooks.md`
+in its folder, which introduces the list of people). It's pinned under
+the index page with the field's name as its tag (**Authors**), set
+apart from the totals the same way, and opens in the editor as **Edit
+Authors Page**, without the type's fields or a date, and with its slug
+fixed. Unlike the index page, it can be moved to the trash. The pages
+written for one person's archive (`_cooks/jane.md`) aren't listed at
+all; they're reached from [the profile's screen](#profiles).
 
 A taxonomy's list (such as Categories) holds its **terms**. Instead of
 authors, it shows how many published entries use each term.
@@ -700,7 +702,7 @@ Types in `user/data/types` are edited on their screen. So are
 collections and taxonomies from `config/content.php` and extensions:
 what you change is saved in `user/data/types/{key}.yaml` over the code's
 definition (see [Changing a type from code](content-types.md#changing-a-type-from-code)).
-The pages and authors types defined in code stay as they are, so their
+The pages and profiles types defined in code stay as they are, so their
 screens only show them.
 
 ### Creating a type
@@ -717,11 +719,12 @@ Created** beside them:
    archives and a featured image (an `image` media field); for a
    taxonomy, whether terms nest and which types its terms group; an
    index page, the type's landing page (on by default); and, when the
-   site has authors, whether entries **credit authors** (on for content,
+   site has profiles, whether entries **credit authors** (on for content,
    off for taxonomies), whether each author **has an archive** under the
    type, the **word in the address** (`authors` unless you change it;
    the hint shows where the list and archives will be), and a **page
-   introducing the list** (see [Author archives](content-types.md#author-archives)).
+   introducing the list** (see [People archives](content-types.md#people-archives)).
+   Other people fields are added on the type's screen afterward.
 3. **Fields:** the fields its entries carry beside the title, slug,
    status, dates, and body.
 
@@ -732,7 +735,18 @@ authors page, when chosen, as `_authors.md`, titled "Authors".
 ### Editing a type
 
 A type's screen has General (names, description, icon), Behavior (as
-above), Addresses, and Fields.
+above), **People**, Addresses, and Fields.
+
+**People** lists the type's [people fields](content-types.md#crediting-people),
+the first marked **Main byline**: each one's name and the name for one
+of them, its front matter key (fixed once saved), whether entries take
+one or more and whether one is required to publish, and whether each
+person **has an archive** here, at which **word in the address**, with
+a **page introducing the list**. **Add a people field** adds another
+(a recipe's cooks and photographers, say); **Remove** stops crediting
+through one, leaving what entries wrote. Turning archives off stops
+the routing and deletes nothing. Addresses shows each field's archive
+addresses while it has them.
 
 **Addresses** lists every address the type has: its listing and later
 pages, date archives, entries (or terms), feeds, and author archives.
@@ -884,37 +898,72 @@ that's off says how to turn it back on.
 
 ## Accounts and roles
 
-**People → People** lists everyone in one list, by name: people with
-an account, guest authors (an author page with no account), and authors
-your entries credit who have no page yet (**No page yet**). Their
-public name is their author page's title. With `accounts.manage`, tabs
-split **Accounts** from **Guests**, and each row shows the account's
-username, status (Invited or Suspended when it isn't active), roles,
-and last sign-in; a name opens the account's screen. Otherwise a name
-opens the author page in the editor, and you see only the authors you
-may edit. Every row says how many published entries credit them.
-**New Author** starts an author page; **New Account** makes an
-account. **Roles** lists each role
-with how many capabilities it has and who holds it. See
+People's panel has **Your Profile**, **Accounts**, **Profiles**, and
+**Roles**. Accounts and profiles are two lists, because they're two
+things: an account signs in, and a profile is a public identity that
+bylines point at. One person usually has both, linked; a profile with
+no account is a **guest profile**, and an account with no profile
+doesn't appear on the site. ⌘K finds either: accounts by name or
+username, profiles among the entries. See
 [Accounts and roles](accounts.md) for what roles and capabilities are.
+
+### Profiles
+
+**Profiles** is the profiles type's list, like any type's, with a
+**Name**, its **Status**, the **Account** linked to it (a **Guest** tag
+without one), how many published entries credit it (**Bylines**), and
+when it was updated. **New profile** starts one. A name opens the
+profile's screen:
+
+- The header has its address, status, bylines, and linked account, with
+  **View** and **Edit profile** (the editor, where the title, the line
+  under the name, the avatar, and the bio are written).
+- **Identity** shows what a byline renders: the name, slug, the line
+  under the name, and the avatar.
+- **Where This Profile Appears** lists the profile's own page, then each
+  people field of each type that credits people: its archive address
+  (or **No archive**), how many entries credit them there, and what
+  introduces that archive: the profile's bio, or a page written for it.
+  **Write one** creates that page, a draft titled with the profile's
+  name, and opens it; **Use the profile's** moves it to the trash so
+  the archive shows the bio again.
+- **Linked Account** shows the account, with **Open account** and, if
+  you manage it, **Unlink**. Unlinking leaves the profile and its
+  bylines, as a guest profile.
+
+You see the profiles you may edit: your own, or anyone's with
+`content.edit.others`.
 
 ### Accounts
 
+**Accounts** lists the people who can sign in, by name, with tabs for
+their status and a search. Each row shows the username, roles, its
+**Profile** (its name, with its status when it isn't published yet, or
+the slug when it's linked to a profile with no file), and the last
+sign-in. **New Account** makes one; **Roles** lists each role with how
+many capabilities it has and who holds it.
+
 - **New Account** asks for a username, its roles, and optionally a
-  [name](accounts.md#names) and its author. Blush doesn't send email, so instead of a password the
+  [name](accounts.md#names) and its profile. Blush doesn't send email, so instead of a password the
   account gets a **password link**: copy it from the account's screen
   and send it however you like. It's shown only that once, and it
   works once, for a week. Until it's used, the account is **Invited**.
 - On an account's screen, tick or untick its **roles** (they save
-  right away; an account always keeps one), link it to an **author**,
-  and change its **name** while it has no author page. Once it has one,
-  the page's title is its name, and the screen links to the page.
+  right away; an account always keeps one) and change its **name**
+  while it has no profile. Once it has one, the profile's title is its
+  name.
+- **Public Profile** on an account's screen shows its profile: linked
+  (**Open profile**, **Unlink**), linked but not yet public
+  (**Publish**), linked to a slug with no file yet (**Create it**), or
+  none. With none, **Link an existing one** picks a profile, and
+  **Create one** makes a draft from a name you give, links it, and
+  opens it.
 - **Make a password link** is for a forgotten password: the person
   chooses a new one with it. Their old password keeps working until
   the link is used, and a new link replaces the old one.
 - The **Danger Zone** suspends an account (it's signed out and can't
   sign in until you **Reinstate** it) or removes it. Removing an
-  account leaves its author page and the entries crediting it alone.
+  account leaves its profile and the entries crediting it alone.
 
 ### Roles
 
@@ -1038,8 +1087,10 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
 | `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
 | `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
-| `GET accounts` | Every account: `{"username", "name", "displayName", "roles", "author", "authorPage", "created", "lastLogin", "status", "link", "manages"}`. `name` is its own name or `null`; `authorPage` is its author page's `{"id", "handle"}` or `null`; `displayName` is what the admin calls it, its one name: its author page's title, else the name, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
-| `GET people` | Accounts and authors as one list, by name: `{"people": [{"name", "author", "entry", "virtual", "account", "uses"}]}`. `entry` is the author page's `{"id", "handle", "status"}` or `null`; `virtual` is whether entries credit them without a page; `account` is as `GET accounts` has it, or `null` for a guest (and always `null` without `accounts.manage`); `uses` counts the published entries crediting them. Needs `accounts.manage` or `content.edit`; without `accounts.manage`, only the author pages you may edit (and, with `content.edit.others`, authors with no page) |
+| `GET accounts` | Every account: `{"username", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `name` is its own name or `null`; `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `displayName` is what the admin calls it, its one name: its profile's title, else the name, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
+| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "id", "handle", "url", "uses"}` (`status`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"id", "handle", "title", "status"}`) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.manage` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with `content.edit.others`) |
+| `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs `content.create` |
+| `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's bio again; answers `{"removed"}`. Needs `content.delete` |
 | `POST accounts` | Make an account: `{"username", "roles", "author", "name"}` (the last two optional); answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
 | `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (`null` unlinks), `name` (`null` or empty removes it), and `suspended`; answers `{"account"}` |
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
@@ -1048,10 +1099,10 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"slug", "name", "version", "description", "parent", "source", "active"}], "invalid": [{"slug", "reason"}]}`. `chain` is the active theme, the themes it builds on, then `default`; `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `site.settings` |
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. Secrets are never sent. Needs `site.settings` |
 | `GET extensions` | Every installed extension, the ones that are on first: `{"extensions": [{"name", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/extensions.php` exists. Needs `site.settings` |
-| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and authors last. `kind` is `collection`, `taxonomy`, `pages`, or `authors`, and each type's `authors` is whether its entries credit authors. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the authors type adds `"types"`, the types that credit authors. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the authors type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection or taxonomy from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), `authorsWord` (the word its author archives sit under, `false` for none, `null` without URLs), and its `authorsPage` (`{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
-| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word author archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `authors`, `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, and `authorsPage: true` its authors page (a `422` without author archives). Needs `site.settings` |
-| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or taxonomy from code (saved in `user/data/types` over it): `{"set", "index", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
+| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `pages`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection or taxonomy from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
+| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or taxonomy from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
@@ -1122,7 +1173,9 @@ the first author's slug. The answer has `status`, `type`, `search`,
 unsorted), `tree` (whether it's in tree order), `total`, `page`,
 `pages`, `per`, and `entries`, each with its id, handle, title, type, status, dates, file,
 `url` (its path on the site, where it is or will be once published, or
-`null`), authors, whether it's the account's own, `index`,
+`null`), authors, whether it's the account's own, `index`, a profile's
+`linked` (whether an account is linked to it) and `account` (`{"username",
+"displayName"}`, with `accounts.manage`, else `null`),
 `can.delete` and `can.duplicate`, and `ancestors`: the titles of the entries above it, from
 the top down (a page's parent pages, or a hierarchical term's parents;
 empty for the rest). With a `type` whose entries nest (pages, or a
@@ -1136,10 +1189,11 @@ and `children` are `null`, and `continued` is `false`.
 With a `type` that isn't pages, the type's index page (its landing page)
 is left out of `entries`, `total`, and `pages`, and answered as `index`
 on the first page when it matches `status` and `search` and the account may
-edit it; otherwise `index` is `null`. Its authors page (`_authors`) is
-answered the same way, as `authorsPage`, and each entry says whether
-it's one (`authorsPage`). A page past the last has no
-entries.
+edit it; otherwise `index` is `null`. A people field's list page
+(`_authors`, the first the list finds) is answered the same way, as
+`authorsPage`, and each entry says whether it's one (`authorsPage`) and
+for which field (`peopleLabel`). Pages written for one person's archive
+are left out. A page past the last has no entries.
 
 ### Listing components
 
@@ -1261,9 +1315,13 @@ entries/{id}` answers with:
 - `index`: whether it's its type's index page. An index page's `type`
   describes only its `title` and `status` fields (the rest of its front
   matter is in `extra`), and `can.delete` is `false`.
-- `authorsPage`: whether it's its type's authors page, which is
+- `authorsPage`: whether it's a people field's list page, which is
   described the same way, with `can.rename` and `can.duplicate`
   `false`.
+- `peoplePage`: the people page it is, or `null`: `{"field", "label",
+  "profile", "profileTitle"}`, where `profile` is the profile's slug for
+  a page written for one person's archive (described the same way,
+  with `can.delete` also `false`) and `null` for a list page.
 - `violations`: the file's problems, as content health shows them.
 
 A change only touches what it names; the rest of the file stays as it

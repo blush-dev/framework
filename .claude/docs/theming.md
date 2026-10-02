@@ -185,11 +185,14 @@ aren't candidates (D-104).
 - **Term:** `term-{taxonomy}-{slug}` → `term-{taxonomy}` → `term` →
   `collection`.
 - **Date archive:** `archive-date-{type}` → `archive-date` → `collection`.
-- **Authors** (a type's, D-329): `authors-{type}` → `authors` →
-  `collection`; `$entries` holds the authors, `$entry` the type's
-  `_authors` page.
-- **Author archive:** `author-{type}-{slug}` → `author-{type}` →
-  `author` → `collection`; `$entry` is the author.
+- **People** (a type's people field, D-352): `people-{type}-{field}` →
+  `people-{field}` → `people` → `collection`; `$entries` holds the
+  profiles, `$entry` the field's `_{field}` page.
+- **Person** (an archive under a people field): `person-{type}-{field}`
+  → `person-{field}` → `person` → `profile` → `collection`; `$entry` is
+  the page written for it or the profile, `$page->profile` the profile.
+- **Profile** (a profile's own page): `profile-{slug}` → `profile` →
+  `collection`; `$entry` is the profile.
 - **Home:** `home` → then the hierarchy of whatever it aliases.
 - **Welcome:** `welcome` (a site with no home page yet, D-108).
 - **Errors:** `error-{status}` → `error`, filled from

@@ -31,7 +31,7 @@ import type { IconName } from '../icons';
 import { focusMode, screenBleed, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { initials } from '../people';
 import { can, session, signOut } from '../session';
-import { authorType, currentType, loadTypes, typeIcon, types } from '../types';
+import { profileType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import CommandPalette from './CommandPalette.vue';
 import MenuButton from './MenuButton.vue';
@@ -115,7 +115,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	// By the names the menu shows, which a site may shorten (D-278).
 	const editing    = can('content.edit');
 	const sorted     = [...types.value].sort((a, b) => a.labels.menu.localeCompare(b.labels.menu));
-	const entryTypes = editing ? sorted.filter((type) => type.kind !== 'taxonomy' && type.kind !== 'authors') : [];
+	const entryTypes = editing ? sorted.filter((type) => type.kind !== 'taxonomy' && type.kind !== 'profiles') : [];
 	const taxonomies = editing ? sorted.filter((type) => type.kind === 'taxonomy') : [];
 	const labelOf    = (name: string): string => types.value.find((type) => type.name === name)?.labels.menu ?? name;
 
@@ -133,10 +133,23 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const structure = can('site.settings') ? [screen('types', 'Content Types', 'layers'), screen('fields', 'Fields', 'group')] : [];
 	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('system', 'System', 'settings')] : [];
 	const customize = can('site.settings') ? [screen('themes', 'Themes', 'paintbrush'), screen('extensions', 'Extensions', 'plug')] : [];
-	// People lists accounts and authors together (D-329); an author's
-	// screens mark it.
-	const everyone  = { ...screen('people', 'People', 'users'), current: route.meta.parent === 'people' || (inEntries && currentType.value !== null && currentType.value === authorType.value) };
-	const people    = [screen('profile', 'Your Profile', 'circle-user-round'), ...(can('accounts.manage') || editing ? [everyone] : []), ...(can('accounts.manage') ? [screen('roles', 'Roles', 'shield')] : [])];
+	// Accounts and Profiles are two lists (D-353): who can sign in, and
+	// who's credited on the site. A profile's screens, and its type's
+	// list and editor, mark Profiles.
+	const profiles  = types.value.find((type) => type.name === profileType.value);
+	const profileLink: NavLink[] = profiles && editing ? [{
+		key: 'profiles',
+		label: profiles.labels.menu,
+		icon: 'user-round',
+		to: { name: 'type', params: { type: profiles.name } },
+		current: route.meta.parent === 'profiles' || (inEntries && currentType.value === profiles.name)
+	}] : [];
+	const people    = [
+		screen('profile', 'Your Profile', 'circle-user-round'),
+		...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users')] : []),
+		...profileLink,
+		...(can('accounts.manage') ? [screen('roles', 'Roles', 'shield')] : [])
+	];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
 
@@ -159,8 +172,8 @@ const areas = computed(() => ([
 const routeArea = computed<Area>(() => {
 	const area = route.meta.area;
 
-	// Authors are listed with people, so their screens are too.
-	if (route.meta.section === 'entries' && currentType.value !== null && currentType.value === authorType.value) {
+	// Profiles are listed with people, so their screens are too.
+	if (route.meta.section === 'entries' && currentType.value !== null && currentType.value === profileType.value) {
 		return 'people';
 	}
 
@@ -183,7 +196,7 @@ const panelSub = computed(() => {
 	}
 
 	if (area.value === 'people') {
-		return 'Your profile, everyone, and roles';
+		return 'Your profile, accounts, profiles, and roles';
 	}
 
 	return area.value === 'config' ? 'Types, settings, and the look' : config.site.name;

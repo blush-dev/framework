@@ -72,6 +72,14 @@ final class DefaultThemeTest extends TestCase
 		'author.collection.paged'           => '/authors/page/2',
 		'author.single'                     => '/authors/justintadlock',
 		'author.single.paged'               => '/authors/justintadlock/page/2',
+		'post.editors.collection'           => '/archives/editors',
+		'post.editors.single'               => '/archives/editors/sam',
+		'post.editors.single.paged'         => '/archives/editors/sam/page/2',
+		'post.editors.single.feed'          => '/archives/editors/sam/feed',
+		'post.editors.single.feed.atom'     => '/archives/editors/sam/feed/atom',
+		'post.editors.single.feed.json'     => '/archives/editors/sam/feed/json',
+		'profile.single'                    => '/profiles/sam',
+		'profile.single.paged'              => '/profiles/sam/page/2',
 		'media'                             => '/media/pixel.png',
 		'theme.asset'                       => '/themes/default/style.css',
 		'sitemap'                           => '/sitemap',
@@ -93,7 +101,13 @@ final class DefaultThemeTest extends TestCase
 					'date_archives' => true,
 					'time_archives' => true,
 					'feed'          => ['taxonomy' => 'category'],
-					'routing'       => ['prefix' => 'archives']
+					'routing'       => ['prefix' => 'archives'],
+					'people'        => ['editors' => ['aliases' => ['editor']]]
+				],
+				'profile' => [
+					'kind'       => 'profiles',
+					'path'       => 'profiles',
+					'collection' => ['number' => 1]
 				],
 				'category' => [
 					'path'            => 'topics',
@@ -116,6 +130,9 @@ final class DefaultThemeTest extends TestCase
 		]);
 		$this->entry('_posts/2008-04-05-2.twin.md', "title: Twin\npublished: 2008-04-05 09:00:00\ncategory: art\nauthor: justintadlock", 'Same second as spring.');
 		$this->entry('topics/news.md', 'title: News');
+		$this->entry('_posts/2009-03-03.edited.md', "title: Edited\npublished: 2009-03-03\neditor: sam");
+		$this->entry('_posts/2009-03-04.edited-again.md', "title: Edited Again\npublished: 2009-03-04\neditor: sam");
+		$this->entry('profiles/sam.md', 'title: Sam', 'Edits things.');
 		$this->entry('authors/justintadlock.md', 'title: Justin Tadlock');
 		$this->entry('authors/guest.md', 'title: Guest');
 		$this->writeTemporaryFile('user/media/pixel.png', (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', true));

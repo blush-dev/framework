@@ -216,7 +216,7 @@ final readonly class Accounts
 	 */
 	public function displayName(Account $account): string
 	{
-		$authors = $this->types->authors()?->name;
+		$authors = $this->types->profiles()?->name;
 		$title   = $account->author === null || $authors === null ? '' : ($this->content->named($authors, $account->author)->title ?? '');
 
 		return $title !== '' ? $title : ($account->name ?? $account->username);
@@ -240,7 +240,7 @@ final readonly class Accounts
 	 */
 	public function hasAuthor(string $author): bool
 	{
-		$authors = $this->types->authors()?->name;
+		$authors = $this->types->profiles()?->name;
 
 		return $authors !== null && $this->content->term($authors, $author) !== null;
 	}
@@ -251,7 +251,7 @@ final readonly class Accounts
 	 */
 	public function hasAuthorPage(string $author): bool
 	{
-		$authors = $this->types->authors()?->name;
+		$authors = $this->types->profiles()?->name;
 
 		return $authors !== null && $this->content->named($authors, $author) !== null;
 	}
@@ -265,7 +265,7 @@ final readonly class Accounts
 	 */
 	public function createAuthorPage(string $author, string $name): string
 	{
-		$type = $this->types->authors() ?? throw new AuthException('The site has no authors type.');
+		$type = $this->types->profiles() ?? throw new AuthException('The site has no profiles type.');
 
 		try {
 			return $this->writer->create($type, $author, new EntryChanges(set: ['title' => $name], body: "\n"), $this->clock->now())->id;

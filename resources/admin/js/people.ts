@@ -39,13 +39,14 @@ export interface AccountInfo {
 	username: string;
 	// Its own name, if it has one (D-322).
 	name: string | null;
-	// What the admin calls it: the author page's title, else the name,
-	// else the username (D-329).
+	// What the admin calls it: its profile's title, else the name, else
+	// the username (D-329).
 	displayName: string;
 	roles: string[];
+	// The slug of the profile it's linked to, if any.
 	author: string | null;
-	// Its author page, whose title is its one name (D-329), or `null`.
-	authorPage: { id: string; handle: string | null } | null;
+	// That profile, when it has a file (D-353), or `null`.
+	profile: AccountProfile | null;
 	created: number;
 	lastLogin: number | null;
 	status: AccountStatus;
@@ -67,22 +68,68 @@ export interface PasswordLink {
 	expires: number;
 }
 
-// One person (`GET people`, D-329): an author entry, an author credited
-// without one, or an account with no author entry, by name.
-export interface PersonInfo {
-	name: string;
-	author: string | null;
-	entry: { id: string; handle: string | null; status: EntryStatus } | null;
-	// Credited without an author entry.
-	virtual: boolean;
-	// Their account, when they have one and you manage accounts.
-	account: AccountInfo | null;
-	// How many published entries credit them.
+// An account's profile: its public side (D-353).
+export interface AccountProfile {
+	id: string;
+	handle: string | null;
+	slug: string;
+	title: string;
+	status: EntryStatus;
+	// Its page on the site, if profiles have pages.
+	url: string | null;
+	// How many published entries credit it.
 	uses: number;
 }
 
-export async function loadPeople(): Promise<PersonInfo[]> {
-	return (await request<{ people: PersonInfo[] }>('GET', '/people')).people;
+// Where a profile appears: one people field of one type (D-353).
+export interface ProfileAppearance {
+	type: string;
+	typeLabel: string;
+	field: string;
+	label: string;
+	// Published entries crediting them there.
+	entries: number;
+	// The archive's address, or `null` when the field has none.
+	archive: string | null;
+	// The page written for that archive, or `null` when it shows the
+	// profile's own bio.
+	page: { id: string; handle: string | null; title: string; status: EntryStatus } | null;
+}
+
+// A profile's screen (`GET profiles/{slug}`, D-353).
+export interface ProfileDetail {
+	profile: {
+		slug: string;
+		title: string;
+		subtitle: string | null;
+		avatar: string | null;
+		// `null` for a profile credited without a file.
+		status: EntryStatus | null;
+		virtual: boolean;
+		id: string | null;
+		handle: string | null;
+		url: string | null;
+		uses: number;
+	};
+	appears: ProfileAppearance[];
+	// Whether an account is linked to it, and which, when you manage
+	// accounts.
+	linked: boolean;
+	account: AccountInfo | null;
+}
+
+export function loadProfile(slug: string): Promise<ProfileDetail> {
+	return request<ProfileDetail>('GET', `/profiles/${encodeURIComponent(slug)}`);
+}
+
+// Writes the page for a profile's archive under a type's people field.
+export function writeArchivePage(slug: string, type: string, field: string): Promise<{ id: string; handle: string | null }> {
+	return request('POST', `/profiles/${encodeURIComponent(slug)}/pages`, { type, field });
+}
+
+// Moves that page to the trash, so the archive shows the bio again.
+export function removeArchivePage(slug: string, type: string, field: string): Promise<{ removed: string }> {
+	return request('DELETE', `/profiles/${encodeURIComponent(slug)}/pages/${encodeURIComponent(type)}/${encodeURIComponent(field)}`);
 }
 
 export function loadRoles(): Promise<RoleList> {

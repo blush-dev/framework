@@ -8291,6 +8291,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-329: Authors are people, with archives under each type (planned)
 - **Date:** 2026-10-01
+- **Status:** Superseded by D-351 (profiles, people fields, and a canonical profile URL), except where D-351 keeps it: accounts and profiles as two records linked one way, guest profiles, slugs apart from usernames, and per-type archives.
 - **Decision:** Refines D-043, D-216, D-217, D-242, D-259, and D-322.
   Replaces D-043's "author archives work like taxonomy term archives"
   and D-259's planned step.
@@ -8386,6 +8387,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-330: The `Authors` kind (D-329's first step)
 - **Date:** 2026-10-01
+- **Status:** Superseded by D-351: the kind becomes `profiles`, with a URL of its own.
 - **Decision:** Implements D-329's first step. "Ordinary type" there
   meant "not a taxonomy"; it's built as a fourth kind, since the
   framework has to know which type holds people.
@@ -8442,6 +8444,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-331: Author archives under each type (D-329's second step)
 - **Date:** 2026-10-01
+- **Status:** Superseded by D-351: archives are per people field, not per type, and can be overridden per profile.
 - **Decision:** Implements D-329's per-type author routes.
   - **`TypeUrls::$authors`** (`urls.authors`, default `authors`,
     `false` for none) sets the route keys `authors.collection`
@@ -8510,6 +8513,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-332: The admin's side of authors (D-329's last step)
 - **Date:** 2026-10-01
+- **Status:** Superseded by D-351: Accounts and Profiles are two lists again, and the type editor gets a People panel.
 - **Decision:** Implements D-329's admin step.
   - **The type editor** (D-311): `DataTypeWriter` takes `authors` and
     `authorsWord` (written into `urls.authors`; `null` or `authors` is
@@ -8580,6 +8584,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-333: The authors work is kept, but on hold
 - **Date:** 2026-10-01
+- **Status:** Superseded by D-351: the author picked the subject up again.
 - **Decision:** D-329 to D-332 stay on the `2.x` branch as built, and
   the author commits them, but the design isn't settled: the author
   wants to think it over, and other work comes first. Treat those
@@ -9360,3 +9365,290 @@ decision, add a new entry that supersedes it and mark the old one
   `{year}/{slug}` and `routes:list` showing the new `post.single`.
 - **Why:** the author's call; it fills the prototype's absent
   "permalink structure" (D-309) per type, where Blush keeps URLs.
+
+### D-351: Accounts, profiles, and bylines (planned)
+- **Date:** 2026-10-01
+- **Status:** Built: step 1 in D-352 (which also amends it: the line under a profile's name is `subtitle`, not `tagline`) and step 2 in D-353.
+- **Decision:** Supersedes D-329 to D-333, from the author's sketch
+  `.claude/docs/admin-design/meridian-profiles.html` (a sketch, kept as
+  uploaded like the direction). The sketch's model is adopted; its
+  admin locations aren't (the author's call: People stays its own
+  section, D-326, and Your Profile keeps its name and stays the editor
+  of your public profile, D-332).
+  - **Three nouns.** An **account** signs in (`storage/accounts/`,
+    private, D-217). A **profile** is a public identity: an entry of
+    the site's one `profiles`-kind type, with a slug, a status, pending
+    changes (unlike a term, since it's public prose), and a Markdown
+    body edited like a page. A **byline** is the relation between an
+    entry and a profile: a people field on the entry, never a screen.
+    An account with no public presence has no profile; a guest is a
+    profile with no account.
+  - **The link** goes one way, from the account to a profile slug
+    (D-329 kept), so content never points at accounts. Unlinking keeps
+    the profile and its bylines (it becomes a guest profile).
+    Usernames never suggest slugs (D-329 kept).
+  - **The `profiles` kind** replaces D-330's `authors` kind: at most
+    one per site, the built-in named `profile`, folder
+    `user/content/profiles/`. A profile's own front matter: `title`
+    (the display name on every byline), `tagline` (the sketch's "byline
+    title", such as "Food editor"; optional), and `avatar` (a
+    `user/media` path; falls back to initials). These are the kind's
+    built-in keys, not field sets (the Fields API is paused, D-348).
+  - **One canonical URL per profile:** `{base}/{slug}`, the base set on
+    the profiles type (`urls.base`, default `profiles`), showing the
+    profile's body, then every listed entry of every type that credits
+    them, paged, with feeds. Nothing answers at `/{base}` itself (a
+    container, not an archive). This reverses D-330's "no routes".
+    A site may point the type at another folder and base (jtcom's
+    `authors`, which keeps 1.x's `/authors/justintadlock`).
+  - **People fields, plural from the start.** A type declares a list
+    of people fields, each a reference to the profiles type with its
+    own key (front matter name), aliases, plural and singular labels,
+    archive word (or `false` for none), arity (one or many), and
+    whether it's required (gating publishing like any required field).
+    Collections get one by default, `authors` (reading `author`, so
+    jtcom's front matter keeps working, D-078), word `authors`, many,
+    optional; pages and taxonomies get none. `authors: true|false`
+    stays a shorthand for that default field. This replaces D-329's
+    single `authors` option and `urls.authors`.
+  - **Archives per type and field.** A people field with a word gets
+    `{prefix}/{word}` (the profiles credited by that field on that
+    type, by name, D-304) and `{prefix}/{word}/{slug}` (paged, with
+    feeds when the type has them). The list keeps D-331's intro page,
+    named after the field: `{folder}/_{field}.md` (`_authors.md` stays
+    valid). Turning a field's archive off stops the routing and deletes
+    nothing.
+  - **How an archive's body resolves:** (1) its own index page,
+    `{folder}/_{field}/{slug}.md`, when published; (2) the profile's
+    body; (3) the name, avatar, and entries, with no prose. Step 1
+    pages are ordinary entries of the type, pinned to that URL, created
+    on demand only, never listed or counted, not duplicable, and not
+    trashable (deleting one is "Use the profile's" on the profile's
+    screen). Canonical and structured links stay with each archive;
+    bylines link to the entry's type's archive for that field, else
+    the profile's canonical URL.
+  - **Lint:** a credited slug without a profile still warns (D-330).
+  - **The admin.** People's panel: Your Profile, Accounts, Profiles,
+    and Roles. Two lists, one link, not D-332's merged People list:
+    - **Accounts** (with `accounts.manage`) lists only people who can
+      sign in, with a Profile column (the profile's name, and its
+      status pill when it isn't published). An account's screen has a
+      **Public profile** panel in three states: linked (open, unlink),
+      not linked (link an existing one, create one), and linked but not
+      yet public (open, publish). Create prefills the name from the
+      account and makes the link.
+    - **Profiles** is the profiles type's entry list with type-driven
+      columns: Name, Status, Account (a **Guest** tag and dashed avatar
+      without one), Bylines (entries of every type naming the profile),
+      and Updated; no pinned index row. A profile opens a screen with
+      Identity (name, slug, tagline, avatar), **Where this profile
+      appears** (a row per people field with archives: the archive's
+      address and whether its body is written or inherited, with Edit
+      or Write one), and the linked account (read-only, Open account,
+      Unlink); Edit profile opens the editor.
+    - **Your Profile** stays the editor for your own profile with the
+      Account drawer tab (D-332); without a profile, it's the account
+      settings as panels with Create your profile. ⌘K finds people on
+      either side.
+    - **The type editor** gets a **People** panel (replacing Behavior's
+      Authors group): each field's label, singular, word with its
+      address, arity, and required, an archive switch per field, and
+      Add a people field. The profiles type's own screen sets its base.
+  - **One name** stays D-332's: the profile's title, else the account's
+    name, else the username.
+- **Build order:** (1) content and routing: the `profiles` kind, its
+  canonical route and keys, people fields and their archives, intro
+  and per-profile index pages, resolution, templates, feeds, sitemap,
+  export, lint, `docs/`, and the jtcom trial; (2) the admin: the People
+  panel's two lists, the profile and account screens, the type editor's
+  People panel, and creating index pages on demand.
+- **Left open** (`open-questions.md`): capabilities for editing your
+  own profile versus anyone's (D-215's set has neither, today it's
+  ownership through the link and `content.edit.others`); template
+  names for per-field archives; whether the Profiles list should keep
+  a Bylines count per field.
+- **Why:** the author's sketch: one collection of people instead of a
+  taxonomy per type joined by a slug string, the per-type noun owned by
+  the type, a profile that's real content with its own address, and
+  archives that fall back to it. The author chose the profile's own
+  URL, kept the per-field list and intro page, kept the admin's
+  locations (People, and Your Profile as the editor), and named the
+  kind `profiles`.
+
+### D-352: Profiles and people fields in content and routing (D-351's step 1)
+- **Date:** 2026-10-01
+- **Decision:** Builds D-351's first step, and settles what it left to
+  the build.
+  - **`Profiles`** (`TypeKind::Profiles`, `kind: profiles`) replaces
+    `Authors`: options `folder`, `urls`, `listing`, `feed`, `public`,
+    `sitemap`, `fields`, `closed`, `labels`, `description`, and `icon`
+    (no `field` or `aliases`; people fields belong to the crediting
+    types). The built-in is `profile`, folder `profiles`
+    (`BuiltInType::Profile`); `hasTerms()` is true with no
+    `termField()`. Its schema adds `avatar` (`MediaField`). D-351's
+    `tagline` is the entry's existing `subtitle`, which already means "a
+    line shown under the title".
+  - **`PeopleField`** (`Content\Type`): `field`, `aliases`, `plural`,
+    `singular` (from the plural: "Cooks" → "Cook"), `archive` (a word,
+    default the field's name, or `false`), `multiple`, and `required`;
+    `collection` and `single` are refused as field names. Its
+    `referenceField()` is the schema's field, `termKey()` its index key
+    (`profile.cooks`), `paths()` its route keys' defaults under the
+    word (`{field}.collection`, `{field}.single` with `{profile}`,
+    `.paged`, and the feed keys), and `listPage()`/`personPage()` the
+    `_cooks` and `_cooks/jane` keys.
+  - **`people` on types** (`ContentType::$people`, keyed by field):
+    `true` (the `authors` field, reading `author`), `false`, or a map of
+    fields to settings (`true` for defaults). Collections default to
+    `true`, the others to `false`. `authors: true|false` is short for
+    it (both at once is an error). `toArray()` writes it only off the
+    kind's default. `TypeUrls` loses `authors` (`urls.authors` is now an
+    unknown option); people paths come from the fields, and `urls.paths`
+    can move them. `ContentType::routePattern()` falls back to them.
+  - **A taxonomy wins a clash:** a people field reading a key a
+    taxonomy's field reads (a 1.x `author` taxonomy with `authors` and
+    `author`) is dropped at load (`withoutPeopleReading()`), since
+    otherwise the default `authors` field would break those sites.
+  - **The index** keeps each people field's credits under its
+    `termKey()` and all of them under the profiles type's name, so a
+    field's archive and a profile's page are each one term lookup.
+  - **1.x's `author`** (the query argument, `whereAuthor()`, and
+    `orderby: author`) reads the profiles type, whatever it's named,
+    unless a type is named `author` (`IndexedRepository::resolved()`,
+    `Query::withTaxonomyRenamed()`).
+  - **Routes:** the profiles type has only `{type}.single` and
+    `.single.paged` (`ProfileController`) and, with a feed, the
+    `single.feed` keys; nothing at its prefix. Each people field with
+    archives has `{type}.{field}.collection` (`PeopleController`) and
+    `.single`, `.single.paged` (`PersonController`), and feeds; the
+    routes pass `field`. A person's archive 404s when no listed entry of
+    the type credits them through that field.
+  - **Resolution** (D-351): `_{field}/{slug}` in the type's folder when
+    published, else the profile; `ContentPage` gains `people` and
+    `profile`, and `$entry` is whichever introduces the page.
+  - **Templates** (D-351 left them open): `people-{type}-{field}` →
+    `people-{field}` → `people` → `collection`; `person-{type}-{field}`
+    → `person-{field}` → `person` → `profile` → `collection`; and
+    `profile-{slug}` → `profile` → `collection`. `PageKind` has
+    `People`, `Person`, and `Profile`. The default theme's `authors.php`
+    is `people.php`, its byline shows the first people field as "By"
+    and the rest by label ("Photographer: Sam"), and its catalog's
+    `authors` keys are `people`.
+  - **Template API:** `people($entry, ?$field)`, `bylineUrl()`,
+    `personUrl()`, and `peopleUrl()` replace `authors()`,
+    `authorUrl()`, and `authorsUrl()`; a profile's page is
+    `permalink()`.
+  - **Bylines elsewhere:** a feed item's authors and the head's
+    `article:author` are the type's first people field (its main
+    byline), each linking to the archive under it, else the profile's
+    page. A person's feed is titled "{name} | {field} | {type}".
+  - **Sitemap and export:** the profiles type's sitemap is every
+    profile with a page (`PeopleArchives::profiles()`: published ones
+    with files, and virtual ones a listed entry credits); each type's
+    adds its people fields' lists and archives.
+  - **The admin, until step 2:** its API keeps its shape. A type's
+    `authors` is whether it credits anyone, `authorsWord` and
+    `authorsPage` are the `authors` field's, and `DataTypeWriter` takes
+    `people` and the `authors`/`authorsWord` shortcuts (written as
+    `people`). Entry lists leave out every list page and person page
+    (`PeoplePage`, `Query::exceptIn()`). Ownership, the new-entry
+    default, and "you can't take yourself off" use the profiles type
+    and the type's first people field. Accounts keep `author` as the
+    link's name.
+  - **jtcom trial:** `new Profiles(folder: 'authors')`, so a profile's
+    page is `/authors/justintadlock` as in 1.x, and the posts archive
+    stays `/archives/authors/justintadlock`.
+- **Checked:** `composer check` (`PeopleArchivesTest`: lists, list
+  pages, archives and written pages, feeds, profile pages and their
+  base and feed, bylines with and without archives, a second people
+  field, templates, export, and the sitemap; the people-field cases in
+  `ContentTypeTest`; the theme's new routes in `DefaultThemeTest`);
+  `npm run admin:build`; on the jtcom trial, `content:lint` clean,
+  `routes:list`, and `/authors/justintadlock` (and page 2),
+  `/archives/authors`, `/archives/authors/justintadlock` and its JSON
+  feed, and `/writing/authors/justintadlock` answering 200, with
+  `/authors` a 404.
+- **Why:** the author asked for D-351's first step.
+
+### D-353: The admin's side of profiles (D-351's step 2)
+- **Date:** 2026-10-01
+- **Decision:** Builds D-351's admin step, from the profiles sketch, in
+  People's locations (the author's call).
+  - **People's panel:** Your Profile, **Accounts** (`accounts.manage`),
+    **Profiles** (the profiles type's entry list, with `content.edit`),
+    and Roles. `/people` redirects to Accounts, or Your Profile without
+    `accounts.manage`. `GET people` and `PeopleView` (D-332's merged
+    list) are gone; Accounts is `AccountsView` again, with status tabs,
+    a search, and a **Profile** column (the name, its status pill when
+    it isn't published, or the slug with **No profile yet**).
+  - **The Profiles list** is `EntriesView` with the type's columns
+    (`EntryTable`'s `profiles`): Name, Status, Account (the linked
+    account's name and username, or **Guest**), Bylines (`uses`), and
+    Updated. `GET entries` adds each profile's `linked` and, with
+    `accounts.manage`, its `account`. A name opens the profile's screen
+    (`listRoute()`, also the command palette's), not the editor.
+  - **A profile's screen** (`/profiles/{slug}`, `ProfileDetailView`,
+    `GET profiles/{slug}`, `ProfilesController`): a header with its
+    address, status, bylines, and account, **View** and **Edit profile**;
+    **Identity** (name, slug, the line under the name, avatar);
+    **Linked Account** (Open account, Unlink); and **Where This Profile
+    Appears**: the profile's own page, then each people field of each
+    crediting type, with its archive (or none), how many entries credit
+    them there, and what introduces it. **Write one** (`POST
+    profiles/{slug}/pages`) writes `_{field}/{slug}` in the type's
+    folder as a draft titled with the profile's name and opens it;
+    **Use the profile's** (`DELETE profiles/{slug}/pages/{type}/{field}`)
+    moves it to the trash. Visible to whoever may edit the profile
+    (their own, or anyone's with `content.edit.others`; one with no file
+    needs the latter).
+  - **`ContentWriter::createAt()`** writes a page at a fixed, undated key
+    in a type's folder (slug segments, each may start with `_`), refusing
+    one that exists in any format.
+  - **Person pages in the editor:** `peoplePage` (`{field, label,
+    profile, profileTitle}`; `profile` is `null` for a list page)
+    describes both people pages; a person's page is edited like an
+    index page, can't be renamed, duplicated, or trashed there, and says
+    whose archive it introduces, linking to the profile. Entry lists
+    leave person pages out (`Query::exceptIn()`), and tag a list page
+    with its field's name (`peopleLabel`).
+  - **An account's Public Profile panel:** linked (avatar, name,
+    address, status and bylines; **Open profile**, **Unlink**), linked
+    but a draft (**Publish**, with `content.publish`), linked to a slug
+    with no file (**Create it**: a draft at that slug, opened), or none
+    (**Link an existing one**, picking a profile, or **Create one**: a
+    draft from a name you give, slugged from it, linked, and opened).
+    `GET accounts` gives each account's `profile` (`{id, handle, slug,
+    title, status, url, uses}`) in place of `authorPage`. The Author
+    field is gone from the account's screen.
+  - **The type editor's People panel** (`TypePeopleFields`): a card per
+    people field, the first marked **Main byline**: name, the name for
+    one, the front matter key (editable until saved), one or more,
+    required, archives and their word with the addresses, and a list
+    page (`listPages` on `POST`/`PATCH types`, D-352's `authorsPage`
+    generalized: `_{field}.md` titled with its name); **Add a people
+    field** and **Remove**. `GET types/{name}` adds `people`. The form
+    sends `people` whole when it changes; the Behavior panel's Authors
+    group stays only in the new-type wizard. Addresses follows each
+    field's word and hides a field's keys while it has no archives.
+  - **The editor's document panel** has a group per people field,
+    labeled with its name, and only the main byline (or a required
+    field) keeps its last person (`ReferencePicker`'s `keepLast`).
+  - **Wording:** "author page" is "profile" across Your Profile, the
+    account screens, and the docs.
+  - **Not built:** the sketch's **Import from accounts** (creating
+    profiles for accounts without one), and capabilities for editing
+    your own profile versus anyone's (still open).
+- **Checked:** `composer check` (`AdminPeopleTest`: accounts' profiles,
+  the profile list's linked accounts, the profile screen, an author
+  seeing only their own, writing and removing an archive's page;
+  `AdminTypeEditTest::testEditsATypesPeopleFields`;
+  `FilesystemWriterTest::testCreatesPagesAtTheirKeys`); `npm run
+  admin:build`; on the jtcom trial in headless Chrome with two
+  throwaway accounts (removed after, with their sessions): Accounts,
+  Profiles, a profile's screen, writing a page for the posts archive
+  (opened in the editor) and using the bio again (its trash entry and
+  empty folder removed after), the Public Profile panel's states, the
+  type editor's People panel, and the profile screen at 390px with no
+  sideways scroll. No console errors beyond the sign-in screen's
+  unauthenticated session request.
+- **Why:** the author asked for D-351's second step.

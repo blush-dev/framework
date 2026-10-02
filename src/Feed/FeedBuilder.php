@@ -22,6 +22,8 @@ use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\PeopleField;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 use Blush\Markdown\MarkdownException;
@@ -34,7 +36,8 @@ use Blush\Markdown\MarkdownException;
  *
  * Item categories are the terms of the feed's `categories` taxonomy, or
  * of every taxonomy when it has none; authors are the names of the
- * authors the item credits.
+ * profiles the item's type's first people field credits (D-351), its
+ * main byline.
  */
 final readonly class FeedBuilder
 {
@@ -92,23 +95,44 @@ final readonly class FeedBuilder
 	}
 
 	/**
-	 * Builds an author's feed in a type: the type's entries crediting
-	 * them (D-329).
+	 * Builds a person's feed under a type's people field (D-351): the
+	 * type's entries crediting them there.
 	 *
 	 * @throws InvalidQuery
 	 * @throws MarkdownException
 	 */
-	public function author(ContentType $type, Entry $author, FeedFormat $format): Feed
+	public function person(ContentType $type, PeopleField $field, Entry $profile, FeedFormat $format): Feed
 	{
-		$query = $this->query($type, ['type' => $type->name])->whereTerm($author->type->name, $author->slug);
-		$key   = 'authors.single.feed' . $format->routeSuffix();
+		$query = $this->query($type, ['type' => $type->name])->whereTerm($field->termKey($profile->type->name), $profile->slug);
 
 		return $this->feed(
 			$format,
-			"{$author->title} | " . ($type->labels->plural),
-			$this->urls->author($type, $author->slug) ?? '/',
-			$this->urls->authorFeed($type, $author->slug, $key) ?? '/',
-			$author->isVirtual() ? null : $author,
+			"{$profile->title} | {$field->plural} | {$type->labels->plural}",
+			$this->urls->person($type, $field, $profile->slug) ?? '/',
+			$this->urls->personFeed($type, $field, $profile->slug, $format->routeSuffix()) ?? '/',
+			$profile->isVirtual() ? null : $profile,
+			$query
+		);
+	}
+
+	/**
+	 * Builds a profile's feed (D-351): every type's entries crediting
+	 * them.
+	 *
+	 * @throws InvalidQuery
+	 * @throws MarkdownException
+	 */
+	public function profile(Profiles $profiles, Entry $profile, FeedFormat $format): Feed
+	{
+		$crediting = array_keys($this->types->crediting());
+		$query     = $this->query($profiles, ['type' => $crediting === [] ? $profiles->name : $crediting])->whereTerm($profiles->name, $profile->slug);
+
+		return $this->feed(
+			$format,
+			$profile->title,
+			$this->urls->profile($profile->slug) ?? '/',
+			$this->urls->profileFeed($profile->slug, 'single.feed' . $format->routeSuffix()) ?? '/',
+			$profile->isVirtual() ? null : $profile,
 			$query
 		);
 	}
@@ -171,7 +195,8 @@ final readonly class FeedBuilder
 		}
 
 		$feed       = $entry->type->feed;
-		$authors    = $this->types->authors()?->name;
+		$profiles   = $this->types->profiles()?->name;
+		$byline     = array_first($entry->type->people);
 		$taxonomies = $feed !== false && $feed->categories !== null
 			? [$feed->categories]
 			: array_values(array_filter(array_keys($entry->terms), fn (string $taxonomy): bool => $this->types->find($taxonomy) instanceof Taxonomy));
@@ -184,24 +209,25 @@ final readonly class FeedBuilder
 			updated: $entry->updated,
 			content: $this->config->content ? $entry->body() : '',
 			summary: $entry->excerpt(),
-			authors: $authors === null ? [] : $this->titles($entry, [$authors]),
+			authors: $profiles === null || $byline === null ? [] : $this->titles($entry, [$byline->termKey($profiles)], $profiles),
 			categories: $this->titles($entry, $taxonomies)
 		);
 	}
 
 	/**
-	 * Returns the titles of an entry's terms in some taxonomies.
+	 * Returns the titles of an entry's terms in some taxonomies (or under
+	 * some people fields' keys, given the profiles type, `$of`).
 	 *
 	 * @param  list<string> $taxonomies
 	 * @return list<string>
 	 */
-	private function titles(Entry $entry, array $taxonomies): array
+	private function titles(Entry $entry, array $taxonomies, ?string $of = null): array
 	{
 		$titles = [];
 
 		foreach ($taxonomies as $taxonomy) {
 			foreach ($entry->terms($taxonomy) as $slug) {
-				$term     = $this->content->term($taxonomy, $slug);
+				$term     = $this->content->term($of ?? $taxonomy, $slug);
 				$titles[] = $term !== null && $term->title !== '' ? $term->title : $slug;
 			}
 		}

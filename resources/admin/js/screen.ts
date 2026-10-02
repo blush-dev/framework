@@ -27,7 +27,7 @@ export const screenCrumb = ref<string | null>(null);
 /**
  * Whether the current screen fills the work area edge to edge, when it
  * decides that itself rather than its route (`meta.bleed`): Your
- * Profile, which is the editor once there's an author page (D-329).
+ * Profile, which is the editor once there's a profile (D-329, D-353).
  * Each navigation clears it.
  */
 export const screenBleed = ref<boolean | null>(null);

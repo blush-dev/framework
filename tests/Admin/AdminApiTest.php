@@ -177,7 +177,7 @@ final class AdminApiTest extends TestCase
 
 	public function testAccountsNameThemselves(): void
 	{
-		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane Author\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\n---\n");
 		$this->boot(roles: ['contributor']);
 		$token = self::json($this->login())['csrfToken'] ?? null;
 		$this->assertIsString($token);

@@ -34,8 +34,12 @@ use Blush\Field\InvalidSchema;
  *    They may redefine a built-in type. A file named for an extension or
  *    config collection or taxonomy changes it instead (D-349): each
  *    option it sets replaces the code's (`ContentType::overriddenBy()`),
- *    and the type keeps its origin. One named for a code pages or authors
+ *    and the type keeps its origin. One named for a code pages or profiles
  *    type is an error.
+ *
+ * A people field reading a key a taxonomy's term field reads (1.x's
+ * `author` taxonomy, with `authors` and `author`) is dropped, so the
+ * taxonomy keeps it (D-351).
  *
  * Then: folders must be unique, one type must claim the content root, the
  * types named by listings, taxonomies' `types`, feed categories, and the
@@ -87,6 +91,15 @@ final readonly class ContentTypeLoader
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
+		$claimed = [];
+
+		foreach ($types as $type) {
+			if ($type instanceof Taxonomy) {
+				array_push($claimed, $type->field, ...$type->aliases);
+			}
+		}
+
+		$types    = array_map(static fn (ContentType $type): ContentType => $type->withoutPeopleReading(...$claimed), $types);
 		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides);
 		$this->check($resolved);
 
@@ -232,10 +245,10 @@ final readonly class ContentTypeLoader
 	private function check(ContentTypes $types): void
 	{
 		$folders = [];
-		$authors = array_keys(array_filter($types->all(), static fn (ContentType $type): bool => $type instanceof Authors));
+		$profiles = array_keys(array_filter($types->all(), static fn (ContentType $type): bool => $type instanceof Profiles));
 
-		if (count($authors) > 1) {
-			throw new InvalidContentType(sprintf('A site has one authors type, but "%s" are all authors types.', implode('", "', $authors)));
+		if (count($profiles) > 1) {
+			throw new InvalidContentType(sprintf('A site has one profiles type, but "%s" are all profiles types.', implode('", "', $profiles)));
 		}
 
 		foreach ($types as $name => $type) {

@@ -51,7 +51,7 @@ final class ContentTypeCacheTest extends TestCase
 	{
 		$cache = $this->site()->container()->make(ContentTypeCache::class);
 
-		$this->assertSame(['page', 'author'], array_keys($cache->write()->all()));
-		$this->assertSame(['page', 'author'], array_keys($cache->load()->all()));
+		$this->assertSame(['page', 'profile'], array_keys($cache->write()->all()));
+		$this->assertSame(['page', 'profile'], array_keys($cache->load()->all()));
 	}
 }

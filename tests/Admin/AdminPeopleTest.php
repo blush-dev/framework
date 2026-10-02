@@ -15,10 +15,13 @@ namespace Blush\Tests\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\PeopleController;
+use Blush\Admin\ProfilesController;
 use Blush\Auth\Accounts;
 
 #[CoversClass(PeopleController::class)]
+#[CoversClass(ProfilesController::class)]
 final class AdminPeopleTest extends TestCase
 {
 	use BootsAdmin;
@@ -66,46 +69,142 @@ final class AdminPeopleTest extends TestCase
 	}
 
 	/**
-	 * Writes two author pages, one a draft, and a post crediting them and
-	 * an author with no page.
+	 * Writes two profiles, one a draft, and a post crediting them and a
+	 * profile with no file.
 	 */
-	private function authors(): void
+	private function profiles(): void
 	{
 		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
-		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane Author\n---\nWrites.\n");
-		$this->writeTemporaryFile('user/content/authors/gwen.md', "---\ntitle: Gwen Guest\nstatus: draft\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\nsubtitle: Food editor\n---\nWrites.\n");
+		$this->writeTemporaryFile('user/content/profiles/gwen.md', "---\ntitle: Gwen Guest\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\nauthors: [jane, gwen, ghost]\n---\n");
 	}
 
-	public function testListsAccountsAndAuthorsAsOne(): void
+	/**
+	 * Sends a request with the CSRF token.
+	 *
+	 * @param array<string, mixed> $data
+	 */
+	private function write(string $method, string $path, array $data = []): ResponseInterface
 	{
-		$this->authors();
-		$this->site();
+		$token = self::json($this->send('GET', '/session'))['csrfToken'] ?? '';
 
-		$people = self::json($this->send('GET', '/people'))['people'] ?? null;
-
-		$this->assertIsArray($people);
-		$this->assertSame(['ghost', 'Gwen Guest', 'Jane Author', 'Sam Smith'], array_column($people, 'name'), 'By name (D-329).');
-
-		[$ghost, $gwen, $jane, $sam] = array_map(static fn (mixed $person): array => is_array($person) ? $person : [], $people);
-
-		$this->assertSame([null, true, 1], [$ghost['entry'], $ghost['virtual'], $ghost['uses']], 'Credited without a page.');
-		$this->assertSame([null, 'draft', false], [$gwen['account'], is_array($gwen['entry']) ? $gwen['entry']['status'] : null, $gwen['virtual']], 'A guest: a page, no account.');
-		$this->assertSame(['jane', 'Jane Author', 'author/jane'], [is_array($jane['account']) ? $jane['account']['username'] : null, is_array($jane['account']) ? $jane['account']['displayName'] : null, is_array($jane['entry']) ? $jane['entry']['handle'] : null], 'One name: the author page\'s title.');
-		$this->assertSame([null, null, 0], [$sam['author'], $sam['entry'], $sam['uses']], 'An account with no author.');
+		return $this->send($method, $path, $data === [] ? '' : (json_encode($data) ?: ''), ['X-CSRF-Token' => is_string($token) ? $token : '']);
 	}
 
-	public function testAuthorsSeeOnlyThemselves(): void
+	public function testAccountsCarryTheirProfiles(): void
 	{
-		$this->authors();
+		$this->profiles();
+		$this->site();
+
+		$accounts = self::json($this->send('GET', '/accounts'))['accounts'] ?? null;
+
+		$this->assertIsArray($accounts);
+		[$jane, $sam] = array_map(static fn (mixed $account): array => is_array($account) ? $account : [], $accounts);
+
+		$this->assertSame(['id' => 'profiles/jane.md', 'handle' => 'profile/jane', 'slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'url' => '/profiles/jane', 'uses' => 1], $jane['profile'] ?? null);
+		$this->assertSame('Jane Author', $jane['displayName'] ?? null, 'One name: the profile\'s title.');
+		$this->assertArrayHasKey('profile', $sam);
+		$this->assertNull($sam['profile'], 'Not linked, so no profile (D-353).');
+		$this->assertSame(404, $this->send('GET', '/people')->getStatusCode(), 'Accounts and profiles are two lists now.');
+	}
+
+	public function testTheProfilesListSaysWhoIsLinked(): void
+	{
+		$this->profiles();
+		$this->site();
+
+		$entries = self::json($this->send('GET', '/entries?type=profile&sort=title'))['entries'] ?? null;
+
+		$this->assertIsArray($entries);
+		$this->assertSame(['Gwen Guest', 'Jane Author'], array_column($entries, 'title'));
+		$this->assertSame([false, true], array_column($entries, 'linked'));
+		$this->assertSame([null, ['username' => 'jane', 'displayName' => 'Jane Author']], array_column($entries, 'account'));
+		$this->assertSame([1, 1], array_column($entries, 'uses'), 'Bylines: the published entries crediting each.');
+	}
+
+	public function testDescribesAProfileAndWhereItAppears(): void
+	{
+		$this->profiles();
+		$this->site();
+
+		$answer = self::json($this->send('GET', '/profiles/jane'));
+
+		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'virtual' => false, 'id' => 'profiles/jane.md', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1], $answer['profile'] ?? null);
+		$this->assertSame([['type' => 'post', 'typeLabel' => 'Posts', 'field' => 'authors', 'label' => 'Authors', 'entries' => 1, 'archive' => '/posts/authors/jane', 'page' => null]], $answer['appears'] ?? null);
+		$this->assertTrue($answer['linked'] ?? null);
+		$this->assertSame('jane', is_array($answer['account'] ?? null) ? $answer['account']['username'] : null);
+
+		$ghost = self::json($this->send('GET', '/profiles/ghost'));
+
+		$this->assertIsArray($ghost['profile'] ?? null);
+		$this->assertSame([true, null, null], [$ghost['profile']['virtual'], $ghost['profile']['status'], $ghost['profile']['id']], 'Credited without a file.');
+		$this->assertFalse($ghost['linked'] ?? null);
+		$this->assertSame(404, $this->send('GET', '/profiles/nobody')->getStatusCode());
+	}
+
+	public function testAuthorsSeeOnlyTheirOwnProfile(): void
+	{
+		$this->profiles();
 		$this->site(['author']);
 
-		$people = self::json($this->send('GET', '/people'))['people'] ?? null;
+		$own = self::json($this->send('GET', '/profiles/jane'));
 
-		$this->assertIsArray($people);
-		$this->assertSame(['Jane Author'], array_column($people, 'name'), 'Their own page, and no accounts or pageless authors.');
-		$this->assertIsArray($people[0] ?? null);
-		$this->assertNull($people[0]['account'] ?? null);
+		$this->assertTrue($own['linked'] ?? null);
+		$this->assertArrayHasKey('account', $own);
+		$this->assertNull($own['account'], 'Which account takes accounts.manage.');
+		$this->assertSame(403, $this->send('GET', '/profiles/gwen')->getStatusCode());
+		$this->assertSame(403, $this->send('GET', '/profiles/ghost')->getStatusCode(), 'A profile with no file is everyone\'s.');
+	}
+
+	public function testWritesAndRemovesAnArchivesPage(): void
+	{
+		$this->profiles();
+		$this->site();
+
+		$written = $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'authors']);
+
+		$this->assertSame(201, $written->getStatusCode(), (string) $written->getBody());
+		$this->assertSame('_posts/_authors/jane.md', self::json($written)['id'] ?? null);
+		$this->assertStringContainsString("title: \"Jane Author\"\nstatus: draft\n", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_posts/_authors/jane.md'));
+		$this->assertSame(409, $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'authors'])->getStatusCode(), 'Once.');
+		$this->assertSame(422, $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'cooks'])->getStatusCode());
+
+		$appears = $this->firstAppearance();
+
+		$this->assertSame(['id' => '_posts/_authors/jane.md', 'handle' => 'post/_authors/jane', 'title' => 'Jane Author', 'status' => 'draft'], $appears['page'] ?? null);
+		$this->assertNotContains('Jane Author', array_column(is_array($list = self::json($this->send('GET', '/entries?type=post'))['entries'] ?? null) ? $list : [], 'title'), 'It isn\'t one of the posts.');
+
+		$editor = self::json($this->send('GET', '/entries/_posts/_authors/jane.md'));
+
+		$this->assertSame(['field' => 'authors', 'label' => 'Authors', 'profile' => 'jane', 'profileTitle' => 'Jane Author'], $editor['peoplePage'] ?? null);
+		$can = $editor['can'] ?? null;
+
+		$this->assertIsArray($can);
+		$this->assertSame([false, false, false], [$can['delete'] ?? null, $can['duplicate'] ?? null, $can['rename'] ?? null]);
+
+		$this->assertSame(200, $this->write('DELETE', '/profiles/jane/pages/post/authors')->getStatusCode());
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/_authors/jane.md');
+		$again = $this->firstAppearance();
+
+		$this->assertArrayHasKey('page', $again);
+		$this->assertNull($again['page'], 'The archive uses the bio again.');
+		$this->assertSame(404, $this->write('DELETE', '/profiles/jane/pages/post/authors')->getStatusCode());
+	}
+
+	/**
+	 * Returns the first place Jane's profile appears.
+	 *
+	 * @return array<mixed>
+	 */
+	private function firstAppearance(): array
+	{
+		$appears = self::json($this->send('GET', '/profiles/jane'))['appears'] ?? null;
+		$this->assertIsArray($appears);
+		$first = $appears[0] ?? null;
+		$this->assertIsArray($first);
+
+		return $first;
 	}
 
 	public function testListsAccountsWithoutSecrets(): void
@@ -120,7 +219,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertIsArray($sam);
 		$this->assertSame(['author', 'reviewer'], $sam['roles'] ?? null);
 		$this->assertSame('Sam Smith', $sam['name'] ?? null);
-		$this->assertSame(['username', 'name', 'displayName', 'roles', 'author', 'authorPage', 'created', 'lastLogin', 'status', 'link', 'manages'], array_keys($sam), 'No password hash or preferences.');
+		$this->assertSame(['username', 'name', 'displayName', 'roles', 'author', 'profile', 'created', 'lastLogin', 'status', 'link', 'manages'], array_keys($sam), 'No password hash or preferences.');
 		$this->assertSame('active', $sam['status'] ?? null);
 		$this->assertTrue($sam['manages'] ?? null);
 		$this->assertFalse(is_array($accounts[0] ?? null) ? $accounts[0]['manages'] ?? null : null, 'Not your own account.');

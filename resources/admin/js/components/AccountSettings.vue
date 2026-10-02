@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
  * The signed-in account's own settings (D-235, D-273, D-317, D-322): its
- * name, what it is (username, roles, author, last sign-in), changing its
+ * name, what it is (username, roles, profile, last sign-in), changing its
  * password, and the admin's theme and color scheme, which follow the
  * account to any device. One name per person (D-329): once the account
- * has an author page, that page's title is its name, so the Name field
+ * has a profile, that profile's title is its name, so the Name field
  * is only for accounts without one.
  *
- * Your Profile shows it as panels (`framed`) without an author page, and
+ * Your Profile shows it as panels (`framed`) without a profile, and
  * as the editor's **Account** tab with one.
  */
 
@@ -23,7 +23,7 @@ import { toast } from '../toast';
 
 const { framed = false, authorPage = false } = defineProps<{
 	framed?: boolean;
-	// Whether the account has an author page, whose title is its name.
+	// Whether the account has a profile, whose title is its name.
 	authorPage?: boolean;
 }>();
 
@@ -161,7 +161,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 					<button v-if="nameChanged" type="submit" class="button button--small" :disabled="nameBusy">{{ nameBusy ? 'Saving…' : 'Save' }}</button>
 				</div>
 				<p v-if="nameError" id="profile-name-help" class="field__error" role="alert">{{ nameError }}</p>
-				<p v-else id="profile-name-help" class="field__help">What the admin calls you. Once you have an author page, its title is your name everywhere.</p>
+				<p v-else id="profile-name-help" class="field__help">What the admin calls you. Once you have a profile, its title is your name everywhere.</p>
 			</form>
 			<dl class="panel__body profile__facts">
 				<div v-if="authorPage">
@@ -177,7 +177,7 @@ async function choose(scheme: ColorScheme): Promise<void> {
 					<dd>{{ account.roles.map((role) => role.label).join(', ') || '—' }}</dd>
 				</div>
 				<div>
-					<dt>Author</dt>
+					<dt>Profile</dt>
 					<dd :class="{ mono: account.author }">{{ account.author ?? 'Not linked' }}</dd>
 				</div>
 				<div>

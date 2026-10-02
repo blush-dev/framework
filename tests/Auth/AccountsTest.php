@@ -115,7 +115,7 @@ final class AccountsTest extends TestCase
 
 	public function testNamesAccounts(): void
 	{
-		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane Author\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\n---\n");
 
 		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], 'jane', "  Jane\t\n  Doe ");
 
@@ -174,7 +174,7 @@ final class AccountsTest extends TestCase
 
 	public function testChecksAuthors(): void
 	{
-		$this->writeTemporaryFile('user/content/authors/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/credited.md', "---\ntitle: Credited\nauthors: lee\n---\n");
 		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
 

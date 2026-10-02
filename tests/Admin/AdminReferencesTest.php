@@ -96,7 +96,7 @@ final class AdminReferencesTest extends TestCase
 
 		$this->assertSame(['web', 'css'], array_column($topics, 'slug'), 'Art is unused; Web stays as CSS\'s parent.');
 		$this->assertSame(['book-reviews', 'gloomy', 'happy'], array_column($moods, 'slug'), 'A draft\'s terms count too.');
-		$this->assertSame([], (array) ($this->references('topic?for=author')['items'] ?? ['x']), 'No author uses a topic.');
+		$this->assertSame([], (array) ($this->references('topic?for=profile')['items'] ?? ['x']), 'No profile uses a topic.');
 	}
 
 	public function testChecksItsInput(): void

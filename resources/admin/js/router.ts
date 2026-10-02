@@ -21,7 +21,8 @@ import ProfileView from './views/ProfileView.vue';
 import AccountView from './views/AccountView.vue';
 import ExtensionsView from './views/ExtensionsView.vue';
 import SettingsView from './views/SettingsView.vue';
-import PeopleView from './views/PeopleView.vue';
+import AccountsView from './views/AccountsView.vue';
+import ProfileDetailView from './views/ProfileDetailView.vue';
 import NewAccountView from './views/NewAccountView.vue';
 import NewRoleView from './views/NewRoleView.vue';
 import RoleView from './views/RoleView.vue';
@@ -79,13 +80,16 @@ export const router = createRouter({
 		{ path: '/extensions', name: 'extensions', component: ExtensionsView, meta: { title: 'Extensions', capability: 'site.settings', area: 'config' } },
 		// People, its own section (D-249, D-326): each list, then a screen
 		// per item (`meta.parent` marks the list in the navigation).
-		// Accounts and authors, as one list (D-329).
-		{ path: '/people', name: 'people', component: PeopleView, meta: { title: 'People', anyCapability: ['accounts.manage', 'content.edit'], area: 'people' } },
-		{ path: '/accounts', name: 'accounts', redirect: { name: 'people' } },
+		// Accounts and profiles are two lists (D-353): who can sign in,
+		// and who's credited. Profiles are their type's entry list, with a
+		// screen of their own per profile.
+		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.manage', area: 'people' } },
+		{ path: '/people', redirect: () => can('accounts.manage') ? { name: 'accounts' } : { name: 'profile' } },
+		{ path: '/profiles/:slug', name: 'profile-detail', component: ProfileDetailView, meta: { title: 'Profile', capability: 'content.edit', area: 'people', parent: 'profiles' } },
 		// New comes before the item it would otherwise be taken for; the
 		// admin makes no account or role named "new" (D-312).
-		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.manage', area: 'people', parent: 'people' } },
-		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'people', parent: 'people' } },
+		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.manage', area: 'people', parent: 'accounts' } },
+		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'people', parent: 'accounts' } },
 		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'people' } },
 		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
 		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },

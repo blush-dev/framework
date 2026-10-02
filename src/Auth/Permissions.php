@@ -73,7 +73,7 @@ final readonly class Permissions
 		$capability   = $capability instanceof Capability ? $capability->value : $capability;
 		$others       = $this->statuses($account, $capability, others: true);
 		$own          = $this->statuses($account, $capability, others: false);
-		$authors      = $this->types->authors()?->name;
+		$authors      = $this->types->profiles()?->name;
 		$author       = $account->author;
 		$alternatives = [];
 
@@ -120,7 +120,7 @@ final readonly class Permissions
 	 */
 	public function owns(Account $account, Entry $entry): bool
 	{
-		$authors = $this->types->authors()?->name;
+		$authors = $this->types->profiles()?->name;
 
 		return $account->author !== null && $authors !== null && (
 			$entry->hasTerm($authors, $account->author)

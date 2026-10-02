@@ -101,8 +101,8 @@ trait BuildsContentSite
 		$this->entry('_posts/hello/index.md', "title: Hello Bundle\npublished: 2010-01-01 12:00:00", 'A bundle.');
 		$this->entry('topics/index.md', 'title: Topics');
 		$this->entry('topics/art.md', 'title: Art');
-		$this->entry('authors/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
-		$this->entry('authors/guest.md', 'title: A Guest');
+		$this->entry('profiles/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
+		$this->entry('profiles/guest.md', 'title: A Guest');
 		$this->writeTemporaryFile('user/content/notes.json', '{"title": "Notes", "body": "Some *notes*."}');
 		$this->writeTemporaryFile('user/content/_posts/hello/photo.jpg', 'not content');
 	}

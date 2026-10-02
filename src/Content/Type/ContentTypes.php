@@ -22,6 +22,7 @@ use Blush\Field\Field;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSets;
+use Blush\Field\Fields\MediaField;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 
@@ -36,7 +37,7 @@ use Blush\Field\Schema;
  *
  * Each type's full schema is the built-in entry fields, then every
  * taxonomy's term field (which may not reuse a built-in name or alias),
- * then the authors field when the type supports authors (D-329), then
+ * then the type's people fields (D-351), or a profile's `avatar`, then
  * the type's own fields (which may replace any of them), then the fields
  * of the field sets attached to it (`type:{name}`, D-337), in set name
  * order, which may not reuse any name or alias before them
@@ -135,7 +136,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns whether the admin may change a type: one defined in data, or
 	 * a collection or taxonomy from code, which a data file then
-	 * overrides (D-311, D-349). The pages and authors types defined in
+	 * overrides (D-311, D-349). The pages and profiles types defined in
 	 * code stay as they are.
 	 */
 	public function isEditable(string $name): bool
@@ -165,22 +166,32 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns the authors type (D-329), or `null` when the site has none.
+	 * Returns the profiles type (D-351), or `null` when the site has none.
 	 */
-	public function authors(): ?Authors
+	public function profiles(): ?Profiles
 	{
-		return array_find($this->types, static fn (ContentType $type): bool => $type instanceof Authors);
+		return array_find($this->types, static fn (ContentType $type): bool => $type instanceof Profiles);
 	}
 
 	/**
 	 * Returns the types other entries reference as terms (the taxonomies
-	 * and the authors type), keyed by name.
+	 * and the profiles type), keyed by name.
 	 *
-	 * @return array<string, Taxonomy|Authors>
+	 * @return array<string, Taxonomy|Profiles>
 	 */
 	public function termTypes(): array
 	{
-		return array_filter($this->types, static fn (ContentType $type): bool => $type instanceof Taxonomy || $type instanceof Authors);
+		return array_filter($this->types, static fn (ContentType $type): bool => $type instanceof Taxonomy || $type instanceof Profiles);
+	}
+
+	/**
+	 * Returns the types whose entries credit people, keyed by name.
+	 *
+	 * @return array<string, ContentType>
+	 */
+	public function crediting(): array
+	{
+		return array_filter($this->types, static fn (ContentType $type): bool => $type->credits());
 	}
 
 	/**
@@ -257,9 +268,9 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns a type's schema before its field sets: the built-in entry
-	 * fields, every taxonomy's term field, the authors field when the type
-	 * supports authors, a hierarchical taxonomy's `parent`, then the
-	 * type's own fields.
+	 * fields, every taxonomy's term field, the type's people fields (when
+	 * the site has a profiles type) or a profile's `avatar`, a
+	 * hierarchical taxonomy's `parent`, then the type's own fields.
 	 *
 	 * @throws InvalidContentType When the fields clash.
 	 */
@@ -269,13 +280,16 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 		try {
 			$terms   = array_values(array_map(static fn (Taxonomy $taxonomy): Field => $taxonomy->termField(), $this->taxonomies()));
-			$authors = $type->authors ? $this->authors()?->termField() : null;
-			$parent  = $type instanceof Taxonomy ? $type->parentField() : null;
+			$profiles = $this->profiles()?->name;
+			$people   = $profiles === null ? [] : array_values(array_map(static fn (PeopleField $field): Field => $field->referenceField($profiles), $type->people));
+			$avatar   = $type instanceof Profiles ? [new MediaField('avatar')->described('A portrait, shown beside the name; without one, initials stand in.')] : [];
+			$parent   = $type instanceof Taxonomy ? $type->parentField() : null;
 
 			return new Schema([
 				...array_values(EntryFields::schema()->fields),
 				...$terms,
-				...($authors === null ? [] : [$authors]),
+				...$people,
+				...$avatar,
 				...($parent === null ? [] : [$parent])
 			])->merge($type->schema);
 		} catch (InvalidSchema $e) {

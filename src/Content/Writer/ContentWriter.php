@@ -45,6 +45,16 @@ interface ContentWriter
 	public function create(ContentType $type, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null, string $format = 'md'): WriteResult;
 
 	/**
+	 * Creates a page a type keeps at a fixed key in its folder, undated:
+	 * `{folder}/{key}.{format}`. Each of the key's segments is a slug, and
+	 * may start with `_` to keep it out of listings, such as a people
+	 * field's `_cooks` or `_cooks/jane` (D-353).
+	 *
+	 * @throws WriteException When the file exists or the key or format is invalid.
+	 */
+	public function createAt(ContentType $type, string $key, EntryChanges $changes, string $format = 'md'): WriteResult;
+
+	/**
 	 * Copies an entry beside it (D-275) under a new slug, with changes
 	 * applied to the copy: `{slug}`, or the first of `{slug}-2`,
 	 * `{slug}-3`, … that's free. A dated file takes the date given

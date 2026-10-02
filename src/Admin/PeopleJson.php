@@ -21,6 +21,7 @@ use Blush\Auth\Role;
 use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
 use Blush\Content\ContentRepository;
+use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 
 /**
@@ -36,14 +37,16 @@ final readonly class PeopleJson
 		private ClockInterface $clock,
 		private ContentRepository $content,
 		private ContentTypes $types,
-		private EntryHandles $handles
+		private EntryHandles $handles,
+		private ContentUrls $urls
 	) {}
 
 	/**
 	 * Describes an account: its `username`, its own `name` (or `null`),
-	 * its `displayName` (D-329: the author page's title, else the name,
-	 * else the username), `roles`, `author`, its `authorPage` (`{"id",
-	 * "handle"}`, or `null` without one), `created` and `lastLogin`
+	 * its `displayName` (D-329: the profile's title, else the name, else
+	 * the username), `roles`, `author` (the linked profile's slug), its
+	 * `profile` (D-353: `{"id", "handle", "slug", "title", "status",
+	 * "url", "uses"}`, or `null` without a file), `created` and `lastLogin`
 	 * (Unix times), `status`, its password `link` (`expires`, and whether
 	 * it has `expired`; `null` for none), and whether the viewer
 	 * `manages` it.
@@ -60,7 +63,7 @@ final readonly class PeopleJson
 			'displayName' => $this->accounts->displayName($account),
 			'roles'       => $account->roles,
 			'author'      => $account->author,
-			'authorPage'  => $this->authorPage($account),
+			'profile'     => $this->profile($account),
 			'created'     => $account->created,
 			'lastLogin'   => $account->lastLogin,
 			'status'      => $account->status()->value,
@@ -70,16 +73,27 @@ final readonly class PeopleJson
 	}
 
 	/**
-	 * Returns an account's author page, `{"id", "handle"}`, or `null`.
+	 * Returns an account's profile, or `null` when it links to none or
+	 * the profile has no file: its `id`, `handle`, `slug`, `title`,
+	 * `status`, `url` on the site, and how many published entries credit
+	 * it (`uses`).
 	 *
-	 * @return ?array{id: string, handle: ?string}
+	 * @return ?array{id: string, handle: ?string, slug: string, title: string, status: string, url: ?string, uses: int}
 	 */
-	private function authorPage(Account $account): ?array
+	private function profile(Account $account): ?array
 	{
-		$authors = $this->types->authors();
-		$entry   = $account->author === null || $authors === null ? null : $this->content->named($authors->name, $account->author);
+		$profiles = $this->types->profiles();
+		$entry    = $account->author === null || $profiles === null ? null : $this->content->named($profiles->name, $account->author);
 
-		return $entry === null ? null : ['id' => $entry->id, 'handle' => $this->handles->of($entry)];
+		return $entry === null ? null : [
+			'id'     => $entry->id,
+			'handle' => $this->handles->of($entry),
+			'slug'   => $entry->key,
+			'title'  => $entry->title,
+			'status' => $entry->status->value,
+			'url'    => $this->urls->entry($entry),
+			'uses'   => $this->content->termCounts($entry->type->name)[$entry->key] ?? 0
+		];
 	}
 
 	/**

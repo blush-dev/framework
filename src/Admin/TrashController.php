@@ -205,14 +205,16 @@ final readonly class TrashController
 	}
 
 	/**
-	 * Returns the author slugs a trashed entry's file credits.
+	 * Returns the profile slugs a trashed entry's file credits in its
+	 * type's main byline, the first people field (D-351).
 	 *
 	 * @return list<string>
 	 */
 	private function authors(TrashedEntry $trashed): array
 	{
-		$authors = $this->types->authors();
-		$keys    = $authors === null ? [] : [$authors->field, ...$authors->aliases];
+		$type  = $this->typeOf($trashed);
+		$field = $type === null || $this->types->profiles() === null ? null : array_first($this->types->get($type)->people);
+		$keys  = $field === null ? [] : [$field->field, ...$field->aliases];
 
 		foreach ($keys as $key) {
 			$value = $trashed->frontMatter[$key] ?? null;

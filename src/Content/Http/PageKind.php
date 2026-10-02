@@ -49,14 +49,19 @@ enum PageKind: string
 	case Date = 'date';
 
 	/**
-	 * The authors a type's entries credit (D-329).
+	 * The people a type's people field credits (D-351).
 	 */
-	case Authors = 'authors';
+	case People = 'people';
 
 	/**
-	 * An author's archive in a type.
+	 * A person's archive under a type's people field.
 	 */
-	case Author = 'author';
+	case Person = 'person';
+
+	/**
+	 * A profile's own page: the bio, and everything crediting them.
+	 */
+	case Profile = 'profile';
 
 	/**
 	 * The welcome page of a site with no home page yet.

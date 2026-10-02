@@ -14,8 +14,9 @@
 	"terms": {
 		"label": "Filed under"
 	},
-	"authors": {
+	"people": {
 		"byline": "By",
+		"credit": "{label}:",
 		"none": "No one has been credited here yet."
 	},
 	"welcome": {

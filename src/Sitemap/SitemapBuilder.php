@@ -14,12 +14,13 @@ declare(strict_types=1);
 namespace Blush\Sitemap;
 
 use DateTimeImmutable;
-use Blush\Content\AuthorArchives;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
+use Blush\Content\PeopleArchives;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 
 /**
@@ -29,8 +30,9 @@ use Blush\Content\Type\Taxonomy;
  * A type's sitemap holds its collection page (when it has a landing page
  * or lists something), then its listed entries
  * (published, public, not landing pages) that have URLs, with their
- * `updated` dates, then its authors list and author archives when it
- * has them (D-329). A taxonomy's holds its terms that list entries
+ * `updated` dates, then each people field's list and person archives
+ * (D-351). The profiles type's holds each profile's page, real or
+ * virtual (`PeopleArchives::profiles()`). A taxonomy's holds its terms that list entries
  * (virtual terms included), by slug, so empty archives stay out. The type the root
  * `index.md` belongs to also holds `/`, when the home page isn't a type's
  * collection.
@@ -41,7 +43,7 @@ final readonly class SitemapBuilder
 		private ContentRepository $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private AuthorArchives $archives
+		private PeopleArchives $archives
 	) {}
 
 	/**
@@ -85,7 +87,20 @@ final readonly class SitemapBuilder
 	 */
 	public function urls(ContentType $type): array
 	{
-		$urls    = [];
+		$urls = [];
+
+		if ($type instanceof Profiles) {
+			foreach ($this->archives->profiles() as $profile) {
+				$url = $this->urls->profile($profile->slug);
+
+				if ($url !== null) {
+					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $profile->isVirtual() ? null : $profile->updated);
+				}
+			}
+
+			return array_values($urls);
+		}
+
 		$landing = $this->content->named($type->name, '');
 		$landing = $landing !== null && $landing->isPublished() && $landing->isRoutable() ? $landing : null;
 
@@ -120,31 +135,33 @@ final readonly class SitemapBuilder
 			$this->add($urls, $entry);
 		}
 
-		$this->addAuthors($urls, $type);
+		$this->addPeople($urls, $type);
 
 		return array_values($urls);
 	}
 
 	/**
-	 * Adds a type's authors list and each author's archive in it (D-329),
-	 * when it has any.
+	 * Adds each of a type's people fields' lists and person archives
+	 * (D-351), when they have any.
 	 *
 	 * @param array<string, SitemapUrl> $urls
 	 */
-	private function addAuthors(array &$urls, ContentType $type): void
+	private function addPeople(array &$urls, ContentType $type): void
 	{
-		$authors = $this->urls->hasAuthorArchives($type) ? $this->archives->authors($type) : [];
-		$list    = $authors === [] ? null : $this->urls->authors($type);
+		foreach ($type->archivedPeople() as $field) {
+			$people = $this->urls->hasArchive($type, $field) ? $this->archives->credited($type, $field) : [];
+			$list   = $people === [] ? null : $this->urls->people($type, $field);
 
-		if ($list !== null) {
-			$urls[$list] ??= new SitemapUrl($this->urls->absolute($list));
-		}
+			if ($list !== null) {
+				$urls[$list] ??= new SitemapUrl($this->urls->absolute($list));
+			}
 
-		foreach ($authors as $author) {
-			$url = $this->urls->author($type, $author->slug);
+			foreach ($people as $person) {
+				$url = $this->urls->person($type, $field, $person->slug);
 
-			if ($url !== null) {
-				$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $author->isVirtual() ? null : $author->updated);
+				if ($url !== null) {
+					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $person->isVirtual() ? null : $person->updated);
+				}
 			}
 		}
 	}

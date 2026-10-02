@@ -3,7 +3,8 @@
  * A content type from `user/data/types`, edited (D-311), or a collection
  * or taxonomy from code, changed through a file there (D-349): General
  * (names, description, icon, with its key and folder fixed), Behavior
- * (`TypeBehaviorFields`, with the authors settings, D-329), Addresses
+ * (`TypeBehaviorFields`), People (`TypePeopleFields`, its people fields,
+ * D-353), Addresses
  * (`TypeRoutesFields`, each route key's path, D-350), and Fields
  * (`FieldListEditor`, with the field sets added to it below, D-337;
  * read-only when the code's fields are classes of its own), saved
@@ -24,12 +25,13 @@ import FieldListEditor from './FieldListEditor.vue';
 import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
 import TypeFieldSets from './TypeFieldSets.vue';
+import TypePeopleFields from './TypePeopleFields.vue';
 import TypeRoutesFields from './TypeRoutesFields.vue';
 import { ApiError, request, type ContentTypeDetail } from '../api';
 import { label } from '../fields';
-import { authorsWordOf, changesOf, formOf, type TypeForm } from '../type-form';
+import { changesOf, formOf, type TypeForm } from '../type-form';
 import { toast } from '../toast';
-import { authorType, reloadTypes, typeUrls, types } from '../types';
+import { profileType, reloadTypes, typeUrls, types } from '../types';
 
 const props = defineProps<{ type: ContentTypeDetail }>();
 const emit  = defineEmits<{ saved: [type: ContentTypeDetail] }>();
@@ -39,7 +41,8 @@ const kind    = computed(() => props.type.kind === 'taxonomy' ? 'taxonomy' as co
 const form    = ref<TypeForm>(formOf(props.type));
 const initial = ref<TypeForm>(formOf(props.type));
 const index   = ref(false);
-const page    = ref(false);
+// The people fields to give list pages when saved (D-353).
+const pages   = ref<string[]>([]);
 const saving  = ref(false);
 const failure = ref('');
 const removal = ref('');
@@ -48,11 +51,11 @@ watch(() => props.type, (type) => {
 	form.value    = formOf(type);
 	initial.value = formOf(type);
 	index.value   = false;
-	page.value    = false;
+	pages.value   = [];
 });
 
 const changes = computed(() => changesOf(form.value, initial.value, kind.value));
-const changed = computed(() => Object.keys(changes.value).length > 0 || index.value || page.value);
+const changed = computed(() => Object.keys(changes.value).length > 0 || index.value || pages.value.length > 0);
 
 // A type from code, changed through a file in user/data/types (D-349).
 const code   = computed(() => props.type.origin !== 'data');
@@ -62,8 +65,8 @@ const file   = computed(() => props.type.file ?? `user/data/types/${props.type.n
 // The prefix the addresses sit under, as the form has it.
 const prefix = computed(() => (form.value.prefix || props.type.folderPrefix).replace(/^\/+|\/+$/g, ''));
 
-// The site's authors type, which the Behavior panel names.
-const authorsLabel = computed(() => types.value.find((item) => item.name === authorType.value)?.labels.plural ?? null);
+// The site's profiles type, which the People panel credits.
+const profilesLabel = computed(() => types.value.find((item) => item.name === profileType.value)?.labels.plural ?? null);
 
 // After a change: the routes and index, then the navigation.
 function refresh(): void {
@@ -81,7 +84,7 @@ async function save(): Promise<void> {
 	failure.value = '';
 
 	try {
-		const saved = await request<ContentTypeDetail>('PATCH', `/types/${encodeURIComponent(props.type.name)}`, { set: changes.value, index: index.value, authorsPage: page.value && form.value.authors && form.value.authorArchives });
+		const saved = await request<ContentTypeDetail>('PATCH', `/types/${encodeURIComponent(props.type.name)}`, { set: changes.value, index: index.value, listPages: pages.value });
 
 		emit('saved', saved);
 		refresh();
@@ -96,7 +99,7 @@ async function save(): Promise<void> {
 function revert(): void {
 	form.value    = formOf(props.type);
 	index.value   = false;
-	page.value    = false;
+	pages.value   = [];
 	failure.value = '';
 }
 
@@ -129,7 +132,7 @@ async function remove(): Promise<void> {
 		await request('DELETE', `/types/${encodeURIComponent(props.type.name)}`);
 		initial.value = form.value;
 		index.value   = false;
-		page.value    = false;
+		pages.value   = [];
 		refresh();
 		toast(`Deleted the ${props.type.labels.plural} type`);
 		await router.push({ name: 'types' });
@@ -164,7 +167,17 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 				<h2 id="behavior-heading">Behavior</h2>
 			</header>
 			<div class="panel__body">
-				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="page" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :types="types.filter((item) => item.name !== type.name)" :index-page="type.index" :authors-label="authorsLabel" :authors-page="type.authorsPage" />
+				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :types="types.filter((item) => item.name !== type.name)" :index-page="type.index" :authors-label="null" :authors-page="null" />
+			</div>
+		</section>
+
+		<section v-if="profilesLabel !== null && form.people !== null" class="panel" aria-labelledby="people-heading">
+			<header class="panel__header">
+				<h2 id="people-heading">People</h2>
+				<p class="panel__hint">Each field names one relation to {{ profilesLabel }}</p>
+			</header>
+			<div class="panel__body">
+				<TypePeopleFields v-model="form.people" v-model:list-pages="pages" id-prefix="people-" :prefix="prefix" :urls="typeUrls && type.prefix !== null" :saved="type.people" :profiles-label="profilesLabel" />
 			</div>
 		</section>
 
@@ -174,7 +187,7 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 				<p class="panel__hint">Under <code>/{{ prefix }}</code></p>
 			</header>
 			<div class="panel__body">
-				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :taxonomy="kind === 'taxonomy'" :authors-word="type.authorsWord" :form-authors-word="form.authors ? authorsWordOf(form) : false" :editable="typeUrls" />
+				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :taxonomy="kind === 'taxonomy'" :people="type.people" :editable="typeUrls" />
 			</div>
 		</section>
 

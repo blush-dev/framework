@@ -22,13 +22,13 @@ use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
-use Blush\Content\Http\AuthorsController;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
 use Blush\Content\Type\InvalidContentType;
+use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
@@ -44,9 +44,9 @@ use Blush\Support\Filesystem;
  * `site.settings`:
  *
  * - `POST types`: `{"name", "kind"` (`collection` or `taxonomy`),
- *   `"folder"`, `"set"`, `"index"`, `"authorsPage"}`; answers `201` with
+ *   `"folder"`, `"set"`, `"index"`, `"listPages"`, `"authorsPage"}`; answers `201` with
  *   the type as `GET types/{name}` describes it.
- * - `PATCH types/{name}`: `{"set", "index", "authorsPage"}`; answers
+ * - `PATCH types/{name}`: `{"set", "index", "listPages", "authorsPage"}`; answers
  *   with the type.
  * - `DELETE types/{name}`: deletes its file (its entries stay); answers
  *   `{"deleted"}`.
@@ -58,10 +58,10 @@ use Blush\Support\Filesystem;
  * `set` holds the options to change (`DataTypeWriter`), including
  * `paths`, route keys' paths (D-350); `index: true`
  * gives a collection or taxonomy its index page (D-255), `{folder}/index.md`
- * titled with its plural name, when it has none, and `authorsPage: true`
- * gives a type with author archives its authors page (D-329),
- * `{folder}/_authors.md` titled with the authors type's plural name,
- * when it has none. A change that doesn't
+ * titled with its plural name, when it has none, and `listPages` (people
+ * field names, D-353) gives each of those fields with archives its list
+ * page, `{folder}/_{field}.md` titled with the field's plural name, when
+ * it has none; `authorsPage: true` is short for `authors`. A change that doesn't
  * fit (an unknown option, a field that isn't one, two types in one
  * folder) is a `422` with the reason, and nothing is written.
  *
@@ -105,7 +105,7 @@ final readonly class TypeEditController
 		$folder = is_string($input['folder'] ?? null) ? $input['folder'] : null;
 
 		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->create($name, $kind, $folder, $set), $name, ($input['index'] ?? false) === true, ($input['authorsPage'] ?? false) === true, Status::Created);
+		return $this->changed(fn (): ContentTypes => $this->writer->create($name, $kind, $folder, $set), $name, ($input['index'] ?? false) === true, self::listPages($input), Status::Created);
 	}
 
 	public function update(ServerRequestInterface $request, string $name): ResponseInterface
@@ -122,7 +122,7 @@ final readonly class TypeEditController
 		}
 
 		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $set), $name, ($input['index'] ?? false) === true, ($input['authorsPage'] ?? false) === true);
+		return $this->changed(fn (): ContentTypes => $this->writer->update($name, $set), $name, ($input['index'] ?? false) === true, self::listPages($input));
 	}
 
 	public function delete(ServerRequestInterface $request, string $name): ResponseInterface
@@ -149,7 +149,7 @@ final readonly class TypeEditController
 			return self::forbidden();
 		}
 
-		return $this->changed(fn (): ContentTypes => $this->writer->reset($name), $name, false, false);
+		return $this->changed(fn (): ContentTypes => $this->writer->reset($name), $name, false, []);
 	}
 
 	public function refresh(ServerRequestInterface $request): ResponseInterface
@@ -177,11 +177,12 @@ final readonly class TypeEditController
 
 	/**
 	 * Makes a change, then compiles the types, adds the index page and
-	 * the authors page when asked, and answers with the type.
+	 * people fields' list pages when asked, and answers with the type.
 	 *
 	 * @param Closure(): ContentTypes $change
+	 * @param list<string>            $listPages The people fields to give list pages.
 	 */
-	private function changed(Closure $change, string $name, bool $index, bool $authorsPage, Status $status = Status::Ok): ResponseInterface
+	private function changed(Closure $change, string $name, bool $index, array $listPages, Status $status = Status::Ok): ResponseInterface
 	{
 		try {
 			$types = $change();
@@ -193,8 +194,8 @@ final readonly class TypeEditController
 				$this->addIndex($type);
 			}
 
-			if ($authorsPage) {
-				$this->addAuthorsPage($types, $type);
+			foreach ($listPages as $field) {
+				$this->addListPage($types, $type, $field);
 			}
 		} catch (InvalidContentType $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
@@ -249,32 +250,47 @@ final readonly class TypeEditController
 	}
 
 	/**
-	 * Gives a type its authors page (D-329), unless it has one or has no
-	 * author archives.
+	 * Gives a type a people field's list page (`_cooks`, D-353), titled
+	 * with the field's plural name, unless it has one or the field has no
+	 * archives.
 	 *
 	 * @throws InvalidContentType
 	 */
-	private function addAuthorsPage(ContentTypes $types, ContentType $type): void
+	private function addListPage(ContentTypes $types, ContentType $type, string $name): void
 	{
-		$authors = $types->authors();
+		$field = $type->archivedPeople()[$name] ?? null;
 
-		if ($authors === null || $type->folder === '' || ! $type->hasAuthorArchives()) {
-			throw new InvalidContentType(sprintf('%s have no author archives.', $type->labels->plural));
+		if ($types->profiles() === null || $type->folder === '' || $field === null) {
+			throw new InvalidContentType(sprintf('%s have no "%s" archives.', $type->labels->plural, $name));
 		}
 
 		$folder = "{$this->paths->content}/{$type->folder}";
 
-		if (glob("{$folder}/" . AuthorsController::PAGE . '.*') !== []) {
+		if (glob("{$folder}/{$field->listPage()}.*") !== []) {
 			return;
 		}
 
-		$title = json_encode($authors->labels->plural, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
+		$title = json_encode($field->plural, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
 
 		try {
-			$this->filesystem->writeAtomic("{$folder}/" . AuthorsController::PAGE . '.md', "---\ntitle: {$title}\n---\n");
+			$this->filesystem->writeAtomic("{$folder}/{$field->listPage()}.md", "---\ntitle: {$title}\n---\n");
 		} catch (Throwable $error) {
-			throw new InvalidContentType(sprintf('The type was saved, but its authors page couldn\'t be written in %s.', $this->paths->relative($folder)), previous: $error);
+			throw new InvalidContentType(sprintf('The type was saved, but its %s page couldn\'t be written in %s.', mb_strtolower($field->plural), $this->paths->relative($folder)), previous: $error);
 		}
+	}
+
+	/**
+	 * Returns the people fields a request asks list pages for:
+	 * `listPages` (field names), and `authorsPage: true` for `authors`.
+	 *
+	 * @param  array<array-key, mixed> $input
+	 * @return list<string>
+	 */
+	private static function listPages(array $input): array
+	{
+		$fields = is_array($input['listPages'] ?? null) ? array_values(array_filter($input['listPages'], is_string(...))) : [];
+
+		return array_values(array_unique([...$fields, ...(($input['authorsPage'] ?? false) === true ? [PeopleField::AUTHORS] : [])]));
 	}
 
 	/**

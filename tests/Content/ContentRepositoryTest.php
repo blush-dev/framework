@@ -312,7 +312,7 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame('Book Reviews', $reviews->title);
 		$this->assertTrue($reviews->isVirtual());
 		$this->assertSame('', $reviews->body());
-		$this->assertSame('Justin Tadlock', $this->content->term('author', 'justintadlock')?->title, 'Authors are terms too (D-329).');
+		$this->assertSame('Justin Tadlock', $this->content->term('profile', 'justintadlock')?->title, 'Profiles are terms too (D-351).');
 		$this->assertNull($this->content->term('category', 'unused'));
 		$this->assertNull($this->content->term('post', 'welcome'));
 		$this->assertSame(['old-posts' => 1, 'art' => 1, 'book-reviews' => 1], $this->content->termCounts('category'));

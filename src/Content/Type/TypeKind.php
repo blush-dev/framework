@@ -22,7 +22,7 @@ enum TypeKind: string
 	case Collection = 'collection';
 	case Taxonomy   = 'taxonomy';
 	case Pages      = 'pages';
-	case Authors    = 'authors';
+	case Profiles   = 'profiles';
 
 	/**
 	 * Returns the options a kind's definitions may use, beyond `name` and
@@ -33,17 +33,17 @@ enum TypeKind: string
 	public function options(): array
 	{
 		return match ($this) {
-			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'authors', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'authors', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Pages      => ['folder', 'public', 'sitemap', 'authors', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Authors    => ['folder', 'field', 'aliases', 'public', 'fields', 'closed', 'labels', 'description', 'icon']
+			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Pages      => ['folder', 'public', 'sitemap', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Profiles   => ['folder', 'urls', 'listing', 'feed', 'public', 'sitemap', 'fields', 'closed', 'labels', 'description', 'icon']
 		};
 	}
 
 	/**
 	 * Returns whether a type of this kind defined in code may be changed
 	 * by a data file over it (D-349). The site has one pages type and
-	 * one authors type, so those stay as the code defines them.
+	 * one profiles type, so those stay as the code defines them.
 	 */
 	public function isOverridable(): bool
 	{

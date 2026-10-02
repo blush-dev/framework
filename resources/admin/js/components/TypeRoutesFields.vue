@@ -1,16 +1,16 @@
 <script setup lang="ts">
 /**
  * A content type's addresses (D-350): each route key it answers at (its
- * listing and date archives, entries or terms, feeds, and author
- * archives), with the path after its prefix, edited in place. An empty
+ * listing and date archives, entries or terms, feeds, and each people
+ * field's archives), with the path after its prefix, edited in place. An empty
  * path is the key's default, shown as the placeholder. Each row says
  * which {placeholders} it needs and may hold, and shows the whole
  * address; the server checks them on save.
  */
 
 import { computed } from 'vue';
-import type { TypeRoute } from '../api';
-import { pathOf, type TypeForm } from '../type-form';
+import type { PeopleFieldInfo, TypeRoute } from '../api';
+import { pathOf, peopleWordOf, type TypeForm } from '../type-form';
 
 const props = defineProps<{
 	idPrefix: string;
@@ -18,10 +18,9 @@ const props = defineProps<{
 	// The prefix the addresses sit under, without slashes.
 	prefix: string;
 	taxonomy: boolean;
-	// The word author archives sat under when the type was loaded, and
-	// the one the form has now, so their defaults follow it.
-	authorsWord: string | false | null;
-	formAuthorsWord: string | false;
+	// The people fields as loaded, whose route keys' defaults follow the
+	// words the form gives them now (D-353).
+	people: PeopleFieldInfo[];
 	// Whether the type may set its URLs (`dataTypeUrls`).
 	editable: boolean;
 }>();
@@ -39,7 +38,8 @@ function labelOf(key: string): string {
 	let label: string;
 
 	if (feed) {
-		const what = ({ collection: 'Feed', single: props.taxonomy ? 'Term feed' : 'Feed', 'authors.single': 'Author feed' } as Record<string, string>)[feed[1] ?? ''] ?? 'Feed';
+		const person = props.people.find((item) => feed[1] === `${item.field}.single`);
+		const what   = person ? `${person.singular} feed` : (({ collection: 'Feed', single: props.taxonomy ? 'Term feed' : 'Feed' } as Record<string, string>)[feed[1] ?? ''] ?? 'Feed');
 
 		return `${what} (${FEEDS[feed[2] ?? ''] ?? 'RSS'})`;
 	}
@@ -52,10 +52,10 @@ function labelOf(key: string): string {
 		label = `${LEVELS[level[1] ?? '']} archive`;
 	} else if (base === 'single') {
 		label = props.taxonomy ? 'Term' : 'Entry';
-	} else if (base === 'authors.collection') {
-		label = 'Authors';
-	} else if (base === 'authors.single') {
-		label = 'Author archive';
+	} else if (fieldOf(base)?.[1] === 'collection') {
+		label = fieldOf(base)?.[0].plural ?? key;
+	} else if (fieldOf(base)?.[1] === 'single') {
+		label = `${fieldOf(base)?.[0].singular ?? key} archive`;
 	} else {
 		label = key;
 	}
@@ -63,12 +63,30 @@ function labelOf(key: string): string {
 	return paged ? `${label}, later pages` : label;
 }
 
-// A key's default with the form's author word in place of the loaded one.
-function defaultOf(route: TypeRoute): string {
-	const was = props.authorsWord;
-	const now = props.formAuthorsWord;
+// The people field a route key belongs to, and the rest of the key
+// (`collection`, `single`, …), or `null`.
+function fieldOf(key: string): [PeopleFieldInfo, string] | null {
+	const field = props.people.find((item) => key.startsWith(`${item.field}.`));
 
-	if (!route.key.startsWith('authors.') || typeof was !== 'string' || typeof now !== 'string' || was === now) {
+	return field ? [field, key.slice(field.field.length + 1)] : null;
+}
+
+// The word the form gives a loaded people field now: `false` once its
+// archives are off or it's removed.
+function formWord(field: PeopleFieldInfo): string | false {
+	const now = form.value.people?.find((item) => item.field === field.field && !item.added);
+
+	return now ? peopleWordOf(now) : false;
+}
+
+// A key's default with its field's word from the form in place of the
+// loaded one.
+function defaultOf(route: TypeRoute): string {
+	const field = fieldOf(route.key)?.[0];
+	const was   = field?.archive;
+	const now   = field ? formWord(field) : false;
+
+	if (field === undefined || typeof was !== 'string' || typeof now !== 'string' || was === now) {
 		return route.default;
 	}
 
@@ -85,8 +103,12 @@ function braced(names: string[]): string {
 	return names.map((name) => `{${name}}`).join(' ');
 }
 
-// Author archives show only while the form has them.
-const shown = computed(() => props.routes.filter((route) => !route.key.startsWith('authors.') || props.formAuthorsWord !== false));
+// A people field's archives show only while the form has them.
+const shown = computed(() => props.routes.filter((route) => {
+	const field = fieldOf(route.key)?.[0];
+
+	return field === undefined || formWord(field) !== false;
+}));
 </script>
 
 <template>

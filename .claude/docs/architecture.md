@@ -382,7 +382,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   A data file named for a code collection or taxonomy overrides it
   instead (D-349: `ContentType::overriddenBy()`, each option it sets
   replacing the code's; the type keeps its origin, and
-  `ContentTypes::isOverridden()` says so); the code's pages and authors
+  `ContentTypes::isOverridden()` says so); the code's pages and profiles
   types can't be. `ContentTypeLoader::codeTypes()` returns the types
   before data, which `DataTypeWriter` writes overrides against.
   `TypeRouteKeys` lists a type's route keys and what each path holds
@@ -393,14 +393,20 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   `disabled` built-ins, and `autoIndex`. The resolved types compile to
   `storage/cache/content-types.php` outside development (D-092).
 - **Built-in types:** `page` (`Pages`, the catch-all, folder `''`) and
-  `author` (D-043, D-329, D-330: `Authors`, the fourth kind, folder
-  `authors`, term field `authors` with alias `author`, no routes and not
-  served as pages). Both can be redefined, and `author` can be disabled.
-  A site has at most one `Authors` type (`ContentTypes::authors()`).
-  Each other type's `authors` flag (collections on, pages and
-  taxonomies off) decides whether its schema gets the authors field.
-  `ContentTypes::termTypes()` is the taxonomies plus the authors type:
-  the types the index keeps terms (and virtual terms) for.
+  `profile` (D-043, D-351, D-352: `Profiles`, the fourth kind, folder
+  `profiles`, routed only at `single` (`/profiles/{name}`) and its paged
+  and feed keys, not served as pages, with an `avatar` media field).
+  Both can be redefined, and `profile` can be disabled. A site has at
+  most one `Profiles` type (`ContentTypes::profiles()`). Other types
+  credit profiles through their **people fields** (`PeopleField`,
+  `ContentType::$people`, keyed by front matter field; collections get
+  `authors` reading `author`, pages and taxonomies none), each a
+  `ReferenceField` to the profiles type in the schema. A people field
+  reading a key a taxonomy reads is dropped at load
+  (`ContentType::withoutPeopleReading()`), so 1.x `author` taxonomies
+  keep working. `ContentTypes::termTypes()` is the taxonomies plus the
+  profiles type: the types the index keeps terms (and virtual terms)
+  for.
 - **`Schema`** (`Blush\Field`, D-338): field types `text`, `markdown`,
   `date`, `bool`, `number`, `enum`, `list`, `reference`, `media`, `slug`,
   and `object` (`FieldType` enum, `FieldRegistry`, `FieldFactory`,
@@ -472,16 +478,24 @@ Implemented in M4a (D-080, D-085, D-086).
 - The index stores each entry's terms (forward) and the entries per term
   (reverse); `termCounts()` counts listed entries. Other reference fields
   are forward-only for now.
-- **Authors** (D-043, D-329) are entries of the built-in `author` type,
-  credited through the `authors` field by the types that support
-  authors. They're indexed like terms (forward, reverse, virtual), but
-  have no pages of their own. Each type with author archives
-  (`ContentType::hasAuthorArchives()` and an authors type,
-  `ContentUrls::hasAuthorArchives()`) has `{type}.authors.collection`
-  (`AuthorsController`, the authors `AuthorArchives` finds, with the
-  type's hidden `_authors` page) and `{type}.authors.single`
-  (`AuthorController`, paged, with feeds) under its prefix, the word from
-  `TypeUrls::$authors` (D-331).
+- **Profiles** (D-351, D-352) are entries of the profiles type, indexed
+  like terms (forward, reverse, virtual). An entry's credits are kept
+  twice in its record's `terms`: per people field
+  (`PeopleField::termKey()`, `profile.cooks`) and together under the
+  profiles type's name. The repository reads 1.x's `author` query
+  argument, `whereAuthor()`, and `orderby: author` as the profiles type
+  (`Query::withTaxonomyRenamed()`) unless a type is named `author`.
+  Each profile's page (`ProfileController`, `PageKind::Profile`) lists
+  every crediting type's entries. Each people field with archives
+  (`ContentType::archivedPeople()`, `ContentUrls::hasArchive()`) has
+  `{type}.{field}.collection` (`PeopleController`, the profiles
+  `PeopleArchives::credited()` finds, with the type's hidden
+  `_{field}` page) and `{type}.{field}.single` (`PersonController`,
+  paged, with feeds) under its prefix, at the field's archive word.
+  A person's archive is introduced by `_{field}/{slug}` in the type's
+  folder when it's published, else the profile. `PeopleArchives::
+  profiles()` lists every profile with a page, for the sitemap and
+  export.
 
 ## Source → Index → Repository
 

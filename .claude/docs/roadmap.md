@@ -365,17 +365,17 @@ dynamically).
   and writer; (4) media (done, D-341), theme settings (on hold, D-342), site
   settings (done, D-343), and accounts (on hold with the authors work,
   D-344) as later consumers.
-- **Authors (D-329, on hold, D-333):** built as an exploration and
-  kept, but the author is still thinking the design over, so treat it
-  as provisional: `author` as its own kind with an
-  `authors` field that types opt into, and the lint warning for credited
-  authors with no entry (D-330); per-type author archives with feeds,
-  bylines, and `_authors` pages (D-331); and the admin: the type
-  editor's Authors settings, the pinned authors page, one People list,
-  Your Profile as the author page's editor, and one name (D-332).
-  Later: schema.org `Person` with structured data in general, and an
-  administrator editing someone else's profile as the editor (today
-  the account screen links to their author page).
+- **Profiles (D-351; replaces D-329 to D-333):** accounts,
+  profiles, and bylines as three nouns, from the author's profiles
+  sketch. (1, done, D-352) Content and routing: the `profiles` kind with a canonical
+  `{base}/{slug}`, people fields per type (plural, each with its own
+  archive word), per-field lists with `_{field}` intro pages, per-profile
+  index pages that fall back to the profile's body, feeds, sitemap,
+  export, lint, and the jtcom trial. (2, done, D-353) The admin: Accounts and
+  Profiles as two lists under People, the profile screen (where it
+  appears), the account's Public profile panel, and the type editor's
+  People panel. Later: Import from accounts, profile capabilities,
+  and schema.org `Person` with structured data in general.
 - **Relationships (D-242, planned):** a reverse index for every
   reference field, keyed by field, with a template API and "Used by" in
   the admin; then "lists what references it" as a setting for any type,

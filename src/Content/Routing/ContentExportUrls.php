@@ -14,12 +14,13 @@ declare(strict_types=1);
 namespace Blush\Content\Routing;
 
 use Override;
-use Blush\Content\AuthorArchives;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
+use Blush\Content\PeopleArchives;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Visibility;
 use Blush\Export\ExportUrl;
@@ -36,8 +37,9 @@ use Blush\Export\UrlSource;
  * 4. Each date archive level of each type with archives, for every
  *    period a listed entry was published in, paged. Periods whose
  *    listing turns out empty are 404s, and so are skipped.
- * 5. Each type's authors list and author archives (D-329), paged.
- * 6. Every published entry with a URL, unlisted ones included.
+ * 5. Each people field's list and person archives, and each profile's
+ *    page, real or virtual (D-351), paged.
+ * 6. Every other published entry with a URL, unlisted ones included.
  */
 final readonly class ContentExportUrls implements UrlSource
 {
@@ -50,7 +52,7 @@ final readonly class ContentExportUrls implements UrlSource
 		private ContentRepository $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private AuthorArchives $archives
+		private PeopleArchives $archives
 	) {}
 
 	/**
@@ -68,7 +70,7 @@ final readonly class ContentExportUrls implements UrlSource
 		$types = array_filter($this->types->all(), static fn (ContentType $type): bool => $type->public && $type->hasUrls());
 
 		foreach ($types as $type) {
-			$path = $this->urls->collection($type);
+			$path = $type instanceof Profiles ? null : $this->urls->collection($type);
 
 			if ($path !== null) {
 				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->collection($type, $page));
@@ -88,13 +90,21 @@ final readonly class ContentExportUrls implements UrlSource
 		}
 
 		foreach ($types as $type) {
-			yield from $this->authors($type);
+			yield from $this->people($type);
+		}
+
+		foreach ($this->archives->profiles() as $profile) {
+			$path = $this->urls->profile($profile->slug);
+
+			if ($path !== null) {
+				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->profile($profile->slug, $page));
+			}
 		}
 
 		$entries = $this->content->query()->visibility(Visibility::Public, Visibility::Unlisted)->withLanding()->get();
 
 		foreach ($entries as $entry) {
-			$path = $this->urls->entry($entry);
+			$path = $entry->type instanceof Profiles ? null : $this->urls->entry($entry);
 
 			if ($path !== null) {
 				yield new ExportUrl($path);
@@ -125,24 +135,26 @@ final readonly class ContentExportUrls implements UrlSource
 	}
 
 	/**
-	 * Returns a type's authors list and author archives.
+	 * Returns each of a type's people fields' lists and person archives.
 	 *
 	 * @return iterable<ExportUrl>
 	 */
-	private function authors(ContentType $type): iterable
+	private function people(ContentType $type): iterable
 	{
-		$authors = $this->urls->hasAuthorArchives($type) ? $this->archives->authors($type) : [];
-		$list    = $authors === [] ? null : $this->urls->authors($type);
+		foreach ($type->archivedPeople() as $field) {
+			$people = $this->urls->hasArchive($type, $field) ? $this->archives->credited($type, $field) : [];
+			$list   = $people === [] ? null : $this->urls->people($type, $field);
 
-		if ($list !== null) {
-			yield new ExportUrl($list);
-		}
+			if ($list !== null) {
+				yield new ExportUrl($list);
+			}
 
-		foreach ($authors as $author) {
-			$path = $this->urls->author($type, $author->slug);
+			foreach ($people as $person) {
+				$path = $this->urls->person($type, $field, $person->slug);
 
-			if ($path !== null) {
-				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->author($type, $author->slug, $page));
+				if ($path !== null) {
+					yield new ExportUrl($path, fn (int $page): ?string => $this->urls->person($type, $field, $person->slug, $page));
+				}
 			}
 		}
 	}

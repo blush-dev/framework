@@ -45,6 +45,11 @@ use Blush\Core\AppConfig;
  */
 final class IndexedRepository implements ContentRepository
 {
+	/**
+	 * The name 1.x queries credit people by.
+	 */
+	private const string AUTHOR = 'author';
+
 	private bool $checked = false;
 
 	/**
@@ -76,9 +81,22 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function get(Query $query): EntryCollection
 	{
-		$selection = $this->fresh()->select($query, $this->now());
+		$selection = $this->fresh()->select($this->resolved($query), $this->now());
 
 		return new EntryCollection($selection->ids, $selection->total, $this->load(...));
+	}
+
+	/**
+	 * Returns a query with 1.x's `author` reading the profiles type
+	 * (D-351), unless a type is named `author`.
+	 */
+	private function resolved(Query $query): Query
+	{
+		$profiles = $this->types->profiles()?->name;
+
+		return $profiles === null || $profiles === self::AUTHOR || $this->types->has(self::AUTHOR)
+			? $query
+			: $query->withTaxonomyRenamed(self::AUTHOR, $profiles);
 	}
 
 	/**
@@ -99,7 +117,7 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function count(Query $query): int
 	{
-		return $this->fresh()->select($query->limit(0), $this->now())->total;
+		return $this->fresh()->select($this->resolved($query)->limit(0), $this->now())->total;
 	}
 
 	/**

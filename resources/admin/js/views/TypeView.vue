@@ -43,7 +43,7 @@ watch(type, (value) => {
 });
 
 const taxonomy = computed(() => type.value?.kind === 'taxonomy');
-const people   = computed(() => type.value?.kind === 'authors');
+const people   = computed(() => type.value?.kind === 'profiles');
 
 const origin = computed(() => ({
 	'built-in': 'Built in',
@@ -126,7 +126,7 @@ const related = computed(() => {
 					<p v-else-if="people" class="field__help">No type credits authors yet.</p>
 					<p v-else-if="taxonomy" class="field__help">Every type, so it's under Shared taxonomies in the navigation.</p>
 					<p v-else class="field__help">No taxonomy groups it.</p>
-					<p v-if="people" class="field__help">Authors are the public side of accounts, so they're under People in the navigation.</p>
+					<p v-if="people" class="field__help">Profiles are the public side of accounts, so they're under People in the navigation.</p>
 					<p v-if="taxonomy && related.length === 1" class="field__help">One type, so it sits under {{ related[0]?.label }} in the navigation.</p>
 				</div>
 			</section>

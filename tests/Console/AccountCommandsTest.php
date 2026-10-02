@@ -89,8 +89,8 @@ final class AccountCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('The "sam" author has no page for its name and bio yet. Create it?', $result->output);
-		$this->assertStringContainsString('Created the author page user/content/authors/sam.md.', $result->output);
-		$this->assertStringContainsString('title: "Sam Smith"', (string) file_get_contents($this->temporaryDirectory() . '/user/content/authors/sam.md'));
+		$this->assertStringContainsString('Created the author page user/content/profiles/sam.md.', $result->output);
+		$this->assertStringContainsString('title: "Sam Smith"', (string) file_get_contents($this->temporaryDirectory() . '/user/content/profiles/sam.md'));
 		$this->assertSame(['editor', 'author'], $this->store()->find('sam')?->roles);
 		$this->assertSame('sam', $this->store()->find('sam')->author);
 		$this->assertSame(ExitCode::Success, $this->command('account:author sam sam', ['unused'])->exitCode, 'An author with a page isn\'t offered another.');
@@ -102,7 +102,7 @@ final class AccountCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('Bylines show "lee" until the author has a page', $result->errors . $result->output);
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/authors/lee.md');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/profiles/lee.md');
 		$this->assertSame('lee', $this->store()->find('lee')?->author);
 	}
 

@@ -184,6 +184,29 @@ final class FilesystemWriterTest extends TestCase
 		$this->writer()->create($this->app->container()->make(ContentTypes::class)->get('post'), 'fresh-start', new EntryChanges(set: ['title' => 'Again']));
 	}
 
+	public function testCreatesPagesAtTheirKeys(): void
+	{
+		$post = $this->app->container()->make(ContentTypes::class)->get('post');
+		$page = $this->writer()->createAt($post, '_authors/jane', new EntryChanges(set: ['title' => 'Jane, Blogger']));
+
+		$this->assertSame('_posts/_authors/jane.md', $page->id, 'Undated, at its key (D-353).');
+		$this->assertSame("---\ntitle: \"Jane, Blogger\"\n---\n", $this->file($page->id));
+
+		foreach (['__authors/jane', '_authors/Jane Doe', '../escape', '_authors//jane'] as $key) {
+			try {
+				$this->writer()->createAt($post, $key, new EntryChanges());
+				$this->fail($key);
+			} catch (WriteException $e) {
+				$this->assertStringContainsString('isn\'t a page key', $e->getMessage(), $key);
+			}
+		}
+
+		$this->expectException(WriteException::class);
+		$this->expectExceptionMessage('already exists');
+
+		$this->writer()->createAt($post, '_authors/jane', new EntryChanges(), 'json');
+	}
+
 	public function testEditsJsonAndYamlEntries(): void
 	{
 		$this->writeTemporaryFile('user/content/data.yaml', "# Kept.\ntitle: Data\nbody: Old\n");

@@ -190,6 +190,7 @@ final readonly class EntryController
 			'type'        => $this->typeOf($type, $fields),
 			'index'       => false,
 			'authorsPage' => false,
+			'peoplePage'  => null,
 			'values'      => $this->authorDefault($account, $type->name),
 			'extra'       => [],
 			'body'        => '',
@@ -611,7 +612,9 @@ final readonly class EntryController
 			return 'You aren\'t allowed to publish that entry; keep it a draft.';
 		}
 
-		$field = $this->authorField();
+		// The main byline (the type's first people field, D-351) is what
+		// makes an entry yours.
+		$field = $this->types->profiles() === null ? null : array_first($entry->type->people)?->field;
 
 		if ($field === null || $this->permissions->can($account, Capability::ContentEditOthers, $entry)) {
 			return null;
@@ -700,27 +703,19 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Returns the account's author for a new entry's authors, when the
-	 * type supports authors (D-329).
+	 * Returns the account's profile for a new entry's main byline: the
+	 * type's first people field (D-351), when it has one and the site has
+	 * a profiles type.
 	 *
-	 * @return array<string, list<string>>
+	 * @return array<string, list<string>|string>
 	 */
 	private function authorDefault(Account $account, string $type): array
 	{
-		$field = $this->authorField();
+		$field = array_first($this->types->get($type)->people);
 
-		return $field === null || $account->author === null || ! $this->types->get($type)->authors
+		return $field === null || $account->author === null || $this->types->profiles() === null
 			? []
-			: [$field => [$account->author]];
-	}
-
-	/**
-	 * Returns the field entries credit authors through (`authors`), or
-	 * `null` when the site has no authors type.
-	 */
-	private function authorField(): ?string
-	{
-		return $this->types->authors()?->field;
+			: [$field->field => $field->multiple ? [$account->author] : $account->author];
 	}
 
 	/**
@@ -773,14 +768,16 @@ final readonly class EntryController
 	private function describe(Account $account, Entry $entry, EditableEntry $file): array
 	{
 		$index  = IndexPage::is($entry);
-		$people = AuthorsPage::is($entry);
+		$people = PeoplePage::is($entry);
+		$person = PeoplePage::isPerson($entry);
 		$fields = $this->types->schema($entry->type->name)->fields;
 
 		// An index page describes the type's archive, not one of its
 		// entries, so the type's fields don't apply; its title and status
-		// do. With no date field, it can't be scheduled. A type's authors
-		// page (D-329) introduces its authors list the same way.
-		if ($index || $people) {
+		// do. With no date field, it can't be scheduled. A people field's
+		// list page, and a page written for a person's archive under it
+		// (D-353), introduce their pages the same way.
+		if ($index || $people || $person) {
 			$fields = array_filter($fields, static fn (Field $field): bool => in_array($field->name, ['title', 'status'], true));
 		}
 
@@ -809,15 +806,16 @@ final readonly class EntryController
 			'type'        => $this->typeOf($entry->type, $fields),
 			'index'       => $index,
 			'authorsPage' => $people,
+			'peoplePage'  => $this->peoplePage($entry),
 			'values'      => $values,
 			'extra'       => $extra,
 			'body'        => substr($file->body, strlen(DocumentEditor::gap($file->body))),
 			'can'         => [
 				'edit'      => $this->permissions->can($account, Capability::ContentEdit, $entry),
 				'publish'   => $this->permissions->can($account, Capability::ContentPublish, $entry),
-				'rename'    => ! $entry->landing && ! $people,
-				'delete'    => ! $index && $this->permissions->can($account, Capability::ContentDelete, $entry),
-				'duplicate' => ! $entry->landing && ! $people && $this->permissions->can($account, Capability::ContentCreate)
+				'rename'    => ! $entry->landing && ! $people && ! $person,
+				'delete'    => ! $index && ! $person && $this->permissions->can($account, Capability::ContentDelete, $entry),
+				'duplicate' => ! $entry->landing && ! $people && ! $person && $this->permissions->can($account, Capability::ContentCreate)
 			],
 			'violations'  => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,
@@ -825,6 +823,35 @@ final readonly class EntryController
 				'severity' => $violation->severity->value
 			], $this->linter->lintFile($file->id))
 		];
+	}
+
+	/**
+	 * Describes the people page an entry is (D-353), or `null`: the
+	 * people field's `field` and plural `label`, and for a page written
+	 * for one person's archive, the profile's `profile` slug and
+	 * `profileTitle` (`null` for a field's list page).
+	 *
+	 * @return ?array{field: string, label: string, profile: ?string, profileTitle: ?string}
+	 */
+	private function peoplePage(Entry $entry): ?array
+	{
+		$list = PeoplePage::fieldOf($entry);
+
+		if ($list !== null) {
+			return ['field' => $list->field, 'label' => $list->plural, 'profile' => null, 'profileTitle' => null];
+		}
+
+		$field = PeoplePage::personField($entry);
+
+		if ($field === null) {
+			return null;
+		}
+
+		$slug     = basename($entry->key);
+		$profiles = $this->types->profiles();
+		$profile  = $profiles === null ? null : $this->content->term($profiles->name, $slug);
+
+		return ['field' => $field->field, 'label' => $field->plural, 'profile' => $slug, 'profileTitle' => $profile->title ?? $slug];
 	}
 
 	/**

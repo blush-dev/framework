@@ -22,9 +22,9 @@ use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Query;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
-use Blush\Content\Type\Authors;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Pages;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Routing\PageRoutes;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
@@ -250,7 +250,8 @@ final readonly class Linter
 
 	/**
 	 * Returns notices for terms the entry references that have no file,
-	 * and warnings for credited authors without one (D-329).
+	 * and warnings for credited profiles without one (D-351), by the
+	 * people field that credits them.
 	 *
 	 * @return list<Violation>
 	 */
@@ -258,17 +259,25 @@ final readonly class Linter
 	{
 		$notices = [];
 
-		foreach ($record->terms as $taxonomy => $slugs) {
-			$type  = $this->types->find($taxonomy);
-			$term  = $type?->termField();
-			$field = $term === null ? $taxonomy : $term->name;
+		foreach ($record->terms as $key => $slugs) {
+			$parts    = explode('.', $key, 2);
+			$taxonomy = $parts[0];
+			$people   = $parts[1] ?? null;
+			$type     = $this->types->find($taxonomy);
+
+			// The profiles type's own key holds every people field's credits together.
+			if ($type instanceof Profiles && $people === null) {
+				continue;
+			}
+
+			$field = $people ?? $type?->termField()->name ?? $taxonomy;
 
 			foreach ($slugs as $slug) {
 				if ($snapshot->find($record->locale, $taxonomy, $slug) !== null) {
 					continue;
 				}
 
-				$notices[] = $type instanceof Authors
+				$notices[] = $type instanceof Profiles
 					? new Violation($field, sprintf('"%s" has no %s entry, so it has no public name or bio; add one.', $slug, $type->labels->item), Severity::Warning)
 					: new Violation($field, sprintf('"%s" has no %s entry; a virtual term stands in.', $slug, $taxonomy), Severity::Notice);
 			}

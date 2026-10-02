@@ -22,8 +22,9 @@ const collapsed = ref(new Set<string>());
  * The type's index page, when there is one, is `pinned` in a body of its
  * own above the rest (D-255): the same row, tinted, with a pin and an
  * **Index** tag, and never with **Duplicate** or **Move to trash**. Its
- * authors page (D-329) is pinned under it the same way, tagged
- * **Authors**, and may be trashed.
+ * people field's list page (D-329, D-353) is pinned under it the same
+ * way, tagged with the field's name (**Authors**, **Cooks**), and may be
+ * trashed.
  *
  * A tree page that starts inside a branch begins with the entries above
  * it, marked **Continued** (D-263). Collapsing a branch hides the rows
@@ -44,6 +45,7 @@ const collapsed = ref(new Set<string>());
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { entryRoute, type EntrySort, type EntrySummary } from '../api';
+import { listRoute } from '../types';
 import { config } from '../config';
 import { formatDate } from '../format';
 import { toast } from '../toast';
@@ -51,13 +53,16 @@ import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import StatusPill from './StatusPill.vue';
 
-const { terms = false, pinned = [], entries, sortable = false, sort = null, dir = null, dateKey, dateLabel, selectable = false } = defineProps<{
+const { terms = false, profiles = false, pinned = [], entries, sortable = false, sort = null, dir = null, dateKey, dateLabel, selectable = false } = defineProps<{
 	entries: EntrySummary[];
 	pinned?: EntrySummary[];
 	labelledby: string;
 	dateLabel: string;
 	dateKey: 'updated' | 'published';
 	terms?: boolean;
+	// Profiles (D-353): named, with the account each is linked to (a
+	// guest without one) and how many published entries credit them.
+	profiles?: boolean;
 	sortable?: boolean;
 	sort?: EntrySort | null;
 	dir?: 'asc' | 'desc' | null;
@@ -73,7 +78,13 @@ defineEmits<{
 }>();
 
 // The headers, and what each sorts by (`null` for none).
-const columns = computed<{ label: string; sort: EntrySort | null; class?: string }[]>(() => [
+const columns = computed<{ label: string; sort: EntrySort | null; class?: string }[]>(() => profiles ? [
+	{ label: 'Name', sort: 'title' },
+	{ label: 'Status', sort: 'status' },
+	{ label: 'Account', sort: null },
+	{ label: 'Bylines', sort: null, class: 'table__count' },
+	{ label: dateLabel, sort: dateKey === 'updated' ? 'updated' : null }
+] : [
 	{ label: 'Title', sort: 'title' },
 	{ label: 'Status', sort: 'status' },
 	terms ? { label: 'Entries', sort: null, class: 'table__count' } : { label: 'Authors', sort: 'author' },
@@ -126,7 +137,7 @@ const chosen    = computed(() => choosable.value.filter((id) => selected.value.i
 const allState  = computed<'true' | 'false' | 'mixed'>(() => chosen.value === 0 ? 'false' : (chosen.value === choosable.value.length ? 'true' : 'mixed'));
 
 function pinTitle(entry: EntrySummary): string {
-	return entry.index ? 'Pinned: the index page for this type' : 'Pinned: the page introducing this type\'s authors';
+	return entry.index ? 'Pinned: the index page for this type' : `Pinned: the page introducing this type's ${(entry.peopleLabel ?? 'people').toLowerCase()}`;
 }
 
 function canSelect(entry: EntrySummary): boolean {
@@ -212,12 +223,12 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 							<span class="entry-title__text">
 								<span v-if="(entry.index || entry.authorsPage) && !selectable" class="entry-title__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /></span>
 								<span v-if="entry.depth === null && entry.ancestors.length" class="entry-title__ancestors">{{ entry.ancestors.join(' › ') }} ›{{ ' ' }}</span>
-								<RouterLink class="entry-title__link" :to="entryRoute(entry)">
+								<RouterLink class="entry-title__link" :to="listRoute(entry)">
 									<template v-if="entry.title">{{ entry.title }}</template>
 									<span v-else class="untitled">Untitled</span>
 								</RouterLink>
 								<template v-if="entry.index">{{ ' ' }}<span class="index-mark">Index</span></template>
-								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">Authors</span></template>
+								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">{{ entry.peopleLabel ?? 'People' }}</span></template>
 								{{ ' ' }}<span v-if="entry.own" class="tag">Yours</span>
 								{{ ' ' }}<span v-if="entry.continued" class="tag" title="Listed on an earlier page; shown again above the entries under it">Continued</span>
 							</span>
@@ -226,7 +237,12 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 						</span>
 					</th>
 					<td><StatusPill :status="entry.status" /></td>
-					<td v-if="terms" class="table__meta table__count">{{ entry.uses?.toLocaleString() ?? '—' }}</td>
+					<td v-if="profiles">
+						<template v-if="entry.account">{{ entry.account.displayName }}{{ ' ' }}<span class="entry-title__path mono">{{ entry.account.username }}</span></template>
+						<template v-else-if="entry.linked">Linked</template>
+						<span v-else class="tag" title="No account is linked to this profile">Guest</span>
+					</td>
+					<td v-if="terms || profiles" class="table__meta table__count">{{ entry.uses?.toLocaleString() ?? '—' }}</td>
 					<td v-else class="table__meta">{{ entry.authors.join(', ') || '—' }}</td>
 					<td class="table__meta">
 						<time v-if="entry[dateKey]" :datetime="entry[dateKey] ?? undefined">{{ formatDate(entry[dateKey] ?? '') }}</time>

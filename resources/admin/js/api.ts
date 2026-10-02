@@ -10,7 +10,7 @@ export interface Account {
 	username: string;
 	// Its own name, if it has one (D-322).
 	name: string | null;
-	// What the admin calls it: the name, else the author page's title,
+	// What the admin calls it: its profile's title, else the name,
 	// else the username.
 	displayName: string;
 	author: string | null;
@@ -71,9 +71,15 @@ export interface EntrySummary {
 	authors: string[];
 	own: boolean;
 	// Whether it's its type's index page, pinned above the rest (D-255),
-	// or its authors page, pinned below that (D-329).
+	// or a people field's list page, pinned below that (D-329, D-353).
 	index: boolean;
 	authorsPage: boolean;
+	// That list page's field's name ("Cooks"), or `null`.
+	peopleLabel?: string | null;
+	// A profile's: whether an account is linked to it, and which, when
+	// you manage accounts (D-353).
+	linked?: boolean;
+	account?: { username: string; displayName: string } | null;
 	// Duplicate: not for landing pages, and needs `content.create` (D-275).
 	can: { delete: boolean; duplicate: boolean };
 	// For a term, how many published entries use it; else `null` (D-236).
@@ -163,13 +169,13 @@ export interface ContentTypeSummary {
 	description: string;
 	// A site icon's name to show it with, or `null` for its kind's.
 	icon: string | null;
-	kind: 'collection' | 'taxonomy' | 'pages' | 'authors';
+	kind: 'collection' | 'taxonomy' | 'pages' | 'profiles';
 	dated: boolean;
-	// Whether its entries credit authors (D-329).
+	// Whether its entries credit people (D-351).
 	authors: boolean;
 	// A taxonomy's: the types its terms group, empty for every type, and
-	// whether a term may have a parent. The authors type's: the types
-	// that credit authors.
+	// whether a term may have a parent. The profiles type's: the types
+	// that credit people.
 	types?: string[];
 	hierarchical?: boolean;
 	// Where it was defined, its folder, its URL prefix (`null` without
@@ -197,6 +203,20 @@ export interface TypeRoute {
 /**
  * One content type (`GET types/{name}`, D-250).
  */
+// One of a type's people fields (D-353).
+export interface PeopleFieldInfo {
+	field: string;
+	plural: string;
+	singular: string;
+	aliases: string[];
+	// The word its archives sit under, or `false` for none.
+	archive: string | false;
+	multiple: boolean;
+	required: boolean;
+	// The page introducing its list of people, or `null`.
+	listPage: { id: string; title: string } | null;
+}
+
 export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	public: boolean;
 	feed: boolean;
@@ -223,6 +243,8 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	file: string | null;
 	// Its index page (D-255), or `null`.
 	index: { id: string; title: string } | null;
+	// How its entries credit people (D-353), in order.
+	people: PeopleFieldInfo[];
 	// The word its author archives sit under, `false` for none, or `null`
 	// for a type without URLs (D-329); and its authors page, or `null`.
 	authorsWord: string | false | null;
@@ -495,6 +517,9 @@ export interface EntryDetail {
 	// (D-329), edited the same way, with its slug fixed.
 	index: boolean;
 	authorsPage: boolean;
+	// The people page it is (D-353): a field's list page, or the page
+	// written for one person's archive under it (`profile` set).
+	peoplePage: { field: string; label: string; profile: string | null; profileTitle: string | null } | null;
 	type: {
 		name: string;
 		kind: ContentTypeSummary['kind'];

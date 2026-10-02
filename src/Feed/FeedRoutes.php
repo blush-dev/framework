@@ -18,6 +18,7 @@ use Blush\Content\Routing\ContentRoutes;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Routing\Route;
 use Blush\Routing\RoutePriority;
@@ -33,9 +34,11 @@ use Blush\Routing\RouteSource;
  *   `home.feed.json` at the site root instead;
  * - for a taxonomy, `{type}.single.feed` (`{prefix}/{name}/feed`) and the
  *   Atom and JSON variants, one feed per term;
- * - for a type with author archives, `{type}.authors.single.feed`
- *   (`{prefix}/authors/{author}/feed`) and its variants, one feed per
- *   author (D-329).
+ * - for each people field with archives (D-351),
+ *   `{type}.{field}.single.feed` (`{prefix}/cooks/{profile}/feed`) and
+ *   its variants, one feed per person;
+ * - for the profiles type, only `{type}.single.feed`
+ *   (`/profiles/{name}/feed`) and its variants, one feed per profile.
  *
  * Paths come from the type's `TypeUrls`, so a type can move them.
  */
@@ -90,6 +93,12 @@ final readonly class FeedRoutes implements RouteSource
 		$routes   = [];
 		$path     = $type->urls === false ? null : $type->urls->path("collection.feed{$suffix}");
 
+		if ($type instanceof Profiles) {
+			$single = $type->routePattern("single.feed{$suffix}");
+
+			return $single === null ? [] : [ContentRoutes::route($single, FeedController::class, "{$type->name}.single.feed{$suffix}", $defaults, $type)];
+		}
+
 		if ($type->name === $this->types->home) {
 			if ($path !== null) {
 				$routes[] = ContentRoutes::route('/' . $path, FeedController::class, "home.feed{$suffix}", $defaults);
@@ -108,10 +117,12 @@ final readonly class FeedRoutes implements RouteSource
 			$routes[] = ContentRoutes::route($single, FeedController::class, "{$type->name}.single.feed{$suffix}", $defaults, $type);
 		}
 
-		$author = $this->urls->hasAuthorArchives($type) ? $type->routePattern("authors.single.feed{$suffix}") : null;
+		foreach ($type->archivedPeople() as $field) {
+			$person = $this->urls->hasArchive($type, $field) ? $type->routePattern("{$field->field}.single.feed{$suffix}") : null;
 
-		if ($author !== null) {
-			$routes[] = ContentRoutes::route($author, FeedController::class, "{$type->name}.authors.single.feed{$suffix}", $defaults, $type);
+			if ($person !== null) {
+				$routes[] = ContentRoutes::route($person, FeedController::class, "{$type->name}.{$field->field}.single.feed{$suffix}", [...$defaults, 'field' => $field->field], $type);
+			}
 		}
 
 		return $routes;

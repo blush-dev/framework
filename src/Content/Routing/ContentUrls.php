@@ -20,6 +20,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
+use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 use Blush\Routing\InvalidRoute;
@@ -47,10 +48,11 @@ use Blush\Routing\UrlGenerationException;
  *   `urls: false`) live at their folder path: `/about/biography`.
  * - A landing page is its type's collection. The home type's collection
  *   is `/`, paged as `/page/{page}`.
- * - A type that credits authors lists them at `authors.collection` and
- *   has an archive per author at `authors.single` (D-329), under its
- *   own prefix, even for the home type. Authors themselves have no URL
- *   outside a type.
+ * - A profile (D-351) is at its type's `single`, `/profiles/{name}`.
+ * - Each people field with an archive word lists the people it credits
+ *   at `{field}.collection` and has an archive per person at
+ *   `{field}.single`, under its type's prefix, even for the home type
+ *   (`/blog/authors/jane`).
  *
  * `null` means the thing has no URL: a hidden entry, or values the route
  * can't take.
@@ -198,48 +200,90 @@ final readonly class ContentUrls
 	}
 
 	/**
-	 * Returns the URL path of a type's list of authors, or `null` when it
-	 * has no author archives.
+	 * Returns a profile's page, or a later page's, or `null` when
+	 * profiles have no URLs.
 	 */
-	public function authors(ContentType $type): ?string
+	public function profile(string $slug, int $page = 1): ?string
 	{
-		return $this->hasAuthorArchives($type) ? $this->build($type->routePattern('authors.collection'), [], $type) : null;
-	}
+		$type = $this->types->profiles();
 
-	/**
-	 * Returns an author's archive URL path in a type, or a later page's,
-	 * or `null` when the type has no author archives.
-	 */
-	public function author(ContentType $type, string $slug, int $page = 1): ?string
-	{
-		if (! $this->hasAuthorArchives($type)) {
+		if ($type === null || ! $type->public) {
 			return null;
 		}
 
 		return $page > 1
-			? $this->build($type->routePattern('authors.single.paged'), ['author' => $slug, 'page' => (string) $page], $type)
-			: $this->build($type->routePattern('authors.single'), ['author' => $slug], $type);
+			? $this->build($type->routePattern('single.paged'), ['name' => $slug, 'page' => (string) $page], $type)
+			: $this->build($type->routePattern('single'), ['name' => $slug], $type);
 	}
 
 	/**
-	 * Returns the URL path of an author's feed in a type (`$key` is
-	 * `authors.single.feed`, `.feed.atom`, or `.feed.json`), or `null`
-	 * when the type has no feed or no author archives.
+	 * Returns the URL path of a profile's feed (`$key` is `single.feed`,
+	 * `.feed.atom`, or `.feed.json`), or `null` without one.
 	 */
-	public function authorFeed(ContentType $type, string $slug, string $key = 'authors.single.feed'): ?string
+	public function profileFeed(string $slug, string $key = 'single.feed'): ?string
 	{
-		return $type->hasFeed() && $this->hasAuthorArchives($type)
-			? $this->build($type->routePattern($key), ['author' => $slug], $type)
+		$type = $this->types->profiles();
+
+		return $type !== null && $type->public && $type->hasFeed()
+			? $this->build($type->routePattern($key), ['name' => $slug], $type)
 			: null;
 	}
 
 	/**
-	 * Returns whether a type has author archives: its own setting, and
-	 * an authors type on the site.
+	 * Returns the URL path of the list of people a type's field credits,
+	 * or `null` when the field has no archives.
 	 */
-	public function hasAuthorArchives(ContentType $type): bool
+	public function people(ContentType $type, PeopleField $field): ?string
 	{
-		return $type->hasAuthorArchives() && $this->types->authors() !== null;
+		return $this->hasArchive($type, $field) ? $this->build($type->routePattern("{$field->field}.collection"), [], $type) : null;
+	}
+
+	/**
+	 * Returns a person's archive URL path under a type's field, or a
+	 * later page's, or `null` when the field has no archives.
+	 */
+	public function person(ContentType $type, PeopleField $field, string $slug, int $page = 1): ?string
+	{
+		if (! $this->hasArchive($type, $field)) {
+			return null;
+		}
+
+		return $page > 1
+			? $this->build($type->routePattern("{$field->field}.single.paged"), ['profile' => $slug, 'page' => (string) $page], $type)
+			: $this->build($type->routePattern("{$field->field}.single"), ['profile' => $slug], $type);
+	}
+
+	/**
+	 * Returns the URL path of a person's feed under a type's field
+	 * (`$suffix` is the feed format's route suffix: `''`, `.atom`, or
+	 * `.json`), or `null` when the type has no feed or the field no
+	 * archives.
+	 */
+	public function personFeed(ContentType $type, PeopleField $field, string $slug, string $suffix = ''): ?string
+	{
+		return $type->hasFeed() && $this->hasArchive($type, $field)
+			? $this->build($type->routePattern("{$field->field}.single.feed{$suffix}"), ['profile' => $slug], $type)
+			: null;
+	}
+
+	/**
+	 * Returns where a byline links (D-351): the person's archive under
+	 * the entry's type's field, else their profile's page, else `null`.
+	 */
+	public function byline(Entry $entry, string $field, string $slug): ?string
+	{
+		$people = $entry->type->peopleField($field);
+
+		return ($people === null ? null : $this->person($entry->type, $people, $slug)) ?? $this->profile($slug);
+	}
+
+	/**
+	 * Returns whether a type's people field has archives: its own
+	 * setting, and a profiles type on the site.
+	 */
+	public function hasArchive(ContentType $type, PeopleField $field): bool
+	{
+		return isset($type->archivedPeople()[$field->field]) && $this->types->profiles() !== null;
 	}
 
 	/**

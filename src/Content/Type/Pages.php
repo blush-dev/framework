@@ -36,7 +36,7 @@ final readonly class Pages extends ContentType
 	 * @param  ?TypeLabels     $labels      What people call it; defaults to "Pages" and "Page".
 	 * @param  string          $description What pages are for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
-	 * @param  bool            $authors     Whether pages credit authors (D-329).
+	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -49,9 +49,9 @@ final readonly class Pages extends ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		bool $authors = false
+		array|bool $people = false
 	) {
-		parent::__construct($name, $folder, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $authors);
+		parent::__construct($name, $folder, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people);
 	}
 
 	/**
@@ -79,6 +79,6 @@ final readonly class Pages extends ContentType
 	#[Override]
 	protected function options(): array
 	{
-		return ['authors' => $this->authors ?: null];
+		return ['people' => $this->peopleOption(false)];
 	}
 }

@@ -8,7 +8,7 @@
 
 import { ref, watch } from 'vue';
 import { loadReferences, type ReferenceItem } from '../references';
-import { authorType, loadTypes } from '../types';
+import { profileType, loadTypes } from '../types';
 
 defineProps<{
 	id: string;
@@ -21,7 +21,7 @@ const authors = ref<ReferenceItem[]>([]);
 
 loadTypes().catch(() => undefined);
 
-watch(authorType, async (type) => {
+watch(profileType, async (type) => {
 	if (type === null) {
 		return;
 	}

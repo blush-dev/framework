@@ -29,10 +29,13 @@ use Blush\Content\Type\Taxonomy;
  *   `collection`.
  * - **Date archive:** `archive-date-{type}` → `archive-date` →
  *   `collection`.
- * - **Authors** (a type's, D-329): `authors-{type}` → `authors` →
+ * - **People** (a type's people field, D-351): `people-{type}-{field}`
+ *   → `people-{field}` → `people` → `collection`.
+ * - **Person** (an archive under a people field):
+ *   `person-{type}-{field}` → `person-{field}` → `person` → `profile`
+ *   → `collection`.
+ * - **Profile** (a profile's own page): `profile-{slug}` → `profile` →
  *   `collection`.
- * - **Author archive:** `author-{type}-{slug}` → `author-{type}` →
- *   `author` → `collection`.
  * - **Home:** `home`, then the hierarchy of what it shows.
  * - **Errors:** `error-{status}` → `error`.
  * - **Welcome:** `welcome`.
@@ -61,6 +64,9 @@ final readonly class Hierarchy
 		$names = match ($page->kind) {
 			PageKind::Welcome    => ['welcome'],
 			PageKind::Home       => ['home', ...self::forKind($page->base ?? PageKind::Page, $name, $taxonomy, $entry)],
+			PageKind::People     => ["people-{$name}-{$page->people?->field}", "people-{$page->people?->field}", 'people', 'collection'],
+			PageKind::Person     => ["person-{$name}-{$page->people?->field}", "person-{$page->people?->field}", 'person', 'profile', 'collection'],
+			PageKind::Profile    => [...($entry === null ? [] : ["profile-{$entry->slug}"]), 'profile', 'collection'],
 			default              => self::forKind($page->kind, $name, $taxonomy, $entry)
 		};
 
@@ -89,8 +95,6 @@ final readonly class Hierarchy
 			PageKind::Collection => ["collection-{$type}", ...($taxonomy ? ['collection-taxonomy'] : []), 'collection'],
 			PageKind::Term       => [...($slug === null ? [] : ["term-{$type}-{$slug}"]), "term-{$type}", 'term', 'collection'],
 			PageKind::Date       => ["archive-date-{$type}", 'archive-date', 'collection'],
-			PageKind::Authors    => ["authors-{$type}", 'authors', 'collection'],
-			PageKind::Author     => [...($slug === null ? [] : ["author-{$type}-{$slug}"]), "author-{$type}", 'author', 'collection'],
 			default              => [...($slug === null ? [] : ["single-{$type}-{$slug}"]), "single-{$type}", 'single']
 		};
 	}

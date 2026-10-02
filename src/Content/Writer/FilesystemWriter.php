@@ -135,6 +135,37 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function createAt(ContentType $type, string $key, EntryChanges $changes, string $format = 'md'): WriteResult
+	{
+		if (! array_all(explode('/', $key), static fn (string $segment): bool => Slug::isSlug(ltrim($segment, '_')) && strlen(ltrim($segment, '_')) >= strlen($segment) - 1)) {
+			throw new WriteException(sprintf('"%s" isn\'t a page key: slugs separated by "/", each may start with "_".', $key));
+		}
+
+		if (DocumentFormat::tryFrom($format) === null) {
+			throw new WriteException(sprintf('"%s" isn\'t a content format.', $format));
+		}
+
+		$id   = ltrim("{$type->folder}/{$key}.{$format}", '/');
+		$path = $this->path($id);
+
+		return $this->locked(function () use ($id, $path, $type, $changes, $format): WriteResult {
+			// The page in any format is the same page.
+			if (glob(substr($path, 0, -strlen($format) - 1) . '.*') !== []) {
+				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($path)));
+			}
+
+			$contents = $this->editor->edit($id, '', $changes, $this->keys($type->name));
+
+			$this->write($path, $contents);
+
+			return new WriteResult($id, self::revision($contents), $this->refresh());
+		});
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function duplicate(string $id, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {

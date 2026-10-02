@@ -1,9 +1,10 @@
 <?php
 
 /**
- * A type's authors: the people its entries credit, each linking to their
- * archive in the type. The type's authors page (`_authors` in its
- * folder), when it has one, gives the title and introduces the list.
+ * The people a type's people field credits (D-351), such as a blog's
+ * authors, each linking to their archive under the field. The field's
+ * list page (`_authors` in the type's folder), when it has one, gives the
+ * title and introduces the list.
  *
  * @var Blush\View\Template             $template
  * @var Blush\Content\Http\ContentPage  $page
@@ -17,6 +18,8 @@ declare(strict_types=1);
 
 $template->layout('base');
 
+$field = $page->people->field ?? '';
+
 ?>
 <header class="archive-header">
 	<h1 class="archive-header__title"><?= e($title) ?></h1>
@@ -29,16 +32,16 @@ $template->layout('base');
 </header>
 
 <?php if ($entries === null || count($entries) === 0) : ?>
-	<p class="no-entries"><?= e($template->t('authors.none')) ?></p>
+	<p class="no-entries"><?= e($template->t('people.none')) ?></p>
 <?php else : ?>
-	<ul class="authors" role="list">
-		<?php foreach ($entries as $author) : ?>
-			<li class="authors__item">
-				<h2 class="authors__name"><a href="<?= url($template->authorUrl($author, $type)) ?>"><?= e($author->title) ?></a></h2>
+	<ul class="people" role="list">
+		<?php foreach ($entries as $person) : ?>
+			<li class="people__item">
+				<h2 class="people__name"><a href="<?= url($template->personUrl($person, $type, $field)) ?>"><?= e($person->title) ?></a></h2>
 
-				<?php if (! $author->isVirtual() && $author->raw() !== '') : ?>
-					<div class="authors__bio">
-						<?= raw($author->excerpt()) ?>
+				<?php if (! $person->isVirtual() && $person->raw() !== '') : ?>
+					<div class="people__bio">
+						<?= raw($person->excerpt()) ?>
 					</div>
 				<?php endif ?>
 			</li>

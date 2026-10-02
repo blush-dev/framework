@@ -74,7 +74,7 @@ async function submit(): Promise<void> {
 			<p class="page-header__hint">Someone who can sign in. They choose their own password with a link you send them.</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink class="button" :to="{ name: 'people' }">Cancel</RouterLink>
+			<RouterLink class="button" :to="{ name: 'accounts' }">Cancel</RouterLink>
 		</div>
 	</header>
 

@@ -5,9 +5,11 @@
  * and has a feed; a collection's date archives and featured image (an
  * `image` media field); a taxonomy's nesting and the types its terms
  * group; and the index page (D-255), which a type gets once and keeps.
- * When the site has authors (D-329): whether entries credit them, and
- * whether a type with URLs has author archives, at which word, with its
- * authors page, which, like the index page, a type gets once and keeps.
+ * In the new-type wizard, when the site has profiles (D-329): whether
+ * entries credit authors, and whether a type with URLs has author
+ * archives, at which word, with its authors page, which, like the index
+ * page, a type gets once and keeps. The type editor edits every people
+ * field in a panel of its own instead (`TypePeopleFields`, D-353).
  */
 
 import { computed } from 'vue';
@@ -86,7 +88,7 @@ function grouped(name: string, on: boolean): void {
 			<p v-if="!indexPage && indexWanted" class="field__help">An entry is created for the landing page at <code>/{{ (form.prefix || folderPrefix).replace(/^\/+|\/+$/g, '') }}</code>, titled with the plural name, and pinned at the top of its list.</p>
 		</fieldset>
 
-		<fieldset v-if="authorsLabel !== null" class="type-behavior__group">
+		<fieldset v-if="authorsLabel !== null && form.people === null" class="type-behavior__group">
 			<legend>{{ authorsLabel }}</legend>
 			<label class="checkbox"><input v-model="form.authors" type="checkbox"> Entries credit {{ authorsLabel.toLowerCase() }}</label>
 			<template v-if="form.authors">

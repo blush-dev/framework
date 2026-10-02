@@ -94,6 +94,7 @@ final readonly class Query
 	 * @param ?string                          $search        Text the title or source path must contain, in any case.
 	 * @param list<list<Query>>                $alternatives  Groups of alternatives; an entry must match one in each group.
 	 * @param ?int                             $updatedSince  A Unix time entries must have been updated at or after.
+	 * @param list<string>                     $excludedDirectories Folders whose entries are left out.
 	 */
 	public function __construct(
 		public array $types = [],
@@ -115,6 +116,7 @@ final readonly class Query
 		public ?string $search = null,
 		public array $alternatives = [],
 		public ?int $updatedSince = null,
+		public array $excludedDirectories = [],
 		private ?QueryRunner $runner = null
 	) {}
 
@@ -257,6 +259,16 @@ final readonly class Query
 	}
 
 	/**
+	 * Returns a copy that leaves out entries listed in these folders
+	 * under the content root (each folder exactly, not its subfolders).
+	 */
+	#[NoDiscard]
+	public function exceptIn(string ...$directories): self
+	{
+		return clone($this, ['excludedDirectories' => array_values(array_unique(array_map(static fn (string $directory): string => trim($directory, '/.'), $directories)))]);
+	}
+
+	/**
 	 * Returns a copy that finds only entries with these slugs.
 	 */
 	#[NoDiscard]
@@ -314,6 +326,25 @@ final readonly class Query
 	public function whereTerm(string $taxonomy, string ...$slugs): self
 	{
 		return clone($this, ['terms' => [...$this->terms, [$taxonomy, array_values(array_unique($slugs))]]]);
+	}
+
+	/**
+	 * Returns a copy whose term conditions and sort on one taxonomy name
+	 * read another, in its alternatives too. The repository uses it so
+	 * 1.x's `author` (the argument, `whereAuthor()`, and sorting) reads
+	 * the site's profiles type, whatever it's named (D-351).
+	 */
+	#[NoDiscard]
+	public function withTaxonomyRenamed(string $from, string $to): self
+	{
+		return clone($this, [
+			'terms'        => array_map(static fn (array $term): array => [$term[0] === $from ? $to : $term[0], $term[1]], $this->terms),
+			'orderBy'      => $this->orderBy === $from ? $to : $this->orderBy,
+			'alternatives' => array_map(
+				static fn (array $group): array => array_map(static fn (self $alternative): self => $alternative->withTaxonomyRenamed($from, $to), $group),
+				$this->alternatives
+			)
+		]);
 	}
 
 	/**

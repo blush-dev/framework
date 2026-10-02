@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * One account (D-249, D-312; the prototype's account screen): who it is,
- * its name (D-322), its author, its password link, and its roles, which save as they're
- * ticked. A Danger Zone suspends or reinstates it and removes it.
+ * its name (D-322), its public profile (D-353), its password link, and
+ * its roles, which save as they're ticked. A Danger Zone suspends or reinstates it and removes it.
  *
  * Blush sends no email, so a password is never set here: **Make a
  * password link** gives a link to copy and send, for a new account or a
@@ -18,11 +18,15 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import AuthorField from '../components/AuthorField.vue';
+import StatusPill from '../components/StatusPill.vue';
 import RoleChecks from '../components/RoleChecks.vue';
-import { ApiError, entryRoute } from '../api';
+import { ApiError, entryPath, entryRoute, request, type EntryDetail } from '../api';
+import { plural } from '../format';
+import { slugOf } from '../references';
 import { freshLink, initials, loadAccounts, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, type AccountInfo, type PasswordLink, type RoleList } from '../people';
 import { screenTitle } from '../screen';
-import { session } from '../session';
+import { can, session } from '../session';
+import { profileType } from '../types';
 import { toast } from '../toast';
 
 const route    = useRoute();
@@ -111,34 +115,126 @@ async function saveName(): Promise<void> {
 	}
 }
 
-// The author: typed or picked, then saved.
-const author      = ref('');
-const authorBusy  = ref(false);
-const authorError = ref('');
+// The public profile (D-353): linked, linked but not yet public, or not
+// linked, with what each allows. Linking picks an existing profile;
+// creating makes a draft named for the account, links it, and opens it.
+const profileMode  = ref<'' | 'link' | 'create'>('');
+const pick         = ref('');
+const newName      = ref('');
+const profileBusy  = ref(false);
+const profileError = ref('');
 
 watch(account, (value) => {
-	author.value = value?.author ?? '';
+	profileMode.value = '';
+	pick.value        = value?.author ?? '';
+	newName.value     = value?.name ?? '';
 }, { immediate: true });
 
-const authorChanged = computed(() => author.value !== (account.value?.author ?? ''));
+const newSlug = computed(() => slugOf(newName.value));
 
-async function saveAuthor(): Promise<void> {
+async function changeLink(author: string | null, done: string): Promise<void> {
 	const current = account.value;
 
 	if (current === undefined) {
 		return;
 	}
 
-	authorBusy.value  = true;
-	authorError.value = '';
+	profileBusy.value  = true;
+	profileError.value = '';
 
 	try {
-		replace(await updateAccount(current.username, { author: author.value === '' ? null : author.value }));
-		toast(author.value === '' ? `Unlinked ${current.displayName}'s author` : `Linked ${current.displayName} to ${author.value}`);
+		replace(await updateAccount(current.username, { author }));
+		profileMode.value = '';
+		toast(done);
 	} catch (caught) {
-		authorError.value = caught instanceof ApiError ? caught.message : 'The author couldn\'t be saved.';
+		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be linked.';
 	} finally {
-		authorBusy.value = false;
+		profileBusy.value = false;
+	}
+}
+
+function linkProfile(): Promise<void> {
+	return changeLink(pick.value === '' ? null : pick.value, `Linked ${account.value?.displayName ?? ''} to ${pick.value}`);
+}
+
+function unlinkProfile(): Promise<void> {
+	const current = account.value;
+
+	if (current === undefined || !window.confirm(`Unlink ${current.displayName}'s profile? The profile and its bylines stay, as a guest profile.`)) {
+		return Promise.resolve();
+	}
+
+	return changeLink(null, `Unlinked ${current.displayName}'s profile`);
+}
+
+async function createProfile(): Promise<void> {
+	const current = account.value;
+
+	if (current === undefined || profileType.value === null || newSlug.value === '') {
+		return;
+	}
+
+	profileBusy.value  = true;
+	profileError.value = '';
+
+	try {
+		const created = await request<EntryDetail>('POST', '/entries', { type: profileType.value, title: newName.value.trim(), slug: newSlug.value, status: 'draft' });
+
+		replace(await updateAccount(current.username, { author: created.slug }));
+		toast(`Created a profile for ${current.displayName}`);
+		await router.push(entryRoute(created));
+	} catch (caught) {
+		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be created.';
+	} finally {
+		profileBusy.value = false;
+	}
+}
+
+// Gives the profile an account links to its file: a draft, titled with
+// the account's name, opened to write the bio.
+async function createLinked(): Promise<void> {
+	const current = account.value;
+
+	if (current === undefined || !current.author || profileType.value === null) {
+		return;
+	}
+
+	profileBusy.value  = true;
+	profileError.value = '';
+
+	try {
+		const created = await request<EntryDetail>('POST', '/entries', { type: profileType.value, title: current.name ?? current.displayName, slug: current.author });
+
+		await router.push(entryRoute(created));
+	} catch (caught) {
+		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be created.';
+	} finally {
+		profileBusy.value = false;
+	}
+}
+
+// Publishes a draft profile, so its page and bylines go live.
+async function publishProfile(): Promise<void> {
+	const current = account.value;
+	const page    = current?.profile;
+
+	if (current === undefined || !page) {
+		return;
+	}
+
+	profileBusy.value  = true;
+	profileError.value = '';
+
+	try {
+		const loaded = await request<EntryDetail>('GET', entryPath(page.id));
+
+		await request<EntryDetail>('PATCH', entryPath(page.id), { revision: loaded.revision, status: 'published' });
+		accounts.value = await loadAccounts();
+		toast(`Published ${page.title || page.slug}`);
+	} catch (caught) {
+		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be published.';
+	} finally {
+		profileBusy.value = false;
 	}
 }
 
@@ -228,7 +324,7 @@ async function setSuspended(suspended: boolean): Promise<void> {
 async function remove(): Promise<void> {
 	const current = account.value;
 
-	if (current === undefined || !window.confirm(`Remove ${current.displayName}? They're signed out and can't sign in again. Their author page and the entries crediting it stay.`)) {
+	if (current === undefined || !window.confirm(`Remove ${current.displayName}? They're signed out and can't sign in again. Their profile and the entries crediting it stay.`)) {
 		return;
 	}
 
@@ -238,7 +334,7 @@ async function remove(): Promise<void> {
 	try {
 		await removeAccount(current.username);
 		toast(`Removed ${current.displayName}`);
-		await router.push({ name: 'people' });
+		await router.push({ name: 'accounts' });
 	} catch (caught) {
 		dangerError.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be removed.';
 		dangerBusy.value  = false;
@@ -256,7 +352,7 @@ async function remove(): Promise<void> {
 		</div>
 		<div class="page-header__actions">
 			<RouterLink v-if="yours" class="button" :to="{ name: 'profile' }"><AdminIcon name="users" />Your Profile</RouterLink>
-			<RouterLink class="button" :to="{ name: 'people' }"><AdminIcon name="arrow-left" />All people</RouterLink>
+			<RouterLink class="button" :to="{ name: 'accounts' }"><AdminIcon name="arrow-left" />All accounts</RouterLink>
 		</div>
 	</header>
 
@@ -281,29 +377,18 @@ async function remove(): Promise<void> {
 					<dl class="facts">
 						<div><dt>Created</dt><dd>{{ when(account.created) }}</dd></div>
 						<div><dt>Last signed in</dt><dd>{{ when(account.lastLogin) }}</dd></div>
-						<div v-if="!account.manages"><dt>Author</dt><dd :class="{ mono: account.author }">{{ account.author ?? 'None' }}</dd></div>
 					</dl>
 
-					<p v-if="account.authorPage" class="field__help">Their name is their author page's title, everywhere: {{ account.displayName }}. <RouterLink :to="entryRoute(account.authorPage)">Edit their author page</RouterLink></p>
+					<p v-if="account.profile" class="field__help">Their name is their profile's title, everywhere: {{ account.displayName }}.</p>
 
-					<form v-if="account.manages && !account.authorPage" class="field" @submit.prevent="saveName">
+					<form v-if="account.manages && !account.profile" class="field" @submit.prevent="saveName">
 						<label for="account-name">Name</label>
 						<div class="inline-save">
 							<input id="account-name" v-model="name" class="input account-name" autocomplete="off" maxlength="100" :placeholder="account.displayName" :aria-invalid="nameError !== '' || undefined" aria-describedby="account-name-help">
 							<button v-if="nameChanged" type="submit" class="button button--small" :disabled="nameBusy">{{ nameBusy ? 'Saving…' : 'Save' }}</button>
 						</div>
 						<p v-if="nameError" id="account-name-help" class="field__error" role="alert">{{ nameError }}</p>
-						<p v-else id="account-name-help" class="field__help">What the admin calls them until they have an author page, whose title is then their name. Without one, it's their username.</p>
-					</form>
-
-					<form v-if="account.manages" class="field" @submit.prevent="saveAuthor">
-						<label for="account-author">Author</label>
-						<div class="inline-save">
-							<AuthorField id="account-author" v-model="author" described-by="account-author-help" :invalid="authorError !== ''" />
-							<button v-if="authorChanged" type="submit" class="button button--small" :disabled="authorBusy">{{ authorBusy ? 'Saving…' : 'Save' }}</button>
-						</div>
-						<p v-if="authorError" id="account-author-help" class="field__error" role="alert">{{ authorError }}</p>
-						<p v-else id="account-author-help" class="field__help">The author entry that's their public name; entries crediting it are theirs.</p>
+						<p v-else id="account-name-help" class="field__help">What the admin calls them until they have a profile, whose title is then their name. Without one, it's their username.</p>
 					</form>
 
 					<div v-if="account.manages" class="password-link">
@@ -326,6 +411,66 @@ async function remove(): Promise<void> {
 				</div>
 			</section>
 
+			<section v-if="profileType" class="panel" aria-labelledby="public-heading">
+				<header class="panel__header">
+					<h2 id="public-heading">Public Profile</h2>
+					<p class="panel__hint">How they appear on the site</p>
+				</header>
+				<div class="panel__body account-body">
+					<template v-if="account.profile">
+						<div class="public">
+							<span class="account-head__avatar" aria-hidden="true">{{ initials(account.profile.title || account.profile.slug) }}</span>
+							<span class="public__who">
+								<RouterLink :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">{{ account.profile.title || account.profile.slug }}</RouterLink>
+								<span v-if="account.profile.url" class="mono public__meta">{{ account.profile.url }}</span>
+								<span class="public__meta">
+									<StatusPill :status="account.profile.status" />
+									{{ ' ' }}{{ account.profile.status === 'published' ? `· ${plural(account.profile.uses, 'byline', 'bylines')}` : '· nothing answers at this address yet' }}
+								</span>
+							</span>
+						</div>
+						<div class="public__buttons">
+							<RouterLink class="button button--small" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">Open profile</RouterLink>
+							<button v-if="account.profile.status === 'draft' && can('content.publish')" type="button" class="button button--small" :disabled="profileBusy" @click="publishProfile">Publish</button>
+							<button v-if="account.manages" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile">Unlink</button>
+						</div>
+					</template>
+					<template v-else-if="account.author">
+						<p>Linked to <span class="mono">{{ account.author }}</span>, which has no profile file yet, so bylines show the slug and there's no bio.</p>
+						<div class="public__buttons">
+							<button v-if="can('content.create')" type="button" class="button button--small" :disabled="profileBusy" @click="createLinked">{{ profileBusy ? 'Creating…' : 'Create it' }}</button>
+							<button v-if="account.manages" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile">Unlink</button>
+						</div>
+					</template>
+					<template v-else>
+						<p><strong>No public profile.</strong> {{ account.displayName }} doesn't appear on the site, and entries they write show no byline until a profile is linked.</p>
+						<div v-if="account.manages && profileMode === ''" class="public__buttons">
+							<button type="button" class="button button--small" @click="profileMode = 'link'">Link an existing one</button>
+							<button v-if="can('content.create')" type="button" class="button button--small" @click="profileMode = 'create'">Create one</button>
+						</div>
+						<form v-if="profileMode === 'link'" class="field" @submit.prevent="linkProfile">
+							<label for="account-profile">Profile</label>
+							<div class="inline-save">
+								<AuthorField id="account-profile" v-model="pick" described-by="account-profile-help" :invalid="profileError !== ''" />
+								<button type="submit" class="button button--small" :disabled="profileBusy || pick === ''">Link</button>
+								<button type="button" class="button button--ghost button--small" @click="profileMode = ''">Cancel</button>
+							</div>
+							<p id="account-profile-help" class="field__help">A profile's slug. Entries crediting it become theirs.</p>
+						</form>
+						<form v-if="profileMode === 'create'" class="field" @submit.prevent="createProfile">
+							<label for="account-profile-name">Name on the site</label>
+							<div class="inline-save">
+								<input id="account-profile-name" v-model="newName" class="input" autocomplete="off" maxlength="100" aria-describedby="account-profile-name-help">
+								<button type="submit" class="button button--small" :disabled="profileBusy || newSlug === ''">{{ profileBusy ? 'Creating…' : 'Create' }}</button>
+								<button type="button" class="button button--ghost button--small" @click="profileMode = ''">Cancel</button>
+							</div>
+							<p id="account-profile-name-help" class="field__help">A draft profile at <span class="mono">{{ newSlug || '…' }}</span>, linked to this account, opened to write the bio.</p>
+						</form>
+					</template>
+					<p v-if="profileError" class="field__error" role="alert">{{ profileError }}</p>
+				</div>
+			</section>
+
 			<section v-if="account.manages" class="panel" aria-labelledby="danger-heading">
 				<header class="panel__header">
 					<h2 id="danger-heading">Danger Zone</h2>
@@ -337,7 +482,7 @@ async function remove(): Promise<void> {
 						<button type="button" class="button button--danger button--small" :disabled="dangerBusy" @click="remove"><AdminIcon name="x" />Remove account</button>
 					</div>
 					<p v-if="dangerError" class="field__error" role="alert">{{ dangerError }}</p>
-					<p class="field__help">Suspending signs them out until you reinstate them. Removing deletes the account; their author page and the entries crediting it stay.</p>
+					<p class="field__help">Suspending signs them out until you reinstate them. Removing deletes the account; their profile and the entries crediting it stay.</p>
 				</div>
 			</section>
 		</div>
@@ -357,6 +502,27 @@ async function remove(): Promise<void> {
 </template>
 
 <style scoped>
+.public {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+}
+
+.public__who {
+	display: grid;
+	min-width: 0;
+}
+
+.public__meta {
+	color: var(--fg-3);
+}
+
+.public__buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--s-2);
+}
+
 .detail {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

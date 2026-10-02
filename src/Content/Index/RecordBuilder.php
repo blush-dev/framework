@@ -85,7 +85,7 @@ final readonly class RecordBuilder
 
 		$published = is_int($values['published'] ?? null) ? $values['published'] : null;
 		$updated   = is_int($values['updated'] ?? null) ? $values['updated'] : ($published ?? $file->modified);
-		[$terms, $labels] = $this->terms($document->frontMatter, $values);
+		[$terms, $labels] = $this->terms($type, $document->frontMatter, $values);
 
 		$record = new IndexRecord(
 			id: $file->path,
@@ -125,35 +125,57 @@ final readonly class RecordBuilder
 	}
 
 	/**
-	 * Returns the term slugs each taxonomy's field (and the authors field)
-	 * holds, and the labels of terms written differently from their slugs.
+	 * Returns the term slugs each taxonomy's field holds, and the labels
+	 * of terms written differently from their slugs. The profiles an
+	 * entry credits (D-351) are kept twice: under each people field
+	 * (`profile.cooks`), for that field's archives, and together under
+	 * the profiles type's name, for a profile's own page.
 	 *
 	 * @param  array<array-key, mixed> $frontMatter
 	 * @param  array<string, mixed>    $values
 	 * @return array{array<string, list<string>>, array<string, array<string, string>>}
 	 */
-	private function terms(array $frontMatter, array $values): array
+	private function terms(ContentType $type, array $frontMatter, array $values): array
 	{
+		$sources  = [];
+		$profiles = $this->types->profiles()?->name;
+
+		foreach ($this->types->taxonomies() as $taxonomy) {
+			$sources[] = [$taxonomy->name, $taxonomy->name, $taxonomy->field, $taxonomy->aliases];
+		}
+
+		if ($profiles !== null) {
+			foreach ($type->people as $people) {
+				$sources[] = [$people->termKey($profiles), $profiles, $people->field, $people->aliases];
+			}
+		}
+
 		$terms  = [];
 		$labels = [];
 
-		foreach ($this->types->termTypes() as $taxonomy) {
-			$slugs = $values[$taxonomy->field] ?? [];
+		foreach ($sources as [$key, $labelKey, $field, $aliases]) {
+			$value = $values[$field] ?? [];
+			$slugs = is_array($value) ? $value : [$value];
+			$slugs = array_values(array_map(static fn (mixed $slug): string => (string) $slug, array_filter($slugs, static fn (mixed $slug): bool => is_scalar($slug) && $slug !== '')));
 
-			if (! is_array($slugs) || $slugs === []) {
+			if ($slugs === []) {
 				continue;
 			}
 
-			$terms[$taxonomy->name] = array_values(array_map(static fn (mixed $slug): string => (string) $slug, array_filter($slugs, is_scalar(...))));
+			$terms[$key] = $slugs;
+
+			if ($key !== $labelKey) {
+				$terms[$labelKey] = array_values(array_unique([...$terms[$labelKey] ?? [], ...$slugs]));
+			}
 
 			$raw = array_find(
-				[$frontMatter[$taxonomy->field] ?? null, ...array_map(static fn (string $alias): mixed => $frontMatter[$alias] ?? null, $taxonomy->aliases)],
+				[$frontMatter[$field] ?? null, ...array_map(static fn (string $alias): mixed => $frontMatter[$alias] ?? null, $aliases)],
 				static fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []
 			);
 
 			foreach (is_array($raw) ? $raw : [$raw] as $label) {
 				if (is_string($label) && ($slug = Slug::from($label)) !== $label && $slug !== '') {
-					$labels[$taxonomy->name][$slug] ??= $label;
+					$labels[$labelKey][$slug] ??= $label;
 				}
 			}
 		}

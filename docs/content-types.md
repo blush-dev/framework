@@ -25,20 +25,21 @@ Every content type is one of four kinds:
   another type's folder, and serves each one at its file path. Pages nest
   by folder: `about/team.md` is a subpage of `about.md` (or
   `about/index.md`).
-- **Authors:** the built-in `author` type, the people your entries
+- **Profiles:** the built-in `profile` type, the people your entries
   credit. A site has one.
 
 ## Built-in types
 
 - **`page`** (pages): every entry that isn't in another type's folder.
-- **`author`** (authors): people, in `user/content/authors/`. Each file
-  is one person: the title is their public name and the body is their
-  bio. Entries credit them with `authors: jane`, in the types that
-  [credit authors](#types-that-credit-authors). Authors have no pages of
-  their own; each type that credits them has
-  [author archives](#author-archives). You don't need an author file; Blush uses the name as the
-  entry writes it until you add one, and `content:lint` warns about it.
-  An [account](accounts.md#authors) can be linked to an author.
+- **`profile`** (profiles): people, in `user/content/profiles/`. Each
+  file is one person: the title is their public name, `subtitle` a line
+  under it (such as "Food editor"), `avatar` a portrait from
+  `user/media`, and the body their bio. Each profile has a page at
+  `/profiles/jane`. Entries credit them through the
+  [people fields](#crediting-people) of their type, such as
+  `authors: jane`. You don't need a profile file; Blush uses the name as
+  the entry writes it until you add one, and `content:lint` warns about
+  it. An [account](accounts.md#profiles) can be linked to a profile.
 
 ## Three ways to define a type
 
@@ -53,7 +54,7 @@ folder: recipes
 
 **In PHP**, in `config/content.php`, which gives you editor autocomplete
 and type checking. Each kind is its own class: `Collection`, `Taxonomy`,
-`Pages`, or `Authors`.
+`Pages`, or `Profiles`.
 
 ```php
 <?php
@@ -89,7 +90,7 @@ feed: false
 
 This is what the admin writes when you edit such a type, and it keeps
 only what differs from the code. A file like this can't change the
-type's kind or folder, and the pages and authors types from code can't
+type's kind or folder, and the pages and profiles types from code can't
 be changed this way. Delete the file to go back to the code's
 definition. With `dataTypes` off, these files aren't read either.
 
@@ -449,8 +450,8 @@ panel beside the text, after the type's own fields.
 - A target the site doesn't have, such as a type that's turned off, is
   skipped. `bin/blush content:lint` notes it.
 
-Authors are a content type too, so a set aimed at `type:author` adds
-fields to every author's page, such as a website or a pronoun line.
+Profiles are a content type too, so a set aimed at `type:profile` adds
+fields to every profile, such as a website or a pronoun line.
 
 Sets can also add details to media files: target `media:image`,
 `media:video`, `media:audio`, or `media:file` (see
@@ -525,7 +526,7 @@ collection:
 | `orderby` | `filename` (default), `published`, `updated`, `title`, `author`, or any field |
 | `order` | `asc` (default) or `desc` |
 | `terms` | Only entries in these terms, such as `{tag: [php]}` |
-| `author` | Only entries by these authors |
+| `author` | Only entries crediting these profiles, through any people field |
 | `names` / `names_exclude` | Only, or never, these slugs |
 | `meta_key` / `meta_value` | Only entries whose field has this value |
 | `year` … `second` | Only entries published in this period |
@@ -548,9 +549,9 @@ Collections, taxonomies, and pages also take this:
 
 | Option | Default | What it does |
 |---|---|---|
-| `authors` | `true` for collections, `false` otherwise | Whether entries credit authors ([below](#types-that-credit-authors)) |
+| `people` | `authors` for collections, none otherwise | How entries credit people ([below](#crediting-people)). `authors: true` or `authors: false` is short for the `authors` field alone, or none |
 
-Collections and taxonomies also take these:
+Collections, taxonomies, and the profiles type also take these:
 
 | Option | Default | What it does |
 |---|---|---|
@@ -573,14 +574,11 @@ Only taxonomies take:
 | `termListing` | | How a term's page lists entries |
 | `hierarchical` | `false` | Whether a term may have a `parent` ([above](#hierarchical-taxonomies)) |
 
-Only the authors type takes:
-
-| Option | Default | What it does |
-|---|---|---|
-| `field` / `aliases` | The name | The front matter key entries credit authors with, and other keys it's read from (the built-in type uses `authors`, and reads `author` too) |
-
-The authors type doesn't take `urls`, `listing`, `feed`, or `sitemap`:
-authors have no pages of their own.
+For the profiles type, `urls` sets where profiles' pages are (its
+`prefix`, `profiles` by default), `listing` how a profile's page lists
+the entries crediting them, and `feed` whether each profile has a feed.
+It doesn't take `people` or `dateArchives`, and nothing answers at
+`/profiles` itself.
 
 ### Custom URLs
 
@@ -604,13 +602,14 @@ entry) and `collection` (the listing page) set the rest; `paths` sets any
 other route key that `routes:list` shows, such as
 `['collection.paged' => 'p/{page}']`.
 
-`authors` sets the word [author archives](#author-archives) sit under
-(`authors` by default), or `false` for none; their route keys are
-`authors.collection`, `authors.single`, `authors.single.paged`, and the
-`authors.single.feed` keys.
+Each [people field](#crediting-people) with archives adds route keys
+of its own, such as `authors.collection`, `authors.single`,
+`authors.single.paged`, and the `authors.single.feed` keys; `paths` can
+move those too. Their paths hold `{profile}`.
 
 Single-entry paths can use `{name}`, `{year}`, `{month}`, `{day}`,
-`{hour}`, `{minute}`, `{second}`, `{author}`, and any taxonomy's name. If
+`{hour}`, `{minute}`, `{second}`, `{profile}` (the first person
+credited), and any taxonomy's name. If
 someone reaches a post by a wrong date, they're redirected to the right
 one.
 
@@ -636,15 +635,27 @@ return new ContentConfig(
 In YAML, that's `user/data/types/page.yaml` with `kind: pages` and
 `fields`.
 
-## Types that credit authors
+## Crediting people
 
-Collections credit authors unless you turn it off; pages and taxonomies
-don't unless you turn it on. Only those types have the `authors` field:
+A type credits people through its **people fields**. Each is a front
+matter key that names [profiles](#built-in-types), in the type's own
+words: a blog credits its authors, and a recipe box its cooks and
+photographers. Every field points at the same profiles, so Jane is one
+profile whether she wrote a post or cooked a recipe.
+
+Collections have one people field, `authors` (it reads `author` too),
+unless you change it. Pages and taxonomies have none unless you add
+them:
 
 ```yaml
 # user/data/types/recipe.yaml
 folder: recipes
-authors: false
+people:
+  cooks:
+    required: true
+  photographers:
+    multiple: false
+    aliases: [photographer]
 ```
 
 ```yaml
@@ -653,46 +664,91 @@ kind: pages
 authors: true
 ```
 
-In a type that doesn't credit authors, an `authors` key in front matter
-is just an undeclared key.
-
-### Author archives
-
-A routed type that credits authors gets two kinds of page under its own
-prefix, so a blog and a recipe box each have their own:
-
-- `/blog/authors` lists the authors at least one published post
-  credits, by name, each with their bio's start.
-- `/blog/authors/jane` is Jane's archive in the blog: their name and
-  bio, then their posts, listed and paged as the blog lists them, with feeds at
-  `/blog/authors/jane/feed` (and `/feed/atom`, `/feed/json`) when the
-  blog has a feed. An author no post credits has no archive there.
-
-Bylines link to the archive in the entry's own type, and the sitemap and
-static export include the archives.
-
-Change the word with `urls.authors`, or set it to `false` for no
-archives (bylines then don't link):
-
 ```yaml
-# user/data/types/recipe.yaml
-folder: recipes
-urls:
-  authors: cooks    # /recipes/cooks and /recipes/cooks/jane
+# A collection that credits no one
+folder: notes
+authors: false
 ```
 
-In PHP, that's `new TypeUrls(authors: 'cooks')`.
+Each field takes these, all optional:
 
-To give a type's authors page a title and an introduction, add
-`_authors.md` to the type's folder (`user/content/_posts/_authors.md`).
-Its title replaces "Authors" and its body introduces the list. The
-leading underscore keeps it out of the type's listings and feeds, so it
-has no address of its own.
+| Option | Default | What it does |
+|---|---|---|
+| `plural` / `singular` | Made from the field's name | What it's called: "Cooks", "Cook" |
+| `aliases` | `[]` (`[author]` for `authors`) | Other front matter keys it's read from |
+| `archive` | The field's name | The word its archives sit under, or `false` for none |
+| `multiple` | `true` | Whether an entry may credit several people |
+| `required` | `false` | Whether an entry needs one before it's published |
+
+In PHP, `people` is a list of `PeopleField`s:
+
+```php
+use Blush\Content\Type\PeopleField;
+
+new Collection('recipe', folder: 'recipes', people: [
+	new PeopleField('cooks', required: true),
+	new PeopleField('photographers', aliases: ['photographer'], multiple: false)
+]);
+```
+
+`people: true` is the `authors` field alone, and `people: false` none. In
+a type without a people field, its key in front matter is just an
+undeclared key. A taxonomy's field wins over a people field reading the
+same key, so a 1.x site with an `author` taxonomy keeps it.
+
+The default theme's byline uses the first people field ("By Jane") and
+labels the rest ("Photographer: Sam").
+
+### People archives
+
+A routed type gets two kinds of page under its own prefix for each
+people field with archives, so a blog and a recipe box each have their
+own:
+
+- `/recipes/cooks` lists the people at least one published recipe
+  credits as a cook, by name, each with their bio's start.
+- `/recipes/cooks/jane` is Jane's archive there: her bio, then the
+  recipes crediting her as a cook, listed and paged as the type lists
+  them, with feeds at `/recipes/cooks/jane/feed` (and `/feed/atom`,
+  `/feed/json`) when the type has a feed. Someone no recipe credits as a
+  cook has no archive there.
+
+Bylines link to the archive under the entry's own type and field, or to
+the profile's page when that field has no archives. The sitemap and
+static export include the archives.
+
+To give a field's list a title and an introduction, add a page named
+after the field to the type's folder: `user/content/recipes/_cooks.md`.
+Its title replaces "Cooks" and its body introduces the list.
+
+To write something for one person's archive instead of their bio, add
+`user/content/recipes/_cooks/jane.md`. While it's published, its title
+and body introduce Jane's cook archive; the profile's bio is used
+otherwise.
+
+The leading underscore keeps both kinds of page out of the type's
+listings and feeds, so they have no address of their own.
+
+### Profile pages
+
+Each profile has a page of its own at `/profiles/jane`: the profile,
+then every published entry of any type crediting them, newest file
+first unless the profiles type's `listing` says otherwise. A profile
+with a file has a page before anything credits them.
+
+To move them, redefine the `profile` type with another folder or prefix.
+For example, a 1.x site whose author pages were at `/authors/jane`:
+
+```php
+use Blush\Content\Type\Profiles;
+
+return new ContentConfig(types: [new Profiles(folder: 'authors')]);
+```
 
 ## Turning off a built-in type
 
-If you don't want authors:
+If you don't want profiles:
 
 ```php
-return new ContentConfig(disabled: ['author']);
+return new ContentConfig(disabled: ['profile']);
 ```

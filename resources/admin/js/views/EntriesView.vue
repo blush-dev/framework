@@ -42,7 +42,7 @@ import { screenTitle } from '../screen';
 import { toast } from '../toast';
 import { can } from '../session';
 import { loadReferences } from '../references';
-import { authorType, currentType, findType, labelsOf, loadTypes, types } from '../types';
+import { profileType, currentType, findType, labelsOf, loadTypes, types } from '../types';
 
 type Tab = EntryStatus | 'any' | 'trash';
 
@@ -123,7 +123,7 @@ function text(value: unknown): string {
 
 // A taxonomy's entries are terms, and the authors type's are people
 // (D-329): they're counted by use, not credited.
-const terms = computed(() => info.value?.kind === 'taxonomy' || info.value?.kind === 'authors');
+const terms = computed(() => info.value?.kind === 'taxonomy' || info.value?.kind === 'profiles');
 
 // A nesting type lists as a tree on All with no search (D-261); a tab or
 // a search flattens it, and a bar says so and how to get it back (the
@@ -258,12 +258,12 @@ const taxonomies = computed(() => types.value.filter((item) => item.kind === 'ta
 	&& (!item.types?.length || item.types.includes(type.value))));
 
 // Only the types that credit authors have an author filter (D-329).
-const authored = computed(() => authorType.value !== null && info.value?.authors === true);
+const authored = computed(() => profileType.value !== null && info.value?.authors === true);
 
 let optionsFor = '';
 
 async function loadOptions(): Promise<void> {
-	const wanted = `${type.value}|${taxonomies.value.map((item) => item.name).join(',')}|${authored.value ? authorType.value : ''}`;
+	const wanted = `${type.value}|${taxonomies.value.map((item) => item.name).join(',')}|${authored.value ? profileType.value : ''}`;
 
 	if (wanted === optionsFor) {
 		return;
@@ -272,7 +272,7 @@ async function loadOptions(): Promise<void> {
 	optionsFor = wanted;
 
 	// Only the terms and authors this type's entries use (D-303).
-	const people = authored.value && authorType.value !== null ? loadReferences(authorType.value, { limit: OPTION_LIMIT, for: type.value }).catch(() => null) : Promise.resolve(null);
+	const people = authored.value && profileType.value !== null ? loadReferences(profileType.value, { limit: OPTION_LIMIT, for: type.value }).catch(() => null) : Promise.resolve(null);
 	const groups = Promise.all(taxonomies.value.map((item) => loadReferences(item.name, { limit: OPTION_LIMIT, for: type.value }).then(
 		(answer) => ({ item, answer }),
 		() => null
@@ -300,7 +300,7 @@ async function loadOptions(): Promise<void> {
 	}]);
 }
 
-watch([type, types, authorType], () => {
+watch([type, types, profileType], () => {
 	authorOptions.value = [];
 	termFilters.value   = [];
 	void loadOptions();
@@ -594,7 +594,7 @@ const emptyText = computed(() => {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ heading }}</h1>
-			<p class="page-header__hint">{{ info?.kind === 'authors' ? 'The people entries credit' : (terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit`) }}</p>
+			<p class="page-header__hint">{{ info?.kind === 'profiles' ? 'Public identities. Every byline on the site points at one.' : (terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit`) }}</p>
 		</div>
 		<div v-if="(can('content.create') && !nothingYet) || can('site.settings')" class="page-header__actions">
 			<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type settings</RouterLink>
@@ -605,9 +605,9 @@ const emptyText = computed(() => {
 	<section v-if="nothingYet" class="panel" aria-labelledby="entries-heading">
 		<!-- A type with an index page is never empty: the index page is
 		     already there, so the first-run state sits under it (D-255). -->
-		<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms" />
+		<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms && info?.kind !== 'profiles'" :profiles="info?.kind === 'profiles'" />
 		<div class="empty">
-			<AdminIcon :name="info?.kind === 'authors' ? 'user-round' : (terms ? 'tag' : 'files')" />
+			<AdminIcon :name="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" />
 			<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
 			<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
 			<RouterLink v-if="can('content.create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
@@ -669,7 +669,7 @@ const emptyText = computed(() => {
 				<p class="panel__hint" aria-live="polite">
 					<template v-if="!ready">&nbsp;</template>
 					<template v-else-if="inTrash">{{ plural(trashShown.length, labels.item, labels.items) }} · Restored entries come back as drafts</template>
-					<template v-else-if="list">{{ plural(list.total, labels.item, labels.items) }}<template v-if="terms"> · Entries counts the published entries using each</template></template>
+					<template v-else-if="list">{{ plural(list.total, labels.item, labels.items) }}<template v-if="info?.kind === 'profiles'"> · Bylines counts the published entries crediting each</template><template v-else-if="terms"> · Entries counts the published entries using each</template></template>
 				</p>
 				<div v-if="ready && inTrash && trash?.length" class="panel__actions">
 					<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty trash</button>
@@ -701,7 +701,8 @@ const emptyText = computed(() => {
 					labelledby="entries-heading"
 					date-label="Updated"
 					date-key="updated"
-					:terms="terms"
+					:terms="terms && info?.kind !== 'profiles'"
+					:profiles="info?.kind === 'profiles'"
 					v-model:selected="selected"
 					selectable
 					sortable

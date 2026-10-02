@@ -1,0 +1,1790 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meridian Profiles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Karla:wght@400;500;600&display=swap">
+<style>
+/* Publish-skeleton equivalent, so the standalone build matches the artifact. */
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px) }
+img { max-width: 100% }
+[hidden] { display: none !important }
+</style>
+<style>
+/* ============================================================================
+   Meridian — profiles sketch
+   ----------------------------------------------------------------------------
+   Layout: the real admin shell (rail / section panel / top bar / scrolling
+   work area) under a thin specimen harness that switches admin theme and
+   color scheme. Anything prefixed `lab-` is the harness, not the admin.
+
+   Tokens below are design/tokens.css verbatim. Component CSS reads tokens
+   only — no literal colors, fonts, radii or type sizes.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- neutral -- */
+:root {
+  --bg:             #f5f6f9;
+  --surface:        #ffffff;
+  --surface-2:      #f0f2f6;
+  --surface-3:      #e7eaf0;
+  --border:         #e2e5ec;
+  --border-strong:  #ccd2dd;
+  --fg:             #11141b;
+  --fg-2:           #535b6b;
+  --fg-3:           #858d9d;
+  --accent:         #2f5fe0;
+  --accent-hover:   #2650c4;
+  --accent-fg:      #ffffff;
+  --accent-soft:    #e9effc;
+  --accent-line:    #bdcdf7;
+  --good:           #136b43;  --good-soft:   #e2f3e9;  --good-dot:   #1f9d5f;
+  --warn:           #8a5806;  --warn-soft:   #faf0d9;  --warn-dot:   #cf8d16;
+  --danger:         #a92420;  --danger-soft: #fbeae9;  --danger-dot: #d6403a;
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3: 0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1: 6px;  --r-2: 10px;  --r-3: 16px;
+  --s-1: 4px;  --s-2: 8px;   --s-3: 12px;  --s-4: 18px;
+  --s-5: 26px; --s-6: 36px;  --s-7: 52px;
+  --font-ui:      "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:   "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:    "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --base:         13px;
+  --h1:           26px;
+  --h1-track:     -.024em;
+  --title-size:   13.5px;
+  --title-weight: 500;
+  --title-track:  -.005em;
+  --pad-row:   14px;
+  --pad-panel: 17px;
+  --pad-x:     22px;
+  --ctl:       34px;
+  --ctl-sm:    30px;
+  --stat-v:    30px;
+  --railbar:   74px;
+  --rail:      262px;
+  --bar:       62px;
+  --work-max:  1400px;
+  --measure:   72ch;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"]) {
+    --bg:            #0b0d12;
+    --surface:       #13161d;
+    --surface-2:     #1a1e27;
+    --surface-3:     #222733;
+    --border:        #242936;
+    --border-strong: #353c4c;
+    --fg:            #e9ebf0;
+    --fg-2:          #a3abba;
+    --fg-3:          #747d8e;
+    --accent:        #7295f7;
+    --accent-hover:  #8aa8f9;
+    --accent-fg:     #0b0d12;
+    --accent-soft:   #182444;
+    --accent-line:   #2c3d68;
+    --good:   #5ecb92;  --good-soft:   #102a1e;  --good-dot:   #35b877;
+    --warn:   #e3b360;  --warn-soft:   #2b2312;  --warn-dot:   #d69f3c;
+    --danger: #f28d84;  --danger-soft: #301917;  --danger-dot: #e0655c;
+    --shadow-1: none;
+    --shadow-2: 0 2px 8px rgba(0,0,0,.3);
+    --shadow-3: 0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+
+:root:is([data-color-scheme="dark"], [data-theme="dark"]):not([data-color-scheme="light"]) {
+  --bg:            #0b0d12;
+  --surface:       #13161d;
+  --surface-2:     #1a1e27;
+  --surface-3:     #222733;
+  --border:        #242936;
+  --border-strong: #353c4c;
+  --fg:            #e9ebf0;
+  --fg-2:          #a3abba;
+  --fg-3:          #747d8e;
+  --accent:        #7295f7;
+  --accent-hover:  #8aa8f9;
+  --accent-fg:     #0b0d12;
+  --accent-soft:   #182444;
+  --accent-line:   #2c3d68;
+  --good:   #5ecb92;  --good-soft:   #102a1e;  --good-dot:   #35b877;
+  --warn:   #e3b360;  --warn-soft:   #2b2312;  --warn-dot:   #d69f3c;
+  --danger: #f28d84;  --danger-soft: #301917;  --danger-dot: #e0655c;
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(0,0,0,.3);
+  --shadow-3: 0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+
+/* -------------------------------------------------------------- editorial -- */
+:root[data-admin-theme="editorial"] {
+  --bg:            #f6f2ec;
+  --surface:       #fffdfa;
+  --surface-2:     #f1ece3;
+  --surface-3:     #e7e0d4;
+  --border:        #e5ded2;
+  --border-strong: #cdc3b3;
+  --fg:            #23201b;
+  --fg-2:          #5d564c;
+  --fg-3:          #8e867a;
+  --accent:        #17595e;
+  --accent-hover:  #124a4e;
+  --accent-fg:     #fffdfa;
+  --accent-soft:   #e2eded;
+  --accent-line:   #b6d3d5;
+  --good:   #4c6d2c;  --good-soft:   #edf1e2;  --good-dot:   #6f9b45;
+  --warn:   #8a5a14;  --warn-soft:   #f8eeda;  --warn-dot:   #c58a2a;
+  --danger: #9c3327;  --danger-soft: #f8e7e2;  --danger-dot: #c2503f;
+  --shadow-2: 0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3: 0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1: 8px;  --r-2: 12px;  --r-3: 20px;
+  --font-ui:      "Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:   "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base: 13.5px;
+  --h1: 32px;  --h1-track: -.014em;
+  --title-size: 15.5px;  --title-weight: 500;  --title-track: 0;
+  --pad-row: 16px;  --pad-panel: 19px;  --pad-x: 26px;  --stat-v: 34px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"])[data-admin-theme="editorial"] {
+    --bg:            #15120e;
+    --surface:       #1d1915;
+    --surface-2:     #26211a;
+    --surface-3:     #322b22;
+    --border:        #302a21;
+    --border-strong: #463e31;
+    --fg:            #f0e9dd;
+    --fg-2:          #b4a996;
+    --fg-3:          #877c6c;
+    --accent:        #72bec2;
+    --accent-hover:  #8bcccf;
+    --accent-fg:     #15120e;
+    --accent-soft:   #113032;
+    --accent-line:   #1d4a4d;
+    --good:   #9cc16b;  --good-soft:   #1c2413;  --good-dot:   #84ad55;
+    --warn:   #dcae63;  --warn-soft:   #2c2314;  --warn-dot:   #c79646;
+    --danger: #e8897b;  --danger-soft: #2f1a16;  --danger-dot: #cf6a5c;
+    --shadow-2: 0 2px 8px rgba(0,0,0,.34);
+    --shadow-3: 0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme: dark;
+  }
+}
+
+:root:is([data-color-scheme="dark"], [data-theme="dark"]):not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+  --bg:            #15120e;
+  --surface:       #1d1915;
+  --surface-2:     #26211a;
+  --surface-3:     #322b22;
+  --border:        #302a21;
+  --border-strong: #463e31;
+  --fg:            #f0e9dd;
+  --fg-2:          #b4a996;
+  --fg-3:          #877c6c;
+  --accent:        #72bec2;
+  --accent-hover:  #8bcccf;
+  --accent-fg:     #15120e;
+  --accent-soft:   #113032;
+  --accent-line:   #1d4a4d;
+  --good:   #9cc16b;  --good-soft:   #1c2413;  --good-dot:   #84ad55;
+  --warn:   #dcae63;  --warn-soft:   #2c2314;  --warn-dot:   #c79646;
+  --danger: #e8897b;  --danger-soft: #2f1a16;  --danger-dot: #cf6a5c;
+  --shadow-2: 0 2px 8px rgba(0,0,0,.34);
+  --shadow-3: 0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ base -- */
+*, *::before, *::after { box-sizing: border-box }
+html, body { height: 100% }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: var(--base);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px }
+.num, .mono, td, th, time { font-variant-numeric: tabular-nums }
+.mono { font-family: var(--font-mono) }
+.ic {
+  width: 16px; height: 16px; flex: none;
+  stroke: currentColor; fill: none; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.ic-lg { width: 20px; height: 20px }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important }
+}
+
+/* ========================================================== lab harness == */
+.lab-shell { display: flex; flex-direction: column; height: 100% }
+
+.lab-bar {
+  flex: none;
+  display: flex; align-items: center; gap: var(--s-4);
+  flex-wrap: wrap;
+  padding: var(--s-2) var(--s-4);
+  padding-top: calc(var(--s-2) + env(safe-area-inset-top, 0px));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.lab-mark {
+  display: flex; align-items: baseline; gap: var(--s-2);
+  margin-right: auto; min-width: 0;
+}
+.lab-mark b {
+  font-family: var(--font-display); font-size: 14px; font-weight: 600;
+  letter-spacing: -.01em;
+}
+.lab-mark span { color: var(--fg-3); font-size: 11.5px; white-space: nowrap }
+.lab-grp { display: flex; align-items: center; gap: var(--s-2) }
+.lab-grp > label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-3); font-weight: 600;
+}
+
+/* segmented control */
+.seg { display: flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-1); padding: 2px; gap: 2px }
+.seg button {
+  font: inherit; font-size: 12px; color: var(--fg-2);
+  background: transparent; border: 0; cursor: pointer;
+  padding: 0 var(--s-3); height: calc(var(--ctl-sm) - 6px);
+  border-radius: calc(var(--r-1) - 2px); white-space: nowrap;
+}
+.seg button:hover { color: var(--fg) }
+.seg button[aria-pressed="true"] {
+  background: var(--surface); color: var(--fg); font-weight: 500;
+  box-shadow: var(--shadow-2);
+}
+
+.lab-body { flex: 1 1 auto; min-height: 0 }
+
+/* ============================================================ app shell == */
+.app { display: flex; height: 100%; background: var(--bg) }
+
+.rail {
+  flex: none; width: var(--railbar);
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: var(--s-1);
+  padding: var(--s-3) var(--s-2);
+}
+.rail-btn {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font: inherit; font-size: 10.5px; font-weight: 500;
+  color: var(--fg-2); background: transparent; border: 0; cursor: pointer;
+  padding: var(--s-2) 0; border-radius: var(--r-2); width: 100%;
+}
+.rail-btn:hover { background: var(--surface-2); color: var(--fg) }
+.rail-btn[aria-current="true"] { background: var(--accent-soft); color: var(--accent) }
+.rail-btn .ic { width: 19px; height: 19px }
+
+.panel-nav {
+  flex: none; width: var(--rail);
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.panel-nav > header {
+  flex: none; height: var(--bar);
+  display: flex; align-items: center; padding: 0 var(--pad-x);
+  border-bottom: 1px solid var(--border);
+}
+.panel-nav > header b {
+  font-family: var(--font-display); font-size: 14.5px; font-weight: 600; letter-spacing: -.01em;
+}
+.nav-list { overflow-y: auto; padding: var(--s-3) var(--s-2); display: flex; flex-direction: column; gap: 1px }
+.nav-h {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-3); font-weight: 600;
+  padding: var(--s-3) calc(var(--pad-x) - var(--s-2)) var(--s-1);
+}
+.nav-i {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: 7px calc(var(--pad-x) - var(--s-2));
+  border-radius: var(--r-1); color: var(--fg-2);
+  font: inherit; font-size: 12.5px; background: transparent; border: 0;
+  cursor: pointer; width: 100%; text-align: left; text-decoration: none;
+}
+.nav-i:hover { background: var(--surface-2); color: var(--fg) }
+.nav-i[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 500 }
+.nav-i .ic { color: var(--fg-3) }
+.nav-i[aria-current="page"] .ic { color: var(--accent) }
+.nav-i span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.nav-i em {
+  font-style: normal; font-family: var(--font-mono); font-size: 11px;
+  color: var(--fg-3);
+}
+.nav-i.sub { padding-left: calc(var(--pad-x) - var(--s-2) + 26px) }
+
+.work-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column }
+.topbar {
+  flex: none; height: var(--bar);
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: 0 var(--s-5);
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.crumbs { display: flex; align-items: center; gap: var(--s-2); min-width: 0; font-size: 12.5px; color: var(--fg-3) }
+.crumbs a, .crumbs button {
+  font: inherit; color: var(--fg-2); background: 0; border: 0; padding: 0;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+}
+.crumbs a:hover, .crumbs button:hover { color: var(--accent) }
+.crumbs b { color: var(--fg); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.crumbs i { font-style: normal; color: var(--fg-3) }
+.topbar .spacer { margin-left: auto }
+
+.work { flex: 1 1 auto; overflow-y: auto; padding: var(--s-6) }
+.wrap { max-width: var(--work-max); margin: 0 auto; display: flex; flex-direction: column; gap: var(--s-6) }
+
+/* ========================================================== primitives == */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1);
+  height: var(--ctl); padding: 0 var(--s-3);
+  font: inherit; font-size: 12.5px; font-weight: 500;
+  background: var(--surface); color: var(--fg);
+  border: 1px solid var(--border-strong); border-radius: var(--r-1);
+  box-shadow: var(--shadow-1); cursor: pointer; white-space: nowrap;
+  text-decoration: none;
+}
+.btn:hover { background: var(--surface-2) }
+.btn.sm { height: var(--ctl-sm); font-size: 12px }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent }
+.btn.primary:hover { background: var(--accent-hover) }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--fg-2) }
+.btn.ghost:hover { background: var(--surface-2); color: var(--fg) }
+.btn.danger { color: var(--danger); border-color: var(--border-strong) }
+.btn.danger:hover { background: var(--danger-soft) }
+
+.avatar {
+  flex: none; display: grid; place-items: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface-3); color: var(--fg-2);
+  font-size: 11px; font-weight: 600; letter-spacing: .02em;
+  overflow: hidden;
+}
+.avatar.lg { width: 44px; height: 44px; font-size: 15px }
+.avatar.guest { background: transparent; border: 1px dashed var(--border-strong); color: var(--fg-3) }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 20px; padding: 0 var(--s-2); border-radius: 999px;
+  font-size: 11px; font-weight: 500; white-space: nowrap;
+  margin-block: -2px; vertical-align: middle;
+  background: var(--surface-2); color: var(--fg-2); border: 1px solid transparent;
+}
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--border-strong); flex: none }
+.pill.pub { background: var(--good-soft); color: var(--good) }
+.pill.pub::before { background: var(--good-dot) }
+.pill.chg { background: var(--warn-soft); color: var(--warn) }
+.pill.chg::before { background: var(--warn-dot) }
+.pill.sched { background: var(--accent-soft); color: var(--accent) }
+.pill.sched::before { background: var(--accent) }
+/* resolution states — shape, not hue: a filled dot is its own, a ring is borrowed */
+.pill.written { background: var(--surface-3); color: var(--fg) }
+.pill.written::before { background: var(--fg-2) }
+.pill.inherited { background: var(--surface-2); color: var(--fg-2) }
+.pill.inherited::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--border-strong) }
+
+.tag {
+  display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+  border-radius: var(--r-1); background: var(--surface-2); color: var(--fg-2);
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+  border: 1px solid var(--border);
+}
+.muted { color: var(--fg-3) }
+.dash { color: var(--fg-3) }
+
+a.lnk { color: var(--accent); text-decoration: none }
+a.lnk:hover { text-decoration: underline }
+
+/* ============================================================== panels == */
+.pan {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-3); box-shadow: var(--shadow-1); overflow: hidden;
+}
+.pan > header {
+  display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+  padding: var(--pad-panel) var(--pad-x);
+}
+.pan > header h2 {
+  margin: 0; font-family: var(--font-display); font-size: 15px; font-weight: 600;
+  letter-spacing: -.01em; text-wrap: balance;
+}
+.pan > header .hint { color: var(--fg-3); font-size: 11.5px }
+.pan > header .acts { margin-left: auto; display: flex; gap: var(--s-2) }
+.pan-b { padding: 0 var(--pad-x) var(--s-5) }
+.pan-b.flush { padding: 0 }
+.pan-b.flush-top { border-top: 1px solid var(--border) }
+.pan-note {
+  padding: var(--s-3) var(--pad-x); border-top: 1px solid var(--border);
+  background: var(--surface-2); color: var(--fg-2); font-size: 11.5px;
+}
+
+/* =============================================================== header == */
+.ph { display: flex; flex-direction: column; gap: var(--s-3) }
+.ph-back {
+  display: inline-flex; align-items: center; gap: var(--s-1);
+  font: inherit; font-size: 12px; color: var(--fg-2);
+  background: 0; border: 0; padding: 0; cursor: pointer; align-self: flex-start;
+}
+.ph-back:hover { color: var(--accent) }
+.ph-row { display: flex; align-items: flex-start; gap: var(--s-4); flex-wrap: wrap }
+.ph-row h1 {
+  margin: 0; font-family: var(--font-display); font-size: var(--h1);
+  letter-spacing: var(--h1-track); font-weight: 600; text-wrap: balance;
+}
+.ph-sub { color: var(--fg-2); font-size: 12.5px; display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap }
+.ph-sub .sep { color: var(--fg-3) }
+.ph-acts { margin-left: auto; display: flex; gap: var(--s-2); flex-wrap: wrap }
+.ph-id { display: flex; align-items: center; gap: var(--s-3); min-width: 0 }
+
+/* ================================================================= tabs == */
+.tabs { display: flex; gap: var(--s-4); border-bottom: 1px solid var(--border); overflow-x: auto }
+.tab {
+  font: inherit; font-size: 12.5px; color: var(--fg-2);
+  background: 0; border: 0; border-bottom: 2px solid transparent;
+  padding: 0 0 var(--s-3); cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: var(--s-2);
+}
+.tab:hover { color: var(--fg) }
+.tab[aria-selected="true"] { color: var(--fg); font-weight: 500; border-bottom-color: var(--accent) }
+.tab em {
+  font-style: normal; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3);
+}
+
+/* =============================================================== filters == */
+.filters { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap }
+.search {
+  display: flex; align-items: center; gap: var(--s-2);
+  height: var(--ctl); padding: 0 var(--s-3); min-width: 0; flex: 0 1 240px;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-1);
+  color: var(--fg-3);
+}
+.search span { font-size: 12.5px }
+.fsel {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  height: var(--ctl); padding: 0 var(--s-3);
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-1);
+  font-size: 12.5px; color: var(--fg); cursor: pointer; white-space: nowrap;
+}
+.fsel .ic { color: var(--fg-3) }
+.filters .spacer { margin-left: auto }
+.count-line { font-size: 11.5px; color: var(--fg-3) }
+
+/* ============================================================== tables == */
+.tbl-shell { overflow-x: auto }
+table.tbl { width: 100%; min-width: 760px; border-collapse: collapse; table-layout: fixed }
+table.tbl th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-3); font-weight: 600;
+  padding: var(--s-3) var(--pad-x); border-bottom: 1px solid var(--border);
+  background: var(--surface); position: sticky; top: 0; z-index: 1;
+}
+table.tbl td {
+  padding: var(--pad-row) var(--pad-x); border-bottom: 1px solid var(--border);
+  vertical-align: middle; font-size: 12.5px;
+}
+table.tbl tbody tr:hover td { background: var(--surface-2) }
+table.tbl tbody tr:last-child td { border-bottom: 0 }
+.cell-title { display: flex; align-items: center; gap: var(--s-3); min-width: 0 }
+.cell-title .tx { min-width: 0 }
+.cell-title .nm {
+  font-family: var(--font-title); font-size: var(--title-size);
+  font-weight: var(--title-weight); letter-spacing: var(--title-track);
+  color: var(--fg); text-decoration: none; display: block;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cell-title a.nm:hover { color: var(--accent) }
+.cell-title .sl {
+  font-family: var(--font-mono); font-size: 11px; color: var(--fg-3);
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cell-acct { display: flex; align-items: center; gap: var(--s-2); min-width: 0 }
+.cell-acct a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ovf {
+  display: inline-grid; place-items: center; width: var(--ctl-sm); height: var(--ctl-sm);
+  border-radius: var(--r-1); color: var(--fg-2); background: 0; border: 0; cursor: pointer;
+}
+.ovf:hover { background: var(--surface-3); color: var(--fg) }
+.col-r { text-align: right }
+
+/* ===================================================== resolution table == */
+.res { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 720px }
+.res th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-3); font-weight: 600;
+  padding: var(--s-3) var(--pad-x); border-bottom: 1px solid var(--border);
+}
+.res td { padding: var(--pad-row) var(--pad-x); border-bottom: 1px solid var(--border); font-size: 12.5px; vertical-align: middle }
+.res tbody tr:last-child td { border-bottom: 0 }
+.res tr.is-default td { background: var(--accent-soft) }
+.res .u { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-2); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.res .fld { font-weight: 500; color: var(--fg); display: block }
+.res .ty { font-size: 11.5px; color: var(--fg-3); display: block }
+.res .act { text-align: right; white-space: nowrap }
+
+/* ============================================================== chain == */
+.chain {
+  display: flex; align-items: stretch; gap: var(--s-2); flex-wrap: wrap;
+  padding: var(--s-4) var(--pad-x) var(--s-5);
+}
+.chain-step {
+  flex: 1 1 170px; min-width: 0;
+  border: 1px solid var(--border); border-radius: var(--r-2);
+  background: var(--surface-2); padding: var(--s-3);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.chain-step.hit { background: var(--accent-soft); border-color: var(--accent-line) }
+.chain-step .k {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-3); font-weight: 600;
+}
+.chain-step.hit .k { color: var(--accent) }
+.chain-step .v { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg); word-break: break-all }
+.chain-step .d { font-size: 11.5px; color: var(--fg-2) }
+.chain-arw { display: grid; place-items: center; color: var(--fg-3); flex: none; width: 20px }
+
+/* ============================================================== fields == */
+.fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--s-4) }
+.fld-w { display: flex; flex-direction: column; gap: 5px; min-width: 0 }
+.fld-w > label { font-size: 12.5px; color: var(--fg) }
+.inp {
+  display: flex; align-items: center; height: var(--ctl); padding: 0 var(--s-3);
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-1);
+  font-size: 12.5px; color: var(--fg); overflow: hidden;
+}
+.inp.mono { font-family: var(--font-mono); font-size: 12px }
+.inp.pre { color: var(--fg-3) }
+.inp.pre b { color: var(--fg); font-weight: 400 }
+.hint2 { font-size: 11.5px; color: var(--fg-3) }
+
+.sw { display: flex; align-items: center; gap: var(--s-2) }
+.sw-box {
+  flex: none; width: 32px; height: 18px; border-radius: 999px;
+  background: var(--border-strong); position: relative;
+}
+.sw-box::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%; background: var(--surface);
+}
+.sw.on .sw-box { background: var(--accent) }
+.sw.on .sw-box::after { left: auto; right: 2px }
+.sw-w { font-size: 11.5px; color: var(--fg-2); font-weight: 500 }
+
+/* ========================================================= link states == */
+.link-box {
+  display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
+  padding: var(--s-4); border: 1px solid var(--border); border-radius: var(--r-2);
+  background: var(--surface-2);
+}
+.link-box.empty { border-style: dashed; background: transparent }
+.link-box .tx { min-width: 0; flex: 1 1 180px }
+.link-box .tx b { display: block; font-size: 13px; font-weight: 500 }
+.link-box .tx .u { font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); display: block }
+.link-box .tx .d { font-size: 11.5px; color: var(--fg-2) }
+.link-box .acts { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-left: auto }
+
+.states { display: grid; gap: var(--s-4) }
+.state-l {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-3); font-weight: 600; margin-bottom: var(--s-2);
+}
+
+/* =========================================================== people row == */
+.prow {
+  display: grid;
+  grid-template-columns: minmax(0,1.1fr) minmax(0,1.1fr) minmax(0,.9fr) auto;
+  gap: var(--s-3) var(--s-4); align-items: end;
+  padding: var(--s-4) var(--pad-x); border-bottom: 1px solid var(--border);
+}
+.prow:last-of-type { border-bottom: 0 }
+.prow .rm { align-self: end; margin-bottom: 1px }
+@media (max-width: 900px) { .prow { grid-template-columns: 1fr 1fr } .prow .rm { grid-column: 2; justify-self: end } }
+@media (max-width: 560px) { .prow { grid-template-columns: 1fr } .prow .rm { grid-column: 1; justify-self: start } }
+
+/* ================================================================ model == */
+.doc { max-width: 90ch; margin: 0 auto; display: flex; flex-direction: column; gap: var(--s-6) }
+.doc h1 {
+  margin: 0; font-family: var(--font-display); font-size: var(--h1);
+  letter-spacing: var(--h1-track); font-weight: 600; text-wrap: balance;
+}
+.doc h2 {
+  margin: 0 0 var(--s-3); font-family: var(--font-display); font-size: 17px;
+  font-weight: 600; letter-spacing: -.01em; text-wrap: balance;
+}
+.doc h3 {
+  margin: var(--s-4) 0 var(--s-2); font-size: 13px; font-weight: 600;
+}
+.doc p { margin: 0 0 var(--s-3); max-width: 68ch; color: var(--fg-2) }
+.doc p strong { color: var(--fg); font-weight: 600 }
+.doc p:last-child { margin-bottom: 0 }
+.doc ul { margin: 0 0 var(--s-3); padding-left: 1.2em; max-width: 68ch; color: var(--fg-2) }
+.doc li { margin-bottom: var(--s-2) }
+.doc li strong { color: var(--fg); font-weight: 600 }
+.doc li:last-child { margin-bottom: 0 }
+.doc code {
+  font-family: var(--font-mono); font-size: .88em;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 4px; padding: .1em .35em; color: var(--fg);
+}
+.doc section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-3); padding: var(--s-5) }
+.doc .lede { font-size: 14px; color: var(--fg-2); max-width: 64ch }
+
+.noun-tbl { width: 100%; border-collapse: collapse; margin-bottom: var(--s-3) }
+.noun-tbl th, .noun-tbl td {
+  text-align: left; padding: var(--s-3) var(--s-3) var(--s-3) 0;
+  border-bottom: 1px solid var(--border); vertical-align: top; font-size: 12.5px;
+}
+.noun-tbl th {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-3); font-weight: 600;
+}
+.noun-tbl td:first-child { font-weight: 600; color: var(--fg); white-space: nowrap }
+.noun-tbl td { color: var(--fg-2) }
+.noun-tbl tr:last-child td { border-bottom: 0 }
+.tbl-scroll { overflow-x: auto }
+.noun-tbl { min-width: 560px }
+
+.callout {
+  border-left: 2px solid var(--accent); background: var(--accent-soft);
+  padding: var(--s-3) var(--s-4); border-radius: 0 var(--r-2) var(--r-2) 0;
+  font-size: 12.5px; color: var(--fg-2);
+}
+.callout b { color: var(--fg) }
+.callout.warn { border-left-color: var(--warn-dot); background: var(--warn-soft) }
+
+.alt { display: flex; flex-direction: column; gap: var(--s-4) }
+.alt-i { display: flex; gap: var(--s-3); align-items: flex-start }
+.alt-i .mk {
+  flex: none; display: grid; place-items: center; width: 20px; height: 20px;
+  border-radius: 50%; margin-top: 1px;
+  background: var(--danger-soft); color: var(--danger);
+}
+.alt-i.keep .mk { background: var(--good-soft); color: var(--good) }
+.alt-i .tx { min-width: 0 }
+.alt-i .tx b { display: block; font-size: 12.5px; color: var(--fg); margin-bottom: 3px }
+.alt-i .tx p { margin: 0; font-size: 12.5px }
+
+/* ============================================================ responsive */
+@media (max-width: 1060px) { .panel-nav { display: none } }
+@media (max-width: 860px) { .rail { display: none } .work { padding: var(--s-5) } }
+@media (max-width: 640px) {
+  .work { padding: var(--s-4) }
+  .doc section { padding: var(--s-4) }
+  .ph-acts { margin-left: 0; width: 100% }
+}
+[hidden] { display: none !important }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></symbol>
+<symbol id="i-content" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+<symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-page" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+<symbol id="i-post" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+<symbol id="i-recipe" viewBox="0 0 24 24"><path d="M7 2v8a3 3 0 0 0 6 0V2"/><path d="M10 10v12"/><path d="M18 2c-1.5 2-2 4-2 6s.5 3 2 3 2-1 2-3-.5-4-2-6z"/><path d="M18 11v11"/></symbol>
+<symbol id="i-profile" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+<symbol id="i-media" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5L5 20"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.8 8.8a2 2 0 0 0 2.8 0l7.2-7.2a2 2 0 0 0 0-2.8z"/><circle cx="6.5" cy="6.5" r="1"/></symbol>
+<symbol id="i-schema" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-accounts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 20a6.4 6.4 0 0 0-2-4.6"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+<symbol id="i-addon" viewBox="0 0 24 24"><path d="M6 3h5v4a2 2 0 1 0 4 0V3h5v5h-4a2 2 0 1 0 0 4h4v5h-5v-4a2 2 0 1 0-4 0v4H6z"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.6-1.6"/></symbol>
+<symbol id="i-unlink" viewBox="0 0 24 24"><path d="M15 7l2-2a4 4 0 0 1 5.7 5.7L21 12.5"/><path d="M9 17l-2 2a4 4 0 0 1-5.7-5.7L3 11.5"/><path d="M4 4l16 16"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+<symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.2A9.6 9.6 0 0 1 12 5c6 0 9 7 9 7a16 16 0 0 1-2.3 3.3"/><path d="M6.6 6.7A16 16 0 0 0 3 12s3 7 9 7a9.5 9.5 0 0 0 4.3-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+</defs></svg>
+
+<div class="lab-shell">
+
+  <!-- ===================================================== lab harness === -->
+  <div class="lab-bar">
+    <div class="lab-mark">
+      <b>Profiles</b>
+      <span>design sketch &middot; not a running system</span>
+    </div>
+
+    <div class="lab-grp">
+      <label for="v-model">View</label>
+      <div class="seg" role="group" aria-label="View">
+        <button id="v-model" type="button" data-view="model" aria-pressed="true">Model</button>
+        <button type="button" data-view="screens" aria-pressed="false">Screens</button>
+      </div>
+    </div>
+
+    <div class="lab-grp">
+      <label for="t-neutral">Theme</label>
+      <div class="seg" role="group" aria-label="Admin theme">
+        <button id="t-neutral" type="button" data-theme-id="neutral" aria-pressed="true">Neutral</button>
+        <button type="button" data-theme-id="editorial" aria-pressed="false">Editorial</button>
+      </div>
+    </div>
+
+    <div class="lab-grp">
+      <label for="c-light">Color</label>
+      <div class="seg" role="group" aria-label="Color scheme">
+        <button id="c-light" type="button" data-scheme="light" aria-pressed="true">Light</button>
+        <button type="button" data-scheme="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab-body">
+
+    <!-- ================================================== model view === -->
+    <div id="view-model" class="work" style="height:100%">
+      <div class="doc">
+
+        <div>
+          <h1>Profiles, accounts and bylines</h1>
+          <p class="lede">Three nouns, one collection of people, and a fallback that resolves
+          by relationship instead of by matching slugs. What follows is the structure the four
+          screen sketches assume.</p>
+        </div>
+
+        <section>
+          <h2>The three nouns</h2>
+          <p>The sketch you described has two ideas inside one word. Splitting them is most of
+          the work, and the split lands cleanly on the sections the admin already has.</p>
+
+          <div class="tbl-scroll">
+            <table class="noun-tbl">
+              <thead><tr><th>Noun</th><th>What it is</th><th>Lives in</th><th>Who sees it</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Account</td>
+                  <td>Someone who can sign in. Email, roles, credentials, and the per-account
+                      settings &mdash; admin theme, light or dark.</td>
+                  <td>Config &rarr; Accounts</td>
+                  <td>Operators</td>
+                </tr>
+                <tr>
+                  <td>Profile</td>
+                  <td>A public identity. An entry of a profile-kind content type, so it has a
+                      slug, a status, a Markdown body with components, and the same editor as a
+                      page.</td>
+                  <td>Content &rarr; Profiles</td>
+                  <td>Everyone</td>
+                </tr>
+                <tr>
+                  <td>Byline</td>
+                  <td>The relation between an entry and a profile. A field on the entry, not a
+                      screen of its own. One or more per entry.</td>
+                  <td>The entry</td>
+                  <td>Everyone</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>Everything you asked for falls out of that split. An account with no public presence
+          simply has no profile. A guest author is a profile with no account. <code>profiles/jane</code>
+          is content because a profile is an entry, and it is edited the way a page is edited
+          because the project already decided that terms are entries and index pages are entries.</p>
+
+          <div class="callout">
+            <b>One name has to move.</b> The brief puts the admin theme and the light/dark
+            setting on <b>Your Profile</b>, which makes &ldquo;profile&rdquo; mean both a private
+            settings screen and a public page. The settings screen becomes <b>Your Account</b>,
+            which is what it actually is, and &ldquo;profile&rdquo; is left to the public thing.
+          </div>
+        </section>
+
+        <section>
+          <h2>One collection of people, not one per type</h2>
+          <p>The tempting reading of <code>posts/authors/jane</code> beside
+          <code>recipes/cooks/jane</code> is two taxonomies with their own terms. That is the
+          reading the sketches reject, for one reason: the two Janes would be joined by the
+          string <code>jane</code> and nothing else.</p>
+
+          <ul>
+            <li><strong>A slug is not an identity.</strong> Rename it on one and the fallback
+            silently stops resolving, with nothing in the admin to say so.</li>
+            <li><strong>Two people can want one slug.</strong> Nothing stops
+            <code>posts/authors/jane</code> and <code>recipes/cooks/jane</code> being different
+            Janes, and no screen would ever show that they are.</li>
+            <li><strong>It multiplies the work.</strong> A new avatar, a changed display name or
+            a corrected link has to be done once per type, and the admin grows a people list per
+            type to do it in.</li>
+          </ul>
+
+          <p>Jane the cook and Jane the author are one person with two bios. So: <strong>one
+          Profiles collection</strong>, and the per-type noun belongs to the content type rather
+          than to the person. Recipes calls them Cooks, Posts calls them Authors, and both point
+          at the same profile.</p>
+        </section>
+
+        <section>
+          <h2>How an archive resolves</h2>
+          <p>A content type declares a people field with an archive base. That gives a URL per
+          profile per field. What serves at that URL is settled in order, and only the first two
+          steps can be content:</p>
+
+          <div class="chain" style="padding-inline:0">
+            <div class="chain-step hit">
+              <span class="k">1 &middot; Its own index page</span>
+              <span class="v">recipes/cooks/jane-okonkwo</span>
+              <span class="d">Written for this field. Shown when it exists.</span>
+            </div>
+            <div class="chain-arw"><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></div>
+            <div class="chain-step">
+              <span class="k">2 &middot; The profile</span>
+              <span class="v">profiles/jane-okonkwo</span>
+              <span class="d">The default body. The canonical URL, and the fallback.</span>
+            </div>
+            <div class="chain-arw"><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></div>
+            <div class="chain-step">
+              <span class="k">3 &middot; Name and list</span>
+              <span class="v">&mdash;</span>
+              <span class="d">Display name, avatar, and the entries. No prose.</span>
+            </div>
+          </div>
+
+          <h3>What this reuses</h3>
+          <p>None of it is a new concept. Step 1 is <strong>the index page pattern</strong>,
+          moved from &ldquo;per type&rdquo; to &ldquo;per type and field and profile&rdquo;: an
+          ordinary entry, singular, pinned to an archive URL, created on demand, never counted in
+          a total, with no Duplicate and no Move to trash. Step 2 is the profile entry's own body.
+          Step 3 is what a type's archive does when its index page switch is off.</p>
+
+          <div class="callout warn">
+            <b>The constraint that comes with it.</b> Twenty-four profiles across four people
+            fields is ninety-six possible index pages, nearly all of them empty. So they are
+            <b>created on demand only</b>, and there is <b>no list screen for them</b> &mdash;
+            they are reachable from the profile they belong to and from the type that defines the
+            field, and nowhere else. A table of ninety-six mostly-blank rows is the failure mode
+            this rule exists to prevent.
+          </div>
+        </section>
+
+        <section>
+          <h2>Four decisions the sketches make</h2>
+          <div class="alt">
+            <div class="alt-i keep">
+              <span class="mk"><svg class="ic" style="width:13px;height:13px" aria-hidden="true"><use href="#i-check"/></svg></span>
+              <div class="tx">
+                <b>Two lists, one link &mdash; not a merged People screen</b>
+                <p>Merging them puts a Config object and a Content object in one table, where a
+                status pill would mean two different things and a row's permissions would depend
+                on which half you were looking at. Cross-section lookup is already solved:
+                <code>&#8984;K</code> finds Jane whichever side she is on.</p>
+              </div>
+            </div>
+            <div class="alt-i keep">
+              <span class="mk"><svg class="ic" style="width:13px;height:13px" aria-hidden="true"><use href="#i-check"/></svg></span>
+              <div class="tx">
+                <b>A people field is plural from the start</b>
+                <p>Recipes wants a Cook and a Photographer. Author is just the first people
+                field, so the type declares a list of them, each with its own label, base and
+                arity. A model where &ldquo;author&rdquo; is special breaks on the second one.</p>
+              </div>
+            </div>
+            <div class="alt-i">
+              <span class="mk"><svg class="ic" style="width:13px;height:13px" aria-hidden="true"><use href="#i-x"/></svg></span>
+              <div class="tx">
+                <b>Unlinking an account does not delete its profile</b>
+                <p>Same rule as turning off a type's index page: the switch stops the routing, it
+                does not destroy the entry. An unlinked profile becomes a guest profile and keeps
+                its bylines, which is what you want when someone leaves.</p>
+              </div>
+            </div>
+            <div class="alt-i">
+              <span class="mk"><svg class="ic" style="width:13px;height:13px" aria-hidden="true"><use href="#i-x"/></svg></span>
+              <div class="tx">
+                <b>No guest rows in the Accounts list</b>
+                <p>Widening Account to mean &ldquo;a person the site knows about&rdquo; gives one
+                people table, and a list where most rows cannot sign in, have no email and ignore
+                every column the screen is built around. Guests are profiles. The Accounts list
+                stays a list of people who can sign in.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2>What this does not settle</h2>
+          <ul>
+            <li><strong>Does a profile carry pending changes?</strong> The project says a term
+            has no pending-changes state. A profile is real public prose, so it probably should
+            have one &mdash; which means a profile is not quite a term, and the taxonomy-kind
+            shortcut needs a third kind.</li>
+            <li><strong>Which columns a profile list is allowed.</strong> Core columns are Title,
+            Status, Author, Updated for every type. Author on a profile is nonsense, so the
+            sketch swaps in Account and Bylines. Terms already do this, but the rule does not say
+            so.</li>
+            <li><strong>Who may edit whose profile.</strong> Editing your own is nearly always
+            allowed; editing someone else's is an editorial capability. That is two capabilities
+            the roles screen does not have yet.</li>
+            <li><strong>Where a site-wide Profiles collection sits in the panel.</strong> The
+            nesting rule puts a taxonomy used by one type under that type, and one used by
+            several in Structure. Profiles is used by every type with a people field, so the rule
+            exiles it &mdash; away from the types whose archives it feeds.</li>
+            <li><strong>What an account's own display name is for</strong> once a profile owns the
+            public one. Probably the operator-facing name in audit trails and the Accounts list,
+            which means two names per person and a question about which one an entry's byline
+            shows when there is no profile.</li>
+          </ul>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- ================================================= screens view === -->
+    <div id="view-screens" class="app" hidden>
+
+      <nav class="rail" aria-label="Sections">
+        <button class="rail-btn" type="button" data-sect="home">
+          <svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Home
+        </button>
+        <button class="rail-btn" type="button" data-sect="content" aria-current="true">
+          <svg class="ic" aria-hidden="true"><use href="#i-content"/></svg>Content
+        </button>
+        <button class="rail-btn" type="button" data-sect="config">
+          <svg class="ic" aria-hidden="true"><use href="#i-config"/></svg>Config
+        </button>
+      </nav>
+
+      <!-- content panel -->
+      <div class="panel-nav" data-panel="content">
+        <header><b>Content</b></header>
+        <div class="nav-list">
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-page"/></svg><span>Pages</span><em>16</em></a>
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-post"/></svg><span>Posts</span><em>248</em></a>
+          <a class="nav-i sub" href="#"><span>Topics</span><em>14</em></a>
+          <a class="nav-i sub" href="#"><span>Tags</span><em>31</em></a>
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-recipe"/></svg><span>Recipes</span><em>64</em></a>
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg><span>Releases</span><em>9</em></a>
+          <a class="nav-i" href="#" data-nav="profiles" aria-current="page"><svg class="ic" aria-hidden="true"><use href="#i-profile"/></svg><span>Profiles</span><em>24</em></a>
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-media"/></svg><span>Media</span></a>
+        </div>
+      </div>
+
+      <!-- config panel -->
+      <div class="panel-nav" data-panel="config" hidden>
+        <header><b>Config</b></header>
+        <div class="nav-list">
+          <a class="nav-i" href="#" data-nav="types"><svg class="ic" aria-hidden="true"><use href="#i-schema"/></svg><span>Content types</span><em>5</em></a>
+          <a class="nav-i" href="#" data-nav="accounts"><svg class="ic" aria-hidden="true"><use href="#i-accounts"/></svg><span>Accounts</span><em>9</em></a>
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg><span>Roles</span><em>4</em></a>
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-addon"/></svg><span>Addons</span><em>3</em></a>
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-config"/></svg><span>Settings</span></a>
+          <div class="nav-h">You</div>
+          <a class="nav-i" href="#"><svg class="ic" aria-hidden="true"><use href="#i-profile"/></svg><span>Your Account</span></a>
+        </div>
+      </div>
+
+      <div class="work-col">
+        <div class="topbar">
+          <nav class="crumbs" aria-label="Breadcrumb" id="crumbs"></nav>
+          <span class="spacer"></span>
+          <button class="btn sm ghost" type="button">
+            <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>&#8984;K
+          </button>
+        </div>
+
+        <div class="work">
+          <div class="wrap">
+
+            <!-- ------------------------------------------- profiles list -->
+            <div id="scr-profiles">
+              <div class="wrap">
+                <div class="ph">
+                  <div class="ph-row">
+                    <div>
+                      <h1>Profiles</h1>
+                      <div class="ph-sub">
+                        <span>Public identities. Every byline on the site points at one.</span>
+                      </div>
+                    </div>
+                    <div class="ph-acts">
+                      <button class="btn" type="button">Import from accounts</button>
+                      <button class="btn primary" type="button">
+                        <svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tabs" role="tablist" aria-label="Status">
+                  <button class="tab" role="tab" aria-selected="true">All <em>24</em></button>
+                  <button class="tab" role="tab" aria-selected="false">Published <em>19</em></button>
+                  <button class="tab" role="tab" aria-selected="false">Draft <em>4</em></button>
+                  <button class="tab" role="tab" aria-selected="false">Trash <em>1</em></button>
+                </div>
+
+                <div class="filters">
+                  <div class="search">
+                    <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+                    <span>Search profiles</span>
+                  </div>
+                  <span class="fsel">Any account <svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></span>
+                  <span class="fsel">Any field <svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></span>
+                  <span class="spacer"></span>
+                  <span class="count-line">24 profiles</span>
+                </div>
+
+                <div class="pan">
+                  <div class="tbl-shell">
+                    <table class="tbl">
+                      <colgroup>
+                        <col style="width:34px"><col><col style="width:116px">
+                        <col style="width:200px"><col style="width:96px"><col style="width:120px"><col style="width:48px">
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th><span class="muted" aria-hidden="true">&#9744;</span><span class="sr" style="position:absolute;left:-9999px">Select</span></th>
+                          <th>Name</th><th>Status</th><th>Account</th>
+                          <th class="col-r">Bylines</th><th>Updated</th><th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><span class="muted" aria-hidden="true">&#9744;</span></td>
+                          <td><div class="cell-title">
+                            <span class="avatar">JO</span>
+                            <span class="tx">
+                              <a class="nm" href="#" data-nav="profile">Jane Okonkwo</a>
+                              <span class="sl">/profiles/jane-okonkwo</span>
+                            </span>
+                          </div></td>
+                          <td><span class="pill pub">Published</span></td>
+                          <td><div class="cell-acct"><span class="avatar" style="width:20px;height:20px;font-size:9px">JO</span><a class="lnk" href="#" data-nav="accounts">jane@thistle.press</a></div></td>
+                          <td class="col-r mono">63</td>
+                          <td class="muted">Sep 28</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Jane Okonkwo"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                        <tr>
+                          <td><span class="muted" aria-hidden="true">&#9744;</span></td>
+                          <td><div class="cell-title">
+                            <span class="avatar">MB</span>
+                            <span class="tx">
+                              <a class="nm" href="#">Marcus Bell</a>
+                              <span class="sl">/profiles/marcus-bell</span>
+                            </span>
+                          </div></td>
+                          <td><span class="pill pub">Published</span> <span class="pill chg">Changes</span></td>
+                          <td><span class="tag">Guest</span></td>
+                          <td class="col-r mono">4</td>
+                          <td class="muted">Sep 26</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Marcus Bell"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                        <tr>
+                          <td><span class="muted" aria-hidden="true">&#9744;</span></td>
+                          <td><div class="cell-title">
+                            <span class="avatar">PR</span>
+                            <span class="tx">
+                              <a class="nm" href="#">Priya Raman</a>
+                              <span class="sl">/profiles/priya-raman</span>
+                            </span>
+                          </div></td>
+                          <td><span class="pill pub">Published</span></td>
+                          <td><div class="cell-acct"><span class="avatar" style="width:20px;height:20px;font-size:9px">PR</span><a class="lnk" href="#">priya@thistle.press</a></div></td>
+                          <td class="col-r mono">41</td>
+                          <td class="muted">Sep 21</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Priya Raman"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                        <tr>
+                          <td><span class="muted" aria-hidden="true">&#9744;</span></td>
+                          <td><div class="cell-title">
+                            <span class="avatar guest">TL</span>
+                            <span class="tx">
+                              <a class="nm" href="#">Tomas Lindgren</a>
+                              <span class="sl">/profiles/tomas-lindgren</span>
+                            </span>
+                          </div></td>
+                          <td><span class="pill">Draft</span></td>
+                          <td><span class="tag">Guest</span></td>
+                          <td class="col-r mono">1</td>
+                          <td class="muted">Sep 19</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Tomas Lindgren"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                        <tr>
+                          <td><span class="muted" aria-hidden="true">&#9744;</span></td>
+                          <td><div class="cell-title">
+                            <span class="avatar">AF</span>
+                            <span class="tx">
+                              <a class="nm" href="#">Ana Ferreira</a>
+                              <span class="sl">/profiles/ana-ferreira</span>
+                            </span>
+                          </div></td>
+                          <td><span class="pill sched">Scheduled</span></td>
+                          <td><div class="cell-acct"><span class="avatar" style="width:20px;height:20px;font-size:9px">AF</span><a class="lnk" href="#">ana@thistle.press</a></div></td>
+                          <td class="col-r mono">0</td>
+                          <td class="muted">Sep 18</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Ana Ferreira"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="pan-note">
+                    <b>Bylines</b> counts every entry of every type that names this profile, which
+                    is the only number here the API has to derive. A profile with none is still a
+                    profile &mdash; Ana's is written ahead of her first post.
+                  </div>
+                </div>
+
+                <div class="pan">
+                  <header>
+                    <h2>What changed from the entries list</h2>
+                    <span class="hint">Type-driven variation, not a second component</span>
+                  </header>
+                  <div class="pan-b">
+                    <ul class="doc" style="gap:0;padding-left:1.2em;color:var(--fg-2);font-size:12.5px;max-width:68ch;display:block">
+                      <li style="margin-bottom:var(--s-2)"><strong style="color:var(--fg)">Author becomes Account.</strong>
+                      A profile has no author, and the one thing you want to know scanning this
+                      list is whether the person can sign in.</li>
+                      <li style="margin-bottom:var(--s-2)"><strong style="color:var(--fg)">Guest is a tag, not a status.</strong>
+                      It describes the account link, and the status column already means
+                      something else. A dashed avatar carries it a second time.</li>
+                      <li style="margin-bottom:0"><strong style="color:var(--fg)">No index row pinned at the top.</strong>
+                      There is no archive of profiles &mdash; <code style="font-family:var(--font-mono);font-size:.88em">/profiles</code>
+                      is a container, not a type archive. If that turns out to be wanted, the
+                      pinned-row pattern is already there.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ----------------------------------------- profile detail -->
+            <div id="scr-profile" hidden>
+              <div class="wrap">
+                <div class="ph">
+                  <button class="ph-back" type="button" data-nav="profiles">
+                    <svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>All profiles
+                  </button>
+                  <div class="ph-row">
+                    <div class="ph-id">
+                      <span class="avatar lg">JO</span>
+                      <div>
+                        <h1>Jane Okonkwo</h1>
+                        <div class="ph-sub">
+                          <span class="mono">/profiles/jane-okonkwo</span>
+                          <span class="sep">&middot;</span>
+                          <span class="pill pub">Published</span>
+                          <span class="sep">&middot;</span>
+                          <span>63 bylines</span>
+                          <span class="sep">&middot;</span>
+                          <span>Linked to <a class="lnk" href="#" data-nav="accounts">jane@thistle.press</a></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="ph-acts">
+                      <button class="btn" type="button">
+                        <svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg>View
+                      </button>
+                      <button class="btn primary" type="button">Edit profile</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- what it is, before where it appears -->
+                <div class="pan">
+                  <header>
+                    <h2>Identity</h2>
+                    <span class="hint">What a byline renders, wherever it appears</span>
+                  </header>
+                  <div class="pan-b">
+                    <div class="fgrid">
+                      <div class="fld-w">
+                        <label for="f-dn">Display name</label>
+                        <div class="inp" id="f-dn">Jane Okonkwo</div>
+                        <span class="hint2">The name on every byline. Separate from the account's name.</span>
+                      </div>
+                      <div class="fld-w">
+                        <label for="f-sl">Slug</label>
+                        <div class="inp mono" id="f-sl">jane-okonkwo</div>
+                        <span class="hint2">Used by every archive URL below.</span>
+                      </div>
+                      <div class="fld-w">
+                        <label for="f-ti">Byline title</label>
+                        <div class="inp" id="f-ti">Food editor</div>
+                        <span class="hint2">Optional. Shown under the name on an archive.</span>
+                      </div>
+                      <div class="fld-w">
+                        <label for="f-av">Avatar</label>
+                        <div class="inp" id="f-av">okonkwo-portrait.jpg</div>
+                        <span class="hint2">From Media. Falls back to initials.</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pan-note">
+                    The body &mdash; the bio itself &mdash; is Markdown with components and is
+                    written in the editor, not here. <b>Edit profile</b> opens it.
+                  </div>
+                </div>
+
+                <!-- where it resolves -->
+                <div class="pan">
+                  <header>
+                    <h2>Where this profile appears</h2>
+                    <span class="hint">One row per people field on a type that has an archive</span>
+                    <span class="acts">
+                      <button class="btn sm" type="button">Resolution rules</button>
+                    </span>
+                  </header>
+                  <div class="tbl-shell pan-b flush flush-top">
+                    <table class="res">
+                      <colgroup><col style="width:30%"><col><col style="width:132px"><col style="width:148px"></colgroup>
+                      <thead>
+                        <tr><th>Field</th><th>Archive</th><th>Content</th><th></th></tr>
+                      </thead>
+                      <tbody>
+                        <tr class="is-default">
+                          <td>
+                            <span class="fld">The profile</span>
+                            <span class="ty">Default for every field</span>
+                          </td>
+                          <td><span class="u">/profiles/jane-okonkwo</span></td>
+                          <td><span class="pill written">Written</span></td>
+                          <td class="act"><button class="btn sm" type="button">Edit</button></td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <span class="fld">Authors</span>
+                            <span class="ty">Posts &middot; 48 entries</span>
+                          </td>
+                          <td><span class="u">/posts/authors/jane-okonkwo</span></td>
+                          <td><span class="pill written">Written</span></td>
+                          <td class="act"><button class="btn sm" type="button">Edit</button></td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <span class="fld">Cooks</span>
+                            <span class="ty">Recipes &middot; 12 entries</span>
+                          </td>
+                          <td><span class="u">/recipes/cooks/jane-okonkwo</span></td>
+                          <td><span class="pill inherited">Inherited</span></td>
+                          <td class="act"><button class="btn sm" type="button">Write one</button></td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <span class="fld">Photographers</span>
+                            <span class="ty">Recipes &middot; 3 entries</span>
+                          </td>
+                          <td><span class="u">/recipes/photographers/jane-okonkwo</span></td>
+                          <td><span class="pill inherited">Inherited</span></td>
+                          <td class="act"><button class="btn sm" type="button">Write one</button></td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <span class="fld muted">Releases</span>
+                            <span class="ty">No people field</span>
+                          </td>
+                          <td><span class="u dash">&mdash;</span></td>
+                          <td><span class="dash">&mdash;</span></td>
+                          <td class="act"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="pan-note">
+                    <b>Inherited</b> means the archive shows the profile's own body. Writing one
+                    creates an index page for that field &mdash; an ordinary entry, with its own
+                    status, that cannot be duplicated or trashed. Pages is absent because it has
+                    no archive at all.
+                  </div>
+                </div>
+
+                <div class="pan">
+                  <header>
+                    <h2>Linked account</h2>
+                    <span class="hint">Config object, shown here read-only</span>
+                    <span class="acts"><button class="btn sm" type="button">Open account</button></span>
+                  </header>
+                  <div class="pan-b">
+                    <div class="link-box">
+                      <span class="avatar lg">JO</span>
+                      <div class="tx">
+                        <b>Jane Okonkwo</b>
+                        <span class="u">jane@thistle.press</span>
+                        <span class="d">Editor, Author &middot; last signed in Sep 30</span>
+                      </div>
+                      <div class="acts">
+                        <button class="btn sm" type="button">
+                          <svg class="ic" aria-hidden="true"><use href="#i-unlink"/></svg>Unlink
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pan-note">
+                    Unlinking leaves this profile and its 63 bylines in place and makes it a guest
+                    profile. It does not touch the account.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- --------------------------------------------- accounts -->
+            <div id="scr-accounts" hidden>
+              <div class="wrap">
+                <div class="ph">
+                  <div class="ph-row">
+                    <div>
+                      <h1>Accounts</h1>
+                      <div class="ph-sub"><span>People who can sign in. A public presence is a separate, optional thing.</span></div>
+                    </div>
+                    <div class="ph-acts">
+                      <button class="btn primary" type="button">
+                        <svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Invite someone
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tabs" role="tablist" aria-label="State">
+                  <button class="tab" role="tab" aria-selected="true">All <em>9</em></button>
+                  <button class="tab" role="tab" aria-selected="false">Active <em>7</em></button>
+                  <button class="tab" role="tab" aria-selected="false">Invited <em>1</em></button>
+                  <button class="tab" role="tab" aria-selected="false">Suspended <em>1</em></button>
+                </div>
+
+                <div class="pan">
+                  <div class="tbl-shell">
+                    <table class="tbl">
+                      <colgroup><col><col style="width:150px"><col style="width:230px"><col style="width:132px"><col style="width:48px"></colgroup>
+                      <thead><tr><th>Account</th><th>Roles</th><th>Profile</th><th>Last active</th><th></th></tr></thead>
+                      <tbody>
+                        <tr>
+                          <td><div class="cell-title">
+                            <span class="avatar">JO</span>
+                            <span class="tx"><a class="nm" href="#">Jane Okonkwo</a><span class="sl">jane@thistle.press</span></span>
+                          </div></td>
+                          <td class="muted">Editor, Author</td>
+                          <td><div class="cell-acct"><a class="lnk" href="#" data-nav="profile">Jane Okonkwo</a></div></td>
+                          <td class="muted">Sep 30</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Jane Okonkwo"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                        <tr>
+                          <td><div class="cell-title">
+                            <span class="avatar">DW</span>
+                            <span class="tx"><a class="nm" href="#">Dale Whitcomb</a><span class="sl">dale@thistle.press</span></span>
+                          </div></td>
+                          <td class="muted">Administrator</td>
+                          <td><span class="muted">None</span></td>
+                          <td class="muted">Oct 1</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Dale Whitcomb"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                        <tr>
+                          <td><div class="cell-title">
+                            <span class="avatar">PR</span>
+                            <span class="tx"><a class="nm" href="#">Priya Raman</a><span class="sl">priya@thistle.press</span></span>
+                          </div></td>
+                          <td class="muted">Author</td>
+                          <td><div class="cell-acct"><a class="lnk" href="#">Priya Raman</a></div></td>
+                          <td class="muted">Sep 29</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Priya Raman"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                        <tr>
+                          <td><div class="cell-title">
+                            <span class="avatar">SK</span>
+                            <span class="tx"><a class="nm" href="#">Sam Kittredge</a><span class="sl">sam@thistle.press</span></span>
+                          </div></td>
+                          <td class="muted">Contributor</td>
+                          <td><div class="cell-acct"><a class="lnk" href="#">S. Kittredge</a> <span class="pill">Draft</span></div></td>
+                          <td class="muted">Sep 24</td>
+                          <td><button class="ovf" type="button" aria-label="Actions for Sam Kittredge"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="pan-note">
+                    The <b>Profile</b> column is the whole link, seen from the Config side. Sam's
+                    profile exists but is a draft, so the status pill travels with it &mdash;
+                    otherwise the column would claim he has a public page when nothing resolves.
+                  </div>
+                </div>
+
+                <div class="pan">
+                  <header>
+                    <h2>Public profile</h2>
+                    <span class="hint">The panel on an account's detail screen, in each of its three states</span>
+                  </header>
+                  <div class="pan-b">
+                    <div class="states">
+                      <div>
+                        <div class="state-l">Linked</div>
+                        <div class="link-box">
+                          <span class="avatar lg">JO</span>
+                          <div class="tx">
+                            <b>Jane Okonkwo</b>
+                            <span class="u">/profiles/jane-okonkwo</span>
+                            <span class="d">Published &middot; 63 bylines &middot; 2 archives written</span>
+                          </div>
+                          <div class="acts">
+                            <button class="btn sm" type="button">Open profile</button>
+                            <button class="btn sm" type="button"><svg class="ic" aria-hidden="true"><use href="#i-unlink"/></svg>Unlink</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div class="state-l">Not linked</div>
+                        <div class="link-box empty">
+                          <span class="avatar lg guest"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-profile"/></svg></span>
+                          <div class="tx">
+                            <b>No public profile</b>
+                            <span class="d">Dale does not appear on the site. Entries he writes
+                            show no byline until a profile is linked.</span>
+                          </div>
+                          <div class="acts">
+                            <button class="btn sm" type="button"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Link an existing one</button>
+                            <button class="btn sm primary" type="button">Create one</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div class="state-l">Linked, not yet public</div>
+                        <div class="link-box">
+                          <span class="avatar lg">SK</span>
+                          <div class="tx">
+                            <b>S. Kittredge</b>
+                            <span class="u">/profiles/s-kittredge</span>
+                            <span class="d">Draft &middot; nothing resolves at this URL yet</span>
+                          </div>
+                          <div class="acts">
+                            <button class="btn sm" type="button">Open profile</button>
+                            <button class="btn sm primary" type="button">Publish</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pan-note">
+                    <b>Create one</b> opens the new-profile screen with the display name and
+                    avatar prefilled from the account and the link already made &mdash; which is
+                    the common case, and the reason the two objects being separate costs almost
+                    nothing in practice.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ------------------------------------------- type builder -->
+            <div id="scr-types" hidden>
+              <div class="wrap">
+                <div class="ph">
+                  <button class="ph-back" type="button">
+                    <svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>All types
+                  </button>
+                  <div class="ph-row">
+                    <div>
+                      <h1>Recipes</h1>
+                      <div class="ph-sub">
+                        <span class="mono">/recipes</span>
+                        <span class="sep">&middot;</span>
+                        <span>64 entries</span>
+                        <span class="sep">&middot;</span>
+                        <span>Flat</span>
+                        <span class="sep">&middot;</span>
+                        <span>Custom type</span>
+                      </div>
+                    </div>
+                    <div class="ph-acts">
+                      <button class="btn" type="button">View index page</button>
+                      <button class="btn primary" type="button">Save type</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pan">
+                  <header>
+                    <h2>People</h2>
+                    <span class="hint">Each field names one relation to the Profiles collection</span>
+                    <span class="acts">
+                      <button class="btn sm" type="button">
+                        <svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Add a people field
+                      </button>
+                    </span>
+                  </header>
+
+                  <div class="pan-b flush flush-top">
+                    <div class="prow">
+                      <div class="fld-w">
+                        <label for="p1-l">Label</label>
+                        <div class="inp" id="p1-l">Cooks</div>
+                        <span class="hint2">Singular: Cook</span>
+                      </div>
+                      <div class="fld-w">
+                        <label for="p1-b">Archive base</label>
+                        <div class="inp mono pre" id="p1-b">/recipes/<b>cooks</b>/&hellip;</div>
+                        <span class="hint2">Published &middot; 18 profiles have entries here</span>
+                      </div>
+                      <div class="fld-w">
+                        <label for="p1-a">Entries take</label>
+                        <div class="inp" id="p1-a">One or more, required</div>
+                        <span class="hint2">Gates publishing, like any required field</span>
+                      </div>
+                      <button class="btn sm ghost rm" type="button" aria-label="Remove the Cooks field">
+                        <svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>
+                      </button>
+                    </div>
+
+                    <div class="prow">
+                      <div class="fld-w">
+                        <label for="p2-l">Label</label>
+                        <div class="inp" id="p2-l">Photographers</div>
+                        <span class="hint2">Singular: Photographer</span>
+                      </div>
+                      <div class="fld-w">
+                        <label for="p2-b">Archive base</label>
+                        <div class="inp mono pre" id="p2-b">/recipes/<b>photographers</b>/&hellip;</div>
+                        <span class="hint2">Published &middot; 6 profiles have entries here</span>
+                      </div>
+                      <div class="fld-w">
+                        <label for="p2-a">Entries take</label>
+                        <div class="inp" id="p2-a">One, optional</div>
+                        <span class="hint2">An entry may name no photographer</span>
+                      </div>
+                      <button class="btn sm ghost rm" type="button" aria-label="Remove the Photographers field">
+                        <svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="pan-note">
+                    Both fields point at the one <b>Profiles</b> collection. Jane is one profile
+                    with one slug; <span class="mono">cooks</span> and
+                    <span class="mono">photographers</span> are this type's words for how she is
+                    credited.
+                  </div>
+                </div>
+
+                <div class="pan">
+                  <header>
+                    <h2>Archives</h2>
+                    <span class="hint">Whether a field's URLs route at all</span>
+                  </header>
+                  <div class="pan-b">
+                    <div class="fgrid">
+                      <div class="fld-w">
+                        <label>Cooks archive</label>
+                        <div class="sw on"><span class="sw-box"></span><span class="sw-w">On</span></div>
+                        <span class="hint2">Routes <span class="mono">/recipes/cooks/&lt;slug&gt;</span> for every credited profile.</span>
+                      </div>
+                      <div class="fld-w">
+                        <label>Photographers archive</label>
+                        <div class="sw"><span class="sw-box"></span><span class="sw-w">Off</span></div>
+                        <span class="hint2">Credit still shows on the entry. Nothing routes, and no index page can be written.</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pan-note">
+                    Same switch as the type's own index page, and the same rule: turning it off
+                    stops the routing and does not delete anything that was written. Any index
+                    pages for that field are kept and marked unreachable on the profile.
+                  </div>
+                </div>
+
+                <div class="pan">
+                  <header>
+                    <h2>Why the base lives here and not on the profile</h2>
+                  </header>
+                  <div class="pan-b">
+                    <div class="callout" style="border-radius:var(--r-2)">
+                      A profile has one slug and one canonical URL. The words
+                      <b>authors</b>, <b>cooks</b> and <b>photographers</b> belong to the types
+                      that credit people, so they are declared once per type and apply to every
+                      profile &mdash; the same move as a type owning its own
+                      <span class="mono">singular</span> noun for the New button. Nothing about
+                      Jane changes when a type renames its field; her archive URL does, and that
+                      is a type-level redirect rather than twenty-four profile edits.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+
+  /* The viewer's own theme choice seeds the admin's color scheme, so the page
+     opens in the scheme the reader is already in. Their explicit choice in the
+     harness wins after that. */
+  try {
+    var hostTheme = root.getAttribute("data-theme");
+    if (hostTheme === "dark" || hostTheme === "light") {
+      root.setAttribute("data-color-scheme", hostTheme);
+    }
+  } catch (e) { /* no host theme; the media query handles it */ }
+
+  function press(group, match) {
+    group.forEach(function (b) {
+      b.setAttribute("aria-pressed", match(b) ? "true" : "false");
+    });
+  }
+
+  /* ---- harness: view ---- */
+  var viewBtns = Array.prototype.slice.call(document.querySelectorAll("[data-view]"));
+  var views = { model: document.getElementById("view-model"), screens: document.getElementById("view-screens") };
+  viewBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var v = btn.getAttribute("data-view");
+      press(viewBtns, function (b) { return b === btn; });
+      Object.keys(views).forEach(function (k) { views[k].hidden = (k !== v); });
+    });
+  });
+
+  /* ---- harness: admin theme ---- */
+  var themeBtns = Array.prototype.slice.call(document.querySelectorAll("[data-theme-id]"));
+  themeBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-theme-id");
+      press(themeBtns, function (b) { return b === btn; });
+      if (id === "neutral") root.removeAttribute("data-admin-theme");
+      else root.setAttribute("data-admin-theme", id);
+    });
+  });
+
+  /* ---- harness: color scheme ---- */
+  var schemeBtns = Array.prototype.slice.call(document.querySelectorAll("[data-scheme]"));
+  schemeBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      press(schemeBtns, function (b) { return b === btn; });
+      root.setAttribute("data-color-scheme", btn.getAttribute("data-scheme"));
+    });
+  });
+  (function seedSchemeButtons() {
+    var cur = root.getAttribute("data-color-scheme");
+    if (!cur) {
+      try { cur = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+      catch (e) { cur = "light"; }
+    }
+    press(schemeBtns, function (b) { return b.getAttribute("data-scheme") === cur; });
+  })();
+
+  /* ---- screens: navigation ---- */
+  var SCREENS = {
+    profiles: { el: "scr-profiles", panel: "content", sect: "content", nav: "profiles",
+                crumbs: [["Content", "sect"], ["Profiles", "now"]] },
+    profile:  { el: "scr-profile", panel: "content", sect: "content", nav: "profiles",
+                crumbs: [["Content", "sect"], ["Profiles", "profiles"], ["Jane Okonkwo", "now"]] },
+    accounts: { el: "scr-accounts", panel: "config", sect: "config", nav: "accounts",
+                crumbs: [["Config", "sect"], ["Accounts", "now"]] },
+    types:    { el: "scr-types", panel: "config", sect: "config", nav: "types",
+                crumbs: [["Config", "sect"], ["Content types", "types"], ["Recipes", "now"]] }
+  };
+
+  var crumbBox = document.getElementById("crumbs");
+
+  function drawCrumbs(list) {
+    crumbBox.textContent = "";
+    list.forEach(function (c, i) {
+      if (i) {
+        var sl = document.createElement("i");
+        sl.textContent = "/";
+        crumbBox.appendChild(sl);
+      }
+      var label = c[0], target = c[1], node;
+      if (target === "now") {
+        node = document.createElement("b");
+        node.setAttribute("aria-current", "page");
+      } else if (target === "sect") {
+        node = document.createElement("button");
+        node.type = "button";
+      } else {
+        node = document.createElement("button");
+        node.type = "button";
+        node.setAttribute("data-nav", target);
+      }
+      node.textContent = label;
+      crumbBox.appendChild(node);
+    });
+  }
+
+  function show(name) {
+    var s = SCREENS[name];
+    if (!s) return;
+    Object.keys(SCREENS).forEach(function (k) {
+      document.getElementById(SCREENS[k].el).hidden = (k !== name);
+    });
+    document.querySelectorAll("[data-panel]").forEach(function (p) {
+      p.hidden = (p.getAttribute("data-panel") !== s.panel);
+    });
+    document.querySelectorAll(".rail-btn").forEach(function (b) {
+      if (b.getAttribute("data-sect") === s.sect) b.setAttribute("aria-current", "true");
+      else b.removeAttribute("aria-current");
+    });
+    document.querySelectorAll(".nav-i").forEach(function (a) {
+      if (a.getAttribute("data-nav") === s.nav) a.setAttribute("aria-current", "page");
+      else a.removeAttribute("aria-current");
+    });
+    drawCrumbs(s.crumbs);
+    var work = document.querySelector("#view-screens .work");
+    if (work) work.scrollTop = 0;
+  }
+
+  document.addEventListener("click", function (ev) {
+    var t = ev.target.closest("[data-nav]");
+    if (!t) return;
+    var name = t.getAttribute("data-nav");
+    if (!SCREENS[name]) return;
+    ev.preventDefault();
+    show(name);
+  });
+
+  /* The rail scopes, it never navigates: pressing a section swaps the panel
+     and leaves the work area alone. */
+  document.querySelectorAll(".rail-btn").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var sect = b.getAttribute("data-sect");
+      if (sect === "home") return;
+      document.querySelectorAll("[data-panel]").forEach(function (p) {
+        p.hidden = (p.getAttribute("data-panel") !== sect);
+      });
+      document.querySelectorAll(".rail-btn").forEach(function (o) {
+        if (o === b) o.setAttribute("aria-current", "true");
+        else o.removeAttribute("aria-current");
+      });
+    });
+  });
+
+  /* ---- tabs are specimens, not wired to data ---- */
+  document.querySelectorAll('[role="tablist"]').forEach(function (list) {
+    var tabs = Array.prototype.slice.call(list.querySelectorAll('[role="tab"]'));
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (o) { o.setAttribute("aria-selected", o === tab ? "true" : "false"); });
+      });
+    });
+  });
+
+  show("profiles");
+})();
+</script>
+</body>
+</html>

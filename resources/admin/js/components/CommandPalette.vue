@@ -13,13 +13,14 @@ import { useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import TypeIcon from './TypeIcon.vue';
 import StatusPill from './StatusPill.vue';
-import { ApiError, entryRoute, request, type EntryList, type EntrySummary } from '../api';
+import { ApiError, request, type EntryList, type EntrySummary } from '../api';
+import { loadAccounts, type AccountInfo } from '../people';
 import { adminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { commandMatches, screenCommands, type Command } from '../commands';
 import type { IconName } from '../icons';
 import { can } from '../session';
-import { findType, typeIcon, types } from '../types';
+import { findType, listRoute, typeIcon, types } from '../types';
 
 const emit = defineEmits<{ close: [] }>();
 
@@ -30,6 +31,15 @@ const query   = ref('');
 const active  = ref(0);
 const entries = ref<EntrySummary[]>([]);
 const failed  = ref('');
+// Accounts, for whoever manages them, so a person is found on either
+// side: their account here, their profile among the entries (D-353).
+const accounts = ref<AccountInfo[]>([]);
+
+if (can('accounts.manage')) {
+	loadAccounts().then((list) => {
+		accounts.value = list;
+	}, () => undefined);
+}
 
 const go = (name: string, params?: Record<string, string>): (() => void) => () => void router.push({ name, params });
 
@@ -56,7 +66,7 @@ const everywhere = computed<Command[]>(() => {
 		['fields', 'Go to Fields', 'group', 'site.settings', 'field sets custom fields'],
 		['themes', 'Go to Themes', 'paintbrush', 'site.settings', 'appearance look'],
 		['extensions', 'Go to Extensions', 'plug', 'site.settings', 'addons plugins'],
-		['people', 'Go to People', 'users', can('accounts.manage') ? 'accounts.manage' : 'content.edit', 'accounts authors guests'],
+		['accounts', 'Go to Accounts', 'users', 'accounts.manage', 'people users sign in'],
 		['roles', 'Go to Roles', 'shield', 'accounts.manage', 'capabilities']
 	];
 
@@ -78,6 +88,10 @@ const everywhere = computed<Command[]>(() => {
 		for (const [screen, label, keywords] of settings) {
 			found.push({ id: `settings-${screen}`, label, icon: 'settings', keywords, run: go('settings', { screen }) });
 		}
+	}
+
+	for (const account of accounts.value) {
+		found.push({ id: `account-${account.username}`, label: `${account.displayName}'s account`, icon: 'users', keywords: `${account.username} account person`, run: go('account', { username: account.username }) });
 	}
 
 	found.push(
@@ -114,7 +128,7 @@ interface Row {
 
 const rows = computed<Row[]>(() => [
 	...commands.value.map((command) => ({ key: `command-${command.id}`, run: command.run })),
-	...entries.value.map((entry) => ({ key: `entry-${entry.id}`, run: () => void router.push(entryRoute(entry)) }))
+	...entries.value.map((entry) => ({ key: `entry-${entry.id}`, run: () => void router.push(listRoute(entry)) }))
 ]);
 
 // Entries: the latest changed, or those matching, a moment after typing.

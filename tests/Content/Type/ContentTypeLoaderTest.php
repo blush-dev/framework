@@ -65,11 +65,11 @@ final class ContentTypeLoaderTest extends TestCase
 	{
 		$types = $this->types();
 
-		$this->assertSame(['page', 'author'], array_keys($types->all()));
-		$this->assertSame(TypeOrigin::BuiltIn, $types->origin('author'));
+		$this->assertSame(['page', 'profile'], array_keys($types->all()));
+		$this->assertSame(TypeOrigin::BuiltIn, $types->origin('profile'));
 		$this->assertSame([], array_keys($types->taxonomies()));
-		$this->assertSame('author', $types->authors()?->name);
-		$this->assertSame(['author'], array_keys($types->termTypes()));
+		$this->assertSame('profile', $types->profiles()?->name);
+		$this->assertSame(['profile'], array_keys($types->termTypes()));
 		$this->assertNull($types->homeType());
 		$this->assertCount(2, $types);
 	}
@@ -116,7 +116,7 @@ final class ContentTypeLoaderTest extends TestCase
 			'writing/2005-10-30.house-of-hypocrites.md' => 'literature',
 			'writing/forms/essay.md'                    => 'literary_form',
 			'/writing/techniques/prose.md'              => 'literary_technique',
-			'authors/justin.md'                         => 'author'
+			'profiles/justin.md'                        => 'profile'
 		];
 
 		foreach ($cases as $file => $type) {
@@ -141,9 +141,10 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame('authors', $schema->field('author')?->name);
 		$this->assertSame('published', $schema->field('date')?->name);
 		$this->assertSame($schema, $types->schema('post'));
-		$this->assertFalse($types->schema('page')->has('authors'), 'Only the types that support authors credit them (D-329).');
+		$this->assertFalse($types->schema('page')->has('authors'), 'Only the types with people fields credit people (D-351).');
 		$this->assertFalse($types->schema('category')->has('authors'));
-		$this->assertFalse($types->schema('author')->has('authors'));
+		$this->assertFalse($types->schema('profile')->has('authors'));
+		$this->assertTrue($types->schema('profile')->has('avatar'));
 	}
 
 	public function testExtensionsAddTypesAndTheConfigReplacesThem(): void
@@ -174,23 +175,23 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testDisablesBuiltInTypes(): void
 	{
-		$this->contentConfig("['disabled' => ['author']]");
+		$this->contentConfig("['disabled' => ['profile']]");
 
-		$this->assertFalse($this->types()->has('author'));
+		$this->assertFalse($this->types()->has('profile'));
 	}
 
 	public function testLoadsDataTypes(): void
 	{
 		$this->writeTemporaryFile('user/data/types/movie.yaml', "path: movies\nfields:\n  - name: rating\n    type: number\n");
-		$this->writeTemporaryFile('user/data/types/author.json', '{"path": "people", "taxonomy": true, "field": "authors"}');
+		$this->writeTemporaryFile('user/data/types/profile.json', '{"path": "people", "kind": "profiles"}');
 
 		$types = $this->types();
 
 		$this->assertSame(TypeOrigin::Data, $types->origin('movie'));
 		$this->assertTrue(TypeOrigin::Data->isEditable());
 		$this->assertSame('number', $types->get('movie')->schema->fields['rating']->type());
-		$this->assertSame('people', $types->get('author')->folder);
-		$this->assertSame(TypeOrigin::Data, $types->origin('author'));
+		$this->assertSame('people', $types->get('profile')->folder);
+		$this->assertSame(TypeOrigin::Data, $types->origin('profile'));
 	}
 
 	public function testDataFilesChangeConfigCollectionsAndTaxonomies(): void
@@ -286,7 +287,7 @@ final class ContentTypeLoaderTest extends TestCase
 	public function testChecksThatTypesFitTogether(): void
 	{
 		$cases = [
-			"['types' => ['post' => ['path' => 'authors']]]"                 => 'The "author" and "post" content types share the folder "authors".',
+			"['types' => ['post' => ['path' => 'profiles']]]"                => 'The "profile" and "post" content types share the folder "profiles".',
 			"['types' => ['post' => ['collect' => 'nope']]]"                 => 'Content type "post" listing type names "nope", which doesn\'t exist.',
 			"['types' => ['tag' => ['taxonomy' => true, 'term_collect' => 'nope']]]" => 'Content type "tag" types names "nope"',
 			"['types' => ['post' => ['feed' => ['taxonomy' => 'nope']]]]"   => 'Content type "post" feed categories names "nope"',
@@ -294,7 +295,7 @@ final class ContentTypeLoaderTest extends TestCase
 			"['types' => ['page' => ['path' => 'pages']]]"                   => 'No content type claims the content root',
 			"['home' => 'post']"                                              => 'ContentConfig "home" names "post", which isn\'t a content type.',
 			"['types' => ['title' => ['taxonomy' => true]]]"                 => 'Content type "page" has clashing fields: Schema key "title"',
-			"['types' => ['person' => ['kind' => 'authors']]]"               => 'A site has one authors type, but "author", "person" are all authors types.'
+			"['types' => ['person' => ['kind' => 'profiles']]]"              => 'A site has one profiles type, but "profile", "person" are all profiles types.'
 		];
 
 		foreach ($cases as $config => $message) {

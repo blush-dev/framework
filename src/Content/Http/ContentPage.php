@@ -18,6 +18,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Query\PageLink;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Type\ContentType;
+use Blush\Content\Type\PeopleField;
 
 /**
  * What a content controller found, handed to the `PageRenderer`: the kind
@@ -27,6 +28,10 @@ use Blush\Content\Type\ContentType;
  * `$pageUrl` returns the URL of another page of the listing, for
  * pagination links. For the home page, `$base` is the kind of page it
  * shows: the home type's `Collection`, or `index.md` as a `Page`.
+ *
+ * The people pages (D-351) say which people field they're for, and a
+ * person's archive which profile: its `$entry` is the page written for
+ * that archive when there is one, else the profile itself.
  */
 final readonly class ContentPage
 {
@@ -36,6 +41,8 @@ final readonly class ContentPage
 	 * @param array<string, int>         $date    A date archive's date parts, from the year down.
 	 * @param ?Closure(int): ?string     $pageUrl Returns another page's URL path.
 	 * @param ?PageKind                  $base    For the home page, the kind of page it shows.
+	 * @param ?PeopleField               $people  The people field a people list or person's archive is for.
+	 * @param ?Entry                     $profile The profile a person's archive or profile page is about.
 	 */
 	public function __construct(
 		public PageKind $kind,
@@ -45,7 +52,9 @@ final readonly class ContentPage
 		public ?Paginator $entries = null,
 		public array $date = [],
 		public ?Closure $pageUrl = null,
-		public ?PageKind $base = null
+		public ?PageKind $base = null,
+		public ?PeopleField $people = null,
+		public ?Entry $profile = null
 	) {}
 
 	/**

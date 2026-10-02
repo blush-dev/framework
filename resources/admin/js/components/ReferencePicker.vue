@@ -18,8 +18,9 @@
  *   empty input removes the last chip.
  * - **Authors are people**: each a mark, a name, and its slug, the first
  *   marked **Lead** when there can be several, removed with an × that
- *   isn't there for the last one (an entry always has one; the handler
- *   refuses too), and added by a search.
+ *   isn't there for the last one when it must stay (`keepLast`: an
+ *   entry's main byline, or a required people field; the handler refuses
+ *   too), and added by a search.
  * - **One value is a select**: none, or one of the entries, in tree
  *   order for a hierarchical taxonomy (the parent of a term, without the
  *   term itself and the terms under it).
@@ -42,8 +43,11 @@ import AdminSelect from './AdminSelect.vue';
 const props = defineProps<{
 	id: string;
 	field: FieldDescription;
-	// Whether it points at people (the site's authors).
+	// Whether it points at people (the site's profiles).
 	people?: boolean;
+	// Whether the last person stays (an entry's main byline, or a
+	// required people field).
+	keepLast?: boolean;
 	// The entry's own slug, so a term isn't its own parent.
 	self?: string;
 	invalid?: boolean;
@@ -109,7 +113,7 @@ function add(value: string): void {
 
 function remove(slug: string): void {
 	// An entry always has an author (admin.md §8): the last one stays.
-	if (props.people && values.value.length <= 1) {
+	if (props.people && props.keepLast && values.value.length <= 1) {
 		return;
 	}
 
@@ -372,7 +376,7 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 						<span class="reference__name">{{ person.title }}</span>
 						<span class="reference__meta"><template v-if="index === 0 && persons.length > 1">Lead · </template><span class="mono">{{ person.slug }}</span><template v-if="person.missing"> · not found</template></span>
 					</span>
-					<button v-if="persons.length > 1" type="button" class="reference__remove" @click="remove(person.slug)">
+					<button v-if="persons.length > 1 || !keepLast" type="button" class="reference__remove" @click="remove(person.slug)">
 						<AdminIcon name="x" /><span class="visually-hidden">Remove {{ person.title }}</span>
 					</button>
 				</li>

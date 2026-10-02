@@ -64,8 +64,8 @@ link replaces the old one.
 
 A **suspended** account is signed out at once and can't sign in or use
 a password link until it's reinstated; nothing else about it changes.
-**Removing** an account deletes its file. Either way, its author page
-and the entries crediting it stay.
+**Removing** an account deletes its file. Either way, its profile and
+the entries crediting it stay.
 
 ## Names
 
@@ -79,28 +79,34 @@ Set it when creating an account (`--name=`, or **Name** on **New
 Account**), change it with `account:name`, on the account's screen, or
 on **Your profile**, where everyone can change their own.
 
-A person has one name. Once the account has an author page, that page's
+A person has one name. Once the account has a profile, the profile's
 title is its name, in the admin and on the site, and the account's own
-name is set aside (the Name field goes away). Without an author page,
-the admin uses the account's name, then its username.
+name is set aside (the Name field goes away). Without a profile, the
+admin uses the account's name, then its username.
 
-## Authors
+## Profiles
 
-An account can be linked to an author (see
-[Content types](content-types.md)): `--author=jane` links it to
-`user/content/authors/jane.md`, or to the `jane` author your posts credit
-even without that file.
+An account is someone who can sign in. Their public side is a separate
+thing, a **profile** (see [Content types](content-types.md#built-in-types)):
+the name in bylines, a bio, and a page on the site. An account can be
+linked to one: `--author=jane` links it to `user/content/profiles/jane.md`,
+or to the `jane` your entries credit even without that file. A profile
+with no account is a guest profile, and an account with no profile
+doesn't appear on the site.
 
-The author entry is the account's public side: its name in bylines and
-its bio, shown on its [author archives](content-types.md#author-archives). The account itself (username, password, roles)
-stays private. When the author has no entry yet, `account:add` and
-`account:author` offer to create one and ask for the public name; say no,
-and bylines show the slug until someone creates it. In the admin, **Your
-profile** links to your author page, or creates it.
+The account itself (username, password, roles) stays private. When the
+profile has no file yet, `account:add` and `account:author` offer to
+create one and ask for the public name; say no, and bylines show the
+slug until someone creates it. In the admin, an account's **Public
+Profile** panel links, unlinks, creates, or publishes its profile, and
+**Your profile** is the editor for your own (see
+[The admin](admin.md#profiles)). Unlinking leaves the profile and its
+bylines in place.
 
-Entries that credit an account's author are its **own**, and so is the
-author's entry. Roles decide what an account can do with its own entries
-and with everyone else's. An account with no author owns nothing, which
+Entries that credit an account's profile are its **own** (through the
+type's main byline, its first people field), and so is the profile
+itself. Roles decide what an account can do with its own entries and
+with everyone else's. An account with no profile owns nothing, which
 suits someone who only runs the site.
 
 ## Roles

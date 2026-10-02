@@ -25,28 +25,34 @@ use Blush\Routing\RoutePattern;
  *
  * - `single` holds `{name}`, and a collection's may add the published
  *   date's parts (`{year}` … `{second}`) and a taxonomy's name (or the
- *   authors type's) for the entry's first term of it.
- * - A taxonomy's `single` keys hold the term's `{name}`.
+ *   profiles type's) for the entry's first term of it.
+ * - A taxonomy's `single` keys, and the profiles type's, hold `{name}`.
  * - Date archives hold the date's parts down to their level.
- * - `authors.single` keys hold `{author}`.
+ * - A people field's `{field}.single` keys hold `{profile}` (D-351).
  * - `.paged` keys add `{page}`.
  */
 final readonly class TypeRouteKeys
 {
 	/**
 	 * Returns the route keys a type answers at, in the order the admin
-	 * lists them: its listing, date archives, entries, feeds, then author
-	 * archives. `$home` drops the listing (the home page is it), `$feeds`
-	 * are the feed formats' route suffixes (`''`, `.atom`, `.json`), and
-	 * `$authorArchives` says whether the type has author archives.
+	 * lists them: its listing, date archives, entries, feeds, then each
+	 * people field's archives. `$home` drops the listing (the home page
+	 * is it), `$feeds` are the feed formats' route suffixes (`''`,
+	 * `.atom`, `.json`), and `$profiles` says whether the site has a
+	 * profiles type, without which there are no people archives. The
+	 * profiles type answers only at its profiles' pages and feeds.
 	 *
 	 * @param  list<string> $feeds
 	 * @return list<string>
 	 */
-	public static function keys(ContentType $type, bool $home, array $feeds, bool $authorArchives): array
+	public static function keys(ContentType $type, bool $home, array $feeds, bool $profiles): array
 	{
 		if (! $type->hasUrls()) {
 			return [];
+		}
+
+		if ($type instanceof Profiles) {
+			return ['single', 'single.paged', ...array_map(static fn (string $suffix): string => "single.feed{$suffix}", $type->hasFeed() ? $feeds : [])];
 		}
 
 		$keys     = $home ? [] : ['collection', 'collection.paged'];
@@ -64,11 +70,11 @@ final readonly class TypeRouteKeys
 			}
 		}
 
-		if ($authorArchives) {
-			array_push($keys, 'authors.collection', 'authors.single', 'authors.single.paged');
+		foreach ($profiles ? $type->archivedPeople() : [] as $field) {
+			array_push($keys, "{$field->field}.collection", "{$field->field}.single", "{$field->field}.single.paged");
 
 			foreach ($type->hasFeed() ? $feeds : [] as $suffix) {
-				$keys[] = "authors.single.feed{$suffix}";
+				$keys[] = "{$field->field}.single.feed{$suffix}";
 			}
 		}
 
@@ -92,9 +98,11 @@ final readonly class TypeRouteKeys
 		$required = [];
 		$optional = [];
 
-		if (str_starts_with($base, 'authors.single')) {
-			$required = ['author'];
-		} elseif ($base === 'single' && ! $type instanceof Taxonomy) {
+		$people = array_find($type->people, static fn (PeopleField $field): bool => str_starts_with($base, "{$field->field}.single"));
+
+		if ($people !== null) {
+			$required = ['profile'];
+		} elseif ($base === 'single' && ! $type instanceof Taxonomy && ! $type instanceof Profiles) {
 			$required = ['name'];
 			$optional = [...$dates, ...$taxonomies];
 		} elseif (str_starts_with($base, 'single')) {

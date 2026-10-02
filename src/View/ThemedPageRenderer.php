@@ -90,14 +90,14 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		$head->property('og:site_name', $this->app->name)
 			->property('og:title', $isFront || $page->title === '' ? $this->app->name : $page->title)
 			->property('og:type', match ($page->kind) {
-				PageKind::Single => 'article',
-				PageKind::Author => 'profile',
-				default          => 'website'
+				PageKind::Single                     => 'article',
+				PageKind::Person, PageKind::Profile => 'profile',
+				default                              => 'website'
 			})
 			->property('og:url', $canonical);
 
 		if ($page->kind === PageKind::Single && $page->entry !== null) {
-			$this->describeAuthors($head, $page->entry);
+			$this->describeByline($head, $page->entry);
 		}
 
 		$this->describeEntry($head, $page);
@@ -152,15 +152,21 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	}
 
 	/**
-	 * Adds an article's authors to the head: each one's archive in the
-	 * entry's type (D-329), the URL that stands for the person.
+	 * Adds an article's byline to the head (D-351): for each profile its
+	 * type's first people field credits, their archive under that field,
+	 * else their profile's page, the URL that stands for the person.
 	 */
-	private function describeAuthors(Head $head, Entry $entry): void
+	private function describeByline(Head $head, Entry $entry): void
 	{
-		$authors = $this->types->authors();
+		$profiles = $this->types->profiles();
+		$field    = array_first($entry->type->people);
 
-		foreach ($authors === null ? [] : $entry->terms($authors->name) as $slug) {
-			$url = $this->urls->author($entry->type, $slug);
+		if ($profiles === null || $field === null) {
+			return;
+		}
+
+		foreach ($entry->terms($field->termKey($profiles->name)) as $slug) {
+			$url = $this->urls->byline($entry, $field->field, $slug);
 
 			if ($url !== null) {
 				$head->addProperty('article:author', $this->app->absoluteUrl($url));

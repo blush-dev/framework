@@ -18,6 +18,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\ContentRepository;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Http\NotFound;
 use Blush\Http\Response;
@@ -29,8 +30,9 @@ use Blush\View\ViewException;
 
 /**
  * Serves a feed: a type's collection feed (the home page's at `/feed`),
- * with `{name}`, a taxonomy term's, or with `{author}`, an author's
- * entries of the type (D-329). The theme renders it with
+ * with `{name}`, a taxonomy term's or a profile's (D-351), or with
+ * `{field}` and `{profile}`, a person's entries of the type under that
+ * people field. The theme renders it with
  * `feed-{format}-{type}` → `feed-{format}` (D-029). An empty feed is
  * still a feed.
  */
@@ -51,7 +53,7 @@ final readonly class FeedController
 	 * @throws ThemeException
 	 * @throws ViewException
 	 */
-	public function __invoke(ServerRequestInterface $request, string $type, string $format, ?string $name = null, ?string $author = null): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, string $type, string $format, ?string $name = null, ?string $field = null, ?string $profile = null): ResponseInterface
 	{
 		$feedFormat  = FeedFormat::tryFrom($format);
 		$contentType = $this->types->find($type);
@@ -60,15 +62,25 @@ final readonly class FeedController
 			throw new NotFound(sprintf('There is no %s feed for "%s".', $format, $type));
 		}
 
-		if ($author !== null) {
-			$authors = $this->types->authors();
-			$entry   = $authors === null ? null : $this->content->term($authors->name, $author);
+		$profiles = $this->types->profiles();
 
-			if ($entry === null || ! $entry->isPublished() || ! $entry->isRoutable()) {
-				throw new NotFound(sprintf('There is no "%s" author "%s".', $type, $author));
+		if ($field !== null && $profile !== null) {
+			$people = $contentType->archivedPeople()[$field] ?? null;
+			$entry  = $profiles === null || $people === null ? null : $this->content->term($profiles->name, $profile);
+
+			if ($people === null || $entry === null || ! $entry->isPublished() || ! $entry->isRoutable()) {
+				throw new NotFound(sprintf('There is no "%s" %s "%s".', $type, $field, $profile));
 			}
 
-			$feed = $this->builder->author($contentType, $entry, $feedFormat);
+			$feed = $this->builder->person($contentType, $people, $entry, $feedFormat);
+		} elseif ($contentType instanceof Profiles) {
+			$entry = $name === null ? null : $this->content->term($contentType->name, $name);
+
+			if ($entry === null || ! $entry->isPublished() || ! $entry->isRoutable()) {
+				throw new NotFound(sprintf('There is no profile "%s".', $name ?? ''));
+			}
+
+			$feed = $this->builder->profile($contentType, $entry, $feedFormat);
 		} elseif ($name === null) {
 			$feed = $this->builder->collection($contentType, $feedFormat);
 		} else {

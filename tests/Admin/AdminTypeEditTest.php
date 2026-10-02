@@ -76,23 +76,54 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
 		$this->assertSame([true, 'cooks', ['id' => '_recipe/_authors.md', 'title' => 'Authors']], [$type['authors'] ?? null, $type['authorsWord'] ?? null, $type['authorsPage'] ?? null]);
-		$this->assertSame("urls:\n  authors: cooks\n", $this->file('user/data/types/recipe.yaml'), 'Crediting authors is a collection\'s default, so it\'s left out (D-329).');
+		$this->assertSame("people:\n  authors: { archive: cooks }\n", $this->file('user/data/types/recipe.yaml'), 'Only the word differs from a collection\'s default (D-351).');
 		$this->assertSame("---\ntitle: \"Authors\"\n---\n", $this->file('user/content/_recipe/_authors.md'));
 
 		$this->assertSame('authors', self::json($this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => null]]))['authorsWord'] ?? null);
-		$this->assertStringNotContainsString('authors', $this->file('user/data/types/recipe.yaml'), 'The default word is left out.');
+		$this->assertStringNotContainsString('people', $this->file('user/data/types/recipe.yaml'), 'The default is left out.');
 
 		$off = $this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => false]]);
 		$this->assertSame(200, $off->getStatusCode(), (string) $off->getBody());
 		$this->assertFalse(self::json($off)['authorsWord'] ?? null);
-		$this->assertSame("urls:\n  authors: false\n", $this->file('user/data/types/recipe.yaml'));
+		$this->assertSame("people:\n  authors: { archive: false }\n", $this->file('user/data/types/recipe.yaml'));
 
 		$this->assertFalse(self::json($this->write('PATCH', '/types/recipe', ['set' => ['authors' => false]]))['authors'] ?? null);
-		$this->assertStringContainsString("authors: false\n", $this->file('user/data/types/recipe.yaml'));
+		$this->assertStringContainsString("people: false\n", $this->file('user/data/types/recipe.yaml'));
 
 		$refused = $this->write('PATCH', '/types/recipe', ['set' => [], 'authorsPage' => true]);
 		$this->assertSame(422, $refused->getStatusCode(), 'No author archives, no authors page.');
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => 5]])->getStatusCode());
+	}
+
+	public function testEditsATypesPeopleFields(): void
+	{
+		$this->site();
+		$this->assertSame(201, $this->write('POST', '/types', ['name' => 'recipe', 'kind' => 'collection', 'set' => ['labels' => ['singular' => 'Recipe', 'plural' => 'Recipes']]])->getStatusCode());
+
+		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['people' => [
+			'cooks'         => ['plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true],
+			'photographers' => ['plural' => 'Photographers', 'singular' => 'Photographer', 'aliases' => ['photographer'], 'archive' => false, 'multiple' => false, 'required' => false]
+		]], 'listPages' => ['cooks']]);
+
+		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
+		$type = self::json($saved);
+
+		$this->assertSame(['cooks', 'photographers'], array_column(is_array($type['people'] ?? null) ? $type['people'] : [], 'field'));
+		$people = is_array($type['people'] ?? null) ? $type['people'] : [];
+
+		$this->assertSame(['field' => 'cooks', 'plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true, 'listPage' => ['id' => '_recipe/_cooks.md', 'title' => 'Cooks']], $people[0] ?? null);
+		$this->assertFalse(is_array($people[1] ?? null) ? $people[1]['archive'] ?? null : null);
+		$this->assertSame("people:\n  cooks: { required: true }\n  photographers: { aliases: [photographer], archive: false, multiple: false }\n", $this->file('user/data/types/recipe.yaml'), 'Only what differs from each field\'s defaults (D-353).');
+		$this->assertSame("---\ntitle: \"Cooks\"\n---\n", $this->file('user/content/_recipe/_cooks.md'));
+		$keys = array_column(is_array($type['routes'] ?? null) ? $type['routes'] : [], 'key');
+
+		$this->assertContains('cooks.single', $keys);
+		$this->assertNotContains('photographers.single', $keys, 'No archives, no routes.');
+		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => [], 'listPages' => ['photographers']])->getStatusCode(), 'No archives, no list page.');
+		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['people' => ['single' => true]]])->getStatusCode());
+
+		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['people' => false]])->getStatusCode());
+		$this->assertSame("people: false\n", $this->file('user/data/types/recipe.yaml'), 'A collection that credits no one.');
 	}
 
 	public function testCreatesATypeWithFieldsAndAnIndexPage(): void
@@ -300,7 +331,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertFalse(self::json($this->send('GET', '/types/page'))['editable'] ?? null);
 		$this->assertSame(422, $this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])->getStatusCode());
-		$this->assertFalse(self::json($this->send('GET', '/types/author'))['editable'] ?? null);
+		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['editable'] ?? null);
 	}
 
 	public function testChangesAndChecksRoutePaths(): void
@@ -311,7 +342,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$routes = $this->routes('recipe');
 		$this->assertSame(['collection', 'collection.paged', 'single', 'collection.feed', 'collection.feed.atom', 'collection.feed.json', 'authors.collection', 'authors.single', 'authors.single.paged', 'authors.single.feed', 'authors.single.feed.atom', 'authors.single.feed.json'], array_keys($routes));
-		$this->assertSame(['key' => 'single', 'path' => 'r/{name}', 'default' => '{name}', 'requires' => ['name'], 'allows' => ['year', 'month', 'day', 'hour', 'minute', 'second', 'author', 'cuisine'], 'root' => false], $routes['single']);
+		$this->assertSame(['key' => 'single', 'path' => 'r/{name}', 'default' => '{name}', 'requires' => ['name'], 'allows' => ['year', 'month', 'day', 'hour', 'minute', 'second', 'profile', 'cuisine'], 'root' => false], $routes['single']);
 
 		$refusals = [
 			'{year}'          => 'The "single" address needs {name}.',

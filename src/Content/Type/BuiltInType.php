@@ -18,17 +18,18 @@ namespace Blush\Content\Type;
  *
  * - `page`: everything in `user/content` no other type claims, routed by
  *   the page catch-all rather than routes of its own.
- * - `author` (D-043, D-329): entries in `user/content/authors`, the
- *   people that the entries of types supporting authors credit through
- *   `authors` (or the 1.x `author`). It has no routes of its own.
+ * - `profile` (D-043, D-351): entries in `user/content/profiles`, the
+ *   people other types credit through their people fields, such as a
+ *   collection's `authors` (or the 1.x `author`). Each has a page at
+ *   `/profiles/{slug}`.
  *
  * The site can redefine either in `config/content.php` or as a data type,
- * and can disable `author`.
+ * and can disable `profile`.
  */
 enum BuiltInType: string
 {
-	case Page   = 'page';
-	case Author = 'author';
+	case Page    = 'page';
+	case Profile = 'profile';
 
 	/**
 	 * Returns the type's default definition.
@@ -36,8 +37,8 @@ enum BuiltInType: string
 	public function type(): ContentType
 	{
 		return match ($this) {
-			self::Page   => new Pages(),
-			self::Author => new Authors('author', folder: 'authors', field: 'authors', aliases: ['author'])
+			self::Page    => new Pages(),
+			self::Profile => new Profiles('profile', folder: 'profiles')
 		};
 	}
 

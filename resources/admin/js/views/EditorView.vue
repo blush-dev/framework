@@ -77,11 +77,12 @@
  * and says what it is on the Document tab. The server sends it without
  * the type's fields or a date, so it has no taxonomy fields and can't be
  * scheduled, and without `can.delete`, so it has no Move to trash. A
- * type's authors page (D-329) is edited the same way and says what it
- * introduces; it keeps its slug, and may be trashed.
+ * people field's list page, and a page written for one person's archive
+ * (D-329, D-353), are edited the same way and say what they introduce;
+ * they keep their slugs. A list page may be trashed; an archive's page
+ * is removed from its profile's screen instead.
  *
- * On **Your Profile** (D-329), the editor edits the account's author
- * page: `profile` names it by its handle, so the address stays
+ * On **Your Profile** (D-329), the editor edits the account's profile: `profile` names it by its handle, so the address stays
  * `/profile`, the top bar says Your Profile, and the slug can't change
  * (the account is linked by it). The account's private settings are a
  * third drawer tab, **Account**, from the `account` slot.
@@ -124,7 +125,7 @@ import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { config } from '../config';
 import { toast } from '../toast';
 import { useCommands, type Command } from '../commands';
-import { authorType, currentType, labelsOf, loadTypes, types } from '../types';
+import { profileType, currentType, labelsOf, loadTypes, types } from '../types';
 
 // Fields the editor shows in their own places rather than the form.
 const PLACED = ['title', 'status', 'published', 'slug'];
@@ -133,7 +134,7 @@ const PLACED = ['title', 'status', 'published', 'slug'];
 const REQUIRED = 'Required to publish.';
 
 const props = defineProps<{
-	// Your Profile's author page, by its handle; else the route says.
+	// Your Profile's profile entry, by its handle; else the route says.
 	profile?: string | null;
 }>();
 
@@ -240,10 +241,17 @@ const inSets    = computed(() => new Set((entry.value?.type.sets ?? []).flatMap(
 const ownFields = computed(() => fields.value.filter((field) => !inSets.value.has(field.name)));
 const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'published'));
 const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
-const noun      = computed(() => entry.value?.index ? 'index page' : (entry.value?.authorsPage ? 'authors page' : labels.value.item));
+// A people page (D-353) is a field's list page ("cooks page") or the page
+// written for one person's archive ("archive page").
+const peopleNoun = computed(() => {
+	const page = entry.value?.peoplePage;
+
+	return page ? (page.profile === null ? `${page.label.toLowerCase()} page` : 'archive page') : null;
+});
+const noun      = computed(() => entry.value?.index ? 'index page' : (peopleNoun.value ?? labels.value.item));
 const entryType = computed(() => types.value.find((type) => type.name === entry.value?.type.name));
 const fresh     = computed(() => entry.value !== null && entry.value.id === null);
-const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : (entry.value?.authorsPage ? 'Edit authors page' : (fresh.value ? labels.value.newItem : labels.value.editItem))));
+const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : (peopleNoun.value ? `Edit ${peopleNoun.value}` : (fresh.value ? labels.value.newItem : labels.value.editItem))));
 
 // The navigation marks the entry's type; the top bar names what's edited.
 loadTypes().catch(() => undefined);
@@ -953,7 +961,7 @@ async function preview(): Promise<void> {
 
 // The Document tab's fields, in the order they're touched (admin.md §8,
 // The document panel): visibility and a term's parent as rows under
-// Publish, then the featured image, the authors, each other reference
+// Publish, then the featured image, each people field, each other reference
 // (a taxonomy's terms, as a picker), the summary, the type's other
 // fields as a form, and then each field set's (D-337).
 const visibilityField = computed(() => ownFields.value.find((field) => field.name === 'visibility' && field.type === 'enum'));
@@ -962,12 +970,14 @@ const parentField     = computed(() => ownFields.value.find((field) => field.nam
 // those show only when its file has one.
 const term = computed(() => entry.value?.type.kind === 'taxonomy');
 const imageField      = computed(() => ownFields.value.find((field) => field.name === 'image' && field.type === 'media'));
-const authorField     = computed(() => ownFields.value.find((field) => field.type === 'reference' && field.to !== undefined && field.to === authorType.value));
+// Each people field (D-353): a reference to profiles, such as `authors`
+// or a recipe's `cooks`, as a people picker under its own label.
+const peopleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.to === profileType.value));
 const summaryField    = computed(() => ownFields.value.find((field) => field.name === 'summary' && field.type === 'markdown'));
-const referenceFields = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && field !== authorField.value));
+const referenceFields = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && !peopleFields.value.includes(field)));
 
 const otherFields = computed(() => {
-	const placed = [visibilityField.value, parentField.value, imageField.value, authorField.value, summaryField.value, ...referenceFields.value];
+	const placed = [visibilityField.value, parentField.value, imageField.value, ...peopleFields.value, summaryField.value, ...referenceFields.value];
 
 	return ownFields.value.filter((field) => !placed.includes(field));
 });
@@ -1497,7 +1507,7 @@ function placed(element: ElementRef): boolean {
 
 // The tabs are named for what they hold: the entry's type ("Post"), and
 // the element the caret is in ("Callout", "Heading 2"), else "Elements".
-const typeName = computed(() => titleCase(entry.value?.index ? 'Index page' : (entry.value?.authorsPage ? 'Authors page' : labels.value.singular)));
+const typeName = computed(() => titleCase(entry.value?.index ? 'Index page' : (peopleNoun.value ?? labels.value.singular)));
 const tabName  = computed(() => selection.value === null ? 'Elements' : nameOf(selection.value));
 const tabIcon  = computed<IconName>(() => selection.value === null ? 'list' : iconOf(selection.value));
 
@@ -2576,7 +2586,8 @@ function fieldKey(field: FieldDescription): string {
 								</template>
 								<p v-else id="editor-slug-help" class="visually-hidden">The slug is lowercase letters, numbers, and hyphens, and the address ends in it.</p>
 								<p v-if="entry.index" class="editor__group-note">The index page for <strong>{{ labels.plural }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.</p>
-								<p v-if="entry.authorsPage" class="editor__group-note">The page introducing the authors of <strong>{{ labels.plural }}</strong>: its title heads their list, and its body comes before it. It has no address of its own.</p>
+								<p v-if="entry.peoplePage && entry.peoplePage.profile === null" class="editor__group-note">The page introducing the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>: its title heads their list, and its body comes before it. It has no address of its own.</p>
+								<p v-else-if="entry.peoplePage" class="editor__group-note">The page introducing <RouterLink :to="{ name: 'profile-detail', params: { slug: entry.peoplePage.profile } }">{{ entry.peoplePage.profileTitle }}</RouterLink>'s archive as one of the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>, in place of their bio there. It has no address of its own.</p>
 							</div>
 
 							<div v-if="imageField && (!term || form[imageField.name])" class="editor__group">
@@ -2585,11 +2596,13 @@ function fieldKey(field: FieldDescription): string {
 								<p v-if="!form[imageField.name]" class="field__help">Used in listings, link previews, and at the top of the {{ noun }}, as the theme shows it.</p>
 							</div>
 
-							<div v-if="authorField && (!term || referenceCount(authorField))" class="editor__group">
-								<p class="editor__group-heading">{{ authorField.multiple === false ? 'Author' : 'Authors' }}<span v-if="referenceCount(authorField) > 1" class="editor__group-hint">{{ plural(referenceCount(authorField), 'person', 'people') }}</span></p>
-								<ReferencePicker :id="`field-${authorField.name}`" :key="fieldKey(authorField)" :field="authorField" people :model-value="String(form[authorField.name] ?? '')" :invalid="Boolean(errorFor(authorField.name))" @update:model-value="form[authorField.name] = $event" />
-								<p v-if="errorFor(authorField.name)" class="field__error">{{ errorFor(authorField.name) }}</p>
-							</div>
+							<template v-for="peopleField in peopleFields" :key="fieldKey(peopleField)">
+								<div v-if="!term || referenceCount(peopleField)" class="editor__group">
+									<p class="editor__group-heading">{{ titleCase(peopleField.label ?? (peopleField.multiple === false ? 'Author' : 'Authors')) }}<span v-if="referenceCount(peopleField) > 1" class="editor__group-hint">{{ plural(referenceCount(peopleField), 'person', 'people') }}</span></p>
+									<ReferencePicker :id="`field-${peopleField.name}`" :field="peopleField" people :keep-last="peopleFields[0] === peopleField || peopleField.required === true" :model-value="String(form[peopleField.name] ?? '')" :invalid="Boolean(errorFor(peopleField.name))" @update:model-value="form[peopleField.name] = $event" />
+									<p v-if="errorFor(peopleField.name)" class="field__error">{{ errorFor(peopleField.name) }}</p>
+								</div>
+							</template>
 
 							<div v-for="field in referenceFields" :key="fieldKey(field)" class="editor__group">
 								<p class="editor__group-heading"><label :for="`field-${field.name}`">{{ titleCase(field.label ?? labelsOf(field.to ?? '').plural) }}</label><span v-if="referenceCount(field)" class="editor__group-hint">{{ referenceCount(field).toLocaleString() }} selected</span></p>

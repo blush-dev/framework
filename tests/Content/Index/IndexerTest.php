@@ -145,7 +145,7 @@ final class IndexerTest extends TestCase
 		$this->assertSame('Welcome', $welcome->title);
 		$this->assertSame('en_US', $welcome->locale);
 		$this->assertSame(['old-posts'], $welcome->terms['category']);
-		$this->assertSame(['justintadlock'], $welcome->terms['author']);
+		$this->assertSame(['justintadlock'], $welcome->terms['profile']);
 
 		$spring = $this->record('_posts/2008-04-05.spring.md');
 
@@ -170,7 +170,7 @@ final class IndexerTest extends TestCase
 		$this->assertSame('about/index.md', $snapshot->find('en_US', 'page', 'about'));
 		$this->assertSame(['en_US/page/about' => ['about.md', 'about/index.md']], $snapshot->conflicts);
 		$this->assertSame('_posts/index.md', $snapshot->find('en_US', 'post', ''));
-		$this->assertSame(['_posts/2003-04-15.welcome.md', '_posts/2008-04-05.spring.md'], $snapshot->referencing('author', 'justintadlock'));
+		$this->assertSame(['_posts/2003-04-15.welcome.md', '_posts/2008-04-05.spring.md'], $snapshot->referencing('profile', 'justintadlock'));
 		$this->assertSame(['old-posts' => 'old-posts', 'art' => 'art', 'book-reviews' => 'Book Reviews'], $snapshot->termLabels('category'));
 		$this->assertSame(strtotime('2026-12-25 08:00:00 America/Chicago'), $snapshot->scheduled);
 	}

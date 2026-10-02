@@ -5,7 +5,7 @@
  */
 
 import { ref } from 'vue';
-import { request, type ContentTypeSummary, type TypeLabels } from './api';
+import { entryRoute, request, type ContentTypeSummary, type TypeLabels } from './api';
 import { humanize } from './fields';
 import type { IconName } from './icons';
 import { iconMask, loadIcons } from './site-icons';
@@ -16,7 +16,7 @@ export const types = ref<ContentTypeSummary[]>([]);
  * The type accounts' authors belong to, listed with people rather than
  * content, or `null` when the site has none.
  */
-export const authorType = ref<string | null>(null);
+export const profileType = ref<string | null>(null);
 
 /**
  * Whether types can be created here (types in `user/data/types` are
@@ -44,7 +44,7 @@ export function loadTypes(): Promise<ContentTypeSummary[]> {
 	loading ??= request<{ types: ContentTypeSummary[]; authors: string | null; create: boolean; urls: boolean }>('GET', '/types').then(
 		(answer) => {
 			types.value          = answer.types;
-			authorType.value     = answer.authors;
+			profileType.value     = answer.authors;
 			canCreateTypes.value = answer.create;
 			typeUrls.value       = answer.urls;
 
@@ -103,7 +103,7 @@ export function labelsOf(name: string): TypeLabels {
  * The icon a type's kind is shown with.
  */
 export function typeIcon(type: Pick<ContentTypeSummary, 'kind'>): IconName {
-	return ({ taxonomy: 'tag', pages: 'files', authors: 'user-round', collection: 'file-text' } as const)[type.kind];
+	return ({ taxonomy: 'tag', pages: 'files', profiles: 'user-round', collection: 'file-text' } as const)[type.kind];
 }
 
 /**
@@ -112,4 +112,16 @@ export function typeIcon(type: Pick<ContentTypeSummary, 'kind'>): IconName {
  */
 export function typeMask(type: Pick<ContentTypeSummary, 'icon'>): string | null {
 	return type.icon === null ? null : (masks.value[type.icon] ?? null);
+}
+
+/**
+ * Where an entry in a list opens: a profile's own screen (D-353), which
+ * says where it appears and links to its editor, or else the editor.
+ */
+export function listRoute(entry: { id: string; type: string; handle: string | null }): { name: string; params: Record<string, string | string[]> } {
+	if (entry.type === profileType.value && entry.handle !== null) {
+		return { name: 'profile-detail', params: { slug: entry.handle.slice(entry.handle.indexOf('/') + 1) } };
+	}
+
+	return entryRoute(entry);
 }

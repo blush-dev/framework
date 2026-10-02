@@ -261,9 +261,11 @@ What a template can use:
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](components.md#icons)) |
 | `$template->permalink($entry)` | An entry's URL |
 | `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
-| `$template->authors($entry)` | The authors an entry credits, in order |
-| `$template->authorUrl($author, $entry)` | An author's archive in the entry's type, such as `/blog/authors/jane` (`''` when the type has none; pass a type instead of an entry on the authors page) |
-| `$template->authorsUrl($type)` | A type's list of authors, such as `/blog/authors` |
+| `$template->people($entry, $field)` | The profiles an entry credits through a [people field](content-types.md#crediting-people), in order; the type's first people field (its byline) when `$field` is left out |
+| `$template->bylineUrl($profile, $entry, $field)` | Where a byline links: the person's archive under the entry's type and field, such as `/blog/authors/jane`, else their profile's page, else `''` |
+| `$template->personUrl($profile, $type, $field)` | A person's archive under a type's people field, such as `/recipes/cooks/jane` (`''` when it has none) |
+| `$template->peopleUrl($type, $field)` | The list of people a type's field credits, such as `/recipes/cooks` |
+| `$template->permalink($profile)` | A profile's own page, such as `/profiles/jane` |
 | `$template->parent($entry)` | A page's parent page (from its folder) or a term's parent term, if published |
 | `$template->ancestors($entry)` | Its parents from the top down, for breadcrumbs |
 | `$template->children($entry)` | A page's subpages or a term's child terms, published, by title |
@@ -393,15 +395,20 @@ Blush picks the most specific template your theme (or its parents) has:
 | A listing | `collection-{type}`, `collection-taxonomy` (a taxonomy's listing), `collection` |
 | A term | `term-{taxonomy}-{slug}`, `term-{taxonomy}`, `term`, `collection` |
 | A date archive | `archive-date-{type}`, `archive-date`, `collection` |
-| A type's authors | `authors-{type}`, `authors`, `collection` |
-| An author's archive in a type | `author-{type}-{slug}`, `author-{type}`, `author`, `collection` |
+| A type's people (such as `/recipes/cooks`) | `people-{type}-{field}`, `people-{field}`, `people`, `collection` |
+| A person's archive (such as `/recipes/cooks/jane`) | `person-{type}-{field}`, `person-{field}`, `person`, `profile`, `collection` |
+| A profile's page (such as `/profiles/jane`) | `profile-{slug}`, `profile`, `collection` |
 | The home page | `home`, then whatever it shows |
 | An error | `error-{status}`, `error` |
 
-On a type's authors page, `$entries` holds the authors (link each with
-`$template->authorUrl($author, $type)`) and `$entry` is the type's
-`_authors` page, when it has one. On an author's archive, `$entry` is
-the author and `$entries` their entries of that type.
+On a type's people page, `$entries` holds the profiles (link each with
+`$template->personUrl($profile, $type, $page->people->field)`) and
+`$entry` is the field's list page (`_cooks`), when it has one. On a
+person's archive, `$entry` is the page written for it
+(`_cooks/jane`) or else the profile, `$page->profile` is always the
+profile, and `$entries` their entries of that type. On a profile's
+page, `$entry` is the profile and `$entries` everything crediting
+them.
 
 An entry's `template` front matter is always tried first. Feeds
 (`feed-rss`, `feed-atom`, `feed-json`) and sitemaps (`sitemap`,

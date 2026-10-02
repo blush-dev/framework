@@ -124,7 +124,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 |---|---|---|
 | `types` | `[]` | Your [content types](content-types.md) |
 | `home` | `null` | A type whose listing is the home page |
-| `disabled` | `[]` | Built-in types to turn off (`'author'`) |
+| `disabled` | `[]` | Built-in types to turn off (`'profile'`) |
 | `dataTypes` | `true` | Whether types in `user/data/types/` are read |
 | `dataTypeUrls` | `true` | Whether those types may set their own `urls` |
 | `autoIndex` | `true` | Whether development requests pick up content changes |

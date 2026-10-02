@@ -4,12 +4,11 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
-- **Authors, accounts, and People** (D-329 to D-333): the exploration is
-  built and kept, but the author wants to think it over before it's
-  settled. Revisit the whole shape (the `Authors` kind, per-type
-  archives and `_authors` pages, one People list, Your Profile as the
-  editor, one name) before building more on it. Account fields (the
-  Fields API's `account` target, D-344) wait on this too.
+- **Profiles** (D-351 to D-353): who may edit their own profile and
+  who may edit anyone's (capabilities the roles don't have yet);
+  whether Profiles shows bylines per field; the sketch's **Import from
+  accounts** (profiles for accounts without one), not built. Account fields (the Fields API's `account` target, D-344)
+  still wait.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the

@@ -23,7 +23,7 @@ import { ApiError, request, type ContentTypeDetail } from '../api';
 import { label as fieldLabel } from '../fields';
 import { changesOf, DATE_ARCHIVES, emptyForm, FEATURED, folderOf, hasFeatured, singularOf, typeKeyOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
-import { authorType, canCreateTypes, loadTypes, reloadTypes, typeUrls, types } from '../types';
+import { profileType, canCreateTypes, loadTypes, reloadTypes, typeUrls, types } from '../types';
 
 const router = useRouter();
 
@@ -72,7 +72,7 @@ watch(kind, (value) => {
 	form.value.authors = value === 'collection';
 });
 
-const authorsLabel = computed(() => types.value.find((item) => item.name === authorType.value)?.labels.plural ?? null);
+const authorsLabel = computed(() => types.value.find((item) => item.name === profileType.value)?.labels.plural ?? null);
 
 const keyError = computed(() => {
 	if (key.value === '') {

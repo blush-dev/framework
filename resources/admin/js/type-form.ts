@@ -6,7 +6,7 @@
  * that's blank or back at its default is simply sent.
  */
 
-import type { ContentTypeDetail, FieldDescription } from './api';
+import type { ContentTypeDetail, FieldDescription, PeopleFieldInfo } from './api';
 
 export type TypeKind = 'collection' | 'taxonomy';
 
@@ -21,10 +21,14 @@ export interface TypeForm {
 	sitemap: boolean;
 	feed: boolean;
 	// Whether entries credit authors, and whether those authors have
-	// archives under the type, at a word (`''` for `authors`; D-329).
+	// archives under the type, at a word (`''` for `authors`; D-329). The
+	// new-type wizard's shortcut for the `authors` people field.
 	authors: boolean;
 	authorArchives: boolean;
 	authorsWord: string;
+	// Every people field, as the type editor edits them (D-353); `null`
+	// in the wizard, which uses the shortcut above.
+	people: PeopleForm[] | null;
 	// A collection's: `none`, `year`, `month`, `day`, … (`DateArchives`).
 	dateArchives: string;
 	// A taxonomy's: whether a term may have a parent, and the types its
@@ -35,6 +39,60 @@ export interface TypeForm {
 	// Route keys' paths, relative to the prefix (D-350); `''` for a key's
 	// default.
 	paths: Record<string, string>;
+}
+
+/**
+ * One people field as a form (D-353).
+ */
+export interface PeopleForm {
+	// The front matter key, fixed once saved.
+	field: string;
+	plural: string;
+	singular: string;
+	aliases: string[];
+	// Whether it has archives, at a word (`''` for the field's name).
+	archives: boolean;
+	word: string;
+	multiple: boolean;
+	required: boolean;
+	// Whether it's been added here and not saved yet.
+	added: boolean;
+}
+
+/**
+ * The word a people field's archives sit under, `false` for none.
+ */
+export function peopleWordOf(field: PeopleForm): string | false {
+	return field.archives ? (field.word.trim().replace(/^\/+|\/+$/g, '') || field.field) : false;
+}
+
+/**
+ * The `people` option a form's fields write: `false` for none, else each
+ * field's settings by its key.
+ */
+export function peopleValueOf(people: PeopleForm[]): Record<string, unknown> | false {
+	return people.length === 0 ? false : Object.fromEntries(people.map((item) => [item.field, {
+		plural: item.plural.trim(),
+		singular: item.singular.trim(),
+		aliases: item.aliases,
+		archive: peopleWordOf(item),
+		multiple: item.multiple,
+		required: item.required
+	}]));
+}
+
+function peopleFormOf(item: PeopleFieldInfo): PeopleForm {
+	return {
+		field: item.field,
+		plural: item.plural,
+		singular: item.singular,
+		aliases: [...item.aliases],
+		archives: item.archive !== false,
+		word: item.archive === false || item.archive === item.field ? '' : item.archive,
+		multiple: item.multiple,
+		required: item.required,
+		added: false
+	};
 }
 
 /**
@@ -58,7 +116,7 @@ export function authorsWordOf(form: TypeForm): string | false {
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, feed: false, authors: true, authorArchives: true, authorsWord: '', dateArchives: 'none', hierarchical: false, types: [], fields: [], paths: {} };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, feed: false, authors: true, authorArchives: true, authorsWord: '', people: null, dateArchives: 'none', hierarchical: false, types: [], fields: [], paths: {} };
 }
 
 /**
@@ -79,6 +137,7 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		authors: type.authors,
 		authorArchives: typeof type.authorsWord === 'string',
 		authorsWord: typeof type.authorsWord === 'string' && type.authorsWord !== AUTHORS ? type.authorsWord : '',
+		people: type.people.map(peopleFormOf),
 		dateArchives: type.dateArchives,
 		hierarchical: type.hierarchical === true,
 		types: [...(type.types ?? [])],
@@ -123,7 +182,7 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		public: form.public,
 		sitemap: form.sitemap,
 		feed: form.feed,
-		authors: form.authors,
+		...(form.people === null ? { authors: form.authors } : { people: peopleValueOf(form.people) }),
 		fields: form.fields,
 		...(kind === 'collection' ? { dateArchives: form.dateArchives === 'none' ? null : form.dateArchives } : {}),
 		...(kind === 'taxonomy' ? { hierarchical: form.hierarchical, types: form.types } : {})
@@ -131,14 +190,15 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 
 	// The author word is a URL setting, so it's sent only when it changes
 	// (a site may not let data types set URLs), and the default as `null`.
-	const word = authorsWordOf(form);
+	// The type editor's people fields carry their words themselves.
+	const word = form.people === null ? authorsWordOf(form) : AUTHORS;
 
 	if (initial === null) {
 		return word === AUTHORS ? all : { ...all, authorsWord: word };
 	}
 
 	const before = changesOf(initial, null, kind);
-	const was    = authorsWordOf(initial);
+	const was    = initial.people === null ? authorsWordOf(initial) : AUTHORS;
 	const paths  = Object.fromEntries(Object.entries(form.paths)
 		.filter(([key, path]) => pathOf(path) !== pathOf(initial.paths[key] ?? ''))
 		.map(([key, path]) => [key, pathOf(path) || null]));

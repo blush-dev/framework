@@ -70,9 +70,10 @@ use Blush\Session\StartSession;
  *   - `GET  trash` and `GET trash/{id}`, and `POST trash/restore`,
  *     `trash/delete`, and `trash/empty`: the trash (`TrashController`).
  *   - `GET  health`: the content's lint problems.
- *   - `GET  roles` and `GET accounts`: the site's roles and accounts,
- *     and `GET people`: accounts and authors as one list of people
- *     (`PeopleController`, D-329); `POST accounts`, `PATCH` and `DELETE
+ *   - `GET  roles` and `GET accounts`: the site's roles and accounts
+ *     (`PeopleController`); `GET profiles/{slug}`, and `POST` and
+ *     `DELETE` the pages written for its archives (`ProfilesController`,
+ *     D-353); `POST accounts`, `PATCH` and `DELETE
  *     accounts/{username}`, and `POST accounts/{username}/link` change
  *     accounts (`AccountEditController`), and `POST roles`, and `PATCH`
  *     and `DELETE roles/{name}` change roles (`RoleEditController`).
@@ -162,7 +163,9 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'update'])->named('role.update')->middleware(Authenticate::class),
 			Route::delete('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'delete'])->named('role.delete')->middleware(Authenticate::class),
 			Route::get('/accounts', [PeopleController::class, 'accounts'])->named('accounts')->middleware(Authenticate::class),
-			Route::get('/people', [PeopleController::class, 'people'])->named('people')->middleware(Authenticate::class),
+			Route::get('/profiles/{slug:[^/]+}', [ProfilesController::class, 'show'])->named('profile.show')->middleware(Authenticate::class),
+			Route::post('/profiles/{slug:[^/]+}/pages', [ProfilesController::class, 'write'])->named('profile.page.write')->middleware(Authenticate::class),
+			Route::delete('/profiles/{slug:[^/]+}/pages/{type:[a-z0-9_]+}/{field:[a-z0-9_]+}', [ProfilesController::class, 'remove'])->named('profile.page.remove')->middleware(Authenticate::class),
 			Route::post('/accounts', [AccountEditController::class, 'create'])->named('account.create')->middleware(Authenticate::class),
 			Route::post('/accounts/{username:[a-z0-9][a-z0-9._-]*}/link', [AccountEditController::class, 'link'])->named('account.link')->middleware(Authenticate::class),
 			Route::patch('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'update'])->named('account.update')->middleware(Authenticate::class),

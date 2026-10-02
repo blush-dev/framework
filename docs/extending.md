@@ -297,7 +297,7 @@ public function boot(): void
 To check it, ask `Blush\Auth\Permissions`:
 `$permissions->can($account, 'shop.orders')`. Pass an entry as a third
 argument to check that entry, which also applies ownership (see
-[Accounts and roles](accounts.md#authors)).
+[Accounts and roles](accounts.md#profiles)).
 
 To list the entries an account may use a capability on, let
 `restrict()` narrow a query instead of checking each entry. The same

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Type;
 
+use NoDiscard;
 use Blush\Field\Definition;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;
@@ -25,9 +26,10 @@ use Blush\Field\Schema;
  * routed, listed, and fed, and the fields they have. The kinds are final
  * classes (D-157): `Collection` for listed entries such as posts,
  * `Taxonomy` for terms that group other entries, `Pages` for the
- * built-in type that claims the content root, and `Authors` for the
- * people entries credit (D-329). One model serves types from code and
- * from data (D-042).
+ * built-in type that claims the content root, and `Profiles` for the
+ * people entries credit (D-351). One model serves types from code and
+ * from data (D-042). A type credits people through its people fields
+ * (`PeopleField`), such as a collection's `authors`.
  *
  * `fromArray()` builds any kind from a definition array (its `kind`, or
  * 1.x's `taxonomy: true`) and also accepts every 1.x option name
@@ -66,6 +68,13 @@ abstract readonly class ContentType
 	public ?string $icon;
 
 	/**
+	 * The ways the type's entries credit people (D-351), keyed by field.
+	 *
+	 * @var array<string, PeopleField>
+	 */
+	public array $people;
+
+	/**
 	 * @param  string            $name         Lowercase letters, digits, and underscores.
 	 * @param  ?string           $folder       Defaults to `_` and the name.
 	 * @param  bool              $public       Whether the type is public at all.
@@ -79,7 +88,7 @@ abstract readonly class ContentType
 	 * @param  ?TypeLabels       $labels       Defaults to labels made from the name.
 	 * @param  string            $description  What the type is for, in a sentence.
 	 * @param  ?string           $icon         An icon name for the admin.
-	 * @param  bool              $authors      Whether entries credit authors.
+	 * @param  array<PeopleField>|bool $people  How entries credit people: `true` for `authors`, `false` for none.
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -96,7 +105,7 @@ abstract readonly class ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		public bool $authors = false
+		array|bool $people = false
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -115,6 +124,7 @@ abstract readonly class ContentType
 		$this->labels      = $labels ?? TypeLabels::named($name);
 		$this->description = trim($description);
 		$this->icon        = $icon === null || trim($icon) === '' ? null : trim($icon);
+		$this->people      = self::peopleFields($people, $name);
 	}
 
 	/**
@@ -143,7 +153,7 @@ abstract readonly class ContentType
 	 */
 	public function routePattern(string $key): ?string
 	{
-		$path = $this->urls === false ? null : $this->urls->path($key);
+		$path = $this->urls === false ? null : $this->urls->path($key) ?? $this->peoplePaths()[$key] ?? null;
 
 		return $path === null ? null : '/' . trim($this->prefix() . '/' . $path, '/');
 	}
@@ -157,13 +167,58 @@ abstract readonly class ContentType
 	}
 
 	/**
-	 * Returns whether the type has author archives (D-329): it's public,
-	 * credits authors, and has routes with an `authors` word. The site
-	 * also needs an authors type.
+	 * Returns whether the type's entries credit people at all.
 	 */
-	public function hasAuthorArchives(): bool
+	public function credits(): bool
 	{
-		return $this->public && $this->authors && $this->urls !== false && $this->urls->authors !== false;
+		return $this->people !== [];
+	}
+
+	/**
+	 * Returns one of the type's people fields, or `null`.
+	 */
+	public function peopleField(string $field): ?PeopleField
+	{
+		return $this->people[$field] ?? null;
+	}
+
+	/**
+	 * Returns the people fields with archives (D-351): the type is public
+	 * and has routes, and the field has an archive word. The site also
+	 * needs a profiles type.
+	 *
+	 * @return array<string, PeopleField>
+	 */
+	public function archivedPeople(): array
+	{
+		return $this->public && $this->urls !== false
+			? array_filter($this->people, static fn (PeopleField $field): bool => $field->hasArchive())
+			: [];
+	}
+
+	/**
+	 * Returns the type without the people fields that read any of these
+	 * front matter keys, as a field or an alias. The loader uses it so a
+	 * taxonomy's term field (1.x's `author` taxonomy, say) wins over a
+	 * people field reading the same key (D-351).
+	 */
+	#[NoDiscard]
+	public function withoutPeopleReading(string ...$keys): static
+	{
+		$people = array_filter($this->people, static fn (PeopleField $field): bool => array_intersect([$field->field, ...$field->aliases], $keys) === []);
+
+		return count($people) === count($this->people) ? $this : clone($this, ['people' => $people]);
+	}
+
+	/**
+	 * Returns the default paths of the people archives' route keys, which
+	 * the URLs' `paths` can move.
+	 *
+	 * @return array<string, string>
+	 */
+	public function peoplePaths(): array
+	{
+		return array_merge([], ...array_values(array_map(static fn (PeopleField $field): array => $field->paths(), $this->archivedPeople())));
 	}
 
 	/**
@@ -217,7 +272,7 @@ abstract readonly class ContentType
 
 	/**
 	 * Returns the field other entries reference this type's entries
-	 * through, or `null` for a type that isn't a taxonomy or authors.
+	 * through, or `null` for a type that isn't a taxonomy.
 	 */
 	public function termField(): ?ReferenceField
 	{
@@ -226,7 +281,7 @@ abstract readonly class ContentType
 
 	/**
 	 * Returns whether other entries reference this type's entries as
-	 * terms (a taxonomy's, or authors), which the index keeps a reverse
+	 * terms (a taxonomy's, or profiles), which the index keeps a reverse
 	 * lookup for and which may be virtual.
 	 */
 	public function hasTerms(): bool
@@ -277,17 +332,18 @@ abstract readonly class ContentType
 				'icon'        => $definition->nullableString('icon')
 			];
 
-			if ($kind === TypeKind::Authors) {
-				unset($common['sitemap']);
-
-				return new Authors(...[
+			if ($kind === TypeKind::Profiles) {
+				return new Profiles(...[
 					...$common,
-					'field'   => $definition->nullableString('field'),
-					'aliases' => $definition->strings('aliases')
+					'urls'    => self::urls($data['urls'] ?? [], $name),
+					'listing' => Listing::fromArray($definition->map('listing'), sprintf('Content type "%s" listing', $name)),
+					'feed'    => self::feed($data['feed'] ?? false, $name)
 				]);
 			}
 
-			$common = [...$common, 'authors' => $definition->bool('authors', $kind === TypeKind::Collection)];
+			$common['people'] = array_key_exists('people', $data)
+				? PeopleField::listFrom($data['people'], sprintf('Content type "%s"', $name))
+				: $kind === TypeKind::Collection;
 
 			if ($kind === TypeKind::Pages) {
 				return new Pages(...[...$common, 'folder' => $common['folder'] ?? '']);
@@ -389,6 +445,62 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns the type's people fields as the `people` option writes
+	 * them: `false` for none, `true` for the `authors` field alone at its
+	 * defaults, or a map of fields to their settings.
+	 *
+	 * @return array<string, array<string, mixed>|true>|bool
+	 */
+	public function peopleValue(): array|bool
+	{
+		return match (true) {
+			$this->people === []                                                      => false,
+			$this->people == [PeopleField::AUTHORS => PeopleField::authors()] => true,
+			default                                                                   => array_map(static fn (PeopleField $field): array|bool => $field->toArray() ?: true, $this->people)
+		};
+	}
+
+	/**
+	 * Returns the `people` option for `toArray()`: `null` when it's the
+	 * kind's default (`$byDefault`, the `authors` field), else
+	 * `peopleValue()`.
+	 *
+	 * @return array<string, array<string, mixed>|true>|bool|null
+	 */
+	protected function peopleOption(bool $byDefault): array|bool|null
+	{
+		$value = $this->peopleValue();
+
+		return $value === $byDefault ? null : $value;
+	}
+
+	/**
+	 * Returns people fields keyed by field.
+	 *
+	 * @param  array<PeopleField>|bool $people
+	 * @return array<string, PeopleField>
+	 * @throws InvalidContentType
+	 */
+	private static function peopleFields(array|bool $people, string $name): array
+	{
+		if (is_bool($people)) {
+			return $people ? [PeopleField::AUTHORS => PeopleField::authors()] : [];
+		}
+
+		$fields = [];
+
+		foreach ($people as $field) {
+			if (isset($fields[$field->field])) {
+				throw new InvalidContentType(sprintf('Content type "%s" credits people through "%s" twice.', $name, $field->field));
+			}
+
+			$fields[$field->field] = $field;
+		}
+
+		return $fields;
+	}
+
+	/**
 	 * Returns the folder a type has when it doesn't name one: `_` and its
 	 * name, so type folders stand apart from the page folders beside them
 	 * in the content root. The page type overrides it with the root.
@@ -420,6 +532,15 @@ abstract readonly class ContentType
 				$data[$new] ??= $data[$old];
 				unset($data[$old]);
 			}
+		}
+
+		if (array_key_exists('authors', $data)) {
+			if (array_key_exists('people', $data)) {
+				throw new InvalidContentType(sprintf('Content type "%s" sets both "authors" and "people"; "authors" is short for the people field "authors".', $name));
+			}
+
+			$data['people'] = $data['authors'];
+			unset($data['authors']);
 		}
 
 		if (array_key_exists('collect', $data)) {

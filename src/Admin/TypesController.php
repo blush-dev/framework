@@ -16,8 +16,6 @@ namespace Blush\Admin;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Content\Parser\DocumentFormat;
 use Blush\Content\Type\ContentConfig;
-use Blush\Content\Http\AuthorsController;
-use Blush\Content\Type\Authors;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
@@ -31,6 +29,8 @@ use Blush\Data\DataLoader;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
 use Blush\Content\Type\DateArchives;
+use Blush\Content\Type\PeopleField;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
@@ -99,7 +99,7 @@ final readonly class TypesController
 
 		return Response::json([
 			'types'   => $types,
-			'authors' => $this->types->authors()?->name,
+			'authors' => $this->types->profiles()?->name,
 			'create'  => $this->config->dataTypes,
 			'urls'    => $this->config->dataTypeUrls
 		], headers: ['Cache-Control' => 'no-store']);
@@ -154,8 +154,18 @@ final readonly class TypesController
 			'folderPrefix' => DataTypeWriter::folderPrefix($type->folder),
 			'file'         => $file === null ? null : $this->paths->relative($file),
 			'index'        => $this->index($type),
-			'authorsWord'  => $type->urls === false ? null : $type->urls->authors,
-			'authorsPage'  => $this->page($type, AuthorsController::PAGE, $types->authors()->labels->plural ?? 'Authors'),
+			'people'       => array_values(array_map(fn (PeopleField $field): array => [
+				'field'    => $field->field,
+				'plural'   => $field->plural,
+				'singular' => $field->singular,
+				'aliases'  => $field->aliases,
+				'archive'  => $field->archive,
+				'multiple' => $field->multiple,
+				'required' => $field->required,
+				'listPage' => $this->page($type, $field->listPage(), $field->plural)
+			], $type->people)),
+			'authorsWord'  => $type->urls === false ? null : ($type->peopleField(PeopleField::AUTHORS)->archive ?? false),
+			'authorsPage'  => $this->page($type, PeopleField::authors()->listPage(), $type->peopleField(PeopleField::AUTHORS)->plural ?? 'Authors'),
 			'sets'         => array_map(static fn (FieldSet $set): array => [
 				'name'   => $set->name,
 				'label'  => $set->label,
@@ -201,12 +211,12 @@ final readonly class TypesController
 
 		$home       = $type->name === $types->home;
 		$feeds      = array_map(static fn (FeedFormat $format): string => $format->routeSuffix(), $this->feeds->formats);
-		$archives   = $type->hasAuthorArchives() && $types->authors() !== null;
+		$profiles   = $types->profiles() !== null;
 		$taxonomies = array_keys($types->termTypes());
-		$defaults   = [...TypeUrls::DEFAULT_PATHS, ...TypeUrls::authorPaths($type->urls->authors)];
+		$defaults   = [...TypeUrls::DEFAULT_PATHS, ...$type->peoplePaths()];
 		$routes     = [];
 
-		foreach (TypeRouteKeys::keys($type, $home, $feeds, $archives) as $key) {
+		foreach (TypeRouteKeys::keys($type, $home, $feeds, $profiles) as $key) {
 			$params   = TypeRouteKeys::params($type, $key, $taxonomies);
 			$routes[] = [
 				'key'      => $key,
@@ -279,9 +289,9 @@ final readonly class TypesController
 			'icon'        => $type->icon,
 			'kind'        => $type->kind()->value,
 			'dated'       => $type->dateArchives !== DateArchives::None,
-			'authors'     => $type->authors,
+			'authors'     => $type->credits(),
 			...($type instanceof Taxonomy ? ['types' => $type->types, 'hierarchical' => $type->hierarchical] : []),
-			...($type instanceof Authors ? ['types' => array_keys(array_filter($types->all(), static fn (ContentType $credits): bool => $credits->authors))] : []),
+			...($type instanceof Profiles ? ['types' => array_keys($types->crediting())] : []),
 			'origin'      => $types->origin($type->name)->value,
 			'folder'      => $type->folder,
 			'prefix'      => $type->hasUrls() ? '/' . $type->prefix() : null,

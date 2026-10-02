@@ -59,7 +59,7 @@ final readonly class Taxonomy extends ContentType
 	 * @param  string          $description  What the taxonomy is for, in a sentence.
 	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
 	 * @param  bool            $hierarchical Whether a term may name a `parent` term.
-	 * @param  bool            $authors      Whether terms credit authors (D-329).
+	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -80,9 +80,9 @@ final readonly class Taxonomy extends ContentType
 		string $description = '',
 		?string $icon = null,
 		public bool $hierarchical = false,
-		bool $authors = false
+		array|bool $people = false
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $authors);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people);
 
 		$this->field = $field ?? $name;
 	}
@@ -153,7 +153,7 @@ final readonly class Taxonomy extends ContentType
 			'aliases'     => $this->aliases,
 			'termListing'  => $this->termListing->toArray(),
 			'hierarchical' => $this->hierarchical ?: null,
-			'authors'      => $this->authors ?: null
+			'people'       => $this->peopleOption(false)
 		];
 	}
 }

@@ -55,11 +55,11 @@ Editorial admin theme (D-317); and account names, used across the
 admin, with roles shown by their labels (D-322, D-323); and editable
 settings on four screens, saved in `user/data/settings.json` over
 `config/` (D-324, D-325); and People as its own rail section, and Appearance named Themes
-(D-326, D-327); and authors as their own kind, credited by the types
-that opt in, with archives under each type, one People list, and
-Your Profile as the editor of your author page (D-329 to D-332; an
-exploration that's kept but on hold while the author thinks it over,
-D-333); and editing code collections and taxonomies through a file in
+(D-326, D-327); and authors as their own kind, with archives under each type (D-329
+to D-332), an exploration now replaced by accounts, profiles, and
+bylines (D-351, from `.claude/docs/admin-design/meridian-profiles.html`),
+with its content and routing (D-352) and its admin (D-353) built;
+and editing code collections and taxonomies through a file in
 `user/data/types` over them, and every URL path of a type (D-349,
 D-350).
 The Fields

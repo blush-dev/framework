@@ -113,7 +113,7 @@ final class ContentCommandsTest extends TestCase
 		$unknown = $tester->run('content:list --type=movie');
 
 		$this->assertSame(ExitCode::Invalid, $unknown->exitCode);
-		$this->assertStringContainsString('There is no "movie" content type; the types are page, author, post, category.', $unknown->errors);
+		$this->assertStringContainsString('There is no "movie" content type; the types are page, profile, post, category.', $unknown->errors);
 	}
 
 	public function testCreatesEntries(): void

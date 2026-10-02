@@ -424,7 +424,7 @@ final class Template
 	/**
 	 * Returns the term entries an entry has in a taxonomy, in the order
 	 * front matter lists them. Terms that aren't published are left out.
-	 * Authors aren't a taxonomy; use `authors()`.
+	 * Profiles aren't a taxonomy; use `people()`.
 	 *
 	 * @return list<Entry>
 	 */
@@ -448,49 +448,68 @@ final class Template
 	}
 
 	/**
-	 * Returns the authors an entry credits (D-329), real or virtual, in
-	 * the order front matter lists them. Authors that aren't published
-	 * are left out.
+	 * Returns the profiles an entry credits through one of its type's
+	 * people fields (D-351), real or virtual, in the order front matter
+	 * lists them; the type's first people field, its main byline, when
+	 * none is named. Profiles that aren't published are left out.
 	 *
 	 * @return list<Entry>
 	 */
-	public function authors(Entry $entry): array
+	public function people(Entry $entry, ?string $field = null): array
 	{
-		$type    = $this->views->services->types->authors();
-		$authors = [];
+		$profiles = $this->views->services->types->profiles();
+		$people   = $field === null ? array_first($entry->type->people) : $entry->type->peopleField($field);
 
-		if ($type === null) {
+		if ($profiles === null || $people === null) {
 			return [];
 		}
 
-		foreach ($entry->terms($type->name) as $slug) {
-			$author = $this->views->services->content->term($type->name, $slug);
+		$credited = [];
 
-			if ($author !== null && $author->isPublished() && $author->isRoutable()) {
-				$authors[] = $author;
+		foreach ($entry->terms($people->termKey($profiles->name)) as $slug) {
+			$profile = $this->views->services->content->term($profiles->name, $slug);
+
+			if ($profile !== null && $profile->isPublished() && $profile->isRoutable()) {
+				$credited[] = $profile;
 			}
 		}
 
-		return $authors;
+		return $credited;
 	}
 
 	/**
-	 * Returns an author's archive URL path in a type (an entry's own
-	 * type, given the entry), such as `/blog/authors/jane`, or `''` when
-	 * the type has no author archives.
+	 * Returns where a byline on an entry links for a profile it credits:
+	 * the person's archive under the entry's type's field (its first
+	 * people field when none is named), such as `/blog/authors/jane`,
+	 * else the profile's own page, else `''`.
 	 */
-	public function authorUrl(Entry $author, ContentType|Entry $in): string
+	public function bylineUrl(Entry $profile, Entry $entry, ?string $field = null): string
 	{
-		return $this->views->services->urls->author($in instanceof Entry ? $in->type : $in, $author->slug) ?? '';
+		$field ??= array_key_first($entry->type->people);
+
+		return ($field === null ? $this->views->services->urls->profile($profile->slug) : $this->views->services->urls->byline($entry, $field, $profile->slug)) ?? '';
 	}
 
 	/**
-	 * Returns the URL path of a type's list of authors, such as
-	 * `/blog/authors`, or `''` when it has none.
+	 * Returns a person's archive URL path under a type's people field,
+	 * such as `/recipes/cooks/jane`, or `''` when the field has none.
 	 */
-	public function authorsUrl(ContentType $type): string
+	public function personUrl(Entry $profile, ContentType $type, string $field): string
 	{
-		return $this->views->services->urls->authors($type) ?? '';
+		$people = $type->peopleField($field);
+
+		return ($people === null ? null : $this->views->services->urls->person($type, $people, $profile->slug)) ?? '';
+	}
+
+	/**
+	 * Returns the URL path of the people a type's field credits, such as
+	 * `/recipes/cooks`, or `''` when it has none.
+	 */
+	public function peopleUrl(ContentType $type, string $field): string
+	{
+		$people = $type->peopleField($field);
+
+		return ($people === null ? null : $this->views->services->urls->people($type, $people)) ?? '';
 	}
 
 	/**
