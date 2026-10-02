@@ -21,16 +21,17 @@ Every content type is one of four kinds:
 - **Taxonomy:** entries that group other entries, such as tags,
   categories, or series. Each entry in a taxonomy is a **term**, and each
   term gets a page listing the entries in it.
-- **Pages:** the built-in `page` type. It holds every entry that isn't in
-  another type's folder, and serves each one at its file path. Pages nest
-  by folder: `about/team.md` is a subpage of `about.md` (or
-  `about/index.md`).
+- **Tree:** entries that nest by folder, each served at its file path.
+  The built-in `page` type is a tree: it holds every entry that isn't in
+  another type's folder, and `about/team.md` is a subpage of `about.md`
+  (or `about/index.md`). You can add [trees of your own](#trees), such as
+  docs.
 - **Profiles:** the built-in `profile` type, the people your entries
   credit. A site has one.
 
 ## Built-in types
 
-- **`page`** (pages): every entry that isn't in another type's folder.
+- **`page`** (tree): every entry that isn't in another type's folder.
 - **`profile`** (profiles): people, in `user/content/profiles/`. Each
   file is one person: the title is their public name, `subtitle` a line
   under it (such as "Food editor"), `avatar` a portrait from
@@ -54,7 +55,7 @@ folder: recipes
 
 **In PHP**, in `config/content.php`, which gives you editor autocomplete
 and type checking. Each kind is its own class: `Collection`, `Taxonomy`,
-`Pages`, or `Profiles`.
+`Tree`, or `Profiles`.
 
 ```php
 <?php
@@ -77,7 +78,8 @@ code you install, like a plugin registering post types in WordPress. See
 
 ### Changing a type from code
 
-A file in `user/data/types/` named after a collection or taxonomy from
+A file in `user/data/types/` named after a collection, taxonomy, or
+[tree](#trees) from
 `config/content.php` or a plugin changes that type rather than
 defining a new one. Each option it sets replaces the code's, and the
 rest stay as the code has them:
@@ -90,8 +92,8 @@ feed: false
 
 This is what the admin writes when you edit such a type, and it keeps
 only what differs from the code. A file like this can't change the
-type's kind or folder, and the pages and profiles types from code can't
-be changed this way. Delete the file to go back to the code's
+type's kind or folder, and the `page` type and the profiles type from
+code can't be changed this way. Delete the file to go back to the code's
 definition. With `dataTypes` off, these files aren't read either.
 
 All three do the same thing, and every option below works in each. (In
@@ -316,6 +318,38 @@ child terms. Themes show the tree with `$template->parent()`,
 title. `bin/blush content:lint` reports a parent with no file (the term
 is shown at the top level) and a term that's its own ancestor.
 
+## Trees
+
+A tree is a type whose entries nest by folder, as pages do, in a folder
+of its own. Use one for docs, a manual, or a handbook:
+
+```php
+use Blush\Content\Type\Tree;
+
+new Tree('doc', folder: '_docs', icon: 'book')
+```
+
+In YAML, that's `user/data/types/doc.yaml` with `kind: tree`, which the
+admin's **New Content Type** writes too. A tree from `config/content.php`
+can be [changed from the admin](#changing-a-type-from-code), as
+collections and taxonomies can; the `page` type can't.
+
+- Each entry is served at its path in the folder, without the folder's
+  underscores: `_docs/install/requirements.md` is at
+  `/docs/install/requirements`.
+- The folder's `index.md` is the tree's landing page, at `/docs`, and the
+  admin pins it above the tree's other entries.
+- An entry in a subfolder is a child of the entry the subfolder is named
+  for: `install/requirements.md` is under `install.md` (or
+  `install/index.md`). Themes show the tree with `$template->parent()`,
+  `$template->ancestors()`, and `$template->children()` (see
+  [Themes](themes.md)), and the admin lists it as a tree.
+- A tree has no listing page, feed, or routes of its own. Its entries use
+  the `single-{type}` and `single` views.
+
+A tree's folder defaults to `_` and its name, like other types; only the
+`page` type sits at the content root.
+
 ## Custom fields
 
 Declare the fields a type's entries use, and Blush checks them when it
@@ -537,7 +571,7 @@ Every kind takes these:
 
 | Option | Default | What it does |
 |---|---|---|
-| `folder` | `_` and the name (`''`, the content root, for pages) | The folder under `user/content/` |
+| `folder` | `_` and the name (`''`, the content root, for the `page` type) | The folder under `user/content/` |
 | `labels` | Made from the name | [Names in the admin](#names-descriptions-and-icons-in-the-admin) |
 | `description` | | What the type is for, in a sentence |
 | `icon` | Its kind's | An icon for the admin, by name |
@@ -545,7 +579,7 @@ Every kind takes these:
 | `sitemap` | `true` | Whether entries appear in the sitemap |
 | `fields` / `closed` | | [Custom fields](#custom-fields) |
 
-Collections, taxonomies, and pages also take this:
+Collections, taxonomies, and trees also take this:
 
 | Option | Default | What it does |
 |---|---|---|
@@ -623,16 +657,16 @@ To declare fields for pages, redefine the built-in `page` type:
 
 ```php
 use Blush\Field\Fields\TextField;
-use Blush\Content\Type\Pages;
+use Blush\Content\Type\Tree;
 
 return new ContentConfig(
 	types: [
-		new Pages(fields: [new TextField('subtitle')])
+		new Tree(fields: [new TextField('subtitle')])
 	]
 );
 ```
 
-In YAML, that's `user/data/types/page.yaml` with `kind: pages` and
+In YAML, that's `user/data/types/page.yaml` with `kind: tree` and
 `fields`.
 
 ## Crediting people
@@ -660,7 +694,7 @@ people:
 
 ```yaml
 # user/data/types/page.yaml: pages credit authors too
-kind: pages
+kind: tree
 authors: true
 ```
 

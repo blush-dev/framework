@@ -37,7 +37,7 @@ enum BuiltInType: string
 	public function type(): ContentType
 	{
 		return match ($this) {
-			self::Page    => new Pages(),
+			self::Page    => new Tree(),
 			self::Profile => new Profiles('profile', folder: 'profiles')
 		};
 	}

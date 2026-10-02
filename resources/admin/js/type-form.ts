@@ -8,7 +8,7 @@
 
 import type { ContentTypeDetail, FieldDescription, PeopleFieldInfo } from './api';
 
-export type TypeKind = 'collection' | 'taxonomy';
+export type TypeKind = 'collection' | 'taxonomy' | 'tree';
 
 export interface TypeForm {
 	singular: string;
@@ -178,10 +178,11 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		labels: { singular: form.singular.trim(), plural: form.plural.trim() },
 		description: form.description.trim() || null,
 		icon: form.icon.trim() || null,
-		prefix: form.prefix.trim().replace(/^\/+|\/+$/g, '') || null,
+		// A tree has no URLs or feed of its own (D-386).
+		...(kind === 'tree' ? {} : { prefix: form.prefix.trim().replace(/^\/+|\/+$/g, '') || null }),
 		public: form.public,
 		sitemap: form.sitemap,
-		feed: form.feed,
+		...(kind === 'tree' ? {} : { feed: form.feed }),
 		...(form.people === null ? { authors: form.authors } : { people: peopleValueOf(form.people) }),
 		fields: form.fields,
 		...(kind === 'collection' ? { dateArchives: form.dateArchives === 'none' ? null : form.dateArchives } : {}),

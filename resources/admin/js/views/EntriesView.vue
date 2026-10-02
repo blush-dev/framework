@@ -134,7 +134,7 @@ const terms = computed(() => info.value?.kind === 'taxonomy' || info.value?.kind
 // A nesting type lists as a tree on All with no search (D-261); a tab or
 // a search flattens it, and a bar says so and how to get it back (the
 // design direction's Hierarchy).
-const nests     = computed(() => info.value?.kind === 'pages' || info.value?.hierarchical === true);
+const nests     = computed(() => info.value?.kind === 'tree' || info.value?.hierarchical === true);
 const flattened = computed(() => {
 	if (!nests.value || inTrash.value) {
 		return '';
@@ -589,8 +589,8 @@ function purpose(summary: ContentTypeSummary | undefined, label: string): string
 	switch (summary?.kind) {
 		case 'taxonomy':
 			return `${label} group other entries. Each one is an entry of its own, with a page listing what uses it.`;
-		case 'pages':
-			return `${label} stand on their own, like an About or a Contact page.`;
+		case 'tree':
+			return summary.folder === '' ? `${label} stand on their own, like an About or a Contact page.` : `${label} nest by folder, each at its own address.`;
 		case 'collection':
 			return summary.dated ? `${label} are dated entries the site lists together, newest first.` : `${label} are entries the site lists together.`;
 		default:

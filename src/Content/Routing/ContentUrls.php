@@ -159,7 +159,7 @@ final readonly class ContentUrls
 		}
 
 		if (! $type->hasUrls()) {
-			return $type->servedAsPages() ? $this->routes->canonicalPath('/' . trim("{$type->folder}/{$entry->key}", '/')) : null;
+			return $type->servedAsPages() ? $this->routes->canonicalPath('/' . trim("{$type->pagePath()}/{$entry->key}", '/')) : null;
 		}
 
 		if ($entry->landing) {

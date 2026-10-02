@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A new content type (D-311; admin.md §8, List, then detail: the type
- * wizard is its own screen): Basics (collection or taxonomy, names, key,
+ * wizard is its own screen): Basics (collection, taxonomy, or tree, D-386; names, key,
  * folder, description, icon), Behavior (`TypeBehaviorFields`), and Fields
  * (`FieldListEditor`), with What Gets Created beside them, updating as
  * the steps are filled in. **Create type** writes
@@ -63,9 +63,9 @@ watch(() => form.value.plural, (plural) => {
 	previous.value = plural;
 });
 
-// A taxonomy has no featured image; a collection starts with one.
+// Taxonomies and trees have no featured image; a collection starts with one.
 watch(kind, (value) => {
-	if (value === 'taxonomy' && hasFeatured(form.value)) {
+	if (value !== 'collection' && hasFeatured(form.value)) {
 		form.value.fields = form.value.fields.filter((field) => !(field.name === FEATURED.name && field.type === FEATURED.type));
 	}
 
@@ -130,7 +130,7 @@ async function create(): Promise<void> {
 			kind: kind.value,
 			folder: folderClean.value,
 			index: index.value,
-			authorsPage: authorsPage.value && form.value.authors && form.value.authorArchives && authorsLabel.value !== null,
+			authorsPage: kind.value !== 'tree' && authorsPage.value && form.value.authors && form.value.authorArchives && authorsLabel.value !== null,
 			set: changesOf(form.value, null, kind.value)
 		});
 
@@ -192,6 +192,11 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 						<span class="kind__name">Taxonomy</span>
 						<span class="kind__text">Terms that group other entries, like topics or tags.</span>
 					</label>
+					<label class="kind" :class="{ 'kind--on': kind === 'tree' }">
+						<input v-model="kind" type="radio" value="tree" name="kind" class="visually-hidden">
+						<span class="kind__name">Tree</span>
+						<span class="kind__text">Pages that nest by folder, like docs or a handbook.</span>
+					</label>
 				</fieldset>
 				<TypeBasicsFields v-model="form" id-prefix="new-" :kind="kind" />
 				<div class="wizard__row">
@@ -236,17 +241,18 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 				<p class="panel__hint">Updates as you go</p>
 			</header>
 			<dl class="panel__body summary">
-				<div><dt>Kind</dt><dd>{{ kind === 'taxonomy' ? 'Taxonomy' : 'Content type' }}</dd></div>
+				<div><dt>Kind</dt><dd>{{ { collection: 'Content type', taxonomy: 'Taxonomy', tree: 'Tree' }[kind] }}</dd></div>
 				<div><dt>Name</dt><dd>{{ form.plural || 'Not set' }}<template v-if="form.singular"> / {{ form.singular }}</template></dd></div>
 				<div><dt>File</dt><dd class="mono">user/data/types/{{ key || '…' }}.yaml</dd></div>
 				<div><dt>Entries in</dt><dd class="mono">user/content/{{ folderClean || '…' }}</dd></div>
-				<div><dt>Addresses</dt><dd class="mono">/{{ prefix || '…' }}/{slug}</dd></div>
+				<div><dt>Addresses</dt><dd class="mono">/{{ prefix || '…' }}/{{ kind === 'tree' ? '{path}' : '{slug}' }}</dd></div>
 				<div v-if="kind === 'collection'"><dt>Dated</dt><dd>{{ form.dateArchives === 'none' ? 'No' : `Yes, ${archiveLabel.toLowerCase()}` }}</dd></div>
+				<div v-else-if="kind === 'tree'"><dt>Nesting</dt><dd>By folder</dd></div>
 				<div v-else><dt>Nesting</dt><dd>{{ form.hierarchical ? 'Terms nest' : 'Flat' }}</dd></div>
 				<div v-if="kind === 'taxonomy'"><dt>Groups</dt><dd>{{ groupLabels.length ? groupLabels.join(', ') : 'Every type' }}</dd></div>
 				<div><dt>Index page</dt><dd>{{ index ? 'Created and pinned' : 'None' }}</dd></div>
-				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ !form.authors ? 'Not credited' : (form.authorArchives && typeUrls ? `Credited, with archives at /${prefix || '…'}/${form.authorsWord.trim() || 'authors'}` : 'Credited') }}</dd></div>
-				<div><dt>Feed</dt><dd>{{ form.feed ? 'Yes' : 'No' }}</dd></div>
+				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ !form.authors ? 'Not credited' : (form.authorArchives && typeUrls && kind !== 'tree' ? `Credited, with archives at /${prefix || '…'}/${form.authorsWord.trim() || 'authors'}` : 'Credited') }}</dd></div>
+				<div v-if="kind !== 'tree'"><dt>Feed</dt><dd>{{ form.feed ? 'Yes' : 'No' }}</dd></div>
 				<div><dt>Fields</dt><dd>{{ form.fields.length ? form.fields.map(fieldLabel).join(', ') : 'None yet' }}</dd></div>
 			</dl>
 		</section>
@@ -334,7 +340,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 
 .kinds {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: var(--s-3);
 	margin: 0;
 	padding: 0;

@@ -128,7 +128,7 @@ final readonly class CalendarController
 		$names = [];
 
 		foreach ($this->types->all() as $type) {
-			if ($type->kind() === TypeKind::Pages || $type->kind() === TypeKind::Collection) {
+			if ($type->kind() === TypeKind::Tree || $type->kind() === TypeKind::Collection) {
 				$names[] = $type->name;
 			}
 		}

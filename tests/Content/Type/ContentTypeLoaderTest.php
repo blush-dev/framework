@@ -20,6 +20,7 @@ use Blush\Content\EntryFields;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
+use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeOrigin;
 use Blush\Core\Application;
 use Blush\Field\FieldFactory;
@@ -238,13 +239,24 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertTrue($this->types()->isOverridden('movie'), 'Its own kind and folder are fine.');
 	}
 
+	public function testDataFilesDefineTrees(): void
+	{
+		$this->writeTemporaryFile('user/data/types/doc.yaml', "kind: tree\nicon: book\n");
+		$doc = $this->types()->get('doc');
+
+		$this->assertInstanceOf(Tree::class, $doc);
+		$this->assertSame('_doc', $doc->folder, 'Only the page type sits at the content root (D-386).');
+		$this->assertFalse($doc->atRoot());
+		$this->assertTrue($this->types()->get('page') instanceof Tree && $this->types()->get('page')->atRoot());
+	}
+
 	public function testDataFilesCantChangeTheCodesPagesType(): void
 	{
-		$this->contentConfig("['types' => ['page' => ['kind' => 'pages', 'description' => 'Pages.']]]");
+		$this->contentConfig("['types' => ['page' => ['kind' => 'tree', 'description' => 'Pages.']]]");
 		$this->writeTemporaryFile('user/data/types/page.json', '{"description": "Mine."}');
 
 		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('The "page" content type is the site\'s pages type, which user/data/types can\'t change; define it in one place.');
+		$this->expectExceptionMessage('The "page" content type is the site\'s pages, which user/data/types can\'t change; define it in one place.');
 
 		$this->types();
 	}

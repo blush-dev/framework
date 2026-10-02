@@ -25,8 +25,9 @@ use Blush\Field\Schema;
  * A content type: the entries in one folder of `user/content`, how they're
  * routed, listed, and fed, and the fields they have. The kinds are final
  * classes (D-157): `Collection` for listed entries such as posts,
- * `Taxonomy` for terms that group other entries, `Pages` for the
- * built-in type that claims the content root, and `Profiles` for the
+ * `Taxonomy` for terms that group other entries, `Tree` for entries
+ * that nest by folder (the built-in page type, which claims the content
+ * root, is one; D-386), and `Profiles` for the
  * people entries credit (D-351). One model serves types from code and
  * from data (D-042). A type credits people through its people fields
  * (`PeopleField`), such as a collection's `authors`.
@@ -143,7 +144,17 @@ abstract readonly class ContentType
 			return '';
 		}
 
-		return $this->urls->prefix ?? implode('/', array_map(static fn (string $segment): string => ltrim($segment, '_'), explode('/', $this->folder)));
+		return $this->urls->prefix ?? self::publicPath($this->folder);
+	}
+
+	/**
+	 * Returns the path the page catch-all serves the type's entries
+	 * under, without slashes: the folder without the `_` that starts its
+	 * folder names (`_docs` is `docs`), as `prefix()` drops it (D-386).
+	 */
+	public function pagePath(): string
+	{
+		return self::publicPath($this->folder);
 	}
 
 	/**
@@ -260,7 +271,7 @@ abstract readonly class ContentType
 
 	/**
 	 * Returns the key of an entry's parent in this type, from its key and
-	 * normalized front matter, or `null` when it has none. Only pages and
+	 * normalized front matter, or `null` when it has none. Only trees and
 	 * hierarchical taxonomies nest.
 	 *
 	 * @param array<string, mixed> $values
@@ -345,8 +356,8 @@ abstract readonly class ContentType
 				? PeopleField::listFrom($data['people'], sprintf('Content type "%s"', $name))
 				: $kind === TypeKind::Collection;
 
-			if ($kind === TypeKind::Pages) {
-				return new Pages(...[...$common, 'folder' => $common['folder'] ?? '']);
+			if ($kind === TypeKind::Tree) {
+				return new Tree(...$common);
 			}
 
 			$common = [
@@ -373,22 +384,42 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns whether a data file may change the type when it's defined
+	 * in code (D-349): collections, taxonomies, and trees in a folder
+	 * (D-386). The site's pages and its profiles type stay as the code
+	 * defines them.
+	 */
+	public function isOverridable(): bool
+	{
+		return true;
+	}
+
+	/**
+	 * Returns what the type is to the site, for messages about a type
+	 * that can't be overridden: "the site's pages", say.
+	 */
+	public function role(): string
+	{
+		return sprintf('a %s type', $this->kind()->value);
+	}
+
+	/**
 	 * Returns the type with a data file's options laid over it (D-349):
 	 * each option the data names replaces the type's whole option, by its
 	 * 2.x or 1.x name. The name, kind, and folder stay the type's, since
-	 * entries are filed by them. Only collections and taxonomies can be
-	 * overridden.
+	 * entries are filed by them. The site's pages and profiles types
+	 * can't be overridden (`isOverridable()`).
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
 	 */
 	public function overriddenBy(array $data, FieldFactory $fields): self
 	{
-		if (! $this->kind()->isOverridable()) {
+		if (! $this->isOverridable()) {
 			throw new InvalidContentType(sprintf(
-				'The "%s" content type is the site\'s %s type, which user/data/types can\'t change; define it in one place.',
+				'The "%s" content type is %s, which user/data/types can\'t change; define it in one place.',
 				$this->name,
-				$this->kind()->value
+				$this->role()
 			));
 		}
 
@@ -508,6 +539,14 @@ abstract readonly class ContentType
 	private static function defaultFolder(string $name): string
 	{
 		return "_{$name}";
+	}
+
+	/**
+	 * Returns a folder path without the `_` that starts its folder names.
+	 */
+	private static function publicPath(string $folder): string
+	{
+		return implode('/', array_map(static fn (string $segment): string => ltrim($segment, '_'), explode('/', $folder)));
 	}
 
 	/**

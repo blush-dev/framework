@@ -2354,6 +2354,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-157: Content type kinds and option names
 - **Date:** 2026-09-26
+- **Status:** The `Pages` kind superseded by D-386: it's the `Tree` kind.
 - **Decision:** The first setup DX/UX slice (D-156) is how content types
   are defined. Supersedes D-083's single `ContentType` class and its
   option names.
@@ -10836,3 +10837,68 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked for the sketch's plugin and icon pack
   screens, and chose settings.json, enforcing requirements at boot,
   switching packs off, and deleting only plugins that are off.
+
+### D-386: The Tree kind replaces Pages
+- **Date:** 2026-10-02
+- **Decision:** Answers D-257's open question (a kind for nesting
+  entries, such as a manual with chapters), and supersedes D-157's
+  `Pages` kind. The kind whose entries nest by folder is **Tree**
+  (`kind: tree`, `TypeKind::Tree`, the final `Tree` class), and the
+  built-in `page` type is a tree. "Page" stays the type; "Tree" is the
+  kind, so the two aren't confused.
+  - **Pages as they were:** a tree's entries nest by folder
+    (`parentKey()`), the page catch-all serves them at their folder
+    paths, the admin lists them as a tree, and lint doesn't ask a folder
+    for an entry of its own. `kind: pages` is gone (no 1.x content used
+    it).
+  - **Trees in folders:** beside the root one, a site may add trees of
+    its own (`new Tree('doc', folder: '_docs')`, or `kind: tree` in
+    `user/data/types`). `Tree`'s folder defaults to the content root
+    only for `page`, and `_` and the name otherwise (D-258).
+    - **URLs:** a type served as pages is served under its folder
+      without the `_` that starts its folder names
+      (`ContentType::pagePath()`, as `prefix()` drops it for routed
+      types): `_docs/install.md` at `/docs/install`.
+      `ContentTypes::folderPath()` turns a catch-all path back into a
+      folder path, longest match first. This also moves a `urls: false`
+      collection in a `_` folder from its `_`-prefixed path (which was a
+      404 anyway, since `_` segments are private).
+    - **The index page:** a tree in a folder has its folder's `index`
+      as its index page (D-255), pinned in its list like a
+      collection's. Only the root tree (`Tree::atRoot()`) has none.
+      `IndexPage`, `EntriesController`, and `CountsController` ask
+      `atRoot()`, not the kind.
+  - **The admin creates and changes trees:** **New Content Type** offers
+    Tree beside Content and Taxonomy (`POST types` with `kind: tree`;
+    only a second profiles type is refused now), and a tree in a folder
+    from code is changed through `user/data/types` like a collection
+    (`ContentType::isOverridable()`, which replaces
+    `TypeKind::isOverridable()`: `false` for the root tree and the
+    profiles type, whose messages name them by `role()`, "the site's
+    pages"). A tree's forms have no URL prefix, feed, or author
+    archives (`changesOf()` sends neither `prefix` nor `feed`), an
+    Addresses note in their place, and an index page (`addIndex()`
+    allows trees).
+  - **The name:** "Tree", a noun beside `collection` and `taxonomy`.
+    Chosen over "Sections" (which also names the admin's rail
+    sections, D-244, and layout sections in templates) and
+    "Hierarchical" (an adjective, and a taxonomy's `hierarchical: true`
+    already means something else). The admin's tree lists (D-263) are
+    the same idea. A site's labels ("Pages", "Docs") are what editors
+    see; the name may still change.
+- **Open:** see `open-questions.md` → Hierarchy (sibling order and
+  previous/next through a tree).
+- **Checked:** `composer check` (1,306 tests; new tests for a tree in
+  a folder: its URLs and pages, its index page and tree in the admin
+  list, one from `user/data/types`, creating one through `POST types`,
+  and changing a code tree in a data file); `npm run admin:build`; on the
+  jtcom trial, a test `doc` tree in `_docs` (`config/content.php`, five
+  entries): `/docs`, `/docs/install`, and `/docs/install/requirements`
+  serve, `/_docs/install` is a 404, `/about` still serves, and
+  `content:lint` is clean. The new-type wizard and type editor for
+  trees weren't checked in a browser.
+- **Why:** the author asked for a hierarchical, page-like kind in a
+  content subfolder, with its own name to tell the kind apart from the
+  Page type; chose Tree; asked to move the page type onto it as pages
+  work now; asked for a test tree type in the jtcom trial; and asked
+  for trees on the new-type screen and through `user/data/types`.

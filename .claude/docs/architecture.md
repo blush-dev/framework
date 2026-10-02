@@ -362,7 +362,7 @@ is in that decision.
 Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 
 - **`ContentType`** (`Blush\Content\Type`): an abstract base with the
-  final kinds `Collection`, `Taxonomy`, and `Pages` (`TypeKind` names
+  final kinds `Collection`, `Taxonomy`, `Tree` (D-386), and `Profiles` (`TypeKind` names
   them in data). Shared: name, `folder` (`_{name}` by default, D-258;
   the URL prefix drops each folder name's leading `_`), `labels`
   (`TypeLabels`, D-278), `description`, and `icon` (D-256), `public`, `urls` (`TypeUrls`:
@@ -373,8 +373,11 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   own `Schema` (`fields`, `closed`). `Collection` adds `dateArchives`
   (`DateArchives`); `Taxonomy` adds `types`, `field`, `aliases`,
   `termListing`, and `hierarchical` (a `parent` reference to its own
-  terms, D-257); `Pages` has no URLs, listing, or feed. `parentKey()`
-  says where an entry nests: pages by folder, hierarchical terms by
+  terms, D-257); `Tree` has no URLs, listing, or feed, and its folder
+  is the content root for `page` only (`atRoot()`; others are served
+  under `pagePath()`, the folder without its `_`, and have an index
+  page, D-386). `parentKey()`
+  says where an entry nests: a tree's entries by folder, hierarchical terms by
   `parent`, nothing else. `fromArray()`
   dispatches on `kind` (or 1.x's `taxonomy: true`) and accepts the 1.x
   option names.
@@ -384,7 +387,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   A data file named for a code collection or taxonomy overrides it
   instead (D-349: `ContentType::overriddenBy()`, each option it sets
   replacing the code's; the type keeps its origin, and
-  `ContentTypes::isOverridden()` says so); the code's pages and profiles
+  `ContentTypes::isOverridden()` says so); the code's root tree (pages) and profiles
   types can't be. `ContentTypeLoader::codeTypes()` returns the types
   before data, which `DataTypeWriter` writes overrides against.
   `TypeRouteKeys` lists a type's route keys and what each path holds
@@ -394,7 +397,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   `ContentConfig` also holds the home alias, the data-type policy,
   `disabled` built-ins, and `autoIndex`. The resolved types compile to
   `storage/cache/content-types.php` outside development (D-092).
-- **Built-in types:** `page` (`Pages`, the catch-all, folder `''`) and
+- **Built-in types:** `page` (a `Tree`, the catch-all, folder `''`) and
   `profile` (D-043, D-351, D-352: `Profiles`, the fourth kind, folder
   `profiles`, routed only at `single` (`/profiles/{name}`) and its paged
   and feed keys, not served as pages, with an `avatar` media field).

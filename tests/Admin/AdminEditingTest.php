@@ -42,11 +42,13 @@ final class AdminEditingTest extends TestCase
 	 * Boots a site with dated posts: Jane's published post (with 1.x's
 	 * `date`, and an undeclared key), her draft, and Sam's post.
 	 *
-	 * @param list<string> $roles
+	 * @param list<string>                        $roles
+	 * @param array<string, array<string, mixed>> $types More types, by name.
 	 */
-	private function site(array $roles = ['editor']): void
+	private function site(array $roles = ['editor'], array $types = []): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']]]]);\n");
+		$types = ['post' => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']], ...$types];
+		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => " . var_export($types, true) . "]);\n");
 		$this->writeTemporaryFile('user/content/' . self::FLAME, "---\ntitle     : \"Rekindling the Flame\"\nauthors   : jane\ndate      : 2022-03-29 23:00:00 -6\nmood      : hopeful\n---\n\nThe body.\n");
 		$this->writeTemporaryFile('user/content/_posts/2023-01-01.idea.md', "---\ntitle: An Idea\nauthors: jane\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/2021-05-05.sams.md', "---\ntitle: Sam's Post\nauthors: sam\npublished: 2021-05-05 09:00:00 -05:00\n---\n");
@@ -291,6 +293,21 @@ final class AdminEditingTest extends TestCase
 		$this->assertNull($pages['index'], 'Pages have no index page.');
 		$this->assertIsArray($pages['entries'] ?? null);
 		$this->assertContains('index.md', array_column($pages['entries'], 'id'), 'The home page is a page like the others.');
+	}
+
+	public function testATreeInAFolderHasAnIndexPage(): void
+	{
+		$this->writeTemporaryFile('user/content/_doc/index.md', "---\ntitle: Docs\n---\n");
+		$this->writeTemporaryFile('user/content/_doc/install.md', "---\ntitle: Install\n---\n");
+		$this->writeTemporaryFile('user/content/_doc/install/requirements.md', "---\ntitle: Requirements\n---\n");
+		$this->site(types: ['doc' => ['kind' => 'tree']]);
+
+		$this->assertSame('_doc/index.md', $this->pinned('/entries?type=doc'), 'Its folder\'s index is its index page (D-386).');
+
+		$docs = self::json($this->call('GET', '/entries?type=doc'));
+		$this->assertIsArray($docs['entries'] ?? null);
+		$this->assertSame(['_doc/install.md', '_doc/install/requirements.md'], array_column($docs['entries'], 'id'), 'Listed as a tree.');
+		$this->assertSame(2, $docs['total'] ?? null);
 	}
 
 	public function testEditsTheIndexPageWithoutTheTypesFieldsOrTheTrash(): void

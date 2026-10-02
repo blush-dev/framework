@@ -29,6 +29,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\PeopleField;
+use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
@@ -99,7 +100,7 @@ final readonly class TypeEditController
 		$set   = $input['set'] ?? [];
 
 		if (! is_string($name) || $kind === null || ! is_array($set) || ($set !== [] && array_is_list($set))) {
-			return self::error('Send a "name", a "kind" (collection or taxonomy), and "set" (options to values).', Status::BadRequest);
+			return self::error('Send a "name", a "kind" (collection, taxonomy, or tree), and "set" (options to values).', Status::BadRequest);
 		}
 
 		$folder = is_string($input['folder'] ?? null) ? $input['folder'] : null;
@@ -230,7 +231,7 @@ final readonly class TypeEditController
 	 */
 	private function addIndex(ContentType $type): void
 	{
-		if ($type->folder === '' || ! $type->hasUrls()) {
+		if ($type->folder === '' || ! ($type->hasUrls() || $type instanceof Tree)) {
 			throw new InvalidContentType(sprintf('%s have no index page.', $type->labels->plural));
 		}
 

@@ -16,6 +16,7 @@ namespace Blush\Tests\Content\Routing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
+use Blush\Content\ContentRepository;
 use Blush\Content\Http\CollectionController;
 use Blush\Content\Http\ContentController;
 use Blush\Content\Http\ContentPage;
@@ -234,6 +235,31 @@ final class ContentRoutingTest extends TestCase
 		$this->assertPage('/missing', 404);
 		$this->assertPage('/missing/', 404);
 		$this->assertPage('/_posts/2003-04-15.welcome', 404);
+	}
+
+	public function testServesATreeInItsOwnFolder(): void
+	{
+		$this->contentConfig(['types' => ['doc' => ['kind' => 'tree']]]);
+		$this->entry('_doc/index.md', 'title: Docs');
+		$this->entry('_doc/install.md', 'title: Install');
+		$this->entry('_doc/install/requirements.md', 'title: Requirements');
+
+		$this->app = $this->site();
+		$content   = $this->app->container()->make(ContentRepository::class);
+		$urls      = $this->app->container()->make(ContentUrls::class);
+		$types     = $this->app->container()->make(ContentTypes::class);
+
+		$this->assertSame('_doc', $types->get('doc')->folder, 'A tree other than the page type gets a folder of its own (D-258).');
+		$requirements = $content->named('doc', 'install/requirements') ?? $this->fail();
+		$this->assertSame('/doc/install/requirements', $urls->entry($requirements));
+		$this->assertSame('/doc', $urls->entry($content->named('doc', '') ?? $this->fail()));
+		$this->assertSame('install', $content->parent($requirements)?->key);
+
+		$this->assertPage('/doc', 200, 'Docs');
+		$this->assertPage('/doc/install', 200, 'Install');
+		$this->assertPage('/doc/install/requirements', 200, 'Requirements');
+		$this->assertPage('/_doc/install', 404);
+		$this->assertPage('/about', 200, 'About');
 	}
 
 	public function testRedirectsFromFrontMatterAndData(): void

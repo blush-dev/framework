@@ -32,10 +32,9 @@ use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\Pages;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
-use Blush\Content\Type\TypeKind;
+use Blush\Content\Type\Tree;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
@@ -224,7 +223,7 @@ final readonly class EntriesController
 		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '';
 
 		$contentType = $type === null ? null : $this->types->find($type);
-		$pinned      = $contentType !== null && $contentType->kind() !== TypeKind::Pages;
+		$pinned      = $contentType !== null && ! ($contentType instanceof Tree && $contentType->atRoot());
 		$query       = $this->permissions->restrict($account, ContentAction::Edit, $query);
 		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...PeoplePage::listPages($contentType))->exceptIn(...PeoplePage::personFolders($contentType)) : $query;
 		$linked      = $contentType instanceof Profiles ? $this->linked($account) : [];
@@ -318,7 +317,7 @@ final readonly class EntriesController
 	 */
 	private static function nests(ContentType $type): bool
 	{
-		return $type instanceof Pages || ($type instanceof Taxonomy && $type->hierarchical);
+		return $type instanceof Tree || ($type instanceof Taxonomy && $type->hierarchical);
 	}
 
 	/**

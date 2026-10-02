@@ -24,7 +24,7 @@ use Blush\Auth\Permissions;
 use Blush\Auth\Roles;
 use Blush\Content\ContentRepository;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\TypeKind;
+use Blush\Content\Type\Tree;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Http\Response;
@@ -83,7 +83,7 @@ final readonly class CountsController
 			}
 
 			$query = $this->permissions->restrict($account, ContentAction::Edit, $this->content->query()->any()->type($type->name));
-			$query = $type->kind() === TypeKind::Pages ? $query : $query->withLanding(false)->exceptNames(...PeoplePage::listPages($type))->exceptIn(...PeoplePage::personFolders($type));
+			$query = $type instanceof Tree && $type->atRoot() ? $query : $query->withLanding(false)->exceptNames(...PeoplePage::listPages($type))->exceptIn(...PeoplePage::personFolders($type));
 
 			$types[$type->name] = $query->count();
 		}

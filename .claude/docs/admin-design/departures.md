@@ -328,12 +328,15 @@ Each is recorded in `.claude/docs/decisions.md`.
   **Save**; no rename, "used in", Replace, or
   Delete yet. Only `user/media` is listed (D-294 removed D-292's page
   bundle files and its **Where** control).
-- **Content types** (D-250, D-311, D-349, D-350): types in
+- **Content types** (D-250, D-311, D-349, D-350, D-386): types in
   `user/data/types` are edited, created with the wizard, and deleted;
-  collections and taxonomies from code are edited the same way, saved in
-  a file there over the code (its Danger Zone resets rather than
-  deletes, and fields that are code classes are read-only); the pages
-  and authors types from code stay read-only. An **Addresses** panel
+  collections, taxonomies, and trees in a folder from code are edited the
+  same way, saved in a file there over the code (its Danger Zone resets
+  rather than deletes, and fields that are code classes are read-only);
+  the pages and profiles types from code stay read-only. The wizard's
+  kinds are Content, Taxonomy, and **Tree** (the design has two): a
+  tree's Behavior has no URL base, feed, or author archives, with a note
+  on its addresses in place of the URL base. An **Addresses** panel
   (the design has none) edits each route key's path, after Behavior.
   "Show in the sidebar" isn't a type setting in Blush; the hierarchy
   switch is a taxonomy's (`hierarchical`), since pages nest by folder.

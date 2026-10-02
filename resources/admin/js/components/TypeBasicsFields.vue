@@ -8,12 +8,12 @@
 import { ref } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import IconPicker from './IconPicker.vue';
-import type { TypeForm } from '../type-form';
+import type { TypeForm, TypeKind } from '../type-form';
 import type { SiteIcon } from '../site-icons';
 
 defineProps<{
 	idPrefix: string;
-	kind: 'collection' | 'taxonomy';
+	kind: TypeKind;
 }>();
 
 const form = defineModel<TypeForm>({ required: true });
@@ -31,11 +31,11 @@ function choose(icon: SiteIcon): void {
 		<div class="type-fields__row">
 			<div class="field">
 				<label :for="`${idPrefix}plural`">Name (plural)</label>
-				<input :id="`${idPrefix}plural`" v-model="form.plural" :placeholder="kind === 'taxonomy' ? 'Cuisines' : 'Recipes'" autocomplete="off">
+				<input :id="`${idPrefix}plural`" v-model="form.plural" :placeholder="{ taxonomy: 'Cuisines', tree: 'Docs', collection: 'Recipes' }[kind]" autocomplete="off">
 			</div>
 			<div class="field">
 				<label :for="`${idPrefix}singular`">Name (singular)</label>
-				<input :id="`${idPrefix}singular`" v-model="form.singular" :placeholder="kind === 'taxonomy' ? 'Cuisine' : 'Recipe'" autocomplete="off">
+				<input :id="`${idPrefix}singular`" v-model="form.singular" :placeholder="{ taxonomy: 'Cuisine', tree: 'Doc', collection: 'Recipe' }[kind]" autocomplete="off">
 			</div>
 		</div>
 		<div class="field">

@@ -29,7 +29,7 @@ use Blush\Support\Filesystem;
  * Writes the types the site defines in data, `user/data/types/{name}`
  * (D-042, D-311), for the admin: creates one, changes the settings the
  * admin edits, and deletes one. It also changes a collection or taxonomy
- * defined in code (D-349), in a file of the same name that holds only
+ * or tree in a folder (D-386) defined in code (D-349), in a file of the same name that holds only
  * the options that differ from the code's, and resets one by deleting
  * that file.
  *
@@ -115,8 +115,8 @@ final readonly class DataTypeWriter
 	{
 		$this->assertEnabled();
 
-		if ($kind === TypeKind::Pages || $kind === TypeKind::Profiles) {
-			throw new InvalidContentType(sprintf('The site has one %s type; create a collection or a taxonomy.', $kind === TypeKind::Pages ? 'page' : 'profiles'));
+		if ($kind === TypeKind::Profiles) {
+			throw new InvalidContentType('The site has one profiles type; create a collection, a taxonomy, or a tree.');
 		}
 
 		if ($this->path($name) !== null) {
@@ -192,7 +192,7 @@ final readonly class DataTypeWriter
 	/**
 	 * Returns the type the code defines under a name, when the admin may
 	 * change it through a data file: an extension's or the config's
-	 * collection or taxonomy. `null` for a name the code doesn't define
+	 * collection, taxonomy, or tree in a folder. `null` for a name the code doesn't define
 	 * (or only as a built-in type, which a data type replaces whole).
 	 *
 	 * @throws InvalidContentType When the code defines it as its pages or authors type.
@@ -209,8 +209,8 @@ final readonly class DataTypeWriter
 
 		$type = $types[$name];
 
-		if (! $type->kind()->isOverridable()) {
-			throw new InvalidContentType(sprintf('%s are the site\'s %s type, defined in code, so they can\'t be changed here.', $type->labels->plural, $type->kind()->value));
+		if (! $type->isOverridable()) {
+			throw new InvalidContentType(sprintf('%s are %s, defined in code, so they can\'t be changed here.', $type->labels->plural, $type->role()));
 		}
 
 		return $type;

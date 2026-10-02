@@ -100,7 +100,7 @@ const related = computed(() => {
 					<div><dt>Mid-sentence</dt><dd>{{ type.labels.item }}, {{ type.labels.items }}</dd></div>
 					<div><dt>Actions</dt><dd>{{ type.labels.newItem }} · {{ type.labels.editItem }} · {{ type.labels.searchItems }}</dd></div>
 					<div><dt>Key</dt><dd class="mono">{{ type.name }}</dd></div>
-					<div><dt>Icon</dt><dd class="type-facts__icon"><TypeIcon :type="type" /><span :class="{ mono: type.icon }">{{ type.icon ?? `The ${type.kind === 'pages' ? 'pages' : type.kind} icon` }}</span></dd></div>
+					<div><dt>Icon</dt><dd class="type-facts__icon"><TypeIcon :type="type" /><span :class="{ mono: type.icon }">{{ type.icon ?? `The ${type.kind} icon` }}</span></dd></div>
 					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
 					<div><dt>Address</dt><dd :class="{ mono: type.prefix }">{{ type.prefix ?? 'No pages of its own' }}</dd></div>
 					<div v-if="taxonomy"><dt>Hierarchical</dt><dd>{{ type.hierarchical ? 'Yes: a term can name a parent' : 'No' }}</dd></div>

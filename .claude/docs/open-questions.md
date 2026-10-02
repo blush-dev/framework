@@ -83,8 +83,10 @@ Move each item to `decisions.md` once it's answered.
   - Should a hierarchical term's page also list its child terms'
     entries, as WordPress's category archives do? An option on the
     taxonomy (or `termListing`), or always?
-  - A kind for nesting entries (a manual with chapters), since
-    collections don't nest: needed, and how do its URLs work?
+  - Tree types (D-386): do sibling entries take a manual order (an
+    `order` field, title as the fallback), and does the template API
+    get previous/next through the tree and a table of contents? In the
+    first slice, or later?
   - Nested URLs for pages already follow folders; should a collection's
     single route ever take a hierarchical term's path (`{category}` as
     `web/css`)? Today it's the first term's slug.

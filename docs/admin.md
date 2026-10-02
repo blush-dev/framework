@@ -719,7 +719,8 @@ many entries. Choose one for its settings, the taxonomies that group it,
 and its fields; **Type settings** on a type's list goes there too.
 
 Types in `user/data/types` are edited on their screen. So are
-collections and taxonomies from `config/content.php` and plugins:
+collections, taxonomies, and [trees](content-types.md#trees) from
+`config/content.php` and plugins:
 what you change is saved in `user/data/types/{key}.yaml` over the code's
 definition (see [Changing a type from code](content-types.md#changing-a-type-from-code)).
 The pages and profiles types defined in code stay as they are, so their
@@ -730,7 +731,8 @@ screens only show them.
 **New Content Type** walks through three steps, with **What Gets
 Created** beside them:
 
-1. **Basics:** content (a collection) or a taxonomy, its names, a key
+1. **Basics:** content (a collection), a taxonomy, or a
+   [tree](content-types.md#trees), its names, a key
    (made from the name, such as `recipe`), the folder its entries live in
    under `user/content` (made from the plural name), a description, and
    an icon. The key and folder can't change later.
@@ -744,7 +746,9 @@ Created** beside them:
    type, the **word in the address** (`authors` unless you change it;
    the hint shows where the list and archives will be), and a **page
    introducing the list** (see [People archives](content-types.md#people-archives)).
-   Other people fields are added on the type's screen afterward.
+   Other people fields are added on the type's screen afterward. A tree
+   has no URL prefix, feed, or author archives: its entries are at their
+   paths in its folder.
 3. **Fields:** the fields its entries carry beside the title, slug,
    status, dates, and body.
 
@@ -1266,10 +1270,10 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET icon-packs/{vendor}/{name}`, `GET icon-packs/core` | One pack (`{"pack"}`) or the core set (`{"core"}`), with every icon. Needs `site.settings` |
 | `PUT icon-packs/{vendor}/{name}` | Turns a pack on or off: send `{"enabled": true}` or `false`. Saves `icons.disabled` in `user/data/settings.json`. Needs `site.settings` |
 | `DELETE icon-packs/{folder}` | Deletes a pack's folder (or a broken pack's) from `user/icons`: `{"deleted"}`. Needs `site.settings` |
-| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `pages`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection or taxonomy from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
-| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
-| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or taxonomy from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
+| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection, taxonomy, or tree in a folder from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection`, `taxonomy`, or `tree`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
+| `PATCH types/{name}` | Change a `user/data/types` type, or a collection, taxonomy, or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |

@@ -76,7 +76,7 @@ const liveUrl   = computed(() => profile.value?.status === 'published' && profil
 const yours     = computed(() => session.account?.author === slug.value);
 
 // Types that credit no one, so a reader sees why they aren't above.
-const uncredited = computed(() => types.value.filter((type) => (type.kind === 'collection' || type.kind === 'pages') && !type.authors));
+const uncredited = computed(() => types.value.filter((type) => (type.kind === 'collection' || type.kind === 'tree') && !type.authors));
 
 // Publishes a draft profile, so its page and bylines go live.
 async function publish(): Promise<void> {

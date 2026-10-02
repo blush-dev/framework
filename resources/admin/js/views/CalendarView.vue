@@ -66,7 +66,7 @@ const type   = computed(() => queryText('type'));
 const typeOptions = computed<SelectOption[]>(() => [
 	{ value: '', label: 'All types' },
 	...types.value
-		.filter((item) => (item.kind === 'pages' || item.kind === 'collection') && canType(item.name, 'edit'))
+		.filter((item) => (item.kind === 'tree' || item.kind === 'collection') && canType(item.name, 'edit'))
 		.sort((a, b) => a.labels.menu.localeCompare(b.labels.menu))
 		.map((item) => ({ value: item.name, label: item.labels.menu }))
 ]);

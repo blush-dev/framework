@@ -94,6 +94,21 @@ final readonly class Profiles extends ContentType
 	}
 
 	/**
+	 * The site's one profiles type stays as the code defines it.
+	 */
+	#[Override]
+	public function isOverridable(): bool
+	{
+		return false;
+	}
+
+	#[Override]
+	public function role(): string
+	{
+		return 'the site\'s profiles type';
+	}
+
+	/**
 	 * Profiles aren't pages at their folder paths; a profile's page is
 	 * its `single` route, when the type has URLs.
 	 */

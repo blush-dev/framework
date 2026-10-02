@@ -135,16 +135,16 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns whether the admin may change a type: one defined in data, or
-	 * a collection or taxonomy from code, which a data file then
-	 * overrides (D-311, D-349). The pages and profiles types defined in
-	 * code stay as they are.
+	 * a type from code that a data file may override (D-311, D-349,
+	 * `ContentType::isOverridable()`). The pages and profiles types
+	 * defined in code stay as they are.
 	 */
 	public function isEditable(string $name): bool
 	{
 		$origin = $this->origin($name);
 
 		return $origin === TypeOrigin::Data
-			|| (($origin === TypeOrigin::Config || $origin === TypeOrigin::Extension) && ($this->find($name)?->kind()->isOverridable() ?? false));
+			|| (($origin === TypeOrigin::Config || $origin === TypeOrigin::Extension) && ($this->find($name)?->isOverridable() ?? false));
 	}
 
 	/**
@@ -202,6 +202,30 @@ final class ContentTypes implements IteratorAggregate, Countable
 		$name = $this->folders[trim($folder, '/')] ?? null;
 
 		return $name === null ? null : $this->types[$name];
+	}
+
+	/**
+	 * Returns the folder path under `user/content` that a path the page
+	 * catch-all serves points to (D-386): `_docs/install` for
+	 * `docs/install` when a type served as pages has the folder `_docs`.
+	 * Other paths are their own.
+	 */
+	public function folderPath(string $path): string
+	{
+		$path  = trim($path, '/');
+		$types = array_filter($this->types, static fn (ContentType $type): bool => $type->servedAsPages() && $type->folder !== '');
+
+		usort($types, static fn (ContentType $a, ContentType $b): int => strlen($b->pagePath()) <=> strlen($a->pagePath()));
+
+		foreach ($types as $type) {
+			$base = $type->pagePath();
+
+			if ($path === $base || str_starts_with($path, "{$base}/")) {
+				return $type->folder . substr($path, strlen($base));
+			}
+		}
+
+		return $path;
 	}
 
 	/**

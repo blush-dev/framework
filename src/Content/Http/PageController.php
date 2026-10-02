@@ -41,7 +41,7 @@ final class PageController extends ContentController
 			throw new NotFound(sprintf('"%s" is private.', $path));
 		}
 
-		$entry = $this->find($path) ?? throw new NotFound(sprintf('There is no page at "%s".', $path));
+		$entry = $this->find($this->types->folderPath($path)) ?? throw new NotFound(sprintf('There is no page at "%s".', $path));
 
 		return $this->canonicalRedirect($request, $entry) ?? $this->renderer->render(new ContentPage(
 			kind: PageKind::Page,
@@ -53,7 +53,7 @@ final class PageController extends ContentController
 	}
 
 	/**
-	 * Finds the entry at a path: the landing page of an unrouted type
+	 * Finds the entry at a folder path: the landing page of an unrouted type
 	 * whose folder it is, or the entry with its last segment as slug in
 	 * the folder above.
 	 */

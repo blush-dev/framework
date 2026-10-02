@@ -30,7 +30,7 @@ import TypePeopleFields from './TypePeopleFields.vue';
 import TypeRoutesFields from './TypeRoutesFields.vue';
 import { ApiError, request, type ContentTypeDetail } from '../api';
 import { label } from '../fields';
-import { changesOf, formOf, type TypeForm } from '../type-form';
+import { changesOf, formOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
 import { profileType, reloadTypes, typeUrls, types } from '../types';
 
@@ -38,7 +38,7 @@ const props = defineProps<{ type: ContentTypeDetail }>();
 const emit  = defineEmits<{ saved: [type: ContentTypeDetail] }>();
 
 const router  = useRouter();
-const kind    = computed(() => props.type.kind === 'taxonomy' ? 'taxonomy' as const : 'collection' as const);
+const kind    = computed<TypeKind>(() => props.type.kind === 'taxonomy' || props.type.kind === 'tree' ? props.type.kind : 'collection');
 const form    = ref<TypeForm>(formOf(props.type));
 const initial = ref<TypeForm>(formOf(props.type));
 const index   = ref(false);
@@ -186,7 +186,7 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 			<p class="panel__note">Every field points at the one <strong>{{ profilesLabel }}</strong> collection. A person is one profile with one slug; these are this type's words for how they're credited.</p>
 		</section>
 
-		<section v-if="profilesLabel !== null && form.people !== null && form.people.length" class="panel" aria-labelledby="archives-heading">
+		<section v-if="profilesLabel !== null && form.people !== null && form.people.length && kind !== 'tree'" class="panel" aria-labelledby="archives-heading">
 			<header class="panel__header">
 				<h2 id="archives-heading">Archives</h2>
 				<p class="panel__hint">Whether a field's addresses route at all</p>

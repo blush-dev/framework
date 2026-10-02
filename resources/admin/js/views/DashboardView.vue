@@ -69,7 +69,7 @@ function share(value: number, total: number): string {
 // The setup path: pages first, then the other types entries are written
 // in. Taxonomies' terms come from using them, so they aren't steps.
 const steps = computed(() => [
-	...types.value.filter((type) => type.kind === 'pages'),
+	...types.value.filter((type) => type.kind === 'tree'),
 	...types.value.filter((type) => type.kind === 'collection')
 ].filter((type) => canType(type.name, 'create')));
 
@@ -135,7 +135,7 @@ onMounted(() => {
 					<span class="setup__number" aria-hidden="true">{{ index + 1 }}</span>
 					<span class="setup__text">
 						<span class="setup__title">Write your first {{ type.labels.item }}</span>
-						<span class="setup__hint">{{ type.kind === 'pages' ? 'A page that stands on its own, like About.' : `${type.labels.plural} are listed together on the site.` }}</span>
+						<span class="setup__hint">{{ type.kind !== 'tree' ? `${type.labels.plural} are listed together on the site.` : type.folder === '' ? 'A page that stands on its own, like About.' : `${type.labels.plural} nest by folder, each at its own address.` }}</span>
 					</span>
 					<RouterLink class="button" :class="{ 'button--primary': index === 0 }" :to="{ name: 'entry-new', query: { type: type.name } }">{{ type.labels.newItem }}</RouterLink>
 				</li>

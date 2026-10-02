@@ -175,7 +175,7 @@ export interface ContentTypeSummary {
 	description: string;
 	// A site icon's name to show it with, or `null` for its kind's.
 	icon: string | null;
-	kind: 'collection' | 'taxonomy' | 'pages' | 'profiles';
+	kind: 'collection' | 'taxonomy' | 'tree' | 'profiles';
 	dated: boolean;
 	// Whether its entries credit people (D-351).
 	authors: boolean;

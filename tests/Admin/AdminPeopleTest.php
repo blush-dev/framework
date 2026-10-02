@@ -58,7 +58,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertContains('content.*.edit', array_column($capabilities, 'name'));
 		$this->assertContains(['name' => 'content.page.edit.others', 'label' => 'Pages: Edit anyone\'s', 'group' => 'Pages', 'type' => 'page', 'action' => 'edit.others'], $capabilities, 'Each type has its own (D-359).');
 		$this->assertContains(['name' => 'menus.edit', 'label' => 'Edit menus', 'group' => 'Structure'], $capabilities);
-		$this->assertContains(['name' => 'page', 'label' => 'Pages', 'kind' => 'pages', 'icon' => null], is_array($answer['types'] ?? null) ? $answer['types'] : []);
+		$this->assertContains(['name' => 'page', 'label' => 'Pages', 'kind' => 'tree', 'icon' => null], is_array($answer['types'] ?? null) ? $answer['types'] : []);
 	}
 
 	/**

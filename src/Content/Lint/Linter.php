@@ -23,8 +23,8 @@ use Blush\Content\Query\Query;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\Pages;
 use Blush\Content\Type\Profiles;
+use Blush\Content\Type\Tree;
 use Blush\Content\Routing\PageRoutes;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
@@ -189,8 +189,8 @@ final readonly class Linter
 
 	/**
 	 * Checks that an entry's parent has a file and that following parents
-	 * up never comes back to the entry. Pages are left out: a folder
-	 * needn't have a page of its own.
+	 * up never comes back to the entry. Tree types are left out: a folder
+	 * needn't have an entry of its own.
 	 *
 	 * @return list<Violation>
 	 */
@@ -237,7 +237,7 @@ final readonly class Linter
 	 */
 	private function checkPageAddress(IndexRecord $record): array
 	{
-		if (! $this->types->find($record->type) instanceof Pages || $record->key === '') {
+		if (! $this->types->find($record->type) instanceof Tree || $record->key === '') {
 			return [];
 		}
 

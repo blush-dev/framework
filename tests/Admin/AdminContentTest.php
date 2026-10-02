@@ -47,7 +47,7 @@ final class AdminContentTest extends TestCase
 	private function site(array $roles, array $environment = []): void
 	{
 		// Pages don't credit authors unless the site says so (D-329).
-		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: pages\nauthors: true\n");
+		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: tree\nauthors: true\n");
 		$this->writeTemporaryFile('user/content/jane-draft.md', "---\ntitle: Jane's draft\nstatus: draft\nauthors: jane\n---\n");
 		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\n---\n");
 		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\n---\n");
@@ -347,7 +347,7 @@ final class AdminContentTest extends TestCase
 
 		$described = array_map(static fn (mixed $type): array => is_array($type) ? array_intersect_key($type, array_flip(['name', 'labels', 'kind', 'dated', 'types'])) : [], $types);
 
-		$this->assertContains(['name' => 'page', 'labels' => TypeLabels::named('page')->all(), 'kind' => 'pages', 'dated' => false], $described, 'Only taxonomies name types.');
+		$this->assertContains(['name' => 'page', 'labels' => TypeLabels::named('page')->all(), 'kind' => 'tree', 'dated' => false], $described, 'Only taxonomies name types.');
 		$this->assertContains(['name' => 'genre', 'labels' => TypeLabels::named('genre')->all(), 'kind' => 'taxonomy', 'dated' => false, 'types' => ['page']], $described);
 		$this->assertContains(['name' => 'profile', 'labels' => TypeLabels::named('profile')->all(), 'kind' => 'profiles', 'dated' => false, 'types' => ['page']], $described, 'The profiles type names the types that credit people.');
 		$this->assertSame([true, false, false], array_map(static fn (string $name): mixed => array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === $name)['authors'] ?? null, ['page', 'genre', 'profile']), 'Whether each type credits people.');

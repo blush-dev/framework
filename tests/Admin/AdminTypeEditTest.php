@@ -279,6 +279,30 @@ final class AdminTypeEditTest extends TestCase
 		return $keyed;
 	}
 
+	public function testCreatesATree(): void
+	{
+		$this->site();
+
+		$answer = $this->write('POST', '/types', [
+			'name'   => 'doc',
+			'kind'   => 'tree',
+			'folder' => '_docs',
+			'index'  => true,
+			'set'    => ['labels' => ['singular' => 'Doc', 'plural' => 'Docs'], 'icon' => 'book', 'public' => true, 'sitemap' => true, 'authors' => false]
+		]);
+
+		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
+		$type = self::json($answer);
+		$this->assertSame(['tree', true, ['id' => '_docs/index.md', 'title' => 'Docs']], [$type['kind'] ?? null, $type['editable'] ?? null, $type['index'] ?? null]);
+		$this->assertSame("kind: tree\nfolder: _docs\nicon: book\n", $this->file('user/data/types/doc.yaml'));
+
+		$feed = $this->write('PATCH', '/types/doc', ['set' => ['feed' => true]]);
+		$this->assertSame(422, $feed->getStatusCode(), 'A tree has no feed.');
+		$this->assertStringContainsString('unknown options: feed', self::error($feed));
+
+		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'person', 'kind' => 'profiles', 'set' => []])->getStatusCode(), 'The site has one profiles type.');
+	}
+
 	private function contentConfig(string $source): void
 	{
 		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray({$source});\n");
@@ -317,9 +341,25 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'movie'])->getStatusCode(), 'Nor created again.');
 	}
 
+	public function testChangesACodeTreeInADataFile(): void
+	{
+		$this->contentConfig("['types' => ['doc' => ['kind' => 'tree', 'folder' => '_docs']]]");
+		$this->site();
+
+		$this->assertTrue(self::json($this->send('GET', '/types/doc'))['editable'] ?? null, 'A tree in a folder can change (D-386).');
+
+		$answer = $this->write('PATCH', '/types/doc', ['set' => ['description' => 'The manual.', 'sitemap' => false]]);
+		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
+		$this->assertSame(['config', true, 'The manual.'], [self::json($answer)['origin'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['description'] ?? null]);
+		$this->assertSame("description: \"The manual.\"\nsitemap: false\n", $this->file('user/data/types/doc.yaml'));
+
+		$this->assertSame(200, $this->write('POST', '/types/doc/reset')->getStatusCode());
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/doc.yaml');
+	}
+
 	public function testLeavesCodeFieldClassesAndThePagesTypeAlone(): void
 	{
-		$this->contentConfig("['types' => ['swatch' => ['fields' => [['name' => 'tint', 'type' => 'color', 'class' => Blush\\Tests\\Fixtures\\Content\\ColorField::class]]], 'page' => ['kind' => 'pages']]]");
+		$this->contentConfig("['types' => ['swatch' => ['fields' => [['name' => 'tint', 'type' => 'color', 'class' => Blush\\Tests\\Fixtures\\Content\\ColorField::class]]], 'page' => ['kind' => 'tree']]]");
 		$this->site();
 
 		$this->assertFalse(self::json($this->send('GET', '/types/swatch'))['fieldsEditable'] ?? null);
@@ -330,6 +370,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame("description: Colors.\n", $this->file('user/data/types/swatch.yaml'), 'Its fields stay in code.');
 
 		$this->assertFalse(self::json($this->send('GET', '/types/page'))['editable'] ?? null);
+		$this->assertStringContainsString('the site\'s pages', self::error($this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])));
 		$this->assertSame(422, $this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])->getStatusCode());
 		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['editable'] ?? null);
 	}

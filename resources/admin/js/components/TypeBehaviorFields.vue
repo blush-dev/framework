@@ -5,6 +5,8 @@
  * and has a feed; a collection's date archives and featured image (an
  * `image` media field); a taxonomy's nesting and the types its terms
  * group; and the index page (D-255), which a type gets once and keeps.
+ * A tree (D-386) has no prefix, feed, or author archives: its entries
+ * are at their folder paths.
  * In the new-type wizard, when the site has profiles (D-329): whether
  * entries credit authors, and whether a type with URLs has author
  * archives, at which word, with its authors page, which, like the index
@@ -16,11 +18,11 @@ import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import type { ContentTypeSummary } from '../api';
 import AdminSelect from './AdminSelect.vue';
-import { authorsWordOf, DATE_ARCHIVES, FEATURED, hasFeatured, AUTHORS, type TypeForm } from '../type-form';
+import { authorsWordOf, DATE_ARCHIVES, FEATURED, hasFeatured, AUTHORS, type TypeForm, type TypeKind } from '../type-form';
 
 const props = defineProps<{
 	idPrefix: string;
-	kind: 'collection' | 'taxonomy';
+	kind: TypeKind;
 	// The folder its URLs default to, without slashes.
 	folderPrefix: string;
 	// Whether types in user/data/types may set their URLs.
@@ -65,7 +67,11 @@ function grouped(name: string, on: boolean): void {
 
 <template>
 	<div class="type-behavior">
-		<div class="field">
+		<div v-if="kind === 'tree'" class="field">
+			<span class="type-behavior__label">Addresses</span>
+			<p class="field__help">An entry lives at its path in the folder: <code>/{{ folderPrefix }}/{path}</code>, so <code>install/requirements.md</code> is at <code>/{{ folderPrefix }}/install/requirements</code>.</p>
+		</div>
+		<div v-else class="field">
 			<label :for="`${idPrefix}prefix`">URL prefix</label>
 			<input :id="`${idPrefix}prefix`" v-model="form.prefix" class="mono" :placeholder="folderPrefix" :disabled="!urls" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}prefix-help`">
 			<p :id="`${idPrefix}prefix-help`" class="field__help">
@@ -78,7 +84,7 @@ function grouped(name: string, on: boolean): void {
 			<legend>Options</legend>
 			<label class="checkbox"><input v-model="form.public" type="checkbox"> Visible on the site</label>
 			<label class="checkbox"><input v-model="form.sitemap" type="checkbox" :disabled="!form.public"> In the sitemap</label>
-			<label class="checkbox"><input v-model="form.feed" type="checkbox"> Has a feed (RSS, Atom, and JSON)</label>
+			<label v-if="kind !== 'tree'" class="checkbox"><input v-model="form.feed" type="checkbox"> Has a feed (RSS, Atom, and JSON)</label>
 			<label v-if="kind === 'taxonomy'" class="checkbox"><input v-model="form.hierarchical" type="checkbox"> Terms can nest under a parent</label>
 			<label v-if="kind === 'collection'" class="checkbox"><input v-model="featured" type="checkbox"> Has a featured image</label>
 			<template v-if="indexPage">
@@ -91,7 +97,7 @@ function grouped(name: string, on: boolean): void {
 		<fieldset v-if="authorsLabel !== null && form.people === null" class="type-behavior__group">
 			<legend>{{ authorsLabel }}</legend>
 			<label class="checkbox"><input v-model="form.authors" type="checkbox"> Entries credit {{ authorsLabel.toLowerCase() }}</label>
-			<template v-if="form.authors">
+			<template v-if="form.authors && kind !== 'tree'">
 				<label class="checkbox"><input v-model="form.authorArchives" type="checkbox" :disabled="!urls"> Each one has an archive here</label>
 				<div v-if="form.authorArchives" class="field type-behavior__word">
 					<label :for="`${idPrefix}authors-word`">Word in the address</label>
@@ -127,6 +133,12 @@ function grouped(name: string, on: boolean): void {
 .type-behavior {
 	display: grid;
 	gap: var(--s-4);
+}
+
+.type-behavior__label {
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	font-weight: 500;
 }
 
 .type-behavior__group {

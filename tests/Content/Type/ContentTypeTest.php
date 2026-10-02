@@ -24,10 +24,10 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Listing;
-use Blush\Content\Type\Pages;
 use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
+use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeFeed;
 use Blush\Content\Type\TypeKind;
 use Blush\Content\Type\TypeLabels;
@@ -41,7 +41,7 @@ use Blush\Tests\Fixtures\Content\JtcomTypes;
 #[CoversClass(ContentType::class)]
 #[CoversClass(Collection::class)]
 #[CoversClass(Taxonomy::class)]
-#[CoversClass(Pages::class)]
+#[CoversClass(Tree::class)]
 #[CoversClass(Profiles::class)]
 #[CoversClass(PeopleField::class)]
 #[CoversClass(TypeKind::class)]
@@ -181,9 +181,9 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(true, $taxonomy->toArray()['feed']);
 		$this->assertSame(['author'], $taxonomy->termField()->aliases);
 
-		$pages = new Pages(fields: [new TextField('subtitle')]);
+		$pages = new Tree(fields: [new TextField('subtitle')]);
 
-		$this->assertSame(['name' => 'page', 'kind' => 'pages', 'folder' => '', 'fields' => [['name' => 'subtitle', 'type' => 'text']]], $pages->toArray());
+		$this->assertSame(['name' => 'page', 'kind' => 'tree', 'folder' => '', 'fields' => [['name' => 'subtitle', 'type' => 'text']]], $pages->toArray());
 		$this->assertEquals($pages, ContentType::fromArray($pages->toArray(), $this->fields));
 
 		$profiles = new Profiles(folder: 'people', urls: new TypeUrls('team'), feed: new TypeFeed(), public: false);
@@ -246,12 +246,12 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(['authors'], array_keys(new Collection('post')->people));
 		$this->assertSame(['author'], new Collection('post')->people['authors']->aliases);
 		$this->assertFalse(new Taxonomy('tag')->credits());
-		$this->assertFalse(new Pages()->credits());
+		$this->assertFalse(new Tree()->credits());
 
 		$cases = [
 			[new Collection('post', people: false), ['people' => false]],
 			[new Taxonomy('tag', people: true), ['people' => true]],
-			[new Pages(people: true), ['people' => true]]
+			[new Tree(people: true), ['people' => true]]
 		];
 
 		foreach ($cases as [$type, $expected]) {
@@ -273,7 +273,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(['Literary forms', 'Literary form'], $names(new Taxonomy('literary_form')));
 		$this->assertSame(['Classes', 'Class'], $names(new Collection('class')));
 		$this->assertSame(['Essays', 'Essay'], $names(new Collection('essay')), 'A vowel before the y keeps it.');
-		$this->assertSame(['Pages', 'Page'], $names(new Pages()));
+		$this->assertSame(['Pages', 'Page'], $names(new Tree()));
 
 		$type = ContentType::fromArray(['name' => 'person', 'labels' => ['plural' => 'People']], $this->fields);
 
@@ -350,9 +350,9 @@ final class ContentTypeTest extends TestCase
 
 		$this->assertInstanceOf(Profiles::class, ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields));
 
-		$pages = ContentType::fromArray(['name' => 'page', 'kind' => 'pages'], $this->fields);
+		$pages = ContentType::fromArray(['name' => 'page', 'kind' => 'tree'], $this->fields);
 
-		$this->assertInstanceOf(Pages::class, $pages);
+		$this->assertInstanceOf(Tree::class, $pages);
 		$this->assertSame('', $pages->folder);
 		$this->assertFalse($pages->hasUrls());
 	}
@@ -417,8 +417,8 @@ final class ContentTypeTest extends TestCase
 			[['name' => 'post', 'routes' => []], 'Content type "post" (collection) has unknown options: routes.'],
 			[['name' => 'post', 'types' => ['x']], 'Content type "post" (collection) has unknown options: types.'],
 			[['name' => 'tag', 'kind' => 'taxonomy', 'dateArchives' => 'day'], 'Content type "tag" (taxonomy) has unknown options: dateArchives.'],
-			[['name' => 'page', 'kind' => 'pages', 'urls' => []], 'Content type "page" (pages) has unknown options: urls.'],
-			[['name' => 'post', 'kind' => 'blog'], 'Content type "post" "kind" must be one of collection, taxonomy, pages, profiles.'],
+			[['name' => 'page', 'kind' => 'tree', 'urls' => []], 'Content type "page" (tree) has unknown options: urls.'],
+			[['name' => 'post', 'kind' => 'blog'], 'Content type "post" "kind" must be one of collection, taxonomy, tree, profiles.'],
 			[['name' => 'post', 'kind' => 'collection', 'taxonomy' => true], 'Content type "post" sets "kind: collection" and "taxonomy: true".'],
 			[['name' => 'post', 'routing' => 'yes'], 'Content type "post" "urls" must be false or a map.'],
 			[['name' => 'post', 'urls' => ['prefix' => 'a', 'single' => 'b', 'nope' => 'c']], 'Content type "post" urls has unknown options: nope.'],
@@ -484,7 +484,7 @@ final class ContentTypeTest extends TestCase
 		$page   = BuiltInType::Page->type();
 		$profile = BuiltInType::Profile->type();
 
-		$this->assertInstanceOf(Pages::class, $page);
+		$this->assertInstanceOf(Tree::class, $page);
 		$this->assertSame('', $page->folder);
 		$this->assertFalse($page->hasUrls());
 		$this->assertFalse(BuiltInType::Page->canDisable());
