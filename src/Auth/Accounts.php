@@ -63,6 +63,7 @@ final readonly class Accounts
 
 		$this->checkPassword($password);
 		$this->checkRoles($roles);
+		$this->checkProfile($author, $username);
 
 		$account = new Account(
 			username: $username,
@@ -183,12 +184,16 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Links an account to an author, or unlinks it.
+	 * Links an account to a profile, or unlinks it. A profile belongs to
+	 * one account (D-356).
 	 *
-	 * @throws AuthException For an invalid slug.
+	 * @throws AuthException For an invalid slug, or a profile another
+	 *                       account is linked to.
 	 */
 	public function setAuthor(Account $account, ?string $author): Account
 	{
+		$this->checkProfile($author, $account->username);
+
 		$account = $account->withAuthor($author);
 		$this->store->save($account);
 
@@ -231,6 +236,14 @@ final readonly class Accounts
 		$this->store->save($account);
 
 		return $account;
+	}
+
+	/**
+	 * Returns the account linked to a profile, other than one, or `null`.
+	 */
+	public function linkedTo(string $profile, ?string $except = null): ?Account
+	{
+		return array_find($this->store->all(), static fn (Account $account): bool => $account->author === $profile && $account->username !== $except);
 	}
 
 	/**
@@ -314,6 +327,21 @@ final readonly class Accounts
 			if (! $this->roles->has($role)) {
 				throw new AuthException(sprintf('There\'s no "%s" role; the roles are: %s.', $role, implode(', ', array_keys($this->roles->all()))));
 			}
+		}
+	}
+
+	/**
+	 * Refuses a profile another account is linked to: a profile is one
+	 * person's public side, so it belongs to one account (D-356).
+	 *
+	 * @throws AuthException
+	 */
+	private function checkProfile(?string $profile, string $username): void
+	{
+		$other = $profile === null ? null : $this->linkedTo($profile, $username);
+
+		if ($other !== null) {
+			throw new AuthException(sprintf('The "%s" profile is %s\'s already; a profile belongs to one account.', $profile, $this->displayName($other)));
 		}
 	}
 }

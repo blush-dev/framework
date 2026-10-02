@@ -493,6 +493,8 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('profile', $profile->name);
 		$this->assertSame('profiles', $profile->folder);
 		$this->assertSame('/profiles/{name}', $profile->routePattern('single'), 'Each profile has a page of its own (D-351).');
+		$this->assertSame('/profiles/{name}', new Profiles(folder: 'authors')->routePattern('single'), 'Whatever its folder (D-357).');
+		$this->assertSame('/team/{name}', new Profiles(folder: 'authors', urls: new TypeUrls('team'))->routePattern('single'));
 		$this->assertFalse($profile->servedAsPages());
 		$this->assertFalse($profile->hasFeed());
 		$this->assertTrue($profile->hasTerms());

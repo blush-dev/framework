@@ -9,7 +9,7 @@ writes as.
 
 `bin/blush init` offers to create the first account, an administrator,
 when there are none. After that, create them in [the admin](admin.md#accounts-and-roles)
-(**People → Accounts → New Account**), or with the `account:*`
+(**Users → Accounts → New Account**), or with the `account:*`
 commands:
 
 ```sh
@@ -24,12 +24,12 @@ Passwords must be at least 12 characters.
 
 | Command | What it does |
 |---|---|
-| `account:add <username>` | Create an account. `--role=` (repeat for more; administrator by default) `--author=` (see [Authors](#authors)), and `--name=` (see [Names](#names)) |
+| `account:add <username>` | Create an account. `--role=` (repeat for more; administrator by default) `--author=` (its profile; see [Profiles](#profiles)), and `--name=` (see [Names](#names)) |
 | `account:list` | List the accounts, their names, roles, and authors, and when each last signed in |
 | `account:password <username>` | Set a new password, which signs the account out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |
 | `account:name <username> ["name"]` | Name an account, or leave out the name to remove it |
-| `account:author <username> [slug]` | Link an account to an author, or leave out the slug to unlink it |
+| `account:author <username> [slug]` | Link an account to a profile, or leave out the slug to unlink it |
 | `account:suspend <username>` | Sign an account out and stop it signing in, keeping it |
 | `account:reinstate <username>` | Let a suspended account sign in again |
 | `account:remove <username>` | Delete an account (`--yes` skips the question) |
@@ -77,7 +77,7 @@ Only people who sign in see it.
 
 Set it when creating an account (`--name=`, or **Name** on **New
 Account**), change it with `account:name`, on the account's screen, or
-on **Your profile**, where everyone can change their own.
+on **Your account**, where everyone can change their own.
 
 A person has one name. Once the account has a profile, the profile's
 title is its name, in the admin and on the site, and the account's own
@@ -91,6 +91,8 @@ thing, a **profile** (see [Content types](content-types.md#built-in-types)):
 the name in bylines, a bio, and a page on the site. An account can be
 linked to one: `--author=jane` links it to `user/content/profiles/jane.md`,
 or to the `jane` your entries credit even without that file. A profile
+belongs to one account: linking one that another account has is
+refused (unlink it there first). A profile
 with no account is a guest profile, and an account with no profile
 doesn't appear on the site.
 
@@ -99,7 +101,7 @@ profile has no file yet, `account:add` and `account:author` offer to
 create one and ask for the public name; say no, and bylines show the
 slug until someone creates it. In the admin, an account's **Public
 Profile** panel links, unlinks, creates, or publishes its profile, and
-**Your profile** is the editor for your own (see
+**Your account** links to your own (see
 [The admin](admin.md#profiles)). Unlinking leaves the profile and its
 bylines in place.
 
@@ -144,7 +146,7 @@ Extensions can add their own.
 
 ### Your own roles
 
-Make roles in the admin (**People → Roles → New Role**), or start one
+Make roles in the admin (**Users → Roles → New Role**), or start one
 from an existing role with **Duplicate**. The admin can also change
 what the built-in Editor, Author, and Contributor can do (and reset
 them), but never the Administrator, who can always do everything. Roles
@@ -186,11 +188,11 @@ changes from git can't change them.
 - **Too many wrong passwords** lock out that address and username for 15
   minutes: five tries for one username, or twenty for any.
 - **Changing a password** signs that account out everywhere, except
-  where you changed your own on **Your profile** in the admin.
+  where you changed your own on **Your account** in the admin.
 - **A suspended account** can't sign in; with the right password, it's
   told it's suspended.
 - **Preferences**, such as the admin's color scheme, are each person's own,
-  set on **Your profile** in the admin and kept in their account's file.
+  set on **Your account** in the admin and kept in their account's file.
 
 Both can be changed in `config/auth.php` and `config/session.php`; see
 [Configuration](configuration.md#accounts-and-sessions).

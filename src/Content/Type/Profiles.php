@@ -29,12 +29,19 @@ use Blush\Field\Field;
  * Each profile has one canonical page, `{prefix}/{slug}` (its `single`
  * key, with `.paged` and, when the type has a feed, the feed keys): the
  * bio, then every listed entry of any type that credits them. Nothing
- * answers at the prefix itself. A profile doesn't need a file: one
+ * answers at the prefix itself. The prefix is `profiles` unless the
+ * URLs set one (D-357), whatever folder the profiles are in, so a site
+ * keeping them elsewhere (1.x's `authors`) still has `/profiles/jane`. A profile doesn't need a file: one
  * that's credited but missing is a virtual entry named as the credit
  * writes it. An admin account may link to one.
  */
 final readonly class Profiles extends ContentType
 {
+	/**
+	 * The URL prefix profiles' pages sit under unless the URLs set one.
+	 */
+	public const string BASE = 'profiles';
+
 	/**
 	 * @param  string          $name        Lowercase letters, digits, and underscores.
 	 * @param  ?string         $folder      The folder under `user/content`; defaults to `_` and the name.
@@ -74,6 +81,16 @@ final readonly class Profiles extends ContentType
 	public function kind(): TypeKind
 	{
 		return TypeKind::Profiles;
+	}
+
+	/**
+	 * Returns the URL prefix: the URLs' own, else `profiles`, not the
+	 * folder's.
+	 */
+	#[Override]
+	public function prefix(): string
+	{
+		return $this->urls === false ? '' : $this->urls->prefix ?? self::BASE;
 	}
 
 	/**

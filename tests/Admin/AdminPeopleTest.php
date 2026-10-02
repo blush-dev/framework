@@ -192,6 +192,46 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame(404, $this->write('DELETE', '/profiles/jane/pages/post/authors')->getStatusCode());
 	}
 
+	public function testALinkedProfileKeepsItsSlug(): void
+	{
+		$this->profiles();
+		$this->site();
+
+		$jane = self::json($this->send('GET', '/entries/profiles/jane.md'));
+		$gwen = self::json($this->send('GET', '/entries/profiles/gwen.md'));
+
+		$this->assertFalse(is_array($jane['can'] ?? null) ? $jane['can']['rename'] ?? null : null, 'An account is linked by it (D-355).');
+		$this->assertTrue(is_array($gwen['can'] ?? null) ? $gwen['can']['rename'] ?? null : null, 'A guest profile can be renamed.');
+
+		$renamed = $this->write('PATCH', '/entries/profiles/jane.md', ['revision' => $jane['revision'] ?? '', 'slug' => 'jane-doe']);
+
+		$this->assertSame(422, $renamed->getStatusCode());
+		$this->assertStringContainsString('linked to this profile by its slug', (string) $renamed->getBody());
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/profiles/jane.md');
+	}
+
+	public function testAProfileBelongsToOneAccount(): void
+	{
+		$this->profiles();
+		$this->site();
+
+		$profiles = self::json($this->send('GET', '/profiles'))['profiles'] ?? null;
+
+		$this->assertSame([
+			['slug' => 'ghost', 'title' => 'ghost', 'status' => null, 'account' => null],
+			['slug' => 'gwen', 'title' => 'Gwen Guest', 'status' => 'draft', 'account' => null],
+			['slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'account' => ['username' => 'jane', 'displayName' => 'Jane Author']]
+		], $profiles, 'Every profile by name, with the account linked to it (D-356).');
+
+		$taken = $this->write('PATCH', '/accounts/sam', ['author' => 'jane']);
+
+		$this->assertSame(422, $taken->getStatusCode());
+		$this->assertSame(['error' => 'The "jane" profile is Jane Author\'s already; a profile belongs to one account.', 'field' => 'author'], self::json($taken));
+		$this->assertSame(422, $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['author'], 'author' => 'jane'])->getStatusCode());
+		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => 'gwen'])->getStatusCode(), 'A guest profile is free.');
+		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => 'gwen'])->getStatusCode(), 'Its own stays its own.');
+	}
+
 	/**
 	 * Returns the first place Jane's profile appears.
 	 *

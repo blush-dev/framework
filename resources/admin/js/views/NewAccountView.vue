@@ -2,7 +2,7 @@
 /**
  * A new account (D-312; the prototype's Invite, as its own screen like
  * every New): a username, its roles, and optionally a name (D-322) and
- * an author. Blush
+ * a profile (D-356). Blush
  * sends no email, so **Create account** makes the account with a link
  * for choosing a password, and opens the account's screen with the link
  * to copy and send. The link is shown that once.
@@ -10,7 +10,7 @@
 
 import { computed, nextTick, ref } from 'vue';
 import { RouterLink, useRouter } from 'vue-router';
-import AuthorField from '../components/AuthorField.vue';
+import ProfilePicker from '../components/ProfilePicker.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import { ApiError } from '../api';
 import { createAccount, freshLink, loadRoles, type RoleInfo } from '../people';
@@ -97,13 +97,13 @@ async function submit(): Promise<void> {
 					<label for="account-name">Name</label>
 					<input id="account-name" ref="nameInput" v-model="name" autocomplete="off" maxlength="100" :aria-invalid="field === 'name' ? 'true' : undefined" aria-describedby="account-name-help">
 					<p v-if="field === 'name'" id="account-name-help" class="field__error">{{ error }}</p>
-					<p v-else id="account-name-help" class="field__help">What the admin calls them. Optional; they can change it on their profile.</p>
+					<p v-else id="account-name-help" class="field__help">What the admin calls them. Optional; they can change it on Your Account.</p>
 				</div>
 				<div class="field">
-					<label for="account-author">Author</label>
-					<AuthorField id="account-author" v-model="author" described-by="account-author-help" :invalid="field === 'author'" />
+					<label for="account-author">Profile</label>
+					<ProfilePicker id="account-author" v-model="author" described-by="account-author-help" :invalid="field === 'author'" />
 					<p v-if="field === 'author'" id="account-author-help" class="field__error">{{ error }}</p>
-					<p v-else id="account-author-help" class="field__help">The author entry that's their public name: entries crediting it are theirs to edit. Leave it empty for none.</p>
+					<p v-else id="account-author-help" class="field__help">Their public name and bio on the site; entries crediting it are theirs to edit. A profile belongs to one account. You can link or create one later.</p>
 				</div>
 			</div>
 		</section>

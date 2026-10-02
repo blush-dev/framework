@@ -7,8 +7,8 @@
  * has a profile, that profile's title is its name, so the Name field
  * is only for accounts without one.
  *
- * Your Profile shows it as panels (`framed`) without a profile, and
- * as the editor's **Account** tab with one.
+ * Your Account shows it as panels, beside the account's Public Profile
+ * (D-355); it's never part of the editor.
  */
 
 import { computed, nextTick, ref, watch } from 'vue';
@@ -21,8 +21,7 @@ import type { IconName } from '../icons';
 import { saveName, session } from '../session';
 import { toast } from '../toast';
 
-const { framed = false, authorPage = false } = defineProps<{
-	framed?: boolean;
+const { authorPage = false } = defineProps<{
 	// Whether the account has a profile, whose title is its name.
 	authorPage?: boolean;
 }>();
@@ -150,8 +149,8 @@ async function choose(scheme: ColorScheme): Promise<void> {
 
 <template>
 	<div v-if="account" class="account-settings">
-		<section :class="framed ? 'panel' : 'account-settings__section'" aria-labelledby="account-heading">
-			<header :class="framed ? 'panel__header' : 'account-settings__header'">
+		<section class="panel" aria-labelledby="account-heading">
+			<header class="panel__header">
 				<h2 id="account-heading">Account</h2>
 			</header>
 			<form v-if="!authorPage" class="panel__body field profile__name" :aria-busy="nameBusy" @submit.prevent="submitName">
@@ -208,8 +207,8 @@ async function choose(scheme: ColorScheme): Promise<void> {
 				</form>
 			</div>
 		</section>
-		<section :class="framed ? 'panel' : 'account-settings__section'" aria-labelledby="display-heading">
-			<header :class="framed ? 'panel__header' : 'account-settings__header'">
+		<section class="panel" aria-labelledby="display-heading">
+			<header class="panel__header">
 				<h2 id="display-heading">Theme and Color Scheme</h2>
 				<p class="panel__hint">Just for you, on any device</p>
 			</header>
@@ -247,27 +246,6 @@ async function choose(scheme: ColorScheme): Promise<void> {
 .account-settings {
 	display: grid;
 	gap: 20px;
-}
-
-.account-settings__section {
-	display: grid;
-}
-
-.account-settings__header h2 {
-	margin: 0;
-	padding: var(--s-4) var(--pad-x) 0;
-	color: var(--fg-2);
-	font-size: var(--text-xs);
-	font-weight: 600;
-	letter-spacing: .06em;
-	text-transform: uppercase;
-}
-
-.account-settings__header .panel__hint {
-	margin: 2px 0 0;
-	padding: 0 var(--pad-x);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
 }
 
 .profile__password {

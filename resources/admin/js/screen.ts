@@ -25,14 +25,6 @@ export const screenTrail = ref<{ label: string; to: RouteLocationRaw }[]>([]);
 export const screenCrumb = ref<string | null>(null);
 
 /**
- * Whether the current screen fills the work area edge to edge, when it
- * decides that itself rather than its route (`meta.bleed`): Your
- * Profile, which is the editor once there's a profile (D-329, D-353).
- * Each navigation clears it.
- */
-export const screenBleed = ref<boolean | null>(null);
-
-/**
  * Whether the editor's focus mode is on: the layout drops the section
  * rail, its panel, and the top bar, leaving the writing column. Each
  * navigation turns it off.

@@ -22,6 +22,8 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AccountStore;
+use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
@@ -32,6 +34,7 @@ use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\DocumentEditor;
@@ -126,7 +129,8 @@ final readonly class EntryController
 		private Permissions $permissions,
 		private AppConfig $app,
 		private ClockInterface $clock,
-		private FieldTargets $targets
+		private FieldTargets $targets,
+		private AccountStore $accounts
 	) {}
 
 	/**
@@ -320,7 +324,7 @@ final readonly class EntryController
 		}
 
 		$rename  = is_string($slug) && $slug !== '' && $slug !== $entry->slug ? $slug : null;
-		$problem = $rename === null ? null : $this->slugProblem($entry, $rename);
+		$problem = $rename === null ? null : ($this->isLinked($entry) ? 'An account is linked to this profile by its slug, so the slug stays.' : $this->slugProblem($entry, $rename));
 
 		if ($problem !== null) {
 			return self::error($problem, Status::UnprocessableContent, 'slug');
@@ -813,7 +817,7 @@ final readonly class EntryController
 			'can'         => [
 				'edit'      => $this->permissions->can($account, Capability::ContentEdit, $entry),
 				'publish'   => $this->permissions->can($account, Capability::ContentPublish, $entry),
-				'rename'    => ! $entry->landing && ! $people && ! $person,
+				'rename'    => ! $entry->landing && ! $people && ! $person && ! $this->isLinked($entry),
 				'delete'    => ! $index && ! $person && $this->permissions->can($account, Capability::ContentDelete, $entry),
 				'duplicate' => ! $entry->landing && ! $people && ! $person && $this->permissions->can($account, Capability::ContentCreate)
 			],
@@ -823,6 +827,23 @@ final readonly class EntryController
 				'severity' => $violation->severity->value
 			], $this->linter->lintFile($file->id))
 		];
+	}
+
+	/**
+	 * Whether an entry is a profile an account is linked to, by its slug
+	 * (D-355), which then can't change.
+	 */
+	private function isLinked(Entry $entry): bool
+	{
+		if (! $entry->type instanceof Profiles) {
+			return false;
+		}
+
+		try {
+			return array_any($this->accounts->all(), static fn (Account $account): bool => $account->author === $entry->key);
+		} catch (AuthException) {
+			return true;
+		}
 	}
 
 	/**

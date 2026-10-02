@@ -9477,6 +9477,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-352: Profiles and people fields in content and routing (D-351's step 1)
 - **Date:** 2026-10-01
+- **Status:** The profiles prefix no longer follows the folder (D-357), so the jtcom trial's profiles are at `/profiles/{name}`.
 - **Decision:** Builds D-351's first step, and settles what it left to
   the build.
   - **`Profiles`** (`TypeKind::Profiles`, `kind: profiles`) replaces
@@ -9652,3 +9653,100 @@ decision, add a new entry that supersedes it and mark the old one
   sideways scroll. No console errors beyond the sign-in screen's
   unauthenticated session request.
 - **Why:** the author asked for D-351's second step.
+
+### D-354: The People section is named Users, and Accounts has its own icon
+- **Date:** 2026-10-01
+- **Decision:** The section rail's People section (D-326) is labeled
+  **Users** everywhere it's named: the rail, the panel's heading, the
+  breadcrumb, and the docs. Its rail icon is Lucide's `user` (added to
+  the admin's set), a single person, and **Accounts** uses `key-round`
+  (signing in) in the panel, the command palette, and its empty
+  states, so no two of the section's icons match: Your Profile keeps
+  `circle-user-round` (its buttons too) and Profiles `user-round`. Code
+  keeps `people` (the route area, keys, and file names) for now; the
+  author will rename those later. The type editor's **People** panel
+  (people fields, D-353) keeps its name, since it's about crediting
+  people, not the section.
+- **Checked:** `npm run admin:build`.
+- **Why:** the author asked for Users, `key-round` for Accounts, and a
+  person icon on the rail rather than an ID card or `users`.
+
+### D-355: Account settings live on Your Profile, not in the editor
+- **Date:** 2026-10-01
+- **Decision:** Supersedes D-332's "Your Profile is the editor" (and
+  D-329's). Your Profile is always the account's own settings as
+  panels (`AccountSettings`: name, what it is, password, theme, color
+  scheme), with a **Public Profile** panel first: the linked profile's
+  name, address, and status, **Edit your profile** (the editor, like
+  any entry) and **View**; **Create your profile** when it's linked to
+  one with no file (a draft, opened in the editor); or why there's
+  none. The editor loses its profile mode: no `profile` prop, no
+  `account` slot or **Account** drawer tab, and Your Profile no longer
+  fills the work area (`screenBleed` is gone; only routes bleed).
+  Since a profile is now edited at its own address, a profile an
+  account is linked to can't be renamed: `can.rename` is false and a
+  rename is a `422` (`EntryController::isLinked()`).
+- **Checked:** `composer check` (`AdminPeopleTest::
+  testALinkedProfileKeepsItsSlug`); `npm run admin:build`; the jtcom
+  trial in headless Chrome with a throwaway administrator linked to
+  `zadie` (removed after, with its session): Your Profile's panels and
+  Edit your profile opening `/content/profile/zadie`.
+- **Why:** the author: account management belongs with the account, not
+  under the profile's content editor.
+
+### D-356: A profile belongs to one account, picked from a list
+- **Date:** 2026-10-01
+- **Decision:** Supersedes D-332's allowance of a second account linked
+  to one author.
+  - **The rule:** `Accounts` refuses to link an account (`create()`,
+    `setAuthor()`) to a profile another account is linked to
+    (`linkedTo()`), with "The "jane" profile is Jane Author's already; a
+    profile belongs to one account." It holds for the admin (a `422`
+    with `field: author`) and the CLI alike. Unlink it there first.
+  - **`GET profiles`** (`accounts.manage`): every profile by name, real
+    or credited without a file, with its status and the account linked
+    to it, for pickers.
+  - **`ProfilePicker`** replaces `AuthorField` (a typed slug with a
+    native suggestion list) on New Account and an account's Public
+    Profile panel: the admin's drawn select (`AdminSelect`), listing
+    profiles by name with their status when they aren't live, and those
+    another account has shown but disabled ("· linked to Jane Author").
+- **Checked:** `composer check` (`AccountsTest::
+  testLinksAProfileToOneAccount`, `AdminPeopleTest::
+  testAProfileBelongsToOneAccount`); `npm run admin:build`; the jtcom
+  trial in headless Chrome with two throwaway accounts (removed after,
+  with their sessions): the picker open on an account's Public Profile
+  panel, and New Account's.
+- **Why:** the author: one account shouldn't be able to use another's
+  profile, and the typed field didn't match the admin.
+
+### D-357: Profiles are at /profiles/{name} whatever their folder
+- **Date:** 2026-10-01
+- **Decision:** The profiles type's URL prefix is `profiles`
+  (`Profiles::BASE`) unless its URLs set one; unlike other types, it
+  doesn't follow the folder (`Profiles::prefix()`). A site keeping its
+  profiles elsewhere (jtcom's `authors`) still has `/profiles/jane`,
+  and moves them only with `urls: new TypeUrls(prefix: …)`. The jtcom
+  trial keeps `new Profiles(folder: 'authors')`, so its profiles are at
+  `/profiles/justintadlock` (`/authors/justintadlock`, 1.x's address,
+  is now a 404).
+- **Checked:** `composer check` (`ContentTypeTest::testBuiltInTypes`);
+  on the jtcom trial, `routes:list` and `/profiles/justintadlock`
+  answering 200.
+- **Why:** the author: profiles should be at `/profiles/{name}` by
+  default.
+
+### D-358: Your Profile is named Your Account
+- **Date:** 2026-10-01
+- **Decision:** The screen with the account's own settings (D-355) is
+  labeled **Your Account** everywhere it's named: the Users panel, the
+  Home panel's shortcuts, the account menu, the command palette ("Go to
+  Your Account", also found by "profile"), its heading and title, and
+  the buttons and notes that point to it, and the docs. "Your profile"
+  stays where it means the public profile (Edit your profile, Create
+  your profile). The address stays `/profile` and the route `profile`
+  for now; the author will rename what's under the hood later. Brings
+  back the sketch's name, which D-351 had kept as Your Profile.
+- **Checked:** `npm run admin:build`.
+- **Why:** the author asked for it.
+

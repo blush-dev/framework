@@ -66,7 +66,7 @@ const everywhere = computed<Command[]>(() => {
 		['fields', 'Go to Fields', 'group', 'site.settings', 'field sets custom fields'],
 		['themes', 'Go to Themes', 'paintbrush', 'site.settings', 'appearance look'],
 		['extensions', 'Go to Extensions', 'plug', 'site.settings', 'addons plugins'],
-		['accounts', 'Go to Accounts', 'users', 'accounts.manage', 'people users sign in'],
+		['accounts', 'Go to Accounts', 'key-round', 'accounts.manage', 'people users sign in'],
 		['roles', 'Go to Roles', 'shield', 'accounts.manage', 'capabilities']
 	];
 
@@ -91,11 +91,11 @@ const everywhere = computed<Command[]>(() => {
 	}
 
 	for (const account of accounts.value) {
-		found.push({ id: `account-${account.username}`, label: `${account.displayName}'s account`, icon: 'users', keywords: `${account.username} account person`, run: go('account', { username: account.username }) });
+		found.push({ id: `account-${account.username}`, label: `${account.displayName}'s account`, icon: 'key-round', keywords: `${account.username} account person`, run: go('account', { username: account.username }) });
 	}
 
 	found.push(
-		{ id: 'profile', label: 'Go to Your Profile', icon: 'circle-user-round', keywords: 'account password', run: go('profile') },
+		{ id: 'profile', label: 'Go to Your Account', icon: 'circle-user-round', keywords: 'profile password preferences', run: go('profile') },
 		{
 			id: 'scheme',
 			label: colorScheme.value === 'dark' ? 'Use the light color scheme' : 'Use the dark color scheme',

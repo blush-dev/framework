@@ -575,7 +575,7 @@ Only taxonomies take:
 | `hierarchical` | `false` | Whether a term may have a `parent` ([above](#hierarchical-taxonomies)) |
 
 For the profiles type, `urls` sets where profiles' pages are (its
-`prefix`, `profiles` by default), `listing` how a profile's page lists
+`prefix`, `profiles` by default, whatever the folder), `listing` how a profile's page lists
 the entries crediting them, and `feed` whether each profile has a feed.
 It doesn't take `people` or `dateArchives`, and nothing answers at
 `/profiles` itself.
@@ -736,14 +736,21 @@ then every published entry of any type crediting them, newest file
 first unless the profiles type's `listing` says otherwise. A profile
 with a file has a page before anything credits them.
 
-To move them, redefine the `profile` type with another folder or prefix.
-For example, a 1.x site whose author pages were at `/authors/jane`:
+They're at `/profiles/{name}` wherever the files are. To keep them in
+another folder, or move their pages, redefine the `profile` type. For
+example, a 1.x site that keeps its author files in `authors/`, and its
+author pages at `/authors/jane`:
 
 ```php
 use Blush\Content\Type\Profiles;
+use Blush\Content\Type\TypeUrls;
 
-return new ContentConfig(types: [new Profiles(folder: 'authors')]);
+return new ContentConfig(types: [
+	new Profiles(folder: 'authors', urls: new TypeUrls(prefix: 'authors'))
+]);
 ```
+
+Without `urls`, those profiles would still be at `/profiles/jane`.
 
 ## Turning off a built-in type
 

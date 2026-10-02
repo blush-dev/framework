@@ -118,6 +118,20 @@ export interface ProfileDetail {
 	account: AccountInfo | null;
 }
 
+// A profile an account can be linked to (`GET profiles`, D-356), and the
+// account already linked to it, if any.
+export interface LinkableProfile {
+	slug: string;
+	title: string;
+	// `null` for one credited without a file.
+	status: EntryStatus | null;
+	account: { username: string; displayName: string } | null;
+}
+
+export async function loadLinkable(): Promise<LinkableProfile[]> {
+	return (await request<{ profiles: LinkableProfile[] }>('GET', '/profiles')).profiles;
+}
+
 export function loadProfile(slug: string): Promise<ProfileDetail> {
 	return request<ProfileDetail>('GET', `/profiles/${encodeURIComponent(slug)}`);
 }

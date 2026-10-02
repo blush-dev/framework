@@ -183,6 +183,29 @@ final class AccountsTest extends TestCase
 		$this->assertFalse($this->accounts()->hasAuthor('sam'));
 	}
 
+	public function testLinksAProfileToOneAccount(): void
+	{
+		$accounts = $this->accounts();
+		$jane     = $accounts->create('jane', 'a long enough password', ['author'], 'jane');
+		$sam      = $accounts->create('sam', 'a long enough password', ['author']);
+
+		$this->assertSame('jane', $accounts->linkedTo('jane')?->username);
+		$this->assertNull($accounts->linkedTo('jane', except: 'jane'));
+		$this->assertSame('jane', $accounts->setAuthor($jane, 'jane')->author, 'Its own stays its own.');
+
+		foreach ([static fn () => $accounts->setAuthor($sam, 'jane'), static fn () => $accounts->create('lee', 'a long enough password', ['author'], 'jane')] as $link) {
+			try {
+				$link();
+				$this->fail('A second account.');
+			} catch (AuthException $e) {
+				$this->assertStringContainsString('a profile belongs to one account', $e->getMessage());
+			}
+		}
+
+		$accounts->setAuthor($jane, null);
+		$this->assertSame('jane', $accounts->setAuthor($sam, 'jane')->author, 'Free once unlinked (D-356).');
+	}
+
 	public function testSiteRolesReplaceAndAddToTheBuiltIns(): void
 	{
 		$roles = new Roles(AuthConfig::fromArray(new AuthConfig(roles: [

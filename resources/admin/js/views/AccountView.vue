@@ -17,7 +17,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import AuthorField from '../components/AuthorField.vue';
+import ProfilePicker from '../components/ProfilePicker.vue';
 import StatusPill from '../components/StatusPill.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import { ApiError, entryPath, entryRoute, request, type EntryDetail } from '../api';
@@ -351,7 +351,7 @@ async function remove(): Promise<void> {
 			</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink v-if="yours" class="button" :to="{ name: 'profile' }"><AdminIcon name="users" />Your Profile</RouterLink>
+			<RouterLink v-if="yours" class="button" :to="{ name: 'profile' }"><AdminIcon name="circle-user-round" />Your Account</RouterLink>
 			<RouterLink class="button" :to="{ name: 'accounts' }"><AdminIcon name="arrow-left" />All accounts</RouterLink>
 		</div>
 	</header>
@@ -359,7 +359,7 @@ async function remove(): Promise<void> {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 	<p v-else-if="accounts && !account" class="notice notice--error" role="alert">There's no “{{ route.params.username }}” account.</p>
 
-	<p v-if="account && yours" class="notice notice--warn"><span>This is your account, so its roles and standing are changed by someone else, or with <code>bin/blush</code>. Your password is on <RouterLink :to="{ name: 'profile' }">Your profile</RouterLink>.</span></p>
+	<p v-if="account && yours" class="notice notice--warn"><span>This is your account, so its roles and standing are changed by someone else, or with <code>bin/blush</code>. Your password is on <RouterLink :to="{ name: 'profile' }">Your account</RouterLink>.</span></p>
 	<p v-else-if="account && !account.manages" class="notice notice--warn"><span>{{ account.displayName }} can do things you can't, so you can't change it.</span></p>
 
 	<div v-if="account" class="detail">
@@ -451,11 +451,11 @@ async function remove(): Promise<void> {
 						<form v-if="profileMode === 'link'" class="field" @submit.prevent="linkProfile">
 							<label for="account-profile">Profile</label>
 							<div class="inline-save">
-								<AuthorField id="account-profile" v-model="pick" described-by="account-profile-help" :invalid="profileError !== ''" />
+								<ProfilePicker id="account-profile" v-model="pick" :username="account.username" none="Choose a profile…" described-by="account-profile-help" :invalid="profileError !== ''" />
 								<button type="submit" class="button button--small" :disabled="profileBusy || pick === ''">Link</button>
 								<button type="button" class="button button--ghost button--small" @click="profileMode = ''">Cancel</button>
 							</div>
-							<p id="account-profile-help" class="field__help">A profile's slug. Entries crediting it become theirs.</p>
+							<p id="account-profile-help" class="field__help">Entries crediting it become theirs. A profile belongs to one account, so those already linked can't be chosen.</p>
 						</form>
 						<form v-if="profileMode === 'create'" class="field" @submit.prevent="createProfile">
 							<label for="account-profile-name">Name on the site</label>

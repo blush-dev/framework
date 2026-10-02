@@ -10,7 +10,7 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router';
 import { watch } from 'vue';
 import { config } from './config';
-import { screenBleed, screenCrumb, screenTitle, screenTrail } from './screen';
+import { screenCrumb, screenTitle, screenTrail } from './screen';
 import { can, loadSession, session } from './session';
 import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
@@ -93,7 +93,7 @@ export const router = createRouter({
 		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'people' } },
 		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
 		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
-		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your Profile', area: 'people' } },
+		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your Account', area: 'people' } },
 		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign In', public: true } },
 		// A password link (D-312): anyone with one may open it.
 		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: 'Choose a Password', public: true } },
@@ -148,7 +148,6 @@ router.afterEach((to, from) => {
 		screenTitle.value = null;
 		screenTrail.value = [];
 		screenCrumb.value = null;
-		screenBleed.value = null;
 	}
 
 	setTitle();

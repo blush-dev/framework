@@ -18,6 +18,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
@@ -35,7 +36,16 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
- * Answers a profile's screen (D-353), for accounts that may edit the
+ * Answers the profiles for linking accounts to them (D-356), for
+ * accounts with `accounts.manage`:
+ *
+ * - `GET profiles`: every profile, by name: `{"profiles": [{"slug",
+ *   "title", "status"` (`null` for one credited without a file),
+ *   `"account"` (the account linked to it, `{"username", "displayName"}`,
+ *   or `null`)`}]}`. A profile belongs to one account, so a picker
+ *   offers only the ones without.
+ *
+ * And a profile's screen (D-353), for accounts that may edit the
  * profile (their own, or anyone's with `content.edit.others`; a profile
  * with no file needs the latter):
  *
@@ -66,8 +76,57 @@ final readonly class ProfilesController
 		private EntryHandles $handles,
 		private Permissions $permissions,
 		private AccountStore $accounts,
-		private PeopleJson $json
+		private PeopleJson $json,
+		private Accounts $names
 	) {}
+
+	public function index(ServerRequestInterface $request): ResponseInterface
+	{
+		$viewer   = $request->getAttribute(Account::class);
+		$profiles = $this->types->profiles();
+
+		if (! $viewer instanceof Account || ! $this->permissions->can($viewer, Capability::AccountsManage)) {
+			return self::json(['error' => 'You aren\'t allowed to manage accounts.'], Status::Forbidden);
+		}
+
+		if ($profiles === null) {
+			return self::json(['profiles' => []]);
+		}
+
+		try {
+			$accounts = $this->accounts->all();
+		} catch (AuthException $error) {
+			return self::json(['error' => $error->getMessage()], Status::InternalServerError);
+		}
+
+		$linked = [];
+
+		foreach ($accounts as $account) {
+			if ($account->author !== null) {
+				$linked[$account->author] ??= ['username' => $account->username, 'displayName' => $this->names->displayName($account)];
+			}
+		}
+
+		$listed = [];
+
+		foreach ($this->content->query()->any()->type($profiles->name)->limit(null)->get() as $entry) {
+			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->value, 'account' => $linked[$entry->key] ?? null];
+		}
+
+		foreach (array_keys($this->content->termCounts($profiles->name)) as $slug) {
+			$slug = (string) $slug;
+			$term = isset($listed[$slug]) ? null : $this->content->term($profiles->name, $slug);
+
+			if ($term !== null) {
+				$listed[$slug] = ['slug' => $slug, 'title' => $term->title, 'status' => null, 'account' => $linked[$slug] ?? null];
+			}
+		}
+
+		$listed = array_values($listed);
+		usort($listed, static fn (array $a, array $b): int => strnatcasecmp($a['title'], $b['title']));
+
+		return self::json(['profiles' => $listed]);
+	}
 
 	public function show(ServerRequestInterface $request, string $slug): ResponseInterface
 	{

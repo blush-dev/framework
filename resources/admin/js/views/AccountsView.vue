@@ -80,7 +80,7 @@ const shown = computed(() => {
 			</header>
 			<SkeletonTable v-if="accounts === null" :columns="['Account', 'Roles', 'Profile', 'Last signed in']" :rows="3" label="Loading the accounts…" />
 			<div v-else-if="shown.length === 0" class="empty">
-				<AdminIcon name="users" />
+				<AdminIcon name="key-round" />
 				<p class="empty__text">{{ search || tab !== 'all' ? 'No accounts match the search and tab.' : 'No accounts yet.' }}</p>
 				<button v-if="search || tab !== 'all'" type="button" class="button" @click="search = ''; tab = 'all'">Clear filters</button>
 			</div>

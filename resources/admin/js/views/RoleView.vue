@@ -225,7 +225,7 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 					</li>
 				</ul>
 				<div v-else class="empty">
-					<AdminIcon name="users" />
+					<AdminIcon name="key-round" />
 					<p class="empty__heading">No Accounts Have This Role</p>
 					<p class="empty__text">Give it to an account on that account's screen.</p>
 					<RouterLink class="button" :to="{ name: 'accounts' }">Go to accounts</RouterLink>

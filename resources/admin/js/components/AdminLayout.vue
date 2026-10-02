@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The signed-in layout (D-231, D-244): a labeled section rail (Home,
- * Content, People, Config; D-326), the panel beside it with only the active section's
+ * Content, Users, Config; D-326), the panel beside it with only the active section's
  * links, a top bar, and the work area, the only part that scrolls.
  *
  * Choosing a section changes what the panel offers and nothing else: the
@@ -28,7 +28,7 @@ import { ApiError, type ContentTypeSummary } from '../api';
 import { config } from '../config';
 import { online } from '../connection';
 import type { IconName } from '../icons';
-import { focusMode, screenBleed, screenCrumb, screenTitle, screenTrail } from '../screen';
+import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { initials } from '../people';
 import { can, session, signOut } from '../session';
 import { profileType, currentType, loadTypes, typeIcon, types } from '../types';
@@ -79,8 +79,8 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * Each section's links, in groups (D-241, D-244). **Home**: the admin's
  * own screens and shortcuts. **Content**: each content type with the
  * taxonomies that group only it nested under it, the taxonomies shared
- * by several types (or every type), and Media. **People** (D-326): Your
- * Profile, People (accounts and authors in one list, D-329), and Roles.
+ * by several types (or every type), and Media. **Users** (D-326, D-354):
+ * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
  * **Config** (D-325): Structure (content types), Settings (its four
  * screens), and Customize (Themes and Extensions; D-327).
  * Links the account can't use aren't shown.
@@ -92,7 +92,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		home.push(screen('health', 'Content Health', 'heart-pulse'));
 	}
 
-	const shortcuts: NavLink[] = [screen('profile', 'Your Profile', 'circle-user-round')];
+	const shortcuts: NavLink[] = [screen('profile', 'Your Account', 'circle-user-round')];
 
 	// A Settings screen (D-325).
 	const settingsScreen = (key: string, label: string, icon: IconName): NavLink => ({ key: `settings-${key}`, label, icon, to: { name: 'settings', params: { screen: key } }, current: false });
@@ -145,8 +145,8 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		current: route.meta.parent === 'profiles' || (inEntries && currentType.value === profiles.name)
 	}] : [];
 	const people    = [
-		screen('profile', 'Your Profile', 'circle-user-round'),
-		...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'users')] : []),
+		screen('profile', 'Your Account', 'circle-user-round'),
+		...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'key-round')] : []),
 		...profileLink,
 		...(can('accounts.manage') ? [screen('roles', 'Roles', 'shield')] : [])
 	];
@@ -165,7 +165,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 const areas = computed(() => ([
 	{ key: 'home', label: 'Home', icon: 'gauge' },
 	{ key: 'content', label: 'Content', icon: 'file-text' },
-	{ key: 'people', label: 'People', icon: 'users' },
+	{ key: 'people', label: 'Users', icon: 'user' },
 	{ key: 'config', label: 'Config', icon: 'settings' }
 ] as const).filter((area) => sections.value[area.key].length > 0));
 
@@ -196,7 +196,7 @@ const panelSub = computed(() => {
 	}
 
 	if (area.value === 'people') {
-		return 'Your profile, accounts, profiles, and roles';
+		return 'Your account, accounts, profiles, and roles';
 	}
 
 	return area.value === 'config' ? 'Types, settings, and the look' : config.site.name;
@@ -252,8 +252,8 @@ const trail = computed<{ label: string; to: RouteLocationRaw }[]>(() => {
 	return parent !== undefined && typeof label === 'string' ? [{ label, to: { name: route.meta.parent as string } }] : [];
 });
 
-const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'People', config: 'Config' })[routeArea.value]);
-const bleed = computed(() => screenBleed.value ?? route.meta.bleed === true);
+const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'Users', config: 'Config' })[routeArea.value]);
+const bleed = computed(() => route.meta.bleed === true);
 
 // The collapsed panel is a per-browser convenience; storage may be off.
 const COLLAPSED = 'blush-admin-rail-collapsed';
@@ -271,7 +271,7 @@ const collapsed = ref(stored());
 // The editor's own collapse: the panel shut on the way in, as a
 // courtesy, and whatever it's toggled to while writing; `null` elsewhere,
 // so leaving puts the remembered setting back.
-const writing = computed(() => (route.meta.section === 'entries' && route.meta.bleed === true) || screenBleed.value === true);
+const writing = computed(() => route.meta.section === 'entries' && route.meta.bleed === true);
 const shut    = ref<boolean | null>(null);
 
 watch(writing, (value) => {
@@ -470,7 +470,7 @@ async function leave(): Promise<void> {
 						<span class="account__roles">{{ session.account?.roles.map((role) => role.label).join(', ') }}</span>
 					</p>
 					<RouterLink class="menu-item" :to="{ name: 'profile' }">
-						<AdminIcon name="users" />Your Profile
+						<AdminIcon name="circle-user-round" />Your Account
 					</RouterLink>
 					<button type="button" class="menu-item" :disabled="leaving" @click="leave">
 						<AdminIcon name="log-out" />{{ leaving ? 'Signing out…' : 'Sign out' }}
@@ -485,8 +485,7 @@ async function leave(): Promise<void> {
 
 			<p v-if="error" class="notice notice--error bar-error" role="alert">{{ error }}</p>
 
-			<!-- One element either way, so a screen that turns bleed on or off
-			     itself (Your Profile, D-329) isn't mounted again. -->
+			<!-- One element either way, as each route's `meta.bleed` says. -->
 			<main id="main" class="main" :class="{ 'main--bleed': bleed }">
 				<div :class="bleed ? 'bleed' : 'wrap'">
 					<slot />

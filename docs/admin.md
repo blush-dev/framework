@@ -43,7 +43,7 @@ its URLs exist.
 The rail at the far left has four sections: **Home** (the dashboard and
 content health), **Content** (each content type's entries, with its own
 taxonomies under it, the taxonomies several types share, and media),
-**People** (your profile, everyone, and roles), and **Config**
+**Users** (your profile, accounts, profiles, and roles), and **Config**
 (content types, fields, settings, themes, and extensions). The panel
 beside it lists the section you're in. Choosing a section changes the
 panel and nothing else, so you never leave the screen you're on (an
@@ -66,24 +66,22 @@ and **Insert media**.
 The editor hides the panel while you write and puts it back as it was
 when you leave. On a narrow screen, the button at the top left opens
 the rail and panel as a menu instead. **View site** opens your site in a new tab, and
-the round button at the top right has **Your profile** and **Sign out**.
+the round button at the top right has **Your account** and **Sign out**.
 
-## Your profile
+## Your account
 
-**Your profile** is one person: you. Once your account is linked to
-a [profile](content-types.md#built-in-types) that has a file, it's the
-editor for it, where the title is your name (in the admin and on the
-site) and the body is your bio. Your account's own settings are the
-editor's **Account** tab: your username, roles, linked profile, and
-when you last signed in, your password, and the admin's **theme** and
-**color scheme**. The address stays `/profile`, and your profile's slug
-can't change there, since your account is linked by it.
+**Your account** has your username, roles, linked profile, and when you last signed in, your **name** (what the admin
+calls you until you have a profile), your password, and the admin's
+**theme** and **color scheme**.
 
-Without a profile file, Your profile shows those settings on their
-own, with your **name** (what the admin calls you until you have a
-profile) and, when your account is linked to one, **Create your
-profile**, which starts it as a draft (publish it to show your name)
-and opens it here. The theme is **Neutral** (cool gray
+**Public Profile** at the top shows the
+[profile](content-types.md#built-in-types) your account is linked to:
+your public name and bio on the site. **Edit your profile** opens it in
+the editor like any entry, where the title is your name (in the admin
+and on the site) and the body is your bio; its slug can't change, since
+your account is linked by it. When your account is linked to a profile
+with no file yet, **Create your profile** starts it as a draft (publish
+it to show your name) and opens it. The theme is **Neutral** (cool gray
 with a blue accent, the default) or **Editorial** (warm paper, a teal
 accent, and serif titles). The color scheme is light, dark, or your
 device's setting (the default). Each choice is saved with your
@@ -120,18 +118,18 @@ collections (such as Posts) and Pages, each with the taxonomies that
 group only that type under it (a taxonomy whose `types` setting names
 one type, such as Categories under Posts), then **Media**.
 **Structure** has **Content types** and the taxonomies that group
-several types or every type, each saying which. Authors are in
-**People**, with accounts, since they're the public side of accounts.
+several types or every type, each saying which. Profiles are in
+**Users**, with accounts, since they're the public side of accounts.
 Each type opens a list of its entries you can edit, newest changes
 first. Types are named from their `labels` setting, and
 shown with their `icon` (see
 [Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
-**People** has Your profile, People, and Roles. In
+**Users** has Your account, Accounts, Profiles, and Roles. In
 **Config**, **Settings** has General, Reading, Addresses and Search, and
 System, and **Customize** has Themes and Extensions. You only see the
-screens your roles allow: Media needs `media.upload`, People
-`accounts.manage` or `content.edit`, Roles `accounts.manage`, and
+screens your roles allow: Media needs `media.upload`, Accounts and
+Roles `accounts.manage`, Profiles `content.edit`, and
 Content types, Settings, Themes, and Extensions
 `site.settings`.
 
@@ -879,7 +877,7 @@ Switching themes isn't done here: the active theme is set in
 command** beside a theme copies it). In development, **Preview** opens
 the site with that theme (`?theme={slug}`, see [Themes](themes.md)).
 
-How the admin itself looks is set per account, on **Your profile**.
+How the admin itself looks is set per account, on **Your account**.
 
 ## Extensions
 
@@ -898,7 +896,7 @@ that's off says how to turn it back on.
 
 ## Accounts and roles
 
-People's panel has **Your Profile**, **Accounts**, **Profiles**, and
+The **Users** section's panel has **Your Account**, **Accounts**, **Profiles**, and
 **Roles**. Accounts and profiles are two lists, because they're two
 things: an account signs in, and a profile is a public identity that
 bylines point at. One person usually has both, linked; a profile with
@@ -944,7 +942,8 @@ sign-in. **New Account** makes one; **Roles** lists each role with how
 many capabilities it has and who holds it.
 
 - **New Account** asks for a username, its roles, and optionally a
-  [name](accounts.md#names) and its profile. Blush doesn't send email, so instead of a password the
+  [name](accounts.md#names) and its profile, picked from the profiles
+  no other account has. Blush doesn't send email, so instead of a password the
   account gets a **password link**: copy it from the account's screen
   and send it however you like. It's shown only that once, and it
   works once, for a week. Until it's used, the account is **Invited**.
@@ -955,7 +954,9 @@ many capabilities it has and who holds it.
 - **Public Profile** on an account's screen shows its profile: linked
   (**Open profile**, **Unlink**), linked but not yet public
   (**Publish**), linked to a slug with no file yet (**Create it**), or
-  none. With none, **Link an existing one** picks a profile, and
+  none. With none, **Link an existing one** picks a profile from a
+  list of them by name (one another account is linked to is shown but
+  can't be chosen: a profile belongs to one account), and
   **Create one** makes a draft from a name you give, links it, and
   opens it.
 - **Make a password link** is for a forgotten password: the person
@@ -1088,11 +1089,12 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
 | `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
 | `GET accounts` | Every account: `{"username", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `name` is its own name or `null`; `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `displayName` is what the admin calls it, its one name: its profile's title, else the name, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
+| `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `status` `null` for one credited without a file and `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.manage` |
 | `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "id", "handle", "url", "uses"}` (`status`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"id", "handle", "title", "status"}`) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.manage` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with `content.edit.others`) |
 | `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs `content.create` |
 | `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's bio again; answers `{"removed"}`. Needs `content.delete` |
 | `POST accounts` | Make an account: `{"username", "roles", "author", "name"}` (the last two optional); answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
-| `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (`null` unlinks), `name` (`null` or empty removes it), and `suspended`; answers `{"account"}` |
+| `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (its profile's slug, `null` unlinks; a profile another account has is a `422` with `field: author`), `name` (`null` or empty removes it), and `suspended`; answers `{"account"}` |
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
 | `DELETE accounts/{username}` | Remove an account; answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |

@@ -24,12 +24,12 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 
 | Command | What it does |
 |---|---|
-| `account:add <username>` | Create an admin account, asking for its password. `--role=` (repeat for more; administrator by default) `--author=`, offering to create the author's entry when it has none, and `--name=` |
+| `account:add <username>` | Create an admin account, asking for its password. `--role=` (repeat for more; administrator by default) `--author=` (its profile, which no other account may have), offering to create the profile when it has none, and `--name=` |
 | `account:list` | List the accounts with their names, roles, authors, and last sign-in |
 | `account:password <username>` | Set an account's password, signing it out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |
 | `account:name <username> ["name"]` | Set the name the admin calls an account by, or remove it |
-| `account:author <username> [slug]` | Link an account to an author entry (offering to create it when there's none), or unlink it |
+| `account:author <username> [slug]` | Link an account to a profile (offering to create it when there's none; refused when another account has it), or unlink it |
 | `account:remove <username>` | Delete an account. `--yes` skips the question. |
 
 ## Everyday

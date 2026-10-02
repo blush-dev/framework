@@ -3,7 +3,7 @@
  * Themes (the design direction's Appearance, D-306, named Themes in
  * D-327): the
  * installed themes, with the active one and the themes it builds on.
- * How the admin looks is set per account, on Your profile.
+ * How the admin looks is set per account, on Your Account.
  *
  * The active theme is developer configuration (`config/theme.php`,
  * D-039), so it's shown, not changed: `theme:activate` changes it, and
@@ -70,7 +70,7 @@ async function copy(text: string): Promise<void> {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">Themes</h1>
-			<p class="page-header__hint">The theme visitors see. How the admin looks is set per account, on Your profile.</p>
+			<p class="page-header__hint">The theme visitors see. How the admin looks is set per account, on Your account.</p>
 		</div>
 	</header>
 

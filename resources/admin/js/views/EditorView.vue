@@ -82,10 +82,10 @@
  * they keep their slugs. A list page may be trashed; an archive's page
  * is removed from its profile's screen instead.
  *
- * On **Your Profile** (D-329), the editor edits the account's profile: `profile` names it by its handle, so the address stays
- * `/profile`, the top bar says Your Profile, and the slug can't change
- * (the account is linked by it). The account's private settings are a
- * third drawer tab, **Account**, from the `account` slot.
+ * A profile is edited here like any entry (D-355); Your Account is the
+ * account's own settings, and links here. A profile an account is
+ * linked to keeps its slug (`can.rename` is false), since the link is by
+ * it.
  */
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -133,13 +133,6 @@ const PLACED = ['title', 'status', 'published', 'slug'];
 // Why a required field stops publishing.
 const REQUIRED = 'Required to publish.';
 
-const props = defineProps<{
-	// Your Profile's profile entry, by its handle; else the route says.
-	profile?: string | null;
-}>();
-
-const slots = defineSlots<{ account?: () => unknown }>();
-
 const route  = useRoute();
 const router = useRouter();
 
@@ -150,10 +143,6 @@ function joined(segments: string | string[] | undefined): string {
 // What the route names: an entry's handle (`post/hello`), its path for
 // one without a handle (D-253), or a new entry's type (D-336).
 const address = computed(() => {
-	if (props.profile) {
-		return { handle: true, fresh: false, name: props.profile };
-	}
-
 	if (route.name === 'entry-new') {
 		return { handle: false, fresh: true, name: typeof route.query.type === 'string' ? route.query.type : '' };
 	}
@@ -187,7 +176,7 @@ function keptAs(detail: EntryDetail | NewEntryDetail): string {
  * when it was opened by its path.
  */
 function follow(detail: EntryDetail | NewEntryDetail): void {
-	if (!props.profile && detail.id !== null && detail.handle !== null && !(address.value.handle && address.value.name === detail.handle)) {
+	if (detail.id !== null && detail.handle !== null && !(address.value.handle && address.value.name === detail.handle)) {
 		void router.replace({ ...entryRoute(detail), query: address.value.fresh ? {} : route.query, hash: route.hash });
 	} else if (detail.id !== null && address.value.fresh) {
 		void router.replace(entryRoute(detail));
@@ -261,16 +250,15 @@ watch(entry, (value) => {
 });
 
 watch(editTitle, (value) => {
-	screenTitle.value = props.profile ? 'Your Profile' : value;
+	screenTitle.value = value;
 }, { immediate: true });
 
-// The trail's type is the way out: the editor has no back button. Your
-// Profile is its own screen.
+// The trail's type is the way out: the editor has no back button.
 watch([entry, labels], () => {
 	const name = entry.value?.type.name;
 
-	screenTrail.value = name === undefined || props.profile ? [] : [{ label: titleCase(labels.value.plural), to: { name: 'type', params: { type: name } } }];
-	screenCrumb.value = props.profile ? null : (fresh.value ? 'New' : 'Editing');
+	screenTrail.value = name === undefined ? [] : [{ label: titleCase(labels.value.plural), to: { name: 'type', params: { type: name } } }];
+	screenCrumb.value = fresh.value ? 'New' : 'Editing';
 }, { immediate: true });
 
 /**
@@ -1070,7 +1058,7 @@ async function showMissing(): Promise<void> {
 const bodyEditor = ref<InstanceType<typeof MarkdownEditor> | null>(null);
 const titleField = ref<HTMLTextAreaElement | null>(null);
 const sideOpen   = ref(drawerOpen());
-const tab        = ref<'document' | 'element' | 'account'>('document');
+const tab        = ref<'document' | 'element'>('document');
 const caret      = ref(0);
 const available  = ref<ComponentDescription[]>([]);
 
@@ -2028,7 +2016,7 @@ function tabKey(event: KeyboardEvent): void {
 
 	event.preventDefault();
 
-	const order: (typeof tab.value)[] = slots.account ? ['document', 'element', 'account'] : ['document', 'element'];
+	const order: (typeof tab.value)[] = ['document', 'element'];
 	const at    = order.indexOf(tab.value);
 	const next  = order[(at + (event.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length] ?? 'document';
 
@@ -2166,7 +2154,7 @@ function fieldKey(field: FieldDescription): string {
 
 <template>
 	<section class="editor" :class="{ 'is-side-open': sideOpen, 'is-focus': focusMode }" aria-labelledby="editor-heading">
-		<h1 id="editor-heading" class="visually-hidden" tabindex="-1">{{ profile ? 'Your Profile' : editTitle }}</h1>
+		<h1 id="editor-heading" class="visually-hidden" tabindex="-1">{{ editTitle }}</h1>
 
 		<header class="editor__head">
 			<template v-if="entry">
@@ -2505,9 +2493,6 @@ function fieldKey(field: FieldDescription): string {
 							<button id="editor-tab-element" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-element" :aria-selected="tab === 'element'" :tabindex="tab === 'element' ? 0 : -1" @click="tab = 'element'">
 								<AdminIcon :name="tabIcon" /><span class="editor__tab-name">{{ tabName }}</span>
 							</button>
-							<button v-if="$slots.account" id="editor-tab-account" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-account" :aria-selected="tab === 'account'" :tabindex="tab === 'account' ? 0 : -1" @click="tab = 'account'">
-								<AdminIcon name="circle-user-round" />Account
-							</button>
 						</div>
 						<button type="button" class="button button--ghost button--icon editor__side-close" @click="sideOpen = false">
 							<AdminIcon name="x" />
@@ -2561,7 +2546,7 @@ function fieldKey(field: FieldDescription): string {
 											<DatePicker id="editor-date" v-model="date" :invalid="Boolean(errorFor('published'))" :described-by="errorFor('published') ? 'editor-publish-help editor-date-error' : 'editor-publish-help'" />
 										</dd>
 									</div>
-									<div v-if="entry.can.rename && !profile" class="settings__row">
+									<div v-if="entry.can.rename" class="settings__row">
 										<dt><label for="editor-slug">Slug</label></dt>
 										<dd>
 											<input id="editor-slug" v-model="slug" class="settings__input mono" :placeholder="fresh ? slugOf(title) : undefined" autocomplete="off" autocapitalize="none" spellcheck="false" title="Lowercase letters, numbers, and hyphens" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
@@ -2577,7 +2562,7 @@ function fieldKey(field: FieldDescription): string {
 								<p id="editor-publish-help" class="editor__group-note">{{ publishNote }}</p>
 								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
 								<p v-if="slugError" id="editor-slug-error" class="field__error">{{ slugError }}</p>
-								<template v-if="entry.can.rename && !profile && entry.status === 'published' && slug.trim() !== entry.slug">
+								<template v-if="entry.can.rename && entry.status === 'published' && slug.trim() !== entry.slug">
 									<p id="editor-slug-help" class="editor__group-note">Saving moves it to <span class="mono">{{ slugAddress ?? 'a new address' }}</span>{{ redirect ? '.' : ', and links to the old address will stop working.' }}</p>
 									<label class="checkbox">
 										<input v-model="redirect" type="checkbox">
@@ -2681,10 +2666,6 @@ function fieldKey(field: FieldDescription): string {
 							</ul>
 						</div>
 					</template>
-					</div>
-
-					<div v-if="$slots.account" v-show="tab === 'account'" id="editor-panel-account" role="tabpanel" aria-labelledby="editor-tab-account">
-						<slot name="account" />
 					</div>
 
 					<div v-show="tab === 'element'" id="editor-panel-element" role="tabpanel" aria-labelledby="editor-tab-element">

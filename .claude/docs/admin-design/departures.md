@@ -89,25 +89,25 @@ Each is recorded in `.claude/docs/decisions.md`.
   every page; Authors sorts by the first author's slug, not the name
   shown. The pager offers 10, 20, 50, or 100 a page (20 by default, not
   the prototype's 25), shown once a list is longer than 10.
-- **Profiles are under People** (D-259, D-353), not Content: they're
-  the public side of accounts. People's panel is Your Profile,
+- **Profiles are under Users** (D-259, D-353, D-354), not Content:
+  they're the public side of accounts. Users' panel is Your Account,
   **Accounts** (who signs in, as the prototype has it), **Profiles**
   (the profiles type's entry list), and Roles: two lists with one link
   between them, from the profiles sketch (`meridian-profiles.html`),
   which put Profiles under Content and accounts under Config; the
-  author kept People's locations. The Profiles list is the entries list
+  author kept the section's locations. The Profiles list is the entries list
   with the type's own columns (Name, Status, Account with a **Guest**
   tag, Bylines, Updated); a name opens the profile's screen (Identity,
   Where This Profile Appears, Linked Account), not the editor. An
   account's screen has a **Public Profile** panel in the sketch's three
   states, plus a fourth: linked to a slug with no file (**Create it**).
-- **Your Profile is the editor** (D-329, D-332, D-353) once the account
-  has a profile: the bio is the writing surface, and the account's
-  settings (password, roles, theme, color scheme) are a third drawer
-  tab, **Account**, beside the entry's and the element's. Without one,
-  Your Profile is the settings as panels. The sketch renames it Your
-  Account; the author kept the name. One name per person: the profile's
-  title, so the Name field shows only for accounts without one.
+- **Your Account** (D-235, D-355, D-358; Your Profile in the direction,
+  renamed as the sketch suggests): the account's
+  settings (name, password, roles, theme, color scheme) as panels, with
+  a **Public Profile** panel above them linking to the profile in the
+  editor. The editor never holds account settings (D-332's Account tab
+  is gone). One name per person: the profile's title, so the Name field
+  shows only for accounts without one.
 - **A people field's list page** (D-329, D-332, D-353): `_authors` (or
   `_cooks`) in its folder, pinned under the index page tagged with the
   field's name, edited like an index page (no type fields or date, slug
@@ -156,13 +156,14 @@ Each is recorded in `.claude/docs/decisions.md`.
   is the section, the screens above (the editor's type, or a detail
   screen's list from its route's `meta.parent`), and the screen; on a
   narrow screen the section crumb goes first.
-- **Four sections, not three** (D-326): Home, Content, **People**, and
+- **Four sections, not three** (D-326): Home, Content, **Users** (named
+  People until D-354, with the `user` icon), and
   Config, where the foundations say "three sections, not more" with
   people under Config. The author's call: People passes the
   foundations' own test (someone goes looking for it by name), it's the
-  one section every account uses (Your Profile), and it kept Config
-  long once Settings became four screens (D-325). People's panel is
-  Your Profile, Accounts, Profiles, and Roles, with no headings (D-327,
+  one section every account uses (Your Account), and it kept Config
+  long once Settings became four screens (D-325). Users' panel is
+  Your Account, Accounts, Profiles, and Roles, with no headings (D-327,
   D-353);
   Config keeps Structure, Settings, and Customize.
 - **Both admin themes ship** (D-317): Neutral and Editorial, a theme

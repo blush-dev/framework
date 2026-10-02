@@ -953,7 +953,7 @@ by source, keeps recents, and writes the directive text). The
   commands through `useCommands`) are in the layout (D-248). Roles and
   Accounts are list and detail screens over `GET roles` and
   `GET accounts` (D-249), edited since D-312 (`RoleChecks`,
-  `CapabilityChecks`, `AuthorField`, New Account, New Role, and the
+  `CapabilityChecks`, `ProfilePicker` (D-356), New Account, New Role, and the
   public Set Password screen), as are Content types over `GET types` and
   `GET types/{name}` (D-250) and Media over `GET media` and
   `GET media/{path}` (D-251). The editor's address is the entry's
