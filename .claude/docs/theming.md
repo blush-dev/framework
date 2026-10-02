@@ -152,6 +152,7 @@ The template API (kept deliberately small; D-103):
 | `component($name, ...$props)` | Render a component; `->content($html)` and `->slot($name, $html)` fill slots |
 | `t($key, ...$params)` | Translate from the `theme` domain (D-028, D-107) |
 | `setting($key, $default)` | A theme setting's value |
+| `site($key, $default)` | A site setting a field set adds to the Settings screens (D-343), through its field, or its default |
 | `asset($path)` / `image($media, $size)` | Versioned asset URLs; responsive `<img>` output (`image()` later) |
 | `inline($path)` | A servable theme asset's contents, such as an SVG (D-151) |
 | `widont($text)` | Escaped text with its last two words joined by `&nbsp;` (1.x's `runt()`, D-153) |

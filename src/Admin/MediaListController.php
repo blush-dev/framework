@@ -22,6 +22,7 @@ use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Core\Paths;
 use Blush\Field\Field;
+use Blush\Field\FieldSet;
 use Blush\Field\FieldContext;
 use Blush\Field\InvalidField;
 use Blush\Field\Violation;
@@ -59,7 +60,9 @@ use Blush\Support\UrlPath;
  * `GET {path}/api/media/{path}` (`show()`) describes one file, by its
  * path under `user/media`, with its metadata fields (D-287): the
  * `fields` its kind has (`MediaSchemas`, described as a content type's
- * are), their `values`, keys the file keeps that aren't fields
+ * are), the field `sets` attached to its kind (D-341: `name`, `label`,
+ * `description`, and the names of their `fields`, which the screen
+ * groups), their `values`, keys the file keeps that aren't fields
  * (`extra`), and what doesn't fit (`violations`). `PATCH` (`update()`,
  * `media.upload`) changes them: `set` (field names to values; an empty
  * one removes it) and `remove` (field names), each value checked by its
@@ -290,6 +293,12 @@ final readonly class MediaListController
 			...self::describe($file, $reference, $relative, $metadata, $record?->duration()),
 			'embedded'   => ['values' => (object) ($embedded->values ?? []), 'location' => $embedded?->location !== null],
 			'fields'     => array_values(array_map(static fn (Field $field): array => $field->toForm(), $schema->fields)),
+			'sets'       => array_map(static fn (FieldSet $set): array => [
+				'name'        => $set->name,
+				'label'       => $set->label,
+				'description' => $set->description,
+				'fields'      => array_keys($set->schema->fields)
+			], $this->schemas->setsFor(MediaKind::fromMime($file->mime))),
 			'values'     => $values,
 			'extra'      => $result->extra,
 			'violations' => array_map(static fn (Violation $violation): array => [

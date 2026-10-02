@@ -53,6 +53,40 @@ class: wide-page             # extra classes on <body>
 stylesheet: /media/zine.css  # an extra stylesheet
 ```
 
+## Your own settings
+
+A site, a theme's author, or an extension can add settings to the
+admin's **Settings** screens with a [field set](content-types.md#field-sets)
+aimed at one: `settings:general`, `settings:reading`, or
+`settings:search`.
+
+```yaml
+# user/data/fields/brand.yaml
+label: Brand
+targets: [settings:general]
+fields:
+  tagline:
+    label: Tagline
+  accent:
+    type: enum
+    options: [red, blue]
+    default: blue
+```
+
+The set's fields show as a panel of their own on that screen, and what's
+saved goes in `user/data/settings.json` under `site`. Read them in a
+template with `$template->site()`:
+
+```php
+<p class="tagline"><?= e((string) $template->site('tagline')) ?></p>
+```
+
+It returns the saved value, read through its field (a date is a date),
+or the field's `default`, or the second argument when there's neither:
+`$template->site('accent', 'red')`. Settings share one name space across
+the screens, so two sets can't both add a `tagline`; `bin/blush
+content:lint` says so.
+
 ## Overriding templates
 
 To change one piece of the active theme, copy its template into your site's
@@ -235,6 +269,7 @@ What a template can use:
 | `$template->children($entry)` | A page's subpages or a term's child terms, published, by title |
 | `$template->date($entry->published)` | A date, formatted for the site's locale |
 | `$template->setting('name')` | A theme setting |
+| `$template->site('name')` | A site setting a field set adds ([Your own settings](#your-own-settings)) |
 | `$template->asset('app.js')` | A theme file's URL, versioned |
 | `$template->inline('svg/logo.svg')` | A theme file's contents, such as an SVG icon to print with `raw()` |
 | `$template->widont($title)` | Escaped text whose last two words won't split across lines, so a title never ends with one word alone |

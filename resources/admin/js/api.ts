@@ -279,18 +279,15 @@ export interface SettingItem {
 	// Why it's risky where it is.
 	warning: string | null;
 	file: string | null;
+	// What a setting the admin changes saves as: a `Setting`'s value
+	// (`feed.limit`), or `site.{name}` for one a field set adds (D-343).
 	setting?: string;
-	control?: 'text' | 'mono' | 'select' | 'checkbox' | 'checks' | 'number' | 'lines';
-	input?: SettingValue;
-	options?: { value: string; label: string }[] | null;
+	// The field it's edited as, with words for its options and a caption.
+	field?: FieldDescription;
+	// The value the form starts from.
+	input?: unknown;
 	saved?: boolean;
 }
-
-/**
- * A setting's value as the form holds it: a home page of `''` is the page
- * at `user/content/index.md`, and lines are a list.
- */
-export type SettingValue = string | number | boolean | string[];
 
 /**
  * A panel of settings, with a note (backticks mark code).
@@ -325,6 +322,8 @@ export interface FieldDescription {
 	integer?: boolean;
 	min?: number;
 	max?: number;
+	// What a checkbox beside it says, or what an empty choice means.
+	caption?: string;
 	// The control it's edited with (D-337): in a form's fields, always the
 	// one to draw; in a type's definitions, only one chosen over the
 	// type's default.
@@ -339,6 +338,20 @@ export interface FieldDescription {
 export interface FieldSetTargetOption {
 	key: string;
 	label: string;
+	// The kind of place, in the list of every place ("Content types",
+	// "Media files", D-341), and its key (`type`).
+	group?: string;
+	kind?: string;
+}
+
+/**
+ * A kind of place sets attach to, with the slots it offers (D-347), the
+ * first being its default.
+ */
+export interface FieldKindDescription {
+	kind: string;
+	label: string;
+	slots: { name: string; label: string; description: string }[];
 }
 
 /**
@@ -350,6 +363,9 @@ export interface FieldSetSummary {
 	name: string;
 	label: string;
 	description: string;
+	// The kind of place its targets are (`type`), and the slot it's in.
+	kind: string | null;
+	slot: string | null;
 	origin: 'extension' | 'config' | 'data';
 	editable: boolean;
 	file: string | null;
@@ -364,6 +380,7 @@ export interface FieldSetSummary {
 export interface FieldSetDetail extends Omit<FieldSetSummary, 'fields'> {
 	fields: FieldDescription[];
 	options: FieldSetTargetOption[];
+	kinds: FieldKindDescription[];
 }
 
 /**
@@ -374,6 +391,7 @@ export interface FieldSetList {
 	sets: FieldSetSummary[];
 	create: boolean;
 	targets: FieldSetTargetOption[];
+	kinds: FieldKindDescription[];
 }
 
 /**
@@ -384,6 +402,9 @@ export interface FieldSetGroup {
 	name: string;
 	label: string;
 	description: string;
+	// The slot it's in (D-347), such as `details` or `content`; the screen
+	// decides where a slot shows. Media and Settings screens leave it out.
+	slot?: string;
 	fields: string[];
 }
 
@@ -517,6 +538,8 @@ export interface MediaItem {
 export interface MediaDetail extends MediaItem {
 	kind: 'image' | 'video' | 'audio' | 'file';
 	fields: FieldDescription[];
+	// The field sets attached to its kind (D-341), grouped on its screen.
+	sets: FieldSetGroup[];
 	values: Record<string, unknown>;
 	extra: Record<string, unknown>;
 	violations: { field: string; message: string; severity: 'error' | 'warning' | 'notice' }[];

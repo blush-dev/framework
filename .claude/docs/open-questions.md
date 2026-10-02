@@ -8,7 +8,8 @@ Move each item to `decisions.md` once it's answered.
   built and kept, but the author wants to think it over before it's
   settled. Revisit the whole shape (the `Authors` kind, per-type
   archives and `_authors` pages, one People list, Your Profile as the
-  editor, one name) before building more on it.
+  editor, one name) before building more on it. Account fields (the
+  Fields API's `account` target, D-344) wait on this too.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the
@@ -20,9 +21,15 @@ Move each item to `decisions.md` once it's answered.
   itself) rather than a rendered preview inside the editor. Not settled.
 
 - **Fields API details** (D-337), still open after phase 3 (D-340):
-  - Placement: may a set ask for the editor's main column (below the
-    body) rather than the document panel, and may sets be ordered
-    other than by name?
+  - The Fields API's long-term architecture: the author has larger
+    concerns about how it's built for the future, not yet spelled out,
+    and has paused it (D-348). D-337 to D-348 are a baseline; revisit
+    them as a whole when those concerns are raised.
+  - Order: may sets be ordered other than by name? (Where they show is
+    a screen's call from their slot, D-347.)
+  - More slots: which a content type should offer beyond `details`
+    (fields in the writing area were tried and taken back, D-348), and
+    whether extensions may add slots to a kind they don't own.
   - Broader targets: every type (`type:*`), a kind
     (`kind:collection`), or a type and its children?
   - Conditional fields (shown when another field has a value), and

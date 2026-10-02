@@ -303,6 +303,16 @@ final class Template
 	}
 
 	/**
+	 * Returns a site setting's value (D-343): one a field set adds to the
+	 * admin's Settings screens, saved in `user/data/settings.json`, or its
+	 * field's default, or `$default` when it has neither.
+	 */
+	public function site(string $name, mixed $default = null): mixed
+	{
+		return $this->views->services->site->get($name, $default);
+	}
+
+	/**
 	 * Translates a message from the theme's catalogs with named
 	 * parameters: `$template->t('reading_time', minutes: 5)` (D-028).
 	 *

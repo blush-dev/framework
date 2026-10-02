@@ -758,10 +758,11 @@ can't be deleted until the taxonomy stops grouping it.
 ## Fields
 
 With `site.settings`, **Config → Fields** lists every
-[field set](content-types.md#field-sets): groups of fields added to one
-or more content types, beside each type's own. The list shows the types
-each set is added to (one that isn't a content type on this site is
-grayed), where it's defined, and how many fields it has.
+[field set](content-types.md#field-sets): groups of fields added to
+content types, to [media files' details](media.md#details-about-a-file),
+or to the [Settings](#settings) screens, beside their own. The list shows where each set is added (a place the
+site doesn't have is grayed), where it's defined, and how many fields it
+has.
 
 Sets in `user/data/fields` are edited on their screen; sets from
 `config/fields.php` and extensions are defined in code, so their screens
@@ -769,8 +770,11 @@ only show them.
 
 **New Field Set** has a label (heading the set's fields in the editor),
 a key (made from the label; it's the file's name, so it can't change
-later), help shown under the label, the content types to add it to,
-and its fields, edited as a type's are. **Create Field Set** writes
+later), help shown under the label, the kind of place to add it to
+(content types; kinds of media file: images, videos, sound, and other
+files; or the Settings screens; a set's places are all one kind), the
+places of that kind, and its fields, edited as a type's are. **Create
+Field Set** writes
 `user/data/fields/{key}.yaml`.
 
 A set's screen edits the same things; choose **Save** to write what you
@@ -804,6 +808,11 @@ screens:
   production, they are).
 - **System:** shown only: where content types come from, caching, and
   publishing and previews.
+
+Settings [field sets](content-types.md#field-sets) add come after a
+screen's own, a panel for each set under its label. They have no config
+file behind them: a saved one has **Clear it** instead (see
+[Your own settings](themes.md#your-own-settings)).
 
 Change something and a bar at the bottom counts your unsaved changes,
 with **Revert** and **Save changes**; leaving the screen with changes
@@ -1014,7 +1023,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE accounts/{username}` | Remove an account; answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
 | `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"slug", "name", "version", "description", "parent", "source", "active"}], "invalid": [{"slug", "reason"}]}`. `chain` is the active theme, the themes it builds on, then `default`; `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `site.settings` |
-| `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. Secrets are never sent. Needs `site.settings` |
+| `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. Secrets are never sent. Needs `site.settings` |
 | `GET extensions` | Every installed extension, the ones that are on first: `{"extensions": [{"name", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/extensions.php` exists. Needs `site.settings` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and authors last. `kind` is `collection`, `taxonomy`, `pages`, or `authors`, and each type's `authors` is whether its entries credit authors. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the authors type adds `"types"`, the types that credit authors. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the authors type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
 | `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), `authorsWord` (the word its author archives sit under, `false` for none, `null` without URLs), and its `authorsPage` (`{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
@@ -1023,9 +1032,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
 | `GET fields/types` | The field types definitions can use, built in and from extensions: `{"types": [{"type", "label", "description", "controls", "options"}], "controls"}`. `controls` are `{"value", "label"}`, a type's first being its default; `options` are the type's own definition keys as JSON Schemas |
-| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension`, `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether it's a content type here); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label"}`); `create` is whether sets can be created here |
-| `GET fields/sets/{name}` | One set, with its `fields` as definitions and `options`, every place it can be added to |
-| `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
+| `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension`, `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |
+| `GET fields/sets/{name}` | One set, with its `fields` as definitions, `options`, every place it can be added to, and `kinds` |
+| `POST fields/sets` | Create a set in `user/data/fields`: `{"name", "set"}`, where `set` maps `label`, `description`, `targets` (all one kind), `slot`, and `fields` to values; answers `201` with the set. Needs `site.settings` |
 | `PATCH fields/sets/{name}` | Change a `user/data/fields` set: `{"set"}`, as above (`null` removes a key); answers with the set. A field a target already has is a `422` with the reason |
 | `DELETE fields/sets/{name}` | Delete a `user/data/fields` set's file; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
@@ -1193,7 +1202,8 @@ its `values` (read from its EXIF, IPTC, and XMP: `title`,
 `genre`, `duration` (seconds), `artwork`, `width`, and `height`,
 whichever it has) and `location`, whether
 it carries one (never where). It also adds the file's details: the `fields` its kind has
-(described as a content type's are), their `values`, keys its metadata
+(described as a content type's are), the field `sets` on its kind
+(`{"name", "label", "description", "fields"}`, the field names), their `values`, keys its metadata
 file keeps that aren't fields (`extra`), and `violations` for what
 doesn't fit. `PATCH media/{path}` changes them: `{"set": {field:
 value}, "remove": [field]}`, for a file in the library, needs

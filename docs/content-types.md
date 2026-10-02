@@ -415,13 +415,30 @@ map. `label` heads the set's fields in the admin's editor, where each set
 has its own group after the type's own fields (its name, made readable,
 when it has no label), and `description` is shown under it.
 
+A set's targets are all one kind of place: content types, kinds of
+media file, or Settings screens. A field means one thing on an entry and
+another in the site's settings, so make a set for each.
+
+In the admin's editor, each set is a group of its own in the document
+panel beside the text, after the type's own fields.
+
 - A type's fields come first, then each set's, with the sets in name
   order.
 - A set can't use a field name (or alias) that the type, the built-in
   fields, or another of its sets already uses. Rename one; Blush stops
   with a message naming both.
-- A target that isn't a content type, such as a type that's turned off,
-  is skipped. `bin/blush content:lint` notes it.
+- A target the site doesn't have, such as a type that's turned off, is
+  skipped. `bin/blush content:lint` notes it.
+
+Authors are a content type too, so a set aimed at `type:author` adds
+fields to every author's page, such as a website or a pronoun line.
+
+Sets can also add details to media files: target `media:image`,
+`media:video`, `media:audio`, or `media:file` (see
+[Details about a file](media.md#details-about-a-file)). And they can add
+settings to the admin's Settings screens: target `settings:general`,
+`settings:reading`, or `settings:search` (see
+[Your own settings](themes.md#your-own-settings)).
 
 The admin's **Config → Fields** creates and edits the sets in
 `user/data/fields/` ([Fields](admin.md#fields)). Sets can also be

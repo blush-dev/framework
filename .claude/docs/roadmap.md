@@ -342,8 +342,11 @@ dynamically).
 
 ### Still to scope
 
-- **Fields API (D-337; phases 1 to 3 done, D-338 to D-340; phase 4,
-  more consumers, next when the author picks it):** reusable field sets attached to targets, content types
+- **Fields API (D-337; paused, D-348: a baseline, with more design
+  work to do before building further; phases 1 to 3 done, D-338 to
+  D-340; phase 4: media, D-341, and site settings, D-343, done; theme
+  settings, D-342, and accounts, D-344, on hold; set presentation,
+  D-345 to D-348):** reusable field sets attached to targets, content types
   first. Phases: (1, done) `Content\Schema` moves
   to `Blush\Field`, field types describe themselves, the `Control`
   vocabulary and `control` key, both definition shapes, the config
@@ -351,8 +354,9 @@ dynamically).
   editor and `FieldControl`; (2, done) `FieldSet`, sources, `FieldTarget`,
   sets in type schemas (load checks, cache, index, lint, editor
   groups, JSON Schema, `docs/`); (3, done) Structure → Fields screens
-  and writer; (4) media, theme settings, site settings, and accounts as
-  later consumers.
+  and writer; (4) media (done, D-341), theme settings (on hold, D-342), site
+  settings (done, D-343), and accounts (on hold with the authors work,
+  D-344) as later consumers.
 - **Authors (D-329, on hold, D-333):** built as an exploration and
   kept, but the author is still thinking the design over, so treat it
   as provisional: `author` as its own kind with an

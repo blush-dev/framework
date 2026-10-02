@@ -6625,6 +6625,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-287: Media metadata fields, by kind
 - **Date:** 2026-09-30
+- **Status:** The extension, data file, and config layers are superseded
+  by D-341: a site's and extensions' media fields are field sets aimed
+  at `media:{kind}`, and can't replace a built-in field.
 - **Decision:** Builds D-238's fields and settles three of its open
   questions, at the author's call:
   - **Order:** fields first; then the media index; then embedded
@@ -8960,3 +8963,297 @@ decision, add a new entry that supersedes it and mark the old one
   gone. Files written in the container reach the host late (Mutagen),
   so they were read with `ddev exec`.
 - **Why:** D-337's phase 3, as planned.
+
+### D-341: The Fields API, phase 4 (media): field sets on media kinds
+- **Date:** 2026-10-01
+- **Supersedes:** D-287's extension (`MediaFieldSource`), data file
+  (`user/data/media-fields`), and config (`MediaConfig::$fields`)
+  layers, and its rule that a site's field replaces a built-in one.
+- **Decision:** The first of phase 4's consumers, in D-337's order.
+  - **Targets are generic:** a `FieldTarget` gives its own schema
+    (`schema()`, its fields before any set's), and
+    `FieldSets::schemaFor()` adds the attached sets' fields (the clash
+    and `accepts()` checks, once, for every consumer; messages name the
+    target key, `type:recipe can't take field set "kitchen": …`).
+    `FieldSets::clashes()` tries every set, for lint. Each consumer tags
+    a `FieldTargetSource` (`field.targets`: a `kind()`, a `label()` for
+    the admin, and its targets), collected by `FieldTargets`. Content
+    types' is `ContentTypeTargets` ("Content types"; `ContentTypes::
+    ownSchema()` is a type's schema before sets).
+  - **Media kinds are targets:** `MediaKindTarget`, `media:image`,
+    `media:video`, `media:audio`, and `media:file` (`MediaKind::label()`:
+    Images, Videos, Sound, Other files), from `MediaKindTargets` ("Media
+    files"); each takes every field. `MediaSchemas::schema()` is the
+    kind's built-in fields (`builtIn()`: an image's `alt`, then `title`,
+    `caption`, `credit`, `description`) then its sets' (`setsFor()`).
+    There's no `media:all`; a set for every file lists the four kinds.
+  - **Gone:** `MediaFieldSet`, `MediaFieldSource`,
+    `user/data/media-fields`, and `MediaConfig`'s `fields`. A site's
+    or extension's media fields are field sets; a set can't reuse a
+    built-in field's name (so `credit` can't be made required for now).
+    jtcom used none of them.
+  - **`FieldSets`** is a container singleton, the sets compiled with
+    the content types (`ContentTypes::$sets`), so media reads them
+    without loading `user/data/fields` per request.
+  - **Checks:** `FieldSetCheck` takes every kind of target: notices for
+    a target the site doesn't have or a kind it has none of, and errors
+    for a set that doesn't fit a target (a media clash; a type's stops
+    the site at load). `DataFieldSetWriter` builds every target's schema
+    with the new sets, so the admin refuses a media clash and puts the
+    file back.
+  - **The admin:** `GET fields/sets` targets have a `group` ("Content
+    types", "Media files"), and the set editor's Added To groups its
+    checkboxes by it; a set's screen and the list say "the site doesn't
+    have this" for a missing target. A media file's Details panel
+    (`GET media/{path}` adds `sets`) shows each set's fields under its
+    label after the built-in ones, as the entry editor's panel does.
+  - **`docs/`:** Details about a file (sets aimed at media kinds), the
+    media config's `fields` row removed, Media fields from an extension
+    folded into Field sets from an extension, and Fields in the admin.
+- **Checked:** `composer check` (`AdminMediaFieldsTest` rewritten for
+  sets, `AdminFieldSetsTest`'s media clash and target groups, a
+  `LinterTest` media clash); `npm run admin:build`; on the jtcom trial
+  in headless Chrome with a throwaway administrator and a throwaway set
+  on images (both removed after, with the account's sessions): an
+  image's Details shows the set's group after the built-in fields, and
+  the set's screen groups Added To as Content types and Media files.
+- **Why:** D-337's phase 4 starts with media; one way to add fields
+  replaces three, and a set can now add the same fields to posts and to
+  images. Next in the order: theme settings (on hold, D-342), site
+  settings, accounts.
+
+### D-342: Theme settings stay off the Fields API for now
+- **Date:** 2026-10-01
+- **Decision:** Theme settings, next in D-337's phase 4 order after
+  media (D-341), are held for a later date at the author's call. D-307
+  stands: no theme settings in the admin, and the manifest `settings`
+  mechanism is unchanged. Nothing is built toward them until the author
+  picks them up again.
+- **Why:** the author wants to hold off on theme settings.
+
+### D-343: The Fields API, phase 4 (settings): the Settings screens on fields
+- **Date:** 2026-10-01
+- **Decision:** The second of phase 4's consumers (theme settings are
+  on hold, D-342). The author's calls: built-in settings as fields **and**
+  field sets on the screens; a separate `$template->site()` for themes
+  and `SiteSettings` for extensions, keeping `$template->setting()`
+  theme settings'.
+  - **Built-ins as fields:** `Setting::field()` describes each setting
+    as a field named by its key (`name`, `locale`, `timezone`, `home`,
+    `trailingSlash`, `formats`, `content`, `limit`, `enabled`,
+    `disallow`), with its label, help, and control (locale `mono`;
+    formats `checks`; time zone and home page `select`), `choices()`
+    naming options (zones without underscores, "The latest posts",
+    feed formats' names), and `caption()` for a checkbox's text or an
+    empty choice's ("The page at user/content/index.md"). Each is on a
+    screen (`Setting::screen()`, `SettingsScreen`: general, reading,
+    search; System is all code). `Setting::normalize()` still checks
+    values. A site with no collection with addresses has no home page
+    to choose, so it's shown read-only. `homeChoices()` replaces the
+    controller's `homeOptions()`.
+  - **Targets:** `settings:general`, `settings:reading`, and
+    `settings:search` (`SettingsTarget`, from `SettingsTargets`,
+    "Settings screens"), each taking every field, its own schema its
+    built-in settings. `FieldTargetSource` gains `conflicts()`: the
+    screens share one store, so two sets using one name (or alias) on
+    any screens conflict; one set on several screens is one setting.
+    `FieldTargets::problems()` gathers clashes and conflicts for
+    `content:lint` and `DataFieldSetWriter`.
+  - **Storage:** `user/data/settings.json`'s `site` section, by field
+    name, values as sent (raw, like front matter). The bootstrap reads
+    the file before sets load, so `Settings` keeps them unchecked
+    (`withSite()`, `site()`); the admin checks each by its field on
+    save (a `422` naming its label; required ones refused empty; an
+    empty one removed), and `SiteSettings` reads them through the
+    fields (`Schema::resolve()` then `hydrate()`), leaving out what no
+    longer fits and filling in defaults.
+  - **Reading:** `SiteSettings` (`Blush\Settings`, a singleton from the
+    new `SettingsServiceProvider`): `get($name, $default)` and `all()`;
+    `$template->site($name, $default)` through `ViewServices::$site`.
+  - **The API:** `GET settings/{screen}` items that the admin changes
+    have a `field` (`toForm()`, with `choices` and `caption`) in place
+    of `control` and `options`, then a group per set on the screen
+    (`set-{name}`; items `site-{name}`, `setting` `site.{name}`, the
+    field, the saved value or the field's default as `input`, no
+    `file`). `PATCH settings` takes `site.{name}` in `set` and `unset`.
+  - **The admin:** `FieldInput`, the control alone (label, help, and
+    error left to the caller), split from `FieldControl`, which now
+    wraps it; a field's `caption` is a checkbox's text and an empty
+    choice's label. The Settings screens draw each editable setting
+    with `FieldInput` in their rows (`toForm`/`fromForm`; a built-in
+    list left empty is `[]`), options in a row; the hard-coded checkbox
+    texts and number limits are gone. A set's setting says **Saved
+    here. Clear it** or **Not saved yet.**
+  - **`docs/`:** Your own settings in Themes (with the helper),
+    `settings:` targets in Content types and Admin, the `site` section
+    in Configuration, and `SiteSettings` in Extending.
+- **Checked:** `composer check` (`AdminSettingsTest`: fields on the
+  built-ins, a set's group, saving, checks, clearing, `SiteSettings`;
+  `ThemeSystemTest`: the helper with a default, a fallback, and a saved
+  value; `LinterTest`: two sets on one name); `npm run admin:build`; on
+  the jtcom trial in headless Chrome with a throwaway administrator and
+  a throwaway set on General (both removed after, with the account's
+  sessions): General, Reading, and Addresses and Search drawn with the
+  shared controls (menus, feed formats in a row, the number limits,
+  checkbox captions, lines), the set's panel on General, a tagline
+  saved as `{"site": {"tagline": …}}`, then cleared, which removed the
+  file.
+- **Why:** the Fields API's goal is adding fields to screens easily;
+  settings were the last hand-built form with their own controls.
+
+### D-344: Account fields wait with the authors work
+- **Date:** 2026-10-01
+- **Decision:** Accounts, the last of D-337's phase 4 consumers, are
+  held at the author's call, with the authors, People, and Your Profile
+  work they'd be edited in (D-333). Nothing is built toward an `account`
+  target until that's picked up again. Public profile fields already
+  work: authors are a content type, so a field set aimed at
+  `type:author` adds fields to every author page, edited in the entry
+  editor. What's held is private, admin-only data per account (saved
+  in the account files).
+- **Why:** account fields would be edited on screens D-333 may change,
+  and the author recommended against building on that design until
+  it's settled.
+
+### D-345: A field set can go in the editor's main column
+- **Date:** 2026-10-01
+- **Status:** The `placement` key (`panel`, `main`) is superseded by
+  D-346's `role` (`details`, `content`); the editor still shows content
+  below the body.
+- **Decision:** Settles the placement part of D-337's open question, at
+  the author's call: a set may be shown below the body.
+  - **`placement`** on a set (`FieldSetPlacement`: `panel`, the default,
+    or `main`), in `FieldSet` (`fromArray()` refuses anything else,
+    `toArray()` leaves the default out), its editor JSON Schema, and
+    `DataFieldSetWriter`'s keys. `GET fields/sets` and an entry's
+    `type.sets` carry it.
+  - **The entry editor:** a `main` set's fields are below the body in
+    the writing column (`.editor__set`: past a rule, headed by the
+    set's label like the panel's groups, its help under it), not in the
+    document panel; a required one left empty is focused there without
+    opening the panel (`main-field-{name}` ids). The body keeps its
+    40vh writing area, so the fields start below it.
+  - **Elsewhere:** media files' Details and the Settings screens have
+    one column, so they show every set the same way.
+  - **The set editor:** "In the entry editor" radio buttons (in the
+    document panel, beside the text; below the body, in the main
+    column), with a note that it's for content types.
+  - **`docs/`:** Field sets in Content types (with a recipe example)
+    and Admin. A departure from the direction (custom fields in the
+    panel) is in `admin-design/departures.md`.
+- **Checked:** `composer check` (`FieldSetTest`, `AdminFieldSetsTest`
+  with a `main` set written and a bad placement refused,
+  `AdminEditingTest`); `npm run admin:build`; on the jtcom trial in
+  headless Chrome with a throwaway administrator and a throwaway `main`
+  set on posts (both removed after, with the account's sessions): a new
+  post shows the set below the body (a required number, radio buttons,
+  and a list), not in the panel.
+- **Why:** some fields are part of the writing, such as a recipe's
+  ingredients, and read better beside the text than in a sidebar.
+
+### D-346: A field set says what its fields are, not where they go
+- **Date:** 2026-10-01
+- **Status:** The fixed `role` is superseded by D-347's slots, which
+  each kind of place declares; the rule (name a purpose, never a place)
+  and the fallback stand.
+- **Supersedes:** D-345's `placement` key and its values.
+- **Decision:** The author's call, after noting that "In the entry
+  editor: the document panel / below the body" ties set files to
+  today's layout, which is likely to change (D-252). A set's `role`
+  (`FieldSetRole`) says what its fields are to the places they're added
+  to: `details` about them (the default) or part of their `content`,
+  read with their text (a recipe's ingredients). Screens map roles to
+  places; only the entry editor uses it today (details in the document
+  panel, content below the body), and screens with one column show both
+  alike. When the editor changes, only that mapping changes.
+  - **Unknown roles fall back:** a role this version doesn't know is
+    treated as details, kept as written (`FieldSet::$unknownRole`, so it
+    survives the compiled cache and the admin's edits), and
+    `content:lint` notes it. A set written for a later Blush still
+    loads. (D-345's `placement` refused unknown values.)
+  - **Renamed throughout:** the API's `placement` is `role`; the set
+    editor asks "These fields are": "Details about it, such as notes or
+    search engine settings" or "Part of its content, read with its text,
+    such as a recipe's ingredients", with "Each screen shows them where
+    they belong." The JSON Schema describes the roles, not places.
+  - **The rule for definitions:** say what a field is or how it's
+    chosen, never where it sits. (`control` stays: its vocabulary is
+    closer to intent than to layout.)
+  - The jtcom trial's Recipes example uses `role: content`.
+- **Checked:** `composer check` (`FieldSetTest`: roles and the
+  fallback kept as written; `AdminFieldSetsTest`; `LinterTest`: the
+  notice); `npm run admin:build`; the jtcom trial's `content:lint`.
+- **Why:** a baseline for set presentation that outlasts a redesign.
+  The author has larger concerns about how the Fields API is
+  architected for the future (see `open-questions.md`); this isn't
+  meant to settle them.
+
+### D-347: Slots, declared by each kind of place, and one kind a set
+- **Date:** 2026-10-01
+- **Status:** Content types' `content` slot is removed by D-348; every
+  kind offers only `details` for now. The mechanism stands.
+- **Supersedes:** D-346's `role` (a fixed `details`/`content` enum for
+  every kind) and D-337's sets mixing kinds of target.
+- **Decision:** The author's calls, after asking whether admin locations
+  should register slots that fields attach to. Slots are declared by
+  the kinds of place (PHP), not by admin screens, so set files name
+  purposes and a replacement admin (D-222) reads the same names; and a
+  set's targets are all one kind, since no use case mixes them (a field
+  is per entry on a type, site-wide on a Settings screen).
+  - **`FieldSlot`** (`name`, `label`, `description`):
+    `FieldTargetSource::slots()` lists a kind's, the first its default.
+    Content types: `details` ("Facts about each entry…") and `content`
+    ("Part of each entry, read with its text…"); media files and
+    Settings screens: `details`.
+  - **A set's `slot`** (a name, or left out for its kind's default)
+    replaces `role` and `FieldSetRole`. `FieldTargets::slotFor()` gives
+    the slot a set is in: the one it names when its kind offers it,
+    else the default, so a set written for a later Blush still loads;
+    `content:lint` notes a slot the kind doesn't offer.
+  - **One kind a set:** `FieldSet` refuses targets of more than one
+    kind ("make a set for each"); `FieldSet::kind()` names it.
+  - **The API:** a set's `kind` and `slot` (the slot it's in); targets
+    carry their `kind`; `kinds` lists each kind with its `slots`. An
+    entry's `type.sets` carry the `slot`. The writer's keys and the
+    JSON Schema have `slot`.
+  - **The admin:** the set editor's Added To asks the kind of place
+    first (radio buttons, when the site has more than one kind with
+    places), then its places, then "These fields are" with the kind's
+    slots (label and description) when it offers more than one;
+    choosing another kind keeps only that kind's places and its default
+    slot. A read-only set's screen names its slot. The entry editor
+    maps `content` below the body and every other slot to the panel.
+  - The jtcom trial's Recipes example uses `slot: content`.
+- **Checked:** `composer check` (`FieldSetTest`: slots and one kind;
+  `AdminFieldSetsTest`: kinds and slots, a mixed set refused, `slot:
+  content` written; `LinterTest`: an unknown slot, unknown kinds split
+  into their own sets); `npm run admin:build`; on the jtcom trial in
+  headless Chrome with a throwaway administrator (removed after, with
+  its sessions): the Recipe set's screen shows Kind of place, its
+  content types, and Content chosen; the Weeknight Chili editor shows
+  the set below the body; `content:lint` clean.
+- **Why:** one concept (slots) generalizes roles per kind, extensions
+  that add kinds of place declare their own, and the Fields screen can
+  offer them instead of a fixed pair. The larger architecture questions
+  remain open (`open-questions.md`).
+
+### D-348: Fields stay out of the writing area; the Fields API pauses
+- **Date:** 2026-10-01
+- **Supersedes:** D-345's fields below the body, and D-347's `content`
+  slot for content types.
+- **Decision:** At the author's call, the entry editor has no fields
+  section in its writing area: every field set is a group in the
+  document panel. Content types offer only the `details` slot, as media
+  files and Settings screens do, so nothing offers a slot no screen
+  draws; the slot mechanism (`FieldSlot`, `FieldTargetSource::slots()`,
+  a set's `slot`, the fallback and its lint notice) stays for later.
+  The set editor asks no slot question while each kind has one. The
+  jtcom trial's Recipes example drops `slot: content` and shows both
+  its sets in the panel.
+  - **The Fields API pauses here.** The author thinks there's more to
+    get right in its design, so D-337 to D-348 are a baseline, not
+    settled; nothing more is built on fields until the author picks it
+    up again (see `open-questions.md`).
+- **Checked:** `composer check`; `npm run admin:build`; the jtcom
+  trial's `content:lint`.
+- **Why:** the author wants the writing area to stay the text's.

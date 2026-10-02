@@ -60,12 +60,12 @@ that opt in, with archives under each type, one People list, and
 Your Profile as the editor of your author page (D-329 to D-332; an
 exploration that's kept but on hold while the author thinks it over,
 D-333).
-Next: the
-Fields API (D-337: field sets attached to targets, a control
-vocabulary, and Structure → Fields; content types first; phase 1, the
-controls, catalog, and `Blush\Field`, is done, D-338, phase 2,
-field sets on content types, D-339, and phase 3, Structure → Fields,
-D-340; phase 4 brings other consumers onto it); more
+The Fields
+API (D-337 to D-348: field types and controls, field sets on content
+types, media, and the Settings screens, slots, and Structure → Fields)
+is paused as a baseline: the author thinks there's more to get right,
+so build nothing more on it until it's picked up again (D-348).
+Next: more
 of media; and more of the Markdown editing experience (live
 preview is unsettled; see `open-questions.md`); see `.claude/docs/roadmap.md`.
 Admin app sources are in `resources/admin/`; rebuild with

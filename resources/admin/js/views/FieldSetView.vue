@@ -48,6 +48,13 @@ const origin = computed(() => ({
 	data: 'user/data/fields'
 })[set.value?.origin ?? 'config']);
 
+// The slot it's in (D-347), when its kind offers more than one.
+const slot = computed(() => {
+	const slots = set.value?.kinds.find((item) => item.kind === set.value?.kind)?.slots ?? [];
+
+	return slots.length > 1 ? slots.find((item) => item.name === set.value?.slot) ?? null : null;
+});
+
 // A type's name in the address of its screen, from a target's key.
 function typeOf(key: string): string {
 	return key.startsWith('type:') ? key.slice(5) : '';
@@ -70,7 +77,7 @@ function typeOf(key: string): string {
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<FieldSetEditor v-if="set?.editable" :set="set" :options="set.options" @saved="set = $event" />
+	<FieldSetEditor v-if="set?.editable" :set="set" :options="set.options" :kinds="set.kinds" @saved="set = $event" />
 
 	<div v-else-if="set" class="set-detail">
 		<section class="panel" aria-labelledby="targets-heading">
@@ -82,10 +89,12 @@ function typeOf(key: string): string {
 				<ul v-if="set.targets.length" class="chips">
 					<li v-for="target in set.targets" :key="target.key">
 						<RouterLink v-if="target.found && typeOf(target.key)" :to="{ name: 'content-type', params: { name: typeOf(target.key) } }">{{ target.label }}</RouterLink>
-						<span v-else class="chips__missing mono" title="Not a content type on this site">{{ target.key }}<span class="visually-hidden"> (not a content type on this site)</span></span>
+						<span v-else-if="target.found" class="chips__item">{{ target.label }}</span>
+						<span v-else class="chips__missing mono" title="The site doesn't have this">{{ target.key }}<span class="visually-hidden"> (the site doesn't have this)</span></span>
 					</li>
 				</ul>
-				<p v-else class="field__help">No content types yet.</p>
+				<p v-else class="field__help">Nowhere yet.</p>
+				<p v-if="slot" class="field__help">In the <strong>{{ slot.label }}</strong> slot: {{ slot.description }}</p>
 			</div>
 		</section>
 
@@ -152,6 +161,7 @@ function typeOf(key: string): string {
 }
 
 .chips a,
+.chips__item,
 .chips__missing {
 	display: inline-block;
 	padding: 2px 10px;

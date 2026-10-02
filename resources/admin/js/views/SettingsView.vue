@@ -8,6 +8,12 @@
  * whether it's still the default, with help where it needs it and a
  * warning where it's risky.
  *
+ * Each setting is edited as a field (D-343), with the control the server
+ * names (`FieldInput`, as every form draws them). After a screen's own
+ * panels, each field set on it adds a panel of its settings, saved in
+ * `settings.json`'s `site` section, with no config value behind them: a
+ * saved one can be cleared instead.
+ *
  * Saved settings live in `user/data/settings.json` and win over `config/`.
  * A saved one offers its config value back ("Use config/app.php's"),
  * which is a change like any other until it's saved. A save that changes
@@ -19,8 +25,9 @@
 import { computed, ref, watch } from 'vue';
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import AdminSelect from '../components/AdminSelect.vue';
-import { ApiError, request, type SettingGroup, type SettingItem, type SettingValue } from '../api';
+import FieldInput from '../components/FieldInput.vue';
+import { ApiError, request, type FieldDescription, type SettingGroup, type SettingItem } from '../api';
+import { control, fromForm, toForm, type FormValue } from '../fields';
 import { screenTitle, screenTrail } from '../screen';
 import { toast } from '../toast';
 
@@ -35,8 +42,11 @@ const screens: Record<string, { title: string; hint: string }> = {
 
 const groups  = ref<SettingGroup[] | null>(null);
 const error   = ref('');
-const form    = ref<Record<string, SettingValue>>({});
-const initial = ref<Record<string, SettingValue>>({});
+const form    = ref<Record<string, FormValue>>({});
+const initial = ref<Record<string, FormValue>>({});
+// Each setting's field and the value it was loaded with, by setting.
+const fields  = ref<Record<string, FieldDescription>>({});
+const inputs  = ref<Record<string, unknown>>({});
 const unset   = ref<string[]>([]);
 const saving  = ref(false);
 const failure = ref('');
@@ -48,33 +58,31 @@ const editable = computed(() => Object.keys(initial.value).length > 0);
 const changed = computed(() => Object.keys(form.value).filter((key) => !same(form.value[key], initial.value[key]) && !unset.value.includes(key)));
 const count   = computed(() => changed.value.length + unset.value.length);
 
-// What the checkbox beside a setting says.
-const checkboxText: Record<string, string> = {
-	'routes.trailingSlash': 'Addresses end in a slash',
-	'feed.content': 'Feeds carry each entry\'s full content',
-	'sitemap.enabled': 'The site has a sitemap and robots.txt'
-};
-
 async function load(): Promise<void> {
 	const screen = props.screen;
 
 	try {
 		const answer = await request<{ groups: SettingGroup[] }>('GET', `/settings/${screen}`);
-		const values: Record<string, SettingValue> = {};
+		const values: Record<string, FormValue> = {};
 
 		if (screen !== props.screen) {
 			return;
 		}
 
+		fields.value = {};
+		inputs.value = {};
+
 		for (const item of answer.groups.flatMap((group) => group.items)) {
-			if (item.setting !== undefined && item.input !== undefined) {
-				values[item.setting] = copy(item.input);
+			if (item.setting !== undefined && item.field !== undefined) {
+				values[item.setting]       = toForm(item.field, item.input);
+				fields.value[item.setting] = item.field;
+				inputs.value[item.setting] = item.input;
 			}
 		}
 
 		groups.value  = answer.groups;
 		form.value    = values;
-		initial.value = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, copy(value)]));
+		initial.value = { ...values };
 		unset.value   = [];
 		error.value   = '';
 	} catch (caught) {
@@ -82,22 +90,29 @@ async function load(): Promise<void> {
 	}
 }
 
-function copy(value: SettingValue): SettingValue {
-	return Array.isArray(value) ? [...value] : value;
+function same(a: FormValue | undefined, b: FormValue | undefined): boolean {
+	return a === b;
 }
 
-function same(a: SettingValue | undefined, b: SettingValue | undefined): boolean {
-	return JSON.stringify(a) === JSON.stringify(b);
+// Whether a setting is one a field set adds (D-343), with no config value
+// behind it.
+function isSite(setting: string): boolean {
+	return setting.startsWith('site.');
 }
 
-// The value a setting is sent as: lines without blanks, and the home
-// page's `''` as `null`.
-function outgoing(setting: string, value: SettingValue): SettingValue | null {
-	if (setting === 'content.home' && value === '') {
-		return null;
+// The value a setting is sent as, from its form state. A built-in list
+// left empty is an empty list (no feed formats); a field set's setting
+// left empty is removed.
+function outgoing(setting: string, value: FormValue): unknown {
+	const field = fields.value[setting];
+
+	if (field === undefined) {
+		return value;
 	}
 
-	return Array.isArray(value) ? value.map((line) => line.trim()).filter((line) => line !== '') : value;
+	const sent = fromForm(field, value, inputs.value[setting]);
+
+	return sent === null && field.type === 'list' && !isSite(setting) ? [] : sent;
 }
 
 async function save(): Promise<void> {
@@ -126,7 +141,7 @@ async function save(): Promise<void> {
 }
 
 function revert(): void {
-	form.value    = Object.fromEntries(Object.entries(initial.value).map(([key, value]) => [key, copy(value)]));
+	form.value    = { ...initial.value };
 	unset.value   = [];
 	failure.value = '';
 }
@@ -138,32 +153,8 @@ function useConfig(setting: string, on: boolean): void {
 	const saved = initial.value[setting];
 
 	if (on && saved !== undefined) {
-		form.value[setting] = copy(saved);
+		form.value[setting] = saved;
 	}
-}
-
-function lines(setting: string): string {
-	const value = form.value[setting];
-
-	return Array.isArray(value) ? value.join('\n') : '';
-}
-
-function setLines(setting: string, text: string): void {
-	form.value[setting] = text.split('\n');
-}
-
-function checked(setting: string, value: string): boolean {
-	const list = form.value[setting];
-
-	return Array.isArray(list) && list.includes(value);
-}
-
-function check(setting: string, value: string, on: boolean, options: { value: string }[]): void {
-	const list = form.value[setting];
-	const next = Array.isArray(list) ? list.filter((item) => item !== value) : [];
-
-	// Kept in the options' order, as the server saves them.
-	form.value[setting] = options.map((option) => option.value).filter((option) => option === value ? on : next.includes(option));
 }
 
 function stringValue(setting: string): string {
@@ -207,6 +198,13 @@ function changeWarning(item: SettingItem): string | null {
 	}
 
 	return null;
+}
+
+// Whether a setting's control is a group of options, labeled by its row.
+function isGroup(item: SettingItem): boolean {
+	const kind = item.field === undefined ? 'text' : control(item.field);
+
+	return kind === 'checkbox' || kind === 'radios' || kind === 'checks';
 }
 
 // Text with backticks marking code, as parts.
@@ -268,24 +266,30 @@ onBeforeRouteUpdate(leave);
 			</header>
 			<div class="panel__body settings__items">
 				<div v-for="item in group.items" :key="item.key" class="setting">
-					<template v-if="item.setting !== undefined">
-						<label v-if="item.control !== 'checks' && item.control !== 'checkbox'" class="setting__label" :for="`setting-${item.key}`">{{ item.label }}</label>
+					<template v-if="item.setting !== undefined && item.field !== undefined">
+						<label v-if="!isGroup(item)" class="setting__label" :for="`setting-${item.key}`">{{ item.label }}</label>
 						<span v-else :id="`setting-${item.key}-label`" class="setting__label">{{ item.label }}</span>
 
 						<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
-							<input v-if="item.control === 'text' || item.control === 'mono'" :id="`setting-${item.key}`" v-model="form[item.setting]" :class="{ mono: item.control === 'mono' }" type="text" autocomplete="off" :spellcheck="item.control === 'text'" :disabled="unset.includes(item.setting)" :aria-describedby="`setting-${item.key}-help`">
-							<AdminSelect v-else-if="item.control === 'select'" :id="`setting-${item.key}`" :model-value="stringValue(item.setting)" :options="item.options ?? []" :disabled="unset.includes(item.setting)" :described-by="`setting-${item.key}-help`" @update:model-value="form[item.setting!] = $event" />
-							<input v-else-if="item.control === 'number'" :id="`setting-${item.key}`" v-model.number="form[item.setting]" class="setting__number" type="number" min="1" max="100" step="1" :disabled="unset.includes(item.setting)" :aria-describedby="`setting-${item.key}-help`">
-							<textarea v-else-if="item.control === 'lines'" :id="`setting-${item.key}`" class="mono" rows="3" spellcheck="false" :value="lines(item.setting)" :disabled="unset.includes(item.setting)" :aria-describedby="`setting-${item.key}-help`" @input="setLines(item.setting!, ($event.target as HTMLTextAreaElement).value)" />
-							<label v-else-if="item.control === 'checkbox'" class="checkbox"><input v-model="form[item.setting]" type="checkbox" :disabled="unset.includes(item.setting)" :aria-labelledby="`setting-${item.key}-label`" :aria-describedby="`setting-${item.key}-help`"> {{ checkboxText[item.setting] ?? 'On' }}</label>
-							<div v-else-if="item.control === 'checks'" class="setting__checks" role="group" :aria-labelledby="`setting-${item.key}-label`" :aria-describedby="`setting-${item.key}-help`">
-								<label v-for="option in item.options ?? []" :key="option.value" class="checkbox"><input type="checkbox" :checked="checked(item.setting, option.value)" :disabled="unset.includes(item.setting)" @change="check(item.setting!, option.value, ($event.target as HTMLInputElement).checked, item.options ?? [])"> {{ option.label }}</label>
-							</div>
+							<FieldInput
+								:model-value="form[item.setting] ?? ''"
+								:field="item.field"
+								:id="`setting-${item.key}`"
+								:described-by="`setting-${item.key}-help`"
+								:labelled-by="`setting-${item.key}-label`"
+								:disabled="unset.includes(item.setting)"
+								@update:model-value="form[item.setting!] = $event"
+							/>
 
 							<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
 							<p :id="`setting-${item.key}-help`" class="field__help">
 								<template v-if="liveHelp(item)">{{ liveHelp(item) }}</template>
-								<span class="setting__source">
+								<span v-if="isSite(item.setting)" class="setting__source">
+									<template v-if="unset.includes(item.setting)">Cleared once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep it</button></template>
+									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Clear it</button></template>
+									<template v-else>Not saved yet.</template>
+								</span>
+								<span v-else class="setting__source">
 									<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s value once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved one</button></template>
 									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s value</button></template>
 									<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
@@ -374,11 +378,12 @@ onBeforeRouteUpdate(leave);
 	opacity: .6;
 }
 
-.setting__number {
+.setting__control input[type="number"] {
 	max-width: 8rem;
 }
 
-.setting__checks {
+/* A setting's options sit in a row, as the screen's design has them. */
+.setting__control :deep(.field-input__choices) {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--s-2) var(--s-4);

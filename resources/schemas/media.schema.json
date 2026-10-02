@@ -4,6 +4,13 @@
 	"description": "A media file's metadata, kept in user/data/media: the built-in fields (alt is for images). Sites and extensions add their own.",
 	"type": "object",
 	"properties": {
+		"alt": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "Alt text: What the image shows, for anyone who can't see it."
+		},
 		"title": {
 			"type": [
 				"string",
@@ -31,13 +38,6 @@
 				"number"
 			],
 			"description": "A longer description, for the library."
-		},
-		"alt": {
-			"type": [
-				"string",
-				"number"
-			],
-			"description": "Alt text: What the image shows, for anyone who can't see it."
 		}
 	}
 }

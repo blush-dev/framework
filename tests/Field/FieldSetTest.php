@@ -59,6 +59,27 @@ final class FieldSetTest extends TestCase
 		$this->assertEquals($set, FieldSet::fromArray($set->toArray(), $this->fields));
 	}
 
+	public function testNamesASlotOrLeavesItToItsKind(): void
+	{
+		$content = FieldSet::fromArray(['name' => 'recipe', 'targets' => ['type:recipe'], 'slot' => 'content'], $this->fields);
+
+		$this->assertSame('content', $content->slot);
+		$this->assertSame('type', $content->kind());
+		$this->assertSame('content', $content->toArray()['slot'] ?? null);
+		$this->assertNull(new FieldSet('seo')->slot, 'Its kind\'s default.');
+		$this->assertNull(new FieldSet('seo')->kind());
+		$this->assertArrayNotHasKey('slot', new FieldSet('seo')->toArray());
+		$this->assertEquals($content, FieldSet::fromArray($content->toArray(), $this->fields));
+	}
+
+	public function testTargetsAreOneKind(): void
+	{
+		$this->expectException(InvalidSchema::class);
+		$this->expectExceptionMessage('Field set "seo" targets more than one kind of place (type, settings); a set\'s targets are all one kind, so make a set for each.');
+
+		new FieldSet('seo', [], ['type:post', 'settings:general']);
+	}
+
 	public function testLabelsItselfFromItsName(): void
 	{
 		$set = new FieldSet('recipe_extras');

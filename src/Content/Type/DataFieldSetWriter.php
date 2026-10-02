@@ -25,6 +25,7 @@ use Blush\Field\FieldConfig;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSetLoader;
+use Blush\Field\FieldTargets;
 use Blush\Field\InvalidSchema;
 use Blush\Support\Filesystem;
 
@@ -32,17 +33,18 @@ use Blush\Support\Filesystem;
  * Writes the field sets the site defines in data, `user/data/fields/{name}`
  * (D-337), for the admin: creates one, changes it, and deletes one.
  *
- * Changes are given by key (`label`, `description`, `targets`, and
- * `fields`); `null` removes one. They're applied to the file's own data
+ * Changes are given by key (`label`, `description`, `targets`, `slot`,
+ * and `fields`); `null` removes one. They're applied to the file's own data
  * and the set is built from that (`FieldSet::fromArray()`), so it's
  * checked as the loader checks it; each changed key is then written as
  * the set itself writes it (`FieldSet::toArray()`: no label its name
  * gives, and no field classes). Everything else in the file is left as
  * the author wrote it, comments included. A new set is a YAML file.
  *
- * Since a set's fields join the types it targets, each change is checked
- * against every type before it's kept: the file is written, the types are
- * loaded again (`ContentTypeLoader`), and when a field clashes, the file
+ * Since a set's fields join the places it targets, each change is checked
+ * against all of them before it's kept: the file is written, the types
+ * are loaded again (`ContentTypeLoader`), every target's schema is built
+ * with the new sets (`FieldTargets`), and when a field clashes, the file
  * is put back. Writes take the content types' lock (`DataTypeWriter`'s),
  * so a set and a type can't be written at once.
  */
@@ -53,7 +55,7 @@ final readonly class DataFieldSetWriter
 	 *
 	 * @var list<string>
 	 */
-	public const array KEYS = ['label', 'description', 'targets', 'fields'];
+	public const array KEYS = ['label', 'description', 'targets', 'slot', 'fields'];
 
 	/**
 	 * @param Closure(): ContentTypeLoader $loader
@@ -64,6 +66,7 @@ final readonly class DataFieldSetWriter
 		private DataLoader $data,
 		private FieldFactory $fields,
 		private Filesystem $filesystem,
+		private FieldTargets $targets,
 		#[Defer(ContentTypeLoader::class)] private Closure $loader
 	) {}
 
@@ -208,15 +211,30 @@ final readonly class DataFieldSetWriter
 	}
 
 	/**
-	 * Loads every type again, putting the file back when a set doesn't
-	 * fit.
+	 * Loads every type again and checks the sets against every other
+	 * place they attach to (media kinds, D-341), putting the file back
+	 * when a set doesn't fit.
 	 *
 	 * @throws InvalidContentType
 	 */
 	private function checked(string $path, ?string $before): ContentTypes
 	{
 		try {
-			return ($this->loader)()->load();
+			$types = ($this->loader)()->load();
+
+			try {
+				$problems = $this->targets->problems($types->sets);
+			} catch (InvalidSchema $error) {
+				throw new InvalidContentType($error->getMessage(), previous: $error);
+			}
+
+			$first = array_first(array_merge(...array_values($problems)));
+
+			if ($first !== null) {
+				throw new InvalidContentType($first);
+			}
+
+			return $types;
 		} catch (InvalidContentType $error) {
 			if ($before === null) {
 				@unlink($path);

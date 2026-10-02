@@ -34,7 +34,7 @@ function origin(set: FieldSetSummary): string {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">Fields</h1>
-			<p class="page-header__hint">Groups of fields added to content types, beside each type's own.</p>
+			<p class="page-header__hint">Groups of fields added to content types and media files, beside their own.</p>
 		</div>
 		<div v-if="list?.create" class="page-header__actions">
 			<RouterLink class="button button--primary" :to="{ name: 'field-set-new' }"><AdminIcon name="plus" />New Field Set</RouterLink>
@@ -72,7 +72,7 @@ function origin(set: FieldSetSummary): string {
 							</span>
 						</th>
 						<td>
-							<template v-for="(target, index) in set.targets" :key="target.key">{{ index > 0 ? ', ' : '' }}<span :class="{ 'set-target--missing': !target.found }" :title="target.found ? undefined : 'Not a content type on this site'">{{ target.label }}<span v-if="!target.found" class="visually-hidden"> (not a content type on this site)</span></span></template>
+							<template v-for="(target, index) in set.targets" :key="target.key">{{ index > 0 ? ', ' : '' }}<span :class="{ 'set-target--missing': !target.found }" :title="target.found ? undefined : 'The site doesn\'t have this'">{{ target.label }}<span v-if="!target.found" class="visually-hidden"> (the site doesn't have this)</span></span></template>
 							<span v-if="!set.targets.length" class="set-target--missing">Nothing yet</span>
 						</td>
 						<td :class="{ mono: set.origin !== 'extension' }">{{ origin(set) }}</td>

@@ -38,5 +38,5 @@ request<FieldSetList>('GET', '/fields/sets').then((answer) => {
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<FieldSetEditor v-if="list?.create" :set="null" :options="list.targets" />
+	<FieldSetEditor v-if="list?.create" :set="null" :options="list.targets" :kinds="list.kinds" />
 </template>

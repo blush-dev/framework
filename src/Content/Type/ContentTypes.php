@@ -39,7 +39,8 @@ use Blush\Field\Schema;
  * then the authors field when the type supports authors (D-329), then
  * the type's own fields (which may replace any of them), then the fields
  * of the field sets attached to it (`type:{name}`, D-337), in set name
- * order, which may not reuse any name or alias before them.
+ * order, which may not reuse any name or alias before them
+ * (`FieldSets::schemaFor()`).
  *
  * @implements IteratorAggregate<string, ContentType>
  */
@@ -202,14 +203,12 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 */
 	public function setsFor(string $name): array
 	{
-		return $this->sets->for(new ContentTypeTarget($this->get($name))->key());
+		return $this->sets->for(ContentTypeTarget::keyFor($this->get($name)->name));
 	}
 
 	/**
-	 * Returns a type's full schema: the built-in entry fields, every
-	 * taxonomy's term field, the authors field when the type supports
-	 * authors, a hierarchical taxonomy's `parent`, the type's own fields,
-	 * then its field sets' fields.
+	 * Returns a type's full schema: its own (`ownSchema()`), then its
+	 * field sets' fields (`FieldSets::schemaFor()`).
 	 *
 	 * @throws InvalidContentType When the fields clash, or the type won't
 	 *                            take a set's field.
@@ -220,13 +219,35 @@ final class ContentTypes implements IteratorAggregate, Countable
 			return $this->schemas[$name];
 		}
 
+		try {
+			$schema = $this->sets->schemaFor(new ContentTypeTarget($this, $this->get($name)));
+		} catch (InvalidSchema $e) {
+			throw $e->getPrevious() instanceof InvalidContentType
+				? $e->getPrevious()
+				: new InvalidContentType($e->getMessage(), previous: $e);
+		}
+
+		return $this->schemas[$name] = $schema;
+	}
+
+	/**
+	 * Returns a type's schema before its field sets: the built-in entry
+	 * fields, every taxonomy's term field, the authors field when the type
+	 * supports authors, a hierarchical taxonomy's `parent`, then the
+	 * type's own fields.
+	 *
+	 * @throws InvalidContentType When the fields clash.
+	 */
+	public function ownSchema(string $name): Schema
+	{
 		$type = $this->get($name);
 
 		try {
 			$terms   = array_values(array_map(static fn (Taxonomy $taxonomy): Field => $taxonomy->termField(), $this->taxonomies()));
 			$authors = $type->authors ? $this->authors()?->termField() : null;
 			$parent  = $type instanceof Taxonomy ? $type->parentField() : null;
-			$schema  = new Schema([
+
+			return new Schema([
 				...array_values(EntryFields::schema()->fields),
 				...$terms,
 				...($authors === null ? [] : [$authors]),
@@ -235,24 +256,6 @@ final class ContentTypes implements IteratorAggregate, Countable
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType(sprintf('Content type "%s" has clashing fields: %s', $name, $e->getMessage()), previous: $e);
 		}
-
-		$target = new ContentTypeTarget($type);
-
-		foreach ($this->sets->for($target->key()) as $set) {
-			foreach ($set->schema->fields as $field) {
-				if (! $target->accepts($field)) {
-					throw new InvalidContentType(sprintf('Content type "%s" doesn\'t take field set "%s" field "%s".', $name, $set->name, $field->name));
-				}
-			}
-
-			try {
-				$schema = new Schema([...array_values($schema->fields), ...array_values($set->schema->fields)], $schema->closed);
-			} catch (InvalidSchema $e) {
-				throw new InvalidContentType(sprintf('Content type "%s" can\'t take field set "%s": %s', $name, $set->name, $e->getMessage()), previous: $e);
-			}
-		}
-
-		return $this->schemas[$name] = $schema;
 	}
 
 	/**

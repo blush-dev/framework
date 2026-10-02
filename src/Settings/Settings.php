@@ -20,14 +20,27 @@ use Blush\Config\InvalidConfig;
  * The settings saved in the admin (D-324): only the ones the site owner
  * changed, each checked by its `Setting`. `apply()` lays them over the
  * config objects, so a saved setting wins over `config/` and `.env`.
+ *
+ * The `site` section holds the values of settings field sets add to the
+ * Settings screens (D-343), by field name, as they were sent. The sets
+ * load after the bootstrap reads this file, so those values are checked
+ * by their fields where they're saved and read (`SiteSettings`), not
+ * here.
  */
 final readonly class Settings
 {
 	/**
+	 * The section that holds field sets' settings.
+	 */
+	public const string SITE = 'site';
+
+	/**
 	 * @param array<string, mixed> $values Normalized values, keyed by `Setting` value.
+	 * @param array<string, mixed> $site   Field sets' settings, by field name.
 	 */
 	private function __construct(
-		private array $values = []
+		private array $values = [],
+		private array $site = []
 	) {}
 
 	/**
@@ -48,10 +61,17 @@ final readonly class Settings
 	public static function fromArray(array $data): self
 	{
 		$flat = [];
+		$site = [];
 
 		foreach ($data as $section => $values) {
 			if (! is_array($values) || ($values !== [] && array_is_list($values))) {
 				throw new InvalidSetting(sprintf('"%s" must be an object of settings.', $section));
+			}
+
+			if ($section === self::SITE) {
+				$site = array_combine(array_map(strval(...), array_keys($values)), array_values($values));
+
+				continue;
 			}
 
 			foreach ($values as $key => $value) {
@@ -61,7 +81,7 @@ final readonly class Settings
 			}
 		}
 
-		return self::none()->with($flat);
+		return self::none()->with($flat)->withSite($site);
 	}
 
 	/**
@@ -81,7 +101,40 @@ final readonly class Settings
 			$values[$setting->value] = $setting->normalize($value);
 		}
 
-		return new self(self::ordered($values));
+		return new self(self::ordered($values), $this->site);
+	}
+
+	/**
+	 * Returns a copy with field sets' settings set, by field name, as
+	 * they're sent; `null` removes one. Their fields check them.
+	 *
+	 * @param array<string, mixed> $values
+	 */
+	public function withSite(array $values): self
+	{
+		$site = $this->site;
+
+		foreach ($values as $name => $value) {
+			if ($value === null) {
+				unset($site[$name]);
+			} else {
+				$site[$name] = $value;
+			}
+		}
+
+		ksort($site, SORT_STRING);
+
+		return new self($this->values, $site);
+	}
+
+	/**
+	 * Field sets' settings, by field name.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function site(): array
+	{
+		return $this->site;
 	}
 
 	/**
@@ -96,7 +149,7 @@ final readonly class Settings
 			unset($values[$setting->value]);
 		}
 
-		return new self($values);
+		return new self($values, $this->site);
 	}
 
 	/**
@@ -120,7 +173,7 @@ final readonly class Settings
 	 */
 	public function isEmpty(): bool
 	{
-		return $this->values === [];
+		return $this->values === [] && $this->site === [];
 	}
 
 	/**
@@ -157,7 +210,7 @@ final readonly class Settings
 
 	/**
 	 * The saved values as the file holds them: by section, then key, in
-	 * the enum's order.
+	 * the enum's order, then field sets' settings by name.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
@@ -169,6 +222,10 @@ final readonly class Settings
 			if ($this->has($setting)) {
 				$sections[$setting->section()][$setting->key()] = $this->values[$setting->value];
 			}
+		}
+
+		if ($this->site !== []) {
+			$sections[self::SITE] = $this->site;
 		}
 
 		return $sections;

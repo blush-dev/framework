@@ -24,9 +24,13 @@ use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Feed\FeedConfig;
+use Blush\Settings\SiteSettings;
+use Blush\Settings\SettingsTargets;
 
 #[CoversClass(SettingsController::class)]
 #[CoversClass(SettingsEditController::class)]
+#[CoversClass(SiteSettings::class)]
+#[CoversClass(SettingsTargets::class)]
 final class AdminSettingsTest extends TestCase
 {
 	use BootsAdmin;
@@ -86,12 +90,18 @@ final class AdminSettingsTest extends TestCase
 
 		$home = $this->setting($reading, 'home', 'home');
 		$this->assertSame('content.home', $home['setting'] ?? null);
-		$this->assertSame('select', $home['control'] ?? null);
+		$field = is_array($home['field'] ?? null) ? $home['field'] : [];
+		$this->assertSame('select', $field['control'] ?? null, 'Edited as a field (D-343).');
+		$this->assertSame(['post'], $field['options'] ?? null);
+		$this->assertSame(['post' => 'The latest posts'], $field['choices'] ?? null);
+		$this->assertSame('The page at user/content/index.md', $field['caption'] ?? null);
 		$this->assertSame('post', $home['input'] ?? null);
-		$this->assertSame(['', 'post'], array_column(is_array($home['options'] ?? null) ? $home['options'] : [], 'value'));
 		$this->assertFalse($home['saved'] ?? null);
 		$this->assertSame('config/content.php', $home['file'] ?? null);
 		$this->assertSame(['rss', 'atom', 'json'], $this->setting($reading, 'feeds', 'formats')['input'] ?? null);
+		$formats = $this->setting($reading, 'feeds', 'formats')['field'] ?? null;
+		$this->assertSame('checks', is_array($formats) ? $formats['control'] ?? null : null);
+		$this->assertSame(1, is_array($this->setting($reading, 'feeds', 'limit')['field'] ?? null) ? $this->setting($reading, 'feeds', 'limit')['field']['min'] ?? null : null);
 
 		$url = $this->setting($general, 'site', 'url');
 		$this->assertArrayNotHasKey('setting', $url, 'The address stays in config, beside the name.');
@@ -152,6 +162,39 @@ final class AdminSettingsTest extends TestCase
 
 		$this->assertFalse(self::json($this->write('PATCH', '/settings', ['unset' => ['feed.content']]))['refresh'] ?? null);
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings.json', 'Nothing saved removes the file.');
+	}
+
+	public function testFieldSetsAddSettings(): void
+	{
+		$this->writeTemporaryFile('user/data/fields/brand.yaml', "label: Brand\ndescription: How the site presents itself.\ntargets: [settings:general]\nfields:\n  tagline:\n    required: true\n  accent:\n    type: enum\n    options: [red, blue]\n    default: blue\n");
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$general = self::json($this->send('GET', '/settings/general'));
+		$groups  = is_array($general['groups'] ?? null) ? $general['groups'] : [];
+
+		$this->assertSame(['site', 'dates', 'environment', 'set-brand'], array_column($groups, 'key'), 'A set\'s group after the screen\'s own.');
+		$tagline = $this->setting($general, 'set-brand', 'site-tagline');
+		$this->assertSame('site.tagline', $tagline['setting'] ?? null);
+		$this->assertFalse($tagline['saved'] ?? null);
+		$this->assertNull($tagline['file'] ?? null);
+		$this->assertSame('blue', $this->setting($general, 'set-brand', 'site-accent')['input'] ?? null, 'Its default until it\'s saved.');
+		$this->assertSame('How the site presents itself.', array_column($groups, 'hint', 'key')['set-brand'] ?? null);
+
+		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['site.accent' => 'green']])->getStatusCode());
+		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['site.tagline' => '']])->getStatusCode(), 'Required.');
+		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['site.nope' => 'x']])->getStatusCode());
+
+		$saved = self::json($this->write('PATCH', '/settings', ['set' => ['site.tagline' => 'Notes from the field', 'app.name' => 'Field Notes']]));
+		$this->assertSame(['app' => ['name' => 'Field Notes'], 'site' => ['tagline' => 'Notes from the field']], $saved['saved'] ?? null);
+		$this->assertFalse($saved['refresh'] ?? null);
+
+		$site = $this->scratchApplication()->container()->make(SiteSettings::class);
+		$this->assertSame('Notes from the field', $site->get('tagline'));
+		$this->assertSame('blue', $site->get('accent'), 'A field\'s default.');
+		$this->assertSame('fallback', $site->get('missing', 'fallback'));
+
+		$this->assertSame(['app' => ['name' => 'Field Notes']], self::json($this->write('PATCH', '/settings', ['unset' => ['site.tagline']]))['saved'] ?? null);
 	}
 
 	public function testRefusesValuesThatDontFit(): void

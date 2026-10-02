@@ -227,9 +227,10 @@ function fieldsOf(detail: EntryDetail | NewEntryDetail | null): FieldDescription
 
 const fields    = computed(() => fieldsOf(entry.value));
 
-// The field sets attached to the type (D-337), each a group of its own
-// under its label, with its fields in the set's order. Their fields stay
-// out of the panel's other groups.
+// The field sets attached to the type (D-337), each a group of its own in
+// the document panel under its label, with its fields in the set's order;
+// fields stay out of the writing area (D-348). Their fields stay out of
+// the panel's other groups.
 const setGroups = computed(() => (entry.value?.type.sets ?? []).map((set) => ({
 	...set,
 	fields: set.fields.flatMap((name) => fields.value.filter((field) => field.name === name))

@@ -532,7 +532,7 @@ final class AdminEditingTest extends TestCase
 		$entry = $this->load(self::FLAME);
 		$type  = is_array($entry['type'] ?? null) ? $entry['type'] : [];
 
-		$this->assertSame([['name' => 'feelings', 'label' => 'Feelings', 'description' => 'How it felt to write.', 'fields' => ['mood']]], $type['sets'] ?? null);
+		$this->assertSame([['name' => 'feelings', 'label' => 'Feelings', 'description' => 'How it felt to write.', 'slot' => 'details', 'fields' => ['mood']]], $type['sets'] ?? null);
 		$this->assertSame('radios', array_column(is_array($type['fields'] ?? null) ? $type['fields'] : [], 'control', 'name')['mood'] ?? null);
 		$this->assertSame('hopeful', is_array($entry['values'] ?? null) ? $entry['values']['mood'] ?? null : null, 'A set\'s field is a value, not other front matter.');
 		$this->assertSame([], $entry['extra'] ?? null);

@@ -17,16 +17,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\MediaListController;
-use Blush\Field\Fields\TextField;
-use Blush\Media\MediaFieldSet;
-use Blush\Media\MediaFieldSource;
+use Blush\Config\InvalidConfig;
 use Blush\Media\MediaKind;
+use Blush\Media\MediaKindTarget;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaSchemas;
 use Blush\Tests\Fixtures\Media\TaggedJpeg;
 
 #[CoversClass(MediaKind::class)]
-#[CoversClass(MediaFieldSet::class)]
+#[CoversClass(MediaKindTarget::class)]
 #[CoversClass(MediaSchemas::class)]
 #[CoversClass(MediaListController::class)]
 #[CoversClass(MediaMetadataStore::class)]
@@ -44,8 +43,8 @@ final class AdminMediaFieldsTest extends TestCase
 		$this->writeTemporaryFile('user/media/photo.png', (string) base64_decode(self::PNG, true));
 
 		if ($fields) {
-			$this->writeTemporaryFile('config/media.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Media\\MediaConfig::fromArray(['fields' => ['image' => [['name' => 'photographer', 'aliases' => ['shot_by']]], 'all' => [['name' => 'credit', 'required' => true]]]]);\n");
-			$this->writeTemporaryFile('user/data/media-fields.yml', "all:\n  - name: license\n    type: enum\n    options: [cc-by, all-rights]\n");
+			$this->writeTemporaryFile('user/data/fields/photo.yaml', "label: Photo\ntargets: [media:image]\nfields:\n  - name: photographer\n    aliases: [shot_by]\n");
+			$this->writeTemporaryFile('user/data/fields/rights.yaml', "targets: [media:image, media:video, media:audio, media:file]\nfields:\n  - name: license\n    type: enum\n    options: [cc-by, all-rights]\n    required: true\n");
 		}
 
 		$this->boot();
@@ -103,24 +102,30 @@ final class AdminMediaFieldsTest extends TestCase
 		$this->assertSame(['alt', 'title', 'caption', 'credit', 'description'], self::names(self::json($this->send('GET', '/media/photo.png'))['fields'] ?? null));
 	}
 
-	public function testSitesAndExtensionsAddFields(): void
+	public function testFieldSetsAddFieldsByKind(): void
 	{
 		$this->site();
 
-		$container = $this->app->container();
-		$container->instance('acme.fields', new class implements MediaFieldSource {
-			public function fieldSets(): iterable
-			{
-				yield new MediaFieldSet([new TextField('camera')], MediaKind::Image);
-				yield new MediaFieldSet([new TextField('artist')], MediaKind::Audio);
-			}
-		});
-		$container->tag('acme.fields', MediaFieldSource::TAG);
-
 		$file = self::json($this->send('GET', '/media/photo.png'));
 
-		$this->assertSame(['alt', 'camera', 'photographer', 'title', 'caption', 'credit', 'description', 'license'], self::names($file['fields'] ?? null), 'The image\'s, then every kind\'s, each in order.');
-		$this->assertContains(['field' => 'credit', 'message' => 'is required.', 'severity' => 'error'], (array) ($file['violations'] ?? []), 'The config replaced the built-in credit.');
+		$this->assertSame(['alt', 'title', 'caption', 'credit', 'description', 'photographer', 'license'], self::names($file['fields'] ?? null), 'The built-in fields, then each set\'s, by set name.');
+		$this->assertSame([
+			['name' => 'photo', 'label' => 'Photo', 'description' => '', 'fields' => ['photographer']],
+			['name' => 'rights', 'label' => 'Rights', 'description' => '', 'fields' => ['license']]
+		], $file['sets'] ?? null);
+		$this->assertContains(['field' => 'license', 'message' => 'is required.', 'severity' => 'error'], (array) ($file['violations'] ?? []));
+		$this->assertSame(['title', 'caption', 'credit', 'description', 'license'], array_keys($this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Audio)->fields), 'Only the sets on a kind.');
+	}
+
+	public function testASetCantReuseABuiltInField(): void
+	{
+		$this->writeTemporaryFile('user/data/fields/strict.yaml', "targets: [media:image]\nfields: [{name: alt, required: true}]\n");
+		$this->site(false);
+
+		$this->expectException(InvalidConfig::class);
+		$this->expectExceptionMessage('media:image can\'t take field set "strict": Schema key "alt"');
+
+		$this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Image);
 	}
 
 	public function testSavesSetsAndRemovesFields(): void

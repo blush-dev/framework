@@ -75,7 +75,12 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   are saved in `user/data/settings.json` (`SettingsFile`), in sections
   named for the config files, and laid over the config on every build
   (`Settings::apply()`, through each object's `toArray()`/`fromArray()`),
-  so a saved value wins. Compiling leaves them out.
+  so a saved value wins. Compiling leaves them out. Each `Setting` is
+  also a field on its screen (`Setting::field()`, `SettingsScreen`,
+  D-343), and the editable screens are field set targets
+  (`settings:{screen}`, `SettingsTargets`); a set's settings are saved
+  raw in the file's `site` section and read through their fields by
+  `SiteSettings` (`$template->site()`).
 - **Errors** (`Blush\Error`, D-059):
   - Every exception implements `Blush\Core\BlushException` (D-055).
   - `ErrorHandler` converts warnings to exceptions, logs deprecations, and
@@ -274,7 +279,7 @@ Implemented in M3 (D-073 to D-077).
 - **Not yet:** the optional locale segment (D-036) and a base path for
   subdirectory installs (open question).
 
-## Fields (D-337 to D-340)
+## Fields (D-337 to D-348)
 The value layer is `Blush\Field` (see Content → Types and schemas). Built
 (D-338): field types describe themselves (`typeLabel()`,
 `typeDescription()`, `controls()`); a field's `control`, checked by
@@ -287,12 +292,27 @@ types are built (D-339): `FieldSet`, `FieldTarget`, `ContentTypeTarget`,
 `FieldSets`, sets in `ContentTypes::schema()` and its compiled array,
 `FieldSetCheck` in `content:lint`, and a group per set in the editor.
 Structure → Fields is built too (D-340): `DataFieldSetWriter`, the
-`fields/sets` API, and the list, set, and New Field Set screens.
+`fields/sets` API, and the list, set, and New Field Set screens. Targets
+are generic (D-341): each consumer tags a `FieldTargetSource`
+(`FieldTargets` collects them), a target gives its own schema, and
+`FieldSets::schemaFor()` adds its sets' fields; content types
+(`type:{name}`), media kinds (`media:{kind}`), and the Settings screens
+(`settings:{screen}`, D-343) are the consumers. A source can also report
+conflicts across its targets (`conflicts()`; settings share one store),
+and `FieldTargets::problems()` gathers every target's clashes and every
+source's conflicts for lint and the set writer. A set's targets are
+all one kind (D-347), and its `slot` names one of the slots that kind
+declares (`FieldTargetSource::slots()`, `FieldSlot`; every kind offers
+only `details` for now, D-348), falling back to the kind's default
+(`FieldTargets::slotFor()`). Each admin screen maps slots to places; the
+entry editor keeps every set in its document panel, out of the writing
+area. The Fields API is paused (D-348): this is a baseline.
 The design, with content types the only consumer until the API is
 right:
 
 - **`FieldSet`:** a named, labeled, ordered list of fields with
-  `targets` (`type:post`), attached from the set's side. From extension
+  `targets` (`type:post`, all of one kind, D-347), attached from the
+  set's side. From extension
   `FieldSetSource`s, `config/fields.php`, and `user/data/fields/*`, a
   later set replacing an earlier one with its name. A type's own inline
   `fields` are its own set.
@@ -552,10 +572,9 @@ Implemented in M4c (D-099), apart from image derivatives.
 - **Metadata (D-238, D-269, D-287):** fields for media, defined with
   content types' field types but without a body, status, or URLs, by
   kind (`MediaKind`: image, video, audio, file). `MediaSchemas` builds a
-  kind's schema from the built-in sets (`caption`, `credit`,
-  `description` for all; `alt` for images), extensions'
-  (`MediaFieldSource`), `user/data/media-fields`, and `MediaConfig::
-  $fields`, in that order, the kind's own fields first. Values are
+  kind's schema from the built-in fields (`alt` for images, then
+  `title`, `caption`, `credit`, `description` for all), then the field
+  sets aimed at the kind (`media:{kind}`, D-341). Values are
   stored in `user/data/media/`, mirroring the media paths (`{path}.yml`),
   never next to the file, as
   `MediaMetadata` (values by key), read and written by

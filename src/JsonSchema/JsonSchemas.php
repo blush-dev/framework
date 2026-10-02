@@ -274,8 +274,13 @@ final readonly class JsonSchemas
 				'label'       => ['type' => 'string', 'description' => 'The set\'s name for people, heading its fields in the admin. Its name, made readable, by default.'],
 				'description' => ['type' => 'string', 'description' => 'Help text, shown under the label in the admin.'],
 				'targets'     => [
-					'description' => 'Where the fields are added.',
+					'description' => 'Where the fields are added, all of one kind (type:, media:, or settings:).',
 					'anyOf'       => [$target, ['type' => 'array', 'items' => $target]]
+				],
+				'slot'        => [
+					'type'        => 'string',
+					'pattern'     => trim(FieldSet::NAME_PATTERN, '/'),
+					'description' => 'The slot its places show it in, from the ones their kind offers; every kind has details, its default. Left out, the kind\'s default.'
 				],
 				'fields'      => [
 					'description' => 'The fields: a list of definitions with names, or a map of names to definitions.',
@@ -302,19 +307,11 @@ final readonly class JsonSchemas
 	 */
 	public function media(): array
 	{
-		$fields = [];
-
-		foreach (MediaSchemas::builtIn() as $set) {
-			foreach ($set->fields as $field) {
-				$fields[$field->name] = $field;
-			}
-		}
-
 		return [
 			'$schema'     => self::DRAFT,
 			'title'       => sprintf('%s media metadata', Framework::NAME),
 			'description' => 'A media file\'s metadata, kept in user/data/media: the built-in fields (alt is for images). Sites and extensions add their own.',
-			...new Schema($fields)->jsonSchema()
+			...MediaSchemas::allBuiltIn()->jsonSchema()
 		];
 	}
 

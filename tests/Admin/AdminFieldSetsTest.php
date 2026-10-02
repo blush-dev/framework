@@ -79,12 +79,13 @@ final class AdminFieldSetsTest extends TestCase
 
 		$this->assertSame(['kitchen', 'seo'], array_keys($sets));
 		$this->assertTrue($list['create'] ?? null);
-		$this->assertContains(['key' => 'type:recipe', 'label' => 'Recipes'], is_array($list['targets'] ?? null) ? $list['targets'] : []);
 
 		$this->assertSame([
 			'name'        => 'kitchen',
 			'label'       => 'In the Kitchen',
 			'description' => '',
+			'kind'        => 'type',
+			'slot'        => 'details',
 			'origin'      => 'data',
 			'editable'    => true,
 			'file'        => 'user/data/fields/kitchen.yaml',
@@ -123,6 +124,7 @@ final class AdminFieldSetsTest extends TestCase
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame('pantry', self::json($response)['name'] ?? null);
+		$this->assertSame('details', self::json($response)['slot'] ?? null, 'The kind\'s default.');
 		$this->assertSame("targets:\n  - 'type:recipe'\nfields:\n  - name: shelf\n    type: text\n    control: mono\n", $this->file('pantry.yaml'), 'A label the name gives is left out.');
 	}
 
@@ -147,6 +149,36 @@ final class AdminFieldSetsTest extends TestCase
 		$this->assertSame(422, $response->getStatusCode());
 		$this->assertStringContainsString('can\'t take field set "kitchen"', is_string($error = self::json($response)['error'] ?? null) ? $error : '');
 		$this->assertSame($before, $this->file('kitchen.yaml'), 'The file is put back.');
+	}
+
+	public function testRefusesAFieldAMediaKindAlreadyHas(): void
+	{
+		$this->site();
+		$before = $this->file('kitchen.yaml');
+
+		$response = $this->write('PATCH', '/fields/sets/kitchen', ['set' => ['targets' => ['media:image'], 'fields' => [['name' => 'alt']]]]);
+
+		$this->assertSame(422, $response->getStatusCode());
+		$this->assertStringContainsString('media:image can\'t take field set "kitchen"', is_string($error = self::json($response)['error'] ?? null) ? $error : '');
+		$this->assertSame($before, $this->file('kitchen.yaml'));
+	}
+
+	public function testOffersEveryPlaceBySource(): void
+	{
+		$this->site();
+
+		$targets = self::json($this->send('GET', '/fields/sets'))['targets'] ?? null;
+
+		$this->assertContains(['key' => 'type:recipe', 'label' => 'Recipes', 'group' => 'Content types', 'kind' => 'type'], is_array($targets) ? $targets : []);
+		$this->assertContains(['key' => 'media:audio', 'label' => 'Sound', 'group' => 'Media files', 'kind' => 'media'], is_array($targets) ? $targets : []);
+		$this->assertContains(['key' => 'settings:general', 'label' => 'General', 'group' => 'Settings screens', 'kind' => 'settings'], is_array($targets) ? $targets : []);
+
+		$kinds = self::json($this->send('GET', '/fields/sets'))['kinds'] ?? null;
+		$slots = array_column(is_array($kinds) ? $kinds : [], 'slots', 'kind');
+
+		$this->assertSame(['details'], array_column(is_array($slots['type'] ?? null) ? $slots['type'] : [], 'name'), 'Fields stay out of the writing area (D-348).');
+		$this->assertSame(['details'], array_column(is_array($slots['media'] ?? null) ? $slots['media'] : [], 'name'));
+		$this->assertSame(422, $this->write('PATCH', '/fields/sets/kitchen', ['set' => ['targets' => ['type:recipe', 'media:image']]])->getStatusCode(), 'One kind of place a set.');
 	}
 
 	public function testRefusesWhatIsntAChange(): void

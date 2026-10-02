@@ -80,6 +80,69 @@ final readonly class FieldSets implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns a target's full schema: its own fields, then the fields of
+	 * each set attached to it, in set name order. A set's field may not
+	 * reuse a name or alias before it, and the target must take it.
+	 *
+	 * @throws InvalidSchema Naming the target and the set.
+	 */
+	public function schemaFor(FieldTarget $target): Schema
+	{
+		$schema = $target->schema();
+
+		foreach ($this->for($target->key()) as $set) {
+			$schema = $this->attach($schema, $target, $set);
+		}
+
+		return $schema;
+	}
+
+	/**
+	 * Returns why each set attached to a target doesn't fit it, by set
+	 * name, trying every set rather than stopping at the first (for
+	 * `content:lint`). A set that doesn't fit is left out of the ones
+	 * after it.
+	 *
+	 * @return array<string, string>
+	 * @throws InvalidSchema When the target's own fields don't fit.
+	 */
+	public function clashes(FieldTarget $target): array
+	{
+		$schema  = $target->schema();
+		$clashes = [];
+
+		foreach ($this->for($target->key()) as $set) {
+			try {
+				$schema = $this->attach($schema, $target, $set);
+			} catch (InvalidSchema $e) {
+				$clashes[$set->name] = $e->getMessage();
+			}
+		}
+
+		return $clashes;
+	}
+
+	/**
+	 * Adds a set's fields to a target's schema.
+	 *
+	 * @throws InvalidSchema
+	 */
+	private function attach(Schema $schema, FieldTarget $target, FieldSet $set): Schema
+	{
+		foreach ($set->schema->fields as $field) {
+			if (! $target->accepts($field)) {
+				throw new InvalidSchema(sprintf('%s doesn\'t take field set "%s" field "%s".', $target->key(), $set->name, $field->name));
+			}
+		}
+
+		try {
+			return new Schema([...array_values($schema->fields), ...array_values($set->schema->fields)], $schema->closed);
+		} catch (InvalidSchema $e) {
+			throw new InvalidSchema(sprintf('%s can\'t take field set "%s": %s', $target->key(), $set->name, $e->getMessage()), previous: $e);
+		}
+	}
+
+	/**
 	 * Returns the sets as an array for a compiled cache.
 	 *
 	 * @return list<array<string, mixed>>

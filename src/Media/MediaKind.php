@@ -16,7 +16,8 @@ namespace Blush\Media;
 /**
  * What kind of file a media file is (D-287), from its MIME type: an
  * image, a video, a sound, or any other file (a caption track, a PDF).
- * Each kind has its own metadata fields beside the ones every kind has.
+ * Each kind has its own metadata fields beside the ones every kind has,
+ * and is a place field sets attach to (`media:{kind}`, D-341).
  */
 enum MediaKind: string
 {
@@ -24,6 +25,19 @@ enum MediaKind: string
 	case Video = 'video';
 	case Audio = 'audio';
 	case File  = 'file';
+
+	/**
+	 * Returns the kind's name for people, as the admin offers it.
+	 */
+	public function label(): string
+	{
+		return match ($this) {
+			self::Image => 'Images',
+			self::Video => 'Videos',
+			self::Audio => 'Sound',
+			self::File  => 'Other files'
+		};
+	}
 
 	/**
 	 * Returns the kind of a MIME type.

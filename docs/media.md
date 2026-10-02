@@ -44,38 +44,25 @@ can't see it. Where an image is used, what the entry writes wins; the
 library's alt text and caption are filled in when you insert it, and a
 page's image without alt text uses the library's.
 
-To add your own, for every file or for one kind (`image`, `video`,
-`audio`, or `file` for anything else), list them in
-`user/data/media-fields.yml` (or `.yaml` or `.json`), defined the way a
-[content type's fields](content-types.md) are:
+To add your own, use a [field set](content-types.md#field-sets) aimed
+at the kinds of file it's for: `media:image`, `media:video`,
+`media:audio`, or `media:file` (anything else):
 
 ```yaml
-all:
-  - name: license
+# user/data/fields/photo-rights.yaml
+label: Photo Rights
+targets: [media:image]
+fields:
+  photographer: {}
+  license:
     type: enum
     options: [cc-by, all-rights-reserved]
-image:
-  - name: photographer
 ```
 
-or in [`config/media.php`](configuration.md#media), which wins over the
-data file:
-
-```php
-use Blush\Field\Fields\TextField;
-use Blush\Media\MediaConfig;
-use Blush\Media\MediaFieldSet;
-use Blush\Media\MediaKind;
-
-return new MediaConfig(
-	fields: [
-		new MediaFieldSet([new TextField('photographer')], MediaKind::Image)
-	]
-);
-```
-
-A field with a built-in's name replaces it, such as `credit` with
-`required: true`. The admin's form for a file follows its fields.
+List all four kinds for fields every file should have. A set's fields
+come after the built-in ones, under the set's label in the admin, and
+can't reuse a built-in field's name. **Config → Fields** in the admin
+creates and edits sets ([Fields](admin.md#fields)).
 
 A metadata file can point your editor at the built-in fields'
 schema: `# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/media.schema.json`

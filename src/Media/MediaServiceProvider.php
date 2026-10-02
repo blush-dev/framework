@@ -18,6 +18,7 @@ use Blush\Core\ServiceProvider;
 use Blush\Media\Embedded\EmbeddedMetadataReader;
 use Blush\Media\Embedded\EmbeddedReaderRegistrar;
 use Blush\Media\Embedded\EmbeddedReaderRegistry;
+use Blush\Field\FieldTargetSource;
 use Blush\Routing\RouteSource;
 
 /**
@@ -48,7 +49,8 @@ final class MediaServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array TAGS = [
-		RouteSource::TAG => [MediaRoutes::class]
+		RouteSource::TAG       => [MediaRoutes::class],
+		FieldTargetSource::TAG => [MediaKindTargets::class]
 	];
 
 	/**

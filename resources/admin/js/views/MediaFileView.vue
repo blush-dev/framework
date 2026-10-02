@@ -50,6 +50,15 @@ const failure = ref('');
 const invalid = ref<{ field: string; message: string } | null>(null);
 
 const fields  = computed<FieldDescription[]>(() => file.value?.fields ?? []);
+
+// The field sets attached to the kind (D-341), each under its label after
+// the built-in fields.
+const inSets    = computed(() => new Set((file.value?.sets ?? []).flatMap((set) => set.fields)));
+const ownFields = computed(() => fields.value.filter((field) => !inSets.value.has(field.name)));
+const setGroups = computed(() => (file.value?.sets ?? []).map((set) => ({
+	...set,
+	fields: set.fields.flatMap((name) => fields.value.filter((field) => field.name === name))
+})).filter((set) => set.fields.length > 0));
 const changes = computed(() => fields.value.filter((field) => form.value[field.name] !== initial.value[field.name]));
 const changed = computed(() => changes.value.length > 0);
 const altText = computed(() => typeof form.value.alt === 'string' ? form.value.alt.trim() : '');
@@ -243,7 +252,7 @@ async function copy(text: string, what: string): Promise<void> {
 				<div class="panel__body text">
 					<p v-if="file.kind === 'image' && fields.some((field) => field.name === 'alt') && altText === ''" class="field__help text__warn"><AdminIcon name="triangle-alert" />No alt text. It's what the image shows, for anyone who can't see it; images inserted from the library start with it, and pages use it where they have none.</p>
 					<FieldControl
-						v-for="field in fields"
+						v-for="field in ownFields"
 						:key="`${file.reference}-${field.name}`"
 						:field="field"
 						id-prefix="media-"
@@ -251,6 +260,19 @@ async function copy(text: string, what: string): Promise<void> {
 						:error="errorFor(field)"
 						@update:model-value="form[field.name] = $event"
 					/>
+					<div v-for="set in setGroups" :key="`${file.reference}-set-${set.name}`" class="text__set">
+						<p class="text__set-heading">{{ set.label }}</p>
+						<p v-if="set.description" class="field__help">{{ set.description }}</p>
+						<FieldControl
+							v-for="field in set.fields"
+							:key="`${file.reference}-${field.name}`"
+							:field="field"
+							id-prefix="media-"
+							:model-value="form[field.name] ?? ''"
+							:error="errorFor(field)"
+							@update:model-value="form[field.name] = $event"
+						/>
+					</div>
 					<div v-if="extra.length" class="text__extra">
 						<p class="field__help">Also in its metadata file, kept as they are:</p>
 						<dl>
@@ -393,6 +415,28 @@ async function copy(text: string, what: string): Promise<void> {
 .text {
 	display: grid;
 	gap: var(--s-4);
+}
+
+/* A field set's fields, under its label (D-341), as the editor's panel
+   groups them. */
+.text__set {
+	display: grid;
+	gap: var(--s-4);
+	padding-top: var(--s-4);
+	border-top: 1px solid var(--border);
+}
+
+.text__set > .field__help {
+	margin-top: calc(var(--s-4) * -1 + 4px);
+}
+
+.text__set-heading {
+	margin: 0;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: .07em;
+	text-transform: uppercase;
 }
 
 .text__warn {

@@ -76,7 +76,7 @@ final class FieldSetsTest extends TestCase
 		$this->writeTemporaryFile('user/data/fields/kitchen.yaml', "targets: [type:recipe]\nfields: [{name: servings}]\n");
 
 		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('Content type "recipe" can\'t take field set "kitchen": Schema key "servings"');
+		$this->expectExceptionMessage('type:recipe can\'t take field set "kitchen": Schema key "servings"');
 
 		$this->types();
 	}
@@ -148,7 +148,7 @@ final class FieldSetsTest extends TestCase
 
 	public function testATargetThatIsntThereIsLeftAlone(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/shop.yaml', "targets: [type:product, menu:primary]\nfields: [{name: price, type: number}]\n");
+		$this->writeTemporaryFile('user/data/fields/shop.yaml', "targets: [type:product]\nfields: [{name: price, type: number}]\n");
 
 		$types = $this->types();
 

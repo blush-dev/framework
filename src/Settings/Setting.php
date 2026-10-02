@@ -16,9 +16,18 @@ namespace Blush\Settings;
 use DateTimeZone;
 use Blush\Config\Config;
 use Blush\Content\Type\ContentConfig;
+use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
+use Blush\Field\Control;
+use Blush\Field\Field;
+use Blush\Field\Fields\BoolField;
+use Blush\Field\Fields\EnumField;
+use Blush\Field\Fields\ListField;
+use Blush\Field\Fields\NumberField;
+use Blush\Field\Fields\TextField;
 use Blush\Routing\RouteConfig;
 use Blush\Sitemap\SitemapConfig;
 
@@ -28,6 +37,11 @@ use Blush\Sitemap\SitemapConfig;
  * saved in, named for the config file by convention (`feed` for
  * `config/feed.php`), and the key it sets in that config object's
  * `toArray()`. Everything else stays in `config/` and `.env`.
+ *
+ * Each is described as a field (`field()`, D-343), so the admin edits it
+ * with the controls every form uses, on its screen (`screen()`), the
+ * screen's own fields before any field set's; `normalize()` still checks
+ * its value, more closely than the field type does.
  */
 enum Setting: string
 {
@@ -58,6 +72,95 @@ enum Setting: string
 	public static function find(string $section, string $key): ?self
 	{
 		return self::tryFrom("{$section}.{$key}");
+	}
+
+	/**
+	 * The Settings screen it's on.
+	 */
+	public function screen(): SettingsScreen
+	{
+		return match ($this) {
+			self::Name, self::Locale, self::Timezone                      => SettingsScreen::General,
+			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
+			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search
+		};
+	}
+
+	/**
+	 * The setting as a field (D-343), named by its key, with its label,
+	 * help, and control; a choice has the options it can be (the home
+	 * page's, from the site's collections with addresses; a site with
+	 * none has nothing to choose, and the admin only shows it).
+	 */
+	public function field(ContentTypes $types): Field
+	{
+		$field = match ($this) {
+			self::Name            => new TextField('name')->labeled('Site name')->required(),
+			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.')->control(Control::Mono),
+			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
+			self::Home            => self::homeChoices($types) === []
+				? new TextField('home')->labeled('Home page')
+				: new EnumField('home', array_keys(self::homeChoices($types)))->labeled('Home page'),
+			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled('Formats')->described('None turns every feed off.')->control(Control::Checks),
+			self::FeedContent     => new BoolField('content')->labeled('Full content')->described('Off, a feed carries each entry\'s summary only.'),
+			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
+			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
+			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
+			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.')
+		};
+
+		return $field->named($this->key());
+	}
+
+	/**
+	 * Words for the field's values, where its options aren't words: a
+	 * time zone without underscores, the home page's collections, and the
+	 * feed formats' names.
+	 *
+	 * @return array<string, string>
+	 */
+	public function choices(ContentTypes $types): array
+	{
+		return match ($this) {
+			self::Timezone    => array_combine(DateTimeZone::listIdentifiers(), array_map(static fn (string $zone): string => str_replace('_', ' ', $zone), DateTimeZone::listIdentifiers())),
+			self::Home        => self::homeChoices($types),
+			self::FeedFormats => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): string => $format->label(), FeedFormat::cases())),
+			default           => []
+		};
+	}
+
+	/**
+	 * What a checkbox beside the setting says, or what a choice left
+	 * empty means.
+	 */
+	public function caption(): ?string
+	{
+		return match ($this) {
+			self::TrailingSlash => 'Addresses end in a slash',
+			self::FeedContent   => 'Feeds carry each entry\'s full content',
+			self::Sitemap       => 'The site has a sitemap and robots.txt',
+			self::Home          => 'The page at user/content/index.md',
+			default             => null
+		};
+	}
+
+	/**
+	 * The collection types that can be the home page, by name, with what
+	 * each shows.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function homeChoices(ContentTypes $types): array
+	{
+		$choices = [];
+
+		foreach ($types->all() as $type) {
+			if ($type->kind() === TypeKind::Collection && $type->hasUrls()) {
+				$choices[$type->name] = sprintf('The latest %s', mb_strtolower($type->labels->plural));
+			}
+		}
+
+		return $choices;
 	}
 
 	/**

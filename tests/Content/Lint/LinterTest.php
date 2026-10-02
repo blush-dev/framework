@@ -134,15 +134,48 @@ final class LinterTest extends TestCase
 	public function testNotesFieldSetTargetsThatAttachToNothing(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('user/data/fields/shop.yaml', "targets: [type:post, type:product, menu:primary]\nfields: [{name: price, type: number}]\n");
+		$this->writeTemporaryFile('user/data/fields/shop.yaml', "targets: [type:post, type:product]\nfields: [{name: price, type: number}]\n");
+		$this->writeTemporaryFile('user/data/fields/nav.yaml', "targets: [menu:primary]\nfields: [{name: badge}]\n");
 
 		$report  = $this->site()->container()->make(Linter::class)->lint();
 		$notices = self::messages($report, Severity::Notice);
 
-		$this->assertSame([
-			'notice targets: "shop" names type:product, which isn\'t a content type, so it isn\'t used there.',
-			'notice targets: "shop" names menu:primary, but fields can\'t attach to a "menu" yet.'
-		], $notices['user/data/fields/shop.yaml'] ?? null);
+		$this->assertSame(['notice targets: "shop" names type:product, which the site doesn\'t have, so it isn\'t used there.'], $notices['user/data/fields/shop.yaml'] ?? null);
+		$this->assertSame(['notice targets: "nav" names menu:primary, but fields can\'t attach to a "menu" yet.'], $notices['user/data/fields/nav.yaml'] ?? null);
+		$this->assertFalse($report->hasErrors());
+	}
+
+	public function testReportsASetThatDoesntFitAMediaKind(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/data/fields/strict.yaml', "targets: [media:image]\nfields: [{name: alt}]\n");
+
+		$errors = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Error);
+
+		$this->assertStringStartsWith('error targets: media:image can\'t take field set "strict"', $errors['user/data/fields/strict.yaml'][0] ?? '');
+	}
+
+	public function testReportsTwoSetsUsingOneSettingName(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/data/fields/brand.yaml', "targets: [settings:general]\nfields: [{name: tagline}]\n");
+		$this->writeTemporaryFile('user/data/fields/reading.yaml', "targets: [settings:reading]\nfields: [{name: tagline}]\n");
+		$this->writeTemporaryFile('user/data/fields/both.yaml', "targets: [settings:general, settings:search]\nfields: [{name: motto}]\n");
+
+		$errors = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Error);
+
+		$this->assertSame(['error targets: Field sets "brand" and "reading" both add a "tagline" setting; settings share one store, so rename one.'], $errors['user/data/fields/reading.yaml'] ?? null);
+		$this->assertArrayNotHasKey('user/data/fields/both.yaml', $errors, 'One set on two screens is one setting.');
+	}
+
+	public function testNotesASlotItsKindDoesntOffer(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/data/fields/gallery.yaml', "targets: [type:post]\nslot: hero\nfields: [{name: photos, type: list}]\n");
+
+		$report = $this->site()->container()->make(Linter::class)->lint();
+
+		$this->assertContains('notice slot: "gallery" has the slot "hero", which content types don\'t offer, so it\'s in "details".', self::messages($report, Severity::Notice)['user/data/fields/gallery.yaml'] ?? []);
 		$this->assertFalse($report->hasErrors());
 	}
 

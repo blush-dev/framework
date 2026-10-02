@@ -14,9 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
-use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\ContentTypeTarget;
 use Blush\Content\Type\DataFieldSetWriter;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Core\Paths;
@@ -24,19 +22,28 @@ use Blush\Field\Field;
 use Blush\Field\FieldConfig;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSetOrigin;
+use Blush\Field\FieldSlot;
+use Blush\Field\FieldTargets;
+use Blush\Field\FieldTargetSource;
+use Blush\Field\InvalidSchema;
 use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
  * Answers `GET {path}/api/fields/sets` (D-337): the site's field sets, for
  * Structure → Fields. Each set has its `name`, `label`, `description`,
- * `origin` (`extension`, `config`, or `data`), whether it's `editable`
- * (a data set, while `user/data/fields` is read), its data `file` (or
+ * the `kind` of place its targets are, its `slot` (D-347: the one it's
+ * in, its kind's default when it names none or one the kind lacks), its
+ * `origin` (`extension`, `config`, or `data`), whether it's `editable` (a
+ * data set, while `user/data/fields` is read), its data `file` (or
  * `null`), its `targets` (each `{"key", "label", "found"}`, `found` being
- * whether the place exists, labeled with the type's plural name when it
- * does), and how many `fields` it has. Beside them, `create` says whether
- * sets can be made here, and `targets` lists every place a set can
- * attach to (`{"key", "label"}`: each content type, by plural name).
+ * whether the site has the place, labeled with its name when it does),
+ * and how many `fields` it has. Beside them, `create` says whether sets
+ * can be made here, and `targets` lists every place a set can attach to
+ * (`{"key", "label", "group", "kind"}`: each content type by plural
+ * name, then each kind of media file and Settings screen; `group` names
+ * the kind of place), and `kinds` lists each kind with its `slots`
+ * (`{"name", "label", "description"}`, the first its default).
  *
  * `GET {path}/api/fields/sets/{name}` (`show()`) describes one set the
  * same way, with its `fields` as definitions (`Field::toArray()`, without
@@ -50,6 +57,7 @@ final readonly class FieldSetsController
 		private ContentTypes $types,
 		private FieldConfig $config,
 		private DataFieldSetWriter $writer,
+		private FieldTargets $targets,
 		private Paths $paths
 	) {}
 
@@ -60,7 +68,8 @@ final readonly class FieldSetsController
 		return Response::json([
 			'sets'    => $sets,
 			'create'  => $this->config->dataSets,
-			'targets' => self::targets($this->types)
+			'targets' => $this->targets(),
+			'kinds'   => $this->kinds()
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -85,25 +94,64 @@ final readonly class FieldSetsController
 		return [
 			...$this->summary($types, $set),
 			'fields'  => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $set->schema->fields)),
-			'options' => self::targets($types)
+			'options' => $this->targets(),
+			'kinds'   => $this->kinds()
 		];
 	}
 
 	/**
-	 * Every place a set can attach to: each content type.
+	 * Every place a set can attach to, kind by kind.
 	 *
-	 * @return list<array{key: string, label: string}>
+	 * @return list<array{key: string, label: string, group: string}>
 	 */
-	private static function targets(ContentTypes $types): array
+	private function targets(): array
 	{
-		$targets = array_map(static fn (ContentType $type): array => [
-			'key'   => ContentTypeTarget::keyFor($type->name),
-			'label' => $type->labels->plural
-		], array_values($types->all()));
+		$targets = [];
 
-		usort($targets, static fn (array $a, array $b): int => strnatcasecmp($a['label'], $b['label']));
+		try {
+			foreach ($this->targets->sources() as $source) {
+				foreach ($source->fieldTargets() as $target) {
+					$targets[] = ['key' => $target->key(), 'label' => $target->label(), 'group' => $source->label(), 'kind' => $source->kind()];
+				}
+			}
+		} catch (InvalidSchema) {
+			return $targets;
+		}
 
 		return $targets;
+	}
+
+	/**
+	 * Every kind of place, with its slots (the first is its default).
+	 *
+	 * @return list<array{kind: string, label: string, slots: list<array{name: string, label: string, description: string}>}>
+	 */
+	private function kinds(): array
+	{
+		try {
+			$sources = $this->targets->sources();
+		} catch (InvalidSchema) {
+			return [];
+		}
+
+		return array_values(array_map(static fn (FieldTargetSource $source): array => [
+			'kind'  => $source->kind(),
+			'label' => $source->label(),
+			'slots' => array_map(static fn (FieldSlot $slot): array => $slot->toArray(), $source->slots())
+		], $sources));
+	}
+
+	/**
+	 * The slot a set is in: the one it names, when its kind offers it, or
+	 * the kind's default; as written for a kind the site doesn't have.
+	 */
+	private function slot(FieldSet $set): ?string
+	{
+		try {
+			return $this->targets->slotFor($set)->name ?? $set->slot;
+		} catch (InvalidSchema) {
+			return $set->slot;
+		}
 	}
 
 	/**
@@ -125,14 +173,19 @@ final readonly class FieldSetsController
 			'name'        => $set->name,
 			'label'       => $set->label,
 			'description' => $set->description,
+			'kind'        => $set->kind(),
+			'slot'        => $this->slot($set),
 			'origin'      => $origin->value,
 			'editable'    => $file !== null && $this->config->dataSets,
 			'file'        => $file === null ? null : $this->paths->relative($file),
-			'targets'     => array_map(static function (string $key) use ($types): array {
-				[$kind, $name] = explode(':', $key, 2);
-				$type          = $kind === ContentTypeTarget::KIND ? $types->find($name) : null;
+			'targets'     => array_map(function (string $key): array {
+				try {
+					$target = $this->targets->find($key);
+				} catch (InvalidSchema) {
+					$target = null;
+				}
 
-				return ['key' => $key, 'label' => $type?->labels->plural ?? $key, 'found' => $type !== null];
+				return ['key' => $key, 'label' => $target?->label() ?? $key, 'found' => $target !== null];
 			}, $set->targets),
 			'fields'      => count($set->schema->fields)
 		];

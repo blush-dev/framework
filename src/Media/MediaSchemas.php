@@ -14,87 +14,67 @@ declare(strict_types=1);
 namespace Blush\Media;
 
 use Blush\Config\InvalidConfig;
-use Blush\Container\Container;
-use Blush\Core\Paths;
-use Blush\Data\DataException;
-use Blush\Data\DataLoader;
-use Blush\Field\FieldFactory;
+use Blush\Field\Field;
+use Blush\Field\FieldSet;
+use Blush\Field\FieldSets;
 use Blush\Field\Fields\MarkdownField;
 use Blush\Field\Fields\TextField;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 
 /**
- * The metadata fields each kind of media file has (D-238, D-287), as a
- * schema, from, in order, each one replacing a field of the same name
- * before it:
- *
- * 1. The built-in fields: `title`, `caption`, `credit`, and
- *    `description` for every kind, and `alt` for images.
- * 2. Extensions' sets (`MediaFieldSource`).
- * 3. The site's data file, `user/data/media-fields.{json,yaml,yml}`: a
- *    map of `all`, `image`, `video`, `audio`, and `file` to lists of
- *    field definitions, as a data content type's `fields` are.
- * 4. The site's `config/media.php` (`MediaConfig::$fields`).
- *
- * A kind's schema is its own fields first (an image's alt text leads),
- * then the fields every kind has; a kind's field replaces one of every
- * kind's with the same name.
+ * The metadata fields each kind of media file has (D-238, D-287, D-341),
+ * as a schema: the built-in fields (`builtIn()`), then the fields of the
+ * field sets attached to the kind (`media:image`, and so on), in set name
+ * order (`FieldSets::schemaFor()`). A set's field can't reuse a built-in
+ * field's name.
  */
 final class MediaSchemas
 {
-	/**
-	 * The data file under `user/data` that defines a site's fields.
-	 */
-	public const string DATA_FILE = 'media-fields';
-
-	/**
-	 * The keys of the data file: every kind, then each kind.
-	 */
-	private const string ALL = 'all';
-
 	/**
 	 * @var array<string, Schema>
 	 */
 	private array $schemas = [];
 
-	/**
-	 * @var ?list<MediaFieldSet>
-	 */
-	private ?array $sets = null;
-
-	public function __construct(
-		private readonly MediaConfig $config,
-		private readonly FieldFactory $fields,
-		private readonly DataLoader $data,
-		private readonly Paths $paths,
-		private readonly Container $container
-	) {}
+	public function __construct(private readonly FieldSets $sets)
+	{}
 
 	/**
-	 * The built-in field sets.
-	 *
-	 * @return list<MediaFieldSet>
+	 * Returns a kind's built-in fields: its own first (an image's alt text
+	 * leads), then `title`, `caption`, `credit`, and `description`, which
+	 * every kind has.
 	 */
-	public static function builtIn(): array
+	public static function builtIn(MediaKind $kind): Schema
 	{
-		return [
-			new MediaFieldSet([
-				new TextField('title')->described('What the library calls it, in place of its file name.'),
-				new TextField('caption')->described('Shown with the file where it\'s used, such as under an image.'),
-				new TextField('credit')->described('Who made it, or where it\'s from.'),
-				new MarkdownField('description')->described('A longer description, for the library.')
-			]),
-			new MediaFieldSet([
-				new TextField('alt')->labeled('Alt text')->described('What the image shows, for anyone who can\'t see it.')
-			], MediaKind::Image)
-		];
+		$own = $kind === MediaKind::Image
+			? [new TextField('alt')->labeled('Alt text')->described('What the image shows, for anyone who can\'t see it.')]
+			: [];
+
+		return new Schema([...$own, ...self::shared()]);
+	}
+
+	/**
+	 * Returns every kind's built-in fields together, each once, for the
+	 * editor schema (`media.schema.json`), since a metadata file doesn't
+	 * say its kind.
+	 */
+	public static function allBuiltIn(): Schema
+	{
+		$fields = [];
+
+		foreach (MediaKind::cases() as $kind) {
+			foreach (self::builtIn($kind)->fields as $name => $field) {
+				$fields[$name] ??= $field;
+			}
+		}
+
+		return new Schema($fields);
 	}
 
 	/**
 	 * Returns a kind's schema.
 	 *
-	 * @throws InvalidConfig When the fields can't be read or clash.
+	 * @throws InvalidConfig When a set's fields don't fit the kind.
 	 */
 	public function schema(MediaKind $kind): Schema
 	{
@@ -102,28 +82,21 @@ final class MediaSchemas
 			return $this->schemas[$kind->value];
 		}
 
-		$shared = [];
-		$own    = [];
-
-		foreach ($this->sets() as $set) {
-			if (! $set->appliesTo($kind)) {
-				continue;
-			}
-
-			foreach ($set->fields as $field) {
-				if ($set->kind === null) {
-					$shared[$field->name] = $field;
-				} else {
-					$own[$field->name] = $field;
-				}
-			}
-		}
-
 		try {
-			return $this->schemas[$kind->value] = new Schema([...$own, ...array_diff_key($shared, $own)]);
+			return $this->schemas[$kind->value] = $this->sets->schemaFor(new MediaKindTarget($kind));
 		} catch (InvalidSchema $e) {
-			throw new InvalidConfig(sprintf('The %s media fields clash: %s', $kind->value, $e->getMessage()), previous: $e);
+			throw new InvalidConfig($e->getMessage(), previous: $e);
 		}
+	}
+
+	/**
+	 * Returns the field sets attached to a kind, in name order.
+	 *
+	 * @return list<FieldSet>
+	 */
+	public function setsFor(MediaKind $kind): array
+	{
+		return $this->sets->for(MediaKindTarget::keyFor($kind));
 	}
 
 	/**
@@ -137,92 +110,17 @@ final class MediaSchemas
 	}
 
 	/**
-	 * Every field set, in the order they apply.
+	 * The fields every kind has.
 	 *
-	 * @return list<MediaFieldSet>
-	 * @throws InvalidConfig
+	 * @return list<Field>
 	 */
-	private function sets(): array
+	private static function shared(): array
 	{
-		return $this->sets ??= [
-			...self::builtIn(),
-			...$this->extensionSets(),
-			...$this->dataSets(),
-			...$this->config->fields,
-			...self::setsFromArray($this->config->definitions, $this->fields, 'config/media.php "fields"')
+		return [
+			new TextField('title')->described('What the library calls it, in place of its file name.'),
+			new TextField('caption')->described('Shown with the file where it\'s used, such as under an image.'),
+			new TextField('credit')->described('Who made it, or where it\'s from.'),
+			new MarkdownField('description')->described('A longer description, for the library.')
 		];
-	}
-
-	/**
-	 * @return list<MediaFieldSet>
-	 * @throws InvalidConfig
-	 */
-	private function extensionSets(): array
-	{
-		$sets = [];
-
-		foreach ($this->container->tagged(MediaFieldSource::TAG) as $source) {
-			if (! $source instanceof MediaFieldSource) {
-				throw new InvalidConfig(sprintf('Services tagged "%s" must implement %s; %s does not.', MediaFieldSource::TAG, MediaFieldSource::class, get_debug_type($source)));
-			}
-
-			foreach ($source->fieldSets() as $set) {
-				$sets[] = $set;
-			}
-		}
-
-		return $sets;
-	}
-
-	/**
-	 * The site's data file's sets.
-	 *
-	 * @return list<MediaFieldSet>
-	 * @throws InvalidConfig
-	 */
-	private function dataSets(): array
-	{
-		try {
-			$data = $this->data->load($this->paths->data, self::DATA_FILE);
-		} catch (DataException $e) {
-			throw new InvalidConfig(sprintf('user/data/%s can\'t be read: %s', self::DATA_FILE, $e->getMessage()), previous: $e);
-		}
-
-		return $data === null ? [] : self::setsFromArray($data, $this->fields, sprintf('user/data/%s', self::DATA_FILE));
-	}
-
-	/**
-	 * Reads field sets from a map of `all` and each kind to field
-	 * definitions (a list, or a map by name), as the data file and `MediaConfig::fromArray()` have
-	 * them.
-	 *
-	 * @param  array<array-key, mixed> $data
-	 * @return list<MediaFieldSet>
-	 * @throws InvalidConfig
-	 */
-	public static function setsFromArray(array $data, FieldFactory $fields, string $where): array
-	{
-		$kinds = [self::ALL, ...array_column(MediaKind::cases(), 'value')];
-		$sets  = [];
-
-		foreach ($data as $key => $list) {
-			if (! in_array($key, $kinds, true)) {
-				throw new InvalidConfig(sprintf('%s has "%s"; media fields are grouped under %s.', $where, $key, implode(', ', $kinds)));
-			}
-
-			if (! is_array($list)) {
-				throw new InvalidConfig(sprintf('%s "%s" must be a list or map of field definitions.', $where, $key));
-			}
-
-			try {
-				$definitions = array_map($fields->fromArray(...), FieldFactory::definitions($list));
-			} catch (InvalidSchema $e) {
-				throw new InvalidConfig(sprintf('%s "%s": %s', $where, $key, $e->getMessage()), previous: $e);
-			}
-
-			$sets[] = new MediaFieldSet($definitions, $key === self::ALL ? null : MediaKind::from($key));
-		}
-
-		return $sets;
 	}
 }

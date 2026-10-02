@@ -245,6 +245,25 @@ final class ThemeSystemTest extends TestCase
 		$this->assertStringContainsString('Site note', $this->get('/'));
 	}
 
+	public function testASiteSettingReachesTemplates(): void
+	{
+		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);\n");
+		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
+		$this->writeTemporaryFile('user/data/fields/brand.yaml', "targets: [settings:general]\nfields:\n  tagline:\n    default: Plain tagline\n");
+		$this->writeTemporaryFile('user/themes/noted/theme.json', '{"name": "Noted"}');
+		$this->writeTemporaryFile('user/themes/noted/views/parts/entry-summary.php', "<p><?= e((string) \$template->site('tagline')) ?>|<?= e((string) \$template->site('missing', 'none')) ?></p>");
+		$this->activeTheme('noted');
+
+		$this->assertStringContainsString('Plain tagline|none', $this->get('/'), 'A field\'s default, then the fallback.');
+
+		// The admin's save moves the content version on, so cached pages go.
+		$this->writeTemporaryFile('user/data/settings.json', '{"site": {"tagline": "Saved tagline"}}');
+		$this->app?->container()->make(ContentVersion::class)->bump();
+		$this->app = null;
+
+		$this->assertStringContainsString('Saved tagline|none', $this->get('/'));
+	}
+
 	public function testAnEntryStylesheetReachesThePage(): void
 	{
 		$this->writeTemporaryFile('user/themes/tinted/theme.json', '{"name": "Tinted"}');

@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use DateTimeImmutable;
-use DateTimeZone;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -24,11 +23,11 @@ use Blush\Auth\Permissions;
 use Blush\Cache\CacheConfig;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
 use Blush\Core\Environment;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
+use Blush\Field\FieldSets;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\MediaConfig;
@@ -38,6 +37,8 @@ use Blush\Routing\RouteConfig;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
 use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsScreen;
+use Blush\Settings\SettingsTarget;
 use Blush\Sitemap\SitemapConfig;
 
 /**
@@ -54,11 +55,13 @@ use Blush\Sitemap\SitemapConfig;
  * errors on a live site).
  *
  * A setting the admin can change (`Setting`) adds the `setting` it saves
- * as (`feed.limit`), its `control` (`text`, `mono`, `select`, `checkbox`,
- * `checks`, `number`, or `lines`), the `input` the form starts from, its
- * `options` (`value`, `label`) for a select or checks, and whether it's
- * `saved` in `user/data/settings.json`; its `file` is where its value
- * comes from when it isn't. The rest live in `config/` and `.env`
+ * as (`feed.limit`), its `field` (D-343: as forms take it, with the
+ * `control` to draw, `choices` naming its options, and a `caption` for a
+ * checkbox or an empty choice), the `input` the form starts from, and
+ * whether it's `saved` in `user/data/settings.json`; its `file` is where
+ * its value comes from when it isn't. After a screen's own groups, each
+ * field set on it (`settings:{screen}`) adds a group of its settings,
+ * saved as `site.{name}`, with no `file` behind them. The rest live in `config/` and `.env`
  * (D-039) and are only shown, beside the ones they relate to. Secrets are
  * never sent: only whether one is set.
  */
@@ -77,7 +80,8 @@ final readonly class SettingsController
 		private PreviewConfig $preview,
 		private SettingsFile $file,
 		private ClockInterface $clock,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private FieldSets $fieldSets
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $screen): ResponseInterface
@@ -98,28 +102,48 @@ final readonly class SettingsController
 			default   => null
 		};
 
+		$target = SettingsScreen::tryFrom($screen);
+
+		if ($groups !== null && $target !== null) {
+			$groups = [...$groups, ...$this->sets($target, $saved)];
+		}
+
 		return $groups === null
 			? Response::json(['error' => 'There\'s no such settings screen.'], Status::NotFound, ['Cache-Control' => 'no-store'])
 			: Response::json(['groups' => $groups], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**
-	 * The collection types that can be the home page, as select options,
-	 * after the page at `user/content/index.md`.
+	 * The groups the field sets on a screen add (D-343): one per set,
+	 * headed by its label, each of its fields a setting saved in
+	 * `user/data/settings.json`'s `site` section (`site.{name}`), with no
+	 * config value behind it.
 	 *
-	 * @return list<array{value: string, label: string}>
+	 * @return list<array<string, mixed>>
 	 */
-	public static function homeOptions(ContentTypes $types): array
+	private function sets(SettingsScreen $screen, Settings $saved): array
 	{
-		$options = [['value' => '', 'label' => 'The page at user/content/index.md']];
+		$values = $saved->site();
+		$groups = [];
 
-		foreach ($types->all() as $type) {
-			if ($type->kind() === TypeKind::Collection && $type->hasUrls()) {
-				$options[] = ['value' => $type->name, 'label' => sprintf('The latest %s', mb_strtolower($type->labels->plural))];
+		foreach ($this->fieldSets->for(SettingsTarget::keyFor($screen)) as $set) {
+			$items = [];
+
+			foreach ($set->schema->fields as $name => $field) {
+				$has     = array_key_exists($name, $values);
+				$items[] = [
+					...self::item("site-{$name}", $field->label === '' ? ucfirst(str_replace('_', ' ', $name)) : $field->label, '', ! $has, help: $field->description === '' ? null : $field->description),
+					'setting' => Settings::SITE . ".{$name}",
+					'field'   => $field->toForm(),
+					'input'   => $has ? $values[$name] : $field->default,
+					'saved'   => $has
+				];
 			}
+
+			$groups[] = self::group("set-{$set->name}", $set->label, $set->description === '' ? sprintf('From the %s field set', $set->label) : $set->description, $items);
 		}
 
-		return $options;
+		return $groups;
 	}
 
 	/**
@@ -135,15 +159,12 @@ final readonly class SettingsController
 
 		return [
 			self::group('site', 'Site', 'Its name and language', [
-				self::edit(self::item('name', 'Site name', $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, 'text', $this->app->name),
-				self::edit(self::item('locale', 'Language and region', $this->app->locale, $this->app->locale === $app->locale, 'mono', 'A language code, with a region if you like, such as en_US or fr.'), $saved, Setting::Locale, 'mono', $this->app->locale),
+				$this->edit(self::item('name', 'Site name', $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, $this->app->name),
+				$this->edit(self::item('locale', 'Language and region', $this->app->locale, $this->app->locale === $app->locale, 'mono', 'A language code, with a region if you like, such as en_US or fr.'), $saved, Setting::Locale, $this->app->locale),
 				self::item('url', 'Site address', $this->app->url, $this->app->url === $app->url, 'mono', 'From APP_URL in .env by default.', 'config/app.php')
 			]),
 			self::group('dates', 'Dates and Time', 'How times are read and shown', [
-				self::edit(self::item('timezone', 'Time zone', $this->app->timezone, $this->app->timezone === $app->timezone, 'mono', sprintf('It\'s %s there now.', $now->format('D, j M Y, H:i'))), $saved, Setting::Timezone, 'select', $this->app->timezone, array_map(
-					static fn (string $zone): array => ['value' => $zone, 'label' => str_replace('_', ' ', $zone)],
-					DateTimeZone::listIdentifiers()
-				))
+				$this->edit(self::item('timezone', 'Time zone', $this->app->timezone, $this->app->timezone === $app->timezone, 'mono', sprintf('It\'s %s there now.', $now->format('D, j M Y, H:i'))), $saved, Setting::Timezone, $this->app->timezone)
 			]),
 			self::group('environment', 'Environment', 'Set where the site runs', [
 				self::item('environment', 'Environment', ucfirst($environment->value), $environment === $app->environment, help: match ($environment) {
@@ -170,15 +191,14 @@ final readonly class SettingsController
 
 		return [
 			self::group('home', 'Home Page', 'What the site opens with', [
-				self::edit(self::item('home', 'Home page', $this->homeLabel(), $this->content->home === null), $saved, Setting::Home, 'select', $this->content->home ?? '', self::homeOptions($this->types))
+				Setting::homeChoices($this->types) === []
+					? self::item('home', 'Home page', $this->homeLabel(), $this->content->home === null, help: 'The site has no collection with addresses to show instead.', file: Setting::Home->file())
+					: $this->edit(self::item('home', 'Home page', $this->homeLabel(), $this->content->home === null), $saved, Setting::Home, $this->content->home)
 			]),
 			self::group('feeds', 'Feeds', 'For types with a feed', [
-				self::edit(self::item('formats', 'Formats', array_map(static fn (FeedFormat $format): string => $format->label(), $this->feeds->formats), $this->feeds->formats === $feeds->formats, 'list', 'None turns every feed off.'), $saved, Setting::FeedFormats, 'checks', array_map(static fn (FeedFormat $format): string => $format->value, $this->feeds->formats), array_map(
-					static fn (FeedFormat $format): array => ['value' => $format->value, 'label' => $format->label()],
-					FeedFormat::cases()
-				)),
-				self::edit(self::item('content', 'Full content', $this->feeds->content, $this->feeds->content, 'bool', 'Off, a feed carries each entry\'s summary only.'), $saved, Setting::FeedContent, 'checkbox', $this->feeds->content),
-				self::edit(self::item('limit', 'Entries per feed', (string) $this->feeds->limit, $this->feeds->limit === $feeds->limit, help: sprintf('From 1 to %d.', Setting::FEED_LIMIT_MAX)), $saved, Setting::FeedLimit, 'number', $this->feeds->limit)
+				$this->edit(self::item('formats', 'Formats', array_map(static fn (FeedFormat $format): string => $format->label(), $this->feeds->formats), $this->feeds->formats === $feeds->formats, 'list', 'None turns every feed off.'), $saved, Setting::FeedFormats, array_map(static fn (FeedFormat $format): string => $format->value, $this->feeds->formats)),
+				$this->edit(self::item('content', 'Full content', $this->feeds->content, $this->feeds->content, 'bool', 'Off, a feed carries each entry\'s summary only.'), $saved, Setting::FeedContent, $this->feeds->content),
+				$this->edit(self::item('limit', 'Entries per feed', (string) $this->feeds->limit, $this->feeds->limit === $feeds->limit, help: sprintf('From 1 to %d.', Setting::FEED_LIMIT_MAX)), $saved, Setting::FeedLimit, $this->feeds->limit)
 			])
 		];
 	}
@@ -195,12 +215,12 @@ final readonly class SettingsController
 
 		return [
 			self::group('addresses', 'Addresses', 'How URLs are written', [
-				self::edit(self::item('trailingSlash', 'Trailing slash', $this->routes->trailingSlash, ! $this->routes->trailingSlash, 'bool', 'The other form redirects, so links to either still work.'), $saved, Setting::TrailingSlash, 'checkbox', $this->routes->trailingSlash),
+				$this->edit(self::item('trailingSlash', 'Trailing slash', $this->routes->trailingSlash, ! $this->routes->trailingSlash, 'bool', 'The other form redirects, so links to either still work.'), $saved, Setting::TrailingSlash, $this->routes->trailingSlash),
 				self::item('media', 'Media address', $this->media->url, $this->media->url === new MediaConfig()->url, 'mono', 'Where user/media is served.', 'config/media.php')
 			]),
 			self::group('search', 'Search Engines', 'The sitemap and robots.txt', [
-				self::edit(self::item('sitemap', 'Sitemap and robots.txt', $this->sitemap->enabled, $this->sitemap->enabled, 'bool', 'Off, the site has neither, and search engines find pages by their links.'), $saved, Setting::Sitemap, 'checkbox', $this->sitemap->enabled),
-				self::edit(self::item('disallow', 'Paths robots.txt asks to skip', $this->sitemap->disallow, $this->sitemap->disallow === [], 'list', 'One path a line, each starting with /, such as /drafts/.'), $saved, Setting::SitemapDisallow, 'lines', $this->sitemap->disallow),
+				$this->edit(self::item('sitemap', 'Sitemap and robots.txt', $this->sitemap->enabled, $this->sitemap->enabled, 'bool', 'Off, the site has neither, and search engines find pages by their links.'), $saved, Setting::Sitemap, $this->sitemap->enabled),
+				$this->edit(self::item('disallow', 'Paths robots.txt asks to skip', $this->sitemap->disallow, $this->sitemap->disallow === [], 'list', 'One path a line, each starting with /, such as /drafts/.'), $saved, Setting::SitemapDisallow, $this->sitemap->disallow),
 				self::item('indexing', 'Asks not to be indexed', $environment !== Environment::Production, null, 'bool', 'Outside production, robots.txt asks search engines to skip the whole site. It follows the environment.')
 			])
 		];
@@ -256,16 +276,31 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * Makes a setting editable: what it saves as, its control, the value
-	 * the form starts from, its options, and whether it's saved.
+	 * Makes a setting editable: what it saves as, its field (D-343, with
+	 * words for its options and its `caption`), the value the form starts
+	 * from, and whether it's saved.
 	 *
-	 * @param  array<string, mixed>                           $item
-	 * @param  ?list<array{value: string, label: string}>     $options
+	 * @param  array<string, mixed> $item
 	 * @return array<string, mixed>
 	 */
-	private static function edit(array $item, Settings $saved, Setting $setting, string $control, mixed $input, ?array $options = null): array
+	private function edit(array $item, Settings $saved, Setting $setting, mixed $input): array
 	{
-		return [...$item, 'setting' => $setting->value, 'control' => $control, 'input' => $input, 'options' => $options, 'saved' => $saved->has($setting), 'file' => $setting->file()];
+		$field   = $setting->field($this->types)->toForm();
+		$choices = $setting->choices($this->types);
+
+		if ($choices !== []) {
+			if (is_array($field['item'] ?? null)) {
+				$field['item']['choices'] = $choices;
+			} else {
+				$field['choices'] = $choices;
+			}
+		}
+
+		if ($setting->caption() !== null) {
+			$field['caption'] = $setting->caption();
+		}
+
+		return [...$item, 'setting' => $setting->value, 'field' => $field, 'input' => $input, 'saved' => $saved->has($setting), 'file' => $setting->file()];
 	}
 
 	/**

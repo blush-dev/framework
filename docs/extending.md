@@ -439,41 +439,11 @@ The kinds and options are the same as in `config/content.php`. A site can
 still redefine one of your types in its `config/content.php`, but not in
 `user/data/types/`. Two extensions can't define the same type.
 
-### Media fields from an extension
-
-An extension can give media files [details](media.md#details-about-a-file)
-of its own, for every file or for one kind. Write a class that
-implements `MediaFieldSource`:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace Acme\Photos;
-
-use Blush\Field\Fields\TextField;
-use Blush\Media\MediaFieldSet;
-use Blush\Media\MediaFieldSource;
-use Blush\Media\MediaKind;
-
-final class PhotoFields implements MediaFieldSource
-{
-	public function fieldSets(): iterable
-	{
-		yield new MediaFieldSet([new TextField('camera'), new TextField('lens')], MediaKind::Image);
-	}
-}
-```
-
-Tag it with `MediaFieldSource::TAG` in the extension's provider. A
-site's `user/data/media-fields.yml` or `config/media.php` can redefine
-any of them.
-
 ### Field sets from an extension
 
 An extension can add fields to content types, its own or the site's,
-with [field sets](content-types.md#field-sets). Write a class that
+and to media files' [details](media.md#details-about-a-file), with
+[field sets](content-types.md#field-sets) (`media:image` and so on). Write a class that
 implements `FieldSetSource`:
 
 ```php
@@ -505,6 +475,11 @@ final class SeoFields implements FieldSetSource
 Tag it with `FieldSetSource::TAG` in the extension's provider. A site's
 `config/fields.php` or `user/data/fields/` can replace any of your sets
 by its name. Two extensions can't define the same set.
+
+A set aimed at a Settings screen (`settings:general`, and so on) adds
+settings the site owner fills in ([Your own settings](themes.md#your-own-settings)).
+Read them in PHP from `Blush\Settings\SiteSettings`, which the
+container gives you: `$site->get('tagline')`, or `$site->all()`.
 
 ### Field types from an extension
 

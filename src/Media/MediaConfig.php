@@ -32,12 +32,10 @@ use Blush\Config\InvalidConfig;
  * - `autoIndex` (the default) refreshes the media index incrementally on
  *   the first use in each development request (D-288); elsewhere,
  *   `media:index`, publishing, or the admin refreshes it.
- * - `fields` adds metadata fields, for every kind of file or one
- *   (`MediaFieldSet`, D-287), beside the built-in ones (`MediaSchemas`);
- *   a field with a built-in's name replaces it. In array form, a map of
- *   `all`, `image`, `video`, `audio`, and `file` to lists of field
- *   definitions, kept as `definitions` and read when the fields are
- *   built, with every field type extensions register.
+ *
+ * A file's metadata fields are the built-in ones (`MediaSchemas`) and
+ * those of the field sets attached to its kind, `media:image` and so on
+ * (D-341); they're not set here.
  */
 final readonly class MediaConfig implements Config
 {
@@ -69,18 +67,14 @@ final readonly class MediaConfig implements Config
 	public string $url;
 
 	/**
-	 * @param  list<string>        $types  Allowed MIME types.
-	 * @param  list<MediaFieldSet> $fields    Metadata fields beyond the built-in ones.
-	 * @param  bool                $autoIndex Whether development requests refresh the media index.
-	 * @param  array<array-key, mixed> $definitions `fields` in array form.
+	 * @param  list<string> $types     Allowed MIME types.
+	 * @param  bool         $autoIndex Whether development requests refresh the media index.
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
 		string $url = '/media',
 		public array $types = self::DEFAULT_TYPES,
-		public array $fields = [],
-		public bool $autoIndex = true,
-		public array $definitions = []
+		public bool $autoIndex = true
 	) {
 		$url = '/' . trim($url, '/');
 
@@ -106,18 +100,11 @@ final readonly class MediaConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['url', 'types', 'fields', 'autoIndex']);
-
-		$fields = $data['fields'] ?? [];
-
-		if (! is_array($fields)) {
-			throw new InvalidConfig('MediaConfig "fields" must be a map of kinds to field definitions.');
-		}
+		$values->assertKnownKeys(['url', 'types', 'autoIndex']);
 
 		return new static(
 			url: $values->string('url', '/media'),
 			types: $values->stringList('types', self::DEFAULT_TYPES),
-			definitions: $fields,
 			autoIndex: $values->bool('autoIndex', true)
 		);
 	}
@@ -128,18 +115,6 @@ final readonly class MediaConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		$fields = [];
-
-		foreach ($this->fields as $set) {
-			foreach ($set->fields as $field) {
-				$fields[$set->kind->value ?? 'all'][] = $field->toArray();
-			}
-		}
-
-		foreach ($this->definitions as $kind => $list) {
-			$fields[$kind] = [...$fields[$kind] ?? [], ...(is_array($list) ? $list : [])];
-		}
-
-		return ['url' => $this->url, 'types' => $this->types, 'fields' => $fields, 'autoIndex' => $this->autoIndex];
+		return ['url' => $this->url, 'types' => $this->types, 'autoIndex' => $this->autoIndex];
 	}
 }

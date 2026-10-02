@@ -22,7 +22,12 @@ namespace Blush\Field;
  *     new FieldSet('seo', [new TextField('meta_title')], ['type:post', 'type:page'], 'SEO')
  *
  * Where a target takes the set's fields, they come after its own, and a
- * name used twice is an error, never an override. A target that doesn't
+ * name used twice is an error, never an override. A set's targets are
+ * all one kind of place, and `slot` names one of the slots that kind
+ * offers (D-347), such as `details` or `content`, or is left out for the
+ * kind's default; each admin screen decides where a slot goes. A slot
+ * the kind doesn't have falls back to its default (`FieldTargets::slotFor()`),
+ * so a set written for a later Blush still loads. A target that doesn't
  * exist is left alone (`content:lint` notes it), so a set can name a type
  * that's sometimes turned off.
  */
@@ -43,7 +48,7 @@ final readonly class FieldSet
 	 *
 	 * @var list<string>
 	 */
-	private const array KEYS = ['name', 'label', 'description', 'targets', 'fields'];
+	private const array KEYS = ['name', 'label', 'description', 'targets', 'slot', 'fields'];
 
 	/**
 	 * The set's fields.
@@ -57,15 +62,17 @@ final readonly class FieldSet
 
 	/**
 	 * @param  iterable<Field> $fields
-	 * @param  list<string>    $targets The places the set is attached to.
-	 * @throws InvalidSchema When the name, a target, or the fields aren't valid.
+	 * @param  list<string>    $targets The places the set is attached to, all of one kind.
+	 * @param  ?string         $slot    The slot its kind's places show it in (D-347), or `null` for the kind's default.
+	 * @throws InvalidSchema When the name, a target, the slot, or the fields aren't valid, or the targets mix kinds.
 	 */
 	public function __construct(
 		public string $name,
 		iterable $fields = [],
 		public array $targets = [],
 		string $label = '',
-		public string $description = ''
+		public string $description = '',
+		public ?string $slot = null
 	) {
 		if (preg_match(self::NAME_PATTERN, $name) !== 1) {
 			throw new InvalidSchema(sprintf('"%s" can\'t be a field set\'s name; use lowercase letters, digits, "_", and "-".', $name));
@@ -77,6 +84,18 @@ final readonly class FieldSet
 			}
 		}
 
+		// One kind of place a set: a field means one thing on an entry,
+		// another in the site's settings (D-347).
+		$kinds = array_values(array_unique(array_map(static fn (string $target): string => strstr($target, ':', true) ?: $target, $targets)));
+
+		if (count($kinds) > 1) {
+			throw new InvalidSchema(sprintf('Field set "%s" targets more than one kind of place (%s); a set\'s targets are all one kind, so make a set for each.', $name, implode(', ', $kinds)));
+		}
+
+		if ($slot !== null && preg_match(self::NAME_PATTERN, $slot) !== 1) {
+			throw new InvalidSchema(sprintf('Field set "%s" slot "%s" must be a name, such as "details".', $name, $slot));
+		}
+
 		try {
 			$this->schema = new Schema($fields);
 		} catch (InvalidSchema $e) {
@@ -84,6 +103,17 @@ final readonly class FieldSet
 		}
 
 		$this->label = $label === '' ? ucfirst(str_replace(['_', '-'], ' ', $name)) : $label;
+	}
+
+	/**
+	 * Returns the kind of place its targets are (`type`), or `null` for a
+	 * set with none.
+	 */
+	public function kind(): ?string
+	{
+		$first = $this->targets[0] ?? null;
+
+		return $first === null ? null : (strstr($first, ':', true) ?: null);
 	}
 
 	/**
@@ -127,7 +157,8 @@ final readonly class FieldSet
 			$fields,
 			$definition->strings('targets'),
 			$definition->string('label'),
-			$definition->string('description')
+			$definition->string('description'),
+			$definition->nullableString('slot')
 		);
 	}
 
@@ -135,7 +166,7 @@ final readonly class FieldSet
 	 * Returns the set as a definition that `fromArray()` accepts, leaving
 	 * out a label made from the name.
 	 *
-	 * @return array{name: string, label?: string, description?: string, targets: list<string>, fields: list<array<string, mixed>>}
+	 * @return array{name: string, label?: string, description?: string, targets: list<string>, slot?: string, fields: list<array<string, mixed>>}
 	 */
 	public function toArray(): array
 	{
@@ -146,6 +177,7 @@ final readonly class FieldSet
 			...($this->label === $label ? [] : ['label' => $this->label]),
 			...($this->description === '' ? [] : ['description' => $this->description]),
 			'targets' => $this->targets,
+			...($this->slot === null ? [] : ['slot' => $this->slot]),
 			'fields'  => array_values(array_map(static fn (Field $field): array => $field->toArray(), $this->schema->fields))
 		];
 	}

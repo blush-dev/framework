@@ -23,7 +23,7 @@
 			"description": "Help text, shown under the label in the admin."
 		},
 		"targets": {
-			"description": "Where the fields are added.",
+			"description": "Where the fields are added, all of one kind (type:, media:, or settings:).",
 			"anyOf": [
 				{
 					"type": "string",
@@ -39,6 +39,11 @@
 					}
 				}
 			]
+		},
+		"slot": {
+			"type": "string",
+			"pattern": "^[a-z0-9][a-z0-9_-]*$",
+			"description": "The slot its places show it in, from the ones their kind offers; every kind has details, its default. Left out, the kind's default."
 		},
 		"fields": {
 			"description": "The fields: a list of definitions with names, or a map of names to definitions.",

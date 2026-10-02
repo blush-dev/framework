@@ -26,7 +26,10 @@ config files, with the same keys:
 }
 ```
 
-Only those keys are allowed. A value saved there wins over the one from
+Only those keys are allowed, plus `site`, which holds the settings
+[field sets](content-types.md#field-sets) add to the Settings screens
+(`{"site": {"tagline": "Notes from the field"}}`; see
+[Your own settings](themes.md#your-own-settings)). A value saved there wins over the one from
 `config/` or `.env`; remove it from the file (or choose **Use
 `config/…`'s value** in the admin) to go back to the config's value.
 Compiling (`bin/blush cache:compile`) leaves the file out, so saving
@@ -154,7 +157,6 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | `url` | `'/media'` | The URL `user/media` is served from |
 | `types` | Images, audio, video, and WebVTT captions | The MIME types that may be served |
 | `autoIndex` | `true` | Whether development requests pick up media changes in the library (elsewhere, `media:index` or publishing does) |
-| `fields` | `[]` | Details files can carry beyond the built-in ones, as `MediaFieldSet`s (see [Details about a file](media.md#details-about-a-file)); in array form, `all`, `image`, `video`, `audio`, and `file` mapped to lists of field definitions |
 
 ### Embeds
 

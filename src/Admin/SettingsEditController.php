@@ -26,6 +26,8 @@ use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
+use Blush\Field\FieldContext;
+use Blush\Field\InvalidField;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Routing\RouteCache;
@@ -33,13 +35,16 @@ use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
 use Blush\Settings\SettingsFile;
+use Blush\Settings\SiteSettings;
 
 /**
  * Saves the site-wide settings the admin can change (D-324, D-325), for accounts
  * with `site.settings`:
  *
  * - `PATCH settings`: `{"set": {setting: value}, "unset": [setting]}`,
- *   by `Setting` value (`feed.limit`). `set` saves values in
+ *   by `Setting` value (`feed.limit`), or `site.{name}` for a setting a
+ *   field set adds (D-343), checked by its field and saved as sent (an
+ *   empty one removed). `set` saves values in
  *   `user/data/settings.json`; `unset` removes saved ones, so their
  *   config values are used again. Answers `{"saved", "refresh"}`: the
  *   saved settings as the file holds them, and whether the admin should
@@ -69,7 +74,9 @@ final readonly class SettingsEditController
 		private Indexer $indexer,
 		private ContentVersion $version,
 		private Bootstrap $bootstrap,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private SiteSettings $site,
+		private FieldContext $context
 	) {}
 
 	public function update(ServerRequestInterface $request): ResponseInterface
@@ -86,16 +93,34 @@ final readonly class SettingsEditController
 			return self::error('Send "set" (settings to values) and "unset" (a list of settings).', Status::BadRequest);
 		}
 
+		// Field sets' settings (D-343) are `site.{name}`; the rest are `Setting`s.
+		$prefix   = Settings::SITE . '.';
+		$isSite   = static fn (mixed $key): bool => is_string($key) && str_starts_with($key, $prefix);
+		$siteSet  = [];
+		$builtIns = [];
+
+		foreach ($set as $key => $value) {
+			if ($isSite($key)) {
+				$siteSet[substr((string) $key, strlen($prefix))] = $value;
+			} else {
+				$builtIns[$key] = $value;
+			}
+		}
+
 		try {
 			$removed = array_map(
 				static fn (mixed $key): Setting => Setting::tryFrom(is_string($key) ? $key : '') ?? throw new InvalidSetting(sprintf('"%s" isn\'t a setting the admin can change.', is_string($key) ? $key : get_debug_type($key))),
-				$unset
+				array_values(array_filter($unset, static fn (mixed $key): bool => ! $isSite($key)))
 			);
-			$check = Settings::none()->with($set);
+			$site = [
+				...array_fill_keys(array_map(static fn (mixed $key): string => is_string($key) ? substr($key, strlen($prefix)) : '', array_values(array_filter($unset, $isSite))), null),
+				...$this->checkSite($siteSet)
+			];
+			$check = Settings::none()->with($builtIns);
 			$this->assertHome($check);
 
 			$changed  = [...array_filter(Setting::cases(), $check->has(...)), ...$removed];
-			$settings = $this->file->update(static fn (Settings $settings): Settings => $settings->without(...$removed)->with($set));
+			$settings = $this->file->update(static fn (Settings $settings): Settings => $settings->without(...$removed)->with($builtIns)->withSite($site));
 		} catch (InvalidSetting $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}
@@ -136,6 +161,43 @@ final readonly class SettingsEditController
 	}
 
 	/**
+	 * Checks field sets' settings by their fields, and returns them to
+	 * save as they were sent; an empty one is removed (`null`).
+	 *
+	 * @param  array<array-key, mixed> $values By field name.
+	 * @return array<string, mixed>
+	 * @throws InvalidSetting When a name isn't a setting, or a value doesn't fit.
+	 */
+	private function checkSite(array $values): array
+	{
+		$schema  = $this->site->schema();
+		$checked = [];
+
+		foreach ($values as $name => $value) {
+			$name  = (string) $name;
+			$field = $schema->field($name) ?? throw new InvalidSetting(sprintf('"%s.%s" isn\'t a setting the admin can change.', Settings::SITE, $name));
+			$label = $field->label === '' ? ucfirst(str_replace('_', ' ', $field->name)) : $field->label;
+			$empty = $value === null || $value === '' || $value === [];
+
+			if ($empty && $field->required) {
+				throw new InvalidSetting(sprintf('%s is required.', $label));
+			}
+
+			if (! $empty) {
+				try {
+					$field->normalize($value, $this->context);
+				} catch (InvalidField $error) {
+					throw new InvalidSetting(sprintf('%s %s', $label, $error->getMessage()), previous: $error);
+				}
+			}
+
+			$checked[$field->name] = $empty ? null : $value;
+		}
+
+		return $checked;
+	}
+
+	/**
 	 * Checks that a home page being set is a collection with addresses.
 	 *
 	 * @throws InvalidSetting
@@ -148,9 +210,7 @@ final readonly class SettingsEditController
 			return;
 		}
 
-		$allowed = array_column(SettingsController::homeOptions($this->types), 'value');
-
-		if (! in_array($home, $allowed, true)) {
+		if (! array_key_exists($home, Setting::homeChoices($this->types))) {
 			throw new InvalidSetting(sprintf('"%s" can\'t be the home page: it must be a collection type with addresses.', $home));
 		}
 	}

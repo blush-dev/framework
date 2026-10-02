@@ -16,6 +16,8 @@ namespace Blush\Content\Type;
 use Override;
 use Blush\Field\Field;
 use Blush\Field\FieldTarget;
+use Blush\Field\InvalidSchema;
+use Blush\Field\Schema;
 
 /**
  * A content type as a place field sets attach to (D-337): `type:{name}`.
@@ -29,8 +31,10 @@ final readonly class ContentTypeTarget implements FieldTarget
 	 */
 	public const string KIND = 'type';
 
-	public function __construct(private ContentType $type)
-	{}
+	public function __construct(
+		private ContentTypes $types,
+		private ContentType $type
+	) {}
 
 	/**
 	 * Returns the target key for a type's name.
@@ -65,5 +69,20 @@ final readonly class ContentTypeTarget implements FieldTarget
 	public function accepts(Field $field): bool
 	{
 		return true;
+	}
+
+	/**
+	 * @inheritDoc
+	 *
+	 * A type's clash is thrown on as the cause, so it reads as the type's.
+	 */
+	#[Override]
+	public function schema(): Schema
+	{
+		try {
+			return $this->types->ownSchema($this->type->name);
+		} catch (InvalidContentType $e) {
+			throw new InvalidSchema($e->getMessage(), previous: $e);
+		}
 	}
 }

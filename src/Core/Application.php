@@ -43,6 +43,7 @@ use Blush\Media\MediaServiceProvider;
 use Blush\Preview\PreviewServiceProvider;
 use Blush\Publish\PublishServiceProvider;
 use Blush\Session\SessionServiceProvider;
+use Blush\Settings\SettingsServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
 use Blush\Sitemap\SitemapServiceProvider;
 use Blush\Theme\ThemeServiceProvider;
@@ -78,6 +79,7 @@ class Application implements Bootable
 		MarkdownServiceProvider::class,
 		ContentServiceProvider::class,
 		MediaServiceProvider::class,
+		SettingsServiceProvider::class,
 		TranslationServiceProvider::class,
 		ThemeServiceProvider::class,
 		ViewServiceProvider::class,

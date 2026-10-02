@@ -36,4 +36,12 @@ interface FieldTarget
 	 * Returns whether the target takes a field.
 	 */
 	public function accepts(Field $field): bool;
+
+	/**
+	 * Returns the target's own fields, before any set's: the schema
+	 * `FieldSets::schemaFor()` adds the attached sets' fields to.
+	 *
+	 * @throws InvalidSchema When the target's own fields don't fit together.
+	 */
+	public function schema(): Schema;
 }

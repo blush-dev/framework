@@ -229,7 +229,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   or that the file uses), Summary, then the type's other fields as a
   form, then a group for each field set attached to the type (D-339;
   the direction has no sets), headed by its label with its help below,
-  its fields kept out of the groups before it. Fields in the drawer are filled wells (`--bg`), as the
+  its fields kept out of the groups before it. (Sets below the body,
+  D-345, were taken back by D-348: fields stay in the panel, as the
+  direction has them.) Fields in the drawer are filled wells (`--bg`), as the
   prototype's are. People show
   an author's slug, not a role, and no avatar images. A term keeps its
   Visibility and Date (Blush terms have both), and shows Featured Image
@@ -269,8 +271,9 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Media** (D-251, D-268, D-269): **Upload** opens the picker on its
   Upload tab and **Open** goes to the file. A file's screen has a
   Details panel built from the file's fields (D-287: title, alt text
-  (warned when an image has none), caption, credit, description, and a
-  site's own), saved with **Save**; no rename, "used in", Replace, or
+  (warned when an image has none), caption, credit, description, then
+  each field set on its kind under its label, D-341), saved with
+  **Save**; no rename, "used in", Replace, or
   Delete yet. Only `user/media` is listed (D-294 removed D-292's page
   bundle files and its **Where** control).
 - **Content types** (D-250, D-311): types in `user/data/types` are
@@ -304,8 +307,10 @@ Each is recorded in `.claude/docs/decisions.md`.
   Added to, Source, Fields; no tabs or search for a short list), a
   screen per set with **All field sets**, and **New Field Set** as its
   own screen, not a wizard (General, Added To, Fields, as the set's
-  screen has them). A set's targets are checkboxes of content types; one
-  that isn't a type here is kept and shown as such. A type's screen has
+  screen has them). Added To asks the kind of place first (D-347), then
+  its places as checkboxes (and the kind's slots, when one offers more
+  than one; none does now, D-348); a target the site doesn't have is
+  kept and shown as such. A type's screen has
   a Field Sets panel linking to its sets, which are attached from the
   set's side.
 - **Roles and accounts** (D-249, D-312): Blush sends no email, so the
@@ -354,7 +359,12 @@ Each is recorded in `.claude/docs/decisions.md`.
   setting says whether it's saved in `user/data/settings.json` or comes
   from its config file, and a saved one can go back to the config's
   value. Read-only values show a Default mark, help, and warnings;
-  booleans are neutral On/Off pills (warn-colored when risky).
+  booleans are neutral On/Off pills (warn-colored when risky). Each
+  editable setting is drawn with the shared field controls (`FieldInput`,
+  D-343) in the row's control column. After a screen's own panels, each
+  field set on it adds a panel of its settings (the design has none),
+  with **Clear it** where the built-ins have the config's value. A site
+  with no collection to show shows its home page read-only.
 - **Extensions** (D-308), the direction's Addons (vocabulary below):
   read-only, so no on/off switch, turn-off confirmation, **Settings**,
   **Browse**, or **Upload**; an **On** or **Off** pill instead, and an

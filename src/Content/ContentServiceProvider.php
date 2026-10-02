@@ -49,6 +49,7 @@ use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\ContentTypeTargets;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\FilesystemWriter;
@@ -61,6 +62,9 @@ use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
 use Blush\Field\FieldRegistry;
 use Blush\Field\FieldSetLoader;
+use Blush\Field\FieldSets;
+use Blush\Field\FieldTargets;
+use Blush\Field\FieldTargetSource;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 
@@ -80,6 +84,7 @@ final class ContentServiceProvider extends ServiceProvider
 	 */
 	protected const array SINGLETONS = [
 		FieldFactory::class,
+		FieldTargets::class,
 		FrontMatter::class,
 		DocumentParsers::class,
 		ContentTypeCache::class,
@@ -129,11 +134,12 @@ final class ContentServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array TAGS = [
-		RouteSource::TAG => [
+		RouteSource::TAG       => [
 			ContentRoutes::class,
 			PageRoutes::class
 		],
-		UrlSource::TAG => [ContentExportUrls::class]
+		UrlSource::TAG         => [ContentExportUrls::class],
+		FieldTargetSource::TAG => [ContentTypeTargets::class]
 	];
 
 	/**
@@ -170,6 +176,12 @@ final class ContentServiceProvider extends ServiceProvider
 		$this->container->singleton(
 			ContentTypes::class,
 			static fn (Container $container): ContentTypes => $container->make(ContentTypeCache::class)->load()
+		);
+
+		// Field sets load, and compile, with the types (D-339).
+		$this->container->singleton(
+			FieldSets::class,
+			static fn (Container $container): FieldSets => $container->make(ContentTypes::class)->sets
 		);
 	}
 
