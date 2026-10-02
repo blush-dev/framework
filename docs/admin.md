@@ -54,8 +54,9 @@ again brings the panel back. You only see what your account can use.
 
 The top bar says where you are: the section, then the screens above
 this one, then this one, such as *Content / Posts / Editing* or *Config
-/ Content Types / Pages*. The section's name shows its panel; the
-screens before the last go back to them.
+/ Content Types / Pages*. The section's name shows its panel, or hides
+the panel when it's already showing, like the rail; the screens before
+the last go back to them.
 
 **Search or jump to…** in the top bar (or ⌘K, Ctrl+K on Windows and
 Linux) opens the command palette: type to find a screen, a command such

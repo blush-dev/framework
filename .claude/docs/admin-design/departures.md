@@ -157,7 +157,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   toggles its panel and the top bar has no collapse button; the trail
   is the section, the screens above (the editor's type, or a detail
   screen's list from its route's `meta.parent`), and the screen; on a
-  narrow screen the section crumb goes first.
+  narrow screen the section crumb goes first. The section crumb shows
+  its section in the panel, and closes the panel when it already shows
+  it, like the rail button (D-367).
 - **Four sections, not three** (D-326): Home, Content, **Users** (named
   People until D-354, with the `user` icon), and
   Config, where the foundations say "three sections, not more" with

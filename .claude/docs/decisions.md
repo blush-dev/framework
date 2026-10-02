@@ -9963,3 +9963,17 @@ decision, add a new entry that supersedes it and mark the old one
   also tags the site as a source in the inserters; that's a label inside
   an inserter, not navigation, so the overlap was accepted.
 - **Why:** the author disliked the Dashboard's icon and proposed the swap.
+
+### D-367: The section crumb toggles the panel when it's already shown
+- **Date:** 2026-10-02
+- **Decision:** Supersedes D-317's "the section crumb opens that
+  section's panel (never closes it)". The top bar's section crumb shows
+  its section in the panel, as before, but when the panel already shows
+  that section it closes it, like that section's rail button (remembered
+  in this browser the same way). Its `aria-expanded` says whether the
+  panel shows it, and its tooltip is "Hide the panel" then. On a narrow
+  screen the open drawer covers the top bar, so there the crumb only
+  opens it.
+- **Why:** the author found that pressing `Home` on the Dashboard with
+  Home already in the panel did nothing; it should act as the rail
+  toggle instead.

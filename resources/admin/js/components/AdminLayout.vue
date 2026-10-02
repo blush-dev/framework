@@ -16,8 +16,9 @@
  *
  * The top bar's trail is the section, the screens above this one, and
  * this one (`Content / Posts / Editing`, `Config / Content Types /
- * Pages`; D-317): the section crumb opens its panel (never closes it),
- * and the others are ways back. The account's menu is in the top bar,
+ * Pages`; D-317): the section crumb shows its panel, and is a rail
+ * toggle when the panel already shows it (D-367); the others are ways
+ * back. The account's menu is in the top bar,
  * with the command palette's button (⌘K anywhere, D-248). While the browser is offline, a bar under the top bar says so. The editor's focus mode drops everything but the work
  * area.
  */
@@ -207,7 +208,7 @@ const panelSub = computed(() => {
  * drawer); any other, or a closed panel, opens it on that section.
  */
 function choose(key: Area): void {
-	if (key === area.value && (narrow.value ? open.value : !hidden.value)) {
+	if (showing(key)) {
 		if (narrow.value) {
 			void closeDrawer(false);
 		} else {
@@ -224,10 +225,22 @@ function choose(key: Area): void {
 	area.value = key;
 }
 
+// Whether the panel (or the drawer) is showing this section.
+function showing(key: Area): boolean {
+	return key === area.value && (narrow.value ? open.value : !hidden.value);
+}
+
 /**
- * The trail's section crumb: opens that section's panel, never closes it.
+ * The trail's section crumb: shows that section's panel, or, when it's
+ * already shown, closes it like its rail button (D-367).
  */
 function showSection(key: Area): void {
+	if (showing(key)) {
+		choose(key);
+
+		return;
+	}
+
 	area.value = key;
 
 	if (narrow.value) {
@@ -440,7 +453,7 @@ async function leave(): Promise<void> {
 					<span class="visually-hidden">Menu</span>
 				</button>
 				<nav class="bar__crumbs" aria-label="Where you are">
-					<button type="button" class="bar__root" aria-controls="nav-panel" :title="`Show ${sectionLabel} in the panel`" @click="showSection(routeArea)">{{ sectionLabel }}</button>
+					<button type="button" class="bar__root" aria-controls="nav-panel" :aria-expanded="showing(routeArea)" :title="showing(routeArea) ? 'Hide the panel' : `Show ${sectionLabel} in the panel`" @click="showSection(routeArea)">{{ sectionLabel }}</button>
 					<template v-for="crumb in trail" :key="crumb.label">
 						<span class="bar__sep" aria-hidden="true">/</span>
 						<RouterLink class="bar__link" :to="crumb.to">{{ crumb.label }}</RouterLink>
