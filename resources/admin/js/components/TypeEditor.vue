@@ -1,12 +1,16 @@
 <script setup lang="ts">
 /**
- * A content type from `user/data/types`, edited (D-311): General (names,
- * description, icon, with its key and folder fixed), Behavior
- * (`TypeBehaviorFields`, with the authors settings, D-329), and Fields (`FieldListEditor`, with the
- * field sets added to it below, D-337), saved together
- * with **Save** (`PATCH types/{name}`, only what changed) or put back
- * with **Revert**; leaving with changes unsaved asks first. A Danger
- * Zone deletes the type's file; its entries stay where they are.
+ * A content type from `user/data/types`, edited (D-311), or a collection
+ * or taxonomy from code, changed through a file there (D-349): General
+ * (names, description, icon, with its key and folder fixed), Behavior
+ * (`TypeBehaviorFields`, with the authors settings, D-329), Addresses
+ * (`TypeRoutesFields`, each route key's path, D-350), and Fields
+ * (`FieldListEditor`, with the field sets added to it below, D-337;
+ * read-only when the code's fields are classes of its own), saved
+ * together with **Save** (`PATCH types/{name}`, only what changed) or
+ * put back with **Revert**; leaving with changes unsaved asks first. A
+ * Danger Zone deletes a data type's file (its entries stay where they
+ * are), or resets a code type to the code's definition.
  *
  * After a save or a delete, it asks the server to compile the routes and
  * reindex with the new types (`POST types/refresh`) and loads the types
@@ -20,8 +24,10 @@ import FieldListEditor from './FieldListEditor.vue';
 import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
 import TypeFieldSets from './TypeFieldSets.vue';
+import TypeRoutesFields from './TypeRoutesFields.vue';
 import { ApiError, request, type ContentTypeDetail } from '../api';
-import { changesOf, formOf, type TypeForm } from '../type-form';
+import { label } from '../fields';
+import { authorsWordOf, changesOf, formOf, type TypeForm } from '../type-form';
 import { toast } from '../toast';
 import { authorType, reloadTypes, typeUrls, types } from '../types';
 
@@ -47,6 +53,14 @@ watch(() => props.type, (type) => {
 
 const changes = computed(() => changesOf(form.value, initial.value, kind.value));
 const changed = computed(() => Object.keys(changes.value).length > 0 || index.value || page.value);
+
+// A type from code, changed through a file in user/data/types (D-349).
+const code   = computed(() => props.type.origin !== 'data');
+const source = computed(() => props.type.origin === 'config' ? 'config/content.php' : 'an extension');
+const file   = computed(() => props.type.file ?? `user/data/types/${props.type.name}.yaml`);
+
+// The prefix the addresses sit under, as the form has it.
+const prefix = computed(() => (form.value.prefix || props.type.folderPrefix).replace(/^\/+|\/+$/g, ''));
 
 // The site's authors type, which the Behavior panel names.
 const authorsLabel = computed(() => types.value.find((item) => item.name === authorType.value)?.labels.plural ?? null);
@@ -86,6 +100,24 @@ function revert(): void {
 	failure.value = '';
 }
 
+async function reset(): Promise<void> {
+	removal.value = '';
+
+	if (!window.confirm(`Reset ${props.type.labels.plural} to how ${source.value} defines it? ${file.value} is removed, and every change made here with it.`)) {
+		return;
+	}
+
+	try {
+		const saved = await request<ContentTypeDetail>('POST', `/types/${encodeURIComponent(props.type.name)}/reset`);
+
+		emit('saved', saved);
+		refresh();
+		toast(`Reset ${saved.labels.plural}`);
+	} catch (caught) {
+		removal.value = caught instanceof ApiError ? caught.message : 'The type couldn\'t be reset.';
+	}
+}
+
 async function remove(): Promise<void> {
 	removal.value = '';
 
@@ -114,7 +146,8 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 		<section class="panel" aria-labelledby="general-heading">
 			<header class="panel__header">
 				<h2 id="general-heading">General</h2>
-				<p class="panel__hint">In <code>{{ type.file }}</code></p>
+				<p v-if="code" class="panel__hint">From {{ source }}; changes are saved in <code>{{ file }}</code></p>
+				<p v-else class="panel__hint">In <code>{{ type.file }}</code></p>
 			</header>
 			<div class="panel__body type-editor__body">
 				<TypeBasicsFields v-model="form" id-prefix="type-" :kind="kind" />
@@ -135,12 +168,28 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 			</div>
 		</section>
 
+		<section v-if="type.routes.length" class="panel" aria-labelledby="addresses-heading">
+			<header class="panel__header">
+				<h2 id="addresses-heading">Addresses</h2>
+				<p class="panel__hint">Under <code>/{{ prefix }}</code></p>
+			</header>
+			<div class="panel__body">
+				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :taxonomy="kind === 'taxonomy'" :authors-word="type.authorsWord" :form-authors-word="form.authors ? authorsWordOf(form) : false" :editable="typeUrls" />
+			</div>
+		</section>
+
 		<section class="panel" aria-labelledby="fields-heading">
 			<header class="panel__header">
 				<h2 id="fields-heading">Fields</h2>
 				<p class="panel__hint">Beside the title, slug, status, dates, and body every entry has</p>
 			</header>
-			<FieldListEditor v-model="form.fields" :types="types" id-prefix="field-" />
+			<FieldListEditor v-if="type.fieldsEditable" v-model="form.fields" :types="types" id-prefix="field-" />
+			<div v-else class="panel__body">
+				<ul class="type-editor__fields">
+					<li v-for="field in type.fields" :key="field.name">{{ label(field) }} <span class="mono">{{ field.type }}</span></li>
+				</ul>
+				<p class="field__help">Some of its fields are field classes {{ source }} defines, so they're changed there.</p>
+			</div>
 		</section>
 
 		<TypeFieldSets :type="type" />
@@ -155,7 +204,12 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 			<header class="panel__header">
 				<h2 id="danger-heading">Danger Zone</h2>
 			</header>
-			<div class="panel__body type-editor__danger">
+			<div v-if="code" class="panel__body type-editor__danger">
+				<button type="button" class="button button--danger button--small" :disabled="!type.overridden" @click="reset"><AdminIcon name="refresh-cw" />Reset to {{ source }}</button>
+				<p v-if="removal" class="field__error" role="alert">{{ removal }}</p>
+				<p class="field__help">{{ type.overridden ? `Removes ${file}, so every setting is as ${source} has it.` : `Nothing has changed it here yet.` }} It's defined in code, so it can't be deleted here.</p>
+			</div>
+			<div v-else class="panel__body type-editor__danger">
 				<button type="button" class="button button--danger button--small" @click="remove"><AdminIcon name="x" />Delete this type</button>
 				<p v-if="removal" class="field__error" role="alert">{{ removal }}</p>
 				<p class="field__help">Removes its file. Its entries stay on disk, unlisted until a type claims <code>user/content/{{ type.folder }}</code> again. A taxonomy that groups it must stop first.</p>
@@ -209,6 +263,11 @@ onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving?
 .type-editor__save .field__error {
 	flex-basis: 100%;
 	margin: 0;
+}
+
+.type-editor__fields {
+	margin: 0;
+	padding-left: 1.2em;
 }
 
 .type-editor__danger {

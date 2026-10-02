@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 /**
- * Where a content type was defined. Types from code (the framework,
- * extensions, and `config/content.php`) are locked in the admin; data types
- * from `user/data/types` are editable (D-042).
+ * Where a content type was defined. Data types from `user/data/types` are
+ * editable (D-042). A collection or taxonomy from code (an extension or
+ * `config/content.php`) keeps its origin when a data file changes it
+ * (D-349; `ContentTypes::isOverridden()`); the built-in types stay as
+ * they are unless a data type replaces one whole.
  */
 enum TypeOrigin: string
 {
@@ -26,7 +28,9 @@ enum TypeOrigin: string
 	case Data      = 'data';
 
 	/**
-	 * Returns whether the admin may edit types from this origin.
+	 * Returns whether the admin edits types from this origin as data
+	 * types. `ContentTypes::isEditable()` also counts code types it
+	 * changes through a data file.
 	 */
 	public function isEditable(): bool
 	{

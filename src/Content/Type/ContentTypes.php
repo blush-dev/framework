@@ -65,12 +65,14 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * @param array<string, TypeOrigin>  $origins Keyed by name.
 	 * @param ?string                    $home    The home page's type.
 	 * @param FieldSets                  $sets    The site's field sets.
+	 * @param list<string>               $overrides Types from code that a data file changes (D-349).
 	 */
 	public function __construct(
 		private readonly array $types,
 		private readonly array $origins = [],
 		public readonly ?string $home = null,
-		public readonly FieldSets $sets = new FieldSets()
+		public readonly FieldSets $sets = new FieldSets(),
+		private readonly array $overrides = []
 	) {
 		foreach ($types as $name => $type) {
 			$this->folders[$type->folder] = $name;
@@ -119,6 +121,29 @@ final class ContentTypes implements IteratorAggregate, Countable
 	public function origin(string $name): TypeOrigin
 	{
 		return $this->origins[$name] ?? TypeOrigin::Config;
+	}
+
+	/**
+	 * Returns whether a type from code has a data file in
+	 * `user/data/types` changing it (D-349).
+	 */
+	public function isOverridden(string $name): bool
+	{
+		return in_array($name, $this->overrides, true);
+	}
+
+	/**
+	 * Returns whether the admin may change a type: one defined in data, or
+	 * a collection or taxonomy from code, which a data file then
+	 * overrides (D-311, D-349). The pages and authors types defined in
+	 * code stay as they are.
+	 */
+	public function isEditable(string $name): bool
+	{
+		$origin = $this->origin($name);
+
+		return $origin === TypeOrigin::Data
+			|| (($origin === TypeOrigin::Config || $origin === TypeOrigin::Extension) && ($this->find($name)?->kind()->isOverridable() ?? false));
 	}
 
 	/**
@@ -261,15 +286,16 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns the types as an array for a compiled cache.
 	 *
-	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, home: ?string, sets: list<array<string, mixed>>}
+	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>}
 	 */
 	public function toArray(): array
 	{
 		return [
-			'types'   => array_values(array_map(static fn (ContentType $type): array => $type->toArray(), $this->types)),
-			'origins' => array_map(static fn (TypeOrigin $origin): string => $origin->value, $this->origins),
-			'home'    => $this->home,
-			'sets'    => $this->sets->toArray()
+			'types'     => array_values(array_map(static fn (ContentType $type): array => $type->toArray(), $this->types)),
+			'origins'   => array_map(static fn (TypeOrigin $origin): string => $origin->value, $this->origins),
+			'overrides' => $this->overrides,
+			'home'      => $this->home,
+			'sets'      => $this->sets->toArray()
 		];
 	}
 
@@ -305,7 +331,9 @@ final class ContentTypes implements IteratorAggregate, Countable
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
-		return new self($types, $origins, is_string($home) ? $home : null, $sets);
+		$overrides = array_values(array_filter(is_array($data['overrides'] ?? null) ? $data['overrides'] : [], is_string(...)));
+
+		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides);
 	}
 
 	/**

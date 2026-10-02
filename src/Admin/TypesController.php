@@ -23,7 +23,13 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\TypeOrigin;
+use Blush\Content\Type\TypeRouteKeys;
+use Blush\Content\Type\TypeUrls;
 use Blush\Core\Paths;
+use Blush\Data\DataException;
+use Blush\Data\DataLoader;
+use Blush\Feed\FeedConfig;
+use Blush\Feed\FeedFormat;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Taxonomy;
 use Blush\Field\Field;
@@ -52,10 +58,17 @@ use Blush\Http\Status;
  * `GET {path}/api/types/{name}` (`show()`) adds the type's own fields
  * (`Field::toArray()`), the field `sets` attached to it (`name`,
  * `label`, and how many `fields`, D-337), the `taxonomies` that group it, whether it's
- * `public`, has a `feed`, is in the `sitemap`, and is `editable` (only
- * `user/data/types` types are, D-311), its `dateArchives`, the prefix its
- * folder gives (`folderPrefix`), the data `file` it's defined in (`null`
- * for the rest), its `index` page (`{"id", "title"}`, or `null`), the
+ * `public`, has a `feed`, is in the `sitemap`, and is `editable` (types
+ * in `user/data/types`, D-311, and collections and taxonomies from code,
+ * through a file there, D-349), whether it's `overridden` (a code type a
+ * file changes) and the options that file sets (`overrides`), whether
+ * its `fieldsEditable` (none is a field class of the code's own), its
+ * `dateArchives`, the prefix its folder gives (`folderPrefix`), the data
+ * `file` it's defined or changed in (`null` for the rest), its `routes`
+ * (each route key it answers at, with its `path` and `default` relative
+ * to the prefix, the placeholders it `requires` and `allows`, and
+ * whether it's at the site's `root`, as the home type's feeds are,
+ * D-350), its `index` page (`{"id", "title"}`, or `null`), the
  * word its author archives sit under (`authorsWord`: the word, `false`
  * for none, or `null` for a type without URLs, D-329), and its
  * `authorsPage` (`{"id", "title"}`, or `null`).
@@ -71,7 +84,9 @@ final readonly class TypesController
 		private ContentTypes $types,
 		private ContentConfig $config,
 		private DataTypeWriter $writer,
-		private Paths $paths
+		private Paths $paths,
+		private DataLoader $data,
+		private FeedConfig $feeds
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -114,10 +129,11 @@ final readonly class TypesController
 			array_filter($types->taxonomies(), static fn (Taxonomy $taxonomy): bool => $taxonomy->name !== $name && ($taxonomy->types === [] || in_array($name, $taxonomy->types, true)))
 		));
 
-		$editable = $types->origin($name)->isEditable() && $this->config->dataTypes;
+		$data     = $types->origin($name) === TypeOrigin::Data;
+		$editable = $types->isEditable($name) && $this->config->dataTypes;
 
 		try {
-			$file = $types->origin($name) === TypeOrigin::Data ? $this->writer->path($name) : null;
+			$file = $data || $types->isOverridden($name) ? $this->writer->path($name) : null;
 		} catch (InvalidContentType) {
 			$file = null;
 		}
@@ -127,7 +143,11 @@ final readonly class TypesController
 			'public'       => $type->public,
 			'feed'         => $type->hasFeed(),
 			'sitemap'      => $type->sitemap,
-			'editable'     => $editable && $file !== null,
+			'editable'     => $editable && ($file !== null || ! $data),
+			'overridden'   => $types->isOverridden($name),
+			'overrides'    => $types->isOverridden($name) ? $this->overrides($file) : [],
+			'fieldsEditable' => $data || $this->writer->fieldsEditable($type),
+			'routes'       => $this->routes($types, $type),
 			'taxonomies'   => $taxonomies,
 			'fields'       => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $type->schema->fields)),
 			'dateArchives' => $type->dateArchives->value,
@@ -142,6 +162,63 @@ final readonly class TypesController
 				'fields' => count($set->schema->fields)
 			], $types->setsFor($name))
 		];
+	}
+
+	/**
+	 * The options a file changing a code type sets, by their 2.x names.
+	 *
+	 * @return list<string>
+	 */
+	private function overrides(?string $file): array
+	{
+		try {
+			$keys = $file === null ? [] : array_map(strval(...), array_keys($this->data->loadFile($file)));
+		} catch (DataException) {
+			return [];
+		}
+
+		$names = [];
+
+		foreach ($keys as $key) {
+			$names[] = array_find_key(DataTypeWriter::OPTIONS, static fn (array $old, string $name): bool => in_array($key, $old, true)) ?? $key;
+		}
+
+		return array_values(array_unique($names));
+	}
+
+	/**
+	 * The route keys a type answers at (D-350), each with its path and
+	 * default, relative to the prefix, and the placeholders it requires
+	 * and allows.
+	 *
+	 * @return list<array{key: string, path: string, default: string, requires: list<string>, allows: list<string>, root: bool}>
+	 */
+	private function routes(ContentTypes $types, ContentType $type): array
+	{
+		if ($type->urls === false) {
+			return [];
+		}
+
+		$home       = $type->name === $types->home;
+		$feeds      = array_map(static fn (FeedFormat $format): string => $format->routeSuffix(), $this->feeds->formats);
+		$archives   = $type->hasAuthorArchives() && $types->authors() !== null;
+		$taxonomies = array_keys($types->termTypes());
+		$defaults   = [...TypeUrls::DEFAULT_PATHS, ...TypeUrls::authorPaths($type->urls->authors)];
+		$routes     = [];
+
+		foreach (TypeRouteKeys::keys($type, $home, $feeds, $archives) as $key) {
+			$params   = TypeRouteKeys::params($type, $key, $taxonomies);
+			$routes[] = [
+				'key'      => $key,
+				'path'     => $type->urls->path($key) ?? '',
+				'default'  => $defaults[$key] ?? '',
+				'requires' => $params['required'],
+				'allows'   => $params['optional'],
+				'root'     => $home && str_starts_with($key, 'collection.feed')
+			];
+		}
+
+		return $routes;
 	}
 
 	/**

@@ -696,9 +696,12 @@ taxonomies too, with where it's defined, how many fields it has, and how
 many entries. Choose one for its settings, the taxonomies that group it,
 and its fields; **Type settings** on a type's list goes there too.
 
-Types in `user/data/types` are edited on their screen; types from
-`config/content.php`, extensions, and Blush itself are defined in code,
-so their screens only show them (see [Content types](content-types.md)).
+Types in `user/data/types` are edited on their screen. So are
+collections and taxonomies from `config/content.php` and extensions:
+what you change is saved in `user/data/types/{key}.yaml` over the code's
+definition (see [Changing a type from code](content-types.md#changing-a-type-from-code)).
+The pages and authors types defined in code stay as they are, so their
+screens only show them.
 
 ### Creating a type
 
@@ -728,8 +731,21 @@ authors page, when chosen, as `_authors.md`, titled "Authors".
 
 ### Editing a type
 
-A `user/data/types` type's screen has General (names, description,
-icon), Behavior (as above), and Fields: open a field to change its
+A type's screen has General (names, description, icon), Behavior (as
+above), Addresses, and Fields.
+
+**Addresses** lists every address the type has: its listing and later
+pages, date archives, entries (or terms), feeds, and author archives.
+Each shows its path after the type's prefix, its default when empty,
+the whole address, and the {placeholders} it needs and may hold: an
+entry's address needs `{name}` and may hold the date's parts
+(`{year}` to `{second}`) and a taxonomy's name; later pages need
+`{page}`. A path that leaves out what it needs, or holds something it
+can't fill, is refused with the reason. Changing an address moves those
+pages, so add [redirects](content.md#redirects) for the old ones in
+`user/data/redirects`.
+
+In **Fields**, open a field to change its
 label, key, type, help, whether it's required, its default, and its
 type's options (a number's limits and whole numbers, a choice's options,
 a list's item type, a reference's type and whether it takes more than
@@ -754,6 +770,13 @@ uses a change on the next request.
 **Delete this type** removes its file. Its entries stay in its folder,
 unlisted until a type claims the folder again. A type a taxonomy groups
 can't be deleted until the taxonomy stops grouping it.
+
+A type from code says where it's defined and where changes go. Its file
+keeps only what differs from the code, and is removed when everything
+is back at the code's values. **Reset to config/content.php** (or to
+the extension) removes the file, undoing every change made here; a type
+from code can't be deleted here. If some of its fields are field
+classes from code, its fields are shown but changed in code.
 
 ## Fields
 
@@ -1026,10 +1049,11 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. Secrets are never sent. Needs `site.settings` |
 | `GET extensions` | Every installed extension, the ones that are on first: `{"extensions": [{"name", "version", "description", "source", "path", "requires", "enabled", "adds"}], "config"}`. `source` is `local` or `composer`; `path` is from the site's root; `adds` has `types` (`{"name", "label", "overridden"}`), `components`, `icons` (namespaces), `actions`, and `commands`, all empty for one that's off; `config` is whether `config/extensions.php` exists. Needs `site.settings` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and authors last. `kind` is `collection`, `taxonomy`, `pages`, or `authors`, and each type's `authors` is whether its entries credit authors. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the authors type adds `"types"`, the types that credit authors. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the authors type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), `authorsWord` (the word its author archives sit under, `false` for none, `null` without URLs), and its `authorsPage` (`{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
-| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word author archives sit under; `false` for none, `null` for `authors`), `public`, `sitemap`, `feed`, `authors`, `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, and `authorsPage: true` its authors page (a `422` without author archives). Needs `site.settings` |
-| `PATCH types/{name}` | Change a `user/data/types` type: `{"set", "index", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection or taxonomy from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), `authorsWord` (the word its author archives sit under, `false` for none, `null` without URLs), and its `authorsPage` (`{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `taxonomy`), `"folder", "set", "index", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word author archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `authors`, `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, and `authorsPage: true` its authors page (a `422` without author archives). Needs `site.settings` |
+| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or taxonomy from code (saved in `user/data/types` over it): `{"set", "index", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
+| `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
 | `GET fields/types` | The field types definitions can use, built in and from extensions: `{"types": [{"type", "label", "description", "controls", "options"}], "controls"}`. `controls` are `{"value", "label"}`, a type's first being its default; `options` are the type's own definition keys as JSON Schemas |
 | `GET fields/sets` | The field sets: `{"sets": [{"name", "label", "description", "kind", "slot", "origin", "editable", "file", "targets", "fields"}], "create", "targets"}`. `origin` is `extension`, `config`, or `data`; each set's `targets` are `{"key", "label", "found"}` (`found` is whether the site has it); `fields` is how many; the top-level `targets` are every place a set can be added to (`{"key", "label", "group", "kind"}`: content types, kinds of media file, and Settings screens), and `kinds` each kind with its `slots` (`{"name", "label", "description"}`, the first its default); `create` is whether sets can be created here |

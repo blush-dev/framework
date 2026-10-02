@@ -4,8 +4,9 @@
  * group it (or, for a taxonomy, the types it groups), the fields it
  * defines and the field sets added to it (D-337), with a way to its
  * entries. A type from `user/data/types` is
- * edited here (`TypeEditor`, D-311); the rest are defined in code and
- * shown read-only (D-042).
+ * edited here (`TypeEditor`, D-311), and so is a collection or taxonomy
+ * from code, through a file there (D-349); the pages and authors types
+ * from code are shown read-only (D-042).
  */
 
 import { computed, ref, watch } from 'vue';
@@ -71,7 +72,7 @@ const related = computed(() => {
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ type?.labels.plural ?? 'Content Type' }}</h1>
 			<p v-if="type" class="page-header__hint">
-				{{ humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · from {{ origin }}
+				{{ humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · from {{ origin }}<template v-if="type.overridden"> · changed in <span class="mono">{{ type.file }}</span></template>
 			</p>
 			<p v-if="type?.description" class="page-header__hint">{{ type.description }}</p>
 		</div>

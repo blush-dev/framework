@@ -317,6 +317,39 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns the type with a data file's options laid over it (D-349):
+	 * each option the data names replaces the type's whole option, by its
+	 * 2.x or 1.x name. The name, kind, and folder stay the type's, since
+	 * entries are filed by them. Only collections and taxonomies can be
+	 * overridden.
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @throws InvalidContentType
+	 */
+	public function overriddenBy(array $data, FieldFactory $fields): self
+	{
+		if (! $this->kind()->isOverridable()) {
+			throw new InvalidContentType(sprintf(
+				'The "%s" content type is the site\'s %s type, which user/data/types can\'t change; define it in one place.',
+				$this->name,
+				$this->kind()->value
+			));
+		}
+
+		$data   = self::renamed($data, $this->name);
+		$kind   = array_key_exists('kind', $data) || array_key_exists('taxonomy', $data) ? self::kindOf($data, $this->name) : $this->kind();
+		$folder = $data['folder'] ?? $this->folder;
+
+		unset($data['name'], $data['kind'], $data['folder']);
+
+		if ($kind !== $this->kind() || ! is_string($folder) || trim($folder, '/') !== $this->folder) {
+			throw new InvalidContentType(sprintf('user/data/types/%s can\'t change the type\'s kind or folder; entries are filed by them.', $this->name));
+		}
+
+		return self::fromArray([...$this->toArray(), ...$data], $fields);
+	}
+
+	/**
 	 * Returns the type as a definition array that `fromArray()` accepts,
 	 * leaving out settings at their defaults.
 	 *

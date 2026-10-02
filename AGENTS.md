@@ -59,7 +59,9 @@ settings on four screens, saved in `user/data/settings.json` over
 that opt in, with archives under each type, one People list, and
 Your Profile as the editor of your author page (D-329 to D-332; an
 exploration that's kept but on hold while the author thinks it over,
-D-333).
+D-333); and editing code collections and taxonomies through a file in
+`user/data/types` over them, and every URL path of a type (D-349,
+D-350).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

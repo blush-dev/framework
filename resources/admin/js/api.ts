@@ -181,21 +181,45 @@ export interface ContentTypeSummary {
 }
 
 /**
+ * A route key a type answers at (D-350): its path and default, relative
+ * to the type's prefix (or the site's root, for the home type's feeds),
+ * and the placeholders it needs and may hold.
+ */
+export interface TypeRoute {
+	key: string;
+	path: string;
+	default: string;
+	requires: string[];
+	allows: string[];
+	root: boolean;
+}
+
+/**
  * One content type (`GET types/{name}`, D-250).
  */
 export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	public: boolean;
 	feed: boolean;
 	sitemap: boolean;
-	// Whether it's defined in `user/data/types`, so the admin changes it (D-311).
+	// Whether the admin changes it: a type in `user/data/types` (D-311),
+	// or a collection or taxonomy from code, through a file there (D-349).
 	editable: boolean;
+	// Whether it's from code with a file in `user/data/types` changing
+	// it, and the options that file sets.
+	overridden: boolean;
+	overrides: string[];
+	// Whether its fields can be changed here (none is a field class from
+	// code).
+	fieldsEditable: boolean;
+	// The route keys it answers at (D-350).
+	routes: TypeRoute[];
 	taxonomies: string[];
 	fields: FieldDescription[];
 	// `none`, `year`, `month`, `day`, `hour`, `minute`, or `second`.
 	dateArchives: string;
 	// The URL prefix its folder gives it, without slashes.
 	folderPrefix: string;
-	// The data file it's defined in, from the site's root, or `null`.
+	// The data file it's defined or changed in, from the site's root, or `null`.
 	file: string | null;
 	// Its index page (D-255), or `null`.
 	index: { id: string; title: string } | null;

@@ -31,8 +31,11 @@ use Blush\Field\InvalidSchema;
  *    extensions defining one name is an error.
  * 3. The site's `ContentConfig` types.
  * 4. Data types from `user/data/types/{name}.json|yaml`, when allowed.
- *    They may redefine a built-in type, but redefining an extension or
- *    config type is an error.
+ *    They may redefine a built-in type. A file named for an extension or
+ *    config collection or taxonomy changes it instead (D-349): each
+ *    option it sets replaces the code's (`ContentType::overriddenBy()`),
+ *    and the type keeps its origin. One named for a code pages or authors
+ *    type is an error.
  *
  * Then: folders must be unique, one type must claim the content root, the
  * types named by listings, taxonomies' `types`, feed categories, and the
@@ -61,6 +64,45 @@ final readonly class ContentTypeLoader
 	 */
 	public function load(): ContentTypes
 	{
+		[$types, $origins] = $this->codeTypes();
+
+		$overrides = [];
+
+		foreach ($this->dataDefinitions() as $name => $definition) {
+			$origin = $origins[$name] ?? null;
+
+			if ($origin === TypeOrigin::Extension || $origin === TypeOrigin::Config) {
+				$types[$name] = $types[$name]->overriddenBy($definition, $this->fields);
+				$overrides[]  = $name;
+				continue;
+			}
+
+			$types[$name]   = ContentType::fromArray(['name' => $name, ...$definition], $this->fields);
+			$origins[$name] = TypeOrigin::Data;
+		}
+
+		try {
+			$sets = $this->sets->load();
+		} catch (InvalidSchema $e) {
+			throw new InvalidContentType($e->getMessage(), previous: $e);
+		}
+
+		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides);
+		$this->check($resolved);
+
+		return $resolved;
+	}
+
+	/**
+	 * Returns the types code defines, before any data: the built-in
+	 * types, extension types, then the config's, each with its origin.
+	 * The admin overrides code types against these (D-349).
+	 *
+	 * @return array{array<string, ContentType>, array<string, TypeOrigin>}
+	 * @throws InvalidContentType
+	 */
+	public function codeTypes(): array
+	{
 		$types   = [];
 		$origins = [];
 
@@ -85,32 +127,7 @@ final readonly class ContentTypeLoader
 			$origins[$type->name] = TypeOrigin::Config;
 		}
 
-		foreach ($this->dataTypes() as $type) {
-			$origin = $origins[$type->name] ?? null;
-
-			if ($origin === TypeOrigin::Extension || $origin === TypeOrigin::Config) {
-				throw new InvalidContentType(sprintf(
-					'The "%s" content type is defined in both %s and user/data/%s; define it in one place.',
-					$type->name,
-					$origin === TypeOrigin::Config ? 'config/content.php' : 'an extension',
-					self::DATA_DIRECTORY
-				));
-			}
-
-			$types[$type->name]   = $type;
-			$origins[$type->name] = TypeOrigin::Data;
-		}
-
-		try {
-			$sets = $this->sets->load();
-		} catch (InvalidSchema $e) {
-			throw new InvalidContentType($e->getMessage(), previous: $e);
-		}
-
-		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets);
-		$this->check($resolved);
-
-		return $resolved;
+		return [$types, $origins];
 	}
 
 	/**
@@ -157,12 +174,13 @@ final readonly class ContentTypeLoader
 	}
 
 	/**
-	 * Returns the data-defined types, when the config allows them.
+	 * Returns the definitions in `user/data/types`, keyed by name, when
+	 * the config allows them: whole types, or changes to a type from code.
 	 *
-	 * @return list<ContentType>
+	 * @return array<string, array<array-key, mixed>>
 	 * @throws InvalidContentType
 	 */
-	private function dataTypes(): array
+	private function dataDefinitions(): array
 	{
 		if (! $this->config->dataTypes) {
 			return [];
@@ -200,7 +218,7 @@ final readonly class ContentTypeLoader
 				));
 			}
 
-			$types[] = ContentType::fromArray(['name' => $name, ...$definition], $this->fields);
+			$types[$name] = $definition;
 		}
 
 		return $types;

@@ -193,13 +193,57 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(TypeOrigin::Data, $types->origin('author'));
 	}
 
-	public function testDataTypesCantRedefineConfigTypes(): void
+	public function testDataFilesChangeConfigCollectionsAndTaxonomies(): void
 	{
-		$this->contentConfig("['types' => ['movie' => []]]");
-		$this->writeTemporaryFile('user/data/types/movie.json', '{}');
+		$this->contentConfig("['types' => ['movie' => ['path' => 'movies', 'routing' => ['prefix' => 'films', 'single' => '{year}/{name}'], 'feed' => ['listing' => ['perPage' => 5]], 'description' => 'Films.'], 'genre' => ['taxonomy' => true]]]");
+		$this->writeTemporaryFile('user/data/types/movie.yaml', "description: Movies we watched.\nrouting:\n  prefix: watched\n");
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"hierarchical": true, "kind": "taxonomy"}');
+
+		$types = $this->types();
+		$movie = $types->get('movie');
+
+		$this->assertSame(TypeOrigin::Config, $types->origin('movie'), 'It\'s still a config type.');
+		$this->assertTrue($types->isOverridden('movie'));
+		$this->assertTrue($types->isEditable('movie'));
+		$this->assertFalse($types->isOverridden('page'));
+		$this->assertSame(['movies', 'Movies we watched.', 'watched'], [$movie->folder, $movie->description, $movie->prefix()]);
+		$this->assertSame('{name}', $movie->urls === false ? null : $movie->urls->path('single'), 'An option it sets replaces the code\'s whole option (D-349).');
+		$this->assertSame(5, $movie->feed === false ? null : $movie->feed->listing?->perPage, 'Options it doesn\'t set stay the code\'s.');
+		$this->assertTrue($types->taxonomies()['genre']->hierarchical);
+	}
+
+	public function testDataFilesCantChangeACodeTypesKindOrFolder(): void
+	{
+		$cases = [
+			'{"kind": "taxonomy"}' => 'user/data/types/movie can\'t change the type\'s kind or folder',
+			'{"taxonomy": true}'   => 'user/data/types/movie can\'t change the type\'s kind or folder',
+			'{"path": "films"}'    => 'user/data/types/movie can\'t change the type\'s kind or folder'
+		];
+
+		$this->contentConfig("['types' => ['movie' => ['path' => 'movies']]]");
+
+		foreach ($cases as $json => $message) {
+			$this->writeTemporaryFile('user/data/types/movie.json', $json);
+
+			try {
+				$this->types();
+				$this->fail("Expected: {$message}");
+			} catch (InvalidContentType $e) {
+				$this->assertStringContainsString($message, $e->getMessage());
+			}
+		}
+
+		$this->writeTemporaryFile('user/data/types/movie.json', '{"folder": "movies/", "kind": "collection"}');
+		$this->assertTrue($this->types()->isOverridden('movie'), 'Its own kind and folder are fine.');
+	}
+
+	public function testDataFilesCantChangeTheCodesPagesType(): void
+	{
+		$this->contentConfig("['types' => ['page' => ['kind' => 'pages', 'description' => 'Pages.']]]");
+		$this->writeTemporaryFile('user/data/types/page.json', '{"description": "Mine."}');
 
 		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('The "movie" content type is defined in both config/content.php and user/data/types; define it in one place.');
+		$this->expectExceptionMessage('The "page" content type is the site\'s pages type, which user/data/types can\'t change; define it in one place.');
 
 		$this->types();
 	}
@@ -295,5 +339,18 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertEquals($types->all(), $rebuilt->all());
 		$this->assertSame(TypeOrigin::BuiltIn, $rebuilt->origin('page'));
 		$this->assertSame('post', $rebuilt->home);
+		$this->assertFalse($rebuilt->isOverridden('post'));
+	}
+
+	public function testRoundTripsOverrides(): void
+	{
+		$this->contentConfig("['types' => ['movie' => []]]");
+		$this->writeTemporaryFile('user/data/types/movie.json', '{"description": "Films."}');
+
+		$application = $this->scratchApplication();
+		$rebuilt     = ContentTypes::fromArray($this->types($application)->toArray(), $application->container()->make(FieldFactory::class));
+
+		$this->assertTrue($rebuilt->isOverridden('movie'));
+		$this->assertSame('Films.', $rebuilt->get('movie')->description);
 	}
 }

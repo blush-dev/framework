@@ -74,6 +74,25 @@ return new ContentConfig(
 code you install, like a plugin registering post types in WordPress. See
 [Content types from an extension](extending.md#content-types-from-an-extension).
 
+### Changing a type from code
+
+A file in `user/data/types/` named after a collection or taxonomy from
+`config/content.php` or an extension changes that type rather than
+defining a new one. Each option it sets replaces the code's, and the
+rest stay as the code has them:
+
+```yaml
+# user/data/types/post.yaml: posts are defined in config/content.php
+description: Writing, mostly.
+feed: false
+```
+
+This is what the admin writes when you edit such a type, and it keeps
+only what differs from the code. A file like this can't change the
+type's kind or folder, and the pages and authors types from code can't
+be changed this way. Delete the file to go back to the code's
+definition. With `dataTypes` off, these files aren't read either.
+
 All three do the same thing, and every option below works in each. (In
 YAML, use the option names as keys.) A type's name uses lowercase letters,
 digits, and underscores.
@@ -595,7 +614,9 @@ Single-entry paths can use `{name}`, `{year}`, `{month}`, `{day}`,
 someone reaches a post by a wrong date, they're redirected to the right
 one.
 
-Run `bin/blush routes:list` to see every URL your types create.
+Run `bin/blush routes:list` to see every URL your types create. The
+admin's **Addresses** panel on a type's screen edits these paths too
+(see [Editing a type](admin.md#editing-a-type)).
 
 ## Giving pages fields
 

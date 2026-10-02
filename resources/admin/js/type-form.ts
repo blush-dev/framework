@@ -32,6 +32,9 @@ export interface TypeForm {
 	hierarchical: boolean;
 	types: string[];
 	fields: FieldDescription[];
+	// Route keys' paths, relative to the prefix (D-350); `''` for a key's
+	// default.
+	paths: Record<string, string>;
 }
 
 /**
@@ -55,7 +58,7 @@ export function authorsWordOf(form: TypeForm): string | false {
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, feed: false, authors: true, authorArchives: true, authorsWord: '', dateArchives: 'none', hierarchical: false, types: [], fields: [] };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, feed: false, authors: true, authorArchives: true, authorsWord: '', dateArchives: 'none', hierarchical: false, types: [], fields: [], paths: {} };
 }
 
 /**
@@ -79,7 +82,8 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		dateArchives: type.dateArchives,
 		hierarchical: type.hierarchical === true,
 		types: [...(type.types ?? [])],
-		fields: copy(type.fields)
+		fields: copy(type.fields),
+		paths: Object.fromEntries(type.routes.map((route) => [route.key, route.path === route.default ? '' : route.path]))
 	};
 }
 
@@ -99,8 +103,16 @@ export function hasFeatured(form: TypeForm): boolean {
 }
 
 /**
+ * A path as it's saved: no slashes around it, `''` for the default.
+ */
+export function pathOf(path: string): string {
+	return path.trim().replace(/^\/+|\/+$/g, '');
+}
+
+/**
  * The options to change: every one for a new type (`initial` is
- * `null`), else the ones that differ from `initial`.
+ * `null`), else the ones that differ from `initial`. Route paths are
+ * sent only for the keys that changed, `null` for a key's default.
  */
 export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKind): Record<string, unknown> {
 	const all: Record<string, unknown> = {
@@ -127,10 +139,14 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 
 	const before = changesOf(initial, null, kind);
 	const was    = authorsWordOf(initial);
+	const paths  = Object.fromEntries(Object.entries(form.paths)
+		.filter(([key, path]) => pathOf(path) !== pathOf(initial.paths[key] ?? ''))
+		.map(([key, path]) => [key, pathOf(path) || null]));
 
 	return {
 		...Object.fromEntries(Object.entries(all).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(before[key]))),
-		...(word === was ? {} : { authorsWord: word === AUTHORS ? null : word })
+		...(word === was ? {} : { authorsWord: word === AUTHORS ? null : word }),
+		...(Object.keys(paths).length > 0 ? { paths } : {})
 	};
 }
 

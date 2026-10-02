@@ -39,4 +39,14 @@ enum TypeKind: string
 			self::Authors    => ['folder', 'field', 'aliases', 'public', 'fields', 'closed', 'labels', 'description', 'icon']
 		};
 	}
+
+	/**
+	 * Returns whether a type of this kind defined in code may be changed
+	 * by a data file over it (D-349). The site has one pages type and
+	 * one authors type, so those stay as the code defines them.
+	 */
+	public function isOverridable(): bool
+	{
+		return $this === self::Collection || $this === self::Taxonomy;
+	}
 }

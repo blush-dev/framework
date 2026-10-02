@@ -39,7 +39,9 @@ use Blush\Support\Filesystem;
 
 /**
  * Creates, changes, and deletes the content types the site defines in
- * `user/data/types` (D-311), for accounts with `site.settings`:
+ * `user/data/types` (D-311), and changes the collections and taxonomies
+ * code defines through a file there (D-349), for accounts with
+ * `site.settings`:
  *
  * - `POST types`: `{"name", "kind"` (`collection` or `taxonomy`),
  *   `"folder"`, `"set"`, `"index"`, `"authorsPage"}`; answers `201` with
@@ -48,10 +50,13 @@ use Blush\Support\Filesystem;
  *   with the type.
  * - `DELETE types/{name}`: deletes its file (its entries stay); answers
  *   `{"deleted"}`.
+ * - `POST types/{name}/reset`: deletes the file changing a code type,
+ *   so it's as the code defines it; answers with the type.
  * - `POST types/refresh`: compiles the routes again (when the site keeps
  *   them compiled) and reindexes, so the next requests see the change.
  *
- * `set` holds the options to change (`DataTypeWriter`); `index: true`
+ * `set` holds the options to change (`DataTypeWriter`), including
+ * `paths`, route keys' paths (D-350); `index: true`
  * gives a collection or taxonomy its index page (D-255), `{folder}/index.md`
  * titled with its plural name, when it has none, and `authorsPage: true`
  * gives a type with author archives its authors page (D-329),
@@ -136,6 +141,15 @@ final readonly class TypeEditController
 		$this->version->bump();
 
 		return Response::json(['deleted' => $name], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	public function reset(ServerRequestInterface $request, string $name): ResponseInterface
+	{
+		if (! $this->allowed($request)) {
+			return self::forbidden();
+		}
+
+		return $this->changed(fn (): ContentTypes => $this->writer->reset($name), $name, false, false);
 	}
 
 	public function refresh(ServerRequestInterface $request): ResponseInterface

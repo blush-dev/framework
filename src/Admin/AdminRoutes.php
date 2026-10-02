@@ -44,8 +44,9 @@ use Blush\Session\StartSession;
  *   - `POST actions/{action}`: runs an action.
  *   - `GET  types`: the site's content types, and `GET types/{name}` one;
  *     `POST types`, `PATCH` and `DELETE types/{name}`, and `POST
- *     types/refresh` edit the ones in `user/data/types`
- *     (`TypeEditController`).
+ *     types/refresh` edit the ones in `user/data/types`, and change
+ *     code collections and taxonomies there; `POST types/{name}/reset`
+ *     puts one back as the code has it (`TypeEditController`, D-349).
  *   - `GET  fields/types`: the field types definitions can use, with
  *     their controls (`FieldTypesController`, D-337).
  *   - `GET  fields/sets`: the site's field sets, and `GET
@@ -127,6 +128,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/types/{name:[a-z0-9_-]+}', [TypesController::class, 'show'])->named('type')->middleware(Authenticate::class),
 			Route::patch('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'update'])->named('type.update')->middleware(Authenticate::class),
 			Route::delete('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'delete'])->named('type.delete')->middleware(Authenticate::class),
+			Route::post('/types/{name:[a-z0-9_-]+}/reset', [TypeEditController::class, 'reset'])->named('type.reset')->middleware(Authenticate::class),
 			Route::get('/components', ComponentsController::class)->named('components')->middleware(Authenticate::class),
 			Route::get('/fields/types', FieldTypesController::class)->named('fields.types')->middleware(Authenticate::class),
 			Route::get('/fields/sets', FieldSetsController::class)->named('fields.sets')->middleware(Authenticate::class),

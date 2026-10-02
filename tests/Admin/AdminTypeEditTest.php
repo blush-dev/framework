@@ -229,6 +229,127 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'recipe'])->getStatusCode());
 	}
 
+	/**
+	 * A type's routes (D-350), keyed by route key.
+	 *
+	 * @return array<string, array<mixed>>
+	 */
+	private function routes(string $name): array
+	{
+		$routes = self::json($this->send('GET', "/types/{$name}"))['routes'] ?? null;
+		$keyed  = [];
+
+		foreach (is_array($routes) ? $routes : [] as $route) {
+			if (is_array($route) && is_string($route['key'] ?? null)) {
+				$keyed[$route['key']] = $route;
+			}
+		}
+
+		return $keyed;
+	}
+
+	private function contentConfig(string $source): void
+	{
+		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray({$source});\n");
+	}
+
+	public function testChangesACodeTypeInADataFile(): void
+	{
+		$this->contentConfig("['types' => ['movie' => ['folder' => 'movies', 'urls' => ['prefix' => 'films'], 'description' => 'Films.', 'feed' => true, 'fields' => [['name' => 'rating', 'type' => 'number']]]]]");
+		$this->site();
+
+		$before = self::json($this->send('GET', '/types/movie'));
+		$this->assertSame([true, false, null, [], true], [$before['editable'] ?? null, $before['overridden'] ?? null, $before['file'] ?? null, $before['overrides'] ?? null, $before['fieldsEditable'] ?? null]);
+
+		$answer = $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Movies.', 'feed' => false]]);
+		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
+		$type = self::json($answer);
+		$this->assertSame(['config', true, ['description', 'feed'], 'user/data/types/movie.yaml', false], [$type['origin'] ?? null, $type['overridden'] ?? null, $type['overrides'] ?? null, $type['file'] ?? null, $type['feed'] ?? null]);
+		$this->assertSame("description: Movies.\nfeed: false\n", $this->file('user/data/types/movie.yaml'), 'Only what differs from the code, with a default the code doesn\'t have written out (D-349).');
+		$this->assertSame('/films', $type['prefix'] ?? null);
+
+		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['fields' => [['name' => 'rating', 'type' => 'number'], ['name' => 'year', 'type' => 'number']]]])->getStatusCode());
+		$this->assertStringContainsString("fields:\n  - name: rating\n", $this->file('user/data/types/movie.yaml'), 'Fields are the whole list.');
+
+		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Films.', 'feed' => true, 'fields' => [['name' => 'rating', 'type' => 'number']]]])->getStatusCode());
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/movie.yaml', 'Back at the code\'s values, the file goes.');
+
+		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['labels' => ['plural' => 'Pictures']]])->getStatusCode());
+		$reset = $this->write('POST', '/types/movie/reset');
+		$this->assertSame(200, $reset->getStatusCode(), (string) $reset->getBody());
+		$reverted = self::json($reset);
+		$this->assertSame(['Movies', false], [is_array($reverted['labels'] ?? null) ? $reverted['labels']['plural'] ?? null : null, $reverted['overridden'] ?? null]);
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/movie.yaml');
+
+		$this->assertSame(422, $this->write('POST', '/types/movie/reset')->getStatusCode(), 'Nothing to reset.');
+		$this->assertSame(422, $this->write('DELETE', '/types/movie')->getStatusCode(), 'A code type isn\'t deleted here.');
+		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'movie'])->getStatusCode(), 'Nor created again.');
+	}
+
+	public function testLeavesCodeFieldClassesAndThePagesTypeAlone(): void
+	{
+		$this->contentConfig("['types' => ['swatch' => ['fields' => [['name' => 'tint', 'type' => 'color', 'class' => Blush\\Tests\\Fixtures\\Content\\ColorField::class]]], 'page' => ['kind' => 'pages']]]");
+		$this->site();
+
+		$this->assertFalse(self::json($this->send('GET', '/types/swatch'))['fieldsEditable'] ?? null);
+		$fields = $this->write('PATCH', '/types/swatch', ['set' => ['fields' => []]]);
+		$this->assertSame(422, $fields->getStatusCode());
+		$this->assertStringContainsString('field classes from code', self::error($fields));
+		$this->assertSame(200, $this->write('PATCH', '/types/swatch', ['set' => ['description' => 'Colors.']])->getStatusCode(), 'The rest can change.');
+		$this->assertSame("description: Colors.\n", $this->file('user/data/types/swatch.yaml'), 'Its fields stay in code.');
+
+		$this->assertFalse(self::json($this->send('GET', '/types/page'))['editable'] ?? null);
+		$this->assertSame(422, $this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])->getStatusCode());
+		$this->assertFalse(self::json($this->send('GET', '/types/author'))['editable'] ?? null);
+	}
+
+	public function testChangesAndChecksRoutePaths(): void
+	{
+		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\nfeed: true\nurls:\n  single: 'r/{name}'\n");
+		$this->writeTemporaryFile('user/data/types/cuisine.yaml', "kind: taxonomy\nfolder: cuisines\n");
+		$this->site();
+
+		$routes = $this->routes('recipe');
+		$this->assertSame(['collection', 'collection.paged', 'single', 'collection.feed', 'collection.feed.atom', 'collection.feed.json', 'authors.collection', 'authors.single', 'authors.single.paged', 'authors.single.feed', 'authors.single.feed.atom', 'authors.single.feed.json'], array_keys($routes));
+		$this->assertSame(['key' => 'single', 'path' => 'r/{name}', 'default' => '{name}', 'requires' => ['name'], 'allows' => ['year', 'month', 'day', 'hour', 'minute', 'second', 'author', 'cuisine'], 'root' => false], $routes['single']);
+
+		$refusals = [
+			'{year}'          => 'The "single" address needs {name}.',
+			'{slug}/{name}'   => 'can\'t fill {slug}; it can hold {name}, {year}',
+			'r s/{name}'      => 'can use letters, digits',
+			'{name:[a-z]+}'   => 'can use letters, digits',
+			'{name'           => 'isn\'t one'
+		];
+
+		foreach ($refusals as $path => $message) {
+			$refused = $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['single' => $path]]]);
+			$this->assertSame(422, $refused->getStatusCode(), $path);
+			$this->assertStringContainsString($message, self::error($refused));
+		}
+
+		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['nope' => 'x']]])->getStatusCode());
+		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['collection.paged' => 'p']]])->getStatusCode(), 'A paged address needs {page}.');
+		$this->assertStringContainsString("single: 'r/{name}'", $this->file('user/data/types/recipe.yaml'), 'Nothing written.');
+
+		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['single' => '/{cuisine}/{year}/{name}/', 'collection.paged' => 'p/{page}']]]);
+		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
+		$this->assertSame("folder: recipes\nfeed: true\nurls:\n  paths: { single: '{cuisine}/{year}/{name}', collection.paged: 'p/{page}' }\n", $this->file('user/data/types/recipe.yaml'), 'The shortcut moves into paths (D-350).');
+
+		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['single' => null, 'collection.paged' => '']]])->getStatusCode());
+		$this->assertSame("folder: recipes\nfeed: true\n", $this->file('user/data/types/recipe.yaml'), 'Defaults are left out.');
+	}
+
+	public function testListsTheHomeTypesFeedsAtTheRoot(): void
+	{
+		$this->contentConfig("['types' => ['post' => ['feed' => true, 'dateArchives' => 'month']], 'home' => 'post']");
+		$this->site();
+
+		$routes = $this->routes('post');
+		$this->assertArrayNotHasKey('collection', $routes, 'The home page is its listing.');
+		$this->assertSame(['year', 'month', 'page'], ($routes['collection.month.paged'] ?? [])['requires'] ?? null);
+		$this->assertTrue(($routes['collection.feed'] ?? [])['root'] ?? null);
+	}
+
 	public function testNeedsSiteSettings(): void
 	{
 		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");

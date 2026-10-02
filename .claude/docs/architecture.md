@@ -377,8 +377,16 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   dispatches on `kind` (or 1.x's `taxonomy: true`) and accepts the 1.x
   option names.
 - **Sources, one model** (D-042, D-083): built-ins, extension
-  `ContentTypeSource`s, `ContentConfig` (`config/content.php`, locked), and
-  data types (`user/data/types/*.json|yaml`, editable later).
+  `ContentTypeSource`s, `ContentConfig` (`config/content.php`), and
+  data types (`user/data/types/*.json|yaml`, edited in the admin, D-311).
+  A data file named for a code collection or taxonomy overrides it
+  instead (D-349: `ContentType::overriddenBy()`, each option it sets
+  replacing the code's; the type keeps its origin, and
+  `ContentTypes::isOverridden()` says so); the code's pages and authors
+  types can't be. `ContentTypeLoader::codeTypes()` returns the types
+  before data, which `DataTypeWriter` writes overrides against.
+  `TypeRouteKeys` lists a type's route keys and what each path holds
+  (D-350), for the admin's Addresses panel and its checks.
   `ContentTypeLoader` merges and checks them into `ContentTypes`, which
   finds types by name, folder, or file, and builds each type's full schema.
   `ContentConfig` also holds the home alias, the data-type policy,

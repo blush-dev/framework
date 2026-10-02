@@ -322,7 +322,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-042: Content types can be defined in PHP or in data, under developer control
 - **Date:** 2026-09-25
-- **Status:** The admin edits data types since D-311.
+- **Status:** The admin edits data types since D-311. A data file named
+  for a code collection or taxonomy changes it rather than being an
+  error since D-349.
 - **Decision:** Content types and their schemas share one definition model
   (`ContentTypeDefinition`, with `fromArray()`), loadable from two sources:
   - **Developer (code):** typed PHP in `config/content.php` or extension
@@ -5170,7 +5172,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-250: Content types, read-only, as list and detail screens
 - **Date:** 2026-09-29
-- **Status:** `user/data/types` types are editable since D-311.
+- **Status:** `user/data/types` types are editable since D-311, and
+  code collections and taxonomies since D-349.
 - **Decision:** The Content types stub (D-241) built as the design's
   list and detail screens (`admin.md` §8), read-only.
   - **`GET types`** adds each type's `origin` (`TypeOrigin`: built in,
@@ -7398,6 +7401,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-311: Editing content types in the admin
 - **Date:** 2026-09-30
+- **Status:** Code collections and taxonomies are editable too since
+  D-349, and every URL path since D-350.
 - **Decision:** Implements D-042's "editable (later) in the admin" and
   the design's type builder, for types in `user/data/types` only. The
   author chose edit, create, and delete in one pass; the prototype's
@@ -9257,3 +9262,101 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `composer check`; `npm run admin:build`; the jtcom
   trial's `content:lint`.
 - **Why:** the author wants the writing area to stay the text's.
+
+### D-349: The admin changes code types through a file over them
+- **Date:** 2026-10-01
+- **Supersedes:** D-042's "defining the same type name in both places
+  is an error" and "locked" for code collections and taxonomies, and
+  D-311's "config, extension, and built-in types stay read-only".
+- **Decision:** The author asked that every content type's settings can
+  be changed from the admin, except the pages and authors types.
+  - **Where:** a file in `user/data/types` named for a collection or
+    taxonomy defined in `config/content.php` or an extension changes it
+    instead of being an error: each option the file sets replaces the
+    code's whole option (by its 2.x or 1.x name;
+    `ContentType::overriddenBy()`), and the rest stay the code's. The
+    type keeps its origin; `ContentTypes::isOverridden()` says a file
+    changes it (kept in the compiled types), and
+    `ContentTypes::isEditable()` covers data types and these. The file
+    can't change the name, kind, or folder (entries are filed by them).
+    A file named for a code pages or authors type is still an error
+    (`TypeKind::isOverridable()`); a data type still replaces a built-in
+    type whole, as before. `dataTypes` off turns overrides off with data
+    types, and `dataTypeUrls` off keeps their `urls` out too.
+  - **The saved value wins**, as with `settings.json` (D-324).
+  - **Writing** (`DataTypeWriter`): a change to a code type is applied
+    to the type as the code and the file make it, and the file keeps
+    only options that differ from the code's: an option set back to
+    the code's value is removed, one set to a default the code doesn't
+    have is written out (`feed: false`, `description: ""`), and the file
+    is deleted once it's empty. **Fields** are included, as a whole
+    list, unless a code field is a class of its own (not the registry's
+    for its type), when the fields stay in code (`fieldsEditable()`).
+    `reset()` deletes the file; deleting or creating a code type here is
+    refused.
+  - **The API:** `POST types/{name}/reset`; `GET types/{name}` adds
+    `overridden`, `overrides` (the options the file sets),
+    `fieldsEditable`, and `file` for an overridden type.
+  - **The screen:** a code collection or taxonomy gets the type editor,
+    saying where it's from and where changes are saved; its Danger Zone
+    is **Reset to config/content.php** (or an extension) instead of
+    Delete; fields from code classes are listed read-only. The header
+    notes the file once there is one.
+- **Checked:** `composer check` (`ContentTypeLoaderTest`: an override
+  replacing whole options and keeping the rest, 1.x names, kind and
+  folder refused, the code's pages type refused, the cache round trip;
+  `AdminTypeEditTest`: only differences written, an explicit default,
+  fields as a whole list, the file removed when back at the code's
+  values, reset, delete and create refused, code field classes kept,
+  the pages and authors types not editable); `npm run admin:build`; the
+  jtcom trial in headless Chrome with a throwaway administrator (its
+  account and sessions removed after): the Posts screen edited (the
+  description and the single path) and saved to
+  `user/data/types/post.yaml` with only those options, `/archives/2026/forty-two`
+  served at the new address, then **Reset** removing the file; the Pages
+  screen still read-only.
+- **Why:** the author's call: the site owner can change any type from
+  the admin, with code as the default under it. The author picked the
+  file in `user/data/types` over a `types` section in `settings.json`
+  or a separate overrides file, and fields as a whole list.
+
+### D-350: Every URL path of a type is editable in the admin
+- **Date:** 2026-10-01
+- **Decision:** "Routes editable from the admin" means each route key's
+  path of a type (the author's pick, over a Routes screen, redirects,
+  or data-defined routes, which may come later).
+  - **`TypeRouteKeys`** lists the keys a type answers at (its listing
+    and `.paged` unless it's the home type, date archives at its
+    granularity, `single` and a taxonomy's `single.paged`, the feed
+    keys for the site's feed formats when it has a feed, and author
+    archives when it has them) and what each path needs and may hold:
+    `{name}` for `single` (a collection's may add the date's parts and
+    any term type's name, `{author}` included), `{name}` for a term's
+    keys, the date down to an archive's level, `{author}` for author
+    archives, and `{page}` for `.paged`. `check()` refuses anything but
+    letters, digits, `-`, `_`, `.`, `/`, and placeholders (so no inline
+    constraints), a pattern that doesn't parse, a missing placeholder,
+    and one the key can't fill.
+  - **Writing:** `paths` in `set` maps keys to paths (`null` or `''`
+    for the default); the `single` and `collection` shortcuts move into
+    `urls.paths`, which they'd otherwise win over; paths are checked
+    after the type is built. Works for data types and code types
+    (through D-349's file) alike.
+  - **The API:** `GET types/{name}` adds `routes`: each key's `path`
+    and `default` (relative to the prefix), `requires`, `allows`, and
+    `root` (the home type's feeds sit at the site root).
+  - **The screen:** an **Addresses** panel on the type editor, after
+    Behavior: a field per key, labeled for people (Listing, Year
+    archive, Entry or Term, Feed (Atom), Author archive, "later pages"),
+    the default as its placeholder, the whole address and what it needs
+    and may hold under it, and a note that moving addresses wants
+    redirects in `user/data/redirects`. Author keys follow the form's
+    author word, and hide while author archives are off. The URL prefix
+    stays in Behavior.
+- **Checked:** `composer check` (`AdminTypeEditTest`: the keys and their
+  placeholders, each refusal writing nothing, the shortcut moved into
+  `paths`, defaults left out, the home type's root feeds); `npm run
+  admin:build`; the jtcom trial (D-349's check), including a refused
+  `{year}/{slug}` and `routes:list` showing the new `post.single`.
+- **Why:** the author's call; it fills the prototype's absent
+  "permalink structure" (D-309) per type, where Blush keeps URLs.

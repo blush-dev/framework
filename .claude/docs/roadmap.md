@@ -325,6 +325,14 @@ Structure, Settings, Customize, and People, and the file in sections
 named for the config files (D-325). People became its own rail section,
 between Content and Config (D-326), with Your Profile first; Appearance
 is named Themes (D-327).
+Then every content type's settings from the admin (D-349): a
+collection or taxonomy from `config/content.php` or an extension is
+edited on its screen, with only what differs from the code saved in
+`user/data/types/{name}`, and **Reset** deleting it; the pages and
+authors types stay as their code has them. And every URL path of a type
+(D-350): an Addresses panel with each route key's path, checked for the
+placeholders it needs. Still to consider for routes: a Routes screen
+listing every route, editing redirects, and routes defined in data.
 Extracting embedded artwork waits (D-295).
 Smaller admin items waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
