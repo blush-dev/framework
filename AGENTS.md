@@ -85,7 +85,9 @@ Icon Packs screens: switches saved in `user/data/settings.json`,
 plugins' `requires` enforced at boot, packs that can be turned off,
 deleting, and a details screen for each (D-385); and the Tree kind in
 place of Pages: the built-in page type a tree, and trees of a site's own
-in their folders (D-386).
+in their folders (D-386); and toasts as the toast sketch
+(`.claude/docs/admin-design/toast-sketch.html`) draws them: kinds, a
+countdown, stacking, and Undo (D-387).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

@@ -10902,3 +10902,52 @@ decision, add a new entry that supersedes it and mark the old one
   Page type; chose Tree; asked to move the page type onto it as pages
   work now; asked for a test tree type in the jtcom trial; and asked
   for trees on the new-type screen and through `user/data/types`.
+
+### D-387: Toasts from the toast sketch
+- **Date:** 2026-10-02
+- **Decision:** Supersedes D-248's toasts (one at a time, a dark pill).
+  Every toast in the admin is drawn and behaves as the toast sketch
+  (`.claude/docs/admin-design/toast-sketch.html`) has it.
+  - **The chip:** on `--surface` with the ordinary overlay hairline
+    (`--border`), `--shadow-2`, and `--r-2`; the kind's glyph, the
+    message at `--base`, and, where the action can be put back, a
+    divider and **Undo**. A 2px bar along the bottom edge in the kind's
+    color counts it down (`scaleX` from 1 to 0, so its rate is the same
+    on any chip); the sketch records why it isn't a draining border.
+  - **Kinds:** `good` (a confirmation, the default; `circle-check`),
+    `warn` (a refusal, or a failure with nowhere else to say it;
+    `triangle-alert`), `danger` (something deleted, trashed, removed,
+    turned off, or suspended; `triangle-alert`), and `info` (not a thing
+    that happened: "Uploading …", "The preview shows the last saved
+    version"; `info`). Every caller now says which.
+  - **Timing:** 2.6 s, or 7 s with an Undo. Hovering a toast or focusing
+    inside it holds the count, the holds counted so the pointer and the
+    keyboard each have to let go; the clock is a timer, never the
+    animation ending, so under reduced motion the bar stays whole and
+    the toast still goes. Escape inside a toast dismisses that one.
+  - **Stacking:** a plain toast replaces the plain one standing but never
+    one carrying an Undo; three at most, the oldest going first.
+  - **Announcing:** one shared polite `role="status"` region reads the
+    message (with "Undo is available"); the chips carry buttons, so
+    they aren't the live region.
+  - **API:** `toast(message, { kind, undo, life })` in `toast.ts`;
+    `ToastHost` draws them. `undo` runs at most once, after the toast is
+    gone.
+  - **Undo where the reverse is exact:** turning a plugin on or off
+    (only when no other plugin started or stopped with it, since turning
+    the one back wouldn't put those back) and an icon pack on or off.
+    The reverse's own toast offers none.
+- **Departs from the sketch:** Undo is `--text-sm` (12px), not 12.5px,
+  since no type size is a literal (D-231). Not yet undoable, though the
+  sketch's examples are: moving to the trash (restoring always makes a
+  draft, D-237, so it isn't an exact reverse until restore keeps the
+  status), bulk status changes, and theme activation.
+- **Checked:** `npm run admin:build` (type-checked); `ToastHost` alone
+  in headless Chrome, light and dark: the chip and kinds as the sketch
+  draws them, a plain toast replacing the plain one but not one with an
+  Undo, an 8 s hover holding a 7 s toast, Undo running once and taking
+  the toast, Escape on a focused Undo, the cap of three, and the live
+  region's text. Not driven in the admin itself, so the plugin and pack
+  Undos weren't run against the API.
+- **Why:** the author added the toast sketch as how every toast in the
+  admin should look.

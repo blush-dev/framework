@@ -216,7 +216,7 @@ async function copy(text: string, what: string): Promise<void> {
 		await navigator.clipboard.writeText(text);
 		toast(`Copied the ${what}`);
 	} catch {
-		toast(`The ${what} couldn't be copied`);
+		toast(`The ${what} couldn't be copied`, { kind: 'warn' });
 	}
 }
 </script>

@@ -44,8 +44,10 @@ export function usePlugins() {
 	}
 
 	// Turns a plugin on or off, saying what happened, and which other
-	// plugins started or stopped with it.
-	async function toggle(plugin: PluginSummary, on: boolean): Promise<void> {
+	// plugins started or stopped with it. The toast offers an Undo only
+	// when nothing else started or stopped, since turning the one plugin
+	// back wouldn't put the others back; the reverse offers none.
+	async function toggle(plugin: PluginSummary, on: boolean, offer = true): Promise<void> {
 		busy.value = plugin.name;
 
 		try {
@@ -60,9 +62,12 @@ export function usePlugins() {
 			const others = on ? saved.started : saved.stopped;
 			const also   = others.length === 0 ? '' : `, and ${list(others)} ${on ? 'started' : 'stopped'} with it`;
 
-			toast(`Turned ${on ? 'on' : 'off'} ${plugin.label}${also}`);
+			toast(`Turned ${on ? 'on' : 'off'} ${plugin.label}${also}`, {
+				kind: on ? 'good' : 'danger',
+				undo: offer && others.length === 0 ? () => void toggle(find(plugin.name) ?? plugin, !on, false) : undefined
+			});
 		} catch (caught) {
-			toast(caught instanceof ApiError ? caught.message : `${plugin.label} couldn't be turned ${on ? 'on' : 'off'}`);
+			toast(caught instanceof ApiError ? caught.message : `${plugin.label} couldn't be turned ${on ? 'on' : 'off'}`, { kind: 'warn' });
 		} finally {
 			busy.value = null;
 		}
@@ -106,7 +111,7 @@ export function usePlugins() {
 		try {
 			await request('DELETE', `/plugins/${encodeURIComponent(folderName(plugin.folder))}`);
 			void loadCounts();
-			toast(`Deleted ${plugin.label}`);
+			toast(`Deleted ${plugin.label}`, { kind: 'danger' });
 
 			return true;
 		} catch (caught) {

@@ -106,7 +106,7 @@ async function copyEmail(email: string): Promise<void> {
 		await navigator.clipboard.writeText(email);
 		toast(`Copied ${email}`);
 	} catch {
-		toast('The email address couldn\'t be copied');
+		toast('The email address couldn\'t be copied', { kind: 'warn' });
 	}
 }
 const mine    = (account: AccountInfo): boolean => account.username === session.account?.username;
@@ -123,7 +123,7 @@ async function makeLink(account: AccountInfo): Promise<void> {
 		freshLink.value = { username: account.username, link: answer.link };
 		await router.push({ name: 'account', params: { username: account.username } });
 	} catch (caught) {
-		toast(caught instanceof ApiError ? caught.message : 'The link couldn\'t be made.');
+		toast(caught instanceof ApiError ? caught.message : 'The link couldn\'t be made.', { kind: 'warn' });
 	}
 }
 </script>

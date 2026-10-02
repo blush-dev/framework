@@ -803,7 +803,7 @@ async function trash(): Promise<void> {
 		forget(detail.id);
 		initial.value = null;
 		await router.push({ name: 'type', params: { type: detail.type.name } });
-		toast(`Moved “${detail.title || 'Untitled'}” to the trash`);
+		toast(`Moved “${detail.title || 'Untitled'}” to the trash`, { kind: 'danger' });
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be moved to the trash.`;
 	}
@@ -947,7 +947,7 @@ async function preview(): Promise<void> {
 		}
 
 		if (dirty.value) {
-			toast('The preview shows the last saved version');
+			toast('The preview shows the last saved version', { kind: 'info' });
 		}
 	} catch (caught) {
 		tab?.close();
@@ -1291,13 +1291,13 @@ function insertFile(file: MediaItem): void {
  */
 async function uploadFiles(files: File[]): Promise<void> {
 	if (!uploads.value) {
-		toast('Your account can\'t upload files');
+		toast('Your account can\'t upload files', { kind: 'warn' });
 
 		return;
 	}
 
 	for (const file of files) {
-		toast(`Uploading ${file.name}…`);
+		toast(`Uploading ${file.name}…`, { kind: 'info' });
 
 		try {
 			insertFile(await upload<MediaItem>('/media', file));
@@ -1664,7 +1664,7 @@ function removeComponent(): void {
 
 	if (item !== undefined) {
 		bodyEditor.value?.apply(withoutDirective(body.value, item));
-		toast(`Removed the ${inSentence(componentLabel(item))}`);
+		toast(`Removed the ${inSentence(componentLabel(item))}`, { kind: 'danger' });
 	}
 }
 
@@ -1673,7 +1673,7 @@ function removeImage(): void {
 
 	if (item !== undefined) {
 		bodyEditor.value?.apply(withoutImage(body.value, item));
-		toast('Removed the image');
+		toast('Removed the image', { kind: 'danger' });
 	}
 }
 
@@ -1993,7 +1993,7 @@ async function copyLink(): Promise<void> {
 		await navigator.clipboard.writeText(new URL(url, config.site.url).href);
 		toast('Link copied');
 	} catch {
-		toast("The link couldn't be copied");
+		toast("The link couldn't be copied", { kind: 'warn' });
 	}
 }
 

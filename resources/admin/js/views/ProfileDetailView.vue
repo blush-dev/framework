@@ -127,7 +127,7 @@ async function trash(): Promise<void> {
 		const loaded = await request<EntryDetail>('GET', entryPath(current.id));
 
 		await request<void>('DELETE', `${entryPath(current.id)}?revision=${encodeURIComponent(loaded.revision)}`);
-		toast(`Moved ${name.value} to the trash`);
+		toast(`Moved ${name.value} to the trash`, { kind: 'danger' });
 		await router.push(profileType.value ? { name: 'type', params: { type: profileType.value } } : { name: 'dashboard' });
 	} catch (caught) {
 		failure.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be moved to the trash.';
@@ -175,7 +175,7 @@ async function deletePage(row: ProfileAppearance): Promise<void> {
 
 	try {
 		await removeArchivePage(slug.value, row.type, row.field);
-		toast(`Moved the ${row.label} page to the trash`);
+		toast(`Moved the ${row.label} page to the trash`, { kind: 'danger' });
 		await load();
 	} catch (caught) {
 		failure.value = caught instanceof ApiError ? caught.message : 'The page couldn\'t be moved to the trash.';
@@ -201,7 +201,7 @@ async function unlink(): Promise<void> {
 
 	try {
 		await updateAccount(account.username, { author: null });
-		toast(`Unlinked ${name.value}`);
+		toast(`Unlinked ${name.value}`, { kind: 'danger' });
 		await load();
 	} catch (caught) {
 		failure.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be unlinked.';

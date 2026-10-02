@@ -91,7 +91,7 @@ async function purge(): Promise<void> {
 	try {
 		await request<void>('POST', '/trash/delete', { id: detail.id });
 
-		toast(`Deleted “${name.value}” permanently`);
+		toast(`Deleted “${name.value}” permanently`, { kind: 'danger' });
 		await router.push(back.value);
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be deleted.`;

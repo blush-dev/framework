@@ -116,7 +116,7 @@ async function submit(): Promise<void> {
 				await request('POST', '/entries', { type: profileType.value, title: newName.value.trim(), slug: slug.value, status: 'draft' });
 				called = name.value.trim() === '' ? newName.value.trim() : called;
 			} catch (caught) {
-				toast(caught instanceof ApiError ? `Created the account, but not its profile: ${caught.message}` : 'Created the account, but not its profile.');
+				toast(caught instanceof ApiError ? `Created the account, but not its profile: ${caught.message}` : 'Created the account, but not its profile.', { kind: 'warn' });
 			}
 		}
 

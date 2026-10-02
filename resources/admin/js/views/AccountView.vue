@@ -228,7 +228,7 @@ async function copyEmail(email: string): Promise<void> {
 		await navigator.clipboard.writeText(email);
 		toast(`Copied ${email}`);
 	} catch {
-		toast('The email address couldn\'t be copied');
+		toast('The email address couldn\'t be copied', { kind: 'warn' });
 	}
 }
 
@@ -455,7 +455,7 @@ async function setSuspended(suspended: boolean): Promise<void> {
 	try {
 		replace(await updateAccount(current.username, { suspended }));
 		link.value = null;
-		toast(suspended ? `Suspended ${current.displayName}` : `Reinstated ${current.displayName}`);
+		toast(suspended ? `Suspended ${current.displayName}` : `Reinstated ${current.displayName}`, { kind: suspended ? 'danger' : 'good' });
 	} catch (caught) {
 		actionsError.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be changed.';
 	} finally {
@@ -477,7 +477,7 @@ async function remove(): Promise<void> {
 
 	try {
 		await removeAccount(current.username);
-		toast(`Deleted ${current.displayName}`);
+		toast(`Deleted ${current.displayName}`, { kind: 'danger' });
 		await router.push({ name: 'accounts' });
 	} catch (caught) {
 		actionsError.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be deleted.';

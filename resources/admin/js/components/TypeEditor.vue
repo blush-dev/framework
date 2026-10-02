@@ -135,7 +135,7 @@ async function remove(): Promise<void> {
 		index.value   = false;
 		pages.value   = [];
 		refresh();
-		toast(`Deleted the ${props.type.labels.plural} type`);
+		toast(`Deleted the ${props.type.labels.plural} type`, { kind: 'danger' });
 		await router.push({ name: 'types' });
 	} catch (caught) {
 		removal.value = caught instanceof ApiError ? caught.message : 'The type couldn\'t be deleted.';

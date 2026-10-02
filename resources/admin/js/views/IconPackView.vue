@@ -70,7 +70,17 @@ watch(label, (value) => {
 }, { immediate: true });
 
 async function toggle(on: boolean): Promise<void> {
-	if (pack.value && await togglePack(pack.value, on)) {
+	const name = pack.value?.name;
+
+	if (pack.value && await togglePack(pack.value, on, (back) => show(name, back))) {
+		show(name, on);
+	}
+}
+
+// Shows the pack as on or off, after a switch or its Undo, if it's still
+// the pack on screen.
+function show(name: string | undefined, on: boolean): void {
+	if (pack.value && pack.value.name === name) {
 		pack.value = { ...pack.value, enabled: on };
 	}
 }

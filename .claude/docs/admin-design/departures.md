@@ -23,6 +23,7 @@ update this one (not the direction) when you depart from it.
                                                sketches of single screens (D-351, D-359)
 .claude/docs/admin-design/blush-themes-screen.html, blush-extensions.html
                                                sketches of the Extensions screens (D-381, D-385)
+.claude/docs/admin-design/toast-sketch.html     the toast, as every toast in the admin is drawn (D-387)
 .claude/docs/admin-design/departures.md        this file
 .claude/docs/admin-design/tokens.css           the prototype's tokens (reference only)
 .claude/docs/admin-design/old/                 the earlier single admin.md and its prototype
@@ -595,6 +596,12 @@ Each is recorded in `.claude/docs/decisions.md`.
   from), with the chosen one's description under it. A variant the
   component doesn't have here is kept, shown as "not available here".
   Variants aren't previewed.
+- **Toasts** (D-387) follow `toast-sketch.html`, not `20-components.md`'s
+  "one at a time": up to three stack, a plain one replacing the plain
+  one standing. Undo is `--text-sm` (12px) rather than the sketch's
+  12.5px, so no type size is a literal. Undo is offered only where the
+  reverse is exact (plugin and icon pack switches for now); moving to
+  the trash waits for a restore that keeps the status.
 - **Title Case** (D-268, §10) is applied to names across the admin,
   core component labels included; `titleCase()` builds names from
   parts ("Edit Page").

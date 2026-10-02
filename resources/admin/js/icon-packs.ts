@@ -32,17 +32,22 @@ export function useIconPacks() {
 		}
 	}
 
-	// Turns a pack on or off; resolves whether it was saved.
-	async function toggle(pack: IconPackSummary, on: boolean): Promise<boolean> {
+	// Turns a pack on or off; resolves whether it was saved. With
+	// `undone`, the toast offers an Undo, which turns it back and then
+	// calls `undone` with the state it's back in, for the screen to show.
+	async function toggle(pack: IconPackSummary, on: boolean, undone?: (on: boolean) => void): Promise<boolean> {
 		busy.value = pack.name;
 
 		try {
 			await request('PUT', `/icon-packs/${pack.name}`, { enabled: on });
-			toast(on ? `Turned on ${pack.label}` : `Turned off ${pack.label}; its ${pack.count === 1 ? 'icon isn\'t' : `${pack.count} icons aren't`} available now`);
+			toast(on ? `Turned on ${pack.label}` : `Turned off ${pack.label}; its ${pack.count === 1 ? 'icon isn\'t' : `${pack.count} icons aren't`} available now`, {
+				kind: on ? 'good' : 'danger',
+				undo: undone === undefined ? undefined : () => void toggle(pack, !on).then((saved) => saved && undone(!on))
+			});
 
 			return true;
 		} catch (caught) {
-			toast(caught instanceof ApiError ? caught.message : `${pack.label} couldn't be turned ${on ? 'on' : 'off'}`);
+			toast(caught instanceof ApiError ? caught.message : `${pack.label} couldn't be turned ${on ? 'on' : 'off'}`, { kind: 'warn' });
 
 			return false;
 		} finally {
@@ -77,7 +82,7 @@ export function useIconPacks() {
 		try {
 			await request('DELETE', `/icon-packs/${encodeURIComponent(folderName(folder))}`);
 			void loadCounts();
-			toast(`Deleted ${label}`);
+			toast(`Deleted ${label}`, { kind: 'danger' });
 
 			return true;
 		} catch (caught) {

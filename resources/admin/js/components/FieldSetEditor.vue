@@ -213,7 +213,7 @@ async function remove(): Promise<void> {
 		await request('DELETE', `/fields/sets/${encodeURIComponent(set.name)}`);
 		done.value = true;
 		refresh();
-		toast(`Deleted the ${set.label} field set`);
+		toast(`Deleted the ${set.label} field set`, { kind: 'danger' });
 		await router.push({ name: 'fields' });
 	} catch (caught) {
 		removal.value = caught instanceof ApiError ? caught.message : 'The field set couldn\'t be deleted.';

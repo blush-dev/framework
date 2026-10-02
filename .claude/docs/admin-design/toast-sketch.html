@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Toast — Meridian admin sketch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Karla:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+<style>
+/* ===================================================================
+   Tokens — the six theme blocks, copied from the prototype so this
+   sketch judges the component in all four states the admin ships in.
+   =================================================================== */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff; --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --ctl:34px; --ctl-sm:30px;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --base:13px; --h1:26px; --h1-track:-.024em;
+  --pad-x:22px;
+  color-scheme: light;
+}
+:root[data-dir="editorial"]{
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa; --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em;
+  --pad-x:26px;
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+:root[data-theme="dark"][data-dir="editorial"]{
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);
+  font-size:var(--base);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,p,ul,figure{margin:0;padding:0}
+ul{list-style:none}
+button{background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+code{font-family:var(--font-mono);font-size:.92em;color:var(--fg-2)}
+
+/* ===================================================================
+   THE COMPONENT. Everything below this banner, down to the next one,
+   is the toast exactly as it would ship. Everything outside the two
+   banners is the harness (`lab-` prefixed, as in the ui/ library).
+   =================================================================== */
+
+/* A chip: a kind glyph, one line in the past tense, and — where the action can
+   be put back — an Undo. A rule along the bottom edge counts it down.
+
+   The chip's own border is the ordinary overlay hairline, the same one a menu
+   or a popover carries, and the countdown is a separate 2px bar scaled from 1
+   to 0. One line, one job each. A full draining ring was tried first and
+   rejected: see *Why a bar* in the harness below.
+
+   Width is constant, so the rate is constant and identical whatever the
+   message, and `scaleX` runs on the compositor. */
+.toasts{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:70;
+  display:flex;flex-direction:column;gap:var(--s-2);align-items:flex-end;pointer-events:none}
+.toast{position:relative;pointer-events:auto;overflow:hidden;
+  display:flex;align-items:center;gap:var(--s-3);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);
+  box-shadow:var(--shadow-2);padding:12px 12px 12px 16px;color:var(--fg);
+  max-width:min(430px,calc(100vw - 32px));
+  /* The message is set at the theme's own body size rather than a notch under
+     it. A toast is read at a glance, in the corner, by someone whose eye was
+     somewhere else — the one place in the admin that cannot assume it is being
+     looked at. Reading it off `--base` also lets Editorial keep its 13.5px. */
+  font-size:var(--base)}
+.toast > .ic{flex:none;color:var(--good-dot)}
+.toast.warn > .ic{color:var(--warn-dot)}
+.toast.danger > .ic{color:var(--danger-dot)}
+.toast.info > .ic{color:var(--accent)}
+.toast .msg{min-width:0;flex:1;line-height:1.45}
+.toast .div{flex:none;width:1px;align-self:stretch;margin-block:3px;background:var(--border)}
+/* One notch under the message, which is where every button in the admin sits
+   against the body copy beside it. */
+.toast .undo{flex:none;display:inline-flex;align-items:center;gap:6px;height:var(--ctl-sm);
+  padding:0 11px;border-radius:var(--r-1);font-size:12.5px;font-weight:500;color:var(--accent)}
+.toast .undo:hover{background:var(--accent-soft)}
+.toast .undo .ic{width:14px;height:14px;color:currentColor}
+/* The chip clips to its own radius, so the bar's ends follow the corners
+   without the bar having to know what the radius is. */
+.toast-bar{position:absolute;left:0;right:0;bottom:0;height:2px;pointer-events:none}
+.toast-bar i{display:block;height:100%;background:var(--good-dot);
+  transform:scaleX(1);transform-origin:left center}
+.toast.warn .toast-bar i{background:var(--warn-dot)}
+.toast.danger .toast-bar i{background:var(--danger-dot)}
+.toast.info .toast-bar i{background:var(--accent)}
+@media (prefers-reduced-motion:no-preference){
+  .toast{animation:rise2 .16s ease-out}
+  /* Paused, not restarted: holding a toast has to keep the bar where it is. */
+  .toast-bar i{animation:toast-bar var(--life,2600ms) linear forwards}
+  .toast.held .toast-bar i{animation-play-state:paused}
+}
+@keyframes rise2{from{opacity:0;transform:translateY(8px)}}
+@keyframes toast-bar{to{transform:scaleX(0)}}
+/* Under reduced motion the global rule collapses every animation to .01ms,
+   which would empty the bar before anyone saw it. So there is no animation here
+   at all and the bar stays whole: the chip still says which kind it is, and the
+   clock that dismisses it is in JS either way. */
+@media (prefers-reduced-motion:reduce){.toast-bar i{transform:scaleX(1)}}
+/* Under reduced motion the global rule collapses every animation to .01ms,
+   which would empty the ring before anyone saw it. So there is no animation
+   here at all and the ring stays whole: the chip still says which kind it is,
+   and the clock that dismisses it is in JS either way. */
+@media (prefers-reduced-motion:reduce){.toast-ring .run{stroke-dashoffset:0}}
+
+/* ===================================================================
+   END OF THE COMPONENT. Harness below.
+   =================================================================== */
+
+/* ---- the rejected treatment, kept for the record ----
+   A full draining ring: two SVG rects with `pathLength="100"`, a track and a
+   run whose dash retracts. It is here so *Why a bar* can show it rather than
+   describe it. It is not part of the component. */
+.toast.lab-ring{border-color:transparent}
+.toast-ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.toast-ring rect{x:.75px;y:.75px;width:calc(100% - 1.5px);height:calc(100% - 1.5px);
+  rx:calc(var(--r-2) - .75px);fill:none;stroke-width:1.5;stroke-linecap:butt}
+.toast-ring .track{stroke:var(--border-strong)}
+.toast-ring .run{stroke:var(--good-dot);stroke-dasharray:100;stroke-dashoffset:0}
+.toast.danger .toast-ring .run{stroke:var(--danger-dot)}
+.toast.lab-ring .toast-bar{display:none}
+@media (prefers-reduced-motion:no-preference){
+  .toast.lab-ring .toast-ring .run{animation:toast-run var(--life,2600ms) linear forwards}
+  .toast.lab-ring.held .toast-ring .run{animation-play-state:paused}
+}
+@keyframes toast-run{to{stroke-dashoffset:100}}
+
+.lab-wrap{max-width:1080px;margin:0 auto;padding:var(--s-6) var(--s-5) 140px}
+.lab-head{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap;margin-bottom:var(--s-6)}
+.lab-head h1{font-family:var(--font-display);font-size:var(--h1);font-weight:600;
+  letter-spacing:var(--h1-track);line-height:1.2}
+.lab-head .lab-sub{color:var(--fg-2);font-size:13px;margin-top:7px;max-width:62ch}
+.lab-head .lab-end{margin-left:auto;display:flex;gap:var(--s-2);flex-wrap:wrap;padding-top:4px}
+
+.lab-seg{display:flex;border:1px solid var(--border);border-radius:var(--r-1);
+  overflow:hidden;background:var(--surface)}
+.lab-seg button{padding:0 13px;height:var(--ctl);font-size:12px;font-weight:500;color:var(--fg-3)}
+.lab-seg button + button{border-left:1px solid var(--border)}
+.lab-seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--fg)}
+.lab-seg button:hover{color:var(--fg)}
+
+.lab-sec{border-top:1px solid var(--border);padding-top:var(--s-5);margin-top:var(--s-6)}
+.lab-sec:first-of-type{border-top:0;margin-top:0}
+.lab-sec > h2{font-family:var(--font-display);font-size:15px;font-weight:600;
+  letter-spacing:-.005em;margin-bottom:6px}
+.lab-sec > .lab-note{font-size:12.5px;color:var(--fg-2);max-width:68ch;line-height:1.6;
+  margin-bottom:var(--s-5)}
+
+.lab-row{display:flex;gap:var(--s-2);flex-wrap:wrap;align-items:center}
+.lab-btn{display:inline-flex;align-items:center;gap:7px;height:var(--ctl);padding:0 14px;
+  border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);
+  color:var(--fg);font-size:12.5px;font-weight:500;white-space:nowrap}
+.lab-btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.lab-btn .ic{width:14px;height:14px;color:var(--fg-3)}
+.lab-btn.good .ic{color:var(--good-dot)}
+.lab-btn.warn .ic{color:var(--warn-dot)}
+.lab-btn.danger .ic{color:var(--danger-dot)}
+.lab-btn.info .ic{color:var(--accent)}
+
+/* A specimen stage: the chip sits on the page ground, not on a card, because
+   that is where it lives. The label hangs under it. */
+.lab-stage{display:flex;flex-wrap:wrap;align-items:flex-start;
+  gap:var(--s-5) var(--s-4);margin-top:var(--s-2)}
+.lab-spec{display:flex;flex-direction:column;gap:9px;min-width:0}
+.lab-spec .lab-cap{font-size:10.5px;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--fg-3)}
+.lab-spec .lab-why{font-size:11.5px;color:var(--fg-3);line-height:1.5;max-width:38ch;margin-top:-3px}
+/* A specimen chip is static: it is a picture of a state, so the ring is frozen
+   at --at per cent rather than running. */
+.lab-spec .toast{position:relative;animation:none}
+.lab-spec .toast .toast-bar i{animation:none;transform:scaleX(calc(1 - var(--at,0) / 100))}
+.lab-spec .toast.lab-ring .toast-ring .run{animation:none;stroke-dashoffset:calc(var(--at,0) * 1px)}
+
+/* Type-size trial. Each row overrides the message size only; the Undo stays
+   where it is, so the pairing can be judged as well as the size. */
+
+pre.lab-code{margin:var(--s-3) 0 0;padding:var(--s-4) var(--s-5);overflow-x:auto;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2)}
+pre.lab-code code{display:block;font-family:var(--font-mono);font-size:11.5px;
+  line-height:1.8;color:var(--fg-2);white-space:pre}
+
+.lab-race{display:flex;flex-direction:column;gap:var(--s-4);margin-top:var(--s-3);
+  padding:var(--s-5);border:1px solid var(--border);border-radius:var(--r-3);
+  background:var(--surface-2)}
+.lab-race .lab-lane{display:flex;align-items:center;gap:var(--s-4);flex-wrap:wrap}
+.lab-race .lab-lane > .lab-cap{width:92px;flex:none;font-size:10.5px;font-weight:600;
+  letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+/* At rest both lanes sit full; the race sets the animations inline when it runs,
+   so neither has already drained by the time anyone presses the button. */
+.lab-race .toast{animation:none}
+/* Scoped past `.toast.lab-ring .toast-ring .run`, which would otherwise win and
+   let the lane drain to nothing before anyone pressed the button. */
+.lab-race .toast .toast-bar i{animation:none;transform:scaleX(1)}
+.lab-race .toast.lab-ring .toast-ring .run{animation:none;stroke-dashoffset:0}
+
+.lab-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:var(--s-4) var(--s-5);margin-top:var(--s-4)}
+.lab-split h3{font-size:12.5px;font-weight:600;margin-bottom:6px}
+.lab-split p{font-size:12px;color:var(--fg-2);line-height:1.6}
+.lab-split .lab-verdict{color:var(--good);font-weight:500}
+.lab-split .lab-against{color:var(--fg-3)}
+
+table.lab-arc{border-collapse:collapse;margin-top:var(--s-3);font-size:12px}
+table.lab-arc th,table.lab-arc td{text-align:left;padding:7px 18px 7px 0;
+  border-bottom:1px solid var(--border);white-space:nowrap}
+table.lab-arc th{font-size:10.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--fg-3)}
+table.lab-arc td:last-child,table.lab-arc td:nth-child(2){font-family:var(--font-mono);
+  font-variant-numeric:tabular-nums;color:var(--fg-2)}
+
+.lab-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:var(--s-4) var(--s-5);margin-top:var(--s-2)}
+.lab-rules li{font-size:12.5px;color:var(--fg-2);line-height:1.6;
+  padding-left:16px;position:relative}
+.lab-rules li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;
+  border-radius:99px;background:var(--border-strong)}
+.lab-rules b{color:var(--fg);font-weight:500}
+
+.lab-tokens{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--s-3)}
+.lab-tokens code{display:inline-flex;align-items:center;height:24px;padding:0 9px;
+  border-radius:var(--r-1);background:var(--surface-2);border:1px solid var(--border);
+  font-size:11px;color:var(--fg-2)}
+
+.lab-hint{font-size:11.5px;color:var(--fg-3);margin-top:var(--s-3);line-height:1.6}
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+<!-- Lucide (lucide.dev), ISC. Geometry only; .ic paints them. -->
+<symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+</svg>
+
+<div class="lab-wrap">
+
+  <header class="lab-head">
+    <div>
+      <h1>Toast</h1>
+      <p class="lab-sub">A chip that reports something that happened where you were not
+      looking. A rule along its bottom edge counts it down, it stops while you read it,
+      and where the action can be put back it carries an Undo.</p>
+    </div>
+    <div class="lab-end">
+      <div class="lab-seg" role="group" aria-label="Admin theme">
+        <button type="button" data-dir="neutral" aria-pressed="true">Neutral</button>
+        <button type="button" data-dir="editorial" aria-pressed="false">Editorial</button>
+      </div>
+      <div class="lab-seg" role="group" aria-label="Color scheme">
+        <button type="button" data-scheme="light" aria-pressed="true">Light</button>
+        <button type="button" data-scheme="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ---------------- live ---------------- -->
+  <section class="lab-sec">
+    <h2>Live</h2>
+    <p class="lab-note">These fire real toasts into the host at the bottom right.
+    Hover one, or Tab into its Undo, and the bar stops where it is — both the
+    pointer and the keyboard hold it, and both have to let go before it resumes.
+    <kbd>Esc</kbd> while focus is inside a toast dismisses that one.</p>
+
+    <div class="lab-row">
+      <button class="lab-btn good"   type="button" data-fire="saved"><svg class="ic"><use href="#i-check-circle"/></svg>Settings saved</button>
+      <button class="lab-btn danger" type="button" data-fire="trash"><svg class="ic"><use href="#i-trash"/></svg>Moved to trash <span style="color:var(--fg-3);font-weight:400">· undo</span></button>
+      <button class="lab-btn danger" type="button" data-fire="purge"><svg class="ic"><use href="#i-trash"/></svg>Deleted for good <span style="color:var(--fg-3);font-weight:400">· undo</span></button>
+      <button class="lab-btn warn"   type="button" data-fire="refuse"><svg class="ic"><use href="#i-alert"/></svg>Refused</button>
+      <button class="lab-btn info"   type="button" data-fire="notice"><svg class="ic"><use href="#i-info"/></svg>Notice</button>
+      <button class="lab-btn"        type="button" data-fire="long"><svg class="ic"><use href="#i-layers"/></svg>Two-line message</button>
+      <button class="lab-btn"        type="button" data-fire="stack"><svg class="ic"><use href="#i-layers"/></svg>Fill the stack</button>
+      <button class="lab-btn"        type="button" data-fire="slow"><svg class="ic"><use href="#i-clock"/></svg>Slow (20s), to watch the bar</button>
+    </div>
+
+    <p class="lab-hint">A plain toast takes the place of the plain one standing, so
+    routine reports do not pile up. A toast carrying Undo is not displaced by one —
+    it stacks. Three at most; at the cap the oldest goes, which is the offer nearest
+    to expiring anyway. Press <em>Fill the stack</em> and then <em>Settings saved</em>
+    to see both halves of that.</p>
+  </section>
+
+  <!-- ---------------- the countdown ---------------- -->
+  <section class="lab-sec">
+    <h2>The countdown</h2>
+    <p class="lab-note">Frozen at four points, so the bar can be read as a picture. It is
+    a 2px rule along the bottom edge in the kind's color, <code>scaleX</code> from 1 to 0
+    with its origin on the left, so the remaining width is the remaining time. The chip
+    clips to its own radius, which is what curves the bar's ends without the bar having
+    to know what <code>--r-2</code> is.</p>
+    <div class="lab-stage" id="specCountdown"></div>
+  </section>
+
+  <!-- ---------------- kinds ---------------- -->
+  <section class="lab-sec">
+    <h2>Kinds</h2>
+    <p class="lab-note">Four, and each changes the glyph as well as the color — status
+    is never carried by color alone. <code>info</code> is for what a real build would do,
+    which is not a thing that happened and should not wear a tick.</p>
+    <div class="lab-stage" id="specKinds"></div>
+  </section>
+
+  <!-- ---------------- with undo ---------------- -->
+  <section class="lab-sec">
+    <h2>With an Undo</h2>
+    <p class="lab-note">Everything that changes stored data and can be put back carries
+    one, and lives ~7s rather than ~2.6s — the offer is only worth making if there is
+    time to take it. A divider sits before it, as in the bulk bar. A toast that cannot
+    promise a reverse does not offer one: <em>Permalink copied</em> has nothing to undo.</p>
+    <div class="lab-stage" id="specUndo"></div>
+  </section>
+
+  <!-- ---------------- markup ---------------- -->
+  <section class="lab-sec">
+    <h2>Markup</h2>
+    <p class="lab-note">One chip. The bar is first so it paints under the content, and
+    it is <code>aria-hidden</code> because the countdown is not information a screen
+    reader needs — the message is, and that goes through the shared live region.</p>
+<pre class="lab-code"><code>&lt;div class="toast danger" role="group" style="--life:7000ms"&gt;
+  &lt;span class="toast-bar" aria-hidden="true"&gt;&lt;i&gt;&lt;/i&gt;&lt;/span&gt;
+  &lt;svg class="ic"&gt;&lt;use href="#i-alert"/&gt;&lt;/svg&gt;
+  &lt;span class="msg"&gt;Moved "Type on maps" to trash&lt;/span&gt;
+  &lt;span class="div" aria-hidden="true"&gt;&lt;/span&gt;
+  &lt;button class="undo" type="button"&gt;
+    &lt;svg class="ic"&gt;&lt;use href="#i-undo"/&gt;&lt;/svg&gt;Undo
+  &lt;/button&gt;
+&lt;/div&gt;</code></pre>
+    <p class="lab-note" style="margin-top:var(--s-5)">The host and the live region sit
+    once at the end of the document:</p>
+<pre class="lab-code"><code>&lt;div class="toasts" id="toasts"&gt;&lt;/div&gt;
+&lt;p class="sr" id="toastLive" role="status" aria-live="polite" aria-atomic="true"&gt;&lt;/p&gt;</code></pre>
+    <p class="lab-note" style="margin-top:var(--s-5)">And the one call every screen
+    makes. <code>kind</code> defaults to <code>good</code>; <code>life</code> defaults to
+    2600ms, or 7000ms when there is an <code>undo</code>:</p>
+<pre class="lab-code"><code>toast(message, { kind, undo, life })
+
+toast("Settings saved")
+toast("Still used by 3 entries — remove it there first", { kind: "warn" })
+toast('Moved "Type on maps" to trash', {
+  kind: "danger",
+  undo: () =&gt; { entryBack(was); afterEntries(); toast('Put "Type on maps" back'); }
+})</code></pre>
+    <p class="lab-hint">The <code>undo</code> function restores exactly what the action
+    changed and runs at most once — the offer goes with the toast, so nothing can apply
+    the reverse twice.</p>
+  </section>
+
+  <!-- ---------------- rules ---------------- -->
+  <section class="lab-sec">
+    <h2>Rules</h2>
+    <ul class="lab-rules">
+      <li><b>The bottom rule is the countdown.</b> A toast that disappears on a
+      hidden timer is one people learn to read fast and then distrust; one whose
+      bar is visibly draining can be ignored on purpose.</li>
+      <li><b>Constant width, constant rate.</b> The bar is the same on a one-line and a
+      two-line chip, so the same duration always feels the same.</li>
+      <li><b>The chip's border stays a border.</b> 1px <code>--border</code>, as on every
+      other overlay — the countdown is a separate line with a separate job.</li>
+      <li><b>Hover and focus pause it, and the holds are counted.</b> A boolean took the
+      second release as a release of both and restarted the clock, so every stray Tab
+      bought the toast another few seconds.</li>
+      <li><b>The clock is a timer, not <code>animationend</code>.</b>
+      <code>prefers-reduced-motion</code> collapses every animation to nothing, and a
+      toast hung off it would vanish on the frame it appeared.</li>
+      <li><b>Under reduced motion the bar stays whole</b> and the toast still goes at its
+      time. No motion, same behavior.</li>
+      <li><b>The message is set at <code>--base</code></b>, the theme's own body size — a
+      toast is read at a glance by someone whose eye was elsewhere. The Undo beside it
+      stays a notch down at 12.5px, where buttons sit everywhere else.</li>
+      <li><b>A plain toast does not displace one carrying Undo.</b> It replaces the
+      plain one standing instead — dropping an offer to make room for <em>Settings
+      saved</em> takes away the only way back. At the cap of three the oldest still
+      goes, because something has to.</li>
+      <li><b>An action reported but not performed cannot be undone.</b> An Undo is a
+      test of whether the action actually happened.</li>
+      <li><b><kbd>Esc</kbd> takes the toast focus is inside, and nothing else.</b> A toast
+      is not an overlay the way the menus and the drawer are.</li>
+      <li><b>One shared <code>role="status"</code> region</b> announces the message. A live
+      region that gains a button is announced as a button arriving.</li>
+      <li><b>Past tense, sentence case, counts exact.</b> <em>Moved 3 posts to
+      trash</em>, never <em>Posts trashed!</em></li>
+    </ul>
+
+    <div class="lab-tokens">
+      <code>--surface</code><code>--border</code><code>--fg</code><code>--accent</code>
+      <code>--accent-soft</code><code>--good-dot</code><code>--warn-dot</code>
+      <code>--danger-dot</code><code>--shadow-2</code><code>--r-1</code><code>--r-2</code>
+      <code>--ctl-sm</code><code>--s-2</code><code>--s-3</code>
+    </div>
+    <p class="lab-hint">No literal colors, radii or faces — the ring reads
+    <code>--r-2</code> for its corner and the kind's own <code>-dot</code> token for its
+    stroke, so both admin themes and both schemes are had for nothing.</p>
+  </section>
+
+
+  <!-- ---------------- why a bar ---------------- -->
+  <section class="lab-sec">
+    <h2>Why a bar, and not a full border</h2>
+    <p class="lab-note">Settled, and recorded here so it is not re-opened. A full
+    draining ring was the first version. Below, the rejected treatment and the shipping
+    one, same duration, started on the same frame — which is the only way to see the
+    thing that decided it.</p>
+
+    <div class="lab-race">
+      <div class="lab-lane">
+        <span class="lab-cap">Rejected</span>
+        <div class="toast danger lab-ring" id="raceRing">
+          <svg class="toast-ring" aria-hidden="true"><rect class="track" pathLength="100"/><rect class="run" pathLength="100"/></svg>
+          <span class="toast-bar" aria-hidden="true"><i></i></span>
+          <svg class="ic"><use href="#i-alert"/></svg>
+          <span class="msg">Moved "Type on maps" to trash</span>
+          <span class="div" aria-hidden="true"></span>
+          <span class="undo"><svg class="ic"><use href="#i-undo"/></svg>Undo</span>
+        </div>
+      </div>
+      <div class="lab-lane">
+        <span class="lab-cap">Shipping</span>
+        <div class="toast danger" id="raceBar">
+          <span class="toast-bar" aria-hidden="true"><i></i></span>
+          <svg class="ic"><use href="#i-alert"/></svg>
+          <span class="msg">Moved "Type on maps" to trash</span>
+          <span class="div" aria-hidden="true"></span>
+          <span class="undo"><svg class="ic"><use href="#i-undo"/></svg>Undo</span>
+        </div>
+      </div>
+      <div class="lab-lane">
+        <span class="lab-cap"></span>
+        <button class="lab-btn" type="button" id="raceGo"><svg class="ic"><use href="#i-clock"/></svg>Run both (8s)</button>
+        <span class="lab-hint" style="margin:0">Watch the ring crawl along the top, then
+        snap down the right edge. The bar does not change pace.</span>
+      </div>
+    </div>
+
+    <p class="lab-note" style="margin-top:var(--s-5);margin-bottom:0">Why that happens: a
+    rounded rectangle's perimeter is not evenly distributed, so equal time is not equal
+    distance. For the one-line chip above — 339&thinsp;&times;&thinsp;52 at
+    <code>--r-2</code>&nbsp;=&nbsp;10px:</p>
+    <table class="lab-arc">
+      <thead><tr><th>Segment</th><th>Length</th><th>Share of the countdown</th></tr></thead>
+      <tbody>
+        <tr><td>Top edge</td><td>319px</td><td>41.7%</td></tr>
+        <tr><td>Right edge</td><td>32px</td><td>4.2%</td></tr>
+        <tr><td>Bottom edge</td><td>319px</td><td>41.7%</td></tr>
+        <tr><td>Left edge</td><td>32px</td><td>4.2%</td></tr>
+        <tr><td>Four corners</td><td>62.8px</td><td>8.2%</td></tr>
+      </tbody>
+    </table>
+    <p class="lab-hint">On a 2.6s toast the run spends about 1.1s on the top edge and
+    crosses the whole right edge in 0.11s. And the shares move with the message: wrap it
+    to two lines and the top drops to 39.6% while the sides rise to 6.5% each, so the
+    same duration feels different depending on how long the sentence is.</p>
+
+    <div class="lab-split">
+      <div>
+        <h3>What the ring had going for it</h3>
+        <p><span class="lab-against">Distinctive — the whole object reads as timed, and the
+        kind's color wraps the thing it describes. No extra element: the border is already
+        there and is simply given a second job.</span></p>
+      </div>
+      <div>
+        <h3>What settled it</h3>
+        <p class="lab-verdict">Constant rate, identical on every chip whatever the message
+        length. The chip keeps the ordinary overlay border — 1px <code>--border</code>, the
+        same as a menu — so its edge never degrades as the time runs out. It is quieter: a
+        danger toast stops being the loudest thing on screen for a routine trash. And it is
+        the shape people already read as a timer.</p>
+      </div>
+      <div>
+        <h3>The underlying fault</h3>
+        <p>The ring makes one line do two jobs — <em>this is the chip's edge</em> and
+        <em>here is the time left</em> — and they pull against each other. It is why the
+        track had to move to <code>--border-strong</code>, which made the toast's edge
+        heavier than every other overlay in the admin. The bar needs no such compromise.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<p class="sr" id="toastLive" role="status" aria-live="polite" aria-atomic="true"></p>
+
+<script>
+(function(){
+"use strict";
+const $ = (s,r)=>(r||document).querySelector(s);
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ===================================================================
+   THE COMPONENT'S BEHAVIOR — as it would ship.
+   =================================================================== */
+const TOAST_LIFE = 2600, TOAST_LIFE_UNDO = 7000, TOAST_MAX = 3;
+const TOAST_ICON = {good:"i-check-circle", warn:"i-alert", danger:"i-alert", info:"i-info"};
+const toasts = [];
+
+function toastMarkup(kind, msg, undo){
+  return '<span class="toast-bar" aria-hidden="true"><i></i></span>'+
+         '<svg class="ic"><use href="#'+(TOAST_ICON[kind] || TOAST_ICON.good)+'"/></svg>'+
+         '<span class="msg">'+esc(msg)+'</span>'+
+         (undo ? '<span class="div" aria-hidden="true"></span>'+
+                 '<button class="undo" type="button"><svg class="ic"><use href="#i-undo"/></svg>Undo</button>' : '');
+}
+function dropToast(t){
+  const i = toasts.indexOf(t);
+  if (i === -1) return;
+  toasts.splice(i, 1);
+  clearTimeout(t.timer);
+  t.el.remove();
+}
+/* Counted, not a flag. The pointer and the keyboard hold a toast independently
+   — hover it, Tab into it, then move the mouse away — and a boolean would take
+   the second release as a release of both and restart the clock from whatever
+   was left. */
+function holdToast(t, on){
+  if (toasts.indexOf(t) === -1) return;
+  t.holds = Math.max(0, t.holds + (on ? 1 : -1));
+  const held = t.holds > 0;
+  if (held === t.held) return;
+  t.held = held;
+  t.el.classList.toggle("held", held);
+  if (held){
+    clearTimeout(t.timer);
+    t.left = Math.max(0, t.left - (Date.now() - t.ran));
+  } else {
+    t.ran = Date.now();
+    t.timer = setTimeout(()=> dropToast(t), t.left);
+  }
+}
+function toast(msg, opts){
+  opts = opts || {};
+  const kind = opts.kind || "good";
+  const undo = typeof opts.undo === "function" ? opts.undo : null;
+  const life = opts.life || (undo ? TOAST_LIFE_UNDO : TOAST_LIFE);
+
+  if (!undo) toasts.slice().forEach(t=>{ if (!t.undo) dropToast(t); });
+  while (toasts.length >= TOAST_MAX) dropToast(toasts[0]);
+
+  const el = document.createElement("div");
+  el.className = "toast" + (kind === "good" ? "" : " " + kind);
+  el.setAttribute("role", "group");
+  el.style.setProperty("--life", life + "ms");
+  el.innerHTML = toastMarkup(kind, msg, undo);
+  $("#toasts").appendChild(el);
+
+  const t = {el, undo, left:life, ran:Date.now(), timer:null, holds:0, held:false};
+  toasts.push(t);
+  t.timer = setTimeout(()=> dropToast(t), life);
+
+  const live = $("#toastLive");
+  if (live) live.textContent = msg + (undo ? " — undo is available" : "");
+
+  el.addEventListener("pointerenter", ()=> holdToast(t, true));
+  el.addEventListener("pointerleave", ()=> holdToast(t, false));
+  el.addEventListener("focusin",  ()=> holdToast(t, true));
+  el.addEventListener("focusout", ()=> holdToast(t, false));
+  if (undo) el.querySelector(".undo").addEventListener("click", ()=>{
+    /* Dismiss first: the reverse re-renders the screen it came from, and a
+       toast still standing over it would report the thing it just undid. */
+    dropToast(t);
+    undo();
+  });
+  return t;
+}
+function toastEscape(){
+  const el = document.activeElement && document.activeElement.closest
+    ? document.activeElement.closest(".toast") : null;
+  if (!el) return false;
+  const t = toasts.find(x=>x.el === el);
+  if (!t) return false;
+  dropToast(t);
+  return true;
+}
+document.addEventListener("keydown", e=>{
+  if (e.key === "Escape" && toastEscape()) e.preventDefault();
+});
+
+/* ===================================================================
+   HARNESS
+   =================================================================== */
+
+const FIRE = {
+  saved:  ()=> toast("Settings saved"),
+  trash:  ()=> toast('Moved "The counter-space problem in variable fonts" to trash',
+            {kind:"danger", undo:()=> toast('Put "The counter-space problem in variable fonts" back')}),
+  purge:  ()=> toast('Deleted "Old landing page" for good',
+            {kind:"danger", undo:()=> toast('Put "Old landing page" back in the trash')}),
+  refuse: ()=> toast("Still used by 3 entries — remove it there first", {kind:"warn"}),
+  notice: ()=> toast("A side-by-side diff would open here", {kind:"info"}),
+  long:   ()=> toast("Topics now spans two types, so it moved to Structure in the sidebar",
+            {kind:"info"}),
+  slow:   ()=> toast('Moved "Every dash, ranked" to trash',
+            {kind:"danger", life:20000, undo:()=> toast('Put "Every dash, ranked" back')}),
+  stack:  ()=>{
+    toast('Moved "Type on maps" to trash', {kind:"danger", undo:()=> toast('Put "Type on maps" back')});
+    setTimeout(()=> toast('Deleted the field "Read time"', {kind:"danger",
+      undo:()=> toast('Put the field "Read time" back')}), 220);
+    setTimeout(()=> toast("Redirects turned off", {kind:"warn",
+      undo:()=> toast("Redirects turned back on")}), 440);
+  }
+};
+document.addEventListener("click", e=>{
+  const b = e.target.closest("[data-fire]");
+  if (b && FIRE[b.dataset.fire]) FIRE[b.dataset.fire]();
+});
+
+/* The race. Both lanes get the same life and are restarted on the same frame by
+   dropping and re-adding the animation, so neither gets a head start. */
+$("#raceGo").addEventListener("click", ()=>{
+  const lanes = [$("#raceRing"), $("#raceBar")];
+  lanes.forEach(el=>{
+    el.classList.add("lab-rewind");
+    el.style.setProperty("--life", "8000ms");
+    const run = el.querySelector(".toast-ring .run"), bar = el.querySelector(".toast-bar i");
+    [run, bar].forEach(n=>{ if (n) n.style.animation = "none"; });
+  });
+  requestAnimationFrame(()=> requestAnimationFrame(()=>{
+    lanes.forEach(el=>{
+      el.classList.remove("lab-rewind");
+      const run = el.querySelector(".toast-ring .run"), bar = el.querySelector(".toast-bar i");
+      if (run) run.style.animation = "toast-run 8000ms linear forwards";
+      if (bar) bar.style.animation = "toast-bar 8000ms linear forwards";
+    });
+  }));
+});
+
+/* Theme controls */
+document.addEventListener("click", e=>{
+  const d = e.target.closest("[data-dir]");
+  if (d){
+    const v = d.dataset.dir;
+    if (v === "editorial") document.documentElement.setAttribute("data-dir","editorial");
+    else document.documentElement.removeAttribute("data-dir");
+    document.querySelectorAll("[data-dir]").forEach(b=>
+      b.setAttribute("aria-pressed", String(b.dataset.dir === v)));
+    return;
+  }
+  const s = e.target.closest("[data-scheme]");
+  if (s){
+    const v = s.dataset.scheme;
+    document.documentElement.setAttribute("data-theme", v);
+    document.querySelectorAll("[data-scheme]").forEach(b=>
+      b.setAttribute("aria-pressed", String(b.dataset.scheme === v)));
+  }
+});
+document.documentElement.setAttribute("data-theme","light");
+
+/* Static specimens. `--at` freezes the ring at that many per cent spent. */
+
+function spec(cap, why, kind, msg, undo, at){
+  return '<figure class="lab-spec">'+
+    '<div class="toast'+(kind === "good" ? "" : " "+kind)+'" style="--at:'+at+'">'+
+      toastMarkup(kind, msg, undo)+
+    '</div>'+
+    '<figcaption><div class="lab-cap">'+esc(cap)+'</div>'+
+    (why ? '<div class="lab-why">'+esc(why)+'</div>' : '')+'</figcaption></figure>';
+}
+$("#specCountdown").innerHTML =
+  spec("Just arrived", "The ring is whole. This is also the reduced-motion state, which never moves.",
+       "danger", 'Moved "Type on maps" to trash', true, 0) +
+  spec("Half gone", "The arc retracts clockwise from its tail, so what is left is what is left.",
+       "danger", 'Moved "Type on maps" to trash', true, 50) +
+  spec("Nearly out", "Still legible, still pressable — the Undo does not fade with the ring.",
+       "danger", 'Moved "Type on maps" to trash', true, 85) +
+  spec("Two lines", "pathLength normalizes the perimeter, so a taller chip counts down at the same rate.",
+       "info", "Topics now spans two types, so it moved to Structure in the sidebar", false, 35);
+
+$("#specKinds").innerHTML =
+  spec("good", "A confirmation. The default.", "good", "Settings saved", false, 30) +
+  spec("warn", "A refusal, or a state worth noticing.", "warn", "Still used by 3 entries — remove it there first", false, 30) +
+  spec("danger", "Something was destroyed or hidden.", "danger", 'Deleted "Old landing page" for good', false, 30) +
+  spec("info", "What a real build would do. Not a thing that happened.", "info", "A side-by-side diff would open here", false, 30);
+
+$("#specUndo").innerHTML =
+  spec("Single entry", "", "danger", 'Moved "Every dash, ranked" to trash', true, 20) +
+  spec("Bulk", "The selection comes back with the entries, so a mis-aimed bulk action leaves you where you were.", "danger", "Moved to trash 12 posts", true, 20) +
+  spec("A status change", "Publishing changes what the public sees, so it is undoable too.", "good", "Published 3 posts", true, 20) +
+  spec("No reverse", "Nothing to put back, so nothing is offered.", "good", "Permalink copied", false, 20);
+})();
+</script>
+</body>
+</html>

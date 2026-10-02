@@ -40,7 +40,7 @@ import SkeletonTable from '../components/SkeletonTable.vue';
 import TrashTable from '../components/TrashTable.vue';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
-import { toast } from '../toast';
+import { toast, type ToastKind } from '../toast';
 import { can, canType } from '../session';
 import { loadReferences } from '../references';
 import { profileType, currentType, findType, labelsOf, loadTypes, types } from '../types';
@@ -460,13 +460,13 @@ function nameOf(item: { title: string }): string {
  * Runs a row's, the trash's, or the bulk bar's action, then reloads the
  * list and toasts what happened.
  */
-async function act(name: string, action: () => Promise<string>): Promise<void> {
+async function act(name: string, action: () => Promise<string>, kind: ToastKind = 'good'): Promise<void> {
 	busy.value    = name;
 	skipped.value = null;
 	error.value   = '';
 
 	try {
-		toast(await action());
+		toast(await action(), { kind });
 		await load();
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : 'That didn\'t work. Reload the page and try again.';
@@ -490,7 +490,7 @@ async function moveToTrash(entry: EntrySummary): Promise<void> {
 		await request<void>('DELETE', `${entryPath(entry.id)}?revision=${encodeURIComponent(detail.revision)}`);
 
 		return `Moved ${nameOf(entry)} to the trash`;
-	});
+	}, 'danger');
 }
 
 /**
@@ -537,7 +537,7 @@ async function bulk(action: BulkAction): Promise<void> {
 		return answer.done.length === 0
 			? 'Nothing changed'
 			: { publish: `Published ${moved}`, draft: `Moved ${moved} to draft`, trash: `Moved ${moved} to the trash` }[action];
-	});
+	}, action === 'trash' ? 'danger' : 'good');
 }
 
 function restore(item: TrashedSummary): void {
@@ -557,7 +557,7 @@ async function purge(item: TrashedSummary): Promise<void> {
 		await request<void>('POST', '/trash/delete', { id: item.id });
 
 		return `Deleted ${nameOf(item)} permanently`;
-	});
+	}, 'danger');
 }
 
 async function emptyTrash(): Promise<void> {
@@ -571,7 +571,7 @@ async function emptyTrash(): Promise<void> {
 		const answer = await request<{ deleted: number }>('POST', '/trash/empty', { type: type.value });
 
 		return `Deleted ${plural(answer.deleted, labels.value.item, labels.value.items)} permanently`;
-	});
+	}, 'danger');
 }
 
 // Without types the labels fall back to the type's name; the list still works.

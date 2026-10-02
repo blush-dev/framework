@@ -121,7 +121,7 @@ export function useThemes() {
 		try {
 			await request('DELETE', `/themes/${encodeURIComponent(folderName(folder))}`);
 			void loadCounts();
-			toast(`Deleted ${name}`);
+			toast(`Deleted ${name}`, { kind: 'danger' });
 
 			return true;
 		} catch (caught) {
@@ -170,6 +170,6 @@ export async function copy(text: string, what: string): Promise<void> {
 		await navigator.clipboard.writeText(text);
 		toast(`Copied ${what}`);
 	} catch {
-		toast(`The ${what} couldn't be copied`);
+		toast(`The ${what} couldn't be copied`, { kind: 'warn' });
 	}
 }

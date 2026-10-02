@@ -47,7 +47,7 @@ function cells(pack: IconPackSummary | CoreIcons): { icons: PackIcon[]; more: nu
 }
 
 async function toggle(pack: IconPackSummary, on: boolean): Promise<void> {
-	if (await togglePack(pack, on)) {
+	if (await togglePack(pack, on, () => void load())) {
 		await load();
 	}
 }

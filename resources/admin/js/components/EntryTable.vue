@@ -190,7 +190,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 		await navigator.clipboard.writeText(url);
 		toast('Link copied');
 	} catch {
-		toast("The link couldn't be copied");
+		toast("The link couldn't be copied", { kind: 'warn' });
 	}
 }
 </script>

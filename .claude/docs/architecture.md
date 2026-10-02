@@ -977,9 +977,11 @@ by source, keeps recents, and writes the directive text). The
   (D-247): `ComponentPanel` (a pushing panel, also opened by `/`),
   `IconPicker` (a popover over `GET icons`, `site-icons.ts`), and
   `MediaPicker` (a `<dialog>` over `GET media`, also behind **Choose** on
-  media fields); `grid.ts` moves through their grids. Toasts (`toast.ts`)
-  and the command palette (`CommandPalette`, with screens adding
-  commands through `useCommands`) are in the layout (D-248). Roles and
+  media fields); `grid.ts` moves through their grids. Toasts (`toast.ts`,
+  `toast(message, { kind, undo, life })`, drawn by `ToastHost` as the
+  toast sketch has them, D-387) and the command palette
+  (`CommandPalette`, with screens adding commands through
+  `useCommands`) are in the layout (D-248). Roles and
   Accounts are list and detail screens over `GET roles` and
   `GET accounts` (D-249), edited since D-312 (`RoleChecks`,
   `CapabilityChecks`, `ProfilePicker` (D-356), New Account, New Role, and the

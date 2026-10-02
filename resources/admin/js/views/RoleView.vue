@@ -180,7 +180,7 @@ async function remove(): Promise<void> {
 				list.value = { ...list.value, roles: list.value.roles.filter((item) => item.name !== value.name) };
 			}
 
-			toast(`Deleted the ${value.label} role`);
+			toast(`Deleted the ${value.label} role`, { kind: 'danger' });
 			await router.push({ name: 'roles' });
 		} else {
 			replace(after);
