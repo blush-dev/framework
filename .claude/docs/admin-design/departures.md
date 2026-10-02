@@ -19,6 +19,8 @@ update this one (not the direction) when you depart from it.
 .claude/docs/admin-design/00-project-brief.md … 90-conventions.md
                                                the design direction (as uploaded)
 .claude/docs/admin-design/meridian-admin.html  its clickable prototype, standalone
+.claude/docs/admin-design/meridian-profiles.html, meridian-role-capabilities.html
+                                               sketches of single screens (D-351, D-359)
 .claude/docs/admin-design/departures.md        this file
 .claude/docs/admin-design/tokens.css           the prototype's tokens (reference only)
 .claude/docs/admin-design/old/                 the earlier single admin.md and its prototype
@@ -343,8 +345,32 @@ Each is recorded in `.claude/docs/decisions.md`.
   prototype. Removing an account reassigns nothing (entries credit
   authors, not accounts). Roles are editable, so the prototype's "fixed
   in this release" banner and note are gone: **New Role** and
-  **Duplicate** make roles, a role's screen has capability checkboxes
-  with Save and Revert and a Danger Zone, and read-only roles say why.
+  **Duplicate** make roles, and read-only roles say why.
+- **A role's screen** (D-359, from the capability sections sketch):
+  - No `view` capability, so no **Read only** preset or quieted section
+    with a note: the editor has no read-only mode, and a type shows to
+    accounts that can edit its entries. The presets are **Full
+    access**, **Their own only**, **Drafts only** (a contributor's), and
+    **No access**, and "No access" reads "Left out of their admin."
+  - Sentences say "drafts" where publishing is missing, since without
+    it editing and deleting reach drafts alone (D-219).
+  - The sketch's unused "Types added later" row is drawn, as **Every
+    Type** ("Includes new types"), first in the panel (D-360): it
+    grants on every type (`content.*.…`), shows those ticks fixed in
+    each type (a type it grants everything on is marked "Set by Every
+    Type", with no ⋮), and its ⋮ adds **Set each type separately**.
+  - Blush's site capabilities, not the sketch's: no `types.manage` or
+    `roles.assign` (`site.settings` and `accounts.manage` cover them).
+  - The facts strip has no "Changed 12 days ago by…": nothing records
+    it. Holders link to the one account, or Accounts.
+  - The header's ⋮: **Rename this role** for a custom role only (a
+    built-in's name is fixed, D-312), opening a Name and Description
+    panel; **Copy as JSON** for "Export"; **Delete this role** beside
+    **Reset to built-in capabilities**.
+  - The administrator's statement says to start from Editor (no
+    **Duplicate** on it), and its button links to the holders.
+  - **New Role** uses the same sections; its sketch is the detail
+    screen only.
 - **Appearance is named Themes** (D-327), in the navigation, its
   heading, and its address (`/themes`; `/appearance` redirects): the
   screen lists themes and nothing else. The API keeps `GET appearance`.

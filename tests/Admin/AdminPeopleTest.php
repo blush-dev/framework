@@ -31,7 +31,7 @@ final class AdminPeopleTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator']): void
 	{
-		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('reviewer', 'Reviewer', ['content.edit.others'])]);\n");
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('reviewer', 'Reviewer', ['content.*.edit.others'])]);\n");
 		$this->boot(roles: $roles);
 		$this->app->container()->make(Accounts::class)->create('sam', 'another long password', ['author', 'reviewer'], name: 'Sam Smith');
 		$this->login();
@@ -47,11 +47,16 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame([['username' => 'jane', 'displayName' => 'jane']], $this->role($answer, 'administrator')['accounts'] ?? null);
 		$this->assertSame([['username' => 'sam', 'displayName' => 'Sam Smith']], $this->role($answer, 'author')['accounts'] ?? null);
 		$this->assertTrue($this->role($answer, 'author')['builtIn'] ?? null);
-		$this->assertSame(['label' => 'Reviewer', 'description' => '', 'capabilities' => ['content.edit.others'], 'builtIn' => false, 'origin' => 'config', 'accounts' => [['username' => 'sam', 'displayName' => 'Sam Smith']], 'grantable' => true, 'editable' => false], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
+		$this->assertSame(['label' => 'Reviewer', 'description' => '', 'capabilities' => ['content.*.edit.others'], 'builtIn' => false, 'origin' => 'config', 'accounts' => [['username' => 'sam', 'displayName' => 'Sam Smith']], 'grantable' => true, 'editable' => false], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
 		$this->assertFalse($this->role($answer, 'administrator')['editable'] ?? null, 'The administrator always has everything.');
 		$this->assertTrue($this->role($answer, 'editor')['editable'] ?? null);
 		$this->assertNotSame('', $this->role($answer, 'editor')['description'] ?? '');
-		$this->assertContains('content.edit', array_column(is_array($answer['capabilities'] ?? null) ? $answer['capabilities'] : [], 'name'));
+		$capabilities = is_array($answer['capabilities'] ?? null) ? $answer['capabilities'] : [];
+
+		$this->assertContains('content.*.edit', array_column($capabilities, 'name'));
+		$this->assertContains(['name' => 'content.page.edit.others', 'label' => 'Pages: Edit anyone\'s', 'group' => 'Pages', 'type' => 'page', 'action' => 'edit.others'], $capabilities, 'Each type has its own (D-359).');
+		$this->assertContains(['name' => 'menus.edit', 'label' => 'Edit menus', 'group' => 'Structure'], $capabilities);
+		$this->assertContains(['name' => 'page', 'label' => 'Pages', 'kind' => 'pages', 'icon' => null], is_array($answer['types'] ?? null) ? $answer['types'] : []);
 	}
 
 	/**
@@ -152,7 +157,7 @@ final class AdminPeopleTest extends TestCase
 
 		$this->assertTrue($own['linked'] ?? null);
 		$this->assertArrayHasKey('account', $own);
-		$this->assertNull($own['account'], 'Which account takes accounts.manage.');
+		$this->assertNull($own['account'], 'Which account takes accounts.view.');
 		$this->assertSame(403, $this->send('GET', '/profiles/gwen')->getStatusCode());
 		$this->assertSame(403, $this->send('GET', '/profiles/ghost')->getStatusCode(), 'A profile with no file is everyone\'s.');
 	}
@@ -265,7 +270,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertFalse(is_array($accounts[0] ?? null) ? $accounts[0]['manages'] ?? null : null, 'Not your own account.');
 	}
 
-	public function testNeedsAccountsManage(): void
+	public function testNeedsToSeeAccounts(): void
 	{
 		$this->site(['editor']);
 

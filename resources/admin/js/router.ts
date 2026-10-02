@@ -1,6 +1,7 @@
 /**
  * The admin's screens. Every screen but sign-in needs an account, and some
- * a capability (`meta.capability`, or any of `meta.anyCapability`); the server answers the same page for
+ * a capability (`meta.capability`, any of `meta.anyCapability`, or a
+ * content action on a type, `meta.contentAction`); the server answers the same page for
  * all of them (`ShellController`) and checks every API request itself.
  * Each belongs to one of the section rail's areas
  * (`meta.area`: `home`, `content`, `people`, or `config`); the editor fills the
@@ -11,7 +12,7 @@ import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vu
 import { watch } from 'vue';
 import { config } from './config';
 import { screenCrumb, screenTitle, screenTrail } from './screen';
-import { can, loadSession, session } from './session';
+import { can, canAnyType, canType, loadSession, session, type ContentAction } from './session';
 import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
 import EntriesView from './views/EntriesView.vue';
@@ -46,22 +47,22 @@ export const router = createRouter({
 		{ path: '/', name: 'dashboard', component: DashboardView, meta: { title: 'Dashboard', area: 'home' } },
 		// Each type has its own list; there's no list of every type (D-240).
 		{ path: '/entries', redirect: { name: 'dashboard' } },
-		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', capability: 'content.edit', section: 'entries', area: 'content' } },
+		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', contentAction: 'edit', section: 'entries', area: 'content' } },
 		// An entry is edited at its handle, its type and key (D-253); a
 		// page's key spans segments.
-		{ path: '/content/:type/:key+', name: 'entry', component: EditorView, meta: { title: 'Edit Entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
+		{ path: '/content/:type/:key+', name: 'entry', component: EditorView, meta: { title: 'Edit Entry', contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
 		// A new entry opens in the editor, unsaved, until its first save
 		// writes it (D-336).
-		{ path: '/entries/new', name: 'entry-new', component: EditorView, meta: { title: 'New Entry', capability: 'content.create', section: 'entries', area: 'content', bleed: true } },
+		{ path: '/entries/new', name: 'entry-new', component: EditorView, meta: { title: 'New Entry', contentAction: 'create', section: 'entries', area: 'content', bleed: true } },
 		// An entry without a handle is edited at its source path, which
 		// also still works for the rest (the editor moves to the handle).
-		{ path: '/entries/:id+', name: 'entry-file', component: EditorView, meta: { title: 'Edit Entry', capability: 'content.edit', section: 'entries', area: 'content', bleed: true } },
+		{ path: '/entries/:id+', name: 'entry-file', component: EditorView, meta: { title: 'Edit Entry', contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
 		// A trashed entry, to look at before restoring it (D-276), by the
 		// trash's id for it.
-		{ path: '/trash/:id+', name: 'trashed', component: TrashedView, meta: { title: 'In the Trash', capability: 'content.delete', section: 'entries', area: 'content' } },
+		{ path: '/trash/:id+', name: 'trashed', component: TrashedView, meta: { title: 'In the Trash', contentAction: 'delete', section: 'entries', area: 'content' } },
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
-		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content Health', capability: 'content.edit.others', area: 'home' } },
+		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content Health', contentAction: 'edit.others', area: 'home' } },
 		// A library file's screen is at its path under `user/media` (D-251).
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', capability: 'media.upload', area: 'content' } },
 		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', capability: 'media.upload', area: 'content', parent: 'media' } },
@@ -83,16 +84,16 @@ export const router = createRouter({
 		// Accounts and profiles are two lists (D-353): who can sign in,
 		// and who's credited. Profiles are their type's entry list, with a
 		// screen of their own per profile.
-		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.manage', area: 'people' } },
-		{ path: '/people', redirect: () => can('accounts.manage') ? { name: 'accounts' } : { name: 'profile' } },
-		{ path: '/profiles/:slug', name: 'profile-detail', component: ProfileDetailView, meta: { title: 'Profile', capability: 'content.edit', area: 'people', parent: 'profiles' } },
+		{ path: '/accounts', name: 'accounts', component: AccountsView, meta: { title: 'Accounts', capability: 'accounts.view', area: 'people' } },
+		{ path: '/people', redirect: () => can('accounts.view') ? { name: 'accounts' } : { name: 'profile' } },
+		{ path: '/profiles/:slug', name: 'profile-detail', component: ProfileDetailView, meta: { title: 'Profile', contentAction: 'edit', area: 'people', parent: 'profiles' } },
 		// New comes before the item it would otherwise be taken for; the
 		// admin makes no account or role named "new" (D-312).
-		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.manage', area: 'people', parent: 'accounts' } },
-		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.manage', area: 'people', parent: 'accounts' } },
-		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.manage', area: 'people' } },
-		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
-		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.manage', area: 'people', parent: 'roles' } },
+		{ path: '/accounts/new', name: 'account-new', component: NewAccountView, meta: { title: 'New Account', capability: 'accounts.create', area: 'people', parent: 'accounts' } },
+		{ path: '/accounts/:username', name: 'account', component: AccountView, meta: { title: 'Account', capability: 'accounts.view', area: 'people', parent: 'accounts' } },
+		{ path: '/roles', name: 'roles', component: RolesView, meta: { title: 'Roles', capability: 'accounts.view', area: 'people' } },
+		{ path: '/roles/new', name: 'role-new', component: NewRoleView, meta: { title: 'New Role', capability: 'roles.manage', area: 'people', parent: 'roles' } },
+		{ path: '/roles/:name', name: 'role', component: RoleView, meta: { title: 'Role', capability: 'accounts.view', area: 'people', parent: 'roles' } },
 		{ path: '/profile', name: 'profile', component: ProfileView, meta: { title: 'Your Account', area: 'people' } },
 		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign In', public: true } },
 		// A password link (D-312): anyone with one may open it.
@@ -115,6 +116,17 @@ router.beforeEach(async (to) => {
 	// Screens the account can't use aren't in its navigation either.
 	if (typeof to.meta.capability === 'string' && !can(to.meta.capability)) {
 		return { name: 'dashboard' };
+	}
+
+	// Or a content action (D-359): on the type the address names, or else
+	// on any type (the server checks the entry's).
+	if (typeof to.meta.contentAction === 'string') {
+		const action = to.meta.contentAction as ContentAction;
+		const type   = typeof to.params.type === 'string' ? to.params.type : (typeof to.query.type === 'string' ? to.query.type : null);
+
+		if (type === null ? !canAnyType(action) : !canType(type, action)) {
+			return { name: 'dashboard' };
+		}
 	}
 
 	// Or any one of several.

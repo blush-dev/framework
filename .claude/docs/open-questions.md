@@ -9,6 +9,21 @@ Move each item to `decisions.md` once it's answered.
   whether Profiles shows bylines per field; the sketch's **Import from
   accounts** (profiles for accounts without one), not built. Account fields (the Fields API's `account` target, D-344)
   still wait.
+- **Role capabilities** (D-359), from the sketch's own list and what
+  building it raised:
+  - Whether New Account's first roles need `accounts.roles` as well as
+    `accounts.create` (D-362). Not now: every account needs a role, so
+    `accounts.create` alone would do nothing without a default role
+    for new accounts (a new setting) or the two always going together.
+  - Whether open sections persist per account (the sketch: on the
+    account record, not browser storage); they don't now.
+  - What an account's screen shows of its roles' capabilities (the
+    Roles list's readouts, D-361, or a sentence).
+  - Whether taxonomies take the same actions (a term has no pending
+    changes, so "Publish anyone's" reads oddly for a tag); they do now.
+  - Whether a section row wants a count beside its sentence.
+  - A read-only `view` capability (the sketch's), which needs a
+    read-only editor first.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the

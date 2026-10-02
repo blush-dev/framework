@@ -127,20 +127,39 @@ the live site without publishing.
 
 ### Capabilities
 
-A role is a list of **capabilities**:
+A role is a list of **capabilities**. What it may do to entries is set
+for each content type, with the type's name in the middle
+(`content.post.edit` is editing your own posts):
 
 | Capability | Allows |
 |---|---|
-| `content.create` | Creating entries |
-| `content.edit`, `content.edit.others` | Editing your own entries, and others' |
-| `content.publish`, `content.publish.others` | Publishing your own entries, and others' |
-| `content.delete`, `content.delete.others` | Deleting your own entries, and others' |
+| `content.{type}.create` | Creating entries of the type |
+| `content.{type}.edit`, `content.{type}.edit.others` | Editing your own entries, and others' |
+| `content.{type}.publish`, `content.{type}.publish.others` | Publishing your own entries, and others' |
+| `content.{type}.delete`, `content.{type}.delete.others` | Deleting your own entries, and others' |
+
+Use `*` for the type to grant it on every type, including types added
+later: `content.*.edit`. The built-in roles do. A `.others` capability
+only works alongside its own (`content.post.edit.others` needs
+`content.post.edit`). The admin shows a type only to accounts that can
+edit its entries.
+
+The rest are for the whole site:
+
+| Capability | Allows |
+|---|---|
 | `media.upload`, `media.delete` | Uploading and deleting media |
 | `menus.edit`, `regions.edit` | Editing menus and regions |
 | `site.publish` | Publishing the site |
 | `cache.clear` | Clearing caches |
 | `site.settings` | Changing site settings |
-| `accounts.manage` | Managing accounts |
+| `accounts.view` | Seeing accounts and roles (each account action below also needs it) |
+| `accounts.create` | Creating accounts, with their first roles |
+| `accounts.edit` | Changing an account's name and profile, and making password links |
+| `accounts.roles` | Giving and taking roles |
+| `accounts.suspend` | Suspending and reinstating accounts |
+| `accounts.delete` | Removing accounts |
+| `roles.manage` | Making, changing, resetting, and deleting roles |
 
 Extensions can add their own.
 
@@ -156,7 +175,8 @@ the accounts and, like them, out of git.
 Some rules keep this safe: nobody can give a role or a capability they
 don't have themselves, change an account that can do more than they
 can, or change their own account; and a change that would leave no
-account able to manage accounts is refused.
+account (that isn't suspended) with all seven `accounts.*` and
+`roles.manage` capabilities is refused.
 
 Developers can also define roles in `config/auth.php`:
 
@@ -169,8 +189,8 @@ use Blush\Auth\AuthConfig;
 use Blush\Auth\Role;
 
 return new AuthConfig(roles: [
-	new Role('reviewer', 'Reviewer', ['content.edit', 'content.edit.others'], 'Reads and fixes drafts.'),
-	new Role('author', 'Author', ['content.create', 'content.edit', 'content.delete'])
+	new Role('reviewer', 'Reviewer', ['content.*.edit', 'content.*.edit.others'], 'Reads and fixes drafts.'),
+	new Role('cook', 'Cook', ['content.recipe.create', 'content.recipe.edit', 'content.recipe.publish'], 'Writes recipes.')
 ]);
 ```
 

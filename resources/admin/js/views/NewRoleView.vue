@@ -2,17 +2,17 @@
 /**
  * A new role (D-312), its own screen like every New: a name, a key that
  * follows the name until it's typed, what it's for, and its
- * capabilities. **Duplicate** on a role opens this with that role's
- * capabilities ticked (`?from={name}`), which is how a variation of a
- * built-in starts. You can't give a role a capability you don't have.
+ * capabilities, in the role screen's sections (D-359). **Duplicate** on
+ * a role opens this with that role's capabilities ticked
+ * (`?from={name}`), which is how a variation of a built-in starts. You can't give a role a capability you don't have.
  * It's kept in `storage/roles.json`, outside git.
  */
 
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import CapabilityChecks from '../components/CapabilityChecks.vue';
+import CapabilitySections from '../components/CapabilitySections.vue';
 import { ApiError } from '../api';
-import { createRole, grants, loadRoles, roleKeyOf, type RoleList } from '../people';
+import { createRole, loadRoles, roleKeyOf, type RoleList } from '../people';
 import { can } from '../session';
 import { toast } from '../toast';
 
@@ -40,7 +40,7 @@ loadRoles().then((answer) => {
 	if (from !== null) {
 		label.value        = `${from.label} (copy)`;
 		description.value  = from.description;
-		capabilities.value = answer.capabilities.map((capability) => capability.name).filter((name) => grants(from, name, answer.all) && can(name));
+		capabilities.value = from.capabilities.filter((name) => name !== answer.all && can(name));
 	}
 }, (caught: unknown) => {
 	loadFail.value = caught instanceof ApiError ? caught.message : 'The roles couldn\'t be loaded.';
@@ -113,7 +113,7 @@ async function submit(): Promise<void> {
 					<p v-else-if="field === 'name'" id="role-key-help" class="field__error">{{ error }}</p>
 					<p v-else id="role-key-help" class="field__help">Names the role in account files. Fixed once it's made.</p>
 				</div>
-				<div class="field">
+				<div class="field new-role__description">
 					<label for="role-description">Description</label>
 					<input id="role-description" v-model="description" autocomplete="off" aria-describedby="role-description-help">
 					<p id="role-description-help" class="field__help">What it's for, in a line. Shown where roles are given.</p>
@@ -121,13 +121,7 @@ async function submit(): Promise<void> {
 			</div>
 		</section>
 
-		<section class="panel" aria-labelledby="capabilities-heading">
-			<header class="panel__header">
-				<h2 id="capabilities-heading">Capabilities</h2>
-				<p class="panel__hint">{{ capabilities.length }} of {{ list.capabilities.length }}</p>
-			</header>
-			<CapabilityChecks v-model="capabilities" :capabilities="list.capabilities" id-prefix="capability-" />
-		</section>
+		<CapabilitySections v-model="capabilities" :capabilities="list.capabilities" :types="list.types" />
 
 		<div class="new-role__save">
 			<p v-if="error && field !== 'name'" class="field__error" role="alert">{{ error }}</p>
@@ -139,14 +133,23 @@ async function submit(): Promise<void> {
 <style scoped>
 .new-role {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-	align-items: start;
 	gap: var(--s-4);
 }
 
 .new-role__fields {
 	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
 	gap: var(--s-4);
+}
+
+/* Every input the same height, whatever its font. */
+.new-role__fields input {
+	height: var(--ctl);
+}
+
+.new-role__description {
+	grid-column: 1 / -1;
 }
 
 .new-role__fields > * + * {
@@ -156,7 +159,6 @@ async function submit(): Promise<void> {
 .new-role__save {
 	display: flex;
 	flex-wrap: wrap;
-	grid-column: 1 / -1;
 	align-items: center;
 	gap: var(--s-2);
 }
@@ -166,8 +168,8 @@ async function submit(): Promise<void> {
 	margin: 0;
 }
 
-@media (width <= 1100px) {
-	.new-role {
+@media (width <= 640px) {
+	.new-role__fields {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }

@@ -16,7 +16,7 @@ namespace Blush\Admin;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
@@ -79,7 +79,7 @@ final readonly class ReferencesController
 			return self::json(['error' => 'Sign in first.'], HttpStatus::Unauthorized);
 		}
 
-		if (! $this->permissions->can($account, Capability::ContentEdit)) {
+		if (! $this->permissions->can($account, ContentAction::Edit)) {
 			return self::json(['error' => 'Your account can\'t edit content.'], HttpStatus::Forbidden);
 		}
 
@@ -114,7 +114,7 @@ final readonly class ReferencesController
 		$entries  = $this->content->query()->any()->type($type)->withLanding(false)->orderBy('title', Order::Asc)->limit(null)->get()->all();
 		$items    = [];
 		$used     = $taxonomy && $for !== ''
-			? array_filter($this->content->termCounts($type, $this->permissions->restrict($account, Capability::ContentEdit, $this->content->query()->any()->type($for))))
+			? array_filter($this->content->termCounts($type, $this->permissions->restrict($account, ContentAction::Edit, $this->content->query()->any()->type($for))))
 			: null;
 
 		foreach ($entries as $entry) {

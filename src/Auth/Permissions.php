@@ -21,21 +21,23 @@ use Blush\Content\Type\ContentTypes;
 /**
  * Answers whether an account may do something (D-217). An account can do
  * what any of its roles allows; a role it names that doesn't exist grants
- * nothing. With an entry, two more rules apply:
+ * nothing. What it may do to entries is per content type (D-359): a
+ * `ContentAction` on a type needs `content.{type}.{action}` (or
+ * `content.*.{action}`). With an entry, two more rules apply:
  *
  * - **Ownership:** an entry is the account's own when it credits the
  *   account's author (its `authors`), and so is that author's own entry,
  *   the account's public name and bio. For any other entry, the account
- *   also needs the capability's `.others` form (`content.edit.others`).
+ *   also needs the action's `.others` form (`content.post.edit.others`).
  *   An account with no author owns nothing.
  * - **Live entries:** editing or deleting an entry that isn't a draft
- *   changes the live site, so it also needs `content.publish` for that
- *   entry. That's what keeps contributors to drafts.
+ *   changes the live site, so it also needs publishing for that entry.
+ *   That's what keeps contributors to drafts.
  *
- * Both rules come down to which statuses an account may act on, for its
- * own entries and for others' (`statuses()`). `can()` checks one entry
- * against them, and `restrict()` turns them into query conditions, so a
- * list of entries is filtered and paged in the index (D-230).
+ * Both rules come down to which statuses an account may act on in a type,
+ * for its own entries and for others' (`statuses()`). `can()` checks one
+ * entry against them, and `restrict()` turns them into query conditions,
+ * so a list of entries is filtered and paged in the index (D-230).
  */
 final readonly class Permissions
 {
@@ -46,71 +48,90 @@ final readonly class Permissions
 	) {}
 
 	/**
-	 * Whether the account may use a capability, on an entry if given.
+	 * Whether the account may use a capability. A content action is
+	 * checked on an entry, on a type by name, or, with neither, on any
+	 * type; so is a content capability's name, on an entry.
 	 */
-	public function can(Account $account, string|Capability $capability, ?Entry $entry = null): bool
+	public function can(Account $account, string|Capability|ContentAction $capability, Entry|string|null $on = null): bool
 	{
-		$capability = $capability instanceof Capability ? $capability->value : $capability;
+		if (is_string($capability) && $on instanceof Entry) {
+			[$type, $action] = ContentAction::parse($capability) ?? [null, null];
 
-		if (! $this->grants($account, $capability)) {
-			return false;
+			if ($action !== null && $type === $on->type->name) {
+				$capability = $action;
+			}
 		}
 
-		return $entry === null
-			|| in_array($entry->status, $this->statuses($account, $capability, others: ! $this->owns($account, $entry)), true);
+		if ($capability instanceof ContentAction) {
+			return match (true) {
+				$on instanceof Entry => in_array($on->status, $this->statuses($account, $on->type->name, $capability, others: $capability->isOthers() || ! $this->owns($account, $on)), true),
+				is_string($on)       => $this->statuses($account, $on, $capability, others: $capability->isOthers()) !== [],
+				default              => array_any(array_keys($this->types->all()), fn (string $type): bool => $this->statuses($account, $type, $capability, others: $capability->isOthers()) !== [])
+			};
+		}
+
+		return $this->grants($account, $capability instanceof Capability ? $capability->value : $capability);
 	}
 
 	/**
 	 * Returns a copy of a query limited to the entries the account may use
-	 * a capability on, by the same rules as `can()`: others' entries with
-	 * the statuses `statuses()` allows, or the account's own (entries with
-	 * its author's term) with theirs. An account that may use it on
-	 * every entry gets the query back as it was, and one that may use it
-	 * on none gets a query that finds nothing.
+	 * a content action on, by the same rules as `can()`, in each of the
+	 * query's types (or every type): others' entries with the statuses
+	 * `statuses()` allows, or the account's own (entries with its
+	 * author's term) with theirs. An account that may act on every entry
+	 * gets the query back as it was, and one that may act on none gets a
+	 * query that finds nothing.
 	 */
-	public function restrict(Account $account, string|Capability $capability, Query $query): Query
+	public function restrict(Account $account, ContentAction $action, Query $query): Query
 	{
-		$capability   = $capability instanceof Capability ? $capability->value : $capability;
-		$others       = $this->statuses($account, $capability, others: true);
-		$own          = $this->statuses($account, $capability, others: false);
+		$types        = $query->types === [] ? array_keys($this->types->all()) : $query->types;
 		$authors      = $this->types->profiles()?->name;
 		$author       = $account->author;
 		$alternatives = [];
+		$everything   = true;
 
-		if ($others === Status::cases()) {
-			return $query;
+		foreach ($types as $type) {
+			$others = $this->statuses($account, $type, $action, others: true);
+			$own    = $this->statuses($account, $type, $action, others: false);
+
+			$everything = $everything && $others === Status::cases();
+
+			if ($others !== []) {
+				$alternatives[] = static fn (Query $condition): Query => $condition->type($type)->status(...$others);
+			}
+
+			if ($own !== [] && $author !== null && $authors !== null) {
+				$alternatives[] = static fn (Query $condition): Query => $condition->type($type)->status(...$own)->whereTerm($authors, $author);
+
+				if ($type === $authors) {
+					$alternatives[] = static fn (Query $condition): Query => $condition->type($type)->status(...$own)->names($author);
+				}
+			}
 		}
 
-		if ($others !== []) {
-			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$others);
-		}
-
-		if ($own !== [] && $author !== null && $authors !== null) {
-			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->whereTerm($authors, $author);
-			$alternatives[] = static fn (Query $condition): Query => $condition->status(...$own)->type($authors)->names($author);
-		}
-
-		return $query->either(...$alternatives);
+		return $everything ? $query : $query->either(...$alternatives);
 	}
 
 	/**
-	 * Returns the statuses of entries the account may use a capability
-	 * on: its own entries', or others'. Others' need the capability's
-	 * `.others` form. When acting changes the live site (editing or
-	 * deleting), entries that aren't drafts also need `content.publish`
-	 * for them.
+	 * Returns the statuses of a type's entries the account may use a
+	 * content action on: its own entries', or others'. Others' need the
+	 * action's `.others` form. When acting changes the live site (editing
+	 * or deleting), entries that aren't drafts also need publishing for
+	 * them.
 	 *
 	 * @return list<Status>
 	 */
-	private function statuses(Account $account, string $capability, bool $others): array
+	private function statuses(Account $account, string $type, ContentAction $action, bool $others): array
 	{
-		if (! $this->grants($account, $capability) || ($others && ! $this->grants($account, "{$capability}.others"))) {
+		$base = $action->base();
+
+		if (! $this->grants($account, $base->on($type)) || ($others && ! $this->grants($account, ($base->others() ?? $base)->on($type)))) {
 			return [];
 		}
 
-		$changesLive = in_array($capability, [Capability::ContentEdit->value, Capability::ContentDelete->value], true);
+		$changesLive = $base === ContentAction::Edit || $base === ContentAction::Delete;
 
-		return ! $changesLive || $this->statuses($account, Capability::ContentPublish->value, $others) !== []
+		return ! $changesLive || $this->statuses($account, $type, ContentAction::Publish, $others) !== []
 			? Status::cases()
 			: [Status::Draft];
 	}

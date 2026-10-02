@@ -19,7 +19,7 @@ use LogicException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
@@ -46,8 +46,8 @@ use Blush\Support\Slug;
  *   entry the account may handle (of one type, when given).
  *
  * Trashed entries aren't in the index, so ownership is read from the
- * file's author field: an account handles its own with `content.delete`
- * and everyone's with `content.delete.others`.
+ * file's author field: an account handles its own with its type's
+ * `delete` and everyone's with `delete.others` (D-359).
  */
 final readonly class TrashController
 {
@@ -191,16 +191,24 @@ final readonly class TrashController
 
 	/**
 	 * Whether the account may restore or delete a trashed entry: anyone's
-	 * with `content.delete.others`, its own with `content.delete`.
+	 * with its type's `delete.others`, its own with `delete` (D-359).
 	 */
 	private function mayHandle(Account $account, TrashedEntry $trashed): bool
 	{
-		if ($this->permissions->can($account, Capability::ContentDeleteOthers)) {
+		$type = $this->typeOf($trashed);
+
+		// A file whose type is gone is for whoever deletes anyone's
+		// entries of every type.
+		if ($type === null) {
+			return $this->permissions->can($account, ContentAction::DeleteOthers->on(ContentAction::EVERY));
+		}
+
+		if ($this->permissions->can($account, ContentAction::DeleteOthers, $type)) {
 			return true;
 		}
 
 		return $account->author !== null
-			&& $this->permissions->can($account, Capability::ContentDelete)
+			&& $this->permissions->can($account, ContentAction::Delete, $type)
 			&& in_array($account->author, $this->authors($trashed), true);
 	}
 

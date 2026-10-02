@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0;padding:0}
+body{font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:#e8e9ec}
+img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Capability Sections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&family=Karla:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+
+<style>
+/* ============================================================================
+   Layout concept: a workbench. A narrow reading column carries the notes;
+   full-width stages break out of it to show the screen at the size it would
+   really be. Scaffolding is prefixed `lab-`, the same contract the Meridian
+   component library uses, and shares nothing with the admin: graphite, no
+   accent hue, Instrument Sans rather than any of Meridian's four faces.
+   ========================================================================= */
+:root{
+  --lab-bg:#e8e9ec; --lab-surface:#fcfcfd; --lab-surface-2:#f1f2f4; --lab-sunk:#dddfe3;
+  --lab-line:#d3d6db; --lab-line-2:#bcc0c7;
+  --lab-ink:#15171b; --lab-ink-2:#4b515b; --lab-ink-3:#7c838e;
+  --lab-mark:#15171b; --lab-mark-fg:#fcfcfd;
+  --lab-font:"Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --lab-mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --lab-col:70ch;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --lab-bg:#131417; --lab-surface:#1b1d21; --lab-surface-2:#23262b; --lab-sunk:#0e0f11;
+    --lab-line:#2b2f35; --lab-line-2:#3c424a;
+    --lab-ink:#e9eaec; --lab-ink-2:#a7adb6; --lab-ink-3:#767d87;
+    --lab-mark:#e9eaec; --lab-mark-fg:#131417;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --lab-bg:#131417; --lab-surface:#1b1d21; --lab-surface-2:#23262b; --lab-sunk:#0e0f11;
+  --lab-line:#2b2f35; --lab-line-2:#3c424a;
+  --lab-ink:#e9eaec; --lab-ink-2:#a7adb6; --lab-ink-3:#767d87;
+  --lab-mark:#e9eaec; --lab-mark-fg:#131417;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--lab-bg);color:var(--lab-ink);
+  font-family:var(--lab-font);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ul,ol,figure{margin:0;padding:0}
+ul,ol{list-style:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--lab-ink);outline-offset:2px;border-radius:3px}
+.lab-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.lab-page{padding-inline:20px;padding-block:0 96px;max-width:1360px;margin:0 auto}
+.lab-col{max-width:var(--lab-col);margin-inline:auto}
+.lab-wide{max-width:1320px;margin-inline:auto}
+
+.lab-top{padding-block:60px 40px}
+.lab-eyebrow{font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--lab-ink-3)}
+.lab-top h1{font-size:clamp(34px,6vw,52px);line-height:1.02;font-weight:600;letter-spacing:-.035em;
+  text-wrap:balance;margin-top:14px}
+.lab-lede{font-size:17px;color:var(--lab-ink-2);margin-top:20px;max-width:60ch;text-wrap:pretty}
+.lab-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.lab-tag{font-size:12px;font-family:var(--lab-mono);color:var(--lab-ink-2);background:var(--lab-surface);
+  border:1px solid var(--lab-line);border-radius:99px;padding:4px 12px}
+
+.lab-sec{padding-block:42px}
+.lab-sec + .lab-sec{border-top:1px solid var(--lab-line)}
+.lab-h2{font-size:clamp(23px,3.2vw,31px);font-weight:600;letter-spacing:-.025em;line-height:1.15;text-wrap:balance}
+.lab-h2 .n{font-family:var(--lab-mono);font-size:.52em;font-weight:500;color:var(--lab-ink-3);
+  letter-spacing:0;vertical-align:.5em;margin-right:12px}
+.lab-h3{font-size:17px;font-weight:600;letter-spacing:-.012em;margin-top:34px}
+.lab-p{color:var(--lab-ink-2);margin-top:14px;text-wrap:pretty}
+.lab-p strong{color:var(--lab-ink);font-weight:600}
+.lab-p code,.lab-li code{font-family:var(--lab-mono);font-size:.86em;
+  background:var(--lab-surface-2);border:1px solid var(--lab-line);border-radius:4px;padding:1px 5px}
+.lab-ul{margin-top:16px;display:flex;flex-direction:column;gap:12px}
+.lab-li{position:relative;padding-left:26px;color:var(--lab-ink-2);text-wrap:pretty}
+.lab-li::before{content:"";position:absolute;left:5px;top:11px;width:6px;height:6px;border-radius:99px;
+  background:var(--lab-line-2)}
+.lab-li strong{color:var(--lab-ink);font-weight:600}
+
+.lab-finds{margin-top:24px;display:flex;flex-direction:column;gap:2px;counter-reset:f}
+.lab-find{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;padding:18px 0;
+  border-top:1px solid var(--lab-line)}
+.lab-find:last-child{border-bottom:1px solid var(--lab-line)}
+.lab-find::before{counter-increment:f;content:counter(f,decimal-leading-zero);
+  font-family:var(--lab-mono);font-size:12px;color:var(--lab-ink-3);padding-top:3px;font-variant-numeric:tabular-nums}
+.lab-find h4{font-size:15.5px;font-weight:600;letter-spacing:-.01em}
+.lab-find p{color:var(--lab-ink-2);margin-top:6px;font-size:14.5px;text-wrap:pretty}
+
+.lab-tradeoff{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:0;margin-top:26px;
+  border:1px solid var(--lab-line);border-radius:12px;overflow:hidden;background:var(--lab-surface)}
+.lab-td{padding:18px 22px;border-right:1px solid var(--lab-line)}
+.lab-td:last-child{border-right:0}
+.lab-td h5{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--lab-ink-3)}
+.lab-td p{font-size:14px;color:var(--lab-ink-2);margin-top:9px;text-wrap:pretty}
+@media (max-width:560px){.lab-td{border-right:0;border-bottom:1px solid var(--lab-line)}.lab-td:last-child{border-bottom:0}}
+
+.lab-stagewrap{margin-top:28px}
+.lab-stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.lab-stagebar .t{font-size:12px;font-family:var(--lab-mono);color:var(--lab-ink-3);margin-right:auto}
+.lab-sw{display:flex;border:1px solid var(--lab-line);border-radius:7px;overflow:hidden;background:var(--lab-surface)}
+.lab-sw button{padding:5px 11px;font-size:12px;color:var(--lab-ink-2);white-space:nowrap}
+.lab-sw button + button{border-left:1px solid var(--lab-line)}
+.lab-sw button[aria-pressed="true"]{background:var(--lab-mark);color:var(--lab-mark-fg);font-weight:500}
+.lab-stage{border:1px solid var(--lab-line-2);border-radius:14px;overflow:hidden;background:var(--lab-sunk)}
+.lab-narrow{max-width:430px;margin-inline:auto}
+
+.lab-foot{padding-block:36px 0;border-top:1px solid var(--lab-line);margin-top:28px;
+  font-size:13px;color:var(--lab-ink-3)}
+
+/* ============================================================================
+   Meridian, scoped to .mer. Values from design/tokens.css and the prototype's
+   six theme blocks. Both axes switch by attribute, so all four states can be
+   looked at on demand.
+   ========================================================================= */
+.mer{
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff; --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --ctl:34px; --ctl-sm:30px;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --base:13px; --h1:26px; --h1-track:-.024em; --title-track:-.005em; --title-size:13.5px; --title-weight:500;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px; --stat-v:30px;
+  --measure:72ch;
+  color-scheme:light;
+}
+.mer[data-dir="editorial"]{
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa; --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em; --title-track:0; --title-size:15.5px; --title-weight:500;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px; --stat-v:34px;
+}
+.mer[data-cs="dark"]{
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+.mer[data-cs="dark"][data-dir="editorial"]{
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+}
+
+.mer{background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);line-height:1.5;
+  position:relative;min-width:0}
+.mer h1,.mer h2,.mer h3,.mer p{margin:0;padding:0}
+.mer .ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.mer .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.mer :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.mer-wrap{padding:var(--s-6) var(--s-6);min-width:0}
+
+.mer .page-head{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap}
+.mer .page-head h1{font-family:var(--font-display);font-size:var(--h1);font-weight:600;
+  letter-spacing:var(--h1-track);text-wrap:balance;line-height:1.2}
+.mer .page-head .acts{margin-left:auto;display:flex;gap:var(--s-2);flex-wrap:wrap;padding-top:3px}
+.mer .head-desc{color:var(--fg-2);font-size:13px;margin-top:9px;max-width:68ch;text-wrap:pretty}
+
+/* The facts strip: three label/value pairs and two avatars that used to hold a
+   whole card beside the thing being edited. */
+.mer .facts{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;margin-top:var(--s-4);
+  font-size:12px;color:var(--fg-3)}
+.mer .facts .f{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.mer .facts .f b{color:var(--fg-2);font-weight:500}
+.mer .facts .dv{width:1px;height:13px;background:var(--border);flex:none}
+.mer .facts a{color:var(--accent);text-decoration:none;font-weight:500}
+.mer .facts a:hover{text-decoration:underline}
+.mer .faces{display:inline-flex}
+.mer .faces .avatar{margin-right:-6px;border:2px solid var(--bg)}
+.mer .avatar{width:22px;height:22px;border-radius:99px;background:var(--surface-3);color:var(--fg-2);
+  display:grid;place-items:center;font-size:9px;font-weight:600;letter-spacing:.02em;flex:none}
+
+.mer .btn{display:inline-flex;align-items:center;gap:7px;height:var(--ctl);padding:0 14px;border-radius:var(--r-1);
+  border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:500;
+  white-space:nowrap;box-shadow:var(--shadow-1);cursor:pointer}
+.mer .btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.mer .btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.mer .btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.mer .btn-ghost{border-color:transparent;background:transparent;color:var(--fg-2)}
+.mer .btn-ghost:hover{background:var(--surface-2);color:var(--fg)}
+.mer .btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
+.mer .btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.mer .icon-btn{width:30px;height:30px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-3);flex:none}
+.mer .icon-btn:hover{background:var(--surface-3);color:var(--fg)}
+
+.mer .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);box-shadow:var(--shadow-1)}
+.mer .panel + .panel{margin-top:var(--s-4)}
+.mer .panel-head{display:flex;align-items:center;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x);
+  border-bottom:1px solid var(--border);min-height:58px;flex-wrap:wrap}
+.mer .panel-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.005em}
+.mer .panel-head .hint{font-size:11.5px;color:var(--fg-3)}
+.mer .panel-head .end{margin-left:auto;display:flex;align-items:center;gap:var(--s-2)}
+
+/* the screen-level control row, above both panels */
+.mer .toolbar{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-5) 0 var(--s-4);flex-wrap:wrap}
+.mer .toolbar .note{font-size:11.5px;color:var(--fg-3)}
+.mer .toolbar .end{margin-left:auto;display:flex;align-items:center;gap:var(--s-2)}
+
+/* ---- the section row ----
+   One shape for every capability group on the screen, whether the group is a
+   content type or part of the site. A name, a sentence about what the role can
+   do, and a triangle. */
+.mer .dis{border-bottom:1px solid var(--border);display:flex;align-items:stretch;flex-wrap:wrap}
+.mer .dis:last-child{border-bottom:0}
+.mer .dis-head{display:flex;align-items:center;gap:var(--s-3);flex:1;min-width:0;
+  padding:var(--pad-row) var(--s-2) var(--pad-row) var(--pad-x);text-align:left}
+.mer .dis-head:hover{background:var(--surface-2)}
+.mer .dis-head .tw{color:var(--fg-3);display:grid;place-items:center;flex:none}
+.mer .dis-head .tw .ic{width:13px;height:13px;transition:transform .12s}
+.mer .dis-head[aria-expanded="true"] .tw .ic{transform:rotate(90deg)}
+.mer .dis-main{min-width:0;flex:1}
+.mer .dis-name{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;min-width:0}
+.mer .dis-main .nm{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);
+  letter-spacing:var(--title-track);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mer .dis-main .sm{display:block;font-size:11.5px;color:var(--fg-3);margin-top:4px;text-wrap:pretty;
+  max-width:76ch}
+.mer .dis-main .sm.none{font-style:italic}
+.mer .dis-end{flex:none;display:flex;align-items:center;gap:var(--s-1);padding:0 var(--pad-x) 0 0;align-self:center}
+.mer .dis-end [data-rowmenu]{opacity:0}
+.mer .dis:hover [data-rowmenu],.mer .dis-end [data-rowmenu]:focus-visible,
+.mer .dis-end [data-rowmenu][aria-expanded="true"]{opacity:1}
+/* a key sits under the name, left-aligned with it, the way a slug does in a row */
+.mer .k-row{display:block;font-family:var(--font-mono);font-size:10px;color:var(--fg-3);margin-top:3px}
+.mer.hidekeys .k-row,.mer.hidekeys .cap code{display:none}
+
+/* a group caption, so Content and Taxonomy do not read as one list */
+.mer .cap-head{padding:11px var(--pad-x) 7px;background:var(--surface-2);border-bottom:1px solid var(--border)}
+.mer .cap-head span{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+
+/* the pinned default row, the same mark the entries list gives an index page */
+.mer .dis.pinned{background:var(--surface-2)}
+.mer .dis.pinned .dis-head:hover{background:var(--surface-3)}
+.mer .dis.pinned{border-top:1px solid var(--border-strong);border-bottom:0}
+.mer .ix-mark{flex:none;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);
+  border:1px solid var(--border);border-radius:4px;padding:2px 6px;background:var(--surface);white-space:nowrap}
+
+/* A collapsed section still has to say that it is holding an unsaved change,
+   or the save bar is counting something nobody can find. */
+.mer .pill{display:inline-flex;align-items:center;gap:5px;height:19px;padding:0 8px 0 7px;border-radius:99px;
+  font-size:10px;font-weight:500;white-space:nowrap;border:1px solid transparent;flex:none}
+.mer .pill .d{width:5px;height:5px;border-radius:99px;flex:none}
+.mer .pill.changes{background:var(--warn-soft);color:var(--warn)} .mer .pill.changes .d{background:var(--warn-dot)}
+
+/* ---- the opened body ---- */
+.mer .dis-body{flex:0 0 100%;padding:var(--s-3) var(--pad-x) var(--s-3) calc(var(--pad-x) + 25px);
+  background:var(--surface-2);border-top:1px solid var(--border)}
+.mer .dis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:0 var(--s-5);max-width:880px}
+.mer .cap{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12.5px;color:var(--fg-2);
+  cursor:pointer;min-width:0}
+.mer .cap:hover{color:var(--fg)}
+.mer .cap .l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mer .cap code{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-left:auto;
+  flex:none;padding-left:var(--s-3)}
+
+.mer .chk{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mer .box{width:15px;height:15px;border:1px solid var(--border-strong);border-radius:4px;display:grid;
+  place-items:center;background:var(--surface);color:transparent;flex:none;transition:background .1s,border-color .1s}
+.mer .box .ic{width:11px;height:11px;stroke-width:2.8}
+.mer .cap:hover .box{border-color:var(--accent)}
+.mer .chk:checked + .box{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.mer .chk:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.mer .chk:disabled + .box{opacity:.45}
+.mer .cap.off{color:var(--fg-3)}
+
+/* the one dependent control on the screen: a type the role cannot see has
+   nothing else to grant, so the rest of its body goes quiet rather than away */
+.mer .dis-body.blind .dis-grid .cap:not(.lead){opacity:.4}
+.mer .blind-note{font-size:11.5px;color:var(--fg-3);padding:var(--s-2) 0 0;max-width:60ch;line-height:1.55}
+
+.mer .savebar{position:sticky;bottom:var(--s-4);z-index:5;display:flex;align-items:center;gap:var(--s-2);
+  margin:var(--s-5) auto 0;padding:11px 12px 11px 20px;border-radius:99px;background:var(--surface);
+  border:1px solid var(--border-strong);box-shadow:var(--shadow-3);width:fit-content}
+.mer .savebar .n{font-size:12.5px;font-weight:500;white-space:nowrap}
+.mer .savebar .dv{width:1px;height:18px;background:var(--border);flex:none}
+.mer .savebar[hidden]{display:none}
+
+.mer .everything{display:flex;gap:var(--s-4);padding:var(--s-6) var(--pad-x);align-items:flex-start}
+.mer .everything .ic{width:20px;height:20px;color:var(--accent);margin-top:2px}
+.mer .everything h3{font-family:var(--font-display);font-size:16px;font-weight:600;letter-spacing:-.01em}
+.mer .everything p{font-size:12.5px;color:var(--fg-2);margin-top:7px;max-width:64ch;line-height:1.6}
+.mer .everything .pl{margin-top:var(--s-4);display:flex;gap:var(--s-2);flex-wrap:wrap}
+
+.mer-menu{position:fixed;z-index:80;min-width:208px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:7px;font-family:var(--font-ui);font-size:13px;color:var(--fg)}
+.mer-menu .sec{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);
+  padding:8px 11px 5px}
+.mer-menu .sec:first-child{padding-top:4px}
+.mer-menu button{display:flex;align-items:flex-start;gap:10px;width:100%;padding:8px 11px;border-radius:var(--r-1);
+  color:var(--fg-2);text-align:left}
+.mer-menu button:hover{background:var(--surface-2);color:var(--fg)}
+.mer-menu .nm{display:block;font-size:12.5px;color:var(--fg);font-weight:500}
+.mer-menu .ds{display:block;font-size:11px;color:var(--fg-3);line-height:1.45;margin-top:2px}
+.mer-menu .div{height:1px;background:var(--border);margin:7px -7px}
+
+.mer-toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:90;
+  display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--good-dot);border-radius:var(--r-2);box-shadow:var(--shadow-3);padding:13px 18px;
+  font-size:12.5px;color:var(--fg);font-family:var(--font-ui);max-width:min(360px,calc(100vw - 32px))}
+.mer-toast .ic{color:var(--good);width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6}
+
+@media (max-width:640px){
+  .mer-wrap{padding:var(--s-5) var(--s-4)}
+  .mer .page-head h1{font-size:22px}
+  .mer .dis-head{padding-left:var(--s-4)}
+  .mer .dis-body{padding-left:calc(var(--s-4) + 23px);padding-right:var(--s-4)}
+  .mer .dis-end{padding-right:var(--s-4)}
+  .mer .cap-head{padding-inline:var(--s-4)}
+  .lab-top{padding-block:40px 28px}
+  .lab-page{padding-inline:16px}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+
+
+</head>
+<body>
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-page" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91 0z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-schema" viewBox="0 0 24 24"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="5" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></symbol>
+  <symbol id="i-collapse" viewBox="0 0 24 24"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
+</svg>
+
+<style>
+/* The phone rendering, forced by a class so it can be shown inside a narrow
+   stage on a wide page. In the admin these are the 640px breakpoint's rules. */
+.mer.narrow .mer-wrap{padding:var(--s-5) var(--s-4)}
+.mer.narrow .page-head h1{font-size:22px}
+.mer.narrow .page-head .acts{margin-left:0;padding-top:var(--s-3)}
+.mer.narrow .dis-grid{grid-template-columns:minmax(0,1fr)}
+.mer.narrow .dis-head{padding-left:var(--s-4)}
+.mer.narrow .dis-body{padding-left:calc(var(--s-4) + 23px);padding-right:var(--s-4)}
+.mer.narrow .dis-end{padding-right:var(--s-4)}
+.mer.narrow .cap-head{padding-inline:var(--s-4)}
+.mer.narrow .toolbar{padding-block:var(--s-4) var(--s-3)}
+.mer.narrow .toolbar .note{display:none}
+</style>
+
+<div class="lab-page">
+
+  <header class="lab-top lab-col">
+    <div class="lab-eyebrow">Meridian admin &middot; Screens &middot; Sketch</div>
+    <h1>Capability Sections</h1>
+    <p class="lab-lede">Option C, on its own, with the site capabilities drawn the same way: every
+      capability group on the screen is a collapsible section that states in a sentence what the role
+      can do.</p>
+    <div class="lab-meta">
+      <span class="lab-tag">Config / Roles / Editor</span>
+      <span class="lab-tag">detail screen only</span>
+      <span class="lab-tag">not in the prototype</span>
+    </div>
+  </header>
+
+  <section class="lab-sec lab-col">
+    <h2 class="lab-h2"><span class="n">01</span>One shape, top to bottom</h2>
+    <p class="lab-p">The earlier sketch left the screen speaking two languages. Site capabilities were four
+      columns of checkboxes; content types were a list of sentences. Both are the same kind of thing &mdash;
+      a named group of capabilities a role either has or does not &mdash; so there was no reason for them to
+      look different, and the join between the two panels was the most awkward moment on the page.</p>
+    <p class="lab-p">Now there is one row: <strong>a name, a sentence, and a triangle</strong>. Four of them
+      for the site and one per content type below. Open any of them and the checkboxes are underneath, two
+      columns wide, with their keys beside them.</p>
+    <p class="lab-p">It costs something, and the cost is worth stating. Collapsed, the four site groups are
+      about sixty pixels taller than the four-column block they replace, and <em>nothing</em> on the screen
+      can be read as a column any more &mdash; &ldquo;which types can this role publish&rdquo; means opening
+      every section. What it buys is a screen you can read rather than decode, at any number of content
+      types, on any width.</p>
+  </section>
+
+  <section class="lab-sec">
+    <div class="lab-col">
+      <h2 class="lab-h2"><span class="n">02</span>The screen</h2>
+      <p class="lab-p">Operable. Open a section, change something, and the save bar appears; collapse it
+        again and the section says it is holding a change. Check all four theme states, which is what the
+        runbook asks for on anything that touches color.</p>
+    </div>
+    <div class="lab-wide lab-stagewrap">
+      <div class="lab-stagebar">
+        <span class="t">Config / Roles / Editor</span>
+        <div class="lab-sw" role="group" aria-label="Admin theme">
+          <button type="button" data-dir="neutral" aria-pressed="true">Neutral</button>
+          <button type="button" data-dir="editorial" aria-pressed="false">Editorial</button>
+        </div>
+        <div class="lab-sw" role="group" aria-label="Color scheme">
+          <button type="button" data-cs="light" aria-pressed="true">Light</button>
+          <button type="button" data-cs="dark" aria-pressed="false">Dark</button>
+        </div>
+      </div>
+      <div class="lab-stage"><div class="mer hidekeys" data-dir="neutral" data-cs="light" id="stageMain"></div></div>
+    </div>
+  </section>
+
+  <section class="lab-sec lab-col">
+    <h2 class="lab-h2"><span class="n">03</span>Four things the accordion needed</h2>
+    <div class="lab-finds">
+      <div class="lab-find">
+        <div>
+          <h4>A collapsed section has to say it is dirty</h4>
+          <p>Change <em>Publish anyone&rsquo;s</em> on Posts, collapse it, and the save bar is counting
+            something nobody can find. So an edited section carries a <strong>Changes</strong> pill &mdash;
+            the same warn pill a live entry with unpublished edits gets in a list, which is the same idea in
+            the same words. It is the one thing an accordion needs that a matrix does not.</p>
+        </div>
+      </div>
+      <div class="lab-find">
+        <div>
+          <h4>Expand all, because eighteen sections is a lot of clicking</h4>
+          <p>The control sits in a screen-level row above both panels rather than in either panel head,
+            because it acts on both. It flips to <em>Collapse all</em> once everything is open, so it is one
+            button rather than two, and the keys toggle sits beside it for the same reason.</p>
+        </div>
+      </div>
+      <div class="lab-find">
+        <div>
+          <h4>You can set a section without opening it</h4>
+          <p>A <code>&#8942;</code> on each row, revealed on hover and always there to the keyboard, carries
+            <em>Full access</em>, <em>Their own only</em>, <em>Read only</em> and <em>No access</em>. Without
+            it the accordion is strictly slower than the list it replaces: setting six types to read-only
+            would be six opens, six scans and twenty-four clicks.</p>
+        </div>
+      </div>
+      <div class="lab-find">
+        <div>
+          <h4>Turning View off quiets the rest instead of hiding it</h4>
+          <p>A type the role cannot see has nothing else to grant. The other seven checkboxes go quiet and a
+            line says why, rather than disappearing &mdash; §8&rsquo;s <em>hidden, not disabled</em> is about
+            an action an account cannot perform, and these are controls you are in the middle of
+            configuring. Products in the fourteen-type stage below is open on that state.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lab-sec">
+    <div class="lab-col">
+      <h2 class="lab-h2"><span class="n">04</span>Three states</h2>
+      <h3 class="lab-h3">Administrator</h3>
+      <p class="lab-p">Administrator holds <code>*</code>. A hundred and twenty-two checked, disabled checkboxes
+        behind eighteen triangles is the menu-of-dead-items problem at scale, so the whole capability area is
+        replaced by one statement &mdash; which is also the only honest way to say that types registered next
+        week are included.</p>
+    </div>
+    <div class="lab-wide lab-stagewrap">
+      <div class="lab-stage"><div class="mer hidekeys" data-dir="neutral" data-cs="light" id="stageAdmin"></div></div>
+    </div>
+
+    <div class="lab-col">
+      <h3 class="lab-h3">Fourteen types</h3>
+      <p class="lab-p">A site running the Shop and Events addons: 122 capabilities. This is the load the
+        current screen is being replaced for, and it is the case where the sentence earns its place &mdash;
+        three of these types are invisible to the role and say so in four words.</p>
+    </div>
+    <div class="lab-wide lab-stagewrap">
+      <div class="lab-stagebar"><span class="t">14 types &middot; 122 capabilities</span></div>
+      <div class="lab-stage"><div class="mer hidekeys" data-dir="neutral" data-cs="light" id="stageBig"></div></div>
+    </div>
+
+    <div class="lab-col">
+      <h3 class="lab-h3">Phone</h3>
+      <p class="lab-p">The reason to pick this one over a matrix. Nothing scrolls sideways, nothing is
+        clipped, and the sentence is still the first thing on every row.</p>
+    </div>
+    <div class="lab-narrow lab-stagewrap">
+      <div class="lab-stage"><div class="mer hidekeys narrow" data-dir="neutral" data-cs="light" id="stagePhone"></div></div>
+    </div>
+  </section>
+
+  <section class="lab-sec lab-col">
+    <h2 class="lab-h2"><span class="n">05</span>What is still open</h2>
+    <ul class="lab-ul">
+      <li class="lab-li"><strong>Whether open sections persist per account.</strong> Already an open question
+        for disclosure groups generally; this screen makes it pressing, because an operator who opens five
+        types and comes back to all of them closed will not use the screen twice. If it persists it belongs
+        on the account record rather than in browser storage, which makes it an API question.</li>
+      <li class="lab-li"><strong>What the roles list shows instead of a count.</strong> The collapsed sentence
+        is the most readable statement of a role on this page, and the list and an account&rsquo;s own screen
+        both need one. That is the list&rsquo;s decision, not this screen&rsquo;s.</li>
+      <li class="lab-li"><strong>What a type registered later grants.</strong> A role that enumerates types goes
+        stale the moment an addon registers one, and nothing on this screen answers it. The safe default is
+        that a new type grants nothing to anyone but Administrator; anything more convenient than that is a
+        security decision rather than a layout one, and it needs a home somewhere on this screen.</li>
+      <li class="lab-li"><strong>Whether taxonomy types take the same five actions.</strong> A term has no
+        pending-changes state, so <em>Publish anyone&rsquo;s</em> reads oddly for a tag. Either the word is
+        wrong or taxonomies take a shorter set, and the section would then have two shapes.</li>
+      <li class="lab-li"><strong>Whether the section row wants a count after all.</strong> The sentence runs
+        long on a type with mixed scopes, and at a glance a reader may want to know only whether anything is
+        granted. A dot, a count, or nothing &mdash; this sketch says nothing, on the grounds that the sentence
+        is the readout and a second one beside it is the thing §7 keeps warning about.</li>
+    </ul>
+    <p class="lab-p">If this is the one, the next pass puts it in the prototype, rewrites §8
+      <em>Permissions</em> in <code>40-screens.md</code>, and files the rest above into
+      <code>50-open-questions.md</code>.</p>
+  </section>
+
+  <footer class="lab-foot lab-col">
+    <p>Scaffolding is prefixed <code style="font-family:var(--lab-mono)">lab-</code>; everything inside a stage
+      is the design under review.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
+var ic = function(n, extra){ return '<svg class="ic"'+(extra?' style="'+extra+'"':'')+'><use href="#'+n+'"/></svg>'; };
+var uid = function(){ return "c"+Math.random().toString(36).slice(2,9); };
+
+/* ---- the model -------------------------------------------------------
+   Five actions per content type. Edit, publish and delete each carry a
+   scope, because `post.edit.others` without `post.edit` is a role that can
+   change everyone's work except its own. Ten capabilities stay global. */
+var GLOBAL_GROUPS = [
+  {k:"media", g:"Media", icon:"i-image", items:[
+    ["media.upload","Upload files",      1,"upload files"],
+    ["media.delete","Delete files",      1,"delete files"]]},
+  {k:"structure", g:"Structure", icon:"i-schema", items:[
+    ["menus.edit",   "Edit menus",            1,"edit menus"],
+    ["regions.edit", "Edit regions",          1,"edit regions"],
+    ["types.manage", "Manage content types",  0,"manage content types"]]},
+  {k:"site", g:"Site", icon:"i-globe", items:[
+    ["site.publish", "Publish the site",      1,"publish the site"],
+    ["site.settings","Change site settings",  0,"change site settings"],
+    ["cache.clear",  "Clear caches",          1,"clear caches"]]},
+  {k:"people", g:"People", icon:"i-users", items:[
+    ["accounts.manage","Manage accounts",     0,"manage accounts"],
+    ["roles.assign",   "Assign roles",        0,"assign roles"]]}
+];
+
+var SMALL_TYPES = [
+  {k:"page",    label:"Pages",    icon:"i-page",   kind:"Content"},
+  {k:"post",    label:"Posts",    icon:"i-doc",    kind:"Content"},
+  {k:"release", label:"Releases", icon:"i-rocket", kind:"Content"},
+  {k:"topic",   label:"Topics",   icon:"i-folder", kind:"Taxonomy"},
+  {k:"tag",     label:"Tags",     icon:"i-tag",    kind:"Taxonomy"}
+];
+var BIG_TYPES = [
+  {k:"page",     label:"Pages",             icon:"i-page",   kind:"Content"},
+  {k:"post",     label:"Posts",             icon:"i-doc",    kind:"Content"},
+  {k:"release",  label:"Releases",          icon:"i-rocket", kind:"Content"},
+  {k:"casestudy",label:"Case studies",      icon:"i-doc",    kind:"Content"},
+  {k:"product",  label:"Products",          icon:"i-cart",   kind:"Content"},
+  {k:"event",    label:"Events",            icon:"i-doc",    kind:"Content"},
+  {k:"person",   label:"Team",              icon:"i-users",  kind:"Content"},
+  {k:"topic",    label:"Topics",            icon:"i-folder", kind:"Taxonomy"},
+  {k:"tag",      label:"Tags",              icon:"i-tag",    kind:"Taxonomy"},
+  {k:"pcat",     label:"Product categories",icon:"i-folder", kind:"Taxonomy"},
+  {k:"brand",    label:"Product brands",    icon:"i-tag",    kind:"Taxonomy"},
+  {k:"series",   label:"Event series",      icon:"i-folder", kind:"Taxonomy"},
+  {k:"venue",    label:"Venues",            icon:"i-tag",    kind:"Taxonomy"},
+  {k:"industry", label:"Industries",        icon:"i-tag",    kind:"Taxonomy"}
+];
+var FUTURE = {k:"*", label:"Types added later", icon:"i-pin", kind:"Future"};
+
+var SMALL_CAPS = {
+  page:   {view:1, create:1, edit:"any",  publish:"any",  del:"own"},
+  post:   {view:1, create:1, edit:"any",  publish:"any",  del:"any"},
+  release:{view:1, create:1, edit:"own",  publish:"none", del:"none"},
+  topic:  {view:1, create:1, edit:"any",  publish:"any",  del:"own"},
+  tag:    {view:1, create:0, edit:"none", publish:"none", del:"none"},
+  "*":    {view:1, create:1, edit:"any",  publish:"own",  del:"none"}
+};
+var BIG_CAPS = {
+  page:     {view:1, create:1, edit:"any",  publish:"any",  del:"own"},
+  post:     {view:1, create:1, edit:"any",  publish:"any",  del:"any"},
+  release:  {view:1, create:1, edit:"own",  publish:"none", del:"none"},
+  casestudy:{view:1, create:1, edit:"any",  publish:"any",  del:"own"},
+  product:  {view:0, create:0, edit:"none", publish:"none", del:"none"},
+  event:    {view:1, create:1, edit:"own",  publish:"own",  del:"own"},
+  person:   {view:1, create:0, edit:"own",  publish:"none", del:"none"},
+  topic:    {view:1, create:1, edit:"any",  publish:"any",  del:"own"},
+  tag:      {view:1, create:0, edit:"none", publish:"none", del:"none"},
+  pcat:     {view:0, create:0, edit:"none", publish:"none", del:"none"},
+  brand:    {view:0, create:0, edit:"none", publish:"none", del:"none"},
+  series:   {view:1, create:1, edit:"any",  publish:"any",  del:"none"},
+  venue:    {view:1, create:1, edit:"any",  publish:"any",  del:"none"},
+  industry: {view:1, create:0, edit:"none", publish:"none", del:"none"},
+  "*":      {view:1, create:1, edit:"any",  publish:"own",  del:"none"}
+};
+
+var ACTS = [["edit","Edit","edit"],["publish","Publish","publish"],["del","Delete","delete"]];
+function pair(v){ return {own: v!=="none", others: v==="any"}; }
+function unpair(own, others){ return others ? "any" : (own ? "own" : "none"); }
+
+function cloneCaps(src, types){
+  var out = {};
+  types.concat([FUTURE]).forEach(function(t){
+    var c = src[t.k];
+    out[t.k] = {view:c.view, create:c.create, edit:c.edit, publish:c.publish, del:c.del};
+  });
+  return out;
+}
+function defaultGlobals(){
+  var o = {};
+  GLOBAL_GROUPS.forEach(function(g){ g.items.forEach(function(it){ o[it[0]] = !!it[2]; }); });
+  return o;
+}
+function copy(o){ var n = {}, k; for (k in o) n[k] = o[k]; return n; }
+
+/* ---- sentences --------------------------------------------------------
+   "edit menus and edit regions" is what a naive join produces and nobody
+   writes. Consecutive phrases that open with the same verb share it. */
+function join(a, conj){
+  if (!a.length) return "";
+  if (a.length === 1) return a[0];
+  return a.slice(0,-1).join(", ") + " " + conj + " " + a[a.length-1];
+}
+function phrases(list, conj){
+  var groups = [];
+  list.forEach(function(p){
+    var sp = p.indexOf(" "), v = sp < 0 ? p : p.slice(0, sp), rest = sp < 0 ? "" : p.slice(sp+1);
+    var last = groups[groups.length-1];
+    if (last && last.v === v && rest && last.rest.length) last.rest.push(rest);
+    else groups.push({v:v, rest: rest ? [rest] : []});
+  });
+  return join(groups.map(function(g){
+    return g.rest.length ? g.v + " " + join(g.rest, conj) : g.v;
+  }), conj);
+}
+function typeSentence(c){
+  if (!c.view) return {s:"No access. This type is hidden from the admin.", none:true};
+  var can = [], cant = [];
+  /* "edit their own, publish their own and delete their own" is three copies
+     of one fact. When all three scopes agree, the scope is said once. */
+  if (c.edit !== "none" && c.edit === c.publish && c.publish === c.del){
+    var tail = "edit, publish and delete " + (c.edit === "any" ? "anyone’s" : "their own");
+    return {s: c.create ? "Can create, and " + tail + "." : "Can " + tail + ". Cannot create.",
+            none:false};
+  }
+  if (c.create) can.push("create"); else cant.push("create");
+  ACTS.forEach(function(a){
+    var v = c[a[0]], word = a[2];
+    if (v === "none") cant.push(word);
+    else can.push(word + (v === "any" ? " anyone’s" : " their own"));
+  });
+  /* with nothing granted, the Cannot list only repeats what the first
+     sentence already said */
+  if (!can.length) return {s:"Can read it and nothing else.", none:false};
+  var s = "Can " + join(can, "and") + ".";
+  if (cant.length) s += " Cannot " + join(cant, "or") + ".";
+  return {s:s, none:false};
+}
+function groupSentence(grp, g){
+  var can = [], cant = [];
+  grp.items.forEach(function(it){ (g[it[0]] ? can : cant).push(it[3]); });
+  var s = can.length ? "Can " + phrases(can, "and") + "." : "";
+  if (cant.length) s += (s ? " " : "") + "Cannot " + phrases(cant, "or") + ".";
+  return {s:s, none: !can.length};
+}
+
+/* ---- the drawn menu --------------------------------------------------- */
+var openEl = null, openAnchor = null;
+function closeMenu(){
+  if (openEl && openEl.parentNode) openEl.parentNode.removeChild(openEl);
+  if (openAnchor) openAnchor.setAttribute("aria-expanded","false");
+  openEl = null; openAnchor = null;
+}
+function openMenu(stage, anchor, items, onPick){
+  var was = openAnchor;
+  closeMenu();
+  if (was === anchor) return;
+  var m = document.createElement("div");
+  m.className = "mer-menu"; m.setAttribute("role","menu");
+  m.innerHTML = items.map(function(it, i){
+    if (it.sec) return '<div class="sec">'+esc(it.sec)+"</div>";
+    if (it.div) return '<div class="div"></div>';
+    return '<button type="button" role="menuitem" data-i="'+i+'"><span>'+
+      '<span class="nm">'+esc(it.nm)+"</span>"+(it.ds?'<span class="ds">'+esc(it.ds)+"</span>":"")+
+      "</span></button>";
+  }).join("");
+  stage.appendChild(m);
+  var r = anchor.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+  var left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 10));
+  var top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  m.style.left = left + "px"; m.style.top = top + "px";
+  m.addEventListener("click", function(e){
+    var b = e.target.closest("button[data-i]"); if (!b) return;
+    var it = items[+b.dataset.i]; closeMenu(); onPick(it);
+  });
+  anchor.setAttribute("aria-expanded","true");
+  openEl = m; openAnchor = anchor;
+}
+document.addEventListener("click", function(e){
+  if (openEl && !openEl.contains(e.target) && !(openAnchor && openAnchor.contains(e.target))) closeMenu();
+}, true);
+document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeMenu(); });
+window.addEventListener("resize", closeMenu);
+
+var toastT = null;
+function toast(stage, msg){
+  var old = stage.querySelector(".mer-toast"); if (old) old.remove();
+  var el = document.createElement("div");
+  el.className = "mer-toast";
+  el.innerHTML = '<svg class="ic"><use href="#i-check"/></svg><span>'+esc(msg)+"</span>";
+  stage.appendChild(el);
+  clearTimeout(toastT);
+  toastT = setTimeout(function(){ if (el.parentNode) el.remove(); }, 2600);
+}
+
+/* ---- pieces ----------------------------------------------------------- */
+function headHTML(role){
+  return '<div class="page-head">'+
+    '<div style="min-width:0">'+
+      "<h1>"+esc(role.label)+"</h1>"+
+      '<p class="head-desc">'+esc(role.desc)+"</p>"+
+      '<div class="facts">'+
+        '<span class="f">'+ic("i-key","width:13px;height:13px")+'<span class="mono">'+esc(role.key)+"</span></span>"+
+        '<span class="dv"></span><span class="f">Built in</span>'+
+        '<span class="dv"></span><span class="f"><span class="faces">'+
+          role.faces.map(function(f){ return '<span class="avatar">'+esc(f)+"</span>"; }).join("")+
+          '</span><a href="#" style="margin-left:10px">'+esc(role.holders)+"</a></span>"+
+        '<span class="dv"></span><span class="f">Changed <b>12 days ago</b> by Justin</span>'+
+      "</div>"+
+    "</div>"+
+    '<div class="acts">'+
+      '<button class="btn" type="button">'+ic("i-copy")+"Duplicate</button>"+
+      '<button class="btn" type="button">'+ic("i-back")+"All roles</button>"+
+      '<button class="btn" type="button" style="padding:0 9px" aria-label="More actions" aria-expanded="false" data-rolemenu="1">'+ic("i-dots")+"</button>"+
+    "</div></div>";
+}
+function capCell(key, label, on, lead){
+  var id = uid();
+  return '<label class="cap'+(on?"":" off")+(lead?" lead":"")+'" for="'+id+'">'+
+    '<input class="chk" type="checkbox" id="'+id+'" data-k="'+esc(key)+'"'+(on?" checked":"")+">"+
+    '<span class="box">'+ic("i-check")+'</span><span class="l">'+esc(label)+"</span>"+
+    "<code>"+esc(key)+"</code></label>";
+}
+function rowHTML(o){
+  return '<div class="dis'+(o.pinned?" pinned":"")+'">'+
+    '<button class="dis-head" type="button" data-sec="'+esc(o.id)+'" aria-expanded="'+(o.open?"true":"false")+'">'+
+      '<span class="tw">'+ic("i-chev-r")+"</span>"+ic(o.icon, "color:var(--fg-3)")+
+      '<span class="dis-main"><span class="dis-name"><span class="nm">'+esc(o.name)+"</span>"+
+        (o.mark ? '<span class="ix-mark">'+esc(o.mark)+"</span>" : "")+
+        (o.dirty ? '<span class="pill changes"><span class="d"></span>Changes</span>' : "")+
+      "</span>"+
+      (o.keyPrefix ? '<span class="k-row">'+esc(o.keyPrefix)+"</span>" : "")+
+      '<span class="sm'+(o.none?" none":"")+'">'+esc(o.sum)+"</span></span>"+
+    "</button>"+
+    '<span class="dis-end"><button class="icon-btn" type="button" data-rowmenu="'+esc(o.id)+
+      '" aria-haspopup="menu" aria-expanded="false" aria-label="Set everything in '+esc(o.name)+'">'+
+      ic("i-dots")+"</button></span>"+
+    (o.open ? o.body : "")+
+  "</div>";
+}
+
+function typeRow(st, t, pinned){
+  var c = st.caps[t.k], sent = typeSentence(c), open = !!st.open[t.k];
+  var body = "";
+  if (open){
+    var cells = capCell(t.k+".view", "View entries", c.view, true) +
+                capCell(t.k+".create", "Create entries", c.create);
+    ACTS.forEach(function(a){
+      var p = pair(c[a[0]]);
+      cells += capCell(t.k+"."+a[2], a[1]+" their own", p.own);
+      cells += capCell(t.k+"."+a[2]+".others", a[1]+" anyone’s", p.others);
+    });
+    body = '<div class="dis-body'+(c.view?"":" blind")+'" data-type="'+esc(t.k)+'">'+
+      '<div class="dis-grid">'+cells+"</div>"+
+      (c.view ? "" : '<p class="blind-note">Turn <b>View entries</b> on to grant anything else. '+
+        "With it off this type does not appear in the rail, the command palette or the media picker "+
+        "for anyone holding this role.</p>")+
+      "</div>";
+  }
+  return rowHTML({id:t.k, icon:t.icon, name:t.label, open:open, body:body, pinned:pinned,
+    mark: pinned ? "Default" : "", keyPrefix: pinned ? "" : t.k+".…",
+    dirty: dirtyType(st, t.k), sum:sent.s, none:sent.none});
+}
+function groupRow(st, grp){
+  var open = !!st.open[grp.k], sent = groupSentence(grp, st.globals), body = "";
+  if (open){
+    body = '<div class="dis-body"><div class="dis-grid">'+
+      grp.items.map(function(it){ return capCell(it[0], it[1], st.globals[it[0]]); }).join("")+
+      "</div></div>";
+  }
+  return rowHTML({id:grp.k, icon:grp.icon, name:grp.g, open:open, body:body,
+    dirty: dirtyGroup(st, grp), sum:sent.s, none:sent.none});
+}
+
+function dirtyType(st, k){
+  var a = st.caps[k], b = st.base[k], f;
+  for (f in a) if (a[f] !== b[f]) return true;
+  return false;
+}
+function dirtyGroup(st, grp){
+  for (var i=0;i<grp.items.length;i++){
+    var key = grp.items[i][0];
+    if (!!st.globals[key] !== !!st.gbase[key]) return true;
+  }
+  return false;
+}
+
+function adminPanel(){
+  return '<section class="panel"><div class="panel-head"><h2>Capabilities</h2>'+
+    '<span class="hint">Not editable on this role</span></div>'+
+    '<div class="everything">'+ic("i-shield","width:20px;height:20px")+
+    "<div><h3>Everything, Including What Does Not Exist Yet</h3>"+
+    "<p>Administrator holds every capability on every content type, and any type an addon registers later "+
+    "is included the moment it appears. There is nothing to grant here, so there is nothing to draw.</p>"+
+    "<p>To give someone a narrower set of powers, duplicate this role and take things away, or start from "+
+    "Editor. At least one account must keep Administrator.</p>"+
+    '<div class="pl"><button class="btn" type="button">'+ic("i-users")+
+    "See the account that holds it</button></div></div></div></section>";
+}
+
+/* ---- a stage ----------------------------------------------------------- */
+var stages = {};
+function Stage(id, opts){
+  var el = document.getElementById(id);
+  if (!el) return null;
+  var st = {
+    el:el, mode:opts.mode, types:opts.types, role:opts.role,
+    caps: cloneCaps(opts.capSrc, opts.types),
+    base: cloneCaps(opts.capSrc, opts.types),
+    globals: defaultGlobals(), gbase: defaultGlobals(),
+    open: opts.open || {}
+  };
+  st.sections = function(){
+    var ids = GLOBAL_GROUPS.map(function(g){ return g.k; });
+    st.types.forEach(function(t){ ids.push(t.k); });
+    return ids;
+  };
+  st.allOpen = function(){
+    return st.sections().every(function(k){ return st.open[k]; });
+  };
+  st.count = function(){
+    var n = 0, k, f;
+    for (k in st.globals) if (!!st.globals[k] !== !!st.gbase[k]) n++;
+    for (k in st.caps) for (f in st.caps[k]) if (st.caps[k][f] !== st.base[k][f]) n++;
+    return n;
+  };
+  st.render = function(){
+    if (st.mode === "X"){
+      el.innerHTML = '<div class="mer-wrap">'+headHTML(st.role)+
+        '<div style="margin-top:var(--s-6)">'+adminPanel()+"</div></div>";
+      applyKeys(); return;
+    }
+    var all = st.allOpen();
+    var lastKind = "", rows = "";
+    st.types.forEach(function(t){
+      if (t.kind !== lastKind){ lastKind = t.kind;
+        rows += '<div class="cap-head"><span>'+esc(t.kind)+" types</span></div>"; }
+      rows += typeRow(st, t, false);
+    });
+
+    el.innerHTML = '<div class="mer-wrap">'+headHTML(st.role)+
+      '<div class="toolbar"><span class="note">Open a section to change what it grants.</span>'+
+        '<span class="end">'+
+          '<button class="btn sm" type="button" data-expand="1">'+ic(all?"i-collapse":"i-expand")+
+            (all ? "Collapse all" : "Expand all")+"</button>"+
+          '<button class="btn sm" type="button" data-keystoggle="1" aria-pressed="false">'+ic("i-key")+
+            "Show keys</button>"+
+        "</span></div>"+
+      '<section class="panel"><div class="panel-head"><h2>Site Capabilities</h2>'+
+        '<span class="hint">Not tied to a content type</span></div>'+
+        GLOBAL_GROUPS.map(function(g){ return groupRow(st, g); }).join("")+
+      "</section>"+
+      '<section class="panel"><div class="panel-head"><h2>Content Capabilities</h2>'+
+        '<span class="hint">One section per content type</span></div>'+rows+"</section>"+
+      '<div class="savebar" hidden><span class="n"></span><span class="dv"></span>'+
+        '<button class="btn btn-ghost sm" type="button" data-revert="1">Revert</button>'+
+        '<button class="btn btn-primary sm" type="button" data-save="1">Save changes</button></div>'+
+      "</div>";
+    applyKeys();
+    var n = st.count(), bar = el.querySelector(".savebar");
+    if (bar){ bar.hidden = n === 0; bar.querySelector(".n").textContent = n === 1 ? "1 change" : n + " changes"; }
+  };
+  stages[id] = st;
+  st.render();
+  return st;
+}
+
+var showKeys = false;
+function applyKeys(){
+  Array.prototype.forEach.call(document.querySelectorAll(".mer"), function(m){
+    m.classList.toggle("hidekeys", !showKeys);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-keystoggle]"), function(b){
+    b.setAttribute("aria-pressed", showKeys ? "true" : "false");
+    b.lastChild.textContent = showKeys ? "Hide keys" : "Show keys";
+  });
+}
+
+var EDITOR = {key:"editor", label:"Editor", faces:["J","ZS"], holders:"2 accounts",
+  desc:"Publishes and edits anyone’s entries, and publishes the site. Can’t change its structure."};
+var ADMIN = {key:"administrator", label:"Administrator", faces:["J"], holders:"1 account",
+  desc:"Everything, including content types, accounts and settings."};
+
+Stage("stageMain",  {mode:"C", types:SMALL_TYPES, role:EDITOR, capSrc:SMALL_CAPS,
+  open:{structure:true, post:true}});
+Stage("stageAdmin", {mode:"X", types:SMALL_TYPES, role:ADMIN,  capSrc:SMALL_CAPS});
+Stage("stageBig",   {mode:"C", types:BIG_TYPES,   role:EDITOR, capSrc:BIG_CAPS, open:{product:true}});
+Stage("stagePhone", {mode:"C", types:SMALL_TYPES, role:EDITOR, capSrc:SMALL_CAPS, open:{media:true}});
+
+function stageOf(node){
+  var el = node.closest(".mer");
+  for (var k in stages) if (stages[k].el === el) return stages[k];
+  return null;
+}
+function typeOf(st, k){
+  if (k === "*") return FUTURE;
+  for (var i=0;i<st.types.length;i++) if (st.types[i].k === k) return st.types[i];
+  return null;
+}
+function groupOf(k){
+  for (var i=0;i<GLOBAL_GROUPS.length;i++) if (GLOBAL_GROUPS[i].k === k) return GLOBAL_GROUPS[i];
+  return null;
+}
+
+/* ---- events ------------------------------------------------------------ */
+document.addEventListener("change", function(e){
+  var t = e.target;
+  if (!t.classList || !t.classList.contains("chk")) return;
+  var st = stageOf(t); if (!st) return;
+  var key = t.dataset.k, on = t.checked;
+  if (st.globals.hasOwnProperty(key)){ st.globals[key] = on; st.render(); return; }
+  var bits = key.split("."), tk = bits[0], act = bits[1], others = bits[2] === "others";
+  var c = st.caps[tk]; if (!c) return;
+  if (act === "view" || act === "create"){ c[act] = on ? 1 : 0; }
+  else {
+    var f = act === "delete" ? "del" : act, p = pair(c[f]);
+    /* the two halves of a scope depend on each other, so the pair moves together */
+    if (others){ p.others = on; if (on) p.own = true; }
+    else { p.own = on; if (!on) p.others = false; }
+    c[f] = unpair(p.own, p.others);
+  }
+  st.render();
+});
+
+document.addEventListener("click", function(e){
+  var b = e.target.closest("button"); if (!b) return;
+
+  if (b.dataset.dir || b.dataset.cs){
+    var attr = b.dataset.dir ? "data-dir" : "data-cs", val = b.dataset.dir || b.dataset.cs;
+    Array.prototype.forEach.call(document.querySelectorAll(".mer"), function(m){ m.setAttribute(attr, val); });
+    Array.prototype.forEach.call(b.parentNode.children, function(x){
+      x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+    closeMenu(); return;
+  }
+  if (b.dataset.keystoggle){ showKeys = !showKeys; applyKeys(); return; }
+
+  var st = stageOf(b); if (!st) return;
+
+  if (b.dataset.expand){
+    var all = st.allOpen();
+    st.sections().forEach(function(k){ st.open[k] = !all; });
+    st.render(); return;
+  }
+  if (b.dataset.sec !== undefined && b.hasAttribute("data-sec")){
+    st.open[b.dataset.sec] = !st.open[b.dataset.sec]; st.render(); return;
+  }
+  if (b.dataset.save){
+    st.base = cloneCaps(st.caps, st.types); st.gbase = copy(st.globals);
+    st.render(); toast(st.el, "Saved the " + st.role.label + " role"); return;
+  }
+  if (b.dataset.revert){
+    st.caps = cloneCaps(st.base, st.types); st.globals = copy(st.gbase);
+    st.render(); return;
+  }
+  if (b.hasAttribute("data-rolemenu")){
+    openMenu(st.el, b, [
+      {nm:"Rename this role", ds:"A built-in role keeps its key."},
+      {nm:"Export as JSON"},
+      {div:true},
+      {nm:"Reset to built-in capabilities", ds:"Puts back the capabilities Editor ships with."}
+    ], function(){ toast(st.el, "Nothing happens in a sketch"); });
+    return;
+  }
+  if (b.dataset.rowmenu){
+    var k = b.dataset.rowmenu, grp = groupOf(k);
+    if (grp){
+      openMenu(st.el, b, [
+        {sec:"Set this group"},
+        {nm:"Grant everything in " + grp.g, v:1},
+        {nm:"Remove everything in " + grp.g, v:0}
+      ], function(it){
+        grp.items.forEach(function(x){ st.globals[x[0]] = !!it.v; });
+        st.render();
+      });
+      return;
+    }
+    var t = typeOf(st, k); if (!t) return;
+    openMenu(st.el, b, [
+      {sec:"Set every action"},
+      {nm:"Full access", ds:"Create, and edit, publish and delete anyone’s.", v:"full"},
+      {nm:"Their own only", ds:"Create, and edit, publish and delete their own.", v:"own"},
+      {nm:"Read only", ds:"The type is visible and nothing can be changed.", v:"read"},
+      {nm:"No access", ds:"The type is hidden from the admin entirely.", v:"none"}
+    ], function(it){
+      var c = st.caps[k];
+      if (it.v === "full")      { c.view=1; c.create=1; c.edit="any";  c.publish="any";  c.del="any"; }
+      else if (it.v === "own")  { c.view=1; c.create=1; c.edit="own";  c.publish="own";  c.del="own"; }
+      else if (it.v === "read") { c.view=1; c.create=0; c.edit="none"; c.publish="none"; c.del="none"; }
+      else                      { c.view=0; c.create=0; c.edit="none"; c.publish="none"; c.del="none"; }
+      st.render();
+    });
+    return;
+  }
+});
+
+applyKeys();
+})();
+</script>
+
+</body>
+</html>

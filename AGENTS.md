@@ -61,7 +61,9 @@ bylines (D-351, from `.claude/docs/admin-design/meridian-profiles.html`),
 with its content and routing (D-352) and its admin (D-353) built;
 and editing code collections and taxonomies through a file in
 `user/data/types` over them, and every URL path of a type (D-349,
-D-350).
+D-350); and per-type capabilities (`content.{type}.{action}`, with
+`content.*.…` for every type), with a role's screen drawn as capability
+sections (D-359, from `.claude/docs/admin-design/meridian-role-capabilities.html`).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

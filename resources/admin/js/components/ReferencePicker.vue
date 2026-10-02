@@ -35,7 +35,7 @@ import { label } from '../fields';
 import { plural } from '../format';
 import { initials } from '../people';
 import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
-import { can } from '../session';
+import { canType } from '../session';
 import { labelsOf } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import AdminSelect from './AdminSelect.vue';
@@ -267,7 +267,7 @@ const newName    = ref('');
 const newParent  = ref('');
 const writing    = ref(false);
 const newField   = ref<HTMLInputElement | null>(null);
-const canCreate = computed(() => can('content.create'));
+const canCreate = computed(() => canType(type.value, 'create'));
 
 async function openNew(): Promise<void> {
 	adding.value    = true;
@@ -293,7 +293,7 @@ async function saveNew(): Promise<void> {
 		const created = await request<{ slug: string; title: string }>('POST', '/entries', {
 			type: type.value,
 			title: name,
-			status: can('content.publish') ? 'published' : 'draft',
+			status: canType(type.value, 'publish') ? 'published' : 'draft',
 			set: newParent.value === '' ? {} : { parent: newParent.value }
 		});
 

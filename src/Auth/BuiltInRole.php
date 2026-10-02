@@ -55,39 +55,36 @@ enum BuiltInRole: string
 	}
 
 	/**
-	 * Returns the role's capabilities.
+	 * Returns the role's capabilities. Content capabilities are for every
+	 * type (`content.*.edit`, D-359), so they cover types added later.
 	 *
 	 * @return list<string>
 	 */
 	public function capabilities(): array
 	{
-		$own = [
-			Capability::ContentCreate,
-			Capability::ContentEdit,
-			Capability::ContentPublish,
-			Capability::ContentDelete,
-			Capability::MediaUpload
-		];
-
-		$capabilities = match ($this) {
+		$content = match ($this) {
 			self::Administrator => [],
-			self::Editor        => [
-				...$own,
-				Capability::ContentEditOthers,
-				Capability::ContentPublishOthers,
-				Capability::ContentDeleteOthers,
+			self::Editor        => ContentAction::cases(),
+			self::Author        => [ContentAction::Create, ContentAction::Edit, ContentAction::Publish, ContentAction::Delete],
+			self::Contributor   => [ContentAction::Create, ContentAction::Edit, ContentAction::Delete]
+		};
+
+		$site = match ($this) {
+			self::Editor => [
+				Capability::MediaUpload,
 				Capability::MediaDelete,
 				Capability::MenusEdit,
 				Capability::RegionsEdit,
 				Capability::SitePublish,
 				Capability::CacheClear
 			],
-			self::Author      => $own,
-			self::Contributor => [Capability::ContentCreate, Capability::ContentEdit, Capability::ContentDelete]
+			self::Author => [Capability::MediaUpload],
+			default      => []
 		};
 
-		return $this === self::Administrator
-			? [Role::ALL]
-			: array_map(static fn (Capability $capability): string => $capability->value, $capabilities);
+		return $this === self::Administrator ? [Role::ALL] : [
+			...array_map(static fn (ContentAction $action): string => $action->on(ContentAction::EVERY), $content),
+			...array_map(static fn (Capability $capability): string => $capability->value, $site)
+		];
 	}
 }

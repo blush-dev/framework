@@ -40,7 +40,7 @@ import TrashTable from '../components/TrashTable.vue';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
-import { can } from '../session';
+import { can, canType } from '../session';
 import { loadReferences } from '../references';
 import { profileType, currentType, findType, labelsOf, loadTypes, types } from '../types';
 
@@ -67,7 +67,7 @@ const SORTS: EntrySort[] = ['title', 'status', 'author', 'updated'];
 const OPTION_LIMIT = 100;
 
 // Trash is a tab like the statuses (D-237), for accounts that can delete.
-const canTrash = computed(() => can('content.delete'));
+const canTrash = computed(() => canType(type.value, 'delete'));
 const tabs     = computed<{ status: Tab; label: string }[]>(() => canTrash.value ? [...statusTabs, { status: 'trash', label: 'Trash' }] : statusTabs);
 
 const route  = useRoute();
@@ -485,7 +485,7 @@ function duplicate(entry: EntrySummary): void {
 
 type BulkAction = 'publish' | 'draft' | 'trash';
 
-const canPublish = computed(() => can('content.publish'));
+const canPublish = computed(() => canType(type.value, 'publish'));
 
 /**
  * Publishes, moves to draft, or trashes the selected rows at once
@@ -596,9 +596,9 @@ const emptyText = computed(() => {
 			<h1 tabindex="-1">{{ heading }}</h1>
 			<p class="page-header__hint">{{ info?.kind === 'profiles' ? 'Public identities. Every byline on the site points at one.' : (terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit`) }}</p>
 		</div>
-		<div v-if="(can('content.create') && !nothingYet) || can('site.settings')" class="page-header__actions">
+		<div v-if="(canType(type, 'create') && !nothingYet) || can('site.settings')" class="page-header__actions">
 			<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type settings</RouterLink>
-			<RouterLink v-if="can('content.create') && !nothingYet" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">{{ labels.newItem }}</RouterLink>
+			<RouterLink v-if="canType(type, 'create') && !nothingYet" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">{{ labels.newItem }}</RouterLink>
 		</div>
 	</header>
 
@@ -610,7 +610,7 @@ const emptyText = computed(() => {
 			<AdminIcon :name="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" />
 			<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
 			<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
-			<RouterLink v-if="can('content.create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
+			<RouterLink v-if="canType(type, 'create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
 		</div>
 	</section>
 

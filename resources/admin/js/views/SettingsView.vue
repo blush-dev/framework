@@ -447,51 +447,6 @@ onBeforeRouteUpdate(leave);
 	cursor: pointer;
 }
 
-.save-bar {
-	position: fixed;
-	bottom: calc(28px + env(safe-area-inset-bottom, 0px));
-	left: 50%;
-	z-index: 40;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: center;
-	gap: var(--s-2);
-	max-width: calc(100vw - 32px);
-	padding: 9px 10px 9px 20px;
-	border: 1px solid var(--border-strong);
-	border-radius: 999px;
-	background: var(--surface);
-	box-shadow: var(--shadow-3);
-	transform: translateX(-50%);
-}
-
-.save-bar__count {
-	font-size: var(--text-sm);
-	white-space: nowrap;
-	color: var(--fg-2);
-}
-
-.save-bar__error {
-	max-width: 28rem;
-	color: var(--danger);
-	font-size: var(--text-sm);
-	font-weight: 500;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-	.save-bar {
-		animation: save-rise .16s ease-out;
-	}
-}
-
-@keyframes save-rise {
-	from {
-		opacity: 0;
-		transform: translate(-50%, 8px);
-	}
-}
-
 @media (width <= 640px) {
 	.setting {
 		grid-template-columns: minmax(0, 1fr);

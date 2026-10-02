@@ -30,9 +30,9 @@ use Blush\Http\Status;
 
 /**
  * Makes and changes roles from the admin (D-312), for accounts with
- * `accounts.manage`, through `RoleEditor` and within `PeopleRules` (you
- * can't grant a capability you don't have, and someone must still be
- * able to manage accounts):
+ * `accounts.view` and `roles.manage` (D-362), through `RoleEditor` and
+ * within `PeopleRules` (you can't grant a capability you don't have,
+ * and someone must still be able to manage accounts and roles):
  *
  * - `POST roles`: `{"name", "label", "description", "capabilities"}`
  *   makes a custom role (`201`), not named `new` (the admin's screen for
@@ -164,7 +164,7 @@ final readonly class RoleEditController
 
 	/**
 	 * Makes a change, then puts the stored roles back if no account that
-	 * isn't suspended could manage accounts any more.
+	 * isn't suspended could manage accounts and roles any more.
 	 *
 	 * @param callable(): Roles $change
 	 */
@@ -181,7 +181,7 @@ final readonly class RoleEditController
 		if (! $this->rules->keepsManager($accounts, $roles)) {
 			$this->editor->restore($before);
 
-			return self::error('That would leave no account that can manage accounts.', field: 'capabilities');
+			return self::error('That would leave no account that can manage accounts and roles.', field: 'capabilities');
 		}
 
 		$role = $roles->get($name);
@@ -190,13 +190,13 @@ final readonly class RoleEditController
 	}
 
 	/**
-	 * Returns the signed-in account when it may manage accounts.
+	 * Returns the signed-in account when it may manage roles.
 	 */
 	private function manager(ServerRequestInterface $request): ?Account
 	{
 		$account = $request->getAttribute(Account::class);
 
-		return $account instanceof Account && $this->permissions->can($account, Capability::AccountsManage) ? $account : null;
+		return $account instanceof Account && $this->permissions->can($account, Capability::AccountsView) && $this->permissions->can($account, Capability::RolesManage) ? $account : null;
 	}
 
 	/**
@@ -239,7 +239,7 @@ final readonly class RoleEditController
 
 	private static function forbidden(): ResponseInterface
 	{
-		return self::error('You aren\'t allowed to manage accounts.', Status::Forbidden);
+		return self::error('You aren\'t allowed to manage roles.', Status::Forbidden);
 	}
 
 	private static function error(string $message, Status $status = Status::UnprocessableContent, ?string $field = null): ResponseInterface

@@ -76,7 +76,7 @@ final class AdminApiTest extends TestCase
 		$this->assertSame('jane', $account['username'] ?? null);
 		$this->assertIsArray($account['capabilities'] ?? null);
 		$this->assertContains('site.publish', $account['capabilities']);
-		$this->assertNotContains('accounts.manage', $account['capabilities']);
+		$this->assertNotContains('accounts.view', $account['capabilities']);
 		$this->assertStringNotContainsString('passwordHash', (string) $response->getBody());
 		$this->assertIsString($state['csrfToken'] ?? null);
 		$this->assertNotNull($this->app->container()->make(AccountStore::class)->find('jane')?->lastLogin);

@@ -49,11 +49,31 @@ final readonly class Role
 	}
 
 	/**
-	 * Whether the role grants a capability.
+	 * Whether the role grants a capability: it has `*`, the capability,
+	 * or one with a `*` word where the capability has any word
+	 * (`content.*.edit` grants `content.post.edit`, D-359).
 	 */
 	public function allows(string $capability): bool
 	{
-		return in_array(self::ALL, $this->capabilities, true) || in_array($capability, $this->capabilities, true);
+		return in_array(self::ALL, $this->capabilities, true)
+			|| in_array($capability, $this->capabilities, true)
+			|| array_any($this->capabilities, static fn (string $granted): bool => self::matches($granted, $capability));
+	}
+
+	/**
+	 * Whether a capability with `*` words matches another.
+	 */
+	private static function matches(string $pattern, string $capability): bool
+	{
+		if (! str_contains($pattern, '*')) {
+			return false;
+		}
+
+		$words = explode('.', $capability);
+		$parts = explode('.', $pattern);
+
+		return count($words) === count($parts)
+			&& array_all($parts, static fn (string $part, int $index): bool => $part === '*' || $part === $words[$index]);
 	}
 
 	/**

@@ -24,7 +24,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
 use Blush\Auth\AuthException;
-use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
@@ -85,16 +85,17 @@ use Blush\Support\Slug;
  *   `skipped` (`id`, `title`, `reason`).
  * - `POST   entries/{id}/duplicate`: copies it beside itself as a draft
  *   titled "… (Copy)", slugged `{slug}-copy`, with the same authors,
- *   dated now if its type is dated (D-275). Needs `content.create`, and `content.edit` for the
- *   entry; a landing page (an index page or the home page) can't be
+ *   dated now if its type is dated (D-275). Needs to create entries of
+ *   its type, and to edit the entry; a landing page (an index page or the home page) can't be
  *   copied.
  *
- * **Permissions come from the change, not only the entry:** editing
- * needs `content.edit` for the entry (with D-219's ownership and
- * live-entry rules); a result that isn't a draft needs
- * `content.publish`; changing the authors so the account's own author
- * isn't among them needs `content.edit.others`; creating needs
- * `content.create`; deleting needs `content.delete` for the entry.
+ * **Permissions come from the change, not only the entry,** and are the
+ * entry's type's (D-359, `content.{type}.edit` and so on): editing needs
+ * to edit the entry (with D-219's ownership and live-entry rules); a
+ * result that isn't a draft needs to publish it; changing the authors so
+ * the account's own author isn't among them needs to edit anyone's;
+ * creating needs to create entries of the type; deleting needs to
+ * delete the entry.
  *
  * `status` is a shortcut: `draft` sets `status: draft`; `published`
  * clears it and dates the entry now if it has no date or a future one;
@@ -171,12 +172,14 @@ final readonly class EntryController
 		$name    = $request->getQueryParams()['type'] ?? null;
 		$type    = is_string($name) ? $this->types->find($name) : null;
 
-		if (! $this->permissions->can($account, Capability::ContentCreate)) {
-			return self::error('You aren\'t allowed to create entries.', Status::Forbidden);
+		if ($type === null) {
+			return $this->permissions->can($account, ContentAction::Create)
+				? self::error('Send a known "type".', Status::BadRequest)
+				: self::error('You aren\'t allowed to create entries.', Status::Forbidden);
 		}
 
-		if ($type === null) {
-			return self::error('Send a known "type".', Status::BadRequest);
+		if (! $this->permissions->can($account, ContentAction::Create, $type->name)) {
+			return self::error(sprintf('You aren\'t allowed to create %s.', $type->labels->items), Status::Forbidden);
 		}
 
 		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []));
@@ -200,7 +203,7 @@ final readonly class EntryController
 			'body'        => '',
 			'can'         => [
 				'edit'      => true,
-				'publish'   => $this->permissions->can($account, Capability::ContentPublish),
+				'publish'   => $this->permissions->can($account, ContentAction::Publish, $type->name),
 				'rename'    => true,
 				'delete'    => false,
 				'duplicate' => false
@@ -216,7 +219,7 @@ final readonly class EntryController
 	{
 		$account = self::account($request);
 
-		if (! $this->permissions->can($account, Capability::ContentEdit, $entry)) {
+		if (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
 		}
 
@@ -231,12 +234,12 @@ final readonly class EntryController
 		$account = self::account($request);
 		$input   = self::input($request);
 
-		if (! $this->permissions->can($account, Capability::ContentCreate)) {
-			return self::error('You aren\'t allowed to create entries.', Status::Forbidden);
-		}
-
 		$type  = is_string($input['type'] ?? null) ? $this->types->find($input['type']) : null;
 		$title = $input['title'] ?? null;
+
+		if (! $this->permissions->can($account, ContentAction::Create, $type?->name)) {
+			return self::error($type === null ? 'You aren\'t allowed to create entries.' : sprintf('You aren\'t allowed to create %s.', $type->labels->items), Status::Forbidden);
+		}
 
 		if ($type === null || ! is_string($title) || trim($title) === '') {
 			return self::error('Send a known "type" and a "title".', Status::BadRequest);
@@ -265,7 +268,7 @@ final readonly class EntryController
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		if (! self::isDraft($changes, null) && ! $this->permissions->can($account, Capability::ContentPublish)) {
+		if (! self::isDraft($changes, null) && ! $this->permissions->can($account, ContentAction::Publish, $type->name)) {
 			return self::error('You aren\'t allowed to publish, so new entries must be drafts.', Status::Forbidden);
 		}
 
@@ -295,7 +298,7 @@ final readonly class EntryController
 			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
 		}
 
-		if (! $this->permissions->can($account, Capability::ContentEdit, $entry)) {
+		if (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
 		}
 
@@ -376,7 +379,7 @@ final readonly class EntryController
 			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
 		}
 
-		if (! $this->permissions->can($account, Capability::ContentCreate) || ! $this->permissions->can($account, Capability::ContentEdit, $entry)) {
+		if (! $this->permissions->can($account, ContentAction::Create, $entry->type->name) || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 			return self::error('You aren\'t allowed to duplicate that entry.', Status::Forbidden);
 		}
 
@@ -420,7 +423,7 @@ final readonly class EntryController
 			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
 		}
 
-		if (! $this->permissions->can($account, Capability::ContentDelete, $entry)) {
+		if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
 			return self::error('You aren\'t allowed to delete that entry.', Status::Forbidden);
 		}
 
@@ -487,14 +490,14 @@ final readonly class EntryController
 	private function bulkChange(Account $account, Entry $entry, string $action): ?string
 	{
 		if ($action === 'trash') {
-			if (! $this->permissions->can($account, Capability::ContentDelete, $entry)) {
+			if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
 				return 'You aren\'t allowed to delete it.';
 			}
 
 			if (IndexPage::is($entry)) {
 				return 'It\'s an index page, so it can\'t be moved to the trash.';
 			}
-		} elseif (! $this->permissions->can($account, Capability::ContentEdit, $entry)) {
+		} elseif (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 			return 'You aren\'t allowed to edit it.';
 		}
 
@@ -612,7 +615,7 @@ final readonly class EntryController
 	 */
 	private function refusal(Account $account, Entry $entry, EntryChanges $changes): ?string
 	{
-		if (! self::isDraft($changes, $entry) && ! $this->permissions->can($account, Capability::ContentPublish, $entry)) {
+		if (! self::isDraft($changes, $entry) && ! $this->permissions->can($account, ContentAction::Publish, $entry)) {
 			return 'You aren\'t allowed to publish that entry; keep it a draft.';
 		}
 
@@ -620,7 +623,7 @@ final readonly class EntryController
 		// makes an entry yours.
 		$field = $this->types->profiles() === null ? null : array_first($entry->type->people)?->field;
 
-		if ($field === null || $this->permissions->can($account, Capability::ContentEditOthers, $entry)) {
+		if ($field === null || $this->permissions->can($account, ContentAction::EditOthers, $entry)) {
 			return null;
 		}
 
@@ -815,11 +818,11 @@ final readonly class EntryController
 			'extra'       => $extra,
 			'body'        => substr($file->body, strlen(DocumentEditor::gap($file->body))),
 			'can'         => [
-				'edit'      => $this->permissions->can($account, Capability::ContentEdit, $entry),
-				'publish'   => $this->permissions->can($account, Capability::ContentPublish, $entry),
+				'edit'      => $this->permissions->can($account, ContentAction::Edit, $entry),
+				'publish'   => $this->permissions->can($account, ContentAction::Publish, $entry),
 				'rename'    => ! $entry->landing && ! $people && ! $person && ! $this->isLinked($entry),
-				'delete'    => ! $index && ! $person && $this->permissions->can($account, Capability::ContentDelete, $entry),
-				'duplicate' => ! $entry->landing && ! $people && ! $person && $this->permissions->can($account, Capability::ContentCreate)
+				'delete'    => ! $index && ! $person && $this->permissions->can($account, ContentAction::Delete, $entry),
+				'duplicate' => ! $entry->landing && ! $people && ! $person && $this->permissions->can($account, ContentAction::Create, $entry->type->name)
 			],
 			'violations'  => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,

@@ -295,16 +295,26 @@ public function boot(): void
 ```
 
 To check it, ask `Blush\Auth\Permissions`:
-`$permissions->can($account, 'shop.orders')`. Pass an entry as a third
-argument to check that entry, which also applies ownership (see
-[Accounts and roles](accounts.md#profiles)).
+`$permissions->can($account, 'shop.orders')`.
 
-To list the entries an account may use a capability on, let
+What an account may do to entries is per content type. Check a
+`Blush\Auth\ContentAction` on an entry, which also applies ownership
+(see [Accounts and roles](accounts.md#profiles)), on a type by name, or,
+with neither, on any type:
+
+```php
+use Blush\Auth\ContentAction;
+
+$permissions->can($account, ContentAction::Edit, $entry);
+$permissions->can($account, ContentAction::Create, 'recipe');
+```
+
+To list the entries an account may act on, let
 `restrict()` narrow a query instead of checking each entry. The same
 rules then run in the index, so paging stays quick on large sites:
 
 ```php
-$page = $permissions->restrict($account, 'content.edit', $content->query()->any())
+$page = $permissions->restrict($account, ContentAction::Edit, $content->query()->any())
 	->orderBy('updated', Order::Desc)
 	->paginate(20, $number);
 ```

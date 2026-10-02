@@ -30,7 +30,7 @@ import { online } from '../connection';
 import type { IconName } from '../icons';
 import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { initials } from '../people';
-import { can, session, signOut } from '../session';
+import { can, canAnyType, canType, session, signOut } from '../session';
 import { profileType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import CommandPalette from './CommandPalette.vue';
@@ -67,7 +67,7 @@ const error   = ref('');
 
 // Content types come from the server; the menu works without them.
 onMounted(() => {
-	if (can('content.edit')) {
+	if (canAnyType('edit')) {
 		loadTypes().catch(() => undefined);
 	}
 });
@@ -88,7 +88,7 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
 const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const home: NavLink[] = [screen('dashboard', 'Dashboard', 'layout-dashboard')];
 
-	if (can('content.edit.others')) {
+	if (canAnyType('edit.others')) {
 		home.push(screen('health', 'Content Health', 'heart-pulse'));
 	}
 
@@ -112,11 +112,11 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		detail
 	});
 
-	// By the names the menu shows, which a site may shorten (D-278).
-	const editing    = can('content.edit');
-	const sorted     = [...types.value].sort((a, b) => a.labels.menu.localeCompare(b.labels.menu));
-	const entryTypes = editing ? sorted.filter((type) => type.kind !== 'taxonomy' && type.kind !== 'profiles') : [];
-	const taxonomies = editing ? sorted.filter((type) => type.kind === 'taxonomy') : [];
+	// By the names the menu shows, which a site may shorten (D-278); only
+	// the types the account edits entries of (D-359).
+	const sorted     = [...types.value].filter((type) => canType(type.name, 'edit')).sort((a, b) => a.labels.menu.localeCompare(b.labels.menu));
+	const entryTypes = sorted.filter((type) => type.kind !== 'taxonomy' && type.kind !== 'profiles');
+	const taxonomies = sorted.filter((type) => type.kind === 'taxonomy');
 	const labelOf    = (name: string): string => types.value.find((type) => type.name === name)?.labels.menu ?? name;
 
 	// A taxonomy grouping one listed type sits under it; the rest are shared.
@@ -137,7 +137,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	// who's credited on the site. A profile's screens, and its type's
 	// list and editor, mark Profiles.
 	const profiles  = types.value.find((type) => type.name === profileType.value);
-	const profileLink: NavLink[] = profiles && editing ? [{
+	const profileLink: NavLink[] = profiles && canType(profiles.name, 'edit') ? [{
 		key: 'profiles',
 		label: profiles.labels.menu,
 		icon: 'user-round',
@@ -146,9 +146,9 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	}] : [];
 	const people    = [
 		screen('profile', 'Your Account', 'circle-user-round'),
-		...(can('accounts.manage') ? [screen('accounts', 'Accounts', 'key-round')] : []),
+		...(can('accounts.view') ? [screen('accounts', 'Accounts', 'key-round')] : []),
 		...profileLink,
-		...(can('accounts.manage') ? [screen('roles', 'Roles', 'shield')] : [])
+		...(can('accounts.view') ? [screen('roles', 'Roles', 'shield')] : [])
 	];
 
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);

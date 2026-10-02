@@ -16,6 +16,8 @@ namespace Blush\Auth;
 use Override;
 use Blush\Auth\Middleware\Authenticate;
 use Blush\Auth\Middleware\VerifyCsrf;
+use Blush\Container\Container;
+use Blush\Content\Type\ContentTypes;
 use Blush\Core\ServiceProvider;
 
 /**
@@ -60,6 +62,6 @@ final class AuthServiceProvider extends ServiceProvider
 	#[Override]
 	public function register(): void
 	{
-		$this->container->singleton(Capabilities::class, static fn (): Capabilities => Capabilities::withBuiltIns());
+		$this->container->singleton(Capabilities::class, static fn (Container $container): Capabilities => Capabilities::withBuiltIns($container->make(ContentTypes::class)));
 	}
 }

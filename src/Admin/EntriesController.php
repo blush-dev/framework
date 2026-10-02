@@ -22,6 +22,7 @@ use Blush\Auth\AccountStore;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
@@ -216,7 +217,7 @@ final readonly class EntriesController
 
 		$contentType = $type === null ? null : $this->types->find($type);
 		$pinned      = $contentType !== null && $contentType->kind() !== TypeKind::Pages;
-		$query       = $this->permissions->restrict($account, Capability::ContentEdit, $query);
+		$query       = $this->permissions->restrict($account, ContentAction::Edit, $query);
 		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...PeoplePage::listPages($contentType))->exceptIn(...PeoplePage::personFolders($contentType)) : $query;
 		$index       = $pinned && $page === 1 ? $this->index($query) : null;
 		$people      = $pinned && $page === 1 ? $this->peoplePage($query, $contentType) : null;
@@ -434,7 +435,7 @@ final readonly class EntriesController
 	 * `children` (how many) place it, and `continued` marks an entry that
 	 * heads a later page for the entries under it; otherwise the first
 	 * two are `null` (D-262, D-263). A profile (D-353) says whether an
-	 * account is `linked` to it and, for whoever manages accounts, which
+	 * account is `linked` to it and, for whoever sees accounts, which
 	 * (`account`: `{"username", "displayName"}`, else `null`).
 	 *
 	 * @param  array<string, array<string, int>>                                                     $counts Term counts by taxonomy.
@@ -462,8 +463,8 @@ final readonly class EntriesController
 			'authorsPage' => PeoplePage::is($entry),
 			'peopleLabel' => PeoplePage::fieldOf($entry)->plural ?? null,
 			'can'         => [
-				'delete'    => ! IndexPage::is($entry) && $this->permissions->can($account, Capability::ContentDelete, $entry),
-				'duplicate' => ! $entry->landing && ! PeoplePage::is($entry) && $this->permissions->can($account, Capability::ContentCreate)
+				'delete'    => ! IndexPage::is($entry) && $this->permissions->can($account, ContentAction::Delete, $entry),
+				'duplicate' => ! $entry->landing && ! PeoplePage::is($entry) && $this->permissions->can($account, ContentAction::Create, $entry->type->name)
 			],
 			'uses'        => $entry->type->hasTerms() ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors'   => $this->ancestors($entry),
@@ -489,7 +490,7 @@ final readonly class EntriesController
 			return [];
 		}
 
-		$manages = $this->permissions->can($viewer, Capability::AccountsManage);
+		$manages = $this->permissions->can($viewer, Capability::AccountsView);
 		$linked  = [];
 
 		foreach ($accounts as $account) {

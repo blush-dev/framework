@@ -69,3 +69,25 @@ export async function saveName(name: string): Promise<void> {
 export function can(capability: string): boolean {
 	return state.account?.capabilities.includes(capability) ?? false;
 }
+
+// What a role may do to a content type's entries (D-359).
+export type ContentAction = 'create' | 'edit' | 'edit.others' | 'publish' | 'publish.others' | 'delete' | 'delete.others';
+
+/**
+ * Whether the signed-in account may do something to a content type's
+ * entries (`content.{type}.{action}`). The server lists each type's
+ * capabilities the account has, so every type's are already spread.
+ */
+export function canType(type: string, action: ContentAction): boolean {
+	return can(`content.${type}.${action}`);
+}
+
+/**
+ * Whether the signed-in account may do something to some content type's
+ * entries.
+ */
+export function canAnyType(action: ContentAction): boolean {
+	const suffix = `.${action}`;
+
+	return state.account?.capabilities.some((name) => name.startsWith('content.') && !name.startsWith('content.*.') && name.endsWith(suffix) && name.slice(8, -suffix.length).split('.').length === 1) ?? false;
+}

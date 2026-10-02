@@ -14,27 +14,51 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 /**
- * The framework's capabilities (D-217), seeded into `Capabilities`, where
- * extensions add their own. A `.others` capability extends its base to
- * entries the account doesn't own (see `Permissions`).
+ * The framework's site capabilities (D-217), seeded into `Capabilities`,
+ * where extensions add their own. Managing accounts and roles is seven
+ * of them (D-362); each `accounts.*` beyond `view` also needs `view`. What a role may do to entries is per
+ * content type (`ContentAction`, D-359).
  */
 enum Capability: string
 {
-	case ContentCreate        = 'content.create';
-	case ContentEdit          = 'content.edit';
-	case ContentEditOthers    = 'content.edit.others';
-	case ContentPublish       = 'content.publish';
-	case ContentPublishOthers = 'content.publish.others';
-	case ContentDelete        = 'content.delete';
-	case ContentDeleteOthers  = 'content.delete.others';
-	case MediaUpload          = 'media.upload';
-	case MediaDelete          = 'media.delete';
-	case MenusEdit            = 'menus.edit';
-	case RegionsEdit          = 'regions.edit';
-	case SitePublish          = 'site.publish';
-	case CacheClear           = 'cache.clear';
-	case SiteSettings         = 'site.settings';
-	case AccountsManage       = 'accounts.manage';
+	case MediaUpload     = 'media.upload';
+	case MediaDelete     = 'media.delete';
+	case MenusEdit       = 'menus.edit';
+	case RegionsEdit     = 'regions.edit';
+	case SitePublish     = 'site.publish';
+	case CacheClear      = 'cache.clear';
+	case SiteSettings    = 'site.settings';
+	case AccountsView    = 'accounts.view';
+	case AccountsCreate  = 'accounts.create';
+	case AccountsEdit    = 'accounts.edit';
+	case AccountsRoles   = 'accounts.roles';
+	case AccountsSuspend = 'accounts.suspend';
+	case AccountsDelete  = 'accounts.delete';
+	case RolesManage     = 'roles.manage';
+
+	/**
+	 * The capabilities for managing accounts and roles (D-362). Someone
+	 * who isn't suspended must always hold all of them.
+	 *
+	 * @return list<self>
+	 */
+	public static function users(): array
+	{
+		return [self::AccountsView, self::AccountsCreate, self::AccountsEdit, self::AccountsRoles, self::AccountsSuspend, self::AccountsDelete, self::RolesManage];
+	}
+
+	/**
+	 * Returns the group the admin shows the capability in.
+	 */
+	public function group(): string
+	{
+		return match ($this) {
+			self::MediaUpload, self::MediaDelete                    => 'Media',
+			self::MenusEdit, self::RegionsEdit                      => 'Structure',
+			self::SitePublish, self::CacheClear, self::SiteSettings => 'Site',
+			default                                                 => 'Users'
+		};
+	}
 
 	/**
 	 * Returns the capability's label.
@@ -42,21 +66,20 @@ enum Capability: string
 	public function label(): string
 	{
 		return match ($this) {
-			self::ContentCreate        => 'Create entries',
-			self::ContentEdit          => 'Edit their own entries',
-			self::ContentEditOthers    => 'Edit others\' entries',
-			self::ContentPublish       => 'Publish their own entries',
-			self::ContentPublishOthers => 'Publish others\' entries',
-			self::ContentDelete        => 'Delete their own entries',
-			self::ContentDeleteOthers  => 'Delete others\' entries',
-			self::MediaUpload          => 'Upload media',
-			self::MediaDelete          => 'Delete media',
-			self::MenusEdit            => 'Edit menus',
-			self::RegionsEdit          => 'Edit regions',
-			self::SitePublish          => 'Publish the site',
-			self::CacheClear           => 'Clear caches',
-			self::SiteSettings         => 'Change site settings',
-			self::AccountsManage       => 'Manage accounts'
+			self::MediaUpload     => 'Upload media',
+			self::MediaDelete     => 'Delete media',
+			self::MenusEdit       => 'Edit menus',
+			self::RegionsEdit     => 'Edit regions',
+			self::SitePublish     => 'Publish the site',
+			self::CacheClear      => 'Clear caches',
+			self::SiteSettings    => 'Change site settings',
+			self::AccountsView    => 'See accounts and roles',
+			self::AccountsCreate  => 'Create accounts',
+			self::AccountsEdit    => 'Edit accounts',
+			self::AccountsRoles   => 'Give and take roles',
+			self::AccountsSuspend => 'Suspend and reinstate accounts',
+			self::AccountsDelete  => 'Remove accounts',
+			self::RolesManage     => 'Manage roles'
 		};
 	}
 }

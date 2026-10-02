@@ -209,8 +209,8 @@ final class AccountsTest extends TestCase
 	public function testSiteRolesReplaceAndAddToTheBuiltIns(): void
 	{
 		$roles = new Roles(AuthConfig::fromArray(new AuthConfig(roles: [
-			new Role('editor', 'Copy editor', ['content.edit.others']),
-			new Role('reviewer', 'Reviewer', ['content.edit'])
+			new Role('editor', 'Copy editor', ['content.*.edit.others']),
+			new Role('reviewer', 'Reviewer', ['content.*.edit'])
 		])->toArray()), new MemoryRoleStore());
 
 		$this->assertSame(['administrator', 'editor', 'author', 'contributor', 'reviewer'], array_keys($roles->all()));

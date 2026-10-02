@@ -19,6 +19,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Core\Paths;
 use Blush\Field\Field;
@@ -45,7 +46,8 @@ use Blush\Support\UrlPath;
 
 /**
  * Answers `GET {path}/api/media` (D-246): the media files an entry can use,
- * for the editor's media picker. It needs `content.edit`.
+ * for the editor's media picker. It needs to edit entries of some
+ * type.
  *
  * - `files`: the library (`user/media`), from the media index (D-288),
  *   newest first, a page at a time (`page`, and `per`, 48 by default, at
@@ -111,7 +113,7 @@ final readonly class MediaListController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::ContentEdit)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::Edit)) {
 			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
 		}
 
@@ -157,7 +159,7 @@ final readonly class MediaListController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::ContentEdit)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::Edit)) {
 			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
 		}
 

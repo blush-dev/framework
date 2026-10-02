@@ -50,7 +50,7 @@ final class AdminPeopleEditTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator']): void
 	{
-		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('manager', 'Manager', ['accounts.manage', 'content.create', 'content.edit', 'content.delete'])]);\n");
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('manager', 'Manager', ['accounts.view', 'accounts.create', 'accounts.edit', 'accounts.roles', 'accounts.suspend', 'accounts.delete', 'roles.manage', 'content.*.create', 'content.*.edit', 'content.*.delete']), new Blush\\Auth\\Role('viewer', 'Viewer', ['accounts.view', 'accounts.suspend', 'content.*.create', 'content.*.edit', 'content.*.delete'])]);\n");
 		$this->boot(roles: $roles);
 		$this->login();
 	}
@@ -279,11 +279,11 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame(403, $this->write('PATCH', '/accounts/sam', ['roles' => ['administrator']])->getStatusCode());
 		$this->assertSame(403, $this->write('PATCH', '/accounts/ada', ['suspended' => true])->getStatusCode(), 'An administrator can do more.');
 		$this->assertSame(403, $this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss', 'capabilities' => ['site.settings']])->getStatusCode());
-		$this->assertSame(403, $this->write('PATCH', '/roles/editor', ['capabilities' => ['content.edit']])->getStatusCode(), 'Editors can do more.');
+		$this->assertSame(403, $this->write('PATCH', '/roles/editor', ['capabilities' => ['content.*.edit']])->getStatusCode(), 'Editors can do more.');
 
 		$roles = self::json($this->send('GET', '/roles'))['roles'] ?? [];
 		$this->assertIsArray($roles);
-		$this->assertSame(['contributor', 'manager'], array_column(array_filter($roles, static fn (mixed $role): bool => is_array($role) && ($role['grantable'] ?? false) === true), 'name'));
+		$this->assertSame(['contributor', 'manager', 'viewer'], array_column(array_filter($roles, static fn (mixed $role): bool => is_array($role) && ($role['grantable'] ?? false) === true), 'name'));
 
 		$this->assertSame(201, $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['contributor']])->getStatusCode());
 	}
@@ -292,16 +292,16 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site();
 
-		$created = $this->write('POST', '/roles', ['name' => 'reviewer', 'label' => ' Reviewer ', 'description' => 'Reads drafts.', 'capabilities' => ['content.edit', 'content.edit.others']]);
+		$created = $this->write('POST', '/roles', ['name' => 'reviewer', 'label' => ' Reviewer ', 'description' => 'Reads drafts.', 'capabilities' => ['content.*.edit', 'content.*.edit.others']]);
 
 		$this->assertSame(201, $created->getStatusCode(), self::error($created));
-		$this->assertSame(['roles' => [['name' => 'reviewer', 'label' => 'Reviewer', 'capabilities' => ['content.edit', 'content.edit.others'], 'description' => 'Reads drafts.']]], json_decode($this->file('storage/roles.json'), true));
+		$this->assertSame(['roles' => [['name' => 'reviewer', 'label' => 'Reviewer', 'capabilities' => ['content.*.edit', 'content.*.edit.others'], 'description' => 'Reads drafts.']]], json_decode($this->file('storage/roles.json'), true));
 		$this->assertSame('custom', self::role($created)['origin'] ?? null);
 		$this->assertSame(422, $this->write('POST', '/roles', ['name' => 'manager', 'label' => 'Again'])->getStatusCode(), 'The name is in use.');
 
-		$changed = $this->write('PATCH', '/roles/reviewer', ['label' => 'Proofreader', 'capabilities' => ['content.edit']]);
+		$changed = $this->write('PATCH', '/roles/reviewer', ['label' => 'Proofreader', 'capabilities' => ['content.*.edit']]);
 		$this->assertSame('Proofreader', self::role($changed)['label'] ?? null);
-		$this->assertSame(['content.edit'], self::role($changed)['capabilities'] ?? null);
+		$this->assertSame(['content.*.edit'], self::role($changed)['capabilities'] ?? null);
 
 		$this->accounts()->create('sam', self::OTHER, ['reviewer']);
 		$held = $this->write('DELETE', '/roles/reviewer');
@@ -317,7 +317,7 @@ final class AdminPeopleEditTest extends TestCase
 	{
 		$this->site();
 
-		$role = self::role($this->write('PATCH', '/roles/editor', ['capabilities' => ['content.edit', 'content.edit.others']]));
+		$role = self::role($this->write('PATCH', '/roles/editor', ['capabilities' => ['content.*.edit', 'content.*.edit.others']]));
 
 		$this->assertSame('changed', $role['origin'] ?? null);
 		$this->assertSame('Editor', $role['label'] ?? null);
@@ -346,20 +346,40 @@ final class AdminPeopleEditTest extends TestCase
 	public function testSomeoneCanAlwaysManageAccounts(): void
 	{
 		$this->site();
-		$this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss', 'capabilities' => ['accounts.manage', 'content.edit']]);
+		$this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss', 'capabilities' => ['accounts.view', 'accounts.create', 'accounts.edit', 'accounts.roles', 'accounts.suspend', 'accounts.delete', 'roles.manage', 'content.*.edit']]);
 		$this->accounts()->create('sam', self::OTHER, ['boss']);
 		$jane = $this->store()->find('jane');
 		$this->assertNotNull($jane);
 		$this->accounts()->setRoles($jane, ['boss']);
 
 		$before  = $this->file('storage/roles.json');
-		$refused = $this->write('PATCH', '/roles/boss', ['capabilities' => ['content.edit']]);
+		$refused = $this->write('PATCH', '/roles/boss', ['capabilities' => ['content.*.edit']]);
 
 		$this->assertSame(422, $refused->getStatusCode(), self::error($refused));
 		$this->assertSame($before, $this->file('storage/roles.json'), 'The roles are put back.');
 	}
 
-	public function testNeedsAccountsManage(): void
+	public function testEachChangeNeedsItsCapability(): void
+	{
+		$this->site(['viewer']);
+		$this->accounts()->create('sam', self::OTHER, ['contributor']);
+		$this->accounts()->create('ada', self::OTHER, ['administrator']);
+
+		$this->assertSame(200, $this->send('GET', '/accounts')->getStatusCode(), 'Seeing accounts (D-362).');
+		$this->assertSame(200, $this->send('GET', '/roles')->getStatusCode());
+		$this->assertSame(403, $this->write('POST', '/accounts', ['username' => 'lee', 'roles' => ['contributor']])->getStatusCode());
+		$this->assertSame(403, $this->write('PATCH', '/accounts/sam', ['roles' => ['author']])->getStatusCode());
+		$this->assertSame(403, $this->write('PATCH', '/accounts/sam', ['name' => 'Sam'])->getStatusCode());
+		$this->assertSame(403, $this->write('POST', '/accounts/sam/link')->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/accounts/sam')->getStatusCode());
+		$this->assertSame(403, $this->write('POST', '/roles', ['name' => 'boss', 'label' => 'Boss'])->getStatusCode());
+		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['suspended' => true])->getStatusCode(), 'Suspending is its own.');
+		$roles = self::json($this->send('GET', '/roles'))['roles'] ?? [];
+		$this->assertIsArray($roles);
+		$this->assertFalse(array_find($roles, static fn (mixed $role): bool => is_array($role) && ($role['name'] ?? null) === 'contributor')['editable'] ?? null, 'Changing roles needs roles.manage.');
+	}
+
+	public function testNeedsToSeeAccounts(): void
 	{
 		$this->site(['editor']);
 

@@ -22,7 +22,7 @@ use Blush\Config\InvalidConfig;
  * Account and sign-in settings, from `config/auth.php` (D-217):
  *
  *     return new AuthConfig(roles: [
- *         new Role('reviewer', 'Reviewer', ['content.edit', 'content.edit.others'])
+ *         new Role('reviewer', 'Reviewer', ['content.*.edit', 'content.*.edit.others'])
  *     ]);
  *
  * - `roles` adds roles, or replaces a built-in one of the same name.

@@ -25,7 +25,7 @@ import { plural } from '../format';
 import { slugOf } from '../references';
 import { freshLink, initials, loadAccounts, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, type AccountInfo, type PasswordLink, type RoleList } from '../people';
 import { screenTitle } from '../screen';
-import { can, session } from '../session';
+import { can, canType, session } from '../session';
 import { profileType } from '../types';
 import { toast } from '../toast';
 
@@ -381,7 +381,7 @@ async function remove(): Promise<void> {
 
 					<p v-if="account.profile" class="field__help">Their name is their profile's title, everywhere: {{ account.displayName }}.</p>
 
-					<form v-if="account.manages && !account.profile" class="field" @submit.prevent="saveName">
+					<form v-if="account.manages && can('accounts.edit') && !account.profile" class="field" @submit.prevent="saveName">
 						<label for="account-name">Name</label>
 						<div class="inline-save">
 							<input id="account-name" v-model="name" class="input account-name" autocomplete="off" maxlength="100" :placeholder="account.displayName" :aria-invalid="nameError !== '' || undefined" aria-describedby="account-name-help">
@@ -391,7 +391,7 @@ async function remove(): Promise<void> {
 						<p v-else id="account-name-help" class="field__help">What the admin calls them until they have a profile, whose title is then their name. Without one, it's their username.</p>
 					</form>
 
-					<div v-if="account.manages" class="password-link">
+					<div v-if="account.manages && can('accounts.edit')" class="password-link">
 						<h3>Password</h3>
 						<template v-if="link">
 							<p class="field__help">Send this link to {{ account.displayName }} however you like. It's shown once, works once, and lasts until {{ when(link.expires) }}.</p>
@@ -431,22 +431,22 @@ async function remove(): Promise<void> {
 						</div>
 						<div class="public__buttons">
 							<RouterLink class="button button--small" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">Open profile</RouterLink>
-							<button v-if="account.profile.status === 'draft' && can('content.publish')" type="button" class="button button--small" :disabled="profileBusy" @click="publishProfile">Publish</button>
-							<button v-if="account.manages" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile">Unlink</button>
+							<button v-if="account.profile.status === 'draft' && profileType !== null && canType(profileType, 'publish')" type="button" class="button button--small" :disabled="profileBusy" @click="publishProfile">Publish</button>
+							<button v-if="account.manages && can('accounts.edit')" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile">Unlink</button>
 						</div>
 					</template>
 					<template v-else-if="account.author">
 						<p>Linked to <span class="mono">{{ account.author }}</span>, which has no profile file yet, so bylines show the slug and there's no bio.</p>
 						<div class="public__buttons">
-							<button v-if="can('content.create')" type="button" class="button button--small" :disabled="profileBusy" @click="createLinked">{{ profileBusy ? 'Creating…' : 'Create it' }}</button>
-							<button v-if="account.manages" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile">Unlink</button>
+							<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--small" :disabled="profileBusy" @click="createLinked">{{ profileBusy ? 'Creating…' : 'Create it' }}</button>
+							<button v-if="account.manages && can('accounts.edit')" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile">Unlink</button>
 						</div>
 					</template>
 					<template v-else>
 						<p><strong>No public profile.</strong> {{ account.displayName }} doesn't appear on the site, and entries they write show no byline until a profile is linked.</p>
-						<div v-if="account.manages && profileMode === ''" class="public__buttons">
+						<div v-if="account.manages && can('accounts.edit') && profileMode === ''" class="public__buttons">
 							<button type="button" class="button button--small" @click="profileMode = 'link'">Link an existing one</button>
-							<button v-if="can('content.create')" type="button" class="button button--small" @click="profileMode = 'create'">Create one</button>
+							<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--small" @click="profileMode = 'create'">Create one</button>
 						</div>
 						<form v-if="profileMode === 'link'" class="field" @submit.prevent="linkProfile">
 							<label for="account-profile">Profile</label>
@@ -471,15 +471,17 @@ async function remove(): Promise<void> {
 				</div>
 			</section>
 
-			<section v-if="account.manages" class="panel" aria-labelledby="danger-heading">
+			<section v-if="account.manages && (can('accounts.suspend') || can('accounts.delete'))" class="panel" aria-labelledby="danger-heading">
 				<header class="panel__header">
 					<h2 id="danger-heading">Danger Zone</h2>
 				</header>
 				<div class="panel__body danger">
 					<div class="danger__buttons">
-						<button v-if="account.status === 'suspended'" type="button" class="button button--small" :disabled="dangerBusy" @click="setSuspended(false)">Reinstate</button>
-						<button v-else type="button" class="button button--small" :disabled="dangerBusy" @click="setSuspended(true)">Suspend</button>
-						<button type="button" class="button button--danger button--small" :disabled="dangerBusy" @click="remove"><AdminIcon name="x" />Remove account</button>
+						<template v-if="can('accounts.suspend')">
+							<button v-if="account.status === 'suspended'" type="button" class="button button--small" :disabled="dangerBusy" @click="setSuspended(false)">Reinstate</button>
+							<button v-else type="button" class="button button--small" :disabled="dangerBusy" @click="setSuspended(true)">Suspend</button>
+						</template>
+						<button v-if="can('accounts.delete')" type="button" class="button button--danger button--small" :disabled="dangerBusy" @click="remove"><AdminIcon name="x" />Remove account</button>
 					</div>
 					<p v-if="dangerError" class="field__error" role="alert">{{ dangerError }}</p>
 					<p class="field__help">Suspending signs them out until you reinstate them. Removing deletes the account; their profile and the entries crediting it stay.</p>
@@ -493,7 +495,7 @@ async function remove(): Promise<void> {
 				<p class="panel__hint">An account can hold more than one</p>
 			</header>
 			<div class="panel__body">
-				<RoleChecks v-model="held" :roles="roles?.roles ?? []" id-prefix="role-" :disabled="!account.manages" :described-by="rolesError ? 'roles-error' : undefined" />
+				<RoleChecks v-model="held" :roles="roles?.roles ?? []" id-prefix="role-" :disabled="!account.manages || !can('accounts.roles')" :described-by="rolesError ? 'roles-error' : undefined" />
 				<p v-if="rolesError" id="roles-error" class="field__error" role="alert">{{ rolesError }}</p>
 				<p class="field__help roles-note">What each role allows is on <RouterLink :to="{ name: 'roles' }">Roles</RouterLink>.</p>
 			</div>

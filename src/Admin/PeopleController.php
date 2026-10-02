@@ -20,17 +20,22 @@ use Blush\Auth\AccountStore;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
+use Blush\Content\Type\ContentType;
+use Blush\Content\Type\ContentTypes;
 use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
  * Answers the admin's people screens (D-249), for accounts with
- * `accounts.manage`:
+ * `accounts.view` (D-362):
  *
- * - `GET roles`: every capability (`name`, `label`) and every role, as
+ * - `GET roles`: every capability (`name`, `label`, `group`, and a
+ *   content capability's `type` and `action`, D-359), the content types
+ *   (`name`, `label`, `kind`, `icon`), and every role, as
  *   `PeopleJson::role()` describes it.
  * - `GET accounts`: every account, as `PeopleJson::account()` describes
  *   it, sorted by username.
@@ -43,6 +48,7 @@ final readonly class PeopleController
 	public function __construct(
 		private Roles $roles,
 		private Capabilities $capabilities,
+		private ContentTypes $types,
 		private AccountStore $accounts,
 		private Permissions $permissions,
 		private PeopleJson $json
@@ -65,11 +71,24 @@ final readonly class PeopleController
 		$capabilities = [];
 
 		foreach ($this->capabilities->all() as $name => $label) {
-			$capabilities[] = ['name' => $name, 'label' => $label];
+			[$type, $action] = ContentAction::parse($name) ?? [null, null];
+
+			$capabilities[] = [
+				'name'  => $name,
+				'label' => $label,
+				'group' => $this->capabilities->group($name),
+				...($action === null ? [] : ['type' => $type, 'action' => $action->value])
+			];
 		}
 
 		return Response::json([
 			'capabilities' => $capabilities,
+			'types'        => array_values(array_map(static fn (ContentType $type): array => [
+				'name'  => $type->name,
+				'label' => $type->labels->plural,
+				'kind'  => $type->kind()->value,
+				'icon'  => $type->icon
+			], $this->types->all())),
 			'roles'        => array_values(array_map(fn (Role $role): array => $this->json->role($role, $this->roles, $accounts, $viewer), $this->roles->all())),
 			'all'          => Role::ALL
 		], headers: ['Cache-Control' => 'no-store']);
@@ -93,13 +112,13 @@ final readonly class PeopleController
 	}
 
 	/**
-	 * Returns the signed-in account when it may manage accounts.
+	 * Returns the signed-in account when it may see accounts.
 	 */
 	private function viewer(ServerRequestInterface $request): ?Account
 	{
 		$account = $request->getAttribute(Account::class);
 
-		return $account instanceof Account && $this->permissions->can($account, Capability::AccountsManage) ? $account : null;
+		return $account instanceof Account && $this->permissions->can($account, Capability::AccountsView) ? $account : null;
 	}
 
 	private static function damaged(AuthException $error): ResponseInterface
@@ -109,6 +128,6 @@ final readonly class PeopleController
 
 	private static function forbidden(): ResponseInterface
 	{
-		return Response::json(['error' => 'You aren\'t allowed to manage accounts.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		return Response::json(['error' => 'You aren\'t allowed to see accounts.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 	}
 }

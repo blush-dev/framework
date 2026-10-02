@@ -21,6 +21,7 @@ use Blush\Auth\AccountStore;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
@@ -37,7 +38,7 @@ use Blush\Http\Status;
 
 /**
  * Answers the profiles for linking accounts to them (D-356), for
- * accounts with `accounts.manage`:
+ * accounts with `accounts.view` (D-362):
  *
  * - `GET profiles`: every profile, by name: `{"profiles": [{"slug",
  *   "title", "status"` (`null` for one credited without a file),
@@ -46,7 +47,7 @@ use Blush\Http\Status;
  *   offers only the ones without.
  *
  * And a profile's screen (D-353), for accounts that may edit the
- * profile (their own, or anyone's with `content.edit.others`; a profile
+ * profile (their own, or anyone's with the profiles type's `edit.others`; a profile
  * with no file needs the latter):
  *
  * - `GET profiles/{slug}`: the `profile` (`{"slug", "title", "subtitle",
@@ -61,10 +62,10 @@ use Blush\Http\Status;
  * - `POST profiles/{slug}/pages` (`{"type", "field"}`): writes the page
  *   for the profile's archive under a field (`_cooks/jane` in the type's
  *   folder), a draft titled with the profile's name, and answers `201`
- *   with its `{"id", "handle"}`. Needs `content.create`.
+ *   with its `{"id", "handle"}`. Needs to create entries of that type.
  * - `DELETE profiles/{slug}/pages/{type}/{field}`: moves that page to the
  *   trash, so the archive shows the profile's bio again. Needs
- *   `content.delete`.
+ *   to delete the page.
  */
 final readonly class ProfilesController
 {
@@ -85,8 +86,8 @@ final readonly class ProfilesController
 		$viewer   = $request->getAttribute(Account::class);
 		$profiles = $this->types->profiles();
 
-		if (! $viewer instanceof Account || ! $this->permissions->can($viewer, Capability::AccountsManage)) {
-			return self::json(['error' => 'You aren\'t allowed to manage accounts.'], Status::Forbidden);
+		if (! $viewer instanceof Account || ! $this->permissions->can($viewer, Capability::AccountsView)) {
+			return self::json(['error' => 'You aren\'t allowed to see accounts.'], Status::Forbidden);
 		}
 
 		if ($profiles === null) {
@@ -139,7 +140,7 @@ final readonly class ProfilesController
 		[$viewer, $profiles, $profile] = $found;
 
 		$account = $this->linkedAccount($profile->slug);
-		$manages = $this->permissions->can($viewer, Capability::AccountsManage);
+		$manages = $this->permissions->can($viewer, Capability::AccountsView);
 
 		return self::json([
 			'profile' => [
@@ -170,10 +171,6 @@ final readonly class ProfilesController
 
 		[$viewer, , $profile] = $found;
 
-		if (! $this->permissions->can($viewer, Capability::ContentCreate)) {
-			return self::json(['error' => 'You aren\'t allowed to create entries.'], Status::Forbidden);
-		}
-
 		try {
 			$input = json_decode((string) $request->getBody(), true, 4, JSON_THROW_ON_ERROR);
 		} catch (JsonException) {
@@ -187,6 +184,10 @@ final readonly class ProfilesController
 		}
 
 		[$type, $field] = $place;
+
+		if (! $this->permissions->can($viewer, ContentAction::Create, $type->name)) {
+			return self::json(['error' => sprintf('You aren\'t allowed to create %s.', $type->labels->items)], Status::Forbidden);
+		}
 
 		try {
 			$result = $this->writer->createAt($type, $field->personPage($profile->slug), new EntryChanges(set: ['title' => $profile->title, 'status' => 'draft'], body: "\n"));
@@ -209,15 +210,15 @@ final readonly class ProfilesController
 
 		[$viewer, , $profile] = $found;
 
-		if (! $this->permissions->can($viewer, Capability::ContentDelete)) {
-			return self::json(['error' => 'You aren\'t allowed to delete entries.'], Status::Forbidden);
-		}
-
 		$place = $this->place($type, $field);
 		$page  = $place === null ? null : $this->content->named($place[0]->name, $place[1]->personPage($profile->slug));
 
 		if ($page === null) {
 			return self::json(['error' => 'There\'s no page written for that archive.'], Status::NotFound);
+		}
+
+		if (! $this->permissions->can($viewer, ContentAction::Delete, $page)) {
+			return self::json(['error' => 'You aren\'t allowed to delete that page.'], Status::Forbidden);
 		}
 
 		try {
@@ -251,8 +252,8 @@ final readonly class ProfilesController
 		}
 
 		$allowed = $profile->isVirtual()
-			? $this->permissions->can($viewer, Capability::ContentEditOthers)
-			: $this->permissions->can($viewer, Capability::ContentEdit, $profile);
+			? $this->permissions->can($viewer, ContentAction::EditOthers, $profiles->name)
+			: $this->permissions->can($viewer, ContentAction::Edit, $profile);
 
 		return $allowed ? [$viewer, $profiles, $profile] : self::json(['error' => 'You aren\'t allowed to edit that profile.'], Status::Forbidden);
 	}

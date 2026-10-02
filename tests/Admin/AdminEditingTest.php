@@ -583,6 +583,17 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(200, $this->call('GET', '/entries/new?type=post')->getStatusCode(), 'They may start one.');
 	}
 
+	public function testCapabilitiesAreEachTypes(): void
+	{
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('pager', 'Pager', ['content.page.create', 'content.page.edit', 'content.page.publish'])]);\n");
+		$this->site(['pager']);
+
+		$this->assertSame(201, $this->call('POST', '/entries', ['type' => 'page', 'title' => 'A Page', 'status' => 'published'])->getStatusCode());
+		$this->assertSame(403, $this->call('POST', '/entries', ['type' => 'post', 'title' => 'A Post'])->getStatusCode(), 'Pages only (D-359).');
+		$this->assertSame(403, $this->call('GET', '/entries/new?type=post')->getStatusCode());
+		$this->assertSame(403, $this->call('GET', '/entries/' . self::FLAME)->getStatusCode(), 'Even their own post.');
+	}
+
 	public function testRenamesWithANewSlug(): void
 	{
 		$this->site();

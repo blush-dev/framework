@@ -16,7 +16,7 @@ namespace Blush\Admin;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\Lint\Linter;
 use Blush\Field\Severity;
@@ -31,7 +31,8 @@ use Blush\Http\Status;
  * `?strict=1` adds notices (undeclared keys, 1.x names, virtual terms).
  * It reads every file, so it runs when asked, not on the dashboard.
  *
- * It lists every file's problems, so it needs `content.edit.others`.
+ * It lists every file's problems, so it needs to edit anyone's
+ * entries of some type.
  */
 final readonly class HealthController
 {
@@ -44,7 +45,7 @@ final readonly class HealthController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::ContentEditOthers)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
 			return Response::json(['error' => 'You aren\'t allowed to see content health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 

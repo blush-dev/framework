@@ -19,7 +19,7 @@ import { adminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { commandMatches, screenCommands, type Command } from '../commands';
 import type { IconName } from '../icons';
-import { can } from '../session';
+import { can, canAnyType, canType } from '../session';
 import { findType, listRoute, typeIcon, types } from '../types';
 
 const emit = defineEmits<{ close: [] }>();
@@ -35,7 +35,7 @@ const failed  = ref('');
 // side: their account here, their profile among the entries (D-353).
 const accounts = ref<AccountInfo[]>([]);
 
-if (can('accounts.manage')) {
+if (can('accounts.view')) {
 	loadAccounts().then((list) => {
 		accounts.value = list;
 	}, () => undefined);
@@ -47,27 +47,26 @@ const go = (name: string, params?: Record<string, string>): (() => void) => () =
 const everywhere = computed<Command[]>(() => {
 	const found: Command[] = [{ id: 'dashboard', label: 'Go to the dashboard', icon: 'gauge', keywords: 'home', run: go('dashboard') }];
 
-	if (can('content.edit')) {
-		for (const type of types.value) {
-			found.push({ id: `type-${type.name}`, label: `Go to ${type.labels.plural}`, icon: typeIcon(type), keywords: type.name, run: go('type', { type: type.name }) });
-		}
+	for (const type of types.value.filter((item) => canType(item.name, 'edit'))) {
+		found.push({ id: `type-${type.name}`, label: `Go to ${type.labels.plural}`, icon: typeIcon(type), keywords: type.name, run: go('type', { type: type.name }) });
 	}
 
-	if (can('content.create')) {
-		for (const type of types.value) {
-			found.push({ id: `new-${type.name}`, label: type.labels.newItem, icon: 'plus', keywords: `create add ${type.name}`, run: () => void router.push({ name: 'entry-new', query: { type: type.name } }) });
-		}
+	for (const type of types.value.filter((item) => canType(item.name, 'create'))) {
+		found.push({ id: `new-${type.name}`, label: type.labels.newItem, icon: 'plus', keywords: `create add ${type.name}`, run: () => void router.push({ name: 'entry-new', query: { type: type.name } }) });
+	}
+
+	if (canAnyType('edit.others')) {
+		found.push({ id: 'health', label: 'Go to Content Health', icon: 'heart-pulse', keywords: 'problems lint', run: go('health') });
 	}
 
 	const screens: [string, string, IconName, string, string?][] = [
-		['health', 'Go to Content Health', 'heart-pulse', 'content.edit.others', 'problems lint'],
 		['media', 'Go to Media', 'image', 'media.upload', 'files images library'],
 		['types', 'Go to Content Types', 'layers', 'site.settings'],
 		['fields', 'Go to Fields', 'group', 'site.settings', 'field sets custom fields'],
 		['themes', 'Go to Themes', 'paintbrush', 'site.settings', 'appearance look'],
 		['extensions', 'Go to Extensions', 'plug', 'site.settings', 'addons plugins'],
-		['accounts', 'Go to Accounts', 'key-round', 'accounts.manage', 'people users sign in'],
-		['roles', 'Go to Roles', 'shield', 'accounts.manage', 'capabilities']
+		['accounts', 'Go to Accounts', 'key-round', 'accounts.view', 'people users sign in'],
+		['roles', 'Go to Roles', 'shield', 'accounts.view', 'capabilities']
 	];
 
 	for (const [name, label, icon, capability, keywords] of screens) {
@@ -136,7 +135,7 @@ let typing: ReturnType<typeof setTimeout> | undefined;
 let latest = 0;
 
 async function findEntries(): Promise<void> {
-	if (!can('content.edit')) {
+	if (!canAnyType('edit')) {
 		return;
 	}
 

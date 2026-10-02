@@ -17,6 +17,8 @@ use Psr\Clock\ClockInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Accounts;
 use Blush\Auth\BuiltInRole;
+use Blush\Auth\Capability;
+use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
@@ -33,6 +35,7 @@ final readonly class PeopleJson
 {
 	public function __construct(
 		private PeopleRules $rules,
+		private Permissions $permissions,
 		private Accounts $accounts,
 		private ClockInterface $clock,
 		private ContentRepository $content,
@@ -101,7 +104,8 @@ final readonly class PeopleJson
 	 * `capabilities` (`*` for all), whether it's `builtIn`, its `origin`,
 	 * the `accounts` that hold it (each its `username` and
 	 * `displayName`), whether the viewer may give it to accounts
-	 * (`grantable`), and whether the viewer may change it (`editable`). A
+	 * (`grantable`), and whether the viewer may change it (`editable`,
+	 * which also needs `roles.manage`, D-362). A
 	 * changed built-in also has its `defaults`.
 	 *
 	 * @param  list<Account> $accounts
@@ -125,7 +129,7 @@ final readonly class PeopleJson
 				array_filter($accounts, static fn (Account $account): bool => in_array($role->name, $account->roles, true))
 			)),
 			'grantable'    => $grantable,
-			'editable'     => $grantable && $origin->editable($role->name),
+			'editable'     => $grantable && $origin->editable($role->name) && $this->permissions->can($viewer, Capability::RolesManage),
 			...($origin === RoleOrigin::Changed && $builtIn !== null ? ['defaults' => $builtIn->capabilities()] : [])
 		];
 	}

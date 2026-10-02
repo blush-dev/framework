@@ -21,9 +21,9 @@ use Blush\Auth\Role;
 use Blush\Auth\Roles;
 
 /**
- * What an account with `accounts.manage` may do to accounts and roles in
- * the admin (D-312), so managing them never grants more than one has and
- * never locks the site out:
+ * What an account may do to accounts and roles in the admin (D-312), with
+ * the capabilities for each action (D-362), so managing them never grants
+ * more than one has and never locks the site out:
  *
  * - **No more than you:** you may give a role, or make or change one,
  *   only when you have every capability it grants; and you may change an
@@ -32,7 +32,8 @@ use Blush\Auth\Roles;
  *   removal are changed by someone else (or `bin/blush`). Your password
  *   is on Your profile.
  * - **Someone stays in charge:** after any change, an account that isn't
- *   suspended still has `accounts.manage`.
+ *   suspended still has every capability for managing accounts and
+ *   roles (`Capability::users()`).
  *
  * The `account:*` commands don't ask: whoever runs them has the site.
  */
@@ -82,15 +83,18 @@ final readonly class PeopleRules
 
 	/**
 	 * Whether, with these accounts and roles, one that isn't suspended
-	 * can still manage accounts.
+	 * can still do everything to accounts and roles.
 	 *
 	 * @param list<Account> $accounts
 	 */
 	public function keepsManager(array $accounts, Roles $roles): bool
 	{
-		return array_any($accounts, static fn (Account $account): bool => ! $account->suspended && array_any(
-			$account->roles,
-			static fn (string $name): bool => $roles->get($name)?->allows(Capability::AccountsManage->value) ?? false
+		return array_any($accounts, static fn (Account $account): bool => ! $account->suspended && array_all(
+			Capability::users(),
+			static fn (Capability $capability): bool => array_any(
+				$account->roles,
+				static fn (string $name): bool => $roles->get($name)?->allows($capability->value) ?? false
+			)
 		));
 	}
 }

@@ -18,7 +18,7 @@ import SkeletonTable from '../components/SkeletonTable.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { ApiError } from '../api';
 import { loadAccounts, loadRoles, statusPill, when, type AccountInfo, type AccountStatus } from '../people';
-import { session } from '../session';
+import { can, session } from '../session';
 
 const accounts = ref<AccountInfo[] | null>(null);
 const labels   = ref<Record<string, string>>({});
@@ -57,7 +57,7 @@ const shown = computed(() => {
 			<p class="page-header__hint">People who can sign in. A public presence is a separate, optional thing: a profile.</p>
 		</div>
 		<div class="page-header__actions">
-			<RouterLink class="button button--primary" :to="{ name: 'account-new' }"><AdminIcon name="plus" />New Account</RouterLink>
+			<RouterLink v-if="can('accounts.create')" class="button button--primary" :to="{ name: 'account-new' }"><AdminIcon name="plus" />New Account</RouterLink>
 		</div>
 	</header>
 

@@ -19,7 +19,7 @@ use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Preview\PreviewConfig;
@@ -66,7 +66,7 @@ final readonly class PreviewLinkController
 			return self::json(['error' => sprintf('There\'s no "%s" entry.', $id)], Status::NotFound);
 		}
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::ContentEdit, $entry)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 			return self::json(['error' => 'You aren\'t allowed to preview that entry.'], Status::Forbidden);
 		}
 

@@ -25,7 +25,7 @@ import { config } from '../config';
 import { plural } from '../format';
 import { initials, loadProfile, removeArchivePage, updateAccount, when, writeArchivePage, type ProfileAppearance, type ProfileDetail } from '../people';
 import { screenTitle } from '../screen';
-import { can } from '../session';
+import { can, canType } from '../session';
 import { toast } from '../toast';
 import { profileType } from '../types';
 
@@ -148,7 +148,7 @@ async function unlink(): Promise<void> {
 	<template v-if="detail && profile">
 		<p v-if="profile.virtual" class="notice notice--warn">
 			<span>Entries credit <span class="mono">{{ profile.slug }}</span>, but there's no profile file, so bylines show the name as it's written and there's no bio.
-				<RouterLink v-if="can('content.create') && profileType" :to="{ name: 'entry-new', query: { type: profileType } }">Create a profile</RouterLink> with this slug to give it one.</span>
+				<RouterLink v-if="profileType && canType(profileType, 'create')" :to="{ name: 'entry-new', query: { type: profileType } }">Create a profile</RouterLink> with this slug to give it one.</span>
 		</p>
 
 		<div class="detail">
@@ -192,7 +192,7 @@ async function unlink(): Promise<void> {
 					<p v-else-if="detail.linked">An account is linked to this profile.</p>
 					<template v-else>
 						<p>No account is linked, so this is a <strong>guest profile</strong>: credited on the site, but no one signs in as it.</p>
-						<p v-if="can('accounts.manage')" class="field__help">Link it from an account's screen, under <RouterLink :to="{ name: 'accounts' }">Accounts</RouterLink>.</p>
+						<p v-if="can('accounts.edit')" class="field__help">Link it from an account's screen, under <RouterLink :to="{ name: 'accounts' }">Accounts</RouterLink>.</p>
 					</template>
 				</div>
 			</section>
@@ -243,9 +243,9 @@ async function unlink(): Promise<void> {
 							<td class="table__actions">
 								<template v-if="row.archive && row.page">
 									<RouterLink class="button button--small" :to="entryRoute(row.page)">Edit</RouterLink>
-									<button v-if="can('content.delete')" type="button" class="button button--ghost button--small" :disabled="busy === `${row.type}.${row.field}`" @click="useProfiles(row)">Use the profile's</button>
+									<button v-if="canType(row.type, 'delete')" type="button" class="button button--ghost button--small" :disabled="busy === `${row.type}.${row.field}`" @click="useProfiles(row)">Use the profile's</button>
 								</template>
-								<button v-else-if="row.archive && can('content.create')" type="button" class="button button--small" :disabled="busy === `${row.type}.${row.field}`" @click="write(row)">Write one</button>
+								<button v-else-if="row.archive && canType(row.type, 'create')" type="button" class="button button--small" :disabled="busy === `${row.type}.${row.field}`" @click="write(row)">Write one</button>
 							</td>
 						</tr>
 					</tbody>

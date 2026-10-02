@@ -9750,3 +9750,171 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `npm run admin:build`.
 - **Why:** the author asked for it.
 
+
+### D-359: Per-type capabilities, and the role screen as capability sections
+- **Date:** 2026-10-02
+- **Decision:** Applies the capability sections sketch
+  (`admin-design/meridian-role-capabilities.html`) to a role's screen,
+  and, with it, what D-217 left for later: what a role may do to entries
+  is per content type. The author's call: per-type capabilities, using
+  the actions that make sense in Blush.
+  - **Capabilities:** `content.{type}.{action}`, the action one of
+    `create`, `edit`, `publish`, `delete`, and the last three's
+    `.others` (`ContentAction`). D-217's site-wide `content.*`
+    capabilities are gone (`Capability` keeps the site ones, each with
+    a `group()`: Media, Structure, Site, People). The sketch's `view`
+    isn't taken: the editor has no read-only mode, so a type is shown
+    to an account that can edit its entries, and "No access" is having
+    none of its capabilities.
+  - **Every type:** a `*` word in a role's capability matches any one
+    word (`Role::allows()`), so `content.*.edit` grants each type's,
+    including types added later; `Capabilities::NAME` allows `*` words
+    after the first. The built-in roles use these, so they cover new
+    types as before. A role naming types one by one gives a new type
+    nothing (the sketch's safe default).
+  - **The registry:** `Capabilities` lists each type's capabilities
+    (label "Recipes: Edit anyone's", group the type's plural) and every
+    type's ("Every type"), from `ContentTypes`, after the registered
+    ones; `register()` takes an optional group (else the first word).
+  - **`Permissions`:** `can()` takes a `ContentAction` on an entry, a
+    type's name, or (neither) any type; D-219's ownership and
+    live-entry rules are per type (editing a live post needs
+    `content.post.publish`). A content capability's name with an entry
+    still works. `restrict()` takes a `ContentAction` and builds
+    alternatives per type of the query (or every type). Every admin
+    check moved to the entry's or request's type; Health and the media
+    list need the action on any type; a trashed file whose type is gone
+    needs `content.*.delete.others`.
+  - **The API:** `GET roles` adds each capability's `group` (and a
+    content one's `type` and `action`) and the content `types`
+    (`name`, `label`, `kind`, `icon`).
+  - **The admin:** `canType()` and `canAnyType()` in `session.ts`; the
+    rail, palette, dashboard, lists, pickers, and profile screens ask
+    per type, and routes take `meta.contentAction` (checked on the
+    address's type, else any type). A role's screen
+    (`CapabilitySections`, also on New Role): Site Capabilities, one
+    section per group; Content Capabilities, one per type (content
+    types, then taxonomies, alphabetical) and **Every Type** pinned at
+    the foot, marked "Includes new types", whose grants show ticked and
+    fixed in each type. Each section: icon, name, a sentence (verbs
+    shared, a scope said once when edit, publish, and delete agree,
+    "drafts" where publishing is missing), a **Changes** pill, and a
+    ⋮ (Full access, Their own only, Drafts only, No access; a group's
+    everything or nothing; Every Type's also **Set each type
+    separately**). Anyone's ticks their own; clearing their own clears
+    anyone's. **Expand all**/**Collapse all** and **Show keys** (kept
+    while the admin's open). The header's facts strip (key, origin,
+    holders' faces and a link) replaces the About and Held By panels;
+    its ⋮ has Rename (a custom role), Copy as JSON, and Reset or
+    Delete, replacing the Danger Zone. The save bar (moved to
+    `admin.css`, shared with Settings) counts each capability ticked or
+    cleared. The administrator gets the sketch's one statement.
+    `CapabilityChecks` is gone; Roles counts what each role grants.
+- **Departures** are in `admin-design/departures.md`.
+- **Checked:** `composer check` (`PermissionsTest`: every type's
+  capabilities granting each type's, a one-type role, and `restrict()`
+  matching `can()` for it; `AdminEditingTest::
+  testCapabilitiesAreEachTypes`; `GET roles`' groups and types);
+  `npm run admin:build`; the jtcom trial with a throwaway administrator
+  (removed after): `GET roles`, a custom role saved with per-type and
+  every-type capabilities, an unknown type's refused, then put back;
+  Editor (1280px, sections opened, inherited ticks), Subscriber
+  (390px, dark: a preset, the pill, the save bar), and Administrator,
+  none scrolling sideways.
+- **Open:** in `open-questions.md`.
+- **Status:** Every Type moved first, and stays additive (D-360).
+- **Why:** the author added the sketch and asked to apply it, with
+  per-type capabilities.
+
+### D-360: Every Type stays additive, comes first, and marks what it seals
+- **Date:** 2026-10-02
+- **Decision:** Settles D-359's open question: **Every Type** grants on
+  every type (additive), not a default a type's own settings override.
+  It moves from the foot of Content Capabilities to the top, above the
+  types, since what it grants is fixed in each type below and the
+  cause should be read before its effect. A type it grants every
+  action on is marked **Set by Every Type** (an `index-mark`) and has
+  no ⋮, since nothing in it can change; a type it grants some of
+  keeps the "· every type" note on those checkboxes. No lock icon: a
+  lock on a type's name would say the whole section is closed when
+  usually only some actions are, and the admin has no lock icon.
+- **Checked:** `npm run admin:build`; the jtcom trial's Editor role at
+  1280px with a throwaway administrator (removed after).
+- **Why:** the author: keep Every Type additive; asked whether it
+  should come first and whether locked types need a mark.
+
+### D-361: The Roles list: a description column and two capability readouts
+- **Date:** 2026-10-02
+- **Decision:** The Roles list's columns are Role, Description (the
+  wide one; hidden under 640px), Capabilities, and Accounts. The
+  description was a second line under the count. Capabilities isn't
+  "N of M" any more, since per-type capabilities (D-359) make the total
+  grow by seven with each type. It's two readouts: the types the role
+  reaches (**Every type** for a `content.*.…` capability, else
+  "N of M types", or "No types"), and "N of M site" for the site
+  capabilities. The administrator says **Everything**. The panel's hint
+  drops its capability total. Settles the sketch's question of what
+  the list shows; an account's screen is still open.
+- **Checked:** `npm run admin:build`; the jtcom trial's Roles at 1280px
+  and 390px with a throwaway administrator (removed after).
+- **Why:** the author asked for a capabilities column and the
+  description as the long column.
+
+### D-362: Seven capabilities for managing accounts and roles; the Users group
+- **Date:** 2026-10-02
+- **Decision:** `accounts.manage` is split, the author's pick of the
+  finer of two sets:
+  - `accounts.view`: see Accounts and Roles (read-only), each account's
+    screen, and which account a profile is linked to (the profile list
+    for linking, `GET profiles`, and entries' `account`). Every other
+    account action also needs it.
+  - `accounts.create`: New Account, with its first roles (still within
+    "no more than you", D-312).
+  - `accounts.edit`: an account's name, its profile link, and password
+    links.
+  - `accounts.roles`: giving and taking roles.
+  - `accounts.suspend`: suspending and reinstating.
+  - `accounts.delete`: removing accounts.
+  - `roles.manage`: New Role, Duplicate, and changing, resetting, and
+    deleting roles (`GET roles`' `editable` needs it).
+  `PATCH accounts/{username}` checks the capability of each thing it
+  changes. "Someone stays in charge" (D-312) now means an account that
+  isn't suspended holds all seven (`Capability::users()`). The admin
+  shows each control only with its capability. Only the administrator
+  has them built in. The capabilities' group on a role's screen is
+  **Users** (was People), matching the section (D-354).
+- **Checked:** `composer check` (`AdminPeopleEditTest::
+  testEachChangeNeedsItsCapability`: a role with `accounts.view` and
+  `accounts.suspend` sees accounts and roles and suspends, and is
+  refused creating, giving roles, renaming, password links, removing,
+  and making roles); `npm run admin:build`.
+- **Why:** the author asked for account management to be more
+  granular.
+
+### D-363: New Role's description is a text area
+- **Date:** 2026-10-02
+- **Status:** The text area is superseded by D-364 (a text input on its own line).
+- **Decision:** On New Role, Name and Key sit side by side at the same
+  height (`--ctl`, whatever their fonts), tops aligned, and the
+  description is a full-width text area (three rows) below them; one
+  column under 640px. Whether `accounts.create` should also need
+  `accounts.roles` for a new account's first roles is left open (in
+  `open-questions.md`).
+- **Checked:** `npm run admin:build`; New Role on the jtcom trial at
+  1280px and 390px with a throwaway administrator (removed after).
+- **Why:** the author asked for it; unsure about the roles question.
+
+### D-364: A role's name, key, and description, the same on New Role and Rename
+- **Date:** 2026-10-02
+- **Decision:** Supersedes D-363's text area: the description is a text
+  input again, on its own full-width line below Name and Key. A role's
+  **Rename this role** panel has the same three fields in the same
+  layout, with the key shown and disabled (and its help, "Fixed once
+  it's made"), in place of the panel's "Its key stays" hint. Disabled
+  text inputs, selects, and text areas now look it everywhere
+  (`admin.css`): the sunk surface, a quiet border and text, and a
+  not-allowed cursor.
+- **Checked:** `npm run admin:build`; Rename on the jtcom trial's
+  Subscriber at 1280px (light) and 390px (dark) with a throwaway
+  administrator (removed after).
+- **Why:** the author asked for it.

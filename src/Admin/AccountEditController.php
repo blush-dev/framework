@@ -28,29 +28,43 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
- * Creates, changes, and removes accounts from the admin (D-312), for
- * accounts with `accounts.manage`, within `PeopleRules`:
+ * Creates, changes, and removes accounts from the admin (D-312), within
+ * `PeopleRules`. Each needs `accounts.view` and its own capability
+ * (D-362):
  *
- * - `POST accounts`: `{"username", "roles", "author", "name"}` (the
+ * - `POST accounts` (`accounts.create`, which also gives its first
+ *   roles): `{"username", "roles", "author", "name"}` (the
  *   last two optional) makes an account
  *   with no password and a one-time link for choosing one (not named
  *   `new`, the admin's screen for making one). The answer
  *   (`201`) is the `account` and its `link`: the `url` to send and when
  *   it `expires`. The link's token is in the URL's fragment, so it never
  *   reaches a server log, and it's shown this once.
- * - `PATCH accounts/{username}`: any of `roles`, `author` (`null`
- *   unlinks), `name` (`null` or empty takes it away, D-322), and
- *   `suspended`; answers with the `account`.
- * - `POST accounts/{username}/link`: a new password link, replacing any
- *   other; the account's password keeps working until it's used.
- * - `DELETE accounts/{username}`: removes the account (`204`). Its
- *   author entry and the entries crediting it stay.
+ * - `PATCH accounts/{username}`: any of `roles` (`accounts.roles`),
+ *   `author` (`null` unlinks) and `name` (`null` or empty takes it
+ *   away, D-322; both `accounts.edit`), and `suspended`
+ *   (`accounts.suspend`); answers with the `account`.
+ * - `POST accounts/{username}/link` (`accounts.edit`): a new password
+ *   link, replacing any other; the account's password keeps working
+ *   until it's used.
+ * - `DELETE accounts/{username}` (`accounts.delete`): removes the
+ *   account (`204`). Its author entry and the entries crediting it
+ *   stay.
  *
  * Refusals are `403` (not allowed), `404` (no such account), or `422`
  * with an `error` and, when one input is at fault, its `field`.
  */
 final readonly class AccountEditController
 {
+	/**
+	 * What each capability lets an account do, for a refusal.
+	 */
+	private const array DOING = [
+		'accounts.roles'   => 'give or take roles',
+		'accounts.suspend' => 'suspend or reinstate accounts',
+		'accounts.edit'    => 'change accounts\' names or profiles'
+	];
+
 	public function __construct(
 		private Accounts $accounts,
 		private AccountStore $store,
@@ -64,7 +78,7 @@ final readonly class AccountEditController
 
 	public function create(ServerRequestInterface $request): ResponseInterface
 	{
-		$actor = $this->manager($request);
+		$actor = $this->manager($request, Capability::AccountsCreate);
 
 		if ($actor === null) {
 			return self::forbidden();
@@ -110,7 +124,7 @@ final readonly class AccountEditController
 
 	public function update(ServerRequestInterface $request, string $username): ResponseInterface
 	{
-		$actor = $this->manager($request);
+		$actor = $this->manager($request, Capability::AccountsView);
 
 		if ($actor === null) {
 			return self::forbidden();
@@ -134,6 +148,17 @@ final readonly class AccountEditController
 
 		$author  = is_string($author) && trim($author) !== '' ? trim($author) : null;
 		$name    = is_string($name) ? Account::tidyName($name) : null;
+		$needs   = array_filter([
+			Capability::AccountsRoles->value   => $roles !== $account->roles,
+			Capability::AccountsSuspend->value => $suspended !== $account->suspended,
+			Capability::AccountsEdit->value    => $author !== $account->author || $name !== $account->name
+		]);
+
+		foreach (array_keys($needs) as $capability) {
+			if (! $this->permissions->can($actor, $capability)) {
+				return self::error(sprintf('You aren\'t allowed to %s.', self::DOING[$capability]), Status::Forbidden);
+			}
+		}
 
 		if ($name !== null && ! Account::isValidName($name)) {
 			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
@@ -148,7 +173,7 @@ final readonly class AccountEditController
 		$after = $account->withRoles($roles)->withSuspended($suspended);
 
 		if (! $this->keepsManager($account, $after)) {
-			return self::error(sprintf('That would leave no account that can manage accounts, so %s keeps what it has.', $account->username));
+			return self::error(sprintf('That would leave no account that can manage accounts and roles, so %s keeps what it has.', $account->username));
 		}
 
 		try {
@@ -165,7 +190,7 @@ final readonly class AccountEditController
 
 	public function link(ServerRequestInterface $request, string $username): ResponseInterface
 	{
-		$actor = $this->manager($request);
+		$actor = $this->manager($request, Capability::AccountsEdit);
 
 		if ($actor === null) {
 			return self::forbidden();
@@ -188,7 +213,7 @@ final readonly class AccountEditController
 
 	public function delete(ServerRequestInterface $request, string $username): ResponseInterface
 	{
-		$actor = $this->manager($request);
+		$actor = $this->manager($request, Capability::AccountsDelete);
 
 		if ($actor === null) {
 			return self::forbidden();
@@ -201,7 +226,7 @@ final readonly class AccountEditController
 		}
 
 		if (! $this->keepsManager($account, null)) {
-			return self::error(sprintf('%s is the only account left that can manage accounts.', $account->username));
+			return self::error(sprintf('%s is the only account left that can manage accounts and roles.', $account->username));
 		}
 
 		$this->store->delete($account->username);
@@ -251,7 +276,7 @@ final readonly class AccountEditController
 	}
 
 	/**
-	 * Whether someone can still manage accounts once an account is
+	 * Whether someone can still manage accounts and roles once an account is
 	 * changed (or removed, for `null`).
 	 *
 	 * @throws AuthException When an account's record is damaged.
@@ -279,13 +304,14 @@ final readonly class AccountEditController
 	}
 
 	/**
-	 * Returns the signed-in account when it may manage accounts.
+	 * Returns the signed-in account when it may see accounts and use a
+	 * capability.
 	 */
-	private function manager(ServerRequestInterface $request): ?Account
+	private function manager(ServerRequestInterface $request, Capability $capability): ?Account
 	{
 		$account = $request->getAttribute(Account::class);
 
-		return $account instanceof Account && $this->permissions->can($account, Capability::AccountsManage) ? $account : null;
+		return $account instanceof Account && $this->permissions->can($account, Capability::AccountsView) && $this->permissions->can($account, $capability) ? $account : null;
 	}
 
 	/**
@@ -328,7 +354,7 @@ final readonly class AccountEditController
 
 	private static function forbidden(): ResponseInterface
 	{
-		return self::error('You aren\'t allowed to manage accounts.', Status::Forbidden);
+		return self::error('You aren\'t allowed to do that to accounts.', Status::Forbidden);
 	}
 
 	private static function error(string $message, Status $status = Status::UnprocessableContent, ?string $field = null): ResponseInterface

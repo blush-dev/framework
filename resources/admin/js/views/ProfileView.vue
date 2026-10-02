@@ -21,7 +21,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { config } from '../config';
 import { initials } from '../people';
-import { can, loadSession, session } from '../session';
+import { canType, loadSession, session } from '../session';
 import { profileType, loadTypes } from '../types';
 
 const router  = useRouter();
@@ -122,7 +122,7 @@ async function createProfile(): Promise<void> {
 				</template>
 				<template v-else-if="profileState === 'missing'">
 					<p>You don't have a profile yet, so bylines show you as <span class="mono">{{ account.author }}</span>. With one, its title is your name everywhere, and its body is your bio.</p>
-					<p v-if="can('content.create')">
+					<p v-if="profileType !== null && canType(profileType, 'create')">
 						<button type="button" class="button" :disabled="creating" @click="createProfile"><AdminIcon name="plus" />{{ creating ? 'Creating…' : 'Create your profile' }}</button>
 					</p>
 					<p v-else class="field__help">Ask an editor to create it.</p>

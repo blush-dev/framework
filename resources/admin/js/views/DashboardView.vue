@@ -13,7 +13,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import { can, session } from '../session';
+import { canAnyType, canType, session } from '../session';
 import { ApiError, request, type ActionDescription, type ActionResult, type Dashboard } from '../api';
 import { loadTypes, types } from '../types';
 
@@ -70,7 +70,7 @@ function share(value: number, total: number): string {
 const steps = computed(() => [
 	...types.value.filter((type) => type.kind === 'pages'),
 	...types.value.filter((type) => type.kind === 'collection')
-]);
+].filter((type) => canType(type.name, 'create')));
 
 const empty = computed(() => dashboard.value?.content.total === 0);
 
@@ -85,7 +85,7 @@ const greeting = computed(() => {
 onMounted(() => {
 	void load();
 
-	if (can('content.create')) {
+	if (canAnyType('create')) {
 		loadTypes().catch(() => undefined);
 	}
 });
@@ -129,7 +129,7 @@ onMounted(() => {
 				<h2 id="setup-heading">Get Started</h2>
 				<p class="panel__hint">The site has no content yet</p>
 			</header>
-			<ol v-if="can('content.create') && steps.length" class="setup">
+			<ol v-if="steps.length" class="setup">
 				<li v-for="(type, index) in steps" :key="type.name" class="setup__step">
 					<span class="setup__number" aria-hidden="true">{{ index + 1 }}</span>
 					<span class="setup__text">

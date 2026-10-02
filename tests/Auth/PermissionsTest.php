@@ -20,6 +20,7 @@ use Blush\Auth\AuthConfig;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
@@ -32,6 +33,8 @@ use Blush\Tests\BootsScratchSite;
 #[CoversClass(Permissions::class)]
 #[CoversClass(Capabilities::class)]
 #[CoversClass(Capability::class)]
+#[CoversClass(ContentAction::class)]
+#[CoversClass(Role::class)]
 #[CoversClass(BuiltInRole::class)]
 final class PermissionsTest extends TestCase
 {
@@ -81,21 +84,23 @@ final class PermissionsTest extends TestCase
 		$this->assertTrue($permissions->can($this->account('editor'), Capability::SitePublish));
 		$this->assertFalse($permissions->can($this->account('author'), 'site.publish'));
 		$this->assertTrue($permissions->can($this->account('administrator'), 'anything.an.extension.adds'));
-		$this->assertFalse($permissions->can($this->account('ghost'), 'content.edit'), 'An unknown role grants nothing.');
-		$this->assertTrue($permissions->can(new Account('two', 'hash', ['ghost', 'author']), 'content.edit'));
+		$this->assertFalse($permissions->can($this->account('ghost'), ContentAction::Edit), 'An unknown role grants nothing.');
+		$this->assertTrue($permissions->can(new Account('two', 'hash', ['ghost', 'author']), ContentAction::Edit));
+		$this->assertTrue($permissions->can($this->account('author'), 'content.page.edit'), 'Every type\'s capability grants each type\'s.');
+		$this->assertTrue($permissions->can($this->account('author'), ContentAction::Create, 'profile'));
 	}
 
 	public function testOthersEntriesNeedTheOthersCapability(): void
 	{
 		$permissions = $this->permissions();
 
-		$this->assertTrue($permissions->can($this->account('author'), 'content.edit', $this->entry('mine')));
-		$this->assertFalse($permissions->can($this->account('author'), 'content.edit', $this->entry('theirs')));
-		$this->assertTrue($permissions->can($this->account('editor'), 'content.edit', $this->entry('theirs')));
-		$this->assertFalse($permissions->can($this->account('author', null), 'content.edit', $this->entry('mine')), 'No author, no entries of its own.');
+		$this->assertTrue($permissions->can($this->account('author'), ContentAction::Edit, $this->entry('mine')));
+		$this->assertFalse($permissions->can($this->account('author'), ContentAction::Edit, $this->entry('theirs')));
+		$this->assertTrue($permissions->can($this->account('editor'), ContentAction::Edit, $this->entry('theirs')));
+		$this->assertFalse($permissions->can($this->account('author', null), ContentAction::Edit, $this->entry('mine')), 'No author, no entries of its own.');
 		$this->assertTrue($permissions->owns($this->account('author'), $this->entry('mine')));
-		$this->assertTrue($permissions->can($this->account('author'), 'content.edit', $this->entry('jane', 'profile')), 'An account\'s profile is its own.');
-		$this->assertFalse($permissions->can($this->account('author'), 'content.edit', $this->entry('sam', 'profile')));
+		$this->assertTrue($permissions->can($this->account('author'), ContentAction::Edit, $this->entry('jane', 'profile')), 'An account\'s profile is its own.');
+		$this->assertFalse($permissions->can($this->account('author'), ContentAction::Edit, $this->entry('sam', 'profile')));
 	}
 
 	public function testContributorsStayInDrafts(): void
@@ -103,11 +108,11 @@ final class PermissionsTest extends TestCase
 		$permissions = $this->permissions();
 		$contributor = $this->account('contributor');
 
-		$this->assertTrue($permissions->can($contributor, 'content.edit', $this->entry('my-draft')));
-		$this->assertTrue($permissions->can($contributor, 'content.delete', $this->entry('my-draft')));
-		$this->assertFalse($permissions->can($contributor, 'content.edit', $this->entry('mine')));
-		$this->assertFalse($permissions->can($contributor, 'content.publish', $this->entry('my-draft')));
-		$this->assertTrue($permissions->can($this->account('author'), 'content.edit', $this->entry('mine')));
+		$this->assertTrue($permissions->can($contributor, ContentAction::Edit, $this->entry('my-draft')));
+		$this->assertTrue($permissions->can($contributor, ContentAction::Delete, $this->entry('my-draft')));
+		$this->assertFalse($permissions->can($contributor, ContentAction::Edit, $this->entry('mine')));
+		$this->assertFalse($permissions->can($contributor, ContentAction::Publish, $this->entry('my-draft')));
+		$this->assertTrue($permissions->can($this->account('author'), ContentAction::Edit, $this->entry('mine')));
 	}
 
 	public function testListsAnAccountsCapabilities(): void
@@ -116,15 +121,20 @@ final class PermissionsTest extends TestCase
 		$capabilities->register('shop.orders', 'Manage orders');
 
 		$this->assertContains('shop.orders', $this->permissions()->capabilities($this->account('administrator')));
-		$this->assertSame(['content.create', 'content.edit', 'content.delete'], $this->permissions()->capabilities($this->account('contributor')));
+		$this->assertSame(
+			['content.*.create', 'content.*.edit', 'content.*.delete', 'content.page.create', 'content.page.edit', 'content.page.delete'],
+			array_values(array_filter($this->permissions()->capabilities($this->account('contributor')), static fn (string $name): bool => ! str_starts_with($name, 'content.') || preg_match('/^content\.(\*|page)\./', $name) === 1))
+		);
+		$this->assertContains('content.profile.edit', $this->permissions()->capabilities($this->account('contributor')));
 	}
 
 	public function testRestrictsQueriesToWhatCanAllows(): void
 	{
 		$permissions = new Permissions(
 			new Roles(new AuthConfig(roles: [
-				new Role('reviewer', 'Reviewer', ['content.edit', 'content.edit.others', 'content.publish', 'content.delete']),
-				new Role('proofreader', 'Proofreader', ['content.edit.others', 'content.publish.others'])
+				new Role('reviewer', 'Reviewer', ['content.*.edit', 'content.*.edit.others', 'content.*.publish', 'content.*.delete']),
+				new Role('proofreader', 'Proofreader', ['content.*.edit.others', 'content.*.publish.others']),
+				new Role('pager', 'Pager', ['content.page.edit', 'content.page.edit.others', 'content.page.publish', 'content.profile.edit'])
 			]), new MemoryRoleStore()),
 			$this->app->container()->make(Capabilities::class),
 			$this->app->container()->make(ContentTypes::class)
@@ -132,16 +142,16 @@ final class PermissionsTest extends TestCase
 
 		$content  = $this->app->container()->make(ContentRepository::class);
 		$entries  = $content->query()->any()->get()->all();
-		$roles    = ['administrator', 'editor', 'author', 'contributor', 'reviewer', 'proofreader', 'ghost'];
+		$roles    = ['administrator', 'editor', 'author', 'contributor', 'reviewer', 'proofreader', 'pager', 'ghost'];
 		$checked  = 0;
 
 		foreach ($roles as $role) {
 			foreach (['jane', null] as $author) {
-				foreach (['content.edit', 'content.publish', 'content.delete'] as $capability) {
+				foreach ([ContentAction::Edit, ContentAction::Publish, ContentAction::Delete] as $capability) {
 					$account  = $this->account($role, $author);
 					$allowed  = array_values(array_filter($entries, static fn (Entry $entry): bool => $permissions->can($account, $capability, $entry)));
 					$found    = $permissions->restrict($account, $capability, $content->query()->any())->get()->all();
-					$describe = sprintf('%s (author %s), %s', $role, $author ?? 'none', $capability);
+					$describe = sprintf('%s (author %s), %s', $role, $author ?? 'none', $capability->value);
 
 					$this->assertSame(
 						array_map(static fn (Entry $entry): string => $entry->id, $allowed),
@@ -157,8 +167,13 @@ final class PermissionsTest extends TestCase
 		$this->assertGreaterThan(0, $checked);
 		$this->assertSame(
 			['mine.md', 'my-draft.md', 'my-scheduled.md', 'profiles/jane.md', 'their-draft.md'],
-			array_map(static fn (Entry $entry): string => $entry->id, $permissions->restrict($this->account('reviewer'), 'content.edit', $content->query()->any())->get()->all()),
+			array_map(static fn (Entry $entry): string => $entry->id, $permissions->restrict($this->account('reviewer'), ContentAction::Edit, $content->query()->any())->get()->all()),
 			'A reviewer edits their own entries (and profile) and others\' drafts, but not others\' live entries.'
+		);
+		$this->assertSame(
+			['mine.md', 'my-draft.md', 'my-scheduled.md', 'their-draft.md'],
+			array_map(static fn (Entry $entry): string => $entry->id, $permissions->restrict($this->account('pager'), ContentAction::Edit, $content->query()->any())->get()->all()),
+			'Each type\'s capabilities are its own: publishing pages doesn\'t publish the account\'s live profile, or others\' pages.'
 		);
 	}
 }

@@ -5,12 +5,25 @@
  */
 
 import { ref } from 'vue';
-import { request, type EntryStatus } from './api';
+import { request, type ContentTypeSummary, type EntryStatus } from './api';
+import type { ContentAction } from './session';
 
 export interface CapabilityInfo {
 	name: string;
 	label: string;
+	// The group the role screen shows it in: Media, Site, a type's plural…
+	group: string;
+	// A content capability's type (`*` for every type) and action (D-359).
+	type?: string;
+	action?: ContentAction;
 }
+
+// Whether a role's screen shows each capability's key; it lasts while
+// the admin's open, on every role.
+export const showKeys = ref(false);
+
+// A content type, as the role screen shows it.
+export type RoleType = Pick<ContentTypeSummary, 'name' | 'kind' | 'icon'> & { label: string };
 
 // Where a role comes from: built in, a built-in whose capabilities were
 // changed here, made here, or `config/auth.php`.
@@ -58,6 +71,7 @@ export interface AccountInfo {
 
 export interface RoleList {
 	capabilities: CapabilityInfo[];
+	types: RoleType[];
 	roles: RoleInfo[];
 	all: string;
 }
@@ -199,10 +213,29 @@ export function setPassword(account: string, token: string, password: string): P
 }
 
 /**
+ * Whether a capability with `*` words matches another: `content.*.edit`
+ * matches `content.post.edit` (D-359).
+ */
+export function matches(pattern: string, capability: string): boolean {
+	if (pattern === capability) {
+		return true;
+	}
+
+	if (!pattern.includes('*')) {
+		return false;
+	}
+
+	const parts = pattern.split('.');
+	const words = capability.split('.');
+
+	return parts.length === words.length && parts.every((part, index) => part === '*' || part === words[index]);
+}
+
+/**
  * Whether a role grants a capability.
  */
 export function grants(role: Pick<RoleInfo, 'capabilities'>, capability: string, all: string): boolean {
-	return role.capabilities.includes(all) || role.capabilities.includes(capability);
+	return role.capabilities.includes(all) || role.capabilities.some((granted) => matches(granted, capability));
 }
 
 /**
@@ -242,21 +275,6 @@ export function statusPill(status: AccountStatus): { label: string; kind: string
 	}[status];
 }
 
-/**
- * Capabilities in groups by their first word ("content.edit" is Content).
- */
-export function capabilityGroups(capabilities: CapabilityInfo[]): { name: string; capabilities: CapabilityInfo[] }[] {
-	const groups = new Map<string, CapabilityInfo[]>();
-
-	for (const capability of capabilities) {
-		const first = capability.name.split('.')[0] ?? capability.name;
-		const name  = first.charAt(0).toUpperCase() + first.slice(1);
-
-		groups.set(name, [...(groups.get(name) ?? []), capability]);
-	}
-
-	return [...groups].map(([name, list]) => ({ name, capabilities: list }));
-}
 
 /**
  * When something happened, from a Unix time, for reading.

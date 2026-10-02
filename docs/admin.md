@@ -129,7 +129,9 @@ shown with their `icon` (see
 **Config**, **Settings** has General, Reading, Addresses and Search, and
 System, and **Customize** has Themes and Extensions. You only see the
 screens your roles allow: Media needs `media.upload`, Accounts and
-Roles `accounts.manage`, Profiles `content.edit`, and
+Roles `accounts.view` (and New Account `accounts.create`, New Role
+`roles.manage`), Profiles editing profiles, each content type
+editing its entries, and
 Content types, Settings, Themes, and Extensions
 `site.settings`.
 
@@ -930,7 +932,7 @@ profile's screen:
   bylines, as a guest profile.
 
 You see the profiles you may edit: your own, or anyone's with
-`content.edit.others`.
+`content.profile.edit.others` (or the type's name on your site).
 
 ### Accounts
 
@@ -938,8 +940,9 @@ You see the profiles you may edit: your own, or anyone's with
 their status and a search. Each row shows the username, roles, its
 **Profile** (its name, with its status when it isn't published yet, or
 the slug when it's linked to a profile with no file), and the last
-sign-in. **New Account** makes one; **Roles** lists each role with how
-many capabilities it has and who holds it.
+sign-in. **New Account** makes one; **Roles** lists each role with its
+description, the content types it reaches (every type, some, or none)
+and how many site capabilities it has, and how many accounts hold it.
 
 - **New Account** asks for a username, its roles, and optionally a
   [name](accounts.md#names) and its profile, picked from the profiles
@@ -968,15 +971,41 @@ many capabilities it has and who holds it.
 
 ### Roles
 
+A role's screen shows its key, where it comes from, and who holds it,
+then its capabilities in sections: **Site Capabilities** (Media,
+Structure, Site, People, and any an extension adds) and **Content
+Capabilities**, **Every Type** first, then one section for each
+content type. Each section says in a sentence what the role can do; open it
+to tick or untick its capabilities. **Expand all** opens every section,
+and **Show keys** shows each capability's key.
+
+- Whatever **Every Type** grants applies to every content type,
+  including ones added later, and shows ticked (and fixed) in each
+  type's section. A type it grants everything on says **Set by Every
+  Type**. To let a role do less on one type, choose **Set each
+  type separately** from Every Type's **⋮** first: it moves those
+  capabilities into each type there is now (types added later then
+  get nothing).
+- Each section's **⋮** sets the whole section at once: a type's to
+  **Full access**, **Their own only**, **Drafts only**, or **No
+  access**; a site group's to everything or nothing.
+- Ticking **anyone's** ticks **their own** too, and unticking their own
+  unticks anyone's: one without the other does nothing.
+- Changes wait in the **save bar** at the bottom, which counts them;
+  **Save changes** saves, **Revert** puts them back, and a section with
+  unsaved changes says **Changes**.
 - **New Role** makes a role from a name, a key, a description, and its
-  capabilities. **Duplicate** on any role starts a new one with its
-  capabilities ticked.
-- A role you made can be renamed, described, given or denied
-  capabilities, and deleted once no account holds it.
+  capabilities, in the same sections. **Duplicate** on any role starts a
+  new one with its capabilities ticked.
+- A role you made can be renamed (**⋮ → Rename this role**), described,
+  given or denied capabilities, and deleted (**⋮ → Delete this role**)
+  once no account holds it. **⋮ → Copy as JSON** copies any role.
 - The built-in Editor, Author, and Contributor keep their names, but
-  their capabilities can change; **Reset to built-in** puts them back.
-- The Administrator always has every capability, and roles defined in
-  `config/auth.php` are changed there, so both are shown read-only.
+  their capabilities can change; **⋮ → Reset to built-in capabilities**
+  puts them back.
+- The Administrator always has every capability, so its screen says so
+  instead of listing them. Roles defined in `config/auth.php` are
+  changed there, so they're shown read-only.
 
 ### What you can't do
 
@@ -987,8 +1016,11 @@ everyone out:
   or change an account that can do something you can't.
 - You can't change your own account here. Your password is on **Your
   profile**; someone else (or `bin/blush`) changes the rest.
-- A change that would leave no account able to manage accounts is
-  refused.
+- A change that would leave no account able to manage accounts and
+  roles (holding all seven of those capabilities) is refused.
+- Each action has its own capability, so a role may, say, see accounts
+  and suspend them but nothing else. Controls you can't use aren't
+  shown.
 
 ## Trash
 
@@ -1084,15 +1116,15 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST media` | Upload a file to the library (see below) |
 | `PATCH media/{path}` | Change a library file's details (see below) |
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
-| `GET roles` | Every capability (`{"name", "label"}`) and role: `{"name", "label", "description", "capabilities", "builtIn", "origin", "accounts", "grantable", "editable"}` (`accounts` is each holder's `{"username", "displayName"}`), and a changed built-in's `defaults`. `origin` is `built-in`, `changed`, `custom`, or `config`; `grantable` is whether you may give it, and `editable` whether you may change it. Needs `accounts.manage`, as do all of these |
+| `GET roles` | Every capability (`{"name", "label", "group"}`, and a content capability's `type`, `*` for every type, and `action`), the content `types` (`{"name", "label", "kind", "icon"}`), and every role: `{"name", "label", "description", "capabilities", "builtIn", "origin", "accounts", "grantable", "editable"}` (`accounts` is each holder's `{"username", "displayName"}`), and a changed built-in's `defaults`. `origin` is `built-in`, `changed`, `custom`, or `config`; `grantable` is whether you may give it, and `editable` whether you may change it. Needs `accounts.view`, as do all of these; each change needs its own capability too (`accounts.create`, `accounts.edit`, `accounts.roles`, `accounts.suspend`, `accounts.delete`, or `roles.manage`; see [Capabilities](accounts.md#capabilities)) |
 | `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
 | `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
 | `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
 | `GET accounts` | Every account: `{"username", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `name` is its own name or `null`; `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `displayName` is what the admin calls it, its one name: its profile's title, else the name, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
-| `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `status` `null` for one credited without a file and `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.manage` |
-| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "id", "handle", "url", "uses"}` (`status`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"id", "handle", "title", "status"}`) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.manage` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with `content.edit.others`) |
-| `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs `content.create` |
-| `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's bio again; answers `{"removed"}`. Needs `content.delete` |
+| `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `status` `null` for one credited without a file and `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.view` |
+| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "id", "handle", "url", "uses"}` (`status`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"id", "handle", "title", "status"}`) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
+| `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs to create entries of that type |
+| `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's bio again; answers `{"removed"}`. Needs to delete that page |
 | `POST accounts` | Make an account: `{"username", "roles", "author", "name"}` (the last two optional); answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
 | `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (its profile's slug, `null` unlinks; a profile another account has is a `422` with `field: author`), `name` (`null` or empty removes it), and `suspended`; answers `{"account"}` |
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
@@ -1116,7 +1148,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE fields/sets/{name}` | Delete a `user/data/fields` set's file; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
-| `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs `content.edit.others` |
+| `GET health` | Content problems by file, with counts (`?strict=1` adds notices); needs to edit anyone's entries of some type |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
 | `GET entries/{id}` | An entry for editing (see below) |
 | `GET content/{type}/{key}` | The same, found by its handle, such as `content/post/hello` |
@@ -1124,7 +1156,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
 | `DELETE entries/{id}?revision=…` | Move an entry to the trash |
 | `POST entries/bulk` | Publish, move to draft, or trash several entries at once (see below) |
-| `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above); answers `201` with the copy as `GET entries/{id}` shows it. Needs `content.create` and the right to edit the entry; an index page is refused with a `422` |
+| `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above); answers `201` with the copy as `GET entries/{id}` shows it. Needs to create entries of its type and to edit the entry; an index page is refused with a `422` |
 | `GET trash` | The trashed entries the account may handle, newest first (`?type=` for one type): `{"trash": [{"id", "entry", "title", "type", "bundle", "trashed", "authors", "own"}]}` |
 | `GET trash/{id}` | One trashed entry, as in `GET trash`, with its `frontMatter` and `body`; 404 if it isn't there or the account can't handle it |
 | `POST trash/restore` | Restore `{"id"}` as a draft: `{"id"}` is the entry's id again; 409 when something else has its place |
@@ -1141,8 +1173,8 @@ Once signed in, send the token from `session` or `login` in an
 `ids` (1 to 100 entry ids). Each entry is changed as it is now, so no
 `revision` is needed: a status change or a move to the trash doesn't
 overwrite anyone's writing. Each is checked on its own, with the same
-rules as a single change: `content.edit` for the entry, `content.publish`
-for anything that isn't a draft, `content.delete` to trash it, required
+rules as a single change, with the entry's type's capabilities: editing
+the entry, publishing anything that isn't a draft, deleting to trash it, required
 fields filled to publish, and never an index page in the trash. The
 answer is `action`, `done` (the ids changed), and `skipped` (each with
 its `id`, `title`, and the `reason`); an entry that couldn't be changed
@@ -1177,7 +1209,7 @@ unsorted), `tree` (whether it's in tree order), `total`, `page`,
 `url` (its path on the site, where it is or will be once published, or
 `null`), authors, whether it's the account's own, `index`, a profile's
 `linked` (whether an account is linked to it) and `account` (`{"username",
-"displayName"}`, with `accounts.manage`, else `null`),
+"displayName"}`, with `accounts.view`, else `null`),
 `can.delete` and `can.duplicate`, and `ancestors`: the titles of the entries above it, from
 the top down (a page's parent pages, or a hierarchical term's parents;
 empty for the rest). With a `type` whose entries nest (pages, or a
@@ -1313,7 +1345,7 @@ entries/{id}` answers with:
 - `slug`: the last part of its key.
 - `can`: whether the account may edit, publish, rename, delete, and
   duplicate it (`rename` and `duplicate` are `false` for a landing page;
-  `duplicate` needs `content.create`).
+  `duplicate` needs to create entries of its type).
 - `index`: whether it's its type's index page. An index page's `type`
   describes only its `title` and `status` fields (the rest of its front
   matter is in `extra`), and `can.delete` is `false`.
@@ -1352,7 +1384,8 @@ New entries are drafts unless `status` says otherwise, credit the
 account's author, and dated types get today's date.
 
 What an account may do follows its [capabilities](accounts.md#capabilities):
-editing needs `content.edit` for that entry, anything that leaves an
-entry published or scheduled needs `content.publish`, and taking your
-own author off an entry needs `content.edit.others`. So a contributor
+each is its type's (`content.post.edit` for a post). Editing needs
+`edit` for that entry, anything that leaves an entry published or
+scheduled needs `publish`, and taking your own author off an entry
+needs `edit.others`. So a contributor
 can create and change drafts, but never publish them.

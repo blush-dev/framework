@@ -1,26 +1,32 @@
 <script setup lang="ts">
 /**
- * One role (D-249): what it is, who holds it, and each capability it
- * grants or doesn't, in groups. A role you may change (D-312) is edited
- * here: a custom role's name, description, and capabilities, or a
- * built-in's capabilities, saved with **Save** or put back with
- * **Revert**; leaving with changes unsaved asks first. Its Danger Zone
- * deletes a custom role no account holds, or resets a changed built-in.
- * **Duplicate** starts a new role from this one's capabilities.
+ * One role (D-249), as the capability sections sketch draws it (D-359):
+ * a header with what it's for and a strip of facts (its key, where it
+ * comes from, who holds it), then its capabilities in sections
+ * (`CapabilitySections`). A role you may change (D-312) is edited in
+ * place: ticking anything brings up the save bar, which counts the
+ * changes and saves or reverts them; leaving with changes unsaved asks
+ * first. The header's ⋮ renames a custom role, copies the role as JSON
+ * (for `config/auth.php`), and resets a changed built-in or deletes a
+ * custom role. **Duplicate** starts a new role from this one's
+ * capabilities.
  *
- * The administrator always has everything, roles from `config/auth.php`
- * are changed there, and a role that can do things you can't isn't
- * yours to change; those are shown read-only.
+ * The administrator always has everything, so its capabilities are one
+ * statement rather than every box ticked. Roles from `config/auth.php`,
+ * and a role that can do things you can't, are shown read-only, with
+ * the reason.
  */
 
 import { computed, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import CapabilityChecks from '../components/CapabilityChecks.vue';
+import CapabilitySections from '../components/CapabilitySections.vue';
+import MenuButton from '../components/MenuButton.vue';
 import { ApiError } from '../api';
 import { plural } from '../format';
-import { capabilityGroups, deleteRole, grants, initials, loadRoles, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
+import { deleteRole, initials, loadRoles, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
+import { can } from '../session';
 import { toast } from '../toast';
 
 const route  = useRoute();
@@ -34,12 +40,10 @@ loadRoles().then((answer) => {
 	error.value = caught instanceof ApiError ? caught.message : 'The role couldn\'t be loaded.';
 });
 
-const role   = computed(() => list.value?.roles.find((item) => item.name === route.params.name));
-const all    = computed(() => list.value?.all ?? '*');
-const total  = computed(() => list.value?.capabilities.length ?? 0);
-const count  = computed(() => role.value === undefined ? 0 : list.value?.capabilities.filter((capability) => grants(role.value!, capability.name, all.value)).length ?? 0);
-const groups = computed(() => capabilityGroups(list.value?.capabilities ?? []));
-const custom = computed(() => role.value?.origin === 'custom');
+const role       = computed(() => list.value?.roles.find((item) => item.name === route.params.name));
+const all        = computed(() => list.value?.all ?? '*');
+const everything = computed(() => role.value?.capabilities.includes(all.value) ?? false);
+const custom     = computed(() => role.value?.origin === 'custom');
 
 watch(role, (value) => {
 	screenTitle.value = value?.label ?? null;
@@ -49,12 +53,8 @@ watch(role, (value) => {
 const lockedBecause = computed(() => {
 	const value = role.value;
 
-	if (value === undefined || value.editable) {
+	if (value === undefined || value.editable || everything.value) {
 		return '';
-	}
-
-	if (value.capabilities.includes(all.value)) {
-		return 'The administrator always has every capability, so it can\'t change.';
 	}
 
 	return value.origin === 'config'
@@ -62,10 +62,17 @@ const lockedBecause = computed(() => {
 		: 'This role can do things you can\'t, so you can\'t change it.';
 });
 
+// Who holds it: a face for each of the first few, and where to see them.
+const holders = computed(() => role.value?.accounts ?? []);
+const holdersLink = computed(() => holders.value.length === 1 && holders.value[0] !== undefined
+	? { name: 'account', params: { username: holders.value[0].username } }
+	: { name: 'accounts' });
+
 // The form: what's on screen, and what was loaded.
 const label        = ref('');
 const description  = ref('');
 const capabilities = ref<string[]>([]);
+const renaming     = ref(false);
 const saving       = ref(false);
 const failure      = ref('');
 
@@ -73,6 +80,7 @@ function reset(value: RoleInfo | undefined): void {
 	label.value        = value?.label ?? '';
 	description.value  = value?.description ?? '';
 	capabilities.value = value ? [...value.capabilities] : [];
+	renaming.value     = false;
 	failure.value      = '';
 }
 
@@ -92,6 +100,21 @@ const changes = computed(() => {
 		...(custom.value && description.value.trim() !== value.description ? { description: description.value } : {}),
 		...(sameSet(capabilities.value, value.capabilities) ? {} : { capabilities: capabilities.value })
 	};
+});
+
+// How many things changed: each capability ticked or cleared, and the
+// name and description.
+const count = computed(() => {
+	const value = role.value;
+
+	if (value === undefined) {
+		return 0;
+	}
+
+	const ticked  = capabilities.value.filter((item) => !value.capabilities.includes(item)).length;
+	const cleared = value.capabilities.filter((item) => !capabilities.value.includes(item)).length;
+
+	return ticked + cleared + ('label' in changes.value ? 1 : 0) + ('description' in changes.value ? 1 : 0);
 });
 
 const changed = computed(() => Object.keys(changes.value).length > 0);
@@ -124,7 +147,7 @@ async function save(): Promise<void> {
 	}
 }
 
-// The Danger Zone: delete a custom role, or reset a changed built-in.
+// The ⋮'s last item: delete a custom role, or reset a changed built-in.
 const removal = ref('');
 
 async function remove(): Promise<void> {
@@ -164,274 +187,267 @@ async function remove(): Promise<void> {
 	}
 }
 
+// The role as `config/auth.php` or `storage/roles.json` would hold it.
+async function copyJson(): Promise<void> {
+	const value = role.value;
+
+	if (value === undefined) {
+		return;
+	}
+
+	const json = { name: value.name, label: value.label, capabilities: value.capabilities, ...(value.description === '' ? {} : { description: value.description }) };
+
+	try {
+		await navigator.clipboard.writeText(JSON.stringify(json, null, '\t'));
+		toast(`Copied ${value.label} as JSON`);
+	} catch {
+		removal.value = 'The role couldn\'t be copied.';
+	}
+}
+
 onBeforeRouteLeave(() => !changed.value || window.confirm('Leave without saving? Your changes will be lost.'));
 </script>
 
 <template>
-	<header class="page-header">
-		<div class="page-header__text">
-			<h1 tabindex="-1">{{ role?.label ?? 'Role' }}</h1>
-			<p v-if="role" class="page-header__hint">
-				{{ role.capabilities.includes(all) ? 'Every capability' : `${count} of ${total} capabilities` }} · held by {{ plural(role.accounts.length, 'account') }}
-			</p>
-		</div>
-		<div class="page-header__actions">
-			<RouterLink v-if="role && !role.capabilities.includes(all)" class="button" :to="{ name: 'role-new', query: { from: role.name } }"><AdminIcon name="copy" />Duplicate</RouterLink>
-			<RouterLink class="button" :to="{ name: 'roles' }"><AdminIcon name="arrow-left" />All roles</RouterLink>
-		</div>
-	</header>
-
-	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-	<p v-else-if="list && !role" class="notice notice--error" role="alert">There's no “{{ route.params.name }}” role.</p>
-	<p v-if="lockedBecause" class="notice notice--warn"><span>{{ lockedBecause }}</span></p>
-
-	<form v-if="role" class="detail" @submit.prevent="save">
-		<div class="detail__side">
-			<section class="panel" aria-labelledby="about-heading">
-				<header class="panel__header">
-					<h2 id="about-heading">About</h2>
-					<p v-if="!role.editable" class="panel__hint">Read-only</p>
-				</header>
-				<div class="panel__body about">
-					<template v-if="role.editable && custom">
-						<div class="field">
-							<label for="role-label">Name</label>
-							<input id="role-label" v-model="label" autocomplete="off" required>
-						</div>
-						<div class="field">
-							<label for="role-description">Description</label>
-							<input id="role-description" v-model="description" autocomplete="off">
-						</div>
-					</template>
-					<p v-else-if="role.description" class="about__description">{{ role.description }}</p>
-					<dl class="facts">
-						<div><dt>Key</dt><dd class="mono">{{ role.name }}</dd></div>
-						<div><dt>Capabilities</dt><dd class="mono">{{ role.capabilities.includes(all) ? 'all' : `${count} / ${total}` }}</dd></div>
-						<div><dt>Source</dt><dd>{{ originOf(role) }}</dd></div>
-					</dl>
-					<p v-if="role.editable && !custom" class="field__help">A built-in role keeps its name; its capabilities can change, and reset.</p>
+	<form v-if="role" class="role" @submit.prevent="save">
+		<header class="page-header">
+			<div class="page-header__text role__head">
+				<h1 tabindex="-1">{{ role.label }}</h1>
+				<p v-if="role.description" class="page-header__hint">{{ role.description }}</p>
+				<div class="role__facts">
+					<span class="role__fact"><AdminIcon name="key-round" /><span class="mono">{{ role.name }}</span></span>
+					<span class="role__divider" aria-hidden="true" />
+					<span class="role__fact">{{ originOf(role) }}</span>
+					<span class="role__divider" aria-hidden="true" />
+					<span class="role__fact">
+						<template v-if="holders.length">
+							<span class="role__faces" aria-hidden="true">
+								<span v-for="holder in holders.slice(0, 3)" :key="holder.username" class="role__face">{{ initials(holder.displayName) }}</span>
+							</span>
+							<RouterLink :to="holdersLink">{{ holders.length === 1 ? holders[0]?.displayName : plural(holders.length, 'account') }}</RouterLink>
+						</template>
+						<template v-else>Nobody holds it</template>
+					</span>
 				</div>
-			</section>
-
-			<section class="panel" aria-labelledby="held-heading">
-				<header class="panel__header">
-					<h2 id="held-heading">Held By</h2>
-					<p class="panel__hint">{{ role.accounts.length ? plural(role.accounts.length, 'account') : 'Nobody' }}</p>
-				</header>
-				<ul v-if="role.accounts.length" class="panel__body people">
-					<li v-for="holder in role.accounts" :key="holder.username">
-						<span class="people__avatar" aria-hidden="true">{{ initials(holder.displayName) }}</span>
-						<RouterLink :to="{ name: 'account', params: { username: holder.username } }">{{ holder.displayName }}</RouterLink>
-					</li>
-				</ul>
-				<div v-else class="empty">
-					<AdminIcon name="key-round" />
-					<p class="empty__heading">No Accounts Have This Role</p>
-					<p class="empty__text">Give it to an account on that account's screen.</p>
-					<RouterLink class="button" :to="{ name: 'accounts' }">Go to accounts</RouterLink>
-				</div>
-			</section>
-
-			<section v-if="role.editable && role.origin !== 'built-in'" class="panel" aria-labelledby="danger-heading">
-				<header class="panel__header">
-					<h2 id="danger-heading">Danger Zone</h2>
-				</header>
-				<div class="panel__body danger">
-					<button type="button" class="button button--danger button--small" @click="remove">
-						<template v-if="custom"><AdminIcon name="x" />Delete this role</template>
-						<template v-else><AdminIcon name="refresh-cw" />Reset to built-in</template>
-					</button>
-					<p v-if="removal" class="field__error" role="alert">{{ removal }}</p>
-					<p class="field__help">{{ custom ? 'Accounts that hold it must give it up first.' : `Gives ${role.label} back the capabilities it's built with.` }}</p>
-				</div>
-			</section>
-		</div>
-
-		<div class="detail__main">
-			<section class="panel" aria-labelledby="capabilities-heading">
-				<header class="panel__header">
-					<h2 id="capabilities-heading">Capabilities</h2>
-					<p class="panel__hint">{{ role.capabilities.includes(all) ? 'All granted' : `${role.editable ? capabilities.length : count} granted` }}</p>
-				</header>
-				<CapabilityChecks v-if="role.editable" v-model="capabilities" :capabilities="list?.capabilities ?? []" id-prefix="capability-" />
-				<template v-else>
-					<div v-for="group in groups" :key="group.name" class="capabilities">
-						<h3>{{ group.name }}</h3>
-						<ul>
-							<li v-for="capability in group.capabilities" :key="capability.name" :class="grants(role, capability.name, all) ? 'is-on' : 'is-off'">
-								<AdminIcon :name="grants(role, capability.name, all) ? 'circle-check' : 'x'" />
-								<span>{{ capability.label }}<span class="visually-hidden">: {{ grants(role, capability.name, all) ? 'granted' : 'not granted' }}</span></span>
-								<code>{{ capability.name }}</code>
-							</li>
-						</ul>
-					</div>
-				</template>
-			</section>
-
-			<div v-if="role.editable" class="save">
-				<p v-if="failure" class="field__error" role="alert">{{ failure }}</p>
-				<button type="submit" class="button button--primary" :disabled="!changed || saving">{{ saving ? 'Saving…' : 'Save' }}</button>
-				<button v-if="changed" type="button" class="button button--ghost" :disabled="saving" @click="reset(role)">Revert</button>
 			</div>
+			<div class="page-header__actions">
+				<RouterLink v-if="!everything && can('roles.manage')" class="button" :to="{ name: 'role-new', query: { from: role.name } }"><AdminIcon name="copy" />Duplicate</RouterLink>
+				<RouterLink class="button" :to="{ name: 'roles' }"><AdminIcon name="arrow-left" />All roles</RouterLink>
+				<MenuButton button-class="button button--icon" label="More actions">
+					<template #button><AdminIcon name="ellipsis" /></template>
+					<button v-if="role.editable && custom" type="button" class="menu-item" @click="renaming = true"><AdminIcon name="pen-line" />Rename this role</button>
+					<button type="button" class="menu-item" @click="copyJson"><AdminIcon name="copy" />Copy as JSON</button>
+					<template v-if="role.editable && role.origin !== 'built-in'">
+						<div class="menu-divider" />
+						<button v-if="custom" type="button" class="menu-item menu-item--danger" @click="remove"><AdminIcon name="trash-2" />Delete this role</button>
+						<button v-else type="button" class="menu-item menu-item--described" @click="remove">
+							<AdminIcon name="refresh-cw" />
+							<span>
+								<span class="menu-item__name">Reset to built-in capabilities</span>
+								<span class="menu-item__text">Puts back the capabilities {{ role.label }} ships with.</span>
+							</span>
+						</button>
+					</template>
+				</MenuButton>
+			</div>
+		</header>
+
+		<p v-if="removal" class="notice notice--error" role="alert">{{ removal }}</p>
+		<p v-if="lockedBecause" class="notice notice--warn"><span>{{ lockedBecause }}</span></p>
+
+		<section v-if="renaming" class="panel" aria-labelledby="rename-heading">
+			<header class="panel__header">
+				<h2 id="rename-heading">Name and Description</h2>
+			</header>
+			<div class="panel__body role__rename">
+				<div class="field">
+					<label for="role-label">Name</label>
+					<input id="role-label" v-model="label" autocomplete="off" required>
+				</div>
+				<div class="field">
+					<label for="role-key">Key</label>
+					<input id="role-key" :value="role.name" class="mono" disabled aria-describedby="role-key-help">
+					<p id="role-key-help" class="field__help">Names the role in account files. Fixed once it's made.</p>
+				</div>
+				<div class="field role__description">
+					<label for="role-description">Description</label>
+					<input id="role-description" v-model="description" autocomplete="off" aria-describedby="role-description-help">
+					<p id="role-description-help" class="field__help">What it's for, in a line. Shown where roles are given.</p>
+				</div>
+			</div>
+		</section>
+
+		<section v-if="everything" class="panel" aria-labelledby="capabilities-heading">
+			<header class="panel__header">
+				<h2 id="capabilities-heading">Capabilities</h2>
+				<p class="panel__hint">Not editable on this role</p>
+			</header>
+			<div class="role__everything">
+				<AdminIcon name="shield" />
+				<div>
+					<h3>Everything, Including What Doesn't Exist Yet</h3>
+					<p>{{ role.label }} holds every capability on every content type, and any type or capability an extension adds later is included the moment it appears. There's nothing to grant here, so there's nothing to draw.</p>
+					<p>To give someone a narrower set of powers, start a new role from Editor and take things away. At least one account must keep a role that manages accounts.</p>
+					<RouterLink v-if="holders.length" class="button" :to="holdersLink"><AdminIcon name="users" />{{ holders.length === 1 ? 'See the account that holds it' : 'See the accounts that hold it' }}</RouterLink>
+				</div>
+			</div>
+		</section>
+
+		<CapabilitySections v-else-if="list" v-model="capabilities" :capabilities="list.capabilities" :types="list.types" :base="role.capabilities" :readonly="!role.editable" />
+
+		<div v-if="role.editable && (count > 0 || failure)" class="save-bar" role="region" aria-label="Unsaved changes">
+			<span class="save-bar__count" aria-live="polite">{{ count === 1 ? '1 change' : `${count} changes` }}</span>
+			<span v-if="failure" class="save-bar__error" role="alert">{{ failure }}</span>
+			<button type="button" class="button button--ghost button--small" :disabled="saving" @click="reset(role)">Revert</button>
+			<button type="submit" class="button button--primary button--small" :disabled="saving || !changed">{{ saving ? 'Saving…' : 'Save changes' }}</button>
 		</div>
 	</form>
+
+	<template v-else>
+		<header class="page-header">
+			<div class="page-header__text">
+				<h1 tabindex="-1">Role</h1>
+			</div>
+			<div class="page-header__actions">
+				<RouterLink class="button" :to="{ name: 'roles' }"><AdminIcon name="arrow-left" />All roles</RouterLink>
+			</div>
+		</header>
+		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
+		<p v-else-if="list" class="notice notice--error" role="alert">There's no “{{ route.params.name }}” role.</p>
+	</template>
 </template>
 
 <style scoped>
-.detail {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-	align-items: start;
-	gap: 16px;
-}
-
-.detail__side {
-	display: grid;
-	gap: 16px;
-}
-
-.about {
+.role {
 	display: grid;
 	gap: var(--s-4);
+	/* Room under the last section for the save bar. */
+	padding-bottom: var(--s-7);
 }
 
-.about > * + * {
-	margin-top: 0;
+.role__head {
+	gap: 9px;
 }
 
-.about__description {
-	color: var(--fg-2);
-}
-
-.danger {
-	display: grid;
-	justify-items: start;
-	gap: var(--s-2);
-}
-
-.danger > * + * {
-	margin-top: 0;
-}
-
-.detail__main {
-	display: grid;
-	gap: 16px;
-}
-
-.save {
+/* The facts strip: what a card beside the role used to hold. */
+.role__facts {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: var(--s-2);
-}
-
-.save .field__error {
-	flex-basis: 100%;
-	margin: 0;
-}
-
-.facts {
-	display: grid;
-	gap: 8px;
-	margin: 0;
-}
-
-.facts > * + * {
-	margin-top: 0;
-}
-
-.facts div {
-	display: flex;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-.facts dt {
-	color: var(--fg-2);
-}
-
-.facts dd {
-	margin: 0;
-}
-
-.people {
-	display: grid;
-	gap: 8px;
-	margin: 0;
-	list-style: none;
-}
-
-.people li {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-}
-
-.people__avatar {
-	display: grid;
-	place-items: center;
-	width: 24px;
-	height: 24px;
-	border-radius: 50%;
-	background: var(--surface-3);
-	color: var(--fg-2);
-	font-size: var(--text-xs);
-	font-weight: 600;
-	text-transform: uppercase;
-}
-
-.capabilities {
-	padding: 12px var(--pad-x);
-	border-top: 1px solid var(--border);
-}
-
-.capabilities h3 {
-	margin-bottom: 6px;
+	gap: var(--s-3);
+	margin-top: var(--s-2);
 	color: var(--fg-3);
-	font-size: var(--text-xs);
-	font-weight: 600;
-	letter-spacing: .07em;
-	text-transform: uppercase;
-}
-
-.capabilities ul {
-	display: grid;
-	gap: 4px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.capabilities li {
-	display: flex;
-	align-items: center;
-	gap: 8px;
 	font-size: var(--text-sm);
 }
 
-.capabilities li svg {
+.role__fact {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	white-space: nowrap;
+}
+
+.role__fact svg {
+	width: 13px;
+	height: 13px;
+}
+
+.role__fact a {
+	color: var(--accent);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.role__fact a:hover {
+	text-decoration: underline;
+}
+
+.role__divider {
 	flex: none;
-	width: 15px;
-	height: 15px;
+	width: 1px;
+	height: 13px;
+	background: var(--border);
 }
 
-.capabilities code {
-	margin-left: auto;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+.role__faces {
+	display: inline-flex;
+	margin-right: 4px;
 }
 
-.capabilities .is-on svg {
-	color: var(--good);
+.role__face {
+	display: grid;
+	place-items: center;
+	width: 22px;
+	height: 22px;
+	margin-right: -6px;
+	border: 2px solid var(--bg);
+	border-radius: 50%;
+	background: var(--surface-3);
+	color: var(--fg-2);
+	font-size: var(--text-2xs);
+	font-weight: 600;
 }
 
-.capabilities .is-off {
-	color: var(--fg-3);
+.role__rename {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: var(--s-4);
 }
 
-@media (width <= 1100px) {
-	.detail {
+/* Every input the same height, whatever its font, as on New Role. */
+.role__rename input {
+	height: var(--ctl);
+}
+
+.role__description {
+	grid-column: 1 / -1;
+}
+
+.role__rename > * + * {
+	margin-top: 0;
+}
+
+/* The administrator's one statement, in place of every box ticked. */
+.role__everything {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-4);
+	padding: var(--s-6) var(--pad-x);
+}
+
+.role__everything > svg {
+	width: 20px;
+	height: 20px;
+	margin-top: 2px;
+	color: var(--accent);
+}
+
+.role__everything h3 {
+	font-family: var(--font-display);
+	font-size: var(--h2);
+	font-weight: 600;
+}
+
+.role__everything p {
+	max-width: 64ch;
+	margin-top: 7px;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	line-height: 1.6;
+}
+
+.role__everything .button {
+	margin-top: var(--s-4);
+}
+
+@media (width <= 640px) {
+	.role__rename {
 		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.role__everything {
+		padding: var(--s-5) var(--s-4);
 	}
 }
 </style>
