@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use JsonException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
@@ -23,7 +26,6 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionKind;
 use Blush\Http\Response;
 use Blush\Http\Status;
-use Blush\Icon\IconConfig;
 use Blush\Icon\IconPack;
 use Blush\Icon\IconPacks;
 use Blush\Icon\IconPackSource;
@@ -33,9 +35,6 @@ use Blush\Settings\Settings;
 use Blush\Settings\SettingsFile;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
-use JsonException;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Turns icon packs on and off, and deletes them (D-385), for accounts
@@ -43,8 +42,9 @@ use Psr\Http\Message\ServerRequestInterface;
  * `extensions.icon-packs.delete` to delete them (D-389):
  *
  * - `PUT icon-packs/{vendor}/{name}` with `{"enabled": true|false}`
- *   saves the packs turned off in `user/data/settings.json`
- *   (`icons.disabled`), over `config/icons.php`'s `disabled`. A pack
+ *   saves every pack that's on in `user/data/settings.json`
+ *   (`icons.enabled`), Composer's included, over `config/icons.php`
+ *   (D-391); the first save starts from what's on by default. A pack
  *   that's off adds no icons, so anywhere one is used shows nothing.
  *   Answers `{"enabled"}`.
  * - `DELETE icon-packs/{folder}` removes a pack's folder from
@@ -59,7 +59,6 @@ final readonly class IconPackEditController
 	public function __construct(
 		private Paths $paths,
 		private IconPacks $packs,
-		private IconConfig $config,
 		private SettingsFile $settings,
 		private ContentVersion $version,
 		private Bootstrap $bootstrap,
@@ -87,12 +86,9 @@ final readonly class IconPackEditController
 
 		try {
 			$this->settings->update(function (Settings $settings) use ($pack, $enable): Settings {
-				$disabled = $settings->has(Setting::IconPacks) ? self::names($settings->get(Setting::IconPacks)) : $this->config->disabled;
-				$disabled = $enable
-					? array_values(array_diff($disabled, [$pack->name]))
-					: [...$disabled, $pack->name];
+				$enabled = array_values(array_diff($settings->has(Setting::IconPacks) ? self::names($settings->get(Setting::IconPacks)) : array_keys($this->packs->enabled()), [$pack->name]));
 
-				return $settings->with([Setting::IconPacks->value => $disabled]);
+				return $settings->with([Setting::IconPacks->value => $enable ? [...$enabled, $pack->name] : $enabled]);
 			});
 		} catch (InvalidSetting $error) {
 			return self::error($error->getMessage(), Status::InternalServerError);
@@ -126,7 +122,7 @@ final readonly class IconPackEditController
 		$this->bootstrap->clearCompiled(CompiledCache::IconPacks);
 		$this->version->bump();
 
-		// The saved list forgets it, so the same name put back starts on.
+		// The saved list forgets it, so the same name put back starts off.
 		if ($pack !== null) {
 			try {
 				$this->settings->update(static fn (Settings $settings): Settings => $settings->has(Setting::IconPacks)

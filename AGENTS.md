@@ -89,7 +89,10 @@ in their folders (D-386); and toasts as the toast sketch
 (`.claude/docs/admin-design/toast-sketch.html`) draws them: kinds, a
 countdown, stacking, and Undo (D-387); and, ahead of installing
 extensions from the admin into `user/` (D-388), a capability for each
-extension action per kind, `extensions.{kind}.{action}` (D-389).
+extension action per kind, `extensions.{kind}.{action}` (D-389); and
+nothing in `user/` on until it's named, with config listing only what's
+on (D-390), and the admin's saved list naming everything that's on,
+Composer's included (D-391).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

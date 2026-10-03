@@ -18,18 +18,22 @@ use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 
 /**
- * Which installed icon packs are off (D-385), from `config/icons.php`.
- * Every installed pack is on unless it's named in `disabled`; the admin's
- * Icon Packs screen saves its own list in `user/data/settings.json`, over
- * this one.
+ * Which icon packs are on (D-385, D-390, D-391), as `PluginConfig` says
+ * which plugins are: by default, a pack Composer installed is on, and a
+ * local one (in `user/icons`) only when `config/icons.php` names it in
+ * `enabled`; once the admin's Icon Packs screen saves a list
+ * (`icons.enabled` in `user/data/settings.json`, laid over `saved`), that
+ * list is all of what's on. Config only ever says what is on.
  */
 final readonly class IconConfig implements Config
 {
 	/**
-	 * @param list<string> $disabled Packs to turn off, by name.
+	 * @param list<string>  $enabled Local packs to turn on, by name.
+	 * @param ?list<string> $saved   The admin's list of every pack that's on, or `null` when it hasn't saved one.
 	 */
 	public function __construct(
-		public array $disabled = []
+		public array $enabled = [],
+		public ?array $saved = null
 	) {}
 
 	/**
@@ -39,9 +43,12 @@ final readonly class IconConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['disabled']);
+		$values->assertKnownKeys(['enabled', 'saved']);
 
-		return new static(disabled: $values->stringList('disabled'));
+		return new static(
+			enabled: $values->stringList('enabled'),
+			saved: $values->nullableStringList('saved')
+		);
 	}
 
 	/**
@@ -50,6 +57,6 @@ final readonly class IconConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		return ['disabled' => $this->disabled];
+		return ['enabled' => $this->enabled, 'saved' => $this->saved];
 	}
 }

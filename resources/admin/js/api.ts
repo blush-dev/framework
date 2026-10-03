@@ -378,8 +378,6 @@ export interface PluginSummary {
 	blocked: string | null;
 	// The plugins that require it, by name.
 	requiredBy: string[];
-	// Why it can't be turned on here (`config/plugins.php`), or `null`.
-	locked: string | null;
 	// A folder plugin that isn't running.
 	deletable: boolean;
 }
@@ -389,7 +387,7 @@ export interface PluginSummary {
  */
 export interface Plugins {
 	plugins: PluginSummary[];
-	// Whether the plugins turned off are saved in `user/data/settings.json`.
+	// Whether the plugins turned on are saved in `user/data/settings.json`.
 	saved: boolean;
 	// Whether `config/plugins.php` exists.
 	config: boolean;
@@ -447,7 +445,7 @@ export interface IconPacks {
 	packs: IconPackSummary[];
 	core: CoreIcons;
 	invalid: { where: string; reason: string; deletable: boolean }[];
-	// Whether the packs turned off are saved in `user/data/settings.json`.
+	// Whether the packs turned on are saved in `user/data/settings.json`.
 	saved: boolean;
 	// Whether `config/icons.php` exists.
 	config: boolean;

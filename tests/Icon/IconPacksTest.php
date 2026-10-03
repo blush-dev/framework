@@ -20,6 +20,7 @@ use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
+use Blush\Icon\IconConfig;
 use Blush\Icon\IconName;
 use Blush\Icon\IconPack;
 use Blush\Icon\IconPackCache;
@@ -54,6 +55,7 @@ final class IconPacksTest extends TestCase
 		$this->writeTemporaryFile('user/icons/weather/sun.svg', self::SVG);
 		$this->writeTemporaryFile('user/icons/broken/icons.json', '{"name": "acme/broken", "label": "Broken"}');
 		$this->writeTemporaryFile('user/icons/not-a-pack/readme.md', 'No manifest.');
+		$this->writeTemporaryFile('config/icons.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Icon\\IconConfig(enabled: ['acme/brands', 'acme/weather']);\n");
 		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode(['packages' => [
 			['name' => 'acme/arrows', 'type' => 'blush-icons', 'install-path' => '../acme/arrows'],
 			['name' => 'acme/renamed', 'type' => 'blush-icons', 'install-path' => '../acme/renamed']
@@ -69,6 +71,16 @@ final class IconPacksTest extends TestCase
 		$app->boot();
 
 		return $app;
+	}
+
+	public function testWhichPacksAreOn(): void
+	{
+		$this->packs();
+
+		$packs = new IconPackDiscovery(Paths::fromRoot($this->temporaryDirectory()))->discover();
+
+		$this->assertSame(['acme/arrows', 'acme/brands'], array_keys($packs->withConfig(new IconConfig(enabled: ['acme/brands']))->enabled()), 'Composer\'s, and the local ones named (D-390).');
+		$this->assertSame(['acme/weather'], array_keys($packs->withConfig(new IconConfig(enabled: ['acme/brands'], saved: ['acme/weather']))->enabled()), 'The admin\'s list is all of what\'s on (D-391).');
 	}
 
 	public function testDiscoversLocalAndComposerPacks(): void
@@ -137,7 +149,7 @@ final class IconPacksTest extends TestCase
 		$views = $app->container()->make(ViewFactory::class)->forChain($chain);
 
 		$this->assertStringEndsWith('user/icons/brands/svg/github.svg', $icons->file(new IconName('brands', 'github'), $chain) ?? '');
-		$this->assertStringEndsWith('vendor/acme/arrows/up.svg', $icons->file(new IconName('arrows', 'up'), $chain) ?? '');
+		$this->assertStringEndsWith('vendor/acme/arrows/up.svg', $icons->file(new IconName('arrows', 'up'), $chain) ?? '', 'A Composer pack is on without being named (D-390).');
 		$this->assertArrayHasKey('weather/sun', $icons->all($chain));
 		$this->assertSame('GitHub', $views->iconText(new IconName('brands', 'github'), 'label'));
 	}

@@ -15,6 +15,7 @@ namespace Blush\Tests\Plugin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Blush\Config\InvalidConfig;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\LocalAutoloader;
@@ -196,19 +197,36 @@ final class PluginTest extends TestCase
 		new LocalPluginFinder($this->temporaryDirectory() . '/bad')->find();
 	}
 
-	public function testEnabledFiltersByConfig(): void
+	public function testOnlyComposerPluginsAndNamedOnesAreOn(): void
 	{
 		$discovered = $this->discover();
 
-		$all      = Plugins::enabled($discovered, new PluginConfig());
-		$disabled = Plugins::enabled($discovered, new PluginConfig(disabled: ['acme/disabled']));
-		$only     = Plugins::enabled($discovered, new PluginConfig(enabled: ['fixture/hello', 'acme/disabled'], disabled: ['acme/disabled']));
+		$none  = Plugins::enabled($discovered, new PluginConfig());
+		$named = Plugins::enabled($discovered, new PluginConfig(enabled: ['fixture/hello']));
 
-		$this->assertCount(3, $all->all());
-		$this->assertFalse($disabled->has('acme/disabled'));
-		$this->assertSame(['fixture/hello'], array_map(static fn (PluginManifest $m): string => $m->name, $only->all()));
-		$this->assertSame(['Fixture\Hello\HelloServiceProvider'], $only->providers());
-		$this->assertNull($only->get('acme/composer-plugin'));
+		$this->assertSame(['acme/composer-plugin'], array_map(static fn (PluginManifest $m): string => $m->name, $none->all()), 'Nothing local is on by default (D-390).');
+		$this->assertSame(['acme/composer-plugin', 'fixture/hello'], array_map(static fn (PluginManifest $m): string => $m->name, $named->all()));
+		$this->assertFalse($named->has('acme/disabled'));
+		$this->assertCount(3, $named->installed());
+	}
+
+	public function testTheAdminsSavedListIsAllOfWhatIsOn(): void
+	{
+		$discovered = $this->discover();
+
+		$saved = Plugins::enabled($discovered, new PluginConfig(enabled: ['fixture/hello'], saved: ['acme/disabled']));
+		$empty = Plugins::enabled($discovered, new PluginConfig(enabled: ['fixture/hello'], saved: []));
+
+		$this->assertSame(['acme/disabled'], array_map(static fn (PluginManifest $m): string => $m->name, $saved->all()), 'It replaces config\'s list, and leaves Composer\'s out (D-391).');
+		$this->assertSame([], $empty->all());
+	}
+
+	public function testConfigNeverSaysWhatIsOff(): void
+	{
+		$this->expectException(InvalidConfig::class);
+		$this->expectExceptionMessage('disabled');
+
+		PluginConfig::fromArray(['disabled' => ['acme/disabled']]);
 	}
 
 	public function testEnablingAMissingPluginThrows(): void

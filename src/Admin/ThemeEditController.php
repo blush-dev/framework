@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
@@ -27,10 +29,8 @@ use Blush\Support\FilesystemException;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
-use Blush\Theme\Themes;
 use Blush\Theme\ThemeSource;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Blush\Theme\Themes;
 
 /**
  * Deletes a theme's folder from `user/themes` (D-381), for accounts with

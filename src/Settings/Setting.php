@@ -63,8 +63,8 @@ enum Setting: string
 	case Sitemap         = 'sitemap.enabled';
 	case SitemapDisallow = 'sitemap.disallow';
 	case Theme           = 'theme.active';
-	case Plugins         = 'plugins.disabled';
-	case IconPacks       = 'icons.disabled';
+	case Plugins         = 'plugins.enabled';
+	case IconPacks       = 'icons.enabled';
 
 	/**
 	 * The most entries a feed may hold.
@@ -119,8 +119,8 @@ enum Setting: string
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
 			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.'),
 			self::Theme           => new TextField('active')->labeled('Theme')->control(Control::Mono),
-			self::Plugins         => new ListField('disabled')->labeled('Plugins turned off'),
-			self::IconPacks       => new ListField('disabled')->labeled('Icon packs turned off')
+			self::Plugins         => new ListField('enabled')->labeled('Plugins turned on'),
+			self::IconPacks       => new ListField('enabled')->labeled('Icon packs turned on')
 		};
 
 		return $field->named($this->key());
@@ -191,6 +191,19 @@ enum Setting: string
 	public function key(): string
 	{
 		return substr($this->value, strlen($this->section()) + 1);
+	}
+
+	/**
+	 * The key it replaces in its config object: its own key, except the
+	 * admin's lists of what's on, which are kept apart from the config
+	 * file's (`saved`, D-391) because they name Composer extensions too.
+	 */
+	public function configKey(): string
+	{
+		return match ($this) {
+			self::Plugins, self::IconPacks => 'saved',
+			default                        => $this->key()
+		};
 	}
 
 	/**

@@ -9,7 +9,9 @@
  *
  * A pack's switch turns it on or off at once (`useIconPacks()`), saved in
  * `user/data/settings.json` over `config/icons.php`; a pack that's off
- * adds no icons. The core set is always on. **Delete** removes a folder
+ * adds no icons. As with plugins (D-391), a Composer pack is on and a
+ * local one only when config names it, until a list is saved here; then
+ * the list names every pack that's on. The core set is always on. **Delete** removes a folder
  * pack (or a broken one) from `user/icons`. A pack's name, and **Icon
  * pack details** in its menu, open its details screen (`IconPackView`).
  *
@@ -95,6 +97,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 					<span v-if="pack.version" class="pack__version mono">{{ pack.version }}</span>
 				</p>
 				<p v-if="pack.description" class="pack__description">{{ pack.description }}</p>
+				<p v-if="pack.source === 'composer' && !pack.enabled" class="pack__description">Installed by Composer. It's off because the list of packs turned on here doesn't name it.</p>
 				<ul class="pack__facts">
 					<li v-if="pack.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ pack.name }}</span></span></li>
 					<li v-else><AdminIcon name="folder" /><span class="mono">{{ pack.path }}</span></li>
@@ -180,10 +183,10 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 		<span>
 			Icon packs live in <code>user/icons</code> or come from Composer. An icon is used as <code>pack/name</code> wherever content, a menu, or a button takes one; the namespace is what lets two packs use the same name.
 			<template v-if="answer.saved">
-				Which are off was set here, and is saved in <code>user/data/settings.json</code> over <code>config/icons.php</code>.
+				Which are on was set here, and is saved in <code>user/data/settings.json</code> over <code>config/icons.php</code>.
 				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/icons.php</code>'s list</button>
 			</template>
-			<template v-else>Every installed pack is on unless <code>config/icons.php</code> turns it off<template v-if="!answer.config"> (there's no such file yet)</template>; turning one on or off here saves it in <code>user/data/settings.json</code>, over that file.</template>
+			<template v-else>A pack in <code>user/icons</code> is off until <code>config/icons.php</code> names it in <code>enabled</code><template v-if="!answer.config"> (there's no such file yet)</template>; Composer's are on. Turning one on or off here saves the list of every pack that's on in <code>user/data/settings.json</code>, over that file; from then on, a pack it doesn't name is off, even one Composer installs later.</template>
 		</span>
 	</p>
 

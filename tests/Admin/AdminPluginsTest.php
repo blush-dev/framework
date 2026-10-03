@@ -34,12 +34,12 @@ final class AdminPluginsTest extends TestCase
 	}
 
 	/**
-	 * A site with a plugin that runs, one that's turned off, one that
+	 * A site with a plugin that runs, one that isn't turned on, one that
 	 * needs the one that's off, and one that needs a later Blush.
 	 *
 	 * @param list<string> $roles
 	 */
-	private function site(array $roles = ['administrator'], string $config = "disabled: ['acme/off']"): void
+	private function site(array $roles = ['administrator'], string $config = "enabled: ['fixture/recipes', 'acme/needy', 'acme/future']"): void
 	{
 		$this->writeTemporaryFile('user/plugins/recipes/plugin.json', json_encode([
 			'name'        => 'fixture/recipes',
@@ -121,7 +121,6 @@ final class AdminPluginsTest extends TestCase
 			'requirements' => [['name' => 'blush', 'constraint' => '^2.0', 'kind' => 'blush', 'met' => true, 'note' => 'this site runs 2.0.0-dev', 'label' => '']],
 			'blocked'      => null,
 			'requiredBy'   => [],
-			'locked'       => null,
 			'deletable'    => false
 		], $recipes);
 
@@ -148,7 +147,7 @@ final class AdminPluginsTest extends TestCase
 		$response = $this->write('PUT', '/plugins/acme/off', ['enabled' => true]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame(['enabled' => true, 'started' => ['Needy'], 'stopped' => [], 'refresh' => true], self::json($response));
-		$this->assertSame(['plugins' => ['disabled' => []]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true), 'Saved over config/plugins.php.');
+		$this->assertSame(['plugins' => ['enabled' => ['acme/future', 'acme/needy', 'acme/off', 'fixture/recipes']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true), 'Saved over config/plugins.php.');
 
 		$this->reboot();
 		$this->assertSame(['acme/needy', 'acme/off', 'fixture/recipes'], array_map(static fn ($plugin): string => $plugin->name, $this->app->container()->make(Plugins::class)->all()));
@@ -158,7 +157,7 @@ final class AdminPluginsTest extends TestCase
 
 		$this->reboot();
 		$this->assertTrue(self::json($this->send('GET', '/plugins'))['saved'] ?? null);
-		$this->assertSame(200, $this->write('PATCH', '/settings', ['unset' => ['plugins.disabled']])->getStatusCode());
+		$this->assertSame(200, $this->write('PATCH', '/settings', ['unset' => ['plugins.enabled']])->getStatusCode());
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings.json');
 	}
 
@@ -175,12 +174,45 @@ final class AdminPluginsTest extends TestCase
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings.json');
 	}
 
-	public function testConfigsEnabledListLocksTheRest(): void
+	public function testTurnsComposerPluginsOffOnceAListIsSaved(): void
 	{
-		$this->site(config: "enabled: ['fixture/recipes']");
+		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode(['packages' => [[
+			'name'         => 'acme/packaged',
+			'version'      => '1.0.0',
+			'type'         => 'blush-plugin',
+			'extra'        => ['blush' => ['label' => 'Packaged', 'namespace' => 'packaged', 'provider' => self::PROVIDER]],
+			'install-path' => '../acme/packaged'
+		]]]));
+		$this->writeTemporaryFile('vendor/acme/packaged/composer.json', '{"name": "acme/packaged"}');
+		$this->site();
 
-		$this->assertNotNull($this->plugin(self::json($this->send('GET', '/plugins')), 'acme/off')['locked'] ?? null);
-		$this->assertSame(409, $this->write('PUT', '/plugins/acme/off', ['enabled' => true])->getStatusCode());
+		$this->assertTrue($this->plugin(self::json($this->send('GET', '/plugins')), 'acme/packaged')['running'] ?? null, 'On by default (D-390).');
+
+		$response = $this->write('PUT', '/plugins/acme/packaged', ['enabled' => false]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['plugins' => ['enabled' => ['acme/future', 'acme/needy', 'fixture/recipes']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true), 'The first save starts from what was on (D-391).');
+
+		$this->reboot();
+		$this->assertFalse($this->app->container()->make(Plugins::class)->has('acme/packaged'));
+		$this->assertSame(['fixture/recipes'], array_map(static fn ($plugin): string => $plugin->name, $this->app->container()->make(Plugins::class)->all()));
+
+		$this->assertSame(200, $this->write('PUT', '/plugins/acme/packaged', ['enabled' => true])->getStatusCode());
+		$this->reboot();
+		$this->assertTrue($this->app->container()->make(Plugins::class)->has('acme/packaged'));
+	}
+
+	public function testNothingLocalIsOnUntilNamed(): void
+	{
+		$this->site(config: '');
+
+		$recipes = $this->plugin(self::json($this->send('GET', '/plugins')), 'fixture/recipes');
+		$this->assertFalse($recipes['enabled'] ?? null, 'D-390.');
+		$this->assertFalse($recipes['running'] ?? null);
+		$this->assertSame([], $this->app->container()->make(Plugins::class)->all());
+
+		$this->assertSame(200, $this->write('PUT', '/plugins/fixture/recipes', ['enabled' => true])->getStatusCode());
+		$this->reboot();
+		$this->assertTrue($this->app->container()->make(Plugins::class)->has('fixture/recipes'));
 	}
 
 	public function testDeletesPluginsThatAreOff(): void
@@ -196,7 +228,7 @@ final class AdminPluginsTest extends TestCase
 		$this->assertSame(['deleted' => 'user/plugins/off'], self::json($response));
 		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/plugins/off');
 
-		$this->assertSame(200, $this->write('DELETE', '/plugins/needy')->getStatusCode(), 'A plugin that\'s on but can\'t run isn\'t running.');
+		$this->assertSame(409, $this->write('DELETE', '/plugins/needy')->getStatusCode(), 'config/plugins.php names it, though it can\'t run.');
 		$this->assertSame(404, $this->write('DELETE', '/plugins/missing')->getStatusCode());
 		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/plugins/recipes');
 	}
@@ -225,7 +257,7 @@ final class AdminPluginsTest extends TestCase
 		$this->assertSame(200, $this->send('GET', '/plugins')->getStatusCode());
 		$this->assertSame(200, $this->write('PUT', '/plugins/acme/off', ['enabled' => true])->getStatusCode(), 'Turning on and off (D-389).');
 		$this->assertSame(403, $this->write('DELETE', '/plugins/off')->getStatusCode(), 'Deleting is its own.');
-		$this->assertSame(200, $this->write('PATCH', '/settings', ['unset' => ['plugins.disabled']])->getStatusCode(), 'The setting the Plugins screen saves.');
+		$this->assertSame(200, $this->write('PATCH', '/settings', ['unset' => ['plugins.enabled']])->getStatusCode(), 'The setting the Plugins screen saves.');
 		$this->assertSame(403, $this->write('PATCH', '/settings', ['set' => ['app.name' => 'Mine']])->getStatusCode(), 'Other settings need site.settings.');
 		$this->assertSame(200, $this->write('POST', '/settings/refresh')->getStatusCode());
 	}

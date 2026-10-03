@@ -133,14 +133,13 @@ final class ExtensionNamespacesTest extends TestCase
 		$this->writeTemporaryFile('user/icons/nova/icons.json', '{"name": "acme/nova-icons", "label": "Nova Icons", "namespace": "nova"}');
 		$this->writeTemporaryFile('user/icons/gallery/icons.json', '{"name": "acme/gallery-icons", "label": "Gallery Icons", "namespace": "gallery"}');
 		$this->writeTemporaryFile('user/icons/brands/icons.json', '{"name": "acme/brands", "label": "Brands", "namespace": "brands"}');
-		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(disabled: ['acme/gallery']);\n");
 
 		$container = new Bootstrap($this->paths())->createApplication()->container();
 		$themes    = $container->make(Themes::class);
 		$packs     = $container->make(IconPacks::class);
 
 		$this->assertSame([Themes::DEFAULT, 'acme/nova'], array_keys($themes->all()));
-		$this->assertSame('Its namespace, "gallery", is the plugin acme/gallery\'s.', $themes->invalid()['user/themes/gallery'] ?? null, 'An installed plugin claims it, even turned off.');
+		$this->assertSame('Its namespace, "gallery", is the plugin acme/gallery\'s.', $themes->invalid()['user/themes/gallery'] ?? null, 'An installed plugin claims it, even turned off (as local ones are until named, D-390).');
 		$this->assertSame(['acme/brands'], array_keys($packs->all()));
 		$this->assertSame('Its namespace, "nova", is the theme acme/nova\'s.', $packs->invalid()['user/icons/nova'] ?? null);
 		$this->assertSame('Its namespace, "gallery", is the plugin acme/gallery\'s.', $packs->invalid()['user/icons/gallery'] ?? null);

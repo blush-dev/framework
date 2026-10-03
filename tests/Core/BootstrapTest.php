@@ -166,7 +166,7 @@ final class BootstrapTest extends TestCase
 		$bootstrap = $this->bootstrap($root, ['APP_ENV' => 'production']);
 
 		@mkdir("{$root}/user/data", 0777, true);
-		file_put_contents("{$root}/user/data/settings.json", '{"plugins": {"disabled": ["acme/disabled", "fixture/hello"]}}');
+		file_put_contents("{$root}/user/data/settings.json", '{"plugins": {"enabled": []}}');
 
 		$bootstrap->compile();
 

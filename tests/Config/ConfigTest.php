@@ -65,7 +65,7 @@ final class ConfigTest extends TestCase
 		$this->writeTemporaryFile('config/log.php', <<<'PHP'
 			<?php
 			declare(strict_types=1);
-			return [new Blush\Log\LogConfig(level: Blush\Log\Level::Debug), new Blush\Plugin\PluginConfig(disabled: ['x'])];
+			return [new Blush\Log\LogConfig(level: Blush\Log\Level::Debug), new Blush\Plugin\PluginConfig(enabled: ['x'])];
 			PHP);
 
 		$config = $this->loader()->load($this->temporaryDirectory() . '/config');
@@ -76,7 +76,7 @@ final class ConfigTest extends TestCase
 		$this->assertSame('America/Chicago', $app->timezone);
 		$this->assertStringStartsWith('Site at blush-tests-', $app->name);
 		$this->assertSame(Level::Debug, $config->get(LogConfig::class)->level);
-		$this->assertFalse($config->get(PluginConfig::class)->isEnabled('x'));
+		$this->assertSame(['x'], $config->get(PluginConfig::class)->enabled);
 	}
 
 	public function testMissingDirectoryLoadsNothing(): void
@@ -123,7 +123,7 @@ final class ConfigTest extends TestCase
 		$config = new ConfigRepository(
 			new AppConfig(name: 'Cached', environment: Environment::Staging, providers: [BindingProvider::class]),
 			new LogConfig(driver: LogDriver::Stderr),
-			new PluginConfig(enabled: ['a'], disabled: ['b'])
+			new PluginConfig(enabled: ['a'])
 		);
 
 		$this->assertNull($cache->read());

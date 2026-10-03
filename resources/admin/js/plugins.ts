@@ -3,7 +3,7 @@
  * the installed plugins (`GET plugins`), and turning one on or off and
  * deleting one, each with its question, toast, or failure.
  *
- * Turning a plugin on or off saves the plugins turned off in
+ * Turning a plugin on or off saves the local plugins turned on in
  * `user/data/settings.json` (`PUT plugins/{vendor}/{name}`), over
  * `config/plugins.php`, and has the server compile and reindex for it,
  * since plugins' providers run at boot. Deleting removes a folder in
@@ -76,7 +76,7 @@ export function usePlugins() {
 	// Puts `config/plugins.php`'s list back in charge.
 	async function useConfig(): Promise<void> {
 		try {
-			const saved = await request<{ refresh: boolean }>('PATCH', '/settings', { unset: ['plugins.disabled'] });
+			const saved = await request<{ refresh: boolean }>('PATCH', '/settings', { unset: ['plugins.enabled'] });
 
 			if (saved.refresh) {
 				await request('POST', '/settings/refresh').catch(() => undefined);

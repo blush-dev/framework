@@ -143,8 +143,7 @@ Move each item to `decisions.md` once it's answered.
 - **Installing and updating extensions** (D-388 decides the admin
   installs them into `user/`):
   - How a zip install works: what the archive must hold, checks before
-    anything is written, whether a new plugin lands turned off (today
-    every discovered plugin is on, D-058), and keeping a backup when a
+    anything is written (a new one lands off, D-390), and keeping a backup when a
     newer version replaces one (replacing is decided; capabilities are
     D-389).
   - Where updates come from for a local extension: an update source

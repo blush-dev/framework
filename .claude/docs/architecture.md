@@ -1049,10 +1049,13 @@ and **icon packs**; **admin themes** are planned on the same pieces.
     version, description, a PSR-4 map, the provider, requirements, and
     optionally `authors` and `license` (else its `composer.json`'s,
     D-385). Blush registers the autoloader (`Extension\LocalAutoloader`).
-  - Every discovered plugin is enabled unless `PluginConfig`
-    (`config/plugins.php`) narrows it (`enabled` allow-list, `disabled`),
-    or the admin's saved list (`plugins.disabled` in
-    `user/data/settings.json`) replaces `disabled` (D-385). Discovery is
+  - By default a Composer plugin is on, and a local one only when
+    `PluginConfig`'s `enabled` (`config/plugins.php`) names it (D-390).
+    Once the admin saves a list (`plugins.enabled` in
+    `user/data/settings.json`, laid over `PluginConfig::$saved`), it
+    names every plugin that's on, Composer's included, and nothing else
+    is (D-391). Config never lists what's off. Naming one that isn't
+    installed fails boot. Discovery is
     compiled to `storage/cache/plugins.php` (D-058), every installed
     plugin, on or off.
   - **Requirements are enforced** (D-385, `PluginRequirements`): an
@@ -1069,9 +1072,10 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   `blush/default`. Broken ones are listed by where they were found.
 - **Icon packs** (`Icon\IconPack`): SVGs in the pack's folder (or its
   manifest's `folder`), each `{namespace}/{icon}`, labeled from its
-  `lang/`. A pack is on unless `IconConfig` (`config/icons.php`,
-  `disabled`) or the admin's saved list (`icons.disabled`) turns it off
-  (D-385); discovery is lenient (broken packs are listed) and compiled to
+  `lang/`. Which are on works as for plugins (D-390, D-391): Composer's
+  and the ones `IconConfig` (`config/icons.php`, `enabled`) names, or,
+  once saved, only the admin's list (`icons.enabled`, laid over
+  `IconConfig::$saved`); discovery is lenient (broken packs are listed) and compiled to
   `storage/cache/icon-packs.php`. The folders of the packs that are on
   seed `IconRegistry`, so themes and the site can restyle them.
 - **Admin:** Extensions lists Themes, Plugins, and Icon Packs. Themes

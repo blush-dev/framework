@@ -369,6 +369,37 @@ The admin lists them under **Extensions** (Themes, Plugins, and Icon
 Packs). Installing from the admin isn't available yet; its **Install**
 buttons are placeholders.
 
+## Turning extensions on
+
+Nothing in `user/` is on just because it's there. A plugin in
+`user/plugins` or an icon pack in `user/icons` is off until it's named,
+either by the admin (its switch on **Config → Plugins** or **Config →
+Icon Packs**) or in config:
+
+```php
+// config/plugins.php
+return new Blush\Plugin\PluginConfig(enabled: ['acme/hello']);
+
+// config/icons.php
+return new Blush\Icon\IconConfig(enabled: ['acme/brands']);
+```
+
+Config only ever lists what's on; there's no list of what's off.
+
+A plugin or icon pack installed with Composer is on by default:
+installing it is the decision to use it.
+
+Once the admin has turned something on or off, it saves its own list in
+`user/data/settings.json`, used in place of the config file's. That list
+names everything that's on, Composer's included, so you can turn a
+Composer plugin off there. It starts from what was already on, so the
+first switch changes only that one. From then on, anything the list
+doesn't name is off, including a plugin Composer installs later: turn
+it on in the admin. **Use `config/plugins.php`'s list** (or
+`config/icons.php`'s) on the screen goes back to the defaults.
+Themes work as they always have: one is active, set in
+`config/theme.php` or on **Config → Themes**.
+
 ## Plugins
 
 **A local plugin** lives in `user/plugins/{folder}/`, with a
@@ -392,7 +423,10 @@ buttons are placeholders.
 ```
 
 `name`, `label`, `namespace`, and `provider` are required. Blush finds
-the plugin and loads its classes; no Composer step needed. `authors`
+the plugin and loads its classes; no Composer step needed. It's off
+until you turn it on, in **Config → Plugins** or by naming it in
+`config/plugins.php`'s `enabled` list (see
+[Turning extensions on](#turning-extensions-on)). `authors`
 (each with a `name`, and optionally an `email`, `homepage`, and `role`,
 as in `composer.json`) and `license` are shown in the admin; leave them
 out and the `composer.json` beside `plugin.json` is used, if there is
@@ -690,7 +724,9 @@ code. Put it in `user/icons/{folder}/`, with an `icons.json` (or
 }
 ```
 
-`name`, `label`, and `namespace` are required. `authors` works as a
+`name`, `label`, and `namespace` are required. Like a local plugin, it's
+off until it's turned on, in **Config → Icon Packs** or in
+`config/icons.php`'s `enabled` list. `authors` works as a
 plugin's does. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is
 `{namespace}/{icon}`: `svg/github.svg` is `brands/github`, used as

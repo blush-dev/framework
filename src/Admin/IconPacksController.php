@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
@@ -27,8 +29,6 @@ use Blush\Icon\IconPacks;
 use Blush\Icon\IconPackSource;
 use Blush\Settings\Setting;
 use Blush\Settings\SettingsFile;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Answers the Icon Packs screens (D-378, D-385), for accounts with
@@ -45,7 +45,7 @@ use Psr\Http\Message\ServerRequestInterface;
  *   set the same way (`label`, `version`, `count`, `icons`, with short
  *   names, as the icon component takes them); the `invalid` ones, by
  *   `where` they were found, with the `reason` and whether they're
- *   `deletable`; `saved` (the admin's list of packs turned off is in
+ *   `deletable`; `saved` (the admin's list of packs turned on is in
  *   `user/data/settings.json`); and `config` (whether `config/icons.php`
  *   exists).
  * - `GET icon-packs/{vendor}/{name}`: one pack, with every icon.

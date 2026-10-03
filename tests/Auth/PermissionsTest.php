@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Auth;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
 use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\BuiltInRole;
@@ -29,8 +31,6 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Core\Application;
 use Blush\Extension\ExtensionKind;
 use Blush\Tests\BootsScratchSite;
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Permissions::class)]
 #[CoversClass(Capabilities::class)]

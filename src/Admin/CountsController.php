@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
 use Blush\Auth\AuthException;
@@ -34,8 +36,6 @@ use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
 use Blush\Plugin\PluginDiscovery;
 use Blush\Theme\Themes;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Answers `GET {path}/api/counts` (D-371): how many things each of the

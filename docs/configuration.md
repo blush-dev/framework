@@ -26,8 +26,8 @@ config files, with the same keys:
     "feed": { "formats": ["rss", "json"], "content": true, "limit": 20 },
     "sitemap": { "enabled": true, "disallow": ["/drafts/"] },
     "theme": { "active": "acme/notebook" },
-    "plugins": { "disabled": ["acme/gallery"] },
-    "icons": { "disabled": ["acme/brands"] }
+    "plugins": { "enabled": ["acme/gallery"] },
+    "icons": { "enabled": ["acme/brands"] }
 }
 ```
 
@@ -378,18 +378,22 @@ either way.
 
 ### Plugins and middleware
 
-- `config/plugins.php` · `Blush\Plugin\PluginConfig`: `enabled` (only
-  these plugins) and `disabled` (never these), by name
-  (`new PluginConfig(disabled: ['acme/hello'])`). Every installed plugin
-  is on by default. Turning plugins on and off in the admin saves its own
-  `disabled` list in `user/data/settings.json`, in place of this one; a
-  plugin the `enabled` list leaves out can't be turned on there. A plugin
-  that's on still runs only when its
-  [requirements](extending.md#requirements) are met.
-- `config/icons.php` · `Blush\Icon\IconConfig`: `disabled`, the
-  [icon packs](extending.md#icon-packs) to turn off, by name
-  (`new IconConfig(disabled: ['acme/brands'])`). Every installed pack is
-  on by default, and the admin's own list replaces this one when it's
-  saved.
+- `config/plugins.php` · `Blush\Plugin\PluginConfig`: `enabled`, the
+  plugins in `user/plugins` to turn on, by name
+  (`new PluginConfig(enabled: ['acme/hello'])`). A local plugin is off
+  until it's named; a Composer plugin is on. Turning plugins on and off
+  in the admin saves its own `enabled` list in
+  `user/data/settings.json`, in place of this one, naming every plugin
+  that's on, Composer's included; a plugin it doesn't name is off. A
+  plugin that's on
+  still runs only when its [requirements](extending.md#requirements) are
+  met. Naming one that isn't installed is an error.
+- `config/icons.php` · `Blush\Icon\IconConfig`: `enabled`, the
+  [icon packs](extending.md#icon-packs) in `user/icons` to turn on, by
+  name (`new IconConfig(enabled: ['acme/brands'])`). A local pack is off
+  until it's named; a Composer pack is on. The admin's own list, naming
+  every pack that's on, replaces this one when it's saved.
+- Neither has a list of what's off: config only says what's on
+  ([Turning extensions on](extending.md#turning-extensions-on)).
 - `config/http.php` · `Blush\Http\HttpConfig`: `middleware`, a list of
   PSR-15 middleware classes run on every request.

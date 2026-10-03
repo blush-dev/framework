@@ -97,7 +97,7 @@ final class PluginRequirementsTest extends TestCase
 			self::plugin('acme/future', ['blush' => '^9.0'])
 		];
 
-		$plugins = Plugins::enabled($discovered, new PluginConfig(), self::requirements());
+		$plugins = Plugins::enabled($discovered, new PluginConfig(['acme/shop', 'acme/reports', 'acme/charts', 'acme/future']), self::requirements());
 		$this->assertSame(['acme/charts', 'acme/reports', 'acme/shop'], array_map(static fn (PluginManifest $plugin): string => $plugin->name, $plugins->all()));
 		$this->assertSame(['acme/future'], array_keys($plugins->unmet()));
 		$this->assertCount(4, $plugins->installed());
@@ -108,7 +108,7 @@ final class PluginRequirementsTest extends TestCase
 		);
 
 		// Turning the shop off stops what needs it, all the way down.
-		$plugins = Plugins::enabled($discovered, new PluginConfig(disabled: ['acme/shop']), self::requirements());
+		$plugins = Plugins::enabled($discovered, new PluginConfig(['acme/reports', 'acme/charts', 'acme/future']), self::requirements());
 		$this->assertSame([], array_map(static fn (PluginManifest $plugin): string => $plugin->name, $plugins->all()));
 		$this->assertSame(['acme/charts', 'acme/future', 'acme/reports'], array_keys($plugins->unmet()));
 		$this->assertSame('Needs Reports (can\'t run).', PluginRequirements::reason($plugins->unmet()['acme/charts'] ?? []));
@@ -120,7 +120,7 @@ final class PluginRequirementsTest extends TestCase
 		$plugins = Plugins::enabled([
 			self::plugin('acme/one', ['acme/two' => '*']),
 			self::plugin('acme/two', ['acme/one' => '*'])
-		], new PluginConfig(), self::requirements());
+		], new PluginConfig(['acme/one', 'acme/two']), self::requirements());
 
 		$this->assertSame([], $plugins->unmet());
 		$this->assertCount(2, $plugins->providers());

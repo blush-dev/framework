@@ -73,13 +73,15 @@ use Blush\Theme\Themes;
  * 4. The bootstrap itself, `Paths`, `Env`, the config repository, and
  *    every config object are bound in the container.
  * 5. Plugins are discovered (or read from cache), filtered by config and
- *    the settings, and by their requirements (D-385), and the local ones
+ *    the settings (by default Composer's and the local ones config names,
+ *    or only what the admin's saved list names; D-390, D-391),
+ *    and by their requirements (D-385), and the local ones
  *    that run are autoloaded.
  * 6. Themes and icon packs are discovered (or read from cache), and the
  *    active theme chain's local themes are autoloaded. A theme or icon
  *    pack whose namespace an installed plugin (or, for a pack, a theme)
- *    claims is left out as broken (D-378), and packs turned off
- *    (`IconConfig`, D-385) are kept but add no icons.
+ *    claims is left out as broken (D-378), and packs that aren't on
+ *    (`IconConfig`, as plugins are, D-391) are kept but add no icons.
  * 7. Providers register in order: framework, plugins, the active theme
  *    chain's (ancestors first), then the site's (D-054). A broken theme
  *    chain registers no theme providers, so the CLI still runs to fix it;
@@ -220,7 +222,7 @@ final readonly class Bootstrap
 			$this->discoverThemes($app->environment),
 			$this->discoverIconPacks($app->environment)
 		);
-		$iconPacks = $iconPacks->withDisabled($config->get(IconConfig::class)->disabled);
+		$iconPacks = $iconPacks->withConfig($config->get(IconConfig::class));
 
 		$themeProviders = [];
 		$autoloader     = new LocalAutoloader();

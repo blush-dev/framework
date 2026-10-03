@@ -16,31 +16,30 @@ namespace Blush\Icon;
 /**
  * The installed icon packs (D-378), as `IconPackDiscovery` (or its
  * cache) found them: valid packs by name, plus the broken ones, by where
- * they were found, with the reason. A pack is on unless it's turned off
- * (D-385: `IconConfig`'s `disabled`, or the admin's saved list), and only
- * the ones that are on add their icons.
+ * they were found, with the reason. Which are on is `IconConfig`'s
+ * (D-390, D-391): by default Composer's packs and the local ones it
+ * names, or, once the admin saves a list, only what that list names.
+ * Only the ones that are on add their icons.
  */
 final readonly class IconPacks
 {
 	/**
 	 * @param array<string, IconPack> $packs    Valid packs, by name.
 	 * @param array<string, string>   $invalid  Broken packs, by where they were found, with the reason.
-	 * @param list<string>            $disabled The packs turned off, by name.
+	 * @param IconConfig              $config   Which are on.
 	 */
 	public function __construct(
 		private array $packs = [],
 		private array $invalid = [],
-		private array $disabled = []
+		private IconConfig $config = new IconConfig()
 	) {}
 
 	/**
-	 * Returns a copy with these packs turned off, by name.
-	 *
-	 * @param list<string> $names
+	 * Returns a copy with config saying which are on.
 	 */
-	public function withDisabled(array $names): self
+	public function withConfig(IconConfig $config): self
 	{
-		return new self($this->packs, $this->invalid, $names);
+		return new self($this->packs, $this->invalid, $config);
 	}
 
 	/**
@@ -54,11 +53,18 @@ final readonly class IconPacks
 	}
 
 	/**
-	 * Whether a pack is on: installed, and not turned off.
+	 * Whether a pack is on: installed, and named by the admin's saved
+	 * list, or, without one, from Composer or named by config.
 	 */
 	public function isEnabled(string $name): bool
 	{
-		return isset($this->packs[$name]) && ! in_array($name, $this->disabled, true);
+		$pack = $this->packs[$name] ?? null;
+
+		return match (true) {
+			$pack === null                => false,
+			$this->config->saved !== null => in_array($name, $this->config->saved, true),
+			default                       => $pack->source === IconPackSource::Composer || in_array($name, $this->config->enabled, true)
+		};
 	}
 
 	/**
@@ -116,6 +122,6 @@ final readonly class IconPacks
 			}
 		}
 
-		return new self($packs, $invalid, $this->disabled);
+		return new self($packs, $invalid, $this->config);
 	}
 }

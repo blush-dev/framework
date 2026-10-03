@@ -73,7 +73,7 @@ final readonly class Plugins
 	public static function enabled(array $discovered, PluginConfig $config, PluginRequirements $requirements = new PluginRequirements()): self
 	{
 		$names   = array_map(static fn (PluginManifest $manifest): string => $manifest->name, $discovered);
-		$missing = array_diff($config->enabled ?? [], $names);
+		$missing = array_diff($config->named(), $names);
 
 		if ($missing !== []) {
 			throw new ExtensionException(sprintf(
@@ -84,7 +84,7 @@ final readonly class Plugins
 
 		$enabled = array_values(array_filter(
 			$discovered,
-			static fn (PluginManifest $manifest): bool => $config->isEnabled($manifest->name)
+			$config->isEnabled(...)
 		));
 		$unmet = $requirements->settle($enabled, self::keyed($discovered));
 

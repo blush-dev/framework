@@ -34,7 +34,7 @@ const plugin = computed(() => find(name.value));
 const needs  = computed(() => plugin.value ? requiredBy(plugin.value) : []);
 
 // Why it can't be turned on, when it isn't running, or `null`.
-const blocked = computed(() => plugin.value && !plugin.value.running ? plugin.value.locked ?? plugin.value.blocked : null);
+const blocked = computed(() => plugin.value && !plugin.value.running ? plugin.value.blocked : null);
 
 watch(plugin, (value) => {
 	screenTitle.value = value?.label ?? null;

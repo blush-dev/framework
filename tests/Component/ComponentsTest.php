@@ -263,6 +263,7 @@ final class ComponentsTest extends TestCase
 		$this->writeTemporaryFile('user/plugins/hello/plugin.json', '{"name": "fixture/hello", "label": "Hello", "namespace": "hello", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Component\\\\OrphanProvider"}');
 		$this->writeTemporaryFile('user/plugins/hello/lang/en.json', '{"components": {"tabs": {"label": "Tabs"}}}');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/alt');\n");
+		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['fixture/hello']);\n");
 
 		$views = $this->boot();
 

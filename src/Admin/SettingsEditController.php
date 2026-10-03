@@ -13,6 +13,10 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use JsonException;
+use Throwable;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\ExtensionAction;
@@ -36,17 +40,13 @@ use Blush\Settings\SettingsFile;
 use Blush\Settings\SiteSettings;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
-use JsonException;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Throwable;
 
 /**
  * Saves the site-wide settings the admin can change (D-324, D-325), for accounts
  * with `site.settings`, except three that belong to an extension screen
  * and need that kind's capability instead (D-389): the active theme
  * (`theme.active`, `extensions.themes.activate`), and the plugins and
- * icon packs turned off (`plugins.disabled`, `icons.disabled`,
+ * icon packs turned on (`plugins.enabled`, `icons.enabled`,
  * `extensions.plugins.activate` and `extensions.icon-packs.activate`):
  *
  * - `PATCH settings`: `{"set": {setting: value}, "unset": [setting]}`,

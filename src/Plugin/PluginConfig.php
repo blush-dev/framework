@@ -18,30 +18,47 @@ use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 
 /**
- * Which discovered plugins are enabled, from `config/plugins.php`.
- * By default every discovered plugin is enabled, since installing one is
- * the intent to use it. List names in `enabled` to allow only those, and in
- * `disabled` to switch individual ones off.
+ * Which plugins are on (D-390, D-391). Config only ever says what is on,
+ * never what is off.
+ *
+ * - **By default,** a plugin Composer installed is on, and a local one
+ *   (in `user/plugins`) is on only when `config/plugins.php` names it in
+ *   `enabled`.
+ * - **Once the admin saves a list** (`plugins.enabled` in
+ *   `user/data/settings.json`, laid over `saved`), that list is all of
+ *   what's on, Composer plugins included: one it doesn't name is off,
+ *   even one installed after it was saved.
  */
 final readonly class PluginConfig implements Config
 {
 	/**
-	 * @param ?list<string> $enabled  Only these plugins, or `null` for all.
-	 * @param list<string>  $disabled Plugins to switch off.
+	 * @param list<string>  $enabled Local plugins to turn on, by name.
+	 * @param ?list<string> $saved   The admin's list of every plugin that's on, or `null` when it hasn't saved one.
 	 */
 	public function __construct(
-		public ?array $enabled = null,
-		public array $disabled = []
-	) {
+		public array $enabled = [],
+		public ?array $saved = null
+	) {}
+
+	/**
+	 * Whether a plugin is turned on.
+	 */
+	public function isEnabled(PluginManifest $plugin): bool
+	{
+		return $this->saved === null
+			? $plugin->source === PluginSource::Composer || in_array($plugin->name, $this->enabled, true)
+			: in_array($plugin->name, $this->saved, true);
 	}
 
 	/**
-	 * Whether the named plugin is enabled.
+	 * The plugins named as on by the list in use: the admin's, or the
+	 * config file's.
+	 *
+	 * @return list<string>
 	 */
-	public function isEnabled(string $name): bool
+	public function named(): array
 	{
-		return ! in_array($name, $this->disabled, true)
-			&& ($this->enabled === null || in_array($name, $this->enabled, true));
+		return $this->saved ?? $this->enabled;
 	}
 
 	/**
@@ -51,11 +68,11 @@ final readonly class PluginConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['enabled', 'disabled']);
+		$values->assertKnownKeys(['enabled', 'saved']);
 
 		return new static(
-			enabled: $values->nullableStringList('enabled'),
-			disabled: $values->stringList('disabled')
+			enabled: $values->stringList('enabled'),
+			saved: $values->nullableStringList('saved')
 		);
 	}
 
@@ -65,9 +82,6 @@ final readonly class PluginConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		return [
-			'enabled'  => $this->enabled,
-			'disabled' => $this->disabled
-		];
+		return ['enabled' => $this->enabled, 'saved' => $this->saved];
 	}
 }

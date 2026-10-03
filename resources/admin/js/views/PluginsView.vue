@@ -8,9 +8,11 @@
  *
  * The switch turns a plugin on or off at once (`usePlugins()`), saved in
  * `user/data/settings.json` over `config/plugins.php`, and a toast says
- * so, naming the plugins that started or stopped with it. A plugin
- * whose requirements aren't met can't be turned on, and says why; so
- * can't one `config/plugins.php`'s `enabled` list leaves out. **Delete**
+ * so, naming the plugins that started or stopped with it. By default a
+ * Composer plugin is on and a local one only when config names it; once
+ * a list is saved here, it names every plugin that's on (D-391), so a
+ * Composer plugin it leaves out says why it's off. A plugin whose
+ * requirements aren't met can't be turned on, and says why. **Delete**
  * removes a folder plugin that's off. A plugin's name, and **Plugin
  * details** in its menu, open its details screen (`PluginView`).
  *
@@ -41,7 +43,7 @@ const on = computed(() => plugins.value.filter((plugin) => plugin.running).lengt
 
 // Why a plugin that isn't running can't be turned on, or `null`.
 function blocked(plugin: PluginSummary): string | null {
-	return plugin.running ? null : plugin.locked ?? plugin.blocked;
+	return plugin.running ? null : plugin.blocked;
 }
 
 async function remove(plugin: PluginSummary): Promise<void> {
@@ -88,6 +90,7 @@ async function remove(plugin: PluginSummary): Promise<void> {
 						<span class="plugin__package mono">{{ plugin.name }} {{ plugin.version }}</span>
 					</p>
 					<p v-if="plugin.description" class="plugin__description">{{ plugin.description }}</p>
+					<p v-if="plugin.source === 'composer' && !plugin.enabled" class="plugin__description">Installed by Composer. It's off because the list of plugins turned on here doesn't name it.</p>
 					<p v-if="blocked(plugin)" class="plugin__message">
 						<AdminIcon name="triangle-alert" /><span>{{ blocked(plugin) }}</span>
 					</p>
@@ -131,10 +134,10 @@ async function remove(plugin: PluginSummary): Promise<void> {
 		<span>
 			Plugins live in <code>user/plugins</code> or come from Composer.
 			<template v-if="answer.saved">
-				Which are off was set here, and is saved in <code>user/data/settings.json</code> over <code>config/plugins.php</code>.
+				Which are on was set here, and is saved in <code>user/data/settings.json</code> over <code>config/plugins.php</code>.
 				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/plugins.php</code>'s list</button>
 			</template>
-			<template v-else>Every installed plugin is on unless <code>config/plugins.php</code> turns it off<template v-if="!answer.config"> (there's no such file yet)</template>; turning one on or off here saves it in <code>user/data/settings.json</code>, over that file.</template>
+			<template v-else>A plugin in <code>user/plugins</code> is off until <code>config/plugins.php</code> names it in <code>enabled</code><template v-if="!answer.config"> (there's no such file yet)</template>; Composer's are on. Turning one on or off here saves the list of every plugin that's on in <code>user/data/settings.json</code>, over that file; from then on, a plugin it doesn't name is off, even one Composer installs later.</template>
 			What a plugin adds shows on the screens it belongs to, not here.
 		</span>
 	</p>

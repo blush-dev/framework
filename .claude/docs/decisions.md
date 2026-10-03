@@ -311,6 +311,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-041: Extensions: Composer packages first, local folders too
 - **Date:** 2026-09-25
 - **Status:** Naming superseded by D-378 (planned): these are **plugins**, one kind of extension.
+  "Enabled or disabled in site config" is superseded by D-390: config
+  names only what's on.
 - **Decision:** The end-user term is **extensions**. "Apps" was rejected because
   it collides with the site's `App\` namespace and the idea of the site itself
   being the app.
@@ -559,7 +561,9 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-058: Extension discovery details
 - **Date:** 2026-09-25
 - **Status:** YAML manifests delivered by D-092. Applies to plugins
-  (`user/plugins`, `plugin.json`, `PluginConfig`) since D-379.
+  (`user/plugins`, `plugin.json`, `PluginConfig`) since D-379. "Every
+  discovered extension is enabled by default" and `disabled` are
+  superseded by D-390: only Composer plugins are on by default.
 - **Decision:** Implements D-041.
   - Composer extensions declare `extra.blush.provider` (and optional
     `requires`).
@@ -10749,6 +10753,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-385: The Plugins and Icon Packs screens from the extensions sketch
 - **Date:** 2026-10-02
+- **Status:** The packs and plugins turned off (`icons.disabled`,
+  `plugins.disabled`) are superseded by D-390: lists of what's on.
 - **Decision:** Builds the author's extensions sketch
   (`admin-design/blush-extensions.html`) for plugins and icon packs; its
   themes part is already built (D-381, D-383), and the author asked to
@@ -11019,4 +11025,74 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked for a full suite of `extensions.*`
   capabilities before building installing, so installing code can be
   given apart from settings.
+
+### D-390: Nothing local is on until it's named; config lists only what's on
+- **Date:** 2026-10-02
+- **Status:** Composer extensions being always on, with a locked
+  switch, is superseded by D-391: the admin's saved list can turn them
+  off.
+- **Decision:** The author's rules for which extensions are active.
+  Supersedes D-058's "every discovered extension is enabled by default",
+  D-041's "enabled or disabled in site config", and D-385's lists of
+  what's off.
+  - **Nothing is on by default, wherever it lives, except a Composer
+    install.** A plugin in `user/plugins` or an icon pack in
+    `user/icons` is off until it's turned on in the admin or named in
+    config. A Composer plugin or pack is always on: installing it is the
+    decision, and `composer remove` takes it away, so the admin's switch
+    for one is locked and says so (`locked`, and `409` on `PUT`).
+  - **Config only says what's on.** `PluginConfig` and `IconConfig` each
+    have one list, `enabled` (local extensions, by name); `disabled` is
+    gone, and a config that still has it is an error (unknown key). The
+    admin saves its own list as `plugins.enabled` and `icons.enabled` in
+    `user/data/settings.json`, which replaces the config file's, as
+    before ("Use `config/plugins.php`'s list" goes back).
+  - `enabled` is no longer an allow-list that locks the admin out of the
+    rest; the admin can turn on any local plugin or pack. Naming a plugin
+    that isn't installed still fails boot (D-058), so one the config
+    file's list names (when the admin hasn't saved its own) can't be
+    deleted; deleting one in the admin's list takes it out.
+  - **Themes** are unchanged: one active, set by name (`theme.active`),
+    with `blush/default` when none is.
+  - The jtcom trial's `user/data/settings.json` now names
+    `example/word-count` and `example/weather`, which were on by default.
+- **Checked:** `composer check` (local plugins and packs off until
+  named, Composer ones on, `disabled` refused, the admin's lists);
+  `npm run admin:build`; the jtcom trial boots with both on.
+- **Why:** the author's call: anything under `user/` is an explicit
+  choice, and so is config.
+
+### D-391: The admin's saved list names everything that's on, Composer's included
+- **Date:** 2026-10-02
+- **Decision:** Supersedes D-390's "a Composer plugin or pack is always
+  on". The author wants Composer-installed extensions to be able to be
+  turned off from the admin, without a list of what's off.
+  - **By default** (no list saved in the admin) nothing changes: a
+    Composer plugin or pack is on, and a local one only when config's
+    `enabled` names it.
+  - **Once the admin saves a list** (`plugins.enabled`,
+    `icons.enabled` in `user/data/settings.json`), it is all of what's
+    on: Composer's included. The first save starts from what's on by
+    default, so only the switched extension changes. From then on, one
+    the list doesn't name is off, **including one Composer installs
+    later** (the author's call): telling a new install from one turned
+    off would need a record of what the list has seen, which is a list
+    of what's off by another name. The Plugins and Icon Packs screens
+    say why an off Composer extension is off.
+  - **Config files never name Composer extensions** to turn them off;
+    their `enabled` stays local extensions only. "Use
+    `config/plugins.php`'s list" (unsetting the saved list) goes back to
+    the defaults.
+  - **Code:** the saved list is laid over a separate key,
+    `PluginConfig::$saved` / `IconConfig::$saved` (`Setting::configKey()`),
+    so config's `enabled` keeps its meaning; `PluginConfig::named()` is
+    whichever list is in use (for the boot check that every name is
+    installed). `IconPacks` takes the `IconConfig`. The `locked` field
+    and the `409` from D-390 are gone.
+- **Checked:** `composer check` (a Composer plugin on by default, the
+  first save starting from what was on, turning it off and on again;
+  the saved list replacing config's for plugins and packs);
+  `npm run admin:build`.
+- **Why:** the author's call, so a site owner can switch off a
+  Composer extension from the admin.
 

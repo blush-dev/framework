@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use JsonException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
@@ -36,9 +39,6 @@ use Blush\Settings\Settings;
 use Blush\Settings\SettingsFile;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
-use JsonException;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Turns plugins on and off, and deletes them (D-385), for accounts with
@@ -46,11 +46,12 @@ use Psr\Http\Message\ServerRequestInterface;
  * `extensions.plugins.delete` to delete them (D-389):
  *
  * - `PUT plugins/{vendor}/{name}` with `{"enabled": true|false}` saves
- *   the plugins turned off in `user/data/settings.json`
- *   (`plugins.disabled`), over `config/plugins.php`'s `disabled`, as
- *   activating a theme does (D-381). Turning one on is refused when
- *   `config/plugins.php`'s `enabled` list leaves it out (`409`) or its
- *   requirements aren't met (`422`, saying why). Answers `{"enabled",
+ *   every plugin that's on in `user/data/settings.json`
+ *   (`plugins.enabled`), Composer's included, over `config/plugins.php`
+ *   (D-391), as activating a theme does (D-381). The first save starts
+ *   from what's on by default, so only the plugin switched changes.
+ *   Turning one on is refused when its requirements aren't met (`422`,
+ *   saying why). Answers `{"enabled",
  *   "started", "stopped", "refresh"}`: the other plugins that start or
  *   stop with it (the ones that require it), and that the admin should
  *   ask for `settings/refresh`, since providers run at boot.
@@ -102,10 +103,6 @@ final readonly class PluginEditController
 		$before       = array_keys(array_filter($installed, fn (PluginManifest $other): bool => $this->plugins->has($other->name)));
 
 		if ($enable) {
-			if (($locked = PluginsController::locked($this->config, $plugin->name)) !== null) {
-				return self::error($locked, Status::Conflict);
-			}
-
 			$checked = $requirements->check($plugin, $installed, array_fill_keys($before, true));
 
 			if (! PluginRequirements::met($checked)) {
@@ -114,20 +111,17 @@ final readonly class PluginEditController
 		}
 
 		try {
-			$saved = $this->settings->update(function (Settings $settings) use ($plugin, $enable): Settings {
-				$disabled = $settings->has(Setting::Plugins) ? self::names($settings->get(Setting::Plugins)) : $this->config->disabled;
-				$disabled = $enable
-					? array_values(array_diff($disabled, [$plugin->name]))
-					: [...$disabled, $plugin->name];
+			$saved = $this->settings->update(function (Settings $settings) use ($plugin, $enable, $installed): Settings {
+				$enabled = array_values(array_diff($settings->has(Setting::Plugins) ? self::names($settings->get(Setting::Plugins)) : $this->on($installed), [$plugin->name]));
 
-				return $settings->with([Setting::Plugins->value => $disabled]);
+				return $settings->with([Setting::Plugins->value => $enable ? [...$enabled, $plugin->name] : $enabled]);
 			});
 		} catch (InvalidSetting $error) {
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}
 
 		// Which plugins run once it's saved, to say which others start or stop.
-		$config  = new PluginConfig($this->config->enabled, self::names($saved->get(Setting::Plugins)));
+		$config  = new PluginConfig(saved: self::names($saved->get(Setting::Plugins)));
 		$after   = array_map(static fn (PluginManifest $other): string => $other->name, Plugins::enabled(array_values($installed), $config, $requirements)->all());
 		$label   = static fn (string $other): string => $installed[$other]->label ?? $other;
 
@@ -167,7 +161,7 @@ final readonly class PluginEditController
 			return self::error(sprintf('%s is on. Turn it off before deleting it.', $plugin->label), Status::Conflict);
 		}
 
-		if (in_array($plugin->name, $this->config->enabled ?? [], true)) {
+		if (PluginsController::namedByConfig($this->config, $plugin->name)) {
 			return self::error(sprintf('config/plugins.php turns %s on by name. Take it out of that file\'s "enabled" list before deleting it.', $plugin->label), Status::Conflict);
 		}
 
@@ -179,7 +173,7 @@ final readonly class PluginEditController
 
 		$this->bootstrap->clearCompiled(CompiledCache::Plugins);
 
-		// The saved list forgets it, so the same name put back starts on.
+		// The saved list forgets it, so the same name put back starts off.
 		try {
 			$this->settings->update(static fn (Settings $settings): Settings => $settings->has(Setting::Plugins)
 				? $settings->with([Setting::Plugins->value => array_values(array_diff(self::names($settings->get(Setting::Plugins)), [$plugin->name]))])
@@ -189,6 +183,19 @@ final readonly class PluginEditController
 		}
 
 		return Response::json(['deleted' => $where], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * The plugins on before the admin saves its first list (Composer's,
+	 * and the local ones config names), so saving one changes nothing
+	 * but the plugin switched (D-391).
+	 *
+	 * @param  array<string, PluginManifest> $installed
+	 * @return list<string>
+	 */
+	private function on(array $installed): array
+	{
+		return array_keys(array_filter($installed, $this->config->isEnabled(...)));
 	}
 
 	/**

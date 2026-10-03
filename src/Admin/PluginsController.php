@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
@@ -29,10 +31,6 @@ use Blush\Plugin\PluginRequirements;
 use Blush\Plugin\Plugins;
 use Blush\Plugin\PluginSource;
 use Blush\Plugin\Requirement;
-use Blush\Settings\Setting;
-use Blush\Settings\SettingsFile;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Answers `GET {path}/api/plugins` (D-308, D-378, D-385), for accounts
@@ -51,8 +49,6 @@ use Psr\Http\Message\ServerRequestInterface;
  *   that's off, as if it were turned on. `blocked` says why one can't run
  *   (`null` when it can), and `requiredBy` names the plugins that require
  *   it.
- * - `locked`: why it can't be turned on here (`config/plugins.php`'s
- *   `enabled` list leaves it out), or `null`.
  * - `deletable`: a folder plugin that isn't running, and that
  *   `config/plugins.php` doesn't turn on by name.
  *
@@ -67,7 +63,6 @@ final readonly class PluginsController
 		private Paths $paths,
 		private Plugins $plugins,
 		private PluginConfig $config,
-		private SettingsFile $settings,
 		private Permissions $permissions
 	) {}
 
@@ -91,13 +86,14 @@ final readonly class PluginsController
 		foreach ($installed as $name => $plugin) {
 			if ($this->plugins->has($name)) {
 				$running[$name] = true;
-			} elseif ($this->config->isEnabled($name)) {
+			} elseif ($this->config->isEnabled($plugin)) {
 				$blocked[$name] = true;
 			}
 		}
 
 		$requirements = new PluginRequirements();
 		$plugins      = [];
+		$saved        = $this->config->saved !== null;
 
 		foreach ($installed as $name => $plugin) {
 			$checked = $requirements->check($plugin, $installed, $running, $blocked);
@@ -114,13 +110,12 @@ final readonly class PluginsController
 				'source'       => $plugin->source->value,
 				'path'         => $this->paths->relative($plugin->path),
 				'folder'       => $folder,
-				'enabled'      => $this->config->isEnabled($name),
+				'enabled'      => $this->config->isEnabled($plugin),
 				'running'      => isset($running[$name]),
 				'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), $checked),
 				'blocked'      => PluginRequirements::met($checked) ? null : PluginRequirements::reason($checked),
 				'requiredBy'   => array_keys(array_filter($installed, static fn (PluginManifest $other): bool => array_key_exists($name, $other->requires))),
-				'locked'       => self::locked($this->config, $name),
-				'deletable'    => $folder !== null && ! isset($running[$name]) && ! in_array($name, $this->config->enabled ?? [], true)
+				'deletable'    => $folder !== null && ! isset($running[$name]) && ! self::namedByConfig($this->config, $name)
 			];
 		}
 
@@ -128,20 +123,19 @@ final readonly class PluginsController
 
 		return Response::json([
 			'plugins' => $plugins,
-			'saved'   => $this->settings->read()->has(Setting::Plugins),
+			'saved'   => $saved,
 			'config'  => is_file("{$this->paths->config}/plugins.php")
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**
-	 * Why a plugin can't be turned on here, or `null`: `config/plugins.php`
-	 * lists the only plugins it allows, and not this one.
+	 * Whether `config/plugins.php` turns a plugin on by name: its list is
+	 * the one in use (the admin hasn't saved one over it) and names it.
+	 * The site would fail without it, so it can't be deleted.
 	 */
-	public static function locked(PluginConfig $config, string $name): ?string
+	public static function namedByConfig(PluginConfig $config, string $name): bool
 	{
-		return $config->enabled === null || in_array($name, $config->enabled, true)
-			? null
-			: 'config/plugins.php turns on only the plugins its "enabled" list names, and this isn\'t one of them.';
+		return $config->saved === null && in_array($name, $config->enabled, true);
 	}
 
 	/**

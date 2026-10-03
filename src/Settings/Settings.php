@@ -189,7 +189,7 @@ final readonly class Settings
 
 		foreach (Setting::cases() as $setting) {
 			if ($this->has($setting)) {
-				$changes[$setting->config()][$setting->key()] = $this->values[$setting->value];
+				$changes[$setting->config()][$setting->configKey()] = $this->values[$setting->value];
 			}
 		}
 

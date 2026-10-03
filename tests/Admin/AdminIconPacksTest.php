@@ -36,12 +36,16 @@ final class AdminIconPacksTest extends TestCase
 
 	/**
 	 * A site with two packs, one with more icons than the screen lists,
-	 * and a broken one.
+	 * and a broken one; config turns both on unless told not to.
 	 *
 	 * @param list<string> $roles
 	 */
-	private function site(array $roles = ['administrator']): void
+	private function site(array $roles = ['administrator'], bool $enabled = true): void
 	{
+		if ($enabled) {
+			$this->writeTemporaryFile('config/icons.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Icon\\IconConfig(enabled: ['acme/brands', 'acme/arrows']);\n");
+		}
+
 		$this->writeTemporaryFile('user/icons/brands/icons.json', '{"name": "acme/brands", "label": "Brand Logos", "namespace": "brands", "version": "2.0.0", "description": "Logos."}');
 		$this->writeTemporaryFile('user/icons/brands/composer.json', '{"authors": [{"name": "Acme", "role": "Drawing"}]}');
 		$this->writeTemporaryFile('user/icons/brands/lang/en.json', '{"icons": {"github": {"label": "GitHub"}}}');
@@ -126,7 +130,7 @@ final class AdminIconPacksTest extends TestCase
 
 		$response = $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['icons' => ['disabled' => ['acme/brands']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
+		$this->assertSame(['icons' => ['enabled' => ['acme/arrows']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
 
 		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
 		$this->app->boot();
@@ -140,8 +144,17 @@ final class AdminIconPacksTest extends TestCase
 		$this->assertNull(array_find($icons, static fn (mixed $icon): bool => is_array($icon) && ($icon['name'] ?? null) === 'brands/github'), 'A pack that\'s off adds no icons.');
 
 		$this->assertSame(200, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => true])->getStatusCode());
-		$this->assertSame(['icons' => ['disabled' => []]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
+		$this->assertSame(['icons' => ['enabled' => ['acme/arrows', 'acme/brands']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
 		$this->assertSame(404, $this->write('PUT', '/icon-packs/acme/missing', ['enabled' => true])->getStatusCode());
+	}
+
+	public function testNothingLocalIsOnUntilNamed(): void
+	{
+		$this->site(enabled: false);
+
+		$packs = self::json($this->send('GET', '/icon-packs'))['packs'] ?? null;
+
+		$this->assertSame([false, false], array_column(is_array($packs) ? $packs : [], 'enabled'), 'D-390.');
 	}
 
 	public function testDeletesPackFolders(): void
