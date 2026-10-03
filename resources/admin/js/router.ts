@@ -13,7 +13,7 @@ import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vu
 import { watch } from 'vue';
 import { config } from './config';
 import { screenCrumb, screenTitle, screenTrail } from './screen';
-import { can, canAnyType, canType, loadSession, session, type ContentAction } from './session';
+import { can, canAnyType, canType, loadSession, MEDIA_CAPABILITIES, session, type ContentAction } from './session';
 import CalendarView from './views/CalendarView.vue';
 import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
@@ -71,8 +71,8 @@ export const router = createRouter({
 		{ path: '/calendar', name: 'calendar', component: CalendarView, meta: { title: 'Calendar', contentAction: 'edit', area: 'home' } },
 		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content Health', contentAction: 'edit.others', area: 'home' } },
 		// A library file's screen is at its path under `user/media` (D-251).
-		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', capability: 'media.upload', area: 'content' } },
-		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', capability: 'media.upload', area: 'content', parent: 'media' } },
+		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', anyCapability: MEDIA_CAPABILITIES, area: 'content' } },
+		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', anyCapability: MEDIA_CAPABILITIES, area: 'content', parent: 'media' } },
 		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content Types', capability: 'site.settings', area: 'config' } },
 		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: 'New Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },

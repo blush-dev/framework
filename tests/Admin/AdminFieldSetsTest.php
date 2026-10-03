@@ -170,7 +170,7 @@ final class AdminFieldSetsTest extends TestCase
 		$targets = self::json($this->send('GET', '/fields/sets'))['targets'] ?? null;
 
 		$this->assertContains(['key' => 'type:recipe', 'label' => 'Recipes', 'group' => 'Content types', 'kind' => 'type'], is_array($targets) ? $targets : []);
-		$this->assertContains(['key' => 'media:audio', 'label' => 'Sound', 'group' => 'Media files', 'kind' => 'media'], is_array($targets) ? $targets : []);
+		$this->assertContains(['key' => 'media:audio', 'label' => 'Audio', 'group' => 'Media files', 'kind' => 'media'], is_array($targets) ? $targets : []);
 		$this->assertContains(['key' => 'settings:general', 'label' => 'General', 'group' => 'Settings screens', 'kind' => 'settings'], is_array($targets) ? $targets : []);
 
 		$kinds = self::json($this->send('GET', '/fields/sets'))['kinds'] ?? null;

@@ -919,7 +919,9 @@ Implemented in M7 (D-135 to D-140).
     D-312), `Capabilities` (the
     registry), `Permissions` (roles, ownership through the author link,
     and the live-entry rule, as statuses per own/others' entries that
-    both `can()` and the query filter `restrict()` use), `Authenticator` (throttled sign-in, session
+    both `can()` and the query filter `restrict()` use; and media, D-407:
+    `mayUpload()` by kind, `mayChangeMedia()` by a file's `owner`, and
+    `usesMedia()`), `Authenticator` (throttled sign-in, session
     login with a new id, a CSRF token, and a password fingerprint), and
     the `VerifyCsrf` and `Authenticate` middleware.
   - `Blush\Admin`: `AdminConfig` and the JSON API under

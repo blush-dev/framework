@@ -222,14 +222,62 @@ final class AdminPickersTest extends TestCase
 		$this->app->boot();
 
 		$this->assertSame(403, $this->upload('b.png', $png)->getStatusCode(), 'Every upload turned off.');
-		$this->assertSame([], is_array($this->media()['upload'] ?? null) ? $this->media()['upload']['extensions'] ?? null : null);
+		$this->assertNull($this->media()['upload'] ?? null, 'Nothing to upload.');
+	}
+
+	private function remove(string $path): ResponseInterface
+	{
+		$token = self::json($this->send('GET', '/session'))['csrfToken'] ?? '';
+
+		return $this->send('DELETE', "/media/{$path}", '', ['X-CSRF-Token' => is_string($token) ? $token : '']);
 	}
 
 	public function testChecksWhoMayUpload(): void
 	{
-		$this->site(['contributor']);
+		$this->site(['member']);
 
 		$this->assertSame(403, $this->upload('photo.png', (string) base64_decode(self::PNG, true))->getStatusCode());
+	}
+
+	public function testMediaIsChangedByWhoseItIs(): void
+	{
+		$this->site(['contributor']);
+
+		$png  = (string) base64_decode(self::PNG, true);
+		$mine = self::json($this->upload('mine.png', $png));
+		$path = sprintf('%s/mine.png', is_string($mine['folder'] ?? null) ? $mine['folder'] : '');
+
+		$this->assertSame('jane', $mine['owner'] ?? null, 'The uploader is recorded.');
+		$upload = $this->media()['upload'] ?? null;
+		$offers = is_array($upload) && is_array($upload['extensions'] ?? null) ? $upload['extensions'] : [];
+
+		$this->assertSame(['png'], array_values(array_filter(['png', 'mp4', 'pdf'], static fn (string $extension): bool => in_array($extension, $offers, true))), 'Images only.');
+		$this->assertSame(403, $this->upload('clip.mp4', 'not a video')->getStatusCode(), 'Not a kind it may upload.');
+
+		$own = self::json($this->send('GET', "/media/{$path}"));
+
+		$this->assertSame(['username' => 'jane', 'name' => 'jane'], $own['uploader'] ?? null);
+		$this->assertSame(['edit' => true, 'delete' => false], $own['may'] ?? null);
+		$this->assertSame(200, $this->patch($path, ['set' => ['alt' => 'Mine']])->getStatusCode(), 'Its own.');
+		$this->assertSame(403, $this->patch('2020/old.png', ['set' => ['alt' => 'Old']])->getStatusCode(), 'No owner is anyone\'s.');
+		$this->assertSame(403, $this->remove($path)->getStatusCode(), 'No deleting.');
+		$this->assertSame(['mine.png'], array_column(is_array($this->media('?mine=1')['files'] ?? null) ? $this->media('?mine=1')['files'] : [], 'name'), 'Only theirs.');
+	}
+
+	public function testDeletesMediaSayingWhereItsUsed(): void
+	{
+		$this->writeTemporaryFile('user/content/notes.md', "---\ntitle: Notes\nauthors: jane\n---\n![Old](/media/2020/old.png)\n");
+		$this->writeTemporaryFile('user/data/media/2020/old.png.yml', "alt: Old\n");
+		$this->site(['editor']);
+
+		$old = self::json($this->send('GET', '/media/2020/old.png'));
+
+		$this->assertNull($old['uploader'] ?? null);
+		$this->assertSame([['id' => 'notes.md', 'title' => 'Notes', 'type' => 'Page']], $old['usedIn'] ?? null, 'Where it\'s used.');
+		$this->assertSame(200, $this->remove('2020/old.png')->getStatusCode());
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2020/old.png');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2020/old.png.yml', 'Its details go with it.');
+		$this->assertSame(404, $this->send('GET', '/media/2020/old.png')->getStatusCode());
 	}
 
 	/**

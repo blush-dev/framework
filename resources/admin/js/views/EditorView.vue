@@ -122,7 +122,7 @@ import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, m
 import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
 import { mediaName } from '../media';
 import { slugOf } from '../references';
-import { can } from '../session';
+import { canUpload } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
 import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
@@ -1240,7 +1240,7 @@ function closeIcons(): void {
 type MediaKind = 'image' | 'video' | 'audio' | 'document' | 'file';
 
 const picking = ref<{ title: string; action: string; tab?: 'library' | 'upload'; kind?: MediaKind; locked?: boolean; use: (file: MediaItem) => void } | null>(null);
-const uploads = computed(() => can('media.upload'));
+const uploads = computed(() => canUpload());
 
 function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): void {
 	// Inside a gallery, only images go in.

@@ -167,11 +167,26 @@ only works alongside its own (`content.post.edit.others` needs
 `content.post.edit`). The admin shows a type only to accounts that can
 edit its entries.
 
+Media's are by kind for uploading, and by whose file it is for the
+rest. A file is the account's that uploaded it; files from before
+uploads were recorded, or added by hand, are anyone's:
+
+| Capability | Allows |
+|---|---|
+| `media.{kind}.upload` | Uploading files of a kind: `image`, `video`, `audio`, `document`, or `file` (other files); `media.*.upload` is every kind |
+| `media.edit`, `media.edit.others` | Changing the details (alt text, caption, and so on) of your own files, and anyone's |
+| `media.delete`, `media.delete.others` | Deleting your own files, and anyone's |
+
+As with content, `.others` only works alongside its own. The Media
+screen shows to anyone with one of them; the editor's media picker
+browses the library for anyone who can edit entries. Editors have them
+all; Authors upload every kind and change and delete their own files;
+Contributors upload images and change their own.
+
 The rest are for the whole site:
 
 | Capability | Allows |
 |---|---|
-| `media.upload`, `media.delete` | Uploading and deleting media |
 | `menus.edit`, `regions.edit` | Editing menus and regions |
 | `site.publish` | Publishing the site |
 | `cache.clear` | Clearing caches |

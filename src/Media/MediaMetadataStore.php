@@ -179,6 +179,27 @@ final readonly class MediaMetadataStore
 	}
 
 	/**
+	 * Removes a media file's metadata (D-407), by the file's path under
+	 * `user/media`, in every format it's kept in.
+	 *
+	 * @throws MediaException When a file can't be removed.
+	 */
+	public function forget(string $relative): void
+	{
+		$name = self::FOLDER . '/' . trim($relative, '/');
+
+		try {
+			while (($path = $this->data->find($this->paths->data, $name)) !== null) {
+				if (! @unlink($path)) {
+					throw new MediaException(sprintf('Unable to remove "%s".', $path));
+				}
+			}
+		} catch (DataException $error) {
+			throw new MediaException($error->getMessage(), previous: $error);
+		}
+	}
+
+	/**
 	 * The data file name for a media file (without the data format's
 	 * extension), or `null` for a file outside the media folder.
 	 */

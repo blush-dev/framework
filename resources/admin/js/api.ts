@@ -843,6 +843,8 @@ export interface MediaItem {
 	title: string;
 	alt: string;
 	caption: string;
+	// The uploader's username (D-407), `''` for none.
+	owner: string;
 }
 
 /**
@@ -861,11 +863,19 @@ export interface MediaDetail extends MediaItem {
 	// What the file says about itself (D-289): values read from its EXIF,
 	// IPTC, and XMP, and whether it has a location (never the location).
 	embedded: { values: Record<string, string | number | string[]>; location: boolean };
+	// Who uploaded it (D-407), or `null` when no one's recorded.
+	uploader: { username: string; name: string } | null;
+	// What the account may do to it.
+	may: { edit: boolean; delete: boolean };
+	// The entries that use it: their document's path, title, and type.
+	usedIn: { id: string; title: string; type: string }[];
 }
 
 export interface MediaList {
 	search: string;
 	kind: string;
+	// Only the account's own uploads (D-407).
+	mine: boolean;
 	total: number;
 	page: number;
 	pages: number;

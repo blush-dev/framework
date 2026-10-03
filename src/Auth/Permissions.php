@@ -17,6 +17,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
+use Blush\Media\MediaKind;
 
 /**
  * Answers whether an account may do something (D-217). An account can do
@@ -156,6 +157,43 @@ final readonly class Permissions
 			$entry->hasTerm($authors, $account->author)
 			|| ($entry->type->name === $authors && $entry->key === $account->author)
 		);
+	}
+
+	/**
+	 * Whether the account may upload files of a kind (D-407).
+	 */
+	public function mayUpload(Account $account, MediaKind $kind): bool
+	{
+		return $this->grants($account, $kind->uploadCapability());
+	}
+
+	/**
+	 * Whether the account may edit a media file's details, or delete it
+	 * (`Capability::MediaEdit` or `MediaDelete`, D-407), by whose it is:
+	 * its own (`$owner` is its username) needs the capability; anyone
+	 * else's, or one with no owner (`''`), also needs its `.others` form,
+	 * as content does.
+	 */
+	public function mayChangeMedia(Account $account, Capability $capability, string $owner): bool
+	{
+		$others = $capability->others();
+
+		if ($others === null || ! $this->grants($account, $capability->value)) {
+			return false;
+		}
+
+		return ($owner !== '' && $owner === $account->username) || $this->grants($account, $others->value);
+	}
+
+	/**
+	 * Whether the account has any media capability, so the Media screen
+	 * is theirs to use.
+	 */
+	public function usesMedia(Account $account): bool
+	{
+		return array_any(MediaKind::cases(), fn (MediaKind $kind): bool => $this->mayUpload($account, $kind))
+			|| $this->grants($account, Capability::MediaEdit->value)
+			|| $this->grants($account, Capability::MediaDelete->value);
 	}
 
 	/**

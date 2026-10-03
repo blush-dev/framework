@@ -127,7 +127,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertArrayNotHasKey('accounts', $counts);
 		$this->assertArrayNotHasKey('contentTypes', $counts);
 		$this->assertArrayNotHasKey('themes', $counts);
-		$this->assertArrayNotHasKey('media', $counts, 'A contributor can\'t upload.');
+		$this->assertArrayHasKey('media', $counts, 'A contributor uploads images (D-407).');
 		$this->assertSame(0, is_array($counts['types'] ?? null) ? $counts['types']['post'] ?? null : null, 'A contributor edits only their own.');
 	}
 

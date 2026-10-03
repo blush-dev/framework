@@ -32,7 +32,7 @@ import type { IconName } from '../icons';
 import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { initials } from '../people';
 import { loadCounts, navCounts } from '../counts';
-import { can, canAnyType, canType, session, signOut } from '../session';
+import { can, canAnyType, canType, session, signOut, usesMedia } from '../session';
 import { profileType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import CommandPalette from './CommandPalette.vue';
@@ -156,7 +156,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	});
 
 	const content = entryTypes.map((type) => ({ ...link(type), links: taxonomies.filter((taxonomy) => owner(taxonomy) === type.name).map((taxonomy) => link(taxonomy)) }));
-	const library = can('media.upload') ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
+	const library = usesMedia() ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
 
 	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
 	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'settings-2'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('media', 'Media', 'image'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('ai', 'AI', 'bot'), settingsScreen('system', 'System', 'settings')] : [];

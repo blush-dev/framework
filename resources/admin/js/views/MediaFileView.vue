@@ -16,11 +16,16 @@
  * library's (D-270); what an entry writes is its own. Changes are saved
  * when asked, only the fields that changed, and leaving with changes
  * unsaved asks first.
+ *
+ * Who may change a file's details, or delete it, is by whose it is
+ * (D-407): the file says who uploaded it, and its details are read-only
+ * to someone who may not change them. It lists the entries that use it,
+ * and deleting it asks first, naming them.
  */
 
 import { computed, ref, watch } from 'vue';
-import { confirmLeave } from '../confirm';
-import { onBeforeRouteLeave, RouterLink, useRoute } from 'vue-router';
+import { confirmAction, confirmLeave } from '../confirm';
+import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldControl from '../components/FieldControl.vue';
 import { ApiError, request, type FieldDescription, type MediaDetail } from '../api';
@@ -31,7 +36,8 @@ import { forgetFile, formatDuration, mediaFacts, mediaName } from '../media';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
 
-const route = useRoute();
+const route  = useRoute();
+const router = useRouter();
 const file  = ref<MediaDetail | null>(null);
 const error = ref('');
 
@@ -182,6 +188,43 @@ async function save(): Promise<void> {
 
 onBeforeRouteLeave(() => !changed.value || confirmLeave());
 
+const deleting = ref(false);
+
+// Deletes the file, saying first which entries use it.
+async function remove(): Promise<void> {
+	const item = file.value;
+
+	if (item === null || deleting.value) {
+		return;
+	}
+
+	const used = item.usedIn.length;
+	const body = used === 0
+		? ['It isn\'t used in any entry. This can\'t be undone.']
+		: [
+			`It's used in **${used === 1 ? '1 entry' : `${used} entries`}**: ${item.usedIn.slice(0, 5).map((entry) => entry.title).join(', ')}${used > 5 ? `, and ${used - 5} more` : ''}. They'll show a broken image or link until they're changed.`,
+			'This can\'t be undone.'
+		];
+
+	if (!await confirmAction({ title: `Delete ${mediaName(item)}?`, body, confirm: 'Delete the file', danger: true })) {
+		return;
+	}
+
+	deleting.value = true;
+
+	try {
+		await request('DELETE', address.value);
+		forgetFile(item.reference);
+		initial.value = { ...form.value };
+		toast(`Deleted ${mediaName(item)}`);
+		await router.push({ name: 'media' });
+	} catch (caught) {
+		toast(caught instanceof ApiError ? caught.message : 'The file couldn\'t be deleted.', { kind: 'warn' });
+	} finally {
+		deleting.value = false;
+	}
+}
+
 // What an entry would write to show it: an image is Markdown, with the
 // library's alt text and caption (D-267, D-268); the rest are components.
 const snippet = computed(() => {
@@ -232,6 +275,7 @@ async function copy(text: string, what: string): Promise<void> {
 		</div>
 		<div class="page-header__actions">
 			<a v-if="file" class="button" :href="file.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />Open<span class="visually-hidden"> the file (new tab)</span></a>
+			<button v-if="file?.may.delete" type="button" class="button button--danger" :disabled="deleting" @click="remove"><AdminIcon name="trash-2" />Delete</button>
 		</div>
 	</header>
 
@@ -250,7 +294,8 @@ async function copy(text: string, what: string): Promise<void> {
 				<header class="panel__header">
 					<h2 id="text-heading">Details</h2>
 				</header>
-				<div class="panel__body text">
+				<fieldset class="panel__body text" :disabled="!file.may.edit">
+					<p v-if="!file.may.edit" class="field__help text__note"><AdminIcon name="info" />{{ file.uploader === null ? 'No one\'s recorded as uploading this file, so only someone who may change anyone\'s files can change its details.' : `Only ${file.uploader.name}, or someone who may change anyone's files, can change its details.` }}</p>
 					<p v-if="file.kind === 'image' && fields.some((field) => field.name === 'alt') && altText === ''" class="field__help text__warn"><AdminIcon name="triangle-alert" />No alt text. It's what the image shows, for anyone who can't see it; images inserted from the library start with it, and pages use it where they have none.</p>
 					<FieldControl
 						v-for="field in ownFields"
@@ -284,11 +329,11 @@ async function copy(text: string, what: string): Promise<void> {
 						</dl>
 					</div>
 					<p v-if="failure" class="field__error" role="alert">{{ failure }}</p>
-					<div class="text__actions">
+					<div v-if="file.may.edit" class="text__actions">
 						<button type="submit" class="button button--primary button--small" :disabled="!changed || saving">{{ saving ? 'Saving…' : 'Save' }}</button>
 						<span class="field__help">Kept in <code>user/data/media</code>, not in the file.</span>
 					</div>
-				</div>
+				</fieldset>
 			</form>
 
 			<section v-if="embedded.length || file.embedded.location" class="panel" aria-labelledby="embedded-heading">
@@ -321,7 +366,24 @@ async function copy(text: string, what: string): Promise<void> {
 					<div v-if="file.width !== null && file.height !== null"><dt>Dimensions</dt><dd>{{ file.width }} × {{ file.height }}</dd></div>
 					<div v-if="file.duration !== null"><dt>Length</dt><dd>{{ formatDuration(file.duration) }}</dd></div>
 					<div><dt>Changed</dt><dd>{{ formatDate(file.modified) }}</dd></div>
+					<div><dt>Uploaded by</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? 'Not recorded' }}</dd></div>
 				</dl>
+			</section>
+
+			<section class="panel" aria-labelledby="used-heading">
+				<header class="panel__header">
+					<h2 id="used-heading">Used In</h2>
+					<span class="panel__hint">{{ file.usedIn.length === 0 ? 'No entries' : (file.usedIn.length === 1 ? '1 entry' : `${file.usedIn.length} entries`) }}</span>
+				</header>
+				<div class="panel__body">
+					<p v-if="file.usedIn.length === 0" class="field__help">No entry uses it, by any of its addresses.</p>
+					<ul v-else class="used">
+						<li v-for="entry in file.usedIn" :key="entry.id">
+							<RouterLink :to="{ name: 'entry-file', params: { id: entry.id.split('/') } }">{{ entry.title }}</RouterLink>
+							<span v-if="entry.type" class="used__type">{{ entry.type }}</span>
+						</li>
+					</ul>
+				</div>
 			</section>
 
 			<section class="panel" aria-labelledby="use-heading">
@@ -345,6 +407,49 @@ async function copy(text: string, what: string): Promise<void> {
 </template>
 
 <style scoped>
+/* The form's controls, read-only as one when they can't be changed. */
+fieldset.text {
+	min-width: 0;
+	margin: 0;
+	border: 0;
+}
+
+.text__note {
+	display: flex;
+	gap: var(--s-2);
+}
+
+.text__note :deep(.icon) {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	margin-top: 2px;
+}
+
+.facts__none {
+	color: var(--fg-3);
+}
+
+.used {
+	display: grid;
+	gap: var(--s-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.used li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--s-1) var(--s-2);
+}
+
+.used__type {
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
 .detail {
 	display: grid;
 	grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);

@@ -14,11 +14,13 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 use Blush\Content\Type\ContentTypes;
+use Blush\Media\MediaKind;
 
 /**
  * Every capability the site knows, with its label and group: the site
- * capabilities (`Capability`), each kind of extension's (`ExtensionAction`,
- * D-389), plus any a plugin registers from its
+ * capabilities (`Capability`), uploading each kind of media
+ * (`MediaKind::uploadCapability()`, D-407), each kind of extension's
+ * (`ExtensionAction`, D-389), plus any a plugin registers from its
  * provider's `boot()`, and each content type's (`ContentAction`, D-359),
  * which follow the site's types. The administrator role's `*` grants all
  * of them, and the admin lists them by group.
@@ -63,6 +65,12 @@ final class Capabilities
 	public static function withBuiltIns(?ContentTypes $types = null): self
 	{
 		$capabilities = new self($types);
+
+		$capabilities->register(MediaKind::UPLOAD_EVERY, 'Upload every kind', 'Media');
+
+		foreach (MediaKind::cases() as $kind) {
+			$capabilities->register($kind->uploadCapability(), sprintf('Upload %s', mb_strtolower($kind->label())), 'Media');
+		}
 
 		foreach (Capability::cases() as $capability) {
 			$capabilities->register($capability->value, $capability->label(), $capability->group());

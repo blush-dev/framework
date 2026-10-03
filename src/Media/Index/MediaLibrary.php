@@ -97,6 +97,10 @@ final class MediaLibrary
 				return false;
 			}
 
+			if ($query->owner !== null && $record->metadata()->owner !== $query->owner) {
+				return false;
+			}
+
 			return $search === '' || str_contains(mb_strtolower($record->key . "\n" . self::text($record->metadata)), $search);
 		});
 

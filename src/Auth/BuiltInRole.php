@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Blush\Media\MediaKind;
+
 /**
  * The framework's roles (D-217). `config/auth.php` can redefine any of
  * them but the member by name, or add others; the admin can change the
@@ -47,7 +49,7 @@ enum BuiltInRole: string
 			self::Administrator => 'Everything, including accounts, roles, content types, and settings.',
 			self::Editor        => 'Publishes and edits anyone\'s entries, and publishes the site. Can\'t change its structure.',
 			self::Author        => 'Writes and publishes their own entries, and uploads media.',
-			self::Contributor   => 'Writes drafts of their own entries. Can\'t publish.',
+			self::Contributor   => 'Writes drafts of their own entries, and uploads images. Can\'t publish.',
 			self::Member        => 'Signs in and looks after their own account. Nothing else.'
 		};
 	}
@@ -78,19 +80,30 @@ enum BuiltInRole: string
 
 		$site = match ($this) {
 			self::Editor => [
-				Capability::MediaUpload,
+				Capability::MediaEdit,
+				Capability::MediaEditOthers,
 				Capability::MediaDelete,
+				Capability::MediaDeleteOthers,
 				Capability::MenusEdit,
 				Capability::RegionsEdit,
 				Capability::SitePublish,
 				Capability::CacheClear
 			],
-			self::Author => [Capability::MediaUpload],
-			default      => []
+			self::Author      => [Capability::MediaEdit, Capability::MediaDelete],
+			self::Contributor => [Capability::MediaEdit],
+			default           => []
+		};
+
+		// Uploading is by kind (D-407).
+		$uploads = match ($this) {
+			self::Editor, self::Author => [MediaKind::UPLOAD_EVERY],
+			self::Contributor          => [MediaKind::Image->uploadCapability()],
+			default                    => []
 		};
 
 		return $this === self::Administrator ? [Role::ALL] : [
 			...array_map(static fn (ContentAction $action): string => $action->on(ContentAction::EVERY), $content),
+			...$uploads,
 			...array_map(static fn (Capability $capability): string => $capability->value, $site)
 		];
 	}

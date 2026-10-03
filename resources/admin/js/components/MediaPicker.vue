@@ -35,7 +35,7 @@ import { mediaFacts, mediaName } from '../media';
 import { ApiError, request, upload, type MediaItem, type MediaList } from '../api';
 import { formatSize, plural } from '../format';
 import type { IconName } from '../icons';
-import { can } from '../session';
+import { canUpload } from '../session';
 
 type Kind = 'any' | 'image' | 'video' | 'audio' | 'document' | 'file';
 
@@ -69,7 +69,7 @@ const selected = ref<MediaItem | null>(null);
 
 // Uploading: whether the account may, what the server says it takes, the
 // tab showing, a drag over the modal, and this visit's uploads.
-const uploads  = can('media.upload');
+const uploads  = canUpload();
 const accepts  = ref<MediaList['upload']>(null);
 const tab      = ref<'library' | 'upload'>(uploads ? props.tab ?? 'library' : 'library');
 const dragging = ref(false);
@@ -84,7 +84,7 @@ const KINDS = [
 	{ key: 'file', label: 'Files' }
 ] as const;
 
-// What a file that isn't an image, video, or sound is.
+// What a file that isn't an image, video, or audio is.
 // What kind of file a name claims to be, by its extension, so a locked
 // picker can refuse the wrong kind before uploading it.
 const EXTENSIONS: Record<Exclude<Kind, 'any' | 'file'>, string[]> = {
@@ -100,7 +100,7 @@ function kindOfName(name: string): Exclude<Kind, 'any'> {
 	return (Object.keys(EXTENSIONS) as (keyof typeof EXTENSIONS)[]).find((key) => EXTENSIONS[key].includes(extension)) ?? 'file';
 }
 
-const KIND_NAMES: Record<Exclude<Kind, 'any'>, string> = { image: 'an image', video: 'a video', audio: 'a sound', document: 'a document', file: 'a file' };
+const KIND_NAMES: Record<Exclude<Kind, 'any'>, string> = { image: 'an image', video: 'a video', audio: 'an audio file', document: 'a document', file: 'a file' };
 
 function isKind(file: MediaItem, key: string): boolean {
 	return key === 'any' || (key === 'file' ? !['image', 'video', 'audio', 'document'].includes(file.kind) : file.kind === key);
@@ -379,7 +379,7 @@ onBeforeUnmount(() => {
 						</template>
 						<template v-else>
 							<p class="empty__heading">The Library Is Empty</p>
-							<p class="empty__text">Images, video, and sound you upload land here, and any entry can use them.</p>
+							<p class="empty__text">Images, video, audio, and documents you upload land here, and any entry can use them.</p>
 						</template>
 						<button v-if="uploads" type="button" class="button" @click="showTab('upload')">
 							<AdminIcon name="upload" />{{ search || kind !== 'any' ? 'Upload one instead' : 'Upload a file' }}
@@ -397,7 +397,7 @@ onBeforeUnmount(() => {
 				<div class="picker__drop">
 					<AdminIcon name="upload" />
 					<p class="picker__drop-heading">Drag Files Here</p>
-					<p class="picker__drop-text">Images, video, and sound. They land in the library, so any entry can use them afterwards.</p>
+					<p class="picker__drop-text">Images, video, audio, and documents. They land in the library, so any entry can use them afterwards.</p>
 					<button type="button" class="button button--primary" @click="input?.click()">Choose files</button>
 					<p v-if="limits" class="picker__drop-hint">{{ limits }}</p>
 				</div>

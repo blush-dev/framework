@@ -45,7 +45,8 @@ use Blush\Theme\Themes;
  * - `types`: each content type the account may edit entries of, by name:
  *   how many entries its list shows the account (any status, without
  *   its index page or people pages, as `GET entries` counts them).
- * - `media`: the files in the library, with `media.upload` (D-372).
+ * - `media`: the files in the library, with a media capability (D-372,
+ *   D-407).
  * - `accounts` and `roles`, with `accounts.view`.
  * - `contentTypes` and `fieldSets`, with `site.settings`.
  * - `themes`, `plugins`, and `iconPacks` (installed), each with seeing
@@ -93,7 +94,7 @@ final readonly class CountsController
 
 		$counts = ['types' => $types];
 
-		if ($this->permissions->can($account, Capability::MediaUpload)) {
+		if ($this->permissions->usesMedia($account)) {
 			$counts['media'] = $this->media->query(new MediaQuery(per: 1))->total;
 		}
 

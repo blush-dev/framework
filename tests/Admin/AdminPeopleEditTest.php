@@ -50,7 +50,7 @@ final class AdminPeopleEditTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator']): void
 	{
-		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('manager', 'Manager', ['accounts.view', 'accounts.create', 'accounts.edit', 'accounts.roles', 'accounts.suspend', 'accounts.delete', 'roles.manage', 'content.*.create', 'content.*.edit', 'content.*.delete']), new Blush\\Auth\\Role('viewer', 'Viewer', ['accounts.view', 'accounts.suspend', 'content.*.create', 'content.*.edit', 'content.*.delete']), new Blush\\Auth\\Role('creator', 'Creator', ['accounts.view', 'accounts.create'])]);\n");
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('manager', 'Manager', ['accounts.view', 'accounts.create', 'accounts.edit', 'accounts.roles', 'accounts.suspend', 'accounts.delete', 'roles.manage', 'content.*.create', 'content.*.edit', 'content.*.delete', 'media.*.upload', 'media.edit']), new Blush\\Auth\\Role('viewer', 'Viewer', ['accounts.view', 'accounts.suspend', 'content.*.create', 'content.*.edit', 'content.*.delete', 'media.*.upload', 'media.edit']), new Blush\\Auth\\Role('creator', 'Creator', ['accounts.view', 'accounts.create'])]);\n");
 		$this->boot(roles: $roles);
 		$this->login();
 	}

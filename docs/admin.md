@@ -143,7 +143,8 @@ shown with their `icon` (see
 **Users** has Your Account, Accounts, Profiles, and Roles. In
 **Config**, **Settings** has General, Reading, Addresses and Search, AI,
 and System, and **Extensions** has Themes, Plugins, and Icon Packs. You only see the
-screens your roles allow: Media needs `media.upload`, Accounts and
+screens your roles allow: Media needs one of the media capabilities
+(see [Accounts](accounts.md#capabilities)), Accounts and
 Roles `accounts.view` (and New Account `accounts.create`, New Role
 `roles.manage`), Profiles editing profiles, each content type
 editing its entries,
@@ -427,7 +428,7 @@ over from copying part of a component is dropped, longer fences such as
 as the inserter puts it. Dropping or
 pasting files into the text uploads them to the library and puts each
 in where the cursor is, as the media picker does (see below); that
-needs `media.upload`. They're in the command palette too.
+needs uploading the file's kind (`media.image.upload` and so on). They're in the command palette too.
 
 **Focus mode** (⌘⇧F or Ctrl+Shift+F, or the **⋮** menu) hides
 everything but the text and the editor's own header. Press Escape to
@@ -540,7 +541,7 @@ caption for the file (see [Media](#media)), they're filled in:
 `![A lake at dawn](/media/lake.jpg "The lake at dawn")`, with selected
 text still winning for the description. On the site it's a figure; a quoted title
 after the address, `![A lake](/media/lake.jpg "The lake at dawn")`, is
-its caption. A video goes in as a video, a sound as audio, and anything
+its caption. A video goes in as a video, an audio file as audio, and anything
 else as a download, and their options open in the settings.
 
 The Upload tab takes files from your computer: drag them anywhere onto
@@ -551,7 +552,9 @@ address (`My Photo.JPG` becomes `My-Photo.jpg`), or the folder the
 **Media** settings give its kind; a name that's taken gets
 `-2`, `-3`, and so on, so nothing is replaced. An upload lands at the top
 of the library, chosen, so **Insert** finishes the job; **Show in
-library** switches tabs to see it there. Uploading needs `media.upload`.
+library** switches tabs to see it there. Uploading needs the kind's
+capability (`media.image.upload`, or `media.*.upload` for every kind),
+and the Upload tab takes only the kinds you may upload.
 How large a file may be is up to the **Media** settings, within what
 PHP takes (`upload_max_filesize` and `post_max_size`).
 
@@ -697,7 +700,17 @@ page shows what the entry wrote, and an image with empty brackets,
 decorative. Changing an image's alt text or caption in the editor never
 changes the library's, and changing the library's never changes an
 entry. They
-need `media.upload` to change, and are saved when you choose **Save**.
+can be changed by whoever uploaded the file (`media.edit`), or by anyone
+with `media.edit.others`, which files with no uploader recorded need;
+otherwise they're shown read-only. They're saved when you choose **Save**.
+
+A file's screen also says who uploaded it, and lists the entries that
+use it (by any of its addresses, in their text or front matter).
+**Delete** (your own files with `media.delete`, anyone's with
+`media.delete.others`) asks first, naming those entries, which will
+show a broken image or link until they're changed; it removes the file,
+its details, and the copy `media:publish --copy` made. In the library,
+**My files** shows only what you uploaded.
 
 They're kept apart from the file, in `user/data/media/`, which mirrors
 the media paths: `user/media/2026/09/lake.jpg` has
@@ -848,7 +861,7 @@ only show them.
 **New Field Set** has a label (heading the set's fields in the editor),
 a key (made from the label; it's the file's name, so it can't change
 later), help shown under the label, the kind of place to add it to
-(content types; kinds of media file: images, videos, sound, and other
+(content types; kinds of media file: images, videos, audio, documents, and other
 files; or the Settings screens; a set's places are all one kind), the
 places of that kind, and its fields, edited as a type's are. **Create
 Field Set** writes
@@ -880,7 +893,7 @@ screens:
   JSON Feed; none turns feeds off), whether they carry each entry's full
   content, and how many entries each holds (1 to 100).
 - **Media:** what may be uploaded, as a grid: **All Files**, then
-  Images, Videos, Sound, Documents, and Other Files, each with an
+  Images, Videos, Audio, Documents, and Other Files, each with an
   **Uploads** switch, its **Largest file** in megabytes, and its
   **Path** under `user/media` (a folder, or a pattern: click into one for
   the tokens `{year}`, `{month}`, `{day}`, `{kind}`, and `{ext}`, and
@@ -1292,13 +1305,14 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
 | `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`) and `adminTheme` (`neutral` or `editorial`), such as `{"colorScheme": "dark"}`; answers `{"preferences"}` |
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
-| `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `media` (the library's files; `media.upload`), `accounts` and `roles` (`accounts.view`), `contentTypes` and `fieldSets` (`site.settings`), and `themes`, `plugins`, and `iconPacks` (installed; each with seeing its kind, `extensions.themes.view` and so on) |
+| `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `media` (the library's files; any media capability), `accounts` and `roles` (`accounts.view`), `contentTypes` and `fieldSets` (`site.settings`), and `themes`, `plugins`, and `iconPacks` (installed; each with seeing its kind, `extensions.themes.view` and so on) |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |
 | `GET media` | The media files an entry can use (see below) |
 | `GET media/{path}` | One file in the library, by its path under `user/media`, with its details (see below) |
 | `POST media` | Upload a file to the library (see below) |
 | `PATCH media/{path}` | Change a library file's details (see below) |
+| `DELETE media/{path}` | Delete a library file, with its details (see below) |
 | `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
 | `GET roles` | Every capability (`{"name", "label", "group"}`, and a content capability's `type`, `*` for every type, and `action`), the content `types` (`{"name", "label", "kind", "icon"}`), and every role: `{"name", "label", "description", "capabilities", "builtIn", "origin", "accounts", "grantable", "editable"}` (`accounts` is each holder's `{"username", "displayName"}`), and a changed built-in's `defaults`. `origin` is `built-in`, `changed`, `custom`, or `config`; `grantable` is whether you may give it, and `editable` whether you may change it. Needs `accounts.view`, as do all of these; each change needs its own capability too (`accounts.create`, `accounts.edit`, `accounts.roles`, `accounts.suspend`, `accounts.delete`, or `roles.manage`; see [Capabilities](accounts.md#capabilities)) |
 | `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
@@ -1483,13 +1497,14 @@ the path must contain), `kind` (`image`, `video`, `audio`, `document`,
 `folder`, `url`, `mime`, `kind`, `size`, `width` and `height` (images),
 `modified`, and the library's `alt` and `caption` for it (`""` for
 none). Only the file types your site allows are listed. When
-the account may upload (`media.upload`), `upload` has the largest file
+the account may upload some kind (`media.{kind}.upload`), `upload` has the largest file
 it may upload (`limit`, in bytes, or `null` for none: the upload rules'
 largest, within PHP's) and the `extensions` that may be uploaded;
 otherwise it's `null`.
 
 `POST media` uploads one file, sent as the multipart field `file`, and
-needs `media.upload`. It goes in the folder the upload rules give its
+needs the capability to upload its kind (`media.{kind}.upload`, a 403
+otherwise). Its uploader is recorded in its details (`owner`). It goes in the folder the upload rules give its
 kind (`user/media/{year}/{month}/` by default; see
 [`MediaConfig`'s `uploads`](configuration.md#media)) with a
 name safe for a URL, and `-2`, `-3`, and so on when the name is taken.
@@ -1501,28 +1516,40 @@ turned off a 422, and any upload while uploads are off a 403.
 
 `GET media` lists from the media index (see
 [The media index](media.md#the-media-index)): `search` matches a file's
-path or details, and `missing=alt` narrows it to images without alt
-text.
+path or details, `missing=alt` narrows it to images without alt
+text, and `mine=1` to the account's own uploads. It's for accounts that
+can edit entries, or have a media capability.
 
 Every file the media API answers has its `title`, `alt`, and
-`caption` (`''` for none), and a sound's or video's `duration` in
+`caption` (`''` for none), its uploader's username (`owner`, `''` for
+none), and an audio file's or video's `duration` in
 seconds (`null` when unknown). `GET media/{path}` adds what the file says about itself, `embedded`:
 its `values` (read from its EXIF, IPTC, and XMP: `title`,
 `description`, `creator`, `copyright`, `credit`, `keywords`, `created`,
 `camera`, `lens`, `focalLength`, `aperture`, `exposure`, `iso`,
-`orientation`, `software`, and for sound and video `album`, `track`,
+`orientation`, `software`, and for audio and video `album`, `track`,
 `genre`, `duration` (seconds), `artwork`, `width`, and `height`,
 whichever it has) and `location`, whether
 it carries one (never where). It also adds the file's details: the `fields` its kind has
 (described as a content type's are), the field `sets` on its kind
 (`{"name", "label", "description", "fields"}`, the field names), their `values`, keys its metadata
-file keeps that aren't fields (`extra`), and `violations` for what
-doesn't fit. `PATCH media/{path}` changes them: `{"set": {field:
+file keeps that aren't fields (`extra`), `violations` for what
+doesn't fit, its `uploader` (`{"username", "name"}`, or `null`), what
+the account `may` do to it (`{"edit", "delete"}`), and the entries
+that use it (`usedIn`: `{"id", "title", "type"}`, `id` being the
+document's path). `PATCH media/{path}` changes them: `{"set": {field:
 value}, "remove": [field]}`, for a file in the library, needs
-`media.upload`, and answers with the file. An empty value removes a
+`media.edit` (and `media.edit.others` for a file that isn't the
+account's, or has no uploader), and answers with the file. An empty value removes a
 field, each value is checked by its field (a 422 naming the `field`
 when it doesn't fit), and `alt` and `caption` may still be sent on
 their own.
+
+`DELETE media/{path}` deletes the file, its details, and the copy
+`media:publish --copy` made, and answers `{"deleted"}` with its path.
+It needs `media.delete`, and `media.delete.others` for a file that
+isn't the account's or has no uploader. It doesn't check where the file
+is used; `GET media/{path}`'s `usedIn` is for asking first.
 
 ### Editing entries
 

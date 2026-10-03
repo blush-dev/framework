@@ -26,6 +26,8 @@ final readonly class MediaQuery
 		public string $search = '',
 		public ?MediaKind $kind = null,
 		public bool $missingAlt = false,
+		// Only files this username uploaded (D-407).
+		public ?string $owner = null,
 		public int $page = 1,
 		public int $per = 48
 	) {}

@@ -11666,3 +11666,72 @@ decision, add a new entry that supersedes it and mark the old one
     server's limit going down later doesn't stop the site).
 - **Why:** the author's settings sketch, and their calls above.
 
+### D-407: Media capabilities by kind and by whose file it is
+- **Date:** 2026-10-03
+- **Status:** Replaces `media.upload` and `media.delete` (D-217).
+- **Decision:** After weighing every action by kind (30 capabilities),
+  the author chose the smaller shape: kind matters for uploading;
+  whose file it is matters for changing and deleting.
+  - **Ten capabilities:** `media.{kind}.upload` for `image`, `video`,
+    `audio`, `document`, and `file`, with `media.*.upload` for every
+    kind (`MediaKind::uploadCapability()`, `MediaKind::UPLOAD_EVERY`);
+    `media.edit` / `media.edit.others` (a file's details) and
+    `media.delete` / `media.delete.others`. As with content, `.others`
+    needs its own (`Permissions::mayChangeMedia()`).
+  - **Ownership:** an upload records its uploader's username in the
+    file's details (`owner` in `user/data/media/…`,
+    `MediaMetadata::OWNER`), which isn't a field: it's left out of
+    field checks and `content:lint`, and nothing edits it. A file with
+    no owner (added by hand, or uploaded before this) is anyone's, so
+    only `.others` reaches it. On jtcom that's Editors and
+    Administrators, who manage those files now.
+  - **Built-in roles:** Editor all five (`media.*.upload`, both edits,
+    both deletes); Author `media.*.upload`, `media.edit`,
+    `media.delete`; Contributor `media.image.upload`, `media.edit` (the
+    author's call; Contributors had none); Member none.
+  - **Old roles aren't mapped** (the author's call): `media.upload` is
+    retired (`Capability::RETIRED`), dropped from saved roles as
+    they're read and gone on their next save. `media.delete` keeps its
+    name, now meaning a role's own files, which grants less than before.
+  - **The Media screen** shows to any account with a media capability
+    (`Permissions::usesMedia()`); the library API also answers anyone
+    who can edit entries, for the editor's picker. Upload is shown only
+    to accounts that may upload some kind, and the picker's `upload`
+    offers only their kinds' extensions, with their largest file.
+  - **Deleting media**, new (`DELETE media/{path}`): removes the file,
+    its details (`MediaMetadataStore::forget()`), and a copy
+    `media:publish --copy` made. The admin asks first, naming the
+    entries that use it (`MediaUsage`: every content document naming the
+    file by any address the resolver takes, in its body or front
+    matter), and goes ahead if confirmed (the author's "warn if
+    possible"). Deleting is permanent: media has no trash.
+  - **The file screen** says who uploaded it ("Not recorded" for none),
+    lists the entries that use it (**Used In**), shows its details
+    read-only, saying why, when the account may not change them, and
+    has **Delete** when it may. The library has **My files**
+    (`mine=1`, `MediaQuery::$owner`).
+  - **The Roles screen's Media section** is its own grid: Upload by kind
+    (Every kind fixing each), Change details and Delete, each their
+    own files and anyone's; its sentence ("Can upload images and change
+    their own files. Cannot delete files.") and ⋮ presets (Full access,
+    Their own only, Images only, No access).
+  - **Fixed on the way:** the library drew a file icon and kind label
+    over an image thumbnail that had alt text.
+  - **Revised after review (the author's calls):** the Media section is
+    one flat grid of its ten boxes, as every section is (no Upload,
+    Change details, and Delete subheads); every section's grid on the
+    Roles screen is three columns (two under 1,100px, one on a phone);
+    and the audio kind is **Audio**, not Sound, everywhere the admin
+    names it (`MediaKind::Audio`'s label, so the upload capability is
+    "Upload audio", the field-set target, the field editor's kinds, the
+    picker's words).
+- **Checked:** `composer check` (`PermissionsTest`: kinds, ownership,
+  retired capabilities; `AdminPickersTest`: the owner recorded, images
+  only, own and no-owner edits, no deleting, My files, deleting with
+  `usedIn`; People tests updated for the Contributor's new
+  capabilities); `npm run admin:build`; the Roles screen, a file's
+  screen with its delete confirmation, and the library in headless
+  Chrome against the jtcom trial's data (usage over ~1,200 entries took
+  0.05s).
+- **Why:** finer control over media; the author's calls above.
+

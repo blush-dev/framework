@@ -19,7 +19,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Core\Paths;
 use Blush\Http\Response;
@@ -28,6 +27,7 @@ use Blush\Media\MediaConfig;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaException;
 use Blush\Media\MediaKind;
+use Blush\Media\MediaMetadata;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 use Blush\Support\UrlPath;
@@ -47,7 +47,10 @@ use Blush\Support\UrlPath;
  * hidden first, and takes its name only once its contents pass.
  *
  * A kind the rules turn off, or every upload turned off, is refused, as
- * is a file larger than its kind's largest. Answers 201 with the file as
+ * is a file larger than its kind's largest, and one of a kind the account
+ * may not upload (`media.{kind}.upload`, D-407). The file's metadata
+ * records who uploaded it (`owner`), which decides who may edit or
+ * delete it. Answers 201 with the file as
  * `GET media` describes one. PHP has the last word on size
  * (`upload_max_filesize`, `post_max_size`); `limit()` reads it, and
  * `largest()` says the most any upload may be, for the picker to show.
@@ -68,7 +71,7 @@ final readonly class MediaUploadController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::MediaUpload)) {
+		if (! $account instanceof Account || ! array_any(MediaKind::cases(), fn (MediaKind $kind): bool => $this->permissions->mayUpload($account, $kind))) {
 			return self::error('You aren\'t allowed to upload media.', Status::Forbidden);
 		}
 
@@ -99,6 +102,10 @@ final readonly class MediaUploadController
 
 		$kind = MediaKind::fromMime($mime);
 
+		if (! $this->permissions->mayUpload($account, $kind)) {
+			return self::error(sprintf('%s can\'t be uploaded: you aren\'t allowed to upload %s.', $name, mb_strtolower($kind->label())), Status::Forbidden);
+		}
+
 		if (! $uploads->allows($kind)) {
 			return self::error(sprintf('%s can\'t be uploaded: uploads of %s are turned off on the Media settings screen.', $name, mb_strtolower($kind->label())), Status::UnprocessableContent);
 		}
@@ -126,7 +133,7 @@ final readonly class MediaUploadController
 
 		$actual = MediaResolver::mimeOf($hidden);
 
-		if (! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual))) {
+		if (! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual)) || ! $this->permissions->mayUpload($account, MediaKind::fromMime($actual))) {
 			@unlink($hidden);
 
 			return self::error(sprintf('%s isn\'t what its name says it is, or isn\'t a type the library takes.', $name), Status::UnprocessableContent);
@@ -150,6 +157,13 @@ final readonly class MediaUploadController
 			return self::error(sprintf('%s couldn\'t be added to the library.', $name), Status::UnprocessableContent);
 		}
 
+		// Who uploaded it decides who may change it (D-407). A file whose
+		// metadata can't be written stays, with no owner.
+		try {
+			$this->metadata->save($file, [MediaMetadata::OWNER => $account->username]);
+		} catch (MediaException) {
+		}
+
 		// The library lists it at once. An index that can't be written is
 		// refreshed next time; the upload itself worked.
 		try {
@@ -162,15 +176,23 @@ final readonly class MediaUploadController
 
 	/**
 	 * The file extensions that can be uploaded: the types the site allows,
-	 * of the kinds the upload rules allow.
+	 * of the kinds the upload rules allow, and, given an account, the
+	 * kinds it may upload (D-407).
 	 *
 	 * @return list<string>
 	 */
-	public function extensions(): array
+	public function extensions(?Account $account = null): array
 	{
-		$uploads = $this->config->uploads;
+		return array_keys(array_filter(MediaListController::EXTENSIONS, fn (string $mime): bool => $this->config->allows($mime) && $this->uploadable(MediaKind::fromMime($mime), $account)));
+	}
 
-		return array_keys(array_filter(MediaListController::EXTENSIONS, fn (string $mime): bool => $this->config->allows($mime) && $uploads->allows(MediaKind::fromMime($mime))));
+	/**
+	 * Whether files of a kind can be uploaded: the upload rules allow it,
+	 * and the account, given one, may.
+	 */
+	private function uploadable(MediaKind $kind, ?Account $account): bool
+	{
+		return $this->config->uploads->allows($kind) && ($account === null || $this->permissions->mayUpload($account, $kind));
 	}
 
 	/**
@@ -178,13 +200,13 @@ final readonly class MediaUploadController
 	 * largest the upload rules let a kind be that may be uploaded, within
 	 * PHP's limit.
 	 */
-	public function largest(): ?int
+	public function largest(?Account $account = null): ?int
 	{
 		$uploads = $this->config->uploads;
 		$rules   = null;
 
 		foreach (MediaKind::cases() as $kind) {
-			if (! $uploads->allows($kind)) {
+			if (! $this->uploadable($kind, $account)) {
 				continue;
 			}
 

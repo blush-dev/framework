@@ -18,6 +18,8 @@ use SplFileInfo;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
@@ -41,24 +43,26 @@ use Blush\Media\MediaMetadata;
 use Blush\Media\MediaSchemas;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
+use Blush\Media\MediaUsage;
 use Blush\Support\Filesystem;
 use Blush\Support\UrlPath;
 
 /**
  * Answers `GET {path}/api/media` (D-246): the media files an entry can use,
- * for the editor's media picker. It needs to edit entries of some
- * type.
+ * for the editor's media picker and the Media screen. It needs to edit
+ * entries of some type, or a media capability (D-407).
  *
  * - `files`: the library (`user/media`), from the media index (D-288),
  *   newest first, a page at a time (`page`, and `per`, 48 by default, at
  *   most 100), narrowed by `search` (text its path or metadata must
  *   contain, in any case), `kind` (`image`, `video`, `audio`,
- *   `document`, `file` for any other kind, or `any`, the default), and `missing=alt` (images
- *   without alt text).
- * - `upload`: when the account may upload (D-268), the largest file it
- *   may upload (`limit`, in bytes, or `null`: the upload rules' largest,
- *   within PHP's, D-406) and the `extensions` that may be uploaded;
- *   otherwise `null`.
+  *   `document`, `file` for any other kind, or `any`, the default),
+ *   `missing=alt` (images without alt text), and `mine=1` (the files the
+ *   account uploaded, D-407).
+ * - `upload`: when the account may upload some kind (D-268, D-407), the
+ *   largest file it may upload (`limit`, in bytes, or `null`: the upload
+ *   rules' largest, within PHP's, D-406) and the `extensions` it may
+ *   upload; otherwise `null`.
  *
  * `GET {path}/api/media/{path}` (`show()`) describes one file, by its
  * path under `user/media`, with its metadata fields (D-287): the
@@ -66,19 +70,28 @@ use Blush\Support\UrlPath;
  * are), the field `sets` attached to its kind (D-341: `name`, `label`,
  * `description`, and the names of their `fields`, which the screen
  * groups), their `values`, keys the file keeps that aren't fields
- * (`extra`), and what doesn't fit (`violations`). `PATCH` (`update()`,
- * `media.upload`) changes them: `set` (field names to values; an empty
+ * (`extra`), what doesn't fit (`violations`), who uploaded it (`uploader`:
+ * `username` and `name`, or `null`), what the account `may` do to it
+ * (`edit`, `delete`), and the entries that use it (`usedIn`: `id`,
+ * `title`, `type`; `MediaUsage`). `PATCH` (`update()`, `media.edit`, and
+ * `media.edit.others` for a file that isn't the account's) changes them: `set` (field names to values; an empty
  * one removes it) and `remove` (field names), each value checked by its
  * field, and answers with the file. `alt` and `caption` given on their
  * own, as before, are set too. It also has what the file says about
  * itself (`embedded`, D-289): the values read from its EXIF, IPTC, and
  * XMP, and whether it has a location, never the location itself.
  *
+ * `DELETE` (`delete()`, D-407, `media.delete`, and `media.delete.others`
+ * for a file that isn't the account's) removes the file, its metadata,
+ * and a copy `media:publish --copy` made, and answers `{"deleted"}`; the
+ * admin asks first, naming the entries that use it.
+ *
  * Each file has its `reference` (what to write: the library's URL path),
  * `name`, `folder`, `url`, `mime`, `kind`,
  * `size`, `width` and `height` (images and videos), `duration` (sound
  * and video, in seconds, when known, D-291), `modified`, and its metadata,
- * `title` (D-290), `alt`, and `caption` (`''` for none; `MediaMetadataStore`). Only the types
+ * `title` (D-290), `alt`, and `caption` (`''` for none; `MediaMetadataStore`),
+ * and its uploader's username (`owner`, `''` for none). Only the types
  * the site allows (`MediaConfig::$types`) are listed, without caption
  * tracks, and never hidden files.
  */
@@ -107,14 +120,17 @@ final readonly class MediaListController
 		private MediaMetadataStore $metadata,
 		private MediaSchemas $schemas,
 		private AppConfig $app,
-		private MediaLibrary $library
+		private MediaLibrary $library,
+		private MediaUsage $usage,
+		private AccountStore $store,
+		private Accounts $accounts
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::Edit)) {
+		if (! $account instanceof Account || ! $this->usesLibrary($account)) {
 			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
 		}
 
@@ -124,8 +140,9 @@ final readonly class MediaListController
 		$page   = $query['page'] ?? '1';
 		$per    = $query['per'] ?? (string) self::PER;
 		$missing = $query['missing'] ?? '';
+		$mine    = $query['mine'] ?? '';
 
-		if (! is_string($search) || ! is_string($kind) || ! in_array($kind, self::KINDS, true) || ! in_array($missing, ['', 'alt'], true) || ! self::counts($page, 1_000_000) || ! self::counts($per, self::MAX_PER)) {
+		if (! is_string($search) || ! is_string($kind) || ! in_array($kind, self::KINDS, true) || ! in_array($missing, ['', 'alt'], true) || ! in_array($mine, ['', '0', '1'], true) || ! self::counts($page, 1_000_000) || ! self::counts($per, self::MAX_PER)) {
 			return self::error('That isn\'t a valid media list.', Status::BadRequest);
 		}
 
@@ -135,6 +152,7 @@ final readonly class MediaListController
 			search: trim($search),
 			kind: $kind === 'any' ? null : MediaKind::from($kind),
 			missingAlt: $missing === 'alt',
+			owner: $mine === '1' ? $account->username : null,
 			page: $page,
 			per: $per
 		));
@@ -145,13 +163,14 @@ final readonly class MediaListController
 			'search'  => $search,
 			'kind'    => $kind,
 			'missing' => $missing,
+			'mine'    => $mine === '1',
 			'total'   => $found->total,
 			'page'    => $page,
 			'pages'   => max(1, (int) ceil($found->total / $per)),
 			'per'     => $per,
 			'files'   => $files,
-			'upload'  => $this->permissions->can($account, Capability::MediaUpload)
-				? ['limit' => $this->uploads->largest(), 'extensions' => $this->uploads->extensions()]
+			'upload'  => $this->uploads->extensions($account) !== []
+				? ['limit' => $this->uploads->largest($account), 'extensions' => $this->uploads->extensions($account)]
 				: null
 		], headers: ['Cache-Control' => 'no-store']);
 	}
@@ -160,7 +179,7 @@ final readonly class MediaListController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::Edit)) {
+		if (! $account instanceof Account || ! $this->usesLibrary($account)) {
 			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
 		}
 
@@ -170,14 +189,14 @@ final readonly class MediaListController
 			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
 		}
 
-		return Response::json($this->details($file, $reference, trim($path, '/'), $this->metadata->find($file)), headers: ['Cache-Control' => 'no-store']);
+		return Response::json($this->details($file, $reference, trim($path, '/'), $this->metadata->find($file), $account), headers: ['Cache-Control' => 'no-store']);
 	}
 
 	public function update(ServerRequestInterface $request, string $path): ResponseInterface
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::MediaUpload)) {
+		if (! $account instanceof Account) {
 			return self::error('You aren\'t allowed to change media.', Status::Forbidden);
 		}
 
@@ -185,6 +204,10 @@ final readonly class MediaListController
 
 		if ($file === null) {
 			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+		}
+
+		if (! $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $this->metadata->find($file)->owner)) {
+			return self::error('You aren\'t allowed to change this file\'s details.', Status::Forbidden);
 		}
 
 		try {
@@ -239,7 +262,58 @@ final readonly class MediaListController
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}
 
-		return Response::json($this->details($file, $reference, trim($path, '/'), $this->metadata->find($file)), headers: ['Cache-Control' => 'no-store']);
+		return Response::json($this->details($file, $reference, trim($path, '/'), $this->metadata->find($file), $account), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	public function delete(ServerRequestInterface $request, string $path): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account) {
+			return self::error('You aren\'t allowed to delete media.', Status::Forbidden);
+		}
+
+		[$file] = $this->libraryFile($path);
+
+		if ($file === null) {
+			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+		}
+
+		if (! $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $this->metadata->find($file)->owner)) {
+			return self::error('You aren\'t allowed to delete this file.', Status::Forbidden);
+		}
+
+		$relative = trim($path, '/');
+
+		if (! @unlink($file->path)) {
+			return self::error('The file couldn\'t be deleted from the media folder.', Status::InternalServerError);
+		}
+
+		// A copy `media:publish --copy` made; a linked folder already
+		// lost it with the file.
+		$published = $this->paths->public . $this->config->url . '/' . $relative;
+
+		if (! is_link($this->paths->public . $this->config->url) && is_file($published)) {
+			@unlink($published);
+		}
+
+		try {
+			$this->metadata->forget($relative);
+			$this->library->refresh();
+		} catch (MediaException) {
+			// The file is gone; leftover metadata is `content:lint`'s to report.
+		}
+
+		return Response::json(['deleted' => $relative], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Whether the account may see the library: it edits entries of some
+	 * type, or has a media capability (D-407).
+	 */
+	private function usesLibrary(Account $account): bool
+	{
+		return $this->permissions->can($account, ContentAction::Edit) || $this->permissions->usesMedia($account);
 	}
 
 	/**
@@ -272,10 +346,12 @@ final readonly class MediaListController
 	 *
 	 * @return array<string, mixed>
 	 */
-	private function details(MediaFile $file, string $reference, string $relative, MediaMetadata $metadata): array
+	private function details(MediaFile $file, string $reference, string $relative, MediaMetadata $metadata, Account $account): array
 	{
+		$owner = $metadata->owner === '' ? null : $this->store->find($metadata->owner);
+
 		$schema = $this->schemas->forFile($file);
-		$result = $schema->resolve($metadata->values, new FieldContext($this->app->timezone()));
+		$result = $schema->resolve($metadata->fields(), new FieldContext($this->app->timezone()));
 		$values = [];
 
 		foreach ($schema->fields as $name => $field) {
@@ -308,7 +384,13 @@ final readonly class MediaListController
 				'field'    => $violation->field,
 				'message'  => $violation->message,
 				'severity' => $violation->severity->value
-			], $result->violations)
+			], $result->violations),
+			'uploader'   => $metadata->owner === '' ? null : ['username' => $metadata->owner, 'name' => $owner === null ? $metadata->owner : $this->accounts->displayName($owner)],
+			'may'        => [
+				'edit'   => $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $metadata->owner),
+				'delete' => $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $metadata->owner)
+			],
+			'usedIn'     => $this->usage->entries($relative)
 		];
 	}
 
@@ -376,7 +458,8 @@ final readonly class MediaListController
 			'modified'  => date(DATE_ATOM, (int) filemtime($file->path)),
 			'title'     => $metadata->title,
 			'alt'       => $metadata->alt,
-			'caption'   => $metadata->caption
+			'caption'   => $metadata->caption,
+			'owner'     => $metadata->owner
 		];
 	}
 

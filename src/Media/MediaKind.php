@@ -15,7 +15,7 @@ namespace Blush\Media;
 
 /**
  * What kind of file a media file is (D-287), from its MIME type: an
- * image, a video, a sound, a document (a PDF, an office file, plain text;
+ * image, a video, audio, a document (a PDF, an office file, plain text;
  * D-406), or any other file (a caption track). Each kind has its own
  * metadata fields beside the ones every kind has, is a place field sets
  * attach to (`media:{kind}`, D-341), and has its own upload rules
@@ -60,10 +60,24 @@ enum MediaKind: string
 		return match ($this) {
 			self::Image    => 'Images',
 			self::Video    => 'Videos',
-			self::Audio    => 'Sound',
+			self::Audio    => 'Audio',
 			self::Document => 'Documents',
 			self::File     => 'Other Files'
 		};
+	}
+
+	/**
+	 * The capability for uploading every kind (D-407).
+	 */
+	public const string UPLOAD_EVERY = 'media.*.upload';
+
+	/**
+	 * Returns the capability for uploading the kind (D-407):
+	 * `media.image.upload`.
+	 */
+	public function uploadCapability(): string
+	{
+		return "media.{$this->value}.upload";
 	}
 
 	/**

@@ -72,6 +72,33 @@ export function can(capability: string): boolean {
 	return state.account?.capabilities.includes(capability) ?? false;
 }
 
+// Media's capabilities (D-407): uploading by kind, then editing and
+// deleting by whose file it is.
+export const MEDIA_KINDS = ['image', 'video', 'audio', 'document', 'file'] as const;
+
+export const MEDIA_CAPABILITIES = [
+	...MEDIA_KINDS.map((kind) => `media.${kind}.upload`),
+	'media.edit',
+	'media.edit.others',
+	'media.delete',
+	'media.delete.others'
+];
+
+/**
+ * Whether the signed-in account may upload media: of a kind, or of any.
+ */
+export function canUpload(kind?: typeof MEDIA_KINDS[number]): boolean {
+	return kind === undefined ? MEDIA_KINDS.some((item) => can(`media.${item}.upload`)) : can(`media.${kind}.upload`);
+}
+
+/**
+ * Whether the signed-in account has any media capability, so the Media
+ * screen is theirs.
+ */
+export function usesMedia(): boolean {
+	return MEDIA_CAPABILITIES.some(can);
+}
+
 // What a role may do to a content type's entries (D-359).
 export type ContentAction = 'create' | 'edit' | 'edit.others' | 'publish' | 'publish.others' | 'delete' | 'delete.others';
 

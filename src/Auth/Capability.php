@@ -18,11 +18,20 @@ namespace Blush\Auth;
  * where extensions add their own. Managing accounts and roles is seven
  * of them (D-362); each `accounts.*` beyond `view` also needs `view`. What a role may do to entries is per
  * content type (`ContentAction`, D-359).
+ *
+ * Media (D-407): editing a file's details and deleting it are by whose
+ * file it is (its uploader's, or `.others` for anyone else's and for
+ * files with no uploader), and need the same action on their own to use
+ * `.others`, as content's do. Uploading is by kind
+ * (`media.{kind}.upload`, `MediaKind::uploadCapability()`), with
+ * `media.*.upload` for every kind.
  */
 enum Capability: string
 {
-	case MediaUpload     = 'media.upload';
-	case MediaDelete     = 'media.delete';
+	case MediaEdit         = 'media.edit';
+	case MediaEditOthers   = 'media.edit.others';
+	case MediaDelete       = 'media.delete';
+	case MediaDeleteOthers = 'media.delete.others';
 	case MenusEdit       = 'menus.edit';
 	case RegionsEdit     = 'regions.edit';
 	case SitePublish     = 'site.publish';
@@ -35,6 +44,28 @@ enum Capability: string
 	case AccountsSuspend = 'accounts.suspend';
 	case AccountsDelete  = 'accounts.delete';
 	case RolesManage     = 'roles.manage';
+
+	/**
+	 * Capabilities that are gone (D-407): a saved role that names one has
+	 * it dropped when it's read, and loses it on its next save. Nothing
+	 * takes its place.
+	 *
+	 * @var list<string>
+	 */
+	public const array RETIRED = ['media.upload'];
+
+	/**
+	 * The `.others` form of a media capability, or `null` for one that has
+	 * none.
+	 */
+	public function others(): ?self
+	{
+		return match ($this) {
+			self::MediaEdit   => self::MediaEditOthers,
+			self::MediaDelete => self::MediaDeleteOthers,
+			default           => null
+		};
+	}
 
 	/**
 	 * The capabilities for managing accounts and roles (D-362). Someone
@@ -53,7 +84,8 @@ enum Capability: string
 	public function group(): string
 	{
 		return match ($this) {
-			self::MediaUpload, self::MediaDelete                    => 'Media',
+			self::MediaEdit, self::MediaEditOthers,
+			self::MediaDelete, self::MediaDeleteOthers              => 'Media',
 			self::MenusEdit, self::RegionsEdit                      => 'Structure',
 			self::SitePublish, self::CacheClear, self::SiteSettings => 'Site',
 			default                                                 => 'Users'
@@ -66,8 +98,10 @@ enum Capability: string
 	public function label(): string
 	{
 		return match ($this) {
-			self::MediaUpload     => 'Upload media',
-			self::MediaDelete     => 'Delete media',
+			self::MediaEdit         => 'Edit their own files',
+			self::MediaEditOthers   => 'Edit anyone\'s files',
+			self::MediaDelete       => 'Delete their own files',
+			self::MediaDeleteOthers => 'Delete anyone\'s files',
 			self::MenusEdit       => 'Edit menus',
 			self::RegionsEdit     => 'Edit regions',
 			self::SitePublish     => 'Publish the site',

@@ -22,7 +22,8 @@ use Blush\Support\FilesystemException;
 /**
  * Keeps the admin's roles in `storage/roles.json` (D-312), beside the
  * accounts and, like them, outside git and `user/`: `{"roles": [...]}`,
- * each as `Role::toArray()` writes it. No file is no roles.
+ * each as `Role::toArray()` writes it. No file is no roles. Retired
+ * capabilities (`Capability::RETIRED`) are dropped as they're read.
  */
 final readonly class FileRoleStore implements RoleStore
 {
@@ -67,7 +68,13 @@ final readonly class FileRoleStore implements RoleStore
 
 		return array_map(static function (mixed $role) use ($relative): Role {
 			try {
-				return Role::fromArray(is_array($role) ? $role : []);
+				$role = is_array($role) ? $role : [];
+
+				if (is_array($role['capabilities'] ?? null)) {
+					$role['capabilities'] = array_values(array_filter($role['capabilities'], static fn (mixed $name): bool => ! in_array($name, Capability::RETIRED, true)));
+				}
+
+				return Role::fromArray($role);
 			} catch (AuthException $e) {
 				throw new AuthException(sprintf('%s: %s', $relative, $e->getMessage()), previous: $e);
 			}

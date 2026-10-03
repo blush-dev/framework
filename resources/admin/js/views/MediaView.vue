@@ -2,11 +2,13 @@
 /**
  * Media (D-251): the library in `user/media`, newest first, from the
  * media index (D-288), as a grid of files with a search (names and
- * details), filters by kind, and **Missing alt text** for images without
- * it, each marked in the grid; then a screen for each file
+ * details), filters by kind, **Missing alt text** for images without
+ * it, each marked in the grid, and **My files** for the account's own
+ * uploads (D-407); then a screen for each file
  * (admin.md §8, List, then detail). **Upload** opens the media picker on
  * its Upload tab (D-268): one uploader, one set of rules about what a
- * file may be; **Open** goes to the file's screen.
+ * file may be (shown to an account that may upload some kind); **Open**
+ * goes to the file's screen.
  */
 
 import { ref, watch } from 'vue';
@@ -16,6 +18,7 @@ import { mediaFacts, mediaName } from '../media';
 import MediaPicker from '../components/MediaPicker.vue';
 import { ApiError, request, type MediaItem, type MediaList } from '../api';
 import type { IconName } from '../icons';
+import { canUpload } from '../session';
 
 const files   = ref<MediaItem[]>([]);
 const total   = ref(0);
@@ -24,6 +27,8 @@ const pages   = ref(1);
 const search  = ref('');
 const kind    = ref<'any' | 'image' | 'video' | 'audio' | 'document' | 'file'>('any');
 const missing = ref(false);
+// Only the account's own uploads (D-407).
+const mine    = ref(false);
 const loading = ref(true);
 const error   = ref('');
 
@@ -48,6 +53,10 @@ async function load(more = false): Promise<void> {
 
 	if (missing.value) {
 		params.set('missing', 'alt');
+	}
+
+	if (mine.value) {
+		params.set('mine', '1');
 	}
 
 	loading.value = true;
@@ -80,14 +89,15 @@ watch(search, () => {
 	typing = setTimeout(() => void load(), 250);
 });
 
-watch([kind, missing], () => void load());
+watch([kind, missing, mine], () => void load());
 
-const filtered = (): boolean => search.value !== '' || kind.value !== 'any' || missing.value;
+const filtered = (): boolean => search.value !== '' || kind.value !== 'any' || missing.value || mine.value;
 
 function clear(): void {
 	search.value  = '';
 	kind.value    = 'any';
 	missing.value = false;
+	mine.value    = false;
 }
 
 void load();
@@ -126,7 +136,7 @@ function closed(): void {
 			<p class="page-header__hint">Files every entry can use</p>
 		</div>
 		<div class="page-header__actions">
-			<button type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload</button>
+			<button v-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload</button>
 		</div>
 	</header>
 
@@ -137,6 +147,7 @@ function closed(): void {
 				<button v-for="item in KINDS" :key="item.key" type="button" :aria-pressed="kind === item.key" @click="kind = item.key">{{ item.label }}</button>
 			</div>
 			<button type="button" class="button button--small toggle" :aria-pressed="missing" @click="missing = !missing"><AdminIcon name="triangle-alert" />Missing alt text</button>
+			<button type="button" class="button button--small toggle" :aria-pressed="mine" @click="mine = !mine"><AdminIcon name="circle-user-round" />My files</button>
 			<p class="panel__hint" aria-live="polite">{{ loading && !files.length ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'file' : 'files'}` }}</p>
 			<label class="search-field search">
 				<AdminIcon name="search" />
@@ -153,7 +164,7 @@ function closed(): void {
 						<span class="card__thumb">
 							<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
 							<span v-if="file.kind === 'image' && file.alt === ''" class="card__warn" title="No alt text"><AdminIcon name="triangle-alert" /><span class="visually-hidden">No alt text</span></span>
-							<template v-else><AdminIcon :name="icon(file)" /><span class="card__kind mono">{{ file.kind }}</span></template>
+							<template v-if="file.kind !== 'image'"><AdminIcon :name="icon(file)" /><span class="card__kind mono">{{ file.kind }}</span></template>
 						</span>
 						<span class="card__text">
 							<span class="card__name" :title="file.name">{{ mediaName(file) }}</span>
@@ -168,7 +179,7 @@ function closed(): void {
 			<div v-else-if="!error" class="empty">
 				<AdminIcon name="image" />
 				<p class="empty__heading">{{ missing && !search && kind === 'any' ? 'Every Image Has Alt Text' : (filtered() ? 'No Files Match' : 'The Library Is Empty') }}</p>
-				<p class="empty__text">{{ missing && !search && kind === 'any' ? 'Nothing left to describe.' : (filtered() ? 'Try another name or kind.' : 'Images, video, and sound you upload land here, and any entry can use them.') }}</p>
+				<p class="empty__text">{{ missing && !search && kind === 'any' ? 'Nothing left to describe.' : (filtered() ? 'Try another name or kind.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.') }}</p>
 				<button v-if="filtered()" type="button" class="button" @click="clear">Clear filters</button>
 				<button v-else type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload your first file</button>
 			</div>

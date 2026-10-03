@@ -21,14 +21,29 @@ namespace Blush\Media;
  * text each, `''` when there's none, since they're
  * written into Markdown, where a line break would end them. Where a file
  * is used, what's written there wins; the library's fill the gaps.
+ *
+ * One key isn't a field: `owner`, the username of the account that
+ * uploaded the file (D-407), which the admin writes and nothing edits.
+ * `fields()` is the values without it.
  */
 final readonly class MediaMetadata
 {
+	/**
+	 * The key the uploader's username is kept under.
+	 */
+	public const string OWNER = 'owner';
+
 	public string $title;
 
 	public string $alt;
 
 	public string $caption;
+
+	/**
+	 * The uploader's username, or `''` for a file with none (one added by
+	 * hand, or before uploads were recorded).
+	 */
+	public string $owner;
 
 	/**
 	 * @param array<string, mixed> $values
@@ -38,6 +53,17 @@ final readonly class MediaMetadata
 		$this->title   = self::line($values['title'] ?? null);
 		$this->alt     = self::line($values['alt'] ?? null);
 		$this->caption = self::line($values['caption'] ?? null);
+		$this->owner   = self::line($values[self::OWNER] ?? null);
+	}
+
+	/**
+	 * The field values: every value but the owner.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function fields(): array
+	{
+		return array_diff_key($this->values, [self::OWNER => true]);
 	}
 
 	/**

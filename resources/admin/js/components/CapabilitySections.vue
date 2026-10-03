@@ -14,6 +14,11 @@
  * Anyone's (`.others`) needs their own: ticking one ticks the other, and
  * clearing their own clears anyone's. You can't give a capability you
  * don't have, so those are shown but can't be ticked.
+ *
+ * Media (D-407) is one grid, as every section is: uploading by kind
+ * (**Upload every kind**, `media.*.upload`, ticks and fixes each), then
+ * changing and deleting their own files or anyone's, paired as content
+ * actions are; its sentence and ⋮ say and set it the same way.
  */
 
 import { computed, ref, useId } from 'vue';
@@ -54,6 +59,25 @@ const PRESETS: { key: string; label: string; text: string; actions: ContentActio
 	{ key: 'own', label: 'Their own only', text: 'Create, and edit, publish, and delete their own.', actions: ['create', 'edit', 'publish', 'delete'] },
 	{ key: 'drafts', label: 'Drafts only', text: 'Create, and edit and delete their own drafts. Never publish.', actions: ['create', 'edit', 'delete'] },
 	{ key: 'none', label: 'No access', text: 'Nothing; the type is left out of their admin.', actions: [] }
+];
+
+// Media's kinds, by the names the library gives them.
+const MEDIA_KINDS: { kind: string; label: string }[] = [
+	{ kind: 'image', label: 'Images' },
+	{ kind: 'video', label: 'Videos' },
+	{ kind: 'audio', label: 'Audio' },
+	{ kind: 'document', label: 'Documents' },
+	{ kind: 'file', label: 'Other Files' }
+];
+const MEDIA_EVERY = 'media.*.upload';
+const uploadKey   = (kind: string): string => `media.${kind}.upload`;
+
+// Media's ⋮: the whole section at once.
+const MEDIA_PRESETS: { key: string; label: string; text: string; names: string[] }[] = [
+	{ key: 'full', label: 'Full access', text: 'Upload every kind, and change and delete anyone\'s files.', names: [MEDIA_EVERY, 'media.edit', 'media.edit.others', 'media.delete', 'media.delete.others'] },
+	{ key: 'own', label: 'Their own only', text: 'Upload every kind, and change and delete their own files.', names: [MEDIA_EVERY, 'media.edit', 'media.delete'] },
+	{ key: 'images', label: 'Images only', text: 'Upload images, and change their own files.', names: [uploadKey('image'), 'media.edit'] },
+	{ key: 'none', label: 'No access', text: 'Nothing; the Media screen is left out of their admin.', names: [] }
 ];
 
 const GROUP_ICONS: Record<string, IconName> = { Media: 'image', Structure: 'layers', Site: 'globe', Users: 'users', Themes: 'paintbrush', Plugins: 'plug', 'Icon Packs': 'shapes' };
@@ -218,6 +242,63 @@ function groupSentence(capabilities: CapabilityInfo[]): { text: string; none: bo
 	};
 }
 
+// Media: what's granted, with Every kind fixing each kind.
+const uploads = (kind: string): boolean => has(MEDIA_EVERY) || has(uploadKey(kind));
+
+function mediaNames(): string[] {
+	return [MEDIA_EVERY, ...MEDIA_KINDS.map((item) => uploadKey(item.kind)), 'media.edit', 'media.edit.others', 'media.delete', 'media.delete.others'];
+}
+
+// Their own and anyone's, paired as content actions are.
+function toggleMedia(base: 'media.edit' | 'media.delete', others: boolean, on: boolean): void {
+	if (!others && !on) {
+		set([base, `${base}.others`], false);
+	} else if (others && on) {
+		set([base, `${base}.others`], true);
+	} else {
+		set([others ? `${base}.others` : base], on);
+	}
+}
+
+function mediaPreset(names: string[]): void {
+	const all  = mediaNames();
+	const keep = model.value.filter((name) => !all.includes(name) || locked(name));
+
+	model.value = [...keep, ...names.filter((name) => !locked(name) && !keep.includes(name))];
+}
+
+function mediaScope(base: 'media.edit' | 'media.delete'): Scope {
+	return !has(base) ? 'none' : (has(`${base}.others`) ? 'any' : 'own');
+}
+
+function mediaSentence(): { text: string; none: boolean } {
+	const kinds  = MEDIA_KINDS.filter((item) => uploads(item.kind)).map((item) => item.label.toLowerCase());
+	const edit   = mediaScope('media.edit');
+	const remove = mediaScope('media.delete');
+	const yes: string[] = [];
+	const no: string[]  = [];
+
+	if (has(MEDIA_EVERY) || kinds.length === MEDIA_KINDS.length) {
+		yes.push('upload every kind');
+	} else if (kinds.length > 0) {
+		yes.push(`upload ${join(kinds, 'and')}`);
+	} else {
+		no.push('upload');
+	}
+
+	if (edit !== 'none' && edit === remove) {
+		yes.push(`change and delete ${whose(edit)} files`);
+	} else {
+		edit === 'none' ? no.push('change files') : yes.push(`change ${whose(edit)} files`);
+		remove === 'none' ? no.push('delete files') : yes.push(`delete ${whose(remove)} files`);
+	}
+
+	return {
+		text: [yes.length ? `Can ${join(yes, 'and')}.` : '', no.length ? `Cannot ${join(no, 'or')}.` : ''].filter(Boolean).join(' '),
+		none: yes.length === 0
+	};
+}
+
 // Which sections hold unsaved changes.
 function changed(names: string[]): boolean {
 	return props.base !== undefined && names.some((name) => model.value.includes(name) !== props.base?.includes(name));
@@ -271,18 +352,56 @@ function flipAll(): void {
 							<span class="section__title">{{ group.name }}</span>
 							<span v-if="changed(group.capabilities.map((capability) => capability.name))" class="pill pill--warn section__pill">Changes</span>
 						</span>
-						<span class="section__sentence" :class="{ 'is-none': groupSentence(group.capabilities).none }">{{ groupSentence(group.capabilities).text }}</span>
+						<code v-if="group.name === 'Media'" class="section__key">media.…</code>
+						<span v-if="group.name === 'Media'" class="section__sentence" :class="{ 'is-none': mediaSentence().none }">{{ mediaSentence().text }}</span>
+						<span v-else class="section__sentence" :class="{ 'is-none': groupSentence(group.capabilities).none }">{{ groupSentence(group.capabilities).text }}</span>
 					</span>
 				</button>
 				<span v-if="!readonly" class="section__end">
 					<MenuButton button-class="button button--ghost button--small button--icon section__menu" :label="`Set everything in ${group.name}`" floating>
 						<template #button><AdminIcon name="ellipsis-vertical" /></template>
-						<p class="menu-heading">Set this group</p>
-						<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), true)">Grant everything in {{ group.name }}</button>
-						<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), false)">Remove everything in {{ group.name }}</button>
+						<template v-if="group.name === 'Media'">
+							<p class="menu-heading">Set Media</p>
+							<button v-for="item in MEDIA_PRESETS" :key="item.key" type="button" class="menu-item menu-item--described" @click="mediaPreset(item.names)">
+								<span>
+									<span class="menu-item__name">{{ item.label }}</span>
+									<span class="menu-item__text">{{ item.text }}</span>
+								</span>
+							</button>
+						</template>
+						<template v-else>
+							<p class="menu-heading">Set this group</p>
+							<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), true)">Grant everything in {{ group.name }}</button>
+							<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), false)">Remove everything in {{ group.name }}</button>
+						</template>
 					</MenuButton>
 				</span>
-				<div v-if="open.has(`group-${group.name}`)" :id="`${id}-group-${group.name}`" class="section__body">
+				<div v-if="open.has(`group-${group.name}`) && group.name === 'Media'" :id="`${id}-group-${group.name}`" class="section__body">
+					<div class="section__grid">
+						<label class="capability" :class="{ 'is-off': !has(MEDIA_EVERY), 'is-locked': locked(MEDIA_EVERY) }">
+							<input type="checkbox" class="capability__input" :checked="has(MEDIA_EVERY)" :disabled="locked(MEDIA_EVERY)" @change="set([MEDIA_EVERY], ($event.target as HTMLInputElement).checked)">
+							<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
+							<span class="capability__label">Upload every kind<span v-if="!readonly && !can(MEDIA_EVERY)" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
+							<code class="capability__key">{{ MEDIA_EVERY }}</code>
+						</label>
+						<label v-for="item in MEDIA_KINDS" :key="item.kind" class="capability" :class="{ 'is-off': !uploads(item.kind), 'is-locked': locked(uploadKey(item.kind)) || has(MEDIA_EVERY) }">
+							<input type="checkbox" class="capability__input" :checked="uploads(item.kind)" :disabled="locked(uploadKey(item.kind)) || has(MEDIA_EVERY)" @change="set([uploadKey(item.kind)], ($event.target as HTMLInputElement).checked)">
+							<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
+							<span class="capability__label">Upload {{ item.label.toLowerCase() }}<span v-if="has(MEDIA_EVERY)" class="capability__from"> · every kind</span><span v-else-if="!readonly && !can(uploadKey(item.kind))" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
+							<code class="capability__key">{{ uploadKey(item.kind) }}</code>
+						</label>
+						<template v-for="action in ([['media.edit', 'Change'], ['media.delete', 'Delete']] as const)" :key="action[0]">
+							<label v-for="others in [false, true]" :key="String(others)" class="capability" :class="{ 'is-off': !has(others ? `${action[0]}.others` : action[0]), 'is-locked': locked(others ? `${action[0]}.others` : action[0]) }">
+								<input type="checkbox" class="capability__input" :checked="has(others ? `${action[0]}.others` : action[0])" :disabled="locked(others ? `${action[0]}.others` : action[0])" @change="toggleMedia(action[0], others, ($event.target as HTMLInputElement).checked)">
+								<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
+								<span class="capability__label">{{ action[1] }} {{ others ? 'anyone\'s files' : 'their own files' }}<span v-if="!readonly && !can(others ? `${action[0]}.others` : action[0])" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
+								<code class="capability__key">{{ others ? `${action[0]}.others` : action[0] }}</code>
+							</label>
+						</template>
+					</div>
+					<p class="section__note">A file is its uploader's. Files from before uploads were recorded, or added by hand, are anyone's.</p>
+				</div>
+				<div v-else-if="open.has(`group-${group.name}`)" :id="`${id}-group-${group.name}`" class="section__body">
 					<div class="section__grid">
 						<label v-for="capability in group.capabilities" :key="capability.name" class="capability" :class="{ 'is-off': !has(capability.name), 'is-locked': locked(capability.name) }">
 							<input type="checkbox" class="capability__input" :checked="has(capability.name)" :disabled="locked(capability.name)" @change="set([capability.name], ($event.target as HTMLInputElement).checked)">
@@ -568,9 +687,10 @@ function flipAll(): void {
 	background: var(--surface-2);
 }
 
+/* Three columns, in every section, so the boxes line up down the page. */
 .section__grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 0 var(--s-5);
 	max-width: 880px;
 }
@@ -680,6 +800,13 @@ function flipAll(): void {
 
 .sections--keys .capability__key {
 	display: inline;
+}
+
+/* Two where three would cut the labels short. */
+@media (width <= 1100px) {
+	.section__grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 
 @media (width <= 640px) {

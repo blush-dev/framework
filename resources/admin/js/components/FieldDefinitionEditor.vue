@@ -61,7 +61,7 @@ const MEDIA_KINDS = [
 	{ value: '', label: 'Any file' },
 	{ value: 'image', label: 'Images' },
 	{ value: 'video', label: 'Videos' },
-	{ value: 'audio', label: 'Sound' },
+	{ value: 'audio', label: 'Audio' },
 	{ value: 'document', label: 'Documents' },
 	{ value: 'file', label: 'Other Files' }
 ];

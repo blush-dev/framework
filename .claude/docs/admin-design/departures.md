@@ -230,7 +230,8 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **The media picker** (D-246, D-247, D-265, D-268): the library comes
   from `user/media` newest first, a page at a time with **Show more**
   (no "Beside This Entry": media is only in `user/media`, D-294). The Upload tab (only for
-  `media.upload`; the menu is a plain button without it) takes the
+  an account that may upload some kind, `media.{kind}.upload`, D-407;
+  the menu is a plain button without it) takes the
   library's types as the site allows them (images, sound, video; no
   PDFs by default), up to PHP's limit, into `user/media/{year}/{month}/`.
   Inserted images get the library's alt text and caption (D-269); a
@@ -405,6 +406,15 @@ Each is recorded in `.claude/docs/decisions.md`.
     Type", with no ⋮), and its ⋮ adds **Set each type separately**.
   - Blush's site capabilities, not the sketch's: no `types.manage` or
     `roles.assign` (`site.settings` and `accounts.manage` cover them).
+    Media (D-407) isn't the sketch's two boxes (Upload files, Delete
+    files) but ten, in one grid as every section is: **Upload every
+    kind** (`media.*.upload`, which ticks and fixes each kind, as Every
+    Type does), **Upload images** and each other kind, then **Change**
+    and **Delete** **their own files** and **anyone's files**, paired as
+    content actions are, with its own sentence and ⋮ presets (Full
+    access, Their own only, Images only, No access).
+  - Every section's boxes are three columns (the sketch fits as many as
+    the width takes), two under 1,100px, and one on a phone.
   - The facts strip has no "Changed 12 days ago by…": nothing records
     it. Holders link to the one account, or Accounts.
   - The header's ⋮: **Rename this role** for a custom role only (a

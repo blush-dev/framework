@@ -22,6 +22,7 @@ use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\ExtensionAction;
+use Blush\Auth\FileRoleStore;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
@@ -30,6 +31,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Application;
 use Blush\Extension\ExtensionKind;
+use Blush\Media\MediaKind;
 use Blush\Tests\BootsScratchSite;
 
 #[CoversClass(Permissions::class)]
@@ -118,6 +120,31 @@ final class PermissionsTest extends TestCase
 		$this->assertTrue($permissions->can($this->account('author'), ContentAction::Edit, $this->entry('mine')));
 	}
 
+	public function testMediaIsByKindAndWhoseItIs(): void
+	{
+		$permissions = $this->permissions();
+		$contributor = new Account('jane', 'hash', ['contributor']);
+		$editor      = new Account('ed', 'hash', ['editor']);
+
+		$this->assertTrue($permissions->mayUpload($contributor, MediaKind::Image));
+		$this->assertFalse($permissions->mayUpload($contributor, MediaKind::Video), 'Images only (D-407).');
+		$this->assertTrue($permissions->mayUpload($editor, MediaKind::Document), 'media.*.upload is every kind.');
+		$this->assertTrue($permissions->mayChangeMedia($contributor, Capability::MediaEdit, 'jane'), 'Their own.');
+		$this->assertFalse($permissions->mayChangeMedia($contributor, Capability::MediaEdit, 'sam'));
+		$this->assertFalse($permissions->mayChangeMedia($contributor, Capability::MediaEdit, ''), 'No owner is anyone\'s.');
+		$this->assertFalse($permissions->mayChangeMedia($contributor, Capability::MediaDelete, 'jane'));
+		$this->assertTrue($permissions->mayChangeMedia($editor, Capability::MediaDelete, ''));
+		$this->assertTrue($permissions->usesMedia($contributor));
+		$this->assertFalse($permissions->usesMedia(new Account('mo', 'hash', ['member'])));
+	}
+
+	public function testDropsRetiredCapabilitiesFromSavedRoles(): void
+	{
+		$this->writeTemporaryFile('storage/roles.json', (string) json_encode(['roles' => [['name' => 'uploader', 'label' => 'Uploader', 'capabilities' => ['media.upload', 'media.delete']]]]));
+
+		$this->assertSame(['media.delete'], $this->app->container()->make(FileRoleStore::class)->all()[0]->capabilities ?? null, 'media.upload is gone, with nothing in its place.');
+	}
+
 	public function testListsAnAccountsCapabilities(): void
 	{
 		$capabilities = $this->app->container()->make(Capabilities::class);
@@ -125,7 +152,7 @@ final class PermissionsTest extends TestCase
 
 		$this->assertContains('shop.orders', $this->permissions()->capabilities($this->account('administrator')));
 		$this->assertSame(
-			['content.*.create', 'content.*.edit', 'content.*.delete', 'content.page.create', 'content.page.edit', 'content.page.delete'],
+			['media.image.upload', 'media.edit', 'content.*.create', 'content.*.edit', 'content.*.delete', 'content.page.create', 'content.page.edit', 'content.page.delete'],
 			array_values(array_filter($this->permissions()->capabilities($this->account('contributor')), static fn (string $name): bool => ! str_starts_with($name, 'content.') || preg_match('/^content\.(\*|page)\./', $name) === 1))
 		);
 		$this->assertContains('content.profile.edit', $this->permissions()->capabilities($this->account('contributor')));

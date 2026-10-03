@@ -155,6 +155,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/media', MediaUploadController::class)->named('media.upload')->middleware(Authenticate::class),
 			Route::get('/media/{path:.+}', [MediaListController::class, 'show'])->named('media.file')->middleware(Authenticate::class),
 			Route::patch('/media/{path:.+}', [MediaListController::class, 'update'])->named('media.update')->middleware(Authenticate::class),
+			Route::delete('/media/{path:.+}', [MediaListController::class, 'delete'])->named('media.delete')->middleware(Authenticate::class),
 			Route::get('/references/{type:[a-z0-9_-]+}', ReferencesController::class)->named('references')->middleware(Authenticate::class),
 			Route::get('/entries', EntriesController::class)->named('entries')->middleware(Authenticate::class),
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),

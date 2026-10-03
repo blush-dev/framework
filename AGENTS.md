@@ -103,7 +103,9 @@ planned (D-397); and, from the settings sketch
 (`.claude/docs/admin-design/meridian-settings-sketch.html`), every
 Settings screen drawn full width as rows of label, control, and help,
 with switches (D-404), and its Media screen: upload rules by kind, and
-a Documents kind (D-406).
+a Documents kind (D-406); and media capabilities by kind for
+uploading and by whose file it is for changing and deleting, with
+deleting media, which warns where a file is used (D-407).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

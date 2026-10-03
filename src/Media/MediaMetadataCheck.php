@@ -97,7 +97,7 @@ final readonly class MediaMetadataCheck
 			return [$this->orphan($key)];
 		}
 
-		return $this->schemas->forFile($media)->resolve(MediaMetadata::fromArray($data)->values, new FieldContext($this->app->timezone()))->violations;
+		return $this->schemas->forFile($media)->resolve(MediaMetadata::fromArray($data)->fields(), new FieldContext($this->app->timezone()))->violations;
 	}
 
 	/**

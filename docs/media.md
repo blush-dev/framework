@@ -90,7 +90,7 @@ it's there, since anyone who downloads the file can read it. To remove
 it, strip the location with your photo software before you upload.
 
 EXIF needs PHP's `exif` extension; without it, IPTC and XMP are still
-read. The library shows how long a sound or video lasts.
+read. The library shows how long an audio file or video lasts.
 
 ## The media index
 

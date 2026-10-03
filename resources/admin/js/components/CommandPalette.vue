@@ -19,7 +19,7 @@ import { adminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { commandMatches, screenCommands, type Command } from '../commands';
 import type { IconName } from '../icons';
-import { can, canAnyType, canType } from '../session';
+import { can, canAnyType, canType, usesMedia } from '../session';
 import { findType, listRoute, typeIcon, types } from '../types';
 
 const emit = defineEmits<{ close: [] }>();
@@ -64,7 +64,7 @@ const everywhere = computed<Command[]>(() => {
 	}
 
 	const screens: [string, string, IconName, string, string?][] = [
-		['media', 'Go to Media', 'image', 'media.upload', 'files images library'],
+		['media', 'Go to Media', 'image', 'media', 'files images library uploads'],
 		['types', 'Go to Content Types', 'layers', 'site.settings'],
 		['fields', 'Go to Fields', 'group', 'site.settings', 'field sets custom fields'],
 		['themes', 'Go to Themes', 'paintbrush', 'extensions.themes.view', 'appearance look'],
@@ -75,7 +75,7 @@ const everywhere = computed<Command[]>(() => {
 	];
 
 	for (const [name, label, icon, capability, keywords] of screens) {
-		if (can(capability)) {
+		if (capability === 'media' ? usesMedia() : can(capability)) {
 			found.push({ id: name, label, icon, keywords, run: go(name) });
 		}
 	}
