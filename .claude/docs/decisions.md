@@ -284,6 +284,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-039: Site config lives at the project root; nothing executable is written into `user/`
 - **Date:** 2026-09-25
+- **Status:** Amended by D-388: the admin installs extensions into
+  `user/`. Content, media, data, and uploads still never carry code.
 - **Decision:** Site configuration stays in `config/` at the project root. It is
   developer code (typed PHP, D-017) that ships with the site's code and varies
   per environment through `.env`. `user/` holds the site owner's content and
@@ -2545,6 +2547,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-166: `user/` is everything the site owner owns or installs
 - **Date:** 2026-09-27
+- **Status:** "Only people with repo or filesystem access change
+  themes and extensions" is amended by D-388: the admin installs them
+  too.
 - **Decision:** `user/` is the site's `wp-content`: the content, media,
   and data the owner writes, plus the themes and extensions they
   install. The defaults stay `user/themes/{slug}` (D-034) and
@@ -10401,7 +10406,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-378: Extensions are a type system: plugins, themes, icon packs, and admin themes
 - **Date:** 2026-10-02
 - **Status:** Built (plugins, themes, and icon packs) by D-379; admin
-  themes and installing from the admin are still planned. Icon packs
+  themes and installing from the admin are still planned (D-388
+  decides the admin installs into `user/`). Icon packs
   can be turned off since D-385. Supersedes
   D-041's naming (its
   "extensions" are now **plugins**) and D-171's rule for where a theme's
@@ -10951,3 +10957,25 @@ decision, add a new entry that supersedes it and mark the old one
   Undos weren't run against the API.
 - **Why:** the author added the toast sketch as how every toast in the
   admin should look.
+
+### D-388: The admin installs extensions into `user/`
+- **Date:** 2026-10-02
+- **Status:** Decided, not built. Amends D-039 and D-166 and answers
+  D-378's "how code installs from a browser" in principle; the details
+  (zips, where they come from, updates) are still open.
+- **Decision:** The admin can install extensions of every kind,
+  including the ones that run code (plugins and themes), into their
+  folders in `user/` (`user/plugins`, `user/themes`, `user/icons`).
+  D-039's rule narrows to what it was protecting: content, media, data,
+  and uploads through the media library never carry executable files.
+  Installing an extension is its own action, not an upload.
+  Composer-installed extensions stay Composer's; the admin never runs
+  Composer.
+- **Still open** (`open-questions.md`): whether a local extension's
+  update source is declared in its manifest or inferred from its
+  `name`, and whether a catalog to discover extensions from (Packagist,
+  by package type, is the likeliest first source) shows everything or
+  an allowlist until a first-party catalog exists.
+- **Why:** the author wants extensions installable from the admin, as
+  D-378 anticipated, rather than only by people with repo or filesystem
+  access.

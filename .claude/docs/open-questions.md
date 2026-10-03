@@ -134,14 +134,27 @@ Move each item to `decisions.md` once it's answered.
 - **Extension kinds, still open** (D-378, D-379; references, assets,
   icon pack manifests, and Composer manifests are settled in D-379):
   what an admin theme's manifest holds and how it joins `AdminTheme`
-  (D-317); how installing from the admin works, especially for kinds
-  that run code (D-039, D-166), and the placeholders' buttons with it;
-  whether `user/extensions/{kind}/` should be allowed too;
+  (D-317); whether `user/extensions/{kind}/` should be allowed too;
   `plugin:list`, `plugin:new`, and `plugin:check` (planned since D-041);
   and whether a plugin manifest that doesn't parse should be listed as
   broken (as themes and packs are) instead of failing discovery (D-058),
   so the Plugins screen can show it as the extensions sketch does
   (D-385).
+- **Installing and updating extensions** (D-388 decides the admin
+  installs them into `user/`):
+  - How a zip install works: what the archive must hold, checks before
+    anything is written, whether a new plugin lands turned off (today
+    every discovered plugin is on, D-058), replacing an installed one,
+    and the capability it needs.
+  - Where updates come from for a local extension: an update source
+    declared in its manifest (as WordPress's `Update URI`), or inferred
+    from its `vendor/name` (risking a stranger's package of the same
+    name).
+  - Discovery: Packagist by package type (`blush-theme`, and so on;
+    its p2 metadata carries `extra.blush`) is the likeliest first
+    source, GitHub only as a host for files; whether to show everything
+    or an allowlist until a first-party catalog exists; integrity, since
+    Packagist's GitHub zipballs usually carry no checksum.
 - **Requiring components to be registered** (D-266's direction): how
   a template-only component registers without PHP (a JSON file beside
   the template, with its text in the catalog?), and what happens to

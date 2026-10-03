@@ -24,11 +24,13 @@ lives on jtcom's `2.x` branch. First, a trial port on a test branch of
 `blush-dev/blush` against jtcom's real content, to find framework gaps
 before jtcom changes. Skeleton fixes done first (D-143).
 
-The trial branch is `jtcom-trial` in `../blush`. Its `user/` holds an
-uncommitted subset of jtcom's content (hidden by the local
-`.git/info/exclude`): all non-post content, the newest 55 posts, and
-the 289 media files they reference (87 MB). The skeleton's own sample
-files show as deleted there; don't commit them.
+The trial branch is `jtcom-trial` in `../blush`. Its `user/` holds all
+of jtcom's content, uncommitted (hidden by the local
+`.git/info/exclude`): every entry and media file (about 1,200 entries,
+4,260 media files, 380 MB; the full copy replaced the first subset of
+55 posts on 2026-10-02, keeping the trial's own edits to files it
+already had). The skeleton's own sample files show as deleted there;
+don't commit them.
 
 The trial covers everything jtcom 1.x does (`app/`, `config/`,
 `public/views/`, `resources/scss/`): its seven types, the archive pages,
