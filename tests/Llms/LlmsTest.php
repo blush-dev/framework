@@ -196,6 +196,30 @@ final class LlmsTest extends TestCase
 		$this->assertStringContainsString("## Profiles\n\n- [A Guest](http://localhost/profiles/guest.md)\n- [Justin Tadlock](http://localhost/profiles/justintadlock.md)\n", $body);
 	}
 
+	public function testServesTheFullFile(): void
+	{
+		$this->standardContent();
+		$this->boot();
+
+		$this->assertSame(404, $this->get('/llms-full.txt')->getStatusCode(), 'Off by default (D-402).');
+		$this->assertNotContains('/llms-full.txt', array_map(static fn (ExportUrl $url): string => $url->path, [...$this->app->container()->make(LlmsExportUrls::class)->urls()]));
+
+		$this->boot('new Blush\\Llms\\LlmsConfig(full: true)');
+		$response = $this->get('/llms-full.txt');
+		$body     = (string) $response->getBody();
+
+		$this->assertSame('text/plain; charset=UTF-8', $response->getHeaderLine('Content-Type'));
+		$this->assertStringStartsWith("# Blush\n\n---\ntitle: \"Biography\"\nurl: \"http://localhost/about/biography\"\n", $body, 'The heading, then each listed page\'s copy in llms.txt\'s order.');
+		$this->assertStringContainsString("---\ntitle: \"spring\"\nurl: \"http://localhost/archives/spring\"\npublished: ", $body);
+		$this->assertStringContainsString("\n\nSpring is here.\n\n---\n", $body);
+		$this->assertSame(7, substr_count($body, "\ntitle: "), 'Every page llms.txt lists, and no others.');
+		$this->assertStringNotContainsString('Rainy', $body, 'Not unlisted entries.');
+		$this->assertContains('/llms-full.txt', array_map(static fn (ExportUrl $url): string => $url->path, [...$this->app->container()->make(LlmsExportUrls::class)->urls()]));
+
+		$this->boot('new Blush\\Llms\\LlmsConfig(enabled: false, full: true)');
+		$this->assertSame(404, $this->get('/llms-full.txt')->getStatusCode(), 'Off with the Markdown copies.');
+	}
+
 	public function testListsExportUrls(): void
 	{
 		$this->standardContent();
@@ -226,7 +250,8 @@ final class LlmsTest extends TestCase
 		$config = LlmsConfig::fromArray(['enabled' => false]);
 
 		$this->assertFalse($config->enabled);
-		$this->assertSame(['enabled' => false], $config->toArray());
+		$this->assertFalse($config->full, 'llms-full.txt is off by default (D-402).');
+		$this->assertSame(['enabled' => false, 'full' => false], $config->toArray());
 		$this->assertSame('/index.md', MarkdownPages::pathFor('/'));
 		$this->assertSame('/about.md', MarkdownPages::pathFor('/about/'));
 	}

@@ -123,6 +123,9 @@ final class AdminSettingsTest extends TestCase
 		$llms = $this->setting($ai, 'markdown', 'llms');
 		$this->assertSame(['llms.enabled', true, true, 'config/llms.php'], [$llms['setting'] ?? null, $llms['value'] ?? null, $llms['input'] ?? null, $llms['file'] ?? null]);
 		$this->assertSame('Lists 2 pages', $this->setting($ai, 'markdown', 'llmsTxt')['value'] ?? null);
+		$full = $this->setting($ai, 'markdown', 'full');
+		$this->assertSame(['llms.full', false, true, null], [$full['setting'] ?? null, $full['value'] ?? null, $full['default'] ?? null, $full['link'] ?? null]);
+		$this->assertSame(['setting' => 'llms.enabled', 'note' => 'It needs the Markdown copies on.'], $full['requires'] ?? null, 'Locked while the copies are off (D-402).');
 		$this->assertSame(['label' => 'View llms.txt', 'href' => 'https://example.test/llms.txt'], $this->setting($ai, 'markdown', 'llmsTxt')['link'] ?? null);
 		$this->assertSame(['Pages', 'Notes'], $this->setting($ai, 'markdown', 'types')['value'] ?? null, 'Types whose llms option is on; never taxonomies.');
 		$this->assertSame('None', $this->setting($ai, 'markdown', 'description')['value'] ?? null);
@@ -134,10 +137,10 @@ final class AdminSettingsTest extends TestCase
 		$item = is_array($field['item'] ?? null) ? $field['item'] : [];
 		$this->assertSame('Training crawlers: GPTBot, ClaudeBot, CCBot, Google-Extended, Applebot-Extended, Bytespider, meta-externalagent', is_array($item['choices'] ?? null) ? $item['choices']['training'] ?? null : null);
 
-		$response = $this->write('PATCH', '/settings', ['set' => ['app.description' => ' Notes on the web. ', 'sitemap.blockAi' => ['search', 'training'], 'llms.enabled' => false]]);
+		$response = $this->write('PATCH', '/settings', ['set' => ['app.description' => ' Notes on the web. ', 'sitemap.blockAi' => ['search', 'training'], 'llms.enabled' => false, 'llms.full' => true]]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertTrue(self::json($response)['refresh'] ?? null, 'Markdown copies change the routes.');
-		$this->assertSame(['app' => ['description' => 'Notes on the web.'], 'llms' => ['enabled' => false], 'sitemap' => ['blockAi' => ['training', 'search']]], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(['app' => ['description' => 'Notes on the web.'], 'llms' => ['enabled' => false, 'full' => true], 'sitemap' => ['blockAi' => ['training', 'search']]], json_decode($this->file('user/data/settings.json'), true));
 
 		// Settings are read at boot; the account is already there.
 		$this->app = $this->scratchApplication(['APP_ENV' => 'production', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
@@ -147,12 +150,27 @@ final class AdminSettingsTest extends TestCase
 
 		$this->assertSame(['Training crawlers', 'AI search crawlers'], $this->setting($ai, 'crawlers', 'blockAi')['value'] ?? null);
 		$this->assertSame('Off, with the Markdown copies', $this->setting($ai, 'markdown', 'llmsTxt')['value'] ?? null);
+		$this->assertNull($this->setting($ai, 'markdown', 'full')['link'] ?? null, 'Not served without the copies.');
 		$this->assertSame('Notes on the web.', $this->setting($ai, 'markdown', 'description')['value'] ?? null);
 		$this->assertSame('Notes on the web.', $this->setting(self::json($this->send('GET', '/settings/general')), 'site', 'description')['value'] ?? null);
 
 		foreach ([['app.description' => "Two\nlines"], ['app.description' => str_repeat('x', 301)], ['sitemap.blockAi' => ['robots']], ['sitemap.blockAi' => 'training']] as $set) {
 			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => $set])->getStatusCode(), (string) json_encode($set));
 		}
+	}
+
+	public function testGivesTheFullFilesSize(): void
+	{
+		$this->writeTemporaryFile('config/llms.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Llms\\LlmsConfig(full: true);\n");
+		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\nHello.\n");
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$full = $this->setting(self::json($this->send('GET', '/settings/ai')), 'markdown', 'full');
+		$link = is_array($full['link'] ?? null) ? $full['link'] : [];
+
+		$this->assertMatchesRegularExpression('/^View llms-full\.txt \(\d+ bytes\)$/', is_string($link['label'] ?? null) ? $link['label'] : '');
+		$this->assertNull($full['warning'] ?? null, 'Small enough for the page cache.');
 	}
 
 	public function testWarnsWhenAiCrawlerChoicesArentUsed(): void

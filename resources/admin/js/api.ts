@@ -551,6 +551,9 @@ export interface SettingItem {
 	// `llms.txt`, or admin screens it's set on.
 	link?: { label: string; href: string } | null;
 	links?: { label: string; to: string }[];
+	// A setting this one needs on (D-402): while that's off in the form,
+	// this one is locked, with the note saying why.
+	requires?: { setting: string; note: string };
 }
 
 /**

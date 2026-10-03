@@ -66,6 +66,7 @@ enum Setting: string
 	case Sitemap         = 'sitemap.enabled';
 	case SitemapDisallow = 'sitemap.disallow';
 	case Llms            = 'llms.enabled';
+	case LlmsFull        = 'llms.full';
 	case BlockAi         = 'sitemap.blockAi';
 	case Theme           = 'theme.active';
 	case Plugins         = 'plugins.enabled';
@@ -109,7 +110,7 @@ enum Setting: string
 			self::Name, self::Description, self::Locale, self::Timezone   => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
-			self::Llms, self::BlockAi                                     => SettingsScreen::Ai
+			self::Llms, self::LlmsFull, self::BlockAi                     => SettingsScreen::Ai
 		};
 	}
 
@@ -136,6 +137,7 @@ enum Setting: string
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
 			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.'),
 			self::Llms            => new BoolField('enabled')->labeled('Markdown copies')->described('A page\'s copy is at its address with .md, such as /about.md, and llms.txt lists them, for AI tools to read.'),
+			self::LlmsFull        => new BoolField('full')->labeled('llms-full.txt')->described('Every page llms.txt lists, in full, in one file, so a tool can read the whole site at once. It can be several megabytes on a large site.'),
 			self::BlockAi         => new ListField('blockAi', new EnumField('', array_column(AiCrawlerGroup::cases(), 'value')))->labeled('Ask to stay away')->described('robots.txt is a request: well-behaved crawlers follow it, others may not.')->control(Control::Checks),
 			self::Theme           => new TextField('active')->labeled('Theme')->control(Control::Mono),
 			self::Plugins         => new ListField('enabled')->labeled('Plugins turned on'),
@@ -174,6 +176,7 @@ enum Setting: string
 			self::FeedContent   => 'Feeds carry each entry\'s full content',
 			self::Sitemap       => 'The site has a sitemap and robots.txt',
 			self::Llms          => 'Every page has a Markdown copy, and the site has llms.txt',
+			self::LlmsFull      => 'The site has llms-full.txt',
 			self::Home          => 'The page at user/content/index.md',
 			default             => null
 		};
@@ -265,7 +268,7 @@ enum Setting: string
 	public function needsRefresh(): bool
 	{
 		return match ($this) {
-			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::Theme, self::Plugins => true,
+			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::LlmsFull, self::Theme, self::Plugins => true,
 			default => false
 		};
 	}

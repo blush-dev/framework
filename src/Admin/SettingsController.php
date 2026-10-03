@@ -21,6 +21,7 @@ use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\CacheConfig;
+use Blush\Cache\PageCache;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -32,6 +33,7 @@ use Blush\Field\FieldSets;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Llms\LlmsConfig;
+use Blush\Llms\LlmsRoutes;
 use Blush\Llms\LlmsTxt;
 use Blush\Media\MediaConfig;
 use Blush\Preview\PreviewConfig;
@@ -58,7 +60,9 @@ use Blush\Sitemap\SitemapConfig;
  * `help`. A `warning` marks a value that's risky where it is (detailed
  * errors on a live site). A shown setting may have a `link` (`label`
  * and `href`, a page on the site) or `links` (`label` and `to`, admin
- * paths), such as `llms.txt` and the types it lists.
+ * paths), such as `llms.txt` and the types it lists. An editable one
+ * may name the setting it `requires` (`setting`, and a `note` saying
+ * so): while that's off in the form, it's locked.
  *
  * A setting the admin can change (`Setting`) adds the `setting` it saves
  * as (`feed.limit`), its `field` (D-343: as forms take it, with the
@@ -255,6 +259,7 @@ final readonly class SettingsController
 					...self::item('llmsTxt', 'llms.txt', $this->llms->enabled ? sprintf($listed === 1 ? 'Lists %s page' : 'Lists %s pages', number_format($listed)) : 'Off, with the Markdown copies', null, help: 'A Markdown map of the site: its name and description, then each listed type\'s pages.'),
 					'link' => $this->llms->enabled ? ['label' => 'View llms.txt', 'href' => $this->app->absoluteUrl('/llms.txt')] : null
 				],
+				$this->full($saved),
 				[
 					...self::item('types', 'Types in llms.txt', array_map(static fn (ContentType $type): string => $type->labels->plural, $types), null, 'list', 'Each content type chooses with its "Listed in llms.txt" option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.'),
 					'links' => [['label' => 'Content Types', 'to' => '/types']]
@@ -275,6 +280,42 @@ final readonly class SettingsController
 				]
 			], 'Training crawlers collect pages to train models; AI search crawlers index them so answers can cite and link them; fetchers get a page when a person asks their assistant about it, so blocking them blocks readers\' own tools.')
 		];
+	}
+
+	/**
+	 * The `llms-full.txt` switch (D-402), locked while the Markdown copies
+	 * are off (`requires`). When it's served, its link gives its size,
+	 * and a warning says when it's too big for the page cache, so a site
+	 * served by PHP builds it on every request.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function full(Settings $saved): array
+	{
+		$served = $this->llms->full && $this->llms->enabled;
+		$size   = $served ? strlen($this->llmsTxt->renderFull()) : 0;
+		$cached = $this->cache->isEnabled($this->app->environment) && $this->cache->pages;
+
+		return [
+			...$this->edit(self::item('full', 'llms-full.txt', $this->llms->full, ! $this->llms->full, 'bool', Setting::LlmsFull->field($this->types)->description), $saved, Setting::LlmsFull, $this->llms->full),
+			'requires' => ['setting' => Setting::Llms->value, 'note' => 'It needs the Markdown copies on.'],
+			'link'     => $served ? ['label' => sprintf('View llms-full.txt (%s)', self::bytes($size)), 'href' => $this->app->absoluteUrl(LlmsRoutes::FULL)] : null,
+			'warning'  => $served && $cached && $size > PageCache::MAX_BYTES
+				? sprintf('At %s, it\'s over the page cache\'s %s, so it\'s built again on every request for it. A static export writes it once.', self::bytes($size), self::bytes(PageCache::MAX_BYTES))
+				: null
+		];
+	}
+
+	/**
+	 * A size in words: `3.6 MB`, `140 KB`.
+	 */
+	private static function bytes(int $bytes): string
+	{
+		return match (true) {
+			$bytes >= 1_048_576 => sprintf('%s MB', rtrim(rtrim(number_format($bytes / 1_048_576, 1), '0'), '.')),
+			$bytes >= 1_024     => sprintf('%d KB', (int) round($bytes / 1_024)),
+			default             => sprintf('%d bytes', $bytes)
+		};
 	}
 
 	/**

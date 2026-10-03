@@ -292,6 +292,7 @@ your own `robots` replaces the generated file and these rules with it.
 | Option | Default | What it does |
 |---|---|---|
 | `enabled` | `true` | Serve a Markdown version of every page and `/llms.txt` |
+| `full` | `false` | Also serve `/llms-full.txt`: every page `llms.txt` lists, in full, in one file |
 
 Agents and AI tools read Markdown more easily than HTML, so every
 published page also has a Markdown version at its address plus `.md`:
@@ -316,7 +317,14 @@ and profiles are left out unless they say `llms: true` (only terms and
 profiles with their own files are listed). Every page keeps its
 Markdown copy either way.
 
-Both can also be changed in the admin, on **Settings → AI**.
+`/llms-full.txt` has the same heading, then the Markdown copy of every
+page `llms.txt` lists, in the same order, so a tool can read the whole
+site in one request. It's off by default because it's large: about
+3.6 MB for a site of a thousand posts. A site served by PHP builds it on
+each request (it's too big for the page cache); a static export writes
+it once.
+
+All of these can also be changed in the admin, on **Settings → AI**.
 
 ### Routes and redirects
 

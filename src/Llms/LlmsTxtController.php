@@ -14,18 +14,20 @@ declare(strict_types=1);
 namespace Blush\Llms;
 
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Blush\Http\Response;
 
 /**
- * Serves `/llms.txt` (`llms`), as plain text, as llmstxt.org asks.
+ * Serves `/llms.txt` (`llms`) and `/llms-full.txt` (`llms.full`, D-402),
+ * as plain text, as llmstxt.org asks.
  */
 final readonly class LlmsTxtController
 {
 	public function __construct(private LlmsTxt $file)
 	{}
 
-	public function __invoke(): ResponseInterface
+	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
-		return Response::text($this->file->render());
+		return Response::text($request->getUri()->getPath() === LlmsRoutes::FULL ? $this->file->renderFull() : $this->file->render());
 	}
 }

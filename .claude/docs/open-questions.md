@@ -85,14 +85,14 @@ Move each item to `decisions.md` once it's answered.
     (D-312). An agent's account with `content.edit` and no
     `content.publish` writes drafts only. Every outside caller needs
     this first.
-  - **An agent-readable site:** built (D-395): Markdown pages at `.md`
-    and `llms.txt`. Still open: answering `Accept: text/markdown` on the
-    page's own URL (a cache would then vary by `Accept`); directives
-    rendered to plain Markdown rather than left as written (their URL
-    props get full URLs, D-396); an
-    `llms-full.txt` (every page's text in one file); a settings screen
-    option; and whether a large site's `llms.txt` (about 1,040 links and
-    140 KB on the jtcom trial) should list only some types.
+  - **An agent-readable site:** built (D-395): Markdown pages at `.md`,
+    `llms.txt`, the AI screen (D-398, which settled listing only some
+    types with each type's `llms` option), and `llms-full.txt` (D-402).
+    Still open: answering `Accept: text/markdown` on the page's own URL
+    (a cache would then vary by `Accept`, and a static export can't);
+    and directives rendered to plain Markdown rather than left as
+    written (their URL props get full URLs, D-396), which needs each
+    component's plain form, with today's as the fallback.
   - **An MCP server:** tools (search content, read an entry, list types
     and their JSON Schemas (D-206), create a draft, update an entry,
     upload media) over the content API, checked against the token's

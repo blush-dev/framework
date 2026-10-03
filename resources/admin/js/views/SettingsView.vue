@@ -6,7 +6,8 @@
  * with the save bar (`PATCH settings`); beside them, the related ones set
  * in code are only shown, with the file they're set in. Each says
  * whether it's still the default, with help where it needs it and a
- * warning where it's risky.
+ * warning where it's risky. A setting that needs another on (`requires`,
+ * D-402) is locked while that one is off in the form, saying why.
  *
  * Each setting is edited as a field (D-343), with the control the server
  * names (`FieldInput`, as every form draws them). After a screen's own
@@ -175,7 +176,16 @@ function timeIn(zone: string): string {
 }
 
 // Help that follows the form, where the server's would go stale.
+// Whether a setting is locked by another that's off in the form.
+function locked(item: SettingItem): boolean {
+	return item.requires !== undefined && form.value[item.requires.setting] === false;
+}
+
 function liveHelp(item: SettingItem): string | null {
+	if (locked(item)) {
+		return `${item.requires?.note ?? ''} ${item.help ?? ''}`.trim();
+	}
+
 	if (item.setting === 'app.timezone') {
 		const time = timeIn(stringValue('app.timezone'));
 
@@ -279,11 +289,13 @@ onBeforeRouteUpdate(leave);
 								:id="`setting-${item.key}`"
 								:described-by="`setting-${item.key}-help`"
 								:labelled-by="`setting-${item.key}-label`"
-								:disabled="unset.includes(item.setting)"
+								:disabled="unset.includes(item.setting) || locked(item)"
 								@update:model-value="form[item.setting!] = $event"
 							/>
 
 							<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
+							<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
+							<p v-if="item.link" class="setting__links"><a :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a></p>
 							<p :id="`setting-${item.key}-help`" class="field__help">
 								<template v-if="liveHelp(item)">{{ liveHelp(item) }}</template>
 								<span v-if="isSite(item.setting)" class="setting__source">

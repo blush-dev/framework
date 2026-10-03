@@ -885,7 +885,10 @@ screens:
   whether search engines are asked not to index the site (outside
   production, they are).
 - **AI:** whether every page has a Markdown copy and the site has
-  `llms.txt`, with a link to view it and how many pages it lists, the
+  `llms.txt`, with a link to view it and how many pages it lists;
+  whether the site also has `llms-full.txt` (off by default, locked
+  while the Markdown copies are off, and, once served, with its size
+  and a warning when it's too big for the page cache); the
   types it lists (each content type chooses with **Listed in
   `llms.txt`** on its screen; taxonomies and profiles start off), and the description it
   uses; and which kinds of AI crawler `robots.txt` asks to stay away:

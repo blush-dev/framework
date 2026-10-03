@@ -11482,3 +11482,56 @@ decision, add a new entry that supersedes it and mark the old one
   listed by title, virtual ones left out); `npm run admin:build`.
 - **Why:** the author agreed with the proposal after asking why
   taxonomies were left out.
+
+### D-402: `llms-full.txt`
+- **Date:** 2026-10-03
+- **Decision:** The author's call: `/llms-full.txt`, off by default
+  (`LlmsConfig::$full`, `Setting::LlmsFull`, `llms.full`, on the AI
+  screen under the `llms.txt` row, with a View link when it's served).
+  It's served only with the Markdown copies on too (a warning says so
+  otherwise). Its text is `llms.txt`'s heading (the site's name and
+  description), then the Markdown copy of every page `llms.txt` lists,
+  in the same order, each with its front matter (`LlmsTxt::renderFull()`;
+  `entries()` now feeds both files). Route `llms.full`, registered only
+  when it's on; exported when it's on.
+  - On the jtcom trial: 3.6 MB, about 0.5 s to build. That's over the
+    page cache's 2 MB limit, so a dynamically served site builds it on
+    each request; a static export writes it once. Left as is: the file
+    is off by default, and a tool fetches it rarely.
+  - **Fixed on the way:** editable settings never showed the server's
+    `warning` (D-399's crawler warning was sent but not drawn); they do
+    now, and they show a `link` too.
+  - Still open from the same list: answering `Accept: text/markdown`,
+    and rendering directives to plain Markdown.
+- **Checked:** `composer check` (`LlmsTest`: off by default, the file's
+  heading and order, only listed pages, export, off with the copies;
+  `AdminSettingsTest`: the setting, saving it, the warning);
+  `npm run admin:build`; on the jtcom trial with the setting turned on
+  briefly in `user/data/settings.json`, then restored.
+- **Why:** the author chose it from the follow-ups, off by default.
+
+### D-403: Settings that need another, and `llms-full.txt`'s size
+- **Date:** 2026-10-03
+- **Status:** Amends D-402 (its "off while the Markdown copies are"
+  warning).
+- **Decision:** The author's calls:
+  - **A setting that needs another on is locked while that one is off
+    in the form,** not left tickable: the settings API's `requires`
+    (`setting`, and a `note`), which the Settings screen reads live, so
+    unticking Markdown copies locks `llms-full.txt` before saving, with
+    "It needs the Markdown copies on." leading its help. Its saved
+    value is kept. D-402's warning goes.
+  - **`llms-full.txt`'s size:** once it's served, the AI screen builds
+    it to measure it (the View link says "View llms-full.txt (3.6
+    MB)"), and warns when it's over the page cache's limit
+    (`PageCache::MAX_BYTES`, now public) on a site whose page cache is
+    on: it's built again on every request for it, while a static export
+    writes it once. No warning where the page cache is off, since then
+    every page is built each time anyway.
+- **Checked:** `composer check` (`AdminSettingsTest`: `requires`, the
+  size in the link, no warning for a small file); `npm run
+  admin:build`; on the jtcom trial in headless Chrome with a temporary
+  account, removed after: unticking Markdown copies locks the
+  `llms-full.txt` box with the note.
+- **Why:** a box that can't take effect shouldn't be tickable, and the
+  page cache's limit is a real cost on large sites.

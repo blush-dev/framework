@@ -37,6 +37,11 @@ use Blush\Core\AppConfig;
  * by file name. Taxonomies and profiles are off unless a type turns
  * them on (`TypeKind::inLlmsByDefault()`); virtual terms and profiles
  * have no copy, so they're never listed.
+ *
+ * `/llms-full.txt` (D-402, when `LlmsConfig::$full` is on) has the same
+ * heading and summary, then every listed page's Markdown copy in the
+ * same order, front matter and all, so a tool gets the whole site in one
+ * request.
  */
 final readonly class LlmsTxt
 {
@@ -54,14 +59,10 @@ final readonly class LlmsTxt
 	 */
 	public function render(): string
 	{
-		$blocks = ['# ' . self::line($this->app->name)];
-
-		if (trim($this->app->description) !== '') {
-			$blocks[] = '> ' . self::line($this->app->description);
-		}
+		$blocks = $this->heading();
 
 		foreach ($this->types() as $type) {
-			$items = $this->items($type);
+			$items = array_map($this->item(...), $this->entries($type));
 
 			if ($items !== []) {
 				$blocks[] = '## ' . self::line($type->labels->plural) . "\n\n" . implode("\n", $items);
@@ -69,6 +70,39 @@ final readonly class LlmsTxt
 		}
 
 		return implode("\n\n", $blocks) . "\n";
+	}
+
+	/**
+	 * Returns `llms-full.txt`'s text: the heading, then every listed
+	 * page's Markdown copy.
+	 */
+	public function renderFull(): string
+	{
+		$blocks = $this->heading();
+
+		foreach ($this->types() as $type) {
+			foreach ($this->entries($type) as $entry) {
+				$blocks[] = rtrim($this->pages->render($entry));
+			}
+		}
+
+		return implode("\n\n", $blocks) . "\n";
+	}
+
+	/**
+	 * Returns the site's name as a heading, and its description under it.
+	 *
+	 * @return list<string>
+	 */
+	private function heading(): array
+	{
+		$blocks = ['# ' . self::line($this->app->name)];
+
+		if (trim($this->app->description) !== '') {
+			$blocks[] = '> ' . self::line($this->app->description);
+		}
+
+		return $blocks;
 	}
 
 	/**
@@ -87,15 +121,15 @@ final readonly class LlmsTxt
 	 */
 	public function count(): int
 	{
-		return array_sum(array_map(fn (ContentType $type): int => count($this->items($type)), $this->types()));
+		return array_sum(array_map(fn (ContentType $type): int => count($this->entries($type)), $this->types()));
 	}
 
 	/**
-	 * Returns a type's list items.
+	 * Returns a type's entries with Markdown copies, in the file's order.
 	 *
-	 * @return list<string>
+	 * @return list<Entry>
 	 */
-	private function items(ContentType $type): array
+	private function entries(ContentType $type): array
 	{
 		$query = $this->content->query()->any()->type($type->name)->status(Status::Published)->visibility(Visibility::Public);
 
@@ -105,30 +139,15 @@ final readonly class LlmsTxt
 			$query = $query->orderBy('title');
 		}
 
-		$items = [];
-
-		foreach ($query->get() as $entry) {
-			$item = $this->item($entry);
-
-			if ($item !== null) {
-				$items[] = $item;
-			}
-		}
-
-		return $items;
+		return array_values(array_filter([...$query->get()], fn (Entry $entry): bool => $this->pages->url($entry) !== null));
 	}
 
 	/**
-	 * Returns an entry's list item, or `null` when it has no Markdown
-	 * version.
+	 * Returns an entry's list item.
 	 */
-	private function item(Entry $entry): ?string
+	private function item(Entry $entry): string
 	{
-		$path = $this->pages->url($entry);
-
-		if ($path === null) {
-			return null;
-		}
+		$path = (string) $this->pages->url($entry);
 
 		$title   = self::line($entry->title) ?: $path;
 		$link    = '[' . addcslashes($title, '[]\\') . '](' . str_replace(['(', ')', ' '], ['%28', '%29', '%20'], $this->urls->absolute($path)) . ')';

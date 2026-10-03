@@ -462,7 +462,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   and Publishing and Previews. **AI** (D-398, the direction has none)
   has Markdown Copies (the switch for `.md` copies and `llms.txt`, with
   read-only rows linking to `llms.txt`, the types it lists, and the
-  description it uses) and AI Crawlers (the kinds `robots.txt` asks to
+  description it uses, and the `llms-full.txt` switch, D-402, locked
+  while the copies are off, D-403) and AI Crawlers (the kinds `robots.txt` asks to
   stay away, as checkboxes, with the groups explained in the panel's
   note); plugins' settings will join it through `settings:ai` (D-397).
   A shown setting may link out (`link`) or to the admin screens it's set

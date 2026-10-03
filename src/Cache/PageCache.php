@@ -41,7 +41,7 @@ final readonly class PageCache implements MiddlewareInterface
 	/**
 	 * The largest body stored, in bytes.
 	 */
-	private const int MAX_BYTES = 2_097_152;
+	public const int MAX_BYTES = 2_097_152;
 
 	public function __construct(
 		private Caches $caches,

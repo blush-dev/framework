@@ -18,8 +18,8 @@ use Blush\Export\ExportUrl;
 use Blush\Export\UrlSource;
 
 /**
- * Lists `/llms.txt` and every Markdown page for static export, when
- * they're on.
+ * Lists `/llms.txt`, `/llms-full.txt` (D-402), and every Markdown page
+ * for static export, when they're on.
  */
 final readonly class LlmsExportUrls implements UrlSource
 {
@@ -39,6 +39,10 @@ final readonly class LlmsExportUrls implements UrlSource
 		}
 
 		yield new ExportUrl('/llms.txt');
+
+		if ($this->config->full) {
+			yield new ExportUrl(LlmsRoutes::FULL);
+		}
 
 		foreach ($this->pages->entries() as $entry) {
 			$path = $this->pages->url($entry);

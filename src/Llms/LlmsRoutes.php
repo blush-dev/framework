@@ -20,7 +20,8 @@ use Blush\Routing\RouteSource;
 
 /**
  * With `LlmsConfig::$enabled` on, the system routes `llms`
- * (`/llms.txt`) and `llms.markdown` (any path ending in `.md`).
+ * (`/llms.txt`), `llms.markdown` (any path ending in `.md`), and, with
+ * `$full` on too, `llms.full` (`/llms-full.txt`, D-402).
  *
  * The Markdown route must come before content routes, whose `{name}`
  * would take `hello.md`, and after the other system routes (the admin,
@@ -29,6 +30,11 @@ use Blush\Routing\RouteSource;
  */
 final readonly class LlmsRoutes implements RouteSource
 {
+	/**
+	 * Where `llms-full.txt` is served.
+	 */
+	public const string FULL = '/llms-full.txt';
+
 	public function __construct(private LlmsConfig $config)
 	{}
 
@@ -54,6 +60,7 @@ final readonly class LlmsRoutes implements RouteSource
 
 		return [
 			Route::get('/llms.txt', LlmsTxtController::class)->named('llms'),
+			...($this->config->full ? [Route::get(self::FULL, LlmsTxtController::class)->named('llms.full')] : []),
 			Route::get('/{path:.+}.md', MarkdownController::class)->named('llms.markdown')
 		];
 	}

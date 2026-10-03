@@ -752,7 +752,8 @@ Views use components, but the system is its own subsystem.
   cache keeps the answer). `/llms.txt` lists public entries of the
   types whose `llms` option is on (by default collections and trees,
   D-401), under the site's description
-  (`AppConfig::$description`, D-398).
+  (`AppConfig::$description`, D-398); with `LlmsConfig::$full`,
+  `/llms-full.txt` has every listed page's copy in one file (D-402).
   `LlmsRoutes` is a system route registered last among the framework's
   (so the admin's and media's own `.md` paths win, and content routes'
   `{name}` never takes `hello.md`); themed pages link the version with
