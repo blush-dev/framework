@@ -36,6 +36,102 @@ Move each item to `decisions.md` once it's answered.
   - Whether a section row wants a count beside its sentence.
   - A read-only `view` capability (the sketch's), which needs a
     read-only editor first.
+- **Front-end search** (raised 2026-10-03; the author wants to pursue
+  it): the plan in `architecture.md` ("needs `SqliteIndex`", FTS5) only
+  works when PHP serves the site, not on a static export (D-011). The
+  idea instead: a JSON search index as a route (`/search.json`, built
+  and exported the way feeds are, `FeedExportUrls`), searched in the
+  browser by a theme's template and a small script, with `/search?q=`
+  answered on the server from the same records when PHP serves the
+  site; wired only when enabled. To settle:
+  - Body text: the index keeps metadata, not bodies, and
+    `Query::search()` matches only the title and source path. Index
+    stripped body text (built at reindex or cached by content version),
+    or only titles, excerpts, headings, and terms?
+  - Size: one file (several MB with full bodies on a jtcom-sized site),
+    one per type, or a chunked index (Pagefind's approach: a query
+    loads only the chunks its words need)?
+  - Pagefind itself (a third-party tool that indexes the exported HTML
+    after export): it fits a static export but not a site PHP serves,
+    and it's not in-house (D-006). Borrow its chunking idea, not the
+    tool?
+  - The browser-side matcher: in-house, or a library behind a Blush
+    interface?
+  - Only public, published entries, never drafts, private, or
+    future-dated ones (`Query`'s visibility filters).
+  - Whether `SqliteIndex` and FTS5 stay planned, for large sites PHP
+    serves.
+  - Its records could be the content API's (below).
+- **APIs, agents, and headless** (discussed 2026-10-03; the author wants
+  to explore or build most of these; nothing decided):
+  - **One content API** over two: a versioned content API
+    (`/api/v1/…`: entries, types, terms, media), REST-style JSON
+    answered by who's asking (anonymous: published, public entries
+    only; a session or token: more, and writes, by capability, through
+    `Permissions::restrict()`, as WordPress's REST API does), used by
+    front ends, exports, agents, MCP, and the admin's content screens;
+    plus admin-only endpoints for screens (counts, the calendar, lint,
+    form definitions), unversioned. Separation was discussed for
+    stability (a public API is a contract; the admin's changes with the
+    admin), shape (D-229's answers carry `violations`, `can`,
+    `revision`, `extra`, field definitions), caching (cache only
+    anonymous answers), and ids (source paths in the admin, URL paths
+    for front ends). Moving today's admin content endpoints into the
+    versioned layer is the cost. Settle before tokens and MCP, which
+    build on it.
+  - **API tokens:** the admin API is session and `X-CSRF-Token` only
+    (D-220). Tokens tied to an account act with its roles and
+    capabilities, can be revoked, and stop with a suspended account
+    (D-312). An agent's account with `content.edit` and no
+    `content.publish` writes drafts only. Every outside caller needs
+    this first.
+  - **An agent-readable site:** a Markdown version of every page (`.md`
+    on the URL, or by `Accept`), served from the source Blush already
+    has, and `llms.txt` (a Markdown map of the site, built like the
+    sitemap). Both plain routes, so they export as feeds do. Cheap and
+    distinctive.
+  - **An MCP server:** tools (search content, read an entry, list types
+    and their JSON Schemas (D-206), create a draft, update an entry,
+    upload media) over the content API, checked against the token's
+    capabilities. For sites on a server; local agents can edit the
+    files.
+  - **A headless mode:** a setting where Blush serves the admin and the
+    API (and perhaps feeds and the sitemap) but no themed pages, and a
+    separate front end (Astro, Next.js, SvelteKit, an app) owns the
+    pages. Content reaches it over HTTP at runtime, at build time (a
+    rebuild on an outgoing webhook), or as the content API exported to
+    a folder of JSON by the static exporter, so a front end builds with
+    no PHP running. Open within it:
+    - Bodies: directives and components render through theme templates
+      (D-382), so a front end can't render them alone. Rendered HTML
+      first (core component templates), a structured tree (JSON nodes
+      a front end maps to its own components, like Portable Text or
+      MDX) as a later opt-in; raw Markdown isn't enough alone.
+    - URLs: the API gives each entry's path, so links inside content
+      and front-end routes agree.
+    - Preview: Preview opens the front end's preview mode with a
+      signed, expiring draft token (D-226's preview links, which
+      exist).
+    - How much the kernel assumes an active theme (not checked yet;
+      look first).
+    - Media: URLs, dimensions, alt text, and captions from the media
+      index (D-287 to D-291).
+  - **Revision history and an activity log:** what an agent or person
+    changed and undoing it; git-backed revisions are already listed as
+    later in `architecture.md`; an activity log (who or which token did
+    what, when) makes tokens trustworthy.
+  - **Outgoing webhooks:** signed posts to configured URLs on events
+    such as a publish (social posts, deploys, chat, headless rebuilds).
+    Blush only receives publishing webhooks today.
+  - Shareable draft preview links already exist (signed, expiring
+    links, D-226); headless preview would reuse them.
+  - **An image pipeline:** resized images and modern formats (AVIF,
+    WebP) at export or on request; `srcset` helpers exist, but nothing
+    makes the files.
+  - Leaning no: GraphQL and real-time collaborative editing (costly,
+    and a poor fit for flat files; plain JSON and MCP cover the needs).
+  - A suggested order, not agreed: the content API's shape, then
+    tokens, then Markdown pages and `llms.txt`, then MCP.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the

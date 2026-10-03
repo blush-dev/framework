@@ -122,16 +122,16 @@ buttons with its `labels`. Each label is made from the ones above it,
 starting from the type's name, so set only the ones that come out
 wrong:
 
-| Label | Made from | For `literary_form` | Where the admin shows it |
-|---|---|---|---|
-| `singular` | The name | Literary form | Field headings, type menus |
-| `plural` | `singular` | Literary forms | The list's heading, the page title |
-| `menu` | `plural` | Literary forms | The admin's navigation |
-| `item` | `singular` | literary form | Mid-sentence: "Create the first literary form" |
-| `items` | `plural` | literary forms | Mid-sentence: "3 literary forms" |
-| `newItem` | `item` | New literary form | The New button and screen |
-| `editItem` | `item` | Edit literary form | The editor's title |
-| `searchItems` | `items` | Search literary forms | The list's search field |
+| Label         | Made from  | For `literary_form`   | Where the admin shows it                       |
+|---------------|------------|-----------------------|------------------------------------------------|
+| `singular`    | The name   | Literary form         | Field headings, type menus                     |
+| `plural`      | `singular` | Literary forms        | The list's heading, the page title             |
+| `menu`        | `plural`   | Literary forms        | The admin's navigation                         |
+| `item`        | `singular` | literary form         | Mid-sentence: "Create the first literary form" |
+| `items`       | `plural`   | literary forms        | Mid-sentence: "3 literary forms"               |
+| `newItem`     | `item`     | New literary form     | The New button and screen                      |
+| `editItem`    | `item`     | Edit literary form    | The editor's title                             |
+| `searchItems` | `items`    | Search literary forms | The list's search field                        |
 
 `plural` adds "s" ("es" after s, x, z, ch, or sh, and "ies" for a y
 after a consonant). `item` and `items` lowercase the first letter,
@@ -237,13 +237,13 @@ types: [post]
 
 Now:
 
-| File | URL |
-|---|---|
-| `_blog/index.md` | `/blog` (the post listing, newest first) |
-| `_blog/2026-09-26.hello.md` | `/blog/hello` |
-| | `/blog/2026` and `/blog/2026/09` (date archives) |
-| | `/blog/feed`, `/blog/feed/atom`, `/blog/feed/json` |
-| `_blog/tags/php.md` | `/blog/tags/php` (every post tagged `php`) |
+| File                        | URL                                                |
+|-----------------------------|----------------------------------------------------|
+| `_blog/index.md`            | `/blog` (the post listing, newest first)           |
+| `_blog/2026-09-26.hello.md` | `/blog/hello`                                      |
+|                             | `/blog/2026` and `/blog/2026/09` (date archives)   |
+|                             | `/blog/feed`, `/blog/feed/atom`, `/blog/feed/json` |
+| `_blog/tags/php.md`         | `/blog/tags/php` (every post tagged `php`)         |
 
 Create a post with:
 
@@ -373,19 +373,19 @@ fields:
 
 Field types:
 
-| Type | Holds | Extra options |
-|---|---|---|
-| `text` | A line of text | |
-| `markdown` | Formatted text | |
-| `date` | A date and time | |
-| `bool` | `true` or `false` | |
-| `number` | A number | `integer`, `min`, `max` |
-| `enum` | One of a set of values | `options` |
-| `list` | Several values | `item` (a field definition for each value; text by default) |
-| `reference` | Other entries, by slug | `to` (the type), `multiple` (default `true`) |
-| `media` | A media file | `kind`: `image`, `video`, `audio`, or `file`, so the admin's picker offers only those (any file when it's left out) |
-| `slug` | A URL-safe name | |
-| `object` | A group of fields | `fields`, `closed` |
+| Type        | Holds                  | Extra options                                                                                                       |
+|-------------|------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `text`      | A line of text         |                                                                                                                     |
+| `markdown`  | Formatted text         |                                                                                                                     |
+| `date`      | A date and time        |                                                                                                                     |
+| `bool`      | `true` or `false`      |                                                                                                                     |
+| `number`    | A number               | `integer`, `min`, `max`                                                                                             |
+| `enum`      | One of a set of values | `options`                                                                                                           |
+| `list`      | Several values         | `item` (a field definition for each value; text by default)                                                         |
+| `reference` | Other entries, by slug | `to` (the type), `multiple` (default `true`)                                                                        |
+| `media`     | A media file           | `kind`: `image`, `video`, `audio`, or `file`, so the admin's picker offers only those (any file when it's left out) |
+| `slug`      | A URL-safe name        |                                                                                                                     |
+| `object`    | A group of fields      | `fields`, `closed`                                                                                                  |
 
 Every field also takes `required`, `default`, `aliases` (other keys it's
 read from), `label`, `description`, and `control`.
@@ -408,19 +408,19 @@ fields:
 Each field type has a control the admin edits it with. Some types can
 use another one instead: set `control` to pick it.
 
-| Type | Controls (the first is the default) |
-|---|---|
-| `text` | `text` (one line), `textarea` (several lines), `mono` (one line, for code) |
-| `markdown` | `textarea` |
-| `date` | `date` (a date picker) |
-| `bool` | `checkbox` |
-| `number` | `number` |
-| `enum` | `select` (a menu), `radios` (radio buttons) |
-| `list` | `lines` (one per line), `checks` (checkboxes, for a list of `enum` items), `readonly` |
-| `reference` | `reference` (an entry picker, with `to`), `mono` (slugs typed with commas) |
-| `media` | `media` (a media picker), `mono` (a path typed in) |
-| `slug` | `mono` |
-| `object` | `readonly` (edited in the file for now) |
+| Type        | Controls (the first is the default)                                                   |
+|-------------|---------------------------------------------------------------------------------------|
+| `text`      | `text` (one line), `textarea` (several lines), `mono` (one line, for code)            |
+| `markdown`  | `textarea`                                                                            |
+| `date`      | `date` (a date picker)                                                                |
+| `bool`      | `checkbox`                                                                            |
+| `number`    | `number`                                                                              |
+| `enum`      | `select` (a menu), `radios` (radio buttons)                                           |
+| `list`      | `lines` (one per line), `checks` (checkboxes, for a list of `enum` items), `readonly` |
+| `reference` | `reference` (an entry picker, with `to`), `mono` (slugs typed with commas)            |
+| `media`     | `media` (a media picker), `mono` (a path typed in)                                    |
+| `slug`      | `mono`                                                                                |
+| `object`    | `readonly` (edited in the file for now)                                               |
 
 ```yaml
 fields:
@@ -531,13 +531,13 @@ A type's `listing` option sets how its listing page lists entries:
 new Listing(orderBy: 'published', order: Order::Desc, perPage: 20)
 ```
 
-| Option | Default | What it does |
-|---|---|---|
-| `type` | The type itself | Which type to list |
-| `orderBy` | `filename` | `filename`, `published`, `updated`, `title`, `author`, or any field |
-| `order` | `asc` | `asc` or `desc` (`Order::Asc` or `Order::Desc` in PHP) |
-| `perPage` | `10` | How many per page; `0` (`Listing::ALL`) for all of them |
-| `query` | | Any other option from the table below, such as `{terms: {tag: [php]}}` |
+| Option    | Default         | What it does                                                           |
+|-----------|-----------------|------------------------------------------------------------------------|
+| `type`    | The type itself | Which type to list                                                     |
+| `orderBy` | `filename`      | `filename`, `published`, `updated`, `title`, `author`, or any field    |
+| `order`   | `asc`           | `asc` or `desc` (`Order::Asc` or `Order::Desc` in PHP)                 |
+| `perPage` | `10`            | How many per page; `0` (`Listing::ALL`) for all of them                |
+| `query`   |                 | Any other option from the table below, such as `{terms: {tag: [php]}}` |
 
 To list entries on any page, use `collection` in its front matter:
 
@@ -552,61 +552,61 @@ collection:
 ---
 ```
 
-| Option | What it does |
-|---|---|
-| `type` | Which type(s) to list |
-| `number` | How many per page (default 10; `0` or less for all) |
-| `offset` | Skip this many |
-| `orderby` | `filename` (default), `published`, `updated`, `title`, `author`, or any field |
-| `order` | `asc` (default) or `desc` |
-| `terms` | Only entries in these terms, such as `{tag: [php]}` |
-| `author` | Only entries crediting these profiles, through any people field |
-| `names` / `names_exclude` | Only, or never, these slugs |
-| `meta_key` / `meta_value` | Only entries whose field has this value |
-| `year` … `second` | Only entries published in this period |
+| Option                    | What it does                                                                  |
+|---------------------------|-------------------------------------------------------------------------------|
+| `type`                    | Which type(s) to list                                                         |
+| `number`                  | How many per page (default 10; `0` or less for all)                           |
+| `offset`                  | Skip this many                                                                |
+| `orderby`                 | `filename` (default), `published`, `updated`, `title`, `author`, or any field |
+| `order`                   | `asc` (default) or `desc`                                                     |
+| `terms`                   | Only entries in these terms, such as `{tag: [php]}`                           |
+| `author`                  | Only entries crediting these profiles, through any people field               |
+| `names` / `names_exclude` | Only, or never, these slugs                                                   |
+| `meta_key` / `meta_value` | Only entries whose field has this value                                       |
+| `year` … `second`         | Only entries published in this period                                         |
 
 ## All type options
 
 Every kind takes these:
 
-| Option | Default | What it does |
-|---|---|---|
-| `folder` | `_` and the name (`''`, the content root, for the `page` type) | The folder under `user/content/` |
-| `labels` | Made from the name | [Names in the admin](#names-descriptions-and-icons-in-the-admin) |
-| `description` | | What the type is for, in a sentence |
-| `icon` | Its kind's | An icon for the admin, by name |
-| `public` | `true` | Whether the type is visible on the site at all |
-| `sitemap` | `true` | Whether entries appear in the sitemap |
-| `fields` / `closed` | | [Custom fields](#custom-fields) |
+| Option              | Default                                                        | What it does                                                     |
+|---------------------|----------------------------------------------------------------|------------------------------------------------------------------|
+| `folder`            | `_` and the name (`''`, the content root, for the `page` type) | The folder under `user/content/`                                 |
+| `labels`            | Made from the name                                             | [Names in the admin](#names-descriptions-and-icons-in-the-admin) |
+| `description`       |                                                                | What the type is for, in a sentence                              |
+| `icon`              | Its kind's                                                     | An icon for the admin, by name                                   |
+| `public`            | `true`                                                         | Whether the type is visible on the site at all                   |
+| `sitemap`           | `true`                                                         | Whether entries appear in the sitemap                            |
+| `fields` / `closed` |                                                                | [Custom fields](#custom-fields)                                  |
 
 Collections, taxonomies, and trees also take this:
 
-| Option | Default | What it does |
-|---|---|---|
+| Option   | Default                                   | What it does                                                                                                                                |
+|----------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
 | `people` | `authors` for collections, none otherwise | How entries credit people ([below](#crediting-people)). `authors: true` or `authors: false` is short for the `authors` field alone, or none |
 
 Collections, taxonomies, and the profiles type also take these:
 
-| Option | Default | What it does |
-|---|---|---|
-| `urls` | Standard URLs | `false` for no URLs of its own, or [custom URLs](#custom-urls) |
-| `listing` | | How the listing page lists entries ([above](#listing-entries)) |
-| `feed` | `false` | RSS, Atom, and JSON feeds: `true`, or a `TypeFeed` with `categories` (the taxonomy used for each item's categories) and `listing` |
+| Option    | Default       | What it does                                                                                                                      |
+|-----------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| `urls`    | Standard URLs | `false` for no URLs of its own, or [custom URLs](#custom-urls)                                                                    |
+| `listing` |               | How the listing page lists entries ([above](#listing-entries))                                                                    |
+| `feed`    | `false`       | RSS, Atom, and JSON feeds: `true`, or a `TypeFeed` with `categories` (the taxonomy used for each item's categories) and `listing` |
 
 Only collections take:
 
-| Option | Default | What it does |
-|---|---|---|
-| `dateArchives` | `none` | Date archives: `year`, `month`, `day`, `hour`, `minute`, or `second` |
+| Option         | Default | What it does                                                         |
+|----------------|---------|----------------------------------------------------------------------|
+| `dateArchives` | `none`  | Date archives: `year`, `month`, `day`, `hour`, `minute`, or `second` |
 
 Only taxonomies take:
 
-| Option | Default | What it does |
-|---|---|---|
-| `types` | Every type | The types a term's page lists |
-| `field` / `aliases` | The name | The front matter key entries use to join a term, and other keys it's read from |
-| `termListing` | | How a term's page lists entries |
-| `hierarchical` | `false` | Whether a term may have a `parent` ([above](#hierarchical-taxonomies)) |
+| Option              | Default    | What it does                                                                   |
+|---------------------|------------|--------------------------------------------------------------------------------|
+| `types`             | Every type | The types a term's page lists                                                  |
+| `field` / `aliases` | The name   | The front matter key entries use to join a term, and other keys it's read from |
+| `termListing`       |            | How a term's page lists entries                                                |
+| `hierarchical`      | `false`    | Whether a term may have a `parent` ([above](#hierarchical-taxonomies))         |
 
 For the profiles type, `urls` sets where profiles' pages are (its
 `prefix`, `profiles` by default, whatever the folder), `listing` how a profile's page lists
@@ -706,13 +706,13 @@ authors: false
 
 Each field takes these, all optional:
 
-| Option | Default | What it does |
-|---|---|---|
-| `plural` / `singular` | Made from the field's name | What it's called: "Cooks", "Cook" |
-| `aliases` | `[]` (`[author]` for `authors`) | Other front matter keys it's read from |
-| `archive` | The field's name | The word its archives sit under, or `false` for none |
-| `multiple` | `true` | Whether an entry may credit several people |
-| `required` | `false` | Whether an entry needs one before it's published |
+| Option                | Default                         | What it does                                         |
+|-----------------------|---------------------------------|------------------------------------------------------|
+| `plural` / `singular` | Made from the field's name      | What it's called: "Cooks", "Cook"                    |
+| `aliases`             | `[]` (`[author]` for `authors`) | Other front matter keys it's read from               |
+| `archive`             | The field's name                | The word its archives sit under, or `false` for none |
+| `multiple`            | `true`                          | Whether an entry may credit several people           |
+| `required`            | `false`                         | Whether an entry needs one before it's published     |
 
 In PHP, `people` is a list of `PeopleField`s:
 

@@ -736,7 +736,7 @@ Views use components, but the system is its own subsystem.
 - **Sitemaps** (`Blush\Sitemap`, M5c, D-123): `/sitemap` (an index), one
   per type at `/sitemap/{type}`, and `robots.txt` (which disallows
   everything outside production).
-- **Search:** optional; needs `SqliteIndex`.
+- **Search:** optional; needs `SqliteIndex` (under discussion: a JSON index that works on a static export too; see `open-questions.md`).
 
 ## Caching
 
