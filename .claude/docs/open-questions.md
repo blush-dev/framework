@@ -144,8 +144,9 @@ Move each item to `decisions.md` once it's answered.
   installs them into `user/`):
   - How a zip install works: what the archive must hold, checks before
     anything is written, whether a new plugin lands turned off (today
-    every discovered plugin is on, D-058), replacing an installed one,
-    and the capability it needs.
+    every discovered plugin is on, D-058), and keeping a backup when a
+    newer version replaces one (replacing is decided; capabilities are
+    D-389).
   - Where updates come from for a local extension: an update source
     declared in its manifest (as WordPress's `Update URI`), or inferred
     from its `vendor/name` (risking a stranger's package of the same

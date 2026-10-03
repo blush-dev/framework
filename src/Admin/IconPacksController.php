@@ -13,14 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
+use Blush\Extension\ExtensionKind;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Icon\IconPack;
@@ -28,10 +27,12 @@ use Blush\Icon\IconPacks;
 use Blush\Icon\IconPackSource;
 use Blush\Settings\Setting;
 use Blush\Settings\SettingsFile;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Answers the Icon Packs screens (D-378, D-385), for accounts with
- * `site.settings`. Only icon packs are listed, not the icons themes and
+ * `extensions.icon-packs.view` (D-389). Only icon packs are listed, not the icons themes and
  * plugins carry, plus Blush's own set:
  *
  * - `GET icon-packs`: every installed pack, by label, with its `name`,
@@ -199,7 +200,7 @@ final readonly class IconPacksController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		return $account instanceof Account && $this->permissions->can($account, Capability::SiteSettings);
+		return $account instanceof Account && $this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::IconPack));
 	}
 
 	private static function forbidden(): ResponseInterface

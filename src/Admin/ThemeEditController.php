@@ -13,14 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
+use Blush\Extension\ExtensionKind;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Support\Filesystem;
@@ -28,12 +27,14 @@ use Blush\Support\FilesystemException;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
-use Blush\Theme\ThemeSource;
 use Blush\Theme\Themes;
+use Blush\Theme\ThemeSource;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Deletes a theme's folder from `user/themes` (D-381), for accounts with
- * `site.settings`: `DELETE themes/{folder}`, answering `{"deleted"}`
+ * `extensions.themes.delete` (D-389): `DELETE themes/{folder}`, answering `{"deleted"}`
  * with where it was.
  *
  * Only a folder in `user/themes` that holds a theme, or a broken one, is
@@ -62,7 +63,7 @@ final readonly class ThemeEditController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteSettings)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, ExtensionAction::Delete->on(ExtensionKind::Theme))) {
 			return self::error('You aren\'t allowed to delete themes.', Status::Forbidden);
 		}
 

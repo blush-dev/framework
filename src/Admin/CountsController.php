@@ -13,13 +13,12 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
+use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Roles;
 use Blush\Content\ContentRepository;
@@ -27,6 +26,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionKind;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Icon\IconPacks;
@@ -34,6 +34,8 @@ use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
 use Blush\Plugin\PluginDiscovery;
 use Blush\Theme\Themes;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Answers `GET {path}/api/counts` (D-371): how many things each of the
@@ -45,11 +47,12 @@ use Blush\Theme\Themes;
  *   its index page or people pages, as `GET entries` counts them).
  * - `media`: the files in the library, with `media.upload` (D-372).
  * - `accounts` and `roles`, with `accounts.view`.
- * - `contentTypes`, `fieldSets`, `themes`, `plugins`, and `iconPacks`
- *   (installed), with `site.settings` (`themes` since D-372, counting
- *   broken ones since D-381, as the Themes screen lists them;
- *   `iconPacks` since D-378, counting broken ones and the core set since
- *   D-385, as the Icon Packs screen lists them).
+ * - `contentTypes` and `fieldSets`, with `site.settings`.
+ * - `themes`, `plugins`, and `iconPacks` (installed), each with seeing
+ *   its kind (`extensions.themes.view`, and so on, D-389; `themes` since
+ *   D-372, counting broken ones since D-381, as the Themes screen lists
+ *   them; `iconPacks` since D-378, counting broken ones and the core set
+ *   since D-385, as the Icon Packs screen lists them).
  *
  * A count the account may not see is left out.
  */
@@ -107,9 +110,17 @@ final readonly class CountsController
 		if ($this->permissions->can($account, Capability::SiteSettings)) {
 			$counts['contentTypes'] = count($this->types->all());
 			$counts['fieldSets']    = count($this->types->sets->all());
-			$counts['themes']       = count($this->themes->all()) + count($this->themes->invalid());
-			$counts['iconPacks']    = count($this->iconPacks->all()) + count($this->iconPacks->invalid()) + 1;
+		}
 
+		if ($this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::Theme))) {
+			$counts['themes'] = count($this->themes->all()) + count($this->themes->invalid());
+		}
+
+		if ($this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::IconPack))) {
+			$counts['iconPacks'] = count($this->iconPacks->all()) + count($this->iconPacks->invalid()) + 1;
+		}
+
+		if ($this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::Plugin))) {
 			try {
 				$counts['plugins'] = count(PluginDiscovery::forPaths($this->paths)->discover());
 			} catch (ExtensionException) {

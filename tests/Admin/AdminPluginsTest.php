@@ -208,12 +208,34 @@ final class AdminPluginsTest extends TestCase
 		$this->assertSame(409, $this->write('DELETE', '/plugins/future')->getStatusCode(), 'The site would fail without it.');
 	}
 
-	public function testNeedsSiteSettings(): void
+	public function testNeedsItsCapabilities(): void
 	{
 		$this->site(['editor']);
 
 		$this->assertSame(403, $this->send('GET', '/plugins')->getStatusCode());
 		$this->assertSame(403, $this->write('PUT', '/plugins/acme/off', ['enabled' => true])->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/plugins/off')->getStatusCode());
+	}
+
+	public function testEachActionNeedsItsOwn(): void
+	{
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('switcher', 'Switcher', ['extensions.plugins.view', 'extensions.plugins.activate'])]);\n");
+		$this->site(['switcher']);
+
+		$this->assertSame(200, $this->send('GET', '/plugins')->getStatusCode());
+		$this->assertSame(200, $this->write('PUT', '/plugins/acme/off', ['enabled' => true])->getStatusCode(), 'Turning on and off (D-389).');
+		$this->assertSame(403, $this->write('DELETE', '/plugins/off')->getStatusCode(), 'Deleting is its own.');
+		$this->assertSame(200, $this->write('PATCH', '/settings', ['unset' => ['plugins.disabled']])->getStatusCode(), 'The setting the Plugins screen saves.');
+		$this->assertSame(403, $this->write('PATCH', '/settings', ['set' => ['app.name' => 'Mine']])->getStatusCode(), 'Other settings need site.settings.');
+		$this->assertSame(200, $this->write('POST', '/settings/refresh')->getStatusCode());
+	}
+
+	public function testEveryActionNeedsSeeing(): void
+	{
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('blind', 'Blind', ['extensions.plugins.activate', 'extensions.plugins.delete'])]);\n");
+		$this->site(['blind']);
+
+		$this->assertSame(403, $this->write('PUT', '/plugins/acme/off', ['enabled' => false])->getStatusCode(), 'Every action needs seeing.');
 		$this->assertSame(403, $this->write('DELETE', '/plugins/off')->getStatusCode());
 	}
 }

@@ -67,9 +67,9 @@ const everywhere = computed<Command[]>(() => {
 		['media', 'Go to Media', 'image', 'media.upload', 'files images library'],
 		['types', 'Go to Content Types', 'layers', 'site.settings'],
 		['fields', 'Go to Fields', 'group', 'site.settings', 'field sets custom fields'],
-		['themes', 'Go to Themes', 'paintbrush', 'site.settings', 'appearance look'],
-		['plugins', 'Go to Plugins', 'plug', 'site.settings', 'addons extensions'],
-		['icon-packs', 'Go to Icon Packs', 'shapes', 'site.settings', 'icons extensions'],
+		['themes', 'Go to Themes', 'paintbrush', 'extensions.themes.view', 'appearance look'],
+		['plugins', 'Go to Plugins', 'plug', 'extensions.plugins.view', 'addons extensions'],
+		['icon-packs', 'Go to Icon Packs', 'shapes', 'extensions.icon-packs.view', 'icons extensions'],
 		['accounts', 'Go to Accounts', 'key-round', 'accounts.view', 'people users sign in'],
 		['roles', 'Go to Roles', 'shield', 'accounts.view', 'capabilities']
 	];

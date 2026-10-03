@@ -18,6 +18,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
 import { PALETTE_ROLES, type PaletteRole } from '../api';
 import { config } from '../config';
+import { can } from '../session';
 import { screenTitle } from '../screen';
 import { copy, themeRoute, useThemes } from '../themes';
 
@@ -25,6 +26,10 @@ const route  = useRoute();
 const router = useRouter();
 
 const { appearance, error, busy, failed, active, load, find, label, installed, dependents, blockedMessage, activate, remove: removeTheme } = useThemes();
+
+// What the account may do here (D-389).
+const canActivate = can('extensions.themes.activate');
+const canDelete   = can('extensions.themes.delete');
 
 void load();
 
@@ -134,7 +139,7 @@ async function remove(): Promise<void> {
 				<button type="button" class="button" disabled>Activate</button>
 			</template>
 			<button v-else-if="busy === theme.name" type="button" class="button" disabled><span class="spin" aria-hidden="true" />Activating…</button>
-			<button v-else type="button" class="button" :class="failed?.name === theme.name ? 'button--danger' : 'button--primary'" :disabled="busy !== null" @click="activate(theme)">
+			<button v-else-if="canActivate" type="button" class="button" :class="failed?.name === theme.name ? 'button--danger' : 'button--primary'" :disabled="busy !== null" @click="activate(theme)">
 				{{ failed?.name === theme.name ? 'Try again' : `Activate ${theme.label}` }}
 			</button>
 		</div>
@@ -251,7 +256,7 @@ async function remove(): Promise<void> {
 			<p v-else-if="theme.source === 'local' && !theme.deletable" class="notice">
 				<span>{{ theme.active ? 'This is the active theme' : `The active theme, ${active?.label ?? appearance.active}, falls back to it` }}, so it can't be deleted. Activate another theme first.</span>
 			</p>
-			<div v-else-if="theme.deletable" class="danger-zone">
+			<div v-else-if="canDelete && theme.deletable" class="danger-zone">
 				<p>{{ deleteNote }}</p>
 				<button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete theme</button>
 			</div>

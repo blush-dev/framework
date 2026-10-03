@@ -13,12 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use JsonException;
-use Throwable;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
+use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Index\Indexer;
@@ -26,6 +23,7 @@ use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
+use Blush\Extension\ExtensionKind;
 use Blush\Field\FieldContext;
 use Blush\Field\InvalidField;
 use Blush\Http\Response;
@@ -38,10 +36,18 @@ use Blush\Settings\SettingsFile;
 use Blush\Settings\SiteSettings;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
+use JsonException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Throwable;
 
 /**
  * Saves the site-wide settings the admin can change (D-324, D-325), for accounts
- * with `site.settings`:
+ * with `site.settings`, except three that belong to an extension screen
+ * and need that kind's capability instead (D-389): the active theme
+ * (`theme.active`, `extensions.themes.activate`), and the plugins and
+ * icon packs turned off (`plugins.disabled`, `icons.disabled`,
+ * `extensions.plugins.activate` and `extensions.icon-packs.activate`):
  *
  * - `PATCH settings`: `{"set": {setting: value}, "unset": [setting]}`,
  *   by `Setting` value (`feed.limit`), or `site.{name}` for a setting a
@@ -53,7 +59,7 @@ use Blush\Theme\Themes;
  *   ask for `settings/refresh`.
  * - `POST settings/refresh`: compiles the content types and routes again
  *   (when the site is compiled) and reindexes, so the next requests see
- *   the change.
+ *   the change. Any account that may change one of the settings may ask.
  *
  * A value that doesn't fit, a home page that isn't a collection with
  * addresses, or a theme (`theme.active`, saved by the Themes screen,
@@ -96,6 +102,10 @@ final readonly class SettingsEditController
 
 		if (! is_array($set) || ($set !== [] && array_is_list($set)) || ! is_array($unset) || ! array_is_list($unset)) {
 			return self::error('Send "set" (settings to values) and "unset" (a list of settings).', Status::BadRequest);
+		}
+
+		if (! $this->allowed($request, [...array_keys($set), ...$unset])) {
+			return self::error('You aren\'t allowed to change those settings.', Status::Forbidden);
 		}
 
 		// Field sets' settings (D-343) are `site.{name}`; the rest are `Setting`s.
@@ -258,11 +268,40 @@ final readonly class SettingsEditController
 		return is_array($input) ? $input : [];
 	}
 
-	private function allowed(ServerRequestInterface $request): bool
+	/**
+	 * Whether the account may change every setting named, or, with none
+	 * named, any setting at all (to refresh after one).
+	 *
+	 * @param list<mixed> $keys
+	 */
+	private function allowed(ServerRequestInterface $request, ?array $keys = null): bool
 	{
 		$account = $request->getAttribute(Account::class);
 
-		return $account instanceof Account && $this->permissions->can($account, Capability::SiteSettings);
+		if (! $account instanceof Account) {
+			return false;
+		}
+
+		$needs = array_map(static fn (mixed $key): string => self::capability(is_string($key) ? Setting::tryFrom($key) : null), $keys ?? []);
+
+		return $keys === null
+			? array_any([null, Setting::Theme, Setting::Plugins, Setting::IconPacks], fn (?Setting $setting): bool => $this->permissions->can($account, self::capability($setting)))
+			: array_all(array_unique($needs ?: [Capability::SiteSettings->value]), fn (string $capability): bool => $this->permissions->can($account, $capability));
+	}
+
+	/**
+	 * Returns the capability changing a setting needs: an extension
+	 * kind's for the settings its screen saves, `site.settings` for the
+	 * rest (and for a field set's `site.{name}`).
+	 */
+	private static function capability(?Setting $setting): string
+	{
+		return match ($setting) {
+			Setting::Theme     => ExtensionAction::Activate->on(ExtensionKind::Theme),
+			Setting::Plugins   => ExtensionAction::Activate->on(ExtensionKind::Plugin),
+			Setting::IconPacks => ExtensionAction::Activate->on(ExtensionKind::IconPack),
+			default            => Capability::SiteSettings->value
+		};
 	}
 
 	private static function error(string $message, Status $status): ResponseInterface

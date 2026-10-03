@@ -160,7 +160,12 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 
 	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
 	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('system', 'System', 'settings')] : [];
-	const extensions = can('site.settings') ? [counted(screen('themes', 'Themes', 'paintbrush'), navCounts.value?.themes), counted(screen('plugins', 'Plugins', 'plug'), navCounts.value?.plugins), counted(screen('icon-packs', 'Icon Packs', 'shapes'), navCounts.value?.iconPacks)] : [];
+	// Each kind of extension needs seeing it (D-389).
+	const extensions = [
+		...(can('extensions.themes.view') ? [counted(screen('themes', 'Themes', 'paintbrush'), navCounts.value?.themes)] : []),
+		...(can('extensions.plugins.view') ? [counted(screen('plugins', 'Plugins', 'plug'), navCounts.value?.plugins)] : []),
+		...(can('extensions.icon-packs.view') ? [counted(screen('icon-packs', 'Icon Packs', 'shapes'), navCounts.value?.iconPacks)] : [])
+	];
 	// Accounts and Profiles are two lists (D-353): who can sign in, and
 	// who's credited on the site. A profile's screens, and its type's
 	// list and editor, mark Profiles.

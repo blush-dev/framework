@@ -184,6 +184,21 @@ The rest are for the whole site:
 | `accounts.delete` | Removing accounts |
 | `roles.manage` | Making, changing, resetting, and deleting roles |
 
+Each kind of extension has its own, with the kind in the middle:
+`themes`, `plugins`, or `icon-packs` (`extensions.plugins.delete` is
+deleting plugins):
+
+| Capability | Allows |
+|---|---|
+| `extensions.{kind}.view` | Seeing the kind's screen (each action below also needs it) |
+| `extensions.{kind}.install` | Installing them (not in the admin yet) |
+| `extensions.{kind}.update` | Updating them (not in the admin yet) |
+| `extensions.{kind}.activate` | Activating a theme, or turning plugins and icon packs on and off |
+| `extensions.{kind}.delete` | Deleting them |
+
+Use `*` for the kind to grant it on every kind: `extensions.*.view`.
+Only the Administrator has them built in.
+
 Plugins can add their own.
 
 ### Your own roles

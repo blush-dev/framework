@@ -16,11 +16,16 @@ import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { pluginRoute, requirementText, usePlugins } from '../plugins';
 import { screenTitle } from '../screen';
 import { copy } from '../themes';
+import { can } from '../session';
 
 const route  = useRoute();
 const router = useRouter();
 
 const { answer, error, busy, load, find, requiredBy, toggle, remove: removePlugin } = usePlugins();
+
+// What the account may do here (D-389).
+const canActivate = can('extensions.plugins.activate');
+const canDelete   = can('extensions.plugins.delete');
 
 void load();
 
@@ -54,9 +59,9 @@ async function remove(): Promise<void> {
 			<ToggleSwitch
 				:checked="plugin.running"
 				:label="plugin.label"
-				:locked="blocked !== null"
+				:locked="blocked !== null || !canActivate"
 				:busy="busy === plugin.name"
-				:reason="blocked"
+				:reason="blocked ?? (canActivate ? null : 'Your role can\'t turn plugins on and off.')"
 				@change="toggle(plugin, $event)"
 			/>
 		</div>
@@ -141,7 +146,7 @@ async function remove(): Promise<void> {
 			<p v-else-if="plugin.folder && !plugin.deletable" class="notice">
 				<span><code>config/plugins.php</code> turns it on by name, so it can't be deleted until it's taken out of that file's <code>enabled</code> list.</span>
 			</p>
-			<div v-else-if="plugin.deletable" class="danger-zone">
+			<div v-else-if="canDelete && plugin.deletable" class="danger-zone">
 				<p>Deleting removes the folder from the server.<template v-if="needs.length"> {{ needs.length === 1 ? '1 plugin requires' : `${needs.length} plugins require` }} it.</template></p>
 				<button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete plugin</button>
 			</div>

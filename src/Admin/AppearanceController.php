@@ -13,14 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
+use Blush\Extension\ExtensionKind;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Settings\InvalidSetting;
@@ -29,12 +28,14 @@ use Blush\Settings\SettingsFile;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
-use Blush\Theme\ThemeSource;
 use Blush\Theme\Themes;
+use Blush\Theme\ThemeSource;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Answers `GET {path}/api/appearance` (D-306, D-381), for accounts with
- * `site.settings`: the `active` theme's name, its `chain` (the theme,
+ * `extensions.themes.view` (D-389): the `active` theme's name, its `chain` (the theme,
  * its ancestors, then the default theme, by name; empty, with the
  * `problem`, when it can't be built), whether `config/theme.php` exists
  * (`config`), whether the active theme is `saved` in
@@ -70,7 +71,7 @@ final readonly class AppearanceController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteSettings)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::Theme))) {
 			return self::error('You aren\'t allowed to see the site\'s appearance.', Status::Forbidden);
 		}
 

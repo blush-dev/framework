@@ -21,7 +21,8 @@ use Blush\Content\Type\ContentTypes;
 /**
  * Answers whether an account may do something (D-217). An account can do
  * what any of its roles allows; a role it names that doesn't exist grants
- * nothing. What it may do to entries is per content type (D-359): a
+ * nothing. Every extension action but seeing also needs seeing that kind
+ * (`extensions.plugins.delete` needs `extensions.plugins.view`, D-389). What it may do to entries is per content type (D-359): a
  * `ContentAction` on a type needs `content.{type}.{action}` (or
  * `content.*.{action}`). With an entry, two more rules apply:
  *
@@ -70,7 +71,15 @@ final readonly class Permissions
 			};
 		}
 
-		return $this->grants($account, $capability instanceof Capability ? $capability->value : $capability);
+		$name = $capability instanceof Capability ? $capability->value : $capability;
+
+		[$kind, $action] = ExtensionAction::parse($name) ?? [null, null];
+
+		if ($kind !== null && $action !== ExtensionAction::View && ! $this->grants($account, ExtensionAction::View->on($kind))) {
+			return false;
+		}
+
+		return $this->grants($account, $name);
 	}
 
 	/**

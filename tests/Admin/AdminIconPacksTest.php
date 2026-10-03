@@ -171,13 +171,24 @@ final class AdminIconPacksTest extends TestCase
 		$this->assertSame(['kind' => 'icon-pack', 'label' => 'Brand Logos'], $github['source'] ?? null);
 	}
 
-	public function testNeedsSiteSettings(): void
+	public function testNeedsItsCapabilities(): void
 	{
 		$this->site(['editor']);
 
 		$this->assertSame(403, $this->send('GET', '/icon-packs')->getStatusCode());
 		$this->assertSame(403, $this->send('GET', '/icon-packs/core')->getStatusCode());
 		$this->assertSame(403, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false])->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/icon-packs/brands')->getStatusCode());
+	}
+
+	public function testSeeingIsItsOwn(): void
+	{
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('looker', 'Looker', ['extensions.icon-packs.view'])]);\n");
+		$this->site(['looker']);
+
+		$this->assertSame(200, $this->send('GET', '/icon-packs')->getStatusCode());
+		$this->assertSame(200, $this->send('GET', '/icon-packs/core')->getStatusCode());
+		$this->assertSame(403, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false])->getStatusCode(), 'Turning on and off is its own (D-389).');
 		$this->assertSame(403, $this->write('DELETE', '/icon-packs/brands')->getStatusCode());
 	}
 

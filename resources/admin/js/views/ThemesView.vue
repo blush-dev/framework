@@ -28,9 +28,14 @@ import MenuButton from '../components/MenuButton.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
 import type { ThemeSummary } from '../api';
 import { config } from '../config';
+import { can } from '../session';
 import { copy, folderName, previewUrl, themeRoute, useThemes } from '../themes';
 
 const { appearance, error, busy, failed, themes, active, load, label, installed, dependents, blockedMessage, activate: activateTheme, useConfig, remove: removeTheme } = useThemes();
+
+// What the account may do here (D-389).
+const canActivate = can('extensions.themes.activate');
+const canDelete   = can('extensions.themes.delete');
 const installing = ref(false);
 
 void load();
@@ -104,7 +109,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 			<div class="theme__foot">
 				<a v-if="theme.active" class="button button--small" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View site<span class="visually-hidden"> (new tab)</span></a>
 				<button v-else-if="busy === theme.name" type="button" class="button button--small" disabled><span class="spin" aria-hidden="true" />Activating…</button>
-				<button v-else type="button" class="button button--small" :class="{ 'button--danger': failed?.name === theme.name }" :disabled="theme.blocked !== null || busy !== null" @click="activate(theme)">
+				<button v-else-if="canActivate" type="button" class="button button--small" :class="{ 'button--danger': failed?.name === theme.name }" :disabled="theme.blocked !== null || busy !== null" @click="activate(theme)">
 					{{ failed?.name === theme.name ? 'Try again' : 'Activate' }}<span class="visually-hidden"> {{ theme.label }}</span>
 				</button>
 				<MenuButton class="theme__more" button-class="button button--ghost button--small button--icon" :label="`More actions for ${theme.label}`" floating>
@@ -115,7 +120,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 					<a v-if="appearance.preview && !theme.active && !theme.blocked" class="menu-item" :href="previewUrl(theme.name)" target="_blank" rel="noopener"><AdminIcon name="eye" />Preview on the site</a>
 					<button v-if="theme.folder" type="button" class="menu-item" @click="copy(theme.folder, 'the folder path')"><AdminIcon name="copy" />Copy folder path</button>
 					<button v-if="!theme.active && !theme.blocked" type="button" class="menu-item" @click="copy(`bin/blush theme:activate ${theme.name}`, 'the command')"><AdminIcon name="terminal" />Copy activate command</button>
-					<template v-if="theme.deletable && theme.folder">
+					<template v-if="canDelete && theme.deletable && theme.folder">
 						<hr class="menu-rule">
 						<button type="button" class="menu-item menu-item--danger" @click="remove(theme.label, theme.folder, dependents(theme))"><AdminIcon name="trash-2" />Delete theme</button>
 					</template>
@@ -136,7 +141,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 			</div>
 			<div class="theme__foot">
 				<button type="button" class="button button--small" disabled>Activate</button>
-				<MenuButton v-if="theme.deletable" class="theme__more" button-class="button button--ghost button--small button--icon" :label="`More actions for ${theme.where}`" floating>
+				<MenuButton v-if="canDelete && theme.deletable" class="theme__more" button-class="button button--ghost button--small button--icon" :label="`More actions for ${theme.where}`" floating>
 					<template #button>
 						<AdminIcon name="ellipsis" />
 					</template>
@@ -163,7 +168,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 		<span>
 			<template v-if="appearance.saved">
 				The active theme was set here, and is saved in <code>user/data/settings.json</code> over <code>config/theme.php</code>.
-				<button type="button" class="link-button" @click="useConfig">Use <code>config/theme.php</code>'s theme</button>
+				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/theme.php</code>'s theme</button>
 			</template>
 			<template v-else>The active theme is set in <code>config/theme.php</code><template v-if="!appearance.config"> (the default theme until it exists)</template>; activating one here saves it in <code>user/data/settings.json</code>, over that file.</template>
 			A deploy usually activates a theme from the command line instead: <code>bin/blush theme:activate {name}</code>.

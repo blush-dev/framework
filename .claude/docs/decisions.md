@@ -10962,7 +10962,8 @@ decision, add a new entry that supersedes it and mark the old one
 - **Date:** 2026-10-02
 - **Status:** Decided, not built. Amends D-039 and D-166 and answers
   D-378's "how code installs from a browser" in principle; the details
-  (zips, where they come from, updates) are still open.
+  (zips, where they come from, updates) are still open. Its
+  capabilities are D-389.
 - **Decision:** The admin can install extensions of every kind,
   including the ones that run code (plugins and themes), into their
   folders in `user/` (`user/plugins`, `user/themes`, `user/icons`).
@@ -10979,3 +10980,43 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author wants extensions installable from the admin, as
   D-378 anticipated, rather than only by people with repo or filesystem
   access.
+
+### D-389: A capability for each extension action, per kind
+- **Date:** 2026-10-02
+- **Decision:** Ahead of installing (D-388), extensions get their own
+  capabilities in place of `site.settings`: **`extensions.{kind}.{action}`**,
+  for each kind (`themes`, `plugins`, `icon-packs`) and each action:
+  - `view`: see the kind's screens and its count in the section panel.
+    Every other action also needs it (`Permissions::can()` enforces
+    this, as `accounts.*` needs `accounts.view`, D-362).
+  - `install` and `update`: registered now, gating nothing until
+    installing and replacing are built. Uploading a newer version of an
+    installed extension replaces it (the author's call), which is
+    `update`.
+  - `activate`: activate a theme, or turn plugins and icon packs on and
+    off.
+  - `delete`: delete one.
+  `extensions.*.{action}` grants an action on every kind (a role's `*`
+  words, D-359). Only the administrator has them built in. On a role's
+  screen they're three groups of Site Capabilities, Themes, Plugins,
+  and Icon Packs (in the rail's order), with the rail's icons.
+  - **Code:** `ExtensionAction` (as `ContentAction`: `on()`, `label()`,
+    `group()`, `parse()`, `kinds()`), registered by
+    `Capabilities::withBuiltIns()`.
+  - **Settings the extension screens save:** `PATCH settings` needs, for
+    each key it sets or unsets, `extensions.themes.activate` for
+    `theme.active`, `extensions.plugins.activate` for
+    `plugins.disabled`, `extensions.icon-packs.activate` for
+    `icons.disabled`, and `site.settings` for the rest. `POST
+    settings/refresh` takes any of the four.
+  - **The admin** shows each screen, nav link, and palette command with
+    its kind's `view`, and each Activate button, switch, and Delete with
+    its capability (a switch is locked, saying why).
+- **Checked:** `composer check` (`PermissionsTest`, and each kind's
+  admin test: a role with `view` and `activate` turns on and off but
+  can't delete or change other settings; without `view`, nothing);
+  `npm run admin:build`.
+- **Why:** the author asked for a full suite of `extensions.*`
+  capabilities before building installing, so installing code can be
+  given apart from settings.
+

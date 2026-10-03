@@ -13,17 +13,15 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use JsonException;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionKind;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Plugin\PluginConfig;
@@ -38,10 +36,14 @@ use Blush\Settings\Settings;
 use Blush\Settings\SettingsFile;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
+use JsonException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Turns plugins on and off, and deletes them (D-385), for accounts with
- * `site.settings`:
+ * `extensions.plugins.activate` to turn them on and off and
+ * `extensions.plugins.delete` to delete them (D-389):
  *
  * - `PUT plugins/{vendor}/{name}` with `{"enabled": true|false}` saves
  *   the plugins turned off in `user/data/settings.json`
@@ -74,7 +76,7 @@ final readonly class PluginEditController
 
 	public function toggle(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
-		if (! $this->allowed($request)) {
+		if (! $this->allowed($request, ExtensionAction::Activate)) {
 			return self::error('You aren\'t allowed to turn plugins on and off.', Status::Forbidden);
 		}
 
@@ -142,7 +144,7 @@ final readonly class PluginEditController
 
 	public function delete(ServerRequestInterface $request, string $folder): ResponseInterface
 	{
-		if (! $this->allowed($request)) {
+		if (! $this->allowed($request, ExtensionAction::Delete)) {
 			return self::error('You aren\'t allowed to delete plugins.', Status::Forbidden);
 		}
 
@@ -199,11 +201,11 @@ final readonly class PluginEditController
 		return array_values(array_filter(is_array($value) ? $value : [], is_string(...)));
 	}
 
-	private function allowed(ServerRequestInterface $request): bool
+	private function allowed(ServerRequestInterface $request, ExtensionAction $action): bool
 	{
 		$account = $request->getAttribute(Account::class);
 
-		return $account instanceof Account && $this->permissions->can($account, Capability::SiteSettings);
+		return $account instanceof Account && $this->permissions->can($account, $action->on(ExtensionKind::Plugin));
 	}
 
 	/**

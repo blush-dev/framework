@@ -17,11 +17,16 @@ import { ApiError, request, type CoreIcons, type IconPackSummary } from '../api'
 import { packIconMask, useIconPacks } from '../icon-packs';
 import { screenTitle } from '../screen';
 import { copy } from '../themes';
+import { can } from '../session';
 
 const route  = useRoute();
 const router = useRouter();
 
 const { busy, toggle: togglePack, remove: removePack } = useIconPacks();
+
+// What the account may do here (D-389).
+const canActivate = can('extensions.icon-packs.activate');
+const canDelete   = can('extensions.icon-packs.delete');
 
 const pack    = ref<IconPackSummary | null>(null);
 const core    = ref<CoreIcons | null>(null);
@@ -103,7 +108,7 @@ async function remove(): Promise<void> {
 			<p v-else-if="core" class="page-header__hint">Blush's own icons: always on, and always available to content.</p>
 		</div>
 		<div v-if="pack" class="page-header__actions">
-			<ToggleSwitch :checked="pack.enabled" :label="pack.label" :busy="busy === pack.name" @change="toggle" />
+			<ToggleSwitch :checked="pack.enabled" :label="pack.label" :locked="!canActivate" :busy="busy === pack.name" :reason="canActivate ? null : 'Your role can\'t turn icon packs on and off.'" @change="toggle" />
 		</div>
 		<div v-else-if="core" class="page-header__actions">
 			<span class="pill">Built in</span>
@@ -194,7 +199,7 @@ async function remove(): Promise<void> {
 			<p v-if="pack.source === 'composer'" class="notice">
 				<span>Composer manages this icon pack, so it can't be deleted here. Remove it from the project with <code>composer remove {{ pack.name }}</code>, and it leaves this list.</span>
 			</p>
-			<div v-else-if="pack.deletable" class="danger-zone">
+			<div v-else-if="canDelete && pack.deletable" class="danger-zone">
 				<p>Deleting removes the folder from the server, and its icons stop working wherever they're used.</p>
 				<button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete icon pack</button>
 			</div>

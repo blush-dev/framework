@@ -56,7 +56,7 @@ const PRESETS: { key: string; label: string; text: string; actions: ContentActio
 	{ key: 'none', label: 'No access', text: 'Nothing; the type is left out of their admin.', actions: [] }
 ];
 
-const GROUP_ICONS: Record<string, IconName> = { Media: 'image', Structure: 'layers', Site: 'globe', Users: 'users' };
+const GROUP_ICONS: Record<string, IconName> = { Media: 'image', Structure: 'layers', Site: 'globe', Users: 'users', Themes: 'paintbrush', Plugins: 'plug', 'Icon Packs': 'shapes' };
 
 const key = (type: string, action: ContentAction): string => `content.${type}.${action}`;
 

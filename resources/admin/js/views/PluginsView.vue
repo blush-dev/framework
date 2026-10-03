@@ -26,8 +26,13 @@ import ToggleSwitch from '../components/ToggleSwitch.vue';
 import type { PluginSummary } from '../api';
 import { pluginRoute, usePlugins } from '../plugins';
 import { copy } from '../themes';
+import { can } from '../session';
 
 const { answer, error, busy, plugins, load, toggle, useConfig, remove: removePlugin } = usePlugins();
+
+// What the account may do here (D-389).
+const canActivate = can('extensions.plugins.activate');
+const canDelete   = can('extensions.plugins.delete');
 const installing = ref(false);
 
 void load();
@@ -91,9 +96,9 @@ async function remove(plugin: PluginSummary): Promise<void> {
 					<ToggleSwitch
 						:checked="plugin.running"
 						:label="plugin.label"
-						:locked="blocked(plugin) !== null"
+						:locked="blocked(plugin) !== null || !canActivate"
 						:busy="busy === plugin.name"
-						:reason="blocked(plugin)"
+						:reason="blocked(plugin) ?? (canActivate ? null : 'Your role can\'t turn plugins on and off.')"
 						@change="toggle(plugin, $event)"
 					/>
 					<MenuButton button-class="button button--ghost button--small button--icon" :label="`More actions for ${plugin.label}`" floating>
@@ -102,7 +107,7 @@ async function remove(plugin: PluginSummary): Promise<void> {
 						</template>
 						<RouterLink class="menu-item" :to="pluginRoute(plugin.name)"><AdminIcon name="info" />Plugin details</RouterLink>
 						<button type="button" class="menu-item" @click="copy(plugin.path, 'the folder path')"><AdminIcon name="copy" />Copy folder path</button>
-						<template v-if="plugin.deletable">
+						<template v-if="canDelete && plugin.deletable">
 							<hr class="menu-rule">
 							<button type="button" class="menu-item menu-item--danger" @click="remove(plugin)"><AdminIcon name="trash-2" />Delete plugin</button>
 						</template>
@@ -127,7 +132,7 @@ async function remove(plugin: PluginSummary): Promise<void> {
 			Plugins live in <code>user/plugins</code> or come from Composer.
 			<template v-if="answer.saved">
 				Which are off was set here, and is saved in <code>user/data/settings.json</code> over <code>config/plugins.php</code>.
-				<button type="button" class="link-button" @click="useConfig">Use <code>config/plugins.php</code>'s list</button>
+				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/plugins.php</code>'s list</button>
 			</template>
 			<template v-else>Every installed plugin is on unless <code>config/plugins.php</code> turns it off<template v-if="!answer.config"> (there's no such file yet)</template>; turning one on or off here saves it in <code>user/data/settings.json</code>, over that file.</template>
 			What a plugin adds shows on the screens it belongs to, not here.

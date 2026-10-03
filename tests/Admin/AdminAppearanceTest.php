@@ -167,7 +167,23 @@ final class AdminAppearanceTest extends TestCase
 		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/themes/notebook');
 	}
 
-	public function testNeedsSiteSettings(): void
+	public function testEachActionNeedsItsOwn(): void
+	{
+		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('stylist', 'Stylist', ['extensions.themes.view', 'extensions.themes.activate'])]);\n");
+		$this->site(['stylist']);
+
+		$this->assertSame(200, $this->send('GET', '/appearance')->getStatusCode());
+		$this->assertSame(200, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/plate']])->getStatusCode(), 'Activating (D-389).');
+		$this->assertSame(403, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/notebook', 'app.name' => 'Mine']])->getStatusCode(), 'Other settings need site.settings.');
+		$this->assertSame(403, $this->write('DELETE', '/themes/broken')->getStatusCode(), 'Deleting is its own.');
+
+		$counts = self::json($this->send('GET', '/counts'));
+		$this->assertArrayHasKey('themes', $counts);
+		$this->assertArrayNotHasKey('plugins', $counts);
+		$this->assertArrayNotHasKey('contentTypes', $counts);
+	}
+
+	public function testNeedsItsCapabilities(): void
 	{
 		$this->site(['editor']);
 

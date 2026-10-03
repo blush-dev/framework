@@ -13,14 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Capability;
+use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionKind;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Plugin\PluginConfig;
@@ -32,10 +31,12 @@ use Blush\Plugin\PluginSource;
 use Blush\Plugin\Requirement;
 use Blush\Settings\Setting;
 use Blush\Settings\SettingsFile;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Answers `GET {path}/api/plugins` (D-308, D-378, D-385), for accounts
- * with `site.settings`: every installed plugin, by label, with its
+ * with `extensions.plugins.view` (D-389): every installed plugin, by label, with its
  * `name`, `label`, `namespace`, `version`, `description`, `authors`
  * (D-384's shape), `license`, `source` (`local` or `composer`), `path`
  * (from the site's root), and:
@@ -74,7 +75,7 @@ final readonly class PluginsController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteSettings)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::Plugin))) {
 			return self::error('You aren\'t allowed to see the site\'s plugins.', Status::Forbidden);
 		}
 

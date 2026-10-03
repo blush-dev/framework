@@ -25,8 +25,13 @@ import ToggleSwitch from '../components/ToggleSwitch.vue';
 import type { CoreIcons, IconPackSummary, PackIcon } from '../api';
 import { iconPackRoute, packIconMask, useIconPacks } from '../icon-packs';
 import { copy, folderName } from '../themes';
+import { can } from '../session';
 
 const { answer, error, busy, load, toggle: togglePack, useConfig, remove: removePack } = useIconPacks();
+
+// What the account may do here (D-389).
+const canActivate = can('extensions.icon-packs.activate');
+const canDelete   = can('extensions.icon-packs.delete');
 const installing = ref(false);
 
 void load();
@@ -97,14 +102,14 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 				</ul>
 			</div>
 			<div class="pack__foot">
-				<ToggleSwitch :checked="pack.enabled" :label="pack.label" :busy="busy === pack.name" @change="toggle(pack, $event)" />
+				<ToggleSwitch :checked="pack.enabled" :label="pack.label" :locked="!canActivate" :busy="busy === pack.name" :reason="canActivate ? null : 'Your role can\'t turn icon packs on and off.'" @change="toggle(pack, $event)" />
 				<MenuButton class="pack__more-actions" button-class="button button--ghost button--small button--icon" :label="`More actions for ${pack.label}`" floating>
 					<template #button>
 						<AdminIcon name="ellipsis" />
 					</template>
 					<RouterLink class="menu-item" :to="iconPackRoute(pack.name)"><AdminIcon name="info" />Icon pack details</RouterLink>
 					<button type="button" class="menu-item" @click="copy(pack.path, 'the folder path')"><AdminIcon name="copy" />Copy folder path</button>
-					<template v-if="pack.deletable && pack.folder">
+					<template v-if="canDelete && pack.deletable && pack.folder">
 						<hr class="menu-rule">
 						<button type="button" class="menu-item menu-item--danger" @click="remove(pack.label, pack.folder, pack)"><AdminIcon name="trash-2" />Delete icon pack</button>
 					</template>
@@ -147,7 +152,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 					<AdminIcon name="triangle-alert" /><span>{{ pack.reason }} Its icons can't be used until that's fixed.</span>
 				</p>
 			</div>
-			<div v-if="pack.deletable" class="pack__foot">
+			<div v-if="canDelete && pack.deletable" class="pack__foot">
 				<MenuButton class="pack__more-actions" button-class="button button--ghost button--small button--icon" :label="`More actions for ${pack.where}`" floating>
 					<template #button>
 						<AdminIcon name="ellipsis" />
@@ -176,7 +181,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 			Icon packs live in <code>user/icons</code> or come from Composer. An icon is used as <code>pack/name</code> wherever content, a menu, or a button takes one; the namespace is what lets two packs use the same name.
 			<template v-if="answer.saved">
 				Which are off was set here, and is saved in <code>user/data/settings.json</code> over <code>config/icons.php</code>.
-				<button type="button" class="link-button" @click="useConfig">Use <code>config/icons.php</code>'s list</button>
+				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/icons.php</code>'s list</button>
 			</template>
 			<template v-else>Every installed pack is on unless <code>config/icons.php</code> turns it off<template v-if="!answer.config"> (there's no such file yet)</template>; turning one on or off here saves it in <code>user/data/settings.json</code>, over that file.</template>
 		</span>

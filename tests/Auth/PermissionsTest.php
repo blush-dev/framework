@@ -13,14 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Auth;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\TestCase;
 use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
+use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
@@ -28,12 +27,16 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Application;
+use Blush\Extension\ExtensionKind;
 use Blush\Tests\BootsScratchSite;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Permissions::class)]
 #[CoversClass(Capabilities::class)]
 #[CoversClass(Capability::class)]
 #[CoversClass(ContentAction::class)]
+#[CoversClass(ExtensionAction::class)]
 #[CoversClass(Role::class)]
 #[CoversClass(BuiltInRole::class)]
 final class PermissionsTest extends TestCase
@@ -126,6 +129,38 @@ final class PermissionsTest extends TestCase
 			array_values(array_filter($this->permissions()->capabilities($this->account('contributor')), static fn (string $name): bool => ! str_starts_with($name, 'content.') || preg_match('/^content\.(\*|page)\./', $name) === 1))
 		);
 		$this->assertContains('content.profile.edit', $this->permissions()->capabilities($this->account('contributor')));
+	}
+
+	public function testExtensionActionsNeedSeeingTheirKind(): void
+	{
+		$permissions = new Permissions(
+			new Roles(new AuthConfig(roles: [
+				new Role('blind', 'Blind', ['extensions.plugins.delete']),
+				new Role('stylist', 'Stylist', ['extensions.*.view', 'extensions.themes.activate'])
+			]), new MemoryRoleStore()),
+			$this->app->container()->make(Capabilities::class),
+			$this->app->container()->make(ContentTypes::class)
+		);
+
+		$this->assertFalse($permissions->can($this->account('blind'), 'extensions.plugins.delete'), 'Deleting needs seeing (D-389).');
+		$this->assertTrue($permissions->can($this->account('stylist'), ExtensionAction::Activate->on(ExtensionKind::Theme)));
+		$this->assertTrue($permissions->can($this->account('stylist'), ExtensionAction::View->on(ExtensionKind::IconPack)), 'Every kind\'s grants each kind\'s.');
+		$this->assertFalse($permissions->can($this->account('stylist'), ExtensionAction::Activate->on(ExtensionKind::Plugin)));
+		$this->assertTrue($permissions->can($this->account('administrator'), 'extensions.plugins.install'));
+		$this->assertFalse($permissions->can($this->account('editor'), 'extensions.themes.view'), 'Only the administrator has them built in.');
+	}
+
+	public function testNamesExtensionCapabilities(): void
+	{
+		$capabilities = $this->app->container()->make(Capabilities::class);
+
+		$this->assertSame('extensions.icon-packs.activate', ExtensionAction::Activate->on(ExtensionKind::IconPack));
+		$this->assertSame([ExtensionKind::IconPack, ExtensionAction::Activate], ExtensionAction::parse('extensions.icon-packs.activate'));
+		$this->assertNull(ExtensionAction::parse('extensions.*.view'));
+		$this->assertNull(ExtensionAction::parse('extensions.plugins.edit'));
+		$this->assertSame('Turn plugins on and off', $capabilities->all()['extensions.plugins.activate'] ?? null);
+		$this->assertSame('Activate themes', $capabilities->all()['extensions.themes.activate'] ?? null);
+		$this->assertSame('Icon Packs', $capabilities->group('extensions.icon-packs.install'));
 	}
 
 	public function testRestrictsQueriesToWhatCanAllows(): void

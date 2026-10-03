@@ -17,7 +17,8 @@ use Blush\Content\Type\ContentTypes;
 
 /**
  * Every capability the site knows, with its label and group: the site
- * capabilities (`Capability`) plus any an extension registers from its
+ * capabilities (`Capability`), each kind of extension's (`ExtensionAction`,
+ * D-389), plus any a plugin registers from its
  * provider's `boot()`, and each content type's (`ContentAction`, D-359),
  * which follow the site's types. The administrator role's `*` grants all
  * of them, and the admin lists them by group.
@@ -65,6 +66,12 @@ final class Capabilities
 
 		foreach (Capability::cases() as $capability) {
 			$capabilities->register($capability->value, $capability->label(), $capability->group());
+		}
+
+		foreach (ExtensionAction::kinds() as $kind) {
+			foreach (ExtensionAction::cases() as $action) {
+				$capabilities->register($action->on($kind), $action->label($kind), ExtensionAction::group($kind));
+			}
 		}
 
 		return $capabilities;
