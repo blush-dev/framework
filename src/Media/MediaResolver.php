@@ -61,7 +61,46 @@ final readonly class MediaResolver
 		'm4v'  => 'video/mp4',
 		'mp4'  => 'video/mp4',
 		'ogv'  => 'video/ogg',
-		'webm' => 'video/webm'
+		'webm' => 'video/webm',
+		'pdf'  => 'application/pdf',
+		'epub' => 'application/epub+zip',
+		'rtf'  => 'application/rtf',
+		'doc'  => 'application/msword',
+		'xls'  => 'application/vnd.ms-excel',
+		'ppt'  => 'application/vnd.ms-powerpoint',
+		'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		'odt'  => 'application/vnd.oasis.opendocument.text',
+		'ods'  => 'application/vnd.oasis.opendocument.spreadsheet',
+		'odp'  => 'application/vnd.oasis.opendocument.presentation',
+		'txt'  => 'text/plain',
+		'csv'  => 'text/csv',
+		'md'   => 'text/markdown',
+		'vtt'  => 'text/vtt'
+	];
+
+	/**
+	 * The types read by their extension when the system's magic database
+	 * only names their container (D-406): office files are zip or OLE
+	 * files inside, and CSV and Markdown are plain text.
+	 *
+	 * @var array<string, list<string>>
+	 */
+	private const array CONTAINERS = [
+		'epub' => ['application/zip', 'application/octet-stream'],
+		'rtf'  => ['text/rtf', 'text/plain'],
+		'doc'  => ['application/cdfv2', 'application/x-ole-storage', 'application/octet-stream'],
+		'xls'  => ['application/cdfv2', 'application/x-ole-storage', 'application/octet-stream'],
+		'ppt'  => ['application/cdfv2', 'application/x-ole-storage', 'application/octet-stream'],
+		'docx' => ['application/zip', 'application/octet-stream'],
+		'xlsx' => ['application/zip', 'application/octet-stream'],
+		'pptx' => ['application/zip', 'application/octet-stream'],
+		'odt'  => ['application/zip', 'application/octet-stream'],
+		'ods'  => ['application/zip', 'application/octet-stream'],
+		'odp'  => ['application/zip', 'application/octet-stream'],
+		'csv'  => ['text/plain'],
+		'md'   => ['text/plain', 'text/x-markdown']
 	];
 
 	private Filesystem $filesystem;
@@ -179,9 +218,11 @@ final readonly class MediaResolver
 
 	/**
 	 * Returns a file's MIME type from its contents, reading SVGs (which
-	 * sniff as XML or text) and WebVTT tracks (text, until they have a
-	 * cue) by their extension, and calling a WAV `audio/wav` whatever
-	 * alias the system's magic database gives it (D-291).
+	 * sniff as XML or text), WebVTT tracks (text, until they have a cue),
+	 * and documents whose contents only show their container
+	 * (`CONTAINERS`, D-406) by their extension, and calling a WAV
+	 * `audio/wav` whatever alias the system's magic database gives it
+	 * (D-291).
 	 */
 	public static function mimeOf(string $path): string
 	{
@@ -191,6 +232,7 @@ final readonly class MediaResolver
 		return match (true) {
 			$extension === 'svg' && in_array($mime, ['image/svg', 'text/xml', 'application/xml', 'text/plain'], true) => 'image/svg+xml',
 			$extension === 'vtt' && $mime === 'text/plain'                                                          => 'text/vtt',
+			in_array($mime, self::CONTAINERS[$extension] ?? [], true)                                                => self::EXTENSIONS[$extension],
 			in_array($mime, ['audio/x-wav', 'audio/wave', 'audio/vnd.wave'], true)                                  => 'audio/wav',
 			default                                                                                                  => $mime
 		};

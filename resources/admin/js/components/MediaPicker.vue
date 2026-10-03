@@ -37,7 +37,7 @@ import { formatSize, plural } from '../format';
 import type { IconName } from '../icons';
 import { can } from '../session';
 
-type Kind = 'any' | 'image' | 'video' | 'audio' | 'file';
+type Kind = 'any' | 'image' | 'video' | 'audio' | 'document' | 'file';
 
 const props = defineProps<{
 	title?: string;
@@ -80,6 +80,7 @@ const KINDS = [
 	{ key: 'image', label: 'Images' },
 	{ key: 'video', label: 'Video' },
 	{ key: 'audio', label: 'Audio' },
+	{ key: 'document', label: 'Documents' },
 	{ key: 'file', label: 'Files' }
 ] as const;
 
@@ -89,7 +90,8 @@ const KINDS = [
 const EXTENSIONS: Record<Exclude<Kind, 'any' | 'file'>, string[]> = {
 	image: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg'],
 	video: ['mp4', 'm4v', 'webm', 'mov', 'ogv'],
-	audio: ['mp3', 'm4a', 'oga', 'ogg', 'wav', 'flac', 'aac', 'opus']
+	audio: ['mp3', 'm4a', 'oga', 'ogg', 'wav', 'flac', 'aac', 'opus'],
+	document: ['pdf', 'epub', 'rtf', 'doc', 'xls', 'ppt', 'docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'txt', 'csv', 'md']
 };
 
 function kindOfName(name: string): Exclude<Kind, 'any'> {
@@ -98,10 +100,10 @@ function kindOfName(name: string): Exclude<Kind, 'any'> {
 	return (Object.keys(EXTENSIONS) as (keyof typeof EXTENSIONS)[]).find((key) => EXTENSIONS[key].includes(extension)) ?? 'file';
 }
 
-const KIND_NAMES: Record<Exclude<Kind, 'any'>, string> = { image: 'an image', video: 'a video', audio: 'a sound', file: 'a file' };
+const KIND_NAMES: Record<Exclude<Kind, 'any'>, string> = { image: 'an image', video: 'a video', audio: 'a sound', document: 'a document', file: 'a file' };
 
 function isKind(file: MediaItem, key: string): boolean {
-	return key === 'any' || (key === 'file' ? !['image', 'video', 'audio'].includes(file.kind) : file.kind === key);
+	return key === 'any' || (key === 'file' ? !['image', 'video', 'audio', 'document'].includes(file.kind) : file.kind === key);
 }
 
 let latest = 0;
@@ -151,7 +153,7 @@ watch(search, () => {
 watch(kind, () => void load());
 
 function icon(file: MediaItem): IconName {
-	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : 'file');
+	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : (file.kind === 'document' ? 'file-text' : 'file'));
 }
 
 function details(file: MediaItem): string {

@@ -532,7 +532,8 @@ export interface SettingItem {
 	key: string;
 	label: string;
 	value: string | boolean | string[];
-	kind: 'text' | 'mono' | 'bool' | 'list';
+	// `uploads` is Media's upload rules, drawn as a grid (D-406).
+	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads';
 	// Whether it's still the default; `null` when it follows from others.
 	default: boolean | null;
 	help: string | null;
@@ -554,6 +555,23 @@ export interface SettingItem {
 	// A setting this one needs on (D-402): while that's off in the form,
 	// this one is locked, with the note saying why.
 	requires?: { setting: string; note: string };
+	// What the upload rules' grid needs (D-406).
+	uploads?: UploadsInfo;
+}
+
+/**
+ * What the Media screen's upload grid needs (D-406): each kind (the
+ * `folder` its `{kind}` becomes, an `example` file, and the `extensions`
+ * the site allows for it), the path tokens, the site's date for the
+ * examples, the most the server accepts in bytes, and how many files the
+ * library has.
+ */
+export interface UploadsInfo {
+	kinds: { key: string; label: string; folder: string; example: string; extensions: string[] }[];
+	tokens: string[];
+	now: { year: string; month: string; day: string };
+	serverLimit: number | null;
+	files: number | null;
 }
 
 /**
@@ -585,7 +603,7 @@ export interface FieldDescription {
 	to?: string;
 	multiple?: boolean;
 	// A media field's kind of file (D-314).
-	kind?: 'image' | 'video' | 'audio' | 'file';
+	kind?: 'image' | 'video' | 'audio' | 'document' | 'file';
 	integer?: boolean;
 	min?: number;
 	max?: number;
@@ -833,7 +851,7 @@ export interface MediaItem {
  * file keeps that aren't fields, and what doesn't fit.
  */
 export interface MediaDetail extends MediaItem {
-	kind: 'image' | 'video' | 'audio' | 'file';
+	kind: 'image' | 'video' | 'audio' | 'document' | 'file';
 	fields: FieldDescription[];
 	// The field sets attached to its kind (D-341), grouped on its screen.
 	sets: FieldSetGroup[];

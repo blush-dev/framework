@@ -452,8 +452,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   - No author on the cards (it's on the details, D-384). The palette role
     `bg` is `background`. No theme settings yet (D-307).
 - **Settings** (D-309, D-324, D-325, D-398): only the settings Blush has, as
-  five screens in a **Settings** group of the Config panel (General,
-  Reading, Addresses and Search, AI, System), not the prototype's one page.
+  six screens in a **Settings** group of the Config panel (General,
+  Reading, Media, Addresses and Search, AI, System), not the prototype's one page.
   The Config panel's groups are Structure, Settings, and Extensions (D-380)
   (Themes, Plugins, and Icon Packs; D-379); People is its own section (D-326). The
   prototype's panels become General's Site, Dates and Time, and
@@ -481,7 +481,19 @@ Each is recorded in `.claude/docs/decisions.md`.
   saying On or Off (accent-filled, a form value), and the AI crawler
   groups each with a sentence and their user agents. From the sketch,
   not taken: its date and time formats and posts per page (Blush has
-  none), and its drawn checkboxes (the admin's own are kept). The
+  none), and its drawn checkboxes (the admin's own are kept). **Media**
+  (D-406) is the sketch's Uploads grid, with these departures: the kinds
+  are Blush's (Images, Videos, Sound, Documents, Other Files, as the
+  library names them; the sketch's Video, Audio, and Other), and one
+  the site allows no file types of can't be turned on, saying why; the switches say On and Off
+  (the sketch's Allowed and Turned off), as every settings switch does;
+  a size can't be typed or saved past the server's limit (the sketch
+  only warns); All Files collapses on a narrow grid too; the path warning
+  shows only when a kind's effective path changes; the grid becomes
+  per-kind lines by its own width (under 880px) rather than the
+  window's; and where the rules come from (saved, or
+  `config/media.php`) is a line under the grid, with **Use
+  `config/media.php`'s rules**. The
   save bar is the prototype's (count, Revert, Save changes), per
   screen, and also carries a refused save's reason. Each editable
   setting says whether it's saved in `user/data/settings.json` or comes

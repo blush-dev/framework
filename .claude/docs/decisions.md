@@ -7020,8 +7020,8 @@ decision, add a new entry that supersedes it and mark the old one
   resolving, serving, export, components, Markdown, the index, the
   metadata check, and the admin API, each now asserting files beside
   an entry aren't media); `npm run admin:build`; on the jtcom trial,
-  `media:index` rebuilt (290 files), `content:lint` clean, and the home
-  page and admin answer.
+  `media:index` rebuilt (290 files), `content:lint` clean, and the
+  homepage and admin answer.
 
 ### D-295: Extracting artwork waits
 - **Date:** 2026-09-30
@@ -11240,8 +11240,8 @@ decision, add a new entry that supersedes it and mark the old one
   - **Markdown pages:** every published entry with a URL (unlisted ones
     included; drafts, scheduled, hidden, and virtual entries not) is
     served at its URL with `.md`: `/archives/hello.md`, `/about.md` for
-    `/about/` (the trailing slash dropped), and `/index.md` for the home
-    page. With a home type, `/` is its landing page, so the root
+    `/about/` (the trailing slash dropped), and `/index.md` for the
+    homepage. With a home type, `/` is its landing page, so the root
     `index.md` has none. The body is as written (directives and
     components stay as they are), under front matter of `title`, `url`
     (absolute), `published`, `updated` (ISO 8601), and `summary`, each
@@ -11365,8 +11365,8 @@ decision, add a new entry that supersedes it and mark the old one
     A read-only row links to `/llms.txt` with how many pages it lists.
   - **A site description on General** (General → Site, saved as
     `app.description`, an `AppConfig` option), not an `llms.txt`-only
-    one: `llms.txt`'s summary line, and the fallback for the home
-    page's meta description and feeds' descriptions where nothing more
+    one: `llms.txt`'s summary line, and the fallback for the
+    homepage's meta description and feeds' descriptions where nothing more
     specific exists. Reverses the Settings direction note that Blush has
     no tagline (record in `departures.md`). `LlmsConfig::$description`
     goes (unreleased).
@@ -11599,3 +11599,70 @@ decision, add a new entry that supersedes it and mark the old one
   design direction's documents and sketches keep their own wording, as
   uploaded.
 - **Why:** the author's call.
+
+### D-406: The Media settings screen, upload rules, and a Documents kind
+- **Date:** 2026-10-03
+- **Decision:** The settings sketch's second part
+  (`.claude/docs/admin-design/meridian-settings-sketch.html`): a
+  **Media** screen between Reading and Addresses and Search, whose one
+  panel, **Uploads**, is a grid of what may be uploaded. The author's
+  calls: a **Documents** kind of its own (not Blush's four kinds alone);
+  a kind's switch stops **uploads only** (what's served is still
+  `MediaConfig::$types`); and no largest file of Blush's own by default
+  (PHP's limit).
+  - **Documents** (`MediaKind::Document`, `media:document`): PDFs, EPUB,
+    RTF, Word, Excel, PowerPoint, and OpenDocument files, plain text,
+    CSV, and Markdown (`MediaKind::DOCUMENT_TYPES`). The resolver knows
+    their extensions, and reads office files, CSV, and Markdown by their
+    extension when the system's magic database names only their
+    container (a zip, an OLE file, plain text). **PDFs are allowed by
+    default** (`MediaConfig::DEFAULT_TYPES`); the others once a site
+    lists them in `types`. `.vtt` caption tracks join the extensions the
+    library lists and takes (Other files). Media fields take `kind:
+    document`; the library and picker have a Documents tab.
+  - **Upload rules** are `MediaConfig::$uploads`, a `MediaUploads`:
+    `enabled` (every upload), `maxSize` (megabytes, `null` for PHP's
+    limit), `path` (`{year}/{month}` by default, as before: a folder or
+    a pattern of `{year}`, `{month}`, `{day}`, `{kind}` (`images`,
+    `videos`, `audio`, `documents`, `files`), and `{ext}`; empty for
+    `user/media` itself), and `kinds`, a `MediaUploadRule` by kind
+    (`enabled`, and its own `maxSize` and `path`, `null` to take All
+    Files'). Paths are folder names of letters, digits, dots, hyphens,
+    and underscores, and the tokens; nothing hidden, no `..`. A path
+    change moves nothing: files keep their addresses.
+  - **One setting,** `media.uploads`, saved whole in
+    `user/data/settings.json` over `config/media.php`, and checked by
+    `MediaUploads`; it needs no refresh.
+  - **Uploading** (`POST media`) follows the rules: 403 while uploads
+    are off, 422 for a kind turned off, 413 for a file over its kind's
+    largest, into its kind's folder. The picker's `upload` names only
+    the extensions that may be uploaded, and its `limit` is the most any
+    may be, within PHP's.
+  - **The screen** is the sketch's grid (`UploadRules.vue`, with the
+    departures in `departures.md`): All Files, then each kind, by
+    **Uploads**, **Largest file**, and **Path** (under a fixed
+    `user/media/`), a kind's empty box showing what it takes in gray;
+    the path box you're in offers its tokens, which land with their
+    slashes; a pattern shows the file it makes; a bar when uploads are
+    off, and one saying files keep their addresses when a path changes;
+    the panel's hint says what the grid does ("Every kind follows All
+    Files", "1 kind turned off"). Addresses and Search's media address
+    links to it.
+- **Checked:** `composer check` (`MediaUploadsTest`; `AdminPickersTest`:
+  a kind's path, `{kind}`, its largest, a kind off, every upload off;
+  `AdminSettingsTest`: the screen, refusals, saving); `composer
+  schemas`; `npm run admin:build`; the screen in headless Chrome
+  against the jtcom trial's data at 1600px (edited, saved: the rules
+  sent), 1100px in dark, and 390px.
+  - **Revised after review (the author's calls):** the grid doesn't
+    list a kind's file types; Other files is **Other Files**
+    (`MediaKind::File`'s label, everywhere); Videos uses the video
+    component's icon (`video`); All Files is a line that opens and
+    closes on a narrow grid, as the kinds are (it starts open); one
+    hairline between the grid and the panel's footer; and a size can't
+    be typed past what the server takes (the box keeps digits only, and
+    clamps), nor saved past it (`SettingsEditController` refuses it with
+    a 422; it's checked on save, not when settings are read, so a
+    server's limit going down later doesn't stop the site).
+- **Why:** the author's settings sketch, and their calls above.
+

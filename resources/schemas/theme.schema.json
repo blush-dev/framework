@@ -791,6 +791,7 @@
 									"image",
 									"video",
 									"audio",
+									"document",
 									"file"
 								],
 								"description": "The kind of file it takes, so the admin's picker offers only those."

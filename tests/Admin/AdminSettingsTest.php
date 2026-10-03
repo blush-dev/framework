@@ -16,6 +16,7 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
+use Blush\Admin\MediaUploadController;
 use Blush\Admin\SettingsController;
 use Blush\Admin\SettingsEditController;
 use Blush\Content\Type\ContentConfig;
@@ -158,6 +159,47 @@ final class AdminSettingsTest extends TestCase
 		foreach ([['app.description' => "Two\nlines"], ['app.description' => str_repeat('x', 301)], ['sitemap.blockAi' => ['robots']], ['sitemap.blockAi' => 'training']] as $set) {
 			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => $set])->getStatusCode(), (string) json_encode($set));
 		}
+	}
+
+	public function testShowsAndSavesTheUploadRules(): void
+	{
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$item = $this->setting(self::json($this->send('GET', '/settings/media')), 'uploads', 'uploads');
+		$data = is_array($item['uploads'] ?? null) ? $item['uploads'] : [];
+		$kind = is_array($data['kinds'] ?? null) ? $data['kinds'] : [];
+
+		$this->assertSame(['media.uploads', 'uploads', true, false], [$item['setting'] ?? null, $item['kind'] ?? null, $item['default'] ?? null, $item['saved'] ?? null]);
+		$this->assertSame(['enabled' => true, 'maxSize' => null, 'path' => '{year}/{month}', 'kinds' => []], $item['input'] ?? null);
+		$this->assertSame(['image', 'video', 'audio', 'document', 'file'], array_column($kind, 'key'));
+		$this->assertSame(['pdf'], is_array($kind[3] ?? null) ? $kind[3]['extensions'] ?? null : null, 'Only the documents the site allows.');
+		$this->assertSame(['year', 'month', 'day', 'kind', 'ext'], $data['tokens'] ?? null);
+
+		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['media.uploads' => ['path' => '../up']]])->getStatusCode());
+		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['media.uploads' => ['kinds' => ['zip' => []]]]])->getStatusCode());
+
+		$server = MediaUploadController::limit();
+
+		if ($server !== null) {
+			$over = intdiv($server, 1024 * 1024) + 1;
+
+			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['media.uploads' => ['kinds' => ['video' => ['maxSize' => $over]]]]])->getStatusCode(), 'More than the server takes never holds.');
+		}
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['media.uploads' => ['maxSize' => 1, 'path' => 'uploads/', 'kinds' => ['file' => ['enabled' => false], 'image' => []]]]]);
+
+		$this->assertSame(200, $response->getStatusCode());
+		$this->assertFalse(self::json($response)['refresh'] ?? null, 'Nothing to compile.');
+		$this->assertSame(['media' => ['uploads' => ['enabled' => true, 'maxSize' => 1, 'path' => 'uploads', 'kinds' => ['file' => ['enabled' => false, 'maxSize' => null, 'path' => null]]]]], json_decode($this->file('user/data/settings.json'), true));
+
+		// The settings are read at boot; the session carries over.
+		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
+		$this->app->boot();
+
+		$item = $this->setting(self::json($this->send('GET', '/settings/media')), 'uploads', 'uploads');
+
+		$this->assertSame([true, false, 1], [$item['saved'] ?? null, $item['default'] ?? null, is_array($item['input'] ?? null) ? $item['input']['maxSize'] ?? null : null]);
 	}
 
 	public function testGivesTheFullFilesSize(): void

@@ -599,7 +599,8 @@ Implemented in M4c (D-099), apart from image derivatives.
   and sandboxed SVGs.
 - **Metadata (D-238, D-269, D-287):** fields for media, defined with
   content types' field types but without a body, status, or URLs, by
-  kind (`MediaKind`: image, video, audio, file). `MediaSchemas` builds a
+  kind (`MediaKind`: image, video, audio, document, file; documents are
+  `MediaKind::DOCUMENT_TYPES`, D-406). `MediaSchemas` builds a
   kind's schema from the built-in fields (`alt` for images, then
   `title`, `caption`, `credit`, `description` for all), then the field
   sets aimed at the kind (`media:{kind}`, D-341). Values are
@@ -741,8 +742,8 @@ Views use components, but the system is its own subsystem.
   D-398).
 - **Markdown pages and `llms.txt`** (`Blush\Llms`, D-395): every
   published entry with a URL has its body as written, under front
-  matter (title, URL, dates, summary), at its URL with `.md` (the home
-  page at `/index.md`), served as `text/markdown` with a canonical
+  matter (title, URL, dates, summary), at its URL with `.md` (the
+  homepage at `/index.md`), served as `text/markdown` with a canonical
   `Link` header. `MarkdownLinks` gives a Markdown body's (and
   summary's) links full URLs as the HTML has them (D-396): inline and
   reference destinations, and directives' media and link props by the
@@ -1030,7 +1031,11 @@ by source, keeps recents, and writes the directive text). The
   the theme's `variants.image` classes (`ComponentVariants::forImages()`,
   `GET components`' `image`). `MediaPicker` has Library and Upload tabs;
   uploads go through `POST media` (`MediaUploadController`: hidden first,
-  checked by contents with `MediaResolver::mimeOf()`, then named). The look follows `.claude/docs/admin-design/` (D-231):
+  checked by contents with `MediaResolver::mimeOf()`, then named), by
+  the upload rules (`MediaConfig::$uploads`, a `MediaUploads` of
+  `MediaUploadRule`s by kind, D-406: on or off, the largest file, and
+  the path pattern under `user/media`), which the Media settings screen
+  saves as the one setting `media.uploads` (`UploadRules.vue`). The look follows `.claude/docs/admin-design/` (D-231):
   design tokens in `css/tokens.css` are the only literal values, and
   the shell is a rail, a top bar, and a scrolling work area. Extension pieces are described in PHP and drawn
   generically (D-222): `AdminAction`s (label, description, capability,

@@ -15,6 +15,7 @@ namespace Blush\Settings;
 
 use DateTimeZone;
 use Blush\Config\Config;
+use Blush\Config\InvalidConfig;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
@@ -28,9 +29,12 @@ use Blush\Field\Fields\BoolField;
 use Blush\Field\Fields\EnumField;
 use Blush\Field\Fields\ListField;
 use Blush\Field\Fields\NumberField;
+use Blush\Field\Fields\ObjectField;
 use Blush\Field\Fields\TextField;
 use Blush\Icon\IconConfig;
 use Blush\Llms\LlmsConfig;
+use Blush\Media\MediaConfig;
+use Blush\Media\MediaUploads;
 use Blush\Plugin\PluginConfig;
 use Blush\Routing\RouteConfig;
 use Blush\Sitemap\AiCrawlerGroup;
@@ -63,6 +67,7 @@ enum Setting: string
 	case FeedFormats     = 'feed.formats';
 	case FeedContent     = 'feed.content';
 	case FeedLimit       = 'feed.limit';
+	case MediaUploads    = 'media.uploads';
 	case Sitemap         = 'sitemap.enabled';
 	case SitemapDisallow = 'sitemap.disallow';
 	case Llms            = 'llms.enabled';
@@ -109,6 +114,7 @@ enum Setting: string
 			self::Theme, self::Plugins, self::IconPacks                   => null,
 			self::Name, self::Description, self::Locale, self::Timezone   => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
+			self::MediaUploads                                            => SettingsScreen::Media,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
 			self::Llms, self::LlmsFull, self::BlockAi                     => SettingsScreen::Ai
 		};
@@ -116,8 +122,8 @@ enum Setting: string
 
 	/**
 	 * The setting as a field (D-343), named by its key, with its label,
-	 * help, and control; a choice has the options it can be (the home
-	 * page's, from the site's collections with addresses; a site with
+	 * help, and control; a choice has the options it can be (the
+	 * homepage's, from the site's collections with addresses; a site with
 	 * none has nothing to choose, and the admin only shows it).
 	 */
 	public function field(ContentTypes $types): Field
@@ -132,6 +138,7 @@ enum Setting: string
 				: new EnumField('home', array_keys(self::homeChoices($types)))->labeled('Homepage'),
 			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled('Formats')->described('None turns every feed off.')->control(Control::Checks),
 			self::FeedContent     => new BoolField('content')->labeled('Full content')->described('Off, a feed carries each entry\'s summary only.'),
+			self::MediaUploads    => new ObjectField('uploads')->labeled('Uploads')->described('What may be uploaded, how large, and the folder under user/media it goes in.')->control(Control::Readonly),
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
@@ -261,6 +268,7 @@ enum Setting: string
 			'plugins' => PluginConfig::class,
 			'icons'   => IconConfig::class,
 			'llms'    => LlmsConfig::class,
+			'media'   => MediaConfig::class,
 			default   => SitemapConfig::class
 		};
 	}
@@ -290,8 +298,8 @@ enum Setting: string
 
 	/**
 	 * Checks a value and returns it as it's saved: trimmed, lists without
-	 * repeats, and feed formats in their usual order. Whether the home
-	 * page's type exists is checked where the types are known.
+	 * repeats, and feed formats in their usual order. Whether the
+	 * homepage's type exists is checked where the types are known.
 	 *
 	 * @throws InvalidSetting
 	 */
@@ -307,6 +315,7 @@ enum Setting: string
 			self::FeedLimit       => self::limit($value),
 			self::SitemapDisallow => self::disallow($value),
 			self::BlockAi         => self::blockAi($value),
+			self::MediaUploads    => self::uploads($value),
 			self::Theme           => self::theme($value),
 			self::Plugins         => self::names($value, 'plugins'),
 			self::IconPacks       => self::names($value, 'icon packs'),
@@ -444,6 +453,26 @@ enum Setting: string
 		sort($names);
 
 		return $names;
+	}
+
+	/**
+	 * Checks the upload rules as `MediaUploads` does, and returns them as
+	 * it writes them (D-406).
+	 *
+	 * @return array<string, mixed>
+	 * @throws InvalidSetting
+	 */
+	private static function uploads(mixed $value): array
+	{
+		if (! is_array($value) || ($value !== [] && array_is_list($value))) {
+			throw new InvalidSetting('The upload rules must be an object: enabled, maxSize, path, and kinds.');
+		}
+
+		try {
+			return MediaUploads::fromArray($value)->toArray();
+		} catch (InvalidConfig $error) {
+			throw new InvalidSetting($error->getMessage(), previous: $error);
+		}
 	}
 
 	/**

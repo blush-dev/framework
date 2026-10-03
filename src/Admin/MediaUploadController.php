@@ -27,6 +27,7 @@ use Blush\Http\Status;
 use Blush\Media\MediaConfig;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaException;
+use Blush\Media\MediaKind;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 use Blush\Support\UrlPath;
@@ -35,8 +36,9 @@ use Blush\Support\UrlPath;
  * Answers `POST {path}/api/media` (D-268): one file, as the multipart
  * field `file`, added to the library. It needs `media.upload`.
  *
- * The file goes in `user/media/{year}/{month}/`, by the site's clock,
- * under its own name made safe for a URL (letters, digits, dots, hyphens,
+ * The file goes in the folder the upload rules give its kind
+ * (`MediaUploads`, D-406; `user/media/{year}/{month}/` by default, by the
+ * site's clock), under its own name made safe for a URL (letters, digits, dots, hyphens,
  * and underscores; spaces become hyphens), with `-2`, `-3`, … before the
  * extension when the name is taken, so nothing is ever replaced. Only the
  * types the library lists (`MediaListController::EXTENSIONS`) that the
@@ -44,9 +46,11 @@ use Blush\Support\UrlPath;
  * contents, the way the media resolver serves them: the file is written
  * hidden first, and takes its name only once its contents pass.
  *
- * Answers 201 with the file as `GET media` describes one. How large a file
- * may be is PHP's to say (`upload_max_filesize`, `post_max_size`);
- * `limit()` reads it for the picker to show.
+ * A kind the rules turn off, or every upload turned off, is refused, as
+ * is a file larger than its kind's largest. Answers 201 with the file as
+ * `GET media` describes one. PHP has the last word on size
+ * (`upload_max_filesize`, `post_max_size`); `limit()` reads it, and
+ * `largest()` says the most any upload may be, for the picker to show.
  */
 final readonly class MediaUploadController
 {
@@ -79,6 +83,12 @@ final readonly class MediaUploadController
 			return self::uploadError($upload->getError());
 		}
 
+		$uploads = $this->config->uploads;
+
+		if (! $uploads->enabled) {
+			return self::error('Uploads are turned off on the Media settings screen.', Status::Forbidden);
+		}
+
 		$name      = self::safeName((string) $upload->getClientFilename());
 		$extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 		$mime      = MediaListController::EXTENSIONS[$extension] ?? null;
@@ -87,7 +97,19 @@ final readonly class MediaUploadController
 			return self::error(sprintf('%s isn\'t a type the library takes: %s.', $name, implode(', ', $this->extensions())), Status::UnprocessableContent);
 		}
 
-		$folder = $this->paths->media . '/' . $this->clock->now()->format('Y/m');
+		$kind = MediaKind::fromMime($mime);
+
+		if (! $uploads->allows($kind)) {
+			return self::error(sprintf('%s can\'t be uploaded: uploads of %s are turned off on the Media settings screen.', $name, mb_strtolower($kind->label())), Status::UnprocessableContent);
+		}
+
+		$most = $uploads->maxBytes($kind);
+
+		if ($most !== null && ($upload->getSize() ?? 0) > $most) {
+			return self::error(sprintf('%s is larger than %s may be (up to %s).', $name, mb_strtolower($kind->label()), self::size($most)), Status::ContentTooLarge);
+		}
+
+		$folder = rtrim($this->paths->media . '/' . $uploads->folder($kind, $this->clock->now(), $extension), '/');
 		$hidden = $folder . '/.upload-' . bin2hex(random_bytes(8)) . '.' . $extension;
 
 		try {
@@ -102,7 +124,9 @@ final readonly class MediaUploadController
 			return self::error('The file couldn\'t be saved to the media folder.', Status::InternalServerError);
 		}
 
-		if (! $this->config->allows(MediaResolver::mimeOf($hidden))) {
+		$actual = MediaResolver::mimeOf($hidden);
+
+		if (! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual))) {
 			@unlink($hidden);
 
 			return self::error(sprintf('%s isn\'t what its name says it is, or isn\'t a type the library takes.', $name), Status::UnprocessableContent);
@@ -137,13 +161,51 @@ final readonly class MediaUploadController
 	}
 
 	/**
-	 * The file extensions the library takes, as the site allows them.
+	 * The file extensions that can be uploaded: the types the site allows,
+	 * of the kinds the upload rules allow.
 	 *
 	 * @return list<string>
 	 */
 	public function extensions(): array
 	{
-		return array_keys(array_filter(MediaListController::EXTENSIONS, $this->config->allows(...)));
+		$uploads = $this->config->uploads;
+
+		return array_keys(array_filter(MediaListController::EXTENSIONS, fn (string $mime): bool => $this->config->allows($mime) && $uploads->allows(MediaKind::fromMime($mime))));
+	}
+
+	/**
+	 * The most any upload may be, in bytes, or `null` for no limit: the
+	 * largest the upload rules let a kind be that may be uploaded, within
+	 * PHP's limit.
+	 */
+	public function largest(): ?int
+	{
+		$uploads = $this->config->uploads;
+		$rules   = null;
+
+		foreach (MediaKind::cases() as $kind) {
+			if (! $uploads->allows($kind)) {
+				continue;
+			}
+
+			$size = $uploads->maxBytes($kind);
+
+			if ($size === null) {
+				$rules = null;
+
+				break;
+			}
+
+			$rules = max($rules ?? 0, $size);
+		}
+
+		$server = self::limit();
+
+		return match (true) {
+			$rules === null  => $server,
+			$server === null => $rules,
+			default          => min($rules, $server)
+		};
 	}
 
 	/**

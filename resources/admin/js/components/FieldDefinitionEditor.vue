@@ -62,7 +62,8 @@ const MEDIA_KINDS = [
 	{ value: 'image', label: 'Images' },
 	{ value: 'video', label: 'Videos' },
 	{ value: 'audio', label: 'Sound' },
-	{ value: 'file', label: 'Other files' }
+	{ value: 'document', label: 'Documents' },
+	{ value: 'file', label: 'Other Files' }
 ];
 
 // A list's items: the types edited on one line.

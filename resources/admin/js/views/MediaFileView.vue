@@ -242,7 +242,7 @@ async function copy(text: string, what: string): Promise<void> {
 			<img v-if="file.kind === 'image'" :src="file.url" :alt="`Preview of ${mediaName(file)}`">
 			<video v-else-if="file.kind === 'video'" :src="file.url" controls preload="metadata" />
 			<audio v-else-if="file.kind === 'audio'" :src="file.url" controls preload="metadata" />
-			<AdminIcon v-else name="file" />
+			<AdminIcon v-else :name="file.kind === 'document' ? 'file-text' : 'file'" />
 		</section>
 
 		<div class="detail__side">

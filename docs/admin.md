@@ -547,12 +547,13 @@ The Upload tab takes files from your computer: drag them anywhere onto
 the picker, or use **Choose files**. It says how large a file may be and
 which types the library takes. Each one goes into `user/media` under the
 year and month (`user/media/2026/09/`), with its name made safe for an
-address (`My Photo.JPG` becomes `My-Photo.jpg`); a name that's taken gets
+address (`My Photo.JPG` becomes `My-Photo.jpg`), or the folder the
+**Media** settings give its kind; a name that's taken gets
 `-2`, `-3`, and so on, so nothing is replaced. An upload lands at the top
 of the library, chosen, so **Insert** finishes the job; **Show in
 library** switches tabs to see it there. Uploading needs `media.upload`.
-How large a file may be is up to PHP (`upload_max_filesize` and
-`post_max_size`).
+How large a file may be is up to the **Media** settings, within what
+PHP takes (`upload_max_filesize` and `post_max_size`).
 
 The same picker is **Choose** beside every media field and component
 option, such as a video's **Poster image**. A field or option that takes
@@ -865,7 +866,7 @@ matter.
 
 ## Settings
 
-With `site.settings`, the **Settings** group in **Config** has five
+With `site.settings`, the **Settings** group in **Config** has six
 screens:
 
 - **General:** the site's name, a one-line description (for
@@ -878,6 +879,18 @@ screens:
   latest entries of a collection) and feeds: the formats (RSS, Atom,
   JSON Feed; none turns feeds off), whether they carry each entry's full
   content, and how many entries each holds (1 to 100).
+- **Media:** what may be uploaded, as a grid: **All Files**, then
+  Images, Videos, Sound, Documents, and Other Files, each with an
+  **Uploads** switch, its **Largest file** in megabytes, and its
+  **Path** under `user/media` (a folder, or a pattern: click into one for
+  the tokens `{year}`, `{month}`, `{day}`, `{kind}`, and `{ext}`, and
+  it shows the file a pattern would make). A kind's empty box takes All
+  Files' value, shown in gray; All Files turned off stops every upload.
+  A kind your site allows no file types of can't be turned on. A size
+  can't be more than the server takes. Changing a path doesn't move a thing: files
+  already uploaded keep their addresses, and the screen says so. On a
+  narrow screen All Files and each kind are a line saying what they do;
+  open one to change it.
 - **Addresses and Search:** whether addresses end in a slash (`/about/`;
   the other form redirects, so old links keep working), whether the
   site has a sitemap and `robots.txt`, and the paths `robots.txt` asks
@@ -1462,8 +1475,8 @@ holds together. The entry list's filters use it.
 
 `GET media` lists the library (`user/media`), newest first, a page at a
 time, for accounts that can edit content. Narrow it with `search` (text
-the path must contain), `kind` (`image`, `video`, `audio`, `file` for
-anything else, or `any`),
+the path must contain), `kind` (`image`, `video`, `audio`, `document`,
+`file` for anything else, or `any`),
 `page`, and `per` (48 by default, at most 100). The answer has `total`,
 `page`, `pages`, `per`, and `files`; each file has its `reference`
 (what to write in content: the library's URL path), `name`,
@@ -1471,16 +1484,20 @@ anything else, or `any`),
 `modified`, and the library's `alt` and `caption` for it (`""` for
 none). Only the file types your site allows are listed. When
 the account may upload (`media.upload`), `upload` has the largest file
-PHP takes (`limit`, in bytes, or `null` for none) and the `extensions`
-the library takes; otherwise it's `null`.
+it may upload (`limit`, in bytes, or `null` for none: the upload rules'
+largest, within PHP's) and the `extensions` that may be uploaded;
+otherwise it's `null`.
 
 `POST media` uploads one file, sent as the multipart field `file`, and
-needs `media.upload`. It goes in `user/media/{year}/{month}/` with a
+needs `media.upload`. It goes in the folder the upload rules give its
+kind (`user/media/{year}/{month}/` by default; see
+[`MediaConfig`'s `uploads`](configuration.md#media)) with a
 name safe for a URL, and `-2`, `-3`, and so on when the name is taken.
 Its extension must be one the library lists, and its contents must be
 of a type your site allows ([`MediaConfig`](configuration.md)). The
 answer is a 201 with the file, as `GET media` describes one; a file too
-large is a 413, and one of the wrong type a 422.
+large (for PHP or its kind) is a 413, one of the wrong type or a kind
+turned off a 422, and any upload while uploads are off a 403.
 
 `GET media` lists from the media index (see
 [The media index](media.md#the-media-index)): `search` matches a file's

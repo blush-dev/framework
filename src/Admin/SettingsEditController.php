@@ -135,6 +135,7 @@ final readonly class SettingsEditController
 			$check = Settings::none()->with($builtIns);
 			$this->assertHome($check);
 			$this->assertTheme($check);
+			self::assertUploads($check);
 
 			$changed  = [...array_filter(Setting::cases(), $check->has(...)), ...$removed];
 			$settings = $this->file->update(static fn (Settings $settings): Settings => $settings->without(...$removed)->with($builtIns)->withSite($site));
@@ -229,6 +230,32 @@ final readonly class SettingsEditController
 
 		if (! array_key_exists($home, Setting::homeChoices($this->types))) {
 			throw new InvalidSetting(sprintf('"%s" can\'t be the homepage: it must be a collection type with addresses.', $home));
+		}
+	}
+
+	/**
+	 * Checks that no largest file in the upload rules is more than PHP
+	 * takes (D-406), which would never hold. It's checked here, not when
+	 * the settings are read, so a server's limit going down later doesn't
+	 * stop the site.
+	 *
+	 * @throws InvalidSetting
+	 */
+	private static function assertUploads(Settings $settings): void
+	{
+		$rules  = $settings->get(Setting::MediaUploads);
+		$server = MediaUploadController::limit();
+
+		if (! is_array($rules) || $server === null) {
+			return;
+		}
+
+		$sizes = [$rules['maxSize'] ?? null, ...array_map(static fn (mixed $rule): mixed => is_array($rule) ? $rule['maxSize'] ?? null : null, is_array($rules['kinds'] ?? null) ? $rules['kinds'] : [])];
+
+		foreach ($sizes as $size) {
+			if (is_int($size) && $size * 1024 * 1024 > $server) {
+				throw new InvalidSetting(sprintf('The server takes files of at most %d MB, so a largest file of %d MB won\'t hold.', intdiv($server, 1024 * 1024), $size));
+			}
 		}
 	}
 

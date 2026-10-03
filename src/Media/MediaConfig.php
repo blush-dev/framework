@@ -32,6 +32,9 @@ use Blush\Config\InvalidConfig;
  * - `autoIndex` (the default) refreshes the media index incrementally on
  *   the first use in each development request (D-288); elsewhere,
  *   `media:index`, publishing, or the admin refreshes it.
+ * - `uploads` is what the admin may upload, how large, and where it goes
+ *   (`MediaUploads`, D-406); the Media settings screen saves it in
+ *   `user/data/settings.json`.
  *
  * A file's metadata fields are the built-in ones (`MediaSchemas`) and
  * those of the field sets attached to its kind, `media:image` and so on
@@ -40,7 +43,9 @@ use Blush\Config\InvalidConfig;
 final readonly class MediaConfig implements Config
 {
 	/**
-	 * The MIME types allowed by default: 1.x's, plus `text/vtt`.
+	 * The MIME types allowed by default: 1.x's, plus `text/vtt` and PDFs
+	 * (D-406). Other documents (`MediaKind::DOCUMENT_TYPES`) are known, and
+	 * allowed once listed here.
 	 *
 	 * @var list<string>
 	 */
@@ -58,7 +63,8 @@ final readonly class MediaConfig implements Config
 		'video/mp4',
 		'video/ogg',
 		'video/webm',
-		'text/vtt'
+		'text/vtt',
+		'application/pdf'
 	];
 
 	/**
@@ -69,12 +75,14 @@ final readonly class MediaConfig implements Config
 	/**
 	 * @param  list<string> $types     Allowed MIME types.
 	 * @param  bool         $autoIndex Whether development requests refresh the media index.
+	 * @param  MediaUploads $uploads   What may be uploaded, and where it goes.
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
 		string $url = '/media',
 		public array $types = self::DEFAULT_TYPES,
-		public bool $autoIndex = true
+		public bool $autoIndex = true,
+		public MediaUploads $uploads = new MediaUploads()
 	) {
 		$url = '/' . trim($url, '/');
 
@@ -100,12 +108,19 @@ final readonly class MediaConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['url', 'types', 'autoIndex']);
+		$values->assertKnownKeys(['url', 'types', 'autoIndex', 'uploads']);
+
+		$uploads = $data['uploads'] ?? [];
 
 		return new static(
 			url: $values->string('url', '/media'),
 			types: $values->stringList('types', self::DEFAULT_TYPES),
-			autoIndex: $values->bool('autoIndex', true)
+			autoIndex: $values->bool('autoIndex', true),
+			uploads: match (true) {
+				$uploads instanceof MediaUploads => $uploads,
+				is_array($uploads)               => MediaUploads::fromArray($uploads),
+				default                          => throw new InvalidConfig('MediaConfig "uploads" must be a MediaUploads.')
+			}
 		);
 	}
 
@@ -115,6 +130,6 @@ final readonly class MediaConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		return ['url' => $this->url, 'types' => $this->types, 'autoIndex' => $this->autoIndex];
+		return ['url' => $this->url, 'types' => $this->types, 'autoIndex' => $this->autoIndex, 'uploads' => $this->uploads->toArray()];
 	}
 }

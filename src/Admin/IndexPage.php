@@ -20,8 +20,8 @@ use Blush\Content\Type\Tree;
  * A collection's or taxonomy's **index page** (D-255): its landing page,
  * the `index` file in its folder. The admin pins it in its type's list,
  * edits it without the type's fields or scheduling, and never trashes it
- * (D-274). Pages have none: the root tree's root is the site, so the home
- * page is a page like the others. A tree in a folder has one (D-386).
+ * (D-274). Pages have none: the root tree's root is the site, so the
+ * homepage is a page like the others. A tree in a folder has one (D-386).
  */
 final class IndexPage
 {

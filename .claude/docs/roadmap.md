@@ -857,8 +857,8 @@ tests):
   (D-101).
 
 Checked against jtcom's real content (served through `Kernel::handle()`
-with its 1.x type config and `MediaConfig(url: '/user/media')`): the home
-page and `/page/N`, `/archives/2008` and `/archives/2008/04`,
+with its 1.x type config and `MediaConfig(url: '/user/media')`): the
+homepage and `/page/N`, `/archives/2008` and `/archives/2008/04`,
 `/archives/2003/04/15/welcome-to-my-site` (and a misdated URL → 301),
 `/topics`, `/topics/art`, `/writing`, `/writing/forms/essay`, `/about`,
 `/about/biography`, `/archives/years`, `/authors/justintadlock`, and

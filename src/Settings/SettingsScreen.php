@@ -22,6 +22,7 @@ enum SettingsScreen: string
 {
 	case General = 'general';
 	case Reading = 'reading';
+	case Media   = 'media';
 	case Search  = 'search';
 	case Ai      = 'ai';
 
@@ -33,6 +34,7 @@ enum SettingsScreen: string
 		return match ($this) {
 			self::General => 'General',
 			self::Reading => 'Reading',
+			self::Media   => 'Media',
 			self::Search  => 'Addresses and Search',
 			self::Ai      => 'AI'
 		};

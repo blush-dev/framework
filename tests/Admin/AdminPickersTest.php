@@ -160,7 +160,7 @@ final class AdminPickersTest extends TestCase
 		$png  = (string) base64_decode(self::PNG, true);
 		$list = $this->media();
 
-		$this->assertSame(['extensions' => ['apng', 'avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp', 'mp3', 'oga', 'ogg', 'wav', 'm4v', 'mp4', 'ogv', 'webm']], array_diff_key(is_array($list['upload'] ?? null) ? $list['upload'] : [], ['limit' => true]), 'The picker learns what it may upload.');
+		$this->assertSame(['extensions' => ['apng', 'avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp', 'mp3', 'oga', 'ogg', 'wav', 'm4v', 'mp4', 'ogv', 'webm', 'pdf', 'vtt']], array_diff_key(is_array($list['upload'] ?? null) ? $list['upload'] : [], ['limit' => true]), 'The picker learns what it may upload.');
 
 		$first = $this->upload('My Holiday (1).PNG', $png);
 		$file  = self::json($first);
@@ -196,6 +196,33 @@ final class AdminPickersTest extends TestCase
 
 		$this->assertSame('file.png', MediaUploadController::safeName('../../.png'));
 		$this->assertSame('etc-passwd.svg', MediaUploadController::safeName('/etc passwd.SVG'));
+	}
+
+	public function testFollowsTheUploadRules(): void
+	{
+		$this->writeTemporaryFile('user/data/settings.json', (string) json_encode(['media' => ['uploads' => [
+			'path'  => '{kind}/{year}',
+			'kinds' => ['image' => ['path' => 'pics/{ext}', 'maxSize' => 1], 'audio' => ['enabled' => false]]
+		]]]));
+		$this->site();
+
+		$png  = (string) base64_decode(self::PNG, true);
+		$year = date('Y');
+		$list = $this->media();
+
+		$this->assertNotContains('mp3', is_array($list['upload'] ?? null) && is_array($list['upload']['extensions'] ?? null) ? $list['upload']['extensions'] : [], 'A kind turned off isn\'t offered.');
+		$this->assertSame('pics/png', self::json($this->upload('a.png', $png))['folder'] ?? null, 'A kind\'s own path.');
+		$this->assertSame("documents/{$year}", self::json($this->upload('rider.pdf', "%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n"))['folder'] ?? null, 'Every kind\'s path, with {kind}.');
+		$this->assertSame(413, $this->upload('big.png', $png . str_repeat("\0", 1024 * 1024))->getStatusCode(), 'Larger than the kind\'s largest.');
+		$this->assertSame(422, $this->upload('song.mp3', 'ID3')->getStatusCode(), 'A kind turned off.');
+
+		$this->writeTemporaryFile('user/data/settings.json', (string) json_encode(['media' => ['uploads' => ['enabled' => false]]]));
+		// The settings are read at boot; the session carries over.
+		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
+		$this->app->boot();
+
+		$this->assertSame(403, $this->upload('b.png', $png)->getStatusCode(), 'Every upload turned off.');
+		$this->assertSame([], is_array($this->media()['upload'] ?? null) ? $this->media()['upload']['extensions'] ?? null : null);
 	}
 
 	public function testChecksWhoMayUpload(): void

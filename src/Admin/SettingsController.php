@@ -35,7 +35,13 @@ use Blush\Http\Status;
 use Blush\Llms\LlmsConfig;
 use Blush\Llms\LlmsRoutes;
 use Blush\Llms\LlmsTxt;
+use Blush\Media\Index\MediaLibrary;
+use Blush\Media\Index\MediaQuery;
 use Blush\Media\MediaConfig;
+use Blush\Media\MediaException;
+use Blush\Media\MediaKind;
+use Blush\Media\MediaResolver;
+use Blush\Media\MediaUploads;
 use Blush\Preview\PreviewConfig;
 use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteConfig;
@@ -50,7 +56,7 @@ use Blush\Sitemap\SitemapConfig;
 /**
  * Answers `GET {path}/api/settings/{screen}` (D-309, D-324, D-325), for
  * accounts with `site.settings`: one Settings screen (`general`,
- * `reading`, `search`, `ai` (D-398), or `system`) as `groups` of settings (`key`,
+ * `reading`, `media` (D-406), `search`, `ai` (D-398), or `system`) as `groups` of settings (`key`,
  * `title`, `hint`, and a `note`, where backticks mark code), each with
  * `items`: a `key`, `label`, the `value` to show, its `kind` (`text`,
  * `mono`, `bool`, or `list`; a `bool`'s value is `true` or `false`, a
@@ -71,7 +77,9 @@ use Blush\Sitemap\SitemapConfig;
  * whether it's `saved` in `user/data/settings.json`; its `file` is where
  * its value comes from when it isn't. After a screen's own groups, each
  * field set on it (`settings:{screen}`) adds a group of its settings,
- * saved as `site.{name}`, with no `file` behind them. The rest live in `config/` and `.env`
+ * saved as `site.{name}`, with no `file` behind them. Media's upload
+ * rules are one setting drawn as a grid (`kind` `uploads`, D-406; see
+ * `media()`). The rest live in `config/` and `.env`
  * (D-039) and are only shown, beside the ones they relate to. Secrets are
  * never sent: only whether one is set.
  */
@@ -93,7 +101,8 @@ final readonly class SettingsController
 		private SettingsFile $file,
 		private ClockInterface $clock,
 		private Permissions $permissions,
-		private FieldSets $fieldSets
+		private FieldSets $fieldSets,
+		private MediaLibrary $library
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $screen): ResponseInterface
@@ -109,6 +118,7 @@ final readonly class SettingsController
 		$groups = match ($screen) {
 			'general' => $this->general($saved),
 			'reading' => $this->reading($saved),
+			'media'   => $this->media($saved),
 			'search'  => $this->search($saved),
 			'ai'      => $this->ai($saved),
 			'system'  => $this->system(),
@@ -218,6 +228,71 @@ final readonly class SettingsController
 	}
 
 	/**
+	 * Media (D-406): the upload rules, one setting (`media.uploads`) the
+	 * admin draws as a grid. Its item's `input` is the rules as
+	 * `MediaUploads::toArray()` writes them, and `uploads` says what the
+	 * grid needs: each kind (`key`, `label`, the `folder` its `{kind}`
+	 * becomes, an `example` file name, and the `extensions` the site
+	 * allows for it, none for a kind nothing can be uploaded as), the path
+	 * `tokens`, the site's date `now` (`year`, `month`, `day`) for the
+	 * examples, the most PHP accepts (`serverLimit`, in bytes, or `null`),
+	 * and how many `files` the library has.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function media(Settings $saved): array
+	{
+		$uploads = $this->media->uploads;
+		$now     = DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->app->timezone());
+		$kinds   = [];
+
+		foreach (MediaKind::cases() as $kind) {
+			$kinds[] = [
+				'key'        => $kind->value,
+				'label'      => $kind->label(),
+				'folder'     => $kind->folder(),
+				'example'    => match ($kind) {
+					MediaKind::Image    => 'photo.jpg',
+					MediaKind::Video    => 'clip.mp4',
+					MediaKind::Audio    => 'track.mp3',
+					MediaKind::Document => 'notes.pdf',
+					MediaKind::File     => 'captions.vtt'
+				},
+				'extensions' => array_keys(array_filter(MediaResolver::EXTENSIONS, fn (string $mime): bool => MediaKind::fromMime($mime) === $kind && $this->media->allows($mime)))
+			];
+		}
+
+		try {
+			$files = $this->library->query(new MediaQuery(per: 1))->total;
+		} catch (MediaException) {
+			$files = null;
+		}
+
+		return [
+			self::group('uploads', 'Uploads', 'What may be uploaded, and where it goes', [[
+				'key'     => 'uploads',
+				'label'   => 'Uploads',
+				'value'   => [],
+				'kind'    => 'uploads',
+				'default' => $uploads->toArray() === new MediaUploads()->toArray(),
+				'help'    => null,
+				'warning' => null,
+				'file'    => Setting::MediaUploads->file(),
+				'setting' => Setting::MediaUploads->value,
+				'input'   => $uploads->toArray(),
+				'saved'   => $saved->has(Setting::MediaUploads),
+				'uploads' => [
+					'kinds'       => $kinds,
+					'tokens'      => MediaUploads::TOKENS,
+					'now'         => ['year' => $now->format('Y'), 'month' => $now->format('m'), 'day' => $now->format('d')],
+					'serverLimit' => MediaUploadController::limit(),
+					'files'       => $files
+				]
+			]])
+		];
+	}
+
+	/**
 	 * Addresses and Search: how URLs are written, and what search engines
 	 * are told.
 	 *
@@ -230,7 +305,10 @@ final readonly class SettingsController
 		return [
 			self::group('addresses', 'Addresses', 'How URLs are written', [
 				$this->edit(self::item('trailingSlash', 'Trailing slash', $this->routes->trailingSlash, ! $this->routes->trailingSlash, 'bool', 'The other form redirects, so links to either still work.'), $saved, Setting::TrailingSlash, $this->routes->trailingSlash),
-				self::item('media', 'Media address', $this->media->url, $this->media->url === new MediaConfig()->url, 'mono', 'Where user/media is served.', 'config/media.php')
+				[
+					...self::item('media', 'Media address', $this->media->url, $this->media->url === new MediaConfig()->url, 'mono', 'Where user/media is served. The folders under it are named on Media.', 'config/media.php'),
+					'links' => [['label' => 'Media settings', 'to' => '/settings/media']]
+				]
 			]),
 			self::group('search', 'Search Engines', 'The sitemap and robots.txt', [
 				$this->edit(self::item('sitemap', 'Sitemap and robots.txt', $this->sitemap->enabled, $this->sitemap->enabled, 'bool', 'Off, the site has neither, and search engines find pages by their links.'), $saved, Setting::Sitemap, $this->sitemap->enabled),

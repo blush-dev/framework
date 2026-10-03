@@ -1237,7 +1237,7 @@ function closeIcons(): void {
 // The media picker: inserting a file, or choosing one for a field, a
 // component's option, or an image. It opens on the Library tab, or on
 // Upload from the media menu's Upload a File.
-type MediaKind = 'image' | 'video' | 'audio' | 'file';
+type MediaKind = 'image' | 'video' | 'audio' | 'document' | 'file';
 
 const picking = ref<{ title: string; action: string; tab?: 'library' | 'upload'; kind?: MediaKind; locked?: boolean; use: (file: MediaItem) => void } | null>(null);
 const uploads = computed(() => can('media.upload'));

@@ -52,12 +52,13 @@ use Blush\Support\UrlPath;
  * - `files`: the library (`user/media`), from the media index (D-288),
  *   newest first, a page at a time (`page`, and `per`, 48 by default, at
  *   most 100), narrowed by `search` (text its path or metadata must
- *   contain, in any case), `kind` (`image`, `video`, `audio`, `file` for
- *   any other kind, or `any`, the default), and `missing=alt` (images
+ *   contain, in any case), `kind` (`image`, `video`, `audio`,
+ *   `document`, `file` for any other kind, or `any`, the default), and `missing=alt` (images
  *   without alt text).
- * - `upload`: when the account may upload (D-268), the largest file PHP
- *   takes (`limit`, in bytes, or `null`) and the `extensions` the library
- *   takes; otherwise `null`.
+ * - `upload`: when the account may upload (D-268), the largest file it
+ *   may upload (`limit`, in bytes, or `null`: the upload rules' largest,
+ *   within PHP's, D-406) and the `extensions` that may be uploaded;
+ *   otherwise `null`.
  *
  * `GET {path}/api/media/{path}` (`show()`) describes one file, by its
  * path under `user/media`, with its metadata fields (D-287): the
@@ -95,7 +96,7 @@ final readonly class MediaListController
 	 */
 	public const array EXTENSIONS = MediaResolver::EXTENSIONS;
 
-	private const array KINDS = ['any', 'image', 'video', 'audio', 'file'];
+	private const array KINDS = ['any', 'image', 'video', 'audio', 'document', 'file'];
 
 	public function __construct(
 		private Paths $paths,
@@ -150,7 +151,7 @@ final readonly class MediaListController
 			'per'     => $per,
 			'files'   => $files,
 			'upload'  => $this->permissions->can($account, Capability::MediaUpload)
-				? ['limit' => MediaUploadController::limit(), 'extensions' => $this->uploads->extensions()]
+				? ['limit' => $this->uploads->largest(), 'extensions' => $this->uploads->extensions()]
 				: null
 		], headers: ['Cache-Control' => 'no-store']);
 	}

@@ -383,7 +383,7 @@ Field types:
 | `enum`      | One of a set of values | `options`                                                                                                           |
 | `list`      | Several values         | `item` (a field definition for each value; text by default)                                                         |
 | `reference` | Other entries, by slug | `to` (the type), `multiple` (default `true`)                                                                        |
-| `media`     | A media file           | `kind`: `image`, `video`, `audio`, or `file`, so the admin's picker offers only those (any file when it's left out) |
+| `media`     | A media file           | `kind`: `image`, `video`, `audio`, `document`, or `file`, so the admin's picker offers only those (any file when it's left out) |
 | `slug`      | A URL-safe name        |                                                                                                                     |
 | `object`    | A group of fields      | `fields`, `closed`                                                                                                  |
 
@@ -488,7 +488,7 @@ Profiles are a content type too, so a set aimed at `type:profile` adds
 fields to every profile, such as a website or a pronoun line.
 
 Sets can also add details to media files: target `media:image`,
-`media:video`, `media:audio`, or `media:file` (see
+`media:video`, `media:audio`, `media:document`, or `media:file` (see
 [Details about a file](media.md#details-about-a-file)). And they can add
 settings to the admin's Settings screens: target `settings:general`,
 `settings:reading`, or `settings:search` (see

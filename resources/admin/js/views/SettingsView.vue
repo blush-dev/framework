@@ -15,6 +15,11 @@
  * with the place it's set last. A control that wants the width (a text
  * area) takes the help's column too, with the help under it.
  *
+ * Media's upload rules (D-406) are one setting drawn as a grid
+ * (`UploadRules`), the whole of its panel, with where they're set under
+ * it; the form holds the grid as text, so it's compared as the others
+ * are.
+ *
  * Each setting is edited as a field (D-343), with the control the server
  * names (`FieldInput`, as every form draws them), but a yes or no is a
  * switch saying On or Off (`ToggleSwitch`). After a screen's own
@@ -36,16 +41,19 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate, RouterLink } from 'vue-router'
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldInput from '../components/FieldInput.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
-import { ApiError, request, type FieldDescription, type SettingGroup, type SettingItem } from '../api';
+import UploadRules from '../components/UploadRules.vue';
+import { ApiError, request, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
 import { control, fromForm, toForm, type FormValue } from '../fields';
 import { screenTitle, screenTrail } from '../screen';
 import { toast } from '../toast';
+import { fromGrid, summary, toGrid, type UploadGrid } from '../uploads';
 
 const props = defineProps<{ screen: string }>();
 
 const screens: Record<string, { title: string; hint: string }> = {
 	general: { title: 'General', hint: 'The site\'s name, language, and time, and where it runs.' },
 	reading: { title: 'Reading', hint: 'What the homepage shows, and the feeds.' },
+	media: { title: 'Media', hint: 'What may be uploaded, how large, and where it\'s kept.' },
 	search: { title: 'Addresses and Search', hint: 'How addresses are written, and what search engines are told.' },
 	ai: { title: 'AI', hint: 'What AI tools can read, and what AI crawlers are asked.' },
 	system: { title: 'System', hint: 'How the site is put together and run, all set in code.' }
@@ -60,6 +68,8 @@ const fields  = ref<Record<string, FieldDescription>>({});
 const inputs  = ref<Record<string, unknown>>({});
 const unset   = ref<string[]>([]);
 const saving  = ref(false);
+// What the Media screen's grid needs, when it's showing.
+const uploadsInfo = ref<UploadsInfo | null>(null);
 const failure = ref('');
 
 const about    = computed(() => screens[props.screen] ?? { title: 'Settings', hint: '' });
@@ -83,8 +93,13 @@ async function load(): Promise<void> {
 		fields.value = {};
 		inputs.value = {};
 
+		uploadsInfo.value = null;
+
 		for (const item of answer.groups.flatMap((group) => group.items)) {
-			if (item.setting !== undefined && item.field !== undefined) {
+			if (item.kind === 'uploads' && item.setting !== undefined && item.uploads !== undefined) {
+				uploadsInfo.value      = item.uploads;
+				values[item.setting]   = JSON.stringify(toGrid(item.input, item.uploads));
+			} else if (item.setting !== undefined && item.field !== undefined) {
 				values[item.setting]       = toForm(item.field, item.input);
 				fields.value[item.setting] = item.field;
 				inputs.value[item.setting] = item.input;
@@ -115,6 +130,10 @@ function isSite(setting: string): boolean {
 // left empty is an empty list (no feed formats); a field set's setting
 // left empty is removed.
 function outgoing(setting: string, value: FormValue): unknown {
+	if (uploadsInfo.value !== null && setting === 'media.uploads' && typeof value === 'string') {
+		return fromGrid(JSON.parse(value) as UploadGrid);
+	}
+
 	const field = fields.value[setting];
 
 	if (field === undefined) {
@@ -166,6 +185,24 @@ function useConfig(setting: string, on: boolean): void {
 	if (on && saved !== undefined) {
 		form.value[setting] = saved;
 	}
+}
+
+// The upload grid, in and out of the form's text.
+function gridOf(setting: string, from: Record<string, FormValue>): UploadGrid {
+	const value = from[setting];
+
+	return JSON.parse(typeof value === 'string' && value !== '' ? value : '{"all":{"enabled":true,"size":"","path":""},"kinds":{}}') as UploadGrid;
+}
+
+function setGrid(setting: string, grid: UploadGrid): void {
+	form.value[setting] = JSON.stringify(grid);
+}
+
+// A group's hint: the upload grid's says what it does.
+function groupHint(group: SettingGroup): string {
+	const item = group.items.find((entry) => entry.kind === 'uploads');
+
+	return item?.setting !== undefined ? summary(gridOf(item.setting, form.value)) : group.hint;
 }
 
 function stringValue(setting: string): string {
@@ -293,78 +330,96 @@ onBeforeRouteUpdate(leave);
 		<section v-for="group in groups" :key="group.key" class="panel" :aria-labelledby="`settings-${group.key}`">
 			<header class="panel__header settings__header">
 				<h2 :id="`settings-${group.key}`">{{ group.title }}</h2>
-				<p class="panel__hint">{{ group.hint }}</p>
+				<p class="panel__hint">{{ groupHint(group) }}</p>
 			</header>
-			<div class="settings__rows">
-				<div v-for="item in group.items" :key="item.key" class="setting" :class="{ 'setting--wide': isWide(item), 'is-off': locked(item) }">
-					<template v-if="item.setting !== undefined && item.field !== undefined">
-						<div class="setting__label">
-							<label v-if="!isGroup(item) && kindOf(item) !== 'checkbox'" :for="`setting-${item.key}`">{{ item.label }}</label>
-							<span v-else :id="`setting-${item.key}-label`">{{ item.label }}</span>
-						</div>
-
-						<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
-							<div v-if="kindOf(item) === 'checkbox'" class="setting__switch">
-								<ToggleSwitch
-									form
-									:checked="form[item.setting] === true"
-									:label="item.label"
-									:described-by="`setting-${item.key}-help`"
-									:locked="unset.includes(item.setting) || locked(item)"
-									@change="form[item.setting!] = $event"
-								/>
+			<template v-for="item in group.items" :key="item.key">
+				<template v-if="item.kind === 'uploads' && item.setting !== undefined && item.uploads !== undefined">
+					<UploadRules
+						:model-value="gridOf(item.setting, form)"
+						:saved="gridOf(item.setting, initial)"
+						:info="item.uploads"
+						:disabled="unset.includes(item.setting)"
+						@update:model-value="setGrid(item.setting!, $event)"
+					/>
+					<p class="settings__foot">
+						<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s rules once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved ones</button></template>
+						<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s rules</button></template>
+						<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
+					</p>
+				</template>
+			</template>
+			<div v-if="group.items.some((item) => item.kind !== 'uploads')" class="settings__rows">
+				<template v-for="item in group.items" :key="item.key">
+					<div v-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item), 'is-off': locked(item) }">
+						<template v-if="item.setting !== undefined && item.field !== undefined">
+							<div class="setting__label">
+								<label v-if="!isGroup(item) && kindOf(item) !== 'checkbox'" :for="`setting-${item.key}`">{{ item.label }}</label>
+								<span v-else :id="`setting-${item.key}-label`">{{ item.label }}</span>
 							</div>
-							<FieldInput
-								v-else
-								:model-value="form[item.setting] ?? ''"
-								:field="item.field"
-								:id="`setting-${item.key}`"
-								:described-by="`setting-${item.key}-help`"
-								:labelled-by="`setting-${item.key}-label`"
-								:disabled="unset.includes(item.setting) || locked(item)"
-								@update:model-value="form[item.setting!] = $event"
-							/>
 
-							<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
-							<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
-							<p v-if="item.link" class="setting__links"><a class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a></p>
-						</div>
+							<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
+								<div v-if="kindOf(item) === 'checkbox'" class="setting__switch">
+									<ToggleSwitch
+										form
+										:checked="form[item.setting] === true"
+										:label="item.label"
+										:described-by="`setting-${item.key}-help`"
+										:locked="unset.includes(item.setting) || locked(item)"
+										@change="form[item.setting!] = $event"
+									/>
+								</div>
+								<FieldInput
+									v-else
+									:model-value="form[item.setting] ?? ''"
+									:field="item.field"
+									:id="`setting-${item.key}`"
+									:described-by="`setting-${item.key}-help`"
+									:labelled-by="`setting-${item.key}-label`"
+									:disabled="unset.includes(item.setting) || locked(item)"
+									@update:model-value="form[item.setting!] = $event"
+								/>
 
-						<div :id="`setting-${item.key}-help`" class="setting__help">
-							<p v-if="liveHelp(item)">{{ liveHelp(item) }}</p>
-							<p v-if="isSite(item.setting)" class="setting__source">
-								<template v-if="unset.includes(item.setting)">Cleared once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep it</button></template>
-								<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Clear it</button></template>
-								<template v-else>Not saved yet.</template>
-							</p>
-							<p v-else class="setting__source">
-								<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s value once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved one</button></template>
-								<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s value</button></template>
-								<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
-							</p>
-						</div>
-					</template>
+								<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
+								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
+								<p v-if="item.link" class="setting__links"><a class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a></p>
+							</div>
 
-					<template v-else>
-						<div class="setting__label"><span>{{ item.label }}</span></div>
-						<div class="setting__control">
-							<p class="setting__value">
-								<span v-if="item.kind === 'bool'" class="pill" :class="item.warning ? 'pill--warn' : { 'setting__pill--on': item.value === true }">{{ shown(item) }}</span>
-								<span v-else :class="{ mono: item.kind === 'mono', 'setting__none': shown(item) === 'None' }">{{ shown(item) }}</span>
-								<span v-if="item.default === true" class="tag">Default</span>
-							</p>
-							<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
-							<p v-if="item.link || item.links?.length" class="setting__links">
-								<a v-if="item.link" class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>
-								<RouterLink v-for="link in item.links ?? []" :key="link.to" class="setting__link" :to="link.to">{{ link.label }}</RouterLink>
-							</p>
-						</div>
-						<div class="setting__help">
-							<p v-if="item.help">{{ item.help }}</p>
-							<p v-if="item.file" class="setting__source">Set in <code>{{ item.file }}</code>.</p>
-						</div>
-					</template>
-				</div>
+							<div :id="`setting-${item.key}-help`" class="setting__help">
+								<p v-if="liveHelp(item)">{{ liveHelp(item) }}</p>
+								<p v-if="isSite(item.setting)" class="setting__source">
+									<template v-if="unset.includes(item.setting)">Cleared once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep it</button></template>
+									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Clear it</button></template>
+									<template v-else>Not saved yet.</template>
+								</p>
+								<p v-else class="setting__source">
+									<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s value once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved one</button></template>
+									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s value</button></template>
+									<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
+								</p>
+							</div>
+						</template>
+
+						<template v-else>
+							<div class="setting__label"><span>{{ item.label }}</span></div>
+							<div class="setting__control">
+								<p class="setting__value">
+									<span v-if="item.kind === 'bool'" class="pill" :class="item.warning ? 'pill--warn' : { 'setting__pill--on': item.value === true }">{{ shown(item) }}</span>
+									<span v-else :class="{ mono: item.kind === 'mono', 'setting__none': shown(item) === 'None' }">{{ shown(item) }}</span>
+									<span v-if="item.default === true" class="tag">Default</span>
+								</p>
+								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
+								<p v-if="item.link || item.links?.length" class="setting__links">
+									<a v-if="item.link" class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>
+									<RouterLink v-for="link in item.links ?? []" :key="link.to" class="setting__link" :to="link.to">{{ link.label }}</RouterLink>
+								</p>
+							</div>
+							<div class="setting__help">
+								<p v-if="item.help">{{ item.help }}</p>
+								<p v-if="item.file" class="setting__source">Set in <code>{{ item.file }}</code>.</p>
+							</div>
+						</template>
+					</div>
+				</template>
 			</div>
 			<p v-if="group.note" class="settings__foot">
 				<template v-for="(part, index) in parts(group.note)" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template>

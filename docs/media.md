@@ -1,6 +1,6 @@
 # Media
 
-Images, audio, and video go in one of two places.
+Images, audio, video, and documents go in one of two places.
 
 ## The media folder
 
@@ -46,7 +46,8 @@ page's image without alt text uses the library's.
 
 To add your own, use a [field set](content-types.md#field-sets) aimed
 at the kinds of file it's for: `media:image`, `media:video`,
-`media:audio`, or `media:file` (anything else):
+`media:audio`, `media:document` (PDFs, office files, plain text), or
+`media:file` (anything else):
 
 ```yaml
 # user/data/fields/photo-rights.yaml

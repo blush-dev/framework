@@ -22,7 +22,7 @@ const total   = ref(0);
 const page    = ref(1);
 const pages   = ref(1);
 const search  = ref('');
-const kind    = ref<'any' | 'image' | 'video' | 'audio' | 'file'>('any');
+const kind    = ref<'any' | 'image' | 'video' | 'audio' | 'document' | 'file'>('any');
 const missing = ref(false);
 const loading = ref(true);
 const error   = ref('');
@@ -32,6 +32,7 @@ const KINDS = [
 	{ key: 'image', label: 'Images' },
 	{ key: 'video', label: 'Video' },
 	{ key: 'audio', label: 'Audio' },
+	{ key: 'document', label: 'Documents' },
 	{ key: 'file', label: 'Files' }
 ] as const;
 
@@ -92,7 +93,7 @@ function clear(): void {
 void load();
 
 function icon(file: MediaItem): IconName {
-	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : 'file');
+	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : (file.kind === 'document' ? 'file-text' : 'file'));
 }
 
 function details(file: MediaItem): string {
