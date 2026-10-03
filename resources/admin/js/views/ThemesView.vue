@@ -21,22 +21,23 @@
  * have none, since they have no name to go by.
  */
 
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
-import AdminModal from '../components/AdminModal.vue';
+import InstallModal, { type InstallState } from '../components/InstallModal.vue';
 import MenuButton from '../components/MenuButton.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
 import type { ThemeSummary } from '../api';
 import { config } from '../config';
+import { useInstall } from '../install';
 import { can } from '../session';
 import { copy, folderName, previewUrl, themeRoute, useThemes } from '../themes';
 
-const { appearance, error, busy, failed, themes, active, load, label, installed, dependents, blockedMessage, activate: activateTheme, useConfig, remove: removeTheme } = useThemes();
+const { appearance, error, busy, failed, themes, active, load, label, installed, dependents, blockedMessage, activate: activateTheme, useConfig, remove: removeTheme, find } = useThemes();
+const { installing, canInstall, afterInstall, hop } = useInstall('theme', load);
 
 // What the account may do here (D-389).
 const canActivate = can('extensions.themes.activate');
 const canDelete   = can('extensions.themes.delete');
-const installing = ref(false);
 
 void load();
 
@@ -47,6 +48,27 @@ async function activate(theme: ThemeSummary): Promise<void> {
 		// The active theme comes first, so its card moved.
 		await nextTick();
 		document.querySelector('.theme.is-active')?.scrollIntoView({ block: 'nearest' });
+	}
+}
+
+// What a theme the Install modal installed is, and whether it can be activated.
+function installState(name: string): InstallState {
+	const theme = find(name);
+
+	return {
+		words: theme?.active ? 'the active theme' : 'inactive',
+		next: theme !== null && !theme.active && theme.blocked === null && canActivate,
+		live: appearance.value?.chain.includes(name) ?? false
+	};
+}
+
+async function next(name: string): Promise<void> {
+	installing.value = false;
+
+	const theme = find(name);
+
+	if (theme !== null) {
+		await activate(theme);
 	}
 }
 
@@ -64,7 +86,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 			<p class="page-header__hint">The theme visitors see. How the admin looks is yours alone, and is set on <RouterLink :to="{ name: 'profile' }">Your Account</RouterLink>.</p>
 		</div>
 		<div class="page-header__actions">
-			<button type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Theme</button>
+			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Theme</button>
 		</div>
 	</header>
 
@@ -175,19 +197,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 		</span>
 	</p>
 
-	<AdminModal :open="installing" title="Install Theme" @close="installing = false">
-		<p>A theme is a folder in <code>user/themes/</code>. Put one there and it shows up in this list; there's no install step and nothing to register.</p>
-		<p>A theme published as a package is installed with <code>composer require vendor/theme</code> instead. Composer keeps it up to date, and it can't be deleted from this screen.</p>
-		<div class="install-drop">
-			<AdminIcon name="upload" />
-			<span>Uploading a theme's <strong>.zip</strong> is coming.</span>
-			<span class="install-drop__hint">It will be unpacked into <span class="mono">user/themes/</span>, and nothing activated.</span>
-		</div>
-		<template #footer>
-			<button type="button" class="button" autofocus @click="installing = false">Close</button>
-			<button type="button" class="button button--primary" disabled>Upload</button>
-		</template>
-	</AdminModal>
+	<InstallModal kind="theme" :open="installing" :upload="appearance?.upload ?? null" :state="installState" @close="installing = false" @installed="afterInstall" @next="next" @hop="hop" />
 </template>
 
 <style scoped>
@@ -441,22 +451,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 	cursor: pointer;
 }
 
-.install-drop {
-	display: grid;
-	justify-items: center;
-	gap: var(--s-1);
-	margin-top: var(--s-4);
-	padding: var(--s-5);
-	border: 1px dashed var(--border-strong);
-	border-radius: var(--r-2);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-	text-align: center;
-}
 
-.install-drop__hint {
-	font-size: var(--text-xs);
-}
 
 @media (prefers-reduced-motion: reduce) {
 	.spin {

@@ -121,7 +121,8 @@ final class AdminPluginsTest extends TestCase
 			'requirements' => [['name' => 'blush', 'constraint' => '^2.0', 'kind' => 'blush', 'met' => true, 'note' => 'this site runs 2.0.0-dev', 'label' => '']],
 			'blocked'      => null,
 			'requiredBy'   => [],
-			'deletable'    => false
+			'deletable'    => false,
+			'backup'       => null
 		], $recipes);
 
 		$off = $this->plugin($answer, 'acme/off');

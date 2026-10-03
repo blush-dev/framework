@@ -311,6 +311,8 @@ export interface ThemeSummary {
 	blocked: string | null;
 	// Whether it's a folder in `user/themes` the active theme doesn't use.
 	deletable: boolean;
+	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
+	backup: { version: string } | null;
 }
 
 /**
@@ -333,6 +335,47 @@ export interface Appearance {
 	// Broken themes, by where they were found (`user/themes/{folder}`, or
 	// a Composer package's name).
 	invalid: { where: string; reason: string; deletable: boolean }[];
+	upload: ExtensionUpload;
+}
+
+/**
+ * What a kind's Install modal shows before anything is chosen (D-392):
+ * the largest archive taken, in bytes, and why nothing can be installed.
+ */
+export interface ExtensionUpload {
+	limit: number;
+	problem: string | null;
+}
+
+// An extension as installing describes it: one installed, or one in an archive.
+export interface InstalledExtension {
+	name: string;
+	label: string;
+	version: string;
+	folder: string;
+}
+
+// `POST {kind}/{vendor}/{name}/rollback` (D-393).
+export interface RollbackAnswer {
+	rolledBack: InstalledExtension;
+	// The version it was.
+	from: string | null;
+	refresh: boolean;
+}
+
+// `POST themes`, `POST plugins`, `POST icon-packs` (D-392).
+export interface InstallAnswer {
+	installed: InstalledExtension;
+	// The version it replaced, or `null` for a new one.
+	replaced: string | null;
+	backup: string | null;
+	refresh: boolean;
+}
+
+// A `409` from installing: one with the archive's name is installed.
+export interface InstallClash {
+	installed: InstalledExtension;
+	incoming: InstalledExtension;
 }
 
 /**
@@ -380,6 +423,8 @@ export interface PluginSummary {
 	requiredBy: string[];
 	// A folder plugin that isn't running.
 	deletable: boolean;
+	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
+	backup: { version: string } | null;
 }
 
 /**
@@ -391,6 +436,7 @@ export interface Plugins {
 	saved: boolean;
 	// Whether `config/plugins.php` exists.
 	config: boolean;
+	upload: ExtensionUpload;
 }
 
 /**
@@ -425,6 +471,8 @@ export interface IconPackSummary {
 	count: number;
 	// The first twelve on the list; every one from `GET icon-packs/{name}`.
 	icons: PackIcon[];
+	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
+	backup: { version: string } | null;
 }
 
 /**
@@ -449,6 +497,7 @@ export interface IconPacks {
 	saved: boolean;
 	// Whether `config/icons.php` exists.
 	config: boolean;
+	upload: ExtensionUpload;
 }
 
 /**
@@ -786,8 +835,8 @@ export interface PreviewLink {
 }
 
 export class ApiError extends Error {
-	// The input the server blamed, when it named one.
-	constructor(message: string, public readonly status: number, public readonly field: string | null = null) {
+	// The input the server blamed, when it named one, and the whole answer.
+	constructor(message: string, public readonly status: number, public readonly field: string | null = null, public readonly data: unknown = null) {
 		super(message);
 	}
 }
@@ -887,8 +936,67 @@ async function answer<T>(url: string, init: RequestInit): Promise<T> {
 
 		const field = typeof data === 'object' && data !== null && 'field' in data && typeof data.field === 'string' ? data.field : null;
 
-		throw new ApiError(message, response.status, field);
+		throw new ApiError(message, response.status, field, data);
 	}
 
 	return data as T;
+}
+
+/**
+ * Uploads a file as the multipart field `file`, with other fields,
+ * saying how much has been sent (from 0 to 1) as it goes, and returns the
+ * decoded answer. A failure is an `ApiError` carrying the answer.
+ */
+export function uploadWithProgress<T>(path: string, file: File, fields: Record<string, string>, progress: (sent: number) => void): Promise<T> {
+	const form = new FormData();
+
+	form.append('file', file);
+
+	for (const [key, value] of Object.entries(fields)) {
+		form.append(key, value);
+	}
+
+	return new Promise((resolve, reject) => {
+		const request = new XMLHttpRequest();
+
+		request.open('POST', config.api + path);
+		request.withCredentials = true;
+		request.setRequestHeader('Accept', 'application/json');
+
+		if (csrfToken !== null) {
+			request.setRequestHeader('X-CSRF-Token', csrfToken);
+		}
+
+		request.upload.onprogress = (event) => {
+			if (event.lengthComputable && event.total > 0) {
+				progress(event.loaded / event.total);
+			}
+		};
+
+		request.onerror = () => reject(new ApiError('The site couldn\'t be reached. Check your connection and try again.', 0));
+
+		request.onload = () => {
+			let data: unknown = null;
+
+			try {
+				data = JSON.parse(request.responseText);
+			} catch {
+				data = null;
+			}
+
+			if (request.status >= 200 && request.status < 300) {
+				resolve(data as T);
+
+				return;
+			}
+
+			const message = typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string'
+				? data.error
+				: (request.status === 413 ? 'That\'s larger than the server takes.' : `The request failed (${request.status}).`);
+
+			reject(new ApiError(message, request.status, null, data));
+		};
+
+		request.send(form);
+	});
 }

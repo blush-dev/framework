@@ -10966,9 +10966,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-388: The admin installs extensions into `user/`
 - **Date:** 2026-10-02
-- **Status:** Decided, not built. Amends D-039 and D-166 and answers
-  D-378's "how code installs from a browser" in principle; the details
-  (zips, where they come from, updates) are still open. Its
+- **Status:** Installing and replacing from a zip built by D-392. Amends
+  D-039 and D-166 and answers D-378's "how code installs from a
+  browser". Where updates come from and discovery are still open. Its
   capabilities are D-389.
 - **Decision:** The admin can install extensions of every kind,
   including the ones that run code (plugins and themes), into their
@@ -11095,4 +11095,93 @@ decision, add a new entry that supersedes it and mark the old one
   `npm run admin:build`.
 - **Why:** the author's call, so a site owner can switch off a
   Composer extension from the admin.
+
+### D-392: Installing extensions from a zip
+- **Date:** 2026-10-02
+- **Status:** Backups last as long as their extension and can be
+  rolled back to since D-393.
+- **Decision:** Builds D-388's installing, from the extensions sketch's
+  uploader (`admin-design/blush-extensions.html`, updated by the author),
+  for themes, plugins, and icon packs alike. Departures from the sketch
+  are in `departures.md` (**Installing**).
+  - **Endpoints:** `POST themes`, `POST plugins`, `POST icon-packs`, the
+    archive as the multipart field `file`; `replace=1` replaces an
+    installed one with its name. Installing needs
+    `extensions.{kind}.install`, replacing `extensions.{kind}.update`
+    (D-389). `201` with what was installed, the version it replaced, the
+    backup, and whether to refresh; `409` with the clash (both
+    versions); `422` saying why otherwise, with the other `kind` for an
+    archive of another kind. Nothing is written unless it's installed.
+  - **Limits:** 25 MB, or PHP's upload limit when lower; at most 5,000
+    files and 100 MB unpacked. Each list sends `upload` (the limit, and
+    a `problem`: no zip extension, or a folder the web server can't
+    write).
+  - **The archive:** checked before anything is written (no absolute
+    paths, `..`, or symbolic links); a zip whose files sit in one folder
+    (GitHub's) is unpacked from inside it; macOS's `__MACOSX` and
+    `.DS_Store` are left out.
+  - **Checks**, read as discovery would: the kind (an archive of another
+    kind says which), the manifest, the namespace (not reserved, not
+    another installed extension's of any kind), not a name Composer
+    installed, no `composer.json` requirements besides PHP, `ext-*`,
+    `lib-*`, `composer/installers`, and the framework (a folder
+    extension has no `vendor/`), and, for plugins and themes, every PHP
+    file parsing (`token_get_all()` with `TOKEN_PARSE`, so nothing runs).
+  - **Where it goes:** unpacked into a hidden folder in the kind's
+    folder (theme and icon pack discovery now skip hidden folders, as
+    plugin discovery did), then renamed to `user/{kind}/{short name}`,
+    refused when that exists. Nothing is turned on (D-390).
+  - **Replacing** (the author's call that a newer version replaces):
+    the installed folder is swapped for the new one, refused for a git
+    checkout, and the old folder is kept in
+    `storage/backups/{kind}/{folder}` until the next replace. A running
+    plugin or the active theme being replaced clears the compiled
+    content types and routes and asks the admin to refresh.
+  - **The admin:** one `InstallModal` for all three kinds, as the
+    sketch draws it: drop anywhere on the modal or choose a file; real
+    upload progress; the receipt with the one next step (Activate, Turn
+    on); the clash with Replace naming both versions; refusals with
+    Choose another file and, for another kind, Go to its screen
+    (`?install=1` opens its modal). **Install** shows only with the
+    kind's `install` capability.
+- **Checked:** `composer check` (`AdminInstallTest`: a plugin installed
+  from GitHub's one-folder layout and arriving off; the clash, then
+  replacing with a backup; another kind, no manifest, not a zip, a
+  damaged zip, `../`, a taken namespace, Composer requirements, a PHP
+  syntax error, each writing nothing; a theme and a pack; install
+  without update); `npm run admin:build`. The modal wasn't driven in a
+  browser.
+- **Why:** the author added the uploader to the extensions sketch as the
+  next step of installing.
+
+### D-393: A backup lasts as long as its extension, and can be rolled back to
+- **Date:** 2026-10-02
+- **Decision:** Settles pruning the backups D-392's replacing keeps (the
+  author's pick of the options, for now: to revisit if Blush gets a
+  scheduler, which would make expiring by age or a size cap possible).
+  - **One backup per extension** (`storage/backups/{kind}/{folder}`),
+    as before: the next replace overwrites it.
+  - **Deleting an extension deletes its backup**, so none is left
+    behind.
+  - **Rolling back** (`POST {kind}/{vendor}/{name}/rollback`, the kind's
+    `update` capability) swaps the backup in and keeps the version it
+    replaces as the backup, so rolling back again undoes it. It's
+    checked as an archive is (D-392), and refused, the author's call,
+    when the earlier version wouldn't run: a plugin's requirements not
+    met, or a theme in the active chain falling back to one that isn't
+    installed. One that runs changes the live site at once, so the
+    admin asks first (the author's call), and the toast offers Undo.
+  - **Discarding** (`DELETE {kind}/{vendor}/{name}/backup`, the kind's
+    `delete` capability) removes it.
+  - Each extension in its kind's list has `backup` (`{"version"}`, or
+    `null`); the details screens show a **Previous version** row
+    (`PreviousVersion`) with Roll back and Discard.
+- **Checked:** `composer check` (`AdminInstallTest`: rolling back and
+  forth, the backup swapping each time; discarding; a version whose
+  requirements aren't met refused, nothing changed; deleting a plugin
+  deleting its backup; the capabilities); `npm run admin:build`. Not
+  driven in a browser.
+- **Why:** with one backup per extension, nothing accumulates once a
+  deleted extension's goes too, and a backup is only worth keeping if
+  the admin can use it.
 

@@ -445,8 +445,8 @@ Each is recorded in `.claude/docs/decisions.md`.
     missing parent (a broken ancestor, a loop).
   - Broken themes are cards titled by where they were found, without
     the folder fact the title already says.
-  - **Install Theme**'s drop area says uploading is coming; **Upload**
-    is disabled (D-378).
+  - **Install Theme** is the sketch's uploader since D-392; see
+    **Installing** below.
   - No author on the cards (it's on the details, D-384). The palette role
     `bg` is `background`. No theme settings yet (D-307).
 - **Settings** (D-309, D-324, D-325): only the settings Blush has, as
@@ -528,8 +528,45 @@ Each is recorded in `.claude/docs/decisions.md`.
     does), not inline markup, so nothing in a pack's files runs.
   - The details screen adds a Name row and every author (D-384, from the
     manifest or its `composer.json`); the core set's names Lucide.
-  - **Install Icon Pack** opens the sketch's modal with **Upload**
-    disabled (D-378), as **Install Plugin** and **Install Theme** do.
+  - **Install Icon Pack** is the sketch's uploader since D-392, as
+    **Install Plugin** and **Install Theme** are; see **Installing**.
+- **Installing** (D-392) follows the extensions sketch's uploader (one
+  modal, `InstallModal`, for all three kinds). Departures from the
+  sketch:
+  - The manifest is each kind's (`plugin.json`, `theme.json`,
+    `icons.json`, or their `.yaml`), not the sketch's `blush.json`, and
+    the kind is read from it on the server, not from the file's name.
+  - **Progress** is real for the upload (the bar fills as the file is
+    sent), then one step, "Unpacking and checking it", while the server
+    works; the sketch's Unpacking, Reading, and Writing steps aren't
+    reported separately.
+  - **Replacing** names the archive's own version and the installed one
+    (the sketch bumps the version), "No version" when a manifest has
+    none, and "Replace it" then. A plugin or pack that's on says it
+    stays on and the new version runs at once, as the sketch says of the
+    active theme. A role without the kind's `update` capability sees
+    **Replace** disabled, with why in the footer.
+  - **An archive of another kind** offers **Go to {kind}**, which opens
+    that screen with its Install modal open (`?install=1`), rather than
+    swapping modals on the same screen.
+  - Refusals the sketch doesn't draw, each with nothing written: a file
+    that would land outside its folder or is a link, too many or too
+    large files, a manifest that doesn't pass, a namespace that's
+    reserved or taken, a name Composer installed, Composer
+    requirements, a PHP file that doesn't parse, a folder that already
+    exists, and a git checkout to replace. A server that can't install
+    at all (no zip extension, a folder it can't write) says so above the
+    drop zone, with **Choose file** disabled.
+  - The old folder of a replaced extension is kept in
+    `storage/backups/{kind}/{folder}` (the sketch doesn't say).
+  - **Previous version** (D-393), not in the sketch: a replaced
+    extension's details screen has a row with the kept version, **Roll
+    back to {version}** (asks first; the toast offers Undo), and
+    **Discard**, above the delete zone.
+  - The receipt says "It's in the list" (the modal covers the list), and
+    the next step is offered only when it can be taken (not for an
+    active theme, one whose parent is missing, a plugin whose
+    requirements aren't met, or a role without `activate`).
 - **Vocabulary follows Blush** where it differs: extensions (plugins,
   themes, and icon packs; D-378), not addons, and
   whatever taxonomies a site defines (no built-in Topic).

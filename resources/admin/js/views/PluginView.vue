@@ -12,6 +12,7 @@
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { pluginRoute, requirementText, usePlugins } from '../plugins';
 import { screenTitle } from '../screen';
@@ -137,6 +138,7 @@ async function remove(): Promise<void> {
 				</section>
 			</div>
 
+			<PreviousVersion kind="plugin" :extension="plugin" :live="plugin.running" @changed="load" />
 			<p v-if="plugin.source === 'composer'" class="notice">
 				<span>Composer manages this plugin, so it can't be deleted here. Remove it from the project with <code>composer remove {{ plugin.name }}</code>, and it leaves this list.</span>
 			</p>

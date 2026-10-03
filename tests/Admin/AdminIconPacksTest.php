@@ -86,6 +86,7 @@ final class AdminIconPacksTest extends TestCase
 			'folder'      => 'user/icons/brands',
 			'enabled'     => true,
 			'deletable'   => true,
+			'backup'      => null,
 			'count'       => 2,
 			'icons'       => [['name' => 'brands/github', 'svg' => self::SVG], ['name' => 'brands/mastodon', 'svg' => self::SVG]]
 		], $packs[1] ?? null);

@@ -64,7 +64,7 @@ final readonly class LocalPluginFinder implements PluginFinder
 
 		sort($files);
 
-		return array_map($this->manifest(...), $files);
+		return array_map(self::manifest(...), $files);
 	}
 
 	/**
@@ -72,7 +72,7 @@ final readonly class LocalPluginFinder implements PluginFinder
 	 *
 	 * @throws ExtensionException
 	 */
-	private function manifest(string $file): PluginManifest
+	public static function manifest(string $file): PluginManifest
 	{
 		$data     = ManifestFile::read($file);
 		$autoload = is_array($data['autoload'] ?? null) ? $data['autoload'] : [];

@@ -92,7 +92,9 @@ extensions from the admin into `user/` (D-388), a capability for each
 extension action per kind, `extensions.{kind}.{action}` (D-389); and
 nothing in `user/` on until it's named, with config listing only what's
 on (D-390), and the admin's saved list naming everything that's on,
-Composer's included (D-391).
+Composer's included (D-391); and installing and replacing extensions
+from a `.zip`, from the sketch's uploader (D-392), and rolling back to
+the version a replace kept (D-393).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

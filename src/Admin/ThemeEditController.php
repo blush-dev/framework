@@ -22,6 +22,8 @@ use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\Install\ExtensionInstaller;
+use Blush\Extension\Install\InstallException;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Support\Filesystem;
@@ -29,8 +31,8 @@ use Blush\Support\FilesystemException;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
-use Blush\Theme\ThemeSource;
 use Blush\Theme\Themes;
+use Blush\Theme\ThemeSource;
 
 /**
  * Deletes a theme's folder from `user/themes` (D-381), for accounts with
@@ -56,7 +58,8 @@ final readonly class ThemeEditController
 		private Paths $paths,
 		private Bootstrap $bootstrap,
 		private Permissions $permissions,
-		private Filesystem $filesystem
+		private Filesystem $filesystem,
+		private ExtensionInstaller $installer
 	) {}
 
 	public function delete(ServerRequestInterface $request, string $folder): ResponseInterface
@@ -86,6 +89,13 @@ final readonly class ThemeEditController
 		}
 
 		$this->bootstrap->clearCompiled(CompiledCache::Themes);
+
+		// Its backup goes with it (D-393).
+		try {
+			$this->installer->discard(ExtensionKind::Theme, $path);
+		} catch (InstallException) {
+			// The extension is gone either way; the backup is inert.
+		}
 
 		return Response::json(['deleted' => $where], headers: ['Cache-Control' => 'no-store']);
 	}

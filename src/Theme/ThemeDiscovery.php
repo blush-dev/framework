@@ -73,7 +73,7 @@ final readonly class ThemeDiscovery
 			$folders = [];
 
 			foreach (new DirectoryIterator($this->paths->themes) as $folder) {
-				if ($folder->isDir() && ! $folder->isDot()) {
+				if ($folder->isDir() && ! str_starts_with($folder->getFilename(), '.')) {
 					$folders[] = $folder->getPathname();
 				}
 			}
@@ -195,7 +195,7 @@ final readonly class ThemeDiscovery
 	 * @return ?array<string, mixed>
 	 * @throws ThemeException When the manifest can't be parsed.
 	 */
-	private static function read(string $path): ?array
+	public static function read(string $path): ?array
 	{
 		$file = self::manifestFiles($path)[0] ?? null;
 

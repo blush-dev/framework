@@ -191,10 +191,10 @@ deleting plugins):
 | Capability | Allows |
 |---|---|
 | `extensions.{kind}.view` | Seeing the kind's screen (each action below also needs it) |
-| `extensions.{kind}.install` | Installing them (not in the admin yet) |
-| `extensions.{kind}.update` | Updating them (not in the admin yet) |
+| `extensions.{kind}.install` | Installing them from a `.zip` |
+| `extensions.{kind}.update` | Replacing an installed one with a newer `.zip`, and rolling back to the version that was kept |
 | `extensions.{kind}.activate` | Activating a theme, or turning plugins and icon packs on and off |
-| `extensions.{kind}.delete` | Deleting them |
+| `extensions.{kind}.delete` | Deleting them, and discarding a kept version |
 
 Use `*` for the kind to grant it on every kind: `extensions.*.view`.
 Only the Administrator has them built in.

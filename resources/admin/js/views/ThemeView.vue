@@ -15,6 +15,7 @@
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import PreviousVersion from '../components/PreviousVersion.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
 import { PALETTE_ROLES, type PaletteRole } from '../api';
 import { config } from '../config';
@@ -250,6 +251,7 @@ async function remove(): Promise<void> {
 				</div>
 			</section>
 
+			<PreviousVersion kind="theme" :extension="theme" :live="appearance.chain.includes(theme.name)" @changed="load" />
 			<p v-if="theme.source === 'composer'" class="notice">
 				<span>Composer manages this theme, so it can't be deleted here. Remove it from the project with <code>composer remove {{ theme.name }}</code>, and it leaves this list.</span>
 			</p>

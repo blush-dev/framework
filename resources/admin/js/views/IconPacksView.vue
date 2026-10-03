@@ -19,22 +19,23 @@
  * first kind it will take): **Install Icon Pack** says how for now.
  */
 
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
-import AdminModal from '../components/AdminModal.vue';
+import InstallModal, { type InstallState } from '../components/InstallModal.vue';
 import MenuButton from '../components/MenuButton.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import type { CoreIcons, IconPackSummary, PackIcon } from '../api';
 import { iconPackRoute, packIconMask, useIconPacks } from '../icon-packs';
+import { useInstall } from '../install';
 import { copy, folderName } from '../themes';
 import { can } from '../session';
 
 const { answer, error, busy, load, toggle: togglePack, useConfig, remove: removePack } = useIconPacks();
+const { installing, canInstall, afterInstall, hop } = useInstall('icon-pack', load);
 
 // What the account may do here (D-389).
 const canActivate = can('extensions.icon-packs.activate');
 const canDelete   = can('extensions.icon-packs.delete');
-const installing = ref(false);
 
 void load();
 
@@ -59,6 +60,27 @@ async function toggle(pack: IconPackSummary, on: boolean): Promise<void> {
 	}
 }
 
+// What a pack the Install modal installed is, and whether it can be turned on.
+function installState(name: string): InstallState {
+	const pack = packs.value.find((item) => item.name === name);
+
+	return {
+		words: pack?.enabled ? 'turned on' : 'turned off',
+		next: pack !== undefined && !pack.enabled && canActivate,
+		live: pack?.enabled ?? false
+	};
+}
+
+async function next(name: string): Promise<void> {
+	installing.value = false;
+
+	const pack = packs.value.find((item) => item.name === name);
+
+	if (pack !== undefined) {
+		await toggle(pack, true);
+	}
+}
+
 async function remove(label: string, folder: string, pack: IconPackSummary | null = null): Promise<void> {
 	if (await removePack(label, folder, pack)) {
 		await load();
@@ -73,7 +95,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 			<p class="page-header__hint">Sets of icons for content, menus, and buttons, each in a namespace of its own.</p>
 		</div>
 		<div class="page-header__actions">
-			<button type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Icon Pack</button>
+			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Icon Pack</button>
 		</div>
 	</header>
 
@@ -190,19 +212,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 		</span>
 	</p>
 
-	<AdminModal :open="installing" title="Install Icon Pack" @close="installing = false">
-		<p>An icon pack is a folder in <code>user/icons/</code>, with an <code>icons.json</code>. Put one there and it shows up in this list.</p>
-		<p>A pack published as a package is installed with <code>composer require vendor/pack</code> instead. Composer keeps it up to date, and it can't be deleted from this screen.</p>
-		<div class="install-drop">
-			<AdminIcon name="upload" />
-			<span>Uploading a pack's <strong>.zip</strong> is coming.</span>
-			<span class="install-drop__hint">It will be unpacked into <span class="mono">user/icons/</span>. Its namespace comes from the pack, so two packs can use the same icon name.</span>
-		</div>
-		<template #footer>
-			<button type="button" class="button" autofocus @click="installing = false">Close</button>
-			<button type="button" class="button button--primary" disabled>Upload</button>
-		</template>
-	</AdminModal>
+	<InstallModal kind="icon-pack" :open="installing" :upload="answer?.upload ?? null" :state="installState" @close="installing = false" @installed="afterInstall" @next="next" @hop="hop" />
 </template>
 
 <style scoped>
@@ -459,22 +469,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 	cursor: pointer;
 }
 
-.install-drop {
-	display: grid;
-	justify-items: center;
-	gap: var(--s-1);
-	margin-top: var(--s-4);
-	padding: var(--s-5);
-	border: 1px dashed var(--border-strong);
-	border-radius: var(--r-2);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-	text-align: center;
-}
 
-.install-drop__hint {
-	font-size: var(--text-xs);
-}
 
 @media (width <= 640px) {
 	.pack__glyphs {

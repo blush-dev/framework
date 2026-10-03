@@ -58,7 +58,7 @@ final readonly class IconPackDiscovery
 			$folders = [];
 
 			foreach (new DirectoryIterator($this->paths->icons) as $folder) {
-				if ($folder->isDir() && ! $folder->isDot()) {
+				if ($folder->isDir() && ! str_starts_with($folder->getFilename(), '.')) {
 					$folders[] = $folder->getPathname();
 				}
 			}

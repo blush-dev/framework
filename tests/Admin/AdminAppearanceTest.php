@@ -75,7 +75,7 @@ final class AdminAppearanceTest extends TestCase
 		$this->assertFalse($answer['saved'] ?? null);
 
 		$notebook = self::theme($themes, 'acme/notebook');
-		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'user/themes/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'blocked' => null, 'deletable' => false], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
+		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'user/themes/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'blocked' => null, 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
 
 		$plate = self::theme($themes, 'acme/plate');
 		$this->assertTrue($plate['deletable'] ?? null);

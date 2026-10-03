@@ -12,6 +12,7 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { ApiError, request, type CoreIcons, type IconPackSummary } from '../api';
 import { packIconMask, useIconPacks } from '../icon-packs';
@@ -196,6 +197,7 @@ async function remove(): Promise<void> {
 		</div>
 
 		<template v-if="pack">
+			<PreviousVersion kind="icon-pack" :extension="pack" :live="pack.enabled" @changed="load" />
 			<p v-if="pack.source === 'composer'" class="notice">
 				<span>Composer manages this icon pack, so it can't be deleted here. Remove it from the project with <code>composer remove {{ pack.name }}</code>, and it leaves this list.</span>
 			</p>

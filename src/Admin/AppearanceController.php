@@ -22,6 +22,7 @@ use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Settings\InvalidSetting;
@@ -30,8 +31,8 @@ use Blush\Settings\SettingsFile;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
-use Blush\Theme\ThemeSource;
 use Blush\Theme\Themes;
+use Blush\Theme\ThemeSource;
 
 /**
  * Answers `GET {path}/api/appearance` (D-306, D-381), for accounts with
@@ -64,7 +65,8 @@ final readonly class AppearanceController
 		private SettingsFile $settings,
 		private AppConfig $app,
 		private Paths $paths,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private ExtensionInstaller $installer
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -104,7 +106,8 @@ final readonly class AppearanceController
 			'preview'     => $theme->preview?->toArray(),
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $theme->authors),
 			'blocked'     => $this->blocked($theme),
-			'deletable'   => $theme->source === ThemeSource::Local && $theme->name !== $active && ! in_array($theme->name, $chain, true)
+			'deletable'   => $theme->source === ThemeSource::Local && $theme->name !== $active && ! in_array($theme->name, $chain, true),
+			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::Theme, $theme->source === ThemeSource::Local ? $theme->path : null, $theme->name)
 		], $this->themes->all()));
 
 		// The active theme first, then by label.
@@ -129,7 +132,8 @@ final readonly class AppearanceController
 			'saved'   => $saved,
 			'preview' => $this->app->environment->isDevelopment(),
 			'themes'  => $themes,
-			'invalid' => $invalid
+			'invalid' => $invalid,
+			'upload'  => ExtensionInstallController::upload($this->installer, ExtensionKind::Theme)
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 

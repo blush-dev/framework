@@ -22,6 +22,7 @@ use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Icon\IconPack;
@@ -70,7 +71,8 @@ final readonly class IconPacksController
 		private IconPacks $packs,
 		private Paths $paths,
 		private SettingsFile $settings,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private ExtensionInstaller $installer
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -95,7 +97,8 @@ final readonly class IconPacksController
 			'core'    => self::coreSet(self::SAMPLE),
 			'invalid' => $invalid,
 			'saved'   => $this->settings->read()->has(Setting::IconPacks),
-			'config'  => is_file("{$this->paths->config}/icons.php")
+			'config'  => is_file("{$this->paths->config}/icons.php"),
+			'upload'  => ExtensionInstallController::upload($this->installer, ExtensionKind::IconPack)
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -124,7 +127,7 @@ final readonly class IconPacksController
 	/**
 	 * Describes a pack, with its first `$limit` icons, or all of them.
 	 *
-	 * @return array{name: string, label: string, namespace: string, version: string, description: string, authors: list<array<string, string>>, source: string, path: string, folder: ?string, enabled: bool, deletable: bool, count: int, icons: list<array{name: string, svg: string}>}
+	 * @return array{name: string, label: string, namespace: string, version: string, description: string, authors: list<array<string, string>>, source: string, path: string, folder: ?string, enabled: bool, deletable: bool, backup: ?array{version: string}, count: int, icons: list<array{name: string, svg: string}>}
 	 */
 	private function pack(IconPack $pack, ?int $limit = null): array
 	{
@@ -145,6 +148,7 @@ final readonly class IconPacksController
 			'folder'      => $folder,
 			'enabled'     => $this->packs->isEnabled($pack->name),
 			'deletable'   => $folder !== null,
+			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::IconPack, $folder === null ? null : $pack->path, $pack->name),
 			'count'       => count($files),
 			'icons'       => self::icons(array_slice($files, 0, $limit), "{$pack->namespace}/")
 		];

@@ -366,8 +366,59 @@ one too, ignore `plugins/`, `themes/`, and `icons/` there (see
 [the site layout](README.md#how-a-blush-site-is-laid-out)).
 
 The admin lists them under **Extensions** (Themes, Plugins, and Icon
-Packs). Installing from the admin isn't available yet; its **Install**
-buttons are placeholders.
+Packs), and installs them from a `.zip` (see
+[Installing from a zip](#installing-from-a-zip)).
+
+## Installing from a zip
+
+**Install Theme**, **Install Plugin**, and **Install Icon Pack** take a
+`.zip` of an extension's folder, up to 25 MB (or less, if PHP's upload
+limit is lower). The manifest (`plugin.json`, `theme.json`, or
+`icons.json`) can be at the zip's root or inside one folder, as GitHub's
+release zips have it. It's unpacked into the kind's folder in `user/`,
+named for the second half of its name (`acme/hello` goes in
+`user/plugins/hello`). Nothing is turned on: a plugin or icon pack
+arrives off, and a theme inactive.
+
+Blush checks the zip before anything is written, and installs nothing
+when:
+
+- it holds another kind of extension (the message names the screen it
+  belongs on), or none;
+- a file in it would land outside its folder, or is a symbolic link, or
+  it holds more than 5,000 files or 100 MB unpacked;
+- its manifest doesn't pass, or its namespace is reserved or another
+  installed extension's;
+- Composer installed an extension with its name (Composer updates it);
+- its `composer.json` requires packages besides PHP, its extensions, and
+  Blush, since an extension installed from a zip has no `vendor/`
+  folder of its own;
+- it's a plugin or theme with a PHP file that doesn't parse (checked
+  without running it).
+
+A zip of an extension that's already installed offers to replace it,
+naming both versions. Replacing swaps the folder and changes nothing
+else: an active theme stays active, and a plugin that's on stays on.
+The old folder is kept in `storage/backups/{kind}/{folder}`, one per
+extension: the next replace overwrites it, and deleting the extension
+deletes it. A folder that's a git checkout isn't replaced; update it
+with git.
+
+The extension's details screen shows the version that was kept, with
+**Roll back to {version}**, which asks first and then swaps it in. The
+version it replaces is kept in its place, so the message's **Undo**, or
+rolling back again, switches back. An earlier version that wouldn't
+run on the site now isn't rolled back to: a plugin whose requirements
+aren't met, or a theme in use whose parent theme isn't installed.
+**Discard** removes the kept version. Rolling back needs the kind's
+`extensions.{kind}.update` capability, and discarding its
+`extensions.{kind}.delete`.
+
+Installing needs the kind's `extensions.{kind}.install` capability, and
+replacing its `extensions.{kind}.update` (see
+[Capabilities](accounts.md#capabilities)). The server's PHP needs the
+`zip` extension, and the web server must be able to write to the kind's
+folder; the Install modal says so when it can't.
 
 ## Turning extensions on
 

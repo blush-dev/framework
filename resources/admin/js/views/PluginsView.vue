@@ -20,22 +20,23 @@
  * how to install one for now.
  */
 
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
-import AdminModal from '../components/AdminModal.vue';
+import InstallModal, { type InstallState } from '../components/InstallModal.vue';
 import MenuButton from '../components/MenuButton.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import type { PluginSummary } from '../api';
+import { useInstall } from '../install';
 import { pluginRoute, usePlugins } from '../plugins';
 import { copy } from '../themes';
 import { can } from '../session';
 
-const { answer, error, busy, plugins, load, toggle, useConfig, remove: removePlugin } = usePlugins();
+const { answer, error, busy, plugins, load, find, toggle, useConfig, remove: removePlugin } = usePlugins();
+const { installing, canInstall, afterInstall, hop } = useInstall('plugin', load);
 
 // What the account may do here (D-389).
 const canActivate = can('extensions.plugins.activate');
 const canDelete   = can('extensions.plugins.delete');
-const installing = ref(false);
 
 void load();
 
@@ -44,6 +45,27 @@ const on = computed(() => plugins.value.filter((plugin) => plugin.running).lengt
 // Why a plugin that isn't running can't be turned on, or `null`.
 function blocked(plugin: PluginSummary): string | null {
 	return plugin.running ? null : plugin.blocked;
+}
+
+// What a plugin the Install modal installed is, and whether it can be turned on.
+function installState(name: string): InstallState {
+	const plugin = find(name);
+
+	return {
+		words: plugin?.running ? 'turned on' : 'turned off',
+		next: plugin !== null && !plugin.running && blocked(plugin) === null && canActivate,
+		live: plugin?.running ?? false
+	};
+}
+
+async function next(name: string): Promise<void> {
+	installing.value = false;
+
+	const plugin = find(name);
+
+	if (plugin !== null) {
+		await toggle(plugin, true);
+	}
 }
 
 async function remove(plugin: PluginSummary): Promise<void> {
@@ -60,7 +82,7 @@ async function remove(plugin: PluginSummary): Promise<void> {
 			<p class="page-header__hint">Code that adds content types, components, icons, and actions to the site.</p>
 		</div>
 		<div class="page-header__actions">
-			<button type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Plugin</button>
+			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Plugin</button>
 		</div>
 	</header>
 
@@ -142,19 +164,7 @@ async function remove(plugin: PluginSummary): Promise<void> {
 		</span>
 	</p>
 
-	<AdminModal :open="installing" title="Install Plugin" @close="installing = false">
-		<p>A plugin is a folder in <code>user/plugins/</code>. Put one there and it shows up in this list.</p>
-		<p>A plugin published as a package is installed with <code>composer require vendor/plugin</code> instead. Composer keeps it up to date, and it can't be deleted from this screen.</p>
-		<div class="install-drop">
-			<AdminIcon name="upload" />
-			<span>Uploading a plugin's <strong>.zip</strong> is coming.</span>
-			<span class="install-drop__hint">It will be unpacked into <span class="mono">user/plugins/</span>, and stay off until you turn it on.</span>
-		</div>
-		<template #footer>
-			<button type="button" class="button" autofocus @click="installing = false">Close</button>
-			<button type="button" class="button button--primary" disabled>Upload</button>
-		</template>
-	</AdminModal>
+	<InstallModal kind="plugin" :open="installing" :upload="answer?.upload ?? null" :state="installState" @close="installing = false" @installed="afterInstall" @next="next" @hop="hop" />
 </template>
 
 <style scoped>
@@ -329,22 +339,7 @@ async function remove(plugin: PluginSummary): Promise<void> {
 	cursor: pointer;
 }
 
-.install-drop {
-	display: grid;
-	justify-items: center;
-	gap: var(--s-1);
-	margin-top: var(--s-4);
-	padding: var(--s-5);
-	border: 1px dashed var(--border-strong);
-	border-radius: var(--r-2);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-	text-align: center;
-}
 
-.install-drop__hint {
-	font-size: var(--text-xs);
-}
 
 @media (width <= 640px) {
 	.plugin {

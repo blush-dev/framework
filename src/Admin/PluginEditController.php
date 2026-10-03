@@ -25,6 +25,8 @@ use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\Install\ExtensionInstaller;
+use Blush\Extension\Install\InstallException;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Plugin\PluginConfig;
@@ -72,7 +74,8 @@ final readonly class PluginEditController
 		private ContentVersion $version,
 		private Bootstrap $bootstrap,
 		private Permissions $permissions,
-		private Filesystem $filesystem
+		private Filesystem $filesystem,
+		private ExtensionInstaller $installer
 	) {}
 
 	public function toggle(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
@@ -172,6 +175,13 @@ final readonly class PluginEditController
 		}
 
 		$this->bootstrap->clearCompiled(CompiledCache::Plugins);
+
+		// Its backup goes with it (D-393).
+		try {
+			$this->installer->discard(ExtensionKind::Plugin, $path);
+		} catch (InstallException) {
+			// The extension is gone either way; the backup is inert.
+		}
 
 		// The saved list forgets it, so the same name put back starts off.
 		try {

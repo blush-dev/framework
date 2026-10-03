@@ -1081,8 +1081,30 @@ and **icon packs**; **admin themes** are planned on the same pieces.
 - **Admin:** Extensions lists Themes, Plugins, and Icon Packs. Themes
   are activated and deleted (D-381); plugins and icon packs are turned on
   and off and deleted (D-385), each saved in `user/data/settings.json`.
-  **Install** buttons are placeholders for installing from the admin
-  (planned; D-039 and D-166 stand until then).
+  **Install** takes a `.zip` (D-392).
+- **Installing** (`Extension\Install`, D-388, D-392):
+  `ExtensionInstaller` installs a `.zip` of a folder into its kind's
+  folder in `user/`, or replaces one with the same name. `ExtensionArchive`
+  checks every entry first (no absolute paths, `..`, or links; at most
+  5,000 files and 100 MB unpacked), unwraps a zip whose files sit in one
+  folder, and writes entries itself. The archive is unpacked into a
+  hidden `user/{kind}/.install-…` (discovery skips hidden folders), read
+  as discovery reads a folder, and checked: its kind, manifest,
+  namespace (reserved, or claimed across kinds), a Composer install of
+  its name, `composer.json` requirements beyond the platform, and PHP
+  syntax for kinds that run code (`token_get_all(TOKEN_PARSE)`). Then
+  it's renamed into `user/{kind}/{short name}`, or swapped for the
+  installed folder (not a git checkout), the old one kept in
+  `storage/backups/{kind}/{folder}`, one per extension (D-393): rolling
+  back swaps it in and keeps the version it replaces, discarding removes
+  it, and deleting the extension deletes it (`ExtensionBackupController`;
+  `InstalledExtensions` finds a folder extension and whether it runs).
+  `InstallClash` is an installed one
+  with its name; `InstallException` anything else, naming the kind an
+  archive of another kind holds. Nothing is turned on (D-390).
+  `ExtensionInstallController` answers `POST themes`, `POST plugins`,
+  and `POST icon-packs` (`install`, or `update` to replace), and each
+  list's `upload` (the limit, 25 MB or PHP's, and any `problem`).
 
 ## Hosting (D-040)
 

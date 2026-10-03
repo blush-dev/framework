@@ -15,7 +15,14 @@
               10 overlays · 11 narrow widths
     <body>    icon sprite · shell · screen mount · overlays
     <script>  data (themes, plugins, packs) · shared parts · themes ·
-              plugins · icon packs · router · actions · overlays · wiring
+              plugins · icon packs · router · actions · installing · menu · wiring
+
+  The uploader is simulated. Which state you get is read off the file you pick:
+    anything.zip                      installs
+    quill.zip / weather.zip …         already installed — offers to replace
+    shop.zip on the Themes screen     wrong kind — offers the right screen
+    anything-broken.zip               unpacks with no manifest
+    anything.png                      refused before anything is sent
 -->
 <head>
 <meta charset="utf-8">
@@ -542,9 +549,45 @@ dialog.modal::backdrop { background:rgba(17,20,27,.42) }
 .modal-body p:last-child { margin-bottom:0 }
 .modal-foot { display:flex; justify-content:flex-end; gap:var(--s-2); padding:var(--s-5);
   margin-top:var(--s-2) }
+/* The uploader, same anatomy as the media library's Upload tab: a drop zone
+   and a button, in that order, with the limits stated before anyone tries.
+   The button carries no icon — there is a large upload glyph right above it,
+   and a second one reads as a different action rather than the same one. */
 .drop { margin-top:var(--s-4); border:1px dashed var(--border-strong); border-radius:var(--r-2);
-  padding:var(--s-5); text-align:center; color:var(--fg-3); font-size:12.5px }
-.drop .ic { color:var(--fg-3); margin-bottom:var(--s-2) }
+  padding:var(--s-6) var(--s-5); text-align:center; background:var(--surface-2);
+  transition:border-color .14s ease-out, background .14s ease-out }
+.drop[data-over="true"] { border-color:var(--accent); background:var(--accent-soft) }
+.drop > .ic { color:var(--fg-3); margin-bottom:var(--s-3) }
+.drop h3 { margin:0 0 var(--s-2); font-family:var(--font-display); font-size:14px; font-weight:600;
+  color:var(--fg) }
+.drop p { margin:0 auto var(--s-4); max-width:40ch; color:var(--fg-2); font-size:12.5px }
+.drop .limits { margin:var(--s-3) 0 0; color:var(--fg-3); font-size:11.5px }
+
+/* working, done and failed all replace the zone — one thing in that slot */
+.slab { margin-top:var(--s-4); border:1px solid var(--border); border-radius:var(--r-2);
+  padding:var(--s-5); background:var(--surface-2) }
+.slab-good { background:var(--good-soft); border-color:var(--good-dot) }
+.slab-bad  { background:var(--danger-soft); border-color:var(--danger-dot) }
+.slab-warn { background:var(--warn-soft); border-color:var(--warn-dot) }
+.slab-head { display:flex; align-items:center; gap:var(--s-2); font-weight:600; font-size:13px;
+  margin-bottom:var(--s-2) }
+.slab-good .slab-head { color:var(--good) }
+.slab-bad  .slab-head { color:var(--danger) }
+.slab-warn .slab-head { color:var(--warn) }
+.slab p { margin:0 0 var(--s-2); font-size:12.5px; color:var(--fg-2) }
+.slab p:last-child { margin-bottom:0 }
+.slab dl { margin:var(--s-3) 0 0; display:grid; grid-template-columns:auto 1fr;
+  gap:5px var(--s-4); font-size:12px }
+.slab dt { color:var(--fg-3) } .slab dd { margin:0; color:var(--fg) }
+
+.bar { height:5px; border-radius:999px; background:var(--surface-3); overflow:hidden;
+  margin:var(--s-3) 0 var(--s-2) }
+.bar i { display:block; height:100%; background:var(--accent); border-radius:999px;
+  transition:width .3s ease-out }
+
+.modal-foot .status { margin-right:auto; color:var(--fg-3); font-size:12.5px; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.modal-foot .status b { color:var(--fg); font-weight:500 }
 
 .toasts { position:absolute; right:var(--s-5); bottom:var(--s-5); z-index:130 }
 .toast { display:flex; align-items:center; gap:var(--s-2); background:var(--surface);
@@ -1519,6 +1562,17 @@ function openModal(title, body, foot) {
 }
 modal.addEventListener('click', e => { if (e.target.closest('[data-close]')) modal.close(); });
 
+/* Nobody aims for the dashed rectangle, so a file dropped anywhere on the
+   modal counts. The zone lights up wherever the pointer is. */
+const over = on => $('#drop')?.setAttribute('data-over', String(on));
+modal.addEventListener('dragover', e => { e.preventDefault(); over(true); });
+modal.addEventListener('dragleave', e => { if (!modal.contains(e.relatedTarget)) over(false); });
+modal.addEventListener('drop', e => {
+  e.preventDefault(); over(false);
+  if (IN.phase === 'working') return;
+  choose(e.dataTransfer?.files?.[0]);
+});
+
 function confirmActivate(t) {
   openModal(`Activate ${t.name}`,
     `<p>Visitors will see the ${esc(t.name)} theme the moment this is saved. Your content,
@@ -1556,31 +1610,210 @@ function confirmDelete(kind, slug) {
      <button class="btn btn-danger" type="button" data-close data-confirm-delete="${kind}:${slug}">Delete ${esc(x.name)}</button>`);
 }
 
-/* The same two routes for all three kinds: a folder under user/{kind}/, or a
-   Composer package. Only the folder and the last line differ. */
+/* == INSTALLING ============================================================
+   The same two routes for all three kinds: a folder under user/{kind}/, or a
+   Composer package. The uploader covers the first one.
+
+   Nothing is really uploaded here, so the outcome is read off the file you
+   choose, which keeps every state reachable:
+     anything.zip                 installs
+     <an installed slug>.zip      already installed — offers to replace it
+     <a slug from another screen> wrong kind — offers the screen it belongs to
+     a name containing "broken"   unpacks, but has no manifest
+     not a .zip                   refused before anything is sent
+   ========================================================================= */
 const INSTALL = {
-  theme:  { title:'Install Theme',     dir:'user/themes',  noun:'A theme',
-            tail:'Nothing is activated — the site keeps the theme it has.' },
-  plugin: { title:'Install Plugin',    dir:'user/plugins', noun:'A plugin',
-            tail:'It arrives off, so nothing it registers runs until you turn it on.' },
-  pack:   { title:'Install Icon Pack', dir:'user/icons',   noun:'An icon pack',
-            tail:'Its namespace comes from the pack, so two packs can use the same icon name.' },
+  theme:  { title:'Install Theme',     noun:'theme',     dir:'user/themes',  list:THEMES,
+            drag:'Drag a Theme Here',  next:'Activate',  screen:'themes',
+            blurb:'A .zip of the theme folder. It is unpacked into user/themes/ and nothing is activated.' },
+  plugin: { title:'Install Plugin',    noun:'plugin',    dir:'user/plugins', list:PLUGINS,
+            drag:'Drag a Plugin Here', next:'Turn on',   screen:'plugins',
+            blurb:'A .zip of the plugin folder. It is unpacked into user/plugins/ and arrives turned off.' },
+  pack:   { title:'Install Icon Pack', noun:'icon pack', dir:'user/icons',   list:PACKS,
+            drag:'Drag an Icon Pack Here', next:'Turn on', screen:'packs',
+            blurb:'A .zip of the pack folder. It is unpacked into user/icons/ and arrives turned off.' },
 };
 
+const IN = { kind:null, phase:'idle', file:null, err:null, clash:null, made:null, pct:0, step:'' };
+
+const kb = n => n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB`
+                                : `${(n / 1048576).toFixed(1)} MB`;
+const titleCase = s => s.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
 function installModal(kind) {
-  const i = INSTALL[kind];
-  openModal(i.title,
-    `<p>${i.noun} is a folder under <code>${i.dir}/</code>. Put one there and it appears in
-      this list.</p>
-     <p>One published as a package is installed with <code>composer require vendor/name</code>
-      instead. Composer owns it from then on, so it cannot be deleted from this screen.</p>
-     <div class="drop"><svg class="ic ic-lg"><use href="#i-upload"/></svg>
-       <div>Drop a <strong>.zip</strong> here, or choose a file</div>
-       <div style="margin-top:6px;font-size:11.5px">It is unpacked into
-         <span class="mono">${i.dir}/</span>. ${i.tail}</div></div>`,
-    `<button class="btn" type="button" data-close data-focus>Cancel</button>
-     <button class="btn btn-primary" type="button" data-close disabled>Upload</button>`);
+  Object.assign(IN, { kind, phase:'idle', file:null, err:null, clash:null, made:null, pct:0 });
+  renderInstall();
+  modal.showModal();
 }
+
+/* What the chosen file turns out to be. In the real admin this is the server
+   answering; here it is the file name. */
+function inspect(file) {
+  const i = INSTALL[IN.kind];
+  const base = file.name.replace(/\.[^.]+$/, '').toLowerCase();
+  if (!/\.zip$/i.test(file.name))
+    return { err:'type', say:`${esc(file.name)} is not a .zip file.` };
+
+  const here = live(i.list).find(x => x.slug === base);
+  if (here) return { clash:here };
+
+  for (const [k, other] of Object.entries(INSTALL)) {
+    if (k === IN.kind) continue;
+    const found = live(other.list).find(x => x.slug === base);
+    if (found) return { err:'kind', wrong:k, say:`${esc(file.name)} is a ${other.noun}, not a ${i.noun}.` };
+  }
+  if (/broken|bad/.test(base))
+    return { err:'manifest', say:`${esc(file.name)} unpacked, but there is no
+      <span class="mono">blush.json</span> in it, so it is not a ${i.noun}.` };
+
+  return { ok:base };
+}
+
+function choose(file) {
+  if (!file) return;
+  IN.file = file;
+  const v = inspect(file);
+  if (v.err)        Object.assign(IN, { phase:'error', err:v });
+  else if (v.clash) Object.assign(IN, { phase:'clash', clash:v.clash });
+  else              Object.assign(IN, { phase:'chosen', err:null, clash:null });
+  renderInstall();
+}
+
+/* Build what the manifest would have said. */
+function makeExtension(slug, version) {
+  const i = INSTALL[IN.kind], name = titleCase(slug);
+  const common = { slug, name, version, install:'folder', source:i.dir, kind:IN.kind,
+                   author:'Unknown', license:'MIT', uri:null };
+  if (IN.kind === 'theme') return { ...common, fallback:'default', layout:'centered',
+    type:'Sans throughout', desc:`Installed from ${esc(IN.file.name)}.`,
+    pal:{ bg:['#fdfdfc','#101214'], surface:['#ffffff','#181b1e'], text:['#17191c','#eceef0'],
+          muted:['#6b7075','#8f959b'], accent:['#7a4bd0','#b490f5'], border:['#e7e8ea','#24282c'] } };
+  if (IN.kind === 'plugin') return { ...common, pkg:`example/${slug}`, on:false,
+    desc:`Installed from ${esc(IN.file.name)}.`, requires:[['core','^2.0']] };
+  return { ...common, pkg:`example/${slug}`, ns:slug, on:false,
+    desc:`Installed from ${esc(IN.file.name)}.`,
+    icons: pk(slug, ['star','tag','bookmark','link','bell','pin','mail','play']) };
+}
+
+function runInstall(replacing) {
+  IN.phase = 'working'; IN.pct = 0; IN.step = `Uploading ${IN.file.name}`;
+  renderInstall();
+  const steps = [[35, 'Unpacking'], [70, 'Reading blush.json'], [100, 'Writing files']];
+  steps.forEach(([pct, step], n) => setTimeout(() => {
+    if (IN.phase !== 'working') return;
+    IN.pct = pct; IN.step = step; renderInstall();
+  }, 380 * (n + 1)));
+
+  setTimeout(() => {
+    if (IN.phase !== 'working') return;
+    const i = INSTALL[IN.kind];
+    if (replacing) {
+      replacing.version = bump(replacing.version);
+      IN.made = replacing; IN.phase = 'done'; IN.replaced = true;
+    } else {
+      const made = makeExtension(inspect(IN.file).ok, '1.0.0');
+      i.list.push(made);
+      IN.made = made; IN.phase = 'done'; IN.replaced = false;
+    }
+    renderInstall();
+    render();
+  }, 380 * 4);
+}
+const bump = v => { const n = v.split('.').map(Number); n[1] += 1; n[2] = 0; return n.join('.'); };
+
+function renderInstall() {
+  const i = INSTALL[IN.kind];
+  $('#m-title').textContent = i.title;
+
+  const intro = `<p>${i.noun[0].toUpperCase()}${i.noun.slice(1)}s are folders under
+    <code>${i.dir}/</code>. One published as a package is installed with
+    <code>composer require vendor/name</code> instead, and Composer owns it from then on.</p>`;
+
+  let body, foot;
+
+  if (IN.phase === 'idle' || IN.phase === 'chosen') {
+    body = intro + `<div class="drop" id="drop">
+        <svg class="ic ic-lg"><use href="#i-upload"/></svg>
+        <h3>${i.drag}</h3>
+        <p>${i.blurb}</p>
+        <button class="btn btn-primary" type="button" data-pick>Choose file</button>
+        <p class="limits">Up to 25 MB · ZIP</p>
+      </div>
+      <input type="file" id="pickfile" accept=".zip" hidden>`;
+    foot = `<span class="status">${IN.file
+        ? `<b>${esc(IN.file.name)}</b> · ${kb(IN.file.size)}` : 'Choose a file.'}</span>
+      <button class="btn" type="button" data-close data-focus>Cancel</button>
+      <button class="btn btn-primary" type="button" ${IN.file ? 'data-run' : 'disabled'}>Install</button>`;
+  }
+
+  else if (IN.phase === 'working') {
+    body = intro + `<div class="slab">
+        <div class="slab-head"><span class="spin"></span>${esc(IN.step)}…</div>
+        <div class="bar"><i style="width:${IN.pct}%"></i></div>
+        <p><b>${esc(IN.file.name)}</b> · ${kb(IN.file.size)}</p></div>`;
+    foot = `<span class="status">Installing…</span>
+      <button class="btn" type="button" disabled>Cancel</button>
+      <button class="btn btn-primary" type="button" disabled><span class="spin"></span>Install</button>`;
+  }
+
+  else if (IN.phase === 'done') {
+    const m = IN.made;
+    body = `<div class="slab slab-good">
+        <div class="slab-head"><svg class="ic"><use href="#i-ok"/></svg>
+          ${IN.replaced ? 'Updated' : 'Installed'} ${esc(m.name)} ${esc(m.version)}</div>
+        <p>${IN.replaced
+            ? `The folder was replaced. Nothing else changed — it is still
+               ${IN.kind === 'theme' ? (m.slug === state.active ? 'the active theme' : 'inactive')
+                                     : (m.on ? 'turned on' : 'turned off')}.`
+            : `It is in the list below, ${IN.kind === 'theme' ? 'inactive' : 'turned off'},
+               until you say otherwise.`}</p>
+        <dl><dt>Folder</dt><dd class="mono">${esc(m.source)}/${esc(m.slug)}</dd>
+            <dt>From</dt><dd>${esc(IN.file.name)} · ${kb(IN.file.size)}</dd></dl>
+      </div>`;
+    const canNext = IN.kind === 'theme' ? !blocker(m) : !pluginBlockerSafe(m);
+    foot = `<span class="status"></span>
+      <button class="btn" type="button" data-close data-focus>Done</button>
+      ${canNext ? `<button class="btn btn-primary" type="button"
+        data-next="${IN.kind}:${m.slug}">${i.next} ${esc(m.name)}</button>` : ''}`;
+  }
+
+  else if (IN.phase === 'clash') {
+    const c = IN.clash;
+    body = intro + `<div class="slab slab-warn">
+        <div class="slab-head"><svg class="ic"><use href="#i-alert"/></svg>
+          ${esc(c.name)} is already installed</div>
+        <p>Replacing overwrites <span class="mono">${esc(c.source)}/${esc(c.slug)}</span>.
+          Nothing else changes${IN.kind === 'theme' && c.slug === state.active
+            ? ' — it stays the active theme, and the site serves the new files immediately' : ''}.</p>
+        <dl><dt>Installed</dt><dd class="mono">${esc(c.version)}</dd>
+            <dt>This file</dt><dd class="mono">${esc(bump(c.version))}</dd></dl>
+      </div>`;
+    foot = `<span class="status"><b>${esc(IN.file.name)}</b> · ${kb(IN.file.size)}</span>
+      <button class="btn" type="button" data-close data-focus>Cancel</button>
+      <button class="btn btn-primary" type="button" data-run="replace">Replace ${esc(c.version)}
+        with ${esc(bump(c.version))}</button>`;
+  }
+
+  else { /* error — lead with what is safe, then the way out */
+    const e = IN.err, other = e.wrong ? INSTALL[e.wrong] : null;
+    body = intro + `<div class="slab slab-bad">
+        <div class="slab-head"><svg class="ic"><use href="#i-alert"/></svg>Nothing was installed</div>
+        <p>${e.say}</p>
+        ${other ? `<p>Install it on the ${other.title.replace('Install ', '')}s screen instead.</p>` : ''}
+      </div>`;
+    foot = `<span class="status"></span>
+      <button class="btn" type="button" data-close>Cancel</button>
+      ${other ? `<button class="btn" type="button" data-hop="${e.wrong}">Go to ${other.noun}s</button>` : ''}
+      <button class="btn btn-primary" type="button" data-pick data-focus>Choose another file</button>`;
+  }
+
+  $('#m-body').innerHTML = body;
+  $('#m-foot').innerHTML = foot;
+  $('#m-body').querySelector('[data-focus]')?.focus() ?? $('#m-foot').querySelector('[data-focus]')?.focus();
+}
+
+/* blocker() is the theme one; a freshly made plugin has no blocker yet. */
+const pluginBlockerSafe = m => (typeof pluginBlocker === 'function' && m.requires) ? pluginBlocker(m) : null;
 
 /* == ROW MENU ============================================================== */
 const menu = $('#menu');
@@ -1664,6 +1897,27 @@ document.addEventListener('click', e => {
   const ins = e.target.closest('[data-install]');
   if (ins) { e.preventDefault(); installModal(ins.dataset.install); }
 
+  // the uploader
+  if (e.target.closest('[data-pick]')) {
+    if (IN.phase === 'error') { Object.assign(IN, { phase:'idle', file:null, err:null }); renderInstall(); }
+    $('#pickfile')?.click();
+  }
+  const run = e.target.closest('[data-run]');
+  if (run) runInstall(run.dataset.run === 'replace' ? IN.clash : null);
+
+  const hop = e.target.closest('[data-hop]');
+  if (hop) { modal.close(); installModal(hop.dataset.hop); }
+
+  // the one next step the receipt offers
+  const next = e.target.closest('[data-next]');
+  if (next) {
+    const [kind, slug] = next.dataset.next.split(':');
+    modal.close();
+    if (kind === 'theme') { go('themes'); activate(slug); }
+    else { go(kind === 'plugin' ? 'plugins' : 'packs');
+           kind === 'plugin' ? togglePlugin(slug) : togglePack(slug); }
+  }
+
   const copy = e.target.closest('[data-copy]');
   if (copy) { navigator.clipboard?.writeText(copy.dataset.copy); toast(`Copied ${copy.dataset.copy}`); }
 
@@ -1675,6 +1929,7 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('change', e => {
+  if (e.target.id === 'pickfile') { choose(e.target.files[0]); return; }
   const sw = e.target.closest('[data-toggle]'); if (!sw) return;
   const [kind, slug] = sw.dataset.toggle.split(':');
   if (kind === 'plugin') togglePlugin(slug); else togglePack(slug);

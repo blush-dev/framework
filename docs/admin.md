@@ -940,9 +940,20 @@ Broken themes have no details page.
 
 When the active theme was set here, the note under the cards has
 **Use `config/theme.php`'s theme**, which removes the saved one.
-Running `bin/blush theme:activate {name}` also clears it. Installing a
-theme from here isn't available yet: **Install Theme** says how to
-install one.
+Running `bin/blush theme:activate {name}` also clears it.
+
+**Install Theme** takes a `.zip` of a theme's folder: drop it anywhere
+on the modal, or choose it. The modal shows it being sent, then what was
+installed, with **Activate** as the next step; a theme that's already
+installed is offered for replacing, with both versions named; and a zip
+that can't be installed says why, with nothing written. A zip of a
+plugin or icon pack offers that screen instead. See
+[Installing from a zip](extending.md#installing-from-a-zip) for what's
+checked. **Install Plugin** and **Install Icon Pack** work the same way,
+with **Turn on** as the next step. After a replace, the details screen
+of a theme, plugin, or pack has the version that was kept, with **Roll
+back** and **Discard** (see
+[Installing from a zip](extending.md#installing-from-a-zip)).
 
 How the admin itself looks is set per account, on **Your Account**.
 
@@ -970,8 +981,8 @@ details: who made it, its version, license, folder, and namespace, the
 plugins that require it, and each of its requirements, checked against
 this site. **Delete plugin** removes a plugin's folder from
 `user/plugins` once it's off; a Composer plugin is removed with
-`composer remove` instead. **Install Plugin** says how to install one;
-installing from here isn't available yet.
+`composer remove` instead. **Install Plugin** installs one from a `.zip`,
+as **Install Theme** does; it arrives turned off.
 
 ## Icon packs
 
@@ -991,8 +1002,8 @@ on, Composer's included. The switches are saved in `user/data/settings.json`, ov
 **Use `config/icons.php`'s list** to go back. A pack's name, or **Icon pack details** in its menu,
 opens every icon in it, with a filter; click one to copy how it's used
 (`weather/sun`). **Delete icon pack** removes a pack's folder (or a
-broken pack's) from `user/icons`. **Install Icon Pack** says how to
-install one.
+broken pack's) from `user/icons`. **Install Icon Pack** installs one
+from a `.zip`, as **Install Theme** does; it arrives turned off.
 
 ## Accounts and roles
 
@@ -1279,6 +1290,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET icon-packs/{vendor}/{name}`, `GET icon-packs/core` | One pack (`{"pack"}`) or the core set (`{"core"}`), with every icon. Needs `extensions.icon-packs.view` |
 | `PUT icon-packs/{vendor}/{name}` | Turns a pack on or off: send `{"enabled": true}` or `false`. Saves `icons.enabled` in `user/data/settings.json`: every pack that's on, Composer's included, starting from what's on by default. Needs `extensions.icon-packs.activate` |
 | `DELETE icon-packs/{folder}` | Deletes a pack's folder (or a broken pack's) from `user/icons`: `{"deleted"}`. Needs `extensions.icon-packs.delete` |
+| `POST themes`, `POST plugins`, `POST icon-packs` | Installs an extension from a `.zip` of its folder, sent as the multipart field `file`, with `replace` set to `1` to replace an installed one with its name. Answers `201` with `{"installed": {"name", "label", "version", "folder"}, "replaced", "backup", "refresh"}` (`replaced` is the version it replaced, or `null`; `refresh` asks for `POST settings/refresh`). One already installed, without `replace`, is a `409` with `{"clash": {"installed", "incoming"}}`; anything else that stops it is a `422` saying why, with the `kind` an archive of another kind holds. Nothing is written either way. Needs `extensions.{kind}.install`, or `.update` to replace. Each kind's list (`GET appearance`, `GET plugins`, `GET icon-packs`) also has `upload`: `{"limit", "problem"}`, the largest archive taken in bytes and why nothing can be installed |
+| `POST {themes,plugins,icon-packs}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
+| `DELETE {themes,plugins,icon-packs}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
 | `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection, taxonomy, or tree in a folder from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
 | `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection`, `taxonomy`, or `tree`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |

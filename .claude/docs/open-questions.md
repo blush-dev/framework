@@ -141,11 +141,12 @@ Move each item to `decisions.md` once it's answered.
   so the Plugins screen can show it as the extensions sketch does
   (D-385).
 - **Installing and updating extensions** (D-388 decides the admin
-  installs them into `user/`):
-  - How a zip install works: what the archive must hold, checks before
-    anything is written (a new one lands off, D-390), and keeping a backup when a
-    newer version replaces one (replacing is decided; capabilities are
-    D-389).
+  installs them into `user/`; installing and replacing from a zip are
+  built, D-392):
+  - Installing from a URL, and from the CLI (`plugin:install` and the
+    like), on the same `ExtensionInstaller`.
+  - Revisiting backups (D-393) if Blush gets a scheduler: expiring
+    kept versions by age, or capping `storage/backups/`.
   - Where updates come from for a local extension: an update source
     declared in its manifest (as WordPress's `Update URI`), or inferred
     from its `vendor/name` (risking a stranger's package of the same

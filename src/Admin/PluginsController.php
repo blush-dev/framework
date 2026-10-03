@@ -22,6 +22,7 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Plugin\PluginConfig;
@@ -63,7 +64,8 @@ final readonly class PluginsController
 		private Paths $paths,
 		private Plugins $plugins,
 		private PluginConfig $config,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private ExtensionInstaller $installer
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -115,7 +117,8 @@ final readonly class PluginsController
 				'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), $checked),
 				'blocked'      => PluginRequirements::met($checked) ? null : PluginRequirements::reason($checked),
 				'requiredBy'   => array_keys(array_filter($installed, static fn (PluginManifest $other): bool => array_key_exists($name, $other->requires))),
-				'deletable'    => $folder !== null && ! isset($running[$name]) && ! self::namedByConfig($this->config, $name)
+				'deletable'    => $folder !== null && ! isset($running[$name]) && ! self::namedByConfig($this->config, $name),
+				'backup'       => ExtensionInstallController::backup($this->installer, ExtensionKind::Plugin, $folder === null ? null : $plugin->path, $name)
 			];
 		}
 
@@ -124,7 +127,8 @@ final readonly class PluginsController
 		return Response::json([
 			'plugins' => $plugins,
 			'saved'   => $saved,
-			'config'  => is_file("{$this->paths->config}/plugins.php")
+			'config'  => is_file("{$this->paths->config}/plugins.php"),
+			'upload'  => ExtensionInstallController::upload($this->installer, ExtensionKind::Plugin)
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
