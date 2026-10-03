@@ -85,7 +85,9 @@ final class DefaultThemeTest extends TestCase
 		'sitemap'                           => '/sitemap',
 		'sitemap.xml'                       => '/sitemap.xml',
 		'sitemap.type'                      => '/sitemap/post',
-		'robots'                            => '/robots.txt'
+		'robots'                            => '/robots.txt',
+		'llms'                              => '/llms.txt',
+		'llms.markdown'                     => '/archives/spring.md'
 	];
 
 	private Application $app;

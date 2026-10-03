@@ -68,7 +68,8 @@ use Blush\Theme\Themes;
  *
  * Settings are read when the site boots, so the next request has them.
  * A change to what has addresses or how dates are read (the home page,
- * time zone, trailing slash, feed formats, sitemap, or theme) also deletes the
+ * time zone, trailing slash, feed formats, sitemap, Markdown copies, or
+ * theme) also deletes the
  * compiled content types and routes, so the site builds them from the
  * new settings until the admin's `settings/refresh`, which runs with
  * them, compiles them again. Every save moves the content version on,

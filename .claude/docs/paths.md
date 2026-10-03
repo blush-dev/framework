@@ -60,6 +60,8 @@ blush-framework/
                         IconRegistry (D-187), icon packs: IconPack, IconPacks,
                         IconPackDiscovery, IconPackCache (D-378)
     Sitemap/            Sitemap config, builder, controller, robots.txt, routes (D-123)
+    Llms/               LlmsConfig, MarkdownPages, MarkdownLinks, LlmsTxt, controllers, routes,
+                        export URLs (Markdown pages and llms.txt, D-395, D-396)
     Publish/            Publisher, PublishConfig, Puller + GitPuller, webhook (D-131, D-132)
     Setup/              SetupChecks, CheckResult, CheckStatus, SetupPage (init, doctor, D-218)
     Session/            Session, SessionStore + FileSessionStore, SessionConfig, StartSession (D-219)

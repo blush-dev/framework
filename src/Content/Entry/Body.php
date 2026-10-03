@@ -47,6 +47,14 @@ final class Body
 	}
 
 	/**
+	 * Returns the format the body is written in.
+	 */
+	public function format(): BodyFormat
+	{
+		return $this->source->format;
+	}
+
+	/**
 	 * Returns the rendered HTML.
 	 *
 	 * @throws MarkdownException

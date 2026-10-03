@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * Content types (D-250): every type, taxonomies too, as a list screen
- * with tabs by kind and a search, then a screen for each type (admin.md
+ * with a tab for each kind the site has (D-400: Collections, Trees,
+ * Taxonomies, Profiles) and a search, then a screen for each type (admin.md
  * §8, List, then detail). Types in `user/data/types` are created and
  * edited here (D-311), and collections and taxonomies from code are
  * edited through a file there (D-349); the pages and authors types from
@@ -20,7 +21,7 @@ import { canCreateTypes, loadTypes, types } from '../types';
 
 const loaded = ref(false);
 const failed = ref(false);
-const kind   = ref<'all' | 'content' | 'taxonomy'>('all');
+const kind   = ref<'all' | ContentTypeSummary['kind']>('all');
 const search = ref('');
 const counts = ref<Record<string, number>>({});
 
@@ -37,18 +38,20 @@ loadTypes().then(() => {
 	failed.value = true;
 });
 
-const isTaxonomy = (type: ContentTypeSummary): boolean => type.kind === 'taxonomy';
+// Each kind's tab, shown when the site has a type of that kind.
+const kinds: [ContentTypeSummary['kind'], string][] = [['collection', 'Collections'], ['tree', 'Trees'], ['taxonomy', 'Taxonomies'], ['profiles', 'Profiles']];
 
 const tabs = computed(() => [
 	{ key: 'all' as const, label: 'All', count: types.value.length },
-	{ key: 'content' as const, label: 'Content', count: types.value.filter((type) => !isTaxonomy(type)).length },
-	{ key: 'taxonomy' as const, label: 'Taxonomies', count: types.value.filter(isTaxonomy).length }
+	...kinds
+		.map(([key, label]) => ({ key, label, count: types.value.filter((type) => type.kind === key).length }))
+		.filter((tab) => tab.count > 0)
 ]);
 
 const shown = computed(() => {
 	const words = search.value.trim().toLowerCase();
 
-	return types.value.filter((type) => (kind.value === 'all' || (kind.value === 'taxonomy') === isTaxonomy(type))
+	return types.value.filter((type) => (kind.value === 'all' || type.kind === kind.value)
 		&& (words === '' || `${type.labels.plural} ${type.labels.singular} ${type.name}`.toLowerCase().includes(words)));
 });
 

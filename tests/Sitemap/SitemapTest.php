@@ -19,6 +19,8 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Core\Application;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
+use Blush\Config\InvalidConfig;
+use Blush\Sitemap\AiCrawlerGroup;
 use Blush\Sitemap\RobotsController;
 use Blush\Sitemap\SitemapBuilder;
 use Blush\Sitemap\SitemapConfig;
@@ -28,6 +30,7 @@ use Blush\Sitemap\SitemapServiceProvider;
 use Blush\Sitemap\SitemapUrl;
 use Blush\Tests\Content\BuildsContentSite;
 
+#[CoversClass(AiCrawlerGroup::class)]
 #[CoversClass(SitemapBuilder::class)]
 #[CoversClass(SitemapConfig::class)]
 #[CoversClass(SitemapController::class)]
@@ -148,6 +151,28 @@ final class SitemapTest extends TestCase
 		$this->boot("new Blush\\Sitemap\\SitemapConfig(robots: \"User-agent: *\\nDisallow: /secret\\n\")");
 
 		$this->assertSame("User-agent: *\nDisallow: /secret\n", (string) $this->get('/robots.txt')->getBody());
-		$this->assertSame(['enabled' => true, 'disallow' => [], 'robots' => "User-agent: *\nDisallow: /secret\n"], $this->app->container()->make(SitemapConfig::class)->toArray());
+		$this->assertSame(['enabled' => true, 'disallow' => [], 'robots' => "User-agent: *\nDisallow: /secret\n", 'blockAi' => []], $this->app->container()->make(SitemapConfig::class)->toArray());
+	}
+
+	public function testAsksAiCrawlersToStayAway(): void
+	{
+		$this->standardContent();
+		$this->boot("Blush\\Sitemap\\SitemapConfig::fromArray(['disallow' => ['/drafts/'], 'blockAi' => ['fetchers', 'training']])");
+
+		$this->assertSame(
+			"User-agent: *\nDisallow: /drafts/\n\n"
+			. "# Training crawlers\nUser-agent: GPTBot\nUser-agent: ClaudeBot\nUser-agent: CCBot\nUser-agent: Google-Extended\nUser-agent: Applebot-Extended\nUser-agent: Bytespider\nUser-agent: meta-externalagent\nDisallow: /\n\n"
+			. "# Fetchers acting for a person\nUser-agent: ChatGPT-User\nUser-agent: Claude-User\nUser-agent: Perplexity-User\nDisallow: /\n\n"
+			. "Sitemap: http://localhost/sitemap\n",
+			(string) $this->get('/robots.txt')->getBody(),
+			'Each blocked group, in its usual order (D-398).'
+		);
+		$this->assertSame([AiCrawlerGroup::Fetchers, AiCrawlerGroup::Training], $this->app->container()->make(SitemapConfig::class)->blockAi);
+
+		$this->boot("Blush\\Sitemap\\SitemapConfig::fromArray(['blockAi' => ['training']])", 'development');
+		$this->assertSame("User-agent: *\nDisallow: /\n", (string) $this->get('/robots.txt')->getBody(), 'Outside production, everything is blocked anyway.');
+
+		$this->expectException(InvalidConfig::class);
+		SitemapConfig::fromArray(['blockAi' => ['robots']]);
 	}
 }

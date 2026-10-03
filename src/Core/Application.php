@@ -37,6 +37,7 @@ use Blush\Menu\MenuServiceProvider;
 use Blush\Region\RegionServiceProvider;
 use Blush\Feed\FeedServiceProvider;
 use Blush\Http\HttpServiceProvider;
+use Blush\Llms\LlmsServiceProvider;
 use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
@@ -98,6 +99,7 @@ class Application implements Bootable
 		AuthServiceProvider::class,
 		AdminServiceProvider::class,
 		PreviewServiceProvider::class,
+		LlmsServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class
 	];

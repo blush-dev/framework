@@ -66,11 +66,13 @@ final class AdminSettingsTest extends TestCase
 		$general = self::json($this->send('GET', '/settings/general'));
 		$reading = self::json($this->send('GET', '/settings/reading'));
 		$search  = self::json($this->send('GET', '/settings/search'));
+		$ai      = self::json($this->send('GET', '/settings/ai'));
 		$system  = self::json($this->send('GET', '/settings/system'));
 
 		$this->assertSame(['site', 'dates', 'environment'], array_column(is_array($general['groups'] ?? null) ? $general['groups'] : [], 'key'));
 		$this->assertSame(['home', 'feeds'], array_column(is_array($reading['groups'] ?? null) ? $reading['groups'] : [], 'key'));
 		$this->assertSame(['addresses', 'search'], array_column(is_array($search['groups'] ?? null) ? $search['groups'] : [], 'key'));
+		$this->assertSame(['markdown', 'crawlers'], array_column(is_array($ai['groups'] ?? null) ? $ai['groups'] : [], 'key'));
 		$this->assertSame(['types', 'caching', 'publishing'], array_column(is_array($system['groups'] ?? null) ? $system['groups'] : [], 'key'));
 		$this->assertSame(404, $this->send('GET', '/settings/permalinks')->getStatusCode());
 
@@ -106,6 +108,62 @@ final class AdminSettingsTest extends TestCase
 		$url = $this->setting($general, 'site', 'url');
 		$this->assertArrayNotHasKey('setting', $url, 'The address stays in config, beside the name.');
 		$this->assertSame('config/app.php', $url['file'] ?? null);
+	}
+
+	public function testShowsAndSavesTheAiScreen(): void
+	{
+		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts', 'llms' => false], 'note' => ['path' => 'notes'], 'tag' => ['path' => 'tags', 'taxonomy' => true]]]);\n");
+		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
+		$this->writeTemporaryFile('user/content/notes/one.md', "---\ntitle: One\n---\n");
+		$this->boot(roles: ['administrator'], environment: ['APP_ENV' => 'production']);
+		$this->login();
+
+		$ai = self::json($this->send('GET', '/settings/ai'));
+
+		$llms = $this->setting($ai, 'markdown', 'llms');
+		$this->assertSame(['llms.enabled', true, true, 'config/llms.php'], [$llms['setting'] ?? null, $llms['value'] ?? null, $llms['input'] ?? null, $llms['file'] ?? null]);
+		$this->assertSame('Lists 2 pages', $this->setting($ai, 'markdown', 'llmsTxt')['value'] ?? null);
+		$this->assertSame(['label' => 'View llms.txt', 'href' => 'https://example.test/llms.txt'], $this->setting($ai, 'markdown', 'llmsTxt')['link'] ?? null);
+		$this->assertSame(['Pages', 'Notes'], $this->setting($ai, 'markdown', 'types')['value'] ?? null, 'Types whose llms option is on; never taxonomies.');
+		$this->assertSame('None', $this->setting($ai, 'markdown', 'description')['value'] ?? null);
+
+		$block = $this->setting($ai, 'crawlers', 'blockAi');
+		$this->assertSame(['sitemap.blockAi', [], [], null], [$block['setting'] ?? null, $block['value'] ?? null, $block['input'] ?? null, $block['warning'] ?? null]);
+		$field = is_array($block['field'] ?? null) ? $block['field'] : [];
+		$this->assertSame('checks', $field['control'] ?? null);
+		$item = is_array($field['item'] ?? null) ? $field['item'] : [];
+		$this->assertSame('Training crawlers: GPTBot, ClaudeBot, CCBot, Google-Extended, Applebot-Extended, Bytespider, meta-externalagent', is_array($item['choices'] ?? null) ? $item['choices']['training'] ?? null : null);
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['app.description' => ' Notes on the web. ', 'sitemap.blockAi' => ['search', 'training'], 'llms.enabled' => false]]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertTrue(self::json($response)['refresh'] ?? null, 'Markdown copies change the routes.');
+		$this->assertSame(['app' => ['description' => 'Notes on the web.'], 'llms' => ['enabled' => false], 'sitemap' => ['blockAi' => ['training', 'search']]], json_decode($this->file('user/data/settings.json'), true));
+
+		// Settings are read at boot; the account is already there.
+		$this->app = $this->scratchApplication(['APP_ENV' => 'production', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
+		$this->app->boot();
+		$this->login();
+		$ai = self::json($this->send('GET', '/settings/ai'));
+
+		$this->assertSame(['Training crawlers', 'AI search crawlers'], $this->setting($ai, 'crawlers', 'blockAi')['value'] ?? null);
+		$this->assertSame('Off, with the Markdown copies', $this->setting($ai, 'markdown', 'llmsTxt')['value'] ?? null);
+		$this->assertSame('Notes on the web.', $this->setting($ai, 'markdown', 'description')['value'] ?? null);
+		$this->assertSame('Notes on the web.', $this->setting(self::json($this->send('GET', '/settings/general')), 'site', 'description')['value'] ?? null);
+
+		foreach ([['app.description' => "Two\nlines"], ['app.description' => str_repeat('x', 301)], ['sitemap.blockAi' => ['robots']], ['sitemap.blockAi' => 'training']] as $set) {
+			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => $set])->getStatusCode(), (string) json_encode($set));
+		}
+	}
+
+	public function testWarnsWhenAiCrawlerChoicesArentUsed(): void
+	{
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$warning = $this->setting(self::json($this->send('GET', '/settings/ai')), 'crawlers', 'blockAi')['warning'] ?? null;
+
+		$this->assertIsString($warning);
+		$this->assertStringContainsString('Outside production', $warning);
 	}
 
 	public function testWarnsAboutDetailedErrorsOnALiveSite(): void

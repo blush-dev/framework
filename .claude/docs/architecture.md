@@ -78,8 +78,9 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   (`Settings::apply()`, through each object's `toArray()`/`fromArray()`),
   so a saved value wins. Compiling leaves them out. Each `Setting` is
   also a field on its screen (`Setting::field()`, `SettingsScreen`,
-  D-343), and the editable screens are field set targets
-  (`settings:{screen}`, `SettingsTargets`); a set's settings are saved
+  D-343): general, reading, search, and ai (D-398), and the editable
+  screens are field set targets (`settings:{screen}`, `SettingsTargets`;
+  plugins' AI settings go on `settings:ai`, D-397); a set's settings are saved
   raw in the file's `site` section and read through their fields by
   `SiteSettings` (`$template->site()`).
 - **Errors** (`Blush\Error`, D-059):
@@ -735,7 +736,27 @@ Views use components, but the system is its own subsystem.
   them with `<link rel="alternate">`.
 - **Sitemaps** (`Blush\Sitemap`, M5c, D-123): `/sitemap` (an index), one
   per type at `/sitemap/{type}`, and `robots.txt` (which disallows
-  everything outside production).
+  everything outside production, and asks the AI crawlers of each
+  `SitemapConfig::$blockAi` group, `AiCrawlerGroup`, to stay away,
+  D-398).
+- **Markdown pages and `llms.txt`** (`Blush\Llms`, D-395): every
+  published entry with a URL has its body as written, under front
+  matter (title, URL, dates, summary), at its URL with `.md` (the home
+  page at `/index.md`), served as `text/markdown` with a canonical
+  `Link` header. `MarkdownLinks` gives a Markdown body's (and
+  summary's) links full URLs as the HTML has them (D-396): inline and
+  reference destinations, and directives' media and link props by the
+  component's definition, skipping code and HTML found line by line.
+  `MarkdownPages` finds the entry by building each
+  entry's Markdown path, so a lookup scans the site's entries (the page
+  cache keeps the answer). `/llms.txt` lists public entries of the
+  types whose `llms` option is on (by default collections and trees,
+  D-401), under the site's description
+  (`AppConfig::$description`, D-398).
+  `LlmsRoutes` is a system route registered last among the framework's
+  (so the admin's and media's own `.md` paths win, and content routes'
+  `{name}` never takes `hello.md`); themed pages link the version with
+  `<link rel="alternate" type="text/markdown">`. Both export.
 - **Search:** optional; needs `SqliteIndex` (under discussion: a JSON index that works on a static export too; see `open-questions.md`).
 
 ## Caching

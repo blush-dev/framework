@@ -24,6 +24,10 @@ use Blush\Env\Env;
 /**
  * Site-wide application settings, from `config/app.php`. When a site has no
  * app config, `fromEnv()` builds one from the `APP_*` variables.
+ *
+ * `description` is a line about the site (D-398), for `llms.txt`, and
+ * for the home page's meta description and feeds when nothing more
+ * specific exists; empty, there's none.
  */
 final readonly class AppConfig implements Config
 {
@@ -38,7 +42,8 @@ final readonly class AppConfig implements Config
 		public bool $debug = false,
 		public string $timezone = 'UTC',
 		public string $locale = 'en_US',
-		public array $providers = []
+		public array $providers = [],
+		public string $description = ''
 	) {
 		if (Uri::parse($url) === null || ! preg_match('#^https?://#i', $url)) {
 			throw new InvalidConfig(sprintf('AppConfig "url" must be an absolute http(s) URL; "%s" given.', $url));
@@ -114,7 +119,7 @@ final readonly class AppConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers']);
+		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description']);
 
 		$environment = $data['environment'] ?? null;
 
@@ -130,7 +135,8 @@ final readonly class AppConfig implements Config
 			debug: $values->bool('debug', false),
 			timezone: $values->string('timezone', 'UTC'),
 			locale: $values->string('locale', 'en_US'),
-			providers: $providers
+			providers: $providers,
+			description: $values->string('description', '')
 		);
 	}
 
@@ -147,7 +153,8 @@ final readonly class AppConfig implements Config
 			'debug'       => $this->debug,
 			'timezone'    => $this->timezone,
 			'locale'      => $this->locale,
-			'providers'   => $this->providers
+			'providers'   => $this->providers,
+			'description' => $this->description
 		];
 	}
 }

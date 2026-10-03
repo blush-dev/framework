@@ -138,7 +138,7 @@ It also cleans out expired cache entries.
 ## Static export
 
 `bin/blush build` turns your whole site into plain files: HTML pages,
-feeds, sitemaps, media, and theme files. Upload them to any web host,
+feeds, sitemaps, Markdown pages and `llms.txt`, media, and theme files. Upload them to any web host,
 including GitHub Pages, Netlify, Cloudflare Pages, or plain Apache.
 
 ```sh

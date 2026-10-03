@@ -335,7 +335,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   same way, saved in a file there over the code (its Danger Zone resets
   rather than deletes, and fields that are code classes are read-only);
   the pages and profiles types from code stay read-only. The wizard's
-  kinds are Content, Taxonomy, and **Tree** (the design has two): a
+  kinds are **Collection** (the design's Content, renamed to match the
+  kind, D-400), Taxonomy, and **Tree** (the design has two), and the
+  list's tabs are All and one per kind the site has (D-400): a
   tree's Behavior has no URL base, feed, or author archives, with a note
   on its addresses in place of the URL base. An **Addresses** panel
   (the design has none) edits each route key's path, after Behavior.
@@ -449,18 +451,27 @@ Each is recorded in `.claude/docs/decisions.md`.
     **Installing** below.
   - No author on the cards (it's on the details, D-384). The palette role
     `bg` is `background`. No theme settings yet (D-307).
-- **Settings** (D-309, D-324, D-325): only the settings Blush has, as
-  four screens in a **Settings** group of the Config panel (General,
-  Reading, Addresses and Search, System), not the prototype's one page.
+- **Settings** (D-309, D-324, D-325, D-398): only the settings Blush has, as
+  five screens in a **Settings** group of the Config panel (General,
+  Reading, Addresses and Search, AI, System), not the prototype's one page.
   The Config panel's groups are Structure, Settings, and Extensions (D-380)
   (Themes, Plugins, and Icon Packs; D-379); People is its own section (D-326). The
   prototype's panels become General's Site, Dates and Time, and
   Environment; Reading's Home Page and Feeds; Addresses and Search's
   Addresses and Search Engines; and System's Content Types, Caching,
-  and Publishing and Previews. Settings set in code (`config/` and
+  and Publishing and Previews. **AI** (D-398, the direction has none)
+  has Markdown Copies (the switch for `.md` copies and `llms.txt`, with
+  read-only rows linking to `llms.txt`, the types it lists, and the
+  description it uses) and AI Crawlers (the kinds `robots.txt` asks to
+  stay away, as checkboxes, with the groups explained in the panel's
+  note); plugins' settings will join it through `settings:ai` (D-397).
+  A shown setting may link out (`link`) or to the admin screens it's set
+  on (`links`). Settings set in code (`config/` and
   `.env` are developer code, D-039) sit beside the editable ones they
   relate to, read-only, naming their file; System is all read-only.
-  There's no tagline, administrator email, front page entry, default
+  There's a site **description** on General → Site (D-398), as the
+  prototype's tagline was, for `llms.txt` and as the front page's and
+  feeds' fallback description; there's no administrator email, front page entry, default
   new entry type, entries per page, trash emptying, date or time format,
   week start, or permalink structure. The panels are one column of
   label and control rows, not the prototype's two-column field grid.

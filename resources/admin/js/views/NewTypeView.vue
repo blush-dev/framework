@@ -71,6 +71,9 @@ watch(kind, (value) => {
 
 	// Collections credit authors by default; taxonomies don't (D-329).
 	form.value.authors = value === 'collection';
+
+	// Taxonomies are left out of llms.txt unless they ask (D-401).
+	form.value.llms = value !== 'taxonomy';
 });
 
 const authorsLabel = computed(() => types.value.find((item) => item.name === profileType.value)?.labels.plural ?? null);
@@ -184,7 +187,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 					<legend>Kind</legend>
 					<label class="kind" :class="{ 'kind--on': kind === 'collection' }">
 						<input v-model="kind" type="radio" value="collection" name="kind" class="visually-hidden">
-						<span class="kind__name">Content</span>
+						<span class="kind__name">Collection</span>
 						<span class="kind__text">Entries people write: posts, recipes, anything with a body.</span>
 					</label>
 					<label class="kind" :class="{ 'kind--on': kind === 'taxonomy' }">
@@ -241,7 +244,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 				<p class="panel__hint">Updates as you go</p>
 			</header>
 			<dl class="panel__body summary">
-				<div><dt>Kind</dt><dd>{{ { collection: 'Content type', taxonomy: 'Taxonomy', tree: 'Tree' }[kind] }}</dd></div>
+				<div><dt>Kind</dt><dd>{{ { collection: 'Collection', taxonomy: 'Taxonomy', tree: 'Tree' }[kind] }}</dd></div>
 				<div><dt>Name</dt><dd>{{ form.plural || 'Not set' }}<template v-if="form.singular"> / {{ form.singular }}</template></dd></div>
 				<div><dt>File</dt><dd class="mono">user/data/types/{{ key || '…' }}.yaml</dd></div>
 				<div><dt>Entries in</dt><dd class="mono">user/content/{{ folderClean || '…' }}</dd></div>

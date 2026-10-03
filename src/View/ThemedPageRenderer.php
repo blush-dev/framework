@@ -26,17 +26,20 @@ use Blush\Core\AppConfig;
 use Blush\Data\InvalidData;
 use Blush\Feed\FeedLinks;
 use Blush\Http\Response;
+use Blush\Llms\MarkdownPages;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
 
 /**
  * Renders content pages with the request's theme chain: the first view
  * in the page's `Hierarchy`, in a context whose `Head` already has the
- * title, canonical URL, OpenGraph basics, pagination links, and feed
- * links. Later pages of a listing add the page number to the title.
- * When the page shows an entry, the head also gets its
+ * title, canonical URL, OpenGraph basics, pagination links, feed links,
+ * and, on an entry's own URL, its Markdown version's (D-395). Later
+ * pages of a listing add the page number to the title. When the page
+ * shows an entry, the head also gets its
  * description (its summary, or the start of its body) and its `image`
- * field as `og:image`, with a Twitter card (D-149). Themes can replace
+ * field as `og:image`, with a Twitter card (D-149); a front page
+ * without one gets the site's description (D-398). Themes can replace
  * any of them, since a later value for the same tag wins.
  *
  * Templates get `$page` (the `ContentPage`), `$entry`, `$entries` (a
@@ -50,7 +53,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		private AppConfig $app,
 		private FeedLinks $feeds,
 		private ContentTypes $types,
-		private ContentUrls $urls
+		private ContentUrls $urls,
+		private MarkdownPages $markdown
 	) {}
 
 	/**
@@ -100,7 +104,9 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			$this->describeByline($head, $page->entry);
 		}
 
-		$this->describeEntry($head, $page);
+		if (! $this->describeEntry($head, $page) && $isFront && $this->app->description !== '') {
+			$head->meta('description', $this->app->description)->property('og:description', $this->app->description);
+		}
 
 		$entries = $page->entries;
 
@@ -114,6 +120,12 @@ final readonly class ThemedPageRenderer implements PageRenderer
 
 		foreach ($this->feeds->forPage($page) as [$url, $format, $title]) {
 			$head->link('alternate', $url, ['type' => $format->mediaType(), 'title' => $title]);
+		}
+
+		$markdown = $page->entry === null || $this->urls->entry($page->entry) !== $request->getUri()->getPath() ? null : $this->markdown->url($page->entry);
+
+		if ($markdown !== null) {
+			$head->link('alternate', $markdown, ['type' => MarkdownPages::MEDIA_TYPE]);
 		}
 
 		$context->addClass("is-{$page->kind->value}");
@@ -175,14 +187,15 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	}
 
 	/**
-	 * Adds the page entry's description and image to the head.
+	 * Adds the page entry's description and image to the head, and
+	 * returns whether it had a description.
 	 */
-	private function describeEntry(Head $head, ContentPage $page): void
+	private function describeEntry(Head $head, ContentPage $page): bool
 	{
 		$entry = $page->entry;
 
 		if ($entry === null || $entry->isVirtual()) {
-			return;
+			return false;
 		}
 
 		$description = trim(html_entity_decode(strip_tags($entry->excerpt(30)), ENT_QUOTES | ENT_HTML5));
@@ -198,5 +211,7 @@ final readonly class ThemedPageRenderer implements PageRenderer
 
 			$head->property('og:image', $url)->meta('twitter:card', 'summary_large_image');
 		}
+
+		return $description !== '';
 	}
 }

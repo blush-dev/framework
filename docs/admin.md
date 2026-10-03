@@ -141,8 +141,8 @@ shown with their `icon` (see
 [Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
 **Users** has Your Account, Accounts, Profiles, and Roles. In
-**Config**, **Settings** has General, Reading, Addresses and Search, and
-System, and **Extensions** has Themes, Plugins, and Icon Packs. You only see the
+**Config**, **Settings** has General, Reading, Addresses and Search, AI,
+and System, and **Extensions** has Themes, Plugins, and Icon Packs. You only see the
 screens your roles allow: Media needs `media.upload`, Accounts and
 Roles `accounts.view` (and New Account `accounts.create`, New Role
 `roles.manage`), Profiles editing profiles, each content type
@@ -719,7 +719,9 @@ tab; **Open** goes to the file you uploaded. You can also put files in
 
 With `site.settings`, **Config → Content types** lists every type,
 taxonomies too, with where it's defined, how many fields it has, and how
-many entries. Choose one for its settings, the taxonomies that group it,
+many entries. Tabs narrow it to one kind (Collections, Trees,
+Taxonomies, Profiles; only the kinds the site has), beside a search.
+Choose one for its settings, the taxonomies that group it,
 and its fields; **Type settings** on a type's list goes there too.
 
 Types in `user/data/types` are edited on their screen. So are
@@ -735,13 +737,14 @@ screens only show them.
 **New Content Type** walks through three steps, with **What Gets
 Created** beside them:
 
-1. **Basics:** content (a collection), a taxonomy, or a
+1. **Basics:** a collection, a taxonomy, or a
    [tree](content-types.md#trees), its names, a key
    (made from the name, such as `recipe`), the folder its entries live in
    under `user/content` (made from the plural name), a description, and
    an icon. The key and folder can't change later.
 2. **Behavior:** the URL prefix (the folder's by default), whether it's
-   visible on the site, in the sitemap, and has a feed; for content, date
+   visible on the site, in the sitemap, listed in `llms.txt` (on for
+   collections and trees, off for taxonomies, by default), and has a feed; for content, date
    archives and a featured image (an `image` media field); for a
    taxonomy, whether terms nest and which types its terms group; an
    index page, the type's landing page (on by default); and, when the
@@ -862,10 +865,12 @@ matter.
 
 ## Settings
 
-With `site.settings`, the **Settings** group in **Config** has four
+With `site.settings`, the **Settings** group in **Config** has five
 screens:
 
-- **General:** the site's name, its language and region (such as
+- **General:** the site's name, a one-line description (for
+  `llms.txt`, and the home page and feeds when nothing more specific
+  describes them), its language and region (such as
   `en_US`), and its time zone, with the time there now. Beside them,
   shown but not changed here: the site's address, the environment, and
   detailed error pages.
@@ -879,6 +884,16 @@ screens:
   search engines to skip, one a line. Shown: the media address, and
   whether search engines are asked not to index the site (outside
   production, they are).
+- **AI:** whether every page has a Markdown copy and the site has
+  `llms.txt`, with a link to view it and how many pages it lists, the
+  types it lists (each content type chooses with **Listed in
+  `llms.txt`** on its screen; taxonomies and profiles start off), and the description it
+  uses; and which kinds of AI crawler `robots.txt` asks to stay away:
+  training crawlers, AI search crawlers, and fetchers acting for a
+  person, each naming its bots (see
+  [Configuration](configuration.md#sitemap-and-robotstxt)). It warns
+  when the choices aren't used: outside production, or with your own
+  `robots.txt`.
 - **System:** shown only: where content types come from, caching, and
   publishing and previews.
 
@@ -1284,7 +1299,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE accounts/{username}` | Remove an account; answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
 | `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"name", "label", "namespace", "version", "description", "parent", "source", "active"}], "invalid": [{"where", "reason"}]}`. Themes are by name (`vendor/name`), the active one first, then by label; `chain` is the active theme, the themes it builds on, then `blush/default`; `invalid` names where each broken theme was found (`user/themes/{folder}`, or a package's name); `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `extensions.themes.view` |
-| `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. Secrets are never sent. Needs `site.settings` |
+| `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. A shown one may add a `link` (`{"label", "href"}`, a page on the site) or `links` (`{"label", "to"}`, admin paths). The screens are `general`, `reading`, `search`, `ai`, and `system`. Secrets are never sent. Needs `site.settings` |
 | `GET plugins` | Every installed plugin, by label: `{"plugins": [{"name", "label", "namespace", "version", "description", "authors", "license", "source", "path", "folder", "enabled", "running", "requirements", "blocked", "requiredBy", "deletable"}], "saved", "config"}`. `source` is `local` or `composer`; `path` is from the site's root, and `folder` is its folder in `user/plugins` (`null` for Composer); `enabled` is whether it's turned on, and `running` whether it runs (it doesn't when its requirements aren't met); each of `requirements` is `{"name", "constraint", "kind", "met", "note", "label"}` (`kind` is `blush`, `php`, `extension`, `plugin`, or `unknown`), checked as if it were on for one that's off; `blocked` says why it can't run, or is `null`; `requiredBy` names the plugins that require it; `deletable` is a folder plugin that isn't running. `saved` is whether the admin's list is in `settings.json`; `config` is whether `config/plugins.php` exists. Needs `extensions.plugins.view` |
 | `PUT plugins/{vendor}/{name}` | Turns a plugin on or off: send `{"enabled": true}` or `false`. Saves `plugins.enabled` in `user/data/settings.json`: every plugin that's on, Composer's included, starting from what's on by default. Answers `{"enabled", "started", "stopped", "refresh"}`: the labels of other plugins that start or stop with it, and that `POST settings/refresh` should follow. A plugin `config/plugins.php`'s `enabled` list leaves out is a `409`; one whose requirements aren't met a `422`. Needs `extensions.plugins.activate` |
 | `DELETE plugins/{folder}` | Deletes a plugin's folder from `user/plugins`: `{"deleted"}`. One that's running, or that `config/plugins.php` turns on by name, is a `409`. Needs `extensions.plugins.delete` |
@@ -1296,8 +1311,8 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST {themes,plugins,icon-packs}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `editable` (defined in `user/data/types`, or a collection, taxonomy, or tree in a folder from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
-| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection`, `taxonomy`, or `tree`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for taxonomies and profiles), `editable` (defined in `user/data/types`, or a collection, taxonomy, or tree in a folder from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection`, `taxonomy`, or `tree`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
 | `PATCH types/{name}` | Change a `user/data/types` type, or a collection, taxonomy, or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |

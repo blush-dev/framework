@@ -82,9 +82,10 @@ const everywhere = computed<Command[]>(() => {
 
 	// The Settings screens (D-325).
 	const settings: [string, string, string][] = [
-		['general', 'Go to General Settings', 'site name language locale time zone timezone environment'],
+		['general', 'Go to General Settings', 'site name description tagline language locale time zone timezone environment'],
 		['reading', 'Go to Reading Settings', 'home page front page feeds rss atom json'],
 		['search', 'Go to Addresses and Search Settings', 'trailing slash urls sitemap robots seo'],
+		['ai', 'Go to AI Settings', 'llms.txt markdown copies crawlers robots gptbot claudebot agents'],
 		['system', 'Go to System Settings', 'content types caching cache publishing webhook git previews']
 	];
 

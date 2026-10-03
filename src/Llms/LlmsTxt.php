@@ -1,0 +1,147 @@
+<?php
+
+/**
+ * llms.txt.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Llms;
+
+use Blush\Content\ContentRepository;
+use Blush\Content\Entry\Entry;
+use Blush\Content\Query\Order;
+use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Status;
+use Blush\Content\Type\ContentType;
+use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\DateArchives;
+use Blush\Content\Type\Profiles;
+use Blush\Content\Type\Taxonomy;
+use Blush\Content\Visibility;
+use Blush\Core\AppConfig;
+
+/**
+ * Builds `/llms.txt` (D-395, from llmstxt.org): a Markdown map of the
+ * site for language models. The site's name is its heading and its
+ * description (`AppConfig::$description`, D-398) the summary under it,
+ * then a section per public type whose `llms` option is on (D-398), by
+ * its plural label, linking each public, published entry's Markdown
+ * version with its summary (its links given full URLs, D-396). Dated
+ * types list newest first, terms and profiles by title (D-401), others
+ * by file name. Taxonomies and profiles are off unless a type turns
+ * them on (`TypeKind::inLlmsByDefault()`); virtual terms and profiles
+ * have no copy, so they're never listed.
+ */
+final readonly class LlmsTxt
+{
+	public function __construct(
+		private ContentRepository $content,
+		private ContentTypes $types,
+		private ContentUrls $urls,
+		private MarkdownPages $pages,
+		private MarkdownLinks $links,
+		private AppConfig $app
+	) {}
+
+	/**
+	 * Returns the file's text.
+	 */
+	public function render(): string
+	{
+		$blocks = ['# ' . self::line($this->app->name)];
+
+		if (trim($this->app->description) !== '') {
+			$blocks[] = '> ' . self::line($this->app->description);
+		}
+
+		foreach ($this->types() as $type) {
+			$items = $this->items($type);
+
+			if ($items !== []) {
+				$blocks[] = '## ' . self::line($type->labels->plural) . "\n\n" . implode("\n", $items);
+			}
+		}
+
+		return implode("\n\n", $blocks) . "\n";
+	}
+
+	/**
+	 * Returns the types `llms.txt` may list: public, with their `llms`
+	 * option on.
+	 *
+	 * @return list<ContentType>
+	 */
+	public function types(): array
+	{
+		return array_values(array_filter($this->types->all(), static fn (ContentType $type): bool => $type->public && $type->llms));
+	}
+
+	/**
+	 * Returns how many pages the file lists.
+	 */
+	public function count(): int
+	{
+		return array_sum(array_map(fn (ContentType $type): int => count($this->items($type)), $this->types()));
+	}
+
+	/**
+	 * Returns a type's list items.
+	 *
+	 * @return list<string>
+	 */
+	private function items(ContentType $type): array
+	{
+		$query = $this->content->query()->any()->type($type->name)->status(Status::Published)->visibility(Visibility::Public);
+
+		if ($type->dateArchives !== DateArchives::None) {
+			$query = $query->orderBy('published', Order::Desc);
+		} elseif ($type instanceof Taxonomy || $type instanceof Profiles) {
+			$query = $query->orderBy('title');
+		}
+
+		$items = [];
+
+		foreach ($query->get() as $entry) {
+			$item = $this->item($entry);
+
+			if ($item !== null) {
+				$items[] = $item;
+			}
+		}
+
+		return $items;
+	}
+
+	/**
+	 * Returns an entry's list item, or `null` when it has no Markdown
+	 * version.
+	 */
+	private function item(Entry $entry): ?string
+	{
+		$path = $this->pages->url($entry);
+
+		if ($path === null) {
+			return null;
+		}
+
+		$title   = self::line($entry->title) ?: $path;
+		$link    = '[' . addcslashes($title, '[]\\') . '](' . str_replace(['(', ')', ' '], ['%28', '%29', '%20'], $this->urls->absolute($path)) . ')';
+		$summary = self::line($this->links->absolute($entry->summary() ?? ''));
+
+		return '- ' . $link . ($summary === '' ? '' : ": {$summary}");
+	}
+
+	/**
+	 * Returns text on one line, its whitespace collapsed.
+	 */
+	private static function line(string $text): string
+	{
+		return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+	}
+}

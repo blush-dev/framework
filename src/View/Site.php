@@ -18,7 +18,7 @@ use Blush\Core\Framework;
 
 /**
  * What every template knows about the site, as `$site`: its name, home
- * URL, and language.
+ * URL, language, and description (D-398; empty when it has none).
  */
 final readonly class Site
 {
@@ -30,7 +30,8 @@ final readonly class Site
 		public string $url,
 		public string $locale,
 		public string $lang,
-		public string $generator = Framework::NAME . ' ' . Framework::VERSION
+		public string $generator = Framework::NAME . ' ' . Framework::VERSION,
+		public string $description = ''
 	) {}
 
 	/**
@@ -42,7 +43,8 @@ final readonly class Site
 			name: $app->name,
 			url: $app->url,
 			locale: $app->locale,
-			lang: str_replace('_', '-', $app->locale)
+			lang: str_replace('_', '-', $app->locale),
+			description: $app->description
 		);
 	}
 }

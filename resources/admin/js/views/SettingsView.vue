@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A Settings screen (the design direction's Settings, D-309, D-324,
- * D-325): General, Reading, Addresses and Search, or System, as
+ * D-325): General, Reading, Addresses and Search, AI (D-398), or System, as
  * panels. Settings the site owner can change are a form saved together
  * with the save bar (`PATCH settings`); beside them, the related ones set
  * in code are only shown, with the file they're set in. Each says
@@ -24,7 +24,7 @@
 
 import { computed, ref, watch } from 'vue';
 import { confirmLeave } from '../confirm';
-import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router';
+import { onBeforeRouteLeave, onBeforeRouteUpdate, RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldInput from '../components/FieldInput.vue';
 import { ApiError, request, type FieldDescription, type SettingGroup, type SettingItem } from '../api';
@@ -38,6 +38,7 @@ const screens: Record<string, { title: string; hint: string }> = {
 	general: { title: 'General', hint: 'The site\'s name, language, and time, and where it runs.' },
 	reading: { title: 'Reading', hint: 'What the home page shows, and the feeds.' },
 	search: { title: 'Addresses and Search', hint: 'How addresses are written, and what search engines are told.' },
+	ai: { title: 'AI', hint: 'What AI tools can read, and what AI crawlers are asked.' },
 	system: { title: 'System', hint: 'How the site is put together and run, all set in code.' }
 };
 
@@ -309,6 +310,10 @@ onBeforeRouteUpdate(leave);
 							</span>
 							<span v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</span>
 							<span v-if="item.help" class="field__help">{{ item.help }}</span>
+							<span v-if="item.link || item.links?.length" class="setting__links">
+								<a v-if="item.link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>
+								<RouterLink v-for="link in item.links ?? []" :key="link.to" :to="link.to">{{ link.label }}</RouterLink>
+							</span>
 							<span v-if="item.file" class="field__help">Set in <code>{{ item.file }}</code>.</span>
 						</div>
 					</template>
@@ -409,6 +414,18 @@ onBeforeRouteUpdate(leave);
 	flex-wrap: wrap;
 	align-items: baseline;
 	gap: 8px;
+}
+
+.setting__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 16px;
+}
+
+.setting__links a {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 }
 
 .setting__default {

@@ -577,6 +577,7 @@ Every kind takes these:
 | `icon`              | Its kind's                                                     | An icon for the admin, by name                                   |
 | `public`            | `true`                                                         | Whether the type is visible on the site at all                   |
 | `sitemap`           | `true`                                                         | Whether entries appear in the sitemap                            |
+| `llms`              | `true` for collections and trees, `false` for taxonomies and profiles | Whether entries are listed in [`llms.txt`](configuration.md#markdown-pages-and-llmstxt). Their Markdown copies stay either way |
 | `fields` / `closed` |                                                                | [Custom fields](#custom-fields)                                  |
 
 Collections, taxonomies, and trees also take this:

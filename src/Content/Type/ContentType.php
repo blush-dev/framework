@@ -90,6 +90,7 @@ abstract readonly class ContentType
 	 * @param  string            $description  What the type is for, in a sentence.
 	 * @param  ?string           $icon         An icon name for the admin.
 	 * @param  array<PeopleField>|bool $people  How entries credit people: `true` for `authors`, `false` for none.
+	 * @param  bool              $llms         Whether entries are listed in `llms.txt` (D-398; each kind's default, `TypeKind::inLlmsByDefault()`).
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -106,7 +107,8 @@ abstract readonly class ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		array|bool $people = false
+		array|bool $people = false,
+		public bool $llms = true
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -346,6 +348,7 @@ abstract readonly class ContentType
 			if ($kind === TypeKind::Profiles) {
 				return new Profiles(...[
 					...$common,
+					'llms'    => $definition->bool('llms', false),
 					'urls'    => self::urls($data['urls'] ?? [], $name),
 					'listing' => Listing::fromArray($definition->map('listing'), sprintf('Content type "%s" listing', $name)),
 					'feed'    => self::feed($data['feed'] ?? false, $name)
@@ -357,7 +360,7 @@ abstract readonly class ContentType
 				: $kind === TypeKind::Collection;
 
 			if ($kind === TypeKind::Tree) {
-				return new Tree(...$common);
+				return new Tree(...[...$common, 'llms' => $definition->bool('llms', true)]);
 			}
 
 			$common = [
@@ -368,14 +371,15 @@ abstract readonly class ContentType
 			];
 
 			return match ($kind) {
-				TypeKind::Collection => new Collection(...[...$common, 'dateArchives' => self::dateArchives($definition, $name)]),
+				TypeKind::Collection => new Collection(...[...$common, 'dateArchives' => self::dateArchives($definition, $name), 'llms' => $definition->bool('llms', true)]),
 				TypeKind::Taxonomy   => new Taxonomy(...[
 					...$common,
 					'types'       => $definition->strings('types'),
 					'field'       => $definition->nullableString('field'),
 					'aliases'     => $definition->strings('aliases'),
 					'termListing'  => Listing::fromArray($definition->map('termListing'), sprintf('Content type "%s" termListing', $name)),
-					'hierarchical' => $definition->bool('hierarchical')
+					'hierarchical' => $definition->bool('hierarchical'),
+					'llms'         => $definition->bool('llms', false)
 				])
 			};
 		} catch (InvalidSchema $e) {
@@ -453,6 +457,7 @@ abstract readonly class ContentType
 			'feed'        => $this->feed === false ? null : ($this->feed->toArray() ?: true),
 			'public'      => $this->public ? null : false,
 			'sitemap'     => $this->sitemap ? null : false,
+			'llms'        => $this->llms === $this->kind()->inLlmsByDefault() ? null : $this->llms,
 			'labels'      => $this->labels->toArray($this->name),
 			'description' => $this->description === '' ? null : $this->description,
 			'icon'        => $this->icon,

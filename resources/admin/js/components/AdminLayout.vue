@@ -159,7 +159,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const library = can('media.upload') ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
 
 	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
-	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('system', 'System', 'settings')] : [];
+	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('ai', 'AI', 'sparkles'), settingsScreen('system', 'System', 'settings')] : [];
 	// Each kind of extension needs seeing it (D-389).
 	const extensions = [
 		...(can('extensions.themes.view') ? [counted(screen('themes', 'Themes', 'paintbrush'), navCounts.value?.themes)] : []),

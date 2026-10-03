@@ -19,8 +19,9 @@ use Blush\Http\Response;
 
 /**
  * Serves `robots.txt`: `SitemapConfig::$robots` as written, or else one
- * that allows everything but the configured `disallow` paths and points
- * at the sitemap. Outside production it disallows everything. A real
+ * that allows everything but the configured `disallow` paths, asks the
+ * AI crawlers of each `blockAi` group to stay away (D-398), and points at
+ * the sitemap. Outside production it disallows everything. A real
  * `public/robots.txt` file is served by the web server instead.
  */
 final readonly class RobotsController
@@ -44,6 +45,19 @@ final readonly class RobotsController
 
 		foreach ($this->config->disallow === [] ? [''] : $this->config->disallow as $path) {
 			$lines[] = rtrim("Disallow: {$path}");
+		}
+
+		foreach (AiCrawlerGroup::cases() as $group) {
+			if (in_array($group, $this->config->blockAi, true)) {
+				$lines[] = '';
+				$lines[] = "# {$group->label()}";
+
+				foreach ($group->agents() as $agent) {
+					$lines[] = "User-agent: {$agent}";
+				}
+
+				$lines[] = 'Disallow: /';
+			}
 		}
 
 		if ($this->config->enabled) {

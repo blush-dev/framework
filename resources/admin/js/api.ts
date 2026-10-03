@@ -227,6 +227,9 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	public: boolean;
 	feed: boolean;
 	sitemap: boolean;
+	// Whether entries are listed in `llms.txt` (D-398); off by default
+	// for taxonomies and profiles (D-401).
+	llms: boolean;
 	// Whether the admin changes it: a type in `user/data/types` (D-311),
 	// or a collection or taxonomy from code, through a file there (D-349).
 	editable: boolean;
@@ -544,6 +547,10 @@ export interface SettingItem {
 	// The value the form starts from.
 	input?: unknown;
 	saved?: boolean;
+	// A page on the site a shown setting links to (D-398), such as
+	// `llms.txt`, or admin screens it's set on.
+	link?: { label: string; href: string } | null;
+	links?: { label: string; to: string }[];
 }
 
 /**

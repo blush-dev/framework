@@ -50,6 +50,7 @@ final class ExportLayout
 		'application/xml'        => ['xml'],
 		'text/xml'               => ['xml'],
 		'text/plain'             => ['txt'],
+		'text/markdown'          => ['md', 'markdown'],
 		'text/css'               => ['css'],
 		'text/javascript'        => ['js', 'mjs'],
 		'application/javascript' => ['js', 'mjs']

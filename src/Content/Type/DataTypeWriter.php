@@ -36,6 +36,7 @@ use Blush\Support\Filesystem;
  * Changes are given by canonical option name (`labels`, `description`,
  * `icon`, `prefix` for the URL prefix, `paths` for route keys' paths
  * (`null` or `''` for a key's default, D-350), `public`, `sitemap`,
+ * `llms` (D-398),
  * `feed`, `people` (D-351), `dateArchives`, `hierarchical`, `types`, and
  * `fields`); `null` removes one. Two shortcuts change the `authors`
  * people field alone: `authors` (whether the type has it) and
@@ -69,6 +70,7 @@ final readonly class DataTypeWriter
 		'urls'         => ['routing'],
 		'public'       => [],
 		'sitemap'      => [],
+		'llms'         => [],
 		'feed'         => [],
 		'people'       => ['authors'],
 		'dateArchives' => ['date_archives', 'time_archives'],
@@ -429,6 +431,7 @@ final readonly class DataTypeWriter
 		return match ($key) {
 			'public'       => $type->public,
 			'sitemap'      => $type->sitemap,
+			'llms'         => $type->llms,
 			'feed'         => $type->hasFeed(),
 			'people'       => $type->peopleValue(),
 			'description'  => '',

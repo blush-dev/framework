@@ -23,6 +23,7 @@ enum SettingsScreen: string
 	case General = 'general';
 	case Reading = 'reading';
 	case Search  = 'search';
+	case Ai      = 'ai';
 
 	/**
 	 * Returns the screen's name, as the admin's navigation has it.
@@ -32,7 +33,8 @@ enum SettingsScreen: string
 		return match ($this) {
 			self::General => 'General',
 			self::Reading => 'Reading',
-			self::Search  => 'Addresses and Search'
+			self::Search  => 'Addresses and Search',
+			self::Ai      => 'AI'
 		};
 	}
 

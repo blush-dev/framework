@@ -94,7 +94,12 @@ nothing in `user/` on until it's named, with config listing only what's
 on (D-390), and the admin's saved list naming everything that's on,
 Composer's included (D-391); and installing and replacing extensions
 from a `.zip`, from the sketch's uploader (D-392), and rolling back to
-the version a replace kept (D-393).
+the version a replace kept (D-393); and, from a discussion of
+APIs, agents, and headless sites (in `open-questions.md`), Markdown
+pages and `llms.txt` (D-395), with full URLs (D-396); an AI Settings screen (Markdown copies, the
+types `llms.txt` lists, AI crawler rules), with a site description on
+General (D-398, D-399), and a `Blush\Ai` provider layer for plugins
+planned (D-397).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

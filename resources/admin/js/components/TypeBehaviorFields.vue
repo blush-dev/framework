@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * How a content type behaves (D-311), for the type editor and the
- * new-type wizard: its URL prefix, whether it's public, in the sitemap,
- * and has a feed; a collection's date archives and featured image (an
+ * new-type wizard: its URL prefix, whether it's public, in the sitemap
+ * and `llms.txt` (D-398, D-401), and has a feed; a collection's date archives and featured image (an
  * `image` media field); a taxonomy's nesting and the types its terms
  * group; and the index page (D-255), which a type gets once and keeps.
  * A tree (D-386) has no prefix, feed, or author archives: its entries
@@ -84,6 +84,7 @@ function grouped(name: string, on: boolean): void {
 			<legend>Options</legend>
 			<label class="checkbox"><input v-model="form.public" type="checkbox"> Visible on the site</label>
 			<label class="checkbox"><input v-model="form.sitemap" type="checkbox" :disabled="!form.public"> In the sitemap</label>
+			<label class="checkbox"><input v-model="form.llms" type="checkbox" :disabled="!form.public"> Listed in <code>llms.txt</code></label>
 			<label v-if="kind !== 'tree'" class="checkbox"><input v-model="form.feed" type="checkbox"> Has a feed (RSS, Atom, and JSON)</label>
 			<label v-if="kind === 'taxonomy'" class="checkbox"><input v-model="form.hierarchical" type="checkbox"> Terms can nest under a parent</label>
 			<label v-if="kind === 'collection'" class="checkbox"><input v-model="featured" type="checkbox"> Has a featured image</label>

@@ -25,6 +25,17 @@ enum TypeKind: string
 	case Profiles   = 'profiles';
 
 	/**
+	 * Returns whether the kind's entries are listed in `llms.txt` unless
+	 * a type says otherwise (D-398, D-401): collections and trees hold
+	 * the writing; taxonomies' terms and profiles are often thin, so a
+	 * site opts them in.
+	 */
+	public function inLlmsByDefault(): bool
+	{
+		return $this === self::Collection || $this === self::Tree;
+	}
+
+	/**
 	 * Returns the options a kind's definitions may use, beyond `name` and
 	 * `kind`.
 	 *
@@ -33,10 +44,10 @@ enum TypeKind: string
 	public function options(): array
 	{
 		return match ($this) {
-			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Tree       => ['folder', 'public', 'sitemap', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Profiles   => ['folder', 'urls', 'listing', 'feed', 'public', 'sitemap', 'fields', 'closed', 'labels', 'description', 'icon']
+			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Tree       => ['folder', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Profiles   => ['folder', 'urls', 'listing', 'feed', 'public', 'sitemap', 'llms', 'fields', 'closed', 'labels', 'description', 'icon']
 		};
 	}
 }

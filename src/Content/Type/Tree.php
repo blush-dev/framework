@@ -44,6 +44,7 @@ final readonly class Tree extends ContentType
 	 * @param  string          $description What pages are for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
+	 * @param  bool            $llms        Whether its entries are listed in `llms.txt` (D-398).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -56,9 +57,10 @@ final readonly class Tree extends ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		array|bool $people = false
+		array|bool $people = false,
+		bool $llms = true
 	) {
-		parent::__construct($name, $folder ?? ($name === BuiltInType::Page->value ? '' : null), $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people);
+		parent::__construct($name, $folder ?? ($name === BuiltInType::Page->value ? '' : null), $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people, $llms);
 	}
 
 	/**

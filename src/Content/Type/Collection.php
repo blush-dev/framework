@@ -47,6 +47,7 @@ final readonly class Collection extends ContentType
 	 * @param  string          $description  What the type is for, in a sentence.
 	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
 	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
+	 * @param  bool            $llms         Whether entries are listed in `llms.txt` (D-398).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -63,9 +64,10 @@ final readonly class Collection extends ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		array|bool $people = true
+		array|bool $people = true,
+		bool $llms = true
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $people);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $people, $llms);
 	}
 
 	/**

@@ -175,7 +175,7 @@ final readonly class FeedBuilder
 			link: $this->urls->absolute($link),
 			feedUrl: $this->urls->absolute($feedUrl),
 			updated: $updated ?? $about->updated ?? DateTimeImmutable::createFromInterface($this->clock->now()),
-			description: $about === null ? '' : trim(html_entity_decode(strip_tags($about->excerpt()), ENT_QUOTES | ENT_HTML5, 'UTF-8')),
+			description: ($about === null ? '' : trim(html_entity_decode(strip_tags($about->excerpt()), ENT_QUOTES | ENT_HTML5, 'UTF-8'))) ?: $this->app->description,
 			language: str_replace('_', '-', $this->app->locale),
 			items: $items
 		);

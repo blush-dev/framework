@@ -85,11 +85,14 @@ Move each item to `decisions.md` once it's answered.
     (D-312). An agent's account with `content.edit` and no
     `content.publish` writes drafts only. Every outside caller needs
     this first.
-  - **An agent-readable site:** a Markdown version of every page (`.md`
-    on the URL, or by `Accept`), served from the source Blush already
-    has, and `llms.txt` (a Markdown map of the site, built like the
-    sitemap). Both plain routes, so they export as feeds do. Cheap and
-    distinctive.
+  - **An agent-readable site:** built (D-395): Markdown pages at `.md`
+    and `llms.txt`. Still open: answering `Accept: text/markdown` on the
+    page's own URL (a cache would then vary by `Accept`); directives
+    rendered to plain Markdown rather than left as written (their URL
+    props get full URLs, D-396); an
+    `llms-full.txt` (every page's text in one file); a settings screen
+    option; and whether a large site's `llms.txt` (about 1,040 links and
+    140 KB on the jtcom trial) should list only some types.
   - **An MCP server:** tools (search content, read an entry, list types
     and their JSON Schemas (D-206), create a draft, update an entry,
     upload media) over the content API, checked against the token's
@@ -128,10 +131,23 @@ Move each item to `decisions.md` once it's answered.
   - **An image pipeline:** resized images and modern formats (AVIF,
     WebP) at export or on request; `srcset` helpers exist, but nothing
     makes the files.
+  - **AI features (D-397):** from plugins, on a core `Blush\Ai`
+    provider layer (not built). Ideas discussed: alt text for media
+    (the library's Missing alt filter, D-269), summaries and meta
+    descriptions, term suggestions from existing terms, transcripts and
+    `.vtt` captions (D-291), editor help offered as changes to accept,
+    translation drafts (once D-036 is settled), and embeddings for
+    related posts or search. Always at authoring time, saved to files
+    like any edit, never on a visitor's request; suggestions, not
+    actions; off until a provider is configured. Leaning no: generating
+    whole posts, public AI chat. Open: the provider interface's shape
+    (text, images, audio), whether a capability per feature or one
+    `ai.use`, and how plugins declare what they send.
   - Leaning no: GraphQL and real-time collaborative editing (costly,
     and a poor fit for flat files; plain JSON and MCP cover the needs).
   - A suggested order, not agreed: the content API's shape, then
-    tokens, then Markdown pages and `llms.txt`, then MCP.
+    tokens, then MCP (Markdown pages and `llms.txt` came first, as the
+    easiest, D-395).
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the

@@ -58,7 +58,8 @@ use Blush\Http\Status;
  * `GET {path}/api/types/{name}` (`show()`) adds the type's own fields
  * (`Field::toArray()`), the field `sets` attached to it (`name`,
  * `label`, and how many `fields`, D-337), the `taxonomies` that group it, whether it's
- * `public`, has a `feed`, is in the `sitemap`, and is `editable` (types
+ * `public`, has a `feed`, is in the `sitemap` and `llms.txt` (`llms`,
+ * D-398), and is `editable` (types
  * in `user/data/types`, D-311, and collections and taxonomies from code,
  * through a file there, D-349), whether it's `overridden` (a code type a
  * file changes) and the options that file sets (`overrides`), whether
@@ -143,6 +144,7 @@ final readonly class TypesController
 			'public'       => $type->public,
 			'feed'         => $type->hasFeed(),
 			'sitemap'      => $type->sitemap,
+			'llms'         => $type->llms,
 			'editable'     => $editable && ($file !== null || ! $data),
 			'overridden'   => $types->isOverridden($name),
 			'overrides'    => $types->isOverridden($name) ? $this->overrides($file) : [],

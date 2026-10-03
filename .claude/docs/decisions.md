@@ -11231,3 +11231,254 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** a broken folder in `user/plugins`, which is off until named
   (D-390), shouldn't take the site down, and the extensions sketch
   shows a broken plugin on the Plugins screen.
+
+### D-395: Markdown pages and `llms.txt`
+- **Date:** 2026-10-03
+- **Decision:** The first piece of the agents discussion
+  (`open-questions.md`, "APIs, agents, and headless"), chosen as the
+  easiest to build now, in `Blush\Llms`:
+  - **Markdown pages:** every published entry with a URL (unlisted ones
+    included; drafts, scheduled, hidden, and virtual entries not) is
+    served at its URL with `.md`: `/archives/hello.md`, `/about.md` for
+    `/about/` (the trailing slash dropped), and `/index.md` for the home
+    page. With a home type, `/` is its landing page, so the root
+    `index.md` has none. The body is as written (directives and
+    components stay as they are), under front matter of `title`, `url`
+    (absolute), `published`, `updated` (ISO 8601), and `summary`, each
+    a double-quoted scalar (JSON string syntax) and left out when empty.
+    Served as `text/markdown; charset=UTF-8` with a `Link: <page>;
+    rel="canonical"` header, so search engines index the page, not the
+    copy.
+  - **`/llms.txt`** (llmstxt.org): `# {site name}`, `> {description}`
+    when set, then a `## {plural label}` section per public type,
+    linking each public, published entry's Markdown version (absolute)
+    with its summary on one line; dated types newest first, others in
+    file-name order; taxonomies and profiles left out (their pages list
+    entries). Served as `text/plain`.
+  - **The route:** `/{path:.+}.md` (`llms.markdown`) and `/llms.txt`
+    (`llms`) at system priority, with `LlmsServiceProvider` registered
+    after the other framework providers with system routes, so the
+    admin's (`entries/{id}` ids end in `.md`), media's, and theme
+    assets' paths still win, and content routes' `{name}` never takes
+    `hello.md`. A plugin's system route ending in `.md` would be
+    shadowed. `MarkdownPages::find()` builds every entry's Markdown path
+    and compares (no reverse map; about 40 ms on the jtcom trial,
+    uncached, and the page cache keeps the answer).
+  - **Discovery:** themed pages add `<link rel="alternate"
+    type="text/markdown">` when the request is the entry's own URL.
+  - **Export:** `LlmsExportUrls` lists both; `ExportLayout` knows
+    `text/markdown` (`md`, `markdown`).
+  - **Config:** `config/llms.php`, `LlmsConfig(enabled: true,
+    description: null)`. On by default, as feeds and sitemaps are: it
+    shows only what the HTML pages already show.
+- **Open:** see `open-questions.md` (`Accept` negotiation, rendering
+  directives, `llms-full.txt`, a settings option, trimming a large
+  site's `llms.txt`).
+- **Checked:** `composer check` (`LlmsTest`; `DefaultThemeTest` samples
+  both routes); on the jtcom trial over HTTPS: `llms.txt` (five
+  sections, about 1,040 links), posts' `.md` pages with their front
+  matter and canonical `Link`, and the HTML page's alternate link.
+- **Why:** the author chose it as the easiest of the discussed features
+  to build first; Blush already keeps the Markdown, which most CMSes
+  would have to convert back from HTML.
+
+### D-396: Full URLs in Markdown pages
+- **Date:** 2026-10-03
+- **Status:** Amends D-395 (bodies were served exactly as written).
+- **Decision:** The author's call: a Markdown page's links get the URLs
+  the HTML page has ("real URLs"), in Markdown and directives only, not
+  in HTML. `Llms\MarkdownLinks`:
+  - **Rewritten:** inline link and image destinations (bare or `<…>`,
+    titles and `{…}` attributes kept), reference definitions, and, in a
+    directive's `{…}`, the props its registered component marks as
+    media (`MediaField`) or links (`#[LinkProp]`), as
+    `ComponentDirectives` does; unknown directives and other props are
+    left. A media reference becomes its media URL (`MediaResolver`),
+    then a root-relative URL becomes absolute on the site's origin
+    (always, whatever `MarkdownConfig::$absoluteLinks` says). Links to
+    the site's pages point at the HTML pages, not their `.md` copies.
+  - **Left alone:** fenced code (inside blockquotes and lists too),
+    indented code, inline code spans, HTML blocks (to a blank line, or
+    `<pre>`, `<script>`, `<style>`, `<textarea>`, and comments to their
+    close), inline HTML's attributes, full and `//` URLs, `#` fragments,
+    `mailto:` and other schemes, and relative paths that aren't media.
+    An `.html` entry's body is left as written.
+  - **Found line by line,** in-house, not through the CommonMark
+    adapter (which can't give source positions for inline nodes): it
+    leans toward leaving text alone, so an indented line after a blank
+    one counts as code even in a list, and a line opening with a tag
+    starts an HTML block even mid-paragraph.
+  - The front matter's `summary` and `llms.txt`'s summaries get the
+    same treatment.
+- **Checked:** `composer check` (`MarkdownLinksTest`: links, images,
+  references, directives by definition, code of each kind, HTML
+  blocks and inline HTML; `LlmsTest`: an `.html` entry untouched); on
+  the jtcom trial, every one of 1,031 Markdown pages: no root-relative
+  Markdown or directive URL left, 390 pages rewritten, and every
+  rewritten URL a Markdown or directive target (code samples with
+  `href="/…"` untouched).
+- **Why:** a Markdown copy is usually read away from the site (an
+  agent's context, a pasted chat), where `/user/media/…` points
+  nowhere.
+
+### D-397: An AI settings screen, and where AI code lives
+- **Date:** 2026-10-03
+- **Decision:** The author's calls, ahead of building:
+  - **An AI Settings screen** (`SettingsScreen::Ai`, a fifth screen in
+    the Config panel's Settings group, a departure from the direction
+    to record in `departures.md` when built). It holds Blush's own
+    settings for how AI tools read the site (Markdown copies and
+    `llms.txt`, D-395; AI crawler rules later; the MCP server later)
+    and, later, AI in the admin. What goes on it first is being walked
+    through with the author.
+  - **Plugins add AI features** (alt text, summaries, term
+    suggestions, transcripts, and so on), not core. Their settings go
+    on the AI screen through its field set target, `settings:ai`
+    (D-343's mechanism). That depends on the Fields API, paused
+    (D-348): the AI screen is one of the cases it has to serve when
+    it's picked up again.
+  - **Namespaces stay by capability, not by "AI":** a Settings screen
+    is presentation (Reading already shows `FeedConfig` and
+    `SitemapConfig`). `Blush\Llms` stays (Markdown copies serve any
+    tool, and `llms.txt` is a named standard); AI crawler rules go in
+    `Blush\Sitemap`, which writes `robots.txt`; an MCP server gets its
+    own namespace beside the content API. **`Blush\Ai`** is reserved
+    for the AI plumbing plugins build on: a provider interface with the
+    usual enum, registry, factory, and registrar (Anthropic, OpenAI, a
+    local model through Ollama, and plugins' own), `AiConfig` (keys in
+    `.env`), and a capability for using it; wired only when a provider
+    is configured, so two plugins never ship their own clients. Not
+    built yet.
+  - First contents: D-398.
+- **Why:** the author wants plugins to add AI features and to plan for
+  their settings now; one core client keeps keys, costs, and
+  permissions in one place.
+
+### D-398: The AI screen's first version
+- **Date:** 2026-10-03
+- **Status:** Settles the first contents of D-397's AI screen; amends
+  D-395 (`LlmsConfig::$description` gives way to a site description).
+  Built in D-399.
+- **Decision:** The author's calls, walked through one by one:
+  - **Markdown copies:** one checkbox for both the `.md` copies and
+    `llms.txt` (`llms.enabled`), since `llms.txt` links to the copies.
+    A read-only row links to `/llms.txt` with how many pages it lists.
+  - **A site description on General** (General → Site, saved as
+    `app.description`, an `AppConfig` option), not an `llms.txt`-only
+    one: `llms.txt`'s summary line, and the fallback for the home
+    page's meta description and feeds' descriptions where nothing more
+    specific exists. Reverses the Settings direction note that Blush has
+    no tagline (record in `departures.md`). `LlmsConfig::$description`
+    goes (unreleased).
+  - **Which types `llms.txt` lists is a content type option,** `llms`
+    (on by default), beside `sitemap` and `feed`, edited on the type's
+    screen; the AI screen shows the list read-only, linking to each
+    type. (Proposed and not objected to.)
+  - **AI crawler rules, in this first version,** as a panel of three
+    groups, each Allow or Block: training crawlers (GPTBot, ClaudeBot,
+    CCBot, Bytespider, meta-externalagent, and the Google-Extended and
+    Applebot-Extended tokens), AI search crawlers (OAI-SearchBot,
+    Claude-SearchBot, PerplexityBot), and fetchers acting for a person
+    (ChatGPT-User, Claude-User, Perplexity-User), each group listing
+    its bots. The list lives in code in `Blush\Sitemap` (D-397) and is
+    updated with releases; check the vendors' current documentation
+    when building. Saved in the `sitemap` section (it writes
+    `robots.txt`). Everything allowed by default (no change from
+    today, and in keeping with Markdown copies being on). No custom
+    bots yet (`disallow` and a custom `robots` cover edge cases). The
+    screen says `robots.txt` is a request well-behaved bots follow, and
+    shows read-only when a custom `robots` replaces the generated file
+    or the site isn't in production (everything blocked).
+- **Why:** the author's answers; groups because the three kinds of bot
+  serve different ends (training, citations, a reader's own tools).
+
+### D-399: The AI screen, built
+- **Date:** 2026-10-03
+- **Status:** Builds D-398, in the order it gave: the site description,
+  the type option, the crawler rules, then the screen.
+- **Decision:** How it was built, and the calls made on the way:
+  - **The site description:** `AppConfig::$description` (`''` for
+    none; an option at the end of the constructor, so positional
+    callers are unaffected), `Setting::Description` (`app.description`)
+    on General → Site after the name, one line of at most 300
+    characters with help suggesting about 160 (not enforced), and
+    `$site->description` for themes. It's `llms.txt`'s summary line,
+    the front page's meta and `og:description` when its entry gives
+    none (`ThemedPageRenderer::describeEntry()` now says whether it
+    did), and a feed's description when its landing page gives none.
+    `LlmsConfig::$description` is gone.
+  - **The type option:** `ContentType::$llms` (constructor's last
+    parameter), the `llms` option on collections and trees
+    (`TypeKind::options()`); taxonomies and profiles pass `false` and
+    reject the option. `toArray()` writes `llms: false` only;
+    `DataTypeWriter` and the types API carry it; the type editor has
+    "Listed in `llms.txt`" (not for taxonomies) and the details show
+    it. `LlmsTxt` lists `types()` (public, `llms` on) and gains
+    `count()`.
+  - **The crawler rules:** `Sitemap\AiCrawlerGroup` (`training`,
+    `search`, `fetchers`, with `label()` and `agents()`) and
+    `SitemapConfig::$blockAi` (a list of groups); `RobotsController`
+    writes a commented group per blocked kind (`# Training crawlers`,
+    its `User-agent` lines, `Disallow: /`) after the `*` group, in the
+    enum's order. `Setting::BlockAi` (`sitemap.blockAi`).
+  - **D-398's "Allow or Block per group" as checkboxes:** one
+    `sitemap.blockAi` list setting drawn with the `checks` control
+    ("Ask to stay away", each choice naming its group and bots), the
+    shared control the Settings screens already use (feed formats),
+    rather than three selects. Unchecked is allowed.
+  - **The screen:** `SettingsScreen::Ai` (`ai`, "AI", the `sparkles`
+    icon, after Addresses and Search and before System), so
+    `settings:ai` exists for field sets (D-397). `Setting::Llms`
+    (`llms.enabled`) needs a refresh (it changes routes). Groups:
+    Markdown Copies (the switch; `llms.txt` with "Lists N pages" and a
+    View link; the types it lists, linking to Content Types; the
+    description, linking to General) and AI Crawlers (the checkboxes,
+    warned when unused: outside production, or with a custom
+    `robots`; the kinds explained in the note). Shown settings gain
+    optional `link` (`label`, `href`) and `links` (`label`, `to`).
+    The command palette has "Go to AI Settings".
+- **Checked:** `composer check` (`AdminSettingsTest`: the AI screen,
+  saving and refusing its settings and the description, the unused
+  warning; `SitemapTest`: the robots groups and config; `LlmsTest`:
+  the description from settings and the type option;
+  `SiteDescriptionTest`: the front page and feed fallbacks;
+  `ContentTypeTest` and `AdminTypeEditTest`: the `llms` option);
+  `npm run admin:build`; the jtcom trial in headless Chrome with a
+  temporary account, removed after: the AI screen ("Lists 1,031
+  pages", Pages, Posts, Literature, Docs, Recipes), General's
+  Description, and the Posts type's "Listed in `llms.txt`".
+- **Why:** the author said build it.
+
+### D-400: The "Content" kind is called "Collection"
+- **Date:** 2026-10-03
+- **Decision:** The author's call: the new-type wizard's first kind,
+  "Content" (from the design direction), is "Collection", the kind's
+  own name, in the kind picker and the What Gets Created summary
+  (which said "Content type"), and in `docs/admin.md`. The Content
+  Types list's tabs, All / Content / Taxonomies ("Content" held every
+  type that wasn't a taxonomy), become All and a tab per kind the site
+  has: Collections, Trees, Taxonomies, Profiles (the author's call,
+  after asking).
+- **Why:** "Content" named every kind's purpose rather than the kind.
+
+### D-401: Taxonomies and profiles may be listed in `llms.txt`
+- **Date:** 2026-10-03
+- **Status:** Amends D-398 and D-399 (only collections and trees took
+  `llms`; taxonomies and profiles were never listed).
+- **Decision:** The author's call, from the proposal: every kind takes
+  the `llms` option, with a default per kind
+  (`TypeKind::inLlmsByDefault()`): on for collections and trees, off
+  for taxonomies and profiles. A term or profile can hold writing (a
+  category's description, an author's bio), and a taxonomy shows what
+  the site covers, but many are thin, and turning them on for every
+  site would swamp `llms.txt` (jtcom's categories and tags), so a site
+  opts in. `toArray()` writes `llms` only when it differs from the
+  kind's default. In `llms.txt`, terms and profiles list by title;
+  virtual ones have no Markdown copy, so they're never listed. The
+  type editor shows "Listed in `llms.txt`" for every kind; the
+  new-type wizard turns it off when Taxonomy is chosen.
+- **Checked:** `composer check` (`ContentTypeTest`: each kind's
+  default and what `toArray()` writes; `LlmsTest`: terms and profiles
+  listed by title, virtual ones left out); `npm run admin:build`.
+- **Why:** the author agreed with the proposal after asking why
+  taxonomies were left out.

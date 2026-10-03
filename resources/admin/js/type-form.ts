@@ -19,6 +19,9 @@ export interface TypeForm {
 	prefix: string;
 	public: boolean;
 	sitemap: boolean;
+	// Whether entries are listed in `llms.txt` (D-398): on by default for
+	// collections and trees, off for taxonomies (D-401).
+	llms: boolean;
 	feed: boolean;
 	// Whether entries credit authors, and whether those authors have
 	// archives under the type, at a word (`''` for `authors`; D-329). The
@@ -116,7 +119,7 @@ export function authorsWordOf(form: TypeForm): string | false {
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, feed: false, authors: true, authorArchives: true, authorsWord: '', people: null, dateArchives: 'none', hierarchical: false, types: [], fields: [], paths: {} };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, authorArchives: true, authorsWord: '', people: null, dateArchives: 'none', hierarchical: false, types: [], fields: [], paths: {} };
 }
 
 /**
@@ -133,6 +136,7 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		prefix: prefix === type.folderPrefix ? '' : prefix,
 		public: type.public,
 		sitemap: type.sitemap,
+		llms: type.llms,
 		feed: type.feed,
 		authors: type.authors,
 		authorArchives: typeof type.authorsWord === 'string',
@@ -182,6 +186,7 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		...(kind === 'tree' ? {} : { prefix: form.prefix.trim().replace(/^\/+|\/+$/g, '') || null }),
 		public: form.public,
 		sitemap: form.sitemap,
+		llms: form.llms,
 		...(kind === 'tree' ? {} : { feed: form.feed }),
 		...(form.people === null ? { authors: form.authors } : { people: peopleValueOf(form.people) }),
 		fields: form.fields,

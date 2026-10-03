@@ -37,6 +37,7 @@ use Blush\Icon\IconConfig;
 use Blush\Icon\IconPackCache;
 use Blush\Icon\IconPackDiscovery;
 use Blush\Icon\IconPacks;
+use Blush\Llms\LlmsConfig;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
@@ -290,6 +291,7 @@ final readonly class Bootstrap
 			new ThemeConfig(),
 			new FeedConfig(),
 			new SitemapConfig(),
+			new LlmsConfig(),
 			new CacheConfig(),
 			PublishConfig::fromEnv($env),
 			new ExportConfig(),

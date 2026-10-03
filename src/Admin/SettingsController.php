@@ -22,6 +22,7 @@ use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\CacheConfig;
 use Blush\Content\Type\ContentConfig;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\Environment;
@@ -30,6 +31,8 @@ use Blush\Feed\FeedFormat;
 use Blush\Field\FieldSets;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Llms\LlmsConfig;
+use Blush\Llms\LlmsTxt;
 use Blush\Media\MediaConfig;
 use Blush\Preview\PreviewConfig;
 use Blush\Publish\PublishConfig;
@@ -39,12 +42,13 @@ use Blush\Settings\Settings;
 use Blush\Settings\SettingsFile;
 use Blush\Settings\SettingsScreen;
 use Blush\Settings\SettingsTarget;
+use Blush\Sitemap\AiCrawlerGroup;
 use Blush\Sitemap\SitemapConfig;
 
 /**
  * Answers `GET {path}/api/settings/{screen}` (D-309, D-324, D-325), for
  * accounts with `site.settings`: one Settings screen (`general`,
- * `reading`, `search`, or `system`) as `groups` of settings (`key`,
+ * `reading`, `search`, `ai` (D-398), or `system`) as `groups` of settings (`key`,
  * `title`, `hint`, and a `note`, where backticks mark code), each with
  * `items`: a `key`, `label`, the `value` to show, its `kind` (`text`,
  * `mono`, `bool`, or `list`; a `bool`'s value is `true` or `false`, a
@@ -52,7 +56,9 @@ use Blush\Sitemap\SitemapConfig;
  * follows from others, such as the environment), the `file` it's set in
  * by convention (`null` when it follows from others), and optional
  * `help`. A `warning` marks a value that's risky where it is (detailed
- * errors on a live site).
+ * errors on a live site). A shown setting may have a `link` (`label`
+ * and `href`, a page on the site) or `links` (`label` and `to`, admin
+ * paths), such as `llms.txt` and the types it lists.
  *
  * A setting the admin can change (`Setting`) adds the `setting` it saves
  * as (`feed.limit`), its `field` (D-343: as forms take it, with the
@@ -75,6 +81,8 @@ final readonly class SettingsController
 		private MediaConfig $media,
 		private FeedConfig $feeds,
 		private SitemapConfig $sitemap,
+		private LlmsConfig $llms,
+		private LlmsTxt $llmsTxt,
 		private CacheConfig $cache,
 		private PublishConfig $publish,
 		private PreviewConfig $preview,
@@ -98,6 +106,7 @@ final readonly class SettingsController
 			'general' => $this->general($saved),
 			'reading' => $this->reading($saved),
 			'search'  => $this->search($saved),
+			'ai'      => $this->ai($saved),
 			'system'  => $this->system(),
 			default   => null
 		};
@@ -160,6 +169,7 @@ final readonly class SettingsController
 		return [
 			self::group('site', 'Site', 'Its name and language', [
 				$this->edit(self::item('name', 'Site name', $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, $this->app->name),
+				$this->edit(self::item('description', 'Description', $this->app->description, $this->app->description === '', help: Setting::DESCRIPTION_HELP), $saved, Setting::Description, $this->app->description),
 				$this->edit(self::item('locale', 'Language and region', $this->app->locale, $this->app->locale === $app->locale, 'mono', 'A language code, with a region if you like, such as en_US or fr.'), $saved, Setting::Locale, $this->app->locale),
 				self::item('url', 'Site address', $this->app->url, $this->app->url === $app->url, 'mono', 'From APP_URL in .env by default.', 'config/app.php')
 			]),
@@ -223,6 +233,47 @@ final readonly class SettingsController
 				$this->edit(self::item('disallow', 'Paths robots.txt asks to skip', $this->sitemap->disallow, $this->sitemap->disallow === [], 'list', 'One path a line, each starting with /, such as /drafts/.'), $saved, Setting::SitemapDisallow, $this->sitemap->disallow),
 				self::item('indexing', 'Asks not to be indexed', $environment !== Environment::Production, null, 'bool', 'Outside production, robots.txt asks search engines to skip the whole site. It follows the environment.')
 			])
+		];
+	}
+
+	/**
+	 * AI (D-398): the Markdown copies and `llms.txt` AI tools read, and
+	 * what `robots.txt` asks of AI crawlers.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function ai(Settings $saved): array
+	{
+		$types   = $this->llmsTxt->types();
+		$listed  = $this->llms->enabled ? $this->llmsTxt->count() : 0;
+		$blocked = array_map(static fn (AiCrawlerGroup $group): string => $group->label(), $this->sitemap->blockAi);
+
+		return [
+			self::group('markdown', 'Markdown Copies', 'What AI tools read', [
+				$this->edit(self::item('llms', 'Markdown copies', $this->llms->enabled, $this->llms->enabled, 'bool', Setting::Llms->field($this->types)->description), $saved, Setting::Llms, $this->llms->enabled),
+				[
+					...self::item('llmsTxt', 'llms.txt', $this->llms->enabled ? sprintf($listed === 1 ? 'Lists %s page' : 'Lists %s pages', number_format($listed)) : 'Off, with the Markdown copies', null, help: 'A Markdown map of the site: its name and description, then each listed type\'s pages.'),
+					'link' => $this->llms->enabled ? ['label' => 'View llms.txt', 'href' => $this->app->absoluteUrl('/llms.txt')] : null
+				],
+				[
+					...self::item('types', 'Types in llms.txt', array_map(static fn (ContentType $type): string => $type->labels->plural, $types), null, 'list', 'Each content type chooses with its "Listed in llms.txt" option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.'),
+					'links' => [['label' => 'Content Types', 'to' => '/types']]
+				],
+				[
+					...self::item('description', 'Description', $this->app->description === '' ? 'None' : $this->app->description, null, help: 'The line under the site\'s name in llms.txt.'),
+					'links' => [['label' => 'Change it on General', 'to' => '/settings/general']]
+				]
+			]),
+			self::group('crawlers', 'AI Crawlers', 'What robots.txt asks of them', [
+				[
+					...$this->edit(self::item('blockAi', 'Ask to stay away', $blocked, $blocked === [], 'list', Setting::BlockAi->field($this->types)->description), $saved, Setting::BlockAi, array_map(static fn (AiCrawlerGroup $group): string => $group->value, $this->sitemap->blockAi)),
+					'warning' => match (true) {
+						$this->sitemap->robots !== null                          => 'config/sitemap.php\'s own robots.txt replaces the generated one, so these choices aren\'t used.',
+						$this->app->environment !== Environment::Production => 'Outside production, robots.txt asks every crawler to stay away, so these choices apply once the site is live.',
+						default                                              => null
+					}
+				]
+			], 'Training crawlers collect pages to train models; AI search crawlers index them so answers can cite and link them; fetchers get a page when a person asks their assistant about it, so blocking them blocks readers\' own tools.')
 		];
 	}
 

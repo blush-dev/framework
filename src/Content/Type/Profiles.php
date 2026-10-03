@@ -55,6 +55,7 @@ final readonly class Profiles extends ContentType
 	 * @param  ?TypeLabels     $labels      What people call it; defaults to labels made from the name.
 	 * @param  string          $description What the type is for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
+	 * @param  bool            $llms        Whether profiles are listed in `llms.txt` (D-401).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -69,9 +70,10 @@ final readonly class Profiles extends ContentType
 		bool $closed = false,
 		?TypeLabels $labels = null,
 		string $description = '',
-		?string $icon = null
+		?string $icon = null,
+		bool $llms = false
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, []);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, [], $llms);
 	}
 
 	/**

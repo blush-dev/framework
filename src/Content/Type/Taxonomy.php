@@ -60,6 +60,7 @@ final readonly class Taxonomy extends ContentType
 	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
 	 * @param  bool            $hierarchical Whether a term may name a `parent` term.
 	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
+	 * @param  bool            $llms         Whether terms are listed in `llms.txt` (D-401).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -80,9 +81,10 @@ final readonly class Taxonomy extends ContentType
 		string $description = '',
 		?string $icon = null,
 		public bool $hierarchical = false,
-		array|bool $people = false
+		array|bool $people = false,
+		bool $llms = false
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people, $llms);
 
 		$this->field = $field ?? $name;
 	}

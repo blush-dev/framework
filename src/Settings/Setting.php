@@ -30,8 +30,10 @@ use Blush\Field\Fields\ListField;
 use Blush\Field\Fields\NumberField;
 use Blush\Field\Fields\TextField;
 use Blush\Icon\IconConfig;
+use Blush\Llms\LlmsConfig;
 use Blush\Plugin\PluginConfig;
 use Blush\Routing\RouteConfig;
+use Blush\Sitemap\AiCrawlerGroup;
 use Blush\Sitemap\SitemapConfig;
 use Blush\Theme\ThemeConfig;
 
@@ -53,6 +55,7 @@ use Blush\Theme\ThemeConfig;
 enum Setting: string
 {
 	case Name            = 'app.name';
+	case Description     = 'app.description';
 	case Locale          = 'app.locale';
 	case Timezone        = 'app.timezone';
 	case Home            = 'content.home';
@@ -62,6 +65,8 @@ enum Setting: string
 	case FeedLimit       = 'feed.limit';
 	case Sitemap         = 'sitemap.enabled';
 	case SitemapDisallow = 'sitemap.disallow';
+	case Llms            = 'llms.enabled';
+	case BlockAi         = 'sitemap.blockAi';
 	case Theme           = 'theme.active';
 	case Plugins         = 'plugins.enabled';
 	case IconPacks       = 'icons.enabled';
@@ -70,6 +75,16 @@ enum Setting: string
 	 * The most entries a feed may hold.
 	 */
 	public const int FEED_LIMIT_MAX = 100;
+
+	/**
+	 * The longest a site's description may be.
+	 */
+	public const int DESCRIPTION_MAX = 300;
+
+	/**
+	 * What the site's description is for.
+	 */
+	public const string DESCRIPTION_HELP = 'One line about the site, for llms.txt, and for the home page and feeds when nothing more specific describes them. Search results show about 160 characters.';
 
 	/**
 	 * The most paths robots.txt may be asked to skip.
@@ -91,9 +106,10 @@ enum Setting: string
 	{
 		return match ($this) {
 			self::Theme, self::Plugins, self::IconPacks                   => null,
-			self::Name, self::Locale, self::Timezone                      => SettingsScreen::General,
+			self::Name, self::Description, self::Locale, self::Timezone   => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
-			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search
+			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
+			self::Llms, self::BlockAi                                     => SettingsScreen::Ai
 		};
 	}
 
@@ -107,6 +123,7 @@ enum Setting: string
 	{
 		$field = match ($this) {
 			self::Name            => new TextField('name')->labeled('Site name')->required(),
+			self::Description     => new TextField('description')->labeled('Description')->described(self::DESCRIPTION_HELP),
 			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.')->control(Control::Mono),
 			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
 			self::Home            => self::homeChoices($types) === []
@@ -118,6 +135,8 @@ enum Setting: string
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
 			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.'),
+			self::Llms            => new BoolField('enabled')->labeled('Markdown copies')->described('A page\'s copy is at its address with .md, such as /about.md, and llms.txt lists them, for AI tools to read.'),
+			self::BlockAi         => new ListField('blockAi', new EnumField('', array_column(AiCrawlerGroup::cases(), 'value')))->labeled('Ask to stay away')->described('robots.txt is a request: well-behaved crawlers follow it, others may not.')->control(Control::Checks),
 			self::Theme           => new TextField('active')->labeled('Theme')->control(Control::Mono),
 			self::Plugins         => new ListField('enabled')->labeled('Plugins turned on'),
 			self::IconPacks       => new ListField('enabled')->labeled('Icon packs turned on')
@@ -139,6 +158,7 @@ enum Setting: string
 			self::Timezone    => array_combine(DateTimeZone::listIdentifiers(), array_map(static fn (string $zone): string => str_replace('_', ' ', $zone), DateTimeZone::listIdentifiers())),
 			self::Home        => self::homeChoices($types),
 			self::FeedFormats => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): string => $format->label(), FeedFormat::cases())),
+			self::BlockAi     => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): string => sprintf('%s: %s', $group->label(), implode(', ', $group->agents())), AiCrawlerGroup::cases())),
 			default           => []
 		};
 	}
@@ -153,6 +173,7 @@ enum Setting: string
 			self::TrailingSlash => 'Addresses end in a slash',
 			self::FeedContent   => 'Feeds carry each entry\'s full content',
 			self::Sitemap       => 'The site has a sitemap and robots.txt',
+			self::Llms          => 'Every page has a Markdown copy, and the site has llms.txt',
 			self::Home          => 'The page at user/content/index.md',
 			default             => null
 		};
@@ -221,6 +242,7 @@ enum Setting: string
 			'theme'   => ThemeConfig::class,
 			'plugins' => PluginConfig::class,
 			'icons'   => IconConfig::class,
+			'llms'    => LlmsConfig::class,
 			default   => SitemapConfig::class
 		};
 	}
@@ -243,7 +265,7 @@ enum Setting: string
 	public function needsRefresh(): bool
 	{
 		return match ($this) {
-			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Theme, self::Plugins => true,
+			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::Theme, self::Plugins => true,
 			default => false
 		};
 	}
@@ -259,12 +281,14 @@ enum Setting: string
 	{
 		return match ($this) {
 			self::Name            => self::name($value),
+			self::Description     => self::description($value),
 			self::Locale          => self::locale($value),
 			self::Timezone        => self::timezone($value),
 			self::Home            => self::home($value),
 			self::FeedFormats     => self::formats($value),
 			self::FeedLimit       => self::limit($value),
 			self::SitemapDisallow => self::disallow($value),
+			self::BlockAi         => self::blockAi($value),
 			self::Theme           => self::theme($value),
 			self::Plugins         => self::names($value, 'plugins'),
 			self::IconPacks       => self::names($value, 'icon packs'),
@@ -284,6 +308,20 @@ enum Setting: string
 			mb_strlen($name) > 100                          => throw new InvalidSetting('The site name can be at most 100 characters.'),
 			preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $name) !== 0 => throw new InvalidSetting('The site name can\'t hold line breaks or control characters.'),
 			default                                         => $name
+		};
+	}
+
+	/**
+	 * @throws InvalidSetting
+	 */
+	private static function description(mixed $value): string
+	{
+		$description = is_string($value) ? trim($value) : throw new InvalidSetting('The site\'s description must be text.');
+
+		return match (true) {
+			mb_strlen($description) > self::DESCRIPTION_MAX                => throw new InvalidSetting(sprintf('The site\'s description can be at most %d characters.', self::DESCRIPTION_MAX)),
+			preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $description) !== 0 => throw new InvalidSetting('The site\'s description is one line, without control characters.'),
+			default                                                       => $description
 		};
 	}
 
@@ -388,6 +426,31 @@ enum Setting: string
 		sort($names);
 
 		return $names;
+	}
+
+	/**
+	 * Checks the AI crawler groups to block, and returns them in their
+	 * usual order.
+	 *
+	 * @return list<string>
+	 * @throws InvalidSetting
+	 */
+	private static function blockAi(mixed $value): array
+	{
+		if (! is_array($value) || ! array_is_list($value)) {
+			throw new InvalidSetting('The AI crawlers to block must be a list: training, search, or fetchers.');
+		}
+
+		foreach ($value as $group) {
+			if (! is_string($group) || AiCrawlerGroup::tryFrom($group) === null) {
+				throw new InvalidSetting(sprintf('"%s" isn\'t a kind of AI crawler; use training, search, or fetchers.', is_string($group) ? $group : get_debug_type($group)));
+			}
+		}
+
+		return array_values(array_map(
+			static fn (AiCrawlerGroup $group): string => $group->value,
+			array_filter(AiCrawlerGroup::cases(), static fn (AiCrawlerGroup $group): bool => in_array($group->value, $value, true))
+		));
 	}
 
 	/**

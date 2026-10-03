@@ -348,10 +348,10 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertTrue(self::json($this->send('GET', '/types/doc'))['editable'] ?? null, 'A tree in a folder can change (D-386).');
 
-		$answer = $this->write('PATCH', '/types/doc', ['set' => ['description' => 'The manual.', 'sitemap' => false]]);
+		$answer = $this->write('PATCH', '/types/doc', ['set' => ['description' => 'The manual.', 'sitemap' => false, 'llms' => false]]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
-		$this->assertSame(['config', true, 'The manual.'], [self::json($answer)['origin'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['description'] ?? null]);
-		$this->assertSame("description: \"The manual.\"\nsitemap: false\n", $this->file('user/data/types/doc.yaml'));
+		$this->assertSame(['config', true, 'The manual.', false], [self::json($answer)['origin'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['description'] ?? null, self::json($answer)['llms'] ?? null]);
+		$this->assertSame("description: \"The manual.\"\nsitemap: false\nllms: false\n", $this->file('user/data/types/doc.yaml'));
 
 		$this->assertSame(200, $this->write('POST', '/types/doc/reset')->getStatusCode());
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/doc.yaml');

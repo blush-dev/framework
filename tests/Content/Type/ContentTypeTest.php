@@ -148,7 +148,8 @@ final class ContentTypeTest extends TestCase
 			public: false,
 			sitemap: false,
 			fields: [new TextField('subtitle')],
-			closed: true
+			closed: true,
+			llms: false
 		);
 
 		$this->assertSame([
@@ -160,11 +161,19 @@ final class ContentTypeTest extends TestCase
 			'feed'         => ['categories' => 'category', 'listing' => ['perPage' => 20]],
 			'public'       => false,
 			'sitemap'      => false,
+			'llms'         => false,
 			'dateArchives' => 'month',
 			'fields'       => [['name' => 'subtitle', 'type' => 'text']],
 			'closed'       => true
 		], $type->toArray());
 		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
+
+		// Each kind writes `llms` only when it isn't the kind's default (D-401).
+		$this->assertFalse(ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy'], $this->fields)->llms);
+		$this->assertSame(true, ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy', 'llms' => true], $this->fields)->toArray()['llms'] ?? null);
+		$this->assertArrayNotHasKey('llms', ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy', 'llms' => false], $this->fields)->toArray());
+		$this->assertFalse(ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles'], $this->fields)->llms);
+		$this->assertTrue(ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields)->llms);
 
 		$taxonomy = new Taxonomy(
 			'author',

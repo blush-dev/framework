@@ -16,6 +16,7 @@ namespace Blush\Content\Entry;
 use DateTimeImmutable;
 use Stringable;
 use Override;
+use Blush\Content\Parser\BodyFormat;
 use Blush\Content\Source\SourceFile;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
@@ -78,6 +79,15 @@ final readonly class Entry implements Stringable
 	public function raw(): string
 	{
 		return $this->body->source();
+	}
+
+	/**
+	 * Returns the format the body is written in: Markdown, or HTML for
+	 * an `.html` entry.
+	 */
+	public function bodyFormat(): BodyFormat
+	{
+		return $this->body->format();
 	}
 
 	/**

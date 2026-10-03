@@ -374,6 +374,14 @@ dynamically).
 
 ### Still to scope
 
+- **APIs, agents, and headless (discussed 2026-10-03):** a versioned
+  content API, API tokens, an MCP server, a headless mode, revisions
+  and an activity log, outgoing webhooks, and an image pipeline; see
+  `open-questions.md`. Markdown pages and `llms.txt` are done (D-395,
+  D-396), and the AI Settings screen with AI crawler rules and a site
+  description (D-398, D-399).
+- **Front-end search:** a JSON index that also works on a static
+  export; see `open-questions.md`.
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
   fourth kind on the shared pieces (joining `AdminTheme`, D-317);
   installing from the admin, data-only kinds (icon packs) first, where

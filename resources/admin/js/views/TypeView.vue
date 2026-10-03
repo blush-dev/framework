@@ -110,6 +110,7 @@ const related = computed(() => {
 					<div><dt>Public</dt><dd>{{ type.public ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>Feed</dt><dd>{{ type.feed ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>In the sitemap</dt><dd>{{ type.sitemap ? 'Yes' : 'No' }}</dd></div>
+					<div><dt>In <code>llms.txt</code></dt><dd>{{ type.llms ? 'Yes' : 'No' }}</dd></div>
 				</dl>
 			</section>
 
