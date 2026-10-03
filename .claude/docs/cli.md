@@ -77,7 +77,9 @@ Implemented in M2 (D-065, D-069).
 | `lang:missing [--locale]` | List untranslated message keys |
 | `build [--base-url] [--no-crawl] [--incremental]` | Export the site to static files in `storage/export`, rendered as production for the export's origin, with redirects and host files; `--incremental` keeps the last export's pages when nothing changed; broken links and host-file notices are warnings, failed URLs fail it (M7, D-135 to D-140) |
 | `publish [--pull\|--no-pull]` | Pull `user/` (with `PublishConfig::$git`), recompile the content types and routes, reindex, clear the store, and bump the content version, as the webhook does (D-131) |
-| `extension:list\|new\|check` | Extension management (D-041) |
+| `plugin:list` | List installed plugins (name, label, namespace, version, source, and on, off, or can't run, D-385), and broken manifests as warnings (D-394) |
+| `plugin:check [name]` | Check every plugin's manifest and `requires` (or one plugin's), one that's off as if it were on; a plugin turned on that can't run, or a broken one config turns on, is an error and fails it, one that's off a warning (D-394) |
+| `plugin:new` | Planned (D-041) |
 | `schedule:run` | Optional cron entry: move the content version on at go-live times and prune the store (D-040, D-133) |
 | `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
 | `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal), optionally add a `PUBLISH_SECRET`, create the storage folders, and report unwritable ones; idempotent (D-218) |

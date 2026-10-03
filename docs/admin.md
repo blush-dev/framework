@@ -972,7 +972,9 @@ you've used a switch, the list saved here names every plugin that's
 on, so a Composer plugin can be turned off too, and one Composer
 installs later starts off, saying why. A plugin whose requirements aren't met can't be
 turned on, and says what it needs, such as "Needs Blush ^3.0 (this site
-runs 2.1.0)." The switches are saved in `user/data/settings.json`, over
+runs 2.1.0)." A broken plugin, whose manifest can't be read, is listed
+by its folder (or Composer package) with what's wrong, and can't be
+turned on until that's fixed; one in `user/plugins` can be deleted. The switches are saved in `user/data/settings.json`, over
 `config/plugins.php`'s `enabled` list; once they are, the note under the
 list has **Use `config/plugins.php`'s list** to go back to it.
 

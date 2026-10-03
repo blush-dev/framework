@@ -29,6 +29,8 @@ use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Extension\Install\InstallException;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Plugin\BrokenPlugin;
+use Blush\Plugin\DiscoveredPlugins;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\PluginDiscovery;
 use Blush\Plugin\PluginManifest;
@@ -52,15 +54,15 @@ use Blush\Support\FilesystemException;
  *   (`plugins.enabled`), Composer's included, over `config/plugins.php`
  *   (D-391), as activating a theme does (D-381). The first save starts
  *   from what's on by default, so only the plugin switched changes.
- *   Turning one on is refused when its requirements aren't met (`422`,
- *   saying why). Answers `{"enabled",
+ *   Turning one on is refused when its requirements aren't met, or it's
+ *   broken (`422`, saying why; D-394). Answers `{"enabled",
  *   "started", "stopped", "refresh"}`: the other plugins that start or
  *   stop with it (the ones that require it), and that the admin should
  *   ask for `settings/refresh`, since providers run at boot.
  * - `DELETE plugins/{folder}` removes a plugin's folder from
  *   `user/plugins` and clears the plugin cache, answering `{"deleted"}`
- *   with where it was. One that's running can't be (`409`: turn it off
- *   first), nor one `config/plugins.php` turns on by name, since the
+ *   with where it was, a broken one's included (D-394). One that's
+ *   running can't be (`409`: turn it off first), nor one `config/plugins.php` turns on by name, since the
  *   site would fail without it. Composer plugins aren't folders in
  *   `user/plugins`, so they're never found here.
  */
@@ -91,21 +93,29 @@ final readonly class PluginEditController
 		}
 
 		try {
-			$installed = self::keyed(PluginDiscovery::forPaths($this->paths)->discover());
+			$discovered = PluginDiscovery::forPaths($this->paths)->discover();
 		} catch (ExtensionException $error) {
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}
 
-		$plugin = $installed["{$vendor}/{$name}"] ?? null;
+		$installed = $discovered->keyed();
+		$target    = "{$vendor}/{$name}";
+		$plugin    = $installed[$target] ?? null;
+		$broken    = array_find($discovered->broken, static fn (BrokenPlugin $broken): bool => $broken->name === $target);
 
-		if ($plugin === null) {
-			return self::error(sprintf('No plugin named %s/%s is installed.', $vendor, $name), Status::NotFound);
+		if ($plugin === null && $broken === null) {
+			return self::error(sprintf('No plugin named %s is installed.', $target), Status::NotFound);
 		}
 
 		$requirements = new PluginRequirements();
 		$before       = array_keys(array_filter($installed, fn (PluginManifest $other): bool => $this->plugins->has($other->name)));
 
 		if ($enable) {
+			// A broken one can only be turned off (D-394).
+			if ($plugin === null) {
+				return self::error(sprintf('%s can\'t be turned on. %s', $target, $broken->reason), Status::UnprocessableContent);
+			}
+
 			$checked = $requirements->check($plugin, $installed, array_fill_keys($before, true));
 
 			if (! PluginRequirements::met($checked)) {
@@ -114,10 +124,10 @@ final readonly class PluginEditController
 		}
 
 		try {
-			$saved = $this->settings->update(function (Settings $settings) use ($plugin, $enable, $installed): Settings {
-				$enabled = array_values(array_diff($settings->has(Setting::Plugins) ? self::names($settings->get(Setting::Plugins)) : $this->on($installed), [$plugin->name]));
+			$saved = $this->settings->update(function (Settings $settings) use ($target, $enable, $discovered): Settings {
+				$enabled = array_values(array_diff($settings->has(Setting::Plugins) ? self::names($settings->get(Setting::Plugins)) : $this->on($discovered), [$target]));
 
-				return $settings->with([Setting::Plugins->value => $enable ? [...$enabled, $plugin->name] : $enabled]);
+				return $settings->with([Setting::Plugins->value => $enable ? [...$enabled, $target] : $enabled]);
 			});
 		} catch (InvalidSetting $error) {
 			return self::error($error->getMessage(), Status::InternalServerError);
@@ -125,7 +135,7 @@ final readonly class PluginEditController
 
 		// Which plugins run once it's saved, to say which others start or stop.
 		$config  = new PluginConfig(saved: self::names($saved->get(Setting::Plugins)));
-		$after   = array_map(static fn (PluginManifest $other): string => $other->name, Plugins::enabled(array_values($installed), $config, $requirements)->all());
+		$after   = array_map(static fn (PluginManifest $other): string => $other->name, Plugins::enabled($discovered->manifests, $config, $requirements, $discovered->broken)->all());
 		$label   = static fn (string $other): string => $installed[$other]->label ?? $other;
 
 		$this->bootstrap->clearCompiled(CompiledCache::ContentTypes, CompiledCache::Routes);
@@ -133,8 +143,8 @@ final readonly class PluginEditController
 
 		return Response::json([
 			'enabled' => $enable,
-			'started' => array_map($label, array_values(array_diff($after, $before, [$plugin->name]))),
-			'stopped' => array_map($label, array_values(array_diff($before, $after, [$plugin->name]))),
+			'started' => array_map($label, array_values(array_diff($after, $before, [$target]))),
+			'stopped' => array_map($label, array_values(array_diff($before, $after, [$target]))),
 			'refresh' => true
 		], headers: ['Cache-Control' => 'no-store']);
 	}
@@ -149,23 +159,28 @@ final readonly class PluginEditController
 		$where = $this->paths->relative($path);
 
 		try {
-			$plugins = PluginDiscovery::forPaths($this->paths)->discover();
+			$discovered = PluginDiscovery::forPaths($this->paths)->discover();
 		} catch (ExtensionException $error) {
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}
 
-		$plugin = array_find($plugins, static fn (PluginManifest $plugin): bool => $plugin->source === PluginSource::Local && $plugin->path === $path);
+		$plugin = array_find($discovered->manifests, static fn (PluginManifest $plugin): bool => $plugin->source === PluginSource::Local && $plugin->path === $path);
+		$broken = array_find($discovered->broken, static fn (BrokenPlugin $broken): bool => $broken->source === PluginSource::Local && $broken->where === $where);
 
-		if (str_starts_with($folder, '.') || ! is_dir($path) || $plugin === null) {
+		if (str_starts_with($folder, '.') || ! is_dir($path) || ($plugin === null && $broken === null)) {
 			return self::error(sprintf('There\'s no plugin in %s.', $where), Status::NotFound);
 		}
 
-		if ($this->plugins->has($plugin->name)) {
-			return self::error(sprintf('%s is on. Turn it off before deleting it.', $plugin->label), Status::Conflict);
+		// A broken one never runs (D-394), but config may still name it.
+		$name  = $plugin->name ?? $broken->name ?? '';
+		$label = $plugin->label ?? $where;
+
+		if ($this->plugins->has($name)) {
+			return self::error(sprintf('%s is on. Turn it off before deleting it.', $label), Status::Conflict);
 		}
 
-		if (PluginsController::namedByConfig($this->config, $plugin->name)) {
-			return self::error(sprintf('config/plugins.php turns %s on by name. Take it out of that file\'s "enabled" list before deleting it.', $plugin->label), Status::Conflict);
+		if ($name !== '' && PluginsController::namedByConfig($this->config, $name)) {
+			return self::error(sprintf('config/plugins.php turns %s on by name. Take it out of that file\'s "enabled" list before deleting it.', $label), Status::Conflict);
 		}
 
 		try {
@@ -186,7 +201,7 @@ final readonly class PluginEditController
 		// The saved list forgets it, so the same name put back starts off.
 		try {
 			$this->settings->update(static fn (Settings $settings): Settings => $settings->has(Setting::Plugins)
-				? $settings->with([Setting::Plugins->value => array_values(array_diff(self::names($settings->get(Setting::Plugins)), [$plugin->name]))])
+				? $settings->with([Setting::Plugins->value => array_values(array_diff(self::names($settings->get(Setting::Plugins)), [$name]))])
 				: $settings);
 		} catch (InvalidSetting) {
 			// The folder is gone either way; a name left in the list is harmless.
@@ -198,14 +213,20 @@ final readonly class PluginEditController
 	/**
 	 * The plugins on before the admin saves its first list (Composer's,
 	 * and the local ones config names), so saving one changes nothing
-	 * but the plugin switched (D-391).
+	 * but the plugin switched (D-391). A broken one config turns on is
+	 * kept on, so it runs once it's fixed (D-394).
 	 *
-	 * @param  array<string, PluginManifest> $installed
 	 * @return list<string>
 	 */
-	private function on(array $installed): array
+	private function on(DiscoveredPlugins $discovered): array
 	{
-		return array_keys(array_filter($installed, $this->config->isEnabled(...)));
+		return [
+			...array_keys(array_filter($discovered->keyed(), $this->config->isEnabled(...))),
+			...array_values(array_map(
+				static fn (BrokenPlugin $plugin): string => $plugin->name,
+				array_filter($discovered->broken, fn (BrokenPlugin $plugin): bool => $plugin->name !== '' && $this->config->turnsOn($plugin->name, $plugin->source))
+			))
+		];
 	}
 
 	/**
@@ -223,23 +244,6 @@ final readonly class PluginEditController
 		$account = $request->getAttribute(Account::class);
 
 		return $account instanceof Account && $this->permissions->can($account, $action->on(ExtensionKind::Plugin));
-	}
-
-	/**
-	 * Keys manifests by name.
-	 *
-	 * @param  list<PluginManifest> $plugins
-	 * @return array<string, PluginManifest>
-	 */
-	private static function keyed(array $plugins): array
-	{
-		$keyed = [];
-
-		foreach ($plugins as $plugin) {
-			$keyed[$plugin->name] = $plugin;
-		}
-
-		return $keyed;
 	}
 
 	/**

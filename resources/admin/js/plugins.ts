@@ -7,11 +7,12 @@
  * `user/data/settings.json` (`PUT plugins/{vendor}/{name}`), over
  * `config/plugins.php`, and has the server compile and reindex for it,
  * since plugins' providers run at boot. Deleting removes a folder in
- * `user/plugins` (`DELETE plugins/{folder}`).
+ * `user/plugins` (`DELETE plugins/{folder}`), a broken plugin's too
+ * (D-394).
  */
 
 import { computed, ref } from 'vue';
-import { ApiError, request, type PluginRequirement, type Plugins, type PluginSummary } from './api';
+import { ApiError, request, type BrokenPluginSummary, type PluginRequirement, type Plugins, type PluginSummary } from './api';
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
 import { toast } from './toast';
@@ -24,6 +25,7 @@ export function usePlugins() {
 	const busy   = ref<string | null>(null);
 
 	const plugins = computed(() => answer.value?.plugins ?? []);
+	const broken  = computed(() => answer.value?.invalid ?? []);
 
 	async function load(): Promise<void> {
 		try {
@@ -70,6 +72,28 @@ export function usePlugins() {
 			toast(caught instanceof ApiError ? caught.message : `${plugin.label} couldn't be turned ${on ? 'on' : 'off'}`, { kind: 'warn' });
 		} finally {
 			busy.value = null;
+		}
+	}
+
+	// Asks, then deletes a broken plugin's folder; resolves whether it
+	// was deleted.
+	async function removeBroken(plugin: BrokenPluginSummary): Promise<boolean> {
+		const label = folderName(plugin.where);
+
+		if (!await confirmAction({ title: `Delete ${label}?`, body: [`The folder **${plugin.where}** and everything in it is removed from the server. This can't be undone.`], confirm: `Delete ${label}`, danger: true })) {
+			return false;
+		}
+
+		try {
+			await request('DELETE', `/plugins/${encodeURIComponent(label)}`);
+			void loadCounts();
+			toast(`Deleted ${label}`, { kind: 'danger' });
+
+			return true;
+		} catch (caught) {
+			error.value = caught instanceof ApiError ? caught.message : `${label} couldn't be deleted.`;
+
+			return false;
 		}
 	}
 
@@ -121,7 +145,7 @@ export function usePlugins() {
 		}
 	}
 
-	return { answer, error, busy, plugins, load, find, requiredBy, toggle, useConfig, remove };
+	return { answer, error, busy, plugins, broken, load, find, requiredBy, toggle, useConfig, remove, removeBroken };
 }
 
 // A plugin's details screen's address: `/plugins/{vendor}/{name}`.

@@ -234,6 +234,35 @@ final class AdminPluginsTest extends TestCase
 		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/plugins/recipes');
 	}
 
+	public function testListsBrokenPlugins(): void
+	{
+		$this->writeTemporaryFile('user/plugins/broken/plugin.json', '{broken');
+		$this->writeTemporaryFile('user/plugins/named/plugin.json', '{"name": "acme/named", "label": "Named"}');
+		$this->site(config: "enabled: ['fixture/recipes', 'acme/named']");
+
+		$answer = self::json($this->send('GET', '/plugins'));
+
+		$this->assertSame(['acme/future', 'acme/needy', 'acme/off', 'fixture/recipes'], array_column(is_array($answer['plugins'] ?? null) ? $answer['plugins'] : [], 'name'), 'The site boots, and lists the rest.');
+
+		$invalid = is_array($answer['invalid'] ?? null) ? $answer['invalid'] : [];
+		$this->assertSame(['user/plugins/broken', 'user/plugins/named'], array_column($invalid, 'where'));
+		$this->assertSame([null, 'acme/named'], array_column($invalid, 'name'));
+		$this->assertSame([false, true], array_column($invalid, 'enabled'), 'Config names one, though it doesn\'t run.');
+		$this->assertSame([true, false], array_column($invalid, 'deletable'), 'One config names stays (D-394).');
+		$this->assertStringContainsString('user/plugins/broken/plugin.json', is_array($invalid[0] ?? null) && is_string($invalid[0]['reason'] ?? null) ? $invalid[0]['reason'] : '');
+		$this->assertSame(['fixture/recipes'], array_map(static fn ($plugin): string => $plugin->name, $this->app->container()->make(Plugins::class)->all()));
+
+		$this->assertSame(422, $this->write('PUT', '/plugins/acme/named', ['enabled' => true])->getStatusCode(), 'A broken one can\'t be turned on.');
+
+		$off = $this->write('PUT', '/plugins/acme/named', ['enabled' => false]);
+		$this->assertSame(200, $off->getStatusCode(), (string) $off->getBody());
+		$this->assertSame(['plugins' => ['enabled' => ['fixture/recipes']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true), 'But it can be turned off.');
+
+		$this->reboot();
+		$this->assertSame(200, $this->write('DELETE', '/plugins/broken')->getStatusCode());
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/plugins/broken');
+	}
+
 	public function testKeepsPluginsConfigTurnsOnByName(): void
 	{
 		$this->site(config: "enabled: ['fixture/recipes', 'acme/future']");

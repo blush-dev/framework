@@ -18,6 +18,7 @@ use Blush\Console\Commands\AddAccount;
 use Blush\Console\Commands\Build;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
+use Blush\Console\Commands\CheckPlugins;
 use Blush\Console\Commands\CheckSite;
 use Blush\Console\Commands\CheckTheme;
 use Blush\Console\Commands\CreateContent;
@@ -32,6 +33,7 @@ use Blush\Console\Commands\ListCommands;
 use Blush\Console\Commands\ListComponents;
 use Blush\Console\Commands\ListIcons;
 use Blush\Console\Commands\ListMenus;
+use Blush\Console\Commands\ListPlugins;
 use Blush\Console\Commands\ListContent;
 use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\PreviewContent;
@@ -79,6 +81,8 @@ enum BuiltInCommand: string
 	case ThemeCheck    = 'theme:check';
 	case ThemeWhy      = 'theme:why';
 	case ThemePublish  = 'theme:publish';
+	case PluginList    = 'plugin:list';
+	case PluginCheck   = 'plugin:check';
 	case ComponentList = 'component:list';
 	case IconList      = 'icon:list';
 	case MenuList      = 'menu:list';
@@ -126,6 +130,8 @@ enum BuiltInCommand: string
 			self::ThemeCheck    => CheckTheme::class,
 			self::ThemeWhy      => ExplainView::class,
 			self::ThemePublish  => PublishThemes::class,
+			self::PluginList    => ListPlugins::class,
+			self::PluginCheck   => CheckPlugins::class,
 			self::ComponentList => ListComponents::class,
 			self::IconList      => ListIcons::class,
 			self::MenuList      => ListMenus::class,

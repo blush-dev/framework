@@ -16,15 +16,16 @@ namespace Blush\Plugin;
 use Blush\Extension\ExtensionException;
 
 /**
- * Finds plugins from one source.
+ * Finds plugins from one source. A plugin whose manifest can't be read
+ * is returned as broken (D-394); only a source that can't be read at all
+ * throws.
  */
 interface PluginFinder
 {
 	/**
-	 * Returns the manifests of every plugin this source provides.
+	 * Returns every plugin this source provides.
 	 *
-	 * @return list<PluginManifest>
 	 * @throws ExtensionException
 	 */
-	public function find(): array;
+	public function find(): DiscoveredPlugins;
 }

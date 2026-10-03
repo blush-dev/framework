@@ -53,7 +53,11 @@ use Blush\Plugin\Requirement;
  * - `deletable`: a folder plugin that isn't running, and that
  *   `config/plugins.php` doesn't turn on by name.
  *
- * Also `saved` (the admin's list is in `settings.json`) and `config`
+ * Also `invalid`: the broken plugins (D-394), each with `where` (a
+ * Composer package's name, or its folder), `reason`, `name` (`null` when
+ * its manifest doesn't say), `enabled` (config turns it on, though it
+ * can't run), and `deletable` (a folder in `user/plugins` config doesn't
+ * turn on by name); `saved` (the admin's list is in `settings.json`); and `config`
  * (whether `config/plugins.php` exists). What a plugin registers isn't
  * listed: it shows on the screens it belongs to, and a plugin that's off
  * registers nothing to list.
@@ -77,10 +81,12 @@ final readonly class PluginsController
 		}
 
 		try {
-			$installed = self::keyed(PluginDiscovery::forPaths($this->paths)->discover());
+			$discovered = PluginDiscovery::forPaths($this->paths)->discover();
 		} catch (ExtensionException $error) {
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}
+
+		$installed = $discovered->keyed();
 
 		$running = [];
 		$blocked = [];
@@ -124,8 +130,22 @@ final readonly class PluginsController
 
 		usort($plugins, static fn (array $a, array $b): int => strcasecmp($a['label'], $b['label']) ?: strcmp($a['name'], $b['name']));
 
+		$invalid = [];
+		$folder  = $this->paths->relative($this->paths->plugins) . '/';
+
+		foreach ($discovered->broken as $plugin) {
+			$invalid[] = [
+				'where'     => $plugin->where,
+				'reason'    => $plugin->reason,
+				'name'      => $plugin->name === '' ? null : $plugin->name,
+				'enabled'   => $plugin->name !== '' && $this->config->turnsOn($plugin->name, $plugin->source),
+				'deletable' => $plugin->source === PluginSource::Local && str_starts_with($plugin->where, $folder) && ($plugin->name === '' || ! self::namedByConfig($this->config, $plugin->name))
+			];
+		}
+
 		return Response::json([
 			'plugins' => $plugins,
+			'invalid' => $invalid,
 			'saved'   => $saved,
 			'config'  => is_file("{$this->paths->config}/plugins.php"),
 			'upload'  => ExtensionInstallController::upload($this->installer, ExtensionKind::Plugin)
@@ -151,23 +171,6 @@ final readonly class PluginsController
 		return $plugin->source === PluginSource::Local && dirname($plugin->path) === $this->paths->plugins
 			? $this->paths->relative($plugin->path)
 			: null;
-	}
-
-	/**
-	 * Keys manifests by name.
-	 *
-	 * @param  list<PluginManifest> $plugins
-	 * @return array<string, PluginManifest>
-	 */
-	private static function keyed(array $plugins): array
-	{
-		$keyed = [];
-
-		foreach ($plugins as $plugin) {
-			$keyed[$plugin->name] = $plugin;
-		}
-
-		return $keyed;
 	}
 
 	private static function error(string $message, Status $status): ResponseInterface

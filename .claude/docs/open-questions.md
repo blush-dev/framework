@@ -135,11 +135,11 @@ Move each item to `decisions.md` once it's answered.
   icon pack manifests, and Composer manifests are settled in D-379):
   what an admin theme's manifest holds and how it joins `AdminTheme`
   (D-317); whether `user/extensions/{kind}/` should be allowed too;
-  `plugin:list`, `plugin:new`, and `plugin:check` (planned since D-041);
-  and whether a plugin manifest that doesn't parse should be listed as
-  broken (as themes and packs are) instead of failing discovery (D-058),
-  so the Plugins screen can show it as the extensions sketch does
-  (D-385).
+  and `plugin:new` (planned since D-041; `plugin:list` and
+  `plugin:check` are built, and broken plugin manifests are listed,
+  D-394). Still open from D-394: whether two plugins sharing a name or
+  a namespace should be broken too, as themes and packs are, instead of
+  failing discovery.
 - **Installing and updating extensions** (D-388 decides the admin
   installs them into `user/`; installing and replacing from a zip are
   built, D-392):

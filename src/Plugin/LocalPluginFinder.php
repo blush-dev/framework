@@ -38,19 +38,25 @@ use Blush\Extension\ManifestFile;
  * The folder's name is only where the plugin lives; its `name` is what
  * it's known by. Blush autoloads the `psr-4` map itself (see
  * `LocalAutoloader`). When a folder has manifests in several formats,
- * JSON wins (D-032).
+ * JSON wins (D-032). A folder whose manifest doesn't hold is broken,
+ * known by its path from `$root` (D-394).
  */
 final readonly class LocalPluginFinder implements PluginFinder
 {
-	public function __construct(private string $pluginsPath)
-	{
-	}
+	/**
+	 * @param string $pluginsPath Where the plugin folders are.
+	 * @param string $root        The site's root, which a broken plugin's folder is given from.
+	 */
+	public function __construct(
+		private string $pluginsPath,
+		private string $root = ''
+	) {}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function find(): array
+	public function find(): DiscoveredPlugins
 	{
 		$files = [];
 
@@ -64,7 +70,19 @@ final readonly class LocalPluginFinder implements PluginFinder
 
 		sort($files);
 
-		return array_map(self::manifest(...), $files);
+		$manifests = [];
+		$broken    = [];
+
+		foreach ($files as $file) {
+			try {
+				$manifests[] = self::manifest($file);
+			} catch (ExtensionException $e) {
+				$reason   = $this->root === '' ? $e->getMessage() : str_replace($this->root . '/', '', $e->getMessage());
+				$broken[] = new BrokenPlugin($this->where(dirname($file)), $reason, self::name($file), PluginSource::Local);
+			}
+		}
+
+		return new DiscoveredPlugins($manifests, $broken);
 	}
 
 	/**
@@ -96,5 +114,30 @@ final readonly class LocalPluginFinder implements PluginFinder
 		} catch (ExtensionException $e) {
 			throw new ExtensionException(sprintf('%s (%s)', $e->getMessage(), $file), previous: $e);
 		}
+	}
+
+	/**
+	 * The name a manifest that doesn't hold gives, if it parses and
+	 * gives one, or an empty string.
+	 */
+	private static function name(string $file): string
+	{
+		try {
+			$name = ManifestFile::read($file)['name'] ?? null;
+		} catch (ExtensionException) {
+			return '';
+		}
+
+		return is_string($name) ? $name : '';
+	}
+
+	/**
+	 * A folder's path from the site's root.
+	 */
+	private function where(string $folder): string
+	{
+		return $this->root !== '' && str_starts_with($folder, $this->root . '/')
+			? substr($folder, strlen($this->root) + 1)
+			: $folder;
 	}
 }

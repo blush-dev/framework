@@ -122,7 +122,7 @@ final readonly class CountsController
 
 		if ($this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::Plugin))) {
 			try {
-				$counts['plugins'] = count(PluginDiscovery::forPaths($this->paths)->discover());
+				$counts['plugins'] = PluginDiscovery::forPaths($this->paths)->discover()->count();
 			} catch (ExtensionException) {
 				// Left out, as the Plugins screen reports the problem.
 			}

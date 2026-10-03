@@ -409,7 +409,7 @@ final readonly class ExtensionInstaller
 	private function installed(): array
 	{
 		try {
-			$plugins = PluginDiscovery::forPaths($this->paths)->discover();
+			$plugins = PluginDiscovery::forPaths($this->paths)->discover()->manifests;
 		} catch (ExtensionException $error) {
 			throw new InstallException($error->getMessage(), previous: $error);
 		}

@@ -377,10 +377,9 @@ dynamically).
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
   fourth kind on the shared pieces (joining `AdminTheme`, D-317);
   installing from the admin, data-only kinds (icon packs) first, where
-  the Install buttons are placeholders now; `plugin:list`,
-  `plugin:new`, and `plugin:check` (which could report unmet
-  requirements, D-385); and broken plugin manifests listed instead of
-  failing discovery, as broken themes and packs are. See
+  the Install buttons are placeholders now; and `plugin:new`.
+  (`plugin:list`, `plugin:check`, and broken plugin manifests listed
+  instead of failing discovery are done, D-394.) See
   `open-questions.md`.
 - **Fields API (D-337; paused, D-348: a baseline, with more design
   work to do before building further; phases 1 to 3 done, D-338 to

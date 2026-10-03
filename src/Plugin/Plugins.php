@@ -16,12 +16,13 @@ namespace Blush\Plugin;
 use Blush\Extension\ExtensionException;
 
 /**
- * The site's plugins: the ones that run, in name order, and every
- * installed one. Bound in the container, so commands like `doctor` and
- * the admin can inspect them.
+ * The site's plugins: the ones that run, in name order, every installed
+ * one, and the broken ones. Bound in the container, so commands like
+ * `plugin:list` and the admin can inspect them.
  *
  * An enabled plugin whose `requires` aren't met doesn't run (D-385); it's
- * kept with the requirements it doesn't meet (`unmet()`).
+ * kept with the requirements it doesn't meet (`unmet()`). A broken one
+ * never runs, turned on or not (D-394; `broken()`).
  */
 final readonly class Plugins
 {
@@ -50,11 +51,13 @@ final readonly class Plugins
 	 * @param list<PluginManifest>             $manifests The plugins that run.
 	 * @param ?list<PluginManifest>            $installed Every installed plugin, or `null` for the ones that run.
 	 * @param array<string, list<Requirement>> $unmet     The enabled plugins that can't run, by name.
+	 * @param list<BrokenPlugin>               $broken    The plugins whose manifests can't be read.
 	 */
 	public function __construct(
 		array $manifests = [],
 		?array $installed = null,
-		array $unmet = []
+		array $unmet = [],
+		private array $broken = []
 	) {
 		ksort($unmet);
 
@@ -65,20 +68,26 @@ final readonly class Plugins
 
 	/**
 	 * Filters discovered manifests down to the ones config enables and
-	 * whose requirements are met.
+	 * whose requirements are met. A broken plugin config names isn't
+	 * missing: it's installed, and doesn't run.
 	 *
 	 * @param  list<PluginManifest> $discovered
+	 * @param  list<BrokenPlugin>   $broken
 	 * @throws ExtensionException When config enables a plugin that isn't installed.
 	 */
-	public static function enabled(array $discovered, PluginConfig $config, PluginRequirements $requirements = new PluginRequirements()): self
+	public static function enabled(array $discovered, PluginConfig $config, PluginRequirements $requirements = new PluginRequirements(), array $broken = []): self
 	{
 		$names   = array_map(static fn (PluginManifest $manifest): string => $manifest->name, $discovered);
-		$missing = array_diff($config->named(), $names);
+		$missing = array_diff($config->named(), $names, array_map(static fn (BrokenPlugin $plugin): string => $plugin->name, $broken));
 
 		if ($missing !== []) {
+			// A broken plugin with no name to give may be the one meant.
+			$unnamed = array_filter($broken, static fn (BrokenPlugin $plugin): bool => $plugin->name === '');
+
 			throw new ExtensionException(sprintf(
-				'Config enables plugin(s) that are not installed: %s.',
-				implode(', ', $missing)
+				'Config enables plugin(s) that are not installed: %s.%s',
+				implode(', ', $missing),
+				implode('', array_map(static fn (BrokenPlugin $plugin): string => " {$plugin->where} is broken: {$plugin->reason}", $unnamed))
 			));
 		}
 
@@ -91,7 +100,8 @@ final readonly class Plugins
 		return new self(
 			array_values(array_filter($enabled, static fn (PluginManifest $manifest): bool => ! isset($unmet[$manifest->name]))),
 			$discovered,
-			$unmet
+			$unmet,
+			$broken
 		);
 	}
 
@@ -124,6 +134,16 @@ final readonly class Plugins
 	public function unmet(): array
 	{
 		return $this->unmet;
+	}
+
+	/**
+	 * The plugins whose manifests can't be read, which never run.
+	 *
+	 * @return list<BrokenPlugin>
+	 */
+	public function broken(): array
+	{
+		return $this->broken;
 	}
 
 	/**

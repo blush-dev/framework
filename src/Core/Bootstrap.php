@@ -40,6 +40,7 @@ use Blush\Icon\IconPacks;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
+use Blush\Plugin\DiscoveredPlugins;
 use Blush\Plugin\PluginCache;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\PluginDiscovery;
@@ -157,7 +158,7 @@ final readonly class Bootstrap
 		$built   = $this->build(static fn (): Planner => $planner);
 
 		new ConfigCache($this->file(CompiledCache::Config))->write($this->config($this->env(), settings: false));
-		new PluginCache($this->file(CompiledCache::Plugins))->write($built->plugins->installed());
+		new PluginCache($this->file(CompiledCache::Plugins))->write(new DiscoveredPlugins($built->plugins->installed(), $built->plugins->broken()));
 		new ThemeCache($this->file(CompiledCache::Themes))->write($built->themes);
 		new IconPackCache($this->file(CompiledCache::IconPacks))->write($built->iconPacks);
 
@@ -215,10 +216,10 @@ final readonly class Bootstrap
 		}
 
 		$installed = $this->discoverPlugins($app->environment);
-		$plugins   = Plugins::enabled($installed, $config->get(PluginConfig::class));
+		$plugins   = Plugins::enabled($installed->manifests, $config->get(PluginConfig::class), broken: $installed->broken);
 
 		[$themes, $iconPacks] = $this->settleNamespaces(
-			$installed,
+			$installed->manifests,
 			$this->discoverThemes($app->environment),
 			$this->discoverIconPacks($app->environment)
 		);
@@ -320,10 +321,8 @@ final readonly class Bootstrap
 	/**
 	 * Returns every installed plugin: from the cache outside
 	 * development when it exists, otherwise by discovery.
-	 *
-	 * @return list<PluginManifest>
 	 */
-	private function discoverPlugins(Environment $environment): array
+	private function discoverPlugins(Environment $environment): DiscoveredPlugins
 	{
 		$cached = $environment->isDevelopment()
 			? null

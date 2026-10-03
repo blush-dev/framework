@@ -1055,9 +1055,16 @@ and **icon packs**; **admin themes** are planned on the same pieces.
     `user/data/settings.json`, laid over `PluginConfig::$saved`), it
     names every plugin that's on, Composer's included, and nothing else
     is (D-391). Config never lists what's off. Naming one that isn't
-    installed fails boot. Discovery is
+    installed fails boot (naming a broken one doesn't). Discovery is
     compiled to `storage/cache/plugins.php` (D-058), every installed
-    plugin, on or off.
+    plugin, on or off, and the broken ones.
+  - **Broken plugins** (D-394, `BrokenPlugin`): a manifest that doesn't
+    parse or doesn't hold is kept, by where it was found (a Composer
+    package's name, or its folder from the root) with the reason and
+    its name when the manifest gives one, instead of failing discovery
+    (`PluginDiscovery::discover()` returns `DiscoveredPlugins`). It
+    never runs, turned on or not; `Plugins::broken()` lists them.
+    Duplicate names and namespaces still fail discovery.
   - **Requirements are enforced** (D-385, `PluginRequirements`): an
     enabled plugin runs only when its `requires` are met: `blush`, `php`,
     `ext-{name}`, and other plugins by `vendor/name` (installed at a
@@ -1065,7 +1072,8 @@ and **icon packs**; **admin themes** are planned on the same pieces.
     (`Extension\VersionConstraint`). `Plugins` holds the ones that run,
     every installed one, and what the rest don't meet; providers register
     a plugin's requirements first.
-  - Planned CLI: `plugin:list`, `plugin:new`, `plugin:check`.
+  - CLI: `plugin:list` and `plugin:check` (D-394); `plugin:new` is
+    planned.
 - **Themes:** see `theming.md`. Known by name everywhere (`active`,
   `parent`, `?theme=`, `/themes/{vendor}/{name}/…`,
   `resources/views/themes/{vendor}/{name}`); the default theme is

@@ -428,10 +428,26 @@ export interface PluginSummary {
 }
 
 /**
+ * A plugin whose manifest can't be read (D-394): listed, never run.
+ */
+export interface BrokenPluginSummary {
+	// A Composer package's name, or its folder from the site's root.
+	where: string;
+	reason: string;
+	// Its `vendor/name`, or `null` when the manifest doesn't say.
+	name: string | null;
+	// Whether config turns it on, though it can't run.
+	enabled: boolean;
+	// A folder in `user/plugins` that config doesn't turn on by name.
+	deletable: boolean;
+}
+
+/**
  * The installed plugins (`GET plugins`).
  */
 export interface Plugins {
 	plugins: PluginSummary[];
+	invalid: BrokenPluginSummary[];
 	// Whether the plugins turned on are saved in `user/data/settings.json`.
 	saved: boolean;
 	// Whether `config/plugins.php` exists.

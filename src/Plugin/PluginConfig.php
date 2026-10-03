@@ -45,9 +45,18 @@ final readonly class PluginConfig implements Config
 	 */
 	public function isEnabled(PluginManifest $plugin): bool
 	{
+		return $this->turnsOn($plugin->name, $plugin->source);
+	}
+
+	/**
+	 * Whether a plugin, by its name and where it comes from, is turned
+	 * on: one that's broken (D-394) is asked about this way.
+	 */
+	public function turnsOn(string $name, PluginSource $source): bool
+	{
 		return $this->saved === null
-			? $plugin->source === PluginSource::Composer || in_array($plugin->name, $this->enabled, true)
-			: in_array($plugin->name, $this->saved, true);
+			? $source === PluginSource::Composer || in_array($name, $this->enabled, true)
+			: in_array($name, $this->saved, true);
 	}
 
 	/**

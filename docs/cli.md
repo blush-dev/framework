@@ -57,6 +57,13 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `media:index` | Update the media index, which the admin's library lists and searches. `--full` rebuilds it; it also warns of metadata files whose media file is gone. (`publish` does this for you.) |
 | `media:publish` | Link `user/media` into `public/` so the web server serves it. `--copy` copies instead, for hosts without symlinks. |
 
+## Plugins
+
+| Command | What it does |
+|---|---|
+| `plugin:list` | List installed [plugins](extending.md#plugins) (name, label, namespace, version, source) and whether each is on, off, or turned on but unable to run, and any that are broken |
+| `plugin:check [name]` | Check every plugin's manifest and [requirements](extending.md#requirements), or one plugin's, by name. One that's off is checked as if it were on. A plugin that's turned on but can't run fails the command; one that's off is a warning. |
+
 ## Themes
 
 | Command | What it does |

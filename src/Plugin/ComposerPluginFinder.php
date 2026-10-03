@@ -38,7 +38,8 @@ use Blush\Support\FilesystemException;
  *         }
  *     }
  *
- * Composer autoloads these packages itself.
+ * Composer autoloads these packages itself. A package whose manifest
+ * doesn't hold is broken, known by its name (D-394).
  */
 final readonly class ComposerPluginFinder implements PluginFinder
 {
@@ -50,7 +51,7 @@ final readonly class ComposerPluginFinder implements PluginFinder
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function find(): array
+	public function find(): DiscoveredPlugins
 	{
 		try {
 			$packages = new ComposerPackages($this->vendorPath)->ofType(ExtensionKind::Plugin->packageType());
@@ -58,7 +59,19 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			throw new ExtensionException($e->getMessage(), previous: $e);
 		}
 
-		return array_map($this->manifest(...), $packages);
+		$manifests = [];
+		$broken    = [];
+
+		foreach ($packages as $package) {
+			try {
+				$manifests[] = $this->manifest($package);
+			} catch (ExtensionException $e) {
+				$name     = is_string($package['name'] ?? null) ? $package['name'] : '';
+				$broken[] = new BrokenPlugin($name, $e->getMessage(), $name, PluginSource::Composer);
+			}
+		}
+
+		return new DiscoveredPlugins($manifests, $broken);
 	}
 
 	/**

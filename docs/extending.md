@@ -534,6 +534,14 @@ A plugin whose requirements aren't met doesn't run, even when it's on,
 and the Plugins screen says why. Anything else in `requires` can't be
 checked, so it isn't met. Turning a plugin off also stops every plugin
 that requires it, and a plugin's requirements are loaded before it.
+`bin/blush plugin:check` checks every plugin's requirements from the
+command line, and `plugin:list` shows which plugins are on.
+
+A plugin whose manifest can't be read (a `plugin.json` that doesn't
+parse, or is missing a key it needs) is broken. It never runs, even
+when it's turned on, and the rest of the site carries on without it.
+The Plugins screen, `plugin:list`, and `plugin:check` list it by where
+it was found, such as `user/plugins/hello`, with the reason.
 
 ### Components from a plugin
 

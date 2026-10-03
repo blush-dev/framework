@@ -11185,3 +11185,49 @@ decision, add a new entry that supersedes it and mark the old one
   deleted extension's goes too, and a backup is only worth keeping if
   the admin can use it.
 
+
+### D-394: Broken plugins are listed, never run; `plugin:list` and `plugin:check`
+- **Date:** 2026-10-03
+- **Status:** Amends D-058 (a plugin manifest that can't be read no
+  longer fails discovery) and settles the open question from D-385.
+- **Decision:** The author's call: a plugin manifest that doesn't parse
+  or doesn't hold is listed as broken, as broken themes and icon packs
+  are, instead of failing discovery.
+  - **Broken plugins** (`BrokenPlugin`): known by where they were found
+    (a Composer package's name, or the folder from the site's root, as
+    `user/plugins/hello`), with the reason, and the `vendor/name` when
+    the manifest parses and gives one. `PluginDiscovery::discover()`
+    returns `DiscoveredPlugins` (the manifests and the broken ones), the
+    plugin cache holds both (an older cache is discovered again), and
+    `Plugins::broken()` lists them.
+  - **A broken plugin never runs**, turned on or not, as one whose
+    requirements aren't met (D-385): the site stays up without it.
+    Config naming a broken one isn't "not installed"; naming a plugin
+    that isn't installed still fails boot, and the error lists broken
+    plugins with no name, since one may be the plugin meant.
+  - **Still errors:** two plugins sharing a name or a namespace fail
+    discovery as before (left open).
+  - **The admin:** `GET plugins` has `invalid` (`where`, `reason`,
+    `name`, `enabled`, `deletable`); the Plugins screen lists each
+    after the plugins, by its folder in mono, with "Can't turn on", the
+    reason, a locked switch, and Delete for a `user/plugins` folder
+    config doesn't turn on by name. Turning a broken one on is refused
+    (`422`, with the reason); turning it off is allowed, and the first
+    saved list keeps a broken one config turns on, so it runs once
+    fixed.
+  - **`plugin:list`:** name, label, namespace, version, source, and
+    status (`on`, `off`, or `can't run`), with broken manifests as
+    warnings.
+  - **`plugin:check [name]`:** each plugin's manifest and `requires`
+    (one that's off checked as if it were on). A plugin turned on that
+    can't run, or a broken one config turns on, is an error and fails
+    the command; one that's off is a warning.
+- **Checked:** `composer check` (`PluginTest`: broken local and
+  Composer manifests, names and root-relative reasons, never running,
+  the "not installed" message, the cache round trip and an older cache;
+  `AdminPluginsTest`: listing, refusing, turning off, and deleting a
+  broken one; `PluginCommandsTest`); `npm run admin:build`. Not driven
+  in a browser.
+- **Why:** a broken folder in `user/plugins`, which is off until named
+  (D-390), shouldn't take the site down, and the extensions sketch
+  shows a broken plugin on the Plugins screen.

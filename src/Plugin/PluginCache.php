@@ -17,8 +17,9 @@ use Blush\Extension\ExtensionException;
 use Blush\Support\PhpArrayFile;
 
 /**
- * Compiles discovered plugin manifests to a PHP file, so production
- * requests don't scan `installed.json` or `user/plugins` (D-041, D-044).
+ * Compiles discovered plugins, broken ones included (D-394), to a PHP
+ * file, so production requests don't scan `installed.json` or
+ * `user/plugins` (D-041, D-044).
  */
 final readonly class PluginCache
 {
@@ -27,22 +28,23 @@ final readonly class PluginCache
 	}
 
 	/**
-	 * Returns the cached manifests, or `null` when nothing is cached.
+	 * Returns the cached plugins, or `null` when nothing is cached (or
+	 * the cache is in an older shape, so they're discovered again).
 	 *
-	 * @return ?list<PluginManifest>
 	 * @throws ExtensionException When the cache is invalid.
 	 */
-	public function read(): ?array
+	public function read(): ?DiscoveredPlugins
 	{
 		$data = $this->file->read();
 
-		if ($data === null) {
+		if ($data === null || ! is_array($data['manifests'] ?? null) || ! is_array($data['broken'] ?? null)) {
 			return null;
 		}
 
 		$manifests = [];
+		$broken    = [];
 
-		foreach ($data as $manifest) {
+		foreach ($data['manifests'] as $manifest) {
 			if (! is_array($manifest)) {
 				throw new ExtensionException(sprintf('The plugin cache "%s" is invalid.', $this->file->path));
 			}
@@ -50,20 +52,26 @@ final readonly class PluginCache
 			$manifests[] = PluginManifest::fromArray($manifest);
 		}
 
-		return $manifests;
+		foreach ($data['broken'] as $plugin) {
+			if (! is_array($plugin)) {
+				throw new ExtensionException(sprintf('The plugin cache "%s" is invalid.', $this->file->path));
+			}
+
+			$broken[] = BrokenPlugin::fromArray($plugin);
+		}
+
+		return new DiscoveredPlugins($manifests, $broken);
 	}
 
 	/**
-	 * Writes the manifests to the cache.
-	 *
-	 * @param list<PluginManifest> $manifests
+	 * Writes the plugins to the cache.
 	 */
-	public function write(array $manifests): void
+	public function write(DiscoveredPlugins $plugins): void
 	{
-		$this->file->write(array_map(
-			static fn (PluginManifest $manifest): array => $manifest->toArray(),
-			$manifests
-		));
+		$this->file->write([
+			'manifests' => array_map(static fn (PluginManifest $manifest): array => $manifest->toArray(), $plugins->manifests),
+			'broken'    => array_map(static fn (BrokenPlugin $plugin): array => $plugin->toArray(), $plugins->broken)
+		]);
 	}
 
 	/**

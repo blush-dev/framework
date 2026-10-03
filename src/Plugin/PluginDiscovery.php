@@ -18,8 +18,10 @@ use Blush\Extension\ExtensionException;
 
 /**
  * Finds every installed plugin across all sources, Composer first, then
- * local. Two plugins with the same name, or the same namespace (D-378),
- * are an error.
+ * local. A plugin whose manifest doesn't hold is kept as broken instead
+ * of failing discovery (D-394), so it can be listed and fixed; two
+ * plugins with the same name, or the same namespace (D-378), are still
+ * an error.
  */
 final readonly class PluginDiscovery
 {
@@ -37,23 +39,27 @@ final readonly class PluginDiscovery
 	{
 		return new self([
 			new ComposerPluginFinder($paths->vendor),
-			new LocalPluginFinder($paths->plugins)
+			new LocalPluginFinder($paths->plugins, $paths->root)
 		]);
 	}
 
 	/**
-	 * Returns every discovered manifest, sorted by name.
+	 * Returns every discovered plugin: the manifests, sorted by name, and
+	 * the broken ones, in the order found.
 	 *
-	 * @return list<PluginManifest>
-	 * @throws ExtensionException When two plugins share a name or a namespace.
+	 * @throws ExtensionException When two plugins share a name or a namespace, or a source can't be read.
 	 */
-	public function discover(): array
+	public function discover(): DiscoveredPlugins
 	{
 		$manifests  = [];
 		$namespaces = [];
+		$broken     = [];
 
 		foreach ($this->finders as $finder) {
-			foreach ($finder->find() as $manifest) {
+			$found  = $finder->find();
+			$broken = [...$broken, ...$found->broken];
+
+			foreach ($found->manifests as $manifest) {
 				if (isset($manifests[$manifest->name])) {
 					throw new ExtensionException(sprintf(
 						'Two plugins are named "%s": %s and %s.',
@@ -79,6 +85,6 @@ final readonly class PluginDiscovery
 
 		ksort($manifests);
 
-		return array_values($manifests);
+		return new DiscoveredPlugins(array_values($manifests), $broken);
 	}
 }

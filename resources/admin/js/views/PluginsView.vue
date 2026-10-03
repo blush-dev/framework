@@ -12,8 +12,9 @@
  * Composer plugin is on and a local one only when config names it; once
  * a list is saved here, it names every plugin that's on (D-391), so a
  * Composer plugin it leaves out says why it's off. A plugin whose
- * requirements aren't met can't be turned on, and says why. **Delete**
- * removes a folder plugin that's off. A plugin's name, and **Plugin
+ * requirements aren't met can't be turned on, and says why; so can't a
+ * broken one, listed by its folder with what's wrong (D-394). **Delete**
+ * removes a folder plugin that's off, or a broken one. A plugin's name, and **Plugin
  * details** in its menu, open its details screen (`PluginView`).
  *
  * Installing from the admin is planned (D-378): **Install Plugin** says
@@ -25,13 +26,13 @@ import AdminIcon from '../components/AdminIcon.vue';
 import InstallModal, { type InstallState } from '../components/InstallModal.vue';
 import MenuButton from '../components/MenuButton.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
-import type { PluginSummary } from '../api';
+import type { BrokenPluginSummary, PluginSummary } from '../api';
 import { useInstall } from '../install';
 import { pluginRoute, usePlugins } from '../plugins';
 import { copy } from '../themes';
 import { can } from '../session';
 
-const { answer, error, busy, plugins, load, find, toggle, useConfig, remove: removePlugin } = usePlugins();
+const { answer, error, busy, plugins, broken, load, find, toggle, useConfig, remove: removePlugin, removeBroken: removeBrokenPlugin } = usePlugins();
 const { installing, canInstall, afterInstall, hop } = useInstall('plugin', load);
 
 // What the account may do here (D-389).
@@ -40,7 +41,8 @@ const canDelete   = can('extensions.plugins.delete');
 
 void load();
 
-const on = computed(() => plugins.value.filter((plugin) => plugin.running).length);
+const on    = computed(() => plugins.value.filter((plugin) => plugin.running).length);
+const total = computed(() => plugins.value.length + broken.value.length);
 
 // Why a plugin that isn't running can't be turned on, or `null`.
 function blocked(plugin: PluginSummary): string | null {
@@ -73,6 +75,12 @@ async function remove(plugin: PluginSummary): Promise<void> {
 		await load();
 	}
 }
+
+async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
+	if (await removeBrokenPlugin(plugin)) {
+		await load();
+	}
+}
 </script>
 
 <template>
@@ -89,12 +97,12 @@ async function remove(plugin: PluginSummary): Promise<void> {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<div class="count-row">
-		<span>{{ answer ? `${plugins.length} ${plugins.length === 1 ? 'plugin' : 'plugins'} · ${on} on` : 'Loading plugins' }}</span>
+		<span>{{ answer ? `${total} ${total === 1 ? 'plugin' : 'plugins'} · ${on} on` : 'Loading plugins' }}</span>
 		<span class="count-row__rule" />
 	</div>
 
 	<template v-if="answer">
-		<div v-if="plugins.length === 0" class="panel">
+		<div v-if="total === 0" class="panel">
 			<div class="empty">
 				<AdminIcon name="plug" />
 				<h3 class="empty__heading">No Plugins Yet</h3>
@@ -135,6 +143,32 @@ async function remove(plugin: PluginSummary): Promise<void> {
 						<template v-if="canDelete && plugin.deletable">
 							<hr class="menu-rule">
 							<button type="button" class="menu-item menu-item--danger" @click="remove(plugin)"><AdminIcon name="trash-2" />Delete plugin</button>
+						</template>
+					</MenuButton>
+				</div>
+			</li>
+			<li v-for="plugin in broken" :key="plugin.where" class="plugin is-off">
+				<span class="plugin__mark" aria-hidden="true"><AdminIcon name="plug" /></span>
+				<div class="plugin__main">
+					<p class="plugin__name">
+						<span class="plugin__label mono">{{ plugin.where }}</span>
+						<span class="pill pill--warn">Can't turn on</span>
+						<span v-if="plugin.name && plugin.name !== plugin.where" class="plugin__package mono">{{ plugin.name }}</span>
+					</p>
+					<p class="plugin__message">
+						<AdminIcon name="triangle-alert" /><span>{{ plugin.reason }} {{ plugin.enabled ? 'It\'s turned on, but can\'t run until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+					</p>
+				</div>
+				<div class="plugin__end">
+					<ToggleSwitch :checked="false" :label="plugin.where" locked reason="Its manifest can't be read." />
+					<MenuButton button-class="button button--ghost button--small button--icon" :label="`More actions for ${plugin.where}`" floating>
+						<template #button>
+							<AdminIcon name="ellipsis" />
+						</template>
+						<button type="button" class="menu-item" @click="copy(plugin.where, plugin.where.startsWith('user/') ? 'the folder path' : 'the package name')"><AdminIcon name="copy" />{{ plugin.where.startsWith('user/') ? 'Copy folder path' : 'Copy package name' }}</button>
+						<template v-if="canDelete && plugin.deletable">
+							<hr class="menu-rule">
+							<button type="button" class="menu-item menu-item--danger" @click="removeBroken(plugin)"><AdminIcon name="trash-2" />Delete plugin</button>
 						</template>
 					</MenuButton>
 				</div>
@@ -265,6 +299,12 @@ async function remove(plugin: PluginSummary): Promise<void> {
 
 .plugin__label:hover {
 	color: var(--accent);
+}
+
+/* A broken plugin goes by its folder. */
+.plugin__label.mono {
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
 }
 
 .plugin__package {
