@@ -26,7 +26,7 @@ use Blush\Content\Type\PeopleField;
  * term), and the entries it lists.
  *
  * `$pageUrl` returns the URL of another page of the listing, for
- * pagination links. For the home page, `$base` is the kind of page it
+ * pagination links. For the homepage, `$base` is the kind of page it
  * shows: the home type's `Collection`, or `index.md` as a `Page`.
  *
  * The people pages (D-351) say which people field they're for, and a
@@ -40,7 +40,7 @@ final readonly class ContentPage
 	 * @param ?Paginator                 $entries The entries listed, if any.
 	 * @param array<string, int>         $date    A date archive's date parts, from the year down.
 	 * @param ?Closure(int): ?string     $pageUrl Returns another page's URL path.
-	 * @param ?PageKind                  $base    For the home page, the kind of page it shows.
+	 * @param ?PageKind                  $base    For the homepage, the kind of page it shows.
 	 * @param ?PeopleField               $people  The people field a people list or person's archive is for.
 	 * @param ?Entry                     $profile The profile a person's archive or profile page is about.
 	 */

@@ -51,7 +51,7 @@ final readonly class FeedBuilder
 	) {}
 
 	/**
-	 * Builds a type's collection feed (the home page's for the home type).
+	 * Builds a type's collection feed (the homepage's for the home type).
 	 *
 	 * @throws InvalidQuery When the feed arguments are invalid.
 	 * @throws MarkdownException

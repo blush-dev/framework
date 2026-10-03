@@ -60,7 +60,7 @@ abstract class ContentController
 
 	/**
 	 * Returns the page of a type's collection, as `CollectionController`
-	 * and the home page show it.
+	 * and the homepage show it.
 	 *
 	 * @throws NotFound
 	 * @throws InvalidQuery

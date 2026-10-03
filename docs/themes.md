@@ -484,7 +484,7 @@ Blush picks the most specific template your theme (or its parents) has:
 | A type's people (such as `/recipes/cooks`) | `people-{type}-{field}`, `people-{field}`, `people`, `collection` |
 | A person's archive (such as `/recipes/cooks/jane`) | `person-{type}-{field}`, `person-{field}`, `person`, `profile`, `collection` |
 | A profile's page (such as `/profiles/jane`) | `profile-{slug}`, `profile`, `collection` |
-| The home page | `home`, then whatever it shows |
+| The homepage | `home`, then whatever it shows |
 | An error | `error-{status}`, `error` |
 
 On a type's people page, `$entries` holds the profiles (link each with

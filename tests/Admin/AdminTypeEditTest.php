@@ -417,7 +417,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->site();
 
 		$routes = $this->routes('post');
-		$this->assertArrayNotHasKey('collection', $routes, 'The home page is its listing.');
+		$this->assertArrayNotHasKey('collection', $routes, 'The homepage is its listing.');
 		$this->assertSame(['year', 'month', 'page'], ($routes['collection.month.paged'] ?? [])['requires'] ?? null);
 		$this->assertTrue(($routes['collection.feed'] ?? [])['root'] ?? null);
 	}

@@ -1,0 +1,1803 @@
+<!doctype html>
+<html lang="en" data-admin-theme="neutral">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian — Settings Screens Sketch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Karla:wght@400;500;600&family=Newsreader:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================================
+   TOKENS — mirrored from design/tokens.css. Component CSS below reads tokens
+   only: no literal color, font stack, radius or type size.
+   ========================================================================== */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff;
+  --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --font-ui:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-display:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-title:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-mono:"Fira Code",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --base:13px; --h1:26px; --h1-track:-.024em;
+  --title-size:13.5px; --title-weight:500; --title-track:-.005em;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px;
+  --ctl:34px; --ctl-sm:30px; --stat-v:30px;
+  --railbar:74px; --rail:262px; --bar:62px; --work-max:1400px; --measure:72ch;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-color-scheme="light"]){
+    --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+    --border:#242936; --border-strong:#353c4c;
+    --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+    --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12;
+    --accent-soft:#182444; --accent-line:#2c3d68;
+    --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+    --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+    --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+    --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+    --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+}
+:root[data-color-scheme="dark"]{
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12;
+  --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+:root[data-admin-theme="editorial"]{
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa;
+  --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Newsreader",ui-serif,Georgia,"Times New Roman",serif;
+  --font-title:"Newsreader",ui-serif,Georgia,"Times New Roman",serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em;
+  --title-size:15.5px; --title-weight:500; --title-track:0;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px; --stat-v:34px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-color-scheme="light"])[data-admin-theme="editorial"]{
+    --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+    --border:#302a21; --border-strong:#463e31;
+    --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+    --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e;
+    --accent-soft:#113032; --accent-line:#1d4a4d;
+    --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+    --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+    --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+    --shadow-2:0 2px 8px rgba(0,0,0,.34);
+    --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme:dark;
+  }
+}
+:root[data-color-scheme="dark"][data-admin-theme="editorial"]{
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e;
+  --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme:dark;
+}
+
+/* ------------------------------------------------------------------ base -- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);
+  font-size:var(--base);line-height:1.45;-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.num,.mono,td,th,time{font-variant-numeric:tabular-nums}
+.mono,code{font-family:var(--font-mono)}
+code{font-size:.92em}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.ic-lg{width:20px;height:20px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+
+/* ----------------------------------------------------------------- shell -- */
+.app{display:grid;grid-template-columns:var(--railbar) var(--rail) minmax(0,1fr);height:100%}
+.app[data-panel="collapsed"]{grid-template-columns:var(--railbar) 0 minmax(0,1fr)}
+
+.railbar{background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;gap:var(--s-1);padding:var(--s-3) 0;overflow:hidden}
+.mark{width:34px;height:34px;border-radius:var(--r-2);background:var(--fg);color:var(--bg);
+  display:grid;place-items:center;font-family:var(--font-display);font-weight:600;font-size:15px;
+  margin-bottom:var(--s-3)}
+.railitem{appearance:none;background:none;border:0;cursor:pointer;width:58px;padding:var(--s-2) 0;
+  border-radius:var(--r-2);color:var(--fg-2);display:grid;justify-items:center;gap:3px;
+  font:inherit;font-size:10.5px;letter-spacing:.01em;position:relative}
+.railitem:hover{background:var(--surface-2);color:var(--fg)}
+.railitem[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.railitem .dot{position:absolute;top:6px;right:11px;width:6px;height:6px;border-radius:50%;
+  background:var(--warn-dot)}
+
+.panel{background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden}
+.panelhead{padding:var(--s-4) var(--pad-x) var(--s-3);display:flex;align-items:flex-start;gap:var(--s-2)}
+.panelhead h2{margin:0;font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.01em}
+.panelhead p{margin:2px 0 0;color:var(--fg-3);font-size:11.5px}
+.panelcollapse{margin-left:auto;appearance:none;background:none;border:0;cursor:pointer;
+  color:var(--fg-3);padding:4px;border-radius:var(--r-1)}
+.panelcollapse:hover{background:var(--surface-2);color:var(--fg)}
+.panelnav{overflow-y:auto;padding:0 var(--s-3) var(--s-5);flex:1}
+.navgroup{margin-top:var(--s-4)}
+.navgroup:first-child{margin-top:var(--s-2)}
+.navgroup > h3{margin:0 0 var(--s-2);padding:0 var(--s-2);font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3)}
+.navitem{display:flex;align-items:center;gap:var(--s-3);width:100%;text-align:left;
+  padding:7px var(--s-2);border-radius:var(--r-1);color:var(--fg-2);text-decoration:none;
+  appearance:none;background:none;border:0;cursor:pointer;font:inherit;position:relative}
+.navitem:hover{background:var(--surface-2);color:var(--fg)}
+.navitem[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.navitem[aria-current="page"]::before{content:"";position:absolute;left:calc(var(--s-3) * -1 + 1px);
+  top:50%;transform:translateY(-50%);width:3px;height:17px;border-radius:0 2px 2px 0;background:var(--accent)}
+.navitem .count{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.navitem.sub{padding-left:calc(var(--s-2) + 26px)}
+
+.main{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{height:var(--bar);flex:none;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:var(--s-3);padding:0 var(--s-5) 0 var(--s-5)}
+.crumb{display:flex;align-items:center;gap:var(--s-2);min-width:0;overflow:hidden;color:var(--fg-3);font-size:12.5px}
+.crumb strong{white-space:nowrap}
+.crumb a{color:var(--fg-3);text-decoration:none}
+.crumb a:hover{color:var(--fg)}
+.crumb .sep{color:var(--border-strong)}
+.crumb strong{color:var(--fg);font-weight:500}
+.topbar .spacer{margin-left:auto}
+.palettebtn{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl);min-width:0;flex:0 1 300px;
+  padding:0 var(--s-3);border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface-2);
+  color:var(--fg-3);cursor:pointer;font:inherit;font-size:12.5px}
+.palettebtn:hover{border-color:var(--border-strong);color:var(--fg-2)}
+.palettebtn kbd{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;padding:2px 5px;
+  border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--fg-3)}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--surface-3);color:var(--fg-2);
+  display:grid;place-items:center;font-size:11px;font-weight:600;letter-spacing:.02em;flex:none}
+
+/* The work area is the only scroll container. */
+.work{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+/* Full bleed: settings screens drop the --work-max cap, so nothing is left
+   stranded at the right edge. */
+.wrap{max-width:none;padding:var(--s-6) var(--s-6) calc(var(--s-7) + 20px)}
+@media (max-width:640px){ .wrap{padding:var(--s-4) var(--s-4) var(--s-7)} }
+
+/* ------------------------------------------------------------ page header -- */
+.pagehead{margin-bottom:var(--s-5)}
+.pagehead h1{margin:0;font-family:var(--font-display);font-size:var(--h1);font-weight:600;
+  letter-spacing:var(--h1-track);text-wrap:balance}
+.pagehead p{margin:var(--s-2) 0 0;color:var(--fg-2);font-size:13.5px;max-width:78ch}
+
+/* ------------------------------------------------------------------ notes -- */
+.note{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-3) var(--pad-x);
+  border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface-2);
+  color:var(--fg-2);font-size:12.5px;margin-bottom:var(--s-5)}
+.note .ic{color:var(--fg-3);margin-top:1px}
+
+/* ----------------------------------------------------------------- panels -- */
+.stack{display:flex;flex-direction:column;gap:var(--s-5)}
+.pnl{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);
+  box-shadow:var(--shadow-1);overflow:hidden}
+.pnlhead{display:flex;align-items:baseline;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x)}
+.pnlhead h2{margin:0;font-family:var(--font-display);font-size:14.5px;font-weight:600;letter-spacing:-.008em}
+.pnlhead .hint{color:var(--fg-3);font-size:12px}
+.pnlhead .acts{margin-left:auto;display:flex;gap:var(--s-2);align-self:center}
+.pnlfoot{padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);
+  color:var(--fg-3);font-size:11.5px}
+
+/* --------------------------------------------------------- settings rows --
+   One column of full-width panels. Each row is label | control | hint, so the
+   width that used to sit empty on the right now carries the explanation, and
+   the rows get shorter instead of taller.                                   */
+.pnl{--set-label:220px; --set-ctl:420px}
+.srow{display:grid;grid-template-columns:var(--set-label) minmax(0,var(--set-ctl)) minmax(0,1fr);
+  gap:0 var(--s-5);align-items:start;padding:var(--s-4) var(--pad-x);border-top:1px solid var(--border)}
+.srow:first-child{border-top:0}
+.srow[hidden]{display:none}
+.srow[hidden] + .srow{border-top:1px solid var(--border)}
+.slab{padding-top:8px}
+.slab label,.slab > span{font-size:12.5px;font-weight:500;color:var(--fg)}
+.slab .req{color:var(--danger);margin-left:2px}
+.shint{padding-top:8px;color:var(--fg-3);font-size:11.5px;max-width:52ch}
+.shint p{margin:0 0 4px}
+.shint p:last-child{margin:0}
+.shint .set{color:var(--fg-3)}
+.sctl{min-width:0;display:flex;flex-direction:column;gap:var(--s-3)}
+/* A control that genuinely wants the width takes both columns and drops its
+   hint underneath. */
+.srow.wide{grid-template-columns:var(--set-label) minmax(0,1fr)}
+.srow.wide .shint{grid-column:2;max-width:72ch}
+.sval{padding-top:7px;display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;
+  font-size:13px;color:var(--fg)}
+.sval.mono{font-size:12.5px}
+/* On a wide display the row grows rather than leaving the right of the panel
+   empty: a little more room for the control, a longer line for the hint. */
+@media (min-width:1760px){
+  .pnl{--set-label:250px; --set-ctl:520px}
+  .shint{max-width:64ch}
+}
+@media (max-width:1520px){
+  .srow{grid-template-columns:var(--set-label) minmax(0,1fr)}
+  .shint{grid-column:2;padding-top:0;max-width:72ch}
+}
+@media (max-width:760px){
+  .srow,.srow.wide{grid-template-columns:minmax(0,1fr);row-gap:var(--s-2)}
+  .shint,.srow.wide .shint{grid-column:1}
+  .slab{padding-top:0}
+}
+
+/* -------------------------------------------------------------- primitives -- */
+.inp,.ta{width:100%;height:var(--ctl);padding:0 var(--s-3);border:1px solid var(--border-strong);
+  border-radius:var(--r-1);background:var(--surface);color:var(--fg);font:inherit;font-size:13px}
+.ta{height:auto;min-height:92px;padding:var(--s-2) var(--s-3);line-height:1.5;resize:vertical}
+.inp:hover,.ta:hover{border-color:var(--fg-3)}
+.inp:focus-visible,.ta:focus-visible{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.inp.mono,.ta.mono{font-family:var(--font-mono);font-size:12.5px}
+.inp.short{width:120px}
+.inp.med{width:220px}
+.inp::placeholder,.ta::placeholder{color:var(--fg-3)}
+
+.pfx{display:flex;align-items:center;border:1px solid var(--border-strong);border-radius:var(--r-1);
+  background:var(--surface);overflow:hidden}
+.pfx:focus-within{outline:2px solid var(--accent);border-color:var(--accent)}
+.pfx > .lead{padding:0 var(--s-2) 0 var(--s-3);height:var(--ctl);display:flex;align-items:center;
+  font-family:var(--font-mono);font-size:12.5px;color:var(--fg-3);background:var(--surface-2);
+  border-right:1px solid var(--border);white-space:nowrap}
+.pfx > input{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--fg);
+  font-family:var(--font-mono);font-size:12.5px;height:var(--ctl);padding:0 var(--s-3)}
+.pfx > input::placeholder{font-family:var(--font-ui);font-size:12.5px;color:var(--fg-3)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s-1);height:var(--ctl);
+  padding:0 var(--s-3);border:1px solid var(--border-strong);border-radius:var(--r-1);
+  background:var(--surface);color:var(--fg);font:inherit;font-size:12.5px;font-weight:500;
+  cursor:pointer;box-shadow:var(--shadow-1);white-space:nowrap;text-decoration:none}
+.btn:hover{background:var(--surface-2)}
+.btn.sm{height:var(--ctl-sm);font-size:12px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{background:none;border-color:transparent;color:var(--fg-2)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--fg)}
+.btn.danger{color:var(--danger);border-color:var(--border-strong);background:var(--surface)}
+.btn.danger:hover{background:var(--danger-soft)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+/* checkbox / radio: real input, visually hidden, drawn box beside it */
+.chk,.rad{position:relative;display:inline-flex;align-items:flex-start;gap:var(--s-2);cursor:pointer;
+  font-size:12.5px;color:var(--fg);line-height:1.35;padding:2px 0}
+.chk input,.rad input{position:absolute;width:1px;height:1px;opacity:0;clip:rect(0 0 0 0)}
+.chk .box,.rad .box{width:16px;height:16px;flex:none;border:1px solid var(--border-strong);
+  background:var(--surface);display:grid;place-items:center;margin-top:1px}
+.chk .box{border-radius:4px}
+.rad .box{border-radius:50%}
+.chk .box svg{width:11px;height:11px;stroke:var(--accent-fg);stroke-width:2.6;fill:none;
+  stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.rad .box::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent-fg);
+  transform:scale(0)}
+.chk:hover .box,.rad:hover .box{border-color:var(--fg-3)}
+.chk input:checked + .box,.rad input:checked + .box{background:var(--accent);border-color:var(--accent)}
+.chk input:checked + .box svg{opacity:1}
+.rad input:checked + .box::after{transform:scale(1)}
+.chk input:focus-visible + .box,.rad input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.chkrow{display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-5);padding-top:8px}
+
+/* A choice whose label is a name, a sentence and a list of machine names. Only
+   the name is a name — bolding the whole thing is what made the agent lists
+   unreadable. */
+.chklist{display:flex;flex-direction:column;gap:var(--s-4);padding-top:6px}
+.chklist .chk{align-items:flex-start;line-height:1.45}
+.chklist .t{display:block;font-weight:500;color:var(--fg)}
+.chklist .d{display:block;color:var(--fg-2);margin-top:1px}
+.chklist .m{display:block;margin-top:4px;font-family:var(--font-mono);font-size:11px;
+  color:var(--fg-3);overflow-wrap:anywhere}
+
+.link{display:inline-flex;align-items:center;gap:var(--s-1);color:var(--accent);
+  font-size:12.5px;text-decoration:none;border-bottom:1px solid var(--accent-line);
+  align-self:flex-start;padding-bottom:1px}
+.link:hover{border-bottom-color:var(--accent)}
+.link[hidden]{display:none}
+.link .ic{width:13px;height:13px}
+.sval.muted{color:var(--fg-3)}
+.radlist{display:flex;flex-direction:column;gap:var(--s-3);padding-top:4px}
+.radlist .rad .t{display:block}
+.radlist .rad .m{display:block;color:var(--fg-3);font-family:var(--font-mono);font-size:11.5px;margin-top:2px}
+
+/* read-only switch display: a value set in code, shown not offered */
+.ro{display:inline-flex;align-items:center;gap:var(--s-2);height:24px;padding:0 var(--s-2) 0 7px;
+  border-radius:999px;background:var(--surface-2);color:var(--fg-2);font-size:11.5px;font-weight:500}
+.ro .d{width:6px;height:6px;border-radius:50%;background:var(--fg-3)}
+.ro[data-on="true"] .d{background:var(--good-dot)}
+.tag{display:inline-flex;align-items:center;height:19px;padding:0 6px;border-radius:4px;
+  background:var(--surface-2);border:1px solid var(--border);color:var(--fg-3);
+  font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.tag.accent{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+
+/* drawn select — the native popup is drawn by the OS and ignores the theme */
+.xs{position:relative;display:inline-block;width:auto;max-width:100%}
+.xs.as-inp{display:block;width:100%}
+.xs select{position:absolute;width:1px;height:1px;opacity:0;clip:rect(0 0 0 0);pointer-events:none}
+.xs-btn{display:flex;align-items:center;gap:var(--s-2);width:100%;height:var(--ctl);
+  padding:0 var(--s-2) 0 var(--s-3);border:1px solid var(--border-strong);border-radius:var(--r-1);
+  background:var(--surface);color:var(--fg);font:inherit;font-size:13px;cursor:pointer;text-align:left}
+.xs-btn:hover{border-color:var(--fg-3)}
+.xs-btn .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xs-btn .ic{color:var(--fg-3);margin-left:auto}
+.xs-list{position:absolute;z-index:40;top:calc(100% + 4px);left:0;min-width:100%;max-width:340px;
+  max-height:280px;overflow-y:auto;background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:var(--s-1);display:none}
+.xs[data-open="true"] .xs-list{display:block}
+.xs-opt{display:flex;align-items:center;gap:var(--s-2);width:100%;padding:6px var(--s-2);
+  border:0;background:none;border-radius:var(--r-1);color:var(--fg);font:inherit;font-size:12.5px;
+  cursor:pointer;text-align:left}
+.xs-opt:hover{background:var(--surface-2)}
+.xs-opt[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.xs-opt .ic{opacity:0;margin-left:auto;flex:none}
+.xs-opt[aria-selected="true"] .ic{opacity:1}
+
+/* A bar under the thing it is about, in warn, carrying a glyph and a word —
+   never color on its own. Present only while a path actually differs. */
+.bar{display:flex;align-items:flex-start;gap:var(--s-3);
+  padding:var(--s-3) var(--pad-x) var(--s-4);border-top:1px solid var(--border);font-size:12.5px}
+.bar[hidden]{display:none}
+.bar p{margin:0;max-width:100ch;color:var(--fg-2)}
+.bar p + p{margin-top:var(--s-1)}
+.bar{background:var(--surface-2)}
+.bar.warn{background:var(--warn-soft)}
+.bar.warn .ic{color:var(--warn-dot);margin-top:2px}
+.bar.warn p b{color:var(--warn)}
+.bar .who{font-size:11.5px;color:var(--fg-3)}
+.bar .who b{font-weight:500}
+
+/* ----------------------------------------------------- the kinds grid --
+   Six scopes and three settings each is a grid, so it is labeled once in the
+   header rather than re-explained on every row. All Files is the first row,
+   and a kind inherits from it by leaving a box empty — the inherited value
+   stands in the box as its placeholder, so a column can be read down. */
+.pnlnote{padding:var(--s-4) var(--pad-x);border-top:1px solid var(--border);
+  color:var(--fg-2);font-size:12.5px}
+.pnlnote p{margin:0;max-width:104ch}
+.pnlnote p + p{margin-top:var(--s-2)}
+
+/* Top-aligned, so revealing a row's tokens grows the row downward instead of
+   sliding every other cell in it. Each cell's first thing is --ctl tall, which
+   is what keeps the four columns on one line. */
+table.ktbl td,table.ktbl th[scope="row"]{padding-top:var(--s-3);padding-bottom:var(--s-3);vertical-align:top}
+/* Block-level inside a cell, so each control starts at the cell's top padding
+   instead of sitting on the cell's baseline a line-height lower down. */
+.ktbl .sw,.ktbl .kname,.ktbl .sizecell{display:flex;min-height:var(--ctl)}
+.everyk{display:block;padding-top:9px;color:var(--fg-3)}
+.ktbl th[scope="row"]{text-align:left;font-weight:400;background:none;border-top:0;
+  text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--fg)}
+.ktbl tbody tr{border-bottom:1px solid var(--border)}
+.khead{display:flex;align-items:center;gap:var(--s-2);width:100%;padding:0;border:0;
+  background:none;font:inherit;text-align:left;color:inherit;cursor:default;pointer-events:none}
+.khead .chev,.khead .ksum{display:none}
+.kname{display:flex;align-items:center;gap:var(--s-2);font-size:12.5px;font-weight:500;color:var(--fg)}
+.kname .ic{color:var(--fg-3)}
+.krow.all .kname{font-weight:600}
+.krow[data-allowed="false"] .kname,.krow[data-allowed="false"] .kname .ic{color:var(--fg-3)}
+.krow[data-allowed="false"] td:nth-child(3),
+.krow[data-allowed="false"] td:nth-child(4){opacity:.45}
+
+.sizecell{display:inline-flex;align-items:center;gap:var(--s-2)}
+.inp.size{width:68px;text-align:right;font-family:var(--font-mono);font-size:12.5px}
+.unit{font-family:var(--font-mono);font-size:12px;color:var(--fg-3)}
+.inp.size::placeholder{color:var(--fg-3)}
+.pfx > input::placeholder{color:var(--fg-3)}
+
+/* The tokens belong to the path you are in, so only that row shows them. */
+.pcell{display:flex;flex-direction:column;gap:var(--s-3)}
+.tokens{display:flex;flex-wrap:wrap;gap:var(--s-3);padding:0}
+.tokens[hidden]{display:none}
+.tokens button{font-family:var(--font-mono);font-size:11px;height:24px;padding:0 var(--s-2);
+  border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);
+  color:var(--fg-2);cursor:pointer}
+.tokens button:hover{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+
+/* A switch, not a checkbox: the row's one yes/no, carrying a word because a
+   fill alone would be status by color. */
+.sw{position:relative;display:inline-flex;align-items:center;gap:var(--s-2);cursor:pointer}
+.menubtn{display:none}
+.sw input{position:absolute;width:1px;height:1px;opacity:0;clip:rect(0 0 0 0)}
+.sw .track{position:relative;width:32px;height:18px;flex:none;border-radius:999px;
+  background:var(--surface-3);border:1px solid var(--border-strong);transition:background 140ms ease-out}
+.sw .knob{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;
+  background:var(--surface);box-shadow:var(--shadow-2);transition:transform 140ms ease-out}
+.sw:hover .track{border-color:var(--fg-3)}
+.sw input:checked + .track{background:var(--accent);border-color:var(--accent)}
+.sw input:checked + .track .knob{transform:translateX(14px);background:var(--accent-fg)}
+.sw input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+.swlab{font-size:12px;color:var(--fg-3)}
+/* A switch in a settings row sits on the control line, like the read-only
+   On/Off pills it now matches. */
+.sctl > .sw{min-height:var(--ctl)}
+.sw.onoff .swlab{font-size:12.5px;font-weight:500}
+.sw:has(input:disabled){cursor:default}
+.sw input:disabled + .track{opacity:.45}
+.sw input:disabled ~ .swlab{color:var(--fg-3)}
+/* A row turned off by another row keeps its controls, dimmed, with the reason
+   in its own hint — a control that vanishes without saying why is worse. */
+.srow[data-off="true"] .sctl{opacity:.55}
+.srow[data-off="true"] .link{pointer-events:none}
+
+/* A warning that belongs to one group of choices, not to the whole panel. */
+.warnline{display:flex;align-items:flex-start;gap:var(--s-2);margin:var(--s-1) 0 0;
+  color:var(--warn);font-size:12px;max-width:64ch}
+.warnline .ic{width:14px;height:14px;flex:none;margin-top:2px;color:var(--warn-dot)}
+
+/* A link sitting inside hint prose rather than under a control. */
+.shint .link{display:inline;font-size:inherit;vertical-align:baseline}
+.sw input:checked ~ .swlab{color:var(--fg-2)}
+
+/* The example sits under the field it explains, and only where the pattern
+   resolves to something you could not read off the field itself. */
+.p-pv{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);overflow-wrap:anywhere}
+.p-pv::before{content:"\2192\00a0"}
+.p-pv[hidden]{display:none}
+.pcell{gap:var(--s-2);max-width:780px}
+.pcell .tokens{margin-top:var(--s-1)}
+
+/* ------------------------------------------------------- small screens --
+   Under 1100px the grid stops being a grid: a column header cannot label a
+   cell that has wrapped under it, so each row becomes a block and every cell
+   carries its own label. Under 860px the rail and panel leave the layout and
+   slide in together over a scrim. */
+@media (max-width:1100px){
+  table.ktbl,.ktbl tbody,.ktbl tr,.ktbl td,.ktbl th[scope="row"]{display:block;width:auto}
+  .ktbl thead{display:none}
+
+  /* A kind becomes a group inside the panel, the way Site and Dates and Time
+     are groups: its name, then rows. Groups are separated by space, not by a
+     rule — space before a separator — so the only hairlines left are the ones
+     between rows, exactly as on every other settings screen. */
+  /* No tint either: a group inside a panel is marked by its name and the
+     space above it, which is how every other settings group is marked. */
+  .ktbl tbody tr,.ktbl tbody tr.all{padding:0;border:0;background:none}
+  table.ktbl th[scope="row"]{padding:var(--s-6) var(--pad-x) var(--s-3)}
+  table.ktbl tbody tr:first-child th[scope="row"]{padding-top:var(--s-5)}
+  .ktbl .kname{font-size:14.5px;font-weight:600;min-height:0;letter-spacing:-.008em}
+
+  /* A kind closes down to one line that says what it does, so the panel is
+     six lines plus whatever you opened. A kind with something of its own
+     starts open; one that follows All Files starts closed. */
+  table.ktbl th[scope="row"]{padding:0}
+  .khead{align-items:baseline;flex-wrap:wrap;column-gap:var(--s-2);row-gap:2px;
+    cursor:pointer;pointer-events:auto;padding:var(--s-4) var(--pad-x)}
+  .khead:hover{background:var(--surface-2)}
+  .khead .chev{display:block;color:var(--fg-3);align-self:center;
+    transition:transform 140ms ease-out}
+  .krow[data-open="true"] .khead .chev{transform:rotate(90deg)}
+  .khead .kname{flex:none}
+  .khead .ksum{display:block;flex-basis:100%;padding-left:calc(16px + var(--s-2));
+    color:var(--fg-3);font-size:12px}
+  .khead .ksum .mono{color:var(--fg-2);font-size:11.5px}
+  .krow[data-open="false"] td{display:none}
+  .krow[data-open="true"] .khead{padding-bottom:var(--s-3)}
+
+  /* The head's hairline sits directly on it, so the hover fill begins where
+     the line ends — no gap for the tint to float away from. */
+  table.ktbl tbody tr.krow:not(.all) th[scope="row"]{border-top:1px solid var(--border)}
+  table.ktbl tbody tr.krow:not(.all){padding-top:0}
+
+  /* All Files reads like a panel group: its name, then its rows, closed off
+     by the line belonging to the head below it. */
+  .pnlnote{border-bottom:1px solid var(--border)}
+  table.ktbl tbody tr.all th[scope="row"]{padding:var(--s-5) var(--pad-x) var(--s-3)}
+  table.ktbl tbody tr.all td:first-of-type{border-top:1px solid var(--border)}
+
+  /* The base table draws a bottom border on every cell; stacked, that lands
+     a second hairline beside the row's own top border. One line per edge. */
+  table.ktbl td,table.ktbl th[scope="row"]{border-bottom:0}
+
+  /* each cell is an ordinary settings row */
+  table.ktbl td{display:grid;grid-template-columns:220px minmax(0,1fr);gap:0 var(--s-5);
+    align-items:start;padding:var(--s-4) var(--pad-x);border-top:1px solid var(--border)}
+  .ktbl td::before{content:attr(data-label);font-size:12.5px;font-weight:500;color:var(--fg);
+    text-transform:none;letter-spacing:0;padding-top:8px}
+  .ktbl .sw,.ktbl .sizecell{min-height:var(--ctl)}
+  .everyk{padding-top:8px}
+  .inp.size{width:88px}
+}
+@media (max-width:760px){
+  table.ktbl td{grid-template-columns:minmax(0,1fr);row-gap:var(--s-2)}
+  .ktbl td::before{padding-top:0}
+  .everyk{padding-top:0}
+}
+
+@media (max-width:1280px){ .palettebtn kbd{display:none} }
+
+/* The section panel becomes a drawer at the same width the grid stops being a
+   grid, so the rows that have to stack get that width back. The rail stays put
+   until 860, where it joins the drawer. */
+@media (max-width:1100px){
+  .app{grid-template-columns:var(--railbar) 0 minmax(0,1fr)}
+  .main{grid-column:3}
+  .panel{position:fixed;left:var(--railbar);top:0;bottom:0;width:var(--rail);z-index:70;
+    transform:translateX(calc(-100% - var(--railbar)));transition:transform 160ms ease-out}
+  .app[data-drawer="open"] .panel{transform:none}
+  .panelcollapse{display:none}
+  .scrim{position:fixed;inset:0;z-index:65;
+    background:color-mix(in srgb, var(--fg) 34%, transparent)}
+  .scrim[hidden]{display:none}
+  .menubtn{display:inline-flex;align-items:center;justify-content:center;flex:none;
+    width:var(--ctl);height:var(--ctl);border:1px solid var(--border-strong);
+    border-radius:var(--r-1);background:var(--surface);color:var(--fg-2);cursor:pointer}
+  .menubtn:hover{background:var(--surface-2);color:var(--fg)}
+}
+@media (max-width:980px){
+  .palettebtn{flex:none;width:var(--ctl);padding:0;justify-content:center}
+  .palettebtn span{display:none}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:0 0 minmax(0,1fr)}
+  .main{grid-column:1 / -1}
+  .railbar{position:fixed;left:0;top:0;bottom:0;width:var(--railbar);z-index:70;
+    transform:translateX(-100%);transition:transform 160ms ease-out}
+  .app[data-drawer="open"] .railbar{transform:none}
+  .topbar{padding:0 var(--s-4);gap:var(--s-2)}
+  .btn .ic + *{display:none}
+  .savebar{max-width:calc(100vw - var(--s-5));flex-wrap:wrap;justify-content:center;
+    border-radius:var(--r-3);padding:var(--s-3) var(--s-4)}
+}
+@media (max-width:640px){
+  /* Only the leaf survives: the trail is the drawer's job at this width. */
+  .crumb a,.crumb .sep{display:none}
+  .pnlhead{flex-wrap:wrap;row-gap:var(--s-2)}
+  .pnlhead .acts{margin-left:0}
+}
+
+/* ------------------------------------------------------------------ table -- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.tbl th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--fg-3);padding:var(--s-2) var(--s-3);border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);background:var(--surface-2)}
+.tbl th:first-child{padding-left:var(--pad-x)}
+.tbl th:last-child{padding-right:var(--pad-x)}
+.tbl td{padding:var(--pad-row) var(--s-3);border-bottom:1px solid var(--border);vertical-align:middle;
+  font-size:12.5px}
+.tokens[hidden]{display:none}
+
+/* ------------------------------------------------------------------ table -- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.tbl th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--fg-3);padding:var(--s-2) var(--s-3);border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);background:var(--surface-2)}
+.tbl th:first-child{padding-left:var(--pad-x)}
+.tbl th:last-child{padding-right:var(--pad-x)}
+.tbl td{padding:var(--pad-row) var(--s-3);border-bottom:1px solid var(--border);vertical-align:middle;
+  font-size:12.5px}
+.tokens[hidden]{display:none}
+
+/* A group inside a panel: the shared folders above it, the exceptions below.
+   Set from Title Case copy, so turning the styling off leaves correct text. */
+.subhead{display:flex;align-items:baseline;gap:var(--s-3);
+  padding:var(--s-6) var(--pad-x) var(--s-3);border-top:1px solid var(--border)}
+.subhead h3{margin:0;font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--fg-3)}
+.subhead .hint{color:var(--fg-3);font-size:12px}
+.subhead .acts{margin-left:auto;display:flex;gap:var(--s-1);align-self:center}
+
+/* ------------------------------------------------------------ disclosure --
+   A section per kind: the head says what that kind does now, so the state is
+   readable without opening anything, and what is inside is the same
+   label | control | hint row the rest of the screen uses.                  */
+.disc{border-top:1px solid var(--border)}
+.disc-h{margin:0;font:inherit;font-weight:400}
+.radlist .rad .m:empty{display:none}
+.disc-head{display:flex;align-items:flex-start;gap:var(--s-3);width:100%;text-align:left;
+  padding:var(--s-4) var(--pad-x);background:none;border:0;cursor:pointer;font:inherit;color:var(--fg)}
+.disc-head:hover{background:var(--surface-2)}
+.disc-head .chev{color:var(--fg-3);margin-top:2px;transition:transform 140ms ease-out}
+.disc[data-open="true"] .chev{transform:rotate(90deg)}
+.disc-head .glyph{color:var(--fg-2);margin-top:1px}
+.disc-t{min-width:0}
+.disc-n{display:block;font-size:13.5px;font-weight:500;letter-spacing:-.005em}
+.disc-s{display:block;margin-top:3px;color:var(--fg-3);font-size:12px}
+.disc-s .mono{color:var(--fg-2);font-size:11.5px}
+.disc.own .disc-n::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--accent);margin-left:var(--s-2);vertical-align:middle}
+.disc-body{background:var(--surface-2);border-top:1px solid var(--border)}
+.disc-body[hidden]{display:none}
+.disc-body .srow{border-top:1px solid var(--border)}
+.disc-body .srow:first-child{border-top:0}
+.disc-body .preview{background:none;border-top:1px solid var(--border)}
+.tbl td:first-child{padding-left:var(--pad-x)}
+.tbl td:last-child{padding-right:var(--pad-x)}
+.tbl tbody tr:last-child td{border-bottom:0}
+.kind{display:flex;align-items:center;gap:var(--s-2);font-weight:500;color:var(--fg)}
+.kind .ic{color:var(--fg-2)}
+.path{font-family:var(--font-mono);font-size:12px;color:var(--fg-2);overflow-wrap:anywhere}
+.path b{color:var(--fg);font-weight:500}
+.muted{color:var(--fg-3)}
+
+/* ---------------------------------------------------------------- preview -- */
+.preview{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;
+  padding:var(--s-3) var(--pad-x);background:var(--surface-2);border-top:1px solid var(--border)}
+.preview .lb{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fg-3)}
+.preview .pv{font-family:var(--font-mono);font-size:12.5px;color:var(--fg)}
+.preview .pv .dim{color:var(--fg-3)}
+.tokens{display:flex;flex-wrap:wrap;gap:var(--s-1);padding-top:var(--s-1)}
+.tokens button{font-family:var(--font-mono);font-size:11px;padding:3px 6px;border-radius:4px;
+  border:1px solid var(--border);background:var(--surface-2);color:var(--fg-2);cursor:pointer}
+.tokens button:hover{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+
+/* --------------------------------------------------------------- save bar -- */
+/* The same floating pill the bulk bar uses: fixed to the bottom center of the
+   viewport, so it does not move when the panel collapses, and present only when
+   there is something to save. Every settings screen is a form, so it is not
+   owned by any one of them. */
+.savebar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--s-5) + env(safe-area-inset-bottom));
+  z-index:60;display:flex;align-items:center;gap:var(--s-4);
+  padding:var(--s-2) var(--s-2) var(--s-2) var(--s-5);
+  background:var(--surface);border:1px solid var(--border);border-radius:999px;
+  box-shadow:var(--shadow-2)}
+.savebar[hidden]{display:none}
+.savebar .n{font-size:12.5px;color:var(--fg-2)}
+.savebar .acts{display:flex;align-items:center;gap:var(--s-1)}
+.savebar .btn{border-radius:999px;padding:0 var(--s-4)}
+
+/* ----------------------------------------------------------------- toasts -- */
+.toasts{position:fixed;right:var(--s-5);bottom:var(--s-5);z-index:80;display:flex;
+  flex-direction:column;gap:var(--s-2);pointer-events:none}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:var(--s-2);min-width:240px;
+  max-width:360px;padding:var(--s-3) var(--s-4);border-radius:var(--r-2);background:var(--surface);
+  box-shadow:var(--shadow-2);font-size:12.5px;color:var(--fg);border:1px solid var(--border)}
+.toast .ic{color:var(--good)}
+
+/* ------------------------------------------------- lab- harness, not the UI */
+.lab-bar{display:flex;align-items:center;gap:var(--s-2);margin-left:var(--s-3);
+  padding-left:var(--s-3);border-left:1px solid var(--border)}
+.lab-bar .btn{height:var(--ctl-sm);font-size:11.5px}
+@media (max-width:1180px){ .lab-bar{display:none} }
+.screen[hidden]{display:none}
+</style>
+</head>
+<body>
+
+<svg class="sr" aria-hidden="true"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.3a2 2 0 0 1 .7-1.5l7-6a2 2 0 0 1 2.6 0l7 6a2 2 0 0 1 .7 1.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M15 21v-7a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v7"/></symbol>
+<symbol id="i-content" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6"/><path d="M8 13h8M8 17h6"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-1a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v1"/></symbol>
+<symbol id="i-config" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3"/><path d="M14 2v4M8 10v4M16 18v4"/></symbol>
+<symbol id="i-types" viewBox="0 0 24 24"><path d="M12.8 2.2a2 2 0 0 0-1.6 0L2.6 6.1a1 1 0 0 0 0 1.8l8.6 3.9a2 2 0 0 0 1.6 0l8.6-3.9a1 1 0 0 0 0-1.8z"/><path d="m22 17.7-9.2 4.1a2 2 0 0 1-1.6 0L2 17.7"/><path d="m22 12.7-9.2 4.1a2 2 0 0 1-1.6 0L2 12.7"/></symbol>
+<symbol id="i-fields" viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></symbol>
+<symbol id="i-general" viewBox="0 0 24 24"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+<symbol id="i-reading" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+<symbol id="i-media" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+<symbol id="i-addresses" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+<symbol id="i-ai" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></symbol>
+<symbol id="i-system" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01M6 17h.01"/></symbol>
+<symbol id="i-themes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="13.5" cy="6.5" r=".9"/><circle cx="17.5" cy="10.5" r=".9"/><circle cx="8.5" cy="7.5" r=".9"/><circle cx="6.5" cy="12.5" r=".9"/><path d="M12 22a3 3 0 0 1 0-6 2 2 0 0 0 2-2 2 2 0 0 1 2-2h4"/></symbol>
+<symbol id="i-plugins" viewBox="0 0 24 24"><path d="M12 22v-5M9 8V2M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/></symbol>
+<symbol id="i-icons" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.6-1.1L11.4 3a.7.7 0 0 1 1.2 0l3.7 5.9a.7.7 0 0 1-.6 1.1z"/><circle cx="17.5" cy="17.5" r="3.5"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/></symbol>
+<symbol id="i-files" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+<symbol id="i-video" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></symbol>
+<symbol id="i-audio" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/></symbol>
+<symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+</defs></svg>
+
+<div class="app" id="app">
+
+  <!-- ================================================================ rail -->
+  <nav class="railbar" aria-label="Sections">
+    <div class="mark" aria-hidden="true">M</div>
+    <button class="railitem" type="button" data-section="home" aria-pressed="false">
+      <svg class="ic ic-lg"><use href="#i-home"/></svg>Home</button>
+    <button class="railitem" type="button" data-section="content" aria-pressed="false">
+      <svg class="ic ic-lg"><use href="#i-content"/></svg>Content
+      <span class="dot" title="Live entries have unpublished changes"></span></button>
+    <button class="railitem" type="button" data-section="users" aria-pressed="false">
+      <svg class="ic ic-lg"><use href="#i-users"/></svg>Users</button>
+    <button class="railitem" type="button" data-section="config" aria-pressed="true">
+      <svg class="ic ic-lg"><use href="#i-config"/></svg>Config</button>
+  </nav>
+
+  <!-- =============================================================== panel -->
+  <div class="panel" id="panel">
+    <div class="panelhead">
+      <div>
+        <h2 id="panel-title">Config</h2>
+        <p id="panel-sub">Types, settings, and the look</p>
+      </div>
+      <button class="panelcollapse" type="button" id="collapse" aria-label="Collapse the panel">
+        <svg class="ic"><use href="#i-panel-left"/></svg>
+      </button>
+    </div>
+    <div class="panelnav" id="panel-nav"><!-- filled by JS --></div>
+  </div>
+
+  <!-- ================================================================ main -->
+  <div class="main">
+    <header class="topbar">
+      <button class="menubtn" type="button" id="menubtn" aria-label="Show the menu" aria-expanded="false">
+        <svg class="ic"><use href="#i-menu"/></svg>
+      </button>
+      <nav class="crumb" aria-label="Breadcrumb">
+        <a href="#">Config</a><span class="sep">/</span>
+        <a href="#" id="crumb-group">Settings</a><span class="sep">/</span>
+        <strong id="crumb-leaf">General</strong>
+      </nav>
+      <div class="spacer"></div>
+      <button class="palettebtn" type="button">
+        <svg class="ic"><use href="#i-search"/></svg>
+        <span>Search or jump to…</span><kbd>⌘K</kbd>
+      </button>
+      <a class="btn" href="#"><svg class="ic"><use href="#i-external"/></svg><span>View site</span></a>
+      <div class="avatar" title="Justin Tadlock">JT</div>
+      <div class="lab-bar">
+        <button class="btn ghost sm" type="button" id="lab-theme">Editorial</button>
+        <button class="btn ghost sm" type="button" id="lab-scheme">Dark</button>
+      </div>
+    </header>
+
+    <div class="work" id="work">
+
+      <!-- ========================================================= GENERAL -->
+      <section class="wrap screen" id="s-general">
+        <div class="pagehead">
+          <h1>General</h1>
+          <p>The site's name, language, and time, and where it runs.</p>
+        </div>
+        <div class="note">
+          <svg class="ic"><use href="#i-info"/></svg>
+          <p style="margin:0">What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</p>
+        </div>
+
+        <div class="stack">
+          <section class="pnl">
+            <div class="pnlhead"><h2>Site</h2><span class="hint">Its name and language</span></div>
+            <div class="srow">
+              <div class="slab"><label for="g-name">Site name</label></div>
+              <div class="sctl"><input class="inp" id="g-name" value="Justin Tadlock"></div>
+              <div class="shint"><p>Used in the browser tab, the feeds and anywhere a theme prints it.</p><p class="set">From <code>config/app.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><label for="g-desc">Description</label></div>
+              <div class="sctl"><input class="inp" id="g-desc" value="" placeholder=""></div>
+              <div class="shint"><p>One line about the site, for <code>llms.txt</code>, and for the home page and feeds when nothing more specific describes them. Search results show about 160 characters.</p><p class="set">From <code>config/app.php</code>, the default.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><label for="g-lang">Language and region</label></div>
+              <div class="sctl"><input class="inp mono med" id="g-lang" value="en_US"></div>
+              <div class="shint"><p>A language code, with a region if you like, such as <code>en_US</code> or <code>fr</code>.</p><p class="set">From <code>config/app.php</code>, the default.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Site address</span></div>
+              <div class="sctl"><div class="sval mono">https://blush.ddev.site</div></div>
+              <div class="shint"><p>From <code>APP_URL</code> in <code>.env</code> by default.</p><p class="set">Set in <code>config/app.php</code>.</p></div>
+            </div>
+          </section>
+
+          <section class="pnl">
+            <div class="pnlhead"><h2>Dates and Time</h2><span class="hint">How times are read and shown</span></div>
+            <div class="srow">
+              <div class="slab"><label for="g-tz">Time zone</label></div>
+              <div class="sctl">
+                <div class="xs as-inp"><select id="g-tz">
+                  <option>UTC</option><option>America/New_York</option>
+                  <option selected>America/Chicago</option><option>America/Denver</option>
+                  <option>America/Los_Angeles</option><option>Europe/London</option>
+                  <option>Europe/Berlin</option><option>Asia/Tokyo</option>
+                </select></div>
+              </div>
+              <div class="shint"><p>It's <time>Fri, Oct 2, 10:31 PM</time> there now.</p><p class="set">From <code>config/app.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><label for="g-date">Date format</label></div>
+              <div class="sctl"><input class="inp mono med" id="g-date" value="F j, Y"></div>
+              <div class="shint"><p>Reads as <b class="mono">October 2, 2026</b>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><label for="g-time">Time format</label></div>
+              <div class="sctl"><input class="inp mono short" id="g-time" value="g:i a"></div>
+              <div class="shint"><p>Reads as <b class="mono">10:31 pm</b>.</p></div>
+            </div>
+          </section>
+
+          <section class="pnl">
+            <div class="pnlhead"><h2>Environment</h2><span class="hint">Set where the site runs</span></div>
+            <div class="srow">
+              <div class="slab"><span>Environment</span></div>
+              <div class="sctl"><div class="sval">Development <span class="tag">Code</span></div></div>
+              <div class="shint"><p>Content changes show up on the next request, caching is off, and search engines are asked not to index the site.</p><p class="set">Set in <code>config/app.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Detailed error pages</span></div>
+              <div class="sctl"><div class="sval"><span class="ro" data-on="true"><span class="d"></span>On</span></div></div>
+              <div class="shint"><p>A failing request prints the stack trace instead of a plain error page.</p><p class="set">Set in <code>config/app.php</code>.</p></div>
+            </div>
+            <div class="pnlfoot">From <code>.env</code> (<code>APP_ENV</code>, <code>APP_DEBUG</code>) when <code>config/app.php</code> reads them, as it does by default.</div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ========================================================= READING -->
+      <section class="wrap screen" id="s-reading" hidden>
+        <div class="pagehead">
+          <h1>Reading</h1>
+          <p>What the home page shows, and the feeds.</p>
+        </div>
+        <div class="note">
+          <svg class="ic"><use href="#i-info"/></svg>
+          <p style="margin:0">What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</p>
+        </div>
+
+        <div class="stack">
+          <section class="pnl">
+            <div class="pnlhead"><h2>Home Page</h2><span class="hint">What the site opens with</span></div>
+            <div class="srow">
+              <div class="slab"><label for="r-home">Home page</label></div>
+              <div class="sctl">
+                <div class="xs as-inp"><select id="r-home">
+                  <option selected>The latest posts</option>
+                  <option>A page you pick</option>
+                </select></div>
+              </div>
+              <div class="shint"><p>The latest posts reads from the Posts type in reverse date order.</p><p class="set">From <code>config/content.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><label for="r-per">Posts per page</label></div>
+              <div class="sctl"><input class="inp short" id="r-per" type="number" value="12" min="1" max="100"></div>
+              <div class="shint"><p>From 1 to 100. Used on the home page and on every archive.</p></div>
+            </div>
+          </section>
+
+          <section class="pnl">
+            <div class="pnlhead"><h2>Feeds</h2><span class="hint">For types with a feed</span></div>
+            <div class="srow">
+              <div class="slab"><span>Formats</span></div>
+              <div class="sctl">
+                <div class="chkrow" role="group" aria-label="Formats">
+                  <label class="chk"><input type="checkbox" checked><span class="box"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span>RSS</span></label>
+                  <label class="chk"><input type="checkbox" checked><span class="box"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span>Atom</span></label>
+                  <label class="chk"><input type="checkbox" checked><span class="box"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span>JSON Feed</span></label>
+                </div>
+              </div>
+              <div class="shint"><p>None turns every feed off.</p><p class="set">From <code>config/feed.php</code>, the default.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Full content</span></div>
+              <div class="sctl">
+                <label class="sw onoff"><input type="checkbox" checked aria-label="Full content"><span class="track"><span class="knob"></span></span><span class="swlab"></span></label>
+              </div>
+              <div class="shint"><p>On, a feed carries each entry's full content. Off, it carries the summary only.</p><p class="set">From <code>config/feed.php</code>, the default.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><label for="r-feed-n">Entries per feed</label></div>
+              <div class="sctl"><input class="inp short" id="r-feed-n" type="number" value="10" min="1" max="100"></div>
+              <div class="shint"><p>From 1 to 100.</p><p class="set">From <code>config/feed.php</code>, the default.</p></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- =========================================================== MEDIA -->
+      <section class="wrap screen" id="s-media" hidden>
+        <div class="pagehead">
+          <h1>Media</h1>
+          <p>What may be uploaded, where it is kept, and the sizes made from it.</p>
+        </div>
+        <div class="note">
+          <svg class="ic"><use href="#i-info"/></svg>
+          <p style="margin:0">What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</p>
+        </div>
+
+        <div class="stack">
+          <!-- ---------------------------------------------------- uploads -->
+          <section class="pnl">
+            <div class="pnlhead">
+              <h2>Uploads</h2>
+              <span class="hint" id="kind-count"></span>
+            </div>
+
+            <div class="pnlnote">
+              <p><b>All Files</b> sets what every kind does. A kind takes those settings until you fill in one of its own — leave a box empty and it keeps what the first row says, shown in gray.</p>
+              <p>A path is a plain folder name such as <code>uploads</code>, or a pattern. Click into a path to get its tokens. Your server accepts at most <b class="mono">64 MB</b> (<code>upload_max_filesize</code>), so a larger number would not hold.</p>
+            </div>
+
+            <table class="tbl ktbl" id="paths">
+              <colgroup><col style="width:200px"><col style="width:180px"><col style="width:160px"><col></colgroup>
+              <thead><tr>
+                <th scope="col">Kind</th><th scope="col">Uploads</th>
+                <th scope="col">Largest file</th><th scope="col">Path</th>
+              </tr></thead>
+              <tbody>
+                <tr class="krow all" data-kind="images" data-ext="photo.jpg" data-key="all">
+                  <th scope="row"><span class="kname"><svg class="ic"><use href="#i-files"/></svg>All Files</span></th>
+                  <td data-label="Uploads"><label class="sw">
+                    <input type="checkbox" class="p-allow" id="a-all" checked aria-label="Files may be uploaded">
+                    <span class="track"><span class="knob"></span></span><span class="swlab allowlab"></span>
+                  </label></td>
+                  <td data-label="Largest file"><span class="sizecell"><input class="inp size z-val" id="z-all" value="24" inputmode="numeric" aria-label="Largest file for all files"><span class="unit">MB</span></span></td>
+                  <td data-label="Path"><div class="pcell">
+                    <div class="pfx"><span class="lead">user/media/</span><input id="p-all" class="p-val" value="{year}/{month}" spellcheck="false" placeholder="Straight in user/media" aria-label="Path for all files"></div>
+                    <span class="p-pv" hidden></span>
+                    <div class="tokens" hidden><button type="button">{year}</button><button type="button">{month}</button><button type="button">{day}</button><button type="button">{kind}</button><button type="button">{ext}</button></div>
+                  </div></td>
+                </tr>
+                <tr class="krow" data-kind="images" data-ext="photo.jpg" data-key="images">
+                  <th scope="row"><button class="khead" type="button" aria-expanded="true"><svg class="ic chev"><use href="#i-right"/></svg><span class="kname"><svg class="ic"><use href="#i-image"/></svg>Images</span><span class="ksum"></span></button></th>
+                  <td data-label="Uploads"><label class="sw">
+                    <input type="checkbox" class="p-allow" checked aria-label="Images may be uploaded">
+                    <span class="track"><span class="knob"></span></span><span class="swlab allowlab"></span>
+                  </label></td>
+                  <td data-label="Largest file"><span class="sizecell"><input class="inp size z-val" id="z-images" value="" inputmode="numeric" aria-label="Largest file for images"><span class="unit">MB</span></span></td>
+                  <td data-label="Path"><div class="pcell">
+                    <div class="pfx"><span class="lead">user/media/</span><input id="p-images" class="p-val" value="" spellcheck="false" aria-label="Path for images"></div>
+                    <span class="p-pv" hidden></span>
+                    <div class="tokens" hidden><button type="button">{year}</button><button type="button">{month}</button><button type="button">{day}</button><button type="button">{kind}</button><button type="button">{ext}</button></div>
+                  </div></td>
+                </tr>
+                <tr class="krow" data-kind="video" data-ext="clip.mp4" data-key="video">
+                  <th scope="row"><button class="khead" type="button" aria-expanded="true"><svg class="ic chev"><use href="#i-right"/></svg><span class="kname"><svg class="ic"><use href="#i-video"/></svg>Video</span><span class="ksum"></span></button></th>
+                  <td data-label="Uploads"><label class="sw">
+                    <input type="checkbox" class="p-allow" checked aria-label="Video may be uploaded">
+                    <span class="track"><span class="knob"></span></span><span class="swlab allowlab"></span>
+                  </label></td>
+                  <td data-label="Largest file"><span class="sizecell"><input class="inp size z-val" id="z-video" value="" inputmode="numeric" aria-label="Largest file for video"><span class="unit">MB</span></span></td>
+                  <td data-label="Path"><div class="pcell">
+                    <div class="pfx"><span class="lead">user/media/</span><input id="p-video" class="p-val" value="" spellcheck="false" aria-label="Path for video"></div>
+                    <span class="p-pv" hidden></span>
+                    <div class="tokens" hidden><button type="button">{year}</button><button type="button">{month}</button><button type="button">{day}</button><button type="button">{kind}</button><button type="button">{ext}</button></div>
+                  </div></td>
+                </tr>
+                <tr class="krow" data-kind="audio" data-ext="track.mp3" data-key="audio">
+                  <th scope="row"><button class="khead" type="button" aria-expanded="true"><svg class="ic chev"><use href="#i-right"/></svg><span class="kname"><svg class="ic"><use href="#i-audio"/></svg>Audio</span><span class="ksum"></span></button></th>
+                  <td data-label="Uploads"><label class="sw">
+                    <input type="checkbox" class="p-allow" checked aria-label="Audio may be uploaded">
+                    <span class="track"><span class="knob"></span></span><span class="swlab allowlab"></span>
+                  </label></td>
+                  <td data-label="Largest file"><span class="sizecell"><input class="inp size z-val" id="z-audio" value="40" inputmode="numeric" aria-label="Largest file for audio"><span class="unit">MB</span></span></td>
+                  <td data-label="Path"><div class="pcell">
+                    <div class="pfx"><span class="lead">user/media/</span><input id="p-audio" class="p-val" value="audio" spellcheck="false" aria-label="Path for audio"></div>
+                    <span class="p-pv" hidden></span>
+                    <div class="tokens" hidden><button type="button">{year}</button><button type="button">{month}</button><button type="button">{day}</button><button type="button">{kind}</button><button type="button">{ext}</button></div>
+                  </div></td>
+                </tr>
+                <tr class="krow" data-kind="documents" data-ext="rider.pdf" data-key="documents">
+                  <th scope="row"><button class="khead" type="button" aria-expanded="true"><svg class="ic chev"><use href="#i-right"/></svg><span class="kname"><svg class="ic"><use href="#i-doc"/></svg>Documents</span><span class="ksum"></span></button></th>
+                  <td data-label="Uploads"><label class="sw">
+                    <input type="checkbox" class="p-allow" checked aria-label="Documents may be uploaded">
+                    <span class="track"><span class="knob"></span></span><span class="swlab allowlab"></span>
+                  </label></td>
+                  <td data-label="Largest file"><span class="sizecell"><input class="inp size z-val" id="z-documents" value="" inputmode="numeric" aria-label="Largest file for documents"><span class="unit">MB</span></span></td>
+                  <td data-label="Path"><div class="pcell">
+                    <div class="pfx"><span class="lead">user/media/</span><input id="p-documents" class="p-val" value="docs/{year}" spellcheck="false" aria-label="Path for documents"></div>
+                    <span class="p-pv" hidden></span>
+                    <div class="tokens" hidden><button type="button">{year}</button><button type="button">{month}</button><button type="button">{day}</button><button type="button">{kind}</button><button type="button">{ext}</button></div>
+                  </div></td>
+                </tr>
+                <tr class="krow" data-kind="other" data-ext="theme.zip" data-key="other">
+                  <th scope="row"><button class="khead" type="button" aria-expanded="true"><svg class="ic chev"><use href="#i-right"/></svg><span class="kname"><svg class="ic"><use href="#i-file"/></svg>Other</span><span class="ksum"></span></button></th>
+                  <td data-label="Uploads"><label class="sw">
+                    <input type="checkbox" class="p-allow" aria-label="Other may be uploaded">
+                    <span class="track"><span class="knob"></span></span><span class="swlab allowlab"></span>
+                  </label></td>
+                  <td data-label="Largest file"><span class="sizecell"><input class="inp size z-val" id="z-other" value="" inputmode="numeric" aria-label="Largest file for other"><span class="unit">MB</span></span></td>
+                  <td data-label="Path"><div class="pcell">
+                    <div class="pfx"><span class="lead">user/media/</span><input id="p-other" class="p-val" value="" spellcheck="false" aria-label="Path for other"></div>
+                    <span class="p-pv" hidden></span>
+                    <div class="tokens" hidden><button type="button">{year}</button><button type="button">{month}</button><button type="button">{day}</button><button type="button">{kind}</button><button type="button">{ext}</button></div>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="bar" id="uploads-off" hidden>
+              <svg class="ic"><use href="#i-info"/></svg>
+              <div><p>Nothing can be uploaded while <b>All Files</b> is turned off. The rows below keep their settings and take effect again when it is turned back on.</p></div>
+            </div>
+
+            <div class="bar warn" id="path-warn" hidden>
+              <svg class="ic"><use href="#i-alert"/></svg>
+              <div>
+                <p><b>Files already uploaded keep their addresses.</b> The 1,204 files in the library stay where they are, so no link on the site breaks and nothing has to be re-inserted. Only files uploaded after you save take the new path.</p>
+                <p class="who">Changed: <b id="path-warn-who"></b>.</p>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+      </section>
+
+      <!-- ============================================= ADDRESSES AND SEARCH -->
+      <section class="wrap screen" id="s-addresses" hidden>
+        <div class="pagehead">
+          <h1>Addresses and Search</h1>
+          <p>How addresses are written, and what search engines are told.</p>
+        </div>
+        <div class="note">
+          <svg class="ic"><use href="#i-info"/></svg>
+          <p style="margin:0">What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</p>
+        </div>
+
+        <div class="stack">
+          <section class="pnl">
+            <div class="pnlhead"><h2>Addresses</h2><span class="hint">How URLs are written</span></div>
+            <div class="srow">
+              <div class="slab"><span>Trailing slash</span></div>
+              <div class="sctl">
+                <label class="sw onoff"><input type="checkbox" aria-label="Trailing slash"><span class="track"><span class="knob"></span></span><span class="swlab"></span></label>
+              </div>
+              <div class="shint"><p>On, an address ends in a slash: <code>/about/</code>. Off, it looks like <code>/about</code>. The other form redirects either way, so links to both keep working.</p><p class="set">From <code>config/routes.php</code>, the default.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Media address</span></div>
+              <div class="sctl"><div class="sval mono">/user/media</div></div>
+              <div class="shint"><p>Where <code>user/media</code> is served. The folders under it are named on <a href="#" data-goto="media">Media</a>.</p><p class="set">Set in <code>config/media.php</code>.</p></div>
+            </div>
+          </section>
+
+          <section class="pnl">
+            <div class="pnlhead"><h2>Search Engines</h2><span class="hint">The sitemap and robots.txt</span></div>
+            <div class="srow">
+              <div class="slab"><span>Sitemap and robots.txt</span></div>
+              <div class="sctl">
+                <label class="sw onoff"><input type="checkbox" checked aria-label="Sitemap and robots.txt"><span class="track"><span class="knob"></span></span><span class="swlab"></span></label>
+              </div>
+              <div class="shint"><p>On, the site serves both. Off, it has neither, and search engines find pages by their links.</p><p class="set">From <code>config/sitemap.php</code>, the default.</p></div>
+            </div>
+            <div class="srow wide">
+              <div class="slab"><label for="a-skip">Paths robots.txt asks to skip</label></div>
+              <div class="sctl"><textarea class="ta mono" id="a-skip" rows="4" spellcheck="false" placeholder="/drafts/"></textarea></div>
+              <div class="shint"><p>One path a line, each starting with <code>/</code>, such as <code>/drafts/</code>.</p><p class="set">From <code>config/sitemap.php</code>, the default.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Asks not to be indexed</span></div>
+              <div class="sctl"><div class="sval"><span class="ro" data-on="true"><span class="d"></span>On</span></div></div>
+              <div class="shint"><p>Outside production, robots.txt asks search engines to skip the whole site. It follows the environment.</p></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+
+      <!-- ============================================================== AI -->
+      <section class="wrap screen" id="s-ai" hidden>
+        <div class="pagehead">
+          <h1>AI</h1>
+          <p>What AI tools can read, and what AI crawlers are asked.</p>
+        </div>
+        <div class="note">
+          <svg class="ic"><use href="#i-info"/></svg>
+          <p style="margin:0">What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</p>
+        </div>
+
+        <div class="stack">
+          <section class="pnl">
+            <div class="pnlhead"><h2>Markdown Copies</h2><span class="hint">What AI tools read</span></div>
+
+            <div class="srow">
+              <div class="slab"><span>Markdown copies</span></div>
+              <div class="sctl">
+                <label class="sw onoff"><input type="checkbox" id="ai-md" checked aria-label="Markdown copies"><span class="track"><span class="knob"></span></span><span class="swlab"></span></label>
+              </div>
+              <div class="shint"><p>On, every page has a Markdown copy at its address with <code>.md</code> — such as <code>/about.md</code> — and <code>llms.txt</code> lists them.</p><p class="set">From <code>config/llms.php</code>, the default.</p></div>
+            </div>
+
+            <div class="srow" id="row-llms">
+              <div class="slab"><span>llms.txt</span></div>
+              <div class="sctl">
+                <div class="sval" id="llms-count">Lists <span class="num">1,031</span> pages</div>
+                <a class="link" href="#" id="llms-link">View llms.txt <svg class="ic"><use href="#i-external"/></svg></a>
+              </div>
+              <div class="shint"><p>A Markdown map of the site: its name and description, then each listed type's pages.</p></div>
+            </div>
+
+            <div class="srow" id="row-full">
+              <div class="slab"><span>llms-full.txt</span></div>
+              <div class="sctl">
+                <label class="sw onoff"><input type="checkbox" id="ai-full" checked aria-label="llms-full.txt"><span class="track"><span class="knob"></span></span><span class="swlab"></span></label>
+                <a class="link" href="#" id="full-link">View llms-full.txt <span class="num">(3.5 MB)</span> <svg class="ic"><use href="#i-external"/></svg></a>
+              </div>
+              <div class="shint">
+                <p>On, the site serves one file holding every page <code>llms.txt</code> lists, in full, so a tool can read the whole site at once. It runs to several megabytes on a large site.</p>
+                <p class="set" id="full-why" hidden>Nothing is served while Markdown copies are off: without them there is no <code>llms.txt</code> to gather.</p>
+                <p class="set" id="full-src">Saved here. <a class="link" href="#" id="full-reset">Use <code>config/llms.php</code>'s value</a></p>
+              </div>
+            </div>
+
+            <div class="srow">
+              <div class="slab"><span>Types in llms.txt</span></div>
+              <div class="sctl">
+                <div class="sval">Pages, Posts, Literature, Docs, Recipes</div>
+                <a class="link" href="#">Content Types</a>
+              </div>
+              <div class="shint"><p>Each content type chooses with its <b>Listed in llms.txt</b> option: on for collections and trees unless they say otherwise, off for taxonomies and profiles unless they say so.</p></div>
+            </div>
+
+            <div class="srow">
+              <div class="slab"><span>Description</span></div>
+              <div class="sctl">
+                <div class="sval muted">None</div>
+                <a class="link" href="#" data-goto="general">Change it on General</a>
+              </div>
+              <div class="shint"><p>The line under the site's name in <code>llms.txt</code>.</p></div>
+            </div>
+          </section>
+
+          <section class="pnl">
+            <div class="pnlhead"><h2>AI Crawlers</h2><span class="hint">What robots.txt asks of them</span></div>
+
+            <div class="srow">
+              <div class="slab"><span id="ai-ask">Ask to stay away</span></div>
+              <div class="sctl">
+                <div class="chklist" role="group" aria-labelledby="ai-ask">
+                  <label class="chk"><input type="checkbox"><span class="box"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+                    <span><span class="t">Training crawlers</span>
+                      <span class="d">Collect pages to train models.</span>
+                      <span class="m">GPTBot · ClaudeBot · CCBot · Google-Extended · Applebot-Extended · Bytespider · meta-externalagent</span></span></label>
+                  <label class="chk"><input type="checkbox"><span class="box"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+                    <span><span class="t">AI search crawlers</span>
+                      <span class="d">Index pages so an answer can cite and link them.</span>
+                      <span class="m">OAI-SearchBot · Claude-SearchBot · PerplexityBot</span></span></label>
+                  <label class="chk"><input type="checkbox"><span class="box"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
+                    <span><span class="t">Fetchers acting for a person</span>
+                      <span class="d">Get one page because a reader asked their assistant about it, so turning these away turns away a reader's own tools.</span>
+                      <span class="m">ChatGPT-User · Claude-User · Perplexity-User</span></span></label>
+                </div>
+                <p class="warnline"><svg class="ic"><use href="#i-alert"/></svg><span>Outside production, robots.txt asks every crawler to stay away, so these choices apply once the site is live.</span></p>
+              </div>
+              <div class="shint"></div>
+            </div>
+            <div class="pnlfoot">robots.txt is a request: well-behaved crawlers follow it, others may not. From <code>config/sitemap.php</code>, the default.</div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ========================================================== SYSTEM -->
+      <section class="wrap screen" id="s-system" hidden>
+        <div class="pagehead">
+          <h1>System</h1>
+          <p>How the site is put together and run, all set in code.</p>
+        </div>
+        <div class="note">
+          <svg class="ic"><use href="#i-info"/></svg>
+          <p style="margin:0">These live in <code>config/</code> and <code>.env</code>; each names its file. After changing them on a site you've compiled, run <code>bin/blush cache:compile</code> again.</p>
+        </div>
+
+        <div class="stack">
+          <section class="pnl">
+            <div class="pnlhead"><h2>Content Types</h2><span class="hint">Where types come from</span></div>
+            <div class="srow">
+              <div class="slab"><span>Content types from <code>user/data/types</code></span></div>
+              <div class="sctl"><div class="sval"><span class="ro" data-on="true"><span class="d"></span>On</span> <span class="tag">Default</span></div></div>
+              <div class="shint"><p class="set">Set in <code>config/content.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Built-in types turned off</span></div>
+              <div class="sctl"><div class="sval">None <span class="tag">Default</span></div></div>
+              <div class="shint"><p class="set">Set in <code>config/content.php</code>.</p></div>
+            </div>
+          </section>
+
+          <section class="pnl">
+            <div class="pnlhead"><h2>Caching</h2><span class="hint">How pages are kept</span></div>
+            <div class="srow">
+              <div class="slab"><span>Caching</span></div>
+              <div class="sctl"><div class="sval"><span class="ro"><span class="d"></span>Off</span> <span class="tag">Default</span></div></div>
+              <div class="shint"><p>Off in development, on elsewhere.</p><p class="set">Set in <code>config/cache.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Where it's kept</span></div>
+              <div class="sctl"><div class="sval mono">file <span class="tag">Default</span></div></div>
+              <div class="shint"><p class="set">Set in <code>config/cache.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Whole pages</span></div>
+              <div class="sctl"><div class="sval"><span class="ro" data-on="true"><span class="d"></span>On</span> <span class="tag">Default</span></div></div>
+              <div class="shint"><p class="set">Set in <code>config/cache.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Browsers keep a page</span></div>
+              <div class="sctl"><div class="sval">Not at all; they ask each time <span class="tag">Default</span></div></div>
+              <div class="shint"><p class="set">Set in <code>config/cache.php</code>.</p></div>
+            </div>
+          </section>
+
+          <section class="pnl">
+            <div class="pnlhead"><h2>Publishing and Previews</h2><span class="hint">Secrets are never shown</span></div>
+            <div class="srow">
+              <div class="slab"><span>Publish webhook</span></div>
+              <div class="sctl"><div class="sval"><span class="ro"><span class="d"></span>Off</span> <span class="tag">Default</span></div></div>
+              <div class="shint"><p>On with a <code>PUBLISH_SECRET</code> in <code>.env</code>.</p><p class="set">Set in <code>config/publish.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Pull with git when publishing</span></div>
+              <div class="sctl"><div class="sval"><span class="ro"><span class="d"></span>Off</span> <span class="tag">Default</span></div></div>
+              <div class="shint"><p class="set">Set in <code>config/publish.php</code>.</p></div>
+            </div>
+            <div class="srow">
+              <div class="slab"><span>Preview links</span></div>
+              <div class="sctl"><div class="sval"><span class="ro" data-on="true"><span class="d"></span>On</span></div></div>
+              <div class="shint"><p class="set">Set in <code>config/preview.php</code>.</p></div>
+            </div>
+            <div class="pnlfoot">From <code>.env</code> (<code>PUBLISH_*</code>, <code>APP_SECRET</code>) when these files don't exist.</div>
+          </section>
+        </div>
+      </section>
+
+    </div><!-- /work -->
+
+  </div><!-- /main -->
+  <div class="scrim" id="scrim" hidden></div>
+</div><!-- /app -->
+
+<div class="savebar" id="savebar" hidden>
+  <span class="n" id="savecount">1 unsaved change</span>
+  <div class="acts">
+    <button class="btn ghost" type="button" id="revert">Revert</button>
+    <button class="btn primary" type="button" id="save">Save changes</button>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite" role="status"></div>
+
+<script>
+'use strict';
+
+/* ===========================================================================
+   Panel navigation. The rail scopes; the panel navigates. Clicking a rail
+   section swaps what the panel offers and changes nothing on screen.
+   ========================================================================= */
+const SECTIONS = {
+  home: { title:'Home', sub:'An overview of the site', groups:[
+    { items:[{id:'dashboard',label:'Dashboard',icon:'i-home'}] }
+  ]},
+  content: { title:'Content', sub:'Everything on the site', groups:[
+    { items:[
+      {id:'pages',label:'Pages',icon:'i-content',count:'16'},
+      {id:'posts',label:'Posts',icon:'i-content',count:'248'},
+      {id:'topics',label:'Topics',icon:'i-types',count:'14',sub:true},
+      {id:'medialib',label:'Media',icon:'i-media',count:'1,204'}
+    ]}
+  ]},
+  users: { title:'Users', sub:'Accounts and what they may do', groups:[
+    { items:[
+      {id:'accounts',label:'Accounts',icon:'i-users',count:'6'},
+      {id:'roles',label:'Roles',icon:'i-fields',count:'4'}
+    ]}
+  ]},
+  config: { title:'Config', sub:'Types, settings, and the look', groups:[
+    { label:'Structure', items:[
+      {id:'types',label:'Content Types',icon:'i-types',count:'11'},
+      {id:'fields',label:'Fields',icon:'i-fields',count:'2'}
+    ]},
+    { label:'Settings', items:[
+      {id:'general',label:'General',icon:'i-general',screen:'s-general'},
+      {id:'reading',label:'Reading',icon:'i-reading',screen:'s-reading'},
+      {id:'media',label:'Media',icon:'i-media',screen:'s-media'},
+      {id:'addresses',label:'Addresses and Search',icon:'i-addresses',screen:'s-addresses'},
+      {id:'ai',label:'AI',icon:'i-ai',screen:'s-ai'},
+      {id:'system',label:'System',icon:'i-system',screen:'s-system'}
+    ]},
+    { label:'Extensions', items:[
+      {id:'themes',label:'Themes',icon:'i-themes',count:'2'},
+      {id:'plugins',label:'Plugins',icon:'i-plugins',count:'1'},
+      {id:'iconpacks',label:'Icon Packs',icon:'i-icons',count:'2'}
+    ]}
+  ]}
+};
+
+let current = 'general';            // the screen that is open
+let shown   = 'config';             // the section the panel is showing
+
+const nav = document.getElementById('panel-nav');
+
+function renderPanel(){
+  const sec = SECTIONS[shown];
+  document.getElementById('panel-title').textContent = sec.title;
+  document.getElementById('panel-sub').textContent = sec.sub;
+  nav.innerHTML = '';
+  sec.groups.forEach(g => {
+    const wrap = document.createElement('div');
+    wrap.className = 'navgroup';
+    if (g.label) {
+      const h = document.createElement('h3');
+      h.textContent = g.label;
+      wrap.appendChild(h);
+    }
+    g.items.forEach(it => {
+      const a = document.createElement('a');
+      a.className = 'navitem' + (it.sub ? ' sub' : '');
+      a.href = '#';
+      a.dataset.id = it.id;
+      if (it.screen) a.dataset.screen = it.screen;
+      if (it.id === current) a.setAttribute('aria-current','page');
+      a.innerHTML =
+        (it.sub ? '' : '<svg class="ic"><use href="#' + it.icon + '"/></svg>') +
+        '<span>' + it.label + '</span>' +
+        (it.count ? '<span class="count">' + it.count + '</span>' : '');
+      wrap.appendChild(a);
+    });
+    nav.appendChild(wrap);
+  });
+}
+
+function showScreen(id){
+  const sec = SECTIONS.config.groups[1].items.find(i => i.id === id);
+  if (!sec) { toast('Not in this sketch — ' + id); return; }
+  current = id;
+  document.querySelectorAll('.screen').forEach(s => { s.hidden = (s.id !== sec.screen); });
+  document.getElementById('crumb-leaf').textContent = sec.label;
+  document.getElementById('work').scrollTop = 0;
+  renderPanel();
+}
+
+document.querySelectorAll('.railitem').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.railitem').forEach(x => x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    shown = b.dataset.section;
+    renderPanel();
+  });
+});
+
+nav.addEventListener('click', e => {
+  const a = e.target.closest('.navitem');
+  if (!a) return;
+  e.preventDefault();
+  drawer(false);
+  if (a.dataset.screen) showScreen(a.dataset.id);
+  else toast('Not in this sketch — ' + a.textContent.trim());
+});
+
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-goto]');
+  if (g) { e.preventDefault(); showScreen(g.dataset.goto); }
+});
+
+/* Below 860px the rail and panel are an off-canvas drawer over a scrim. */
+const app = document.getElementById('app');
+const scrim = document.getElementById('scrim');
+function drawer(open){
+  app.dataset.drawer = open ? 'open' : '';
+  scrim.hidden = !open;
+  document.getElementById('menubtn').setAttribute('aria-expanded', String(open));
+}
+document.getElementById('menubtn').addEventListener('click', () => {
+  drawer(app.dataset.drawer !== 'open');
+});
+scrim.addEventListener('click', () => drawer(false));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && app.dataset.drawer === 'open') drawer(false);
+});
+
+document.getElementById('collapse').addEventListener('click', () => {
+  const app = document.getElementById('app');
+  app.dataset.panel = app.dataset.panel === 'collapsed' ? '' : 'collapsed';
+});
+
+/* ===========================================================================
+   Drawn select. The native <select> stays in the DOM holding the value; a
+   sibling button draws the label, because the OS draws the native popup and
+   ignores the admin theme entirely.
+   ========================================================================= */
+function enhanceSelects(root){
+  root.querySelectorAll('.xs > select:not([data-xs])').forEach(sel => {
+    sel.dataset.xs = '1';
+    sel.tabIndex = -1;
+    const xs = sel.parentElement;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'xs-btn';
+    btn.setAttribute('aria-expanded','false');
+    btn.setAttribute('aria-haspopup','listbox');
+    const name = sel.getAttribute('aria-label') ||
+      (sel.id && document.querySelector('label[for="' + sel.id + '"]')?.textContent) || '';
+    if (name) btn.setAttribute('aria-label', name.trim());
+    btn.innerHTML = '<span class="lbl"></span><svg class="ic"><use href="#i-down"/></svg>';
+    const list = document.createElement('div');
+    list.className = 'xs-list';
+    list.setAttribute('role','listbox');
+    xs.append(btn, list);
+    btn.addEventListener('click', () => toggleXsel(xs));
+    sync(sel);
+  });
+
+  function sync(sel){
+    const xs = sel.parentElement;
+    const lbl = xs.querySelector('.xs-btn .lbl');
+    if (lbl) lbl.textContent = sel.options[sel.selectedIndex]?.text ?? '';
+    xs.querySelector('.xs-btn').disabled = sel.disabled;
+  }
+  enhanceSelects.sync = sync;
+}
+
+function toggleXsel(xs){
+  const open = xs.dataset.open === 'true';
+  document.querySelectorAll('.xs[data-open="true"]').forEach(o => {
+    o.dataset.open = 'false';
+    o.querySelector('.xs-btn').setAttribute('aria-expanded','false');
+  });
+  if (open) return;
+  const sel  = xs.querySelector('select');
+  const list = xs.querySelector('.xs-list');
+  list.innerHTML = '';
+  [...sel.options].forEach((o, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'xs-opt';
+    b.setAttribute('role','option');
+    b.setAttribute('aria-selected', String(i === sel.selectedIndex));
+    b.innerHTML = '<span>' + o.text + '</span><svg class="ic"><use href="#i-check"/></svg>';
+    b.addEventListener('click', () => {
+      sel.selectedIndex = i;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      xs.dataset.open = 'false';
+      xs.querySelector('.xs-btn').setAttribute('aria-expanded','false');
+      xs.querySelector('.xs-btn').focus();
+    });
+    list.appendChild(b);
+  });
+  xs.dataset.open = 'true';
+  xs.querySelector('.xs-btn').setAttribute('aria-expanded','true');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.xs')) {
+    document.querySelectorAll('.xs[data-open="true"]').forEach(o => {
+      o.dataset.open = 'false';
+      o.querySelector('.xs-btn').setAttribute('aria-expanded','false');
+    });
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const open = document.querySelector('.xs[data-open="true"]');
+  if (open) {
+    e.stopPropagation();
+    open.dataset.open = 'false';
+    open.querySelector('.xs-btn').setAttribute('aria-expanded','false');
+    open.querySelector('.xs-btn').focus();
+  }
+});
+document.addEventListener('change', e => {
+  if (e.target.matches('.xs > select')) enhanceSelects.sync(e.target);
+});
+
+/* ===========================================================================
+   Media storage: the path preview. One function builds a path, and every
+   preview on the screen reads from it, so the examples cannot disagree.
+   ========================================================================= */
+const NOW = { year:'2026', month:'10', day:'02' };
+
+function expand(pattern, kind, ext){
+  return pattern
+    .replace(/\{year\}/g,  NOW.year)
+    .replace(/\{month\}/g, NOW.month)
+    .replace(/\{day\}/g,   NOW.day)
+    .replace(/\{kind\}/g,  kind)
+    .replace(/\{ext\}/g,   ext)
+    .replace(/\/{2,}/g, '/')
+    .replace(/^\/|\/$/g, '');
+}
+
+/* What the paths were when this screen was last saved. A warning that fires
+   on every keystroke regardless of the value is one people learn to ignore,
+   so it compares against this rather than against a dirty flag. */
+let saved = null;
+
+function snapshot(){
+  return [...document.querySelectorAll('#paths .krow')].map(r => ({
+    key: r.dataset.key,
+    path: r.querySelector('.p-val').value.trim()
+  }));
+}
+
+function restore(state){
+  state.forEach(x => {
+    document.querySelector('#paths .krow[data-key="' + x.key + '"] .p-val').value = x.path;
+  });
+}
+
+function warnIfMoved(){
+  const now = snapshot();
+  const moved = now.filter((x, i) => x.path !== saved[i].path)
+                   .map(x => document.querySelector('#paths .krow[data-key="' + x.key + '"] .kname').textContent.trim());
+  const bar = document.getElementById('path-warn');
+  bar.hidden = moved.length === 0;
+  if (moved.length) {
+    document.getElementById('path-warn-who').textContent =
+      moved.length === 1 ? moved[0]
+      : moved.slice(0, -1).join(', ') + ' and ' + moved[moved.length - 1];
+  }
+}
+
+/* Every kind reads the first row until it fills in a box of its own. */
+function allPath(){ return document.getElementById('p-all').value.trim(); }
+function allSize(){ return document.getElementById('z-all').value.trim(); }
+
+function refreshMedia(){
+  const all = allPath(), size = allSize();
+  let own = 0, off = 0;
+
+  /* All Files is the site's own switch: with it off nothing is uploaded at
+     all, so every kind below it is turned off too and says so. */
+  const siteOn = document.getElementById('a-all').checked;
+  document.getElementById('uploads-off').hidden = siteOn;
+
+  document.querySelectorAll('#paths .krow').forEach(r => {
+    const key   = r.dataset.key;
+    const kind  = r.dataset.kind;
+    const file  = r.dataset.ext;
+    const ext   = file.split('.').pop();
+    const inp   = r.querySelector('.p-val');
+    const zin   = r.querySelector('.z-val');
+    const al    = r.querySelector('.p-allow');
+    const isAll = key === 'all';
+    const allowed = siteOn && (isAll || al.checked);
+
+    al.disabled = !isAll && !siteOn;
+    r.dataset.allowed = String(allowed);
+    r.querySelector('.allowlab').textContent = al.checked ? 'Allowed' : 'Turned off';
+    /* The reason is in the bar under the table, so these are disabled rather
+       than hidden — a control that vanishes without saying why is worse. */
+    inp.disabled = zin.disabled = !allowed;
+
+    if (!isAll) {
+      if (!al.checked) off++;
+      else if (inp.value.trim() || zin.value.trim()) own++;
+      /* What the row inherits stands in the box, so the column reads down. */
+      inp.placeholder = all || 'Straight in user/media';
+      zin.placeholder = size || '—';
+    }
+
+    const pattern = key === 'all' ? all : (inp.value.trim() || all);
+    const folder  = expand(pattern, kind, ext);
+    const pv = r.querySelector('.p-pv');
+    /* A row that inherits would only repeat All Files' own example, so the
+       example belongs to the pattern this row actually holds. */
+    const mine  = key === 'all' ? all : inp.value.trim();
+    const worth = allowed && mine.includes('{');
+    pv.hidden = !worth;
+    if (worth) pv.textContent = (folder ? folder + '/' : '') + file;
+
+    /* The closed line carries the answer, so a shut row still says what it
+       does and nobody has to open six of them to find the one that differs. */
+    const sum = r.querySelector('.ksum');
+    if (sum) {
+      const bits = [];
+      if (!siteOn) bits.push('No uploads at all');
+      else if (!allowed) bits.push('Turned off');
+      else {
+        bits.push('Allowed');
+        if (zin.value.trim()) bits.push(zin.value.trim() + ' MB');
+        if (inp.value.trim()) bits.push('<span class="mono">' + (folder ? folder + '/' : 'user/media/') + '</span>');
+        if (!zin.value.trim() && !inp.value.trim()) bits.push('same as all files');
+      }
+      sum.innerHTML = bits.join(' · ');
+    }
+  });
+
+  if (saved) warnIfMoved();
+
+  const parts = [];
+  if (own) parts.push(own === 1 ? '1 kind set on its own' : own + ' kinds set on their own');
+  if (off) parts.push(off === 1 ? '1 kind turned off' : off + ' kinds turned off');
+  document.getElementById('kind-count').textContent =
+    !siteOn ? 'No files can be uploaded'
+    : parts.length ? parts.join(' · ')
+    : 'Every kind follows the first row';
+}
+
+/* llms-full.txt exists only if there are Markdown copies and an llms.txt to
+   gather, so the first switch on the screen governs the third. */
+function syncAi(){
+  const md = document.getElementById('ai-md');
+  const full = document.getElementById('ai-full');
+  if (!md || !full) return;
+  const on = md.checked;
+
+  full.disabled = !on;
+  document.getElementById('row-full').dataset.off = String(!on);
+  document.getElementById('row-llms').dataset.off = String(!on);
+  document.getElementById('full-why').hidden = on;
+  document.getElementById('full-src').hidden = !on;
+  document.getElementById('full-link').hidden = !on || !full.checked;
+  document.getElementById('llms-link').hidden = !on;
+  document.getElementById('llms-count').innerHTML =
+    on ? 'Lists <span class="num">1,031</span> pages' : 'Not served';
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 'ai-md' || e.target.id === 'ai-full') syncAi();
+});
+document.getElementById('full-reset').addEventListener('click', e => {
+  e.preventDefault();
+  document.getElementById('ai-full').checked = true;
+  document.getElementById('full-src').innerHTML =
+    'From <code>config/llms.php</code>, the default.';
+  syncSwitches(); syncAi(); markDirty();
+  toast('Using the value from config/llms.php');
+});
+
+/* A switch says On or Off in a word: a fill alone would be status by color. */
+function syncSwitches(){
+  document.querySelectorAll('.sw.onoff').forEach(sw => {
+    sw.querySelector('.swlab').textContent =
+      sw.querySelector('input').checked ? 'On' : 'Off';
+  });
+}
+document.addEventListener('change', e => {
+  if (e.target.closest('.sw.onoff')) syncSwitches();
+});
+
+/* Open and close a kind. Only the small-screen layout hides the rows; above
+   1100px the head is not a control at all, so the state is harmless there. */
+function setKind(r, open){
+  r.dataset.open = String(open);
+  const h = r.querySelector('.khead');
+  if (h) h.setAttribute('aria-expanded', String(open));
+}
+document.getElementById('paths').addEventListener('click', e => {
+  const h = e.target.closest('.khead');
+  if (!h) return;
+  const r = h.closest('.krow');
+  setKind(r, r.dataset.open !== 'true');
+});
+
+/* The tokens follow the path field you are in and stay put while you click
+   them, so a chip is never a moving target. */
+document.addEventListener('focusin', e => {
+  const cell = e.target.closest('.pcell');
+  document.querySelectorAll('#paths .tokens').forEach(t => { t.hidden = true; });
+  if (cell) cell.querySelector('.tokens').hidden = false;
+});
+/* Leaving the field takes its tokens with it. Focus moving to one of the
+   chips is still inside the cell, so tabbing onto them does not close them,
+   and a click on one never blurs the input in the first place. */
+document.addEventListener('focusout', e => {
+  const cell = e.target.closest('.pcell');
+  if (!cell) return;
+  if (e.relatedTarget && cell.contains(e.relatedTarget)) return;
+  cell.querySelector('.tokens').hidden = true;
+});
+document.addEventListener('mousedown', e => {
+  if (e.target.closest('.tokens button')) e.preventDefault();
+});
+
+/* Token chips write into the pattern field at the caret. One handler for the
+   Storage pattern and for every row of By File Kind: a token is a token. */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.tokens button');
+  if (!b) return;
+  const input = b.closest('.pcell').querySelector('input');
+  if (!input || input.disabled) return;
+  const a = input.selectionStart ?? input.value.length;
+  const z = input.selectionEnd ?? a;
+  const before = input.value.slice(0, a);
+  const after  = input.value.slice(z);
+
+  /* A token is a folder level, so it arrives with the slashes it needs and
+     never two of them: nobody clicking {month} wants to then go and fix a //. */
+  let add = b.textContent;
+  if (before && !before.endsWith('/')) add = '/' + add;
+  if (after  && !after.startsWith('/')) add = add + '/';
+
+  input.value = before + add + after;
+  input.focus();
+  const at = before.length + add.length;
+  input.setSelectionRange(at, at);
+  input.dispatchEvent(new Event('input', { bubbles:true }));
+});
+
+/* ===========================================================================
+   Dirty state and the save bar. A checkbox or a field is a value in a form
+   that is about to be saved, so nothing here takes effect as it moves.
+   ========================================================================= */
+let dirty = 0;
+const savebar = document.getElementById('savebar');
+
+function markDirty(){
+  dirty++;
+  savebar.hidden = false;
+  document.getElementById('savecount').textContent =
+    dirty === 1 ? '1 unsaved change' : dirty + ' unsaved changes';
+}
+
+const work = document.getElementById('work');
+work.addEventListener('input',  e => { if (e.target.matches('input,textarea')) { refreshMedia(); markDirty(); } });
+work.addEventListener('change', e => { if (e.target.matches('select,input'))   { refreshMedia(); markDirty(); } });
+
+document.getElementById('save').addEventListener('click', () => {
+  dirty = 0; savebar.hidden = true;
+  saved = snapshot();
+  refreshMedia();
+  toast('Saved media settings');
+});
+document.getElementById('revert').addEventListener('click', () => {
+  dirty = 0; savebar.hidden = true;
+  restore(saved);
+  refreshMedia();
+  toast('Reverted the changes');
+});
+
+/* ------------------------------------------------------------------ toasts */
+function toast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = '<svg class="ic"><use href="#i-check"/></svg><span></span>';
+  t.querySelector('span').textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+/* --------------------------------------------------------- lab- harness -- */
+document.getElementById('lab-theme').addEventListener('click', e => {
+  const r = document.documentElement;
+  const on = r.getAttribute('data-admin-theme') === 'editorial';
+  r.setAttribute('data-admin-theme', on ? 'neutral' : 'editorial');
+  e.target.textContent = on ? 'Editorial' : 'Neutral';
+});
+document.getElementById('lab-scheme').addEventListener('click', e => {
+  const r = document.documentElement;
+  const on = r.getAttribute('data-color-scheme') === 'dark';
+  r.setAttribute('data-color-scheme', on ? 'light' : 'dark');
+  e.target.textContent = on ? 'Dark' : 'Light';
+});
+
+/* ------------------------------------------------------------------- boot */
+renderPanel();
+enhanceSelects(document);
+syncSwitches();
+syncAi();
+saved = snapshot();
+/* A kind that answers for itself is open; one that follows All Files is shut. */
+document.querySelectorAll('#paths .krow:not(.all)').forEach(r => {
+  const own = r.querySelector('.p-val').value.trim() || r.querySelector('.z-val').value.trim();
+  setKind(r, Boolean(own));
+});
+refreshMedia();
+savebar.hidden = true;
+dirty = 0;
+</script>
+</body>
+</html>

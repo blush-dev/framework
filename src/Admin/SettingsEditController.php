@@ -61,13 +61,13 @@ use Blush\Theme\Themes;
  *   (when the site is compiled) and reindexes, so the next requests see
  *   the change. Any account that may change one of the settings may ask.
  *
- * A value that doesn't fit, a home page that isn't a collection with
+ * A value that doesn't fit, a homepage that isn't a collection with
  * addresses, or a theme (`theme.active`, saved by the Themes screen,
  * D-381) that isn't installed or can't build its chain, is a `422` with
  * the reason, and nothing is written.
  *
  * Settings are read when the site boots, so the next request has them.
- * A change to what has addresses or how dates are read (the home page,
+ * A change to what has addresses or how dates are read (the homepage,
  * time zone, trailing slash, feed formats, sitemap, Markdown copies, or
  * theme) also deletes the
  * compiled content types and routes, so the site builds them from the
@@ -215,7 +215,7 @@ final readonly class SettingsEditController
 	}
 
 	/**
-	 * Checks that a home page being set is a collection with addresses.
+	 * Checks that a homepage being set is a collection with addresses.
 	 *
 	 * @throws InvalidSetting
 	 */
@@ -228,7 +228,7 @@ final readonly class SettingsEditController
 		}
 
 		if (! array_key_exists($home, Setting::homeChoices($this->types))) {
-			throw new InvalidSetting(sprintf('"%s" can\'t be the home page: it must be a collection type with addresses.', $home));
+			throw new InvalidSetting(sprintf('"%s" can\'t be the homepage: it must be a collection type with addresses.', $home));
 		}
 	}
 

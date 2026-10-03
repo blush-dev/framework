@@ -99,7 +99,10 @@ APIs, agents, and headless sites (in `open-questions.md`), Markdown
 pages and `llms.txt` (D-395), with full URLs (D-396); an AI Settings screen (Markdown copies, the
 types `llms.txt` lists, AI crawler rules), with a site description on
 General (D-398, D-399), and a `Blush\Ai` provider layer for plugins
-planned (D-397).
+planned (D-397); and, from the settings sketch
+(`.claude/docs/admin-design/meridian-settings-sketch.html`), every
+Settings screen drawn full width as rows of label, control, and help,
+with switches (D-404; its Media screen is next).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

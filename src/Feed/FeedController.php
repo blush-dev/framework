@@ -29,7 +29,7 @@ use Blush\View\DocumentRenderer;
 use Blush\View\ViewException;
 
 /**
- * Serves a feed: a type's collection feed (the home page's at `/feed`),
+ * Serves a feed: a type's collection feed (the homepage's at `/feed`),
  * with `{name}`, a taxonomy term's or a profile's (D-351), or with
  * `{field}` and `{profile}`, a person's entries of the type under that
  * people field. The theme renders it with

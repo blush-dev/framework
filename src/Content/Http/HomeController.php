@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Home page controller.
+ * Homepage controller.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -25,7 +25,7 @@ use Blush\Http\NotFound;
  * 1. With `ContentConfig::$home` set, the home type's collection (1.x's
  *    home alias).
  * 2. Otherwise the root `index.md`, with any `collection` it asks for.
- * 3. Otherwise, on a site with no home page yet, the welcome page (the
+ * 3. Otherwise, on a site with no homepage yet, the welcome page (the
  *    theme's `welcome` view).
  */
 final class HomeController extends ContentController

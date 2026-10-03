@@ -2,7 +2,7 @@
 
 /**
  * A listing: a type's collection, a term's archive, a date archive, or
- * the home page's. The landing page or term entry, when there is one,
+ * the homepage's. The landing page or term entry, when there is one,
  * introduces it.
  *
  * @var Blush\View\Template             $template

@@ -59,7 +59,7 @@ The quickest way is the built-in server:
 bin/blush serve
 ```
 
-Open http://127.0.0.1:8000. You'll see the home page from
+Open http://127.0.0.1:8000. You'll see the homepage from
 `user/content/index.md`. Edit that file and reload to see your change.
 
 Use `bin/blush serve --port=8080` for another port.

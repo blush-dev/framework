@@ -457,7 +457,7 @@ Each is recorded in `.claude/docs/decisions.md`.
   The Config panel's groups are Structure, Settings, and Extensions (D-380)
   (Themes, Plugins, and Icon Packs; D-379); People is its own section (D-326). The
   prototype's panels become General's Site, Dates and Time, and
-  Environment; Reading's Home Page and Feeds; Addresses and Search's
+  Environment; Reading's Homepage and Feeds; Addresses and Search's
   Addresses and Search Engines; and System's Content Types, Caching,
   and Publishing and Previews. **AI** (D-398, the direction has none)
   has Markdown Copies (the switch for `.md` copies and `llms.txt`, with
@@ -474,20 +474,26 @@ Each is recorded in `.claude/docs/decisions.md`.
   prototype's tagline was, for `llms.txt` and as the front page's and
   feeds' fallback description; there's no administrator email, front page entry, default
   new entry type, entries per page, trash emptying, date or time format,
-  week start, or permalink structure. The panels are one column of
-  label and control rows, not the prototype's two-column field grid.
-  The prototype's switch is a checkbox, as everywhere in the admin. The
+  week start, or permalink structure. Since D-404 the screens are drawn
+  as the settings sketch (`meridian-settings-sketch.html`) draws them:
+  full width, each setting a row of label, control, and help (rows
+  reading the panel's width, not the window's), a yes or no as a switch
+  saying On or Off (accent-filled, a form value), and the AI crawler
+  groups each with a sentence and their user agents. From the sketch,
+  not taken: its date and time formats and posts per page (Blush has
+  none), and its drawn checkboxes (the admin's own are kept). The
   save bar is the prototype's (count, Revert, Save changes), per
   screen, and also carries a refused save's reason. Each editable
   setting says whether it's saved in `user/data/settings.json` or comes
   from its config file, and a saved one can go back to the config's
-  value. Read-only values show a Default mark, help, and warnings;
-  booleans are neutral On/Off pills (warn-colored when risky). Each
+  value. Read-only values show a Default tag, help, and warnings;
+  booleans are neutral On/Off pills with a green dot when on
+  (warn-colored when risky). Each
   editable setting is drawn with the shared field controls (`FieldInput`,
   D-343) in the row's control column. After a screen's own panels, each
   field set on it adds a panel of its settings (the design has none),
   with **Clear it** where the built-ins have the config's value. A site
-  with no collection to show shows its home page read-only.
+  with no collection to show shows its homepage read-only.
 - **Plugins** (D-308, named Plugins in D-379), the direction's Addons
   (vocabulary below), follows the extensions sketch
   (`blush-extensions.html`) since D-385: rows with a switch, a details

@@ -591,6 +591,9 @@ export interface FieldDescription {
 	max?: number;
 	// What a checkbox beside it says, or what an empty choice means.
 	caption?: string;
+	// More about each option (D-404): a sentence, and the machine names
+	// it covers.
+	details?: Record<string, { text: string; code: string }>;
 	// The control it's edited with (D-337): in a form's fields, always the
 	// one to draw; in a type's definitions, only one chosen over the
 	// type's default.

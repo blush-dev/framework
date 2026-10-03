@@ -16,7 +16,7 @@ namespace Blush\Routing;
 /**
  * Supplies routes to the route table. The framework's sources cover
  * `config/routes.php`, attribute-routed controllers, content types, the
- * home page and page catch-all, and media. An extension adds routes by
+ * homepage and page catch-all, and media. An extension adds routes by
  * tagging its own source with `RouteSource::TAG` in a provider's `TAGS`.
  *
  * Sources are only asked for routes when the table is compiled: on every

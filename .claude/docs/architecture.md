@@ -244,7 +244,7 @@ Implemented in M3 (D-073 to D-077).
      `RouteConfig::$controllers` or tagged `ControllerRoutes::TAG` by site or
      plugin providers. Themes can't add routes (D-020).
   4. `config/routes.php` (`RouteConfig::$routes`)
-  5. Fallbacks (`PageRoutes`): the home page at `/` (and `/page/{page}`
+  5. Fallbacks (`PageRoutes`): the homepage at `/` (and `/page/{page}`
      with a home type) and the page catch-all. Fallbacks are soft: one
      that finds nothing doesn't hide other methods' 405, `Allow` lists
      other routes' methods first, and a trailing-slash redirect to a

@@ -46,7 +46,7 @@ D-156): `config/content.php` (the seven types, typed objects,
 (D-167), with the `Jtcom\View\PostArchives` component (the year, month,
 and full archive lists) and its `Jtcom\ThemeProvider`, built with Vite
 (D-155; `npm run build` in the theme's folder), with views for every page kind:
-singles (post, literature, page), the home page and listings, date
+singles (post, literature, page), the homepage and listings, date
 archives, taxonomy lists, the art/drawing/painting image grids, the three
 archive pages, errors, 1.x's numbered pagination markup, head meta
 (description, OpenGraph, Twitter, theme color, icons, font preloads,
@@ -320,7 +320,7 @@ the username as fallbacks; set on New Account, an account's screen,
 Your profile, and the CLI; the dashboard greets by it, and roles show
 their labels, not keys (D-323).
 Settings became editable (D-324): the owner's settings (name, language,
-time zone, home page, trailing slash, feeds, sitemap) are saved in
+time zone, homepage, trailing slash, feeds, sitemap) are saved in
 `user/data/settings.json` over `config/`; then four Settings screens
 (General, Reading, Addresses and Search, System) in a Config panel of
 Structure, Settings, Customize, and People, and the file in sections
@@ -499,7 +499,7 @@ Checked:
 - **jtcom's real content** (a scratch site with its 1.x type config,
   `home` `post`, and `MediaConfig(url: '/user/media')`, as in M4c):
   2,795 pages and 4,261 media files in 12 s, no failures; served from
-  the static files, the home page and `/page/2`, singles, year and month
+  the static files, the homepage and `/page/2`, singles, year and month
   archives, terms, `/writing` and its forms, pages, the RSS, Atom, and
   JSON feeds, sitemaps, `robots.txt`, `/user/media/…`, and the 404 page
   all answer as expected. The crawl reports 114 broken links, all real
@@ -831,7 +831,7 @@ Implemented 2026-09-25. See D-093 to D-101. Delivered and tested (554
 tests):
 
 - Content routes with 1.x's names and URL parameters (`ContentRoutes`),
-  the home page and home alias, and the page catch-all (`PageRoutes`,
+  the homepage and home alias, and the page catch-all (`PageRoutes`,
   fallback priority, so a site's `/` wins). `FallbackRoutes` is gone; the
   home controller shows the welcome page on an empty site.
 - Content controllers (home, collection, date archive, single, term,

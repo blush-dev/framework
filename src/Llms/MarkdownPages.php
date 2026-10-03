@@ -32,7 +32,7 @@ use Blush\Content\Visibility;
  *
  * Every published entry with a URL has one, unlisted entries included,
  * at its URL with `.md` (`/archives/hello` is `/archives/hello.md`,
- * `/about/` is `/about.md`) and the home page at `/index.md`.
+ * `/about/` is `/about.md`) and the homepage at `/index.md`.
  * Directives and components stay as written.
  */
 final readonly class MarkdownPages

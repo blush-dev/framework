@@ -86,7 +86,7 @@ use Blush\Support\Slug;
  * - `POST   entries/{id}/duplicate`: copies it beside itself as a draft
  *   titled "… (Copy)", slugged `{slug}-copy`, with the same authors,
  *   dated now if its type is dated (D-275). Needs to create entries of
- *   its type, and to edit the entry; a landing page (an index page or the home page) can't be
+ *   its type, and to edit the entry; a landing page (an index page or the homepage) can't be
  *   copied.
  *
  * **Permissions come from the change, not only the entry,** and are the

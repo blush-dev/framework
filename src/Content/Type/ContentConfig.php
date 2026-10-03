@@ -47,7 +47,7 @@ final readonly class ContentConfig implements Config
 	/**
 	 * @param  list<ContentType> $types           The site's types.
 	 * @param  list<array<array-key, mixed>> $definitions The site's types in array form, each with a `name`.
-	 * @param  ?string           $home            A type whose collection is the home page.
+	 * @param  ?string           $home            A type whose collection is the homepage.
 	 * @param  bool              $dataTypes       Whether `user/data/types` is read.
 	 * @param  bool              $dataTypeUrls    Whether data types may set `urls`.
 	 * @param  list<string>      $disabled        Built-in types to leave out.

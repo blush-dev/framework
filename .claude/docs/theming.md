@@ -224,7 +224,7 @@ aren't candidates (D-104).
 - **Profile** (a profile's own page): `profile-{slug}` → `profile` →
   `collection`; `$entry` is the profile.
 - **Home:** `home` → then the hierarchy of whatever it aliases.
-- **Welcome:** `welcome` (a site with no home page yet, D-108).
+- **Welcome:** `welcome` (a site with no homepage yet, D-108).
 - **Errors:** `error-{status}` → `error`, filled from
   `user/content/_errors/{status}.md` (or 1.x's `_error/{status}.md`) when
   it exists (D-108).

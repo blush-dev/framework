@@ -257,9 +257,9 @@ Tag it in its front matter:
 tag: [php, news]
 ```
 
-### Making the blog the home page
+### Making the blog the homepage
 
-To show the latest posts on the home page, name the type as `home`:
+To show the latest posts on the homepage, name the type as `home`:
 
 ```php
 return new ContentConfig(
@@ -268,7 +268,7 @@ return new ContentConfig(
 );
 ```
 
-The home page then lists posts, with `/page/2` and so on, and the feed
+The homepage then lists posts, with `/page/2` and so on, and the feed
 moves to `/feed`. It takes the place of `user/content/index.md`, which is
 no longer shown.
 

@@ -30,7 +30,7 @@ use Blush\Export\UrlSource;
  * Lists every content URL for static export (D-136), listings first so
  * they keep their paging:
  *
- * 1. The home page, paged when a type is the home.
+ * 1. The homepage, paged when a type is the home.
  * 2. Each public, routed type's collection, paged.
  * 3. Each taxonomy's terms: those listed entries reference (virtual ones
  *    included) and those with files, paged.

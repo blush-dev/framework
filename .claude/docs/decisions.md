@@ -814,7 +814,7 @@ decision, add a new entry that supersedes it and mark the old one
     the query string, and absolute URLs use `AppConfig::$url`'s origin.
   - `WelcomeHandler` is now a `Fallback` route for `/`, so any site route
     for `/` replaces it. The empty-state question stays open.
-    (Superseded by D-093: the home page controller shows it instead.)
+    (Superseded by D-093: the homepage controller shows it instead.)
 
 ### D-074: Trailing slashes: one canonical form, configurable
 - **Date:** 2026-09-25
@@ -889,7 +889,7 @@ decision, add a new entry that supersedes it and mark the old one
     `{type}.single`, `{type}.collection`, `.paged`, `.feed`, `.feed.atom`,
     and the date-archive names. Single URLs can use `{name}`, `{year}` …
     `{second}`, `{author}`, and any taxonomy name.
-  - **Home alias:** the home page can show a type's collection, with
+  - **Home alias:** the homepage can show a type's collection, with
     `/feed`, `/feed/atom`, and `/page/{page}`.
   - **Query arguments:** `type`/`path`, `names` (`slug`), `names_exclude`,
     `number` (≤ 0 means all), `offset`, `order`, `orderby` (`filename` by
@@ -1167,7 +1167,7 @@ decision, add a new entry that supersedes it and mark the old one
     its own. `PageRoutes` (priority `Fallback`) holds `home` (`/`),
     `home.paged` (`/page/{page}`, with a home type), and the page
     catch-all `page.single` (`/{path:.+}`). Being fallbacks, a site's
-    own `/` route in `config/routes.php` replaces the home page.
+    own `/` route in `config/routes.php` replaces the homepage.
   - The routing layer's `FallbackRoutes` is gone. `HomeController`
     shows `WelcomeHandler` when a site has no `index.md` and no home
     type. **Supersedes** the welcome-route part of D-073.
@@ -1368,7 +1368,7 @@ decision, add a new entry that supersedes it and mark the old one
   `collection-home`, `single-home`, `index`) are **not** candidates;
   views are theme code, not content, so D-078 doesn't cover them, and
   jtcom's views are renamed in the M8 port.
-  - The home page tries `home`, then the hierarchy of what it shows:
+  - The homepage tries `home`, then the hierarchy of what it shows:
     `ContentPage::$base` is `Collection` (the home type) or `Page`
     (`index.md`).
   - A new `PageKind::Welcome` renders `welcome`.
@@ -1877,7 +1877,7 @@ decision, add a new entry that supersedes it and mark the old one
     reads its file; word excerpts moved from `Entry` into `Body`.
   - `ViewFactory` keeps each chain's compiled token CSS in `tokens`
     per content version (site tokens are site data).
-  - Benchmarks (D-101): a themed home page drops from 8.5 ms to 1.7 ms
+  - Benchmarks (D-101): a themed homepage drops from 8.5 ms to 1.7 ms
     with bodies cached, and a page cache hit takes 0.05 ms.
 
 ### D-131: The publisher and `publish`
@@ -1983,7 +1983,7 @@ decision, add a new entry that supersedes it and mark the old one
   every URL through `Kernel::handle()`:
   - **Sources:** `Export\UrlSource`s tagged `UrlSource::TAG`, like route
     sources. The framework's are `Content\Routing\ContentExportUrls`
-    (the home page, collections, terms with files or listed entries,
+    (the homepage, collections, terms with files or listed entries,
     every date archive level of every period a listed entry was
     published in, and every published entry with a URL, unlisted ones
     included), `Feed\FeedExportUrls` (collection feeds, and per-term
@@ -5368,7 +5368,7 @@ decision, add a new entry that supersedes it and mark the old one
     it above the first-run state ("The index page above is already
     live" when it's published).
   - **Pages have no index page:** a page tree's root is the site, so
-    the home page (the `page` type's landing) is a page like the others.
+    the homepage (the `page` type's landing) is a page like the others.
 - **Departs from the design:** there's no checkbox column (no bulk
   actions yet), so the pin sits before the title rather than in the
   checkbox's place. Not yet: the editor's side of the pattern (no
@@ -5410,7 +5410,7 @@ decision, add a new entry that supersedes it and mark the old one
 - **Decision:**
   - **Pages** nest by folder, as their URLs already do: `about/team`'s
     parent is the page keyed `about` (`about.md` or `about/index.md`).
-    Top-level pages have none; the home page isn't every page's parent.
+    Top-level pages have none; the homepage isn't every page's parent.
   - **Hierarchical taxonomies:** `hierarchical: true` (`Taxonomy`'s
     option, in data too) adds a single `parent` reference to the
     taxonomy's own terms (`Taxonomy::parentField()`, added by
@@ -6147,7 +6147,7 @@ decision, add a new entry that supersedes it and mark the old one
   new type being born with one still wait for editing types.
 - **Checked:** `composer check` (`AdminEditingTest`: fields, `extra`,
   `can`, refused trash and schedule, publishing without a date, and the
-  home page still a page); on the jtcom trial in Chrome: the Posts index
+  homepage still a page); on the jtcom trial in Chrome: the Posts index
   page shows the mark, the line, no date or type fields, and a menu
   without Move to trash; an ordinary post has none of it; the Categories
   index page is marked too.
@@ -7367,7 +7367,7 @@ decision, add a new entry that supersedes it and mark the old one
   the prototype's other fields wait until they exist).
   - **`GET settings`** (`SettingsController`, `site.settings`): groups
     (General: name, address, locale, environment, detailed errors; Dates
-    and Time: time zone, with the time there now; Content: home page,
+    and Time: time zone, with the time there now; Content: homepage,
     `user/data/types`, built-in types turned off; Addresses: trailing
     slash, media URL; Feeds: formats, full content, limit; Search
     Engines: sitemap, asking not to be indexed outside production,
@@ -8190,7 +8190,7 @@ decision, add a new entry that supersedes it and mark the old one
   - **The API** (`SettingsEditController`, `site.settings`): `PATCH
     settings` with `{"set", "unset"}`, all checked before anything is
     written (a refusal is a `422` with the reason); answers `{"saved",
-    "refresh"}`. A change to the home page, time zone, trailing slash,
+    "refresh"}`. A change to the homepage, time zone, trailing slash,
     feed formats, or sitemap deletes the compiled content types and
     routes (they're built from source until compiled again) and asks
     for a refresh; `POST settings/refresh`, running with the new
@@ -8215,7 +8215,7 @@ decision, add a new entry that supersedes it and mark the old one
   apply, order, the file, broken files); `npm run admin:build`; on the
   jtcom trial with a throwaway administrator through the API: a saved
   name in the page title, the trailing slash redirecting `/about`, a
-  taxonomy refused as the home page, then both unset (account and file
+  taxonomy refused as the homepage, then both unset (account and file
   gone after). The screen itself wasn't checked in a browser.
 - **Why:** the author picked `user/data/settings.json` over rewriting
   `config/*.php` (fragile, and it would break hand-written config), one
@@ -8231,7 +8231,7 @@ decision, add a new entry that supersedes it and mark the old one
   - **Four screens, by task, not by config file:** General
     (`/settings/general`: site name, language, time zone; shown: the
     site address, environment, detailed errors), Reading (`reading`:
-    the home page; feeds), Addresses and Search (`search`: trailing
+    the homepage; feeds), Addresses and Search (`search`: trailing
     slash, sitemap, skipped paths; shown: the media address, asking not
     to be indexed), and System (`system`, all set in code: where types
     come from, caching, publishing and previews). `/settings` goes to
@@ -8949,7 +8949,7 @@ decision, add a new entry that supersedes it and mark the old one
   and a throwaway set on posts (both removed after, with the account's
   sessions): a new post's panel shows the set's group (label, help, a
   text field, a checkbox, radio buttons) after the post's fields; the
-  site's home page served and `content:lint` found no errors.
+  site's homepage served and `content:lint` found no errors.
 - **Why:** D-337's phase 2, as planned.
 
 ### D-340: The Fields API, phase 3: Structure → Fields
@@ -9079,13 +9079,13 @@ decision, add a new entry that supersedes it and mark the old one
     as a field named by its key (`name`, `locale`, `timezone`, `home`,
     `trailingSlash`, `formats`, `content`, `limit`, `enabled`,
     `disallow`), with its label, help, and control (locale `mono`;
-    formats `checks`; time zone and home page `select`), `choices()`
+    formats `checks`; time zone and homepage `select`), `choices()`
     naming options (zones without underscores, "The latest posts",
     feed formats' names), and `caption()` for a checkbox's text or an
     empty choice's ("The page at user/content/index.md"). Each is on a
     screen (`Setting::screen()`, `SettingsScreen`: general, reading,
     search; System is all code). `Setting::normalize()` still checks
-    values. A site with no collection with addresses has no home page
+    values. A site with no collection with addresses has no homepage
     to choose, so it's shown read-only. `homeChoices()` replaces the
     controller's `homeOptions()`.
   - **Targets:** `settings:general`, `settings:reading`, and
@@ -11535,3 +11535,67 @@ decision, add a new entry that supersedes it and mark the old one
   `llms-full.txt` box with the note.
 - **Why:** a box that can't take effect shouldn't be tickable, and the
   page cache's limit is a real cost on large sites.
+
+### D-404: The settings sketch's design for every Settings screen
+- **Date:** 2026-10-03
+- **Status:** Amends D-309, D-324, D-325, and D-399's layout (the
+  screens, their settings, and saving are unchanged).
+- **Decision:** The Settings screens are drawn as the author's settings
+  sketch (`.claude/docs/admin-design/meridian-settings-sketch.html`)
+  draws them. The sketch's second part, a Media settings screen, is
+  taken up separately.
+  - **Full width:** the screens drop the work area's `--work-max`
+    (`meta.wide` on the route, `.wrap--wide`), as the sketch's do.
+  - **Rows of label, control, and help:** each setting is one row with
+    its label, its control (at most 420px), and its help beside it,
+    then where it's set (From `config/…`, Saved here, with **Use
+    `config/…`'s value**); rows are divided by hairlines. A text area
+    takes the help's column too, with the help under it. The rows read
+    the panel's width (container queries), not the window's: wider than
+    1300px the label and control grow (250px, 520px); narrower than
+    1080px the help goes under the control; narrower than 640px it's
+    one column.
+  - **A yes or no is a switch** saying On or Off, not a checkbox:
+    `ToggleSwitch` with `form`, which fills with the accent (a value in
+    a form, as a ticked box is) rather than the good color the
+    extension screens' switches use for something running.
+  - **Shown values:** a boolean is a neutral pill whose dot is green
+    when it's on (warn-colored when risky, as before); still the default
+    is a **Default** tag; a value of None is quiet. Links under a value
+    or control are the sketch's underlined accent links.
+  - **A row locked by another** (D-403) is dimmed, with the reason
+    leading its help.
+  - **Options described** (`details` on a field, from `Setting::details()`:
+    a sentence and the machine names it covers): the AI crawler groups
+    are a list, each its name, then what its crawlers do, then its user
+    agents in small mono (`AiCrawlerGroup::description()`). Their
+    choices are now the names alone, and the AI Crawlers panel's note
+    explaining the groups is gone, since each says it.
+  - The note above the panels has the info glyph; a panel's closing
+    note is a plain line under a hairline.
+  - **AI's glyph** in the Config panel is the sketch's robot (`bot`),
+    in place of `sparkles`, which nothing else used and is gone.
+    General's is the sketch's two sliders (Lucide's `settings-2`, in
+    place of `sliders-horizontal`, which components still use).
+  - Not taken from the sketch, as Blush has no such settings (D-309):
+    date and time formats, and posts per page. The sketch's drawn
+    checkboxes stay the admin's own checkboxes.
+- **Checked:** `composer check` (`AdminSettingsTest`: the crawler
+  groups' names and details); `npm run admin:build`; every screen in
+  headless Chrome against the jtcom trial's settings, at 1600px, at
+  1200px in dark, and at 390px.
+- **Why:** the author's new design for all settings screens.
+
+
+### D-405: "Homepage", one word
+- **Date:** 2026-10-03
+- **Decision:** The site's front page is the "homepage" everywhere:
+  the admin (Reading's **Homepage** panel and setting, its hint, the
+  command palette's keywords), error messages, the default theme's
+  strings ("Go to the homepage", "Add a homepage at …"), user docs
+  (`docs/content-types.md`'s heading is now "Making the blog the
+  homepage"), code comments, tests, and these project docs, past
+  entries' wording included (spelling only; no decision changes). The
+  design direction's documents and sketches keep their own wording, as
+  uploaded.
+- **Why:** the author's call.

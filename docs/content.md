@@ -24,7 +24,7 @@ instead; see [Going live](going-live.md).)
 
 | File | URL |
 |---|---|
-| `user/content/index.md` | `/` (the home page) |
+| `user/content/index.md` | `/` (the homepage) |
 | `user/content/about.md` | `/about` |
 | `user/content/about/index.md` | `/about` (same page, as a folder) |
 | `user/content/about/team.md` | `/about/team` |
@@ -109,7 +109,7 @@ Create `user/content/_errors/404.md` to write your own "not found" page:
 title: "Page not found"
 ---
 
-Sorry, there's nothing here. Try the [home page](/).
+Sorry, there's nothing here. Try the [homepage](/).
 ```
 
 The same works for other errors, such as `_errors/500.md`. Without one,

@@ -34,7 +34,7 @@ use Blush\Content\Type\Taxonomy;
  * (D-351). The profiles type's holds each profile's page, real or
  * virtual (`PeopleArchives::profiles()`). A taxonomy's holds its terms that list entries
  * (virtual terms included), by slug, so empty archives stay out. The type the root
- * `index.md` belongs to also holds `/`, when the home page isn't a type's
+ * `index.md` belongs to also holds `/`, when the homepage isn't a type's
  * collection.
  */
 final readonly class SitemapBuilder

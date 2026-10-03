@@ -22,11 +22,11 @@ use Blush\Routing\RoutePriority;
 use Blush\Routing\RouteSource;
 
 /**
- * The fallback routes, which any other route overrides: the home page at
+ * The fallback routes, which any other route overrides: the homepage at
  * `/` (`home`), its later pages at `/page/{page}` (`home.paged`) when a
- * type is the home page, and the page catch-all (`page.single`), which
+ * type is the homepage, and the page catch-all (`page.single`), which
  * serves pages at their folder paths. A site's own `/` route in
- * `config/routes.php` replaces the home page.
+ * `config/routes.php` replaces the homepage.
  */
 final readonly class PageRoutes implements RouteSource
 {

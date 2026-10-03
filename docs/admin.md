@@ -232,7 +232,7 @@ folder, which introduces its archive) is pinned at the top of its list
 with a pin and an **Index** tag, on the list's first page. It isn't
 counted in the list's totals, and it can't be moved to the trash (see
 [Editing an index page](#editing-an-index-page)). It still follows the
-tabs and search: it shows only when it matches them. Pages have no index page; the site's home page is listed
+tabs and search: it shows only when it matches them. Pages have no index page; the site's homepage is listed
 with the other pages.
 
 A type whose [people field](content-types.md#crediting-people) has
@@ -480,7 +480,7 @@ if the name is refused, nothing is saved and the field says why.
 For a published entry, the field shows the new address, and **Redirect
 the old address here** (on by default) adds the old address to the
 entry's `redirect_from`, so links to it keep working. Landing pages
-(the home page, and a folder's `index.md`) take their folder's name,
+(the homepage, and a folder's `index.md`) take their folder's name,
 so they have no Slug field.
 
 ### Editing an index page
@@ -869,12 +869,12 @@ With `site.settings`, the **Settings** group in **Config** has five
 screens:
 
 - **General:** the site's name, a one-line description (for
-  `llms.txt`, and the home page and feeds when nothing more specific
+  `llms.txt`, and the homepage and feeds when nothing more specific
   describes them), its language and region (such as
   `en_US`), and its time zone, with the time there now. Beside them,
   shown but not changed here: the site's address, the environment, and
   detailed error pages.
-- **Reading:** the home page (the page at `user/content/index.md`, or the
+- **Reading:** the homepage (the page at `user/content/index.md`, or the
   latest entries of a collection) and feeds: the formats (RSS, Atom,
   JSON Feed; none turns feeds off), whether they carry each entry's full
   content, and how many entries each holds (1 to 100).
@@ -893,7 +893,7 @@ screens:
   `llms.txt`** on its screen; taxonomies and profiles start off), and the description it
   uses; and which kinds of AI crawler `robots.txt` asks to stay away:
   training crawlers, AI search crawlers, and fetchers acting for a
-  person, each naming its bots (see
+  person, each saying what its crawlers do and naming its bots (see
   [Configuration](configuration.md#sitemap-and-robotstxt)). It warns
   when the choices aren't used: outside production, or with your own
   `robots.txt`.
@@ -909,8 +909,9 @@ Change something and a bar at the bottom counts your unsaved changes,
 with **Revert** and **Save changes**; leaving the screen with changes
 unsaved asks first. Saving keeps them in `user/data/settings.json`, where
 they win over `config/` and `.env`, and they take effect on the next
-page load, with nothing to compile. Under each setting, the admin says
-whether it's saved there or comes from its config file. A saved one has
+page load, with nothing to compile. Each setting is a row: its name, its
+control (a yes or no is a switch saying On or Off), and, beside it, what
+it does and whether it's saved there or comes from its config file. A saved one has
 **Use `config/…`'s value**, which goes back to the config's value when
 you save.
 

@@ -12,7 +12,7 @@ to change.
 
 A few settings can also be changed in the admin's
 [Settings](admin.md#settings) screens: the site's name, language, and
-time zone, the home page, the trailing slash, feeds, and the sitemap;
+time zone, the homepage, the trailing slash, feeds, and the sitemap;
 the [Themes](admin.md#themes) screen activates a theme; and the
 [Plugins](admin.md#plugins) and [Icon Packs](admin.md#icon-packs)
 screens turn plugins and icon packs on and off. The admin saves them in `user/data/settings.json`, in sections named for the
@@ -118,7 +118,7 @@ site with a message naming the problem.
 | `timezone` | `'UTC'` | The site's timezone |
 | `locale` | `'en_US'` | The site's language and region |
 | `providers` | `[]` | Your own [service providers](extending.md) |
-| `description` | `''` | One line about the site: the summary in `llms.txt`, and the home page's meta description and feeds' descriptions when nothing more specific describes them |
+| `description` | `''` | One line about the site: the summary in `llms.txt`, and the homepage's meta description and feeds' descriptions when nothing more specific describes them |
 
 Without `config/app.php`, these come from the `APP_*` variables.
 
@@ -129,7 +129,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | Option | Default | What it does |
 |---|---|---|
 | `types` | `[]` | Your [content types](content-types.md) |
-| `home` | `null` | A type whose listing is the home page |
+| `home` | `null` | A type whose listing is the homepage |
 | `disabled` | `[]` | Built-in types to turn off (`'profile'`) |
 | `dataTypes` | `true` | Whether types in `user/data/types/` are read |
 | `dataTypeUrls` | `true` | Whether those types may set their own `urls` |
@@ -297,7 +297,7 @@ your own `robots` replaces the generated file and these rules with it.
 Agents and AI tools read Markdown more easily than HTML, so every
 published page also has a Markdown version at its address plus `.md`:
 `/archives/hello` is `/archives/hello.md`, `/about/` is `/about.md`, and
-the home page is `/index.md`. It's the entry as you wrote it, with its
+the homepage is `/index.md`. It's the entry as you wrote it, with its
 title, address, dates, and summary at the top. Directives such as
 `:::figure` stay as written. Links and images get full addresses
 (`/about` becomes `https://example.com/about`, and media points at its

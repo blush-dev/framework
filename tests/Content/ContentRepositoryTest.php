@@ -343,7 +343,7 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame('about', $content->parent($content->named('page', 'about/biography') ?? $about)?->key);
 		$this->assertSame(['about/biography'], array_map(static fn (Entry $entry): string => $entry->key, $content->children($about)));
 		$this->assertNull($content->parent($about));
-		$this->assertSame([], $content->children($content->named('page', '') ?? $about), 'The home page isn\'t every page\'s parent.');
+		$this->assertSame([], $content->children($content->named('page', '') ?? $about), 'The homepage isn\'t every page\'s parent.');
 	}
 
 	public function testDevelopmentRefreshesTheIndexOnFirstUse(): void

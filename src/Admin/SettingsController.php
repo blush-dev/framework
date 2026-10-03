@@ -195,7 +195,7 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * Reading: what the home page shows, and the feeds.
+	 * Reading: what the homepage shows, and the feeds.
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -204,10 +204,10 @@ final readonly class SettingsController
 		$feeds = new FeedConfig();
 
 		return [
-			self::group('home', 'Home Page', 'What the site opens with', [
+			self::group('home', 'Homepage', 'What the site opens with', [
 				Setting::homeChoices($this->types) === []
-					? self::item('home', 'Home page', $this->homeLabel(), $this->content->home === null, help: 'The site has no collection with addresses to show instead.', file: Setting::Home->file())
-					: $this->edit(self::item('home', 'Home page', $this->homeLabel(), $this->content->home === null), $saved, Setting::Home, $this->content->home)
+					? self::item('home', 'Homepage', $this->homeLabel(), $this->content->home === null, help: 'The site has no collection with addresses to show instead.', file: Setting::Home->file())
+					: $this->edit(self::item('home', 'Homepage', $this->homeLabel(), $this->content->home === null), $saved, Setting::Home, $this->content->home)
 			]),
 			self::group('feeds', 'Feeds', 'For types with a feed', [
 				$this->edit(self::item('formats', 'Formats', array_map(static fn (FeedFormat $format): string => $format->label(), $this->feeds->formats), $this->feeds->formats === $feeds->formats, 'list', 'None turns every feed off.'), $saved, Setting::FeedFormats, array_map(static fn (FeedFormat $format): string => $format->value, $this->feeds->formats)),
@@ -278,7 +278,7 @@ final readonly class SettingsController
 						default                                              => null
 					}
 				]
-			], 'Training crawlers collect pages to train models; AI search crawlers index them so answers can cite and link them; fetchers get a page when a person asks their assistant about it, so blocking them blocks readers\' own tools.')
+			])
 		];
 	}
 
@@ -347,7 +347,7 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * What the home page shows, in words.
+	 * What the homepage shows, in words.
 	 */
 	private function homeLabel(): string
 	{
@@ -379,6 +379,7 @@ final readonly class SettingsController
 	{
 		$field   = $setting->field($this->types)->toForm();
 		$choices = $setting->choices($this->types);
+		$details = $setting->details();
 
 		if ($choices !== []) {
 			if (is_array($field['item'] ?? null)) {
@@ -386,6 +387,10 @@ final readonly class SettingsController
 			} else {
 				$field['choices'] = $choices;
 			}
+		}
+
+		if ($details !== []) {
+			$field['details'] = $details;
 		}
 
 		if ($setting->caption() !== null) {

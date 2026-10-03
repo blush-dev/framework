@@ -292,7 +292,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertArrayHasKey('index', $pages);
 		$this->assertNull($pages['index'], 'Pages have no index page.');
 		$this->assertIsArray($pages['entries'] ?? null);
-		$this->assertContains('index.md', array_column($pages['entries'], 'id'), 'The home page is a page like the others.');
+		$this->assertContains('index.md', array_column($pages['entries'], 'id'), 'The homepage is a page like the others.');
 	}
 
 	public function testATreeInAFolderHasAnIndexPage(): void
@@ -327,7 +327,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertFalse($index['can']['delete'] ?? null);
 
 		$home = $this->load('index.md');
-		$this->assertFalse($home['index'] ?? null, 'The home page is a page like the others.');
+		$this->assertFalse($home['index'] ?? null, 'The homepage is a page like the others.');
 		$this->assertTrue(is_array($home['can'] ?? null) && ($home['can']['delete'] ?? null) === true);
 
 		$trashed = $this->call('DELETE', '/entries/_posts/index.md?revision=' . $this->revision('_posts/index.md'));

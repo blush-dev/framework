@@ -36,7 +36,7 @@ final readonly class TypeRouteKeys
 	/**
 	 * Returns the route keys a type answers at, in the order the admin
 	 * lists them: its listing, date archives, entries, feeds, then each
-	 * people field's archives. `$home` drops the listing (the home page
+	 * people field's archives. `$home` drops the listing (the homepage
 	 * is it), `$feeds` are the feed formats' route suffixes (`''`,
 	 * `.atom`, `.json`), and `$profiles` says whether the site has a
 	 * profiles type, without which there are no people archives. The

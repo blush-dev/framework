@@ -5,6 +5,10 @@
  * and the page says what happened in a toast. It's a checkbox with the
  * `switch` role, so it's announced as on or off.
  *
+ * In a form (`form`, the settings sketch's, D-404) it's a value saved
+ * with the rest, as a checkbox is, so it fills with the accent rather
+ * than the color of something running.
+ *
  * A `locked` switch shows a state that's real but can't be changed here;
  * its `reason` is its tooltip and is read with it. A `busy` one is
  * saving, and can't be moved again until it's done.
@@ -19,6 +23,9 @@ const props = defineProps<{
 	locked?: boolean;
 	busy?: boolean;
 	reason?: string | null;
+	form?: boolean;
+	// Help elsewhere on the page that describes it.
+	describedBy?: string;
 }>();
 
 const emit = defineEmits<{
@@ -38,14 +45,14 @@ function changed(event: Event): void {
 </script>
 
 <template>
-	<label class="switch" :class="{ 'is-locked': locked, 'is-busy': busy }" :title="reason ?? undefined">
+	<label class="switch" :class="{ 'switch--form': form, 'is-locked': locked, 'is-busy': busy }" :title="reason ?? undefined">
 		<input
 			type="checkbox"
 			role="switch"
 			:checked="checked"
 			:disabled="locked || busy"
 			:aria-label="label"
-			:aria-describedby="reason ? reasonId : undefined"
+			:aria-describedby="[reason ? reasonId : '', describedBy ?? ''].join(' ').trim() || undefined"
 			@change="changed"
 		>
 		<span class="switch__track" aria-hidden="true"><span class="switch__knob" /></span>
@@ -119,6 +126,19 @@ function changed(event: Event): void {
 
 .switch input:checked ~ .switch__word {
 	color: var(--good);
+}
+
+.switch--form input:checked + .switch__track {
+	border-color: var(--accent);
+	background: var(--accent);
+}
+
+.switch--form input:checked + .switch__track .switch__knob {
+	background: var(--accent-fg);
+}
+
+.switch--form input:checked ~ .switch__word {
+	color: var(--fg-2);
 }
 
 .switch.is-locked {

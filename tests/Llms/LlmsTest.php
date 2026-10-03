@@ -91,7 +91,7 @@ final class LlmsTest extends TestCase
 		$this->writeTemporaryFile('user/content/about/team.html', "---\ntitle: Team\n---\n<p><a href=\"/about\">About</a></p>\n");
 		$this->boot();
 
-		$this->assertStringContainsString("title: \"Blog\"\nurl: \"http://localhost/\"", (string) $this->get('/index.md')->getBody(), 'The home type\'s landing page is the home page.');
+		$this->assertStringContainsString("title: \"Blog\"\nurl: \"http://localhost/\"", (string) $this->get('/index.md')->getBody(), 'The home type\'s landing page is the homepage.');
 		$this->assertStringContainsString('title: "About"', (string) $this->get('/about.md')->getBody(), 'A landing page is at its collection\'s URL.');
 		$this->assertStringContainsString('title: "Biography"', (string) $this->get('/about/biography.md')->getBody());
 		$this->assertStringContainsString('title: "Art"', (string) $this->get('/topics/art.md')->getBody());

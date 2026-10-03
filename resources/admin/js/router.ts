@@ -5,7 +5,8 @@
  * all of them (`ShellController`) and checks every API request itself.
  * Each belongs to one of the section rail's areas
  * (`meta.area`: `home`, `content`, `people`, or `config`); the editor fills the
- * work area edge to edge (`meta.bleed`).
+ * work area edge to edge (`meta.bleed`), and the Settings screens drop the
+ * work area's widest measure (`meta.wide`, D-404).
  */
 
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router';
@@ -84,7 +85,7 @@ export const router = createRouter({
 		{ path: '/appearance', redirect: { name: 'themes' } },
 		// Settings is four screens (D-325); the view titles each.
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
-		{ path: '/settings/:screen(general|reading|search|ai|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'config' } },
+		{ path: '/settings/:screen(general|reading|search|ai|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'config', wide: true } },
 		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'extensions.plugins.view', area: 'config' } },
 		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: 'Plugin', capability: 'extensions.plugins.view', area: 'config', parent: 'plugins' } },
 		{ path: '/extensions', redirect: { name: 'plugins' } },

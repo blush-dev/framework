@@ -26,7 +26,7 @@ use Blush\Env\Env;
  * app config, `fromEnv()` builds one from the `APP_*` variables.
  *
  * `description` is a line about the site (D-398), for `llms.txt`, and
- * for the home page's meta description and feeds when nothing more
+ * for the homepage's meta description and feeds when nothing more
  * specific exists; empty, there's none.
  */
 final readonly class AppConfig implements Config

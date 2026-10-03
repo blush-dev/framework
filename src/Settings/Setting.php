@@ -85,7 +85,7 @@ enum Setting: string
 	/**
 	 * What the site's description is for.
 	 */
-	public const string DESCRIPTION_HELP = 'One line about the site, for llms.txt, and for the home page and feeds when nothing more specific describes them. Search results show about 160 characters.';
+	public const string DESCRIPTION_HELP = 'One line about the site, for llms.txt, and for the homepage and feeds when nothing more specific describes them. Search results show about 160 characters.';
 
 	/**
 	 * The most paths robots.txt may be asked to skip.
@@ -128,8 +128,8 @@ enum Setting: string
 			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.')->control(Control::Mono),
 			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
 			self::Home            => self::homeChoices($types) === []
-				? new TextField('home')->labeled('Home page')
-				: new EnumField('home', array_keys(self::homeChoices($types)))->labeled('Home page'),
+				? new TextField('home')->labeled('Homepage')
+				: new EnumField('home', array_keys(self::homeChoices($types)))->labeled('Homepage'),
 			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled('Formats')->described('None turns every feed off.')->control(Control::Checks),
 			self::FeedContent     => new BoolField('content')->labeled('Full content')->described('Off, a feed carries each entry\'s summary only.'),
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
@@ -149,7 +149,7 @@ enum Setting: string
 
 	/**
 	 * Words for the field's values, where its options aren't words: a
-	 * time zone without underscores, the home page's collections, and the
+	 * time zone without underscores, the homepage's collections, and the
 	 * feed formats' names.
 	 *
 	 * @return array<string, string>
@@ -160,8 +160,23 @@ enum Setting: string
 			self::Timezone    => array_combine(DateTimeZone::listIdentifiers(), array_map(static fn (string $zone): string => str_replace('_', ' ', $zone), DateTimeZone::listIdentifiers())),
 			self::Home        => self::homeChoices($types),
 			self::FeedFormats => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): string => $format->label(), FeedFormat::cases())),
-			self::BlockAi     => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): string => sprintf('%s: %s', $group->label(), implode(', ', $group->agents())), AiCrawlerGroup::cases())),
+			self::BlockAi     => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): string => $group->label(), AiCrawlerGroup::cases())),
 			default           => []
+		};
+	}
+
+	/**
+	 * More about each of the field's options, where a name alone doesn't
+	 * say enough (D-404): a sentence (`text`) and the machine names it
+	 * covers (`code`), as the AI crawler groups' user agents.
+	 *
+	 * @return array<string, array{text: string, code: string}>
+	 */
+	public function details(): array
+	{
+		return match ($this) {
+			self::BlockAi => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): array => ['text' => $group->description(), 'code' => implode(' · ', $group->agents())], AiCrawlerGroup::cases())),
+			default       => []
 		};
 	}
 
@@ -183,7 +198,7 @@ enum Setting: string
 	}
 
 	/**
-	 * The collection types that can be the home page, by name, with what
+	 * The collection types that can be the homepage, by name, with what
 	 * each shows.
 	 *
 	 * @return array<string, string>
@@ -260,7 +275,7 @@ enum Setting: string
 
 	/**
 	 * Whether a change needs the compiled routes and content types written
-	 * again, and the content reindexed: the home page, the time zone dates
+	 * again, and the content reindexed: the homepage, the time zone dates
 	 * are read in, what has addresses, and the theme and plugins (their
 	 * providers run at boot, so what's compiled is built again with them,
 	 * to be safe).
@@ -357,7 +372,7 @@ enum Setting: string
 	{
 		return $value === null || (is_string($value) && preg_match('/^[a-z][a-z0-9_-]*$/', $value) === 1)
 			? $value
-			: throw new InvalidSetting('The home page must name a content type, or be null for the page at user/content/index.md.');
+			: throw new InvalidSetting('The homepage must name a content type, or be null for the page at user/content/index.md.');
 	}
 
 	/**

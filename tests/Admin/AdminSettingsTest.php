@@ -135,7 +135,8 @@ final class AdminSettingsTest extends TestCase
 		$field = is_array($block['field'] ?? null) ? $block['field'] : [];
 		$this->assertSame('checks', $field['control'] ?? null);
 		$item = is_array($field['item'] ?? null) ? $field['item'] : [];
-		$this->assertSame('Training crawlers: GPTBot, ClaudeBot, CCBot, Google-Extended, Applebot-Extended, Bytespider, meta-externalagent', is_array($item['choices'] ?? null) ? $item['choices']['training'] ?? null : null);
+		$this->assertSame('Training crawlers', is_array($item['choices'] ?? null) ? $item['choices']['training'] ?? null : null);
+		$this->assertSame(['text' => 'Collect pages to train models.', 'code' => 'GPTBot · ClaudeBot · CCBot · Google-Extended · Applebot-Extended · Bytespider · meta-externalagent'], is_array($field['details'] ?? null) ? $field['details']['training'] ?? null : null);
 
 		$response = $this->write('PATCH', '/settings', ['set' => ['app.description' => ' Notes on the web. ', 'sitemap.blockAi' => ['search', 'training'], 'llms.enabled' => false, 'llms.full' => true]]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
@@ -212,7 +213,7 @@ final class AdminSettingsTest extends TestCase
 		$response = $this->write('PATCH', '/settings', ['set' => ['app.name' => '  Field Notes ', 'app.timezone' => 'Europe/Brussels', 'content.home' => 'post', 'feed.formats' => ['json', 'rss', 'json'], 'feed.limit' => 20, 'sitemap.disallow' => ['/drafts/', '', '/drafts/']]]);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertTrue(self::json($response)['refresh'] ?? null, 'The home page and time zone need a refresh.');
+		$this->assertTrue(self::json($response)['refresh'] ?? null, 'The homepage and time zone need a refresh.');
 		$this->assertSame(
 			[
 				'app'     => ['name' => 'Field Notes', 'timezone' => 'Europe/Brussels'],
@@ -233,7 +234,7 @@ final class AdminSettingsTest extends TestCase
 
 		$answer = self::json($this->write('PATCH', '/settings', ['set' => ['feed.content' => false], 'unset' => ['app.name', 'content.home', 'app.timezone', 'feed.formats', 'feed.limit', 'sitemap.disallow']]));
 		$this->assertSame(['feed' => ['content' => false]], $answer['saved'] ?? null);
-		$this->assertTrue($answer['refresh'] ?? null, 'Unsetting the home page needs a refresh too.');
+		$this->assertTrue($answer['refresh'] ?? null, 'Unsetting the homepage needs a refresh too.');
 		$this->assertSame('Notes', $this->scratchApplication(['APP_NAME' => 'Notes'])->container()->make(AppConfig::class)->name, 'Unset, the config is used again.');
 
 		$this->assertFalse(self::json($this->write('PATCH', '/settings', ['unset' => ['feed.content']]))['refresh'] ?? null);

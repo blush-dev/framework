@@ -43,7 +43,7 @@ use Blush\Field\InvalidSchema;
  *
  * Then: folders must be unique, one type must claim the content root, the
  * types named by listings, taxonomies' `types`, feed categories, and the
- * home page must exist, and every type's fields must fit together.
+ * homepage must exist, and every type's fields must fit together.
  */
 final readonly class ContentTypeLoader
 {

@@ -48,6 +48,19 @@ enum AiCrawlerGroup: string
 	}
 
 	/**
+	 * Returns what the group's crawlers do, in a sentence, as the admin
+	 * shows it under the name.
+	 */
+	public function description(): string
+	{
+		return match ($this) {
+			self::Training => 'Collect pages to train models.',
+			self::Search   => 'Index pages so an answer can cite and link them.',
+			self::Fetchers => 'Get one page because a reader asked their assistant about it, so turning these away turns away a reader\'s own tools.'
+		};
+	}
+
+	/**
 	 * Returns the user agents the group covers, as `robots.txt` names
 	 * them.
 	 *

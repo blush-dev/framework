@@ -64,7 +64,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * @param array<string, ContentType> $types   Keyed by name.
 	 * @param array<string, TypeOrigin>  $origins Keyed by name.
-	 * @param ?string                    $home    The home page's type.
+	 * @param ?string                    $home    The homepage's type.
 	 * @param FieldSets                  $sets    The site's field sets.
 	 * @param list<string>               $overrides Types from code that a data file changes (D-349).
 	 */
@@ -148,7 +148,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns the home page's type, if the home page shows a collection.
+	 * Returns the homepage's type, if the homepage shows a collection.
 	 */
 	public function homeType(): ?ContentType
 	{

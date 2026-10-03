@@ -19,7 +19,7 @@ namespace Blush\Content\Http;
 enum PageKind: string
 {
 	/**
-	 * The home page: the home type's collection, or `index.md`.
+	 * The homepage: the home type's collection, or `index.md`.
 	 */
 	case Home = 'home';
 
@@ -64,7 +64,7 @@ enum PageKind: string
 	case Profile = 'profile';
 
 	/**
-	 * The welcome page of a site with no home page yet.
+	 * The welcome page of a site with no homepage yet.
 	 */
 	case Welcome = 'welcome';
 }

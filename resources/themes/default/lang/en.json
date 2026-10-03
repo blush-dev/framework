@@ -22,10 +22,10 @@
 	"welcome": {
 		"title": "Welcome to {site}",
 		"running": "{generator} is running.",
-		"start": "Add a home page at {path} to replace this page."
+		"start": "Add a homepage at {path} to replace this page."
 	},
 	"error": {
-		"home": "Go to the home page",
+		"home": "Go to the homepage",
 		"message": "The server couldn’t complete the request.",
 		"404": {
 			"title": "Page not found",

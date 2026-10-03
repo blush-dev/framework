@@ -1,7 +1,7 @@
 <?php
 
 /**
- * The welcome page a new site shows at `/` until it has a home page.
+ * The welcome page a new site shows at `/` until it has a homepage.
  *
  * @var Blush\View\Template $template
  * @var Blush\View\Site     $site

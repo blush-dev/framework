@@ -9,8 +9,15 @@
  * warning where it's risky. A setting that needs another on (`requires`,
  * D-402) is locked while that one is off in the form, saying why.
  *
+ * The screens are drawn as the settings sketch has them (D-404): panels
+ * the full width of the work area, each setting a row of its label, its
+ * control, and its help beside it (under it, where the panel is narrow),
+ * with the place it's set last. A control that wants the width (a text
+ * area) takes the help's column too, with the help under it.
+ *
  * Each setting is edited as a field (D-343), with the control the server
- * names (`FieldInput`, as every form draws them). After a screen's own
+ * names (`FieldInput`, as every form draws them), but a yes or no is a
+ * switch saying On or Off (`ToggleSwitch`). After a screen's own
  * panels, each field set on it adds a panel of its settings, saved in
  * `settings.json`'s `site` section, with no config value behind them: a
  * saved one can be cleared instead.
@@ -28,6 +35,7 @@ import { confirmLeave } from '../confirm';
 import { onBeforeRouteLeave, onBeforeRouteUpdate, RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldInput from '../components/FieldInput.vue';
+import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { ApiError, request, type FieldDescription, type SettingGroup, type SettingItem } from '../api';
 import { control, fromForm, toForm, type FormValue } from '../fields';
 import { screenTitle, screenTrail } from '../screen';
@@ -37,7 +45,7 @@ const props = defineProps<{ screen: string }>();
 
 const screens: Record<string, { title: string; hint: string }> = {
 	general: { title: 'General', hint: 'The site\'s name, language, and time, and where it runs.' },
-	reading: { title: 'Reading', hint: 'What the home page shows, and the feeds.' },
+	reading: { title: 'Reading', hint: 'What the homepage shows, and the feeds.' },
 	search: { title: 'Addresses and Search', hint: 'How addresses are written, and what search engines are told.' },
 	ai: { title: 'AI', hint: 'What AI tools can read, and what AI crawlers are asked.' },
 	system: { title: 'System', hint: 'How the site is put together and run, all set in code.' }
@@ -212,11 +220,22 @@ function changeWarning(item: SettingItem): string | null {
 	return null;
 }
 
+function kindOf(item: SettingItem): string {
+	return item.field === undefined ? 'text' : control(item.field);
+}
+
 // Whether a setting's control is a group of options, labeled by its row.
 function isGroup(item: SettingItem): boolean {
-	const kind = item.field === undefined ? 'text' : control(item.field);
+	const kind = kindOf(item);
 
-	return kind === 'checkbox' || kind === 'radios' || kind === 'checks';
+	return kind === 'radios' || kind === 'checks';
+}
+
+// Whether a setting's control wants the row's width, its help under it.
+function isWide(item: SettingItem): boolean {
+	const kind = kindOf(item);
+
+	return kind === 'lines' || kind === 'textarea';
 }
 
 // Text with backticks marking code, as parts.
@@ -266,24 +285,37 @@ onBeforeRouteUpdate(leave);
 		</div>
 	</header>
 
-	<p v-if="screen === 'system'" class="notice"><span>These live in <code>config/</code> and <code>.env</code>; each names its file. After changing them on a site you've compiled, run <code>bin/blush cache:compile</code> again.</span></p>
-	<p v-else-if="editable" class="notice"><span>What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</span></p>
+	<p v-if="screen === 'system'" class="notice settings__about"><AdminIcon name="info" /><span>These live in <code>config/</code> and <code>.env</code>; each names its file. After changing them on a site you've compiled, run <code>bin/blush cache:compile</code> again.</span></p>
+	<p v-else-if="editable" class="notice settings__about"><AdminIcon name="info" /><span>What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<form v-if="groups" class="settings" @submit.prevent="save">
 		<section v-for="group in groups" :key="group.key" class="panel" :aria-labelledby="`settings-${group.key}`">
-			<header class="panel__header">
+			<header class="panel__header settings__header">
 				<h2 :id="`settings-${group.key}`">{{ group.title }}</h2>
 				<p class="panel__hint">{{ group.hint }}</p>
 			</header>
-			<div class="panel__body settings__items">
-				<div v-for="item in group.items" :key="item.key" class="setting">
+			<div class="settings__rows">
+				<div v-for="item in group.items" :key="item.key" class="setting" :class="{ 'setting--wide': isWide(item), 'is-off': locked(item) }">
 					<template v-if="item.setting !== undefined && item.field !== undefined">
-						<label v-if="!isGroup(item)" class="setting__label" :for="`setting-${item.key}`">{{ item.label }}</label>
-						<span v-else :id="`setting-${item.key}-label`" class="setting__label">{{ item.label }}</span>
+						<div class="setting__label">
+							<label v-if="!isGroup(item) && kindOf(item) !== 'checkbox'" :for="`setting-${item.key}`">{{ item.label }}</label>
+							<span v-else :id="`setting-${item.key}-label`">{{ item.label }}</span>
+						</div>
 
 						<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
+							<div v-if="kindOf(item) === 'checkbox'" class="setting__switch">
+								<ToggleSwitch
+									form
+									:checked="form[item.setting] === true"
+									:label="item.label"
+									:described-by="`setting-${item.key}-help`"
+									:locked="unset.includes(item.setting) || locked(item)"
+									@change="form[item.setting!] = $event"
+								/>
+							</div>
 							<FieldInput
+								v-else
 								:model-value="form[item.setting] ?? ''"
 								:field="item.field"
 								:id="`setting-${item.key}`"
@@ -295,43 +327,46 @@ onBeforeRouteUpdate(leave);
 
 							<p v-if="changeWarning(item)" class="setting__warning"><AdminIcon name="triangle-alert" />{{ changeWarning(item) }}</p>
 							<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
-							<p v-if="item.link" class="setting__links"><a :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a></p>
-							<p :id="`setting-${item.key}-help`" class="field__help">
-								<template v-if="liveHelp(item)">{{ liveHelp(item) }}</template>
-								<span v-if="isSite(item.setting)" class="setting__source">
-									<template v-if="unset.includes(item.setting)">Cleared once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep it</button></template>
-									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Clear it</button></template>
-									<template v-else>Not saved yet.</template>
-								</span>
-								<span v-else class="setting__source">
-									<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s value once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved one</button></template>
-									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s value</button></template>
-									<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
-								</span>
+							<p v-if="item.link" class="setting__links"><a class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a></p>
+						</div>
+
+						<div :id="`setting-${item.key}-help`" class="setting__help">
+							<p v-if="liveHelp(item)">{{ liveHelp(item) }}</p>
+							<p v-if="isSite(item.setting)" class="setting__source">
+								<template v-if="unset.includes(item.setting)">Cleared once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep it</button></template>
+								<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Clear it</button></template>
+								<template v-else>Not saved yet.</template>
+							</p>
+							<p v-else class="setting__source">
+								<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s value once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved one</button></template>
+								<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s value</button></template>
+								<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
 							</p>
 						</div>
 					</template>
 
 					<template v-else>
-						<span class="setting__label">{{ item.label }}</span>
-						<div class="setting__shown">
-							<span class="setting__value">
-								<span v-if="item.kind === 'bool'" class="pill" :class="{ 'pill--warn': item.warning }">{{ shown(item) }}</span>
-								<span v-else :class="{ mono: item.kind === 'mono' }">{{ shown(item) }}</span>
-								<span v-if="item.default === true" class="setting__default">Default</span>
-							</span>
-							<span v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</span>
-							<span v-if="item.help" class="field__help">{{ item.help }}</span>
-							<span v-if="item.link || item.links?.length" class="setting__links">
-								<a v-if="item.link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>
-								<RouterLink v-for="link in item.links ?? []" :key="link.to" :to="link.to">{{ link.label }}</RouterLink>
-							</span>
-							<span v-if="item.file" class="field__help">Set in <code>{{ item.file }}</code>.</span>
+						<div class="setting__label"><span>{{ item.label }}</span></div>
+						<div class="setting__control">
+							<p class="setting__value">
+								<span v-if="item.kind === 'bool'" class="pill" :class="item.warning ? 'pill--warn' : { 'setting__pill--on': item.value === true }">{{ shown(item) }}</span>
+								<span v-else :class="{ mono: item.kind === 'mono', 'setting__none': shown(item) === 'None' }">{{ shown(item) }}</span>
+								<span v-if="item.default === true" class="tag">Default</span>
+							</p>
+							<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
+							<p v-if="item.link || item.links?.length" class="setting__links">
+								<a v-if="item.link" class="setting__link" :href="item.link.href" target="_blank" rel="noopener">{{ item.link.label }}<AdminIcon name="arrow-up-right" /></a>
+								<RouterLink v-for="link in item.links ?? []" :key="link.to" class="setting__link" :to="link.to">{{ link.label }}</RouterLink>
+							</p>
+						</div>
+						<div class="setting__help">
+							<p v-if="item.help">{{ item.help }}</p>
+							<p v-if="item.file" class="setting__source">Set in <code>{{ item.file }}</code>.</p>
 						</div>
 					</template>
 				</div>
 			</div>
-			<p v-if="group.note" class="panel__body field__help settings__note">
+			<p v-if="group.note" class="settings__foot">
 				<template v-for="(part, index) in parts(group.note)" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template>
 			</p>
 		</section>
@@ -355,41 +390,83 @@ onBeforeRouteUpdate(leave);
 	width: 40%;
 }
 
+/* What's saved where: a quiet line with its glyph, above the panels. */
+.settings__about {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-3);
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+.settings__about :deep(.icon) {
+	margin-top: 1px;
+	color: var(--fg-3);
+}
+
+/* One column of panels, the full width (D-404). The rows read the
+   panel's width, not the window's, so they fit with the section panel
+   open or closed. */
 .settings {
 	display: grid;
-	gap: var(--s-4);
-	max-width: 48rem;
-}
-
-.settings__items {
-	display: grid;
 	gap: var(--s-5);
-	margin: 0;
+	container-type: inline-size;
 }
 
-.settings__items > * + * {
-	margin-top: 0;
+.settings__header {
+	align-items: baseline;
 }
 
+/* Each setting is a row: label, control, help. The width that would sit
+   empty to the right carries the help, so rows get shorter, not taller. */
 .setting {
+	--setting-label: 220px;
+	--setting-control: 420px;
+
 	display: grid;
-	grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-	gap: var(--s-3);
+	grid-template-columns: var(--setting-label) minmax(0, var(--setting-control)) minmax(0, 1fr);
+	gap: var(--s-2) var(--s-5);
+	align-items: start;
+	padding: var(--s-4) var(--pad-x);
+	border-top: 1px solid var(--border);
+}
+
+.setting:first-child {
+	border-top: 0;
+}
+
+/* A control that wants the width takes the help's column too, with the
+   help under it. */
+.setting--wide {
+	grid-template-columns: var(--setting-label) minmax(0, 1fr);
+}
+
+.setting--wide .setting__help {
+	grid-column: 2;
+	max-width: 72ch;
+	padding-top: 0;
 }
 
 .setting__label {
-	padding-top: 7px;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
+	padding-top: 8px;
+	color: var(--fg);
+	font-size: var(--base);
 	font-weight: 500;
 }
 
+.setting__label label {
+	color: inherit;
+	font-size: inherit;
+}
+
 .setting__control {
+	display: grid;
+	gap: var(--s-3);
 	min-width: 0;
 }
 
-.setting__control .checkbox {
-	min-height: var(--ctl);
+.setting__control > * {
+	margin: 0;
 }
 
 .setting__control.is-unset > :first-child {
@@ -400,56 +477,98 @@ onBeforeRouteUpdate(leave);
 	max-width: 8rem;
 }
 
-/* A setting's options sit in a row, as the screen's design has them. */
-.setting__control :deep(.field-input__choices) {
+/* A setting's options sit in a row, unless they're described. */
+.setting__control :deep(.field-input__choices:not(.field-input__choices--detailed)) {
 	display: flex;
 	flex-wrap: wrap;
-	gap: var(--s-2) var(--s-4);
+	gap: var(--s-2) var(--s-5);
 	min-height: var(--ctl);
 }
 
-.setting__source {
-	display: block;
+.setting__control :deep(.field-input__choices--detailed) {
+	padding-top: 7px;
+}
+
+/* A switch sits on the control line. */
+.setting__switch {
+	display: flex;
+	align-items: center;
+	min-height: var(--ctl);
+}
+
+/* A row turned off by another keeps its control, dimmed, with the reason
+   in its help. */
+.setting.is-off .setting__control {
+	opacity: .55;
+}
+
+.setting__help {
+	display: grid;
+	gap: 4px;
+	max-width: 52ch;
+	padding-top: 8px;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	line-height: 1.5;
+}
+
+.setting__help:empty {
+	display: none;
+}
+
+.setting__help p {
+	margin: 0;
 }
 
 /* A value set in code, read where the controls start. */
-.setting__shown {
-	display: grid;
-	gap: 4px;
-	min-width: 0;
-	padding-top: 7px;
-	overflow-wrap: anywhere;
-}
-
 .setting__value {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: baseline;
-	gap: 8px;
+	align-items: center;
+	gap: var(--s-2);
+	min-height: var(--ctl);
+	overflow-wrap: anywhere;
+}
+
+.setting__none {
+	color: var(--fg-3);
+}
+
+.setting__pill--on::before {
+	background: var(--good-dot);
 }
 
 .setting__links {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 4px 16px;
+	gap: var(--s-1) var(--s-4);
 }
 
-.setting__links a {
+.setting__link {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
+	gap: var(--s-1);
+	padding-bottom: 1px;
+	border-bottom: 1px solid var(--accent-line);
+	color: var(--accent);
+	font-size: var(--text-sm);
+	text-decoration: none;
 }
 
-.setting__default {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
+.setting__link:hover {
+	border-bottom-color: var(--accent);
+}
+
+.setting__link :deep(.icon) {
+	width: 13px;
+	height: 13px;
 }
 
 .setting__warning {
 	display: flex;
 	align-items: flex-start;
-	gap: 6px;
-	margin: 0;
+	gap: var(--s-2);
+	max-width: 64ch;
 	color: var(--warn);
 	font-size: var(--text-sm);
 }
@@ -458,12 +577,17 @@ onBeforeRouteUpdate(leave);
 	flex: none;
 	width: 14px;
 	height: 14px;
-	margin-top: 1px;
+	margin-top: 2px;
+	color: var(--warn-dot);
 }
 
-.settings__note {
+/* A panel's closing note: plain, under a hairline. */
+.settings__foot {
 	margin: 0;
+	padding: var(--s-3) var(--pad-x);
 	border-top: 1px solid var(--border);
+	color: var(--fg-3);
+	font-size: var(--text-sm);
 }
 
 .link-button {
@@ -477,14 +601,44 @@ onBeforeRouteUpdate(leave);
 	cursor: pointer;
 }
 
-@media (width <= 640px) {
+/* On a wide panel, a little more room for the control and a longer line
+   for the help. */
+@container (width >= 1300px) {
 	.setting {
-		grid-template-columns: minmax(0, 1fr);
-		gap: 7px;
+		--setting-label: 250px;
+		--setting-control: 520px;
 	}
 
-	.setting__label,
-	.setting__shown {
+	.setting__help {
+		max-width: 64ch;
+	}
+}
+
+/* Narrower, the help goes under the control. */
+@container (width < 1080px) {
+	.setting {
+		grid-template-columns: var(--setting-label) minmax(0, 1fr);
+	}
+
+	.setting__help {
+		grid-column: 2;
+		max-width: 72ch;
+		padding-top: 0;
+	}
+}
+
+@container (width < 640px) {
+	.setting,
+	.setting--wide {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.setting__help,
+	.setting--wide .setting__help {
+		grid-column: 1;
+	}
+
+	.setting__label {
 		padding-top: 0;
 	}
 }

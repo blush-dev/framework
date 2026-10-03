@@ -9,7 +9,8 @@
  * checkboxes are a group, labeled by `labelledBy`, one per option, each
  * with its `choices` label when the field has one; an optional choice's
  * empty option says the `caption`, or "None" (radio buttons) and "—" (a
- * menu). A date opens a month (`DatePicker`) and can be cleared. A
+ * menu). Options with `details` (D-404) are a list, each its name, then
+ * a sentence and the machine names it covers. A date opens a month (`DatePicker`) and can be cleared. A
  * reference picks from the entries it points at (`ReferencePicker`). A
  * media field, when `pickable`, has a **Choose** button for the media
  * picker beside it (D-247); otherwise its path is typed. A field the form
@@ -62,6 +63,11 @@ const ticked = computed(() => text.value.split('\n').filter((line) => line !== '
 // A choice's options, or a list of choices' item options.
 const choicesOf = computed(() => kind.value === 'checks' ? (props.field.item?.options ?? []) : (props.field.options ?? []));
 
+// An option's details, if the field has them.
+function detail(option: string): { text: string; code: string } | null {
+	return props.field.details?.[option] ?? null;
+}
+
 function tick(option: string, on: boolean): void {
 	text.value = choicesOf.value.filter((item) => item === option ? on : ticked.value.includes(item)).join('\n');
 }
@@ -83,8 +89,16 @@ const checked = computed({
 		<label v-if="!field.required" class="checkbox"><input :id="id" v-model="text" type="radio" :name="id" value="" :disabled="disabled"> {{ field.caption ?? 'None' }}</label>
 		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox"><input :id="index === 0 && field.required ? id : undefined" v-model="text" type="radio" :name="id" :value="option" :disabled="disabled"> {{ choice(option) }}</label>
 	</div>
-	<div v-else-if="kind === 'checks'" class="field-input__choices" role="group" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
-		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox"><input :id="index === 0 ? id : undefined" type="checkbox" :checked="ticked.includes(option)" :disabled="disabled" @change="tick(option, ($event.target as HTMLInputElement).checked)"> {{ choice(option) }}</label>
+	<div v-else-if="kind === 'checks'" class="field-input__choices" :class="{ 'field-input__choices--detailed': field.details }" role="group" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
+		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox">
+			<input :id="index === 0 ? id : undefined" type="checkbox" :checked="ticked.includes(option)" :disabled="disabled" @change="tick(option, ($event.target as HTMLInputElement).checked)">
+			<span v-if="detail(option)" class="field-input__choice">
+				<span class="field-input__name">{{ choice(option) }}</span>
+				<span class="field-input__text">{{ detail(option)?.text }}</span>
+				<span class="field-input__code">{{ detail(option)?.code }}</span>
+			</span>
+			<template v-else>{{ choice(option) }}</template>
+		</label>
 	</div>
 	<textarea v-else-if="kind === 'textarea'" :id="id" v-model="text" rows="3" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid" />
 	<textarea v-else-if="kind === 'lines'" :id="id" v-model="text" class="mono" rows="3" spellcheck="false" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid" />
@@ -107,6 +121,44 @@ const checked = computed({
 .field-input__choices {
 	display: grid;
 	gap: 7px;
+}
+
+/* Only the name is a name: the sentence and the machine names under it
+   are quieter, so a list of them stays readable. */
+.field-input__choices--detailed {
+	gap: var(--s-4);
+}
+
+.field-input__choices--detailed .checkbox {
+	align-items: flex-start;
+	line-height: 1.45;
+}
+
+.field-input__choices--detailed input {
+	margin-top: 2px;
+}
+
+.field-input__choice {
+	display: grid;
+	gap: 1px;
+	min-width: 0;
+}
+
+.field-input__name {
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.field-input__text {
+	color: var(--fg-2);
+}
+
+.field-input__code {
+	margin-top: 3px;
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	overflow-wrap: anywhere;
 }
 
 .field-input__date {

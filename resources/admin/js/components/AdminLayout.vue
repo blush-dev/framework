@@ -159,7 +159,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const library = can('media.upload') ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
 
 	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
-	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'sliders-horizontal'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('ai', 'AI', 'sparkles'), settingsScreen('system', 'System', 'settings')] : [];
+	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'settings-2'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('ai', 'AI', 'bot'), settingsScreen('system', 'System', 'settings')] : [];
 	// Each kind of extension needs seeing it (D-389).
 	const extensions = [
 		...(can('extensions.themes.view') ? [counted(screen('themes', 'Themes', 'paintbrush'), navCounts.value?.themes)] : []),
@@ -305,6 +305,7 @@ const trail = computed<{ label: string; to: RouteLocationRaw }[]>(() => {
 
 const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'Users', config: 'Config' })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
+const wide  = computed(() => route.meta.wide === true);
 
 // The collapsed panel is a per-browser convenience; storage may be off.
 const COLLAPSED = 'blush-admin-rail-collapsed';
@@ -540,7 +541,7 @@ async function leave(): Promise<void> {
 
 			<!-- One element either way, as each route's `meta.bleed` says. -->
 			<main id="main" class="main" :class="{ 'main--bleed': bleed }">
-				<div :class="bleed ? 'bleed' : 'wrap'">
+				<div :class="bleed ? 'bleed' : ['wrap', { 'wrap--wide': wide }]">
 					<slot />
 				</div>
 			</main>
@@ -1042,6 +1043,12 @@ async function leave(): Promise<void> {
 	max-width: var(--work-max);
 	margin: 0 auto;
 	padding: var(--s-6) var(--s-6) 96px;
+}
+
+/* Settings screens fill the width (D-404): their rows put the help to
+   the right of the controls, so nothing is left stranded at the edge. */
+.wrap--wide {
+	max-width: none;
 }
 
 /* A page's header stands further from what follows than sections do
