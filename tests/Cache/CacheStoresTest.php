@@ -27,6 +27,7 @@ use Blush\Cache\CacheDriverRegistrar;
 use Blush\Cache\CacheDriverRegistry;
 use Blush\Cache\CacheException;
 use Blush\Cache\Caches;
+use Blush\Cache\Events\CacheCleared;
 use Blush\Cache\FileStore;
 use Blush\Cache\InvalidCacheKey;
 use Blush\Cache\InvalidCacheValue;
@@ -40,9 +41,12 @@ use Blush\Container\ServiceContainer;
 use Blush\Core\AppConfig;
 use Blush\Core\Environment;
 use Blush\Core\Paths;
+use Blush\Event\EventDispatcher;
+use Blush\Event\Listener\ListenerRegistry;
 use Blush\Tests\TemporaryDirectory;
 use Psr\Clock\ClockInterface;
 
+#[CoversClass(CacheCleared::class)]
 #[CoversClass(Store::class)]
 #[CoversClass(Item::class)]
 #[CoversClass(ArrayStore::class)]
@@ -294,8 +298,16 @@ final class CacheStoresTest extends TestCase
 
 	public function testCachesHandOutNullStoresWhenOff(): void
 	{
-		$dev  = new Caches(new CacheConfig(driver: 'array'), new AppConfig(environment: Environment::Development), $this->factory(), $this->clock);
-		$live = new Caches(new CacheConfig(driver: 'array', stores: ['custom' => 'array']), new AppConfig(), $this->factory(), $this->clock);
+		$listeners = new ListenerRegistry();
+		$events    = new EventDispatcher($listeners);
+		$cleared   = [];
+
+		$listeners->listen(CacheCleared::class, static function (CacheCleared $event) use (&$cleared): void {
+			$cleared[] = $event->namespaces;
+		});
+
+		$dev  = new Caches(new CacheConfig(driver: 'array'), new AppConfig(environment: Environment::Development), $this->factory(), $this->clock, $events);
+		$live = new Caches(new CacheConfig(driver: 'array', stores: ['custom' => 'array']), new AppConfig(), $this->factory(), $this->clock, $events);
 
 		$this->assertFalse($dev->enabled());
 		$this->assertInstanceOf(NullStore::class, $dev->store('pages'));
@@ -312,5 +324,6 @@ final class CacheStoresTest extends TestCase
 		$this->assertSame(1, $live->prune());
 		$this->assertSame(['pages', 'bodies', 'fragments', 'custom', 'extension'], $live->clear());
 		$this->assertNull($live->store('custom')->get('b'));
+		$this->assertSame([['pages', 'bodies', 'fragments', 'custom', 'extension']], $cleared);
 	}
 }

@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Cache\CacheNamespace;
+use Blush\Cache\Events\CacheCleared;
 use Blush\Cache\Caches;
 use Blush\Cache\ContentVersion;
 use Blush\Cache\PageCache;
@@ -127,8 +128,15 @@ final class PublishTest extends TestCase
 		$this->entry('_posts/2009-01-01.fresh.md', 'title: Fresh Post');
 
 		$published = [];
-		$app->container()->make(ListenerRegistry::class)->listen(ContentPublished::class, static function (ContentPublished $event) use (&$published): void {
+		$events    = [];
+		$listeners = $app->container()->make(ListenerRegistry::class);
+
+		$listeners->listen(ContentPublished::class, static function (ContentPublished $event) use (&$published, &$events): void {
 			$published[] = $event->report;
+			$events[]    = 'published';
+		});
+		$listeners->listen(CacheCleared::class, static function (CacheCleared $event) use (&$events): void {
+			$events[] = 'cleared: ' . implode(', ', $event->namespaces);
 		});
 
 		$before = $app->container()->make(ContentVersion::class)->current();
@@ -141,6 +149,7 @@ final class PublishTest extends TestCase
 		$this->assertNotSame($before, $report->version);
 		$this->assertSame($report->version, $app->container()->make(ContentVersion::class)->current());
 		$this->assertCount(1, $published);
+		$this->assertSame(['cleared: pages, bodies, fragments', 'published'], $events);
 		$this->assertSame([], glob($this->temporaryDirectory() . '/storage/cache/store/pages/*/*') ?: []);
 
 		$home = $this->get($this->site(), '/');

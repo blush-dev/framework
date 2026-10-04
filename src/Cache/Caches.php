@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace Blush\Cache;
 
 use Psr\Clock\ClockInterface;
+use Blush\Cache\Events\CacheCleared;
 use Blush\Core\AppConfig;
+use Blush\Event\Dispatcher;
 
 /**
  * The site's cache stores, one per namespace, built on first use with the
@@ -52,7 +54,8 @@ final class Caches
 		private readonly CacheConfig $config,
 		private readonly AppConfig $app,
 		private readonly CacheDriverFactory $factory,
-		private readonly ClockInterface $clock
+		private readonly ClockInterface $clock,
+		private readonly Dispatcher $events
 	) {}
 
 	/**
@@ -97,7 +100,7 @@ final class Caches
 	 * `CacheConfig` names, and any other namespace `store()` handed out
 	 * in this process, whether or not caching is on. `webhooks` and
 	 * namespaces used only through `persistent()` are left alone.
-	 * Returns the namespaces cleared.
+	 * Dispatches `CacheCleared`, and returns the namespaces cleared.
 	 *
 	 * @return list<string>
 	 * @throws CacheException
@@ -109,6 +112,8 @@ final class Caches
 		foreach ($namespaces as $namespace) {
 			$this->persistent($namespace)->clear();
 		}
+
+		$this->events->dispatch(new CacheCleared($namespaces));
 
 		return $namespaces;
 	}

@@ -819,7 +819,10 @@ can leave `name` out; one naming something else is broken.
 
 Blush announces what it's doing through events you can listen for, such as
 `Blush\Content\Events\ContentIndexed` (content changed),
-`Blush\Publish\Events\ContentPublished`, and `Blush\Export\Events\ExportFinished`.
+`Blush\Publish\Events\ContentPublished`, `Blush\Export\Events\ExportFinished`,
+and `Blush\Cache\Events\CacheCleared` (the cache store was emptied by
+`cache:clear`, the admin's Clear caches, a publish, or `cache:compile`;
+its `namespaces` say which, a good moment to purge a CDN).
 Listen in your provider's `boot()`:
 
 ```php

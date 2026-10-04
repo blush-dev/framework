@@ -111,7 +111,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   planned):
   - `ApplicationBooted` (M1), `RequestReceived` (M2), `RouteMatched` (M3), `ControllerResolved`
   - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
-  - `ContentIndexed` (M4b; the content version listens, M6a), `ContentWritten`, `ContentPublished`, `CacheCleared`
+  - `ContentIndexed` (M4b; the content version listens, M6a), `ContentWritten`, `ContentPublished`, `CacheCleared` (D-415)
   - `ExportStarted`, `ExportFinished` (M7a)
 
 ## Data files

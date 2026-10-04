@@ -619,7 +619,7 @@ Page-cache files the web server serves without PHP (`try_files`), a
 template `cache()` helper for fragments (done in the M8 trial, D-152),
 tagged invalidation, rate
 limiting for the webhook (done, D-414), and
-`CacheCleared`. To M7: static export can reuse the content version for
+`CacheCleared` (done, D-415). To M7: static export can reuse the content version for
 incremental builds.
 
 ---

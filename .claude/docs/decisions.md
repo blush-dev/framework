@@ -11985,3 +11985,22 @@ decision, add a new entry that supersedes it and mark the old one
   config validation).
 - **Why:** a quick win the author picked from the carried-forward list
   (M6: rate limiting for the webhook).
+
+### D-415: `CacheCleared`
+- **Date:** 2026-10-03
+- **Decision:** `Blush\Cache\Events\CacheCleared`, carrying the
+  `namespaces` cleared, is dispatched by `Caches::clear()` itself, after
+  the stores are emptied. Dispatching there rather than in each caller
+  means every way of clearing announces it: `cache:clear`, the admin's
+  Clear caches action, a publish (before `ContentPublished`), and
+  `cache:compile`. `Caches` takes the `Dispatcher`.
+  - It says nothing about the content version: callers bump it after
+    clearing, so a listener reading it may see the old one.
+  - Clearing compiled caches (`cache:clear --compiled`) doesn't
+    dispatch it; those are deploy artifacts, not the store.
+- **Checked:** `composer check` (the event's namespaces from
+  `Caches::clear()`; a publish dispatching it before
+  `ContentPublished`).
+- **Why:** a quick win the author picked from the carried-forward list
+  (M6: `CacheCleared`), so plugins can purge a CDN or edge cache, and a
+  hook for outgoing webhooks later.
