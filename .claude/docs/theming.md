@@ -468,7 +468,9 @@ D-199 to D-204; the user guide is `docs/menus.md`.
 
 Themes ship `lang/{locale}.json` catalogs in the `theme` domain, and templates
 call `$template->t()`. A child theme overrides its ancestors message by message
-(D-107). The translator itself is CMS-wide; see
+(D-107). `$template->tGroup('group')` returns a group's messages (the keys
+under `group`), keyed by name; a group comes
+whole from one locale (`Translator::group()`, D-450). The translator itself is CMS-wide; see
 `architecture.md` → Translation.
 
 ## Accessibility (D-030)

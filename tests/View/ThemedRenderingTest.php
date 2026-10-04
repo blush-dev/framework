@@ -54,7 +54,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child", "styles": ["style.css", "extra.css"], "scripts": ["app.js"]}');
 		$this->writeTemporaryFile('extensions/acme/child/extra.css', '');
 		$this->writeTemporaryFile('extensions/acme/child/app.js', '');
-		$this->writeTemporaryFile('extensions/acme/child/lang/en.json', '{"powered_by": "Made with {generator}"}');
+		$this->writeTemporaryFile('extensions/acme/child/lang/en.json', '{"skip_to_content": "Skip ahead"}');
 		$this->writeTemporaryFile('extensions/acme/child/views/single-post.php', '<?php $template->layout(\'base\') ?><h1 class="post">Post: <?= e($title) ?></h1>');
 	}
 
@@ -76,6 +76,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<a class="entry-meta__term" href="/topics/art">Art</a>', $home);
 		$this->assertStringContainsString('<a class="entry-meta__term" href="/topics/book-reviews">Book Reviews</a>', $home);
 		$this->assertStringContainsString('<p>Spring is here.</p>', $home);
+		$this->assertMatchesRegularExpression('#<p>Powered by [^<]+\.</p>\s*</footer>#', $home, '1.x\'s lines (D-450).');
 
 		$single = $this->body('/archives/spring', $app);
 
@@ -147,7 +148,7 @@ final class ThemedRenderingTest extends TestCase
 		$single = $this->body('/archives/spring', $app);
 
 		$this->assertStringContainsString('<h1 class="post">Post: spring</h1>', $single);
-		$this->assertStringContainsString('Made with Blush Framework', $single);
+		$this->assertStringContainsString('<a class="skip-link" href="#main">Skip ahead</a>', $single);
 		$this->assertMatchesRegularExpression('#href="http://localhost/themes/blush/default/style.css\?v=[0-9a-f]{8}">\n<link rel="stylesheet" href="http://localhost/themes/acme/child/extra.css\?v=[0-9a-f]{8}">#', $single);
 		$this->assertMatchesRegularExpression('#<script src="http://localhost/themes/acme/child/app.js\?v=[0-9a-f]{8}" defer></script>#', $single);
 		$this->assertStringContainsString('<h1 class="entry__title">Biography</h1>', $this->body('/about/biography', $app));

@@ -1,13 +1,15 @@
 <?php
 
 /**
- * Site footer: the footer region and the credit.
+ * Site footer: the footer region and a "Powered by" line, 1.x's lines
+ * brought back (D-450): one of the `powered_by` group, at random.
  *
  * @var Blush\View\Template $template
- * @var Blush\View\Site     $site
  */
 
 declare(strict_types=1);
+
+$lines = $template->tGroup('powered_by');
 
 ?>
 <footer class="site-footer">
@@ -16,5 +18,7 @@ declare(strict_types=1);
 			<?= $template->region('footer') ?>
 		</div>
 	<?php endif ?>
-	<p><?= e($template->t('powered_by', generator: $site->generator)) ?></p>
+	<?php if ($lines !== []) : ?>
+		<p><?= e($lines[array_rand($lines)]) ?></p>
+	<?php endif ?>
 </footer>

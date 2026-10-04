@@ -115,6 +115,13 @@ To change one piece of the active theme, copy its template into your site's
 For example, to change the site footer, copy the default theme's
 `views/parts/footer.php` to `resources/views/parts/footer.php`.
 
+The default footer ends with a "Powered by" line ("Powered by coffee.",
+"Powered by sleepless nights.", and others), picked at random
+from `$template->tGroup('powered_by')`. Each line has its own key
+under `powered_by` in the theme's `lang/en.json` (`powered_by.coffee`).
+A translation's `powered_by` replaces the whole group, so it can have
+more lines or fewer, and none of the English ones show through.
+
 To override a template for one theme only, use
 `resources/views/themes/{vendor}/{name}/` instead, by the theme's name
 (`resources/views/themes/acme/notebook/`).
@@ -418,6 +425,7 @@ What a template can use:
 | `$template->widont($title)` | Escaped text whose last two words won't split across lines, so a title never ends with one word alone |
 | `$template->cache('key', fn () => ...)` | Keep a piece of HTML that's slow to build (see below) |
 | `$template->t('key')` | A translated string from `lang/` |
+| `$template->tGroup('group')` | The translated strings of a group in `lang/` (the keys under `group`), keyed by name |
 | `$template->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
 | `$template->bodyClass()` | The `<body>` classes |
 

@@ -97,6 +97,38 @@ final class Translator
 	}
 
 	/**
+	 * Returns the messages nested under a key, formatted and keyed by
+	 * their last segment, from the first fallback locale that has any
+	 * (D-450): a group comes whole from one locale, so a translation can
+	 * have more or fewer messages in it than the default. Empty when no
+	 * locale has the group.
+	 *
+	 * @param  array<string, mixed> $params
+	 * @return array<string, string>
+	 * @throws InvalidData When a catalog can't be parsed.
+	 */
+	public function group(string $key, array $params = [], string $domain = 'blush', ?string $locale = null): array
+	{
+		$prefix = "{$key}.";
+
+		foreach (self::fallbacks($locale ?? $this->locale, $this->locale) as $candidate) {
+			$messages = [];
+
+			foreach ($this->catalog($domain, $candidate) as $name => $message) {
+				if (str_starts_with($name, $prefix)) {
+					$messages[substr($name, strlen($prefix))] = self::format($message, $params, $candidate);
+				}
+			}
+
+			if ($messages !== []) {
+				return $messages;
+			}
+		}
+
+		return [];
+	}
+
+	/**
 	 * Returns whether a key has a message in any fallback locale.
 	 *
 	 * @throws InvalidData When a catalog can't be parsed.

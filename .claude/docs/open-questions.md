@@ -494,11 +494,6 @@ Move each item to `decisions.md` once it's answered.
   (version 1), whether loaders migrate old shapes or refuse them, and
   how this fits Composer-shaped manifests that fall back to
   `composer.json`, which has no such key.
-- **1.x's "Powered by" lines** (noted 2026-09-27): 1.x's footer picked a
-  random line ("Powered by coffee.", "Powered by an old mixtape and
-  memories of lost love.", …; `Template/Tag/PoweredBy.php` on `master`).
-  The default theme says "Powered by Blush". Maybe bring the lines back
-  in the default theme or the welcome page, for personality.
 - **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
 - **Multilingual file convention** (D-036): decided when the feature is built.
 - **Theming:** see the open questions in `theming.md`.

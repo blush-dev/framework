@@ -1,7 +1,22 @@
 {
 	"skip_to_content": "Skip to content",
 	"site_navigation": "Site",
-	"powered_by": "Powered by {generator}",
+	"powered_by": {
+		"heart": "Powered by heart and soul.",
+		"passion": "Powered by crazy ideas and passion.",
+		"universe": "Powered by the thing that holds all things together in the universe.",
+		"love": "Powered by love.",
+		"void": "Powered by the vast and endless void.",
+		"maniac": "Powered by the code of a maniac.",
+		"peace": "Powered by peace and understanding.",
+		"coffee": "Powered by coffee.",
+		"sleepless": "Powered by sleepless nights.",
+		"all_things": "Powered by the love of all things.",
+		"greater": "Powered by something greater than myself.",
+		"elbow_grease": "Powered by elbow grease. Held together by tape and bubble gum.",
+		"mixtape": "Powered by an old mixtape and memories of lost love.",
+		"love_letters": "Powered by thoughts of old love letters."
+	},
 	"no_entries": "Nothing has been published here yet.",
 	"read_more": "Continue reading {title}",
 	"published_on": "Published on {date}",

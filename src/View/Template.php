@@ -325,6 +325,20 @@ final class Template
 	}
 
 	/**
+	 * Translates a group of messages from the theme's catalogs (the keys
+	 * under `$key`), keyed by name, such as the default footer's
+	 * `powered_by` lines (D-450). A group comes whole from one locale.
+	 * Empty when no locale has it.
+	 *
+	 * @return array<string, string>
+	 * @throws InvalidData When a catalog can't be parsed.
+	 */
+	public function tGroup(string $key, mixed ...$params): array
+	{
+		return $this->views->translator->group($key, self::named($params), 'theme');
+	}
+
+	/**
 	 * Returns the page's `Head`.
 	 */
 	public function head(): Head

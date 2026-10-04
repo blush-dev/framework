@@ -83,6 +83,19 @@ final class TranslatorTest extends TestCase
 		$this->assertSame(['fr_CA', 'fr', 'en_US', 'en'], Translator::fallbacks('fr-ca', 'en_US'));
 	}
 
+	public function testGroupsComeWholeFromOneLocale(): void
+	{
+		$this->writeTemporaryFile('parent/fr.json', '{"lines": {"cafe": "Au café, {name}."}}');
+		$this->writeTemporaryFile('parent/en.json', '{"lines": {"coffee": "Coffee, {name}.", "love": "Love."}, "linesmith": "Not in the group"}');
+		$this->writeTemporaryFile('child/en.json', '{"lines": {"mixtape": "A mixtape."}}');
+
+		$translator = $this->translator();
+
+		$this->assertSame(['mixtape' => 'A mixtape.', 'coffee' => 'Coffee, Ada.', 'love' => 'Love.'], $translator->group('lines', ['name' => 'Ada'], 'theme'), 'A child theme adds to the group.');
+		$this->assertSame(['cafe' => 'Au café, Ada.'], $translator->group('lines', ['name' => 'Ada'], 'theme', 'fr'), 'No English lines mixed in.');
+		$this->assertSame([], $translator->group('missing', [], 'theme'));
+	}
+
 	public function testMissingKeysComeBackAsTheKey(): void
 	{
 		$translator = $this->translator();

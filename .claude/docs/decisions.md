@@ -13258,3 +13258,34 @@ decision, add a new entry that supersedes it and mark the old one
   is.
 - **Why:** a placeholder date quietly became a real one, putting a
   draft in the wrong place in the archive with nothing said.
+
+### D-450: 1.x's "Powered by" lines in the default theme's footer
+
+- **Date:** 2026-10-04
+- **Status:** Resolves "1.x's 'Powered by' lines" (noted 2026-09-27).
+- **Decision:** The default theme's footer shows one of 1.x's fourteen
+  "Powered by" lines (`Template/Tag/PoweredBy.php` on `master`) in place
+  of "Powered by Blush" (the author's pick over keeping the credit
+  beside it, or the welcome page only). The footer gets the lines from
+  `$template->tGroup('powered_by')` and picks one itself:
+  `Translator::group()` returns the
+  messages under a key, keyed by name, from the first fallback locale
+  that has any (a group comes whole from one locale, so a translation
+  can have more or fewer lines and no English shows through; a child
+  theme adds to its parent's group in the same locale), and the footer
+  picks one at random (`array_rand`), as 1.x did. The author's call over
+  a pick by the page's path: a cached page keeps the line it was
+  rendered with, and a static export rewrites nearly every page on each
+  full build (it leaves files alone by content hash), which the author
+  accepts. Each line is a named key (`powered_by.coffee`). (Built four
+  times on the same day: first a list read by position, which shifted
+  translations when a line moved and mixed English lines into a shorter
+  translation; then named keys listed in the footer with a `crc32` pick
+  inline; then, at the author's ask for a simpler footer, `group()` and
+  a `tAny()` picking by the path; then true random; then `tAny()`
+  became `tGroup()`, returning the group, with the random pick in the
+  footer, since picking one isn't a template method's job.) The `powered_by` string
+  (`"Powered by {generator}"`) is gone; the generator stays in the
+  `<meta name="generator">` tag.
+- **Checked:** `composer check`.
+- **Why:** personality, as 1.x had.
