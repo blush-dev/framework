@@ -198,6 +198,8 @@ final readonly class ExtensionState
 	/**
 	 * An extension's requirements as the admin answers them, the same
 	 * for every kind: `requirements` (each checked as if it were on),
+	 * `conflicts` (D-435, each met when it doesn't conflict with what's
+	 * on),
 	 * `blocked` (why it can't run, or `null`), and `requiredBy` (the
 	 * extensions of every kind that require it); and `abandoned` (`false`,
 	 * `true`, or the package to use instead, D-433), with the
@@ -207,14 +209,15 @@ final readonly class ExtensionState
 	 * anything else), and the `version` the site has of either (`null`
 	 * when it has none).
 	 *
-	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>}
+	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>}
 	 */
 	public function report(ExtensionManifest $extension): array
 	{
 		$checked = $this->check($extension);
 
 		return [
-			'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), $checked),
+			'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, static fn (Requirement $requirement): bool => ! $requirement->conflict))),
+			'conflicts'    => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, Requirements::isConflict(...)))),
 			'blocked'      => Requirements::met($checked) ? null : Requirements::reason($checked),
 			'requiredBy'   => array_map(self::describe(...), $this->requiredBy($extension->name)),
 			'abandoned'    => $extension->abandoned,

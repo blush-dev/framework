@@ -71,7 +71,7 @@ final readonly class IconPackDiscovery
 					$data = $at->read();
 				} else {
 					$path            = $at;
-					$data            = ManifestFile::load($path, ExtensionKind::IconPack, ['require']);
+					$data            = ManifestFile::load($path, ExtensionKind::IconPack, ['require', 'conflict']);
 					$data['name'] ??= $where;
 
 					if ($data['name'] !== $where) {

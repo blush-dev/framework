@@ -12684,3 +12684,76 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** continuing Composer parity (D-428 to D-433); `suggest` is
   the cheapest link and enforces nothing, so it goes first.
 
+### D-435: `conflict` stops the extension declaring it
+- **Date:** 2026-10-04
+- **Status:** Settles the `conflict` part of the open question
+  "Composer's other package links" (D-434).
+- **Decision:** Every kind reads Composer's `conflict`: names mapped to
+  the versions it can't run with, the same names and constraints as
+  `require` (D-431). The author chose which side gives way:
+  - **The extension declaring the conflict stops** (the author's call,
+    over both stopping, or the later one in plugins-then-themes, config
+    order). Composer refuses to install either, but at boot Blush must
+    pick one, and the one it names asked for nothing. It stops as an
+    unmet requirement stops it: a plugin doesn't run, a pack adds no
+    icons, a theme chain is left out (the active one falls back to the
+    default theme, D-431), and what requires it stops too.
+  - **Judged against what's turned on, not what runs:** the plugins and
+    packs that are on and the active chain (with the default theme),
+    whether or not each can run. Settling only ever removes extensions
+    when that set is fixed; judged against what runs, one stopping
+    could let another start, and settling could go back and forth. So
+    two that name each other both stop, and an extension named by a
+    conflict counts while it's on even when it can't run itself.
+  - **What conflicts:** another extension turned on at a version that
+    fits; `blush-dev/framework` or `php` at one; or `ext-{name}` loaded
+    at one. One that's off, not installed, at another version, or that
+    Blush can't check doesn't conflict; a library's name isn't looked
+    up in Composer's `installed.json` (a missing package conflicts with
+    nothing). A constraint Blush can't read is a conflict, as it's an
+    unmet requirement. An extension naming itself is passed over.
+  - **Turning on the extension a conflict names isn't refused:** the
+    declarer stops, and `PUT plugins` and `PUT icon-packs` name it among
+    what `stopped`, as for a requirement. Turning on, activating, or
+    rolling back to the declarer is refused (`422`, invalid input for
+    `theme:activate`), as for an unmet requirement.
+  - **Where it's read:** the manifest, `extra.blush`, or the top level of
+    `composer.json` (it joins `ComposerJson::SHARED`) for local
+    extensions; only the manifest or `extra.blush` for a Composer
+    package, whose top-level `conflict` is Composer's, as its `require`
+    is (D-431; `skip`, and `ComposerPluginFinder` reads `extra.blush`'s
+    alone).
+  - **Built:** `ExtensionManifest::$conflict`, read by
+    `ExtensionRequire::fromArray($value, 'conflict')` on each kind;
+    `Requirement::$conflict` (a conflict is a `Requirement`, met when it
+    doesn't conflict); `Requirements::check()` adds the conflicts after
+    the requirements, against `$on` (`$running + $blocked` unless
+    given), and `settle()` fixes `$on` as what's enabled; `reason()`
+    says `Needs …. Conflicts with Old SEO <2.0 (version 1.4.0 is on).`;
+    `isConflict()`. So every gate that checks requirements checks
+    conflicts with no other change: the admin's `422`s, `theme:activate`,
+    rollbacks, `plugin:check`, `theme:check`, `icon-pack:check`, and
+    `doctor`.
+  - **The API and admin:** `ExtensionState::report()` lists `conflicts`
+    apart from `requirements` (the same shape) in `GET plugins`, `GET
+    themes`, and `GET icon-packs`; `blocked` gives both. Each details
+    screen has a **Conflicts** panel when the manifest has `conflict`
+    (`ExtensionRequirements.vue` with `conflicts`, which reads "No
+    conflict:" and "Conflicts:" to screen readers), "Checked against
+    what's on". The JSON Schemas have it.
+  - Not built: showing what conflicts with an extension from its side,
+    and warning before turning one on that it stops another (in
+    `open-questions.md`).
+- **Checked:** `composer check` (the declarer stopping and what needs it;
+  versions outside the constraint and extensions turned off; judged
+  against what's on though it can't run; both ways stopping both; a
+  theme chain falling back; `php` and `ext-*` conflicts; an invalid
+  constraint; `reason()`'s two sentences; every kind reading it and a
+  cached plugin's round trip; a Composer pack ignoring its top-level
+  `conflict`; turning on the named one saying what stopped);
+  `npm run admin:build`; and on the jtcom trial, `plugin:check`,
+  `icon-pack:check`, and `doctor` unchanged. Not checked in a browser.
+- **Why:** continuing Composer parity (D-428 to D-434), with Blush's
+  boot-time settling needing a rule Composer's install-time refusal
+  doesn't.
+

@@ -7,7 +7,8 @@
  * reference when clicked (`weather/sun`, or a core icon's name), then a
  * Details panel, a Requires panel (each requirement checked against the
  * site, as a plugin's are, D-431; one that isn't met keeps the pack from
- * turning on, or its icons from loading), a Suggests panel when it
+ * turning on, or its icons from loading), a Conflicts panel when it
+ * has `conflict` (D-435), a Suggests panel when it
  * suggests anything (D-434), and **Delete icon pack** for a
  * folder pack. A Composer pack says how it's removed instead.
  */
@@ -231,6 +232,16 @@ async function remove(): Promise<void> {
 				<ExtensionRequirements :requirements="pack.requirements" />
 			</div>
 		</section>
+		<section v-if="pack && pack.conflicts.length" class="panel" aria-labelledby="conflicts-heading">
+			<header class="panel__header">
+				<h2 id="conflicts-heading">Conflicts</h2>
+				<p class="panel__hint">Checked against what's on</p>
+			</header>
+			<div class="panel__body">
+				<ExtensionRequirements :requirements="pack.conflicts" conflicts />
+			</div>
+		</section>
+
 		<section v-if="pack && pack.suggests.length" class="panel" aria-labelledby="suggests-heading">
 			<header class="panel__header">
 				<h2 id="suggests-heading">Suggests</h2>

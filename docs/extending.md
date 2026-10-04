@@ -382,8 +382,8 @@ Each extension can be its own git repository.
 
 Manifests use Composer's names and shapes for the keys they share with
 `composer.json`: `name`, `description`, `version`, `license`,
-`authors`, `autoload`, `require`, `homepage`, `support`, `funding`,
-`abandoned`, and `suggest`. A manifest that leaves one of
+`authors`, `autoload`, `require`, `conflict`, `homepage`, `support`,
+`funding`, `abandoned`, and `suggest`. A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
 them once. A manifest's own value replaces `composer.json`'s whole; the
 two aren't merged. Blush's own keys (`label`, `namespace`, `provider`,
@@ -724,6 +724,45 @@ only the `require` in its manifest (or, for a plugin, `extra.blush`).
 each kind from the command line, and `doctor` warns of anything that's
 on but can't run.
 
+### Conflicts
+
+`conflict` names what an extension can't run with, each mapped to the
+versions it can't, as Composer's does. It has the same names and
+constraints as `require`, and works the same way for every kind:
+
+```json
+{
+	"conflict": {
+		"acme/old-seo": "<2.0",
+		"php": ">=9.0"
+	}
+}
+```
+
+An extension conflicts when the site has what it names at a version
+that fits: `blush-dev/framework` or `php` at that version, `ext-{name}`
+loaded at it, or another plugin, theme, or icon pack **turned on** at
+it (a plugin or pack that's on, or a theme that's active or one the
+active theme falls back to). One that's off, isn't installed, or is at
+another version doesn't conflict.
+
+**The extension that declares the conflict is the one that stops,**
+the same way as when its requirements aren't met: a plugin doesn't
+run, a pack adds no icons, and a theme can't be activated (an active
+one shows the default theme in its place). The extension it names
+carries on. So turning on `acme/old-seo` above isn't refused; the
+extension declaring the conflict stops, and the admin names it among
+what stopped. An extension it names counts while it's on even if it
+can't run itself. Two that each name the other both stop.
+
+A conflict shows on the extension's details, under **Conflicts**, and
+the check commands and `doctor` report one the same way as a
+requirement that isn't met: `Conflicts with Old SEO <2.0 (version 1.4.0
+is on).` A constraint Blush can't read counts as a conflict. As with
+`require`, a Composer package's own `composer.json` `conflict` is
+Composer's: Blush checks only the one in its manifest (or, for a plugin,
+`extra.blush`).
+
 A plugin whose manifest can't be read (a `plugin.json` that doesn't
 parse, or is missing a key it needs) is broken. It never runs, even
 when it's turned on, and the rest of the site carries on without it.
@@ -974,7 +1013,7 @@ Only `name` is required. Without a `label` it's shown by its name, and
 without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors`, `license`, `homepage`,
-`support`, `funding`, `abandoned`, `suggest`, and [`require`](#requirements) work as a plugin's
+`support`, `funding`, `abandoned`, `suggest`, [`require`](#requirements), and [`conflict`](#conflicts) work as a plugin's
 do: a pack whose requirements aren't met adds no icons, even when it's
 on. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is

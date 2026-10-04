@@ -210,7 +210,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertTrue(Requirements::met($state->check($plugins[0])), 'Checked as if it were on.');
 		$this->assertSame(['acme/brands-block', 'acme/nova'], array_map(static fn ($other): string => $other->name, $state->requiredBy('acme/brands')));
 		$this->assertSame(
-			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands']], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => []],
+			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands']], 'conflicts' => [], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => []],
 			$state->report($plugins[0])
 		);
 	}
@@ -226,6 +226,91 @@ final class ExtensionStateTest extends TestCase
 		$this->assertSame(['abandoned' => 'acme/brands', 'replacement' => ['name' => 'acme/brands', 'label' => 'Brands', 'kind' => 'icon-pack']], array_intersect_key($state->report($packs[1]), ['abandoned' => true, 'replacement' => true]), 'Of any kind.');
 		$this->assertSame(['abandoned' => 'acme/elsewhere', 'replacement' => null], array_intersect_key($state->report($plugins[0]), ['abandoned' => true, 'replacement' => true]), 'A package that isn\'t installed is only named.');
 		$this->assertFalse($state->report($plugins[1])['abandoned']);
+	}
+
+	/**
+	 * @param array<string, string> $conflict
+	 * @param array<string, string> $require
+	 */
+	private static function conflicting(string $name, array $conflict, array $require = []): PluginManifest
+	{
+		$plugin = self::plugin($name, $require);
+
+		return new PluginManifest(name: $plugin->name, label: $plugin->label, namespace: $plugin->namespace, source: PluginSource::Local, path: $plugin->path, version: '1.0.0', require: $require, conflict: $conflict);
+	}
+
+	public function testTheOneDeclaringAConflictStops(): void
+	{
+		$plugins = [self::conflicting('acme/new-seo', ['acme/old-seo' => '<2.0']), self::plugin('acme/old-seo'), self::plugin('acme/sitemap', ['acme/new-seo' => '*'])];
+
+		$state = self::settle($plugins, ['acme/new-seo', 'acme/old-seo', 'acme/sitemap'], [], Themes::DEFAULT);
+
+		$this->assertFalse($state->runs('acme/new-seo'));
+		$this->assertTrue($state->runs('acme/old-seo'), 'The one it names runs: it asked for nothing.');
+		$this->assertFalse($state->runs('acme/sitemap'), 'What needs the one that stops stops too.');
+		$this->assertSame('Conflicts with Old-seo <2.0 (version 1.0.0 is on).', Requirements::reason($state->plugins->unmet()['acme/new-seo'] ?? []));
+		$this->assertSame(
+			[['name' => 'acme/old-seo', 'constraint' => '<2.0', 'kind' => 'plugin', 'met' => false, 'note' => 'version 1.0.0 is on', 'label' => 'Old-seo']],
+			$state->report($plugins[0])['conflicts']
+		);
+		$this->assertSame([], $state->report($plugins[0])['requirements'], 'Conflicts are listed apart from requirements.');
+	}
+
+	public function testAConflictOutsideItsVersionsOrTurnedOffIsMet(): void
+	{
+		$plugins = [self::conflicting('acme/new-seo', ['acme/old-seo' => '<1.0', 'acme/other' => '*']), self::plugin('acme/old-seo'), self::plugin('acme/other')];
+
+		$state = self::settle($plugins, ['acme/new-seo', 'acme/old-seo'], [], Themes::DEFAULT);
+
+		$this->assertTrue($state->runs('acme/new-seo'));
+		$this->assertSame(['version 1.0.0 is installed', 'is turned off'], array_column($state->report($plugins[0])['conflicts'], 'note'));
+	}
+
+	public function testAConflictIsJudgedAgainstWhatsOnNotWhatRuns(): void
+	{
+		$plugins = [self::conflicting('acme/new-seo', ['acme/old-seo' => '*']), self::plugin('acme/old-seo', ['blush-dev/framework' => '^3.0'])];
+
+		$state = self::settle($plugins, ['acme/new-seo', 'acme/old-seo'], [], Themes::DEFAULT);
+
+		$this->assertFalse($state->runs('acme/old-seo'));
+		$this->assertFalse($state->runs('acme/new-seo'), 'The one it names is on, though it can\'t run, so settling never goes back and forth.');
+	}
+
+	public function testConflictingBothWaysStopsBoth(): void
+	{
+		$plugins = [self::conflicting('acme/one', ['acme/two' => '*']), self::conflicting('acme/two', ['acme/one' => '*'])];
+
+		$state = self::settle($plugins, ['acme/one', 'acme/two'], [], Themes::DEFAULT);
+
+		$this->assertFalse($state->runs('acme/one'));
+		$this->assertFalse($state->runs('acme/two'));
+	}
+
+	public function testAChainThatConflictsFallsBackAndPlatformConflictsCount(): void
+	{
+		$theme   = new ThemeManifest(name: 'acme/nova', path: '/site/extensions/acme/nova', label: 'Nova', namespace: 'nova', version: '1.0.0', source: ThemeSource::Local, conflict: ['acme/old-seo' => '*']);
+		$plugins = [self::plugin('acme/old-seo'), self::conflicting('acme/modern', ['php' => '<8.5']), self::conflicting('acme/legacy', ['php' => '>=8.5', 'ext-none' => '*', 'acme/missing' => '*'])];
+
+		$state = self::settle($plugins, ['acme/old-seo', 'acme/modern', 'acme/legacy'], [$theme], 'acme/nova');
+
+		$this->assertSame(Themes::DEFAULT, $state->themes->running('acme/nova'));
+		$this->assertTrue($state->runs('acme/modern'), 'It conflicts only with PHP below 8.5.');
+		$this->assertFalse($state->runs('acme/legacy'));
+		$this->assertSame('Conflicts with PHP >=8.5 (this site runs 8.5.1).', Requirements::reason($state->plugins->unmet()['acme/legacy'] ?? []));
+		$this->assertSame(['isn\'t loaded', 'isn\'t installed'], array_slice(array_column($state->report($plugins[2])['conflicts'], 'note'), 1), 'An extension that isn\'t loaded or installed conflicts with nothing.');
+	}
+
+	public function testAnInvalidConstraintIsAConflict(): void
+	{
+		$plugins = [self::conflicting('acme/odd', ['acme/other' => 'not a constraint']), self::plugin('acme/other')];
+
+		$state = self::settle($plugins, ['acme/odd'], [], Themes::DEFAULT);
+
+		$this->assertFalse($state->runs('acme/odd'));
+		$this->assertSame('Needs Blush ^3.0 (this site runs 2.1.0). Conflicts with Other not a constraint (isn\'t a version constraint Blush understands).', Requirements::reason([
+			new Requirement('blush-dev/framework', '^3.0', RequirementKind::Blush, false, 'this site runs 2.1.0'),
+			...$state->plugins->unmet()['acme/odd'] ?? []
+		]), 'Needs, then conflicts.');
 	}
 
 	public function testReportsWhatItSuggests(): void
@@ -253,6 +338,18 @@ final class ExtensionStateTest extends TestCase
 
 		$this->assertSame(['acme/brands-block'], array_map(static fn ($other): string => $other->name, $before->runningNotIn($after, 'acme/brands')));
 		$this->assertSame([], $after->runningNotIn($before));
+	}
+
+	public function testTurningOnWhatAConflictNamesStopsTheOneDeclaringIt(): void
+	{
+		$plugins = [self::conflicting('acme/new-seo', ['acme/old-seo' => '*']), self::plugin('acme/old-seo')];
+
+		$before = self::settle($plugins, ['acme/new-seo'], [], Themes::DEFAULT);
+		$after  = $before->with(new PluginConfig(enabled: ['acme/new-seo', 'acme/old-seo']));
+
+		$this->assertTrue($before->runs('acme/new-seo'));
+		$this->assertTrue($after->runs('acme/old-seo'), 'Turning it on isn\'t refused: it declares nothing.');
+		$this->assertSame(['acme/new-seo'], array_map(static fn ($other): string => $other->name, $before->runningNotIn($after, 'acme/old-seo')), 'So the answer says what stopped.');
 	}
 
 	public function testDescribesEachKind(): void

@@ -3,7 +3,7 @@
  * A theme's details (D-383, the themes sketch's detail screen), at
  * `/themes/{vendor}/{name}`: its preview in both halves of its palette,
  * its details, its requirements (checked as if it were active, D-431),
- * what it suggests (D-434), its palette as swatches, and, for a folder theme the active one
+ * its conflicts (D-435), what it suggests (D-434), its palette as swatches, and, for a folder theme the active one
  * doesn't use, **Delete theme**. An active theme whose requirements
  * aren't met says it isn't running. A Composer theme says how
  * it's removed instead.
@@ -258,6 +258,16 @@ async function remove(): Promise<void> {
 					<ExtensionRequirements :requirements="theme.requirements" />
 				</div>
 			</section>
+			<section v-if="theme.conflicts.length" class="panel" aria-labelledby="conflicts-heading">
+				<header class="panel__header">
+					<h2 id="conflicts-heading">Conflicts</h2>
+					<p class="panel__hint">{{ theme.active ? 'Checked against what\'s on' : 'Checked against what\'s on, as if it were active' }}</p>
+				</header>
+				<div class="panel__body">
+					<ExtensionRequirements :requirements="theme.conflicts" conflicts />
+				</div>
+			</section>
+
 			<section v-if="theme.suggests.length" class="panel" aria-labelledby="suggests-heading">
 				<header class="panel__header">
 					<h2 id="suggests-heading">Suggests</h2>

@@ -366,6 +366,8 @@ export interface ThemeSummary {
 	running: boolean;
 	// Checked as if it were active (D-431).
 	requirements: ExtensionRequirement[];
+	// What it can't run with (D-435), each met when it doesn't conflict with what's on.
+	conflicts: ExtensionRequirement[];
 	// Why it can't be activated (a theme it falls back to is missing, or a
 	// requirement in its chain isn't met), or `null`.
 	blocked: string | null;
@@ -522,6 +524,8 @@ export interface PluginSummary {
 	running: boolean;
 	// For one that's off, checked as if it were turned on.
 	requirements: ExtensionRequirement[];
+	// What it can't run with (D-435), each met when it doesn't conflict with what's on.
+	conflicts: ExtensionRequirement[];
 	// Why it can't run, or `null`.
 	blocked: string | null;
 	// The extensions, of every kind, that require it.
@@ -604,6 +608,8 @@ export interface IconPackSummary {
 	running: boolean;
 	// For one that's off, checked as if it were turned on.
 	requirements: ExtensionRequirement[];
+	// What it can't run with (D-435), each met when it doesn't conflict with what's on.
+	conflicts: ExtensionRequirement[];
 	// Why it can't load, or `null`.
 	blocked: string | null;
 	// The extensions, of every kind, that require it.

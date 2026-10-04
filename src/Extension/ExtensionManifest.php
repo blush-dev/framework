@@ -16,7 +16,8 @@ namespace Blush\Extension;
 /**
  * What every kind's manifest shares for its requirements (D-431): a
  * plugin's, a theme's, or an icon pack's name, label, version, and
- * `require`, which are checked the same way for every kind, and whether
+ * `require` and `conflict` (D-435), which are checked the same way for
+ * every kind, and whether
  * it's abandoned (D-433), which warns the same way, and what it
  * suggests (D-434), which is shown the same way.
  */
@@ -45,6 +46,14 @@ interface ExtensionManifest
 	 * @var array<string, string>
 	 */
 	public array $require { get; }
+
+	/**
+	 * What it can't run with, each mapped to the versions it can't, as
+	 * Composer's `conflict` is (D-435).
+	 *
+	 * @var array<string, string>
+	 */
+	public array $conflict { get; }
 
 	/**
 	 * Whether it's abandoned (`true`), or the name of the package to use

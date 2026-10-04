@@ -4,7 +4,8 @@
  * `/plugins/{vendor}/{name}`: its switch in the header, why it can't run
  * when it can't, a Details panel and a Requires panel of equal weight
  * (each requirement checked against the site; a required extension of
- * any kind, and one that requires it, linked, D-431), a Suggests panel
+ * any kind, and one that requires it, linked, D-431), a Conflicts panel
+ * when its manifest has `conflict` (D-435), a Suggests panel
  * when its manifest suggests anything (D-434), then **Delete
  * plugin** for a folder plugin that's off. A Composer plugin says how
  * it's removed instead, and one that's on says to turn it off first.
@@ -129,6 +130,16 @@ async function remove(): Promise<void> {
 					</div>
 				</section>
 			</div>
+
+			<section v-if="plugin.conflicts.length" class="panel" aria-labelledby="conflicts-heading">
+				<header class="panel__header">
+					<h2 id="conflicts-heading">Conflicts</h2>
+					<p class="panel__hint">Checked against what's on</p>
+				</header>
+				<div class="panel__body">
+					<ExtensionRequirements :requirements="plugin.conflicts" conflicts />
+				</div>
+			</section>
 
 			<section v-if="plugin.suggests.length" class="panel" aria-labelledby="suggests-heading">
 				<header class="panel__header">

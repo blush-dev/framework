@@ -19,6 +19,9 @@ namespace Blush\Extension;
  * a note on what the site has (`this site runs 8.5.1`, `isn't
  * installed`, `is turned off`). A requirement of another extension has
  * that extension's `label` when it's installed.
+ *
+ * A `conflict` (D-435) is one too: what it names and the versions it
+ * can't run with, met when the site doesn't have one of them on.
  */
 final readonly class Requirement
 {
@@ -28,7 +31,8 @@ final readonly class Requirement
 		public RequirementKind $kind,
 		public bool $met,
 		public string $note = '',
-		public string $label = ''
+		public string $label = '',
+		public bool $conflict = false
 	) {}
 
 	/**

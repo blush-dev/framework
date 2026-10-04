@@ -122,6 +122,7 @@ final class AdminPluginsTest extends TestCase
 			'enabled'      => true,
 			'running'      => true,
 			'requirements' => [['name' => 'blush-dev/framework', 'constraint' => '^2.0', 'kind' => 'blush', 'met' => true, 'note' => 'this site runs 2.0.0-dev', 'label' => '']],
+			'conflicts'    => [],
 			'blocked'      => null,
 			'requiredBy'   => [],
 			'abandoned'    => false,

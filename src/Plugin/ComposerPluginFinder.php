@@ -103,6 +103,7 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			'version'     => is_string($package['version'] ?? null) ? $package['version'] : '0.0.0',
 			'description' => is_string($package['description'] ?? null) ? $package['description'] : '',
 			'require'     => $blush['require'] ?? [],
+			'conflict'    => $blush['conflict'] ?? [],
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($package['authors'] ?? [])),
 			'license'     => ComposerJson::license($package['license'] ?? null),
 			'abandoned'   => ExtensionAbandoned::lenient($package['abandoned'] ?? false),

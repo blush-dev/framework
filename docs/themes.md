@@ -212,9 +212,9 @@ Only `name` is required.
   asset URLs all use it, and it's the theme's folder in `extensions/`.
   Leave it out and the `composer.json` beside `theme.json` gives it; a
   Composer theme's name is its package's. `description`, `version`,
-  `license`, `autoload`, `require`, `homepage`, `support`, `funding`,
-  `abandoned`, and `suggest` also come from that `composer.json` when `theme.json` leaves them out
-  (but `require`, for a Composer theme).
+  `license`, `autoload`, `require`, `conflict`, `homepage`, `support`,
+  `funding`, `abandoned`, and `suggest` also come from that `composer.json` when `theme.json` leaves them out
+  (but `require` and `conflict`, for a Composer theme).
 - **`label`:** the theme's title, as people read it. Leave it out and
   the theme is shown by its `name`.
 - **`namespace`:** what your theme's components, icons, and translations
@@ -262,6 +262,11 @@ Only `name` is required.
   those of a theme it falls back to, visitors see the default theme
   until that's fixed; the Themes screen, `theme:check`, and `doctor` say
   why.
+- **`conflict`:** what the theme can't run with, as a plugin's
+  [conflicts](extending.md#conflicts) work. A theme that conflicts with
+  something that's on can't be activated, and when the active theme (or
+  one it falls back to) comes to conflict, visitors see the default
+  theme until that's fixed. The extension it names carries on.
 - **`provider`** and **`autoload`:** a theme can run PHP, through a
   service provider of its own (see [Components](#components)).
   `autoload` is Composer's shape: `psr-4` folders, and `files` loaded

@@ -22,6 +22,9 @@ use Blush\Plugin\Plugins;
 use Blush\Plugin\PluginSource;
 use Blush\Extension\Requirement;
 use Blush\Extension\RequirementKind;
+use Blush\Extension\ExtensionException;
+use Blush\Icon\IconPack;
+use Blush\Theme\ThemeManifest;
 
 #[CoversClass(Requirements::class)]
 #[CoversClass(Requirement::class)]
@@ -134,5 +137,31 @@ final class RequirementsTest extends TestCase
 
 		$this->assertSame([], $plugins->unmet());
 		$this->assertCount(2, $plugins->providers());
+	}
+
+	public function testEveryKindReadsConflictAsRequireIsRead(): void
+	{
+		$plugin = PluginManifest::fromArray(['name' => 'acme/hello', 'source' => 'local', 'path' => '/site/extensions/acme/hello', 'conflict' => ['acme/old' => '<2.0']]);
+
+		$this->assertSame(['acme/old' => '<2.0'], $plugin->conflict);
+		$this->assertEquals($plugin, PluginManifest::fromArray($plugin->toArray()), 'It round-trips through a cached manifest.');
+		$this->assertSame(['php' => '<8.0'], IconPack::fromArray('/site/extensions/acme/brands', ['name' => 'acme/brands', 'conflict' => ['php' => '<8.0']])->conflict);
+		$this->assertSame(['acme/old' => '*'], ThemeManifest::fromArray('/site/extensions/acme/nova', ['name' => 'acme/nova', 'conflict' => ['acme/old' => '*']])->conflict);
+
+		$this->expectException(ExtensionException::class);
+		$this->expectExceptionMessage('"conflict" must map names to version constraints.');
+
+		PluginManifest::fromArray(['name' => 'acme/hello', 'source' => 'local', 'path' => '/site/extensions/acme/hello', 'conflict' => ['acme/old' => 2]]);
+	}
+
+	public function testAConflictIsCheckedAfterRequirementsAgainstWhatsOn(): void
+	{
+		$plugin  = new PluginManifest(name: 'acme/hello', label: 'Hello', namespace: 'hello', source: PluginSource::Local, path: '/site/extensions/acme/hello', require: ['ext-intl' => '*'], conflict: ['ext-intl' => '<8.0', 'acme/hello' => '*', 'acme/old' => '*']);
+		$old     = new PluginManifest(name: 'acme/old', label: 'Old', namespace: 'old', source: PluginSource::Local, path: '/site/extensions/acme/old');
+		$checked = self::requirements()->check($plugin, ['acme/old' => $old], [], [], ['acme/old' => true]);
+
+		$this->assertSame([false, true, true], array_map(static fn (Requirement $requirement): bool => $requirement->conflict, $checked), 'Its own name is passed over.');
+		$this->assertSame(['', 'version 8.5.1 is loaded', 'version 0.0.0 is on'], array_map(static fn (Requirement $requirement): string => $requirement->note, $checked));
+		$this->assertSame('Conflicts with Old (version 0.0.0 is on).', Requirements::reason($checked));
 	}
 }

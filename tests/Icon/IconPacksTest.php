@@ -201,14 +201,16 @@ final class IconPacksTest extends TestCase
 	public function testAComposerPackChecksOnlyItsManifestsRequire(): void
 	{
 		$this->packs();
-		$this->writeTemporaryFile('vendor/acme/arrows/composer.json', '{"name": "acme/arrows", "require": {"acme/svg-tools": "^1.0"}}');
-		$this->writeTemporaryFile('extensions/acme/weather/composer.json', '{"require": {"blush-dev/framework": "^9.0"}}');
+		$this->writeTemporaryFile('vendor/acme/arrows/composer.json', '{"name": "acme/arrows", "require": {"acme/svg-tools": "^1.0"}, "conflict": {"acme/old-svg": "*"}}');
+		$this->writeTemporaryFile('extensions/acme/weather/composer.json', '{"require": {"blush-dev/framework": "^9.0"}, "conflict": {"acme/arrows": "<1.0"}}');
 
 		$packs = $this->app()->container()->make(IconPacks::class);
 
 		$this->assertSame([], $packs->find('acme/arrows')?->require, 'Composer met its composer.json\'s require, whose packages aren\'t extensions.');
+		$this->assertSame([], $packs->find('acme/arrows')->conflict, 'And its conflict (D-435).');
 		$this->assertArrayHasKey('acme/arrows', $packs->enabled());
 		$this->assertSame(['blush-dev/framework' => '^9.0'], $packs->find('acme/weather')?->require, 'A folder pack takes its composer.json\'s.');
+		$this->assertSame(['acme/arrows' => '<1.0'], $packs->find('acme/weather')->conflict);
 		$this->assertArrayNotHasKey('acme/weather', $packs->enabled(), 'It\'s on, but its requirements aren\'t met (D-431).');
 	}
 

@@ -48,7 +48,9 @@ use Blush\Extension\ExtensionSuggest;
  * with, and fund it (`ExtensionLinks`, D-428); the finders fill each from
  * `composer.json` when the manifest leaves it out. `abandoned` is `true`,
  * or the package to use instead, as Composer's is (`ExtensionAbandoned`,
- * D-433): a warning, not a reason not to run. `suggest` maps packages
+ * D-433): a warning, not a reason not to run. `conflict` names what it
+ * can't run with, as Composer's does (D-435): a plugin that conflicts
+ * with something that's on doesn't run. `suggest` maps packages
  * that would work well with it to why (`ExtensionSuggest`, D-434), and
  * is only shown.
  */
@@ -61,6 +63,7 @@ final readonly class PluginManifest implements ExtensionManifest
 
 	/**
 	 * @param array<string, string> $require  Requirement => version constraint.
+	 * @param array<string, string> $conflict Conflict => the versions it can't run with (D-435).
 	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
 	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 * @param ?string               $provider Fully qualified class name of the plugin's service provider, if it has one.
@@ -76,6 +79,7 @@ final readonly class PluginManifest implements ExtensionManifest
 		public string $description = '',
 		public Autoload $autoload = new Autoload(),
 		public array $require = [],
+		public array $conflict = [],
 		public array $authors = [],
 		public string $license = '',
 		public ExtensionLinks $links = new ExtensionLinks(),
@@ -152,6 +156,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			$links     = ExtensionLinks::fromArray($data);
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
 			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
+			$conflict  = ExtensionRequire::fromArray($data['conflict'] ?? null, 'conflict');
 			$suggest  = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
@@ -169,6 +174,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			description: self::string($data, 'description', ''),
 			autoload: $autoload,
 			require: $require,
+			conflict: $conflict,
 			authors: $authors,
 			license: $license,
 			links: $links,
@@ -196,6 +202,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			'description' => $this->description,
 			'autoload'    => $this->autoload->toArray(),
 			'require'     => $this->require,
+			'conflict'    => $this->conflict,
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
 			'license'     => $this->license,
 			'abandoned'   => $this->abandoned,

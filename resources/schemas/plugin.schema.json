@@ -74,6 +74,13 @@
 				"type": "string"
 			}
 		},
+		"conflict": {
+			"type": "object",
+			"description": "What the plugin can't run with, as composer.json says it, each with the versions it can't: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they're turned on. A plugin that conflicts with something that's on doesn't run. Without it, the conflict in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
 		"authors": {
 			"type": "array",
 			"description": "Who made the plugin, as composer.json lists authors. Without it, the authors in the composer.json beside this file are used.",

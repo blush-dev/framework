@@ -20,7 +20,8 @@ use JsonException;
  * a manifest may leave to it: Blush's own keys, under `extra.blush`
  * (D-432), and the keys a manifest shares with Composer's schema (D-418;
  * `authors` since D-384, `license` since D-385, and `homepage`,
- * `support`, and `funding` since D-428, `abandoned` since D-433, and `suggest` since D-434). Its `type` may say the folder's
+ * `support`, and `funding` since D-428, `abandoned` since D-433, `suggest` since D-434, and `conflict` since
+ * D-435). Its `type` may say the folder's
  * kind (D-432). A missing or unreadable file is nothing, and so is a key
  * of the wrong shape.
  */
@@ -32,7 +33,7 @@ final readonly class ComposerJson
 	 *
 	 * @var list<string>
 	 */
-	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'homepage', 'support', 'funding', 'abandoned', 'suggest'];
+	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'conflict', 'homepage', 'support', 'funding', 'abandoned', 'suggest'];
 
 	/**
 	 * Fills in what a manifest leaves out from the `composer.json` in its
@@ -41,10 +42,10 @@ final readonly class ComposerJson
 	 * `extra.blush`'s, which wins over `composer.json`'s own, and a folder
 	 * with no manifest file at all is described by its `composer.json`.
 	 *
-	 * A Composer package's theme or icon pack skips `require` (D-431):
-	 * Composer has met its `composer.json`'s, whose packages aren't
-	 * extensions, so only its manifest's (or `extra.blush`'s) are Blush's
-	 * to check.
+	 * A Composer package's theme or icon pack skips `require` (D-431) and
+	 * `conflict` (D-435): Composer has met its `composer.json`'s, whose
+	 * packages aren't extensions, so only its manifest's (or
+	 * `extra.blush`'s) are Blush's to check.
 	 *
 	 * @param  array<string, mixed> $data
 	 * @param  list<string>         $skip
@@ -70,7 +71,7 @@ final readonly class ComposerJson
 				'license' => self::license($composer['license']),
 				'abandoned' => ExtensionAbandoned::lenient($composer['abandoned']),
 				'suggest'   => ExtensionSuggest::lenient($composer['suggest']) ?: null,
-				'autoload', 'require' => is_array($composer[$key]) ? $composer[$key] : null,
+				'autoload', 'require', 'conflict' => is_array($composer[$key]) ? $composer[$key] : null,
 				'homepage', 'support', 'funding' => ExtensionLinks::lenient([$key => $composer[$key]])->toArray()[$key] ?? null,
 				default   => is_string($composer[$key]) ? $composer[$key] : null
 			};

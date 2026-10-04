@@ -48,7 +48,7 @@ use Blush\Extension\ExtensionSuggest;
  * discovery fills each in from the `composer.json` in its folder when the manifest has none.
  * Its `abandoned` (`true`, or the package to use instead) only warns, as
  * Composer's does (D-433), and its `suggest` is only shown (D-434).
- * Its `require` is checked as a plugin's is (D-431): an active theme
+ * Its `require` and `conflict` (D-435) are checked as a plugin's are (D-431): an active theme
  * whose chain needs what the site doesn't have falls back to the
  * default theme.
  */
@@ -69,6 +69,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param string                $license  How it may be used, as Composer has it (`MIT`, D-427, D-428).
 	 * @param ExtensionLinks        $links    Its homepage, support, and funding (D-428).
 	 * @param array<string, string> $require  What it needs, each mapped to a version constraint (D-431).
+	 * @param array<string, string> $conflict What it can't run with, each mapped to the versions it can't (D-435).
 	 * @param bool|string           $abandoned Whether it's abandoned, or the package to use instead (D-433).
 	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
 	 */
@@ -91,6 +92,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 		public string $license = '',
 		public ExtensionLinks $links = new ExtensionLinks(),
 		public array $require = [],
+		public array $conflict = [],
 		public bool|string $abandoned = false,
 		public array $suggest = []
 	) {}
@@ -188,6 +190,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 			$license  = ExtensionLicense::fromManifest($data['license'] ?? '');
 			$links    = ExtensionLinks::fromArray($data);
 			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
+			$conflict  = ExtensionRequire::fromArray($data['conflict'] ?? null, 'conflict');
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
 			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
 		} catch (ExtensionException $error) {
@@ -214,6 +217,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 			license: $license,
 			links: $links,
 			require: $require,
+			conflict: $conflict,
 			abandoned: $abandoned,
 			suggest: $suggest
 		);

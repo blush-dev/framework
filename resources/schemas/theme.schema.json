@@ -543,6 +543,13 @@
 			"additionalProperties": {
 				"type": "string"
 			}
+		},
+		"conflict": {
+			"type": "object",
+			"description": "What the theme can't run with, as composer.json says it, each with the versions it can't: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they're turned on. When it conflicts with something that's on, its chain doesn't run, and the default theme runs in its place. Without it, a theme in extensions/ uses the conflict in the composer.json beside this file.",
+			"additionalProperties": {
+				"type": "string"
+			}
 		}
 	},
 	"definitions": {
