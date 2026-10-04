@@ -11,6 +11,7 @@
 
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
@@ -76,6 +77,7 @@ async function remove(): Promise<void> {
 
 	<template v-if="plugin && answer">
 		<div class="plugin-detail">
+			<AbandonedNotice noun="plugin" :abandoned="plugin.abandoned" :replacement="plugin.replacement" />
 			<p v-if="blocked" class="plugin-message">
 				<AdminIcon name="triangle-alert" /><span>{{ blocked }} {{ plugin.enabled ? 'It\'s turned on, but nothing it adds runs until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
 			</p>

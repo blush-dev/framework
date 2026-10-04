@@ -113,6 +113,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 					<span v-if="fallbackMessage(theme)" class="pill pill--warn">Not running</span>
 					<span v-else-if="theme.blocked && !theme.active" class="pill pill--warn">Can't activate</span>
 					<span v-else-if="theme.source === 'framework'" class="pill">Built in</span>
+					<span v-if="theme.abandoned !== false" class="pill pill--warn">Abandoned</span>
 					<span v-if="theme.version" class="theme__version mono">{{ theme.version }}</span>
 				</p>
 				<p v-if="theme.description" class="theme__description">{{ theme.description }}</p>

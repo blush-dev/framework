@@ -13,6 +13,7 @@
 
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
@@ -136,6 +137,7 @@ async function remove(): Promise<void> {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<div v-if="shown" class="pack-detail">
+		<AbandonedNotice v-if="pack" noun="icon pack" :abandoned="pack.abandoned" :replacement="pack.replacement" />
 		<p v-if="pack && blocked" class="notice notice--warn">
 			<span>{{ blocked }} {{ pack.enabled ? 'It\'s turned on, but its icons aren\'t available until that\'s fixed, and anywhere one is used shows nothing.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
 		</p>

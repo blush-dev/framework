@@ -382,8 +382,8 @@ Each extension can be its own git repository.
 
 Manifests use Composer's names and shapes for the keys they share with
 `composer.json`: `name`, `description`, `version`, `license`,
-`authors`, `autoload`, `require`, `homepage`, `support`, and `funding`.
-A manifest that leaves one of
+`authors`, `autoload`, `require`, `homepage`, `support`, `funding`, and
+`abandoned`. A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
 them once. A manifest's own value replaces `composer.json`'s whole; the
 two aren't merged. Blush's own keys (`label`, `namespace`, `provider`,
@@ -574,6 +574,24 @@ Every address is an `http` or `https` URL, except `irc` (`irc://` or
 `ircs://`) and `email` (an email address). The admin shows them on the
 extension's details, under **Links** and **Sponsor** (all but `email`). In a manifest, one
 that doesn't fit is an error; in `composer.json`, it's left out.
+
+`abandoned` says it's no longer maintained, as in `composer.json`:
+`true`, or the name of the package to use instead (any package's, not
+only an extension's):
+
+```json
+{
+	"abandoned": "acme/hello-next"
+}
+```
+
+It only warns, as Composer does: an abandoned extension still runs, and
+can still be turned on, activated, or installed. The admin marks it
+**Abandoned** in its list and says so on its details, linking the
+replacement when it's installed, and `plugin:check`, `theme:check`, and
+`icon-pack:check` warn of it. In a manifest, anything but `true`,
+`false`, or a `vendor/name` is an error; in `composer.json`, any other
+string counts as `true`.
 
 For autocomplete in your editor, add a `$schema` key pointing at the
 schema Blush ships (the path is relative to `plugin.json`):
@@ -935,7 +953,7 @@ Only `name` is required. Without a `label` it's shown by its name, and
 without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors`, `license`, `homepage`,
-`support`, `funding`, and [`require`](#requirements) work as a plugin's
+`support`, `funding`, `abandoned`, and [`require`](#requirements) work as a plugin's
 do: a pack whose requirements aren't met adds no icons, even when it's
 on. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is

@@ -22,6 +22,7 @@ use Blush\Component\ComponentVariants;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Core\ServiceProvider;
+use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
@@ -42,7 +43,7 @@ use Blush\View\Views;
  *   `<html>`, one `<main>`, or a skip link to it.
  * - **Warnings:** another theme's chain with a requirement that isn't
  *   met, so it can't be activated; a `version` Composer can't read
- *   (D-430, D-431); shadowed manifests (JSON wins); site setting values
+ *   (D-430, D-431); an abandoned theme (D-433); shadowed manifests (JSON wins); site setting values
  *   that don't fit; other broken themes; a component with a class but no
  *   template to render; a component template not named for a component;
  *   site menu and region files or items that are invalid or don't
@@ -117,6 +118,13 @@ final readonly class ThemeChecker
 
 		if ($theme->provider !== null && ! is_subclass_of($theme->provider, ServiceProvider::class)) {
 			$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider %s isn\'t a service provider class (check its "autoload").', $theme->name, $theme->provider));
+		}
+
+		$abandoned = ExtensionAbandoned::warning($theme->abandoned);
+
+		// An abandoned theme still runs, as in Composer (D-433).
+		if ($abandoned !== null) {
+			$problems[] = new Violation('abandoned', sprintf('The "%s" theme: %s', $theme->name, $abandoned), Severity::Warning);
 		}
 
 		// A version Composer can't read meets only `*` (D-429, D-430).

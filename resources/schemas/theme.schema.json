@@ -184,6 +184,18 @@
 				}
 			}
 		},
+		"abandoned": {
+			"oneOf": [
+				{
+					"type": "boolean"
+				},
+				{
+					"type": "string",
+					"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$"
+				}
+			],
+			"description": "Whether the theme is no longer maintained: true, or the name of the package to use instead (vendor/name), as composer.json has it. It only warns. Without it, the abandoned in the composer.json beside this file is used."
+		},
 		"parent": {
 			"type": "string",
 			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",

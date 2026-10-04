@@ -8,9 +8,10 @@
  *
  * One thing fills the zone's place at a time: the file being sent (with
  * how much has gone), what was installed (with the one next step, Activate
- * or Turn on), an installed one with the archive's name (with Replace,
- * naming both versions), or why nothing was installed (with Choose
- * another file, and the right screen for an archive of another kind).
+ * or Turn on, and a warning beneath when it's abandoned, D-433), an
+ * installed one with the archive's name (with Replace, naming both
+ * versions), or why nothing was installed (with Choose another file, and
+ * the right screen for an archive of another kind).
  * Nothing is written until the server has checked the archive, so every
  * failure says nothing was installed.
  */
@@ -231,6 +232,12 @@ const replaceLabel = computed(() => {
 			<p class="slab__head"><AdminIcon name="triangle-alert" />Nothing was installed</p>
 			<p>{{ failure.message }}</p>
 			<p v-if="failure.kind">Install it on the {{ KINDS[failure.kind].plural }} screen instead.</p>
+		</div>
+
+		<!-- Abandoned only warns, as in Composer (D-433). -->
+		<div v-if="phase === 'done' && answer && answer.installed.abandoned !== false" class="slab slab--warn">
+			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ answer.installed.label }} is abandoned</p>
+			<p>Its author no longer maintains it. It works, but won't get fixes or updates.<template v-if="typeof answer.installed.abandoned === 'string'"> Its author suggests <span class="mono">{{ answer.installed.abandoned }}</span> instead.</template></p>
 		</div>
 
 		<input ref="input" type="file" accept=".zip,application/zip" hidden @change="picked">

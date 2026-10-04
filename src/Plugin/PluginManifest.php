@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Plugin;
 
 use Blush\Extension\Autoload;
+use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
@@ -44,7 +45,9 @@ use Blush\Extension\ExtensionRequire;
  * which applies, D-428) say who made it and how it may be used, and
  * `homepage`, `support`, and `funding` where to learn about, get help
  * with, and fund it (`ExtensionLinks`, D-428); the finders fill each from
- * `composer.json` when the manifest leaves it out.
+ * `composer.json` when the manifest leaves it out. `abandoned` is `true`,
+ * or the package to use instead, as Composer's is (`ExtensionAbandoned`,
+ * D-433): a warning, not a reason not to run.
  */
 final readonly class PluginManifest implements ExtensionManifest
 {
@@ -72,7 +75,8 @@ final readonly class PluginManifest implements ExtensionManifest
 		public array $authors = [],
 		public string $license = '',
 		public ExtensionLinks $links = new ExtensionLinks(),
-		public ?string $provider = null
+		public ?string $provider = null,
+		public bool|string $abandoned = false
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf(
@@ -139,8 +143,9 @@ final readonly class PluginManifest implements ExtensionManifest
 		try {
 			$authors  = ExtensionAuthor::list($data['authors'] ?? []);
 			$autoload = Autoload::fromArray($data['autoload'] ?? null);
-			$license  = ExtensionLicense::fromManifest($data['license'] ?? '');
-			$links    = ExtensionLinks::fromArray($data);
+			$license   = ExtensionLicense::fromManifest($data['license'] ?? '');
+			$links     = ExtensionLinks::fromArray($data);
+			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
 			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
@@ -161,7 +166,8 @@ final readonly class PluginManifest implements ExtensionManifest
 			authors: $authors,
 			license: $license,
 			links: $links,
-			provider: isset($data['provider']) ? self::string($data, 'provider') : null
+			provider: isset($data['provider']) ? self::string($data, 'provider') : null,
+			abandoned: $abandoned
 		);
 	}
 
@@ -185,6 +191,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			'require'     => $this->require,
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
 			'license'     => $this->license,
+			'abandoned'   => $this->abandoned,
 			...$this->links->toArray()
 		];
 	}

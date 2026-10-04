@@ -12591,3 +12591,41 @@ decision, add a new entry that supersedes it and mark the old one
   refusing one of another kind or two kinds).
 - **Why:** a `composer.json` already says what a package is; Blush
   reads it as Composer would, so one file can describe an extension.
+
+### D-433: `abandoned` warns, as Composer's does
+- **Date:** 2026-10-04
+- **Decision:** Every kind reads Composer's `abandoned`: `true`, or the
+  name of the package to use instead. The author's calls:
+  - **It only warns,** as in Composer. An abandoned plugin still runs,
+    and an abandoned theme can still be activated. An abandoned pack
+    still loads, and any of them can be installed.
+  - **The replacement is any package name** (`ExtensionName::PATTERN`,
+    Composer's rule), not only an extension's.
+  - **The admin shows it twice:** an **Abandoned** pill on each list's
+    card, and a warning notice on each details screen
+    (`AbandonedNotice.vue`), which links the replacement to its details
+    when it's an installed extension of any kind and otherwise names
+    it.
+  - **Where it's read:** from the manifest, `extra.blush`, or the top
+    level of `composer.json` (it joins `ComposerJson::SHARED`), and from
+    Composer's `installed.json` for Composer plugins.
+    `ExtensionAbandoned::fromManifest()` is strict: a boolean, `''` (not
+    abandoned, as Composer reads it), or a `vendor/name`, or the
+    manifest is broken. `lenient()` reads `composer.json`'s as Composer
+    would, so a string that isn't a name is `true`.
+    `ExtensionManifest` has `abandoned` (`bool|string`), and so do
+    `PluginManifest`, `ThemeManifest`, and `IconPack`.
+  - **The API:** `ExtensionState::report()` adds `abandoned` and
+    `replacement` (`{"name", "label", "kind"}` or `null`) to `GET
+    plugins`, `GET themes`, and `GET icon-packs`. Installing answers
+    `installed.abandoned` (on `ExtensionPackage`), and the Install
+    modal shows a warning beneath what was installed. That's a modal,
+    not a toast as first proposed.
+  - **Checks:** `plugin:check` and `icon-pack:check` warn (`warning
+    acme/old: It's abandoned; use "acme/new" instead.`) in place of the
+    `ok` line, and `theme:check` has an `abandoned` warning.
+  - The JSON Schemas have it, as a boolean or a `vendor/name`.
+- **Checked:** `composer check`; `npm run admin:build`. Not checked in a
+  browser.
+- **Why:** the author asked for Composer's `abandoned`, continuing
+  Composer parity (D-428 to D-432).

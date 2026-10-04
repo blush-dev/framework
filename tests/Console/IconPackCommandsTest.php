@@ -62,6 +62,19 @@ final class IconPackCommandsTest extends TestCase
 		$this->writeTemporaryFile('config/icons.php', sprintf("<?php\n\nreturn new Blush\\Icon\\IconConfig(enabled: %s);\n", var_export($enabled, true)));
 	}
 
+	public function testWarnsOfAnAbandonedPack(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/old/icons.json', '{"name": "acme/old", "abandoned": true}');
+		$this->writeTemporaryFile('config/icons.php', "<?php\n\nreturn new Blush\\Icon\\IconConfig(enabled: ['acme/old']);\n");
+
+		$result = $this->command('icon-pack:check');
+		$all    = $result->output . $result->errors;
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, 'It still loads (D-433).');
+		$this->assertMatchesRegularExpression('#warning\s+acme/old: It\'s abandoned, and no longer maintained\.#', $all);
+		$this->assertStringContainsString('Checked 1 icon pack(s): 0 error(s), 1 warning(s).', $all);
+	}
+
 	public function testChecksIconPacks(): void
 	{
 		$this->site();

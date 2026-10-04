@@ -16,6 +16,7 @@
 
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
@@ -162,6 +163,7 @@ async function remove(): Promise<void> {
 		<p v-if="failed?.name === theme.name" class="theme-message theme-message--danger" role="alert">
 			<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
 		</p>
+		<AbandonedNotice noun="theme" :abandoned="theme.abandoned" :replacement="theme.replacement" />
 
 		<div class="theme-detail">
 			<div class="theme-detail__columns">

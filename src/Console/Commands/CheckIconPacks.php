@@ -18,6 +18,7 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Console\Style;
+use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
@@ -30,7 +31,8 @@ use Blush\Icon\IconPacks;
  * is met (checking one that's off as if it were on), and its `version`
  * is one Composer can read. A pack that's on but can't load is an error,
  * which fails the command; one that's off and couldn't be turned on, a
- * broken one, and an unreadable version are warnings.
+ * broken one, an unreadable version, and an abandoned pack (D-433) are
+ * warnings.
  */
 #[Command('icon-pack:check', 'Check icon packs\' manifests and requirements.')]
 final readonly class CheckIconPacks
@@ -59,6 +61,15 @@ final readonly class CheckIconPacks
 		foreach ($packs as $pack) {
 			$checked = $this->extensions->check($pack);
 
+			$abandoned = ExtensionAbandoned::warning($pack->abandoned);
+
+			// An abandoned pack still loads, as in Composer (D-433).
+			if ($abandoned !== null) {
+				$warnings++;
+
+				$output->line(sprintf('%s %s: %s', $output->style('warning', Style::Yellow), $pack->name, $abandoned));
+			}
+
 			// A version Composer can't read meets only `*` (D-429, D-430).
 			if ($pack->version !== '' && VersionConstraint::normalize($pack->version) === null) {
 				$warnings++;
@@ -69,7 +80,7 @@ final readonly class CheckIconPacks
 					$pack->name,
 					$pack->version
 				));
-			} elseif (Requirements::met($checked)) {
+			} elseif ($abandoned === null && Requirements::met($checked)) {
 				$output->line(sprintf('%s %s %s', $output->style('ok     ', Style::Green), $pack->name, $output->style($pack->version, Style::Dim)));
 			}
 

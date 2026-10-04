@@ -18,6 +18,7 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Console\Style;
+use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
@@ -32,7 +33,7 @@ use Blush\Plugin\Plugins;
  * that's off as if it were turned on. A plugin that's turned on but
  * can't run is an error, which fails the command; one that's off and
  * couldn't be turned on is a warning, and so is a version Composer
- * can't read (D-430).
+ * can't read (D-430) and an abandoned plugin, which still runs (D-433).
  */
 #[Command('plugin:check', 'Check plugins\' manifests and requirements.')]
 final readonly class CheckPlugins
@@ -68,6 +69,15 @@ final readonly class CheckPlugins
 		foreach ($plugins as $plugin) {
 			$checked = $this->extensions->check($plugin);
 
+			$abandoned = ExtensionAbandoned::warning($plugin->abandoned);
+
+			// An abandoned plugin still runs, as in Composer (D-433).
+			if ($abandoned !== null) {
+				$warnings++;
+
+				$output->line(sprintf('%s %s: %s', $output->style('warning', Style::Yellow), $plugin->name, $abandoned));
+			}
+
 			// A version Composer can't read meets only `*` (D-429).
 			if (VersionConstraint::normalize($plugin->version) === null) {
 				$warnings++;
@@ -78,7 +88,7 @@ final readonly class CheckPlugins
 					$plugin->name,
 					$plugin->version
 				));
-			} elseif (Requirements::met($checked)) {
+			} elseif ($abandoned === null && Requirements::met($checked)) {
 				$output->line(sprintf('%s %s %s', $output->style('ok     ', Style::Green), $plugin->name, $output->style($plugin->version, Style::Dim)));
 			}
 

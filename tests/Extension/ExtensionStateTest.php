@@ -210,9 +210,22 @@ final class ExtensionStateTest extends TestCase
 		$this->assertTrue(Requirements::met($state->check($plugins[0])), 'Checked as if it were on.');
 		$this->assertSame(['acme/brands-block', 'acme/nova'], array_map(static fn ($other): string => $other->name, $state->requiredBy('acme/brands')));
 		$this->assertSame(
-			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands']], 'blocked' => null, 'requiredBy' => []],
+			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands']], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null],
 			$state->report($plugins[0])
 		);
+	}
+
+	public function testNamesAnInstalledReplacement(): void
+	{
+		$packs   = [self::pack('acme/brands'), new IconPack(name: 'acme/logos', label: 'Logos', namespace: 'logos', path: '/site/extensions/acme/logos', abandoned: 'acme/brands')];
+		$plugins = [new PluginManifest(name: 'acme/old', label: 'Old', namespace: 'old', source: PluginSource::Local, path: '/site/extensions/acme/old', abandoned: 'acme/elsewhere'), self::plugin('acme/kept')];
+		$themes  = [self::theme('acme/nova')];
+
+		$state = self::settle($plugins, [], $themes, Themes::DEFAULT, $packs, []);
+
+		$this->assertSame(['abandoned' => 'acme/brands', 'replacement' => ['name' => 'acme/brands', 'label' => 'Brands', 'kind' => 'icon-pack']], array_intersect_key($state->report($packs[1]), ['abandoned' => true, 'replacement' => true]), 'Of any kind.');
+		$this->assertSame(['abandoned' => 'acme/elsewhere', 'replacement' => null], array_intersect_key($state->report($plugins[0]), ['abandoned' => true, 'replacement' => true]), 'A package that isn\'t installed is only named.');
+		$this->assertFalse($state->report($plugins[1])['abandoned']);
 	}
 
 	public function testSaysWhatStartsAndStopsWithAChange(): void

@@ -117,6 +117,7 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 					<p class="plugin__name">
 						<RouterLink class="plugin__label" :to="pluginRoute(plugin.name)">{{ plugin.label }}</RouterLink>
 						<span v-if="blocked(plugin)" class="pill pill--warn">Can't turn on</span>
+						<span v-if="plugin.abandoned !== false" class="pill pill--warn">Abandoned</span>
 						<span class="plugin__package mono">{{ plugin.name }} {{ plugin.version }}</span>
 					</p>
 					<p v-if="plugin.description" class="plugin__description">{{ plugin.description }}</p>

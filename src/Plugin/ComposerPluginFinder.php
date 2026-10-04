@@ -15,6 +15,7 @@ namespace Blush\Plugin;
 
 use Override;
 use Blush\Extension\ComposerJson;
+use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
@@ -103,6 +104,7 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			'require'     => $blush['require'] ?? [],
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($package['authors'] ?? [])),
 			'license'     => ComposerJson::license($package['license'] ?? null),
+			'abandoned'   => ExtensionAbandoned::lenient($package['abandoned'] ?? false),
 			...ExtensionLinks::lenient($package)->toArray()
 		]);
 	}

@@ -212,8 +212,8 @@ Only `name` is required.
   asset URLs all use it, and it's the theme's folder in `extensions/`.
   Leave it out and the `composer.json` beside `theme.json` gives it; a
   Composer theme's name is its package's. `description`, `version`,
-  `license`, `autoload`, `require`, `homepage`, `support`, and `funding`
-  also come from that `composer.json` when `theme.json` leaves them out
+  `license`, `autoload`, `require`, `homepage`, `support`, `funding`, and
+  `abandoned` also come from that `composer.json` when `theme.json` leaves them out
   (but `require`, for a Composer theme).
 - **`label`:** the theme's title, as people read it. Leave it out and
   the theme is shown by its `name`.
@@ -243,6 +243,10 @@ Only `name` is required.
   help with, and fund the theme, as a plugin has them (see
   [Plugins](extending.md#plugins)). The admin shows them on the theme's
   details.
+- **`abandoned`:** `true` when the theme is no longer maintained, or the
+  name of the package to use instead, as a plugin has it (see
+  [Plugins](extending.md#plugins)). It only warns: an abandoned theme
+  can still be activated.
 - **`parent`:** the name of the theme this one builds on, instead of
   starting from the default. Anything this theme doesn't include comes
   from its parent.

@@ -199,9 +199,11 @@ final readonly class ExtensionState
 	 * An extension's requirements as the admin answers them, the same
 	 * for every kind: `requirements` (each checked as if it were on),
 	 * `blocked` (why it can't run, or `null`), and `requiredBy` (the
-	 * extensions of every kind that require it).
+	 * extensions of every kind that require it); and `abandoned` (`false`,
+	 * `true`, or the package to use instead, D-433), with the
+	 * `replacement` when it's an installed extension, or `null`.
 	 *
-	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>}
+	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}}
 	 */
 	public function report(ExtensionManifest $extension): array
 	{
@@ -210,8 +212,20 @@ final readonly class ExtensionState
 		return [
 			'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), $checked),
 			'blocked'      => Requirements::met($checked) ? null : Requirements::reason($checked),
-			'requiredBy'   => array_map(static fn (ExtensionManifest $other): array => ['name' => $other->name, 'label' => $other->label, 'kind' => $other->kind()->value], $this->requiredBy($extension->name))
+			'requiredBy'   => array_map(self::describe(...), $this->requiredBy($extension->name)),
+			'abandoned'    => $extension->abandoned,
+			'replacement'  => is_string($extension->abandoned) && isset($this->installed[$extension->abandoned]) ? self::describe($this->installed[$extension->abandoned]) : null
 		];
+	}
+
+	/**
+	 * An extension as the admin names and links to it.
+	 *
+	 * @return array{name: string, label: string, kind: string}
+	 */
+	private static function describe(ExtensionManifest $extension): array
+	{
+		return ['name' => $extension->name, 'label' => $extension->label, 'kind' => $extension->kind()->value];
 	}
 
 	/**

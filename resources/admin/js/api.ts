@@ -371,6 +371,10 @@ export interface ThemeSummary {
 	blocked: string | null;
 	// The extensions, of every kind, that require it.
 	requiredBy: ExtensionDependent[];
+	// Whether it's abandoned: `true`, or the package to use instead (D-433).
+	abandoned: boolean | string;
+	// The package to use instead, when it's an installed extension.
+	replacement: ExtensionDependent | null;
 	// Whether it's a folder in `extensions/` the active theme doesn't use.
 	deletable: boolean;
 	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
@@ -418,6 +422,8 @@ export interface InstalledExtension {
 	label: string;
 	version: string;
 	folder: string;
+	// Whether it's abandoned: `true`, or the package to use instead (D-433).
+	abandoned: boolean | string;
 }
 
 // `POST {kind}/{vendor}/{name}/rollback` (D-393).
@@ -502,6 +508,10 @@ export interface PluginSummary {
 	blocked: string | null;
 	// The extensions, of every kind, that require it.
 	requiredBy: ExtensionDependent[];
+	// Whether it's abandoned: `true`, or the package to use instead (D-433).
+	abandoned: boolean | string;
+	// The package to use instead, when it's an installed extension.
+	replacement: ExtensionDependent | null;
 	// A folder plugin that isn't running.
 	deletable: boolean;
 	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
@@ -578,6 +588,10 @@ export interface IconPackSummary {
 	blocked: string | null;
 	// The extensions, of every kind, that require it.
 	requiredBy: ExtensionDependent[];
+	// Whether it's abandoned: `true`, or the package to use instead (D-433).
+	abandoned: boolean | string;
+	// The package to use instead, when it's an installed extension.
+	replacement: ExtensionDependent | null;
 	deletable: boolean;
 	count: number;
 	// The first twelve on the list; every one from `GET icon-packs/{name}`.

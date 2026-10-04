@@ -205,6 +205,7 @@ final class ThemeCommandsTest extends TestCase
 			'namespace' => 'rough',
 			'provider'  => 'Nope\\Provider',
 			'version'   => '1.0-final',
+			'abandoned' => 'acme/smooth',
 			'require'   => ['blush-dev/framework' => '^2.0', 'acme/absent' => '^1.0'],
 			'settings'  => ['size' => ['type' => 'number', 'default' => 1]]
 		], JSON_THROW_ON_ERROR));
@@ -222,6 +223,7 @@ final class ThemeCommandsTest extends TestCase
 			'warning theme extensions/acme/other:',
 			'warning manifest: theme.yaml is ignored; the "acme/rough" theme\'s theme.json wins',
 			'error   provider: The "acme/rough" theme\'s provider Nope\\Provider isn\'t a service provider class',
+			'warning abandoned: The "acme/rough" theme: It\'s abandoned; use "acme/smooth" instead.',
 			'warning version: The "acme/rough" theme\'s version, "1.0-final", isn\'t one Composer can read',
 			'warning require: Needs acme/absent ^1.0 (isn\'t installed). It can\'t be activated until that\'s fixed.',
 			'warning setting size:',

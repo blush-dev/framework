@@ -134,7 +134,7 @@ final class AdminInstallTest extends TestCase
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame([
-			'installed' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello'],
+			'installed' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello', 'abandoned' => false],
 			'replaced'  => null,
 			'backup'    => null,
 			'refresh'   => false
@@ -155,8 +155,8 @@ final class AdminInstallTest extends TestCase
 
 		$this->assertSame(409, $clash->getStatusCode());
 		$this->assertSame([
-			'installed' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello'],
-			'incoming'  => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.1.0', 'folder' => 'extensions/acme/hello']
+			'installed' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello', 'abandoned' => false],
+			'incoming'  => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.1.0', 'folder' => 'extensions/acme/hello', 'abandoned' => false]
 		], self::json($clash)['clash'] ?? null, 'Nothing is written until replacing is asked for.');
 
 		$replaced = self::json($this->upload('/plugins', 'hello-1.1.zip', $this->zip(self::plugin(['version' => '1.1.0'])), replace: true));
@@ -178,7 +178,7 @@ final class AdminInstallTest extends TestCase
 		$response = $this->upload('/plugins', 'whatever-main.zip', $this->zip($files));
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['name' => 'acme/composed', 'label' => 'Hello', 'version' => '2.0.0', 'folder' => 'extensions/acme/composed'], self::json($response)['installed'] ?? null, 'Its folder is its name, not the zip\'s.');
+		$this->assertSame(['name' => 'acme/composed', 'label' => 'Hello', 'version' => '2.0.0', 'folder' => 'extensions/acme/composed', 'abandoned' => false], self::json($response)['installed'] ?? null, 'Its folder is its name, not the zip\'s.');
 	}
 
 	public function testRefusesWhatIsntAPluginOrIsntSafe(): void
@@ -215,6 +215,18 @@ final class AdminInstallTest extends TestCase
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/evil.php');
 	}
 
+	public function testInstallsAnAbandonedOneAndSaysSo(): void
+	{
+		$this->site();
+
+		$response = $this->upload('/plugins', 'hello.zip', $this->zip([
+			'composer.json' => (string) json_encode(['name' => 'acme/hello', 'type' => 'blush-plugin', 'version' => '1.0.0', 'abandoned' => 'acme/next', 'extra' => ['blush' => ['label' => 'Hello']]])
+		]));
+
+		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello', 'abandoned' => 'acme/next'], self::json($response)['installed'] ?? null, 'Installed, with a warning (D-433).');
+	}
+
 	public function testInstallsAPluginWhoseManifestIsItsComposerJson(): void
 	{
 		$this->site();
@@ -225,7 +237,7 @@ final class AdminInstallTest extends TestCase
 		]));
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello'], self::json($response)['installed'] ?? null, 'Its type says it\'s a plugin (D-432).');
+		$this->assertSame(['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello', 'abandoned' => false], self::json($response)['installed'] ?? null, 'Its type says it\'s a plugin (D-432).');
 
 		$theme = $this->upload('/plugins', 'nova.zip', $this->zip(['composer.json' => '{"name": "acme/nova", "type": "blush-theme"}']));
 
@@ -291,7 +303,7 @@ final class AdminInstallTest extends TestCase
 
 		$back = $this->write('POST', '/plugins/acme/hello/rollback');
 		$this->assertSame(200, $back->getStatusCode(), (string) $back->getBody());
-		$this->assertSame(['rolledBack' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello'], 'from' => '1.1.0', 'refresh' => false], self::json($back));
+		$this->assertSame(['rolledBack' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello', 'abandoned' => false], 'from' => '1.1.0', 'refresh' => false], self::json($back));
 		$this->assertSame(['version' => '1.1.0'], $this->backup(), 'The version it replaced is kept, so it can be undone.');
 
 		$this->reboot();

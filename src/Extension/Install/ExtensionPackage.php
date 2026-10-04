@@ -23,7 +23,8 @@ use Blush\Extension\ExtensionKind;
 final readonly class ExtensionPackage
 {
 	/**
-	 * @param bool $local Whether it's a folder in its kind's folder in `user/` (not Composer's, or the framework's).
+	 * @param bool        $local     Whether it's a folder in its kind's folder in `user/` (not Composer's, or the framework's).
+	 * @param bool|string $abandoned Whether it's abandoned, or the package to use instead (D-433).
 	 */
 	public function __construct(
 		public ExtensionKind $kind,
@@ -32,6 +33,7 @@ final readonly class ExtensionPackage
 		public string $namespace,
 		public string $version,
 		public string $path,
-		public bool $local
+		public bool $local,
+		public bool|string $abandoned = false
 	) {}
 }

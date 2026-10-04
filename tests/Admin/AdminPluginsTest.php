@@ -124,6 +124,8 @@ final class AdminPluginsTest extends TestCase
 			'requirements' => [['name' => 'blush-dev/framework', 'constraint' => '^2.0', 'kind' => 'blush', 'met' => true, 'note' => 'this site runs 2.0.0-dev', 'label' => '']],
 			'blocked'      => null,
 			'requiredBy'   => [],
+			'abandoned'    => false,
+			'replacement'  => null,
 			'deletable'    => false,
 			'backup'       => null
 		], $recipes);

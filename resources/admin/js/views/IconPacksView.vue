@@ -124,6 +124,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 				<p class="pack__name">
 					<RouterLink class="pack__label" :to="iconPackRoute(pack.name)">{{ pack.label }}</RouterLink>
 					<span v-if="blocked(pack)" class="pill pill--warn">Can't turn on</span>
+					<span v-if="pack.abandoned !== false" class="pill pill--warn">Abandoned</span>
 					<span v-if="pack.version" class="pack__version mono">{{ pack.version }}</span>
 				</p>
 				<p v-if="pack.description" class="pack__description">{{ pack.description }}</p>

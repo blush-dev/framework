@@ -147,6 +147,22 @@ final class PluginCommandsTest extends TestCase
 		$this->assertStringContainsString('Checked 2 plugin(s): 0 error(s), 1 warning(s).', $all);
 	}
 
+	public function testWarnsOfAnAbandonedPlugin(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/old/plugin.json', '{"name": "acme/old", "abandoned": "acme/new"}');
+		$this->writeTemporaryFile('extensions/acme/gone/composer.json', '{"name": "acme/gone", "type": "blush-plugin", "abandoned": true}');
+		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/old']);\n");
+
+		$result = $this->command('plugin:check');
+		$all    = $result->output . $result->errors;
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, 'It still runs (D-433).');
+		$this->assertMatchesRegularExpression('#warning\s+acme/old: It\'s abandoned; use "acme/new" instead\.#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+acme/gone: It\'s abandoned, and no longer maintained\.#', $all, 'From its composer.json.');
+		$this->assertDoesNotMatchRegularExpression('#ok\s+acme/(old|gone)#', $all);
+		$this->assertStringContainsString('Checked 2 plugin(s): 0 error(s), 2 warning(s).', $all);
+	}
+
 	public function testChecksOnePlugin(): void
 	{
 		$this->site();
