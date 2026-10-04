@@ -89,7 +89,10 @@ that: a URL you call after uploading, which runs the same steps as
 
 Git hosts such as GitHub can call it for you when you push, from a CI
 job. The webhook doesn't exist at all until you set a secret, and each
-signed request works only once, within five minutes.
+signed request works only once, within five minutes. After 10 badly
+signed requests from one address, that address gets `429 Too Many
+Requests` for 15 minutes, even with a good signature (`maxAttempts` and
+`lockout` in [`config/publish.php`](configuration.md#publishing)).
 
 ## Speed it up
 

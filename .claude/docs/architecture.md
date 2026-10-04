@@ -887,8 +887,9 @@ Implemented in M7 (D-135 to D-140).
     time (a lock file).
   - A signed webhook, `POST /_blush/publish` (only with
     `PublishConfig::$secret`): HMAC-SHA256 over timestamp and body,
-    a time window, and seen signatures kept in the persistent
-    `webhooks` store.
+    a time window, seen signatures kept in the persistent `webhooks`
+    store, and an address locked out (429) after `maxAttempts` failed
+    signatures within `lockout` seconds (`WebhookThrottle`, D-414).
   - `publish` on the CLI does the same over SSH; `schedule:run` is the
     optional cron entry.
 - **Stage 2: operations dashboard**
@@ -1202,7 +1203,8 @@ and **icon packs**; **admin themes** are planned on the same pieces.
 - Every user, view, and media path is resolved and checked to stay inside its
   root.
 - YAML is parsed without objects, and secrets live only in env.
-- The webhook uses HMAC with a time window and replay protection, and
-  exists only when a secret is configured.
+- The webhook uses HMAC with a time window, replay protection, and a
+  lockout after failed signatures, and exists only when a secret is
+  configured.
 - Admin uses CSRF protection and SameSite=Strict cookies.
 - CSP and security headers, plus an upload allowlist.

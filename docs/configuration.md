@@ -396,6 +396,8 @@ Most redirects are easier in `user/data/redirects.yaml`; see
 | `remote`, `branch` | `null` | What to pull |
 | `path` | `'/_blush/publish'` | The webhook's URL |
 | `tolerance` | `300` | How many seconds a webhook request's timestamp may be off |
+| `maxAttempts` | `10` | Badly signed webhook requests from one address before it's locked out |
+| `lockout` | `900` | How many seconds a lockout lasts, from the first failed request |
 | `gitBinary` | `'git'` | The `git` command to run |
 
 Without this file, the `PUBLISH_*` variables are used. Keep the secret in

@@ -38,8 +38,9 @@ enum CacheNamespace: string
 	case Fragments = 'fragments';
 
 	/**
-	 * Signed webhook requests already seen, so none can be replayed. Never
-	 * cleared with the others.
+	 * Signed webhook requests already seen, so none can be replayed, and
+	 * failed-signature counters (`WebhookThrottle`). Never cleared with the
+	 * others, so clearing caches doesn't reset either.
 	 */
 	case Webhooks = 'webhooks';
 

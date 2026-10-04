@@ -33,6 +33,9 @@ use Blush\Env\Env;
  *   with git only), from `remote` and `branch` when given.
  * - `path` is the webhook's URL path.
  * - `tolerance` is how many seconds a signed request stays valid.
+ * - `maxAttempts` unsigned or badly signed requests from one address
+ *   within `lockout` seconds lock it out of the webhook
+ *   (`WebhookThrottle`).
  */
 final readonly class PublishConfig implements Config
 {
@@ -56,7 +59,9 @@ final readonly class PublishConfig implements Config
 		public ?string $branch = null,
 		string $path = '/_' . Framework::BINARY . '/publish',
 		public int $tolerance = 300,
-		public string $gitBinary = 'git'
+		public string $gitBinary = 'git',
+		public int $maxAttempts = 10,
+		public int $lockout = 900
 	) {
 		if ($secret !== null && strlen($secret) < self::MIN_SECRET) {
 			throw new InvalidConfig(sprintf('PublishConfig "secret" must be at least %d characters.', self::MIN_SECRET));
@@ -76,6 +81,10 @@ final readonly class PublishConfig implements Config
 
 		if ($tolerance < 1) {
 			throw new InvalidConfig(sprintf('PublishConfig "tolerance" must be at least 1 second; %d given.', $tolerance));
+		}
+
+		if ($maxAttempts < 1 || $lockout < 1) {
+			throw new InvalidConfig('PublishConfig "maxAttempts" and "lockout" must be at least 1.');
 		}
 
 		$this->path = $path;
@@ -114,7 +123,7 @@ final readonly class PublishConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['secret', 'git', 'remote', 'branch', 'path', 'tolerance', 'gitBinary']);
+		$values->assertKnownKeys(['secret', 'git', 'remote', 'branch', 'path', 'tolerance', 'gitBinary', 'maxAttempts', 'lockout']);
 
 		return new static(
 			secret: $values->nullableString('secret'),
@@ -123,7 +132,9 @@ final readonly class PublishConfig implements Config
 			branch: $values->nullableString('branch'),
 			path: $values->string('path', '/_' . Framework::BINARY . '/publish'),
 			tolerance: $values->int('tolerance', 300),
-			gitBinary: $values->string('gitBinary', 'git')
+			gitBinary: $values->string('gitBinary', 'git'),
+			maxAttempts: $values->int('maxAttempts', 10),
+			lockout: $values->int('lockout', 900)
 		);
 	}
 
@@ -134,13 +145,15 @@ final readonly class PublishConfig implements Config
 	public function toArray(): array
 	{
 		return [
-			'secret'    => $this->secret,
-			'git'       => $this->git,
-			'remote'    => $this->remote,
-			'branch'    => $this->branch,
-			'path'      => $this->path,
-			'tolerance' => $this->tolerance,
-			'gitBinary' => $this->gitBinary
+			'secret'      => $this->secret,
+			'git'         => $this->git,
+			'remote'      => $this->remote,
+			'branch'      => $this->branch,
+			'path'        => $this->path,
+			'tolerance'   => $this->tolerance,
+			'gitBinary'   => $this->gitBinary,
+			'maxAttempts' => $this->maxAttempts,
+			'lockout'     => $this->lockout
 		];
 	}
 }

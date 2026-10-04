@@ -44,6 +44,7 @@ use Blush\Publish\PullResult;
 use Blush\Publish\Puller;
 use Blush\Publish\WebhookController;
 use Blush\Publish\WebhookSignature;
+use Blush\Publish\WebhookThrottle;
 use Blush\Routing\RouteCache;
 use Blush\Tests\Content\BuildsContentSite;
 use Blush\Tests\Fixtures\Publish\RecordingPuller;
@@ -55,6 +56,7 @@ use Blush\Tests\Fixtures\Publish\RecordingPuller;
 #[CoversClass(PublishServiceProvider::class)]
 #[CoversClass(WebhookController::class)]
 #[CoversClass(WebhookSignature::class)]
+#[CoversClass(WebhookThrottle::class)]
 #[CoversClass(GitPuller::class)]
 #[CoversClass(Publish::class)]
 #[CoversClass(RunSchedule::class)]
@@ -79,7 +81,7 @@ final class PublishTest extends TestCase
 	/**
 	 * Sends a webhook request, signed unless `$signature` is given.
 	 */
-	private function webhook(Application $app, string $body = '', ?string $signature = null, ?int $timestamp = null): ResponseInterface
+	private function webhook(Application $app, string $body = '', ?string $signature = null, ?int $timestamp = null, string $ip = '203.0.113.5'): ResponseInterface
 	{
 		$timestamp ??= $this->clock->now()->getTimestamp();
 		$signature ??= new WebhookSignature(self::SECRET)->sign($timestamp, $body);
@@ -87,7 +89,7 @@ final class PublishTest extends TestCase
 		return $app->container()->make(Kernel::class)->handle(Request::create('/_blush/publish', 'POST', [
 			WebhookSignature::TIMESTAMP_HEADER => (string) $timestamp,
 			WebhookSignature::SIGNATURE_HEADER => $signature
-		], $body));
+		], $body, ['REMOTE_ADDR' => $ip]));
 	}
 
 	/**
@@ -362,12 +364,52 @@ final class PublishTest extends TestCase
 		$this->assertNotContains(CacheNamespace::Webhooks->value, $app->container()->make(Caches::class)->clear());
 	}
 
+	public function testTheWebhookLocksOutAnAddressAfterFailedSignatures(): void
+	{
+		$this->standardContent();
+		$this->publishConfig("secret: '" . self::SECRET . "', maxAttempts: 3, lockout: 600");
+
+		$app = $this->site();
+
+		for ($i = 0; $i < 3; $i++) {
+			$this->assertSame(401, $this->webhook($app, '', 'sha256=nope')->getStatusCode());
+		}
+
+		// Locked out, even with a good signature; another address isn't.
+		$locked = $this->webhook($app);
+
+		$this->assertSame(429, $locked->getStatusCode());
+		$this->assertSame('600', $locked->getHeaderLine('Retry-After'));
+		$this->assertSame('no-store', $locked->getHeaderLine('Cache-Control'));
+		$this->assertSame(200, $this->webhook($app, ip: '203.0.113.6')->getStatusCode());
+
+		// Clearing the caches doesn't lift it; the window running out does.
+		$app->container()->make(Caches::class)->clear();
+		$this->assertSame(429, $this->webhook($app)->getStatusCode());
+
+		$this->clock->advance('PT601S');
+		$this->assertSame(401, $this->webhook($app, '', 'sha256=nope')->getStatusCode());
+
+		// A signed request clears the count; a replayed one doesn't.
+		$signed = new WebhookSignature(self::SECRET)->sign($this->clock->now()->getTimestamp(), '');
+
+		$this->assertSame(200, $this->webhook($app, '', $signed)->getStatusCode());
+
+		for ($i = 0; $i < 2; $i++) {
+			$this->assertSame(401, $this->webhook($app, '', 'sha256=nope')->getStatusCode());
+		}
+
+		$this->assertSame(409, $this->webhook($app, '', $signed)->getStatusCode());
+		$this->assertSame(401, $this->webhook($app, '', 'sha256=nope')->getStatusCode());
+		$this->assertSame(429, $this->webhook($app)->getStatusCode());
+	}
+
 	public function testPublishConfig(): void
 	{
 		$config = PublishConfig::fromEnv(new Env(['PUBLISH_SECRET' => self::SECRET, 'PUBLISH_GIT' => 'true', 'PUBLISH_REMOTE' => 'origin', 'PUBLISH_BRANCH' => 'main']));
 
 		$this->assertTrue($config->hasWebhook());
-		$this->assertSame(['secret' => self::SECRET, 'git' => true, 'remote' => 'origin', 'branch' => 'main', 'path' => '/_blush/publish', 'tolerance' => 300, 'gitBinary' => 'git'], $config->toArray());
+		$this->assertSame(['secret' => self::SECRET, 'git' => true, 'remote' => 'origin', 'branch' => 'main', 'path' => '/_blush/publish', 'tolerance' => 300, 'gitBinary' => 'git', 'maxAttempts' => 10, 'lockout' => 900], $config->toArray());
 		$this->assertFalse(PublishConfig::fromEnv(new Env(['PUBLISH_SECRET' => '']))->hasWebhook());
 		$this->assertSame('/hooks/publish', PublishConfig::fromArray(['path' => 'hooks/publish/'])->path);
 
@@ -377,6 +419,8 @@ final class PublishTest extends TestCase
 			static fn (): PublishConfig => new PublishConfig(branch: 'a b'),
 			static fn (): PublishConfig => new PublishConfig(path: '/../x'),
 			static fn (): PublishConfig => new PublishConfig(tolerance: 0),
+			static fn (): PublishConfig => new PublishConfig(maxAttempts: 0),
+			static fn (): PublishConfig => new PublishConfig(lockout: 0),
 			static fn (): PublishConfig => PublishConfig::fromArray(['unknown' => true])
 		];
 

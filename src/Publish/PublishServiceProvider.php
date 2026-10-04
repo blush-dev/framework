@@ -42,6 +42,7 @@ final class PublishServiceProvider extends ServiceProvider
 	 */
 	protected const array TRANSIENTS = [
 		WebhookController::class,
+		WebhookThrottle::class,
 		PublishRoutes::class
 	];
 

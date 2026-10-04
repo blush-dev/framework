@@ -20,6 +20,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Cache\CacheException;
 use Blush\Cache\CacheNamespace;
 use Blush\Cache\Caches;
+use Blush\Http\ClientIp;
 use Blush\Http\Response;
 use Blush\Http\Status;
 
@@ -32,8 +33,10 @@ use Blush\Http\Status;
  *
  * Answers are JSON and never cached: 200 with the publish report, 500
  * when the pull failed, 401 for a bad or stale signature, 409 for a
- * replayed request or while another publish runs, and 400 for a body
- * that isn't a JSON object.
+ * replayed request or while another publish runs, 400 for a body
+ * that isn't a JSON object, and 429 while the address is locked out for
+ * too many failed signatures (`WebhookThrottle`), checked before the
+ * signature is.
  */
 final readonly class WebhookController
 {
@@ -41,6 +44,7 @@ final readonly class WebhookController
 		private PublishConfig $config,
 		private Publisher $publisher,
 		private Caches $caches,
+		private WebhookThrottle $throttle,
 		private ClockInterface $clock
 	) {}
 
@@ -53,8 +57,15 @@ final readonly class WebhookController
 		$signature = $request->getHeaderLine(WebhookSignature::SIGNATURE_HEADER);
 		$now       = $this->clock->now()->getTimestamp();
 		$verifier  = new WebhookSignature((string) $this->config->secret, $this->config->tolerance);
+		$ip        = ClientIp::of($request);
+
+		if ($this->throttle->isLockedOut($ip)) {
+			return self::json(['error' => 'Too many failed requests. Try again later.'], Status::TooManyRequests, ['Retry-After' => (string) $this->config->lockout]);
+		}
 
 		if ($this->config->secret === null || ! $verifier->verify($request->getHeaderLine(WebhookSignature::TIMESTAMP_HEADER), $signature, $body, $now)) {
+			$this->throttle->fail($ip);
+
 			return self::json(['error' => 'The request signature is missing, invalid, or expired.'], Status::Unauthorized);
 		}
 
@@ -66,6 +77,7 @@ final readonly class WebhookController
 		}
 
 		$seen->set($key, $now, $this->config->tolerance * 2);
+		$this->throttle->clear($ip);
 
 		try {
 			$options = trim($body) === '' ? [] : json_decode($body, true, 4, JSON_THROW_ON_ERROR);
@@ -89,10 +101,11 @@ final readonly class WebhookController
 	/**
 	 * Returns an uncached JSON response.
 	 *
-	 * @param array<string, mixed> $data
+	 * @param array<string, mixed>  $data
+	 * @param array<string, string> $headers
 	 */
-	private static function json(array $data, Status $status): ResponseInterface
+	private static function json(array $data, Status $status, array $headers = []): ResponseInterface
 	{
-		return Response::json($data, $status, ['Cache-Control' => 'no-store']);
+		return Response::json($data, $status, ['Cache-Control' => 'no-store', ...$headers]);
 	}
 }

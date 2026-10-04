@@ -1909,6 +1909,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-132: The publish webhook
 - **Date:** 2026-09-25
+- **Status:** Rate limiting added by D-414.
 - **Decision:**
   - `POST {PublishConfig::$path}` (`publish.webhook`, a system route)
     exists only when a secret is set.
@@ -1927,7 +1928,7 @@ decision, add a new entry that supersedes it and mark the old one
     signature, 409 for a replay or a publish already running, 400 for
     another body.
   - Rate limiting waits for the admin's middleware (M9); the signature
-    already gates any work.
+    already gates any work. (Done in the controller instead, D-414.)
 
 ### D-133: `schedule:run`
 - **Date:** 2026-09-25
@@ -11956,3 +11957,31 @@ decision, add a new entry that supersedes it and mark the old one
   changed first, after setting positions) and asked for positionable
   types to go by position on the All tab and only collections by date
   published, with terms by title otherwise.
+
+### D-414: The publish webhook locks out an address after failed signatures
+- **Date:** 2026-10-03
+- **Decision:** Resolves D-132's rate-limiting follow-up, without
+  waiting for a general middleware.
+  - **`Publish\WebhookThrottle`** counts an address's requests that fail
+    the signature check (missing, wrong, or stale), as `LoginThrottle`
+    counts sign-ins: `PublishConfig::$maxAttempts` (default 10) failures
+    lock the address out until `lockout` seconds (default 900) after the
+    first one counted. The address is `ClientIp` (`REMOTE_ADDR` only).
+  - The lockout is checked **before** the signature, so a locked-out
+    address gets 429 with `Retry-After: {lockout}` and `no-store` even
+    for a good signature, and does no HMAC work.
+  - A request that passes the signature **and** the replay check clears
+    the address's count, so a CI job that misfired a few times recovers
+    on its next good request. A replayed signature doesn't clear it, so
+    a captured request can't be used to reset the count.
+  - Counters live in the `webhooks` namespace (hashed `fail|{ip}` keys,
+    beside the seen signatures), which `Caches::clear()` never clears,
+    so publishing or `cache:clear` doesn't lift a lockout.
+  - Counted per address only, not globally: a global limit would let
+    anyone lock the site's own CI out.
+- **Checked:** `composer check` (the lockout, `Retry-After`, another
+  address unaffected, surviving a cache clear, the window running out,
+  a signed request clearing the count, a replay not clearing it, and
+  config validation).
+- **Why:** a quick win the author picked from the carried-forward list
+  (M6: rate limiting for the webhook).
