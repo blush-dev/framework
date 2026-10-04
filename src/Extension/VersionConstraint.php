@@ -88,6 +88,36 @@ final readonly class VersionConstraint
 	}
 
 	/**
+	 * Whether a constraint matches another, as Composer's
+	 * `Constraint::matches()` and `MultiConstraint::matches()` have it:
+	 * whether some version could satisfy both. A `require` of a package
+	 * another replaces is met when its constraint matches the `replace`
+	 * (D-436). `*` matches anything; alternatives (`||`) match when any
+	 * of them does; and comparisons that must all hold match when each of
+	 * one's matches each of the other's (Composer's rule, which is looser
+	 * than solving them together). An invalid constraint matches nothing.
+	 */
+	public static function matches(string $constraint, string $provided): bool
+	{
+		$constraint = self::parse($constraint);
+		$provided   = self::parse($provided);
+
+		if ($constraint === null || $provided === null) {
+			return false;
+		}
+
+		foreach ($constraint as $comparisons) {
+			foreach ($provided as $others) {
+				if (array_all($comparisons, static fn (array $comparison): bool => array_all($others, static fn (array $other): bool => self::matchSpecific($other, $comparison)))) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Normalizes a version as Composer does (`v1.2-beta` is
 	 * `1.2.0.0-beta`, `1.x-dev` is `1.9999999.9999999.9999999-dev`, and a
 	 * branch is `dev-{name}`), or `null` when it isn't one.
@@ -341,6 +371,58 @@ final readonly class VersionConstraint
 		}
 
 		return [[$operator, $version]];
+	}
+
+	/**
+	 * Whether two comparisons can both hold, as Composer's
+	 * `Constraint::matchSpecific()` has it (branches aren't compared).
+	 *
+	 * @param array{string, string} $comparison
+	 * @param array{string, string} $provider
+	 */
+	private static function matchSpecific(array $comparison, array $provider): bool
+	{
+		[$operator, $version]                 = $comparison;
+		[$providerOperator, $providerVersion] = $provider;
+
+		$noEqualOperator         = str_replace('=', '', $operator);
+		$providerNoEqualOperator = str_replace('=', '', $providerOperator);
+		$isEqual                 = $operator === '==';
+		$isNotEqual              = $operator === '!=';
+		$isProviderEqual         = $providerOperator === '==';
+		$isProviderNotEqual      = $providerOperator === '!=';
+
+		// `!=` matches anything but `==` of the same version.
+		if ($isNotEqual || $isProviderNotEqual) {
+			if ($isNotEqual && ! $isProviderNotEqual && ! $isProviderEqual && str_starts_with($providerVersion, 'dev-')) {
+				return false;
+			}
+
+			if ($isProviderNotEqual && ! $isNotEqual && ! $isEqual && str_starts_with($version, 'dev-')) {
+				return false;
+			}
+
+			if (! $isEqual && ! $isProviderEqual) {
+				return true;
+			}
+
+			return self::compare($providerVersion, $version, '!=');
+		}
+
+		// Two bounds the same way (`<= 2.0` and `< 1.0`) always overlap.
+		if (! $isEqual && $noEqualOperator === $providerNoEqualOperator) {
+			return ! (str_starts_with($version, 'dev-') || str_starts_with($providerVersion, 'dev-'));
+		}
+
+		$first  = $isEqual ? $version : $providerVersion;
+		$second = $isEqual ? $providerVersion : $version;
+
+		if (self::compare($first, $second, $isEqual ? $providerOperator : $operator)) {
+			// `>= 1.0` against `< 1.0`: 1.0 is outside the provider's.
+			return ! ($providerOperator === $providerNoEqualOperator && $operator !== $noEqualOperator && version_compare($providerVersion, $version, '=='));
+		}
+
+		return false;
 	}
 
 	/**

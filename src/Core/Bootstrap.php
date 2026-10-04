@@ -29,8 +29,10 @@ use Blush\Content\Type\ContentTypeCache;
 use Blush\Env\Env;
 use Blush\Embed\EmbedConfig;
 use Blush\Export\ExportConfig;
+use Blush\Extension\ComposerInstalled;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\LocalAutoloader;
+use Blush\Extension\Requirements;
 use Blush\Feed\FeedConfig;
 use Blush\Field\FieldConfig;
 use Blush\Http\HttpConfig;
@@ -235,7 +237,8 @@ final readonly class Bootstrap
 			$config->get(PluginConfig::class),
 			$themes,
 			$config->get(ThemeConfig::class)->active,
-			$iconPacks->withConfig($config->get(IconConfig::class))
+			$iconPacks->withConfig($config->get(IconConfig::class)),
+			new Requirements(composer: new ComposerInstalled($this->paths->vendor))
 		);
 		$plugins   = $extensions->plugins;
 		$themes    = $extensions->themes;

@@ -3,25 +3,34 @@
  * An extension's `require`, each checked against the site (D-385,
  * D-431), the same for plugins, themes, and icon packs: met or not, what
  * the site has, and a required extension linked to its details. Its
- * `conflict` (D-435) is drawn the same way with `conflicts`, each met
- * when the site doesn't have what it names on.
+ * `conflict` (D-435) is drawn the same way as the `conflicts` list, each
+ * met when the site doesn't have what it names on, and its `replace`
+ * (D-436) as the `replaces` list, each met when what it replaces isn't
+ * on. A requirement met by an extension that replaces what it names
+ * links to that one.
  */
 
 import AdminIcon from './AdminIcon.vue';
 import type { ExtensionRequirement } from '../api';
 import { extensionRoute, requirementKind, requirementText } from '../extensions';
 
-defineProps<{ requirements: ExtensionRequirement[]; conflicts?: boolean }>();
+defineProps<{ requirements: ExtensionRequirement[]; list?: 'requires' | 'conflicts' | 'replaces' }>();
+
+// What a screen reader hears before each, as the icon shows it.
+const STATUS = {
+	requires:  ['Met:', 'Not met:'],
+	conflicts: ['No conflict:', 'Conflicts:'],
+	replaces:  ['Not on:', 'On:']
+} as const;
 </script>
 
 <template>
 	<ul v-if="requirements.length" class="requirements">
 		<li v-for="requirement in requirements" :key="requirement.name">
 			<AdminIcon :name="requirement.met ? 'circle-check' : 'circle-x'" :class="requirement.met ? 'is-met' : 'is-unmet'" />
-			<span v-if="conflicts" class="visually-hidden">{{ requirement.met ? 'No conflict:' : 'Conflicts:' }}</span>
-			<span v-else class="visually-hidden">{{ requirement.met ? 'Met:' : 'Not met:' }}</span>
-			<RouterLink v-if="requirementKind(requirement)" :to="extensionRoute(requirementKind(requirement) ?? 'plugin', requirement.name)">{{ requirementText(requirement) }}</RouterLink>
-			<span v-else :class="{ mono: requirement.kind === 'unknown' || requirement.kind === 'missing' }">{{ requirementText(requirement) }}</span>
+			<span class="visually-hidden">{{ STATUS[list ?? 'requires'][requirement.met ? 0 : 1] }}</span>
+			<RouterLink v-if="requirementKind(requirement)" :to="extensionRoute(requirementKind(requirement) ?? 'plugin', requirement.replacedBy || requirement.name)">{{ requirementText(requirement) }}</RouterLink>
+			<span v-else :class="{ mono: requirement.kind === 'unknown' || requirement.kind === 'missing' || requirement.kind === 'library' || requirement.kind === 'composer' }">{{ requirementText(requirement) }}</span>
 			<span v-if="requirement.note" class="requirements__note" :class="{ 'is-unmet': !requirement.met }">{{ requirement.note }}</span>
 		</li>
 	</ul>

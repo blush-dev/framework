@@ -22,6 +22,8 @@ use Blush\Plugin\Plugins;
 use Blush\Plugin\PluginSource;
 use Blush\Extension\Requirement;
 use Blush\Extension\RequirementKind;
+use Blush\Extension\ComposerInstalled;
+use Blush\Tests\TemporaryDirectory;
 use Blush\Extension\ExtensionException;
 use Blush\Icon\IconPack;
 use Blush\Theme\ThemeManifest;
@@ -30,8 +32,11 @@ use Blush\Theme\ThemeManifest;
 #[CoversClass(Requirement::class)]
 #[CoversClass(RequirementKind::class)]
 #[CoversClass(Plugins::class)]
+#[CoversClass(ComposerInstalled::class)]
 final class RequirementsTest extends TestCase
 {
+	use TemporaryDirectory;
+
 	/**
 	 * A site on Blush 2.1.0 and PHP 8.5.1, with only the `intl` extension.
 	 */
@@ -64,8 +69,8 @@ final class RequirementsTest extends TestCase
 		$plugin = self::plugin('acme/one', ['blush-dev/framework' => '^2.0', 'php' => '>=8.6', 'ext-intl' => '*', 'ext-redis' => '*', 'lib-curl' => '*', 'acme/two' => 'soon']);
 		$checks = self::requirements()->check($plugin, [], []);
 
-		$this->assertSame([true, false, true, false, false, false], array_map(static fn (Requirement $check): bool => $check->met, $checks));
-		$this->assertSame(['blush', 'php', 'extension', 'extension', 'unknown', 'missing'], array_map(static fn (Requirement $check): string => $check->kind->value, $checks));
+		$this->assertSame([true, false, true, false, true, false], array_map(static fn (Requirement $check): bool => $check->met, $checks), 'Only Composer checks lib-* (D-438).');
+		$this->assertSame(['blush', 'php', 'extension', 'extension', 'composer', 'missing'], array_map(static fn (Requirement $check): string => $check->kind->value, $checks));
 		$this->assertSame('PHP >=8.6 (this site runs 8.5.1)', $checks[1]->describe());
 		$this->assertSame('the PHP extension redis (isn\'t loaded)', $checks[3]->describe());
 		$this->assertSame('isn\'t a version constraint Blush understands', $checks[5]->note);
@@ -139,11 +144,12 @@ final class RequirementsTest extends TestCase
 		$this->assertCount(2, $plugins->providers());
 	}
 
-	public function testEveryKindReadsConflictAsRequireIsRead(): void
+	public function testEveryKindReadsConflictAndReplaceAsRequireIsRead(): void
 	{
-		$plugin = PluginManifest::fromArray(['name' => 'acme/hello', 'source' => 'local', 'path' => '/site/extensions/acme/hello', 'conflict' => ['acme/old' => '<2.0']]);
+		$plugin = PluginManifest::fromArray(['name' => 'acme/hello', 'source' => 'local', 'path' => '/site/extensions/acme/hello', 'conflict' => ['acme/old' => '<2.0'], 'replace' => ['acme/hi' => 'self.version']]);
 
 		$this->assertSame(['acme/old' => '<2.0'], $plugin->conflict);
+		$this->assertSame(['acme/hi' => 'self.version'], $plugin->replace, 'And replace (D-436).');
 		$this->assertEquals($plugin, PluginManifest::fromArray($plugin->toArray()), 'It round-trips through a cached manifest.');
 		$this->assertSame(['php' => '<8.0'], IconPack::fromArray('/site/extensions/acme/brands', ['name' => 'acme/brands', 'conflict' => ['php' => '<8.0']])->conflict);
 		$this->assertSame(['acme/old' => '*'], ThemeManifest::fromArray('/site/extensions/acme/nova', ['name' => 'acme/nova', 'conflict' => ['acme/old' => '*']])->conflict);
@@ -163,5 +169,46 @@ final class RequirementsTest extends TestCase
 		$this->assertSame([false, true, true], array_map(static fn (Requirement $requirement): bool => $requirement->conflict, $checked), 'Its own name is passed over.');
 		$this->assertSame(['', 'version 8.5.1 is loaded', 'version 0.0.0 is on'], array_map(static fn (Requirement $requirement): string => $requirement->note, $checked));
 		$this->assertSame('Conflicts with Old (version 0.0.0 is on).', Requirements::reason($checked));
+	}
+
+	/**
+	 * Requirements on a site whose Composer installed Guzzle 7.9.2,
+	 * `psr/log` 3.0.0 as `1.x-dev` too, and a logger providing
+	 * `psr/log-implementation`.
+	 */
+	private function withLibraries(): Requirements
+	{
+		$this->writeTemporaryFile('vendor/composer/installed.php', '<?php return ' . var_export(['root' => [], 'versions' => [
+			'guzzlehttp/guzzle'          => ['pretty_version' => '7.9.2', 'version' => '7.9.2.0', 'aliases' => [], 'dev_requirement' => false],
+			'psr/log'                    => ['pretty_version' => '3.0.0', 'version' => '3.0.0.0', 'aliases' => ['1.x-dev'], 'dev_requirement' => false],
+			'psr/log-implementation'     => ['dev_requirement' => false, 'provided' => ['1.0|2.0|3.0']]
+		]], true) . ';');
+
+		return new Requirements('2.1.0', '8.5.1', static fn (string $name): false => false, new ComposerInstalled($this->temporaryDirectory() . '/vendor'));
+	}
+
+	public function testChecksLibrariesComposerInstalled(): void
+	{
+		$checks = $this->withLibraries()->check(self::plugin('acme/one', [
+			'guzzlehttp/guzzle'      => '^7.0',
+			'psr/log'                => '^1.0',
+			'psr/log-implementation' => '^2.0',
+			'monolog/monolog'        => '^3.0',
+			'Not A Package'          => '^8.0',
+			'composer-runtime-api'   => '^2.2'
+		]), [], []);
+
+		$this->assertSame([true, true, true, false, false, true], array_map(static fn (Requirement $check): bool => $check->met, $checks), 'Its version, an alias, what provides it, as InstalledVersions::satisfies() has them.');
+		$this->assertSame(['library', 'library', 'library', 'missing', 'unknown', 'composer'], array_map(static fn (Requirement $check): string => $check->kind->value, $checks));
+		$this->assertSame('monolog/monolog ^3.0 (isn\'t installed)', $checks[3]->describe());
+		$this->assertSame('guzzlehttp/guzzle ^6.0 (version 7.9.2 is installed)', $this->withLibraries()->check(self::plugin('acme/one', ['guzzlehttp/guzzle' => '^6.0']), [], [])[0]->describe());
+	}
+
+	public function testALibraryMayConflict(): void
+	{
+		$checks = $this->withLibraries()->check(new PluginManifest(name: 'acme/one', label: 'One', namespace: 'one', source: PluginSource::Local, path: '/site/extensions/acme/one', conflict: ['guzzlehttp/guzzle' => '<8.0', 'psr/log' => '<1.0', 'monolog/monolog' => '*']), [], []);
+
+		$this->assertSame([false, true, true], array_map(static fn (Requirement $check): bool => $check->met, $checks));
+		$this->assertSame('Conflicts with guzzlehttp/guzzle <8.0 (version 7.9.2 is installed).', Requirements::reason($checks));
 	}
 }

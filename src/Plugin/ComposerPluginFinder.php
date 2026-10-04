@@ -44,7 +44,9 @@ use Blush\Support\FilesystemException;
  * Every key is optional: without a `label`, it's shown by its name
  * (D-423), without a `namespace`, it goes by its name, hyphenated
  * (D-424), and without a `provider`, it registers nothing (D-425), so a
- * package needs no `extra.blush` at all. Composer autoloads
+ * package needs no `extra.blush` at all. Its own `require`, `conflict`,
+ * and `replace` count, as in Composer, unless `extra.blush` has them
+ * (D-437, D-438). Composer autoloads
  * these packages itself. A package whose manifest
  * doesn't hold is broken, known by its name (D-394).
  */
@@ -102,13 +104,26 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			'path'        => is_string($package['path'] ?? null) ? $package['path'] : '',
 			'version'     => is_string($package['version'] ?? null) ? $package['version'] : '0.0.0',
 			'description' => is_string($package['description'] ?? null) ? $package['description'] : '',
-			'require'     => $blush['require'] ?? [],
-			'conflict'    => $blush['conflict'] ?? [],
+			'require'     => $blush['require'] ?? self::links($package, 'require'),
+			'conflict'    => $blush['conflict'] ?? self::links($package, 'conflict'),
+			'replace'     => $blush['replace'] ?? self::links($package, 'replace'),
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($package['authors'] ?? [])),
 			'license'     => ComposerJson::license($package['license'] ?? null),
 			'abandoned'   => ExtensionAbandoned::lenient($package['abandoned'] ?? false),
 			'suggest'     => $blush['suggest'] ?? ExtensionSuggest::lenient($package['suggest'] ?? null),
 			...ExtensionLinks::lenient($package)->toArray()
 		]);
+	}
+
+	/**
+	 * A package's own `require`, `conflict`, or `replace`, which Blush
+	 * reads as Composer does (D-437, D-438).
+	 *
+	 * @param  array<array-key, mixed> $package
+	 * @return array<array-key, mixed>
+	 */
+	private static function links(array $package, string $key): array
+	{
+		return is_array($package[$key] ?? null) ? $package[$key] : [];
 	}
 }

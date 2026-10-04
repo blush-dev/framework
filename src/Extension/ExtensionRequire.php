@@ -16,13 +16,14 @@ namespace Blush\Extension;
 /**
  * Reads a manifest's `require` (D-385, D-431), the same for every kind:
  * an object mapping what's needed to a version constraint. `conflict`
- * (D-435) has the same shape, so it's read here too.
+ * (D-435) and `replace` (D-436) have the same shape, so they're read
+ * here too.
  */
 final readonly class ExtensionRequire
 {
 	/**
-	 * Reads `require`, or another key of its shape (`conflict`), which may
-	 * be left out.
+	 * Reads `require`, or another key of its shape (`conflict`,
+	 * `replace`), which may be left out.
 	 *
 	 * @return array<string, string>
 	 * @throws ExtensionException

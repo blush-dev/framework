@@ -16,8 +16,8 @@ namespace Blush\Extension;
 /**
  * What every kind's manifest shares for its requirements (D-431): a
  * plugin's, a theme's, or an icon pack's name, label, version, and
- * `require` and `conflict` (D-435), which are checked the same way for
- * every kind, and whether
+ * `require`, `conflict` (D-435), and `replace` (D-436), which are
+ * checked the same way for every kind, and whether
  * it's abandoned (D-433), which warns the same way, and what it
  * suggests (D-434), which is shown the same way.
  */
@@ -54,6 +54,15 @@ interface ExtensionManifest
 	 * @var array<string, string>
 	 */
 	public array $conflict { get; }
+
+	/**
+	 * The packages it replaces, each mapped to the versions it stands in
+	 * for (`self.version` for its own), as Composer's `replace` is
+	 * (D-436).
+	 *
+	 * @var array<string, string>
+	 */
+	public array $replace { get; }
 
 	/**
 	 * Whether it's abandoned (`true`), or the name of the package to use

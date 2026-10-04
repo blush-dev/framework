@@ -24,6 +24,7 @@ use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Http\UploadedFile;
+use Blush\Extension\ExtensionState;
 use Blush\Plugin\Plugins;
 use Blush\Theme\Themes;
 
@@ -146,6 +147,23 @@ final class AdminInstallTest extends TestCase
 		$this->assertTrue($this->app->container()->make(Plugins::class)->installed() !== [] && ! $this->app->container()->make(Plugins::class)->has('acme/hello'), 'It arrives off (D-390).');
 	}
 
+	public function testInstallsOneNeedingALibraryThatCantRunWithoutIt(): void
+	{
+		$this->site();
+
+		$response = $this->upload('/plugins', 'hello.zip', $this->zip(self::plugin(files: ['composer.json' => '{"require": {"php": ">=8.5", "guzzlehttp/guzzle": "^7.0"}}'])));
+
+		$this->assertSame(201, $response->getStatusCode(), 'A library is a requirement like any other (D-438).');
+
+		$this->reboot();
+
+		$state  = $this->app->container()->make(ExtensionState::class);
+		$plugin = $state->installed()['acme/hello'] ?? null;
+
+		$this->assertNotNull($plugin);
+		$this->assertSame('Needs guzzlehttp/guzzle ^7.0 (isn\'t installed).', $state->report($plugin)['blocked'], 'So it can\'t be turned on until Composer installs it.');
+	}
+
 	public function testOffersToReplaceOneWithTheSameName(): void
 	{
 		$this->site();
@@ -199,7 +217,6 @@ final class AdminInstallTest extends TestCase
 			'evil.zip has a file that would land outside its folder (../evil.php), so it wasn\'t unpacked.'          => ['evil.zip', $this->zip(['plugin.json' => '{}', '../evil.php' => '<?php'])],
 			'hello.zip can\'t be installed: its namespace, "recipes", is the plugin fixture/recipes\'s.'             => ['hello.zip', $this->zip(self::plugin(['namespace' => 'recipes']))],
 			'hello.zip can\'t be installed: other/plate is installed as a theme.'                                    => ['hello.zip', $this->zip(self::plugin(['name' => 'other/plate', 'namespace' => 'other']))],
-			'hello.zip needs Composer packages (guzzlehttp/guzzle), so it has to be installed with Composer.'        => ['hello.zip', $this->zip(self::plugin(files: ['composer.json' => '{"require": {"php": ">=8.5", "ext-zip": "*", "guzzlehttp/guzzle": "^7.0"}}']))],
 			'hello.zip can\'t be installed: src/Broken.php has a PHP error on line 1 (Unclosed \'(\').' => ['hello.zip', $this->zip(self::plugin(files: ['src/Broken.php' => '<?php function (']))]
 		];
 

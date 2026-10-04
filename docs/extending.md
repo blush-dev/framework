@@ -382,8 +382,8 @@ Each extension can be its own git repository.
 
 Manifests use Composer's names and shapes for the keys they share with
 `composer.json`: `name`, `description`, `version`, `license`,
-`authors`, `autoload`, `require`, `conflict`, `homepage`, `support`,
-`funding`, `abandoned`, and `suggest`. A manifest that leaves one of
+`authors`, `autoload`, `require`, `conflict`, `replace`, `homepage`,
+`support`, `funding`, `abandoned`, and `suggest`. A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
 them once. A manifest's own value replaces `composer.json`'s whole; the
 two aren't merged. Blush's own keys (`label`, `namespace`, `provider`,
@@ -441,11 +441,14 @@ when:
 - its manifest doesn't pass, or its namespace is reserved or another
   installed extension's;
 - Composer installed an extension with its name (Composer updates it);
-- its `composer.json` requires packages besides PHP, its extensions, and
-  Blush, since an extension installed from a zip has no `vendor/`
-  folder of its own;
 - it's a plugin or theme with a PHP file that doesn't parse (checked
   without running it).
+
+An extension installed from a zip has no `vendor/` folder of its own.
+One that [requires](#requirements) a library (`"guzzlehttp/guzzle":
+"^7.0"`) is installed anyway, but can't run until the site's Composer
+installs that library (`composer require guzzlehttp/guzzle`), and its
+details say so.
 
 A zip of an extension that's already installed offers to replace it,
 naming both versions. Replacing swaps the folder and changes nothing
@@ -696,6 +699,14 @@ One with no `version` counts as `0.0.0`.
   needs Shop installed at a version that fits, and running. A plugin or
   icon pack runs when it's turned on and its own requirements are met;
   a theme runs when it's the active theme or one it falls back to.
+- A library, by its name: `"guzzlehttp/guzzle": "^7.0"` needs the
+  site's Composer to have installed it at a version that fits, as
+  Composer checks it (a version it's aliased to, or a package that
+  replaces or provides it, counts too).
+- `lib-*` (such as `lib-icu`), `composer-plugin-api`,
+  `composer-runtime-api`, and `php-64bit`, `php-ipv6`, `php-zts`, and
+  `php-debug` are always met: Composer checks them when it installs a
+  package, and Blush can't.
 
 No two extensions share a name, of any kind, so a name in `require`
 always means one extension. A theme or icon pack with the name of an
@@ -714,12 +725,14 @@ When requirements aren't met:
   back to run together or not at all, so a requirement of any of them
   counts for all of them.
 
-Anything else in `require` can't be checked, so it isn't met. Turning
-an extension off (or switching themes) also stops every extension that
-requires it, and the admin names what stopped. A plugin's requirements
-are loaded before it. A Composer package's own `composer.json`
-`require` is Composer's to check, not Blush's: for one, Blush checks
-only the `require` in its manifest (or, for a plugin, `extra.blush`).
+A `vendor/name` that's neither an extension nor installed by Composer
+isn't installed, so it isn't met, and anything else in `require` can't
+be checked, so it isn't met either. Turning an extension off (or
+switching themes) also stops every extension that requires it, and the
+admin names what stopped. A plugin's requirements are loaded before it.
+A Composer package's `require` is read from its `composer.json` too, as
+Composer reads it, unless its manifest (or, for a plugin, `extra.blush`)
+has one.
 `bin/blush plugin:check`, `theme:check`, and `icon-pack:check` check
 each kind from the command line, and `doctor` warns of anything that's
 on but can't run.
@@ -758,10 +771,48 @@ can't run itself. Two that each name the other both stop.
 A conflict shows on the extension's details, under **Conflicts**, and
 the check commands and `doctor` report one the same way as a
 requirement that isn't met: `Conflicts with Old SEO <2.0 (version 1.4.0
-is on).` A constraint Blush can't read counts as a conflict. As with
-`require`, a Composer package's own `composer.json` `conflict` is
-Composer's: Blush checks only the one in its manifest (or, for a plugin,
-`extra.blush`).
+is on).` A constraint Blush can't read counts as a conflict. A library counts too:
+it conflicts when the site's Composer installed it at a version that
+fits. A Composer package's own `composer.json` `conflict` counts, as in
+Composer, since Composer can't see the extensions in `extensions/`
+(`extra.blush`'s `conflict`, if it has one, is used in its place).
+
+### Replacing another extension
+
+`replace` names the packages an extension stands in for, as Composer's
+does: a fork, or a package that's been renamed. Each maps to the
+versions it stands in for, or `self.version` for the extension's own
+version:
+
+```json
+{
+	"name": "acme/seo-pro",
+	"version": "2.0.0",
+	"replace": {
+		"acme/seo": "self.version"
+	}
+}
+```
+
+- **It meets their requirements.** While `acme/seo-pro` runs, an
+  extension that requires `acme/seo` is met by it, when the versions
+  match: `"acme/seo": "^2.0"` is met by `self.version` 2.0.0 above, and
+  `^1.0` isn't. Versions match as they do in Composer. The requirement
+  says what met it ("Seo Pro 2.0.0 replaces it"), and **Required by** on
+  the replacing extension lists what requires the packages it replaces.
+- **It doesn't run alongside them.** As in Composer, where the two can't
+  be installed together, an extension doesn't run while one it replaces
+  is turned on, at any version, the same way as a
+  [conflict](#conflicts): the extension declaring `replace` is the one
+  that stops, and says why (`Replaces SEO (is on).`). Turn the old one
+  off (or delete it) and the new one runs.
+
+Its details list what it replaces under **Replaces**. A Composer
+package's own `composer.json` `replace` counts too, as in Composer
+(`extra.blush`'s, if it has one, is used in its place). A fork that
+keeps its original's [namespace](#plugins) can't be installed beside
+it, since no two extensions share a namespace; delete the original
+first.
 
 A plugin whose manifest can't be read (a `plugin.json` that doesn't
 parse, or is missing a key it needs) is broken. It never runs, even
@@ -1013,7 +1064,7 @@ Only `name` is required. Without a `label` it's shown by its name, and
 without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors`, `license`, `homepage`,
-`support`, `funding`, `abandoned`, `suggest`, [`require`](#requirements), and [`conflict`](#conflicts) work as a plugin's
+`support`, `funding`, `abandoned`, `suggest`, [`require`](#requirements), [`conflict`](#conflicts), and [`replace`](#replacing-another-extension) work as a plugin's
 do: a pack whose requirements aren't met adds no icons, even when it's
 on. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is

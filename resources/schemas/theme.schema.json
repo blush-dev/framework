@@ -539,14 +539,21 @@
 		},
 		"require": {
 			"type": "object",
-			"description": "What the theme needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name. When the active theme's chain has a requirement that isn't met, the default theme runs in its place. Without it, a theme in extensions/ uses the require in the composer.json beside this file.",
+			"description": "What the theme needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, other plugins, themes, or icon packs by vendor/name, and libraries Composer installed. When the active theme's chain has a requirement that isn't met, the default theme runs in its place. Without it, the require in the composer.json beside this file is used.",
 			"additionalProperties": {
 				"type": "string"
 			}
 		},
 		"conflict": {
 			"type": "object",
-			"description": "What the theme can't run with, as composer.json says it, each with the versions it can't: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they're turned on. When it conflicts with something that's on, its chain doesn't run, and the default theme runs in its place. Without it, a theme in extensions/ uses the conflict in the composer.json beside this file.",
+			"description": "What the theme can't run with, as composer.json says it, each with the versions it can't: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they're turned on. When it conflicts with something that's on, its chain doesn't run, and the default theme runs in its place. Without it, the conflict in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
+		"replace": {
+			"type": "object",
+			"description": "The packages the theme stands in for, as composer.json says it, each with the versions it stands in for (self.version for its own): a require of one is met by this theme when it runs. It can't be activated while one it replaces is on. Without it, the replace in the composer.json beside this file is used.",
 			"additionalProperties": {
 				"type": "string"
 			}

@@ -12454,7 +12454,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-431: Every kind's `require` is enforced the same way
 - **Date:** 2026-10-04
-- **Status:** Answers the open question "Theme and icon pack
+- **Status:** A Composer package's `composer.json` `require` is read again since D-438, with libraries checked against what Composer installed. Answers the open question "Theme and icon pack
   requirements" (whether a theme's `require` blocks activating it, and
   whether packs get `require`). Amends D-385 (plugins' `require` named
   only plugins), D-378 (names were unique only within a kind), and
@@ -12756,4 +12756,153 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** continuing Composer parity (D-428 to D-434), with Blush's
   boot-time settling needing a rule Composer's install-time refusal
   doesn't.
+
+### D-436: `replace` meets requirements, and stops while the replaced is on
+- **Date:** 2026-10-04
+- **Status:** Settles the `replace` part of the open question
+  "Composer's other package links" (D-434). Replaces that entry's note
+  that a replaced name is claimed, so the two installed together clash.
+- **Decision:** Every kind reads Composer's `replace`: the packages it
+  stands in for, each mapped to the versions it stands in for, or
+  `self.version` for its own (`Requirements::version()`, so `0.0.0`
+  without one). For forks and renames, pairing with `abandoned`'s
+  replacement (D-433).
+  - **Both on: the replacer stops** (the author's call, over the
+    replaced one stopping, or both installed being a clash). As in
+    Composer, where the two can't be installed together, it's a conflict
+    at any version, judged against what's on and settled as D-435's are:
+    the extension declaring `replace` doesn't run while one it replaces
+    is turned on, and says `Replaces SEO (is on).` Both may be
+    installed; only being on counts. So nothing an extension declares
+    stops a different one.
+  - **A `require` of a replaced package** that its own extension doesn't
+    meet (not installed, off, can't run, or at a version that doesn't
+    fit) is met by a running extension replacing it whose `replace`
+    constraint matches the requirement's, by
+    `VersionConstraint::matches()`, a port of `composer/semver`'s
+    `Constraint::matchSpecific()` and `MultiConstraint::matches()`:
+    `^2.0` is met by `self.version` 2.0.0 and `^1.0` isn't. The
+    requirement says what met it (`Seo Pro 2.0.0 replaces it`) and
+    carries `replacedBy`, with the replacer's kind, so the admin links
+    to it. Being settled with what runs, this stays monotone.
+  - **Required by** on a replacer also lists what requires a package it
+    replaces (`ExtensionState::requiredBy()`), since turning it off can
+    stop them.
+  - **Where it's read:** as `conflict` is (D-435): the manifest,
+    `extra.blush`, or the top level of `composer.json` for local
+    extensions; only the manifest or `extra.blush` for a Composer
+    package, whose top-level `replace` is Composer's.
+  - **Not a name claim:** a replaced name isn't reserved, and namespaces
+    are still checked (a fork keeping its original's namespace can't be
+    installed beside it, D-378).
+  - **Built:** `ExtensionManifest::$replace` on each kind;
+    `VersionConstraint::matches()`; `Requirements::provided()`,
+    `isReplace()`, the replaced packages as `Requirement`s marked
+    `conflict` and `replace` (so `isConflict()` leaves them out),
+    `requirement()` falling back to a replacer, and `reason()`'s third
+    sentence; `Requirement::$replace` and `$replacedBy` (in `toArray()`,
+    so every requirement in the API has `replacedBy`, empty when it's
+    met by what it names). `ExtensionState::report()` adds `replaces`.
+    Each details screen has a **Replaces** panel when the manifest has
+    `replace` (`ExtensionRequirements.vue`'s `list` prop, `requires`,
+    `conflicts`, or `replaces`, replacing D-435's `conflicts` flag). The
+    JSON Schemas have it.
+- **Checked:** `composer check` (a requirement met by a replacer, and not
+  at versions that don't match; turning the replacer off stops what it
+  met; the replacer stopping while the replaced is on, and running once
+  it's off; what requires a replaced package listed under Required by;
+  every kind reading it; a Composer pack ignoring its top-level
+  `replace`); `VersionConstraint::matches()` against `composer/semver`
+  3.4.4 from another local project, as D-429 did: all 1,296 pairs of 36
+  constraints agreed (`composer/semver` isn't a dependency);
+  `npm run admin:build`; and on the jtcom trial, `plugin:check` and
+  `doctor` unchanged. Not checked in a browser.
+- **Why:** continuing Composer parity (D-428 to D-435), with D-435's
+  rule that the declarer gives way, so one rule covers both.
+
+### D-437: A Composer package's `conflict` and `replace` count, as in Composer
+- **Date:** 2026-10-04
+- **Status:** Amends D-435 and D-436 ("only the manifest or `extra.blush`
+  for a Composer package"). D-431's skip of a Composer package's
+  top-level `require` stands.
+- **Decision:** The author expected `replace` (and so `conflict`) to be
+  read from `composer.json` 1:1, and they weren't for packages Composer
+  installed: D-435 and D-436 copied D-431's rule for `require` without
+  its reason. That reason is particular to `require`: a package's own
+  `require` names libraries, which Blush can't see and would count as
+  missing, stopping the package. It doesn't hold for the others:
+  - **`conflict`:** a library it names conflicts with nothing in Blush
+    (D-435), and an extension it names is one Composer may not see (a
+    local one in `extensions/`), so Blush enforcing it is what Composer
+    would do if it could.
+  - **`replace`:** it only meets requirements and stops the replacer
+    while an extension it names is on; a library it names is neither.
+  - So a Composer theme or pack no longer skips its `composer.json`'s
+    `conflict` and `replace` (`ThemeDiscovery`, `IconPackDiscovery`),
+    and a Composer plugin reads its package's own from `installed.json`
+    (`ComposerPluginFinder::links()`). `extra.blush`'s is used in place
+    of the package's own, as D-432's order has it. Local extensions
+    already read them (D-435, D-436).
+- **Checked:** `composer check` (a Composer pack's top-level `conflict`
+  and `replace` read; a Composer plugin's from `installed.json`, its
+  `require` still not, `extra.blush`'s winning).
+- **Why:** the author wants manifests read as Composer reads them,
+  departing only where Blush can't see what Composer sees.
+
+### D-438: `require` names libraries too, checked against what Composer installed
+- **Date:** 2026-10-04
+- **Status:** Supersedes D-431's "a Composer package's `composer.json`
+  `require` is Composer's" (a Composer theme or pack skipped it, and a
+  Composer plugin read only `extra.blush`'s) and D-392's refusing a zip
+  whose `composer.json` requires packages besides the platform. Follows
+  D-437.
+- **Decision:** The author saw no reason for `require` to be the
+  exception D-437 left. The only reason was that Blush couldn't see
+  libraries, so a library named in `require` read as a missing
+  extension and stopped the package (a local extension listing one in
+  its `composer.json` was already stopped that way). Blush now sees what
+  Composer installed, so every manifest's `require` is read 1:1:
+  - **A library** (a `vendor/name` that isn't an extension) is met when
+    the site's Composer installed it at a version that fits, as
+    `Composer\InstalledVersions::satisfies()` has it: its own version,
+    its aliases, and what packages replacing or providing it stand in
+    for, matched with `VersionConstraint::matches()` (D-436). One
+    Composer didn't install is `missing` (`isn't installed`), as before.
+    A `conflict` naming a library conflicts when Composer installed it at
+    a version that fits.
+  - **What only Composer checks is met** (the author's call): `lib-*`,
+    `composer-plugin-api`, `composer-runtime-api`, and PHP's build
+    (`php-64bit`, `php-ipv6`, `php-zts`, `php-debug`). Composer checks
+    them when it installs a package, and a site running from `vendor/`
+    has Composer; Blush can't read them reliably. They were unmet
+    (`unknown`).
+  - **Read from `vendor/composer/installed.php`** (`ComposerInstalled`),
+    the file `InstalledVersions` reads: a PHP array opcache keeps, read
+    only when a requirement or conflict names a library, and once. It's
+    injected (Bootstrap passes the site's `vendor/` to `Requirements`),
+    not Composer's static class, since there's no global state.
+    Without it (no `vendor/`, or Composer 1), nothing is installed.
+  - **Composer packages read their `require` again:** a Composer theme
+    or pack takes its `composer.json`'s, and a Composer plugin its
+    package's from `installed.json`, unless the manifest (or
+    `extra.blush`) has one (D-432's order). `ComposerJson::fill()` and
+    `ManifestFile::load()` lose their `skip`, which nothing uses now.
+  - **A zip needing a library installs,** and can't run until the
+    site's Composer installs it, saying so (`Needs guzzlehttp/guzzle
+    ^7.0 (isn't installed).`). The refusal existed so code needing a
+    missing library never loaded; an unmet requirement already keeps an
+    extension's code from loading (`autoload` runs only for one that
+    runs, D-418), so it isn't needed.
+  - **`RequirementKind`** gains `library` and `composer`; the admin's
+    requirement lists show both as names (mono), linked to nothing.
+- **Checked:** `composer check` (a library met by its version, an alias,
+  and a provider; one at a version that doesn't fit; one not installed;
+  `composer-runtime-api` and `lib-*` met; a library conflict; a Composer
+  pack's and plugin's `require` read; installing a zip that needs a
+  library, which can't run); `npm run admin:build`; and on the jtcom
+  trial, `plugin:check`, `icon-pack:check`, `theme:check`, and `doctor`
+  unchanged, the home page answering 200.
+- **Why:** the author wants manifests read as Composer reads them; the
+  one departure left was for want of seeing Composer's packages, and
+  Blush can see them.
 

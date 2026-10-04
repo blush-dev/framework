@@ -20,7 +20,6 @@ use SplFileInfo;
 use Throwable;
 use ZipArchive;
 use Blush\Core\Paths;
-use Blush\Extension\ComposerJson;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionNamespace;
@@ -58,8 +57,6 @@ use Blush\Theme\ThemeSource;
  * - its manifest doesn't pass, or its namespace is reserved or another
  *   installed extension's;
  * - Composer installed one with its name (Composer updates it);
- * - its `composer.json` requires packages besides PHP, its extensions, and
- *   Blush, since a folder extension has no `vendor/` of its own;
  * - a kind that runs code has a PHP file that doesn't parse (checked
  *   without running it).
  *
@@ -81,11 +78,6 @@ final readonly class ExtensionInstaller
 	 * The largest archive taken, in bytes, whatever PHP allows.
 	 */
 	public const int MAX_UPLOAD = 25 * 1024 * 1024;
-
-	/**
-	 * Packages a folder extension may require: they're already there.
-	 */
-	private const string PLATFORM = '#^(php|php-64bit|ext-.+|lib-.+|composer/installers|blush-dev/framework)$#';
 
 	public function __construct(
 		private Paths $paths,
@@ -374,16 +366,6 @@ final readonly class ExtensionInstaller
 			} elseif ($package->namespace === $incoming->namespace) {
 				throw new InstallException(sprintf('%s can\'t be installed: its namespace, "%s", is the %s %s\'s.', $name, $incoming->namespace, $package->kind->label(), $package->name));
 			}
-		}
-
-		$require  = ComposerJson::read($incoming->path)['require'] ?? [];
-		$packages = array_values(array_filter(
-			array_map(strval(...), array_keys(is_array($require) ? $require : [])),
-			static fn (string $package): bool => preg_match(self::PLATFORM, $package) !== 1
-		));
-
-		if ($packages !== []) {
-			throw new InstallException(sprintf('%s needs Composer packages (%s), so it has to be installed with Composer.', $name, implode(', ', $packages)));
 		}
 
 		if ($incoming->kind->runsCode()) {

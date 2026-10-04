@@ -213,8 +213,9 @@ final readonly class JsonSchemas
 						]
 					]
 				],
-				'require'     => $this->requires('What the theme needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name. When the active theme\'s chain has a requirement that isn\'t met, the default theme runs in its place. Without it, a theme in extensions/ uses the require in the composer.json beside this file.'),
-				'conflict'    => $this->requires('What the theme can\'t run with, as composer.json says it, each with the versions it can\'t: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they\'re turned on. When it conflicts with something that\'s on, its chain doesn\'t run, and the default theme runs in its place. Without it, a theme in extensions/ uses the conflict in the composer.json beside this file.')
+				'require'     => $this->requires('What the theme needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, other plugins, themes, or icon packs by vendor/name, and libraries Composer installed. When the active theme\'s chain has a requirement that isn\'t met, the default theme runs in its place. Without it, the require in the composer.json beside this file is used.'),
+				'conflict'    => $this->requires('What the theme can\'t run with, as composer.json says it, each with the versions it can\'t: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they\'re turned on. When it conflicts with something that\'s on, its chain doesn\'t run, and the default theme runs in its place. Without it, the conflict in the composer.json beside this file is used.'),
+				'replace'     => $this->requires('The packages the theme stands in for, as composer.json says it, each with the versions it stands in for (self.version for its own): a require of one is met by this theme when it runs. It can\'t be activated while one it replaces is on. Without it, the replace in the composer.json beside this file is used.')
 			],
 			'definitions' => [
 				'field'      => $this->field(),
@@ -247,8 +248,9 @@ final readonly class JsonSchemas
 					'description' => 'The class name of the plugin\'s service provider. Leave it out for a plugin without one, such as one that only loads autoload.files.'
 				],
 				'autoload'    => $this->autoload('plugin', 'Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.'),
-				'require'     => $this->requires('What the plugin needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name. A plugin whose requirements aren\'t met doesn\'t run. Without it, the require in the composer.json beside this file is used.'),
+				'require'     => $this->requires('What the plugin needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, other plugins, themes, or icon packs by vendor/name, and libraries Composer installed. A plugin whose requirements aren\'t met doesn\'t run. Without it, the require in the composer.json beside this file is used.'),
 				'conflict'    => $this->requires('What the plugin can\'t run with, as composer.json says it, each with the versions it can\'t: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they\'re turned on. A plugin that conflicts with something that\'s on doesn\'t run. Without it, the conflict in the composer.json beside this file is used.'),
+				'replace'     => $this->requires('The packages the plugin stands in for, as composer.json says it, each with the versions it stands in for (self.version for its own): a require of one is met by this plugin when it runs. It doesn\'t run while one it replaces is on. Without it, the replace in the composer.json beside this file is used.'),
 				'authors'     => $this->authors('plugin'),
 				'license'     => $this->license('plugin'),
 				...$this->links('plugin')
@@ -279,8 +281,9 @@ final readonly class JsonSchemas
 					'pattern'     => self::FOLDER_PATTERN,
 					'description' => 'The folder inside the pack its *.svg files are in, such as "svg". Defaults to the pack\'s own folder. Each {icon}.svg is {namespace}/{icon}.'
 				],
-				'require'     => $this->requires('What the pack needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name. A pack whose requirements aren\'t met doesn\'t load. Without it, a pack in extensions/ uses the require in the composer.json beside this file.'),
-				'conflict'    => $this->requires('What the pack can\'t run with, as composer.json says it, each with the versions it can\'t: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they\'re turned on. A pack that conflicts with something that\'s on doesn\'t load. Without it, a pack in extensions/ uses the conflict in the composer.json beside this file.'),
+				'require'     => $this->requires('What the pack needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, other plugins, themes, or icon packs by vendor/name, and libraries Composer installed. A pack whose requirements aren\'t met doesn\'t load. Without it, the require in the composer.json beside this file is used.'),
+				'conflict'    => $this->requires('What the pack can\'t run with, as composer.json says it, each with the versions it can\'t: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they\'re turned on. A pack that conflicts with something that\'s on doesn\'t load. Without it, the conflict in the composer.json beside this file is used.'),
+				'replace'     => $this->requires('The packages the pack stands in for, as composer.json says it, each with the versions it stands in for (self.version for its own): a require of one is met by this pack when it runs. It doesn\'t load while one it replaces is on. Without it, the replace in the composer.json beside this file is used.'),
 				'authors'     => $this->authors('icon pack'),
 				'license'     => $this->license('icon pack'),
 				...$this->links('icon pack')

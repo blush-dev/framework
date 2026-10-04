@@ -49,18 +49,17 @@ final readonly class ManifestFile
 
 	/**
 	 * Reads a folder's manifest of a kind, if it has one, filled in from
-	 * its `composer.json` (`extra.blush`, then the shared keys, but for
-	 * the ones to skip; D-418, D-432).
+	 * its `composer.json` (`extra.blush`, then the shared keys; D-418,
+	 * D-432).
 	 *
-	 * @param  list<string> $skip
 	 * @return array<string, mixed>
 	 * @throws ExtensionException When the manifest can't be parsed or isn't a map.
 	 */
-	public static function load(string $folder, ExtensionKind $kind, array $skip = []): array
+	public static function load(string $folder, ExtensionKind $kind): array
 	{
 		$file = self::find($folder, $kind)[0] ?? null;
 
-		return ComposerJson::fill($file === null ? [] : self::read($file), $folder, $skip);
+		return ComposerJson::fill($file === null ? [] : self::read($file), $folder);
 	}
 
 	/**

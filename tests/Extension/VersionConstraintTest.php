@@ -118,4 +118,32 @@ final class VersionConstraintTest extends TestCase
 	{
 		$this->assertSame($normal, VersionConstraint::normalize($version));
 	}
+
+	/**
+	 * Pairs checked against `composer/semver` 3.4.4's
+	 * `Constraint::matches()` (D-436).
+	 *
+	 * @return iterable<string, array{string, string, bool}>
+	 */
+	public static function matchingConstraints(): iterable
+	{
+		yield 'a version in a range' => ['^1.0', '1.2.0', true];
+		yield 'a version outside it' => ['^2.0', '1.2.0', false];
+		yield 'anything matches *' => ['^1.0', '*', true];
+		yield 'overlapping ranges' => ['^1.0', '^1.5', true];
+		yield 'ranges apart' => ['>=1.0 <2.0', '>=3.0', false];
+		yield 'any alternative' => ['^1.0 || ^3.0', '3.1.0', true];
+		yield 'a branch only itself' => ['dev-main', 'dev-main', true];
+		yield 'a branch never a range' => ['^1.0', 'dev-main', false];
+		yield 'not equal' => ['!=1.0', '1.0', false];
+		yield 'touching but open' => ['>=1.0', '<1.0', false];
+		yield 'touching and closed' => ['<=1.0', '>=1.0', true];
+		yield 'an invalid one' => ['not a constraint', '*', false];
+	}
+
+	#[DataProvider('matchingConstraints')]
+	public function testMatchesAnotherConstraintAsComposerDoes(string $constraint, string $provided, bool $matches): void
+	{
+		$this->assertSame($matches, VersionConstraint::matches($constraint, $provided));
+	}
 }

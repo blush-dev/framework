@@ -20,8 +20,8 @@ use JsonException;
  * a manifest may leave to it: Blush's own keys, under `extra.blush`
  * (D-432), and the keys a manifest shares with Composer's schema (D-418;
  * `authors` since D-384, `license` since D-385, and `homepage`,
- * `support`, and `funding` since D-428, `abandoned` since D-433, `suggest` since D-434, and `conflict` since
- * D-435). Its `type` may say the folder's
+ * `support`, and `funding` since D-428, `abandoned` since D-433, `suggest` since D-434, `conflict` since D-435,
+ * and `replace` since D-436). Its `type` may say the folder's
  * kind (D-432). A missing or unreadable file is nothing, and so is a key
  * of the wrong shape.
  */
@@ -33,25 +33,23 @@ final readonly class ComposerJson
 	 *
 	 * @var list<string>
 	 */
-	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'conflict', 'homepage', 'support', 'funding', 'abandoned', 'suggest'];
+	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'conflict', 'replace', 'homepage', 'support', 'funding', 'abandoned', 'suggest'];
 
 	/**
 	 * Fills in what a manifest leaves out from the `composer.json` in its
-	 * folder: first the keys in its `extra.blush`, then the shared keys,
-	 * but for the ones to skip (D-432). So a manifest's key wins over
+	 * folder: first the keys in its `extra.blush`, then the shared keys
+	 * (D-432). So a manifest's key wins over
 	 * `extra.blush`'s, which wins over `composer.json`'s own, and a folder
 	 * with no manifest file at all is described by its `composer.json`.
 	 *
-	 * A Composer package's theme or icon pack skips `require` (D-431) and
-	 * `conflict` (D-435): Composer has met its `composer.json`'s, whose
-	 * packages aren't extensions, so only its manifest's (or
-	 * `extra.blush`'s) are Blush's to check.
+	 * Every shared key is read for every extension, a Composer package's
+	 * too (D-437, D-438): Blush checks a `require` or `conflict` naming a
+	 * library against what Composer installed, as Composer does.
 	 *
 	 * @param  array<string, mixed> $data
-	 * @param  list<string>         $skip
 	 * @return array<string, mixed>
 	 */
-	public static function fill(array $data, string $folder, array $skip = []): array
+	public static function fill(array $data, string $folder): array
 	{
 		$composer = self::read($folder);
 
@@ -61,7 +59,7 @@ final readonly class ComposerJson
 			}
 		}
 
-		foreach (array_diff(self::SHARED, $skip) as $key) {
+		foreach (self::SHARED as $key) {
 			if (array_key_exists($key, $data) || ! array_key_exists($key, $composer)) {
 				continue;
 			}
@@ -71,7 +69,7 @@ final readonly class ComposerJson
 				'license' => self::license($composer['license']),
 				'abandoned' => ExtensionAbandoned::lenient($composer['abandoned']),
 				'suggest'   => ExtensionSuggest::lenient($composer['suggest']) ?: null,
-				'autoload', 'require', 'conflict' => is_array($composer[$key]) ? $composer[$key] : null,
+				'autoload', 'require', 'conflict', 'replace' => is_array($composer[$key]) ? $composer[$key] : null,
 				'homepage', 'support', 'funding' => ExtensionLinks::lenient([$key => $composer[$key]])->toArray()[$key] ?? null,
 				default   => is_string($composer[$key]) ? $composer[$key] : null
 			};

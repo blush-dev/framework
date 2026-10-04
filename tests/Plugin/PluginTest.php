@@ -126,6 +126,21 @@ final class PluginTest extends TestCase
 		$this->assertSame(['acme/blocks' => 'For blocks.'], $manifests[1]->suggest, 'extra.blush\'s wins.');
 	}
 
+	public function testReadsAComposerPluginsPackageLinks(): void
+	{
+		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode(['packages' => [
+			['name' => 'acme/one', 'type' => 'blush-plugin', 'require' => ['guzzlehttp/guzzle' => '^7.0'], 'conflict' => ['acme/old' => '<2.0'], 'replace' => ['acme/zero' => 'self.version'], 'extra' => ['blush' => ['provider' => 'Acme\One\Provider']]],
+			['name' => 'acme/two', 'type' => 'blush-plugin', 'conflict' => ['acme/old' => '*'], 'extra' => ['blush' => ['provider' => 'Acme\Two\Provider', 'conflict' => ['acme/older' => '*']]]]
+		]]));
+
+		$manifests = new ComposerPluginFinder($this->temporaryDirectory() . '/vendor')->find()->manifests;
+
+		$this->assertSame(['guzzlehttp/guzzle' => '^7.0'], $manifests[0]->require, 'Read as Composer reads it (D-438).');
+		$this->assertSame(['acme/old' => '<2.0'], $manifests[0]->conflict, 'As Composer reads it (D-437).');
+		$this->assertSame(['acme/zero' => 'self.version'], $manifests[0]->replace);
+		$this->assertSame(['acme/older' => '*'], $manifests[1]->conflict, 'extra.blush\'s wins.');
+	}
+
 	public function testWithoutALabelAPluginIsShownByItsName(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/plain/plugin.json', '{"namespace": "plain", "provider": "A\\\\B", "label": " "}');

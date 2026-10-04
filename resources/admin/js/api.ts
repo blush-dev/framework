@@ -368,6 +368,8 @@ export interface ThemeSummary {
 	requirements: ExtensionRequirement[];
 	// What it can't run with (D-435), each met when it doesn't conflict with what's on.
 	conflicts: ExtensionRequirement[];
+	// What it replaces (D-436), each met when that isn't on.
+	replaces: ExtensionRequirement[];
 	// Why it can't be activated (a theme it falls back to is missing, or a
 	// requirement in its chain isn't met), or `null`.
 	blocked: string | null;
@@ -463,13 +465,18 @@ export interface ExtensionRequirement {
 	// `blush-dev/framework`, `php`, `ext-{name}`, or another extension's `vendor/name`.
 	name: string;
 	constraint: string;
-	// `missing` is a `vendor/name` that isn't installed.
-	kind: 'blush' | 'php' | 'extension' | 'plugin' | 'theme' | 'icon-pack' | 'missing' | 'unknown';
+	// `library` is a package Composer installed that isn't an extension;
+	// `composer` is what only Composer checks (`lib-*`, `composer-runtime-api`;
+	// D-438); `missing` is a `vendor/name` that isn't installed.
+	kind: 'blush' | 'php' | 'extension' | 'plugin' | 'theme' | 'icon-pack' | 'library' | 'composer' | 'missing' | 'unknown';
 	met: boolean;
 	// What the site has: `this site runs 8.5.1`, `isn't installed`, `is turned off`, `isn't active`.
 	note: string;
 	// The required extension's label, when it's installed.
 	label: string;
+	// The extension that meets it by replacing what it names (D-436), whose
+	// kind is `kind`; empty otherwise.
+	replacedBy: string;
 }
 
 /**
@@ -526,6 +533,8 @@ export interface PluginSummary {
 	requirements: ExtensionRequirement[];
 	// What it can't run with (D-435), each met when it doesn't conflict with what's on.
 	conflicts: ExtensionRequirement[];
+	// What it replaces (D-436), each met when that isn't on.
+	replaces: ExtensionRequirement[];
 	// Why it can't run, or `null`.
 	blocked: string | null;
 	// The extensions, of every kind, that require it.
@@ -610,6 +619,8 @@ export interface IconPackSummary {
 	requirements: ExtensionRequirement[];
 	// What it can't run with (D-435), each met when it doesn't conflict with what's on.
 	conflicts: ExtensionRequirement[];
+	// What it replaces (D-436), each met when that isn't on.
+	replaces: ExtensionRequirement[];
 	// Why it can't load, or `null`.
 	blocked: string | null;
 	// The extensions, of every kind, that require it.

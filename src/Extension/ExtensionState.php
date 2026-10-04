@@ -199,7 +199,7 @@ final readonly class ExtensionState
 	 * An extension's requirements as the admin answers them, the same
 	 * for every kind: `requirements` (each checked as if it were on),
 	 * `conflicts` (D-435, each met when it doesn't conflict with what's
-	 * on),
+	 * on), `replaces` (D-436, each met when what it replaces isn't on),
 	 * `blocked` (why it can't run, or `null`), and `requiredBy` (the
 	 * extensions of every kind that require it); and `abandoned` (`false`,
 	 * `true`, or the package to use instead, D-433), with the
@@ -209,7 +209,7 @@ final readonly class ExtensionState
 	 * anything else), and the `version` the site has of either (`null`
 	 * when it has none).
 	 *
-	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>}
+	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, replacedBy: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, replacedBy: string}>, replaces: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, replacedBy: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>}
 	 */
 	public function report(ExtensionManifest $extension): array
 	{
@@ -218,6 +218,7 @@ final readonly class ExtensionState
 		return [
 			'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, static fn (Requirement $requirement): bool => ! $requirement->conflict))),
 			'conflicts'    => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, Requirements::isConflict(...)))),
+			'replaces'     => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, Requirements::isReplace(...)))),
 			'blocked'      => Requirements::met($checked) ? null : Requirements::reason($checked),
 			'requiredBy'   => array_map(self::describe(...), $this->requiredBy($extension->name)),
 			'abandoned'    => $extension->abandoned,
@@ -271,13 +272,15 @@ final readonly class ExtensionState
 
 	/**
 	 * The installed extensions, of every kind, whose `require` names an
-	 * extension.
+	 * extension, or a package it replaces (D-436).
 	 *
 	 * @return list<ExtensionManifest>
 	 */
 	public function requiredBy(string $name): array
 	{
-		return array_values(array_filter($this->installed, static fn (ExtensionManifest $other): bool => array_key_exists($name, $other->require)));
+		$names = [$name, ...array_map(strval(...), array_keys(($this->installed[$name] ?? null)->replace ?? []))];
+
+		return array_values(array_filter($this->installed, static fn (ExtensionManifest $other): bool => $other->name !== $name && array_intersect($names, array_keys($other->require)) !== []));
 	}
 
 	/**

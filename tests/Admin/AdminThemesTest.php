@@ -79,7 +79,7 @@ final class AdminThemesTest extends TestCase
 		$this->assertFalse($answer['saved'] ?? null);
 
 		$notebook = self::theme($themes, 'acme/notebook');
-		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'extensions/acme/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'license' => '(MIT and OFL-1.1)', 'licenses' => [['text' => 'MIT', 'url' => 'https://spdx.org/licenses/MIT.html', 'operator' => false], ['text' => 'and', 'url' => null, 'operator' => true], ['text' => 'OFL-1.1', 'url' => 'https://spdx.org/licenses/OFL-1.1.html', 'operator' => false]], 'links' => [['kind' => 'docs', 'url' => 'https://notebook.test/docs']], 'funding' => [], 'running' => true, 'requirements' => [], 'conflicts' => [], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => [], 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
+		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'extensions/acme/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'license' => '(MIT and OFL-1.1)', 'licenses' => [['text' => 'MIT', 'url' => 'https://spdx.org/licenses/MIT.html', 'operator' => false], ['text' => 'and', 'url' => null, 'operator' => true], ['text' => 'OFL-1.1', 'url' => 'https://spdx.org/licenses/OFL-1.1.html', 'operator' => false]], 'links' => [['kind' => 'docs', 'url' => 'https://notebook.test/docs']], 'funding' => [], 'running' => true, 'requirements' => [], 'conflicts' => [], 'replaces' => [], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => [], 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
 
 		$plate = self::theme($themes, 'acme/plate');
 		$this->assertTrue($plate['deletable'] ?? null);
@@ -153,7 +153,7 @@ final class AdminThemesTest extends TestCase
 		$future = self::theme(is_array($themes) ? $themes : [], 'acme/future');
 		$this->assertFalse($future['running'] ?? null);
 		$this->assertStringStartsWith('Needs Blush ^9.0', is_string($future['blocked'] ?? null) ? $future['blocked'] : '');
-		$this->assertSame([['name' => 'blush-dev/framework', 'constraint' => '^9.0', 'kind' => 'blush', 'met' => false, 'note' => 'this site runs 2.0.0-dev', 'label' => '']], $future['requirements'] ?? null);
+		$this->assertSame([['name' => 'blush-dev/framework', 'constraint' => '^9.0', 'kind' => 'blush', 'met' => false, 'note' => 'this site runs 2.0.0-dev', 'label' => '', 'replacedBy' => '']], $future['requirements'] ?? null);
 	}
 
 	public function testAnActiveThemeThatCantRunFallsBackToTheDefault(): void

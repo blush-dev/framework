@@ -21,7 +21,10 @@ namespace Blush\Extension;
  * that extension's `label` when it's installed.
  *
  * A `conflict` (D-435) is one too: what it names and the versions it
- * can't run with, met when the site doesn't have one of them on.
+ * can't run with, met when the site doesn't have one of them on. So is
+ * each package it `replace`s (D-436), a conflict at any version, met
+ * when that package isn't on. A requirement met by an extension that
+ * replaces what it names says which one (`replacedBy`).
  */
 final readonly class Requirement
 {
@@ -32,7 +35,9 @@ final readonly class Requirement
 		public bool $met,
 		public string $note = '',
 		public string $label = '',
-		public bool $conflict = false
+		public bool $conflict = false,
+		public bool $replace = false,
+		public string $replacedBy = ''
 	) {}
 
 	/**
@@ -42,7 +47,7 @@ final readonly class Requirement
 	 */
 	public function describe(): string
 	{
-		$constraint = $this->constraint === '*' ? '' : " {$this->constraint}";
+		$constraint = $this->constraint === '*' || $this->replace ? '' : " {$this->constraint}";
 		$extension  = $this->label !== '' ? $this->label : $this->name;
 
 		$what = match ($this->kind) {
@@ -52,6 +57,8 @@ final readonly class Requirement
 			RequirementKind::Plugin,
 			RequirementKind::Theme,
 			RequirementKind::IconPack  => $extension . $constraint,
+			RequirementKind::Library,
+			RequirementKind::Composer,
 			RequirementKind::Missing   => $this->name . $constraint,
 			RequirementKind::Unknown   => "{$this->name} {$this->constraint}"
 		};
@@ -62,7 +69,7 @@ final readonly class Requirement
 	/**
 	 * The requirement as the admin shows it.
 	 *
-	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}
+	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, replacedBy: string}
 	 */
 	public function toArray(): array
 	{
@@ -72,7 +79,8 @@ final readonly class Requirement
 			'kind'       => $this->kind->value,
 			'met'        => $this->met,
 			'note'       => $this->note,
-			'label'      => $this->label
+			'label'      => $this->label,
+			'replacedBy' => $this->replacedBy
 		];
 	}
 }

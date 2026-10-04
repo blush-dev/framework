@@ -198,17 +198,18 @@ final class IconPacksTest extends TestCase
 		$this->assertNotNull($this->scratchApplication()->container()->make(IconPacks::class)->find('acme/later'));
 	}
 
-	public function testAComposerPackChecksOnlyItsManifestsRequire(): void
+	public function testAComposerPackReadsItsComposerJsonsPackageLinks(): void
 	{
 		$this->packs();
-		$this->writeTemporaryFile('vendor/acme/arrows/composer.json', '{"name": "acme/arrows", "require": {"acme/svg-tools": "^1.0"}, "conflict": {"acme/old-svg": "*"}}');
+		$this->writeTemporaryFile('vendor/acme/arrows/composer.json', '{"name": "acme/arrows", "require": {"acme/svg-tools": "^1.0"}, "conflict": {"acme/old-svg": "*"}, "replace": {"acme/old-arrows": "self.version"}}');
 		$this->writeTemporaryFile('extensions/acme/weather/composer.json', '{"require": {"blush-dev/framework": "^9.0"}, "conflict": {"acme/arrows": "<1.0"}}');
 
 		$packs = $this->app()->container()->make(IconPacks::class);
 
-		$this->assertSame([], $packs->find('acme/arrows')?->require, 'Composer met its composer.json\'s require, whose packages aren\'t extensions.');
-		$this->assertSame([], $packs->find('acme/arrows')->conflict, 'And its conflict (D-435).');
-		$this->assertArrayHasKey('acme/arrows', $packs->enabled());
+		$this->assertSame(['acme/svg-tools' => '^1.0'], $packs->find('acme/arrows')?->require, 'Read as Composer reads it (D-438).');
+		$this->assertSame(['acme/old-svg' => '*'], $packs->find('acme/arrows')->conflict, 'Its conflict and replace are read, as Composer reads them (D-437).');
+		$this->assertSame(['acme/old-arrows' => 'self.version'], $packs->find('acme/arrows')->replace);
+		$this->assertArrayNotHasKey('acme/arrows', $packs->enabled(), 'acme/svg-tools isn\'t installed, by Composer or as an extension.');
 		$this->assertSame(['blush-dev/framework' => '^9.0'], $packs->find('acme/weather')?->require, 'A folder pack takes its composer.json\'s.');
 		$this->assertSame(['acme/arrows' => '<1.0'], $packs->find('acme/weather')->conflict);
 		$this->assertArrayNotHasKey('acme/weather', $packs->enabled(), 'It\'s on, but its requirements aren\'t met (D-431).');

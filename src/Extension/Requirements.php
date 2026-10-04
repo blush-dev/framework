@@ -27,6 +27,13 @@ use Blush\Core\Framework;
  *   version that fits, and running: a plugin or pack that's on and can
  *   run, or a theme in the active chain. One that's off, or can't run
  *   itself, isn't met, so turning one off stops the ones that need it.
+ * - Another `vendor/name`: a library Composer installed, at a version
+ *   that fits as `InstalledVersions::satisfies()` has it (its own
+ *   version, aliases, and what replaces or provides it; D-438), or one
+ *   that isn't installed, which isn't met.
+ * - `lib-*`, `composer-plugin-api`, `composer-runtime-api`, and PHP's
+ *   build (`php-64bit`, and so on): met. Composer checks them when it
+ *   installs a package, and a site running from `vendor/` has Composer.
  * - Anything else isn't met: Blush can't check it.
  *
  * Its `conflict` (D-435) is checked with them, each met unless the site
@@ -38,12 +45,46 @@ use Blush\Core\Framework;
  * requirement; a name that isn't installed, or that Blush can't check,
  * conflicts with nothing.
  *
+ * What it `replace`s (D-436) is a conflict at any version, as in
+ * Composer, where the two can't be installed together: an extension
+ * doesn't run while what it replaces is on (the one declaring it stops,
+ * as for a conflict). And a `vendor/name` that isn't met by its own
+ * extension is met by a running one that replaces it, at versions that
+ * match (`VersionConstraint::matches()`; `self.version` is the
+ * replacer's own).
+ *
  * `settle()` decides which enabled extensions run: those whose
  * requirements are met by the site and by the others that run, and that
- * conflict with nothing that's on.
+ * conflict with nothing that's on. A library a conflict names conflicts
+ * when Composer installed it at a version that fits.
  */
 final readonly class Requirements
 {
+	/**
+	 * Checks a package an extension replaces (D-436): met unless it's an
+	 * extension that's on, at any version, since the two can't run
+	 * together.
+	 *
+	 * @param array<string, ExtensionManifest> $installed
+	 * @param array<string, true>              $on
+	 */
+	private static function replaces(ExtensionManifest $extension, string $name, string $constraint, array $installed, array $on): Requirement
+	{
+		$other      = $installed[$name] ?? null;
+		$kind       = RequirementKind::of($name, $other);
+		$constraint = self::provided($extension, $name) ?? $constraint;
+
+		$note = match (true) {
+			$other === null                                       => 'isn\'t installed',
+			isset($on[$name]) && $kind === RequirementKind::Theme => 'is active',
+			isset($on[$name])                                     => 'is on',
+			$kind === RequirementKind::Theme                      => 'isn\'t active',
+			default                                               => 'is turned off'
+		};
+
+		return new Requirement($name, $constraint, $kind, ! ($other !== null && isset($on[$name])), $note, $other->label ?? '', true, true);
+	}
+
 	/**
 	 * The version of a loaded PHP extension, or `false` when it isn't.
 	 *
@@ -53,11 +94,13 @@ final readonly class Requirements
 
 	/**
 	 * @param ?Closure(string): (string|false) $extension
+	 * @param ComposerInstalled                $composer  The packages Composer installed, for libraries (D-438).
 	 */
 	public function __construct(
 		public string $blush = Framework::VERSION,
 		public string $php = PHP_VERSION,
-		?Closure $extension = null
+		?Closure $extension = null,
+		private ComposerInstalled $composer = new ComposerInstalled()
 	) {
 		$this->extension = $extension ?? static fn (string $name): string|false => extension_loaded($name) ? (phpversion($name) ?: '0.0.0') : false;
 	}
@@ -86,6 +129,12 @@ final readonly class Requirements
 			}
 		}
 
+		foreach ($extension->replace as $name => $constraint) {
+			if ($name !== $extension->name) {
+				$requirements[] = self::replaces($extension, $name, $constraint, $installed, $on);
+			}
+		}
+
 		return $requirements;
 	}
 
@@ -94,7 +143,26 @@ final readonly class Requirements
 	 */
 	public static function isConflict(Requirement $requirement): bool
 	{
-		return $requirement->conflict;
+		return $requirement->conflict && ! $requirement->replace;
+	}
+
+	/**
+	 * Whether a requirement is something an extension replaces (D-436).
+	 */
+	public static function isReplace(Requirement $requirement): bool
+	{
+		return $requirement->replace;
+	}
+
+	/**
+	 * The versions an extension stands in for a package it replaces: its
+	 * `replace` constraint, with `self.version` its own version.
+	 */
+	public static function provided(ExtensionManifest $extension, string $name): ?string
+	{
+		$constraint = $extension->replace[$name] ?? null;
+
+		return $constraint === 'self.version' ? self::version($extension) : $constraint;
 	}
 
 	/**
@@ -175,7 +243,8 @@ final readonly class Requirements
 	/**
 	 * Says why an extension can't run: `Needs Blush ^3.0 (this site runs
 	 * 2.0.0), and Shop ^2.0 (is turned off).`, then any conflicts:
-	 * `Conflicts with Shop <2.0 (version 1.5.0 is on).`
+	 * `Conflicts with Shop <2.0 (version 1.5.0 is on).`, then what it
+	 * replaces that's on: `Replaces Old SEO (is on).`
 	 *
 	 * @param list<Requirement> $requirements
 	 */
@@ -185,6 +254,7 @@ final readonly class Requirements
 		$describe  = static fn (Requirement $requirement): string => $requirement->describe();
 		$needs     = array_filter($unmet, static fn (Requirement $requirement): bool => ! $requirement->conflict);
 		$conflicts = array_filter($unmet, self::isConflict(...));
+		$replaces  = array_filter($unmet, self::isReplace(...));
 		$sentences = [];
 
 		if ($needs !== []) {
@@ -193,6 +263,10 @@ final readonly class Requirements
 
 		if ($conflicts !== []) {
 			$sentences[] = 'Conflicts with ' . implode(', and ', array_map($describe, $conflicts)) . '.';
+		}
+
+		if ($replaces !== []) {
+			$sentences[] = 'Replaces ' . implode(', and ', array_map($describe, $replaces)) . '.';
 		}
 
 		return implode(' ', $sentences);
@@ -215,6 +289,33 @@ final readonly class Requirements
 	 * @param array<string, true>              $blocked
 	 */
 	private function requirement(string $name, string $constraint, array $installed, array $running, array $blocked): Requirement
+	{
+		$requirement = $this->own($name, $constraint, $installed, $running, $blocked);
+
+		if ($requirement->met || ! in_array($requirement->kind, [RequirementKind::Plugin, RequirementKind::Theme, RequirementKind::IconPack, RequirementKind::Library, RequirementKind::Missing], true)) {
+			return $requirement;
+		}
+
+		// Met by a running extension that replaces it (D-436).
+		foreach ($installed as $replacer) {
+			$provided = self::provided($replacer, $name);
+
+			if ($provided !== null && $replacer->name !== $name && isset($running[$replacer->name]) && VersionConstraint::matches($constraint, $provided)) {
+				return new Requirement($name, $constraint, RequirementKind::for($replacer->kind()), true, sprintf('%s %s replaces it', $replacer->label, self::version($replacer)), $requirement->label, replacedBy: $replacer->name);
+			}
+		}
+
+		return $requirement;
+	}
+
+	/**
+	 * Checks one requirement against what it names itself.
+	 *
+	 * @param array<string, ExtensionManifest> $installed
+	 * @param array<string, true>              $running
+	 * @param array<string, true>              $blocked
+	 */
+	private function own(string $name, string $constraint, array $installed, array $running, array $blocked): Requirement
 	{
 		$other = $installed[$name] ?? null;
 		$kind  = RequirementKind::of($name, $other);
@@ -246,12 +347,34 @@ final readonly class Requirements
 
 				return new Requirement($name, $constraint, $kind, $met, $met ? '' : "version {$version} is loaded");
 
+			case RequirementKind::Composer:
+				return new Requirement($name, $constraint, $kind, true, 'Composer checks it');
+
 			case RequirementKind::Missing:
-				return new Requirement($name, $constraint, $kind, false, 'isn\'t installed');
+				return $this->library($name, $constraint) ?? new Requirement($name, $constraint, $kind, false, 'isn\'t installed');
 
 			default:
 				return new Requirement($name, $constraint, $kind, false, 'isn\'t something Blush can check');
 		}
+	}
+
+	/**
+	 * Checks a requirement of a library Composer installed (D-438), as
+	 * `InstalledVersions::satisfies()` does, or `null` when it didn't
+	 * install one by that name.
+	 */
+	private function library(string $name, string $constraint): ?Requirement
+	{
+		$ranges = $this->composer->ranges($name);
+
+		if ($ranges === null) {
+			return null;
+		}
+
+		$met     = VersionConstraint::matches($ranges, $constraint);
+		$version = $this->composer->version($name);
+
+		return new Requirement($name, $constraint, RequirementKind::Library, $met, $met ? '' : ($version !== null ? "version {$version} is installed" : "only {$ranges} is provided"));
 	}
 
 	/**
@@ -299,8 +422,19 @@ final readonly class Requirements
 
 				return new Requirement($name, $constraint, $kind, ! VersionConstraint::satisfies($version, $constraint), "version {$version} is loaded", conflict: true);
 
+			case RequirementKind::Composer:
+				return new Requirement($name, $constraint, $kind, true, 'Composer checks it', conflict: true);
+
 			case RequirementKind::Missing:
-				return new Requirement($name, $constraint, $kind, true, 'isn\'t installed', conflict: true);
+				$ranges = $this->composer->ranges($name);
+
+				if ($ranges === null) {
+					return new Requirement($name, $constraint, $kind, true, 'isn\'t installed', conflict: true);
+				}
+
+				$version = $this->composer->version($name);
+
+				return new Requirement($name, $constraint, RequirementKind::Library, ! VersionConstraint::matches($ranges, $constraint), $version !== null ? "version {$version} is installed" : "{$ranges} is provided", conflict: true);
 
 			default:
 				return new Requirement($name, $constraint, $kind, true, 'isn\'t something Blush can check', conflict: true);

@@ -47,14 +47,21 @@
 		},
 		"require": {
 			"type": "object",
-			"description": "What the pack needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name. A pack whose requirements aren't met doesn't load. Without it, a pack in extensions/ uses the require in the composer.json beside this file.",
+			"description": "What the pack needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, other plugins, themes, or icon packs by vendor/name, and libraries Composer installed. A pack whose requirements aren't met doesn't load. Without it, the require in the composer.json beside this file is used.",
 			"additionalProperties": {
 				"type": "string"
 			}
 		},
 		"conflict": {
 			"type": "object",
-			"description": "What the pack can't run with, as composer.json says it, each with the versions it can't: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they're turned on. A pack that conflicts with something that's on doesn't load. Without it, a pack in extensions/ uses the conflict in the composer.json beside this file.",
+			"description": "What the pack can't run with, as composer.json says it, each with the versions it can't: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name, which conflict when they're turned on. A pack that conflicts with something that's on doesn't load. Without it, the conflict in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
+		"replace": {
+			"type": "object",
+			"description": "The packages the pack stands in for, as composer.json says it, each with the versions it stands in for (self.version for its own): a require of one is met by this pack when it runs. It doesn't load while one it replaces is on. Without it, the replace in the composer.json beside this file is used.",
 			"additionalProperties": {
 				"type": "string"
 			}

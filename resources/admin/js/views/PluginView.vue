@@ -5,7 +5,8 @@
  * when it can't, a Details panel and a Requires panel of equal weight
  * (each requirement checked against the site; a required extension of
  * any kind, and one that requires it, linked, D-431), a Conflicts panel
- * when its manifest has `conflict` (D-435), a Suggests panel
+ * when its manifest has `conflict` (D-435), a Replaces panel when it
+ * has `replace` (D-436), a Suggests panel
  * when its manifest suggests anything (D-434), then **Delete
  * plugin** for a folder plugin that's off. A Composer plugin says how
  * it's removed instead, and one that's on says to turn it off first.
@@ -137,7 +138,17 @@ async function remove(): Promise<void> {
 					<p class="panel__hint">Checked against what's on</p>
 				</header>
 				<div class="panel__body">
-					<ExtensionRequirements :requirements="plugin.conflicts" conflicts />
+					<ExtensionRequirements :requirements="plugin.conflicts" list="conflicts" />
+				</div>
+			</section>
+
+			<section v-if="plugin.replaces.length" class="panel" aria-labelledby="replaces-heading">
+				<header class="panel__header">
+					<h2 id="replaces-heading">Replaces</h2>
+					<p class="panel__hint">It doesn't run while one of these is on</p>
+				</header>
+				<div class="panel__body">
+					<ExtensionRequirements :requirements="plugin.replaces" list="replaces" />
 				</div>
 			</section>
 

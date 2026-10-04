@@ -210,7 +210,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertTrue(Requirements::met($state->check($plugins[0])), 'Checked as if it were on.');
 		$this->assertSame(['acme/brands-block', 'acme/nova'], array_map(static fn ($other): string => $other->name, $state->requiredBy('acme/brands')));
 		$this->assertSame(
-			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands']], 'conflicts' => [], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => []],
+			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands', 'replacedBy' => '']], 'conflicts' => [], 'replaces' => [], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => []],
 			$state->report($plugins[0])
 		);
 	}
@@ -250,7 +250,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertFalse($state->runs('acme/sitemap'), 'What needs the one that stops stops too.');
 		$this->assertSame('Conflicts with Old-seo <2.0 (version 1.0.0 is on).', Requirements::reason($state->plugins->unmet()['acme/new-seo'] ?? []));
 		$this->assertSame(
-			[['name' => 'acme/old-seo', 'constraint' => '<2.0', 'kind' => 'plugin', 'met' => false, 'note' => 'version 1.0.0 is on', 'label' => 'Old-seo']],
+			[['name' => 'acme/old-seo', 'constraint' => '<2.0', 'kind' => 'plugin', 'met' => false, 'note' => 'version 1.0.0 is on', 'label' => 'Old-seo', 'replacedBy' => '']],
 			$state->report($plugins[0])['conflicts']
 		);
 		$this->assertSame([], $state->report($plugins[0])['requirements'], 'Conflicts are listed apart from requirements.');
@@ -311,6 +311,58 @@ final class ExtensionStateTest extends TestCase
 			new Requirement('blush-dev/framework', '^3.0', RequirementKind::Blush, false, 'this site runs 2.1.0'),
 			...$state->plugins->unmet()['acme/odd'] ?? []
 		]), 'Needs, then conflicts.');
+	}
+
+	/**
+	 * @param array<string, string> $replace
+	 */
+	private static function replacing(string $name, array $replace, string $version = '2.0.0'): PluginManifest
+	{
+		$plugin = self::plugin($name);
+
+		return new PluginManifest(name: $plugin->name, label: $plugin->label, namespace: $plugin->namespace, source: PluginSource::Local, path: $plugin->path, version: $version, replace: $replace);
+	}
+
+	public function testARequirementIsMetByWhatReplacesIt(): void
+	{
+		$plugins = [self::replacing('acme/seo-pro', ['acme/seo' => 'self.version']), self::plugin('acme/sitemap', ['acme/seo' => '^2.0']), self::plugin('acme/legacy-map', ['acme/seo' => '^1.0'])];
+
+		$state = self::settle($plugins, ['acme/seo-pro', 'acme/sitemap', 'acme/legacy-map'], [], Themes::DEFAULT);
+
+		$this->assertTrue($state->runs('acme/sitemap'));
+		$this->assertSame(
+			[['name' => 'acme/seo', 'constraint' => '^2.0', 'kind' => 'plugin', 'met' => true, 'note' => 'Seo-pro 2.0.0 replaces it', 'label' => '', 'replacedBy' => 'acme/seo-pro']],
+			$state->report($plugins[1])['requirements']
+		);
+		$this->assertFalse($state->runs('acme/legacy-map'), 'It replaces 2.0.0 only (self.version), which ^1.0 doesn\'t match.');
+		$this->assertSame(['acme/legacy-map', 'acme/sitemap'], array_map(static fn ($other): string => $other->name, $state->requiredBy('acme/seo-pro')), 'What requires what it replaces requires it.');
+
+		$off = $state->with(new PluginConfig(enabled: ['acme/sitemap']));
+
+		$this->assertFalse($off->runs('acme/sitemap'), 'Turned off, it meets nothing.');
+	}
+
+	public function testAReplacerDoesntRunWhileWhatItReplacesIsOn(): void
+	{
+		$plugins = [self::replacing('acme/seo-pro', ['acme/seo' => '*']), self::plugin('acme/seo'), self::plugin('acme/sitemap', ['acme/seo' => '^1.0'])];
+
+		$both = self::settle($plugins, ['acme/seo-pro', 'acme/seo', 'acme/sitemap'], [], Themes::DEFAULT);
+
+		$this->assertFalse($both->runs('acme/seo-pro'), 'The one declaring it stops, as for a conflict.');
+		$this->assertTrue($both->runs('acme/seo'));
+		$this->assertTrue($both->runs('acme/sitemap'), 'Met by the one it names.');
+		$this->assertSame('Replaces Seo (is on).', Requirements::reason($both->plugins->unmet()['acme/seo-pro'] ?? []));
+		$this->assertSame([], $both->report($plugins[0])['conflicts'], 'Listed as what it replaces, not as a conflict.');
+
+		$swapped = self::settle($plugins, ['acme/seo-pro', 'acme/sitemap'], [], Themes::DEFAULT);
+
+		$this->assertTrue($swapped->runs('acme/seo-pro'), 'It runs once the one it replaces is off, installed or not.');
+		$this->assertTrue($swapped->runs('acme/sitemap'));
+		$this->assertSame('acme/seo-pro', $swapped->check($plugins[2])[0]->replacedBy ?? null);
+		$this->assertSame(
+			[['name' => 'acme/seo', 'constraint' => '*', 'kind' => 'plugin', 'met' => true, 'note' => 'is turned off', 'label' => 'Seo', 'replacedBy' => '']],
+			$swapped->report($plugins[0])['replaces']
+		);
 	}
 
 	public function testReportsWhatItSuggests(): void

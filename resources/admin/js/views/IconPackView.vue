@@ -8,7 +8,8 @@
  * Details panel, a Requires panel (each requirement checked against the
  * site, as a plugin's are, D-431; one that isn't met keeps the pack from
  * turning on, or its icons from loading), a Conflicts panel when it
- * has `conflict` (D-435), a Suggests panel when it
+ * has `conflict` (D-435), a Replaces panel when it has `replace`
+ * (D-436), a Suggests panel when it
  * suggests anything (D-434), and **Delete icon pack** for a
  * folder pack. A Composer pack says how it's removed instead.
  */
@@ -238,7 +239,17 @@ async function remove(): Promise<void> {
 				<p class="panel__hint">Checked against what's on</p>
 			</header>
 			<div class="panel__body">
-				<ExtensionRequirements :requirements="pack.conflicts" conflicts />
+				<ExtensionRequirements :requirements="pack.conflicts" list="conflicts" />
+			</div>
+		</section>
+
+		<section v-if="pack && pack.replaces.length" class="panel" aria-labelledby="replaces-heading">
+			<header class="panel__header">
+				<h2 id="replaces-heading">Replaces</h2>
+				<p class="panel__hint">It adds no icons while one of these is on</p>
+			</header>
+			<div class="panel__body">
+				<ExtensionRequirements :requirements="pack.replaces" list="replaces" />
 			</div>
 		</section>
 

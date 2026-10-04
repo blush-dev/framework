@@ -87,7 +87,7 @@ final readonly class ThemeDiscovery
 					$data = $at->read();
 				} else {
 					$path = $at;
-					$data = ManifestFile::load($path, ExtensionKind::Theme, $source === ThemeSource::Composer ? ['require', 'conflict'] : []);
+					$data = ManifestFile::load($path, ExtensionKind::Theme);
 				}
 
 				if ($source === ThemeSource::Composer) {

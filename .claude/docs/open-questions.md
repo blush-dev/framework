@@ -397,37 +397,32 @@ Move each item to `decisions.md` once it's answered.
     may name the source (a stranger's package of the same name is the
     risk); picking the version the constraint allows, and that
     version's own requirements; whether it unpacks into `extensions/` as
-    a zip install does or goes through Composer (the installer refuses a
-    package that needs Composer libraries); and whether one install may
+    a zip install does or goes through Composer (since D-438 a zip that
+    needs a library installs, but can't run until Composer installs
+    the library; a `missing` name may be a library or an extension);
+    and whether one install may
     bring others, and how the admin asks first.
 - **Composer's other package links** (raised 2026-10-04; `require` is
   enforced since D-431, `suggest` is shown and `require-dev` ignored
-  since D-434, and `conflict` is enforced since D-435). The author agreed
-  to the order `replace`, then `provide`; each is still to be settled
-  before it's built:
-  - **`replace`:** for forks and renames, pairing with `abandoned`'s
-    replacement (D-433). A `require` of a replaced name is met by the
-    extension replacing it, at its own version (Composer's
-    `self.version`). A replaced name is claimed, so the replacer and the
-    replaced being installed together is the clash D-431 already reports
-    for one name across kinds.
+  since D-434, `conflict` is enforced since D-435, and `replace` since
+  D-436, each read 1:1 from a Composer package's `composer.json`, with
+  libraries checked against what Composer installed, since D-437 and
+  D-438). Left to settle before it's built:
   - **`provide`:** virtual packages, as `psr/log-implementation` is. A
     `require` of a provided name is met by any running extension that
     provides it at a fitting version, and several may provide one, so a
     provided name isn't claimed. Waits for a use: the planned
     `Blush\Ai` provider layer (D-397) is the likely first, with a plugin
-    requiring something like `blush-dev/ai-provider`. Design `replace`
-    so it fits later.
-  - **For Composer packages,** the top-level `replace` and `provide` are
-    Composer's, as a Composer theme's or pack's top-level `require` and
-    `conflict` are (D-431, D-435): Composer enforced them among the
-    packages it knows. Blush would read only `extra.blush`'s for them,
-    since what Composer can't see is local extensions.
-  - **Conflicts from the other side** (left out of D-435): an
-    extension's details could say what conflicts with *it* (as
-    **Required by** does for `require`), and turning it on could warn
-    first that it will stop the extensions declaring the conflict,
-    rather than only naming them in what stopped.
+    requiring something like `blush-dev/ai-provider`. It would meet a
+    `require` as `replace` does (D-436: `VersionConstraint::matches()`,
+    `self.version`, `replacedBy`), but without `replace`'s conflict.
+  - **For Composer packages,** read the top-level `provide` as every
+    other link is (D-437, D-438).
+  - **Conflicts from the other side** (left out of D-435 and D-436): an
+    extension's details could say what conflicts with or replaces *it*
+    (as **Required by** does for `require`), and turning it on could
+    warn first that it will stop the extensions declaring the conflict
+    or replacing it, rather than only naming them in what stopped.
 - **Requiring components to be registered** (D-266's direction): how
   a template-only component registers without PHP (a JSON file beside
   the template, with its text in the catalog?), and what happens to
