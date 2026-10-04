@@ -1003,7 +1003,7 @@ theme it falls back to.
   its `theme:activate` command, and in development, **Preview on the site** opens the site
   with that theme (`?theme={name}`, see [Themes](themes.md)).
 - **Delete theme** (in the menu) removes a theme's folder from
-  `user/themes`, after asking. The active theme, and any theme it falls
+  `extensions/`, after asking. The active theme, and any theme it falls
   back to, can't be deleted; activate another first. Themes installed
   with Composer are removed with `composer remove`, and the default
   theme can't be removed. A theme that fell back to the one you deleted
@@ -1045,7 +1045,7 @@ straight away, and a message says so, naming any other plugins that
 started or stopped with it (the ones that [require](extending.md#requirements)
 it). What a plugin adds shows on the screens it belongs to, not here.
 
-A plugin in `user/plugins` is off until it's turned on here or named in
+A plugin in `extensions/` is off until it's turned on here or named in
 `config/plugins.php`'s `enabled` list; a Composer plugin is on. Once
 you've used a switch, the list saved here names every plugin that's
 on, so a Composer plugin can be turned off too, and one Composer
@@ -1053,7 +1053,7 @@ installs later starts off, saying why. A plugin whose requirements aren't met ca
 turned on, and says what it needs, such as "Needs Blush ^3.0 (this site
 runs 2.1.0)." A broken plugin, whose manifest can't be read, is listed
 by its folder (or Composer package) with what's wrong, and can't be
-turned on until that's fixed; one in `user/plugins` can be deleted. The switches are saved in `user/data/settings.json`, over
+turned on until that's fixed; one in `extensions/` can be deleted. The switches are saved in `user/data/settings.json`, over
 `config/plugins.php`'s `enabled` list; once they are, the note under the
 list has **Use `config/plugins.php`'s list** to go back to it.
 
@@ -1061,7 +1061,7 @@ A plugin's name, or **Plugin details** in its **⋯** menu, opens its
 details: who made it, its version, license, folder, and namespace, the
 plugins that require it, and each of its requirements, checked against
 this site. **Delete plugin** removes a plugin's folder from
-`user/plugins` once it's off; a Composer plugin is removed with
+`extensions/` once it's off; a Composer plugin is removed with
 `composer remove` instead. **Install Plugin** installs one from a `.zip`,
 as **Install Theme** does; it arrives turned off.
 
@@ -1076,14 +1076,14 @@ on. A pack that can't be used is listed by where it was found, with the
 reason. Only icon packs are listed, not the icons themes and plugins
 carry.
 
-A pack in `user/icons` is off until it's turned on here or named in
+A pack in `extensions/` is off until it's turned on here or named in
 `config/icons.php`'s `enabled` list; a Composer pack is on. As with
 plugins, once a switch is used the saved list names every pack that's
 on, Composer's included. The switches are saved in `user/data/settings.json`, over that list, with
 **Use `config/icons.php`'s list** to go back. A pack's name, or **Icon pack details** in its menu,
 opens every icon in it, with a filter; click one to copy how it's used
 (`weather/sun`). **Delete icon pack** removes a pack's folder (or a
-broken pack's) from `user/icons`. **Install Icon Pack** installs one
+broken pack's) from `extensions/`. **Install Icon Pack** installs one
 from a `.zip`, as **Install Theme** does; it arrives turned off.
 
 ## Accounts and roles
@@ -1363,15 +1363,15 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
 | `DELETE accounts/{username}` | Remove an account; answers `204` |
 | `POST set-password` | Choose a password with a link: `{"account", "token", "password"}`; signs in and answers `204`. No account needed. A short password is a `422` (`field` `password`); a link that's expired, used, replaced, or for a suspended account is a `410`, and too many tries a `429` |
-| `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"name", "label", "namespace", "version", "description", "parent", "source", "active"}], "invalid": [{"where", "reason"}]}`. Themes are by name (`vendor/name`), the active one first, then by label; `chain` is the active theme, the themes it builds on, then `blush/default`; `invalid` names where each broken theme was found (`user/themes/{folder}`, or a package's name); `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `extensions.themes.view` |
+| `GET appearance` | The installed themes: `{"active", "chain", "config", "preview", "themes": [{"name", "label", "namespace", "version", "description", "parent", "source", "active"}], "invalid": [{"where", "reason"}]}`. Themes are by name (`vendor/name`), the active one first, then by label; `chain` is the active theme, the themes it builds on, then `blush/default`; `invalid` names where each broken theme was found (`extensions/{vendor}/{name}`, or a package's name); `config` is whether `config/theme.php` exists; `preview` is whether `?theme=` works (development only); `source` is `framework`, `local`, or `composer`. Needs `extensions.themes.view` |
 | `GET settings` | The site-wide settings, to show: `{"groups": [{"key", "title", "hint", "file", "note", "items": [{"key", "label", "value", "kind", "default", "help", "warning"}]}]}`. `kind` is `text`, `mono`, `bool` (the value is `true` or `false`), or `list`; `default` is whether it's unchanged (`null` for one that follows from others); `note` marks code with backticks. A setting the admin changes adds its `setting` (`feed.limit`, or `site.{name}` for one a field set adds), its `field` (as forms take it, with `choices` and a `caption`), the `input` the form starts from, and whether it's `saved`. A shown one may add a `link` (`{"label", "href"}`, a page on the site) or `links` (`{"label", "to"}`, admin paths). The screens are `general`, `reading`, `search`, `ai`, and `system`. Secrets are never sent. Needs `site.settings` |
-| `GET plugins` | Every installed plugin, by label: `{"plugins": [{"name", "label", "namespace", "version", "description", "authors", "license", "source", "path", "folder", "enabled", "running", "requirements", "blocked", "requiredBy", "deletable"}], "saved", "config"}`. `source` is `local` or `composer`; `path` is from the site's root, and `folder` is its folder in `user/plugins` (`null` for Composer); `enabled` is whether it's turned on, and `running` whether it runs (it doesn't when its requirements aren't met); each of `requirements` is `{"name", "constraint", "kind", "met", "note", "label"}` (`kind` is `blush`, `php`, `extension`, `plugin`, or `unknown`), checked as if it were on for one that's off; `blocked` says why it can't run, or is `null`; `requiredBy` names the plugins that require it; `deletable` is a folder plugin that isn't running. `saved` is whether the admin's list is in `settings.json`; `config` is whether `config/plugins.php` exists. Needs `extensions.plugins.view` |
+| `GET plugins` | Every installed plugin, by label: `{"plugins": [{"name", "label", "namespace", "version", "description", "authors", "license", "source", "path", "folder", "enabled", "running", "requirements", "blocked", "requiredBy", "deletable"}], "saved", "config"}`. `source` is `local` or `composer`; `path` is from the site's root, and `folder` is its folder in `extensions/` (`null` for Composer); `enabled` is whether it's turned on, and `running` whether it runs (it doesn't when its requirements aren't met); each of `requirements` is `{"name", "constraint", "kind", "met", "note", "label"}` (`kind` is `blush`, `php`, `extension`, `plugin`, or `unknown`), checked as if it were on for one that's off; `blocked` says why it can't run, or is `null`; `requiredBy` names the plugins that require it; `deletable` is a folder plugin that isn't running. `saved` is whether the admin's list is in `settings.json`; `config` is whether `config/plugins.php` exists. Needs `extensions.plugins.view` |
 | `PUT plugins/{vendor}/{name}` | Turns a plugin on or off: send `{"enabled": true}` or `false`. Saves `plugins.enabled` in `user/data/settings.json`: every plugin that's on, Composer's included, starting from what's on by default. Answers `{"enabled", "started", "stopped", "refresh"}`: the labels of other plugins that start or stop with it, and that `POST settings/refresh` should follow. A plugin `config/plugins.php`'s `enabled` list leaves out is a `409`; one whose requirements aren't met a `422`. Needs `extensions.plugins.activate` |
-| `DELETE plugins/{folder}` | Deletes a plugin's folder from `user/plugins`: `{"deleted"}`. One that's running, or that `config/plugins.php` turns on by name, is a `409`. Needs `extensions.plugins.delete` |
+| `DELETE plugins/{vendor}/{name}` | Deletes a plugin's folder from `extensions/` (a broken one's too, by its folder): `{"deleted"}`. One that's running, or that `config/plugins.php` turns on by name, is a `409`. Needs `extensions.plugins.delete` |
 | `GET icon-packs` | Every installed icon pack, by label: `{"packs": [{"name", "label", "namespace", "version", "description", "authors", "source", "path", "folder", "enabled", "deletable", "count", "icons"}], "core": {"label", "version", "count", "icons"}, "invalid": [{"where", "reason", "deletable"}], "saved", "config"}`. `count` is how many icons it has, and `icons` the first twelve, each `{"name", "svg"}` (`brands/github`; a core icon's name alone), the `svg` empty when the file is too large. `saved` is whether the admin's list is in `settings.json`; `config` is whether `config/icons.php` exists. Needs `extensions.icon-packs.view` |
 | `GET icon-packs/{vendor}/{name}`, `GET icon-packs/core` | One pack (`{"pack"}`) or the core set (`{"core"}`), with every icon. Needs `extensions.icon-packs.view` |
 | `PUT icon-packs/{vendor}/{name}` | Turns a pack on or off: send `{"enabled": true}` or `false`. Saves `icons.enabled` in `user/data/settings.json`: every pack that's on, Composer's included, starting from what's on by default. Needs `extensions.icon-packs.activate` |
-| `DELETE icon-packs/{folder}` | Deletes a pack's folder (or a broken pack's) from `user/icons`: `{"deleted"}`. Needs `extensions.icon-packs.delete` |
+| `DELETE icon-packs/{vendor}/{name}` | Deletes a pack's folder (or a broken pack's) from `extensions/`: `{"deleted"}`. Needs `extensions.icon-packs.delete` |
 | `POST themes`, `POST plugins`, `POST icon-packs` | Installs an extension from a `.zip` of its folder, sent as the multipart field `file`, with `replace` set to `1` to replace an installed one with its name. Answers `201` with `{"installed": {"name", "label", "version", "folder"}, "replaced", "backup", "refresh"}` (`replaced` is the version it replaced, or `null`; `refresh` asks for `POST settings/refresh`). One already installed, without `replace`, is a `409` with `{"clash": {"installed", "incoming"}}`; anything else that stops it is a `422` saying why, with the `kind` an archive of another kind holds. Nothing is written either way. Needs `extensions.{kind}.install`, or `.update` to replace. Each kind's list (`GET appearance`, `GET plugins`, `GET icon-packs`) also has `upload`: `{"limit", "problem"}`, the largest archive taken in bytes and why nothing can be installed |
 | `POST {themes,plugins,icon-packs}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |

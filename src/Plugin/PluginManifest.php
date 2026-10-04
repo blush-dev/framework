@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Plugin;
 
+use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionName;
@@ -21,13 +22,14 @@ use Blush\Extension\ExtensionNamespace;
 /**
  * Describes one plugin: its name (`vendor/name`, D-378), label,
  * namespace, version, service provider, where it lives, and (for local
- * plugins) the PSR-4 map Blush autoloads it with. A plugin is a manifest
- * plus a service provider (D-041).
+ * plugins) the `autoload` Blush loads it with (`psr-4` and `files`,
+ * D-418). A plugin is a manifest plus a service provider (D-041).
  *
- * `requires` maps a requirement to a version constraint, Composer style:
- * `php`, `blush`, `ext-{name}` for PHP extensions, and other plugins by
- * name (`vendor/name`). A plugin whose requirements aren't met doesn't
- * run (D-385, `PluginRequirements`).
+ * `require` maps a requirement to a version constraint, as Composer's
+ * does (D-418): `php`, Blush as `blush-dev/framework`, `ext-{name}` for
+ * PHP extensions, and other plugins by name (`vendor/name`). A plugin
+ * whose requirements aren't met doesn't run (D-385,
+ * `PluginRequirements`).
  *
  * `authors` (D-384's shape) and `license` (a string, `MIT`) say who made
  * it and how it may be used; the finders fill either from `composer.json`
@@ -42,8 +44,7 @@ final readonly class PluginManifest
 
 	/**
 	 * @param string                $provider Fully qualified class name of the plugin's service provider.
-	 * @param array<string, string> $autoload PSR-4 namespace prefix => directory relative to `$path`.
-	 * @param array<string, string> $requires Requirement => version constraint.
+	 * @param array<string, string> $require  Requirement => version constraint.
 	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 * @throws ExtensionException
 	 */
@@ -56,8 +57,8 @@ final readonly class PluginManifest
 		public string $path,
 		public string $version = '0.0.0',
 		public string $description = '',
-		public array $autoload = [],
-		public array $requires = [],
+		public Autoload $autoload = new Autoload(),
+		public array $require = [],
 		public array $authors = [],
 		public string $license = ''
 	) {
@@ -89,20 +90,12 @@ final readonly class PluginManifest
 			));
 		}
 
-		foreach ($autoload as $prefix => $directory) {
-			if (! str_ends_with($prefix, '\\') || preg_match(self::CLASS_PATTERN, rtrim($prefix, '\\')) !== 1) {
+		foreach (array_keys($autoload->psr4) as $prefix) {
+			if (preg_match(self::CLASS_PATTERN, rtrim($prefix, '\\')) !== 1) {
 				throw new ExtensionException(sprintf(
 					'Plugin "%s" autoload prefix "%s" must be a namespace ending in a backslash.',
 					$name,
 					$prefix
-				));
-			}
-
-			if ($directory === '' || str_starts_with($directory, '/') || str_contains($directory, '..')) {
-				throw new ExtensionException(sprintf(
-					'Plugin "%s" autoload directory "%s" must be a relative path inside the plugin.',
-					$name,
-					$directory
 				));
 			}
 		}
@@ -131,7 +124,8 @@ final readonly class PluginManifest
 		$source = $data['source'] ?? null;
 
 		try {
-			$authors = ExtensionAuthor::list($data['authors'] ?? []);
+			$authors  = ExtensionAuthor::list($data['authors'] ?? []);
+			$autoload = Autoload::fromArray($data['autoload'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
 		}
@@ -147,8 +141,8 @@ final readonly class PluginManifest
 			path: self::string($data, 'path'),
 			version: self::string($data, 'version', '0.0.0'),
 			description: self::string($data, 'description', ''),
-			autoload: self::map($data, 'autoload'),
-			requires: self::map($data, 'requires'),
+			autoload: $autoload,
+			require: self::map($data, 'require'),
 			authors: $authors,
 			license: self::string($data, 'license', '')
 		);
@@ -170,8 +164,8 @@ final readonly class PluginManifest
 			'path'        => $this->path,
 			'version'     => $this->version,
 			'description' => $this->description,
-			'autoload'    => $this->autoload,
-			'requires'    => $this->requires,
+			'autoload'    => $this->autoload->toArray(),
+			'require'     => $this->require,
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
 			'license'     => $this->license
 		];

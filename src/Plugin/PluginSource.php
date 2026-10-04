@@ -21,6 +21,6 @@ enum PluginSource: string
 	/** A Composer package of type `blush-plugin`, autoloaded by Composer. */
 	case Composer = 'composer';
 
-	/** A folder in `user/plugins/`, autoloaded by Blush. */
+	/** A folder in `extensions/`, autoloaded by Blush. */
 	case Local = 'local';
 }

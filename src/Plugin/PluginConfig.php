@@ -22,7 +22,7 @@ use Blush\Config\ConfigValues;
  * never what is off.
  *
  * - **By default,** a plugin Composer installed is on, and a local one
- *   (in `user/plugins`) is on only when `config/plugins.php` names it in
+ *   (in `extensions/`) is on only when `config/plugins.php` names it in
  *   `enabled`.
  * - **Once the admin saves a list** (`plugins.enabled` in
  *   `user/data/settings.json`, laid over `saved`), that list is all of

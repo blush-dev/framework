@@ -563,7 +563,8 @@ Each is recorded in `.claude/docs/decisions.md`.
     `config/icons.php` (new, `IconConfig`), with **Use
     `config/icons.php`'s list** once it's saved.
   - Broken packs are cards titled by where they were found, with no
-    glyphs, and can be deleted when they're folders in `user/icons`.
+    glyphs, and can be deleted when they're folders in `extensions/`
+    (D-418).
   - Glyphs are drawn as CSS masks of each SVG (as the icon inserter
     does), not inline markup, so nothing in a pack's files runs.
   - The details screen adds a Name row and every author (D-384, from the

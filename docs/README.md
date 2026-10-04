@@ -45,9 +45,7 @@ my-site/
     content/      Your pages and posts (Markdown, HTML, JSON, or YAML)
     media/        Images, audio, and video
     data/         Editable data: menus, regions, redirects, theme settings, content types
-    themes/       Themes you've made or installed
-    plugins/      Plugins you've made or installed
-    icons/        Icon packs you've made or installed
+  extensions/     Themes, plugins, and icon packs you've made or installed, at their names (acme/hello/)
   resources/
     views/        Template overrides for whatever theme is active
     lang/         Translations for your own components and icons (the `app` namespace)
@@ -58,18 +56,14 @@ my-site/
   bin/blush       The command-line tool
 ```
 
-The short version: **you write in `user/`, and you configure in `config/`
-and `.env`.** Everything in `storage/` is generated and safe to delete,
+The short version: **you write in `user/`, you add extensions in
+`extensions/`, and you configure in `config/` and `.env`.** Everything in `storage/` is generated and safe to delete,
 except `storage/accounts/`, which holds the admin's accounts, and
 `storage/trash/`, which holds entries deleted from the admin.
 
-`user/` holds everything that's yours: what you write, and the
-[extensions](extending.md#extensions) you add: themes, plugins, and icon
-packs. Each can be its own git repository. If you keep `user/` itself in
-git, ignore those folders there so each repository stays separate:
-
-```gitignore
-/themes/
-/plugins/
-/icons/
-```
+`user/` holds what you write: content, media, and data. Publishing (and
+its `git pull`) only ever touches `user/`, so publishing content never
+deploys code. The [extensions](extending.md#extensions) you add, themes,
+plugins, and icon packs, live in `extensions/`, each in a folder at its
+name (`extensions/acme/notebook/`), the way Composer keeps packages in
+`vendor/`. Each can be its own git repository.

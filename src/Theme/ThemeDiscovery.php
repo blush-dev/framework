@@ -13,36 +13,38 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
-use DirectoryIterator;
 use Throwable;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
-use Blush\Extension\ExtensionAuthor;
+use Blush\Extension\ComposerJson;
+use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\LocalExtension;
+use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
 use Blush\Support\ComposerPackages;
 
 /**
  * Finds every installed theme (D-034): the framework default theme,
- * Composer packages of type `blush-theme`, and folders in `user/themes`
- * (D-166). Each is known by its manifest's `name` (D-378), not its
- * folder.
+ * Composer packages of type `blush-theme`, and folders in
+ * `extensions/{vendor}/{name}` (D-418). Each is known by its manifest's
+ * `name` (D-378), which for a folder theme must be its folder's.
  * It runs before the container exists (theme providers register at boot),
  * so it reads manifests itself: `theme.json`, else `theme.yaml` or
  * `theme.yml` (D-032).
  *
- * A manifest without `authors` takes them from the `composer.json` in
- * its folder (D-384), so a package lists them once.
+ * What a manifest leaves out of the keys it shares with Composer (its
+ * `authors`, D-384, and the rest, D-418) it takes from the
+ * `composer.json` in its folder, so a package says them once.
  *
  * A Composer theme's manifest is the `theme.json` in its package, and
  * its name is the package's: a manifest without a `name` takes it, and
- * one with another name is broken. With the same name, a `user/themes`
- * theme replaces a Composer theme; nothing replaces `blush/default`, and
- * two `user/themes` folders with one name are both broken. A theme whose
- * manifest is broken is recorded as invalid, by where it was found
- * (`user/themes/{folder}`, or its package name), instead of failing
- * discovery, so one bad folder can't take the site (or the CLI that would
- * fix it) down.
+ * one with another name is broken. With the same name, a folder theme
+ * replaces a Composer theme; nothing replaces `blush/default`. A theme
+ * whose manifest is broken is recorded as invalid, by where it was found
+ * (`extensions/{vendor}/{name}`, or its package name), instead of
+ * failing discovery, so one bad folder can't take the site (or the CLI
+ * that would fix it) down.
  */
 final readonly class ThemeDiscovery
 {
@@ -69,33 +71,28 @@ final readonly class ThemeDiscovery
 			$invalid['composer'] = $error->getMessage();
 		}
 
-		if (is_dir($this->paths->themes)) {
-			$folders = [];
-
-			foreach (new DirectoryIterator($this->paths->themes) as $folder) {
-				if ($folder->isDir() && ! str_starts_with($folder->getFilename(), '.')) {
-					$folders[] = $folder->getPathname();
-				}
-			}
-
-			sort($folders);
-
-			foreach ($folders as $folder) {
-				$found[] = [$this->paths->relative($folder), $folder, ThemeSource::Local];
-			}
+		foreach (LocalExtensions::forPaths($this->paths)->of(ExtensionKind::Theme) as $extension) {
+			$found[] = [$extension->where, $extension, ThemeSource::Local];
 		}
 
 		$found[] = [Themes::DEFAULT, Framework::path('resources/themes/default'), ThemeSource::Framework];
 
 		$themes = [];
-		$local  = [];
 
-		foreach ($found as [$where, $path, $source]) {
+		foreach ($found as [$where, $at, $source]) {
 			try {
-				$data = self::read($path);
+				if ($at instanceof LocalExtension) {
+					$path = $at->path;
+					$data = $at->read();
+				} else {
+					$path = $at;
+					$data = self::read($path);
 
-				if ($data === null) {
-					continue;
+					if ($data === null) {
+						continue;
+					}
+
+					$data = ComposerJson::fill($data, $path);
 				}
 
 				if ($source === ThemeSource::Composer) {
@@ -106,17 +103,8 @@ final readonly class ThemeDiscovery
 					}
 				}
 
-				// A manifest without authors takes its composer.json's (D-384).
-				if (! array_key_exists('authors', $data)) {
-					$authors = ExtensionAuthor::fromComposer($path);
-
-					if ($authors !== []) {
-						$data['authors'] = array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $authors);
-					}
-				}
-
 				$theme = ThemeManifest::fromArray($path, $data, $source);
-			} catch (ThemeException $error) {
+			} catch (ThemeException | ExtensionException $error) {
 				$invalid[$where] = $error->getMessage();
 
 				continue;
@@ -126,18 +114,6 @@ final readonly class ThemeDiscovery
 				$invalid[$where] = sprintf('"%s" is the framework default theme\'s name.', Themes::DEFAULT);
 
 				continue;
-			}
-
-			if ($source === ThemeSource::Local && isset($local[$theme->name])) {
-				$invalid[$where]                = sprintf('%s is also named "%s".', $local[$theme->name], $theme->name);
-				$invalid[$local[$theme->name]] = sprintf('%s is also named "%s".', $where, $theme->name);
-				unset($themes[$theme->name]);
-
-				continue;
-			}
-
-			if ($source === ThemeSource::Local) {
-				$local[$theme->name] = $where;
 			}
 
 			$themes[$theme->name] = $theme;

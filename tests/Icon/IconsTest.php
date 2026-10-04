@@ -43,7 +43,7 @@ final class IconsTest extends TestCase
 
 	private function app(): Application
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
+		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/alt');\n");
 
 		$app = $this->scratchApplication();
@@ -75,10 +75,10 @@ final class IconsTest extends TestCase
 
 	public function testIconsResolveThroughTheSiteThemesExtensionsAndCore(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/icons/badge.svg', self::SVG);
-		$this->writeTemporaryFile('user/themes/alt/icons/blush/star.svg', self::SVG);
+		$this->writeTemporaryFile('extensions/acme/alt/icons/badge.svg', self::SVG);
+		$this->writeTemporaryFile('extensions/acme/alt/icons/blush/star.svg', self::SVG);
 		$this->writeTemporaryFile('resources/icons/blush/heart.svg', self::SVG);
-		$this->writeTemporaryFile('user/themes/alt/icons/blush/heart.svg', self::SVG);
+		$this->writeTemporaryFile('extensions/acme/alt/icons/blush/heart.svg', self::SVG);
 		$this->writeTemporaryFile('resources/icons/logo.svg', self::SVG);
 		$this->writeTemporaryFile('extension-icons/tabs.svg', self::SVG);
 
@@ -87,8 +87,8 @@ final class IconsTest extends TestCase
 
 		$this->assertStringEndsWith('resources/icons/blush/house.svg', $this->svg($app, 'house'));
 		$this->assertStringNotContainsString($this->temporaryDirectory(), $this->svg($app, 'house'));
-		$this->assertStringEndsWith('user/themes/alt/icons/badge.svg', $this->svg($app, 'alt/badge'));
-		$this->assertStringEndsWith('user/themes/alt/icons/blush/star.svg', $this->svg($app, 'star'));
+		$this->assertStringEndsWith('extensions/acme/alt/icons/badge.svg', $this->svg($app, 'alt/badge'));
+		$this->assertStringEndsWith('extensions/acme/alt/icons/blush/star.svg', $this->svg($app, 'star'));
 		$this->assertStringEndsWith($this->temporaryDirectory() . '/resources/icons/blush/heart.svg', $this->svg($app, 'heart'));
 		$this->assertStringEndsWith('resources/icons/logo.svg', $this->svg($app, 'app/logo'));
 		$this->assertStringEndsWith('extension-icons/tabs.svg', $this->svg($app, 'acme/tabs'));
@@ -106,7 +106,7 @@ final class IconsTest extends TestCase
 
 	public function testTheMarkupIsAccessible(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/icons/broken.svg', '<div>not svg</div>');
+		$this->writeTemporaryFile('extensions/acme/alt/icons/broken.svg', '<div>not svg</div>');
 
 		$app   = $this->app();
 		$icon  = static fn (string $name, string $label = ''): Icon => $app->container()->build(Icon::class, ['name' => $name, 'label' => $label]);
@@ -145,8 +145,8 @@ final class IconsTest extends TestCase
 
 	public function testLabelsAreTranslatedAndListed(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/icons/badge.svg', self::SVG);
-		$this->writeTemporaryFile('user/themes/alt/lang/en.json', '{"icons": {"badge": {"label": "Member badge"}}}');
+		$this->writeTemporaryFile('extensions/acme/alt/icons/badge.svg', self::SVG);
+		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"icons": {"badge": {"label": "Member badge"}}}');
 
 		$app   = $this->app();
 		$views = $app->container()->make(ViewFactory::class)->forChain($app->container()->make(ThemeResolver::class)->active());
@@ -157,7 +157,7 @@ final class IconsTest extends TestCase
 
 		$result = new CommandTester($app->container()->make(Console::class))->run('icon:list');
 
-		$this->assertMatchesRegularExpression('#\| alt/badge\s*\| Member badge\s*\| user/themes/alt/icons/badge\.svg#', $result->output);
+		$this->assertMatchesRegularExpression('#\| alt/badge\s*\| Member badge\s*\| extensions/acme/alt/icons/badge\.svg#', $result->output);
 		$this->assertMatchesRegularExpression('#\| blush/house\s*\| Home\s*\| \(core\) house\.svg#', $result->output);
 	}
 }

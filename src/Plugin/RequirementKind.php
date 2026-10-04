@@ -13,12 +13,14 @@ declare(strict_types=1);
 
 namespace Blush\Plugin;
 
+use Blush\Core\Framework;
 use Blush\Extension\ExtensionName;
 
 /**
- * What a plugin's `requires` key names (D-385): Blush itself (`blush`),
- * PHP (`php`), a PHP extension (`ext-{name}`), another plugin (its
- * `vendor/name`), or something Blush can't check.
+ * What a plugin's `require` key names (D-385, D-418): Blush itself (its
+ * package, `blush-dev/framework`), PHP (`php`), a PHP extension
+ * (`ext-{name}`), another plugin (its `vendor/name`), or something Blush
+ * can't check.
  */
 enum RequirementKind: string
 {
@@ -29,12 +31,12 @@ enum RequirementKind: string
 	case Unknown   = 'unknown';
 
 	/**
-	 * The kind a `requires` key names.
+	 * The kind a `require` key names.
 	 */
 	public static function of(string $name): self
 	{
 		return match (true) {
-			$name === 'blush'                               => self::Blush,
+			$name === Framework::PACKAGE                    => self::Blush,
 			$name === 'php'                                 => self::Php,
 			preg_match('/^ext-[A-Za-z0-9_]+$/', $name) === 1 => self::Extension,
 			ExtensionName::isValid($name)                   => self::Plugin,

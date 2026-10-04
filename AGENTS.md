@@ -76,7 +76,7 @@ namespace, and admin themes planned (D-378, D-379); and, from the themes
 sketch (`.claude/docs/admin-design/blush-themes-screen.html`), the
 Themes screen as cards with previews drawn from each theme's declared
 palette, activating a theme in `user/data/settings.json`, and deleting
-`user/themes` folders, with a details screen for each theme (D-381,
+theme folders, with a details screen for each theme (D-381,
 D-383);
 and components rendering themselves, a theme's template winning
 (D-382); and, from the extensions sketch
@@ -111,7 +111,10 @@ tree page's parent, a parent kept as a file becoming its folder's
 taxonomies (D-409); and moving a tree's page with the pages under it
 (D-410); and error pages pinned on Pages (D-411); and `position` for
 sibling order in trees and taxonomies (D-412), first on the All tab,
-with collections newest published first (D-413).
+with collections newest published first (D-413); and every local
+extension in `extensions/{vendor}/{name}` at the site's root, Composer's
+model, with manifests in Composer's shape (`require`, `autoload` with
+`files`) falling back to `composer.json` (D-418).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

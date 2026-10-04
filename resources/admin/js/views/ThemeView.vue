@@ -49,7 +49,7 @@ const installedBy = computed(() => {
 		case 'composer':
 			return 'Composer';
 		default:
-			return 'A folder in user/themes';
+			return 'A folder in extensions/';
 	}
 });
 

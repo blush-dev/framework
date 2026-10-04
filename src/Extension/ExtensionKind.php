@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
-use Blush\Core\Paths;
-
 /**
  * The kinds of extension a site installs (D-378). Each kind has its own
  * folder under `user/`, its own manifest file, and its own Composer
@@ -69,19 +67,6 @@ enum ExtensionKind: string
 			self::Plugin   => 'blush-plugin',
 			self::Theme    => 'blush-theme',
 			self::IconPack => 'blush-icons'
-		};
-	}
-
-	/**
-	 * Returns the folder the kind's local extensions live in, one folder
-	 * each.
-	 */
-	public function folder(Paths $paths): string
-	{
-		return match ($this) {
-			self::Plugin   => $paths->plugins,
-			self::Theme    => $paths->themes,
-			self::IconPack => $paths->icons
 		};
 	}
 

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
+use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionName;
@@ -48,7 +49,7 @@ final readonly class ThemeManifest
 	 * @param list<string>         $scripts Script paths, relative to the theme.
 	 * @param array<string, mixed>  $data     The whole manifest.
 	 * @param ?string               $provider A service provider class.
-	 * @param array<string, string> $autoload PSR-4 prefixes and their folders, relative to the theme.
+	 * @param Autoload              $autoload Its `psr-4` map and `files`, relative to the theme (D-418).
 	 * @param ?ThemePreview         $preview  What the admin draws its preview from, if it says.
 	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 */
@@ -65,7 +66,7 @@ final readonly class ThemeManifest
 		public array $data = [],
 		public ThemeSource $source = ThemeSource::Local,
 		public ?string $provider = null,
-		public array $autoload = [],
+		public Autoload $autoload = new Autoload(),
 		public ?ThemePreview $preview = null,
 		public array $authors = []
 	) {}
@@ -153,7 +154,8 @@ final readonly class ThemeManifest
 		}
 
 		try {
-			$authors = ExtensionAuthor::list($data['authors'] ?? []);
+			$authors  = ExtensionAuthor::list($data['authors'] ?? []);
+			$autoload = Autoload::fromArray($data['autoload'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
 		}
@@ -172,7 +174,7 @@ final readonly class ThemeManifest
 			data: $data,
 			source: $source,
 			provider: $provider,
-			autoload: self::autoload($theme, $data),
+			autoload: $autoload,
 			preview: $preview === null ? null : ThemePreview::fromArray($theme, $preview),
 			authors: $authors
 		);
@@ -275,35 +277,6 @@ final readonly class ThemeManifest
 		$value = $data[$key] ?? '';
 
 		return is_string($value) ? $value : throw new ThemeException(sprintf('The "%s" theme\'s "%s" must be a string.', $theme, $key));
-	}
-
-	/**
-	 * Reads the `autoload.psr-4` map.
-	 *
-	 * @param  array<array-key, mixed> $data
-	 * @return array<string, string>
-	 * @throws ThemeException
-	 */
-	private static function autoload(string $theme, array $data): array
-	{
-		$autoload = $data['autoload'] ?? [];
-		$map      = is_array($autoload) ? ($autoload['psr-4'] ?? []) : null;
-
-		if (! is_array($map)) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "autoload" must be {"psr-4": {"Prefix\\\\": "src/"}}.', $theme));
-		}
-
-		$psr4 = [];
-
-		foreach ($map as $prefix => $directory) {
-			if (! is_string($prefix) || ! is_string($directory) || ! ThemeChain::isValidAssetPath(trim($directory, '/'))) {
-				throw new ThemeException(sprintf('The "%s" theme\'s "autoload.psr-4" must map namespace prefixes to folders inside the theme.', $theme));
-			}
-
-			$psr4[rtrim($prefix, '\\') . '\\'] = trim($directory, '/');
-		}
-
-		return $psr4;
 	}
 
 	/**

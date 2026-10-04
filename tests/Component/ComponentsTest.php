@@ -258,10 +258,10 @@ final class ComponentsTest extends TestCase
 
 	public function testThemeAndPluginComponentsUseTheirOwnCatalogs(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
-		$this->writeTemporaryFile('user/themes/alt/lang/en.json', '{"components": {"card": {"label": "Alt card"}}}');
-		$this->writeTemporaryFile('user/plugins/hello/plugin.json', '{"name": "fixture/hello", "label": "Hello", "namespace": "hello", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Component\\\\OrphanProvider"}');
-		$this->writeTemporaryFile('user/plugins/hello/lang/en.json', '{"components": {"tabs": {"label": "Tabs"}}}');
+		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
+		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"components": {"card": {"label": "Alt card"}}}');
+		$this->writeTemporaryFile('extensions/fixture/hello/plugin.json', '{"name": "fixture/hello", "label": "Hello", "namespace": "hello", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Component\\\\OrphanProvider"}');
+		$this->writeTemporaryFile('extensions/fixture/hello/lang/en.json', '{"components": {"tabs": {"label": "Tabs"}}}');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/alt');\n");
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['fixture/hello']);\n");
 
@@ -454,8 +454,8 @@ final class ComponentsTest extends TestCase
 
 	public function testDirectivesUseTheRequestsTheme(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
-		$this->writeTemporaryFile('user/themes/alt/views/components/callout.php', 'alt callout: <?= $component->content() ?>');
+		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
+		$this->writeTemporaryFile('extensions/acme/alt/views/components/callout.php', 'alt callout: <?= $component->content() ?>');
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n:::callout\nHi\n:::\n");
 
 		$this->boot('development');
@@ -467,8 +467,8 @@ final class ComponentsTest extends TestCase
 
 	public function testComponentsOfThemesOutsideTheChainRenderThemselvesOrNothing(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'nova badge');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova/views/components/nova-badge.php', 'nova badge');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\nBefore\n\n::nova/badge\n\n::nova/stamp{text=Stamped}\n\nAfter\n");
 

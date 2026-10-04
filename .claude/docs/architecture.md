@@ -55,11 +55,11 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 - **Provider sources**, in order:
   1. Framework defaults
   2. Enabled plugins (D-041, D-378), from Composer packages and from
-     `user/plugins`, discovered and cached
+     `extensions/` (D-418), discovered and cached
   3. The active theme chain's providers
   4. The site's providers from config
 - **`Paths`:** a readonly value object for root, config, user, content, media,
-  data, themes, plugins, icons, public, resources, storage, cache, index, logs,
+  data, public, resources, storage, cache, index, logs,
   sessions, export, and vendor. Any path can be overridden (D-046), and
   `join()` confines a relative path to its base.
 - **`Env`** (`Blush\Env`, D-056): an in-house `.env` loader (read-only, no
@@ -689,7 +689,7 @@ view layer was implemented in M5 (D-103 to D-125).
 - **Context providers** (`ContextProviders`, D-114) add data to views by
   name or pattern.
 - **Themes** (`Blush\Theme`, D-105, D-115 to D-121): `ThemeDiscovery`
-  (framework, Composer `blush-theme`, and `user/themes` (D-166), before the
+  (framework, Composer `blush-theme`, and `extensions/` (D-166, D-418), before the
   container; cached in `storage/cache/themes.php`), `Themes`,
   `ThemeChain` (with its providers, registered at boot), `ThemeConfig`,
   `ThemeResolver`, `ThemeAssets` (build manifests or mtime), settings
@@ -1062,14 +1062,23 @@ and **icon packs**; **admin themes** are planned on the same pieces.
 
 - **Shared by every kind** (`Blush\Extension`): a manifest named for its
   kind (`plugin.json`, `theme.json`, `icons.json`, or `.yaml`/`.yml`;
-  `ManifestFile`, JSON wins), a folder per kind one level deep
-  (`user/plugins/{folder}`, `user/themes/{folder}`, `user/icons/{folder}`),
-  a Composer package type per kind (`blush-plugin`, `blush-theme`,
-  `blush-icons`), and whether it runs code (plugins and themes do; icon
-  packs don't, so they're the first the admin will install).
+  `ManifestFile`, JSON wins), one folder for every kind,
+  `extensions/{vendor}/{name}` (D-418; `LocalExtensions` finds a kind's
+  folders, `LocalExtension` reads one, and a folder with two kinds'
+  manifests is broken for each), a Composer package type per kind
+  (`blush-plugin`, `blush-theme`, `blush-icons`), and whether it runs
+  code (plugins and themes do; icon packs don't).
 - **Identity:** every manifest has `name`, the key (`vendor/name`,
   Composer's rule, `ExtensionName`; a Composer package's own name), and
-  `label`, the readable title. The folder is only where it lives.
+  `label`, the readable title. A local extension's folder is its name: a
+  manifest naming another is broken, saying where it belongs.
+- **Composer's schema** (D-418): the keys a manifest shares with
+  `composer.json` (`name`, `description`, `version`, `license`,
+  `authors`, `autoload`, `require`) take Composer's names and shapes, and
+  a manifest that leaves one out takes it from the `composer.json`
+  beside it (`ComposerJson::fill()`); Blush's own keys never come from
+  it. `autoload` (`Extension\Autoload`) is `psr-4` plus `files`, every
+  path inside the extension.
 - **Namespace:** every manifest declares one (`ExtensionNamespace`):
   what its components, icons, and translation domain go by. Reserved:
   `blush`, `app`, `theme`, and `default` (the default theme's). No two
@@ -1082,11 +1091,12 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   listeners, parsers, field types, cache drivers, and translations (its
   `lang/` is its namespace's domain).
   - Composer plugins keep the rest of their manifest in `composer.json`
-    `extra.blush` (`label`, `namespace`, `provider`, `requires`).
+    `extra.blush` (`label`, `namespace`, `provider`, `require`).
   - Local plugins' `plugin.json` declares name, label, namespace,
-    version, description, a PSR-4 map, the provider, requirements, and
-    optionally `authors` and `license` (else its `composer.json`'s,
-    D-385). Blush registers the autoloader (`Extension\LocalAutoloader`).
+    version, description, `autoload`, the provider, `require`, and
+    optionally `authors` and `license` (any Composer key it leaves out
+    from its `composer.json`, D-385, D-418). Blush registers the
+    autoloader and loads `files` once (`Extension\LocalAutoloader`).
   - By default a Composer plugin is on, and a local one only when
     `PluginConfig`'s `enabled` (`config/plugins.php`) names it (D-390).
     Once the admin saves a list (`plugins.enabled` in
@@ -1104,14 +1114,15 @@ and **icon packs**; **admin themes** are planned on the same pieces.
     never runs, turned on or not; `Plugins::broken()` lists them.
     Duplicate names and namespaces still fail discovery.
   - **Requirements are enforced** (D-385, `PluginRequirements`): an
-    enabled plugin runs only when its `requires` are met: `blush`, `php`,
+    enabled plugin runs only when its `require` is met: Blush as
+    `blush-dev/framework` (D-418), `php`,
     `ext-{name}`, and other plugins by `vendor/name` (installed at a
     fitting version and running), as Composer-style constraints
     (`Extension\VersionConstraint`). `Plugins` holds the ones that run,
     every installed one, and what the rest don't meet; providers register
     a plugin's requirements first.
-  - CLI: `plugin:list` and `plugin:check` (D-394); `plugin:new` is
-    planned.
+  - CLI: `plugin:list` and `plugin:check` (D-394), and `plugin:new`
+    (D-416).
 - **Themes:** see `theming.md`. Known by name everywhere (`active`,
   `parent`, `?theme=`, `/themes/{vendor}/{name}/…`,
   `resources/views/themes/{vendor}/{name}`); the default theme is
@@ -1128,20 +1139,22 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   are activated and deleted (D-381); plugins and icon packs are turned on
   and off and deleted (D-385), each saved in `user/data/settings.json`.
   **Install** takes a `.zip` (D-392).
-- **Installing** (`Extension\Install`, D-388, D-392):
-  `ExtensionInstaller` installs a `.zip` of a folder into its kind's
-  folder in `user/`, or replaces one with the same name. `ExtensionArchive`
+- **Installing** (`Extension\Install`, D-388, D-392, D-418):
+  `ExtensionInstaller` installs a `.zip` of a folder into
+  `extensions/{vendor}/{name}`, at the name its manifest (or
+  `composer.json`) gives, or replaces one with the same name. `ExtensionArchive`
   checks every entry first (no absolute paths, `..`, or links; at most
   5,000 files and 100 MB unpacked), unwraps a zip whose files sit in one
   folder, and writes entries itself. The archive is unpacked into a
-  hidden `user/{kind}/.install-…` (discovery skips hidden folders), read
+  hidden `extensions/.install-…` (discovery skips hidden folders), read
   as discovery reads a folder, and checked: its kind, manifest,
-  namespace (reserved, or claimed across kinds), a Composer install of
-  its name, `composer.json` requirements beyond the platform, and PHP
-  syntax for kinds that run code (`token_get_all(TOKEN_PARSE)`). Then
-  it's renamed into `user/{kind}/{short name}`, or swapped for the
-  installed folder (not a git checkout), the old one kept in
-  `storage/backups/{kind}/{folder}`, one per extension (D-393): rolling
+  its name held by another kind, namespace (reserved, or claimed across
+  kinds), a Composer install of its name, `composer.json` requirements
+  beyond the platform, and PHP syntax for kinds that run code
+  (`token_get_all(TOKEN_PARSE)`). Then it's renamed into
+  `extensions/{vendor}/{name}`, or swapped for the installed folder (not
+  a git checkout), the old one kept in `storage/backups/{vendor}/{name}`,
+  one per extension (D-393): rolling
   back swaps it in and keeps the version it replaces, discarding removes
   it, and deleting the extension deletes it (`ExtensionBackupController`;
   `InstalledExtensions` finds a folder extension and whether it runs).

@@ -10,7 +10,7 @@
 			"Fixture\\Hello\\": "src/"
 		}
 	},
-	"requires": {
-		"blush": "^2.0"
+	"require": {
+		"blush-dev/framework": "^2.0"
 	}
 }

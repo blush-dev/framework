@@ -15,6 +15,7 @@ namespace Blush\Admin;
 
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\LocalExtensions;
 use Blush\Icon\IconPacks;
 use Blush\Icon\IconPackSource;
 use Blush\Plugin\PluginManifest;
@@ -41,8 +42,8 @@ final readonly class InstalledExtensions
 	) {}
 
 	/**
-	 * The folder of an extension in its kind's folder in `user/`, or
-	 * `null` when there's none (it isn't installed, or Composer or the
+	 * The folder of an extension in `extensions/`, or `null` when there's
+	 * none (it isn't installed, or Composer or the
 	 * framework has it).
 	 */
 	public function folder(ExtensionKind $kind, string $name): ?string
@@ -53,7 +54,7 @@ final readonly class InstalledExtensions
 			ExtensionKind::IconPack => ($pack = $this->packs->find($name)) !== null && $pack->source === IconPackSource::Local ? $pack->path : null
 		};
 
-		return $path !== null && dirname($path) === $kind->folder($this->paths) ? $path : null;
+		return $path !== null && LocalExtensions::contains($this->paths, $path) ? $path : null;
 	}
 
 	/**

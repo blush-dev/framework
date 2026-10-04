@@ -18,7 +18,7 @@ namespace Blush\Icon;
  */
 enum IconPackSource: string
 {
-	/** A folder in `user/icons/`. */
+	/** A folder in `extensions/`. */
 	case Local = 'local';
 
 	/** A Composer package of type `blush-icons`. */

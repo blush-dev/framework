@@ -45,10 +45,10 @@ const emit = defineEmits<{
 	hop: [kind: InstallKind];
 }>();
 
-const KINDS: Record<InstallKind, { title: string; noun: string; plural: string; dir: string; path: string; capability: string; drag: string; next: string; after: string }> = {
-	'theme': { title: 'Install Theme', noun: 'theme', plural: 'Themes', dir: 'user/themes', path: '/themes', capability: 'extensions.themes', drag: 'Drag a Theme Here', next: 'Activate', after: 'and nothing is activated' },
-	'plugin': { title: 'Install Plugin', noun: 'plugin', plural: 'Plugins', dir: 'user/plugins', path: '/plugins', capability: 'extensions.plugins', drag: 'Drag a Plugin Here', next: 'Turn on', after: 'and arrives turned off' },
-	'icon-pack': { title: 'Install Icon Pack', noun: 'icon pack', plural: 'Icon Packs', dir: 'user/icons', path: '/icon-packs', capability: 'extensions.icon-packs', drag: 'Drag an Icon Pack Here', next: 'Turn on', after: 'and arrives turned off' }
+const KINDS: Record<InstallKind, { title: string; noun: string; plural: string; path: string; capability: string; drag: string; next: string; after: string }> = {
+	'theme': { title: 'Install Theme', noun: 'theme', plural: 'Themes', path: '/themes', capability: 'extensions.themes', drag: 'Drag a Theme Here', next: 'Activate', after: 'and nothing is activated' },
+	'plugin': { title: 'Install Plugin', noun: 'plugin', plural: 'Plugins', path: '/plugins', capability: 'extensions.plugins', drag: 'Drag a Plugin Here', next: 'Turn on', after: 'and arrives turned off' },
+	'icon-pack': { title: 'Install Icon Pack', noun: 'icon pack', plural: 'Icon Packs', path: '/icon-packs', capability: 'extensions.icon-packs', drag: 'Drag an Icon Pack Here', next: 'Turn on', after: 'and arrives turned off' }
 };
 
 type Phase = 'idle' | 'working' | 'done' | 'clash' | 'error';
@@ -184,7 +184,7 @@ const replaceLabel = computed(() => {
 <template>
 	<AdminModal :open="open" :title="k.title" @close="phase !== 'working' && emit('close')" @dragover="dragOver" @dragleave="dragLeave" @drop="dropped">
 		<p v-if="phase !== 'done'">
-			{{ k.plural }} are folders under <code>{{ k.dir }}/</code>. One published as a package is installed with <code>composer require vendor/name</code> instead, and Composer owns it from then on.
+			{{ k.plural }} are folders in <code>extensions/</code>, each at its name (<code>extensions/vendor/name</code>). One published as a package is installed with <code>composer require vendor/name</code> instead, and Composer owns it from then on.
 		</p>
 
 		<template v-if="phase === 'idle'">
@@ -192,7 +192,7 @@ const replaceLabel = computed(() => {
 			<div class="drop" :class="{ 'is-over': dragging }">
 				<AdminIcon name="upload" />
 				<p class="drop__heading">{{ k.drag }}</p>
-				<p class="drop__text">A .zip of the {{ k.noun }} folder. It's unpacked into <code>{{ k.dir }}/</code> {{ k.after }}.</p>
+				<p class="drop__text">A .zip of the {{ k.noun }} folder. It's unpacked into <code>extensions/</code> at the name in its manifest, {{ k.after }}.</p>
 				<button type="button" class="button button--primary" :disabled="problem !== null" @click="pick">Choose file</button>
 				<p v-if="limit > 0" class="drop__hint">Up to {{ size(limit) }} · ZIP</p>
 			</div>

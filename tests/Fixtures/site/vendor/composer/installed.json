@@ -10,7 +10,7 @@
 					"label": "Composer Plugin",
 					"namespace": "composer-plugin",
 					"provider": "Blush\\Tests\\Fixtures\\Plugin\\ComposerPluginProvider",
-					"requires": {
+					"require": {
 						"php": ">=8.5"
 					}
 				}

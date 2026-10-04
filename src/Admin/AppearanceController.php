@@ -22,6 +22,7 @@ use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -50,7 +51,7 @@ use Blush\Theme\ThemeSource;
  * its `authors` (D-384, `composer.json`'s shape);
  * its `preview` (what the admin sketches it from, or `null`); why it's
  * `blocked` from being activated (a theme it falls back to is missing,
- * or `null`); and whether it's `deletable` (a folder in `user/themes`
+ * or `null`); and whether it's `deletable` (a folder in `extensions/`
  * the active theme doesn't use). Each invalid theme has `where` it was
  * found, the `reason`, and whether it's `deletable`.
  *
@@ -113,14 +114,14 @@ final readonly class AppearanceController
 		// The active theme first, then by label.
 		usort($themes, static fn (array $a, array $b): int => [! $a['active'], $a['label']] <=> [! $b['active'], $b['label']]);
 
-		$local   = $this->paths->relative($this->paths->themes) . '/';
 		$invalid = [];
 
 		foreach ($this->themes->invalid() as $where => $reason) {
+			$name      = LocalExtensions::nameAt($this->paths, $where);
 			$invalid[] = [
 				'where'     => $where,
 				'reason'    => $reason,
-				'deletable' => str_starts_with($where, $local) && ! str_contains(substr($where, strlen($local)), '/') && is_dir("{$this->paths->themes}/" . substr($where, strlen($local)))
+				'deletable' => $name !== null && is_dir(LocalExtensions::path($this->paths, $name))
 			];
 		}
 

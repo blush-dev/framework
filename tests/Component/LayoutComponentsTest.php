@@ -125,7 +125,7 @@ final class LayoutComponentsTest extends TestCase
 
 	public function testTheyRenderFromMarkdownInAnyTheme(): void
 	{
-		$this->writeTemporaryFile('user/themes/bare/theme.json', '{"name": "acme/bare", "label": "Bare", "namespace": "bare"}');
+		$this->writeTemporaryFile('extensions/acme/bare/theme.json', '{"name": "acme/bare", "label": "Bare", "namespace": "bare"}');
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
 			title: Home

@@ -62,6 +62,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | Command | What it does |
 |---|---|
 | `plugin:list` | List installed [plugins](extending.md#plugins) (name, label, namespace, version, source) and whether each is on, off, or turned on but unable to run, and any that are broken |
+| `plugin:new <name>` | Create a plugin named `vendor/name` in `extensions/{vendor}/{name}`: a `plugin.json` and an empty service provider in `src/`. `--label=` titles it, `--namespace=` sets its namespace (both default from the part after `/`), and `--php-namespace=` sets its classes' PHP namespace (default: the name in StudlyCase, so `acme/hello-world` is `Acme\HelloWorld`). Its name and namespace can't be any installed plugin's, theme's, or icon pack's. It's off until you [turn it on](extending.md#turning-extensions-on). |
 | `plugin:check [name]` | Check every plugin's manifest and [requirements](extending.md#requirements), or one plugin's, by name. One that's off is checked as if it were on. A plugin that's turned on but can't run fails the command; one that's off is a warning. |
 
 ## Themes
@@ -70,7 +71,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 |---|---|
 | `theme:list` | List installed themes (name, label, namespace, version, parent, source), which is active, and any that are broken |
 | `theme:activate <name>` | Switch themes, by name (`theme:activate acme/notebook`), in `config/theme.php`; clears a theme activated in the admin |
-| `theme:new <name>` | Create a theme named `vendor/name` in `user/themes/{name}`. `--label=` titles it, `--namespace=` sets its namespace (both default from the part after `/`), and `--parent=` builds it on another theme, by name. Its `theme.json` points editors at the [schema](themes.md#autocomplete-in-your-editor). |
+| `theme:new <name>` | Create a theme named `vendor/name` in `extensions/{vendor}/{name}`. `--label=` titles it, `--namespace=` sets its namespace (both default from the part after `/`), and `--parent=` builds it on another theme, by name. Its name and namespace can't be any installed plugin's, theme's, or icon pack's. Its `theme.json` points editors at the [schema](themes.md#autocomplete-in-your-editor). |
 | `theme:check [name]` | Check a theme's manifest, settings, components, menus and regions, and accessibility basics. `--strict` shows notices too. |
 | `theme:why <view>` | Show which file a template name uses, such as `theme:why single-post` |
 | `menu:list` | List your theme's menu locations, the [menu](menus.md) each shows, and any items that can't be shown. `--theme=` lists another theme's, by name. |

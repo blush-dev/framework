@@ -4,7 +4,7 @@ Decisions: D-009, D-010, D-020 through D-035, and D-102 through D-125 (M5).
 Unresolved items are listed at the bottom.
 
 **Status:** M5a and M5b (D-102 to D-121) implemented everything here except
-image derivatives (`image()`) and `requires` enforcement. Menus and
+image derivatives (`image()`) and `require` enforcement. Menus and
 regions came later (D-199 to D-204). M5c (D-122 to D-124) added the feed and sitemap templates.
 
 ## Principles
@@ -22,11 +22,12 @@ regions came later (D-199 to D-204). M5c (D-122 to D-124) added the feed and sit
 
 ## Anatomy
 
-The smallest valid theme (only `name` is required; `styles` defaults to
-`["style.css"]`, D-105):
+The smallest valid theme (`name`, `label`, and `namespace` are required,
+`name` possibly from its `composer.json`; `styles` defaults to
+`["style.css"]`, D-105, D-378, D-418):
 ```
-user/themes/minimal/
-  theme.json        { "name": "Minimal", "version": "1.0.0" }
+extensions/acme/minimal/
+  theme.json        { "name": "acme/minimal", "label": "Minimal", "namespace": "minimal" }
   style.css
 ```
 Every template and component it doesn't provide falls back to the framework
@@ -34,7 +35,7 @@ default theme.
 
 A full theme:
 ```
-user/themes/nova/
+extensions/acme/nova/
   theme.json        Manifest, settings schema, image sizes, menus, regions
   views/
     layouts/        base.php, …
@@ -49,12 +50,15 @@ user/themes/nova/
   screenshot.webp
 ```
 
-Themes live in `user/themes/{folder}`, each optionally its own repo
-(D-166, D-167). Composer-installed themes may live in `vendor/` (D-034).
-A theme is one kind of extension (D-378): it's known by its manifest's
-`name` (`vendor/name`), not its folder, and its components, icons, and
-catalog keys go by its declared `namespace`. With the same name,
-`user/themes` beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
+Themes live in `extensions/{vendor}/{name}`, a folder at their name,
+each optionally its own repo (D-166, D-167, D-418). Composer-installed
+themes may live in `vendor/` (D-034). A theme is one kind of extension
+(D-378): it's known by its manifest's `name` (`vendor/name`), which must
+be its folder's, and its components, icons, and catalog keys go by its
+declared `namespace`. Keys it shares with `composer.json` (`name`,
+`description`, `version`, `license`, `authors`, `autoload`, `require`)
+fall back to the one beside it; `autoload` takes `psr-4` and `files`.
+With the same name, `extensions/` beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
 exist (D-032).
 
 ### `theme.json`
@@ -66,7 +70,7 @@ exist (D-032).
 	"namespace": "nova",
 	"version": "1.0.0",
 	"parent": null,
-	"requires": { "blush": "^2.0", "features": ["search"] },
+	"require": { "blush-dev/framework": "^2.0" },
 	"styles": ["style.css"],
 	"imageSizes": { "card": [640, 360, "crop"], "wide": [1600, 0] },
 	"menus": {
@@ -142,7 +146,7 @@ site overrides (resources/views, config, user/data)
 
 | Layer | Where | Who edits |
 |---|---|---|
-| Theme defaults | `user/themes/{folder}/theme.json` | Theme author |
+| Theme defaults | `extensions/{vendor}/{name}/theme.json` | Theme author |
 | Site code config | `config/theme.php` → `ThemeConfig` (active theme, component overrides) | Developer |
 | Site data | `user/data/theme.json` (setting values, location maps), `user/data/menus/`, `user/data/regions/` | Site owner, later the admin |
 | Admin settings | `user/data/settings.json`'s `theme.active` (D-381), over `config/theme.php`; `theme:activate` clears it | Site owner, through the admin's Themes screen |

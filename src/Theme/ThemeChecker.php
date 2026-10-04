@@ -42,7 +42,7 @@ use Blush\View\Views;
  *   site menu and region files or items that are invalid or don't
  *   resolve (D-199, D-201); a layout without `<header>` or `<footer>`,
  *   or with other than one `<h1>`.
- * - **Notices:** `requires` entries, which aren't enforced yet; the
+ * - **Notices:** `require` entries, which aren't enforced yet; the
  *   theme's registered components without a translated label; site
  *   menus and regions no location shows.
  *
@@ -110,8 +110,8 @@ final readonly class ThemeChecker
 			$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider %s isn\'t a service provider class (check its "autoload").', $theme->name, $theme->provider));
 		}
 
-		if (isset($theme->data['requires'])) {
-			$problems[] = new Violation('requires', sprintf('The "%s" theme\'s "requires" isn\'t checked yet.', $theme->name), Severity::Notice);
+		if (isset($theme->data['require'])) {
+			$problems[] = new Violation('require', sprintf('The "%s" theme\'s "require" isn\'t checked yet.', $theme->name), Severity::Notice);
 		}
 
 		return $problems;

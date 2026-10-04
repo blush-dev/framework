@@ -19,7 +19,7 @@ use Blush\Support\PhpArrayFile;
 /**
  * Compiles discovered plugins, broken ones included (D-394), to a PHP
  * file, so production requests don't scan `installed.json` or
- * `user/plugins` (D-041, D-044).
+ * `extensions/` (D-041, D-044).
  */
 final readonly class PluginCache
 {

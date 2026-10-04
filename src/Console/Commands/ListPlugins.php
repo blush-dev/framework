@@ -20,7 +20,7 @@ use Blush\Plugin\PluginConfig;
 use Blush\Plugin\Plugins;
 
 /**
- * Lists the installed plugins, from Composer and `user/plugins`, with
+ * Lists the installed plugins, from Composer and `extensions/`, with
  * whether each is on, off, or turned on but unable to run (its
  * requirements unmet, D-385), and any broken manifests (D-394).
  */

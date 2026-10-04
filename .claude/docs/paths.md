@@ -121,25 +121,23 @@ site/
   nginx.conf.example    Sample nginx server block, root at public/ (D-072)
   bin/blush             Site CLI (name will follow the product name)
   config/               Typed config objects (app, content, cache, theme, …); never under user/ (D-039)
-  user/                 What the owner writes or installs, like wp-content (D-166). May be
-                        its own repo that ignores themes/ and extensions/
+  extensions/           Every local extension, of every kind, at its name (D-418):
+                        {vendor}/{name}/ holding one kind's manifest (plugin.*, theme.*,
+                        or icons.*; two kinds is broken), each optionally its own repo.
+                        The folder must be the manifest's name (or its composer.json's).
+                        Composer extensions live in vendor/. A built theme keeps sources
+                        in resources/ (never served), its build in public/, and its build
+                        config (package.json, vite.config.js) at its root (D-155, D-167);
+                        admin themes are planned as a fourth kind
+  user/                 What the owner writes (D-166, D-418): what publishing pulls, so no
+                        code. May be its own repo
     content/            Markdown, HTML, and data entries
-    media/              Uploaded and co-located media
+    media/              Uploaded media
     data/               Other user data: menus/ and regions/ (one file each, D-199, D-201),
                         redirects, theme.json, types/ (D-042), media/ (metadata
                         mirroring media paths, planned, D-238); JSON or YAML;
                         settings.json, the admin's saved settings by config section
                         (JSON only, D-324, D-325)
-    themes/             Local themes, each optionally its own repo (Composer themes may
-                        live in vendor/). A built theme keeps sources in {folder}/resources/
-                        (never served), its build in {folder}/public/, and its build
-                        config (package.json, vite.config.js) in {folder}/ (D-155, D-167)
-    plugins/            Local plugins (D-378; was extensions/), {folder}/plugin.json each,
-                        optionally its own repo (Composer plugins live in vendor/)
-                        Each extension kind has a folder, one level deep, named
-                        for nothing but where it lives (its manifest's name is
-                        its key); admin-themes/ is planned
-    icons/              Local icon packs (D-378), {folder}/icons.json and SVGs each
   public/               Web root: index.php, .htaccess, and published assets ONLY
                         (themes/, and media at MediaConfig::$url, D-099). Relocatable
                         (e.g. cPanel public_html, D-046)
@@ -165,5 +163,7 @@ site/
     trash/              One folder per deleted entry, {Ymd-His}-{6 hex}/: trash.json (entry,
                         bundle, trashed) and the file or bundle folder at user/content/...
                         (D-228, D-237; older folders have no manifest); never cleared
+    backups/            {vendor}/{name}/, the version replacing an extension kept, one each
+                        (D-392, D-393, D-418)
   tests/
 ```

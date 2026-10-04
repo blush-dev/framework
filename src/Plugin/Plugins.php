@@ -20,7 +20,7 @@ use Blush\Extension\ExtensionException;
  * one, and the broken ones. Bound in the container, so commands like
  * `plugin:list` and the admin can inspect them.
  *
- * An enabled plugin whose `requires` aren't met doesn't run (D-385); it's
+ * An enabled plugin whose `require` aren't met doesn't run (D-385); it's
  * kept with the requirements it doesn't meet (`unmet()`). A broken one
  * never runs, turned on or not (D-394; `broken()`).
  */
@@ -179,7 +179,7 @@ final readonly class Plugins
 			// Marked first, so a requirement that loops back ends here.
 			$ordered[$manifest->name] = null;
 
-			foreach (array_keys($manifest->requires) as $name) {
+			foreach (array_keys($manifest->require) as $name) {
 				if (isset($this->manifests[$name])) {
 					$visit($this->manifests[$name]);
 				}

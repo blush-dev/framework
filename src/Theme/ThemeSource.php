@@ -24,7 +24,7 @@ enum ThemeSource: string
 	case Framework = 'framework';
 
 	/**
-	 * A folder in `user/themes`.
+	 * A folder in `extensions/`.
 	 */
 	case Local = 'local';
 

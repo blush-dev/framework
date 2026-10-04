@@ -10417,7 +10417,8 @@ decision, add a new entry that supersedes it and mark the old one
   D-041's naming (its
   "extensions" are now **plugins**) and D-171's rule for where a theme's
   or extension's component namespace comes from; amends D-058 and
-  D-187. D-020 stands (themes add no content types, routes, or
+  D-187. Its "one folder per kind" is superseded by D-418: every
+  kind lives in `extensions/{vendor}/{name}`. D-020 stands (themes add no content types, routes, or
   commands), but themes can run PHP (a `provider`, templates).
 - **Decision:** **Extensions** is the umbrella term for everything a
   site installs. Each extension is one of a few **kinds**:
@@ -10756,6 +10757,8 @@ decision, add a new entry that supersedes it and mark the old one
 - **Date:** 2026-10-02
 - **Status:** The packs and plugins turned off (`icons.disabled`,
   `plugins.disabled`) are superseded by D-390: lists of what's on.
+  `requires` is `require`, with Blush as `blush-dev/framework`, since
+  D-418.
 - **Decision:** Builds the author's extensions sketch
   (`admin-design/blush-extensions.html`) for plugins and icon packs; its
   themes part is already built (D-381, D-383), and the author asked to
@@ -10967,7 +10970,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-388: The admin installs extensions into `user/`
 - **Date:** 2026-10-02
-- **Status:** Installing and replacing from a zip built by D-392. Amends
+- **Status:** Into `extensions/`, not `user/`, since D-418.
+  Installing and replacing from a zip built by D-392. Amends
   D-039 and D-166 and answers D-378's "how code installs from a
   browser". Where updates come from and discovery are still open. Its
   capabilities are D-389.
@@ -11100,7 +11104,9 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-392: Installing extensions from a zip
 - **Date:** 2026-10-02
 - **Status:** Backups last as long as their extension and can be
-  rolled back to since D-393.
+  rolled back to since D-393. Unpacked into `extensions/{vendor}/{name}`
+  at the manifest's name, with backups in
+  `storage/backups/{vendor}/{name}`, since D-418.
 - **Decision:** Builds D-388's installing, from the extensions sketch's
   uploader (`admin-design/blush-extensions.html`, updated by the author),
   for themes, plugins, and icon packs alike. Departures from the sketch
@@ -12004,3 +12010,138 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** a quick win the author picked from the carried-forward list
   (M6: `CacheCleared`), so plugins can purge a CDN or edge cache, and a
   hook for outgoing webhooks later.
+
+### D-416: `plugin:new`
+- **Date:** 2026-10-03
+- **Status:** Creates `extensions/{vendor}/{name}`, with `require` and
+  `blush-dev/framework`, since D-418.
+- **Decision:** `plugin:new <vendor/name>` (`CreatePlugin`), planned
+  since D-041, starts a plugin in `user/plugins/{name part}`, as
+  `theme:new` starts a theme (D-120, D-378):
+  - **Files:** `plugin.json` (`$schema`, D-206; `name`, `label`,
+    `namespace`, `version` 1.0.0, `provider`, PSR-4 `autoload` of
+    `src/`, and `requires: {"blush": "^{major}.0"}`), and
+    `src/{Name}ServiceProvider.php`, an empty `final` provider with a
+    comment pointing at the constants and `register()`/`boot()`. No
+    `composer.json`, views, or `lang/`: the smallest plugin that runs.
+  - **Options:** `--label` and `--namespace` default from the part after
+    the `/`, as for themes; `--php-namespace` defaults to both parts in
+    StudlyCase (`acme/hello-world` is `Acme\HelloWorld`), and must be a
+    valid PHP namespace (`acme/2fa` needs it).
+  - **Checks:** the name and the namespace must be free across every
+    installed extension, plugins (on or off), themes, and icon packs,
+    as installing from a zip checks (D-392; shared with `theme:new`
+    since D-417); the namespace isn't
+    reserved; the folder doesn't exist (a failure, not invalid input,
+    as for themes).
+  - **Off when created** (D-390): the message says to turn it on in
+    Config → Plugins or in `config/plugins.php`'s `enabled` list. No
+    `--enable`: turning on from the CLI would need to know whether the
+    admin's saved list is in charge (D-391), which `plugin:enable`
+    could settle later.
+- **Checked:** `composer check` (the manifest and provider; off until
+  named, then running, with `plugin:check` passing; the options; taken
+  folders, names, and namespaces across kinds; reserved and non-PHP
+  names).
+- **Why:** a quick win the author picked from the roadmap's "Extension
+  kinds, what's left".
+
+### D-417: `theme:new` checks every kind, as `plugin:new` does
+- **Date:** 2026-10-03
+- **Decision:** `theme:new` checked a new theme's name and namespace
+  against themes only, so it could create a theme whose namespace a
+  plugin or icon pack has (listed as broken, since plugins come first
+  in a clash, D-378) or whose name a plugin has. Both commands now ask
+  `Extension\InstalledExtensions::clash()`, which reads every installed
+  plugin (on or off), theme, and icon pack fresh from disk and names
+  the one with the name or namespace, by kind.
+  - The zip installer keeps its own check: it also decides replacing
+    (same name, same kind) and Composer-owned names, which the commands
+    don't need.
+- **Checked:** `composer check` (`theme:new` against a plugin's name
+  and namespace and an icon pack's namespace; `plugin:new`'s checks
+  unchanged).
+- **Why:** the author asked, after `plugin:new` (D-416) showed the gap,
+  to share the check between both commands.
+
+### D-418: Extensions live in `extensions/{vendor}/{name}`, Composer-style
+- **Date:** 2026-10-03
+- **Status:** Supersedes D-378's "one folder per kind, one level deep"
+  (and its "`user/extensions/{kind}/` may come later") and D-392's "named
+  for the second half of its name"; amends D-388 (the admin installs
+  into `extensions/`, not `user/`) and D-385's `requires`.
+- **Decision:** Every local extension, of every kind, lives in one
+  folder at the site's root, `extensions/`, at its name:
+  `extensions/acme/hello`, as Composer puts `acme/hello` in
+  `vendor/acme/hello`. `Paths::$extensions` replaces `themes`,
+  `plugins`, and `icons`.
+  - **The folder is the name.** A manifest's `name` (or, without one,
+    its `composer.json`'s) must match its folder; one that doesn't is
+    broken, saying where it belongs. So two local extensions can't share
+    a name, and the installer, backups, deleting, and (later) updates
+    find an extension from its name alone. Namespaces are still
+    declared and still checked across kinds (D-378, D-417): the folder
+    rules out name clashes, not namespace clashes.
+  - **One kind per folder.** The kind is the manifest present
+    (`plugin.*`, `theme.*`, `icons.*`); a folder holding more than one
+    kind's manifest is broken, for each kind it claims. A folder with no
+    manifest is skipped, as before.
+  - **Manifests follow Composer's schema where they overlap.** Keys
+    that mean what Composer's mean take Composer's names and shapes:
+    `name`, `description`, `version`, `license`, `authors`, `autoload`,
+    and `require` (was `requires`), with Blush itself as
+    `blush-dev/framework` (was `blush`). A manifest that leaves one of
+    these out takes it from the `composer.json` beside it (extending
+    D-384's `authors` and D-385's `license`). Blush's own keys (`label`,
+    `namespace`, `provider`, a theme's and a pack's keys) stay at the
+    top level and never come from `composer.json` (a Composer package
+    keeps them under `extra.blush`, as now, with `require` renamed
+    there too).
+  - **`autoload` takes `files` as well as `psr-4`,** for plugins and
+    themes: files inside the extension, loaded once when it runs
+    (Composer loads a Composer package's). Every path in `autoload`
+    must be inside the extension.
+  - **Installing from a zip** reads the manifest's `name` and unpacks
+    into `extensions/{vendor}/{name}`; the zip's own folder name doesn't
+    matter. A folder there of another kind is refused. Backups are kept
+    in `storage/backups/{vendor}/{name}`.
+  - **Root `extensions/`, not `user/extensions`:** publishing pulls
+    `user/`, and "publishing content never deploys code" holds without
+    every content repository ignoring extensions; it sits beside
+    `vendor/`, and `user/` keeps what editors make. The admin writes to
+    `extensions/` as well as `user/` and `storage/`.
+  - **No fallback** for `user/plugins`, `user/themes`, and `user/icons`:
+    2.x isn't released, and the jtcom trial moves.
+  - **Later:** updates from an API can find a local extension, and the
+    source it came from, by its name; a registry (Packagist, by package
+    type, first) is what makes a vendor name someone's (D-388's open
+    question).
+  - **Built:** `Paths::$extensions`; `Extension\LocalExtensions` (a
+    kind's folders, `path()`, `contains()`, `nameAt()`, `prune()`, which
+    removes an emptied vendor folder) and `LocalExtension` (reads a
+    folder's manifest, fills it from `composer.json`, checks its name);
+    `ComposerJson::fill()`; `Extension\Autoload` (`psr-4` prefixes must
+    end in `\`, and every path stays inside), loaded by
+    `LocalAutoloader` (`files` with `require_once`, so a reboot never
+    loads one twice); discovery of every kind through them; the
+    installer, backups, and deleting by name (`DELETE
+    {themes,plugins,icon-packs}/{vendor}/{name}`); `plugin:new` and
+    `theme:new`; and the JSON Schemas (`name` no longer required, since
+    `composer.json` may give it). The jtcom trial moved its three
+    plugins, its theme, its icon pack, and a kept backup.
+- **Checked:** `composer check` (finding each kind at its name; a
+  folder that isn't its name, and one with two kinds, broken; every
+  shared key from `composer.json` and Blush's never; `Autoload`'s shape
+  and limits; `files` loaded once, only for a plugin that runs; a site
+  booting a plugin from its folder; installing at the manifest's or
+  `composer.json`'s name whatever the zip is called, refusing a name
+  another kind has, backups by name; deleting by `vendor/name`);
+  `npm run admin:build`; and on the jtcom trial, `plugin:list`,
+  `plugin:check`, `theme:list`, `theme:check`, and `doctor`, the home
+  page and theme assets answering 200, and the kept backup found. The
+  admin's screens weren't checked in a browser.
+- **Why:** the author wants Composer's model inside Blush: one folder by
+  `vendor/name`, so names can't clash on disk (WordPress's long-standing
+  plugin and theme slug clashes), and a manifest that reads like a
+  `composer.json`.
+

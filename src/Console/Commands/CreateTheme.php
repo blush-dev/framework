@@ -22,30 +22,37 @@ use Blush\Console\Output;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionName;
+use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionNamespace;
+use Blush\Extension\InstalledExtensions;
+use Blush\Extension\LocalExtensions;
 use Blush\JsonSchema\JsonSchemas;
 use Blush\Support\Filesystem;
 use Blush\Theme\Themes;
 
 /**
- * Starts a theme in `user/themes/{folder}`: the smallest valid theme, a
- * manifest and a stylesheet (D-021). Everything else falls back to its
- * parent, or to the default theme. The theme is named `vendor/name`
- * (D-378); its folder and namespace default to the part after the `/`,
- * and its label to one made from it. The manifest points editors at the
- * framework's `theme.json` schema in `vendor` (D-206).
+ * Starts a theme in `extensions/{vendor}/{name}` (D-418): the smallest
+ * valid theme, a manifest and a stylesheet (D-021). Everything else falls
+ * back to its parent, or to the default theme. The theme is named
+ * `vendor/name` (D-378); its namespace defaults to the part after the
+ * `/`, and its label to one made from it. The name and namespace must be free
+ * across every installed extension (`InstalledExtensions`, D-417). The
+ * manifest points editors at the framework's `theme.json` schema in
+ * `vendor` (D-206).
  */
-#[Command('theme:new', 'Create a theme in user/themes.')]
+#[Command('theme:new', 'Create a theme in extensions/.')]
 final readonly class CreateTheme
 {
 	public function __construct(
 		private Themes $themes,
 		private Paths $paths,
-		private Filesystem $filesystem
+		private Filesystem $filesystem,
+		private InstalledExtensions $installed
 	) {}
 
 	/**
 	 * @throws InvalidInput
+	 * @throws ExtensionException When the installed plugins can't be read.
 	 */
 	public function __invoke(
 		Output $output,
@@ -65,19 +72,17 @@ final readonly class CreateTheme
 			throw new InvalidInput(sprintf('"%s" can\'t be a namespace; use lowercase letters, digits, "-", and "_" (and not %s). Pass --namespace.', $namespace, implode(', ', ExtensionNamespace::RESERVED)));
 		}
 
-		if ($this->themes->byNamespace($namespace) !== null) {
-			throw new InvalidInput(sprintf('The "%s" theme already has the namespace "%s"; pass another with --namespace.', $this->themes->byNamespace($namespace)->name, $namespace));
-		}
+		$clash = $this->installed->clash($name, $namespace);
 
-		if ($this->themes->has($name)) {
-			throw new InvalidInput(sprintf('A theme named "%s" is already installed.', $name));
+		if ($clash !== null) {
+			throw new InvalidInput($clash);
 		}
 
 		if ($parent !== null && ! $this->themes->has($parent)) {
 			throw new InvalidInput(sprintf('There is no "%s" theme to use as the parent.', $parent));
 		}
 
-		$folder = "{$this->paths->themes}/{$short}";
+		$folder = LocalExtensions::path($this->paths, $name);
 
 		if (file_exists($folder)) {
 			$output->error(sprintf('%s already exists.', $this->paths->relative($folder)));

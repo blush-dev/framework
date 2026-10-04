@@ -102,7 +102,7 @@ final class RegionsTest extends TestCase
 
 	public function testThemeDefaultsUntilTheSiteFillsTheRegion(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', json_encode([
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', json_encode([
 			'name'      => 'acme/nova',
 			'label'     => 'Nova',
 			'namespace' => 'nova',

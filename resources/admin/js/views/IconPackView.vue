@@ -173,7 +173,7 @@ async function remove(): Promise<void> {
 						<dt>Icons</dt>
 						<dd>{{ pack.count }}</dd>
 						<dt>Installed by</dt>
-						<dd>{{ pack.source === 'composer' ? 'Composer' : 'A folder in user/icons' }}</dd>
+						<dd>{{ pack.source === 'composer' ? 'Composer' : 'A folder in extensions/' }}</dd>
 						<dt>Folder</dt>
 						<dd>
 							<span class="mono">{{ pack.path }}</span>

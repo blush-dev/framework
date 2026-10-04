@@ -359,11 +359,24 @@ Across kinds, installed plugins (even ones turned off) come first, then
 themes, then icon packs, and the one that comes later is listed as broken
 on the admin's screens, naming who has the namespace.
 
-Each extension lives in a folder of its own under `user/`
-(`user/plugins/`, `user/themes/`, `user/icons/`); the folder's name is
-only where it lives. Each can be its own git repository. If `user/` is
-one too, ignore `plugins/`, `themes/`, and `icons/` there (see
-[the site layout](README.md#how-a-blush-site-is-laid-out)).
+Every extension you add yourself, of every kind, lives in your site's
+`extensions/` folder at its name, the way Composer keeps packages in
+`vendor/`: `acme/hello` is `extensions/acme/hello/`. So two extensions
+can't share a name on one site, and two vendors' `hello` live side by
+side. The folder must match the manifest's `name`. One that doesn't is
+listed as broken, saying where it belongs.
+
+What kind an extension is comes from its manifest: `plugin.json`,
+`theme.json`, or `icons.json` (or `.yaml`). A folder holds one kind, so
+a folder with two kinds' manifests is broken. Each extension can be its
+own git repository.
+
+Manifests use Composer's names and shapes for the keys they share with
+`composer.json`: `name`, `description`, `version`, `license`,
+`authors`, `autoload`, and `require`. A manifest that leaves one of
+those out takes it from the `composer.json` beside it, so a package says
+them once. Blush's own keys (`label`, `namespace`, `provider`, and a
+theme's or icon pack's own) always go in the manifest.
 
 The admin lists them under **Extensions** (Themes, Plugins, and Icon
 Packs), and installs them from a `.zip` (see
@@ -375,16 +388,18 @@ Packs), and installs them from a `.zip` (see
 `.zip` of an extension's folder, up to 25 MB (or less, if PHP's upload
 limit is lower). The manifest (`plugin.json`, `theme.json`, or
 `icons.json`) can be at the zip's root or inside one folder, as GitHub's
-release zips have it. It's unpacked into the kind's folder in `user/`,
-named for the second half of its name (`acme/hello` goes in
-`user/plugins/hello`). Nothing is turned on: a plugin or icon pack
-arrives off, and a theme inactive.
+release zips have it. It's unpacked into `extensions/` at the name in
+its manifest (or its `composer.json`): `acme/hello` goes in
+`extensions/acme/hello`, whatever the zip or its folder is called.
+Nothing is turned on: a plugin or icon pack arrives off, and a theme
+inactive.
 
 Blush checks the zip before anything is written, and installs nothing
 when:
 
 - it holds another kind of extension (the message names the screen it
   belongs on), or none;
+- an extension of another kind has its name;
 - a file in it would land outside its folder, or is a symbolic link, or
   it holds more than 5,000 files or 100 MB unpacked;
 - its manifest doesn't pass, or its namespace is reserved or another
@@ -399,7 +414,7 @@ when:
 A zip of an extension that's already installed offers to replace it,
 naming both versions. Replacing swaps the folder and changes nothing
 else: an active theme stays active, and a plugin that's on stays on.
-The old folder is kept in `storage/backups/{kind}/{folder}`, one per
+The old folder is kept in `storage/backups/{vendor}/{name}`, one per
 extension: the next replace overwrites it, and deleting the extension
 deletes it. A folder that's a git checkout isn't replaced; update it
 with git.
@@ -417,13 +432,13 @@ aren't met, or a theme in use whose parent theme isn't installed.
 Installing needs the kind's `extensions.{kind}.install` capability, and
 replacing its `extensions.{kind}.update` (see
 [Capabilities](accounts.md#capabilities)). The server's PHP needs the
-`zip` extension, and the web server must be able to write to the kind's
-folder; the Install modal says so when it can't.
+`zip` extension, and the web server must be able to write to
+`extensions/`; the Install modal says so when it can't.
 
 ## Turning extensions on
 
-Nothing in `user/` is on just because it's there. A plugin in
-`user/plugins` or an icon pack in `user/icons` is off until it's named,
+Nothing in `extensions/` is on just because it's there. A plugin or an
+icon pack there is off until it's named,
 either by the admin (its switch on **Config → Plugins** or **Config →
 Icon Packs**) or in config:
 
@@ -453,8 +468,10 @@ Themes work as they always have: one is active, set in
 
 ## Plugins
 
-**A local plugin** lives in `user/plugins/{folder}/`, with a
-`plugin.json` (or `plugin.yaml`):
+**A local plugin** lives in `extensions/{vendor}/{name}/`, with a
+`plugin.json` (or `plugin.yaml`). `bin/blush plugin:new acme/hello`
+starts one for you in `extensions/acme/hello/`: the manifest, and an
+empty provider in `src/HelloServiceProvider.php` to fill in.
 
 ```json
 {
@@ -465,23 +482,26 @@ Themes work as they always have: one is active, set in
 	"description": "Says hello.",
 	"provider": "Acme\\Hello\\HelloServiceProvider",
 	"autoload": {
-		"psr-4": { "Acme\\Hello\\": "src/" }
+		"psr-4": { "Acme\\Hello\\": "src/" },
+		"files": ["src/helpers.php"]
 	},
-	"requires": { "blush": "^2.0" },
+	"require": { "blush-dev/framework": "^2.0" },
 	"authors": [{ "name": "Jane Doe", "homepage": "https://example.com" }],
 	"license": "MIT"
 }
 ```
 
-`name`, `label`, `namespace`, and `provider` are required. Blush finds
-the plugin and loads its classes; no Composer step needed. It's off
-until you turn it on, in **Config → Plugins** or by naming it in
-`config/plugins.php`'s `enabled` list (see
-[Turning extensions on](#turning-extensions-on)). `authors`
-(each with a `name`, and optionally an `email`, `homepage`, and `role`,
-as in `composer.json`) and `license` are shown in the admin; leave them
-out and the `composer.json` beside `plugin.json` is used, if there is
-one.
+`name` (here or in its `composer.json`), `label`, `namespace`, and
+`provider` are required. Blush finds the plugin and loads it; no
+Composer step needed. `autoload` works as Composer's does: `psr-4` maps
+namespace prefixes (each ending in `\`) to folders, and `files` lists
+files loaded once when the plugin runs, such as helper functions. Every
+path must be inside the plugin. It's off until you turn it on, in
+**Config → Plugins** or by naming it in `config/plugins.php`'s
+`enabled` list (see [Turning extensions on](#turning-extensions-on)).
+`authors` (each with a `name`, and optionally an `email`, `homepage`,
+and `role`, as in `composer.json`) and `license` are shown in the
+admin.
 
 For autocomplete in your editor, add a `$schema` key pointing at the
 schema Blush ships (the path is relative to `plugin.json`):
@@ -509,7 +529,7 @@ under `extra.blush`:
 			"label": "Hello",
 			"namespace": "hello",
 			"provider": "Acme\\Hello\\HelloServiceProvider",
-			"requires": { "blush": "^2.0" }
+			"require": { "blush-dev/framework": "^2.0" }
 		}
 	}
 }
@@ -521,17 +541,17 @@ Every installed plugin is on. Turn one off on the admin's
 
 ### Requirements
 
-`requires` maps what a plugin needs to a Composer-style version
-constraint (`^2.0`, `~1.2`, `>=8.4`, `1.*`, `^1.0 || ^2.0`):
+`require` maps what a plugin needs to a version constraint, as
+Composer's does (`^2.0`, `~1.2`, `>=8.4`, `1.*`, `^1.0 || ^2.0`):
 
-- `blush`: the Blush version.
+- `blush-dev/framework`: the Blush version.
 - `php`: the PHP version.
 - `ext-{name}`: a PHP extension that must be loaded (`"ext-intl": "*"`).
 - Another plugin, by its name: `"acme/shop": "^2.0"` needs Shop
   installed at a version that fits, and turned on.
 
 A plugin whose requirements aren't met doesn't run, even when it's on,
-and the Plugins screen says why. Anything else in `requires` can't be
+and the Plugins screen says why. Anything else in `require` can't be
 checked, so it isn't met. Turning a plugin off also stops every plugin
 that requires it, and a plugin's requirements are loaded before it.
 `bin/blush plugin:check` checks every plugin's requirements from the
@@ -541,7 +561,7 @@ A plugin whose manifest can't be read (a `plugin.json` that doesn't
 parse, or is missing a key it needs) is broken. It never runs, even
 when it's turned on, and the rest of the site carries on without it.
 The Plugins screen, `plugin:list`, and `plugin:check` list it by where
-it was found, such as `user/plugins/hello`, with the reason.
+it was found, such as `extensions/acme/hello`, with the reason.
 
 ### Components from a plugin
 
@@ -768,7 +788,7 @@ when its readers change.
 ## Icon packs
 
 An icon pack is a set of SVG icons in a namespace of its own, with no
-code. Put it in `user/icons/{folder}/`, with an `icons.json` (or
+code. Put it in `extensions/{vendor}/{name}/`, with an `icons.json` (or
 `icons.yaml`):
 
 ```json

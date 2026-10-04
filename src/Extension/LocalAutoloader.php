@@ -20,9 +20,11 @@ use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeSource;
 
 /**
- * A PSR-4 autoloader for local plugins and themes (Composer packages
- * are autoloaded by Composer). Each prefix maps to a directory inside its extension, and a
- * class file is only loaded from inside that directory.
+ * The autoloader for local plugins and themes (Composer packages are
+ * autoloaded by Composer), from each one's `autoload` (D-418): `psr-4`
+ * prefixes, each mapped to a directory inside its extension, with a class
+ * file only loaded from inside that directory; and `files`, loaded once
+ * when it's registered.
  */
 final class LocalAutoloader
 {
@@ -34,6 +36,13 @@ final class LocalAutoloader
 	private array $prefixes = [];
 
 	/**
+	 * Files to load when registered.
+	 *
+	 * @var list<string>
+	 */
+	private array $files = [];
+
+	/**
 	 * The registered loader, kept so it can be unregistered.
 	 *
 	 * @var ?Closure(string): void
@@ -41,7 +50,7 @@ final class LocalAutoloader
 	private ?Closure $loader = null;
 
 	/**
-	 * Adds the PSR-4 maps of every local plugin.
+	 * Adds the autoloads of every local plugin that runs.
 	 */
 	public function addPlugins(Plugins $plugins): void
 	{
@@ -53,8 +62,8 @@ final class LocalAutoloader
 	}
 
 	/**
-	 * Adds the PSR-4 maps of a theme chain's local themes
-	 * (Composer autoloads its own themes).
+	 * Adds the autoloads of a theme chain's local themes (Composer
+	 * autoloads its own themes).
 	 */
 	public function addThemes(ThemeChain $chain): void
 	{
@@ -66,32 +75,45 @@ final class LocalAutoloader
 	}
 
 	/**
-	 * Adds a PSR-4 map whose folders are relative to a base path.
-	 *
-	 * @param array<string, string> $map
+	 * Adds an autoload whose paths are relative to a base path.
 	 */
-	private function addMap(string $base, array $map): void
+	private function addMap(string $base, Autoload $autoload): void
 	{
-		foreach ($map as $prefix => $directory) {
-			$this->prefixes[$prefix][] = rtrim($base, '/') . '/' . trim($directory, '/');
+		$base = rtrim($base, '/');
+
+		foreach ($autoload->psr4 as $prefix => $directory) {
+			$this->prefixes[$prefix][] = rtrim("{$base}/" . trim($directory, '/'), '/');
+		}
+
+		foreach ($autoload->files as $file) {
+			$this->files[] = "{$base}/{$file}";
 		}
 
 		uksort($this->prefixes, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
 	}
 
 	/**
-	 * Registers the autoloader with PHP. Does nothing when there's nothing
-	 * to load.
+	 * Registers the autoloader with PHP, then loads the `files` (once per
+	 * process, so a file is never loaded twice). Does nothing when there's
+	 * nothing to load.
 	 */
 	public function register(): void
 	{
-		if ($this->loader !== null || $this->prefixes === []) {
+		if ($this->loader !== null || ($this->prefixes === [] && $this->files === [])) {
 			return;
 		}
 
 		$this->loader = $this->load(...);
 
 		spl_autoload_register($this->loader);
+
+		foreach ($this->files as $file) {
+			if (is_file($file)) {
+				(static function (string $__file): void {
+					require_once $__file;
+				})($file);
+			}
+		}
 	}
 
 	/**

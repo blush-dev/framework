@@ -6,8 +6,8 @@
  * Activating saves `theme.active` in `user/data/settings.json` (`PATCH
  * settings`) and asks the server to compile and reindex for it; a
  * failure is kept by theme, so the screen can say the site is unchanged
- * where the button is. Deleting removes a folder in `user/themes`
- * (`DELETE themes/{folder}`).
+ * where the button is. Deleting removes a folder in `extensions/`
+ * (`DELETE themes/{vendor}/{name}`).
  */
 
 import { computed, ref } from 'vue';
@@ -119,7 +119,7 @@ export function useThemes() {
 		}
 
 		try {
-			await request('DELETE', `/themes/${encodeURIComponent(folderName(folder))}`);
+			await request('DELETE', `/themes/${folderPath(folder)}`);
 			void loadCounts();
 			toast(`Deleted ${name}`, { kind: 'danger' });
 
@@ -144,9 +144,15 @@ async function save(changes: { set?: Record<string, string>; unset?: string[] })
 	}
 }
 
-// A folder's last part, which `DELETE themes/{folder}` takes.
+// The name a folder in `extensions/` gives (its last two parts,
+// `acme/hello`; D-418), which `DELETE themes/{vendor}/{name}` takes.
 export function folderName(folder: string): string {
-	return folder.slice(folder.lastIndexOf('/') + 1);
+	return folder.split('/').slice(-2).join('/');
+}
+
+// A folder's name as a URL path, each part encoded.
+export function folderPath(folder: string): string {
+	return folderName(folder).split('/').map(encodeURIComponent).join('/');
 }
 
 // The site with another theme (`?theme=`, development only).

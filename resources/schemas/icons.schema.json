@@ -4,7 +4,6 @@
 	"description": "An icon pack's icons.json: its name, label, namespace, and the folder its SVG icons are in.",
 	"type": "object",
 	"required": [
-		"name",
 		"label",
 		"namespace"
 	],
@@ -16,7 +15,7 @@
 		"name": {
 			"type": "string",
 			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
-			"description": "The icon pack's name, the key it's known by: vendor/name, such as \"acme/gallery\". For a Composer package, its package name."
+			"description": "The icon pack's name, the key it's known by: vendor/name, such as \"acme/gallery\". Its folder is extensions/{vendor}/{name}, so it must match the folder. Without it, the name in the composer.json beside this file is used; for a Composer package, it's the package name."
 		},
 		"label": {
 			"type": "string",

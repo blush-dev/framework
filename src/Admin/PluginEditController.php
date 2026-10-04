@@ -27,6 +27,7 @@ use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Extension\Install\InstallException;
+use Blush\Extension\LocalExtensions;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Plugin\BrokenPlugin;
@@ -60,11 +61,11 @@ use Blush\Support\FilesystemException;
  *   stop with it (the ones that require it), and that the admin should
  *   ask for `settings/refresh`, since providers run at boot.
  * - `DELETE plugins/{folder}` removes a plugin's folder from
- *   `user/plugins` and clears the plugin cache, answering `{"deleted"}`
+ *   `extensions/` and clears the plugin cache, answering `{"deleted"}`
  *   with where it was, a broken one's included (D-394). One that's
  *   running can't be (`409`: turn it off first), nor one `config/plugins.php` turns on by name, since the
  *   site would fail without it. Composer plugins aren't folders in
- *   `user/plugins`, so they're never found here.
+ *   `extensions/`, so they're never found here.
  */
 final readonly class PluginEditController
 {
@@ -149,13 +150,13 @@ final readonly class PluginEditController
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
-	public function delete(ServerRequestInterface $request, string $folder): ResponseInterface
+	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Delete)) {
 			return self::error('You aren\'t allowed to delete plugins.', Status::Forbidden);
 		}
 
-		$path  = "{$this->paths->plugins}/{$folder}";
+		$path  = LocalExtensions::path($this->paths, "{$vendor}/{$name}");
 		$where = $this->paths->relative($path);
 
 		try {
@@ -167,19 +168,19 @@ final readonly class PluginEditController
 		$plugin = array_find($discovered->manifests, static fn (PluginManifest $plugin): bool => $plugin->source === PluginSource::Local && $plugin->path === $path);
 		$broken = array_find($discovered->broken, static fn (BrokenPlugin $broken): bool => $broken->source === PluginSource::Local && $broken->where === $where);
 
-		if (str_starts_with($folder, '.') || ! is_dir($path) || ($plugin === null && $broken === null)) {
+		if (! is_dir($path) || ($plugin === null && $broken === null)) {
 			return self::error(sprintf('There\'s no plugin in %s.', $where), Status::NotFound);
 		}
 
 		// A broken one never runs (D-394), but config may still name it.
-		$name  = $plugin->name ?? $broken->name ?? '';
+		$named = $plugin->name ?? $broken->name ?? '';
 		$label = $plugin->label ?? $where;
 
-		if ($this->plugins->has($name)) {
+		if ($this->plugins->has($named)) {
 			return self::error(sprintf('%s is on. Turn it off before deleting it.', $label), Status::Conflict);
 		}
 
-		if ($name !== '' && PluginsController::namedByConfig($this->config, $name)) {
+		if ($named !== '' && PluginsController::namedByConfig($this->config, $named)) {
 			return self::error(sprintf('config/plugins.php turns %s on by name. Take it out of that file\'s "enabled" list before deleting it.', $label), Status::Conflict);
 		}
 
@@ -189,11 +190,12 @@ final readonly class PluginEditController
 			return self::error(sprintf('%s couldn\'t be deleted. Check that the web server may change it.', $where), Status::InternalServerError);
 		}
 
+		LocalExtensions::prune($this->paths, $path);
 		$this->bootstrap->clearCompiled(CompiledCache::Plugins);
 
 		// Its backup goes with it (D-393).
 		try {
-			$this->installer->discard(ExtensionKind::Plugin, $path);
+			$this->installer->discard($path);
 		} catch (InstallException) {
 			// The extension is gone either way; the backup is inert.
 		}
@@ -201,7 +203,7 @@ final readonly class PluginEditController
 		// The saved list forgets it, so the same name put back starts off.
 		try {
 			$this->settings->update(static fn (Settings $settings): Settings => $settings->has(Setting::Plugins)
-				? $settings->with([Setting::Plugins->value => array_values(array_diff(self::names($settings->get(Setting::Plugins)), [$name]))])
+				? $settings->with([Setting::Plugins->value => array_values(array_diff(self::names($settings->get(Setting::Plugins)), [$named]))])
 				: $settings);
 		} catch (InvalidSetting) {
 			// The folder is gone either way; a name left in the list is harmless.

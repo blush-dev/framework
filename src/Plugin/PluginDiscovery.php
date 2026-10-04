@@ -15,6 +15,7 @@ namespace Blush\Plugin;
 
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\LocalExtensions;
 
 /**
  * Finds every installed plugin across all sources, Composer first, then
@@ -39,7 +40,7 @@ final readonly class PluginDiscovery
 	{
 		return new self([
 			new ComposerPluginFinder($paths->vendor),
-			new LocalPluginFinder($paths->plugins, $paths->root)
+			new LocalPluginFinder(LocalExtensions::forPaths($paths), $paths->root)
 		]);
 	}
 

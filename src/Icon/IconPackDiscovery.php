@@ -13,23 +13,26 @@ declare(strict_types=1);
 
 namespace Blush\Icon;
 
-use DirectoryIterator;
 use Throwable;
 use Blush\Core\Paths;
-use Blush\Extension\ExtensionAuthor;
+use Blush\Extension\ComposerJson;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\LocalExtension;
+use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
 use Blush\Support\ComposerPackages;
 
 /**
  * Finds every installed icon pack (D-378): Composer packages of type
  * `blush-icons` (the manifest is the `icons.json` in the package, and its
- * name is the package's) and folders in `user/icons` holding an
- * `icons.json` (or `.yaml`). With the same name, a `user/icons` pack
- * replaces a Composer one. A broken pack is recorded, by where it was
- * found, instead of failing discovery, since icons are never worth taking
- * the site down for.
+ * name is the package's) and folders in `extensions/{vendor}/{name}`
+ * holding an `icons.json` (or `.yaml`), whose name must be the folder's
+ * (D-418). What a manifest leaves out of the keys it shares with
+ * Composer it takes from its `composer.json`. With the same name, a
+ * folder pack replaces a Composer one. A broken pack is recorded, by
+ * where it was found, instead of failing discovery, since icons are never
+ * worth taking the site down for.
  */
 final readonly class IconPackDiscovery
 {
@@ -54,36 +57,26 @@ final readonly class IconPackDiscovery
 			$invalid['composer'] = $error->getMessage();
 		}
 
-		if (is_dir($this->paths->icons)) {
-			$folders = [];
-
-			foreach (new DirectoryIterator($this->paths->icons) as $folder) {
-				if ($folder->isDir() && ! str_starts_with($folder->getFilename(), '.')) {
-					$folders[] = $folder->getPathname();
-				}
-			}
-
-			sort($folders);
-
-			foreach ($folders as $folder) {
-				$found[] = [$this->paths->relative($folder), $folder, IconPackSource::Local];
-			}
+		foreach (LocalExtensions::forPaths($this->paths)->of(ExtensionKind::IconPack) as $extension) {
+			$found[] = [$extension->where, $extension, IconPackSource::Local];
 		}
 
 		$packs = [];
-		$local = [];
 
-		foreach ($found as [$where, $path, $source]) {
-			$file = ManifestFile::find($path, ExtensionKind::IconPack)[0] ?? null;
-
-			if ($file === null) {
-				continue;
-			}
-
+		foreach ($found as [$where, $at, $source]) {
 			try {
-				$data = ManifestFile::read($file);
+				if ($at instanceof LocalExtension) {
+					$path = $at->path;
+					$data = $at->read();
+				} else {
+					$path = $at;
+					$file = ManifestFile::find($path, ExtensionKind::IconPack)[0] ?? null;
 
-				if ($source === IconPackSource::Composer) {
+					if ($file === null) {
+						continue;
+					}
+
+					$data            = ComposerJson::fill(ManifestFile::read($file), $path);
 					$data['name'] ??= $where;
 
 					if ($data['name'] !== $where) {
@@ -91,26 +84,11 @@ final readonly class IconPackDiscovery
 					}
 				}
 
-				// A manifest without authors takes its composer.json's (D-384).
-				if (! array_key_exists('authors', $data)) {
-					$data['authors'] = array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::fromComposer($path));
-				}
-
 				$pack = IconPack::fromArray($path, $data, $source);
 			} catch (ExtensionException $error) {
 				$invalid[$where] = $error->getMessage();
 
 				continue;
-			}
-
-			if ($source === IconPackSource::Local && isset($local[$pack->name])) {
-				$invalid[$where] = sprintf('%s is also named "%s".', $local[$pack->name], $pack->name);
-
-				continue;
-			}
-
-			if ($source === IconPackSource::Local) {
-				$local[$pack->name] = $where;
 			}
 
 			$packs[$pack->name] = $pack;

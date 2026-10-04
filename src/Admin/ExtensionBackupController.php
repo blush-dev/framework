@@ -112,7 +112,7 @@ final readonly class ExtensionBackupController
 		}
 
 		$live   = $this->extensions->live($kind, $name);
-		$misfit = $this->misfit($kind, $name, $this->installer->backupPath($kind, $folder), $live);
+		$misfit = $this->misfit($kind, $name, $this->installer->backupPath($folder), $live);
 
 		if ($misfit !== null) {
 			return self::error(sprintf('%s %s can\'t be rolled back to: %s', $older->label, $older->version, $misfit), Status::UnprocessableContent);
@@ -150,12 +150,12 @@ final readonly class ExtensionBackupController
 
 		$folder = $this->extensions->folder($kind, $name);
 
-		if ($folder === null || ! is_dir($this->installer->backupPath($kind, $folder))) {
+		if ($folder === null || ! is_dir($this->installer->backupPath($folder))) {
 			return self::error(sprintf('%s has no earlier version kept.', $name), Status::NotFound);
 		}
 
 		try {
-			$this->installer->discard($kind, $folder);
+			$this->installer->discard($folder);
 		} catch (InstallException $error) {
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}

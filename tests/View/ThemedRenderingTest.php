@@ -50,11 +50,11 @@ final class ThemedRenderingTest extends TestCase
 
 	private function childTheme(): void
 	{
-		$this->writeTemporaryFile('user/themes/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child", "styles": ["style.css", "extra.css"], "scripts": ["app.js"]}');
-		$this->writeTemporaryFile('user/themes/child/extra.css', '');
-		$this->writeTemporaryFile('user/themes/child/app.js', '');
-		$this->writeTemporaryFile('user/themes/child/lang/en.json', '{"powered_by": "Made with {generator}"}');
-		$this->writeTemporaryFile('user/themes/child/views/single-post.php', '<?php $template->layout(\'base\') ?><h1 class="post">Post: <?= e($title) ?></h1>');
+		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child", "styles": ["style.css", "extra.css"], "scripts": ["app.js"]}');
+		$this->writeTemporaryFile('extensions/acme/child/extra.css', '');
+		$this->writeTemporaryFile('extensions/acme/child/app.js', '');
+		$this->writeTemporaryFile('extensions/acme/child/lang/en.json', '{"powered_by": "Made with {generator}"}');
+		$this->writeTemporaryFile('extensions/acme/child/views/single-post.php', '<?php $template->layout(\'base\') ?><h1 class="post">Post: <?= e($title) ?></h1>');
 	}
 
 	public function testRendersEveryKindOfPage(): void
@@ -130,7 +130,7 @@ final class ThemedRenderingTest extends TestCase
 			'home'  => 'post'
 		]);
 		$this->childTheme();
-		$this->writeTemporaryFile('user/themes/child/lang/en.json', '{"document_title": {"page": "Page {page} of the archives"}}');
+		$this->writeTemporaryFile('extensions/acme/child/lang/en.json', '{"document_title": {"page": "Page {page} of the archives"}}');
 		$this->activeTheme('acme/child');
 
 		$this->assertStringContainsString('<title>Page 2 of the archives | Blush</title>', $this->body('/page/2'));

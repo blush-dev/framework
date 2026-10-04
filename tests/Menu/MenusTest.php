@@ -207,7 +207,7 @@ final class MenusTest extends TestCase
 
 	public function testThemeLocationsSetDepthFieldsAndLabels(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', json_encode([
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', json_encode([
 			'name'      => 'acme/nova',
 			'label'     => 'Nova',
 			'namespace' => 'nova',
@@ -280,7 +280,7 @@ final class MenusTest extends TestCase
 
 	public function testChecksLocationDeclarations(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "menus": {"primary": {"depth": 0}}, "regions": {"side": {"items": {"a": 1}}}}');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "menus": {"primary": {"depth": 0}}, "regions": {"side": {"items": {"a": 1}}}}');
 
 		$app    = $this->app();
 		$report = $app->container()->make(ThemeChecker::class)->check('acme/nova');

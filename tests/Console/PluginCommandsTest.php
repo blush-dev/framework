@@ -16,15 +16,20 @@ namespace Blush\Tests\Console;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Console\Commands\CheckPlugins;
+use Blush\Console\Commands\CreatePlugin;
 use Blush\Console\Commands\ListPlugins;
 use Blush\Console\Console;
 use Blush\Console\ExitCode;
 use Blush\Console\Testing\CommandResult;
 use Blush\Console\Testing\CommandTester;
+use Blush\Extension\InstalledExtensions;
+use Blush\Plugin\Plugins;
 use Blush\Tests\BootsScratchSite;
 
 #[CoversClass(ListPlugins::class)]
 #[CoversClass(CheckPlugins::class)]
+#[CoversClass(CreatePlugin::class)]
+#[CoversClass(InstalledExtensions::class)]
 final class PluginCommandsTest extends TestCase
 {
 	use BootsScratchSite;
@@ -56,8 +61,8 @@ final class PluginCommandsTest extends TestCase
 	 */
 	private function plugin(string $folder, string $name, string $label, array $requires = []): void
 	{
-		$this->writeTemporaryFile("user/plugins/{$folder}/plugin.json", sprintf(
-			'{"name": "%s", "label": "%s", "namespace": "%s", "version": "1.0.0", "provider": "%s", "requires": %s}',
+		$this->writeTemporaryFile("extensions/{$name}/plugin.json", sprintf(
+			'{"name": "%s", "label": "%s", "namespace": "%s", "version": "1.0.0", "provider": "%s", "require": %s}',
 			$name,
 			$label,
 			$folder,
@@ -74,9 +79,9 @@ final class PluginCommandsTest extends TestCase
 	{
 		$this->plugin('on', 'acme/on', 'On');
 		$this->plugin('off', 'acme/off', 'Off');
-		$this->plugin('future', 'acme/future', 'Future', ['blush' => '^9.0']);
+		$this->plugin('future', 'acme/future', 'Future', ['blush-dev/framework' => '^9.0']);
 		$this->plugin('needy', 'acme/needy', 'Needy', ['acme/missing' => '^1.0']);
-		$this->writeTemporaryFile('user/plugins/broken/plugin.json', '{broken');
+		$this->writeTemporaryFile('extensions/acme/broken/plugin.json', '{broken');
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: [{$enabled}]);\n");
 	}
 
@@ -90,7 +95,7 @@ final class PluginCommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('#acme/on\s*\|\s*On\s*\|\s*on\s*\|\s*1\.0\.0\s*\|\s*local\s*\|\s*on#', $result->output);
 		$this->assertMatchesRegularExpression('#acme/off\s*\|\s*Off\s*\|\s*off\s*\|\s*1\.0\.0\s*\|\s*local\s*\|\s*off#', $result->output);
 		$this->assertMatchesRegularExpression('#acme/future\s*\|.*\|\s*can\'t run#', $result->output);
-		$this->assertStringContainsString('user/plugins/broken: The manifest user/plugins/broken/plugin.json is invalid', $result->errors);
+		$this->assertStringContainsString('extensions/acme/broken: The manifest extensions/acme/broken/plugin.json is invalid', $result->errors);
 		$this->assertStringContainsString('Run plugin:check', $result->output);
 	}
 
@@ -113,7 +118,7 @@ final class PluginCommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('#ok\s+acme/on#', $all);
 		$this->assertMatchesRegularExpression('#error\s+acme/future: Needs Blush \^9\.0 \(this site runs [^)]+\)\. It\'s turned on, but doesn\'t run\.#', $all);
 		$this->assertMatchesRegularExpression('#warning\s+acme/needy: Needs the acme/missing plugin \^1\.0 \(isn\'t installed\)\.#', $all);
-		$this->assertMatchesRegularExpression('#warning\s+user/plugins/broken: #', $all);
+		$this->assertMatchesRegularExpression('#warning\s+extensions/acme/broken: #', $all);
 		$this->assertStringContainsString('Checked 5 plugin(s): 1 error(s), 2 warning(s).', $all);
 	}
 
@@ -145,12 +150,66 @@ final class PluginCommandsTest extends TestCase
 
 	public function testABrokenPluginTurnedOnIsAnError(): void
 	{
-		$this->writeTemporaryFile('user/plugins/named/plugin.json', '{"name": "acme/named", "label": "Named"}');
+		$this->writeTemporaryFile('extensions/acme/named/plugin.json', '{"name": "acme/named", "label": "Named"}');
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/named']);\n");
 
 		$result = $this->command(['plugin:check', 'acme/named']);
 
 		$this->assertSame(ExitCode::Failure, $result->exitCode);
-		$this->assertMatchesRegularExpression('#error\s+user/plugins/named: .*It\'s turned on, but doesn\'t run\.#', $result->output . $result->errors);
+		$this->assertMatchesRegularExpression('#error\s+extensions/acme/named: .*It\'s turned on, but doesn\'t run\.#', $result->output . $result->errors);
+	}
+
+	public function testCreatesPlugins(): void
+	{
+		$result = $this->command(['plugin:new', 'acme/scaffold-test', '--label=Scaffold']);
+		$folder = $this->temporaryDirectory() . '/extensions/acme/scaffold-test';
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertSame(
+			[
+				'$schema'   => '../../../vendor/blush-dev/framework/resources/schemas/plugin.schema.json',
+				'name'      => 'acme/scaffold-test',
+				'label'     => 'Scaffold',
+				'namespace' => 'scaffold-test',
+				'version'   => '1.0.0',
+				'provider'  => 'Acme\\ScaffoldTest\\ScaffoldTestServiceProvider',
+				'autoload'  => ['psr-4' => ['Acme\\ScaffoldTest\\' => 'src/']],
+				'require' => ['blush-dev/framework' => '^2.0']
+			],
+			json_decode((string) file_get_contents("{$folder}/plugin.json"), true)
+		);
+		$this->assertStringContainsString('config/plugins.php', $result->output);
+
+		// It's off until named; named, it loads and runs.
+		$this->assertMatchesRegularExpression('#acme/scaffold-test\s*\|\s*Scaffold\s*\|.*\|\s*off#', $this->command('plugin:list')->output);
+
+		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/scaffold-test']);\n");
+
+		$app = $this->scratchApplication(['APP_ENV' => 'development']);
+		$app->boot();
+
+		$this->assertTrue($app->container()->make(Plugins::class)->has('acme/scaffold-test'));
+		$this->assertTrue(class_exists('Acme\\ScaffoldTest\\ScaffoldTestServiceProvider', false));
+		$this->assertSame(ExitCode::Success, $this->command(['plugin:check', 'acme/scaffold-test'])->exitCode);
+
+		// Options, and what's refused.
+		$this->assertSame(ExitCode::Success, $this->command(['plugin:new', 'acme/other', '--namespace=elsewhere', '--php-namespace=Shop\\Tools'])->exitCode);
+		$this->assertStringContainsString('"provider": "Shop\\\\Tools\\\\OtherServiceProvider"', (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/other/plugin.json'));
+		$this->assertStringContainsString('"namespace": "elsewhere"', (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/other/plugin.json'));
+		$this->assertFileExists($this->temporaryDirectory() . '/extensions/acme/other/src/OtherServiceProvider.php');
+
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+
+		$this->writeTemporaryFile('extensions/other/stray/readme.md', 'Not an extension.');
+
+		$this->assertSame(ExitCode::Failure, $this->command(['plugin:new', 'other/stray'])->exitCode, 'The folder is taken.');
+		$this->assertSame(ExitCode::Success, $this->command(['plugin:new', 'other/scaffold-test', '--namespace=free', '--php-namespace=Other\\Scaffold'])->exitCode, 'Another vendor\'s has its own folder.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/scaffold-test', '--namespace=free'])->exitCode, 'The name is taken.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/new', '--namespace=elsewhere'])->exitCode, 'A plugin has the namespace.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/nova'])->exitCode, 'A theme has the namespace.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/nova', '--namespace=free'])->exitCode, 'A theme has the name.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'hello'])->exitCode);
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/app'])->exitCode, 'A reserved namespace.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/2fa'])->exitCode, 'Not a PHP namespace.');
 	}
 }

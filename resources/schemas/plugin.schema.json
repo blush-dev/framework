@@ -4,7 +4,6 @@
 	"description": "A local plugin's plugin.json: its name, label, namespace, service provider, and the classes autoloaded for it.",
 	"type": "object",
 	"required": [
-		"name",
 		"label",
 		"namespace",
 		"provider"
@@ -17,7 +16,7 @@
 		"name": {
 			"type": "string",
 			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
-			"description": "The plugin's name, the key it's known by: vendor/name, such as \"acme/gallery\". For a Composer package, its package name."
+			"description": "The plugin's name, the key it's known by: vendor/name, such as \"acme/gallery\". Its folder is extensions/{vendor}/{name}, so it must match the folder. Without it, the name in the composer.json beside this file is used; for a Composer package, it's the package name."
 		},
 		"label": {
 			"type": "string",
@@ -52,21 +51,29 @@
 		},
 		"autoload": {
 			"type": "object",
-			"description": "Classes to autoload.",
+			"description": "What to autoload, as composer.json says it. Without it, the autoload in the composer.json beside this file is used.",
 			"properties": {
 				"psr-4": {
 					"type": "object",
 					"description": "Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {\"Acme\\\\Gallery\\\\\": \"src/\"}.",
 					"additionalProperties": {
 						"type": "string",
-						"pattern": "^(?!/)(?!.*\\.\\.).+$"
+						"pattern": "^(?!/)(?!.*\\.\\.).*$"
 					}
+				},
+				"files": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^(?!/)(?!.*\\.\\.).*$"
+					},
+					"description": "Files inside the plugin loaded once when it runs, such as [\"src/helpers.php\"]."
 				}
 			}
 		},
-		"requires": {
+		"require": {
 			"type": "object",
-			"description": "What the plugin needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren't met doesn't run.",
+			"description": "What the plugin needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren't met doesn't run. Without it, the require in the composer.json beside this file is used.",
 			"additionalProperties": {
 				"type": "string"
 			}

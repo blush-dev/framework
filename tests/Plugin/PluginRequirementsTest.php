@@ -50,15 +50,15 @@ final class PluginRequirementsTest extends TestCase
 			namespace: $short,
 			provider: 'Acme\\' . ucfirst($short) . '\\Provider',
 			source: PluginSource::Local,
-			path: "/site/user/plugins/{$short}",
+			path: "/site/extensions/{$short}",
 			version: $version,
-			requires: $requires
+			require: $requires
 		);
 	}
 
 	public function testChecksTheSite(): void
 	{
-		$plugin = self::plugin('acme/one', ['blush' => '^2.0', 'php' => '>=8.6', 'ext-intl' => '*', 'ext-redis' => '*', 'lib-curl' => '*', 'acme/two' => 'soon']);
+		$plugin = self::plugin('acme/one', ['blush-dev/framework' => '^2.0', 'php' => '>=8.6', 'ext-intl' => '*', 'ext-redis' => '*', 'lib-curl' => '*', 'acme/two' => 'soon']);
 		$checks = self::requirements()->check($plugin, [], []);
 
 		$this->assertSame([true, false, true, false, false, false], array_map(static fn (Requirement $check): bool => $check->met, $checks));
@@ -94,7 +94,7 @@ final class PluginRequirementsTest extends TestCase
 			self::plugin('acme/shop'),
 			self::plugin('acme/reports', ['acme/shop' => '^1.0']),
 			self::plugin('acme/charts', ['acme/reports' => '*']),
-			self::plugin('acme/future', ['blush' => '^9.0'])
+			self::plugin('acme/future', ['blush-dev/framework' => '^9.0'])
 		];
 
 		$plugins = Plugins::enabled($discovered, new PluginConfig(['acme/shop', 'acme/reports', 'acme/charts', 'acme/future']), self::requirements());

@@ -29,6 +29,7 @@ use Blush\Console\Testing\CommandTester;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
+use Blush\Extension\InstalledExtensions;
 use Blush\Tests\BootsScratchSite;
 use Blush\Theme\ThemeChecker;
 use Blush\Theme\ThemeConfig;
@@ -37,6 +38,7 @@ use Blush\Theme\ThemeReport;
 #[CoversClass(ListThemes::class)]
 #[CoversClass(ActivateTheme::class)]
 #[CoversClass(CreateTheme::class)]
+#[CoversClass(InstalledExtensions::class)]
 #[CoversClass(CheckTheme::class)]
 #[CoversClass(ExplainView::class)]
 #[CoversClass(ListComponents::class)]
@@ -67,15 +69,15 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testListsThemes(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "version": "2.1.0", "parent": "blush/default"}');
-		$this->writeTemporaryFile('user/themes/broken/theme.json', '{broken');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "version": "2.1.0", "parent": "blush/default"}');
+		$this->writeTemporaryFile('extensions/acme/broken/theme.json', '{broken');
 
 		$result = $this->command('theme:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode);
 		$this->assertMatchesRegularExpression('#\* blush/default\s*\|\s*Default\s*\|\s*default\s*\|\s*1\.0\.0\s*\|\s*\|\s*framework#', $result->output);
 		$this->assertMatchesRegularExpression('#  acme/nova\s*\|\s*Nova\s*\|\s*nova\s*\|\s*2\.1\.0\s*\|\s*blush/default\s*\|\s*local#', $result->output);
-		$this->assertStringContainsString('user/themes/broken:', $result->output . $result->errors);
+		$this->assertStringContainsString('extensions/acme/broken:', $result->output . $result->errors);
 
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/gone');\n");
 
@@ -97,15 +99,18 @@ final class ThemeCommandsTest extends TestCase
 				'parent'    => 'blush/default',
 				'styles'    => ['style.css']
 			],
-			json_decode((string) file_get_contents($this->root() . '/user/themes/nova/theme.json'), true)
+			json_decode((string) file_get_contents($this->root() . '/extensions/acme/nova/theme.json'), true)
 		);
-		$this->assertFileExists($this->root() . '/user/themes/nova/style.css');
+		$this->assertFileExists($this->root() . '/extensions/acme/nova/style.css');
 		$this->assertStringContainsString('theme:activate acme/nova', $result->output);
 		$this->assertSame(ExitCode::Success, $this->command(['theme:new', 'acme/dusk-mode', '--namespace=dusk'])->exitCode);
-		$this->assertStringContainsString('"label": "Dusk Mode"', (string) file_get_contents($this->root() . '/user/themes/dusk-mode/theme.json'));
-		$this->assertStringContainsString('"namespace": "dusk"', (string) file_get_contents($this->root() . '/user/themes/dusk-mode/theme.json'));
+		$this->assertStringContainsString('"label": "Dusk Mode"', (string) file_get_contents($this->root() . '/extensions/acme/dusk-mode/theme.json'));
+		$this->assertStringContainsString('"namespace": "dusk"', (string) file_get_contents($this->root() . '/extensions/acme/dusk-mode/theme.json'));
 
-		$this->assertSame(ExitCode::Failure, $this->command(['theme:new', 'other/nova', '--namespace=other-nova'])->exitCode, 'The folder is taken.');
+		$this->writeTemporaryFile('extensions/other/stray/readme.md', 'Not an extension.');
+
+		$this->assertSame(ExitCode::Failure, $this->command(['theme:new', 'other/stray'])->exitCode, 'The folder is taken.');
+		$this->assertSame(ExitCode::Success, $this->command(['theme:new', 'other/nova', '--namespace=other-nova'])->exitCode, 'Another vendor\'s nova has its own folder.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/nova'])->exitCode);
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/nova2', '--namespace=nova'])->exitCode, 'The namespace is taken.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'nova'])->exitCode);
@@ -113,12 +118,23 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'blush/default'])->exitCode);
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/app'])->exitCode, 'A reserved namespace.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/kid', '--parent=missing'])->exitCode);
+
+		// Names and namespaces are checked against plugins and icon packs too.
+		$this->writeTemporaryFile('extensions/acme/shop/plugin.json', '{"name": "acme/shop", "label": "Shop", "namespace": "shop", "provider": "Acme\\\\Shop\\\\ShopServiceProvider"}');
+		$this->writeTemporaryFile('extensions/acme/brands/icons.json', '{"name": "acme/brands", "label": "Brands", "namespace": "brands"}');
+
+		$plugin = $this->command(['theme:new', 'other/shop']);
+
+		$this->assertSame(ExitCode::Invalid, $plugin->exitCode);
+		$this->assertStringContainsString('The "acme/shop" plugin already has the namespace "shop"', $plugin->errors);
+		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/shop', '--namespace=free'])->exitCode, 'A plugin has the name.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'other/brands'])->exitCode, 'An icon pack has the namespace.');
 	}
 
 	public function testActivatesThemes(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/themes/dusk/theme.json', '{"name": "acme/dusk", "label": "Dusk", "namespace": "dusk"}');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/dusk/theme.json', '{"name": "acme/dusk", "label": "Dusk", "namespace": "dusk"}');
 
 		$bootstrap = new Bootstrap(Paths::fromRoot($this->root()), ['APP_ENV' => 'production']);
 		$bootstrap->compile();
@@ -141,8 +157,8 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testActivatingClearsTheThemeSavedInTheAdmin(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/themes/dusk/theme.json', '{"name": "acme/dusk", "label": "Dusk", "namespace": "dusk"}');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/dusk/theme.json', '{"name": "acme/dusk", "label": "Dusk", "namespace": "dusk"}');
 		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"name": "Field Notes"}, "theme": {"active": "acme/dusk"}}');
 
 		$result = $this->command(['theme:activate', 'acme/nova']);
@@ -172,18 +188,18 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testChecksReportProblems(): void
 	{
-		$this->writeTemporaryFile('user/themes/rough/theme.json', json_encode([
+		$this->writeTemporaryFile('extensions/acme/rough/theme.json', json_encode([
 			'name'      => 'acme/rough',
 			'label'     => 'Rough',
 			'namespace' => 'rough',
 			'provider'  => 'Nope\\Provider',
-			'requires'  => ['blush' => '^2.0'],
+			'require' => ['blush-dev/framework' => '^2.0'],
 			'settings'  => ['size' => ['type' => 'number', 'default' => 1]]
 		], JSON_THROW_ON_ERROR));
-		$this->writeTemporaryFile('user/themes/rough/theme.yaml', "name: acme/rough\nlabel: Shadowed\nnamespace: rough");
-		$this->writeTemporaryFile('user/themes/rough/views/layouts/base.php', '<!DOCTYPE html><html><body><div><?= $template->section("content") ?></div></body></html>');
+		$this->writeTemporaryFile('extensions/acme/rough/theme.yaml', "name: acme/rough\nlabel: Shadowed\nnamespace: rough");
+		$this->writeTemporaryFile('extensions/acme/rough/views/layouts/base.php', '<!DOCTYPE html><html><body><div><?= $template->section("content") ?></div></body></html>');
 		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"size": "big"}}');
-		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": 1}');
+		$this->writeTemporaryFile('extensions/acme/other/theme.json', '{"name": 1}');
 
 		$result = $this->command(['theme:check', 'acme/rough', '--strict']);
 		$output = $result->output . $result->errors;
@@ -191,10 +207,10 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Failure, $result->exitCode);
 
 		$expected = [
-			'warning theme user/themes/other:',
+			'warning theme extensions/acme/other:',
 			'warning manifest: theme.yaml is ignored; the "acme/rough" theme\'s theme.json wins',
 			'error   provider: The "acme/rough" theme\'s provider Nope\\Provider isn\'t a service provider class',
-			'notice  requires:',
+			'notice  require:',
 			'warning setting size:',
 			'error   layout: The base layout\'s <html> has no lang attribute.',
 			'error   layout: The base layout needs one <main> landmark; it has 0.',
@@ -242,10 +258,10 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testThemeCheckFlagsComponentTemplatesNotNamedForAComponent(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/themes/nova/views/components/card.php', 'card');
-		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'badge');
-		$this->writeTemporaryFile('user/themes/nova/views/components/blush-callout.php', 'callout');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova/views/components/card.php', 'card');
+		$this->writeTemporaryFile('extensions/acme/nova/views/components/nova-badge.php', 'badge');
+		$this->writeTemporaryFile('extensions/acme/nova/views/components/blush-callout.php', 'callout');
 		$this->writeTemporaryFile('resources/views/components/loose.php', 'not the theme\'s');
 
 		$check = $this->command(['theme:check', 'acme/nova']);
@@ -259,7 +275,7 @@ final class ThemeCommandsTest extends TestCase
 	public function testAnotherThemesComponentsAreLeftOut(): void
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
 
 		$missing = 'The "nova/badge" component (no class) has no components/nova-badge.php template in the chain.';
 
@@ -272,14 +288,14 @@ final class ThemeCommandsTest extends TestCase
 	public function testThemeCheckNotesRegisteredComponentsWithoutALabel(): void
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'badge');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova/views/components/nova-badge.php', 'badge');
 
 		$notice = 'notice  component nova/badge: The "nova/badge" component has no label; add "components.badge.label" to the theme\'s lang/ catalog.';
 
 		$this->assertStringContainsString($notice, $this->command(['theme:check', 'acme/nova', '--strict'])->output);
 
-		$this->writeTemporaryFile('user/themes/nova/lang/en.json', '{"components": {"badge": {"label": "Badge"}}}');
+		$this->writeTemporaryFile('extensions/acme/nova/lang/en.json', '{"components": {"badge": {"label": "Badge"}}}');
 
 		$this->assertStringNotContainsString('nova/badge', $this->command(['theme:check', 'acme/nova', '--strict'])->output);
 	}
@@ -287,9 +303,9 @@ final class ThemeCommandsTest extends TestCase
 	public function testThemeCheckFlagsVariantProblems(): void
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "variants": {"callout": ["bordered", "Bad"], "nova/nothing": ["wide"], "nova/badge": ["pill"], "image": ["polaroid", "Bad", "inline-left"]}}');
-		$this->writeTemporaryFile('user/themes/nova/views/components/nova-badge.php', 'badge');
-		$this->writeTemporaryFile('user/themes/nova/lang/en.json', '{"components": {"badge": {"label": "Badge"}, "callout": {"variants": {"bordered": {"label": "Bordered"}}}}}');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "variants": {"callout": ["bordered", "Bad"], "nova/nothing": ["wide"], "nova/badge": ["pill"], "image": ["polaroid", "Bad", "inline-left"]}}');
+		$this->writeTemporaryFile('extensions/acme/nova/views/components/nova-badge.php', 'badge');
+		$this->writeTemporaryFile('extensions/acme/nova/lang/en.json', '{"components": {"badge": {"label": "Badge"}, "callout": {"variants": {"bordered": {"label": "Bordered"}}}}}');
 
 		$check = $this->command(['theme:check', 'acme/nova', '--strict'])->output;
 
@@ -306,14 +322,14 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testExplainsWhichViewWins(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/themes/nova/views/single.php', '');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova/views/single.php', '');
 		$this->writeTemporaryFile('resources/views/single.php', '');
 
 		$result = $this->command(['theme:why', 'single', '--theme=acme/nova']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode);
-		$this->assertMatchesRegularExpression('#uses    resources/views/single.php\nshadows user/themes/nova/views/single.php\nshadows .+resources/themes/default/views/single.php#', $result->output);
+		$this->assertMatchesRegularExpression('#uses    resources/views/single.php\nshadows extensions/acme/nova/views/single.php\nshadows .+resources/themes/default/views/single.php#', $result->output);
 
 		$missing = $this->command(['theme:why', 'nope']);
 
@@ -324,14 +340,14 @@ final class ThemeCommandsTest extends TestCase
 
 	public function testPublishesThemeAssets(): void
 	{
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/themes/nova/style.css', 'nova');
-		$this->writeTemporaryFile('user/themes/nova/fonts/a.woff2', 'font');
-		$this->writeTemporaryFile('user/themes/nova/views/single.php', '<?php');
-		$this->writeTemporaryFile('user/themes/nova/src/Provider.php', '<?php');
-		$this->writeTemporaryFile('user/themes/nova/.hidden/x.css', '');
-		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
-		$this->writeTemporaryFile('user/themes/other/o.css', '');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova/style.css', 'nova');
+		$this->writeTemporaryFile('extensions/acme/nova/fonts/a.woff2', 'font');
+		$this->writeTemporaryFile('extensions/acme/nova/views/single.php', '<?php');
+		$this->writeTemporaryFile('extensions/acme/nova/src/Provider.php', '<?php');
+		$this->writeTemporaryFile('extensions/acme/nova/.hidden/x.css', '');
+		$this->writeTemporaryFile('extensions/acme/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
+		$this->writeTemporaryFile('extensions/acme/other/o.css', '');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");
 
 		$result = $this->command('theme:publish');
@@ -348,7 +364,7 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertFileDoesNotExist("{$public}/acme/nova/.hidden/x.css");
 		$this->assertDirectoryDoesNotExist("{$public}/acme/other");
 
-		unlink($this->root() . '/user/themes/nova/fonts/a.woff2');
+		unlink($this->root() . '/extensions/acme/nova/fonts/a.woff2');
 
 		$this->assertStringContainsString('acme/nova: copied 0, 1 already current, removed 1.', $this->command('theme:publish')->output);
 		$this->assertFileDoesNotExist("{$public}/acme/nova/fonts/a.woff2");

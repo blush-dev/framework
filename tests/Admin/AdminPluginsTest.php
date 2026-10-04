@@ -41,21 +41,21 @@ final class AdminPluginsTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator'], string $config = "enabled: ['fixture/recipes', 'acme/needy', 'acme/future']"): void
 	{
-		$this->writeTemporaryFile('user/plugins/recipes/plugin.json', json_encode([
+		$this->writeTemporaryFile('extensions/fixture/recipes/plugin.json', json_encode([
 			'name'        => 'fixture/recipes',
 			'label'       => 'Recipes',
 			'namespace'   => 'fixture',
 			'version'     => '1.4.0',
 			'description' => 'Recipes and cuisines.',
 			'provider'    => 'Blush\\Tests\\Fixtures\\Admin\\Recipes\\RecipesProvider',
-			'requires'    => ['blush' => '^2.0'],
+			'require' => ['blush-dev/framework' => '^2.0'],
 			'authors'     => [['name' => 'Jane Doe', 'homepage' => 'https://example.test']],
 			'license'     => 'MIT'
 		]) ?: '');
-		$this->writeTemporaryFile('user/plugins/off/plugin.json', json_encode(['name' => 'acme/off', 'label' => 'Off', 'namespace' => 'off', 'version' => '1.2.0', 'provider' => self::PROVIDER]) ?: '');
-		$this->writeTemporaryFile('user/plugins/off/composer.json', '{"license": ["MIT", "GPL-2.0-or-later"], "authors": [{"name": "Acme"}]}');
-		$this->writeTemporaryFile('user/plugins/needy/plugin.json', json_encode(['name' => 'acme/needy', 'label' => 'Needy', 'namespace' => 'needy', 'provider' => self::PROVIDER, 'requires' => ['acme/off' => '^1.0']]) ?: '');
-		$this->writeTemporaryFile('user/plugins/future/plugin.json', json_encode(['name' => 'acme/future', 'label' => 'Future', 'namespace' => 'future', 'provider' => self::PROVIDER, 'requires' => ['blush' => '^9.0']]) ?: '');
+		$this->writeTemporaryFile('extensions/acme/off/plugin.json', json_encode(['name' => 'acme/off', 'label' => 'Off', 'namespace' => 'off', 'version' => '1.2.0', 'provider' => self::PROVIDER]) ?: '');
+		$this->writeTemporaryFile('extensions/acme/off/composer.json', '{"license": ["MIT", "GPL-2.0-or-later"], "authors": [{"name": "Acme"}]}');
+		$this->writeTemporaryFile('extensions/acme/needy/plugin.json', json_encode(['name' => 'acme/needy', 'label' => 'Needy', 'namespace' => 'needy', 'provider' => self::PROVIDER, 'require' => ['acme/off' => '^1.0']]) ?: '');
+		$this->writeTemporaryFile('extensions/acme/future/plugin.json', json_encode(['name' => 'acme/future', 'label' => 'Future', 'namespace' => 'future', 'provider' => self::PROVIDER, 'require' => ['blush-dev/framework' => '^9.0']]) ?: '');
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig({$config});\n");
 
 		$this->boot(roles: $roles);
@@ -114,11 +114,11 @@ final class AdminPluginsTest extends TestCase
 			'authors'      => [['name' => 'Jane Doe', 'homepage' => 'https://example.test']],
 			'license'      => 'MIT',
 			'source'       => 'local',
-			'path'         => 'user/plugins/recipes',
-			'folder'       => 'user/plugins/recipes',
+			'path'         => 'extensions/fixture/recipes',
+			'folder'       => 'extensions/fixture/recipes',
 			'enabled'      => true,
 			'running'      => true,
-			'requirements' => [['name' => 'blush', 'constraint' => '^2.0', 'kind' => 'blush', 'met' => true, 'note' => 'this site runs 2.0.0-dev', 'label' => '']],
+			'requirements' => [['name' => 'blush-dev/framework', 'constraint' => '^2.0', 'kind' => 'blush', 'met' => true, 'note' => 'this site runs 2.0.0-dev', 'label' => '']],
 			'blocked'      => null,
 			'requiredBy'   => [],
 			'deletable'    => false,
@@ -220,24 +220,24 @@ final class AdminPluginsTest extends TestCase
 	{
 		$this->site();
 
-		$running = $this->write('DELETE', '/plugins/recipes');
+		$running = $this->write('DELETE', '/plugins/fixture/recipes');
 		$this->assertSame(409, $running->getStatusCode());
 		$this->assertSame('Recipes is on. Turn it off before deleting it.', self::json($running)['error'] ?? null);
 
-		$response = $this->write('DELETE', '/plugins/off');
+		$response = $this->write('DELETE', '/plugins/acme/off');
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['deleted' => 'user/plugins/off'], self::json($response));
-		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/plugins/off');
+		$this->assertSame(['deleted' => 'extensions/acme/off'], self::json($response));
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/extensions/acme/off');
 
-		$this->assertSame(409, $this->write('DELETE', '/plugins/needy')->getStatusCode(), 'config/plugins.php names it, though it can\'t run.');
-		$this->assertSame(404, $this->write('DELETE', '/plugins/missing')->getStatusCode());
-		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/plugins/recipes');
+		$this->assertSame(409, $this->write('DELETE', '/plugins/acme/needy')->getStatusCode(), 'config/plugins.php names it, though it can\'t run.');
+		$this->assertSame(404, $this->write('DELETE', '/plugins/acme/missing')->getStatusCode());
+		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/fixture/recipes');
 	}
 
 	public function testListsBrokenPlugins(): void
 	{
-		$this->writeTemporaryFile('user/plugins/broken/plugin.json', '{broken');
-		$this->writeTemporaryFile('user/plugins/named/plugin.json', '{"name": "acme/named", "label": "Named"}');
+		$this->writeTemporaryFile('extensions/acme/broken/plugin.json', '{broken');
+		$this->writeTemporaryFile('extensions/acme/named/plugin.json', '{"name": "acme/named", "label": "Named"}');
 		$this->site(config: "enabled: ['fixture/recipes', 'acme/named']");
 
 		$answer = self::json($this->send('GET', '/plugins'));
@@ -245,11 +245,11 @@ final class AdminPluginsTest extends TestCase
 		$this->assertSame(['acme/future', 'acme/needy', 'acme/off', 'fixture/recipes'], array_column(is_array($answer['plugins'] ?? null) ? $answer['plugins'] : [], 'name'), 'The site boots, and lists the rest.');
 
 		$invalid = is_array($answer['invalid'] ?? null) ? $answer['invalid'] : [];
-		$this->assertSame(['user/plugins/broken', 'user/plugins/named'], array_column($invalid, 'where'));
+		$this->assertSame(['extensions/acme/broken', 'extensions/acme/named'], array_column($invalid, 'where'));
 		$this->assertSame([null, 'acme/named'], array_column($invalid, 'name'));
 		$this->assertSame([false, true], array_column($invalid, 'enabled'), 'Config names one, though it doesn\'t run.');
 		$this->assertSame([true, false], array_column($invalid, 'deletable'), 'One config names stays (D-394).');
-		$this->assertStringContainsString('user/plugins/broken/plugin.json', is_array($invalid[0] ?? null) && is_string($invalid[0]['reason'] ?? null) ? $invalid[0]['reason'] : '');
+		$this->assertStringContainsString('extensions/acme/broken/plugin.json', is_array($invalid[0] ?? null) && is_string($invalid[0]['reason'] ?? null) ? $invalid[0]['reason'] : '');
 		$this->assertSame(['fixture/recipes'], array_map(static fn ($plugin): string => $plugin->name, $this->app->container()->make(Plugins::class)->all()));
 
 		$this->assertSame(422, $this->write('PUT', '/plugins/acme/named', ['enabled' => true])->getStatusCode(), 'A broken one can\'t be turned on.');
@@ -259,15 +259,15 @@ final class AdminPluginsTest extends TestCase
 		$this->assertSame(['plugins' => ['enabled' => ['fixture/recipes']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true), 'But it can be turned off.');
 
 		$this->reboot();
-		$this->assertSame(200, $this->write('DELETE', '/plugins/broken')->getStatusCode());
-		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/plugins/broken');
+		$this->assertSame(200, $this->write('DELETE', '/plugins/acme/broken')->getStatusCode());
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/extensions/acme/broken');
 	}
 
 	public function testKeepsPluginsConfigTurnsOnByName(): void
 	{
 		$this->site(config: "enabled: ['fixture/recipes', 'acme/future']");
 
-		$this->assertSame(409, $this->write('DELETE', '/plugins/future')->getStatusCode(), 'The site would fail without it.');
+		$this->assertSame(409, $this->write('DELETE', '/plugins/acme/future')->getStatusCode(), 'The site would fail without it.');
 	}
 
 	public function testNeedsItsCapabilities(): void
@@ -276,7 +276,7 @@ final class AdminPluginsTest extends TestCase
 
 		$this->assertSame(403, $this->send('GET', '/plugins')->getStatusCode());
 		$this->assertSame(403, $this->write('PUT', '/plugins/acme/off', ['enabled' => true])->getStatusCode());
-		$this->assertSame(403, $this->write('DELETE', '/plugins/off')->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/plugins/acme/off')->getStatusCode());
 	}
 
 	public function testEachActionNeedsItsOwn(): void
@@ -286,7 +286,7 @@ final class AdminPluginsTest extends TestCase
 
 		$this->assertSame(200, $this->send('GET', '/plugins')->getStatusCode());
 		$this->assertSame(200, $this->write('PUT', '/plugins/acme/off', ['enabled' => true])->getStatusCode(), 'Turning on and off (D-389).');
-		$this->assertSame(403, $this->write('DELETE', '/plugins/off')->getStatusCode(), 'Deleting is its own.');
+		$this->assertSame(403, $this->write('DELETE', '/plugins/acme/off')->getStatusCode(), 'Deleting is its own.');
 		$this->assertSame(200, $this->write('PATCH', '/settings', ['unset' => ['plugins.enabled']])->getStatusCode(), 'The setting the Plugins screen saves.');
 		$this->assertSame(403, $this->write('PATCH', '/settings', ['set' => ['app.name' => 'Mine']])->getStatusCode(), 'Other settings need site.settings.');
 		$this->assertSame(200, $this->write('POST', '/settings/refresh')->getStatusCode());
@@ -298,6 +298,6 @@ final class AdminPluginsTest extends TestCase
 		$this->site(['blind']);
 
 		$this->assertSame(403, $this->write('PUT', '/plugins/acme/off', ['enabled' => false])->getStatusCode(), 'Every action needs seeing.');
-		$this->assertSame(403, $this->write('DELETE', '/plugins/off')->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/plugins/acme/off')->getStatusCode());
 	}
 }

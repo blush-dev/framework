@@ -98,7 +98,7 @@ async function remove(): Promise<void> {
 							<dt>License</dt>
 							<dd :class="{ mono: plugin.license }">{{ plugin.license || '—' }}</dd>
 							<dt>Installed by</dt>
-							<dd>{{ plugin.source === 'composer' ? 'Composer' : 'A folder in user/plugins' }}</dd>
+							<dd>{{ plugin.source === 'composer' ? 'Composer' : 'A folder in extensions/' }}</dd>
 							<dt>Folder</dt>
 							<dd>
 								<span class="mono">{{ plugin.path }}</span>

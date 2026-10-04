@@ -17,12 +17,56 @@ use JsonException;
 
 /**
  * Reads the `composer.json` in an extension's folder leniently, for what
- * a manifest may leave to it (its `authors`, D-384, and a plugin's
- * `license`, D-385). It isn't the manifest, so a missing or unreadable
- * file is nothing.
+ * a manifest may leave to it: the keys a manifest shares with Composer's
+ * schema (D-418; `authors` since D-384, `license` since D-385). It isn't
+ * the manifest, so a missing or unreadable file is nothing, and so is a
+ * key of the wrong shape.
  */
 final readonly class ComposerJson
 {
+	/**
+	 * The keys a manifest shares with Composer's schema, which a manifest
+	 * may leave to its `composer.json`.
+	 *
+	 * @var list<string>
+	 */
+	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require'];
+
+	/**
+	 * Fills in the shared keys a manifest leaves out from the
+	 * `composer.json` in its folder. Blush's own keys never come from it.
+	 *
+	 * @param  array<string, mixed> $data
+	 * @return array<string, mixed>
+	 */
+	public static function fill(array $data, string $folder): array
+	{
+		if (array_diff(self::SHARED, array_keys($data)) === []) {
+			return $data;
+		}
+
+		$composer = self::read($folder);
+
+		foreach (self::SHARED as $key) {
+			if (array_key_exists($key, $data) || ! array_key_exists($key, $composer)) {
+				continue;
+			}
+
+			$value = match ($key) {
+				'authors' => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($composer['authors'])),
+				'license' => self::license($composer['license']),
+				'autoload', 'require' => is_array($composer[$key]) ? $composer[$key] : null,
+				default   => is_string($composer[$key]) ? $composer[$key] : null
+			};
+
+			if ($value !== null) {
+				$data[$key] = $value;
+			}
+		}
+
+		return $data;
+	}
+
 	/**
 	 * Returns the decoded file, or an empty array.
 	 *

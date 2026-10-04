@@ -17,8 +17,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
 use Blush\Core\Paths;
+use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\LocalAutoloader;
+use Blush\Extension\LocalExtensions;
 use Blush\Plugin\BrokenPlugin;
 use Blush\Plugin\ComposerPluginFinder;
 use Blush\Plugin\DiscoveredPlugins;
@@ -50,6 +52,14 @@ final class PluginTest extends TestCase
 	private const string SITE = __DIR__ . '/../Fixtures/site';
 
 	/**
+	 * A finder over a folder of `{vendor}/{name}` folders.
+	 */
+	private static function finder(string $folder, string $root = ''): LocalPluginFinder
+	{
+		return new LocalPluginFinder(new LocalExtensions($folder, $root), $root);
+	}
+
+	/**
 	 * @return list<PluginManifest>
 	 */
 	private function discover(): array
@@ -59,7 +69,7 @@ final class PluginTest extends TestCase
 
 	public function testFindsLocalPlugins(): void
 	{
-		$manifests = new LocalPluginFinder(self::SITE . '/user/plugins')->find()->manifests;
+		$manifests = self::finder(self::SITE . '/extensions')->find()->manifests;
 
 		$this->assertSame(['acme/disabled', 'fixture/hello'], array_map(
 			static fn (PluginManifest $manifest): string => $manifest->name,
@@ -73,9 +83,9 @@ final class PluginTest extends TestCase
 		$this->assertSame('hello', $hello->namespace);
 		$this->assertSame('1.2.0', $hello->version);
 		$this->assertSame('Fixture\Hello\HelloServiceProvider', $hello->providerClass());
-		$this->assertSame(['Fixture\Hello\\' => 'src/'], $hello->autoload);
-		$this->assertSame(['blush' => '^2.0'], $hello->requires);
-		$this->assertStringEndsWith('user/plugins/hello', $hello->path);
+		$this->assertSame(['Fixture\Hello\\' => 'src/'], $hello->autoload->psr4);
+		$this->assertSame(['blush-dev/framework' => '^2.0'], $hello->require);
+		$this->assertStringEndsWith('extensions/fixture/hello', $hello->path);
 	}
 
 	public function testFindsComposerPlugins(): void
@@ -129,14 +139,14 @@ final class PluginTest extends TestCase
 
 	public function testDiscoveryRejectsDuplicateNames(): void
 	{
-		$this->writeTemporaryFile('one/a/plugin.json', '{"name": "same/name", "label": "A", "namespace": "a", "provider": "A\\\\Provider"}');
-		$this->writeTemporaryFile('two/b/plugin.json', '{"name": "same/name", "label": "B", "namespace": "b", "provider": "B\\\\Provider"}');
+		$this->writeTemporaryFile('one/same/name/plugin.json', '{"name": "same/name", "label": "A", "namespace": "a", "provider": "A\\\\Provider"}');
+		$this->writeTemporaryFile('two/same/name/plugin.json', '{"name": "same/name", "label": "B", "namespace": "b", "provider": "B\\\\Provider"}');
 
 		$this->expectException(ExtensionException::class);
 
 		new PluginDiscovery([
-			new LocalPluginFinder($this->temporaryDirectory() . '/one'),
-			new LocalPluginFinder($this->temporaryDirectory() . '/two')
+			self::finder($this->temporaryDirectory() . '/one'),
+			self::finder($this->temporaryDirectory() . '/two')
 		])->discover();
 	}
 
@@ -155,26 +165,29 @@ final class PluginTest extends TestCase
 			'{"name": "ok/name", "label": "OK", "namespace": "ok"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "authors": [{"email": "a@example.test"}]}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "license": ["MIT"]}',
+			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "autoload": {"files": ["../outside.php"]}}',
+			'{"name": "ok/other", "label": "OK", "namespace": "ok", "provider": "A\\\\B"}',
 			'not json'
 		];
 
 		foreach ($cases as $index => $json) {
-			$this->writeTemporaryFile("bad{$index}/ext/plugin.json", $json);
+			$this->writeTemporaryFile("bad{$index}/ok/name/plugin.json", $json);
 
-			$found = new LocalPluginFinder($this->temporaryDirectory() . "/bad{$index}", $this->temporaryDirectory())->find();
+			$found = self::finder($this->temporaryDirectory() . "/bad{$index}", $this->temporaryDirectory())->find();
 
 			$this->assertSame([], $found->manifests, "Expected manifest {$index} to be broken.");
-			$this->assertSame("bad{$index}/ext", $found->broken[0]->where ?? null);
+			$this->assertSame("bad{$index}/ok/name", $found->broken[0]->where ?? null);
 			$this->assertStringNotContainsString($this->temporaryDirectory(), $found->broken[0]->reason ?? '', 'Paths are from the root.');
 		}
 
-		$this->assertSame('ok/name', new LocalPluginFinder($this->temporaryDirectory() . '/bad2')->find()->broken[0]->name ?? null, 'A manifest that parses gives its name.');
-		$this->assertSame('', new LocalPluginFinder($this->temporaryDirectory() . '/bad12')->find()->broken[0]->name ?? null);
+		$this->assertSame('ok/name', self::finder($this->temporaryDirectory() . '/bad2')->find()->broken[0]->name ?? null, 'A manifest that parses gives its name.');
+		$this->assertSame('', self::finder($this->temporaryDirectory() . '/bad14')->find()->broken[0]->name ?? null);
+		$this->assertStringContainsString('is named "ok/other"; an extension\'s folder is its name, so move it to bad13/ok/other.', self::finder($this->temporaryDirectory() . '/bad13', $this->temporaryDirectory())->find()->broken[0]->reason ?? '');
 	}
 
 	public function testReadsYamlManifestsAndJsonWins(): void
 	{
-		$this->writeTemporaryFile('plugins/gallery/plugin.yaml', <<<'YAML'
+		$this->writeTemporaryFile('plugins/acme/gallery/plugin.yaml', <<<'YAML'
 			name: acme/gallery
 			label: Gallery
 			namespace: gallery
@@ -184,31 +197,32 @@ final class PluginTest extends TestCase
 			  psr-4:
 			    Acme\Gallery\: src/
 			YAML);
-		$this->writeTemporaryFile('plugins/both/plugin.json', '{"name": "acme/json", "label": "JSON", "namespace": "json", "provider": "A\\\\B"}');
-		$this->writeTemporaryFile('plugins/both/plugin.yml', "name: acme/yaml\nlabel: YAML\nnamespace: yaml\nprovider: A\\B\n");
-		$this->writeTemporaryFile('plugins/none/readme.md', 'No manifest.');
-		$this->writeTemporaryFile('plugins/old/extension.json', '{"name": "acme/old", "label": "Old", "namespace": "old", "provider": "A\\\\B"}');
+		$this->writeTemporaryFile('plugins/acme/json/plugin.json', '{"name": "acme/json", "label": "JSON", "namespace": "json", "provider": "A\\\\B"}');
+		$this->writeTemporaryFile('plugins/acme/json/plugin.yml', "name: acme/yaml\nlabel: YAML\nnamespace: yaml\nprovider: A\\B\n");
+		$this->writeTemporaryFile('plugins/acme/none/readme.md', 'No manifest.');
+		$this->writeTemporaryFile('plugins/acme/old/extension.json', '{"name": "acme/old", "label": "Old", "namespace": "old", "provider": "A\\\\B"}');
+		$this->writeTemporaryFile('plugins/.install-123/acme/plugin.json', '{"name": "acme/hidden", "label": "Hidden", "namespace": "hidden", "provider": "A\\\\B"}');
 
-		$manifests = new LocalPluginFinder($this->temporaryDirectory() . '/plugins')->find()->manifests;
+		$manifests = self::finder($this->temporaryDirectory() . '/plugins')->find()->manifests;
 
-		$this->assertSame(['acme/json', 'acme/gallery'], array_map(
+		$this->assertSame(['acme/gallery', 'acme/json'], array_map(
 			static fn (PluginManifest $manifest): string => $manifest->name,
 			$manifests
 		));
-		$this->assertSame(['Acme\Gallery\\' => 'src/'], $manifests[1]->autoload);
+		$this->assertSame(['Acme\Gallery\\' => 'src/'], $manifests[0]->autoload->psr4);
 	}
 
 	public function testInvalidYamlManifestsAreBroken(): void
 	{
-		$this->writeTemporaryFile('bad/ext/plugin.yaml', "- a list\n- not a map\n");
+		$this->writeTemporaryFile('bad/acme/ext/plugin.yaml', "- a list\n- not a map\n");
 
-		$this->assertCount(1, new LocalPluginFinder($this->temporaryDirectory() . '/bad')->find()->broken);
+		$this->assertCount(1, self::finder($this->temporaryDirectory() . '/bad')->find()->broken);
 	}
 
 	public function testBrokenPluginsNeverRun(): void
 	{
 		$broken = [
-			new BrokenPlugin('user/plugins/gallery', 'The manifest is invalid.', 'acme/gallery', PluginSource::Local),
+			new BrokenPlugin('extensions/acme/gallery', 'The manifest is invalid.', 'acme/gallery', PluginSource::Local),
 			new BrokenPlugin('acme/shop', 'No "extra.blush.provider".', 'acme/shop', PluginSource::Composer)
 		];
 
@@ -222,22 +236,22 @@ final class PluginTest extends TestCase
 	public function testAMissingPluginNamesBrokenOnesWithoutAName(): void
 	{
 		$this->expectException(ExtensionException::class);
-		$this->expectExceptionMessage('acme/gallery. user/plugins/gallery is broken: The manifest is invalid.');
+		$this->expectExceptionMessage('acme/gallery. extensions/acme/gallery is broken: The manifest is invalid.');
 
 		Plugins::enabled($this->discover(), new PluginConfig(enabled: ['acme/gallery']), broken: [
-			new BrokenPlugin('user/plugins/gallery', 'The manifest is invalid.', '', PluginSource::Local)
+			new BrokenPlugin('extensions/acme/gallery', 'The manifest is invalid.', '', PluginSource::Local)
 		]);
 	}
 
 	public function testDiscoveryKeepsBrokenPlugins(): void
 	{
-		$this->writeTemporaryFile('user/plugins/good/plugin.json', '{"name": "acme/good", "label": "Good", "namespace": "good", "provider": "A\\\\Provider"}');
-		$this->writeTemporaryFile('user/plugins/bad/plugin.json', '{broken');
+		$this->writeTemporaryFile('extensions/acme/good/plugin.json', '{"name": "acme/good", "label": "Good", "namespace": "good", "provider": "A\\\\Provider"}');
+		$this->writeTemporaryFile('extensions/acme/bad/plugin.json', '{broken');
 
 		$found = PluginDiscovery::forPaths(Paths::fromRoot($this->temporaryDirectory()))->discover();
 
 		$this->assertSame(['acme/good'], array_map(static fn (PluginManifest $m): string => $m->name, $found->manifests));
-		$this->assertSame(['user/plugins/bad'], array_map(static fn (BrokenPlugin $p): string => $p->where, $found->broken));
+		$this->assertSame(['extensions/acme/bad'], array_map(static fn (BrokenPlugin $p): string => $p->where, $found->broken));
 		$this->assertSame(2, $found->count());
 	}
 
@@ -285,7 +299,7 @@ final class PluginTest extends TestCase
 	{
 		$file       = new PhpArrayFile($this->temporaryDirectory() . '/plugins.php');
 		$cache      = new PluginCache($file);
-		$discovered = new DiscoveredPlugins($this->discover(), [new BrokenPlugin('user/plugins/bad', 'Broken.', '', PluginSource::Local)]);
+		$discovered = new DiscoveredPlugins($this->discover(), [new BrokenPlugin('extensions/acme/bad', 'Broken.', '', PluginSource::Local)]);
 
 		$this->assertNull($cache->read());
 

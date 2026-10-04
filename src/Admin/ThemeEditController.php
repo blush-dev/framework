@@ -24,6 +24,7 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Extension\Install\InstallException;
+use Blush\Extension\LocalExtensions;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Support\Filesystem;
@@ -35,14 +36,14 @@ use Blush\Theme\Themes;
 use Blush\Theme\ThemeSource;
 
 /**
- * Deletes a theme's folder from `user/themes` (D-381), for accounts with
+ * Deletes a theme's folder from `extensions/` (D-381), for accounts with
  * `extensions.themes.delete` (D-389): `DELETE themes/{folder}`, answering `{"deleted"}`
  * with where it was.
  *
- * Only a folder in `user/themes` that holds a theme, or a broken one, is
+ * Only a folder in `extensions/` that holds a theme, or a broken one, is
  * deleted. The active theme, and any theme it falls back to, can't be:
  * that's a `409` naming the theme to activate first. The default theme
- * and Composer themes aren't folders in `user/themes`, so they're never
+ * and Composer themes aren't folders in `extensions/`, so they're never
  * found here (Composer removes its own). A theme that fell back to the
  * one deleted keeps naming it, so it can't be activated until it's
  * pointed at one that's installed.
@@ -62,7 +63,7 @@ final readonly class ThemeEditController
 		private ExtensionInstaller $installer
 	) {}
 
-	public function delete(ServerRequestInterface $request, string $folder): ResponseInterface
+	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		$account = $request->getAttribute(Account::class);
 
@@ -70,11 +71,11 @@ final readonly class ThemeEditController
 			return self::error('You aren\'t allowed to delete themes.', Status::Forbidden);
 		}
 
-		$path  = "{$this->paths->themes}/{$folder}";
+		$path  = LocalExtensions::path($this->paths, "{$vendor}/{$name}");
 		$where = $this->paths->relative($path);
 		$theme = array_find($this->themes->all(), fn (ThemeManifest $theme): bool => $theme->source === ThemeSource::Local && $theme->path === $path);
 
-		if (str_starts_with($folder, '.') || ! is_dir($path) || ($theme === null && ! array_key_exists($where, $this->themes->invalid()))) {
+		if (! is_dir($path) || ($theme === null && ! array_key_exists($where, $this->themes->invalid()))) {
 			return self::error(sprintf('There\'s no theme in %s.', $where), Status::NotFound);
 		}
 
@@ -88,11 +89,12 @@ final readonly class ThemeEditController
 			return self::error(sprintf('%s couldn\'t be deleted. Check that the web server may change it.', $where), Status::InternalServerError);
 		}
 
+		LocalExtensions::prune($this->paths, $path);
 		$this->bootstrap->clearCompiled(CompiledCache::Themes);
 
 		// Its backup goes with it (D-393).
 		try {
-			$this->installer->discard(ExtensionKind::Theme, $path);
+			$this->installer->discard($path);
 		} catch (InstallException) {
 			// The extension is gone either way; the backup is inert.
 		}

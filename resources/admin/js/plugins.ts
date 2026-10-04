@@ -7,7 +7,7 @@
  * `user/data/settings.json` (`PUT plugins/{vendor}/{name}`), over
  * `config/plugins.php`, and has the server compile and reindex for it,
  * since plugins' providers run at boot. Deleting removes a folder in
- * `user/plugins` (`DELETE plugins/{folder}`), a broken plugin's too
+ * `extensions/` (`DELETE plugins/{vendor}/{name}`), a broken plugin's too
  * (D-394).
  */
 
@@ -16,7 +16,7 @@ import { ApiError, request, type BrokenPluginSummary, type PluginRequirement, ty
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
 import { toast } from './toast';
-import { folderName } from './themes';
+import { folderName, folderPath } from './themes';
 
 export function usePlugins() {
 	const answer = ref<Plugins | null>(null);
@@ -85,7 +85,7 @@ export function usePlugins() {
 		}
 
 		try {
-			await request('DELETE', `/plugins/${encodeURIComponent(label)}`);
+			await request('DELETE', `/plugins/${folderPath(plugin.where)}`);
 			void loadCounts();
 			toast(`Deleted ${label}`, { kind: 'danger' });
 
@@ -133,7 +133,7 @@ export function usePlugins() {
 		}
 
 		try {
-			await request('DELETE', `/plugins/${encodeURIComponent(folderName(plugin.folder))}`);
+			await request('DELETE', `/plugins/${folderPath(plugin.folder)}`);
 			void loadCounts();
 			toast(`Deleted ${plugin.label}`, { kind: 'danger' });
 

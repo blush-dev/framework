@@ -18,7 +18,7 @@ use Blush\Core\Framework;
 use Blush\Extension\VersionConstraint;
 
 /**
- * Checks plugins' `requires` against the site (D-385), with
+ * Checks plugins' `require` against the site (D-385), with
  * Composer-style constraints (`VersionConstraint`):
  *
  * - `blush` and `php`: the versions the site runs.
@@ -63,7 +63,7 @@ final readonly class PluginRequirements
 	{
 		$requirements = [];
 
-		foreach ($plugin->requires as $name => $constraint) {
+		foreach ($plugin->require as $name => $constraint) {
 			$requirements[] = $this->requirement($name, $constraint, $installed, $running, $blocked);
 		}
 

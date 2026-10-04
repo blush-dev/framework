@@ -80,18 +80,18 @@ use Blush\Session\StartSession;
  *     accounts (`AccountEditController`), and `POST roles`, and `PATCH`
  *     and `DELETE roles/{name}` change roles (`RoleEditController`).
  *   - `GET  appearance`: the installed themes (`AppearanceController`);
- *     `DELETE themes/{folder}` deletes one from `user/themes`
+ *     `DELETE themes/{vendor}/{name}` deletes one from `extensions/`
  *     (`ThemeEditController`, D-381). `PATCH settings` activates one
  *     (`theme.active`).
  *   - `GET  plugins`: the installed plugins, each checked against
  *     the site (`PluginsController`); `PUT plugins/{vendor}/{name}`
- *     turns one on or off, and `DELETE plugins/{folder}` deletes one
- *     from `user/plugins` (`PluginEditController`, D-385).
+ *     turns one on or off, and `DELETE plugins/{vendor}/{name}` deletes
+ *     one from `extensions/` (`PluginEditController`, D-385).
  *   - `GET  icon-packs`: the installed icon packs and the core set,
  *     `GET icon-packs/{vendor}/{name}` and `GET icon-packs/core` one
  *     with every icon (`IconPacksController`); `PUT
  *     icon-packs/{vendor}/{name}` turns one on or off, and `DELETE
- *     icon-packs/{folder}` deletes one from `user/icons`
+ *     icon-packs/{vendor}/{name}` deletes one from `extensions/`
  *     (`IconPackEditController`, D-385).
  *   - `GET  settings/{screen}`: a Settings screen's settings
  *     (`SettingsController`, D-325); `PATCH settings` saves the ones
@@ -190,13 +190,13 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/themes', [ExtensionInstallController::class, 'theme'])->named('theme.install')->middleware(Authenticate::class),
 			Route::post('/themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/rollback', [ExtensionBackupController::class, 'rollbackTheme'])->named('theme.rollback')->middleware(Authenticate::class),
 			Route::delete('/themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/backup', [ExtensionBackupController::class, 'discardTheme'])->named('theme.backup.discard')->middleware(Authenticate::class),
-			Route::delete('/themes/{folder:[A-Za-z0-9_][A-Za-z0-9._-]*}', [ThemeEditController::class, 'delete'])->named('theme.delete')->middleware(Authenticate::class),
+			Route::delete('/themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [ThemeEditController::class, 'delete'])->named('theme.delete')->middleware(Authenticate::class),
 			Route::get('/plugins', PluginsController::class)->named('plugins')->middleware(Authenticate::class),
 			Route::post('/plugins', [ExtensionInstallController::class, 'plugin'])->named('plugin.install')->middleware(Authenticate::class),
 			Route::put('/plugins/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [PluginEditController::class, 'toggle'])->named('plugin.toggle')->middleware(Authenticate::class),
 			Route::post('/plugins/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/rollback', [ExtensionBackupController::class, 'rollbackPlugin'])->named('plugin.rollback')->middleware(Authenticate::class),
 			Route::delete('/plugins/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/backup', [ExtensionBackupController::class, 'discardPlugin'])->named('plugin.backup.discard')->middleware(Authenticate::class),
-			Route::delete('/plugins/{folder:[A-Za-z0-9_][A-Za-z0-9._-]*}', [PluginEditController::class, 'delete'])->named('plugin.delete')->middleware(Authenticate::class),
+			Route::delete('/plugins/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [PluginEditController::class, 'delete'])->named('plugin.delete')->middleware(Authenticate::class),
 			Route::get('/icon-packs', IconPacksController::class)->named('icon-packs')->middleware(Authenticate::class),
 			Route::get('/icon-packs/core', [IconPacksController::class, 'core'])->named('icon-packs.core')->middleware(Authenticate::class),
 			Route::get('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [IconPacksController::class, 'show'])->named('icon-pack')->middleware(Authenticate::class),
@@ -204,7 +204,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::put('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [IconPackEditController::class, 'toggle'])->named('icon-pack.toggle')->middleware(Authenticate::class),
 			Route::post('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/rollback', [ExtensionBackupController::class, 'rollbackIconPack'])->named('icon-pack.rollback')->middleware(Authenticate::class),
 			Route::delete('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/backup', [ExtensionBackupController::class, 'discardIconPack'])->named('icon-pack.backup.discard')->middleware(Authenticate::class),
-			Route::delete('/icon-packs/{folder:[A-Za-z0-9_][A-Za-z0-9._-]*}', [IconPackEditController::class, 'delete'])->named('icon-pack.delete')->middleware(Authenticate::class),
+			Route::delete('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [IconPackEditController::class, 'delete'])->named('icon-pack.delete')->middleware(Authenticate::class),
 			Route::patch('/settings', [SettingsEditController::class, 'update'])->named('settings.update')->middleware(Authenticate::class),
 			Route::post('/settings/refresh', [SettingsEditController::class, 'refresh'])->named('settings.refresh')->middleware(Authenticate::class),
 			Route::get('/settings/{screen:[a-z]+}', SettingsController::class)->named('settings')->middleware(Authenticate::class),

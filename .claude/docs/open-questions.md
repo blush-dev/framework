@@ -197,9 +197,9 @@ Move each item to `decisions.md` once it's answered.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the
-  content repo; a checked sketch matches the config exactly), or an
-  extension in `user/extensions/` (WordPress-style, with site PHP such as
-  a future blog extension).
+  content repo; a checked sketch matches the config exactly), or a
+  plugin in `extensions/` (WordPress-style, with site PHP such as a
+  future blog plugin; D-418).
 - **Live preview** (D-252): the author is leaning toward a more visual
   editor in the admin, with live preview on the front end (the site
   itself) rather than a rendered preview inside the editor. Not settled.
@@ -298,18 +298,48 @@ Move each item to `decisions.md` once it's answered.
   the front-end subset. Brand logos are the theme's (D-203).
 - **Refreshing embeds**: `storage/cache/store/embeds` is only emptied by
   hand; a `cache:clear --embeds` or `embed:refresh` command may help.
+- **Extensions the framework ships** (discussed 2026-10-03, after D-418;
+  nothing decided, nothing built): the author expects to ship several
+  defaults over the years (themes, icon packs, plugins), so they'd
+  live in the framework in its own `extensions/{vendor}/{name}`, the
+  site's layout, under the vendor Blush publishes as:
+  `extensions/blush-dev/default-theme` in place of
+  `resources/themes/default` (`blush/default`). They ship and update
+  with `blush-dev/framework`; nothing is copied into a site.
+  - **Renaming the default theme** to `blush-dev/default-theme`:
+    `Themes::DEFAULT`, `ThemeConfig`, the theme's `theme.json` (and its
+    `$schema` path), the reserved-name checks, the JSON Schema, two
+    admin views, about 50 test references, and the docs. Its
+    namespace, `default`, stays reserved. A site whose config names
+    `blush/default` would need it changed (the jtcom trial names
+    `justintadlock/jtcom`).
+  - **Discovery:** the framework's `extensions/` read with the same
+    `LocalExtensions` (folder is the name, one kind per folder), as the
+    framework source (`ThemeSource::Framework`); plugins and icon packs
+    would need a framework source too. Nothing in a site's
+    `extensions/` or Composer may take a shipped extension's name.
+  - **Turned on or off by default:** whether shipped plugins and icon
+    packs are on (as Composer's are) or off until named (as local ones
+    are, D-390).
+  - **Which default is the fallback:** with several shipped themes,
+    which one ends every chain, and whether a site can choose it.
+  - **Asset URLs:** the public path changes from
+    `/themes/blush/default/…` to `/themes/blush-dev/default-theme/…`
+    (and `theme:publish`'s folders).
+  - **Packaging:** a top-level `extensions/` ships in Composer's archives
+    unless `.gitattributes` excludes it (it shouldn't).
 - **Extension kinds, still open** (D-378, D-379; references, assets,
   icon pack manifests, and Composer manifests are settled in D-379):
   what an admin theme's manifest holds and how it joins `AdminTheme`
-  (D-317); whether `user/extensions/{kind}/` should be allowed too;
-  and `plugin:new` (planned since D-041; `plugin:list` and
-  `plugin:check` are built, and broken plugin manifests are listed,
-  D-394). Still open from D-394: whether two plugins sharing a name or
+  (D-317). (Every local extension lives in `extensions/{vendor}/{name}`
+  since D-418; `plugin:list`, `plugin:check`, and `plugin:new` are
+  built, and broken plugin manifests are listed, D-394, D-416.) Still
+  open from D-394: whether two plugins sharing a name or
   a namespace should be broken too, as themes and packs are, instead of
   failing discovery.
 - **Installing and updating extensions** (D-388 decides the admin
-  installs them into `user/`; installing and replacing from a zip are
-  built, D-392):
+  installs them, into `extensions/` since D-418; installing and
+  replacing from a zip are built, D-392):
   - Installing from a URL, and from the CLI (`plugin:install` and the
     like), on the same `ExtensionInstaller`.
   - Revisiting backups (D-393) if Blush gets a scheduler: expiring
@@ -317,7 +347,9 @@ Move each item to `decisions.md` once it's answered.
   - Where updates come from for a local extension: an update source
     declared in its manifest (as WordPress's `Update URI`), or inferred
     from its `vendor/name` (risking a stranger's package of the same
-    name).
+    name). D-418 makes the name the folder, so an update API can find an
+    installed extension by name alone; a registry (Packagist first) is
+    what makes a vendor name someone's.
   - Discovery: Packagist by package type (`blush-theme`, and so on;
     its p2 metadata carries `extra.blush`) is the likeliest first
     source, GitHub only as a host for files; whether to show everything
@@ -368,11 +400,12 @@ Move each item to `decisions.md` once it's answered.
   The M3 router and `UrlGenerator` assume the site is at the host's root,
   and so does static export: `build --base-url` takes only an origin
   (D-135).
-- **Theme and icon pack requirements**: plugins' `requires` are
+- **Theme and icon pack requirements**: plugins' `require` is
   enforced with Composer-style constraints since D-385
-  (`VersionConstraint`); whether a theme's `requires` (only a notice in
-  `theme:check` now) should block activating it, and whether packs get
-  `requires` at all.
+  (`VersionConstraint`); whether a theme's `require` (only a notice in
+  `theme:check` now; filled from its `composer.json` since D-418, so a
+  theme package's own `require` shows there too) should block activating
+  it, and whether packs get `require` at all.
 
 - **CLI publishing and opcache** (found while writing `docs/`, D-141):
   `publish` from the CLI rewrites the index and compiled caches, but its

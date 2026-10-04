@@ -22,6 +22,7 @@ use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -39,10 +40,10 @@ use Blush\Settings\SettingsFile;
  * - `GET icon-packs`: every installed pack, by label, with its `name`,
  *   `label`, `namespace`, `version`, `description`, `authors` (D-384's
  *   shape), `source` (`local` or `composer`), `path` (from the site's
- *   root), `folder` (its folder in `user/icons`, or `null`), whether it's
+ *   root), `folder` (its folder in `extensions/`, or `null`), whether it's
  *   `enabled`, how many icons it has (`count`), the first twelve
  *   (`icons`, each `{"name", "svg"}`, the name in full, `weather/sun`),
- *   and whether it's `deletable` (a folder in `user/icons`); the `core`
+ *   and whether it's `deletable` (a folder in `extensions/`); the `core`
  *   set the same way (`label`, `version`, `count`, `icons`, with short
  *   names, as the icon component takes them); the `invalid` ones, by
  *   `where` they were found, with the `reason` and whether they're
@@ -86,10 +87,10 @@ final readonly class IconPacksController
 		usort($packs, static fn (array $a, array $b): int => strcasecmp($a['label'], $b['label']));
 
 		$invalid = [];
-		$folder  = $this->paths->relative($this->paths->icons) . '/';
 
 		foreach ($this->packs->invalid() as $where => $reason) {
-			$invalid[] = ['where' => $where, 'reason' => $reason, 'deletable' => str_starts_with($where, $folder) && is_dir("{$this->paths->root}/{$where}")];
+			$name      = LocalExtensions::nameAt($this->paths, $where);
+			$invalid[] = ['where' => $where, 'reason' => $reason, 'deletable' => $name !== null && is_dir(LocalExtensions::path($this->paths, $name))];
 		}
 
 		return Response::json([
@@ -132,7 +133,7 @@ final readonly class IconPacksController
 	private function pack(IconPack $pack, ?int $limit = null): array
 	{
 		$files  = self::files($pack->iconsPath());
-		$folder = $pack->source === IconPackSource::Local && dirname($pack->path) === $this->paths->icons
+		$folder = $pack->source === IconPackSource::Local && LocalExtensions::contains($this->paths, $pack->path)
 			? $this->paths->relative($pack->path)
 			: null;
 

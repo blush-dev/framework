@@ -67,10 +67,10 @@ final class ThemesTest extends TestCase
 
 	private function writeThemes(): void
 	{
-		$this->writeTemporaryFile('user/themes/parent/theme.json', '{"name": "acme/parent", "label": "Parent", "namespace": "parent", "version": "1.0.0", "styles": ["css/parent.css"]}');
-		$this->writeTemporaryFile('user/themes/parent/css/parent.css', 'body { color: red; }');
-		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: acme/child\nlabel: Child\nnamespace: child\nparent: acme/parent\nstyles: [style.css, css/parent.css]\nsettings: {dark: {type: bool, default: true}}\n");
-		$this->writeTemporaryFile('user/themes/child/style.css', 'body {}');
+		$this->writeTemporaryFile('extensions/acme/parent/theme.json', '{"name": "acme/parent", "label": "Parent", "namespace": "parent", "version": "1.0.0", "styles": ["css/parent.css"]}');
+		$this->writeTemporaryFile('extensions/acme/parent/css/parent.css', 'body { color: red; }');
+		$this->writeTemporaryFile('extensions/acme/child/theme.yaml', "name: acme/child\nlabel: Child\nnamespace: child\nparent: acme/parent\nstyles: [style.css, css/parent.css]\nsettings: {dark: {type: bool, default: true}}\n");
+		$this->writeTemporaryFile('extensions/acme/child/style.css', 'body {}');
 	}
 
 	public function testTheDefaultThemeIsAlwaysInstalled(): void
@@ -89,7 +89,7 @@ final class ThemesTest extends TestCase
 	public function testReadsManifestsAndChains(): void
 	{
 		$this->writeThemes();
-		$this->writeTemporaryFile('user/themes/not-a-theme/readme.txt', '');
+		$this->writeTemporaryFile('extensions/acme/not-a-theme/readme.txt', '');
 
 		$themes = $this->themes();
 		$child  = $themes->find('acme/child');
@@ -108,15 +108,15 @@ final class ThemesTest extends TestCase
 		$this->assertSame(['blush/default', 'acme/child', 'acme/parent'], array_keys($themes->all()));
 		$this->assertNull($themes->find('acme/not-a-theme'));
 		$this->assertNull($themes->find('../etc'));
-		$this->assertSame($this->temporaryDirectory() . '/user/themes/child/views', $chain->viewDirectories()[0]);
+		$this->assertSame($this->temporaryDirectory() . '/extensions/acme/child/views', $chain->viewDirectories()[0]);
 		$this->assertSame(Framework::path('resources/themes/default/lang'), $chain->langDirectories()[2]);
 	}
 
 	public function testBleedClassesComeFromTheChain(): void
 	{
 		$this->writeThemes();
-		$this->writeTemporaryFile('user/themes/parent/theme.json', '{"name": "acme/parent", "label": "Parent", "namespace": "parent", "bleed": {"wide": "stretch-wide", "full": "stretch-full"}}');
-		$this->writeTemporaryFile('user/themes/child/theme.yaml', "name: acme/child\nlabel: Child\nnamespace: child\nparent: acme/parent\nbleed: {full: edge}\n");
+		$this->writeTemporaryFile('extensions/acme/parent/theme.json', '{"name": "acme/parent", "label": "Parent", "namespace": "parent", "bleed": {"wide": "stretch-wide", "full": "stretch-full"}}');
+		$this->writeTemporaryFile('extensions/acme/child/theme.yaml', "name: acme/child\nlabel: Child\nnamespace: child\nparent: acme/parent\nbleed: {full: edge}\n");
 
 		$themes = $this->themes();
 
@@ -131,7 +131,7 @@ final class ThemesTest extends TestCase
 
 		$chain  = $this->themes()->chain('acme/child');
 		$assets = new ThemeAssets($chain);
-		$hash   = hash_file('crc32b', $this->temporaryDirectory() . '/user/themes/parent/css/parent.css');
+		$hash   = hash_file('crc32b', $this->temporaryDirectory() . '/extensions/acme/parent/css/parent.css');
 
 		$this->assertSame("/themes/acme/parent/css/parent.css?v={$hash}", $assets->url('css/parent.css'));
 		$this->assertStringStartsWith('/themes/acme/child/style.css?v=', (string) $assets->url('style.css'));
@@ -150,9 +150,9 @@ final class ThemesTest extends TestCase
 
 	public function testBrokenChainsThrow(): void
 	{
-		$this->writeTemporaryFile('user/themes/a/theme.json', '{"name": "acme/a", "label": "A", "namespace": "a", "parent": "acme/b"}');
-		$this->writeTemporaryFile('user/themes/b/theme.json', '{"name": "acme/b", "label": "B", "namespace": "b", "parent": "acme/a"}');
-		$this->writeTemporaryFile('user/themes/orphan/theme.json', '{"name": "acme/orphan", "label": "Orphan", "namespace": "orphan", "parent": "acme/gone"}');
+		$this->writeTemporaryFile('extensions/acme/a/theme.json', '{"name": "acme/a", "label": "A", "namespace": "a", "parent": "acme/b"}');
+		$this->writeTemporaryFile('extensions/acme/b/theme.json', '{"name": "acme/b", "label": "B", "namespace": "b", "parent": "acme/a"}');
+		$this->writeTemporaryFile('extensions/acme/orphan/theme.json', '{"name": "acme/orphan", "label": "Orphan", "namespace": "orphan", "parent": "acme/gone"}');
 
 		$themes = $this->themes();
 		$cases  = [
@@ -189,17 +189,17 @@ final class ThemesTest extends TestCase
 			"{{$x}, \"bleed\": {\"huge\": \"x\"}}"    => '"bleed" must map',
 			"{{$x}, \"authors\": [{\"email\": \"a@b.c\"}]}" => 'needs a "name"',
 			"{{$x}, \"authors\": {\"name\": \"Jane\"}}" => '"authors" must be a list',
-			'{"name": "blush/default", "label": "X", "namespace": "bad"}' => 'framework default theme',
+			'{"name": "blush/default", "label": "X", "namespace": "bad"}' => 'move it to extensions/blush/default',
 			'{broken'                                   => 'theme.json is invalid'
 		];
 
 		foreach ($cases as $json => $message) {
-			$this->writeTemporaryFile('user/themes/bad/theme.json', $json);
+			$this->writeTemporaryFile('extensions/acme/bad/theme.json', $json);
 
 			$themes = $this->themes();
 
 			$this->assertFalse($themes->has('acme/bad'), "{$json} should not load.");
-			$this->assertStringContainsString($message, $themes->invalid()['user/themes/bad'] ?? '', $json);
+			$this->assertStringContainsString($message, $themes->invalid()['extensions/acme/bad'] ?? '', $json);
 		}
 	}
 
@@ -231,8 +231,8 @@ final class ThemesTest extends TestCase
 	public function testServesThemeAssets(): void
 	{
 		$this->writeThemes();
-		$this->writeTemporaryFile('user/themes/child/icon.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
-		$this->writeTemporaryFile('user/themes/child/views/single.php', '<?php echo "secret";');
+		$this->writeTemporaryFile('extensions/acme/child/icon.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
+		$this->writeTemporaryFile('extensions/acme/child/views/single.php', '<?php echo "secret";');
 
 		$app = $this->boot();
 		$css = $this->get($app, '/themes/acme/parent/css/parent.css');

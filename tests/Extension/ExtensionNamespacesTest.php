@@ -44,7 +44,7 @@ final class ExtensionNamespacesTest extends TestCase
 
 	private function plugin(string $folder, string $name, string $namespace): void
 	{
-		$this->writeTemporaryFile("user/plugins/{$folder}/plugin.json", (string) json_encode([
+		$this->writeTemporaryFile("extensions/{$name}/plugin.json", (string) json_encode([
 			'name'      => $name,
 			'label'     => ucfirst($folder),
 			'namespace' => $namespace,
@@ -52,13 +52,8 @@ final class ExtensionNamespacesTest extends TestCase
 		]));
 	}
 
-	public function testKindsHaveTheirOwnFoldersManifestsAndPackageTypes(): void
+	public function testKindsHaveTheirOwnManifestsAndPackageTypes(): void
 	{
-		$paths = $this->paths();
-
-		$this->assertSame($paths->plugins, ExtensionKind::Plugin->folder($paths));
-		$this->assertSame($paths->themes, ExtensionKind::Theme->folder($paths));
-		$this->assertSame($paths->icons, ExtensionKind::IconPack->folder($paths));
 		$this->assertSame(['plugin', 'theme', 'icons'], array_map(static fn (ExtensionKind $kind): string => $kind->manifest(), ExtensionKind::cases()));
 		$this->assertSame(['blush-plugin', 'blush-theme', 'blush-icons'], array_map(static fn (ExtensionKind $kind): string => $kind->packageType(), ExtensionKind::cases()));
 		$this->assertTrue(ExtensionKind::Theme->runsCode(), 'Themes can run PHP.');
@@ -113,35 +108,35 @@ final class ExtensionNamespacesTest extends TestCase
 
 	public function testThemesSharingANamespaceAreBroken(): void
 	{
-		$this->writeTemporaryFile('user/themes/one/theme.json', '{"name": "acme/one", "label": "One", "namespace": "shared"}');
-		$this->writeTemporaryFile('user/themes/two/theme.json', '{"name": "acme/two", "label": "Two", "namespace": "shared"}');
-		$this->writeTemporaryFile('user/themes/three/theme.json', '{"name": "acme/three", "label": "Three", "namespace": "default"}');
+		$this->writeTemporaryFile('extensions/acme/one/theme.json', '{"name": "acme/one", "label": "One", "namespace": "shared"}');
+		$this->writeTemporaryFile('extensions/acme/two/theme.json', '{"name": "acme/two", "label": "Two", "namespace": "shared"}');
+		$this->writeTemporaryFile('extensions/acme/three/theme.json', '{"name": "acme/three", "label": "Three", "namespace": "default"}');
 
 		$themes = new ThemeDiscovery($this->paths())->discover();
 
 		$this->assertSame([Themes::DEFAULT], array_keys($themes->all()));
-		$this->assertStringContainsString('all have the namespace "shared"', $themes->invalid()['user/themes/one'] ?? '');
-		$this->assertStringContainsString('all have the namespace "shared"', $themes->invalid()['user/themes/two'] ?? '');
-		$this->assertStringContainsString('needs a "namespace"', $themes->invalid()['user/themes/three'] ?? '', 'The default theme\'s namespace is reserved.');
+		$this->assertStringContainsString('all have the namespace "shared"', $themes->invalid()['extensions/acme/one'] ?? '');
+		$this->assertStringContainsString('all have the namespace "shared"', $themes->invalid()['extensions/acme/two'] ?? '');
+		$this->assertStringContainsString('needs a "namespace"', $themes->invalid()['extensions/acme/three'] ?? '', 'The default theme\'s namespace is reserved.');
 	}
 
 	public function testPluginsThenThemesThenIconPacksClaimNamespaces(): void
 	{
 		$this->plugin('gallery', 'acme/gallery', 'gallery');
-		$this->writeTemporaryFile('user/themes/gallery/theme.json', '{"name": "acme/gallery-theme", "label": "Gallery", "namespace": "gallery"}');
-		$this->writeTemporaryFile('user/themes/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/icons/nova/icons.json', '{"name": "acme/nova-icons", "label": "Nova Icons", "namespace": "nova"}');
-		$this->writeTemporaryFile('user/icons/gallery/icons.json', '{"name": "acme/gallery-icons", "label": "Gallery Icons", "namespace": "gallery"}');
-		$this->writeTemporaryFile('user/icons/brands/icons.json', '{"name": "acme/brands", "label": "Brands", "namespace": "brands"}');
+		$this->writeTemporaryFile('extensions/acme/gallery-theme/theme.json', '{"name": "acme/gallery-theme", "label": "Gallery", "namespace": "gallery"}');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/nova-icons/icons.json', '{"name": "acme/nova-icons", "label": "Nova Icons", "namespace": "nova"}');
+		$this->writeTemporaryFile('extensions/acme/gallery-icons/icons.json', '{"name": "acme/gallery-icons", "label": "Gallery Icons", "namespace": "gallery"}');
+		$this->writeTemporaryFile('extensions/acme/brands/icons.json', '{"name": "acme/brands", "label": "Brands", "namespace": "brands"}');
 
 		$container = new Bootstrap($this->paths())->createApplication()->container();
 		$themes    = $container->make(Themes::class);
 		$packs     = $container->make(IconPacks::class);
 
 		$this->assertSame([Themes::DEFAULT, 'acme/nova'], array_keys($themes->all()));
-		$this->assertSame('Its namespace, "gallery", is the plugin acme/gallery\'s.', $themes->invalid()['user/themes/gallery'] ?? null, 'An installed plugin claims it, even turned off (as local ones are until named, D-390).');
+		$this->assertSame('Its namespace, "gallery", is the plugin acme/gallery\'s.', $themes->invalid()['extensions/acme/gallery-theme'] ?? null, 'An installed plugin claims it, even turned off (as local ones are until named, D-390).');
 		$this->assertSame(['acme/brands'], array_keys($packs->all()));
-		$this->assertSame('Its namespace, "nova", is the theme acme/nova\'s.', $packs->invalid()['user/icons/nova'] ?? null);
-		$this->assertSame('Its namespace, "gallery", is the plugin acme/gallery\'s.', $packs->invalid()['user/icons/gallery'] ?? null);
+		$this->assertSame('Its namespace, "nova", is the theme acme/nova\'s.', $packs->invalid()['extensions/acme/nova-icons'] ?? null);
+		$this->assertSame('Its namespace, "gallery", is the plugin acme/gallery\'s.', $packs->invalid()['extensions/acme/gallery-icons'] ?? null);
 	}
 }

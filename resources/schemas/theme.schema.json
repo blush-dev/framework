@@ -4,7 +4,6 @@
 	"description": "A theme's theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.",
 	"type": "object",
 	"required": [
-		"name",
 		"label",
 		"namespace"
 	],
@@ -16,7 +15,7 @@
 		"name": {
 			"type": "string",
 			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",
-			"description": "The theme's name, the key it's known by: vendor/name, such as \"acme/gallery\". For a Composer package, its package name."
+			"description": "The theme's name, the key it's known by: vendor/name, such as \"acme/gallery\". Its folder is extensions/{vendor}/{name}, so it must match the folder. Without it, the name in the composer.json beside this file is used; for a Composer package, it's the package name."
 		},
 		"label": {
 			"type": "string",
@@ -107,15 +106,23 @@
 		},
 		"autoload": {
 			"type": "object",
-			"description": "Classes to autoload.",
+			"description": "What to autoload, as composer.json says it. Without it, the autoload in the composer.json beside this file is used.",
 			"properties": {
 				"psr-4": {
 					"type": "object",
 					"description": "Namespace prefixes and the folders inside the theme their classes are in, such as {\"Notebook\\\\\": \"src/\"}.",
 					"additionalProperties": {
 						"type": "string",
-						"pattern": "^/?[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$"
+						"pattern": "^(?!/)(?!.*\\.\\.).*$"
 					}
+				},
+				"files": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"pattern": "^(?!/)(?!.*\\.\\.).*$"
+					},
+					"description": "Files inside the theme loaded once when it runs, such as [\"src/helpers.php\"]."
 				}
 			}
 		},
@@ -403,9 +410,9 @@
 				}
 			}
 		},
-		"requires": {
+		"require": {
 			"type": "object",
-			"description": "What the theme needs, such as {\"blush\": \"^2.0\"}. Not checked yet.",
+			"description": "What the theme needs, as composer.json says it, such as {\"blush-dev/framework\": \"^2.0\"}. Not checked yet.",
 			"additionalProperties": {
 				"type": "string"
 			}

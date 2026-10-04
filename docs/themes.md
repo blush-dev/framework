@@ -23,11 +23,11 @@ bin/blush theme:activate acme/notebook # switch themes
 ```
 
 A theme is known by its **name**, `vendor/name` (`acme/notebook`), which
-its `theme.json` gives. Themes live in `user/themes/{folder}/`, and each
-can be its own git repository; the folder is only where it lives. They
-can also be installed with Composer (package type `blush-theme`), where
-the theme's name is the package's. If two share a name, `user/themes/`
-wins. The framework's default theme is `blush/default`. The active theme
+its `theme.json` gives. Themes live in `extensions/{vendor}/{name}/`, a
+folder at their name (`extensions/acme/notebook/`), and each can be its
+own git repository. They can also be installed with Composer (package
+type `blush-theme`), where the theme's name is the package's. If two
+share a name, the one in `extensions/` wins. The framework's default theme is `blush/default`. The active theme
 is set in `config/theme.php`, which `theme:activate` writes for you:
 
 ```php
@@ -41,7 +41,8 @@ command always takes effect.
 
 A theme whose manifest is broken is listed by `theme:list` (and the
 admin's Themes screen) by where it was found, such as
-`user/themes/notebook`, with the reason.
+`extensions/acme/notebook`, with the reason. A theme in a folder that
+isn't its name is broken too.
 
 In development, add `?theme=acme/notebook` to any URL to preview another
 theme.
@@ -130,11 +131,10 @@ bin/blush theme:new acme/notebook
 bin/blush theme:activate acme/notebook
 ```
 
-That makes the smallest valid theme, in a folder named for the part
-after the `/`:
+That makes the smallest valid theme, in a folder at its name:
 
 ```
-user/themes/notebook/
+extensions/acme/notebook/
   theme.json    {"$schema": "…", "name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.0.0", "styles": ["style.css"]}
   style.css
 ```
@@ -150,7 +150,7 @@ theme's `style.css` in as a starting point if you like.
 A full theme can have:
 
 ```
-user/themes/notebook/
+extensions/acme/notebook/
   theme.json      The manifest
   style.css       Styles (list more in "styles")
   views/
@@ -206,8 +206,11 @@ user/themes/notebook/
 
 - **`name`:** the key the theme is known by, `vendor/name` in lowercase
   letters, digits, `-`, `_`, and `.`. Config, `parent`, `?theme=`, and
-  asset URLs all use it. A Composer theme's name is its package's; leave
-  it out and the package's is used.
+  asset URLs all use it, and it's the theme's folder in `extensions/`.
+  Leave it out and the `composer.json` beside `theme.json` gives it; a
+  Composer theme's name is its package's. `description`, `version`,
+  `license`, and `autoload` also come from that `composer.json` when
+  `theme.json` leaves them out.
 - **`label`:** the theme's title, as people read it.
 - **`namespace`:** what your theme's components, icons, and translations
   go by (`notebook/badge`). Lowercase letters, digits, `-`, and `_`.
@@ -225,9 +228,11 @@ user/themes/notebook/
   starting from the default. Anything this theme doesn't include comes
   from its parent.
 - **`provider`** and **`autoload`:** a theme can run PHP, through a
-  service provider of its own (see [Components](#components)). It still
-  can't add content types, routes, or commands; those belong to the site
-  or a [plugin](extending.md#plugins).
+  service provider of its own (see [Components](#components)).
+  `autoload` is Composer's shape: `psr-4` folders, and `files` loaded
+  once when the theme is in use. It still can't add content types,
+  routes, or commands; those belong to the site or a
+  [plugin](extending.md#plugins).
 - **`settings`:** options site owners set in `user/data/theme.json`. They
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`menus` and `regions`:** the places your theme shows the site's menus
@@ -286,8 +291,9 @@ label: Notebook
 namespace: notebook
 ```
 
-A new site's `.vscode/settings.json` also maps every `user/themes/*/theme.json`
-(and `.yaml`) to the schema, so VS Code finds it even without `$schema`.
+A new site's `.vscode/settings.json` also maps every
+`extensions/*/*/theme.json` (and `.yaml`) to the schema, so VS Code
+finds it even without `$schema`.
 
 The schema covers the built-in field types. A field type from a plugin
 is allowed, but the editor can't suggest its options.
@@ -656,7 +662,7 @@ A theme that uses Sass or bundles JavaScript can build its assets with
 folder (Blush never serves it) and build into its `public/` folder:
 
 ```
-user/themes/notebook/
+extensions/acme/notebook/
   theme.json      "styles": ["resources/scss/style.scss"], "scripts": ["resources/js/app.js"]
   package.json    vite, plus sass-embedded for Sass
   vite.config.js

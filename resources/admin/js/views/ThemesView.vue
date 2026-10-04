@@ -11,7 +11,7 @@
  * failure is said on the card, leading with the fact that the site is
  * unchanged. A theme that falls back to one that isn't installed can't be
  * activated, and says why. **Delete** removes a folder theme from
- * `user/themes`, unless the active theme uses it; Composer themes and the
+ * `extensions/`, unless the active theme uses it; Composer themes and the
  * default theme can't be deleted here. Broken themes are cards too, with
  * no preview.
  *

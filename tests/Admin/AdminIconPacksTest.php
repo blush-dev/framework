@@ -46,21 +46,21 @@ final class AdminIconPacksTest extends TestCase
 			$this->writeTemporaryFile('config/icons.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Icon\\IconConfig(enabled: ['acme/brands', 'acme/arrows']);\n");
 		}
 
-		$this->writeTemporaryFile('user/icons/brands/icons.json', '{"name": "acme/brands", "label": "Brand Logos", "namespace": "brands", "version": "2.0.0", "description": "Logos."}');
-		$this->writeTemporaryFile('user/icons/brands/composer.json', '{"authors": [{"name": "Acme", "role": "Drawing"}]}');
-		$this->writeTemporaryFile('user/icons/brands/lang/en.json', '{"icons": {"github": {"label": "GitHub"}}}');
+		$this->writeTemporaryFile('extensions/acme/brands/icons.json', '{"name": "acme/brands", "label": "Brand Logos", "namespace": "brands", "version": "2.0.0", "description": "Logos."}');
+		$this->writeTemporaryFile('extensions/acme/brands/composer.json', '{"authors": [{"name": "Acme", "role": "Drawing"}]}');
+		$this->writeTemporaryFile('extensions/acme/brands/lang/en.json', '{"icons": {"github": {"label": "GitHub"}}}');
 
 		foreach (['github', 'mastodon'] as $icon) {
-			$this->writeTemporaryFile("user/icons/brands/{$icon}.svg", self::SVG);
+			$this->writeTemporaryFile("extensions/acme/brands/{$icon}.svg", self::SVG);
 		}
 
-		$this->writeTemporaryFile('user/icons/arrows/icons.json', '{"name": "acme/arrows", "label": "Arrows", "namespace": "arrows", "folder": "svg"}');
+		$this->writeTemporaryFile('extensions/acme/arrows/icons.json', '{"name": "acme/arrows", "label": "Arrows", "namespace": "arrows", "folder": "svg"}');
 
 		foreach (range(1, 14) as $index) {
-			$this->writeTemporaryFile(sprintf('user/icons/arrows/svg/arrow-%02d.svg', $index), self::SVG);
+			$this->writeTemporaryFile(sprintf('extensions/acme/arrows/svg/arrow-%02d.svg', $index), self::SVG);
 		}
 
-		$this->writeTemporaryFile('user/icons/broken/icons.json', '{"name": "broken"}');
+		$this->writeTemporaryFile('extensions/acme/broken/icons.json', '{"name": "broken"}');
 
 		$this->boot(roles: $roles);
 		$this->login();
@@ -82,8 +82,8 @@ final class AdminIconPacksTest extends TestCase
 			'description' => 'Logos.',
 			'authors'     => [['name' => 'Acme', 'role' => 'Drawing']],
 			'source'      => 'local',
-			'path'        => 'user/icons/brands',
-			'folder'      => 'user/icons/brands',
+			'path'        => 'extensions/acme/brands',
+			'folder'      => 'extensions/acme/brands',
 			'enabled'     => true,
 			'deletable'   => true,
 			'backup'      => null,
@@ -95,7 +95,7 @@ final class AdminIconPacksTest extends TestCase
 		$this->assertIsArray($arrows);
 		$this->assertSame(14, $arrows['count'] ?? null);
 		$this->assertCount(12, is_array($arrows['icons'] ?? null) ? $arrows['icons'] : [], 'Only the first of them are sent.');
-		$this->assertSame([['where' => 'user/icons/broken', 'reason' => 'The icon pack in ' . $this->temporaryDirectory() . '/user/icons/broken needs a "name": vendor/name, such as "acme/brands".', 'deletable' => true]], $answer['invalid'] ?? null);
+		$this->assertSame([['where' => 'extensions/acme/broken', 'reason' => 'The icon pack in ' . $this->temporaryDirectory() . '/extensions/acme/broken needs a "name": vendor/name, such as "acme/brands".', 'deletable' => true]], $answer['invalid'] ?? null);
 		$this->assertFalse($answer['saved'] ?? null);
 
 		$core = $answer['core'] ?? null;
@@ -162,13 +162,13 @@ final class AdminIconPacksTest extends TestCase
 	{
 		$this->site();
 
-		$response = $this->write('DELETE', '/icon-packs/brands');
+		$response = $this->write('DELETE', '/icon-packs/acme/brands');
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['deleted' => 'user/icons/brands'], self::json($response));
-		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/icons/brands');
+		$this->assertSame(['deleted' => 'extensions/acme/brands'], self::json($response));
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/extensions/acme/brands');
 
-		$this->assertSame(200, $this->write('DELETE', '/icon-packs/broken')->getStatusCode(), 'A broken pack can be deleted.');
-		$this->assertSame(404, $this->write('DELETE', '/icon-packs/missing')->getStatusCode());
+		$this->assertSame(200, $this->write('DELETE', '/icon-packs/acme/broken')->getStatusCode(), 'A broken pack can be deleted.');
+		$this->assertSame(404, $this->write('DELETE', '/icon-packs/acme/missing')->getStatusCode());
 	}
 
 	public function testThePickerNamesAPacksIconsByIt(): void
@@ -192,7 +192,7 @@ final class AdminIconPacksTest extends TestCase
 		$this->assertSame(403, $this->send('GET', '/icon-packs')->getStatusCode());
 		$this->assertSame(403, $this->send('GET', '/icon-packs/core')->getStatusCode());
 		$this->assertSame(403, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false])->getStatusCode());
-		$this->assertSame(403, $this->write('DELETE', '/icon-packs/brands')->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/icon-packs/acme/brands')->getStatusCode());
 	}
 
 	public function testSeeingIsItsOwn(): void
@@ -203,7 +203,7 @@ final class AdminIconPacksTest extends TestCase
 		$this->assertSame(200, $this->send('GET', '/icon-packs')->getStatusCode());
 		$this->assertSame(200, $this->send('GET', '/icon-packs/core')->getStatusCode());
 		$this->assertSame(403, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false])->getStatusCode(), 'Turning on and off is its own (D-389).');
-		$this->assertSame(403, $this->write('DELETE', '/icon-packs/brands')->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/icon-packs/acme/brands')->getStatusCode());
 	}
 
 	/**

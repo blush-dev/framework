@@ -57,9 +57,8 @@ To always pull, set `PUBLISH_GIT=true` in `.env` (and `PUBLISH_REMOTE` and
 `PUBLISH_BRANCH` if you need them). Then `--no-pull` skips it once.
 
 The pull updates only the `user/` repository. Themes, plugins, and icon
-packs kept in their own repositories inside it aren't touched, so
-publishing content never deploys code. Update those the way you deploy the rest of your
-site.
+packs live in `extensions/`, outside it, so publishing content never
+deploys code. Update those the way you deploy the rest of your site.
 
 ### Publishing without a shell
 

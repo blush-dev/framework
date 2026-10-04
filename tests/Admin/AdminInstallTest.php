@@ -50,7 +50,7 @@ final class AdminInstallTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator']): void
 	{
-		$this->writeTemporaryFile('user/plugins/recipes/plugin.json', (string) json_encode(['name' => 'fixture/recipes', 'label' => 'Recipes', 'namespace' => 'recipes', 'version' => '1.0.0', 'provider' => self::PROVIDER]));
+		$this->writeTemporaryFile('extensions/fixture/recipes/plugin.json', (string) json_encode(['name' => 'fixture/recipes', 'label' => 'Recipes', 'namespace' => 'recipes', 'version' => '1.0.0', 'provider' => self::PROVIDER]));
 		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('installer', 'Installer', ['extensions.plugins.view', 'extensions.plugins.install'])]);\n");
 		$this->boot(roles: $roles);
 		$this->login();
@@ -134,13 +134,13 @@ final class AdminInstallTest extends TestCase
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame([
-			'installed' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'user/plugins/hello'],
+			'installed' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello'],
 			'replaced'  => null,
 			'backup'    => null,
 			'refresh'   => false
 		], self::json($response));
-		$this->assertFileExists($this->temporaryDirectory() . '/user/plugins/hello/src/Provider.php', 'Unpacked from inside the zip\'s one folder.');
-		$this->assertSame([], glob($this->temporaryDirectory() . '/user/plugins/.*-*') ?: [], 'No hidden folder is left.');
+		$this->assertFileExists($this->temporaryDirectory() . '/extensions/acme/hello/src/Provider.php', 'Unpacked from inside the zip\'s one folder.');
+		$this->assertSame([], glob($this->temporaryDirectory() . '/extensions/.*-*') ?: [], 'No hidden folder is left.');
 
 		$this->reboot();
 		$this->assertTrue($this->app->container()->make(Plugins::class)->installed() !== [] && ! $this->app->container()->make(Plugins::class)->has('acme/hello'), 'It arrives off (D-390).');
@@ -155,16 +155,30 @@ final class AdminInstallTest extends TestCase
 
 		$this->assertSame(409, $clash->getStatusCode());
 		$this->assertSame([
-			'installed' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'user/plugins/hello'],
-			'incoming'  => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.1.0', 'folder' => 'user/plugins/hello']
+			'installed' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello'],
+			'incoming'  => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.1.0', 'folder' => 'extensions/acme/hello']
 		], self::json($clash)['clash'] ?? null, 'Nothing is written until replacing is asked for.');
 
 		$replaced = self::json($this->upload('/plugins', 'hello-1.1.zip', $this->zip(self::plugin(['version' => '1.1.0'])), replace: true));
 
 		$this->assertSame('1.0.0', $replaced['replaced'] ?? null);
-		$this->assertSame('storage/backups/plugins/hello', $replaced['backup'] ?? null);
-		$this->assertStringContainsString('1.1.0', (string) file_get_contents($this->temporaryDirectory() . '/user/plugins/hello/plugin.json'));
-		$this->assertStringContainsString('1.0.0', (string) file_get_contents($this->temporaryDirectory() . '/storage/backups/plugins/hello/plugin.json'));
+		$this->assertSame('storage/backups/acme/hello', $replaced['backup'] ?? null);
+		$this->assertStringContainsString('1.1.0', (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/hello/plugin.json'));
+		$this->assertStringContainsString('1.0.0', (string) file_get_contents($this->temporaryDirectory() . '/storage/backups/acme/hello/plugin.json'));
+	}
+
+	public function testTakesTheNameFromComposerJson(): void
+	{
+		$this->site();
+
+		$files = self::plugin(files: ['composer.json' => '{"name": "acme/composed", "version": "2.0.0", "license": "MIT"}']);
+
+		$files['acme-hello-1a2b3c/plugin.json'] = (string) json_encode(['label' => 'Hello', 'namespace' => 'hello', 'provider' => self::PROVIDER]);
+
+		$response = $this->upload('/plugins', 'whatever-main.zip', $this->zip($files));
+
+		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['name' => 'acme/composed', 'label' => 'Hello', 'version' => '2.0.0', 'folder' => 'extensions/acme/composed'], self::json($response)['installed'] ?? null, 'Its folder is its name, not the zip\'s.');
 	}
 
 	public function testRefusesWhatIsntAPluginOrIsntSafe(): void
@@ -175,12 +189,15 @@ final class AdminInstallTest extends TestCase
 		$this->assertSame(422, $theme->getStatusCode());
 		$this->assertSame(['error' => 'notebook.zip is a theme, not a plugin.', 'kind' => 'theme'], self::json($theme), 'The admin offers the Themes screen.');
 
+		$this->writeTemporaryFile('extensions/other/plate/theme.json', '{"name": "other/plate", "label": "Plate", "namespace": "plate"}');
+
 		$cases = [
 			'readme.zip has no plugin.json in it, so it isn\'t a plugin.'                                            => ['readme.zip', $this->zip(['README.md' => 'Hi.'])],
 			'hello.png isn\'t a .zip file.'                                                                          => ['hello.png', 'PNG'],
 			'fake.zip isn\'t a .zip file Blush can read.'                                                           => ['fake.zip', 'not a zip'],
 			'evil.zip has a file that would land outside its folder (../evil.php), so it wasn\'t unpacked.'          => ['evil.zip', $this->zip(['plugin.json' => '{}', '../evil.php' => '<?php'])],
 			'hello.zip can\'t be installed: its namespace, "recipes", is the plugin fixture/recipes\'s.'             => ['hello.zip', $this->zip(self::plugin(['namespace' => 'recipes']))],
+			'hello.zip can\'t be installed: other/plate is installed as a theme.'                                    => ['hello.zip', $this->zip(self::plugin(['name' => 'other/plate', 'namespace' => 'other']))],
 			'hello.zip needs Composer packages (guzzlehttp/guzzle), so it has to be installed with Composer.'        => ['hello.zip', $this->zip(self::plugin(files: ['composer.json' => '{"require": {"php": ">=8.5", "ext-zip": "*", "guzzlehttp/guzzle": "^7.0"}}']))],
 			'hello.zip can\'t be installed: src/Broken.php has a PHP error on line 1 (Unclosed \'(\').' => ['hello.zip', $this->zip(self::plugin(files: ['src/Broken.php' => '<?php function (']))]
 		];
@@ -192,8 +209,8 @@ final class AdminInstallTest extends TestCase
 			$this->assertSame($message, self::json($response)['error'] ?? null);
 		}
 
-		$this->assertSame(['recipes'], array_map('basename', glob($this->temporaryDirectory() . '/user/plugins/*') ?: []), 'Nothing was written.');
-		$this->assertSame([], glob($this->temporaryDirectory() . '/user/plugins/.*-*') ?: []);
+		$this->assertSame(['fixture', 'other'], array_map('basename', glob($this->temporaryDirectory() . '/extensions/*') ?: []), 'Nothing was written.');
+		$this->assertSame([], glob($this->temporaryDirectory() . '/extensions/.*-*') ?: []);
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/evil.php');
 	}
 
@@ -206,8 +223,8 @@ final class AdminInstallTest extends TestCase
 
 		$this->assertSame(201, $theme->getStatusCode(), (string) $theme->getBody());
 		$this->assertSame(201, $pack->getStatusCode(), (string) $pack->getBody());
-		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/themes/notebook');
-		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/icons/weather');
+		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/acme/notebook');
+		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/acme/weather');
 
 		$this->reboot();
 		$appearance = self::json($this->send('GET', '/appearance'));
@@ -256,7 +273,7 @@ final class AdminInstallTest extends TestCase
 
 		$back = $this->write('POST', '/plugins/acme/hello/rollback');
 		$this->assertSame(200, $back->getStatusCode(), (string) $back->getBody());
-		$this->assertSame(['rolledBack' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'user/plugins/hello'], 'from' => '1.1.0', 'refresh' => false], self::json($back));
+		$this->assertSame(['rolledBack' => ['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello'], 'from' => '1.1.0', 'refresh' => false], self::json($back));
 		$this->assertSame(['version' => '1.1.0'], $this->backup(), 'The version it replaced is kept, so it can be undone.');
 
 		$this->reboot();
@@ -264,7 +281,7 @@ final class AdminInstallTest extends TestCase
 		$this->assertSame('1.1.0', is_array($forth) ? $forth['version'] ?? null : null);
 
 		$this->assertSame(200, $this->write('DELETE', '/plugins/acme/hello/backup')->getStatusCode());
-		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/storage/backups/plugins/hello');
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/storage/backups/acme/hello');
 		$this->reboot();
 		$this->assertNull($this->backup());
 		$this->assertSame(404, $this->write('POST', '/plugins/acme/hello/rollback')->getStatusCode());
@@ -273,13 +290,13 @@ final class AdminInstallTest extends TestCase
 	public function testRefusesAnEarlierVersionThatWouldntRun(): void
 	{
 		$this->site();
-		$this->replaced(['requires' => ['blush' => '^9.0']]);
+		$this->replaced(['require' => ['blush-dev/framework' => '^9.0']]);
 
 		$response = $this->write('POST', '/plugins/acme/hello/rollback');
 
 		$this->assertSame(422, $response->getStatusCode());
 		$this->assertSame('Hello 1.0.0 can\'t be rolled back to: Needs Blush ^9.0 (this site runs 2.0.0-dev).', self::json($response)['error'] ?? null);
-		$this->assertStringContainsString('1.1.0', (string) file_get_contents($this->temporaryDirectory() . '/user/plugins/hello/plugin.json'));
+		$this->assertStringContainsString('1.1.0', (string) file_get_contents($this->temporaryDirectory() . '/extensions/acme/hello/plugin.json'));
 	}
 
 	public function testDeletingAnExtensionDeletesItsBackup(): void
@@ -287,8 +304,8 @@ final class AdminInstallTest extends TestCase
 		$this->site();
 		$this->replaced();
 
-		$this->assertSame(200, $this->write('DELETE', '/plugins/hello')->getStatusCode());
-		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/storage/backups/plugins/hello');
+		$this->assertSame(200, $this->write('DELETE', '/plugins/acme/hello')->getStatusCode());
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/storage/backups/acme/hello');
 	}
 
 	public function testInstallingAndReplacingEachNeedTheirCapability(): void

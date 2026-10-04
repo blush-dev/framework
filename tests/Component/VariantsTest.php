@@ -132,9 +132,9 @@ final class VariantsTest extends TestCase
 
 	public function testAThemesVariantsApplyOnlyWhileItIsActive(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt", "variants": {"callout": ["bordered", {"name": "compact", "modifier": "tight"}, "Bad Name"]}}');
-		$this->writeTemporaryFile('user/themes/alt/lang/en.json', '{"components": {"callout": {"variants": {"bordered": {"label": "Bordered", "description": "A rule down the left."}}}}}');
-		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
+		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt", "variants": {"callout": ["bordered", {"name": "compact", "modifier": "tight"}, "Bad Name"]}}');
+		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"components": {"callout": {"variants": {"bordered": {"label": "Bordered", "description": "A rule down the left."}}}}}');
+		$this->writeTemporaryFile('extensions/acme/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
 
 		$views = $this->boot('acme/alt');
 
@@ -160,9 +160,9 @@ final class VariantsTest extends TestCase
 
 	public function testImagesHaveTheThemesVariants(): void
 	{
-		$this->writeTemporaryFile('user/themes/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt", "variants": {"image": ["inline-left", "polaroid", "Bad Name"]}}');
-		$this->writeTemporaryFile('user/themes/alt/lang/en.json', '{"images": {"variants": {"polaroid": {"label": "Polaroid", "description": "A white border."}}}}');
-		$this->writeTemporaryFile('user/themes/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
+		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt", "variants": {"image": ["inline-left", "polaroid", "Bad Name"]}}');
+		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"images": {"variants": {"polaroid": {"label": "Polaroid", "description": "A white border."}}}}');
+		$this->writeTemporaryFile('extensions/acme/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
 
 		$views    = $this->boot('acme/alt');
 		$variants = $views->imageVariants();

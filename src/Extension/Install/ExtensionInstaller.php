@@ -24,6 +24,7 @@ use Blush\Extension\ComposerJson;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionNamespace;
+use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
 use Blush\Icon\IconPack;
 use Blush\Icon\IconPackDiscovery;
@@ -40,16 +41,19 @@ use Blush\Theme\Themes;
 use Blush\Theme\ThemeSource;
 
 /**
- * Installs an extension from a `.zip` of its folder into its kind's
- * folder in `user/` (D-388, D-392), or replaces one with the same name.
+ * Installs an extension from a `.zip` of its folder into
+ * `extensions/{vendor}/{name}` (D-388, D-392, D-418), or replaces one with
+ * the same name.
  *
  * The archive is checked before anything is unpacked
- * (`ExtensionArchive`), then unpacked into a hidden folder beside the
- * kind's others (`user/plugins/.install-…`, which discovery skips), and
- * read as discovery would read it. It's refused, and the hidden folder
- * removed, when:
+ * (`ExtensionArchive`), then unpacked into a hidden folder in
+ * `extensions/` (`extensions/.install-…`, which discovery skips), and
+ * read as discovery would read it, its name from its manifest (or its
+ * `composer.json`); the zip's own folder name doesn't matter. It's
+ * refused, and the hidden folder removed, when:
  *
  * - it holds another kind of extension, or none;
+ * - an extension of another kind has its name;
  * - its manifest doesn't pass, or its namespace is reserved or another
  *   installed extension's;
  * - Composer installed one with its name (Composer updates it);
@@ -58,11 +62,11 @@ use Blush\Theme\ThemeSource;
  * - a kind that runs code has a PHP file that doesn't parse (checked
  *   without running it).
  *
- * A new one is renamed into `user/{kind}/{short name}`, which mustn't
+ * A new one is renamed into `extensions/{vendor}/{name}`, which mustn't
  * exist yet. One with an installed one's name is a clash
  * (`InstallClash`) unless replacing is asked for; then the installed
  * folder is swapped for the new one (not a git checkout, which git
- * updates), and the old folder kept in `storage/backups/{kind}/{folder}`
+ * updates), and the old folder kept in `storage/backups/{vendor}/{name}`
  * until the next replace. Either way nothing is turned on: a new plugin
  * or pack is off until it's named (D-390), and a new theme inactive.
  *
@@ -96,7 +100,7 @@ final readonly class ExtensionInstaller
 			return 'This server\'s PHP can\'t read .zip files (it has no zip extension).';
 		}
 
-		$folder   = $kind->folder($this->paths);
+		$folder   = $this->paths->extensions;
 		$writable = is_dir($folder) ? is_writable($folder) : is_writable(dirname($folder));
 
 		return $writable ? null : sprintf('The web server can\'t write to %s.', $this->paths->relative($folder));
@@ -119,7 +123,7 @@ final readonly class ExtensionInstaller
 			throw new InstallException($problem);
 		}
 
-		$folder = $kind->folder($this->paths);
+		$folder = $this->paths->extensions;
 
 		if (! is_dir($folder) && ! @mkdir($folder, 0775, true) && ! is_dir($folder)) {
 			throw new InstallException(sprintf('%s couldn\'t be made.', $this->paths->relative($folder)));
@@ -157,11 +161,13 @@ final readonly class ExtensionInstaller
 	}
 
 	/**
-	 * Where an installed extension's backup is kept, from its folder.
+	 * Where an installed extension's backup is kept, from its folder
+	 * (`extensions/{vendor}/{name}` keeps it in
+	 * `storage/backups/{vendor}/{name}`).
 	 */
-	public function backupPath(ExtensionKind $kind, string $path): string
+	public function backupPath(string $path): string
 	{
-		return sprintf('%s/backups/%s/%s', $this->paths->storage, basename($kind->folder($this->paths)), basename($path));
+		return sprintf('%s/backups/%s/%s', $this->paths->storage, basename(dirname($path)), basename($path));
 	}
 
 	/**
@@ -171,7 +177,7 @@ final readonly class ExtensionInstaller
 	 */
 	public function backupOf(ExtensionKind $kind, string $path, string $name): ?ExtensionPackage
 	{
-		$backup = $this->backupPath($kind, $path);
+		$backup = $this->backupPath($path);
 
 		if (! is_dir($backup)) {
 			return null;
@@ -198,10 +204,10 @@ final readonly class ExtensionInstaller
 		$existing = array_find($this->installed(), static fn (ExtensionPackage $package): bool => $package->kind === $kind && $package->name === $name && $package->local);
 
 		if ($existing === null) {
-			throw new InstallException(sprintf('No %s named %s is installed in %s.', $kind->label(), $name, $this->paths->relative($kind->folder($this->paths))));
+			throw new InstallException(sprintf('No %s named %s is installed in %s.', $kind->label(), $name, $this->paths->relative($this->paths->extensions)));
 		}
 
-		$backup = $this->backupPath($kind, $existing->path);
+		$backup = $this->backupPath($existing->path);
 		$older  = $this->backupOf($kind, $existing->path, $name);
 
 		if ($older === null) {
@@ -214,7 +220,7 @@ final readonly class ExtensionInstaller
 
 		$this->check($older, $existing->label);
 
-		$aside = sprintf('%s/.rollback-%s', $kind->folder($this->paths), bin2hex(random_bytes(6)));
+		$aside = sprintf('%s/.rollback-%s', $this->paths->extensions, bin2hex(random_bytes(6)));
 
 		if (! @rename($existing->path, $aside)) {
 			throw new InstallException(sprintf('%s couldn\'t be moved aside to roll it back.', $this->paths->relative($existing->path)));
@@ -241,12 +247,19 @@ final readonly class ExtensionInstaller
 	 *
 	 * @throws InstallException When it can't be removed.
 	 */
-	public function discard(ExtensionKind $kind, string $path): void
+	public function discard(string $path): void
 	{
+		$backup = $this->backupPath($path);
+
 		try {
-			$this->filesystem->removeDirectory($this->backupPath($kind, $path));
+			$this->filesystem->removeDirectory($backup);
 		} catch (FilesystemException $error) {
 			throw new InstallException(sprintf('The backup of %s couldn\'t be removed.', $this->paths->relative($path)), previous: $error);
+		}
+
+		// Its vendor's folder goes once it's empty.
+		if (is_dir(dirname($backup)) && (scandir(dirname($backup)) ?: []) === ['.', '..']) {
+			@rmdir(dirname($backup));
 		}
 	}
 
@@ -310,7 +323,7 @@ final readonly class ExtensionInstaller
 	 */
 	private function theme(string $folder): ExtensionPackage
 	{
-		$theme = ThemeManifest::fromArray($folder, ThemeDiscovery::read($folder) ?? []);
+		$theme = ThemeManifest::fromArray($folder, ComposerJson::fill(ThemeDiscovery::read($folder) ?? [], $folder));
 
 		if ($theme->name === Themes::DEFAULT) {
 			throw new ThemeException(sprintf('"%s" is the framework default theme\'s name.', Themes::DEFAULT));
@@ -324,7 +337,7 @@ final readonly class ExtensionInstaller
 	 */
 	private function pack(string $folder): ExtensionPackage
 	{
-		$pack = IconPack::fromArray($folder, ManifestFile::read(ManifestFile::find($folder, ExtensionKind::IconPack)[0] ?? ''));
+		$pack = IconPack::fromArray($folder, ComposerJson::fill(ManifestFile::read(ManifestFile::find($folder, ExtensionKind::IconPack)[0] ?? ''), $folder));
 
 		return new ExtensionPackage(ExtensionKind::IconPack, $pack->name, $pack->label, $pack->namespace, $pack->version, $folder, true);
 	}
@@ -344,7 +357,11 @@ final readonly class ExtensionInstaller
 		$existing = null;
 
 		foreach ($this->installed() as $package) {
-			if ($package->kind === $incoming->kind && $package->name === $incoming->name) {
+			if ($package->name === $incoming->name && $package->kind !== $incoming->kind) {
+				throw new InstallException(sprintf('%s can\'t be installed: %s is installed as %s.', $name, $package->name, self::a($package->kind)));
+			}
+
+			if ($package->name === $incoming->name) {
 				if (! $package->local) {
 					throw new InstallException(sprintf('%s is installed with Composer, so Composer updates it.', $package->name));
 				}
@@ -417,31 +434,35 @@ final readonly class ExtensionInstaller
 		$packages = [];
 
 		foreach ($plugins as $plugin) {
-			$packages[] = new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, $plugin->label, $plugin->namespace, $plugin->version, $plugin->path, $plugin->source === PluginSource::Local && $this->inFolder($plugin->path, ExtensionKind::Plugin));
+			$packages[] = new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, $plugin->label, $plugin->namespace, $plugin->version, $plugin->path, $plugin->source === PluginSource::Local && LocalExtensions::contains($this->paths, $plugin->path));
 		}
 
 		foreach (new ThemeDiscovery($this->paths)->discover()->all() as $theme) {
-			$packages[] = new ExtensionPackage(ExtensionKind::Theme, $theme->name, $theme->label, $theme->namespace, $theme->version, $theme->path, $theme->source === ThemeSource::Local && $this->inFolder($theme->path, ExtensionKind::Theme));
+			$packages[] = new ExtensionPackage(ExtensionKind::Theme, $theme->name, $theme->label, $theme->namespace, $theme->version, $theme->path, $theme->source === ThemeSource::Local && LocalExtensions::contains($this->paths, $theme->path));
 		}
 
 		foreach (new IconPackDiscovery($this->paths)->discover()->all() as $pack) {
-			$packages[] = new ExtensionPackage(ExtensionKind::IconPack, $pack->name, $pack->label, $pack->namespace, $pack->version, $pack->path, $pack->source === IconPackSource::Local && $this->inFolder($pack->path, ExtensionKind::IconPack));
+			$packages[] = new ExtensionPackage(ExtensionKind::IconPack, $pack->name, $pack->label, $pack->namespace, $pack->version, $pack->path, $pack->source === IconPackSource::Local && LocalExtensions::contains($this->paths, $pack->path));
 		}
 
 		return $packages;
 	}
 
 	/**
-	 * Moves a new extension into its folder, named for its short name.
+	 * Moves a new extension into its folder, at its name.
 	 *
 	 * @throws InstallException
 	 */
 	private function place(ExtensionPackage $incoming, string $folder): InstallResult
 	{
-		$target = $folder . '/' . substr($incoming->name, (int) strpos($incoming->name, '/') + 1);
+		$target = LocalExtensions::path($this->paths, $incoming->name);
 
 		if (file_exists($target)) {
 			throw new InstallException(sprintf('%s already exists, so %s wasn\'t installed there. Delete or rename that folder first.', $this->paths->relative($target), $incoming->label));
+		}
+
+		if (! is_dir(dirname($target)) && ! @mkdir(dirname($target), 0775) && ! is_dir(dirname($target))) {
+			throw new InstallException(sprintf('%s couldn\'t be made.', $this->paths->relative(dirname($target))));
 		}
 
 		if (! @rename($incoming->path, $target)) {
@@ -475,7 +496,7 @@ final readonly class ExtensionInstaller
 			throw new InstallException(sprintf('%s couldn\'t be replaced.', $this->paths->relative($existing->path)));
 		}
 
-		$backup = $this->backupPath($incoming->kind, $existing->path);
+		$backup = $this->backupPath($existing->path);
 
 		$this->remove($backup);
 
@@ -489,14 +510,6 @@ final readonly class ExtensionInstaller
 		}
 
 		return new InstallResult(self::at($incoming, $existing->path), $existing, $backup === null ? null : $this->paths->relative($backup));
-	}
-
-	/**
-	 * Whether a path is a folder in its kind's folder in `user/`.
-	 */
-	private function inFolder(string $path, ExtensionKind $kind): bool
-	{
-		return dirname($path) === $kind->folder($this->paths);
 	}
 
 	/**

@@ -40,13 +40,13 @@ final class AdminAppearanceTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator']): void
 	{
-		$this->writeTemporaryFile('user/themes/notebook/theme.json', '{"name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.2.0", "description": "Lined paper."}');
-		$this->writeTemporaryFile('user/themes/notebook/composer.json', '{"name": "acme/notebook", "authors": [{"name": "Jane Doe", "homepage": "https://example.test", "role": "Designer"}]}');
-		$this->writeTemporaryFile('user/themes/pocket/theme.json', '{"name": "acme/pocket", "label": "Pocket", "namespace": "pocket", "parent": "acme/notebook"}');
-		$this->writeTemporaryFile('user/themes/plate/theme.json', '{"name": "acme/plate", "label": "Plate", "namespace": "plate", "authors": [{"name": "Sam"}], "preview": {"layout": "wide", "type": "Sans throughout", "palette": {"background": ["#FFF", "#111111"], "surface": "#fafafa", "text": "#111", "muted": "#666", "accent": ["#0f6d8c", "#5fb8d8"], "border": "#ddd"}}}');
-		$this->writeTemporaryFile('user/themes/plate/style.css', 'body {}');
-		$this->writeTemporaryFile('user/themes/orphan/theme.json', '{"name": "acme/orphan", "label": "Orphan", "namespace": "orphan", "parent": "acme/gone"}');
-		$this->writeTemporaryFile('user/themes/broken/theme.json', '{"name": 5}');
+		$this->writeTemporaryFile('extensions/acme/notebook/theme.json', '{"name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.2.0", "description": "Lined paper."}');
+		$this->writeTemporaryFile('extensions/acme/notebook/composer.json', '{"name": "acme/notebook", "authors": [{"name": "Jane Doe", "homepage": "https://example.test", "role": "Designer"}]}');
+		$this->writeTemporaryFile('extensions/acme/pocket/theme.json', '{"name": "acme/pocket", "label": "Pocket", "namespace": "pocket", "parent": "acme/notebook"}');
+		$this->writeTemporaryFile('extensions/acme/plate/theme.json', '{"name": "acme/plate", "label": "Plate", "namespace": "plate", "authors": [{"name": "Sam"}], "preview": {"layout": "wide", "type": "Sans throughout", "palette": {"background": ["#FFF", "#111111"], "surface": "#fafafa", "text": "#111", "muted": "#666", "accent": ["#0f6d8c", "#5fb8d8"], "border": "#ddd"}}}');
+		$this->writeTemporaryFile('extensions/acme/plate/style.css', 'body {}');
+		$this->writeTemporaryFile('extensions/acme/orphan/theme.json', '{"name": "acme/orphan", "label": "Orphan", "namespace": "orphan", "parent": "acme/gone"}');
+		$this->writeTemporaryFile('extensions/acme/broken/theme.json', '{"name": 5}');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/pocket');\n");
 		$this->boot(roles: $roles);
 		$this->login();
@@ -75,7 +75,7 @@ final class AdminAppearanceTest extends TestCase
 		$this->assertFalse($answer['saved'] ?? null);
 
 		$notebook = self::theme($themes, 'acme/notebook');
-		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'user/themes/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'blocked' => null, 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
+		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'extensions/acme/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'blocked' => null, 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
 
 		$plate = self::theme($themes, 'acme/plate');
 		$this->assertTrue($plate['deletable'] ?? null);
@@ -104,7 +104,7 @@ final class AdminAppearanceTest extends TestCase
 		$this->assertIsArray($default['preview'] ?? null, 'The default theme declares its preview.');
 
 		$this->assertSame([], self::theme($themes, 'acme/pocket')['authors'] ?? null, 'Neither file names any.');
-		$this->assertSame([['where' => 'user/themes/broken', 'reason' => 'The theme in ' . $this->temporaryDirectory() . '/user/themes/broken needs a "name": vendor/name, such as "acme/nova".', 'deletable' => true]], $answer['invalid'] ?? null);
+		$this->assertSame([['where' => 'extensions/acme/broken', 'reason' => 'The theme in ' . $this->temporaryDirectory() . '/extensions/acme/broken needs a "name": vendor/name, such as "acme/nova".', 'deletable' => true]], $answer['invalid'] ?? null);
 	}
 
 	public function testActivatesAThemeOverTheConfig(): void
@@ -140,31 +140,31 @@ final class AdminAppearanceTest extends TestCase
 	{
 		$this->site();
 
-		$response = $this->write('DELETE', '/themes/plate');
+		$response = $this->write('DELETE', '/themes/acme/plate');
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['deleted' => 'user/themes/plate'], self::json($response));
-		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/themes/plate');
+		$this->assertSame(['deleted' => 'extensions/acme/plate'], self::json($response));
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/extensions/acme/plate');
 
-		$this->assertSame(200, $this->write('DELETE', '/themes/broken')->getStatusCode(), 'A broken theme can be deleted.');
-		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/themes/broken');
+		$this->assertSame(200, $this->write('DELETE', '/themes/acme/broken')->getStatusCode(), 'A broken theme can be deleted.');
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/extensions/acme/broken');
 	}
 
 	public function testKeepsThemesTheSiteUses(): void
 	{
 		$this->site();
 
-		$active = $this->write('DELETE', '/themes/pocket');
+		$active = $this->write('DELETE', '/themes/acme/pocket');
 		$this->assertSame(409, $active->getStatusCode());
 		$this->assertStringContainsString('Pocket is the active theme', (string) $active->getBody());
 
-		$parent = $this->write('DELETE', '/themes/notebook');
+		$parent = $this->write('DELETE', '/themes/acme/notebook');
 		$this->assertSame(409, $parent->getStatusCode());
 		$this->assertStringContainsString('The active theme, Pocket, falls back to Notebook', (string) $parent->getBody());
 
-		$this->assertSame(404, $this->write('DELETE', '/themes/missing')->getStatusCode());
-		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/themes/pocket');
-		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/themes/notebook');
+		$this->assertSame(404, $this->write('DELETE', '/themes/acme/missing')->getStatusCode());
+		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/acme/pocket');
+		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/acme/notebook');
 	}
 
 	public function testEachActionNeedsItsOwn(): void
@@ -175,7 +175,7 @@ final class AdminAppearanceTest extends TestCase
 		$this->assertSame(200, $this->send('GET', '/appearance')->getStatusCode());
 		$this->assertSame(200, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/plate']])->getStatusCode(), 'Activating (D-389).');
 		$this->assertSame(403, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/notebook', 'app.name' => 'Mine']])->getStatusCode(), 'Other settings need site.settings.');
-		$this->assertSame(403, $this->write('DELETE', '/themes/broken')->getStatusCode(), 'Deleting is its own.');
+		$this->assertSame(403, $this->write('DELETE', '/themes/acme/broken')->getStatusCode(), 'Deleting is its own.');
 
 		$counts = self::json($this->send('GET', '/counts'));
 		$this->assertArrayHasKey('themes', $counts);
@@ -188,8 +188,8 @@ final class AdminAppearanceTest extends TestCase
 		$this->site(['editor']);
 
 		$this->assertSame(403, $this->send('GET', '/appearance')->getStatusCode());
-		$this->assertSame(403, $this->write('DELETE', '/themes/plate')->getStatusCode());
-		$this->assertDirectoryExists($this->temporaryDirectory() . '/user/themes/plate');
+		$this->assertSame(403, $this->write('DELETE', '/themes/acme/plate')->getStatusCode());
+		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/acme/plate');
 	}
 
 	/**

@@ -106,7 +106,7 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 			<div class="empty">
 				<AdminIcon name="plug" />
 				<h3 class="empty__heading">No Plugins Yet</h3>
-				<p class="empty__text">Put one in <code>user/plugins</code>, or install one with Composer (package type <code>blush-plugin</code>).</p>
+				<p class="empty__text">Put one in <code>extensions/</code>, or install one with Composer (package type <code>blush-plugin</code>).</p>
 			</div>
 		</div>
 
@@ -188,12 +188,12 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 
 	<p v-if="answer" class="notice plugins__note">
 		<span>
-			Plugins live in <code>user/plugins</code> or come from Composer.
+			Plugins live in <code>extensions/</code> or come from Composer.
 			<template v-if="answer.saved">
 				Which are on was set here, and is saved in <code>user/data/settings.json</code> over <code>config/plugins.php</code>.
 				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/plugins.php</code>'s list</button>
 			</template>
-			<template v-else>A plugin in <code>user/plugins</code> is off until <code>config/plugins.php</code> names it in <code>enabled</code><template v-if="!answer.config"> (there's no such file yet)</template>; Composer's are on. Turning one on or off here saves the list of every plugin that's on in <code>user/data/settings.json</code>, over that file; from then on, a plugin it doesn't name is off, even one Composer installs later.</template>
+			<template v-else>A plugin in <code>extensions/</code> is off until <code>config/plugins.php</code> names it in <code>enabled</code><template v-if="!answer.config"> (there's no such file yet)</template>; Composer's are on. Turning one on or off here saves the list of every plugin that's on in <code>user/data/settings.json</code>, over that file; from then on, a plugin it doesn't name is off, even one Composer installs later.</template>
 			What a plugin adds shows on the screens it belongs to, not here.
 		</span>
 	</p>

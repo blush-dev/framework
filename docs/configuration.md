@@ -474,7 +474,7 @@ either way.
 ### Plugins and middleware
 
 - `config/plugins.php` · `Blush\Plugin\PluginConfig`: `enabled`, the
-  plugins in `user/plugins` to turn on, by name
+  plugins in `extensions/` to turn on, by name
   (`new PluginConfig(enabled: ['acme/hello'])`). A local plugin is off
   until it's named; a Composer plugin is on. Turning plugins on and off
   in the admin saves its own `enabled` list in
@@ -484,7 +484,7 @@ either way.
   still runs only when its [requirements](extending.md#requirements) are
   met. Naming one that isn't installed is an error.
 - `config/icons.php` · `Blush\Icon\IconConfig`: `enabled`, the
-  [icon packs](extending.md#icon-packs) in `user/icons` to turn on, by
+  [icon packs](extending.md#icon-packs) in `extensions/` to turn on, by
   name (`new IconConfig(enabled: ['acme/brands'])`). A local pack is off
   until it's named; a Composer pack is on. The admin's own list, naming
   every pack that's on, replaces this one when it's saved.

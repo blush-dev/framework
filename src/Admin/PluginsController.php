@@ -22,6 +22,7 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -40,12 +41,12 @@ use Blush\Plugin\Requirement;
  * (D-384's shape), `license`, `source` (`local` or `composer`), `path`
  * (from the site's root), and:
  *
- * - `folder`: its folder in `user/plugins`, or `null` for a Composer one.
+ * - `folder`: its folder in `extensions/`, or `null` for a Composer one.
  * - `enabled`: whether it's turned on (`config/plugins.php`, or the list
  *   the admin saved in `user/data/settings.json` over it), and `running`:
  *   whether it runs on this request, which an enabled plugin doesn't when
  *   its requirements aren't met.
- * - `requirements`: each of its `requires`, checked against the site
+ * - `requirements`: each of its `require`, checked against the site
  *   (`{"name", "constraint", "kind", "met", "note", "label"}`); for one
  *   that's off, as if it were turned on. `blocked` says why one can't run
  *   (`null` when it can), and `requiredBy` names the plugins that require
@@ -56,7 +57,7 @@ use Blush\Plugin\Requirement;
  * Also `invalid`: the broken plugins (D-394), each with `where` (a
  * Composer package's name, or its folder), `reason`, `name` (`null` when
  * its manifest doesn't say), `enabled` (config turns it on, though it
- * can't run), and `deletable` (a folder in `user/plugins` config doesn't
+ * can't run), and `deletable` (a folder in `extensions/` config doesn't
  * turn on by name); `saved` (the admin's list is in `settings.json`); and `config`
  * (whether `config/plugins.php` exists). What a plugin registers isn't
  * listed: it shows on the screens it belongs to, and a plugin that's off
@@ -122,7 +123,7 @@ final readonly class PluginsController
 				'running'      => isset($running[$name]),
 				'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), $checked),
 				'blocked'      => PluginRequirements::met($checked) ? null : PluginRequirements::reason($checked),
-				'requiredBy'   => array_keys(array_filter($installed, static fn (PluginManifest $other): bool => array_key_exists($name, $other->requires))),
+				'requiredBy'   => array_keys(array_filter($installed, static fn (PluginManifest $other): bool => array_key_exists($name, $other->require))),
 				'deletable'    => $folder !== null && ! isset($running[$name]) && ! self::namedByConfig($this->config, $name),
 				'backup'       => ExtensionInstallController::backup($this->installer, ExtensionKind::Plugin, $folder === null ? null : $plugin->path, $name)
 			];
@@ -131,7 +132,6 @@ final readonly class PluginsController
 		usort($plugins, static fn (array $a, array $b): int => strcasecmp($a['label'], $b['label']) ?: strcmp($a['name'], $b['name']));
 
 		$invalid = [];
-		$folder  = $this->paths->relative($this->paths->plugins) . '/';
 
 		foreach ($discovered->broken as $plugin) {
 			$invalid[] = [
@@ -139,7 +139,7 @@ final readonly class PluginsController
 				'reason'    => $plugin->reason,
 				'name'      => $plugin->name === '' ? null : $plugin->name,
 				'enabled'   => $plugin->name !== '' && $this->config->turnsOn($plugin->name, $plugin->source),
-				'deletable' => $plugin->source === PluginSource::Local && str_starts_with($plugin->where, $folder) && ($plugin->name === '' || ! self::namedByConfig($this->config, $plugin->name))
+				'deletable' => $plugin->source === PluginSource::Local && LocalExtensions::nameAt($this->paths, $plugin->where) !== null && ($plugin->name === '' || ! self::namedByConfig($this->config, $plugin->name))
 			];
 		}
 
@@ -163,12 +163,12 @@ final readonly class PluginsController
 	}
 
 	/**
-	 * A plugin's folder in `user/plugins`, from the site's root, or `null`
+	 * A plugin's folder in `extensions/`, from the site's root, or `null`
 	 * when it isn't one.
 	 */
 	private function folder(PluginManifest $plugin): ?string
 	{
-		return $plugin->source === PluginSource::Local && dirname($plugin->path) === $this->paths->plugins
+		return $plugin->source === PluginSource::Local && LocalExtensions::contains($this->paths, $plugin->path)
 			? $this->paths->relative($plugin->path)
 			: null;
 	}

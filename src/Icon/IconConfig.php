@@ -20,7 +20,7 @@ use Blush\Config\ConfigValues;
 /**
  * Which icon packs are on (D-385, D-390, D-391), as `PluginConfig` says
  * which plugins are: by default, a pack Composer installed is on, and a
- * local one (in `user/icons`) only when `config/icons.php` names it in
+ * local one (in `extensions/`) only when `config/icons.php` names it in
  * `enabled`; once the admin's Icon Packs screen saves a list
  * (`icons.enabled` in `user/data/settings.json`, laid over `saved`), that
  * list is all of what's on. Config only ever says what is on.

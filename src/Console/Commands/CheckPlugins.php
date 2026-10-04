@@ -26,7 +26,7 @@ use Blush\Plugin\Plugins;
 
 /**
  * Checks every installed plugin (or one, by name): that its manifest
- * can be read (D-394) and its `requires` are met (D-385), checking one
+ * can be read (D-394) and its `require` are met (D-385), checking one
  * that's off as if it were turned on. A plugin that's turned on but
  * can't run is an error, which fails the command; one that's off and
  * couldn't be turned on is a warning.

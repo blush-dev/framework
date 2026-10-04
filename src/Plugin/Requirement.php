@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Plugin;
 
 /**
- * One of a plugin's `requires`, checked against the site (D-385): what
+ * One of a plugin's `require`, checked against the site (D-385): what
  * it names, its constraint, its kind, whether it's met, and a note on
  * what the site has (`this site runs 8.5.1`, `isn't installed`, `is
  * turned off`). A plugin requirement has the required plugin's `label`

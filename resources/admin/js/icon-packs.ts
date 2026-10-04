@@ -5,8 +5,8 @@
  *
  * Turning a pack on or off saves the local packs turned on in
  * `user/data/settings.json` (`PUT icon-packs/{vendor}/{name}`), over
- * `config/icons.php`. Deleting removes a folder in `user/icons`
- * (`DELETE icon-packs/{folder}`). Icons are drawn from their SVG as a
+ * `config/icons.php`. Deleting removes a folder in `extensions/`
+ * (`DELETE icon-packs/{vendor}/{name}`). Icons are drawn from their SVG as a
  * CSS mask, so nothing in a pack's files runs.
  */
 
@@ -15,7 +15,7 @@ import { ApiError, request, type IconPacks, type IconPackSummary, type PackIcon 
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
 import { toast } from './toast';
-import { folderName } from './themes';
+import { folderPath } from './themes';
 
 export function useIconPacks() {
 	const answer = ref<IconPacks | null>(null);
@@ -80,7 +80,7 @@ export function useIconPacks() {
 		}
 
 		try {
-			await request('DELETE', `/icon-packs/${encodeURIComponent(folderName(folder))}`);
+			await request('DELETE', `/icon-packs/${folderPath(folder)}`);
 			void loadCounts();
 			toast(`Deleted ${label}`, { kind: 'danger' });
 

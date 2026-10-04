@@ -26,6 +26,7 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Extension\Install\InstallException;
+use Blush\Extension\LocalExtensions;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Icon\IconPack;
@@ -50,9 +51,9 @@ use Blush\Support\FilesystemException;
  *   that's off adds no icons, so anywhere one is used shows nothing.
  *   Answers `{"enabled"}`.
  * - `DELETE icon-packs/{folder}` removes a pack's folder from
- *   `user/icons`, or a broken pack's, clears the icon pack cache, and
+ *   `extensions/`, or a broken pack's, clears the icon pack cache, and
  *   answers `{"deleted"}` with where it was. Composer packs aren't
- *   folders in `user/icons`, so they're never found here.
+ *   folders in `extensions/`, so they're never found here.
  *
  * Either moves the content version on, so cached pages go.
  */
@@ -102,17 +103,17 @@ final readonly class IconPackEditController
 		return Response::json(['enabled' => $enable], headers: ['Cache-Control' => 'no-store']);
 	}
 
-	public function delete(ServerRequestInterface $request, string $folder): ResponseInterface
+	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
 	{
 		if (! $this->allowed($request, ExtensionAction::Delete)) {
 			return self::error('You aren\'t allowed to delete icon packs.', Status::Forbidden);
 		}
 
-		$path  = "{$this->paths->icons}/{$folder}";
+		$path  = LocalExtensions::path($this->paths, "{$vendor}/{$name}");
 		$where = $this->paths->relative($path);
 		$pack  = array_find($this->packs->all(), static fn (IconPack $pack): bool => $pack->source === IconPackSource::Local && $pack->path === $path);
 
-		if (str_starts_with($folder, '.') || ! is_dir($path) || ($pack === null && ! array_key_exists($where, $this->packs->invalid()))) {
+		if (! is_dir($path) || ($pack === null && ! array_key_exists($where, $this->packs->invalid()))) {
 			return self::error(sprintf('There\'s no icon pack in %s.', $where), Status::NotFound);
 		}
 
@@ -122,11 +123,12 @@ final readonly class IconPackEditController
 			return self::error(sprintf('%s couldn\'t be deleted. Check that the web server may change it.', $where), Status::InternalServerError);
 		}
 
+		LocalExtensions::prune($this->paths, $path);
 		$this->bootstrap->clearCompiled(CompiledCache::IconPacks);
 
 		// Its backup goes with it (D-393).
 		try {
-			$this->installer->discard(ExtensionKind::IconPack, $path);
+			$this->installer->discard($path);
 		} catch (InstallException) {
 			// The extension is gone either way; the backup is inert.
 		}

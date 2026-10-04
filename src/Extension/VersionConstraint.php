@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Extension;
 
 /**
- * Checks versions against Composer-style constraints, for the `requires`
+ * Checks versions against Composer-style constraints, for the `require`
  * of a manifest (D-385): `*`, an exact version (`1.2`, `=1.2.3`), the
  * comparisons (`>=2.0`, `<3`, `!=1.4.0`), `^1.2`, `~1.2`, wildcards
  * (`1.2.*`, `2.x`), hyphen ranges (`1.0 - 2.0`), and any of them joined

@@ -145,7 +145,7 @@ final class BootstrapTest extends TestCase
 		// Once compiled, the config files and plugin folders are no
 		// longer read.
 		unlink("{$root}/config/app.php");
-		unlink("{$root}/user/plugins/hello/plugin.json");
+		unlink("{$root}/extensions/fixture/hello/plugin.json");
 
 		$app              = $bootstrap->createApplication();
 		$this->autoloader = $app->container()->make(LocalAutoloader::class);

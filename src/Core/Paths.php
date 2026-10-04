@@ -37,9 +37,6 @@ final readonly class Paths
 		'content'    => 'user/content',
 		'media'      => 'user/media',
 		'data'       => 'user/data',
-		'themes'     => 'user/themes',
-		'plugins'    => 'user/plugins',
-		'icons'      => 'user/icons',
 		'public'     => 'public',
 		'resources'  => 'resources',
 		'storage'    => 'storage',
@@ -49,6 +46,7 @@ final readonly class Paths
 		'sessions'   => 'storage/sessions',
 		'accounts'   => 'storage/accounts',
 		'export'     => 'storage/export',
+		'extensions' => 'extensions',
 		'vendor'     => 'vendor'
 	];
 
@@ -59,9 +57,6 @@ final readonly class Paths
 		public string $content,
 		public string $media,
 		public string $data,
-		public string $themes,
-		public string $plugins,
-		public string $icons,
 		public string $public,
 		public string $resources,
 		public string $storage,
@@ -71,6 +66,7 @@ final readonly class Paths
 		public string $sessions,
 		public string $accounts,
 		public string $export,
+		public string $extensions,
 		public string $vendor
 	) {
 		foreach ($this->toArray() as $name => $path) {
@@ -148,9 +144,6 @@ final readonly class Paths
 			'content'    => $this->content,
 			'media'      => $this->media,
 			'data'       => $this->data,
-			'themes'     => $this->themes,
-			'plugins'    => $this->plugins,
-			'icons'      => $this->icons,
 			'public'     => $this->public,
 			'resources'  => $this->resources,
 			'storage'    => $this->storage,
@@ -160,6 +153,7 @@ final readonly class Paths
 			'sessions'   => $this->sessions,
 			'accounts'   => $this->accounts,
 			'export'     => $this->export,
+			'extensions' => $this->extensions,
 			'vendor'     => $this->vendor
 		];
 	}

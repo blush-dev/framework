@@ -310,7 +310,7 @@ export interface ThemeSummary {
 	version: string;
 	description: string;
 	parent: string | null;
-	// `framework` (the default theme), `local` (`user/themes`), or `composer`.
+	// `framework` (the default theme), `local` (`extensions/`), or `composer`.
 	source: 'framework' | 'local' | 'composer';
 	active: boolean;
 	// Where it's installed, from the site's root; `null` for the default theme.
@@ -320,7 +320,7 @@ export interface ThemeSummary {
 	authors: ExtensionAuthor[];
 	// Why it can't be activated (a theme it falls back to is missing), or `null`.
 	blocked: string | null;
-	// Whether it's a folder in `user/themes` the active theme doesn't use.
+	// Whether it's a folder in `extensions/` the active theme doesn't use.
 	deletable: boolean;
 	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
 	backup: { version: string } | null;
@@ -343,7 +343,7 @@ export interface Appearance {
 	// Whether `?theme={name}` previews another theme (development only).
 	preview: boolean;
 	themes: ThemeSummary[];
-	// Broken themes, by where they were found (`user/themes/{folder}`, or
+	// Broken themes, by where they were found (`extensions/{vendor}/{name}`, or
 	// a Composer package's name).
 	invalid: { where: string; reason: string; deletable: boolean }[];
 	upload: ExtensionUpload;
@@ -420,7 +420,7 @@ export interface PluginSummary {
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;
-	// Its folder in `user/plugins`, or `null` for a Composer plugin.
+	// Its folder in `extensions/`, or `null` for a Composer plugin.
 	folder: string | null;
 	// Turned on, and whether it runs: an enabled one doesn't when its
 	// requirements aren't met.
@@ -449,7 +449,7 @@ export interface BrokenPluginSummary {
 	name: string | null;
 	// Whether config turns it on, though it can't run.
 	enabled: boolean;
-	// A folder in `user/plugins` that config doesn't turn on by name.
+	// A folder in `extensions/` that config doesn't turn on by name.
 	deletable: boolean;
 }
 
@@ -491,7 +491,7 @@ export interface IconPackSummary {
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;
-	// Its folder in `user/icons`, or `null` for a Composer pack.
+	// Its folder in `extensions/`, or `null` for a Composer pack.
 	folder: string | null;
 	enabled: boolean;
 	deletable: boolean;

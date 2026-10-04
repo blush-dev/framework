@@ -42,8 +42,8 @@ component), head meta, Markdown setup, every view, and the SCSS build.
 Done on `jtcom-trial` (a test bed; its site files are never committed,
 D-156): `config/content.php` (the seven types, typed objects,
 `home: 'post'`), `config/media.php` (`/user/media`), `config/markdown.php`
-(jtcom's extensions and options). The theme is `user/themes/jtcom`
-(D-167), with the `Jtcom\View\PostArchives` component (the year, month,
+(jtcom's extensions and options). The theme is
+`extensions/justintadlock/jtcom` (D-167, D-418), with the `Jtcom\View\PostArchives` component (the year, month,
 and full archive lists) and its `Jtcom\ThemeProvider`, built with Vite
 (D-155; `npm run build` in the theme's folder), with views for every page kind:
 singles (post, literature, page), the homepage and listings, date
@@ -385,9 +385,11 @@ dynamically).
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
   fourth kind on the shared pieces (joining `AdminTheme`, D-317);
   installing from the admin, data-only kinds (icon packs) first, where
-  the Install buttons are placeholders now; and `plugin:new`.
+  the Install buttons are placeholders now.
   (`plugin:list`, `plugin:check`, and broken plugin manifests listed
-  instead of failing discovery are done, D-394.) See
+  instead of failing discovery are done, D-394, and `plugin:new`,
+  D-416. Every local extension lives in `extensions/{vendor}/{name}`,
+  with manifests in Composer's shape and `autoload.files`, D-418.) See
   `open-questions.md`.
 - **Fields API (D-337; paused, D-348: a baseline, with more design
   work to do before building further; phases 1 to 3 done, D-338 to

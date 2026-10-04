@@ -15,14 +15,14 @@ namespace Blush\Plugin;
 
 use Override;
 use Blush\Extension\ComposerJson;
-use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\LocalExtensions;
 use Blush\Extension\ManifestFile;
 
 /**
- * Finds local plugins: folders in `user/plugins/` holding a
- * `plugin.json` (or `plugin.yaml`/`.yml`) manifest (D-378):
+ * Finds local plugins: folders in `extensions/{vendor}/{name}` holding a
+ * `plugin.json` (or `plugin.yaml`/`.yml`) manifest (D-378, D-418):
  *
  *     {
  *         "name": "acme/gallery",
@@ -32,23 +32,23 @@ use Blush\Extension\ManifestFile;
  *         "description": "Photo galleries.",
  *         "provider": "Acme\\Gallery\\GalleryServiceProvider",
  *         "autoload": { "psr-4": { "Acme\\Gallery\\": "src/" } },
- *         "requires": { "blush": "^2.0" }
+ *         "require": { "blush-dev/framework": "^2.0" }
  *     }
  *
- * The folder's name is only where the plugin lives; its `name` is what
- * it's known by. Blush autoloads the `psr-4` map itself (see
+ * The folder is the plugin's name, and a manifest naming another is
+ * broken. What the manifest leaves out of the keys it shares with
+ * Composer, its `composer.json` may say. Blush autoloads it itself (see
  * `LocalAutoloader`). When a folder has manifests in several formats,
  * JSON wins (D-032). A folder whose manifest doesn't hold is broken,
- * known by its path from `$root` (D-394).
+ * known by its path from the site's root (D-394).
  */
 final readonly class LocalPluginFinder implements PluginFinder
 {
 	/**
-	 * @param string $pluginsPath Where the plugin folders are.
-	 * @param string $root        The site's root, which a broken plugin's folder is given from.
+	 * @param string $root The site's root, which a broken plugin's messages give paths from.
 	 */
 	public function __construct(
-		private string $pluginsPath,
+		private LocalExtensions $extensions,
 		private string $root = ''
 	) {}
 
@@ -58,27 +58,15 @@ final readonly class LocalPluginFinder implements PluginFinder
 	#[Override]
 	public function find(): DiscoveredPlugins
 	{
-		$files = [];
-
-		foreach (glob($this->pluginsPath . '/*', GLOB_ONLYDIR) ?: [] as $directory) {
-			$file = ManifestFile::find($directory, ExtensionKind::Plugin)[0] ?? null;
-
-			if ($file !== null) {
-				$files[] = $file;
-			}
-		}
-
-		sort($files);
-
 		$manifests = [];
 		$broken    = [];
 
-		foreach ($files as $file) {
+		foreach ($this->extensions->of(ExtensionKind::Plugin) as $extension) {
 			try {
-				$manifests[] = self::manifest($file);
+				$manifests[] = self::build($extension->read(), $extension->file);
 			} catch (ExtensionException $e) {
 				$reason   = $this->root === '' ? $e->getMessage() : str_replace($this->root . '/', '', $e->getMessage());
-				$broken[] = new BrokenPlugin($this->where(dirname($file)), $reason, self::name($file), PluginSource::Local);
+				$broken[] = new BrokenPlugin($extension->where, $reason, self::name($extension->file), PluginSource::Local);
 			}
 		}
 
@@ -86,30 +74,29 @@ final readonly class LocalPluginFinder implements PluginFinder
 	}
 
 	/**
-	 * Builds a manifest from a manifest file.
+	 * Builds a manifest from a manifest file, filling in what it leaves to
+	 * its `composer.json`.
 	 *
 	 * @throws ExtensionException
 	 */
 	public static function manifest(string $file): PluginManifest
 	{
-		$data     = ManifestFile::read($file);
-		$autoload = is_array($data['autoload'] ?? null) ? $data['autoload'] : [];
+		return self::build(ComposerJson::fill(ManifestFile::read($file), dirname($file)), $file);
+	}
 
-		// What the manifest leaves out, its composer.json may say.
-		if (! array_key_exists('authors', $data) || ! array_key_exists('license', $data)) {
-			$composer = ComposerJson::read(dirname($file));
-			$data    += [
-				'authors' => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($composer['authors'] ?? [])),
-				'license' => ComposerJson::license($composer['license'] ?? null)
-			];
-		}
-
+	/**
+	 * Builds a manifest from its read data.
+	 *
+	 * @param  array<string, mixed> $data
+	 * @throws ExtensionException
+	 */
+	private static function build(array $data, string $file): PluginManifest
+	{
 		try {
 			return PluginManifest::fromArray([
 				...$data,
-				'source'   => PluginSource::Local,
-				'path'     => dirname($file),
-				'autoload' => $autoload['psr-4'] ?? []
+				'source' => PluginSource::Local,
+				'path'   => dirname($file)
 			]);
 		} catch (ExtensionException $e) {
 			throw new ExtensionException(sprintf('%s (%s)', $e->getMessage(), $file), previous: $e);
@@ -129,15 +116,5 @@ final readonly class LocalPluginFinder implements PluginFinder
 		}
 
 		return is_string($name) ? $name : '';
-	}
-
-	/**
-	 * A folder's path from the site's root.
-	 */
-	private function where(string $folder): string
-	{
-		return $this->root !== '' && str_starts_with($folder, $this->root . '/')
-			? substr($folder, strlen($this->root) + 1)
-			: $folder;
 	}
 }

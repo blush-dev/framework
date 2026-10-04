@@ -77,10 +77,9 @@ final readonly class JsonSchemas
 	private const string FOLDER_PATTERN = '^/?[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$';
 
 	/**
-	 * Matches a plugin's autoload folder: relative, and not leaving the
-	 * plugin.
+	 * Matches an autoload path: relative, and not leaving the extension.
 	 */
-	private const string PLUGIN_PATH_PATTERN = '^(?!/)(?!.*\\.\\.).+$';
+	private const string PATH_INSIDE_PATTERN = '^(?!/)(?!.*\\.\\.).*$';
 
 	/**
 	 * Returns every schema, by file name.
@@ -129,7 +128,7 @@ final readonly class JsonSchemas
 			'title'       => sprintf('%s theme manifest', Framework::NAME),
 			'description' => 'A theme\'s theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.',
 			'type'        => 'object',
-			'required'    => ['name', 'label', 'namespace'],
+			'required'    => ['label', 'namespace'],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$this->identity('theme'),
@@ -156,7 +155,7 @@ final readonly class JsonSchemas
 					'type'        => 'string',
 					'description' => 'The class name of the theme\'s service provider, registered before the site\'s.'
 				],
-				'autoload'    => $this->autoload('Namespace prefixes and the folders inside the theme their classes are in, such as {"Notebook\\\\": "src/"}.'),
+				'autoload'    => $this->autoload('theme', 'Namespace prefixes and the folders inside the theme their classes are in, such as {"Notebook\\\\": "src/"}.'),
 				'settings'    => [
 					'type'                 => 'object',
 					'description'          => 'Options site owners set in user/data/theme.json, by name. They use the same field types as custom fields.',
@@ -211,7 +210,7 @@ final readonly class JsonSchemas
 						]
 					]
 				],
-				'requires'    => $this->requires('What the theme needs, such as {"blush": "^2.0"}. Not checked yet.')
+				'require'     => $this->requires('What the theme needs, as composer.json says it, such as {"blush-dev/framework": "^2.0"}. Not checked yet.')
 			],
 			'definitions' => [
 				'field'      => $this->field(),
@@ -233,7 +232,7 @@ final readonly class JsonSchemas
 			'title'       => sprintf('%s plugin manifest', Framework::NAME),
 			'description' => 'A local plugin\'s plugin.json: its name, label, namespace, service provider, and the classes autoloaded for it.',
 			'type'        => 'object',
-			'required'    => ['name', 'label', 'namespace', 'provider'],
+			'required'    => ['label', 'namespace', 'provider'],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$this->identity('plugin'),
@@ -243,8 +242,8 @@ final readonly class JsonSchemas
 					'type'        => 'string',
 					'description' => 'The class name of the plugin\'s service provider.'
 				],
-				'autoload'    => $this->autoload('Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.', true),
-				'requires'    => $this->requires('What the plugin needs, by name, with Composer-style version constraints: php, blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren\'t met doesn\'t run.'),
+				'autoload'    => $this->autoload('plugin', 'Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.'),
+				'require'     => $this->requires('What the plugin needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren\'t met doesn\'t run. Without it, the require in the composer.json beside this file is used.'),
 				'authors'     => $this->authors('plugin'),
 				'license'     => ['type' => 'string', 'description' => 'How the plugin may be used, as an SPDX identifier such as "MIT". Without it, the license in the composer.json beside this file is used.']
 			]
@@ -263,7 +262,7 @@ final readonly class JsonSchemas
 			'title'       => sprintf('%s icon pack manifest', Framework::NAME),
 			'description' => 'An icon pack\'s icons.json: its name, label, namespace, and the folder its SVG icons are in.',
 			'type'        => 'object',
-			'required'    => ['name', 'label', 'namespace'],
+			'required'    => ['label', 'namespace'],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$this->identity('icon pack'),
@@ -609,7 +608,7 @@ final readonly class JsonSchemas
 			'name'      => [
 				'type'        => 'string',
 				'pattern'     => trim(ExtensionName::PATTERN, '#'),
-				'description' => sprintf('The %s\'s name, the key it\'s known by: vendor/name, such as "acme/gallery". For a Composer package, its package name.', $kind)
+				'description' => sprintf('The %s\'s name, the key it\'s known by: vendor/name, such as "acme/gallery". Its folder is extensions/{vendor}/{name}, so it must match the folder. Without it, the name in the composer.json beside this file is used; for a Composer package, it\'s the package name.', $kind)
 			],
 			'label'     => ['type' => 'string', 'minLength' => 1, 'description' => sprintf('The %s\'s title, as people read it.', $kind)],
 			'namespace' => [
@@ -622,22 +621,26 @@ final readonly class JsonSchemas
 	}
 
 	/**
-	 * Returns the schema for an `autoload` object and its PSR-4 map.
-	 *
-	 * A plugin's folders are checked more loosely than a theme's.
+	 * Returns the schema for an `autoload` object, in Composer's shape:
+	 * its PSR-4 map and its `files` (D-418).
 	 *
 	 * @return array<string, mixed>
 	 */
-	private function autoload(string $description, bool $plugin = false): array
+	private function autoload(string $kind, string $description): array
 	{
 		return [
 			'type'        => 'object',
-			'description' => 'Classes to autoload.',
+			'description' => 'What to autoload, as composer.json says it. Without it, the autoload in the composer.json beside this file is used.',
 			'properties'  => [
 				'psr-4' => [
 					'type'                 => 'object',
 					'description'          => $description,
-					'additionalProperties' => ['type' => 'string', 'pattern' => $plugin ? self::PLUGIN_PATH_PATTERN : self::FOLDER_PATTERN]
+					'additionalProperties' => ['type' => 'string', 'pattern' => self::PATH_INSIDE_PATTERN]
+				],
+				'files' => [
+					'type'        => 'array',
+					'items'       => ['type' => 'string', 'pattern' => self::PATH_INSIDE_PATTERN],
+					'description' => sprintf('Files inside the %s loaded once when it runs, such as ["src/helpers.php"].', $kind)
 				]
 			]
 		];

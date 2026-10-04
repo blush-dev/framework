@@ -22,6 +22,7 @@ use Blush\Console\Commands\CheckPlugins;
 use Blush\Console\Commands\CheckSite;
 use Blush\Console\Commands\CheckTheme;
 use Blush\Console\Commands\CreateContent;
+use Blush\Console\Commands\CreatePlugin;
 use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
@@ -83,6 +84,7 @@ enum BuiltInCommand: string
 	case ThemePublish  = 'theme:publish';
 	case PluginList    = 'plugin:list';
 	case PluginCheck   = 'plugin:check';
+	case PluginNew     = 'plugin:new';
 	case ComponentList = 'component:list';
 	case IconList      = 'icon:list';
 	case MenuList      = 'menu:list';
@@ -132,6 +134,7 @@ enum BuiltInCommand: string
 			self::ThemePublish  => PublishThemes::class,
 			self::PluginList    => ListPlugins::class,
 			self::PluginCheck   => CheckPlugins::class,
+			self::PluginNew     => CreatePlugin::class,
 			self::ComponentList => ListComponents::class,
 			self::IconList      => ListIcons::class,
 			self::MenuList      => ListMenus::class,

@@ -21,7 +21,7 @@ use Blush\Theme\Themes;
 
 /**
  * Lists the installed themes: the framework default, Composer themes,
- * and `user/themes`, marking the active one and any broken manifests.
+ * and `extensions/`, marking the active one and any broken manifests.
  */
 #[Command('theme:list', 'List the installed themes.')]
 final readonly class ListThemes
