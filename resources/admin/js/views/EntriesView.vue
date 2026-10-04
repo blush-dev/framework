@@ -62,7 +62,7 @@ const PER_OPTIONS = [10, 20, 50, 100];
 // How far back the Updated filter reaches, in days.
 const DAYS = [7, 30, 90];
 
-const SORTS: EntrySort[] = ['title', 'status', 'author', 'updated'];
+const SORTS: EntrySort[] = ['title', 'status', 'author', 'published', 'updated'];
 
 // The most terms or authors a filter offers.
 const OPTION_LIMIT = 100;
@@ -263,10 +263,16 @@ const dayOptions: SelectOption[] = [
 
 const perOptions: SelectOption[] = PER_OPTIONS.map((count) => ({ value: String(count), label: `${count} per page` }));
 
+// The date the list shows: the one it's in order of (D-413), else when
+// each was last changed.
+const dateColumn = computed<{ key: 'published' | 'updated'; label: string }>(() => list.value?.by === 'published'
+	? { key: 'published', label: 'Published' }
+	: { key: 'updated', label: 'Updated' });
+
 // The rows pinned above the entries: the index page, then the authors
-// page (D-255, D-329).
+// page (D-255, D-329), then Pages' error pages (D-411).
 function pinnedOf(answer: EntryList): EntrySummary[] {
-	return [answer.index, answer.authorsPage].filter((entry): entry is EntrySummary => entry !== null && entry !== undefined);
+	return [answer.index, answer.authorsPage, ...(answer.errorPages ?? [])].filter((entry): entry is EntrySummary => entry !== null && entry !== undefined);
 }
 
 // The taxonomies that group this type.
@@ -629,7 +635,7 @@ const emptyText = computed(() => {
 		<section v-if="nothingYet" class="panel" aria-labelledby="entries-heading">
 			<!-- A type with an index page is never empty: the index page is
 			     already there, so the first-run state sits under it (D-255). -->
-			<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" date-label="Updated" date-key="updated" :terms="terms && info?.kind !== 'profiles'" :profiles="info?.kind === 'profiles'" />
+			<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" :date-label="dateColumn.label" :date-key="dateColumn.key" :terms="terms && info?.kind !== 'profiles'" :profiles="info?.kind === 'profiles'" />
 			<div class="empty">
 				<AdminIcon :name="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" />
 				<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
@@ -729,8 +735,8 @@ const emptyText = computed(() => {
 						:entries="list.entries"
 						:pinned="pinnedOf(list)"
 						labelledby="entries-heading"
-						date-label="Updated"
-						date-key="updated"
+						:date-label="dateColumn.label"
+						:date-key="dateColumn.key"
 						:terms="terms && info?.kind !== 'profiles'"
 						:profiles="info?.kind === 'profiles'"
 						v-model:selected="selected"

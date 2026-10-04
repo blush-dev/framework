@@ -17,14 +17,19 @@ use Blush\Content\Index\IndexReport;
 
 /**
  * What a write did: the entry's id (its path, which a rename changes),
- * the file's new revision (`null` once deleted), and the reindex that
- * followed.
+ * the file's new revision (`null` once deleted), the reindex that
+ * followed, and the other entries it moved, old id to new (a parent
+ * made its folder's page, D-408).
  */
 final readonly class WriteResult
 {
+	/**
+	 * @param array<string, string> $moved
+	 */
 	public function __construct(
 		public string $id,
 		public ?string $revision,
-		public IndexReport $index
+		public IndexReport $index,
+		public array $moved = []
 	) {}
 }

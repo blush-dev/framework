@@ -63,6 +63,20 @@ final class AdminReferencesTest extends TestCase
 		$this->assertSame([0, 0, 2], array_column($items, 'uses'));
 	}
 
+	public function testATreesPagesInTreeOrderWhenAsked(): void
+	{
+		$this->writeTemporaryFile('user/content/two/alpha.md', "---\ntitle: Alpha\n---\n");
+		$this->site();
+
+		$list  = $this->references('page?tree=1');
+		$items = is_array($list['items'] ?? null) ? $list['items'] : [];
+
+		$this->assertTrue($list['tree'] ?? null);
+		$this->assertSame(['one', 'two', 'two/alpha'], array_column($items, 'slug'), 'A parent\'s pages under it (D-408).');
+		$this->assertSame([0, 0, 1], array_column($items, 'depth'));
+		$this->assertFalse($this->references('page')['tree'] ?? null, 'Unasked, a search as before.');
+	}
+
 	public function testAFlatTaxonomyHasItsVirtualTermsAndSearches(): void
 	{
 		$this->site();

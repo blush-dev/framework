@@ -24,7 +24,8 @@ const collapsed = ref(new Set<string>());
  * **Index** tag, and never with **Duplicate** or **Move to trash**. Its
  * people field's list page (D-329, D-353) is pinned under it the same
  * way, tagged with the field's name (**Authors**, **Cooks**), and may be
- * trashed.
+ * trashed. Pages' error pages are pinned the same way (D-411), tagged
+ * with their status (**Error 404**), never duplicated.
  *
  * A tree page that starts inside a branch begins with the entries above
  * it, marked **Continued** (D-263). Collapsing a branch hides the rows
@@ -86,12 +87,12 @@ const columns = computed<{ label: string; sort: EntrySort | null; class?: string
 	{ label: 'Status', sort: 'status' },
 	{ label: 'Account', sort: null },
 	{ label: 'Bylines', sort: null, class: 'table__count' },
-	{ label: dateLabel, sort: dateKey === 'updated' ? 'updated' : null }
+	{ label: dateLabel, sort: dateKey }
 ] : [
 	{ label: 'Title', sort: 'title' },
 	{ label: 'Status', sort: 'status' },
 	terms ? { label: 'Entries', sort: null, class: 'table__count' } : { label: 'Authors', sort: 'author' },
-	{ label: dateLabel, sort: dateKey === 'updated' ? 'updated' : null }
+	{ label: dateLabel, sort: dateKey }
 ]);
 
 function ariaSort(column: EntrySort | null): 'ascending' | 'descending' | undefined {
@@ -140,11 +141,19 @@ const chosen    = computed(() => choosable.value.filter((id) => selected.value.i
 const allState  = computed<'true' | 'false' | 'mixed'>(() => chosen.value === 0 ? 'false' : (chosen.value === choosable.value.length ? 'true' : 'mixed'));
 
 function pinTitle(entry: EntrySummary): string {
+	if (entry.errorPage !== null) {
+		return `Pinned: the page the site shows for error ${entry.errorPage}`;
+	}
+
 	return entry.index ? 'Pinned: the index page for this type' : `Pinned: the page introducing this type's ${(entry.peopleLabel ?? 'people').toLowerCase()}`;
 }
 
+function isPinned(entry: EntrySummary): boolean {
+	return entry.index || entry.authorsPage || entry.errorPage !== null;
+}
+
 function canSelect(entry: EntrySummary): boolean {
-	return !entry.index && !entry.authorsPage && !entry.continued;
+	return !isPinned(entry) && !entry.continued;
 }
 
 function isSelected(entry: EntrySummary): boolean {
@@ -215,7 +224,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 			<tbody v-for="group in groups" :key="group.key" :class="{ 'table__pinned': group.key === 'pinned' }">
 				<tr v-for="entry in group.entries" :key="`${entry.id}${entry.continued ? ':continued' : ''}`" :class="{ 'is-selected': selectable && isSelected(entry) }">
 					<td v-if="selectable" class="table__check">
-						<span v-if="entry.index || entry.authorsPage" class="table__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /><span class="visually-hidden">Pinned</span></span>
+						<span v-if="isPinned(entry)" class="table__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /><span class="visually-hidden">Pinned</span></span>
 						<button v-else-if="canSelect(entry)" type="button" class="check" role="checkbox" :aria-checked="isSelected(entry) ? 'true' : 'false'" :aria-label="`Select ${entry.title || 'Untitled'}`" @click="choose(entry)"><AdminIcon name="check" /></button>
 					</td>
 					<th scope="row">
@@ -225,7 +234,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 						<span v-if="profiles" class="avatar" :class="{ 'avatar--guest': !entry.linked }" aria-hidden="true">{{ initials(entry.title || '?') }}</span>
 						<span class="entry-title">
 							<span class="entry-title__text">
-								<span v-if="(entry.index || entry.authorsPage) && !selectable" class="entry-title__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /></span>
+								<span v-if="isPinned(entry) && !selectable" class="entry-title__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /></span>
 								<span v-if="entry.depth === null && entry.ancestors.length" class="entry-title__ancestors">{{ entry.ancestors.join(' › ') }} ›{{ ' ' }}</span>
 								<RouterLink class="entry-title__link" :to="listRoute(entry)">
 									<template v-if="entry.title">{{ entry.title }}</template>
@@ -233,6 +242,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 								</RouterLink>
 								<template v-if="entry.index">{{ ' ' }}<span class="index-mark">Index</span></template>
 								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">{{ entry.peopleLabel ?? 'People' }}</span></template>
+								<template v-if="entry.errorPage !== null">{{ ' ' }}<span class="index-mark">Error {{ entry.errorPage }}</span></template>
 								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span><span v-else-if="entry.own" class="tag">Yours</span>
 								{{ ' ' }}<span v-if="entry.continued" class="tag" title="Listed on an earlier page; shown again above the entries under it">Continued</span>
 							</span>

@@ -109,6 +109,7 @@ import MarkdownEditor from '../components/MarkdownEditor.vue';
 import MediaPicker from '../components/MediaPicker.vue';
 import MenuButton from '../components/MenuButton.vue';
 import StatusPill from '../components/StatusPill.vue';
+import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import { BLOCK_KINDS } from '../blocks';
 import { bleedClasses, componentIcon, IMAGE_COMPONENT, imageVariants, loadComponents, MARKDOWN_ELEMENTS, type BleedClasses, type ComponentDescription, type ComponentProp } from '../components';
@@ -121,7 +122,7 @@ import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept'
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
 import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
 import { mediaName } from '../media';
-import { slugOf } from '../references';
+import { loadReferences, slugOf, type ReferenceItem } from '../references';
 import { canUpload } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
@@ -246,6 +247,56 @@ const entryType = computed(() => types.value.find((type) => type.name === entry.
 const fresh     = computed(() => entry.value !== null && entry.value.id === null);
 const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : (peopleNoun.value ? `Edit ${peopleNoun.value}` : (fresh.value ? labels.value.newItem : labels.value.editItem))));
 
+// A tree's page goes under the page chosen here, or at the top: a new
+// one when it's first saved (D-408), one that exists by moving (D-410).
+// The choices are the tree's pages, indented, from `GET references/{type}`,
+// without the page itself and those under it. A new page's address may
+// name one to start with (`?parent=about`).
+const treeParent  = computed(() => entry.value?.type.kind === 'tree' && (fresh.value || entry.value.can.move));
+const parent      = ref(typeof route.query.parent === 'string' ? route.query.parent : '');
+const parentItems = ref<ReferenceItem[] | null>(null);
+const parentError = ref('');
+const moving      = computed(() => !fresh.value && entry.value !== null && entry.value.parent !== null && parent.value !== entry.value.parent);
+
+const parentOptions = computed<SelectOption[]>(() => {
+	const key     = fresh.value ? null : entry.value?.key ?? null;
+	const options = (parentItems.value ?? [])
+		.filter((item) => !item.missing && (key === null || (item.slug !== key && !item.slug.startsWith(`${key}/`))))
+		.map((item) => ({ value: item.slug, label: item.title, depth: item.depth ?? 0 }));
+	const current = entry.value?.parent ?? '';
+
+	// A folder with no page of its own is still where the page is.
+	if (current !== '' && !options.some((option) => option.value === current)) {
+		options.unshift({ value: current, label: `${current} (no page)`, depth: 0 });
+	}
+
+	return [{ value: '', label: 'None, at the top level' }, ...options];
+});
+
+watch(parent, () => {
+	parentError.value = '';
+});
+
+watch(() => treeParent.value ? `${entry.value?.type.name}:${entry.value?.id ?? ''}` : undefined, async (at) => {
+	const name = entry.value?.type.name;
+
+	parentItems.value = null;
+
+	if (at === undefined || name === undefined) {
+		return;
+	}
+
+	try {
+		parentItems.value = (await loadReferences(name, { tree: true })).items;
+	} catch {
+		parentItems.value = [];
+	}
+
+	if (fresh.value && !parentOptions.value.some((option) => option.value === parent.value)) {
+		parent.value = '';
+	}
+}, { immediate: true });
+
 // The navigation marks the entry's type; the top bar names what's edited.
 loadTypes().catch(() => undefined);
 
@@ -306,7 +357,7 @@ const changedFields = computed(() => {
 const dirty = computed(() => {
 	const start = initial.value;
 
-	return start !== null && (title.value !== start.title || body.value !== start.body || date.value !== start.date || slug.value.trim() !== start.slug || changedFields.value.length > 0);
+	return start !== null && (title.value !== start.title || body.value !== start.body || date.value !== start.date || slug.value.trim() !== start.slug || moving.value || changedFields.value.length > 0);
 });
 
 // Why the last save refused the new slug (D-277), until it's changed;
@@ -323,7 +374,7 @@ const slugAddress = computed(() => {
 	const detail = entry.value;
 	const url    = detail?.url ?? null;
 
-	if (detail === null || url === null || slug.value.trim() === '') {
+	if (detail === null || url === null || slug.value.trim() === '' || moving.value) {
 		return null;
 	}
 
@@ -354,6 +405,10 @@ const noticeCount = computed(() => (entry.value?.violations ?? []).filter((viola
 function fill(detail: EntryDetail | NewEntryDetail): void {
 	entry.value = detail;
 	apply(stateOf(detail));
+
+	if (detail.id !== null) {
+		parent.value = detail.parent ?? '';
+	}
 
 	initial.value   = current();
 	conflict.value  = null;
@@ -580,6 +635,11 @@ async function save(status?: EntryStatus): Promise<void> {
 		change.redirect = redirect.value;
 	}
 
+	if (moving.value) {
+		change.parent   = parent.value;
+		change.redirect = redirect.value;
+	}
+
 	if (status !== undefined) {
 		change.status = status;
 
@@ -614,13 +674,13 @@ async function save(status?: EntryStatus): Promise<void> {
 			toast(status === 'published' ? 'Published' : (status === 'scheduled' ? 'Scheduled' : 'Switched to draft'));
 		}
 	} catch (caught) {
-		if (caught instanceof ApiError && caught.field === 'slug') {
-			// Nothing was saved; the slug field says why.
-			slugError.value = caught.message;
+		if (caught instanceof ApiError && (caught.field === 'slug' || caught.field === 'parent')) {
+			// Nothing was saved; the slug or parent field says why.
+			(caught.field === 'slug' ? slugError : parentError).value = caught.message;
 			sideOpen.value  = true;
 			tab.value       = 'document';
 			await nextTick();
-			document.getElementById('editor-slug')?.focus();
+			document.getElementById(`editor-${caught.field}`)?.focus();
 		} else if (caught instanceof ApiError && caught.status === 409) {
 			void openConflict(status);
 		} else if (caught instanceof ApiError && caught.status === 0 && !online.value) {
@@ -635,8 +695,8 @@ async function save(status?: EntryStatus): Promise<void> {
 
 /**
  * What creates a new entry (D-229) from a save's changes: its type,
- * title, and slug if one's given, the fields set, the body, and the
- * status (a draft unless publishing).
+ * title, and slug if one's given, a tree page's parent (D-408), the
+ * fields set, the body, and the status (a draft unless publishing).
  */
 function created(detail: NewEntryDetail, change: Record<string, unknown>, status?: EntryStatus): Record<string, unknown> {
 	const { title: named, ...set } = change.set as Record<string, unknown>;
@@ -647,6 +707,7 @@ function created(detail: NewEntryDetail, change: Record<string, unknown>, status
 		set,
 		status: status ?? 'draft',
 		...(change.slug === undefined || change.slug === '' ? {} : { slug: change.slug }),
+		...(treeParent.value && parent.value !== '' ? { parent: parent.value } : {}),
 		...(change.body === undefined ? {} : { body: change.body }),
 		...(change.published === undefined ? {} : { published: change.published })
 	};
@@ -956,12 +1017,16 @@ async function preview(): Promise<void> {
 }
 
 // The Document tab's fields, in the order they're touched (admin.md §8,
-// The document panel): visibility and a term's parent as rows under
-// Publish, then the featured image, each people field, each other reference
+// The document panel): visibility, a term's parent, and a tree page's or
+// term's position as rows under Publish, then the featured image, each
+// people field, each other reference
 // (a taxonomy's terms, as a picker), the summary, the type's other
 // fields as a form, and then each field set's (D-337).
 const visibilityField = computed(() => ownFields.value.find((field) => field.name === 'visibility' && field.type === 'enum'));
 const parentField     = computed(() => ownFields.value.find((field) => field.name === 'parent' && field.type === 'reference' && field.multiple === false && field.to !== undefined));
+// A tree page's or term's place among its siblings (D-412), a row beside
+// its parent.
+const positionField   = computed(() => ownFields.value.find((field) => field.name === 'position' && field.type === 'number'));
 // A term has no author or featured image of its own (admin.md §8), so
 // those show only when its file has one.
 const term = computed(() => entry.value?.type.kind === 'taxonomy');
@@ -973,7 +1038,7 @@ const summaryField    = computed(() => ownFields.value.find((field) => field.nam
 const referenceFields = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && !peopleFields.value.includes(field)));
 
 const otherFields = computed(() => {
-	const placed = [visibilityField.value, parentField.value, imageField.value, ...peopleFields.value, summaryField.value, ...referenceFields.value];
+	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, ...referenceFields.value];
 
 	return ownFields.value.filter((field) => !placed.includes(field));
 });
@@ -2593,17 +2658,31 @@ function fieldKey(field: FieldDescription): string {
 											<input id="editor-slug" v-model="slug" class="settings__input mono" :placeholder="fresh ? slugOf(title) : undefined" autocomplete="off" autocapitalize="none" spellcheck="false" title="Lowercase letters, numbers, and hyphens" :aria-invalid="slugError ? 'true' : undefined" :aria-describedby="slugError ? 'editor-slug-help editor-slug-error' : 'editor-slug-help'">
 										</dd>
 									</div>
+									<div v-if="treeParent" class="settings__row">
+										<dt><label for="editor-parent">Parent</label></dt>
+										<dd>
+											<AdminSelect id="editor-parent" v-model="parent" :options="parentOptions" :disabled="parentItems === null" :invalid="Boolean(parentError)" :described-by="parentError ? 'editor-parent-error' : undefined" plain />
+										</dd>
+									</div>
 									<div v-if="parentField" class="settings__row">
 										<dt><label :for="`field-${parentField.name}`">Parent</label></dt>
 										<dd>
 											<ReferencePicker :id="`field-${parentField.name}`" :key="fieldKey(parentField)" :field="parentField" :self="entry.slug" plain :model-value="String(form[parentField.name] ?? '')" @update:model-value="form[parentField.name] = $event" />
 										</dd>
 									</div>
+									<div v-if="positionField" class="settings__row">
+										<dt><label for="editor-position">Position</label></dt>
+										<dd>
+											<input id="editor-position" class="settings__input mono" type="number" step="1" inputmode="numeric" placeholder="By title" :value="String(form[positionField.name] ?? '')" aria-describedby="editor-position-help" @input="form[positionField.name] = ($event.target as HTMLInputElement).value">
+										</dd>
+									</div>
 								</dl>
 								<p id="editor-publish-help" class="editor__group-note">{{ publishNote }}</p>
 								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
 								<p v-if="slugError" id="editor-slug-error" class="field__error">{{ slugError }}</p>
-								<template v-if="entry.can.rename && entry.status === 'published' && slug.trim() !== entry.slug">
+								<p v-if="parentError" id="editor-parent-error" class="field__error">{{ parentError }}</p>
+								<p v-if="positionField" id="editor-position-help" class="visually-hidden">Its place among the {{ labels.plural.toLowerCase() }} beside it, lowest first. Without one, it follows those with one, by title.</p>
+								<template v-if="entry.status === 'published' && ((entry.can.rename && slug.trim() !== entry.slug) || moving)">
 									<p id="editor-slug-help" class="editor__group-note">Saving moves it to <span class="mono">{{ slugAddress ?? 'a new address' }}</span>{{ redirect ? '.' : ', and links to the old address will stop working.' }}</p>
 									<label class="checkbox">
 										<input v-model="redirect" type="checkbox">
@@ -2611,6 +2690,7 @@ function fieldKey(field: FieldDescription): string {
 									</label>
 								</template>
 								<p v-else id="editor-slug-help" class="visually-hidden">The slug is lowercase letters, numbers, and hyphens, and the address ends in it.</p>
+								<p v-if="entry.errorPage !== null" class="editor__group-note">The page the site shows for error {{ entry.errorPage }}{{ entry.errorPage === 404 ? ', when an address doesn\'t exist' : '' }}: its title and text, in the theme's error layout. Its slug is the status. Without it, the theme's own message is shown.</p>
 								<p v-if="entry.index" class="editor__group-note">The index page for <strong>{{ labels.plural }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.</p>
 								<p v-if="entry.peoplePage && entry.peoplePage.profile === null" class="editor__group-note">The page introducing the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>: its title heads their list, and its body comes before it. It has no address of its own.</p>
 								<p v-else-if="entry.peoplePage" class="editor__group-note">The page introducing <RouterLink :to="{ name: 'profile-detail', params: { slug: entry.peoplePage.profile } }">{{ entry.peoplePage.profileTitle }}</RouterLink>'s archive as one of the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>, in place of their bio there. It has no address of its own.</p>

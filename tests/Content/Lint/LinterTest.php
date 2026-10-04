@@ -102,6 +102,31 @@ final class LinterTest extends TestCase
 		$this->assertSame('names the term itself; a term can\'t be its own parent.', $linter->lintFile('topics/self.md')[0]->message ?? null);
 	}
 
+	public function testReportsOrderPrefixesOutsideCollectionsAndTaxonomies(): void
+	{
+		$this->standardContent();
+		$this->entry('01.services.md', 'title: Services');
+		$this->entry('02.work/index.md', 'title: Work');
+		$this->entry('02.work/03.design.md', 'title: Design');
+		$this->entry('profiles/01.sam.md', 'title: Sam');
+		$this->entry('topics/04.music.md', 'title: Music');
+		$this->entry('__drafts/2023-08-01.the-last-one.md', 'title: The Last One');
+		$this->entry('_05.secret.md', 'title: Secret');
+
+		$linter = $this->site()->container()->make(Linter::class);
+		$errors = self::messages($linter->lint(), Severity::Error);
+
+		$this->assertSame(['error file: has an order prefix, which only collections and taxonomies use; pages don\'t. Rename it services.md.'], $errors['01.services.md'] ?? null);
+		$this->assertStringEndsWith('Rename it work/index.md.', $errors['02.work/index.md'][0] ?? '');
+		$this->assertStringEndsWith('Rename it work/design.md.', $errors['02.work/03.design.md'][0] ?? '', 'Its folder too (D-409).');
+		$this->assertStringContainsString('profiles don\'t. Rename it profiles/sam.md.', $errors['profiles/01.sam.md'][0] ?? '');
+		$this->assertArrayNotHasKey('topics/04.music.md', $errors, 'A taxonomy may order its terms.');
+		$this->assertArrayNotHasKey('_posts/2003-04-15.welcome.md', $errors, 'So may a collection.');
+		$this->assertArrayNotHasKey('__drafts/2023-08-01.the-last-one.md', $errors, 'A hidden folder isn\'t checked.');
+		$this->assertArrayNotHasKey('_05.secret.md', $errors, 'Nor a hidden file.');
+		$this->assertStringStartsWith('has an order prefix', $linter->lintFile('01.services.md')[0]->message ?? '');
+	}
+
 	public function testWarnsOfPagesAnotherRouteAnswers(): void
 	{
 		$this->contentConfig(['types' => ['movie' => ['kind' => 'collection', 'dateArchives' => 'year'], 'film' => ['kind' => 'collection', 'urls' => false]]]);

@@ -31,10 +31,15 @@ instead; see [Going live](going-live.md).)
 
 A few rules make the file names flexible:
 
-- **Everything before the last `.` is ignored.** Use it to sort files:
-  `01.about.md`, `02.contact.md`, or `2026-09-26.hello.md` all become
-  `about`, `contact`, and `hello`. Listings are sorted by file name unless
-  you say otherwise.
+- **In a collection or taxonomy, everything before the last `.` is
+  ignored.** Use it to sort files: `01.intro.md`, `02.setup.md`, or
+  `2026-09-26.hello.md` become `intro`, `setup`, and `hello`. Listings
+  are sorted by file name unless you say otherwise. Pages and profiles
+  don't take these order prefixes: name them as their URLs read
+  (`about.md`). A prefixed page still works, but `content:lint` reports
+  it as an error, because a prefix orders nothing among pages and its
+  folder wouldn't nest under it. Hidden files (`_`-prefixed, or in a
+  `_` folder) are left alone, since they have no address.
 - **`index.md` is its folder's page.** `about/index.md` is the page at
   `/about`.
 - **Set `slug:`** in front matter to choose the URL name yourself.
@@ -63,6 +68,7 @@ Front matter is YAML between two `---` lines at the top of the file. Only
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words are used. (`excerpt` works too.) |
 | `image` | A featured image |
 | `authors` | One author or a list, by profile slug (`author` works too), in types that credit authors. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
+| `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and taxonomy terms have it |
 | `redirect_from` | Old URLs that should redirect here (see below) |
 | `template` | The theme template to use, such as `single-wide` (`view` works too) |
 | `layout` | The theme layout to use |

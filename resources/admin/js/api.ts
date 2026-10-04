@@ -80,6 +80,9 @@ export interface EntrySummary {
 	// or a people field's list page, pinned below that (D-329, D-353).
 	index: boolean;
 	authorsPage: boolean;
+	// The status it's the site's error page for, pinned at the top of
+	// Pages (D-411), or `null`.
+	errorPage: number | null;
 	// That list page's field's name ("Cooks"), or `null`.
 	peopleLabel?: string | null;
 	// A profile's: whether an account is linked to it, and which, when
@@ -125,7 +128,7 @@ export interface TrashedDetail extends TrashedSummary {
 	body: string;
 }
 
-export type EntrySort = 'title' | 'status' | 'author' | 'updated';
+export type EntrySort = 'title' | 'status' | 'author' | 'published' | 'updated';
 
 export interface EntryList {
 	status: EntryStatus | 'any';
@@ -151,6 +154,11 @@ export interface EntryList {
 	index: EntrySummary | null;
 	// The type's authors page, the same way (D-329).
 	authorsPage: EntrySummary | null;
+	// Pages' error pages, by status, the same way (D-411).
+	errorPages?: EntrySummary[];
+	// What the list is in order of (D-413): `position`, `published`,
+	// `updated`, or the column sorted by.
+	by?: string;
 }
 
 // What people call a type and its entries (D-278). `item` and `items`
@@ -747,6 +755,9 @@ export interface EntryDetail {
 	handle: string | null;
 	// The last part of its key; renaming changes it (D-277).
 	slug: string;
+	key: string;
+	// A tree's page: its parent's key, `''` at the top (D-410); else `null`.
+	parent: string | null;
 	revision: string;
 	// When the file was last written (ISO 8601), if known.
 	modified: string | null;
@@ -762,6 +773,8 @@ export interface EntryDetail {
 	// The people page it is (D-353): a field's list page, or the page
 	// written for one person's archive under it (`profile` set).
 	peoplePage: { field: string; label: string; profile: string | null; profileTitle: string | null } | null;
+	// The status it's the site's error page for (D-411), or `null`.
+	errorPage: number | null;
 	type: {
 		name: string;
 		kind: ContentTypeSummary['kind'];
@@ -775,7 +788,8 @@ export interface EntryDetail {
 	extra: Record<string, unknown>;
 	body: string;
 	// `rename`: not for a landing page, whose slug is its folder's.
-	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean; duplicate: boolean };
+	// `move`: a tree's page, under another (D-410).
+	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean; move: boolean; duplicate: boolean };
 	violations: Violation[];
 }
 

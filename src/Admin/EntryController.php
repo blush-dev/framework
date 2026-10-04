@@ -36,6 +36,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
+use Blush\Content\Type\Tree;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EditableEntry;
@@ -66,14 +67,22 @@ use Blush\Support\Slug;
  *   draft crediting the account's author, with nothing else filled in.
  * - `POST   entries`: creates one (`type`, `title`, optional `slug`,
  *   `set`, `body`, `status`). New entries are drafts unless asked
- *   otherwise, and credit the account's author.
+ *   otherwise, and credit the account's author. A tree's page may name
+ *   a `parent` (another of its pages, by key) to go under (D-408); a
+ *   parent kept as a file becomes its folder's page, keeping its
+ *   address. A parent that isn't there is a 422 with `field: "parent"`.
  * - `PATCH  entries/{id}`: changes one (`revision` required; `set`,
  *   `remove`, `body`, `status`, `published`, `slug`, `redirect`). A new
  *   `slug` renames it (D-277): its `slug` key when the file has one,
  *   else the file, first, so a slug that's refused (not a slug, another
  *   entry's, or a landing page's) changes nothing; the refusal is a 422
  *   with `field: "slug"`. With `redirect: true`, a published entry's old
- *   address is added to its `redirect_from`.
+ *   address is added to its `redirect_from`. A tree's page takes `parent`
+ *   (another of its pages, by key, or `""` for the top) to move under
+ *   it (D-410), with the pages under it; a parent that isn't there, or a
+ *   page already at the new place, is a 422 with `field: "parent"`. When
+ *   a tree's page moves or is renamed with `redirect: true`, each
+ *   published page under it gets a redirect from its old address too.
  * - `DELETE entries/{id}?revision=…`: moves it to the trash.
  * - `POST   entries/bulk`: publishes, moves to draft, or trashes several
  *   (`action`: `publish`, `draft`, or `trash`; `ids`, at most 100) at
@@ -188,6 +197,8 @@ final readonly class EntryController
 			'id'          => null,
 			'handle'      => null,
 			'slug'        => '',
+			'key'         => '',
+			'parent'      => $type instanceof Tree ? '' : null,
 			'revision'    => null,
 			'modified'    => null,
 			'title'       => '',
@@ -198,6 +209,7 @@ final readonly class EntryController
 			'index'       => false,
 			'authorsPage' => false,
 			'peoplePage'  => null,
+			'errorPage'   => null,
 			'values'      => $this->authorDefault($account, $type->name),
 			'extra'       => [],
 			'body'        => '',
@@ -205,6 +217,7 @@ final readonly class EntryController
 				'edit'      => true,
 				'publish'   => $this->permissions->can($account, ContentAction::Publish, $type->name),
 				'rename'    => true,
+				'move'      => false,
 				'delete'    => false,
 				'duplicate' => false
 			],
@@ -272,8 +285,25 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to publish, so new entries must be drafts.', Status::Forbidden);
 		}
 
+		$parentKey = $input['parent'] ?? null;
+		$parent    = null;
+
+		if ($parentKey !== null && $parentKey !== '') {
+			if (! is_string($parentKey) || ! $type instanceof Tree) {
+				return self::error(sprintf('Only pages of a tree go under another; %s don\'t.', $type->labels->items), Status::BadRequest);
+			}
+
+			$parent = $this->content->named($type->name, $parentKey);
+
+			if ($parent === null || $parent->landing) {
+				return self::error(sprintf('There\'s no "%s" in %s to put it under.', $parentKey, $type->labels->items), Status::UnprocessableContent, 'parent');
+			}
+		}
+
 		try {
-			$result = $this->writer->create($type, $slug, $changes, $now);
+			$result = $parent === null
+				? $this->writer->create($type, $slug, $changes, $now)
+				: $this->writer->createUnder($parent->id, $slug, $changes);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
@@ -326,18 +356,63 @@ final readonly class EntryController
 			return self::error($refusal, Status::Forbidden);
 		}
 
+		// A move (D-410): where to, by the new parent's key (`''` for the
+		// top), or `false` for staying put.
+		$move = false;
+
+		if (array_key_exists('parent', $input)) {
+			$asked = $input['parent'];
+
+			if (! is_string($asked) || ! $entry->type instanceof Tree || $entry->landing || ErrorPage::status($entry) !== null) {
+				return self::error(sprintf('Only a tree\'s pages move under another; "%s" doesn\'t.', $entry->title), Status::BadRequest);
+			}
+
+			$target = $asked === '' ? null : $this->content->named($entry->type->name, $asked);
+
+			if ($asked !== '' && ($target === null || $target->landing)) {
+				return self::error(sprintf('There\'s no "%s" in %s to move it under.', $asked, $entry->type->labels->items), Status::UnprocessableContent, 'parent');
+			}
+
+			if ($entry->type->parentKey($entry->key, []) !== $target?->key) {
+				$move = $target;
+			}
+		}
+
 		$rename  = is_string($slug) && $slug !== '' && $slug !== $entry->slug ? $slug : null;
-		$problem = $rename === null ? null : ($this->isLinked($entry) ? 'An account is linked to this profile by its slug, so the slug stays.' : $this->slugProblem($entry, $rename));
+		$folder  = $move === false ? dirname($entry->key) : ($move === null ? '.' : $move->key);
+		$problem = $rename === null ? null : ($this->isLinked($entry) ? 'An account is linked to this profile by its slug, so the slug stays.' : $this->slugProblem($entry, $rename, $folder));
 
 		if ($problem !== null) {
 			return self::error($problem, Status::UnprocessableContent, 'slug');
+		}
+
+		if ($move !== false && $rename === null) {
+			$problem = $this->slugProblem($entry, $entry->slug, $folder);
+
+			if ($problem !== null) {
+				return self::error(sprintf('There\'s already a page at %s.', ($folder === '.' ? '' : "{$folder}/") . $entry->slug), Status::UnprocessableContent, 'parent');
+			}
+		}
+
+		$redirect = ($input['redirect'] ?? false) === true;
+
+		// The pages under a tree's page, whose addresses change with its.
+		$under = $redirect && ($move !== false || $rename !== null) && $entry->type instanceof Tree
+			? array_values(array_filter(
+				$this->content->query()->any()->type($entry->type->name)->limit(null)->get()->all(),
+				static fn (Entry $item): bool => str_starts_with($item->key, "{$entry->key}/")
+			))
+			: [];
+
+		if ($move !== false && $redirect) {
+			$changes = $this->withRedirect($changes, $entry, $this->writer->load($id), true);
 		}
 
 		// A `slug` key names the entry, so it's what changes; and the old
 		// address can redirect to the new one.
 		if ($rename !== null) {
 			$file    = $this->writer->load($id);
-			$changes = $this->withRedirect($changes, $entry, $file, ($input['redirect'] ?? false) === true);
+			$changes = $this->withRedirect($changes, $entry, $file, $redirect);
 
 			if (self::has($file, $this->keys($entry->type->name, 'slug'))) {
 				$changes = new EntryChanges([...$changes->set, 'slug' => $rename], $changes->remove, $changes->body);
@@ -346,7 +421,14 @@ final readonly class EntryController
 		}
 
 		try {
-			// Renaming the file first, so a refused name leaves it as it was.
+			// Moving and renaming the file first, so a refused place or name
+			// leaves it as it was.
+			if ($move !== false) {
+				$moved    = $this->writer->move($id, $move?->id, $revision);
+				$id       = $moved->id;
+				$revision = $moved->revision ?? $revision;
+			}
+
 			if ($rename !== null) {
 				$renamed  = $this->writer->rename($id, $rename, $revision);
 				$id       = $renamed->id;
@@ -362,9 +444,38 @@ final readonly class EntryController
 
 		$updated = $this->content->find($result->id);
 
+		if ($updated !== null) {
+			$this->redirectUnder($entry, $updated, $under);
+		}
+
 		return $updated === null
 			? self::error('The entry was saved but couldn\'t be read back; check content health.', Status::UnprocessableContent)
 			: self::json($this->describe($account, $updated, $this->writer->load($result->id)));
+	}
+
+	/**
+	 * Adds a redirect from each published page's old address, under a
+	 * tree's page that moved or was renamed, to its new one (D-410). The
+	 * page itself is saved by then, so one that can't take its redirect
+	 * is left as it is.
+	 *
+	 * @param list<Entry> $under The pages that were under it, as they were.
+	 */
+	private function redirectUnder(Entry $was, Entry $now, array $under): void
+	{
+		foreach ($under as $page) {
+			$found = $this->content->named($now->type->name, $now->key . substr($page->key, strlen($was->key)));
+
+			if ($found === null) {
+				continue;
+			}
+
+			try {
+				$this->writer->update($found->id, $this->withRedirect(new EntryChanges(), $page, $this->writer->load($found->id), true));
+			} catch (WriteException) {
+				// The move stands; this page keeps working at its new address.
+			}
+		}
 	}
 
 	/**
@@ -590,20 +701,25 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Returns what's wrong with renaming an entry to a slug, or `null`.
+	 * Returns what's wrong with renaming an entry to a slug, or `null`,
+	 * in the folder of keys it's in, or moving to (`.` for the top).
 	 */
-	private function slugProblem(Entry $entry, string $slug): ?string
+	private function slugProblem(Entry $entry, string $slug, ?string $folder = null): ?string
 	{
 		if ($entry->landing) {
 			return sprintf('"%s" is its folder\'s landing page, so its slug is the folder\'s.', $entry->title);
+		}
+
+		if (ErrorPage::status($entry) !== null && $slug !== $entry->slug) {
+			return sprintf('"%s" is the page for error %s, so its slug is the status.', $entry->title, $entry->slug);
 		}
 
 		if (! Slug::isSlug($slug)) {
 			return sprintf('Slugs are lowercase letters, numbers, and hyphens; try "%s".', Slug::from($slug) ?: 'untitled');
 		}
 
-		$folder = dirname($entry->key);
-		$key    = ($folder === '.' ? '' : "{$folder}/") . $slug;
+		$folder ??= dirname($entry->key);
+		$key      = ($folder === '.' ? '' : "{$folder}/") . $slug;
 
 		return $this->content->named($entry->type->name, $key) === null
 			? null
@@ -777,6 +893,7 @@ final readonly class EntryController
 		$index  = IndexPage::is($entry);
 		$people = PeoplePage::is($entry);
 		$person = PeoplePage::isPerson($entry);
+		$error  = ErrorPage::status($entry);
 		$fields = $this->types->schema($entry->type->name)->fields;
 
 		// An index page describes the type's archive, not one of its
@@ -804,6 +921,8 @@ final readonly class EntryController
 			'id'          => $file->id,
 			'handle'      => $this->handles->of($entry),
 			'slug'        => $entry->slug,
+			'key'         => $entry->key,
+			'parent'      => $entry->type instanceof Tree && ! $entry->landing ? ($entry->type->parentKey($entry->key, []) ?? '') : null,
 			'revision'    => $file->revision,
 			'modified'    => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
 			'title'       => $entry->title,
@@ -814,15 +933,17 @@ final readonly class EntryController
 			'index'       => $index,
 			'authorsPage' => $people,
 			'peoplePage'  => $this->peoplePage($entry),
+			'errorPage'   => ErrorPage::status($entry),
 			'values'      => $values,
 			'extra'       => $extra,
 			'body'        => substr($file->body, strlen(DocumentEditor::gap($file->body))),
 			'can'         => [
 				'edit'      => $this->permissions->can($account, ContentAction::Edit, $entry),
 				'publish'   => $this->permissions->can($account, ContentAction::Publish, $entry),
-				'rename'    => ! $entry->landing && ! $people && ! $person && ! $this->isLinked($entry),
+				'rename'    => ! $entry->landing && ! $people && ! $person && $error === null && ! $this->isLinked($entry),
+				'move'      => $entry->type instanceof Tree && ! $entry->landing && $error === null,
 				'delete'    => ! $index && ! $person && $this->permissions->can($account, ContentAction::Delete, $entry),
-				'duplicate' => ! $entry->landing && ! $people && ! $person && $this->permissions->can($account, ContentAction::Create, $entry->type->name)
+				'duplicate' => ! $entry->landing && ! $people && ! $person && $error === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name)
 			],
 			'violations'  => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,

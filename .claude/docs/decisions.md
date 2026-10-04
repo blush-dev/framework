@@ -11735,3 +11735,224 @@ decision, add a new entry that supersedes it and mark the old one
   0.05s).
 - **Why:** finer control over media; the author's calls above.
 
+### D-408: A new page's parent, and promoting a parent to its folder
+- **Date:** 2026-10-03
+- **Decision:** Creating a tree's page in the admin can put it under
+  another page of the tree. A page's parent stays its folder (D-257,
+  D-386); no front matter names it.
+  - **Reading doesn't change** (D-078): `about.md`, `about/index.md`,
+    and `about.md` beside an `about/` folder all give the page `about`,
+    and when `about.md` and `about/index.md` both exist the folder's
+    wins and `content:lint` warns (D-083).
+  - **Writing promotes:** `ContentWriter::createUnder($parentId, $slug,
+    …)` writes `{folder}/{parent key}/{slug}.md`. A parent kept as a
+    file named for its key (`about.md`) first becomes its folder's page
+    (`about/index.md`), in the same locked write, so a page and its
+    children share a folder; its key and address don't change. The
+    move is undone if the page can't be written, and the edit is made
+    before anything moves. Chosen over always writing `slug/index.md`
+    (a folder for every leaf page) and over leaving the parent beside
+    the folder (two places for one page); the author liked promoting.
+  - **When the parent stays put:** a parent already its folder's page,
+    and one whose file name says more than its key (an order prefix,
+    `01.about.md`, or a `slug:` of its own), since moving it would lose
+    that. The child still goes in the folder its key names (`about/`),
+    because keys come from folder names as written: `01.about/team.md`
+    would be `01.about/team`, under no page.
+  - **Refused:** a parent that isn't a tree's page, an index page (a
+    tree's top), a slug that isn't one, a page already at that key, and
+    a promotion into a folder that already has a page (the editor is
+    told to remove one of the two; lint already warns there).
+  - **Never demoted:** a parent stays its folder's page when its last
+    child goes.
+  - **The parent's id changes** on promotion (an id is its path), so
+    `WriteResult` gains `moved` (old id to new), for Move later and
+    anything holding ids.
+  - **API:** `POST entries` takes `parent` (a page's key) for a tree;
+    one that isn't there is a 422 with `field: "parent"`, and `parent`
+    on another kind is a 400. Creating under a page needs only to
+    create pages: the parent's file moves, but its contents and address
+    don't. `GET references/{type}?tree=1` answers a tree's pages whole,
+    in tree order with depths, as a hierarchical taxonomy's are.
+  - **Admin:** a new tree page's Document tab has **Parent** under
+    Publish (a select, indented; **None, at the top level** first), and
+    `?parent={key}` on the new-entry address chooses one to start with.
+    It shows only before the first save; changing a page's parent is
+    Move, still to come.
+- **Open:** moving a page under another (its children with it,
+  redirects as a rename has, refusing a move under itself) reuses the
+  promotion; see `open-questions.md` → Hierarchy.
+- **Checked:** `composer check` (1,376 tests; new: creating under a
+  folder's page, promoting a file parent and its content kept, an
+  order-prefixed parent left in place, refused parents, a promotion
+  blocked by a folder's page, `POST entries` with `parent`, and
+  `references?tree=1`); `npm run admin:build`. The Parent select wasn't
+  checked in a browser.
+- **Why:** the author asked how to pick a page's parent (the admin
+  couldn't), asked whether every page should be `index.md`, and chose
+  promoting on the first child after comparing other flat-file CMSs.
+
+### D-409: Order prefixes are for collections and taxonomies
+- **Date:** 2026-10-03
+- **Decision:** Refines D-078's file-name rule. The part of a file or
+  folder name before its last `.` (an order prefix, `01.intro.md`, or a
+  date, `2003-04-15.welcome.md`) belongs to collections, where it sorts
+  files on disk and sets the default order, and to taxonomies (jtcom's
+  eras, `01.college.md` to `07.current.md`, list in that order). Trees
+  and profiles don't take them.
+  - **Still read:** a prefixed page keeps its key and address
+    (`01.about.md` is still `/about`), so a mistake doesn't take a page
+    down.
+  - **Lint error:** `content:lint` (and the editor's checks, through
+    `lintFile()`) reports a prefix on a tree's or profiles type's file,
+    or on a folder between it and its type's folder, naming the file to
+    rename it to (`Linter::checkPrefix()`).
+  - **Why not on trees:** a prefix orders nothing there (subpages and
+    the admin's tree sort by title, D-261), a prefixed folder doesn't
+    nest under its page (keys come from folder names as written:
+    `01.about/team.md` is `01.about/team`), and a prefixed parent can't
+    become its folder's page (D-408 leaves it in place). Profiles are
+    people, listed by name.
+  - **Hidden files are left alone:** a `_`-prefixed file, or one in a
+    `_`-prefixed folder below its type's folder (`__drafts/`, which no
+    type claims), has no address, so a prefix harms nothing; a type's
+    own `_` folder (`_docs`) is above what's checked, so its pages are.
+  - **The admin never writes one** outside a collection's dated names.
+- **Open:** a manual order for a tree's pages or a taxonomy's terms (an
+  `order` field?) is for later; see `open-questions.md` → Hierarchy.
+- **Effect on jtcom:** its pages, profiles, and terms are clean. Its
+  dated drafts in `__drafts/` (no type claims the folder, so they were
+  pages) turned out to be copies of drafts already in `_posts/` (the
+  same files plus `status: draft`), so `__drafts/` was removed, with
+  `template.md`, and each `_posts/` copy's `date`/`published` set to
+  its name's day where it was a placeholder (`2019-00-00`) or differed.
+- **Checked:** `composer check`; `content:lint` on the jtcom trial.
+- **Why:** the author: only collections make sense for prefixes ("nice
+  for sorting on the filesystem"); taxonomies keep them for jtcom's eras,
+  with an ordering mechanism considered later; a lint error over
+  refusing the file; hidden files outside a type's folder left alone.
+
+### D-410: Moving a tree's page
+- **Date:** 2026-10-03
+- **Decision:** Answers D-408's open item. A tree's page moves under
+  another of its pages, or to the top, from the editor's **Parent**.
+  - **Writer:** `ContentWriter::move($id, $parentId, $revision)` keeps
+    the slug and moves the page's file, or its folder for one kept as
+    `{slug}/index.md`, into the new parent's folder; for a page kept as
+    a file, the folder its key names (its children's) moves with it, so
+    nothing is promoted or renamed on the way. A new parent kept as a
+    file named for its key becomes its folder's page first (D-408's
+    promotion). Refused: not a tree's page, a landing page, a parent
+    that isn't one of the tree's pages (or is the page, or under it),
+    a page already at the new key, and a target that exists. Moving to
+    where it is changes nothing. Every step is undone if one fails.
+    `moved` names every entry that moved (sorted, the promoted parent
+    first).
+  - **API:** `PATCH entries/{id}` takes `parent` (a key, or `""` for
+    the top), done before a rename in the same save; a missing parent or
+    a taken place is a 422 with `field: "parent"`, and on anything but a
+    tree's page a 400. Entries now describe their `key`, a tree page's
+    `parent` (`""` at the top, else `null`), and `can.move`.
+  - **Redirects:** with `redirect: true`, the page gets a redirect from
+    its old address, and so does every published page under it (each
+    file's `redirect_from`), which also now happens when a tree's page
+    is renamed (a bundle's rename moved its children without one
+    before). A page under it that can't take its redirect is left as
+    it is; the move stands. Chosen over one redirect for the page alone
+    (D-408's open "one per page moved?").
+  - **Admin:** the Parent row shows for every tree page that can move,
+    without the page and those under it; a folder with no page of its
+    own shows as "{key} (no page)" so an untouched save never moves
+    anything. A change of parent makes the editor dirty and offers
+    **Redirect the old address here** for a live page; a refusal shows
+    under the row.
+- **Checked:** `composer check` (writer: moving a file, a folder with
+  its pages, a file with its children's folder, to the top, no-op,
+  refusals and a stale revision; API: moving with redirects for the page
+  and a published page under it, none for a hidden one, the parent
+  promoted, to the top, under itself, missing and taken places, and a
+  post); `npm run admin:build`. Not checked in a browser.
+- **Why:** the author asked for Move after D-408.
+
+### D-411: Error pages pinned on Pages
+- **Date:** 2026-10-03
+- **Decision:** The site's error pages (`_errors/{status}.md`, or
+  1.x's `_error/`, D-108) are set apart in the admin as index pages are
+  (D-255): pinned at the top of Pages on the first page, tagged with a
+  chip of their status (**Error 404**), by status, and out of the list's
+  entries, totals, and tree. Anything else in those folders is pinned
+  after them without a chip, so nothing kept there disappears.
+  - `Admin\ErrorPage::status()` says which status a page is for: a page
+    of the root tree in an error folder named `4xx` or `5xx`.
+  - They aren't offered as a parent, or anywhere a reference picks a
+    page (`GET references`), can't be duplicated or moved, and keep
+    their slug (it's the status). They may be trashed: the theme's
+    message stands in.
+  - The editor says what the page is for under Publish.
+- **Open:** a tab (or a System screen) for the site's own pages, if more
+  of them come (the author: "maybe a tab for system pages"), and longer
+  term an internal system content type for them; see
+  `open-questions.md` → Hierarchy.
+- **Checked:** `composer check` (pinned by status in both folders, the
+  rest after them, first page only, the editor's `can`, and left out of
+  `references?tree=1`); `npm run admin:build`. Not checked in a browser.
+- **Why:** the author saw the 404 page offered as a parent, and chose
+  pinning with a chip for now.
+
+### D-412: `position` orders a tree's pages and a taxonomy's terms
+- **Date:** 2026-10-03
+- **Decision:** Answers D-386's open question on sibling order. A
+  tree's pages and a taxonomy's terms have a built-in `position` field
+  (`Blush\Content\Entry\Position`), a whole number, lowest first.
+  - **The name:** `position`, not `order`, which queries already use for
+    direction beside `orderby` (`orderby: order` would read badly; the
+    author's catch). Nothing used `position` before.
+  - **Without one:** after the entries with one, by title, whichever
+    way positions run, so a site that never sets it keeps title order.
+  - **Where it sorts:** `children()` (a page's subpages, a term's child
+    terms); the admin's Pages tree and the Parent list
+    (`references?tree=1`); and any query or `Listing` with
+    `orderBy: 'position'` (`ArraySelector` special-cases it so the
+    missing ones stay last). Admin term lists stay alphabetical
+    (D-304), position or not.
+  - **Admin:** a **Position** number under Parent on the Document tab
+    for tree pages and terms; empty removes it.
+  - **Not yet:** dragging rows to reorder, and previous/next and a
+    table of contents through a tree (still in `open-questions.md`).
+    jtcom's eras keep their prefixes (D-409 allows them in taxonomies).
+- **Checked:** `composer check` (children and listings by position with
+  the rest last, either direction; the field on trees and taxonomies,
+  not collections; the admin's Pages tree and Parent list, and terms
+  still alphabetical); `npm run admin:build`; `content:lint` on the
+  jtcom trial. The Position row wasn't checked in a browser.
+- **Why:** the author chose both trees and taxonomies, entries without
+  a position after the rest, and `position` over `order`.
+
+### D-413: The All tab's order by kind
+- **Date:** 2026-10-03
+- **Decision:** Refines D-230's list order and D-304 for the All tab. A
+  type's list, unsorted on the All tab (any status; searches and
+  filters included), is in this order:
+  - **Trees and taxonomies:** `position`, then title (D-412), those
+    without one after the rest, so terms with no positions are still
+    alphabetical. Hierarchical ones keep the tree, with siblings in the
+    same order. D-304 still holds everywhere else terms are listed
+    (filters, the reference picker), and for a term list sorted by
+    Title.
+  - **Collections:** newest published first.
+  - **Profiles:** by title (name).
+  - Unchanged: Drafts most recently changed first, Published newest
+    published first, Scheduled soonest first, the list of every type
+    most recently changed first, and a clicked column.
+  - **The date column** shows the date the list goes by: **Published**
+    when it's in published order, else **Updated**. `published` is a
+    sortable column now (`sort=published`), and the answer says what
+    it's in order of (`by`).
+- **Checked:** `composer check` (per kind: a collection by published, a
+  taxonomy by position then title, profiles by title, drafts by
+  updated; a hierarchical taxonomy's tree by position; a searched page
+  list by title); `npm run admin:build`. Not checked in a browser.
+- **Why:** the author saw jtcom's eras in reverse (most recently
+  changed first, after setting positions) and asked for positionable
+  types to go by position on the All tab and only collections by date
+  published, with terms by title otherwise.

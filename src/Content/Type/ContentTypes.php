@@ -17,12 +17,14 @@ use ArrayIterator;
 use Countable;
 use IteratorAggregate;
 use Override;
+use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSets;
 use Blush\Field\Fields\MediaField;
+use Blush\Field\Fields\NumberField;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 
@@ -294,7 +296,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * Returns a type's schema before its field sets: the built-in entry
 	 * fields, every taxonomy's term field, the type's people fields (when
 	 * the site has a profiles type) or a profile's `avatar`, a
-	 * hierarchical taxonomy's `parent`, then the type's own fields.
+	 * hierarchical taxonomy's `parent`, a tree's or taxonomy's `position`
+	 * (D-412), then the type's own fields.
 	 *
 	 * @throws InvalidContentType When the fields clash.
 	 */
@@ -308,13 +311,17 @@ final class ContentTypes implements IteratorAggregate, Countable
 			$people   = $profiles === null ? [] : array_values(array_map(static fn (PeopleField $field): Field => $field->referenceField($profiles), $type->people));
 			$avatar   = $type instanceof Profiles ? [new MediaField('avatar')->described('A portrait, shown beside the name; without one, initials stand in.')] : [];
 			$parent   = $type instanceof Taxonomy ? $type->parentField() : null;
+			$position = $type instanceof Tree || $type instanceof Taxonomy
+				? [new NumberField(Position::FIELD, integer: true)->described(sprintf('Its place among its sibling %s, lowest first; those without one follow, by title.', $type->labels->items))]
+				: [];
 
 			return new Schema([
 				...array_values(EntryFields::schema()->fields),
 				...$terms,
 				...$people,
 				...$avatar,
-				...($parent === null ? [] : [$parent])
+				...($parent === null ? [] : [$parent]),
+				...$position
 			])->merge($type->schema);
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType(sprintf('Content type "%s" has clashing fields: %s', $name, $e->getMessage()), previous: $e);

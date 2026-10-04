@@ -20,9 +20,11 @@ use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Entry\Position;
 use Blush\Content\Query\Order;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Taxonomy;
+use Blush\Content\Type\Tree;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
 use Blush\Support\Slug;
@@ -41,12 +43,14 @@ use Blush\Support\Slug;
  *
  * A hierarchical taxonomy answers every term, in tree order (each term
  * followed by its children, siblings by title) with its `depth`, since
- * its picker shows the whole tree. Other types answer the items whose
+ * its picker shows the whole tree. With `tree=1`, a tree's pages are
+ * answered the same way, for picking a new page's parent (D-408). Other types answer the items whose
  * title or slug has `search` in it, by title, at most `limit` (20 by
  * default, at most 100), with the `total` found. `slugs` (comma
  * separated) are always answered too, found or not, so a field can show
  * what it holds: a slug with nothing behind it is `missing`. A type's
- * landing page isn't something to point at, so it's left out.
+ * landing page isn't something to point at, so it's left out, nor are
+ * the site's error pages (D-411).
  *
  * With `for` (a content type's name), a taxonomy answers only the terms
  * that type's entries use, in any status, among the entries the account
@@ -94,9 +98,10 @@ final readonly class ReferencesController
 		$slugs  = $params['slugs'] ?? '';
 		$limit  = $params['limit'] ?? (string) self::LIMIT;
 		$for    = $params['for'] ?? '';
+		$whole  = $params['tree'] ?? '';
 
-		if (! is_string($search) || ! is_string($slugs) || ! is_string($limit) || ! is_string($for)) {
-			return self::json(['error' => '"search", "slugs", "limit", and "for" must be text.'], HttpStatus::BadRequest);
+		if (! is_string($search) || ! is_string($slugs) || ! is_string($limit) || ! is_string($for) || ! is_string($whole)) {
+			return self::json(['error' => '"search", "slugs", "limit", "for", and "tree" must be text.'], HttpStatus::BadRequest);
 		}
 
 		if ($for !== '' && ! $this->types->has($for)) {
@@ -118,7 +123,10 @@ final readonly class ReferencesController
 			: null;
 
 		foreach ($entries as $entry) {
-			$items[$entry->key] = $this->describe($entry, $counts, $taxonomy);
+			// Error pages (D-411) are the site's, not pages to point at.
+			if (ErrorPage::status($entry) === null) {
+				$items[$entry->key] = $this->describe($entry, $counts, $taxonomy);
+			}
 		}
 
 		// A taxonomy's virtual terms: slugs in use with no file.
@@ -135,7 +143,7 @@ final readonly class ReferencesController
 			$items = self::inUse($items, array_map(strval(...), array_keys($used)));
 		}
 
-		$tree  = $contentType instanceof Taxonomy && $contentType->hierarchical;
+		$tree  = ($contentType instanceof Taxonomy && $contentType->hierarchical) || ($contentType instanceof Tree && $whole === '1');
 		$found = $tree ? self::tree($items) : self::matching($items, $search);
 		$total = count($found);
 		$shown = $tree ? $found : array_slice($found, 0, $limit);
@@ -172,6 +180,7 @@ final readonly class ReferencesController
 			'title'   => $entry->title,
 			'status'  => $entry->status->value,
 			'parent'  => $this->content->parentKey($entry->type->name, $entry->key),
+			'position' => $entry->type instanceof Tree ? Position::of($entry) : null,
 			'uses'    => $taxonomy ? ($counts[$entry->key] ?? 0) : null,
 			'depth'   => null,
 			'virtual' => false,
@@ -246,7 +255,13 @@ final readonly class ReferencesController
 		}
 
 		foreach ($children as &$list) {
-			usort($list, static fn (string $a, string $b): int => strnatcasecmp(self::text($items[$a]['title'] ?? ''), self::text($items[$b]['title'] ?? '')));
+			// A tree's pages by position (D-412); terms by title (D-304).
+			usort($list, static fn (string $a, string $b): int => Position::compare(
+				is_int($items[$a]['position'] ?? null) ? $items[$a]['position'] : null,
+				self::text($items[$a]['title'] ?? ''),
+				is_int($items[$b]['position'] ?? null) ? $items[$b]['position'] : null,
+				self::text($items[$b]['title'] ?? '')
+			));
 		}
 
 		unset($list);

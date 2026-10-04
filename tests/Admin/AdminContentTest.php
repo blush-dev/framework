@@ -142,6 +142,30 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['title', 'status'], array_column(is_array($entry['type']['fields'] ?? null) ? $entry['type']['fields'] : [], 'name'), 'Without the type\'s fields, like an index page.');
 	}
 
+	public function testPinsTheErrorPagesOnPages(): void
+	{
+		$this->writeTemporaryFile('user/content/_errors/500.md', "---\ntitle: Something Broke\n---\n");
+		$this->writeTemporaryFile('user/content/_error/404.md', "---\ntitle: Not Here\n---\n");
+		$this->writeTemporaryFile('user/content/_errors/notes.md', "---\ntitle: Notes\n---\n");
+		$this->site(['editor']);
+
+		$list   = $this->list('?type=page');
+		$pinned = is_array($list['errorPages'] ?? null) ? $list['errorPages'] : [];
+		$titles = array_column(is_array($list['entries'] ?? null) ? $list['entries'] : [], 'title');
+
+		$this->assertSame(['Not Here', 'Something Broke', 'Notes'], array_column($pinned, 'title'), 'By status, in either folder, then the rest kept there (D-411).');
+		$this->assertSame([404, 500, null], array_column($pinned, 'errorPage'));
+		$this->assertNotContains('Not Here', $titles, 'Not among the pages.');
+		$this->assertSame([], $this->list('?type=page&page=2')['errorPages'] ?? null, 'On the first page only.');
+
+		$entry = self::json($this->send('GET', '/entries/_errors/500.md'));
+		$this->assertIsArray($entry['can'] ?? null);
+		$this->assertSame([500, false, false, false], [$entry['errorPage'] ?? null, $entry['can']['rename'] ?? null, $entry['can']['move'] ?? null, $entry['can']['duplicate'] ?? null]);
+
+		$parents = self::json($this->send('GET', '/references/page?tree=1'));
+		$this->assertNotContains('_errors/500', array_column(is_array($parents['items'] ?? null) ? $parents['items'] : [], 'slug'), 'Nothing goes under an error page.');
+	}
+
 	public function testAuthorsSeeTheirOwn(): void
 	{
 		$this->site(['author']);
@@ -301,7 +325,7 @@ final class AdminContentTest extends TestCase
 
 		$ancestors = array_column($this->listed('?type=page&search=guides'), 'ancestors', 'title');
 
-		$this->assertSame(['Guides' => [], 'Setup' => ['Guides'], 'Install' => ['Guides', 'Setup']], array_intersect_key($ancestors, ['Guides' => true, 'Setup' => true, 'Install' => true]));
+		$this->assertSame(['Guides' => [], 'Install' => ['Guides', 'Setup'], 'Setup' => ['Guides']], array_intersect_key($ancestors, ['Guides' => true, 'Setup' => true, 'Install' => true]), 'By title, with no positions (D-413).');
 	}
 
 	public function testListsNestingTypesAsATree(): void
@@ -334,6 +358,59 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['Book Reviews', 'Books'], array_column($this->listed('?type=topic&search=book'), 'title'), 'A search keeps the usual order.');
 		$this->assertSame([null, null], array_column($this->listed('?type=topic&search=book'), 'depth'), 'Only a tree has depths.');
 		$this->assertSame([null, null], array_column($this->listed('?type=topic&search=book'), 'children'));
+	}
+
+	public function testOrdersATreesPagesByPosition(): void
+	{
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics", "hierarchical": true}');
+		$this->writeTemporaryFile('user/content/topics/zebras.md', "---\ntitle: Zebras\nposition: 1\n---\n");
+		$this->writeTemporaryFile('user/content/topics/apes.md', "---\ntitle: Apes\nposition: 2\n---\n");
+		$this->writeTemporaryFile('user/content/guide/index.md', "---\ntitle: Guide\n---\n");
+		$this->writeTemporaryFile('user/content/guide/upgrade.md', "---\ntitle: Upgrade\nposition: 2\n---\n");
+		$this->writeTemporaryFile('user/content/guide/install.md', "---\ntitle: Install\nposition: 1\n---\n");
+		$this->writeTemporaryFile('user/content/guide/about.md', "---\ntitle: About\n---\n");
+		$this->site(['editor']);
+
+		$titles = array_column($this->listed('?type=page&per=100'), 'title');
+		$guide  = array_search('Guide', $titles, true);
+
+		$this->assertIsInt($guide);
+		$this->assertSame(['Install', 'Upgrade', 'About'], array_slice($titles, $guide + 1, 3), 'A tree\'s pages by position, then title (D-412).');
+		$this->assertSame(['Zebras', 'Apes'], array_column($this->listed('?type=topic'), 'title'), 'A taxonomy\'s All tab goes by position too (D-413).');
+		$this->assertSame(['Apes', 'Zebras'], array_column($this->listed('?type=topic&sort=title'), 'title'), 'Unless sorted by a column.');
+
+		$parents = self::json($this->send('GET', '/references/page?tree=1'));
+		$slugs   = array_column(is_array($parents['items'] ?? null) ? $parents['items'] : [], 'slug');
+		$at      = array_search('guide', $slugs, true);
+
+		$this->assertIsInt($at);
+		$this->assertSame(['guide/install', 'guide/upgrade', 'guide/about'], array_slice($slugs, $at + 1, 3), 'And in the Parent list.');
+
+		$terms = self::json($this->send('GET', '/references/topic'));
+		$this->assertSame(['apes', 'zebras'], array_column(is_array($terms['items'] ?? null) ? $terms['items'] : [], 'slug'), 'Terms stay alphabetical there too.');
+	}
+
+	public function testOrdersEachKindsAllTab(): void
+	{
+		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
+		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "folder": "moods"}');
+		$this->writeTemporaryFile('user/content/_posts/old.md', "---\ntitle: Old\npublished: 2001-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/new.md', "---\ntitle: New\npublished: 2020-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/moods/sad.md', "---\ntitle: Sad\n---\n");
+		$this->writeTemporaryFile('user/content/moods/glad.md', "---\ntitle: Glad\n---\n");
+		$this->writeTemporaryFile('user/content/moods/mad.md', "---\ntitle: Mad\nposition: 1\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/zoe.md', "---\ntitle: Zoe\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/abe.md', "---\ntitle: Abe\n---\n");
+		$this->site(['editor']);
+
+		$posts = $this->list('?type=post');
+
+		$this->assertSame(['New', 'Old'], array_column(is_array($posts['entries'] ?? null) ? $posts['entries'] : [], 'title'), 'A collection, newest published first (D-413).');
+		$this->assertSame('published', $posts['by'] ?? null);
+		$this->assertSame(['Mad', 'Glad', 'Sad'], array_column($this->listed('?type=mood'), 'title'), 'Terms by position, then title.');
+		$this->assertSame('position', $this->list('?type=mood')['by'] ?? null);
+		$this->assertSame(['Abe', 'Zoe'], array_slice(array_column($this->listed('?type=profile'), 'title'), 0, 2), 'Profiles by title.');
+		$this->assertSame('updated', $this->list('?type=post&status=draft')['by'] ?? null, 'Drafts, most recently changed first.');
 	}
 
 	public function testDescribesTheContentTypes(): void

@@ -18,6 +18,7 @@ use Override;
 use Psr\Clock\ClockInterface;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Entry\Position;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\IndexFingerprint;
@@ -209,7 +210,7 @@ final class IndexedRepository implements ContentRepository
 			$this->snapshot()->children($entry->locale, $entry->type->name, $entry->key)
 		)));
 
-		usort($children, static fn (Entry $a, Entry $b): int => strnatcasecmp($a->title, $b->title));
+		usort($children, Position::siblings(...));
 
 		return $children;
 	}

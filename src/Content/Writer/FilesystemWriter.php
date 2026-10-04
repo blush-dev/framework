@@ -33,6 +33,7 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\InvalidContentType;
+use Blush\Content\Type\Tree;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
@@ -48,6 +49,11 @@ use Blush\Support\Slug;
  *   formatting and refuses results that wouldn't read back as intended;
  *   files are written atomically, one write at a time (a lock file in
  *   `storage/cache`), and checked against the caller's revision first.
+ * - **Nested:** `createUnder()` writes a tree's page in its parent's
+ *   folder, first making a parent kept as a file its folder's page
+ *   (D-408), and moving it back if the page can't be written; `move()`
+ *   moves a page and the pages under it to another parent (D-410),
+ *   undoing every step if one fails.
  * - **Copied:** `duplicate()` writes a copy beside an entry, or copies
  *   a bundle's whole folder, never over anything (D-275).
  * - **Kept:** a deleted entry moves to its own folder in `storage/trash`
@@ -166,6 +172,106 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function createUnder(string $parentId, string $slug, EntryChanges $changes, string $format = 'md'): WriteResult
+	{
+		if (! Slug::isSlug($slug)) {
+			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
+		}
+
+		if (DocumentFormat::tryFrom($format) === null) {
+			throw new WriteException(sprintf('"%s" isn\'t a content format.', $format));
+		}
+
+		return $this->locked(function () use ($parentId, $slug, $changes, $format): WriteResult {
+			$parent = $this->content->find($parentId);
+
+			if ($parent === null || ! $parent->type instanceof Tree) {
+				throw new WriteException(sprintf('%s isn\'t a page other pages can go under.', $parentId));
+			}
+
+			if ($parent->landing) {
+				throw new WriteException(sprintf('%s is an index page; pages under it go at the top.', $parentId));
+			}
+
+			$type   = $parent->type;
+			$folder = ltrim("{$type->folder}/{$parent->key}", '/');
+			$id     = "{$folder}/{$slug}.{$format}";
+			$path   = $this->path($id);
+
+			if (
+				$this->content->named($type->name, "{$parent->key}/{$slug}") !== null
+				|| glob(substr($path, 0, -strlen($format) - 1) . '.*') !== []
+				|| glob($this->folder("{$folder}/{$slug}") . '/index.*') !== []
+			) {
+				throw new WriteException(sprintf('There\'s already a page at %s/%s.', $parent->key, $slug));
+			}
+
+			// Edited before anything moves, so a refused edit moves nothing.
+			$contents  = $this->editor->edit($id, '', $changes, $this->keys($type->name));
+			$extension = pathinfo($parent->id, PATHINFO_EXTENSION);
+			$moved     = [];
+			$made      = ! is_dir($this->folder($folder));
+
+			if ($parent->id === "{$folder}.{$extension}") {
+				$moved = [$parent->id => $this->promote($parent->id, $folder, $extension)];
+			}
+
+			try {
+				$this->write($path, $contents);
+			} catch (WriteException $e) {
+				foreach ($moved as $from => $to) {
+					@rename($this->path($to), $this->path($from));
+				}
+
+				if ($made) {
+					@rmdir($this->folder($folder));
+				}
+
+				throw $e;
+			}
+
+			return new WriteResult($id, self::revision($contents), $this->refresh(), $moved);
+		});
+	}
+
+	/**
+	 * Makes a page kept as a file its folder's page (D-408): `about.md`
+	 * becomes `about/index.md`, the folder made if it isn't there.
+	 * Returns its new id.
+	 *
+	 * @throws WriteException When the folder already has a page.
+	 */
+	private function promote(string $id, string $folder, string $extension): string
+	{
+		$directory = $this->folder($folder);
+
+		if (glob("{$directory}/index.*") !== []) {
+			throw new WriteException(sprintf('%s can\'t move into %s/: that folder already has a page. Remove one of the two, then try again.', $id, $folder));
+		}
+
+		$made = ! is_dir($directory);
+
+		if ($made && ! @mkdir($directory, 0775, true)) {
+			throw new WriteException(sprintf('The folder %s couldn\'t be created.', $this->paths->relative($directory)));
+		}
+
+		$newId = "{$folder}/index.{$extension}";
+
+		if (! @rename($this->path($id), $this->path($newId))) {
+			if ($made) {
+				@rmdir($directory);
+			}
+
+			throw new WriteException(sprintf('%s couldn\'t be moved to %s.', $id, $newId));
+		}
+
+		return $newId;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function duplicate(string $id, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
@@ -259,6 +365,125 @@ final readonly class FilesystemWriter implements ContentWriter
 			}
 
 			return new WriteResult($newId, self::revision($contents), $this->refresh());
+		});
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function move(string $id, ?string $parentId, ?string $revision = null): WriteResult
+	{
+		$path = $this->path($id);
+
+		return $this->locked(function () use ($id, $path, $parentId, $revision): WriteResult {
+			$contents = $this->current($id, $path, $revision);
+			$entry    = $this->content->find($id);
+
+			if ($entry === null || ! $entry->type instanceof Tree) {
+				throw new WriteException(sprintf('%s isn\'t a page that can move.', $id));
+			}
+
+			if ($entry->landing) {
+				throw new WriteException(sprintf('%s is an index page; it stays at the top of its folder.', $id));
+			}
+
+			$type   = $entry->type;
+			$parent = $parentId === null ? null : $this->content->find($parentId);
+
+			if ($parentId !== null && ($parent === null || $parent->type->name !== $type->name || $parent->landing)) {
+				throw new WriteException(sprintf('%s isn\'t one of the %s a page can go under.', $parentId, $type->labels->items));
+			}
+
+			if ($parent !== null && ($parent->key === $entry->key || str_starts_with($parent->key, "{$entry->key}/"))) {
+				throw new WriteException(sprintf('%s can\'t go under itself or a page under it.', $entry->title === '' ? $id : $entry->title));
+			}
+
+			if ($type->parentKey($entry->key, []) === $parent?->key) {
+				return new WriteResult($id, self::revision($contents), new IndexReport());
+			}
+
+			$slug   = basename($entry->key);
+			$newKey = $parent === null ? $slug : "{$parent->key}/{$slug}";
+			$target = ltrim($type->folder . ($parent === null ? '' : "/{$parent->key}"), '/');
+
+			if ($this->content->named($type->name, $newKey) !== null) {
+				throw new WriteException(sprintf('There\'s already a page at %s.', $newKey));
+			}
+
+			// What moves: the page's file or folder, and the folder its key
+			// names, which holds the pages under a page kept as a file.
+			$bundle = basename($id, '.' . pathinfo($id, PATHINFO_EXTENSION)) === 'index';
+			$items  = [$bundle ? dirname($id) : $id];
+			$folder = ltrim("{$type->folder}/{$entry->key}", '/');
+
+			if (! $bundle && is_dir($this->folder($folder))) {
+				$items[] = $folder;
+			}
+
+			$plan = [];
+
+			foreach ($items as $item) {
+				$to = ltrim("{$target}/" . basename($item), '/');
+
+				if (file_exists($this->folder($to))) {
+					throw new WriteException(sprintf('%s already exists.', $to));
+				}
+
+				$plan[$item] = $to;
+			}
+
+			// Every entry that moves, old id to new.
+			$moved = [];
+
+			foreach ($plan as $from => $to) {
+				if (! is_dir($this->folder($from))) {
+					$moved[$from] = $to;
+
+					continue;
+				}
+
+				foreach ($this->filesystem->files($this->folder($from), links: false) as $relative => $file) {
+					if ($this->parsers->supports($relative)) {
+						$moved["{$from}/{$relative}"] = "{$to}/{$relative}";
+					}
+				}
+			}
+
+			ksort($moved);
+
+			$done = [];
+			$made = ! is_dir($this->folder($target));
+
+			try {
+				if ($parent !== null && $parent->id === "{$target}." . pathinfo($parent->id, PATHINFO_EXTENSION)) {
+					$promoted = $this->promote($parent->id, $target, pathinfo($parent->id, PATHINFO_EXTENSION));
+					$done[]   = [$this->path($parent->id), $this->path($promoted)];
+					$moved    = [$parent->id => $promoted, ...$moved];
+				}
+
+				foreach ($plan as $from => $to) {
+					if (! @rename($this->folder($from), $this->folder($to))) {
+						throw new WriteException(sprintf('%s couldn\'t be moved to %s.', $from, $to));
+					}
+
+					$done[] = [$this->folder($from), $this->folder($to)];
+				}
+			} catch (WriteException $e) {
+				foreach (array_reverse($done) as [$from, $to]) {
+					@rename($to, $from);
+				}
+
+				if ($made) {
+					@rmdir($this->folder($target));
+				}
+
+				throw $e;
+			}
+
+			$newId = $bundle ? "{$plan[dirname($id)]}/" . basename($id) : $plan[$id];
+
+			return new WriteResult($newId, self::revision($contents), $this->refresh(), $moved);
 		});
 	}
 

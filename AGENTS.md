@@ -105,7 +105,13 @@ Settings screen drawn full width as rows of label, control, and help,
 with switches (D-404), and its Media screen: upload rules by kind, and
 a Documents kind (D-406); and media capabilities by kind for
 uploading and by whose file it is for changing and deleting, with
-deleting media, which warns where a file is used (D-407).
+deleting media, which warns where a file is used (D-407); and a new
+tree page's parent, a parent kept as a file becoming its folder's
+`index.md` (D-408), with order prefixes only for collections and
+taxonomies (D-409); and moving a tree's page with the pages under it
+(D-410); and error pages pinned on Pages (D-411); and `position` for
+sibling order in trees and taxonomies (D-412), first on the All tab,
+with collections newest published first (D-413).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

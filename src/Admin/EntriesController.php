@@ -26,6 +26,7 @@ use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Entry\Position;
 use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
@@ -38,6 +39,7 @@ use Blush\Content\Type\Tree;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
+use Blush\View\ThemedErrorPages;
 
 /**
  * Answers `GET {path}/api/entries` (D-225, D-230): the entries the
@@ -52,20 +54,26 @@ use Blush\Http\Status as HttpStatus;
  * - `days`: entries updated in the last so many days.
  * - `account`: for profiles, `linked` (an account is linked to them) or
  *   `guest` (none is; D-369).
- * - `sort`: `title`, `status`, `author`, or `updated`, and `dir`, `asc`
- *   or `desc` (`updated` newest first unless `dir` says otherwise, the
- *   rest A to Z).
+ * - `sort`: `title`, `status`, `author`, `published`, or `updated`, and
+ *   `dir`, `asc` or `desc` (the dates newest first unless `dir` says
+ *   otherwise, the rest A to Z).
  * - `page` (from 1) and `per` (20 by default, at most 100).
  *
- * Unsorted, drafts and the whole list come most recently changed first, scheduled
- * entries soonest first, and published entries newest first. The
+ * Unsorted, a type's whole list (any status) goes by `position`, then
+ * title, for a tree or taxonomy (D-412), newest published first for a
+ * collection, and by title for profiles (D-413); drafts, and the list of every type, come most
+ * recently changed first, scheduled entries soonest first, and
+ * published entries newest first. `by` says which the list is in order
+ * of (`position`, `published`, `updated`, or the column sorted by), so
+ * the admin can show the date it goes by. The
  * permission rules, the filters, and paging all run in the index as one
  * query (`Permissions::restrict()`), so only the page's entries are built.
  *
  * A type whose entries nest (pages, and hierarchical taxonomies; D-257)
  * lists as a tree when it's the whole list (no status, search, filter,
  * or sort): each
- * entry followed by its children, siblings by title (D-261), each with
+ * entry followed by its children, siblings by position, then title
+ * (D-261, D-413), each with
  * its `depth` in the tree (0 at the top) for the admin to indent by, and
  * how many `children` it has (D-262). Its entries are all built to order
  * them, then paged; a page that starts inside a branch begins with the
@@ -80,7 +88,11 @@ use Blush\Http\Status as HttpStatus;
  * on the first page (D-264), when it matches the filters and the account
  * may edit it; otherwise `null`. Pages have no index page: their landing page is
  * the site's home, an entry like any other. A type's **authors page**
- * (`_authors`, D-329) is set apart the same way, as `authorsPage`.
+ * (`_authors`, D-329) is set apart the same way, as `authorsPage`. The
+ * site's **error pages** (`_errors/404.md`, D-411) are set apart from
+ * Pages the same way, as `errorPages`, by status, each with its
+ * `errorPage` status (else `null`), with anything else in the error
+ * folders after them.
  */
 final readonly class EntriesController
 {
@@ -99,7 +111,7 @@ final readonly class EntriesController
 	 *
 	 * @var list<string>
 	 */
-	public const array SORTS = ['title', 'status', 'author', 'updated'];
+	public const array SORTS = ['title', 'status', 'author', 'published', 'updated'];
 
 	/**
 	 * The most days `days` reaches back.
@@ -180,11 +192,11 @@ final readonly class EntriesController
 		$sort = $params['sort'] ?? '';
 
 		if ($sort !== '' && ! in_array($sort, self::SORTS, true)) {
-			return self::json(['error' => '"sort" must be title, status, author, or updated.'], HttpStatus::BadRequest);
+			return self::json(['error' => '"sort" must be title, status, author, published, or updated.'], HttpStatus::BadRequest);
 		}
 
 		$order = match ($params['dir'] ?? '') {
-			''      => $sort === 'updated' ? Order::Desc : Order::Asc,
+			''      => $sort === 'updated' || $sort === 'published' ? Order::Desc : Order::Asc,
 			'asc'   => Order::Asc,
 			'desc'  => Order::Desc,
 			default => null
@@ -212,17 +224,32 @@ final readonly class EntriesController
 			$query = $query->whereTerm($taxonomy, $slug);
 		}
 
+		// Unsorted, a type's All tab goes by position, then title, where
+		// its entries have one (D-412), newest published first for a
+		// collection, and by title for profiles (D-413).
+		$contentType = $type === null ? null : $this->types->find($type);
+		$positioned  = $contentType instanceof Tree || $contentType instanceof Taxonomy;
+		$by          = match (true) {
+			$sort !== ''                                         => $sort,
+			$status === Status::Scheduled                        => 'published',
+			$status === Status::Published                        => 'published',
+			$status === null && $positioned                      => 'position',
+			$status === null && $contentType instanceof Profiles => 'title',
+			$status === null && $contentType !== null            => 'published',
+			default                                              => 'updated'
+		};
+
 		$query = match (true) {
 			$sort === 'author'            => $authors === '' ? $query : $query->orderBy($authors, $order),
 			$sort !== ''                  => $query->orderBy($sort, $order),
 			$status === Status::Scheduled => $query->orderBy('published', Order::Asc),
-			$status === Status::Published => $query->orderBy('published', Order::Desc),
-			default                       => $query->orderBy('updated', Order::Desc)
+			$by === 'position'            => $query->orderBy('position', Order::Asc),
+			$by === 'title'               => $query->orderBy('title', Order::Asc),
+			default                       => $query->orderBy($by, Order::Desc)
 		};
 
 		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '';
 
-		$contentType = $type === null ? null : $this->types->find($type);
 		$pinned      = $contentType !== null && ! ($contentType instanceof Tree && $contentType->atRoot());
 		$query       = $this->permissions->restrict($account, ContentAction::Edit, $query);
 		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...PeoplePage::listPages($contentType))->exceptIn(...PeoplePage::personFolders($contentType)) : $query;
@@ -233,6 +260,9 @@ final readonly class EntriesController
 			$link === 'linked'                                 => $listed->names(...(array_map(strval(...), array_keys($linked)) ?: ['/'])),
 			default                                            => $listed->exceptNames(...PeoplePage::listPages($contentType), ...array_map(strval(...), array_keys($linked)))
 		};
+		$errors      = $contentType instanceof Tree && $contentType->atRoot();
+		$listed      = $errors ? $listed->exceptIn(...ThemedErrorPages::FOLDERS) : $listed;
+		$errorPages  = $errors && $page === 1 ? $this->errorPages($query) : [];
 		$index       = $pinned && $page === 1 ? $this->index($query) : null;
 		$people      = $pinned && $page === 1 ? $this->peoplePage($query, $contentType) : null;
 		$counts      = [];
@@ -255,7 +285,7 @@ final readonly class EntriesController
 
 		// How many published entries use each term on the page, one pass
 		// per taxonomy (D-236).
-		foreach ([...$continued, ...$shown, ...($index === null ? [] : [$index]), ...($people === null ? [] : [$people])] as $entry) {
+		foreach ([...$continued, ...$shown, ...($index === null ? [] : [$index]), ...($people === null ? [] : [$people]), ...$errorPages] as $entry) {
 			if ($entry->type->hasTerms()) {
 				$counts[$entry->type->name] ??= $this->content->termCounts($entry->type->name);
 			}
@@ -272,6 +302,7 @@ final readonly class EntriesController
 			'sort'        => $sort === '' ? null : $sort,
 			'dir'         => $sort === '' ? null : $order->value,
 			'tree'        => $tree !== null,
+			'by'          => $tree !== null ? 'position' : $by,
 			'total'       => $total,
 			'page'        => $page,
 			'pages'       => $pages,
@@ -281,7 +312,8 @@ final readonly class EntriesController
 				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree, linked: $linked), $shown)
 			],
 			'index'       => $index === null ? null : $this->describe($account, $index, $counts),
-			'authorsPage' => $people === null ? null : $this->describe($account, $people, $counts)
+			'authorsPage' => $people === null ? null : $this->describe($account, $people, $counts),
+			'errorPages'  => array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts), $errorPages)
 		]);
 	}
 
@@ -322,7 +354,7 @@ final readonly class EntriesController
 
 	/**
 	 * Returns entries in tree order, each followed by its children and
-	 * siblings by title, with each one's depth and how many children it
+	 * siblings by position, then title (D-412, D-413), with each one's depth and how many children it
 	 * has, by ID. An entry whose parent isn't among them is at the top;
 	 * entries in a loop of parents come last, by title, at depth 0.
 	 *
@@ -331,7 +363,8 @@ final readonly class EntriesController
 	 */
 	private static function tree(array $entries): array
 	{
-		$byTitle = static fn (Entry $a, Entry $b): int => strnatcasecmp($a->title, $b->title) ?: strcmp($a->key, $b->key);
+		// Siblings by position, then title (D-412, D-413).
+		$byTitle = static fn (Entry $a, Entry $b): int => Position::siblings($a, $b) ?: strcmp($a->key, $b->key);
 		$keys    = array_flip(array_map(static fn (Entry $entry): string => $entry->key, $entries));
 		$roots   = [];
 		$under   = [];
@@ -421,6 +454,29 @@ final readonly class EntriesController
 	}
 
 	/**
+	 * Returns what the list's query finds in the error folders (D-411):
+	 * the error pages by status, then anything else kept there, by title.
+	 *
+	 * @return list<Entry>
+	 */
+	private function errorPages(Query $query): array
+	{
+		$pages = [];
+
+		foreach (ThemedErrorPages::FOLDERS as $folder) {
+			foreach ($query->in($folder)->limit(null)->get() as $entry) {
+				if ($entry->locale === $this->app->locale) {
+					$pages[] = $entry;
+				}
+			}
+		}
+
+		usort($pages, static fn (Entry $a, Entry $b): int => [ErrorPage::status($a) ?? 1000, $a->title, $a->id] <=> [ErrorPage::status($b) ?? 1000, $b->title, $b->id]);
+
+		return $pages;
+	}
+
+	/**
 	 * Returns the type's first people list page (D-351), if the list's
 	 * query finds it.
 	 */
@@ -474,10 +530,11 @@ final readonly class EntriesController
 			'own'         => $this->permissions->owns($account, $entry),
 			'index'       => IndexPage::is($entry),
 			'authorsPage' => PeoplePage::is($entry),
+			'errorPage'   => ErrorPage::status($entry),
 			'peopleLabel' => PeoplePage::fieldOf($entry)->plural ?? null,
 			'can'         => [
 				'delete'    => ! IndexPage::is($entry) && $this->permissions->can($account, ContentAction::Delete, $entry),
-				'duplicate' => ! $entry->landing && ! PeoplePage::is($entry) && $this->permissions->can($account, ContentAction::Create, $entry->type->name)
+				'duplicate' => ! $entry->landing && ! PeoplePage::is($entry) && ErrorPage::status($entry) === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name)
 			],
 			'uses'        => $entry->type->hasTerms() ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors'   => $this->ancestors($entry),

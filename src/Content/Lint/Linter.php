@@ -37,8 +37,11 @@ use Blush\Media\MediaMetadataCheck;
  * files fresh (not the index) and reports:
  *
  * - errors: files that can't be parsed, front matter values that don't
- *   fit their fields, `collection` query arguments that don't work, and
- *   terms that are their own parent or ancestor;
+ *   fit their fields, `collection` query arguments that don't work,
+ *   terms that are their own parent or ancestor, and an order prefix
+ *   (`01.about.md`) on a tree's or profiles type's file or folder, which
+ *   only collections and taxonomies use (D-409; the file still works,
+ *   and hidden ones are left alone);
  * - warnings: two files claiming one entry (`about.md` next to
  *   `about/index.md`), a term's `parent` that has no file, and a page
  *   whose address another route answers (`movie/2024.md` beside a type
@@ -89,7 +92,7 @@ final readonly class Linter
 				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->variants->check($contents)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage())];
 			}
@@ -144,7 +147,7 @@ final readonly class Linter
 			$contents = $this->source->read($path);
 			$parsed   = $this->builder->build($file, $contents);
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->variants->check($contents)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage())];
 		}
@@ -170,6 +173,52 @@ final readonly class Linter
 		}
 
 		return [];
+	}
+
+	/**
+	 * Checks that a tree's or profiles type's file, and the folders
+	 * between it and its type's folder, have no order prefix (D-409): the
+	 * part of a name before its last `.`. Only collections and taxonomies
+	 * order files by name; a page's folder named `01.about` doesn't nest
+	 * under `about`, and a prefix orders nothing in a tree. A hidden file,
+	 * or one in a hidden folder that isn't a type's (`__drafts/`), is
+	 * left alone.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkPrefix(IndexRecord $record): array
+	{
+		$type = $this->types->find($record->type);
+
+		if (! $type instanceof Tree && ! $type instanceof Profiles) {
+			return [];
+		}
+
+		$below    = $type->folder === '' ? $record->id : substr($record->id, strlen($type->folder) + 1);
+		$segments = explode('/', $below);
+		$last     = array_key_last($segments);
+
+		// Hidden files have no address, so a prefix harms nothing there.
+		if (array_any($segments, static fn (string $segment): bool => str_starts_with($segment, '_'))) {
+			return [];
+		}
+
+		$segments[$last] = pathinfo($segments[$last], PATHINFO_FILENAME);
+
+		$renamed = array_map(static function (string $segment): string {
+			$position = strrpos($segment, '.');
+
+			return $position === false ? $segment : substr($segment, $position + 1);
+		}, $segments);
+
+		if ($renamed === $segments) {
+			return [];
+		}
+
+		$extension = pathinfo($record->id, PATHINFO_EXTENSION);
+		$suggested = ltrim($type->folder . '/' . implode('/', $renamed) . ".{$extension}", '/');
+
+		return [new Violation(self::FILE, sprintf('has an order prefix, which only collections and taxonomies use; %s don\'t. Rename it %s.', $type->labels->items, $suggested))];
 	}
 
 	/**

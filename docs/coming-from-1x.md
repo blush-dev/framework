@@ -9,8 +9,10 @@ and the command line.
 
 Copy your `user/` folder across as it is. In particular:
 
-- File names like `01.about.md` and `2003-04-15.welcome.md` still sort and
-  still drop the prefix from the URL.
+- File names like `01.intro.md` and `2003-04-15.welcome.md` still sort and
+  still drop the prefix from the URL in collections (such as your posts)
+  and taxonomies. Pages still work with one, but `content:lint` reports
+  it: rename `01.about.md` to `about.md`.
 - `index.md` landing pages, `_`-prefixed hidden files, and `_drafts/`
   folders work as before.
 - The 1.x front matter names still work: `date` (now `published`),

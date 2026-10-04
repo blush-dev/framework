@@ -55,6 +55,22 @@ interface ContentWriter
 	public function createAt(ContentType $type, string $key, EntryChanges $changes, string $format = 'md'): WriteResult;
 
 	/**
+	 * Creates a page of a tree under another (D-408), undated:
+	 * `{folder}/{parent key}/{slug}.{format}`, so its key is the parent's
+	 * and its slug. A parent kept as a file named for its key
+	 * (`about.md`) becomes its folder's page first (`about/index.md`), so
+	 * a page and its children share a folder; its key and address stay
+	 * the same, and the result's `moved` names its new id. A parent
+	 * that's already a folder's page, or whose file name says more than
+	 * its key (an order prefix, a `slug:` of its own), stays where it is.
+	 *
+	 * @throws WriteException When the parent isn't a page of a tree, its
+	 *                        folder already has a page, the page exists,
+	 *                        or the slug or format is invalid.
+	 */
+	public function createUnder(string $parentId, string $slug, EntryChanges $changes, string $format = 'md'): WriteResult;
+
+	/**
 	 * Copies an entry beside it (D-275) under a new slug, with changes
 	 * applied to the copy: `{slug}`, or the first of `{slug}-2`,
 	 * `{slug}-3`, … that's free. A dated file takes the date given
@@ -83,6 +99,22 @@ interface ContentWriter
 	 * @throws WriteException When the new name is taken or invalid.
 	 */
 	public function rename(string $id, string $slug, ?string $revision = null): WriteResult;
+
+	/**
+	 * Moves a tree's page under another of its pages, or to the top with
+	 * `null` (D-410), keeping its slug: its file (or its folder, for one
+	 * kept as `{slug}/index.md`) moves into the new parent's folder, with
+	 * the folder of pages under it, so they come along. A new parent kept
+	 * as a file named for its key becomes its folder's page first, as in
+	 * `createUnder()`. Moving to where it already is changes nothing. The
+	 * result's `moved` names every entry that moved, old id to new.
+	 *
+	 * @throws WriteConflict
+	 * @throws WriteException When it isn't a tree's page, the parent isn't
+	 *                        one of its pages (or is the page itself, or
+	 *                        under it), or a page is already there.
+	 */
+	public function move(string $id, ?string $parentId, ?string $revision = null): WriteResult;
 
 	/**
 	 * Deletes an entry: its file, or its bundle's folder, moves to the

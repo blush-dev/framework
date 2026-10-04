@@ -344,9 +344,13 @@ is in that decision.
 - Each folder is a collection of the type mapped to it. `index.md` is the
   collection's landing page. A file belongs to the type whose path is the
   nearest folder above it, or else to `page` (D-083).
+- A tree's pages and a taxonomy's terms have a `position` field
+  (D-412): siblings sort by it, then title, those without one last.
 - Everything before the last `.` in a file name is organizational
-  (`01.about.md`, `2003-04-15.welcome.md`): it isn't part of the slug, and
-  it sets the default order.
+  (`01.intro.md`, `2003-04-15.welcome.md`): it isn't part of the slug, and
+  it sets the default order. Only collections and taxonomies take these
+  prefixes; on a tree's or profiles type's file or folder they still
+  read, but lint reports an error (D-409).
 - A `_` prefix on a file name, or on a folder between the type's folder
   and the file, means hidden (D-088).
 - A `_drafts/` folder or `status: draft` marks unpublished entries.
@@ -541,7 +545,11 @@ Implemented in M4b (D-087, D-090).
   root).
 - **`ContentWriter`** (D-228; `Blush\Content\Writer`, `FilesystemWriter`
   by default): `load` (raw front matter, body, and a revision hash),
-  `create`, `update` (`EntryChanges`: set, remove, body), `rename` (a
+  `create`, `createAt` (a fixed key), `createUnder` (a tree's page in
+  its parent's folder, a parent kept as `about.md` first becoming
+  `about/index.md`; `WriteResult::$moved`; D-408), `move` (a tree's
+  page and those under it to another parent, D-410), `update`
+  (`EntryChanges`: set, remove, body), `rename` (a
   new slug; date prefixes kept, bundles move their folder), `duplicate`
   (a copy beside it under the first free name, `-2` and on; a new date
   prefix; a bundle's folder copied; D-275), and

@@ -534,7 +534,7 @@ new Listing(orderBy: 'published', order: Order::Desc, perPage: 20)
 | Option    | Default         | What it does                                                           |
 |-----------|-----------------|------------------------------------------------------------------------|
 | `type`    | The type itself | Which type to list                                                     |
-| `orderBy` | `filename`      | `filename`, `published`, `updated`, `title`, `author`, or any field    |
+| `orderBy` | `filename`      | `filename`, `published`, `updated`, `title`, `author`, `position` (a tree's or taxonomy's; those without one come last, by title), or any field |
 | `order`   | `asc`           | `asc` or `desc` (`Order::Asc` or `Order::Desc` in PHP)                 |
 | `perPage` | `10`            | How many per page; `0` (`Listing::ALL`) for all of them                |
 | `query`   |                 | Any other option from the table below, such as `{terms: {tag: [php]}}` |

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Index;
 
+use Blush\Content\Entry\Position;
 use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Query\Selection;
@@ -62,6 +63,20 @@ final readonly class ArraySelector
 
 		if ($orderBy === 'filename' || $orderBy === 'path') {
 			return $direction === 1 ? $records : array_reverse($records);
+		}
+
+		// Entries without a position follow those with one, by title,
+		// whichever way the positions run (D-412).
+		if ($orderBy === Position::FIELD) {
+			usort($records, static fn (array $a, array $b): int => Position::compare(
+				is_int($a['values'][Position::FIELD] ?? null) ? $a['values'][Position::FIELD] : null,
+				$a['title'],
+				is_int($b['values'][Position::FIELD] ?? null) ? $b['values'][Position::FIELD] : null,
+				$b['title'],
+				$direction
+			));
+
+			return $records;
 		}
 
 		$keys = array_map(fn (array $record): string|int|float|null => $this->sortValue($record, $orderBy, $now), $records);

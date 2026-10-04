@@ -207,6 +207,166 @@ final class FilesystemWriterTest extends TestCase
 		$this->writer()->createAt($post, '_authors/jane', new EntryChanges(), 'json');
 	}
 
+	public function testCreatesPagesUnderAPageInAFolder(): void
+	{
+		$page = $this->writer()->createUnder('about/index.md', 'team', new EntryChanges(set: ['title' => 'The Team']));
+
+		$this->assertSame('about/team.md', $page->id);
+		$this->assertSame([], $page->moved, 'A folder\'s page stays where it is (D-408).');
+		$this->assertSame('about/team', $this->content()->find($page->id)?->key);
+		$this->assertSame('about', $this->content()->parentKey('page', 'about/team'));
+
+		$this->expectException(WriteException::class);
+		$this->expectExceptionMessage('already a page at about/biography');
+
+		$this->writer()->createUnder('about/index.md', 'biography', new EntryChanges(set: ['title' => 'Again']));
+	}
+
+	public function testMakesAParentKeptAsAFileItsFoldersPage(): void
+	{
+		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n\nWhat I do.\n");
+		$this->app = $this->site('development');
+
+		$page = $this->writer()->createUnder('services.md', 'writing', new EntryChanges(set: ['title' => 'Writing']));
+
+		$this->assertSame('services/writing.md', $page->id);
+		$this->assertSame(['services.md' => 'services/index.md'], $page->moved);
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/services.md');
+		$this->assertSame("---\ntitle: Services\n---\n\nWhat I do.\n", $this->file('services/index.md'), 'Moved as it was.');
+		$this->assertSame('services', $this->content()->find('services/index.md')?->key, 'Its key, and so its address, stay the same.');
+		$this->assertSame('services', $this->content()->parentKey('page', 'services/writing'));
+
+		$second = $this->writer()->createUnder('services/index.md', 'design', new EntryChanges(set: ['title' => 'Design']));
+		$this->assertSame([], $second->moved);
+	}
+
+	public function testLeavesAParentWhoseFileNameSaysMore(): void
+	{
+		$this->writeTemporaryFile('user/content/01.services.md', "---\ntitle: Services\n---\n");
+		$this->app = $this->site('development');
+
+		$page = $this->writer()->createUnder('01.services.md', 'writing', new EntryChanges(set: ['title' => 'Writing']));
+
+		$this->assertSame('services/writing.md', $page->id, 'In the folder its key names, beside the parent.');
+		$this->assertSame([], $page->moved, 'An order prefix would be lost in the move.');
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/01.services.md');
+		$this->assertSame('services', $this->content()->parentKey('page', 'services/writing'));
+	}
+
+	public function testRefusesParentsThatCantHavePages(): void
+	{
+		foreach (['_posts/2022-03-29.rekindling-the-flame.md' => 'isn\'t a page other pages', 'index.md' => 'index page', 'missing.md' => 'isn\'t a page other pages'] as $id => $message) {
+			try {
+				$this->writer()->createUnder($id, 'child', new EntryChanges(set: ['title' => 'Child']));
+				$this->fail($id);
+			} catch (WriteException $e) {
+				$this->assertStringContainsString($message, $e->getMessage(), $id);
+			}
+		}
+
+		$this->expectException(WriteException::class);
+		$this->expectExceptionMessage('isn\'t a slug');
+
+		$this->writer()->createUnder('about/index.md', 'Not A Slug', new EntryChanges());
+	}
+
+	public function testMovesNothingWhenTheParentsFolderHasAPage(): void
+	{
+		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
+		$this->writeTemporaryFile('user/content/services/index.yaml', "title: Other Services\n");
+		$this->app = $this->site('development');
+
+		try {
+			$this->writer()->createUnder('services.md', 'writing', new EntryChanges(set: ['title' => 'Writing']));
+			$this->fail('Moved a page onto another.');
+		} catch (WriteException $e) {
+			$this->assertStringContainsString('that folder already has a page', $e->getMessage());
+		}
+
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/services.md');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/services/writing.md');
+	}
+
+	public function testMovesAPageUnderAnother(): void
+	{
+		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
+		$this->app = $this->site('development');
+
+		$result = $this->writer()->move('services.md', 'about/index.md', $this->writer()->load('services.md')->revision);
+
+		$this->assertSame('about/services.md', $result->id);
+		$this->assertSame(['services.md' => 'about/services.md'], $result->moved);
+		$this->assertSame('about', $this->content()->parentKey('page', 'about/services'), 'Under its new parent (D-410).');
+
+		$top = $this->writer()->move('about/services.md', null);
+
+		$this->assertSame('services.md', $top->id, 'And back to the top.');
+		$this->assertSame([], $this->writer()->move('services.md', null)->moved, 'Where it is already, nothing moves.');
+	}
+
+	public function testMovesAPagesFolderWithThePagesUnderIt(): void
+	{
+		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
+		$this->app = $this->site('development');
+
+		$result = $this->writer()->move('about/index.md', 'services.md');
+
+		$this->assertSame('services/about/index.md', $result->id);
+		$this->assertSame([
+			'services.md'        => 'services/index.md',
+			'about/biography.md' => 'services/about/biography.md',
+			'about/index.md'     => 'services/about/index.md'
+		], $result->moved, 'The new parent became its folder\'s page, and the page under it came along.');
+		$this->assertSame('services/about', $this->content()->find('services/about/biography.md')?->type->parentKey('services/about/biography', []));
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/content/about');
+	}
+
+	public function testMovesAPageKeptAsAFileWithTheFolderBesideIt(): void
+	{
+		$this->writeTemporaryFile('user/content/work.md', "---\ntitle: Work\n---\n");
+		$this->writeTemporaryFile('user/content/work/design.md', "---\ntitle: Design\n---\n");
+		$this->app = $this->site('development');
+
+		$result = $this->writer()->move('work.md', 'about/index.md');
+
+		$this->assertSame('about/work.md', $result->id);
+		$this->assertSame(['work.md' => 'about/work.md', 'work/design.md' => 'about/work/design.md'], $result->moved);
+		$this->assertSame('about/work', $this->content()->parentKey('page', 'about/work/design'));
+	}
+
+	public function testRefusesMovesItCantMake(): void
+	{
+		$this->writeTemporaryFile('user/content/biography.md', "---\ntitle: Another Biography\n---\n");
+		$this->app = $this->site('development');
+
+		$refused = [
+			['about/index.md', 'about/biography.md', 'can\'t go under itself or a page under it'],
+			['about/index.md', 'about/index.md', 'can\'t go under itself'],
+			['index.md', 'about/index.md', 'index page'],
+			['_posts/2022-03-29.rekindling-the-flame.md', 'about/index.md', 'isn\'t a page that can move'],
+			['biography.md', 'about/index.md', 'already a page at about/biography'],
+			['biography.md', '_posts/2022-03-29.rekindling-the-flame.md', 'isn\'t one of the pages']
+		];
+
+		foreach ($refused as [$id, $parent, $message]) {
+			try {
+				$this->writer()->move($id, $parent);
+				$this->fail("{$id} under {$parent}");
+			} catch (WriteException $e) {
+				$this->assertStringContainsString($message, $e->getMessage(), "{$id} under {$parent}");
+			}
+		}
+
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/biography.md');
+
+		$stale = $this->writer()->load('biography.md')->revision;
+		$this->writer()->update('biography.md', new EntryChanges(set: ['title' => 'Changed']));
+
+		$this->expectException(WriteConflict::class);
+
+		$this->writer()->move('biography.md', null, $stale);
+	}
+
 	public function testEditsJsonAndYamlEntries(): void
 	{
 		$this->writeTemporaryFile('user/content/data.yaml', "# Kept.\ntitle: Data\nbody: Old\n");

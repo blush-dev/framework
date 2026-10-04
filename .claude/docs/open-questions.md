@@ -195,10 +195,19 @@ Move each item to `decisions.md` once it's answered.
   - Should a hierarchical term's page also list its child terms'
     entries, as WordPress's category archives do? An option on the
     taxonomy (or `termListing`), or always?
-  - Tree types (D-386): do sibling entries take a manual order (an
-    `order` field, title as the fallback), and does the template API
-    get previous/next through the tree and a table of contents? In the
-    first slice, or later?
+  - Tree types (D-386): sibling order is `position` (D-412). Does the
+    template API get previous/next through the tree and a table of
+    contents? And dragging rows in the Pages tree to set positions?
+  - The site's own pages (error pages, pinned on Pages for now, D-411):
+    a tab on Pages, or a System screen, once there are more of them?
+    Longer term (the author): an internal **system** content type for
+    the site's system and error pages, managed from the admin. Today it
+    would hold only the error pages (`_errors/{status}.md`; the site
+    raises 404, 405, and 500, and a 500 isn't themed with debug on); a
+    maintenance page, an editable welcome page, or search's intro could
+    join later. Index pages and people pages stay with their types. Its
+    folder must keep `_errors/` and 1.x's `_error/` working (D-078), and
+    error pages would leave the root tree, so Pages needs no pinning.
   - Nested URLs for pages already follow folders; should a collection's
     single route ever take a hierarchical term's path (`{category}` as
     `web/css`)? Today it's the first term's slug.

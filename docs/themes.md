@@ -354,7 +354,7 @@ What a template can use:
 | `$template->permalink($profile)` | A profile's own page, such as `/profiles/jane` |
 | `$template->parent($entry)` | A page's parent page (from its folder) or a term's parent term, if published |
 | `$template->ancestors($entry)` | Its parents from the top down, for breadcrumbs |
-| `$template->children($entry)` | A page's subpages or a term's child terms, published, by title |
+| `$template->children($entry)` | A page's subpages or a term's child terms, published, by `position` and then title |
 | `$template->date($entry->published)` | A date, formatted for the site's locale |
 | `$template->setting('name')` | A theme setting |
 | `$template->site('name')` | A site setting a field set adds ([Your own settings](#your-own-settings)) |

@@ -205,7 +205,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/' . self::FLAME), strtotime($entry['modified']));
 		$this->assertSame('/archives/flame', $entry['url'] ?? null);
 		$this->assertTrue($entry['own'] ?? null);
-		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'delete' => true, 'duplicate' => true], $entry['can'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'move' => false, 'delete' => true, 'duplicate' => true], $entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertTrue($entry['type']['dated'] ?? null);
 		$this->assertIsArray($entry['type']['fields'] ?? null);
@@ -541,6 +541,63 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(400, $this->call('POST', '/entries', ['type' => 'movie', 'title' => 'Nope'])->getStatusCode());
 	}
 
+	public function testCreatesAPageUnderAnother(): void
+	{
+		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
+		$this->site();
+
+		$response = $this->call('POST', '/entries', ['type' => 'page', 'title' => 'Writing', 'parent' => 'services']);
+		$entry    = self::json($response);
+
+		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame('services/writing.md', $entry['id'] ?? null);
+		$this->assertSame("---\ntitle: Services\n---\n", $this->file('services/index.md'), 'The parent became its folder\'s page (D-408).');
+		$this->assertSame('Services', $this->load('services/index.md')['title'] ?? null);
+
+		$missing = $this->call('POST', '/entries', ['type' => 'page', 'title' => 'Lost', 'parent' => 'nowhere']);
+		$this->assertSame(422, $missing->getStatusCode());
+		$this->assertSame('parent', self::json($missing)['field'] ?? null);
+		$this->assertSame(400, $this->call('POST', '/entries', ['type' => 'post', 'title' => 'Nested Post', 'parent' => 'services'])->getStatusCode(), 'Only a tree\'s pages nest.');
+		$this->assertSame(422, $this->call('POST', '/entries', ['type' => 'page', 'title' => 'Writing', 'parent' => 'services'])->getStatusCode(), 'There\'s already a page there.');
+	}
+
+	public function testMovesAPageWithThePagesUnderIt(): void
+	{
+		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
+		$this->writeTemporaryFile('user/content/work/index.md', "---\ntitle: Work\n---\n");
+		$this->writeTemporaryFile('user/content/work/design.md', "---\ntitle: Design\n---\n");
+		$this->writeTemporaryFile('user/content/work/_notes.md', "---\ntitle: Notes\n---\n");
+		$this->site();
+
+		$work = $this->load('work/index.md');
+		$this->assertSame(['work', '', true], [$work['key'] ?? null, $work['parent'] ?? null, is_array($work['can'] ?? null) ? $work['can']['move'] ?? null : null]);
+
+		$response = $this->call('PATCH', '/entries/work/index.md', ['revision' => $this->revision('work/index.md'), 'parent' => 'services', 'redirect' => true]);
+		$moved    = self::json($response);
+
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['services/work/index.md', 'services'], [$moved['id'] ?? null, $moved['parent'] ?? null]);
+		$this->assertStringContainsString('/work', $this->file('services/work/index.md'), 'The page redirects from its old address (D-410).');
+		$this->assertStringContainsString('/work/design', $this->file('services/work/design.md'), 'So does a published page under it.');
+		$this->assertStringNotContainsString('redirect_from', $this->file('services/work/_notes.md'), 'A hidden one has no address to keep.');
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/services/index.md', 'The new parent became its folder\'s page.');
+
+		$top = $this->call('PATCH', '/entries/services/work/design.md', ['revision' => $this->revision('services/work/design.md'), 'parent' => '']);
+		$this->assertSame('design.md', self::json($top)['id'] ?? null, 'And to the top.');
+
+		$under = $this->call('PATCH', '/entries/services/index.md', ['revision' => $this->revision('services/index.md'), 'parent' => 'services/work']);
+		$this->assertSame(422, $under->getStatusCode(), 'Not under a page under it.');
+
+		$missing = $this->call('PATCH', '/entries/design.md', ['revision' => $this->revision('design.md'), 'parent' => 'nowhere']);
+		$this->assertSame('parent', self::json($missing)['field'] ?? null);
+
+		$this->assertSame(201, $this->call('POST', '/entries', ['type' => 'page', 'title' => 'Another Design', 'slug' => 'design', 'parent' => 'services/work'])->getStatusCode());
+		$taken = $this->call('PATCH', '/entries/design.md', ['revision' => $this->revision('design.md'), 'parent' => 'services/work']);
+		$this->assertSame([422, 'parent'], [$taken->getStatusCode(), self::json($taken)['field'] ?? null], (string) $taken->getBody());
+
+		$this->assertSame(400, $this->call('PATCH', '/entries/' . self::FLAME, ['revision' => $this->revision(self::FLAME), 'parent' => ''])->getStatusCode(), 'Only a tree\'s pages move.');
+	}
+
 	public function testDescribesTheFieldSetsAttachedToTheType(): void
 	{
 		$this->writeTemporaryFile('user/data/fields/feelings.yaml', "description: How it felt to write.\ntargets: [type:post]\nfields:\n  mood:\n    type: enum\n    options: [hopeful, glum]\n    control: radios\n");
@@ -570,7 +627,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame('draft', $entry['status'] ?? null);
 		$this->assertSame(['authors' => ['jane']], $entry['values'] ?? null, 'Credited to the account\'s author.');
 		$this->assertSame('', $entry['body'] ?? null);
-		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'delete' => false, 'duplicate' => false], $entry['can'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'move' => false, 'delete' => false, 'duplicate' => false], $entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertSame('post', $entry['type']['name'] ?? null);
 		$this->assertTrue($entry['type']['dated'] ?? null);

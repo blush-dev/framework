@@ -160,11 +160,15 @@ drafts, or scheduled ones, with a count on each. You see your own
 entries if you're an author or contributor, and everyone's if you're an
 editor; entries credited to your account's profile are marked "Yours"
 (and your own profile, in Profiles, "You").
-Drafts come most recently changed first, and scheduled entries in the
-order they'll go live. Pages, and the terms of a hierarchical taxonomy,
+On the **All** tab, a collection's entries come newest published first,
+pages and terms by their **Position** and then by title (those without
+one after the rest), and profiles by name; the date column shows the
+date the list goes by. Drafts come most recently changed first,
+published entries newest first, and scheduled entries in the order
+they'll go live. Pages, and the terms of a hierarchical taxonomy,
 list as a tree on the **All** tab when you aren't searching: each one
-followed by the ones under it, indented, and those alphabetically
-(Books, then Book Reviews indented under it, then Film). The triangle
+followed by the ones under it, indented, in the same order (Books, then
+Book Reviews indented under it, then Film). The triangle
 beside an entry with others under it collapses or expands that branch;
 the admin remembers which until you close it. When a later page starts
 partway through a branch, the entries above it are shown again at the
@@ -196,9 +200,10 @@ filters. The Trash tab takes only the search. The two buttons at the end
 of the row switch between roomy rows and compact ones, which leave out
 the address line; your browser remembers the choice.
 
-Click the **Title**, **Status**, **Authors**, or **Updated** header to
-sort by that column, and again to turn the order around. Titles, statuses,
-and authors start from A, and Updated from the newest. Below a list longer
+Click the **Title**, **Status**, **Authors**, or date (**Published** or
+**Updated**) header to sort by that column, and again to turn the order
+around. Titles, statuses, and authors start from A, and dates from the
+newest. Below a list longer
 than 10 entries, choose how many show on a page (20 unless you change it).
 The filters, the sort, and the page size are part of the page's address,
 so going back or sharing the link keeps them.
@@ -246,6 +251,14 @@ fixed. Unlike the index page, it can be moved to the trash. The pages
 written for one person's archive (`_cooks/jane.md`) aren't listed at
 all; they're reached from [the profile's screen](#profiles).
 
+Pages' **error pages** (`_errors/404.md`, and 1.x's `_error/` folder,
+whose title and text the site shows for that error) are pinned at the
+top of Pages with a pin and their status as a tag (**Error 404**), by
+status, followed by anything else kept in those folders. They aren't
+counted in the totals, aren't offered as a parent, can't be duplicated,
+and keep their slug, since it's the status. Moving one to the trash is
+allowed: the theme's own message is shown in its place.
+
 A taxonomy's list (such as Categories) holds its **terms**. Instead of
 authors, it shows how many published entries use each term.
 
@@ -259,6 +272,27 @@ save: the first save creates the file, named for the title (or the slug,
 if you give one in the settings), as a draft unless you publish or
 schedule it. A post needs a title to be saved. It's credited to your
 account's author. If you leave before saving, nothing is created.
+
+A new page (or an entry of any [tree](content-types.md#trees)) can go
+under another: choose its **Parent** on the Document tab before the
+first save, or leave it at **None, at the top level**. The page is
+saved in its parent's folder (`about/team.md`), and its address follows
+(`/about/team`). If the parent is a single file (`about.md`), it moves
+into the folder first, as `about/index.md`; its address stays the same.
+**Position** (under Parent, for pages and terms) sets its place among
+its siblings: lower numbers first, and those without one after them, by
+title. A type's **All** tab and the Parent list follow it; term
+filters and pickers stay alphabetical.
+
+To move a page later, choose another **Parent** (or **None, at the
+top level**) and save. The pages under it move with it, and a parent
+kept as a single file moves into its folder the same way. A page can't
+go under itself or a page under it, or where another page has its slug.
+If the page is live, its address changes, so **Redirect the old
+address here** is offered, as for a new slug; with it on, the old
+address of every live page that moved (the page and those under it)
+redirects to the new one. Renaming a page's slug does the same for the
+pages under it.
 
 ## Editing an entry
 
@@ -358,7 +392,7 @@ They have two tabs:
   such as "Goes live tomorrow"), its **Slug** (see below), its
   **Visibility** (**Public**, **Unlisted**: it has an address but isn't
   in lists, feeds, or the sitemap, or **Hidden**: no address), and a
-  term's **Parent**. A line under them says what the date means and when
+  term's or new page's **Parent**. A line under them says what the date means and when
 the file was last edited.
   Then the **Featured Image** (choose, replace, or remove it), the
   **Authors**, each taxonomy (see
@@ -1403,14 +1437,18 @@ or everyone's for an editor. Narrow it with:
 | `terms` | `taxonomy:slug` pairs, comma separated (`topic:art,era:1990s`); an entry needs every one |
 | `days` | Entries updated in the last so many days, from 1 |
 | `account` | For profiles: `linked` (an account is linked to them) or `guest` (none is) |
-| `sort` | `title`, `status`, `author`, or `updated` |
-| `dir` | `asc` or `desc`: by default `updated` sorts newest first and the rest A to Z |
+| `sort` | `title`, `status`, `author`, `published`, or `updated` |
+| `dir` | `asc` or `desc`: by default the dates sort newest first and the rest A to Z |
 | `page` | The page, from 1 |
 | `per` | Entries per page: 20 by default, at most 100 |
 
-Unless `sort` says otherwise, drafts and the whole list come most
-recently changed first, scheduled entries soonest first, and published
-entries newest first. Sorting by status uses the status as it is now (a
+Unless `sort` says otherwise, a type's whole list (no `status`) comes by
+`position` and then title for pages and terms, newest published first
+for a collection, and by title for profiles; drafts, and the list of
+every type, come most recently changed first, scheduled entries soonest
+first, and published entries newest first. `by` says which the list is
+in order of (`position`, `published`, `title`, `updated`, or the column
+sorted by). Sorting by status uses the status as it is now (a
 published entry dated in the future sorts as scheduled), and by author
 the first author's slug. The answer has `status`, `type`, `search`,
 `author`, `terms`, `days` (or `null`), `sort` and `dir` (or `null`
@@ -1424,7 +1462,7 @@ unsorted), `tree` (whether it's in tree order), `total`, `page`,
 the top down (a page's parent pages, or a hierarchical term's parents;
 empty for the rest). With a `type` whose entries nest (pages, or a
 hierarchical taxonomy) and no `status`, `search`, `author`, `terms`,
-`days`, or `sort`, entries come in tree order instead: each followed by its children, siblings by title,
+`days`, or `sort`, entries come in tree order instead: each followed by its children, siblings by position and then title,
 each with its `depth` (0 at the top) and how many `children` it has. A
 page that starts inside a branch begins with the entries above it,
 marked `continued: true` and not counted in `total`. Otherwise `depth`
