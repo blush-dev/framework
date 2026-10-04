@@ -382,8 +382,8 @@ Each extension can be its own git repository.
 
 Manifests use Composer's names and shapes for the keys they share with
 `composer.json`: `name`, `description`, `version`, `license`,
-`authors`, `autoload`, `require`, `homepage`, `support`, `funding`, and
-`abandoned`. A manifest that leaves one of
+`authors`, `autoload`, `require`, `homepage`, `support`, `funding`,
+`abandoned`, and `suggest`. A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
 them once. A manifest's own value replaces `composer.json`'s whole; the
 two aren't merged. Blush's own keys (`label`, `namespace`, `provider`,
@@ -592,6 +592,27 @@ replacement when it's installed, and `plugin:check`, `theme:check`, and
 `icon-pack:check` warn of it. In a manifest, anything but `true`,
 `false`, or a `vendor/name` is an error; in `composer.json`, any other
 string counts as `true`.
+
+`suggest` names packages that work well with the extension, each with
+why, as in `composer.json`: other plugins, themes, or icon packs by
+`vendor/name`, libraries, or PHP extensions as `ext-{name}`:
+
+```json
+{
+	"suggest": {
+		"acme/brands": "For brand icons in the share buttons.",
+		"ext-intl": "For dates in your site's language."
+	}
+}
+```
+
+Nothing is checked or installed for it: an extension runs the same with
+or without what it suggests. The admin lists them on the extension's
+details, under **Suggests**, with the version the site has beside each
+one that's installed (linked) and each PHP extension that's loaded, and installing an extension from a
+zip lists what it suggests. In a manifest, anything but an object of
+names to strings is an error; in `composer.json`, an entry that doesn't
+fit is left out.
 
 For autocomplete in your editor, add a `$schema` key pointing at the
 schema Blush ships (the path is relative to `plugin.json`):
@@ -953,7 +974,7 @@ Only `name` is required. Without a `label` it's shown by its name, and
 without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors`, `license`, `homepage`,
-`support`, `funding`, `abandoned`, and [`require`](#requirements) work as a plugin's
+`support`, `funding`, `abandoned`, `suggest`, and [`require`](#requirements) work as a plugin's
 do: a pack whose requirements aren't met adds no icons, even when it's
 on. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is

@@ -24,6 +24,7 @@ use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Extension\ExtensionRequire;
+use Blush\Extension\ExtensionSuggest;
 
 /**
  * Describes one plugin: its name (`vendor/name`, D-378), label (its
@@ -47,7 +48,9 @@ use Blush\Extension\ExtensionRequire;
  * with, and fund it (`ExtensionLinks`, D-428); the finders fill each from
  * `composer.json` when the manifest leaves it out. `abandoned` is `true`,
  * or the package to use instead, as Composer's is (`ExtensionAbandoned`,
- * D-433): a warning, not a reason not to run.
+ * D-433): a warning, not a reason not to run. `suggest` maps packages
+ * that would work well with it to why (`ExtensionSuggest`, D-434), and
+ * is only shown.
  */
 final readonly class PluginManifest implements ExtensionManifest
 {
@@ -58,6 +61,7 @@ final readonly class PluginManifest implements ExtensionManifest
 
 	/**
 	 * @param array<string, string> $require  Requirement => version constraint.
+	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
 	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 * @param ?string               $provider Fully qualified class name of the plugin's service provider, if it has one.
 	 * @throws ExtensionException
@@ -76,7 +80,8 @@ final readonly class PluginManifest implements ExtensionManifest
 		public string $license = '',
 		public ExtensionLinks $links = new ExtensionLinks(),
 		public ?string $provider = null,
-		public bool|string $abandoned = false
+		public bool|string $abandoned = false,
+		public array $suggest = []
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf(
@@ -147,6 +152,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			$links     = ExtensionLinks::fromArray($data);
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
 			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
+			$suggest  = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
 		}
@@ -167,7 +173,8 @@ final readonly class PluginManifest implements ExtensionManifest
 			license: $license,
 			links: $links,
 			provider: isset($data['provider']) ? self::string($data, 'provider') : null,
-			abandoned: $abandoned
+			abandoned: $abandoned,
+			suggest: $suggest
 		);
 	}
 
@@ -192,6 +199,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
 			'license'     => $this->license,
 			'abandoned'   => $this->abandoned,
+			'suggest'     => $this->suggest,
 			...$this->links->toArray()
 		];
 	}

@@ -113,6 +113,19 @@ final class PluginTest extends TestCase
 		$this->assertSame('acme/one', $manifests[0]->name);
 	}
 
+	public function testReadsAComposerPluginsSuggest(): void
+	{
+		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode(['packages' => [
+			['name' => 'acme/one', 'type' => 'blush-plugin', 'suggest' => ['acme/extras' => 'For more.', 'acme/odd' => 1], 'extra' => ['blush' => ['provider' => 'Acme\One\Provider']]],
+			['name' => 'acme/two', 'type' => 'blush-plugin', 'suggest' => ['acme/extras' => 'For more.'], 'extra' => ['blush' => ['provider' => 'Acme\Two\Provider', 'suggest' => ['acme/blocks' => 'For blocks.']]]]
+		]]));
+
+		$manifests = new ComposerPluginFinder($this->temporaryDirectory() . '/vendor')->find()->manifests;
+
+		$this->assertSame(['acme/extras' => 'For more.'], $manifests[0]->suggest, 'Read leniently, as Composer has it.');
+		$this->assertSame(['acme/blocks' => 'For blocks.'], $manifests[1]->suggest, 'extra.blush\'s wins.');
+	}
+
 	public function testWithoutALabelAPluginIsShownByItsName(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/plain/plugin.json', '{"namespace": "plain", "provider": "A\\\\B", "label": " "}');

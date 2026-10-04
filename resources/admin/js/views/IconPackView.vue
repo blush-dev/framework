@@ -7,7 +7,8 @@
  * reference when clicked (`weather/sun`, or a core icon's name), then a
  * Details panel, a Requires panel (each requirement checked against the
  * site, as a plugin's are, D-431; one that isn't met keeps the pack from
- * turning on, or its icons from loading), and **Delete icon pack** for a
+ * turning on, or its icons from loading), a Suggests panel when it
+ * suggests anything (D-434), and **Delete icon pack** for a
  * folder pack. A Composer pack says how it's removed instead.
  */
 
@@ -18,6 +19,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
 import ExtensionRequirements from '../components/ExtensionRequirements.vue';
+import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
@@ -227,6 +229,15 @@ async function remove(): Promise<void> {
 			</header>
 			<div class="panel__body">
 				<ExtensionRequirements :requirements="pack.requirements" />
+			</div>
+		</section>
+		<section v-if="pack && pack.suggests.length" class="panel" aria-labelledby="suggests-heading">
+			<header class="panel__header">
+				<h2 id="suggests-heading">Suggests</h2>
+				<p class="panel__hint">Works well with these; none is needed</p>
+			</header>
+			<div class="panel__body">
+				<ExtensionSuggestions :suggestions="pack.suggests" />
 			</div>
 		</section>
 

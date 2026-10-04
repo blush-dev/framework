@@ -25,6 +25,7 @@ final readonly class ExtensionPackage
 	/**
 	 * @param bool        $local     Whether it's a folder in its kind's folder in `user/` (not Composer's, or the framework's).
 	 * @param bool|string $abandoned Whether it's abandoned, or the package to use instead (D-433).
+	 * @param array<string, string> $suggest What it suggests, each mapped to why (D-434).
 	 */
 	public function __construct(
 		public ExtensionKind $kind,
@@ -34,6 +35,7 @@ final readonly class ExtensionPackage
 		public string $version,
 		public string $path,
 		public bool $local,
-		public bool|string $abandoned = false
+		public bool|string $abandoned = false,
+		public array $suggest = []
 	) {}
 }

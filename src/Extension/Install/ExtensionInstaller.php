@@ -319,7 +319,7 @@ final readonly class ExtensionInstaller
 	{
 		$plugin = LocalPluginFinder::manifest($folder);
 
-		return new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, $plugin->label, $plugin->namespace, $plugin->version, $folder, true, $plugin->abandoned);
+		return new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, $plugin->label, $plugin->namespace, $plugin->version, $folder, true, $plugin->abandoned, $plugin->suggest);
 	}
 
 	/**
@@ -333,7 +333,7 @@ final readonly class ExtensionInstaller
 			throw new ThemeException(sprintf('"%s" is the framework default theme\'s name.', Themes::DEFAULT));
 		}
 
-		return new ExtensionPackage(ExtensionKind::Theme, $theme->name, $theme->label, $theme->namespace, $theme->version, $folder, true, $theme->abandoned);
+		return new ExtensionPackage(ExtensionKind::Theme, $theme->name, $theme->label, $theme->namespace, $theme->version, $folder, true, $theme->abandoned, $theme->suggest);
 	}
 
 	/**
@@ -343,7 +343,7 @@ final readonly class ExtensionInstaller
 	{
 		$pack = IconPack::fromArray($folder, ManifestFile::load($folder, ExtensionKind::IconPack));
 
-		return new ExtensionPackage(ExtensionKind::IconPack, $pack->name, $pack->label, $pack->namespace, $pack->version, $folder, true, $pack->abandoned);
+		return new ExtensionPackage(ExtensionKind::IconPack, $pack->name, $pack->label, $pack->namespace, $pack->version, $folder, true, $pack->abandoned, $pack->suggest);
 	}
 
 	/**
@@ -533,7 +533,7 @@ final readonly class ExtensionInstaller
 	 */
 	private static function at(ExtensionPackage $package, string $path): ExtensionPackage
 	{
-		return new ExtensionPackage($package->kind, $package->name, $package->label, $package->namespace, $package->version, $path, true, $package->abandoned);
+		return new ExtensionPackage($package->kind, $package->name, $package->label, $package->namespace, $package->version, $path, true, $package->abandoned, $package->suggest);
 	}
 
 	/**

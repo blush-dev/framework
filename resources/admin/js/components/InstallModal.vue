@@ -8,7 +8,8 @@
  *
  * One thing fills the zone's place at a time: the file being sent (with
  * how much has gone), what was installed (with the one next step, Activate
- * or Turn on, and a warning beneath when it's abandoned, D-433), an
+ * or Turn on, a warning beneath when it's abandoned, D-433, and what it
+ * suggests, D-434), an
  * installed one with the archive's name (with Replace, naming both
  * versions), or why nothing was installed (with Choose another file, and
  * the right screen for an archive of another kind).
@@ -238,6 +239,18 @@ const replaceLabel = computed(() => {
 		<div v-if="phase === 'done' && answer && answer.installed.abandoned !== false" class="slab slab--warn">
 			<p class="slab__head"><AdminIcon name="triangle-alert" />{{ answer.installed.label }} is abandoned</p>
 			<p>Its author no longer maintains it. It works, but won't get fixes or updates.<template v-if="typeof answer.installed.abandoned === 'string'"> Its author suggests <span class="mono">{{ answer.installed.abandoned }}</span> instead.</template></p>
+		</div>
+
+		<!-- Suggestions are only shown, as Composer prints them after installing (D-434). -->
+		<div v-if="phase === 'done' && answer && answer.installed.suggests.length" class="slab">
+			<p class="slab__head"><AdminIcon name="lightbulb" />{{ answer.installed.label }} suggests</p>
+			<p>It works without these; each may add to it.</p>
+			<dl>
+				<template v-for="suggestion in answer.installed.suggests" :key="suggestion.name">
+					<dt class="mono">{{ suggestion.name }}</dt>
+					<dd>{{ suggestion.reason || '—' }}</dd>
+				</template>
+			</dl>
 		</div>
 
 		<input ref="input" type="file" accept=".zip,application/zip" hidden @change="picked">

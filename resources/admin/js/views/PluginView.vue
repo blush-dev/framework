@@ -4,7 +4,8 @@
  * `/plugins/{vendor}/{name}`: its switch in the header, why it can't run
  * when it can't, a Details panel and a Requires panel of equal weight
  * (each requirement checked against the site; a required extension of
- * any kind, and one that requires it, linked, D-431), then **Delete
+ * any kind, and one that requires it, linked, D-431), a Suggests panel
+ * when its manifest suggests anything (D-434), then **Delete
  * plugin** for a folder plugin that's off. A Composer plugin says how
  * it's removed instead, and one that's on says to turn it off first.
  */
@@ -16,6 +17,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
 import ExtensionRequirements from '../components/ExtensionRequirements.vue';
+import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
@@ -127,6 +129,16 @@ async function remove(): Promise<void> {
 					</div>
 				</section>
 			</div>
+
+			<section v-if="plugin.suggests.length" class="panel" aria-labelledby="suggests-heading">
+				<header class="panel__header">
+					<h2 id="suggests-heading">Suggests</h2>
+					<p class="panel__hint">Works well with these; none is needed</p>
+				</header>
+				<div class="panel__body">
+					<ExtensionSuggestions :suggestions="plugin.suggests" />
+				</div>
+			</section>
 
 			<PreviousVersion kind="plugin" :extension="plugin" :live="plugin.running" @changed="load" />
 			<p v-if="plugin.source === 'composer'" class="notice">

@@ -40,8 +40,9 @@ use Blush\Http\Status;
  * capability, and replacing its `update` (D-389).
  *
  * Answers `201` with the extension `installed` (`{"name", "label",
- * "version", "folder", "abandoned"}`, `abandoned` being `false`, `true`,
- * or the package to use instead, D-433), the version it `replaced` (or `null`), where
+ * "version", "folder", "abandoned", "suggests"}`, `abandoned` being
+ * `false`, `true`, or the package to use instead, D-433, and `suggests`
+ * what it suggests, each `{"name", "reason"}`, D-434), the version it `replaced` (or `null`), where
  * the old folder was kept (`backup`), and whether the admin should ask for
  * `settings/refresh` (a running plugin or the active theme was replaced).
  * One with an installed one's name, without `replace`, is a `409` with
@@ -183,7 +184,7 @@ final readonly class ExtensionInstallController
 	/**
 	 * Describes an extension, in its folder (or the one it would take).
 	 *
-	 * @return array{name: string, label: string, version: string, folder: string, abandoned: bool|string}
+	 * @return array{name: string, label: string, version: string, folder: string, abandoned: bool|string, suggests: list<array{name: string, reason: string}>}
 	 */
 	public static function describe(Paths $paths, ExtensionPackage $package, ?string $path = null): array
 	{
@@ -192,7 +193,8 @@ final readonly class ExtensionInstallController
 			'label'   => $package->label,
 			'version' => $package->version,
 			'folder'    => $paths->relative($path ?? $package->path),
-			'abandoned' => $package->abandoned
+			'abandoned' => $package->abandoned,
+			'suggests'  => array_map(static fn (string $name, string $reason): array => ['name' => $name, 'reason' => $reason], array_keys($package->suggest), array_values($package->suggest))
 		];
 	}
 

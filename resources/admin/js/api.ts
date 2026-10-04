@@ -375,6 +375,8 @@ export interface ThemeSummary {
 	abandoned: boolean | string;
 	// The package to use instead, when it's an installed extension.
 	replacement: ExtensionDependent | null;
+	// What it suggests (D-434), each checked against the site.
+	suggests: ExtensionSuggestion[];
 	// Whether it's a folder in `extensions/` the active theme doesn't use.
 	deletable: boolean;
 	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
@@ -424,6 +426,8 @@ export interface InstalledExtension {
 	folder: string;
 	// Whether it's abandoned: `true`, or the package to use instead (D-433).
 	abandoned: boolean | string;
+	// What it suggests, each with why (D-434).
+	suggests: { name: string; reason: string }[];
 }
 
 // `POST {kind}/{vendor}/{name}/rollback` (D-393).
@@ -475,6 +479,20 @@ export interface ExtensionDependent {
 	kind: 'plugin' | 'theme' | 'icon-pack';
 }
 
+// A package an extension suggests (D-434): only shown, never enforced.
+export interface ExtensionSuggestion {
+	// Another extension's `vendor/name`, a library's, or `ext-{name}`.
+	name: string;
+	// Why it's suggested (may be empty).
+	reason: string;
+	// The extension it names, when it's installed.
+	extension: ExtensionDependent | null;
+	// Whether a PHP extension (`ext-{name}`) is loaded; `null` for anything else.
+	loaded: boolean | null;
+	// The version the site has of an installed extension or a loaded PHP extension, or `null`.
+	version: string | null;
+}
+
 /**
  * An installed plugin (`GET plugins`, D-308, D-378, D-385).
  */
@@ -512,6 +530,8 @@ export interface PluginSummary {
 	abandoned: boolean | string;
 	// The package to use instead, when it's an installed extension.
 	replacement: ExtensionDependent | null;
+	// What it suggests (D-434), each checked against the site.
+	suggests: ExtensionSuggestion[];
 	// A folder plugin that isn't running.
 	deletable: boolean;
 	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
@@ -592,6 +612,8 @@ export interface IconPackSummary {
 	abandoned: boolean | string;
 	// The package to use instead, when it's an installed extension.
 	replacement: ExtensionDependent | null;
+	// What it suggests (D-434), each checked against the site.
+	suggests: ExtensionSuggestion[];
 	deletable: boolean;
 	count: number;
 	// The first twelve on the list; every one from `GET icon-packs/{name}`.

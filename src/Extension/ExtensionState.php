@@ -201,9 +201,13 @@ final readonly class ExtensionState
 	 * `blocked` (why it can't run, or `null`), and `requiredBy` (the
 	 * extensions of every kind that require it); and `abandoned` (`false`,
 	 * `true`, or the package to use instead, D-433), with the
-	 * `replacement` when it's an installed extension, or `null`.
+	 * `replacement` when it's an installed extension, or `null`; and what
+	 * it `suggests` (D-434), each with the `extension` when it's an
+	 * installed one, whether a PHP extension is `loaded` (`null` for
+	 * anything else), and the `version` the site has of either (`null`
+	 * when it has none).
 	 *
-	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}}
+	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>}
 	 */
 	public function report(ExtensionManifest $extension): array
 	{
@@ -214,8 +218,42 @@ final readonly class ExtensionState
 			'blocked'      => Requirements::met($checked) ? null : Requirements::reason($checked),
 			'requiredBy'   => array_map(self::describe(...), $this->requiredBy($extension->name)),
 			'abandoned'    => $extension->abandoned,
-			'replacement'  => is_string($extension->abandoned) && isset($this->installed[$extension->abandoned]) ? self::describe($this->installed[$extension->abandoned]) : null
+			'replacement'  => is_string($extension->abandoned) && isset($this->installed[$extension->abandoned]) ? self::describe($this->installed[$extension->abandoned]) : null,
+			'suggests'     => $this->suggests($extension)
 		];
+	}
+
+	/**
+	 * What an extension suggests (D-434), each with the installed
+	 * extension it names, if any, whether a PHP extension it names is
+	 * loaded, and the version of either the site has. Nothing else is looked up: a `vendor/name` that isn't an
+	 * extension may be a library Composer has installed.
+	 *
+	 * @return list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>
+	 */
+	private function suggests(ExtensionManifest $extension): array
+	{
+		$suggests = [];
+
+		foreach ($extension->suggest as $name => $reason) {
+			$installed = $this->installed[$name] ?? null;
+			$loaded    = str_starts_with($name, 'ext-') ? extension_loaded(substr($name, 4)) : null;
+			$version   = match (true) {
+				$installed !== null => $installed->version,
+				$loaded === true    => phpversion(substr($name, 4)),
+				default             => null
+			};
+
+			$suggests[] = [
+				'name'      => $name,
+				'reason'    => $reason,
+				'extension' => $installed === null ? null : self::describe($installed),
+				'loaded'    => $loaded,
+				'version'   => is_string($version) && $version !== '' ? $version : null
+			];
+		}
+
+		return $suggests;
 	}
 
 	/**

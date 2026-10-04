@@ -23,6 +23,7 @@ use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Extension\ExtensionRequire;
+use Blush\Extension\ExtensionSuggest;
 
 /**
  * An icon pack (D-378): SVG icons in its own namespace, with no code. Its
@@ -44,7 +45,8 @@ use Blush\Extension\ExtensionRequire;
  * are in D-384's shape, its `license` a string or a list (D-427, D-428), and its
  * `homepage`, `support`, and `funding` (D-428), each from its
  * `composer.json` when the manifest has none (D-385). Its `abandoned`
- * (`true`, or the package to use instead) only warns (D-433). Its `require` is
+ * (`true`, or the package to use instead) only warns (D-433), and its
+ * `suggest` is only shown (D-434). Its `require` is
  * checked as a plugin's is (D-431): a pack that's on but whose
  * requirements aren't met doesn't load.
  */
@@ -56,6 +58,7 @@ final readonly class IconPack implements ExtensionManifest
 	 * @param list<ExtensionAuthor> $authors Who made it.
 	 * @param array<string, string> $require What it needs, each mapped to a version constraint (D-431).
 	 * @param bool|string           $abandoned Whether it's abandoned, or the package to use instead (D-433).
+	 * @param array<string, string> $suggest   Package => why it's suggested (D-434).
 	 * @throws ExtensionException
 	 */
 	public function __construct(
@@ -71,7 +74,8 @@ final readonly class IconPack implements ExtensionManifest
 		public string $license = '',
 		public ExtensionLinks $links = new ExtensionLinks(),
 		public array $require = [],
-		public bool|string $abandoned = false
+		public bool|string $abandoned = false,
+		public array $suggest = []
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf('The icon pack in %s needs a "name": vendor/name, such as "acme/brands".', $path));
@@ -114,6 +118,7 @@ final readonly class IconPack implements ExtensionManifest
 			$links   = ExtensionLinks::fromArray($data);
 			$require = ExtensionRequire::fromArray($data['require'] ?? null);
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
+			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('The icon pack in %s: %s', $path, $error->getMessage()), previous: $error);
 		}
@@ -132,7 +137,8 @@ final readonly class IconPack implements ExtensionManifest
 			license: $license,
 			links: $links,
 			require: $require,
-			abandoned: $abandoned
+			abandoned: $abandoned,
+			suggest: $suggest
 		);
 	}
 
@@ -158,6 +164,7 @@ final readonly class IconPack implements ExtensionManifest
 				'license'     => $this->license,
 				'require'     => $this->require,
 				'abandoned'   => $this->abandoned,
+				'suggest'     => $this->suggest,
 				...$this->links->toArray()
 			]
 		];

@@ -17,7 +17,8 @@ namespace Blush\Extension;
  * What every kind's manifest shares for its requirements (D-431): a
  * plugin's, a theme's, or an icon pack's name, label, version, and
  * `require`, which are checked the same way for every kind, and whether
- * it's abandoned (D-433), which warns the same way.
+ * it's abandoned (D-433), which warns the same way, and what it
+ * suggests (D-434), which is shown the same way.
  */
 interface ExtensionManifest
 {
@@ -50,6 +51,14 @@ interface ExtensionManifest
 	 * instead, as Composer's `abandoned` is (D-433); `false` when it isn't.
 	 */
 	public bool|string $abandoned { get; }
+
+	/**
+	 * The packages that would work well with it, each mapped to why, as
+	 * Composer's `suggest` is (D-434). Only shown, never enforced.
+	 *
+	 * @var array<string, string>
+	 */
+	public array $suggest { get; }
 	// phpcs:enable
 
 	/**

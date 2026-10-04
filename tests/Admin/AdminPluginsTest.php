@@ -126,6 +126,7 @@ final class AdminPluginsTest extends TestCase
 			'requiredBy'   => [],
 			'abandoned'    => false,
 			'replacement'  => null,
+			'suggests'     => [],
 			'deletable'    => false,
 			'backup'       => null
 		], $recipes);

@@ -20,7 +20,7 @@ use JsonException;
  * a manifest may leave to it: Blush's own keys, under `extra.blush`
  * (D-432), and the keys a manifest shares with Composer's schema (D-418;
  * `authors` since D-384, `license` since D-385, and `homepage`,
- * `support`, and `funding` since D-428, and `abandoned` since D-433). Its `type` may say the folder's
+ * `support`, and `funding` since D-428, `abandoned` since D-433, and `suggest` since D-434). Its `type` may say the folder's
  * kind (D-432). A missing or unreadable file is nothing, and so is a key
  * of the wrong shape.
  */
@@ -32,7 +32,7 @@ final readonly class ComposerJson
 	 *
 	 * @var list<string>
 	 */
-	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'homepage', 'support', 'funding', 'abandoned'];
+	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'homepage', 'support', 'funding', 'abandoned', 'suggest'];
 
 	/**
 	 * Fills in what a manifest leaves out from the `composer.json` in its
@@ -69,6 +69,7 @@ final readonly class ComposerJson
 				'authors' => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($composer['authors'])),
 				'license' => self::license($composer['license']),
 				'abandoned' => ExtensionAbandoned::lenient($composer['abandoned']),
+				'suggest'   => ExtensionSuggest::lenient($composer['suggest']) ?: null,
 				'autoload', 'require' => is_array($composer[$key]) ? $composer[$key] : null,
 				'homepage', 'support', 'funding' => ExtensionLinks::lenient([$key => $composer[$key]])->toArray()[$key] ?? null,
 				default   => is_string($composer[$key]) ? $composer[$key] : null

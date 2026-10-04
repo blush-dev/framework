@@ -24,6 +24,7 @@ use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Extension\ExtensionRequire;
+use Blush\Extension\ExtensionSuggest;
 
 /**
  * A theme, as its `theme.json` (or `.yaml`, D-032) describes it: its
@@ -46,7 +47,7 @@ use Blush\Extension\ExtensionRequire;
  * `homepage`, `support`, and `funding` as Composer has them (D-428);
  * discovery fills each in from the `composer.json` in its folder when the manifest has none.
  * Its `abandoned` (`true`, or the package to use instead) only warns, as
- * Composer's does (D-433).
+ * Composer's does (D-433), and its `suggest` is only shown (D-434).
  * Its `require` is checked as a plugin's is (D-431): an active theme
  * whose chain needs what the site doesn't have falls back to the
  * default theme.
@@ -69,6 +70,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param ExtensionLinks        $links    Its homepage, support, and funding (D-428).
 	 * @param array<string, string> $require  What it needs, each mapped to a version constraint (D-431).
 	 * @param bool|string           $abandoned Whether it's abandoned, or the package to use instead (D-433).
+	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
 	 */
 	public function __construct(
 		public string $name,
@@ -89,7 +91,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 		public string $license = '',
 		public ExtensionLinks $links = new ExtensionLinks(),
 		public array $require = [],
-		public bool|string $abandoned = false
+		public bool|string $abandoned = false,
+		public array $suggest = []
 	) {}
 
 	public function kind(): ExtensionKind
@@ -186,6 +189,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 			$links    = ExtensionLinks::fromArray($data);
 			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
+			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
 		}
@@ -210,7 +214,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 			license: $license,
 			links: $links,
 			require: $require,
-			abandoned: $abandoned
+			abandoned: $abandoned,
+			suggest: $suggest
 		);
 	}
 

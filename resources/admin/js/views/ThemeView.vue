@@ -3,7 +3,7 @@
  * A theme's details (D-383, the themes sketch's detail screen), at
  * `/themes/{vendor}/{name}`: its preview in both halves of its palette,
  * its details, its requirements (checked as if it were active, D-431),
- * its palette as swatches, and, for a folder theme the active one
+ * what it suggests (D-434), its palette as swatches, and, for a folder theme the active one
  * doesn't use, **Delete theme**. An active theme whose requirements
  * aren't met says it isn't running. A Composer theme says how
  * it's removed instead.
@@ -21,6 +21,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
 import ExtensionRequirements from '../components/ExtensionRequirements.vue';
+import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
@@ -255,6 +256,15 @@ async function remove(): Promise<void> {
 				</header>
 				<div class="panel__body">
 					<ExtensionRequirements :requirements="theme.requirements" />
+				</div>
+			</section>
+			<section v-if="theme.suggests.length" class="panel" aria-labelledby="suggests-heading">
+				<header class="panel__header">
+					<h2 id="suggests-heading">Suggests</h2>
+					<p class="panel__hint">Works well with these; none is needed</p>
+				</header>
+				<div class="panel__body">
+					<ExtensionSuggestions :suggestions="theme.suggests" />
 				</div>
 			</section>
 

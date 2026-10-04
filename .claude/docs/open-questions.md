@@ -400,6 +400,45 @@ Move each item to `decisions.md` once it's answered.
     a zip install does or goes through Composer (the installer refuses a
     package that needs Composer libraries); and whether one install may
     bring others, and how the admin asks first.
+- **Composer's other package links** (raised 2026-10-04; `require` is
+  enforced since D-431, `suggest` is shown since D-434, and `require-dev`
+  is ignored, D-434). The author agreed to the order `conflict`, then
+  `replace`, then `provide`; each is still to be settled before it's
+  built:
+  - **`conflict`:** names and constraints, as `require` has them, for
+    any kind, `php`, `ext-*`, and `blush-dev/framework`. The proposal:
+    checked against what's *turned on* (the plugins and packs on, and
+    the active chain), not what *runs*, once before `require` is
+    settled. A conflict judged against what runs isn't monotone (one
+    stopping can let another start), so settling could cycle, where
+    `require` alone only ever removes. Open: which side gives way at
+    boot. Composer refuses both packages; the proposal is that **the
+    one declaring the conflict** stops (it made the claim), over both
+    stopping, or the later one in plugins-then-themes, config order.
+    Enforced wherever a choice is made, as `require` is (`PUT plugins`,
+    `PUT icon-packs`, activating, installing: a `422` naming it), and in
+    `doctor` and each `*:check`. Also open: whether a conflict naming a
+    library (not an extension) is checked against Composer's
+    `installed.json`, or ignored, as a missing package conflicts with
+    nothing.
+  - **`replace`:** for forks and renames, pairing with `abandoned`'s
+    replacement (D-433). A `require` of a replaced name is met by the
+    extension replacing it, at its own version (Composer's
+    `self.version`). A replaced name is claimed, so the replacer and the
+    replaced being installed together is the clash D-431 already reports
+    for one name across kinds.
+  - **`provide`:** virtual packages, as `psr/log-implementation` is. A
+    `require` of a provided name is met by any running extension that
+    provides it at a fitting version, and several may provide one, so a
+    provided name isn't claimed. Waits for a use: the planned
+    `Blush\Ai` provider layer (D-397) is the likely first, with a plugin
+    requiring something like `blush-dev/ai-provider`. Design `conflict`
+    and `replace` so it fits later.
+  - **For Composer packages,** the top-level `conflict`, `replace`, and
+    `provide` are Composer's, as a Composer theme's or pack's top-level
+    `require` is (D-431): Composer enforced them among the packages it
+    knows. Blush would read only `extra.blush`'s for them, since what
+    Composer can't see is local extensions.
 - **Requiring components to be registered** (D-266's direction): how
   a template-only component registers without PHP (a JSON file beside
   the template, with its text in the catalog?), and what happens to
@@ -487,6 +526,16 @@ Move each item to `decisions.md` once it's answered.
   or add a general figure wrapper that captions a quote, table, or code
   block?
 - **Product name** (D-038): the author will decide.
+- **Versioning manifest and schema shapes** (raised 2026-10-04): the
+  author wants a version on JSON manifests (extension and theme
+  manifests, D-418) and on every schema-like file (the editor JSON
+  Schemas, D-206; `user/data/` files such as `settings.json` and
+  `types`), so a future change of shape can be detected and migrated
+  rather than misread. Undecided: the key (a `version`/`schemaVersion`
+  integer, or a versioned `$schema` URL), what a missing version means
+  (version 1), whether loaders migrate old shapes or refuse them, and
+  how this fits Composer-shaped manifests that fall back to
+  `composer.json`, which has no such key.
 - **1.x's "Powered by" lines** (noted 2026-09-27): 1.x's footer picked a
   random line ("Powered by coffee.", "Powered by an old mixtape and
   memories of lost love.", …; `Template/Tag/PoweredBy.php` on `master`).

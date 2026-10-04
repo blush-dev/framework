@@ -210,7 +210,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertTrue(Requirements::met($state->check($plugins[0])), 'Checked as if it were on.');
 		$this->assertSame(['acme/brands-block', 'acme/nova'], array_map(static fn ($other): string => $other->name, $state->requiredBy('acme/brands')));
 		$this->assertSame(
-			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands']], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null],
+			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands']], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => []],
 			$state->report($plugins[0])
 		);
 	}
@@ -226,6 +226,21 @@ final class ExtensionStateTest extends TestCase
 		$this->assertSame(['abandoned' => 'acme/brands', 'replacement' => ['name' => 'acme/brands', 'label' => 'Brands', 'kind' => 'icon-pack']], array_intersect_key($state->report($packs[1]), ['abandoned' => true, 'replacement' => true]), 'Of any kind.');
 		$this->assertSame(['abandoned' => 'acme/elsewhere', 'replacement' => null], array_intersect_key($state->report($plugins[0]), ['abandoned' => true, 'replacement' => true]), 'A package that isn\'t installed is only named.');
 		$this->assertFalse($state->report($plugins[1])['abandoned']);
+	}
+
+	public function testReportsWhatItSuggests(): void
+	{
+		$packs   = [self::pack('acme/brands')];
+		$plugins = [new PluginManifest(name: 'acme/hello', label: 'Hello', namespace: 'hello', source: PluginSource::Local, path: '/site/extensions/acme/hello', suggest: ['acme/brands' => 'For logos.', 'ext-json' => 'Faster.', 'ext-blush-none' => '', 'guzzlehttp/guzzle' => 'For feeds.'])];
+
+		$state = self::settle($plugins, [], [self::theme('acme/nova')], Themes::DEFAULT, $packs, []);
+
+		$this->assertSame([
+			['name' => 'acme/brands', 'reason' => 'For logos.', 'extension' => ['name' => 'acme/brands', 'label' => 'Brands', 'kind' => 'icon-pack'], 'loaded' => null, 'version' => '1.0.0'],
+			['name' => 'ext-json', 'reason' => 'Faster.', 'extension' => null, 'loaded' => true, 'version' => phpversion('json')],
+			['name' => 'ext-blush-none', 'reason' => '', 'extension' => null, 'loaded' => false, 'version' => null],
+			['name' => 'guzzlehttp/guzzle', 'reason' => 'For feeds.', 'extension' => null, 'loaded' => null, 'version' => null]
+		], $state->report($plugins[0])['suggests'], 'An installed extension is described even when it\'s off; anything else is only named.');
 	}
 
 	public function testSaysWhatStartsAndStopsWithAChange(): void

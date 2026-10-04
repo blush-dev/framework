@@ -207,6 +207,13 @@
 				}
 			],
 			"description": "Whether the icon pack is no longer maintained: true, or the name of the package to use instead (vendor/name), as composer.json has it. It only warns. Without it, the abandoned in the composer.json beside this file is used."
+		},
+		"suggest": {
+			"type": "object",
+			"description": "Packages that would work well with the icon pack, each mapped to why, as composer.json has it: other plugins, themes, or icon packs by vendor/name, libraries, or ext-{name} for PHP extensions. It's only shown, never enforced. Without it, the suggest in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
 		}
 	}
 }

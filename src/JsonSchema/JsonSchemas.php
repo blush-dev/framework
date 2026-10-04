@@ -727,8 +727,8 @@ final readonly class JsonSchemas
 
 	/**
 	 * Returns the schemas for a manifest's `homepage`, `support`, and
-	 * `funding` (D-428), and `abandoned` (D-433), in `composer.json`'s
-	 * shape.
+	 * `funding` (D-428), `abandoned` (D-433), and `suggest` (D-434), in
+	 * `composer.json`'s shape.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
@@ -778,6 +778,11 @@ final readonly class JsonSchemas
 			'abandoned' => [
 				'oneOf'       => [['type' => 'boolean'], ['type' => 'string', 'pattern' => trim(ExtensionName::PATTERN, '#')]],
 				'description' => sprintf('Whether the %s is no longer maintained: true, or the name of the package to use instead (vendor/name), as composer.json has it. It only warns. Without it, the abandoned in the composer.json beside this file is used.', $kind)
+			],
+			'suggest' => [
+				'type'                 => 'object',
+				'description'          => sprintf('Packages that would work well with the %s, each mapped to why, as composer.json has it: other plugins, themes, or icon packs by vendor/name, libraries, or ext-{name} for PHP extensions. It\'s only shown, never enforced. Without it, the suggest in the composer.json beside this file is used.', $kind),
+				'additionalProperties' => ['type' => 'string']
 			]
 		];
 	}

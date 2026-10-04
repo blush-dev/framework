@@ -12629,3 +12629,58 @@ decision, add a new entry that supersedes it and mark the old one
   browser.
 - **Why:** the author asked for Composer's `abandoned`, continuing
   Composer parity (D-428 to D-432).
+
+### D-434: `suggest` is shown, and `require-dev` ignored, as in Composer
+- **Date:** 2026-10-04
+- **Decision:** From a discussion of Composer's package links
+  (https://getcomposer.org/doc/04-schema.md#package-links): the author
+  agreed to build them in the order `suggest`, `conflict`, `replace`,
+  then `provide` (when the `Blush\Ai` layer, D-397, or another use needs
+  it), and `suggest` comes first. The rest are in `open-questions.md`.
+  - **`require-dev` is ignored.** Composer reads it only from the root
+    package, so it means nothing in an extension a site installs.
+    Manifests already let keys through that Blush doesn't read, so
+    there's nothing to build, and the schemas don't list it.
+  - **Every kind reads `suggest`,** Composer's shape: an object mapping
+    a package to why (`ExtensionSuggest`). Any name will do, as in
+    `require`: an extension's `vendor/name`, a library's, or
+    `ext-{name}`. A manifest's is strict (an object of names to strings,
+    or the manifest is broken); `composer.json`'s and Composer's
+    `installed.json`'s are lenient, keeping the entries that fit. It's
+    read from the manifest, `extra.blush`, or the top level of
+    `composer.json` (it joins `ComposerJson::SHARED`), for local and
+    Composer packages alike: unlike `require` (D-431), the top level of
+    a Composer theme's or pack's isn't skipped, since nothing is
+    enforced. `ExtensionManifest` has `suggest`, and so do
+    `PluginManifest`, `ThemeManifest`, and `IconPack`.
+  - **It's only shown.** Nothing is checked or installed for it, and the
+    `*:check` commands say nothing of it.
+  - **The API:** `ExtensionState::report()` adds `suggests` to `GET
+    plugins`, `GET themes`, and `GET icon-packs`: each `{"name",
+    "reason", "extension", "loaded", "version"}`, `extension` being the
+    installed extension it names (of any kind, on or off) or `null`,
+    `loaded` whether an `ext-{name}` is loaded, or `null`, and `version`
+    the version the site has of either, or `null`. A `vendor/name` that
+    isn't an extension is only named, not called missing, since it may
+    be a library Composer has. Installing answers `installed.suggests`
+    (each `{"name", "reason"}`, on `ExtensionPackage`).
+  - **The admin:** a **Suggests** panel on each details screen, drawn
+    only when there's something (`ExtensionSuggestions.vue`), drawn as
+    the Requires list is (the author's call): each name with the version
+    the site has beside it, as a requirement's constraint is, and its
+    reason as the note. An installed extension is linked and checked, a
+    loaded PHP extension checked (one that isn't says so), and anything
+    else named;
+    on a plugin's, full width beneath the Details and Requires columns.
+    The Install modal lists what was installed suggests beneath it, as
+    Composer prints suggestions after installing.
+  - The JSON Schemas have it.
+- **Checked:** `composer check` (strict and lenient reading; filled
+  from `composer.json`, the manifest's winning; every kind, and a
+  plugin's round trip through its cache; a Composer plugin's from
+  `installed.json`, `extra.blush`'s winning; the report's installed
+  extension, loaded and unloaded PHP extensions, and a library; the
+  install answer); `npm run admin:build`. Not checked in a browser.
+- **Why:** continuing Composer parity (D-428 to D-433); `suggest` is
+  the cheapest link and enforces nothing, so it goes first.
+
