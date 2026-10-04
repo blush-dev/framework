@@ -379,9 +379,11 @@ own git repository.
 
 Manifests use Composer's names and shapes for the keys they share with
 `composer.json`: `name`, `description`, `version`, `license`,
-`authors`, `autoload`, and `require`. A manifest that leaves one of
+`authors`, `autoload`, `require`, `homepage`, `support`, and `funding`.
+A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
-them once. Blush's own keys (`label`, `namespace`, `provider`, and a
+them once. A manifest's own value replaces `composer.json`'s whole; the
+two aren't merged. Blush's own keys (`label`, `namespace`, `provider`, and a
 theme's or icon pack's own) always go in the manifest, if anywhere. A
 manifest may even be empty (`{}`) when its `composer.json` names it.
 
@@ -510,7 +512,40 @@ path must be inside the plugin. It's off until you turn it on, in
 `enabled` list (see [Turning extensions on](#turning-extensions-on)).
 `authors` (each with a `name`, and optionally an `email`, `homepage`,
 and `role`, as in `composer.json`) and `license` are shown in the
-admin.
+admin, though not email addresses. `license` takes Composer's forms: an
+[SPDX identifier](https://spdx.org/licenses/) (`MIT`), a list any of
+which applies (`["MIT", "GPL-2.0-or-later"]`), `(MIT or Apache-2.0)`,
+`(MIT and Apache-2.0)` when all apply, or `proprietary`. Common open
+source licenses link to their text.
+
+`homepage`, `support`, and `funding` say where to learn about, get help
+with, and fund it, as in `composer.json`:
+
+```json
+{
+	"homepage": "https://example.com/hello",
+	"support": {
+		"docs": "https://example.com/hello/docs",
+		"source": "https://github.com/acme/hello",
+		"issues": "https://github.com/acme/hello/issues",
+		"forum": "https://example.com/forum",
+		"chat": "https://example.com/chat",
+		"wiki": "https://github.com/acme/hello/wiki",
+		"irc": "irc://irc.libera.chat/acme",
+		"rss": "https://example.com/hello/feed",
+		"security": "https://example.com/hello/security",
+		"email": "help@example.com"
+	},
+	"funding": [
+		{ "type": "github", "url": "https://github.com/sponsors/acme" }
+	]
+}
+```
+
+Every address is an `http` or `https` URL, except `irc` (`irc://` or
+`ircs://`) and `email` (an email address). The admin shows them on the
+extension's details, under **Links** and **Sponsor** (all but `email`). In a manifest, one
+that doesn't fit is an error; in `composer.json`, it's left out.
 
 For autocomplete in your editor, add a `$schema` key pointing at the
 schema Blush ships (the path is relative to `plugin.json`):
@@ -840,8 +875,8 @@ code. Put it in `extensions/{vendor}/{name}/`, with an `icons.json` (or
 Only `name` is required. Without a `label` it's shown by its name, and
 without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
-`config/icons.php`'s `enabled` list. `authors` works as a
-plugin's does. Each `{icon}.svg` in the
+`config/icons.php`'s `enabled` list. `authors`, `license`, `homepage`,
+`support`, and `funding` work as a plugin's do. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is
 `{namespace}/{icon}`: `svg/github.svg` is `brands/github`, used as
 `:icon[GitHub]{name=brands/github}` or `$template->icon('brands/github')`.

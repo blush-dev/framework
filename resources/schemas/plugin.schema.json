@@ -108,8 +108,115 @@
 			}
 		},
 		"license": {
+			"description": "How the plugin may be used: an SPDX identifier such as \"MIT\", a list of them any of which applies, \"(MIT or Apache-2.0)\", \"(MIT and OFL-1.1)\" when all apply, or \"proprietary\". Common open source licenses link to their text in the admin. Without it, the license in the composer.json beside this file is used.",
+			"oneOf": [
+				{
+					"type": "string"
+				},
+				{
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"type": "string",
+						"minLength": 1
+					}
+				}
+			]
+		},
+		"homepage": {
 			"type": "string",
-			"description": "How the plugin may be used, as an SPDX identifier such as \"MIT\". Without it, the license in the composer.json beside this file is used."
+			"format": "uri",
+			"pattern": "^https?://",
+			"description": "The plugin's website. Without it, the homepage in the composer.json beside this file is used."
+		},
+		"support": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Where to get help with the plugin, as composer.json has it. Without it, the support in the composer.json beside this file is used.",
+			"properties": {
+				"docs": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "The documentation."
+				},
+				"source": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "Where to browse or download the source."
+				},
+				"issues": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "The issue tracker."
+				},
+				"forum": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "The forum."
+				},
+				"chat": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "A chat channel."
+				},
+				"wiki": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "The wiki."
+				},
+				"irc": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^ircs?://",
+					"description": "An IRC channel, such as irc://irc.libera.chat/example."
+				},
+				"rss": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "An RSS feed."
+				},
+				"security": {
+					"type": "string",
+					"format": "uri",
+					"pattern": "^https?://",
+					"description": "How to report a security issue."
+				},
+				"email": {
+					"type": "string",
+					"format": "email",
+					"description": "An email address for support."
+				}
+			}
+		},
+		"funding": {
+			"type": "array",
+			"description": "Where to fund the plugin, as composer.json has it. Without it, the funding in the composer.json beside this file is used.",
+			"items": {
+				"type": "object",
+				"required": [
+					"url"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"type": {
+						"type": "string",
+						"description": "The kind of funding, such as github, patreon, opencollective, tidelift, ko-fi, or custom."
+					},
+					"url": {
+						"type": "string",
+						"format": "uri",
+						"pattern": "^https?://",
+						"description": "Where to fund it."
+					}
+				}
+			}
 		}
 	}
 }

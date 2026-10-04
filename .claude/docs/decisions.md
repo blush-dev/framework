@@ -12312,3 +12312,81 @@ decision, add a new entry that supersedes it and mark the old one
   defined after boot.
 - **Why:** the author asked whether every plugin needs a provider; one
   that only loads files, or only requires others, doesn't.
+
+### D-426: Common licenses link to their text
+- **Date:** 2026-10-04
+- **Decision:** On a plugin's details, each license its `license` names
+  links to its text on spdx.org (`https://spdx.org/licenses/{id}.html`)
+  when it's one of a short list of common open source identifiers
+  (`ExtensionLicense::KNOWN`: Composer's recommended ones, others such
+  as `ISC`, `MPL-2.0`, `Unlicense`, `CC0-1.0`, and the deprecated GPL
+  family ones like `GPL-2.0+` that packages still use), matched without
+  regard to case. `license` follows Composer's forms
+  (https://getcomposer.org/doc/04-schema.md#license): an identifier, a
+  list (joined with `or`, D-385), `(a or b)`, `(a and b)`, and
+  `proprietary`; `ExtensionLicense::parts()` splits it into licenses
+  and the operators (`or`, `and`, SPDX's `with`), dropping parentheses.
+  Unknown names (`proprietary`, an exception after `with`, a custom
+  name) stay text. `GET plugins` adds `licenses` (`{"text", "url",
+  "operator"}`) beside `license`; operators are drawn muted. Themes and
+  icon packs don't show a license yet.
+- **Checked:** `composer check`; `npm run admin:build`. Not checked in a
+  browser.
+- **Why:** the author's call, with a small list rather than every SPDX
+  identifier, so only licenses people recognize are linked.
+
+### D-427: Themes and icon packs show their license
+- **Date:** 2026-10-04
+- **Decision:** `ThemeManifest` and `IconPack` gain `license` (a string,
+  as a plugin's, from the manifest or else the `composer.json` beside it,
+  D-418; an icon pack's cache keeps it), and `GET themes` and `GET
+  icon-packs` answer `license` and `licenses` as `GET plugins` does
+  (D-426). The theme and icon pack details show it under **License**,
+  after the version; all three details screens draw it with one
+  component, `LicenseLinks.vue`. The theme and icon pack JSON Schemas
+  gain `license`, described with Composer's forms, as the plugin's now
+  is.
+- **Checked:** `composer check`; `npm run admin:build`. Not checked in a
+  browser.
+- **Why:** the author's call, following D-426.
+
+### D-428: Manifest licenses take lists, and extensions have links
+- **Date:** 2026-10-04
+- **Decision:**
+  - **`license`** in every kind's manifest is a string or a list of
+    strings any of which applies, as Composer's is
+    (`ExtensionLicense::fromManifest()`, joined `MIT or ISC`; an empty
+    list is none). Supersedes "a string" in D-385. Anything else breaks
+    the manifest.
+  - **`homepage`, `support`, and `funding`** are read for plugins,
+    themes, and icon packs, in `composer.json`'s shape
+    (`ExtensionLinks`): `support` has `docs`, `source`, `issues`,
+    `forum`, `chat`, `wiki`, `irc`, `rss`, `security`, and `email`
+    (all kept, the author's call), and `funding` is a list of `{"type",
+    "url"}`. URLs are `http`/`https`, `irc` is `irc://` or `ircs://`,
+    and `email` an address. A manifest's are strict (unknown `support`
+    keys and bad URLs are errors); `composer.json`'s and Composer's
+    `installed.json`'s are lenient, keeping what fits. They join
+    `ComposerJson::SHARED`, so a manifest without one takes the
+    `composer.json`'s, whole.
+  - **The admin:** `GET plugins`, `GET themes`, and `GET icon-packs`
+    answer `links` (homepage, then support, in that order, `{"kind",
+    "url"}`, email as `mailto:`) and `funding`. Each details screen
+    shows **Links** and **Sponsor** rows after **License**
+    (`ExtensionLinks.vue`), only when they have something: links named
+    for their kind, and funding named for a known platform (`github` is
+    "GitHub Sponsors", and Patreon, Open Collective, Tidelift, Ko-fi,
+    Liberapay, Buy Me a Coffee, PayPal) or else its URL's host, with a
+    heart. Where Sponsor sits was left to me; the author may redesign
+    it.
+    Email addresses aren't shown in the admin (the author's call):
+    neither `support.email` nor an author's `email` (the mail icon each
+    author had on the details screens since D-384 is gone), though the
+    API keeps both.
+  - The JSON Schemas have all three, and `license` as a string or list.
+- **Test bed:** `../blush/extensions/example/composer-only/`'s
+  `composer.json` has every support key and two funding links.
+- **Checked:** `composer check`; `npm run admin:build`. Not checked in a
+  browser.
+- **Why:** the author asked for Composer parity on licenses, and for
+  funding and support links, keeping `irc` and `rss`.

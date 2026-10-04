@@ -22,6 +22,7 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionLicense;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
@@ -38,7 +39,13 @@ use Blush\Plugin\Requirement;
  * Answers `GET {path}/api/plugins` (D-308, D-378, D-385), for accounts
  * with `extensions.plugins.view` (D-389): every installed plugin, by label, with its
  * `name`, `label`, `namespace`, `version`, `description`, `authors`
- * (D-384's shape), `license`, `source` (`local` or `composer`), `path`
+ * (D-384's shape), `license`, `licenses` (its parts, as `{"text", "url",
+ * "operator"}`: each license it names, `url` linking a common one's text
+ * or `null`, and the `or`, `and`, or `with` between them; D-426),
+ * `links` (its homepage and support links, in order, as `{"kind",
+ * "url"}`, `support.email` as `mailto:`) and `funding` (`{"type",
+ * "url"}`, D-428),
+ * `source` (`local` or `composer`), `path`
  * (from the site's root), and:
  *
  * - `folder`: its folder in `extensions/`, or `null` for a Composer one.
@@ -116,6 +123,9 @@ final readonly class PluginsController
 				'description'  => $plugin->description,
 				'authors'      => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $plugin->authors),
 				'license'      => $plugin->license,
+				'licenses'     => ExtensionLicense::parts($plugin->license),
+				'links'        => $plugin->links->links(),
+				'funding'      => $plugin->links->funding,
 				'source'       => $plugin->source->value,
 				'path'         => $this->paths->relative($plugin->path),
 				'folder'       => $folder,

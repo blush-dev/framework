@@ -18,6 +18,7 @@ use Blush\Extension\ComposerJson;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionLinks;
 use Blush\Support\ComposerPackages;
 use Blush\Support\FilesystemException;
 
@@ -101,7 +102,8 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			'description' => is_string($package['description'] ?? null) ? $package['description'] : '',
 			'require'     => $blush['require'] ?? [],
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($package['authors'] ?? [])),
-			'license'     => ComposerJson::license($package['license'] ?? null)
+			'license'     => ComposerJson::license($package['license'] ?? null),
+			...ExtensionLinks::lenient($package)->toArray()
 		]);
 	}
 }

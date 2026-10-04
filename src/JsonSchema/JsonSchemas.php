@@ -18,6 +18,7 @@ use Blush\Component\ComponentName;
 use Blush\Component\Variant;
 use Blush\Content\EntryFields;
 use Blush\Core\Framework;
+use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Field\Control;
@@ -135,6 +136,8 @@ final readonly class JsonSchemas
 				'version'     => ['type' => 'string', 'description' => 'The theme\'s version, such as 1.0.0.'],
 				'description' => ['type' => 'string', 'description' => 'What the theme is for.'],
 				'authors'     => $this->authors('theme'),
+				'license'     => $this->license('theme'),
+				...$this->links('theme'),
 				'parent'      => [
 					'type'        => 'string',
 					'pattern'     => trim(ExtensionName::PATTERN, '#'),
@@ -245,7 +248,8 @@ final readonly class JsonSchemas
 				'autoload'    => $this->autoload('plugin', 'Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.'),
 				'require'     => $this->requires('What the plugin needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren\'t met doesn\'t run. Without it, the require in the composer.json beside this file is used.'),
 				'authors'     => $this->authors('plugin'),
-				'license'     => ['type' => 'string', 'description' => 'How the plugin may be used, as an SPDX identifier such as "MIT". Without it, the license in the composer.json beside this file is used.']
+				'license'     => $this->license('plugin'),
+				...$this->links('plugin')
 			]
 		];
 	}
@@ -273,7 +277,9 @@ final readonly class JsonSchemas
 					'pattern'     => self::FOLDER_PATTERN,
 					'description' => 'The folder inside the pack its *.svg files are in, such as "svg". Defaults to the pack\'s own folder. Each {icon}.svg is {namespace}/{icon}.'
 				],
-				'authors'     => $this->authors('icon pack')
+				'authors'     => $this->authors('icon pack'),
+				'license'     => $this->license('icon pack'),
+				...$this->links('icon pack')
 			]
 		];
 	}
@@ -597,6 +603,22 @@ final readonly class JsonSchemas
 	}
 
 	/**
+	 * Returns the schema for an extension's `license` (D-426, D-427).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function license(string $kind): array
+	{
+		return [
+			'description' => sprintf('How the %s may be used: an SPDX identifier such as "MIT", a list of them any of which applies, "(MIT or Apache-2.0)", "(MIT and OFL-1.1)" when all apply, or "proprietary". Common open source licenses link to their text in the admin. Without it, the license in the composer.json beside this file is used.', $kind),
+			'oneOf'       => [
+				['type' => 'string'],
+				['type' => 'array', 'minItems' => 1, 'items' => ['type' => 'string', 'minLength' => 1]]
+			]
+		];
+	}
+
+	/**
 	 * Returns the keys every extension's manifest has (D-378): its
 	 * `name`, `label`, and `namespace`.
 	 *
@@ -697,6 +719,58 @@ final readonly class JsonSchemas
 					'required'             => ThemePreview::ROLES,
 					'additionalProperties' => false,
 					'properties'           => array_fill_keys(ThemePreview::ROLES, $color)
+				]
+			]
+		];
+	}
+
+	/**
+	 * Returns the schemas for a manifest's `homepage`, `support`, and
+	 * `funding` (D-428), in `composer.json`'s shape.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function links(string $kind): array
+	{
+		$url     = ['type' => 'string', 'format' => 'uri', 'pattern' => '^https?://'];
+		$support = [];
+
+		foreach (ExtensionLinks::SUPPORT as $key) {
+			$support[$key] = match ($key) {
+				'email' => ['type' => 'string', 'format' => 'email', 'description' => 'An email address for support.'],
+				'irc'   => ['type' => 'string', 'format' => 'uri', 'pattern' => '^ircs?://', 'description' => 'An IRC channel, such as irc://irc.libera.chat/example.'],
+				default => [...$url, 'description' => match ($key) {
+					'docs'     => 'The documentation.',
+					'source'   => 'Where to browse or download the source.',
+					'issues'   => 'The issue tracker.',
+					'forum'    => 'The forum.',
+					'chat'     => 'A chat channel.',
+					'wiki'     => 'The wiki.',
+					'rss'      => 'An RSS feed.',
+					default    => 'How to report a security issue.'
+				}]
+			};
+		}
+
+		return [
+			'homepage' => [...$url, 'description' => sprintf('The %s\'s website. Without it, the homepage in the composer.json beside this file is used.', $kind)],
+			'support'  => [
+				'type'                 => 'object',
+				'additionalProperties' => false,
+				'description'          => sprintf('Where to get help with the %s, as composer.json has it. Without it, the support in the composer.json beside this file is used.', $kind),
+				'properties'           => $support
+			],
+			'funding'  => [
+				'type'        => 'array',
+				'description' => sprintf('Where to fund the %s, as composer.json has it. Without it, the funding in the composer.json beside this file is used.', $kind),
+				'items'       => [
+					'type'                 => 'object',
+					'required'             => ['url'],
+					'additionalProperties' => false,
+					'properties'           => [
+						'type' => ['type' => 'string', 'description' => 'The kind of funding, such as github, patreon, opencollective, tidelift, ko-fi, or custom.'],
+						'url'  => [...$url, 'description' => 'Where to fund it.']
+					]
 				]
 			]
 		];

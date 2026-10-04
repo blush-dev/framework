@@ -22,6 +22,7 @@ use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionLicense;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
@@ -48,7 +49,9 @@ use Blush\Theme\ThemeSource;
  * Each theme has its `name`, `label`, `namespace`, `version`,
  * `description`, `parent`, `source`, and whether it's `active` (D-378);
  * its `folder` (where it's installed, `null` for the default theme);
- * its `authors` (D-384, `composer.json`'s shape);
+ * its `authors` (D-384, `composer.json`'s shape); its `license` and
+ * `licenses` (as `GET plugins` has them, D-426, D-427); its `links` and
+ * `funding` (as `GET plugins` has them, D-428);
  * its `preview` (what the admin sketches it from, or `null`); why it's
  * `blocked` from being activated (a theme it falls back to is missing,
  * or `null`); and whether it's `deletable` (a folder in `extensions/`
@@ -106,6 +109,10 @@ final readonly class ThemesController
 			'folder'      => $theme->source === ThemeSource::Framework ? null : $this->paths->relative($theme->path),
 			'preview'     => $theme->preview?->toArray(),
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $theme->authors),
+			'license'     => $theme->license,
+			'licenses'    => ExtensionLicense::parts($theme->license),
+			'links'       => $theme->links->links(),
+			'funding'     => $theme->links->funding,
 			'blocked'     => $this->blocked($theme),
 			'deletable'   => $theme->source === ThemeSource::Local && $theme->name !== $active && ! in_array($theme->name, $chain, true),
 			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::Theme, $theme->source === ThemeSource::Local ? $theme->path : null, $theme->name)

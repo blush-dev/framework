@@ -18,7 +18,8 @@ use JsonException;
 /**
  * Reads the `composer.json` in an extension's folder leniently, for what
  * a manifest may leave to it: the keys a manifest shares with Composer's
- * schema (D-418; `authors` since D-384, `license` since D-385). It isn't
+ * schema (D-418; `authors` since D-384, `license` since D-385, and
+ * `homepage`, `support`, and `funding` since D-428). It isn't
  * the manifest, so a missing or unreadable file is nothing, and so is a
  * key of the wrong shape.
  */
@@ -30,7 +31,7 @@ final readonly class ComposerJson
 	 *
 	 * @var list<string>
 	 */
-	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require'];
+	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'homepage', 'support', 'funding'];
 
 	/**
 	 * Fills in the shared keys a manifest leaves out from the
@@ -56,6 +57,7 @@ final readonly class ComposerJson
 				'authors' => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($composer['authors'])),
 				'license' => self::license($composer['license']),
 				'autoload', 'require' => is_array($composer[$key]) ? $composer[$key] : null,
+				'homepage', 'support', 'funding' => ExtensionLinks::lenient([$key => $composer[$key]])->toArray()[$key] ?? null,
 				default   => is_string($composer[$key]) ? $composer[$key] : null
 			};
 

@@ -47,7 +47,7 @@ final class AdminIconPacksTest extends TestCase
 		}
 
 		$this->writeTemporaryFile('extensions/acme/brands/icons.json', '{"name": "acme/brands", "label": "Brand Logos", "namespace": "brands", "version": "2.0.0", "description": "Logos."}');
-		$this->writeTemporaryFile('extensions/acme/brands/composer.json', '{"authors": [{"name": "Acme", "role": "Drawing"}]}');
+		$this->writeTemporaryFile('extensions/acme/brands/composer.json', '{"authors": [{"name": "Acme", "role": "Drawing"}], "license": "CC-BY-4.0", "homepage": "https://acme.test", "support": {"email": "help@acme.test", "issues": "https://acme.test/issues", "irc": "irc://irc.libera.chat/acme", "forum": "not a url"}, "funding": [{"type": "github", "url": "https://github.com/sponsors/acme"}, {"url": "ftp://nope"}]}');
 		$this->writeTemporaryFile('extensions/acme/brands/lang/en.json', '{"icons": {"github": {"label": "GitHub"}}}');
 
 		foreach (['github', 'mastodon'] as $icon) {
@@ -81,6 +81,10 @@ final class AdminIconPacksTest extends TestCase
 			'version'     => '2.0.0',
 			'description' => 'Logos.',
 			'authors'     => [['name' => 'Acme', 'role' => 'Drawing']],
+			'license'     => 'CC-BY-4.0',
+			'licenses'    => [['text' => 'CC-BY-4.0', 'url' => 'https://spdx.org/licenses/CC-BY-4.0.html', 'operator' => false]],
+			'links'       => [['kind' => 'homepage', 'url' => 'https://acme.test'], ['kind' => 'issues', 'url' => 'https://acme.test/issues'], ['kind' => 'irc', 'url' => 'irc://irc.libera.chat/acme'], ['kind' => 'email', 'url' => 'mailto:help@acme.test']],
+			'funding'     => [['type' => 'github', 'url' => 'https://github.com/sponsors/acme']],
 			'source'      => 'local',
 			'path'        => 'extensions/acme/brands',
 			'folder'      => 'extensions/acme/brands',

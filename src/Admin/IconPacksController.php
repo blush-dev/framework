@@ -22,6 +22,7 @@ use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionLicense;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
@@ -39,7 +40,9 @@ use Blush\Settings\SettingsFile;
  *
  * - `GET icon-packs`: every installed pack, by label, with its `name`,
  *   `label`, `namespace`, `version`, `description`, `authors` (D-384's
- *   shape), `source` (`local` or `composer`), `path` (from the site's
+ *   shape), `license` and `licenses` (as `GET plugins` has them, D-426,
+ *   D-427), `links` and `funding` (as `GET plugins` has them, D-428),
+ *   `source` (`local` or `composer`), `path` (from the site's
  *   root), `folder` (its folder in `extensions/`, or `null`), whether it's
  *   `enabled`, how many icons it has (`count`), the first twelve
  *   (`icons`, each `{"name", "svg"}`, the name in full, `weather/sun`),
@@ -128,7 +131,7 @@ final readonly class IconPacksController
 	/**
 	 * Describes a pack, with its first `$limit` icons, or all of them.
 	 *
-	 * @return array{name: string, label: string, namespace: string, version: string, description: string, authors: list<array<string, string>>, source: string, path: string, folder: ?string, enabled: bool, deletable: bool, backup: ?array{version: string}, count: int, icons: list<array{name: string, svg: string}>}
+	 * @return array{name: string, label: string, namespace: string, version: string, description: string, authors: list<array<string, string>>, license: string, licenses: list<array{text: string, url: ?string, operator: bool}>, links: list<array{kind: string, url: string}>, funding: list<array{type: string, url: string}>, source: string, path: string, folder: ?string, enabled: bool, deletable: bool, backup: ?array{version: string}, count: int, icons: list<array{name: string, svg: string}>}
 	 */
 	private function pack(IconPack $pack, ?int $limit = null): array
 	{
@@ -144,6 +147,10 @@ final readonly class IconPacksController
 			'version'     => $pack->version,
 			'description' => $pack->description,
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $pack->authors),
+			'license'     => $pack->license,
+			'licenses'    => ExtensionLicense::parts($pack->license),
+			'links'       => $pack->links->links(),
+			'funding'     => $pack->links->funding,
 			'source'      => $pack->source->value,
 			'path'        => $this->paths->relative($pack->path),
 			'folder'      => $folder,

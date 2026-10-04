@@ -307,6 +307,37 @@ export interface ExtensionAuthor {
 }
 
 /**
+ * A part of an extension's license (D-426): a license it names, with a
+ * link to a common one's text, or the `or`, `and`, or `with` between
+ * them.
+ */
+export interface LicensePart {
+	text: string;
+	url: string | null;
+	operator: boolean;
+}
+
+/**
+ * One of an extension's homepage and support links (D-428), in the
+ * admin's order: `homepage`, then `support`'s `docs`, `source`, `issues`,
+ * `forum`, `chat`, `wiki`, `irc`, `rss`, `security`, and `email` (as a
+ * `mailto:` URL).
+ */
+export interface ExtensionLink {
+	kind: string;
+	url: string;
+}
+
+/**
+ * Where to fund an extension (D-428), as `composer.json`'s `funding`
+ * has it: `type` is `github`, `patreon`, `custom`, and so on, or empty.
+ */
+export interface ExtensionFunding {
+	type: string;
+	url: string;
+}
+
+/**
  * An installed theme (`GET themes`).
  */
 export interface ThemeSummary {
@@ -326,6 +357,11 @@ export interface ThemeSummary {
 	preview: ThemePreview | null;
 	// Who made it: its manifest's `authors`, else its `composer.json`'s.
 	authors: ExtensionAuthor[];
+	// How it may be used, as written and as parts (D-427).
+	license: string;
+	licenses: LicensePart[];
+	links: ExtensionLink[];
+	funding: ExtensionFunding[];
 	// Why it can't be activated (a theme it falls back to is missing), or `null`.
 	blocked: string | null;
 	// Whether it's a folder in `extensions/` the active theme doesn't use.
@@ -425,6 +461,11 @@ export interface PluginSummary {
 	description: string;
 	authors: ExtensionAuthor[];
 	license: string;
+	// The license's parts, in order: each license it names, with a link
+	// to a common one's text, and the `or`, `and`, or `with` between them.
+	licenses: LicensePart[];
+	links: ExtensionLink[];
+	funding: ExtensionFunding[];
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;
@@ -496,6 +537,11 @@ export interface IconPackSummary {
 	version: string;
 	description: string;
 	authors: ExtensionAuthor[];
+	// How it may be used, as written and as parts (D-427).
+	license: string;
+	licenses: LicensePart[];
+	links: ExtensionLink[];
+	funding: ExtensionFunding[];
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;

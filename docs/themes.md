@@ -209,8 +209,8 @@ Only `name` is required.
   asset URLs all use it, and it's the theme's folder in `extensions/`.
   Leave it out and the `composer.json` beside `theme.json` gives it; a
   Composer theme's name is its package's. `description`, `version`,
-  `license`, and `autoload` also come from that `composer.json` when
-  `theme.json` leaves them out.
+  `license`, `autoload`, `homepage`, `support`, and `funding` also come
+  from that `composer.json` when `theme.json` leaves them out.
 - **`label`:** the theme's title, as people read it. Leave it out and
   the theme is shown by its `name`.
 - **`namespace`:** what your theme's components, icons, and translations
@@ -229,6 +229,16 @@ Only `name` is required.
   Leave it out and the authors in the `composer.json` beside
   `theme.json` are used, so a theme that's also a Composer package lists
   them once. The admin shows them on the theme's details.
+- **`license`:** how the theme may be used, as `composer.json` has it:
+  an [SPDX identifier](https://spdx.org/licenses/) such as `MIT`, a list
+  any of which applies, `(MIT and OFL-1.1)` when all apply (a theme with a bundled font, say),
+  or `proprietary`. Leave it out and the `composer.json` beside
+  `theme.json` gives it. The admin shows it on the theme's details,
+  linking common open source licenses to their text.
+- **`homepage`, `support`, and `funding`:** where to learn about, get
+  help with, and fund the theme, as a plugin has them (see
+  [Plugins](extending.md#plugins)). The admin shows them on the theme's
+  details.
 - **`parent`:** the name of the theme this one builds on, instead of
   starting from the default. Anything this theme doesn't include comes
   from its parent.

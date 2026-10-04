@@ -15,6 +15,8 @@ namespace Blush\Icon;
 
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionLicense;
+use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 
@@ -35,8 +37,9 @@ use Blush\Extension\ExtensionNamespace;
  *
  * Each `{icon}.svg` is `{namespace}/{icon}` (`brands/github`), its label
  * from the pack's `lang/` catalog (`icons.{icon}.label`). Its `authors`
- * are in D-384's shape, from its `composer.json` when the manifest has
- * none (D-385).
+ * are in D-384's shape, its `license` a string or a list (D-427, D-428), and its
+ * `homepage`, `support`, and `funding` (D-428), each from its
+ * `composer.json` when the manifest has none (D-385).
  */
 final readonly class IconPack
 {
@@ -55,7 +58,9 @@ final readonly class IconPack
 		public string $version = '',
 		public string $description = '',
 		public string $folder = '',
-		public array $authors = []
+		public array $authors = [],
+		public string $license = '',
+		public ExtensionLinks $links = new ExtensionLinks()
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf('The icon pack in %s needs a "name": vendor/name, such as "acme/brands".', $path));
@@ -94,6 +99,8 @@ final readonly class IconPack
 
 		try {
 			$authors = ExtensionAuthor::list($data['authors'] ?? []);
+			$license = ExtensionLicense::fromManifest($data['license'] ?? '');
+			$links   = ExtensionLinks::fromArray($data);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('The icon pack in %s: %s', $path, $error->getMessage()), previous: $error);
 		}
@@ -108,7 +115,9 @@ final readonly class IconPack
 			version: $data['version'] ?? '',
 			description: $data['description'] ?? '',
 			folder: trim($data['folder'] ?? '', '/'),
-			authors: $authors
+			authors: $authors,
+			license: $license,
+			links: $links
 		);
 	}
 
@@ -116,7 +125,7 @@ final readonly class IconPack
 	 * Returns what the cache stores, as `fromArray()` (with the path and
 	 * source) reads it back.
 	 *
-	 * @return array{path: string, source: string, data: array<string, string|list<array<string, string>>>}
+	 * @return array{path: string, source: string, data: array<string, mixed>}
 	 */
 	public function toArray(): array
 	{
@@ -130,7 +139,9 @@ final readonly class IconPack
 				'version'     => $this->version,
 				'description' => $this->description,
 				'folder'      => $this->folder,
-				'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors)
+				'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
+				'license'     => $this->license,
+				...$this->links->toArray()
 			]
 		];
 	}

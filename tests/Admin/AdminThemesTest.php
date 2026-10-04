@@ -40,8 +40,8 @@ final class AdminThemesTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator']): void
 	{
-		$this->writeTemporaryFile('extensions/acme/notebook/theme.json', '{"name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.2.0", "description": "Lined paper."}');
-		$this->writeTemporaryFile('extensions/acme/notebook/composer.json', '{"name": "acme/notebook", "authors": [{"name": "Jane Doe", "homepage": "https://example.test", "role": "Designer"}]}');
+		$this->writeTemporaryFile('extensions/acme/notebook/theme.json', '{"name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.2.0", "description": "Lined paper.", "support": {"docs": "https://notebook.test/docs"}}');
+		$this->writeTemporaryFile('extensions/acme/notebook/composer.json', '{"name": "acme/notebook", "authors": [{"name": "Jane Doe", "homepage": "https://example.test", "role": "Designer"}], "license": "(MIT and OFL-1.1)"}');
 		$this->writeTemporaryFile('extensions/acme/pocket/theme.json', '{"name": "acme/pocket", "label": "Pocket", "namespace": "pocket", "parent": "acme/notebook"}');
 		$this->writeTemporaryFile('extensions/acme/plate/theme.json', '{"name": "acme/plate", "label": "Plate", "namespace": "plate", "authors": [{"name": "Sam"}], "preview": {"layout": "wide", "type": "Sans throughout", "palette": {"background": ["#FFF", "#111111"], "surface": "#fafafa", "text": "#111", "muted": "#666", "accent": ["#0f6d8c", "#5fb8d8"], "border": "#ddd"}}}');
 		$this->writeTemporaryFile('extensions/acme/plate/style.css', 'body {}');
@@ -75,7 +75,7 @@ final class AdminThemesTest extends TestCase
 		$this->assertFalse($answer['saved'] ?? null);
 
 		$notebook = self::theme($themes, 'acme/notebook');
-		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'extensions/acme/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'blocked' => null, 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
+		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'extensions/acme/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'license' => '(MIT and OFL-1.1)', 'licenses' => [['text' => 'MIT', 'url' => 'https://spdx.org/licenses/MIT.html', 'operator' => false], ['text' => 'and', 'url' => null, 'operator' => true], ['text' => 'OFL-1.1', 'url' => 'https://spdx.org/licenses/OFL-1.1.html', 'operator' => false]], 'links' => [['kind' => 'docs', 'url' => 'https://notebook.test/docs']], 'funding' => [], 'blocked' => null, 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
 
 		$plate = self::theme($themes, 'acme/plate');
 		$this->assertTrue($plate['deletable'] ?? null);

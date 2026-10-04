@@ -16,6 +16,8 @@ namespace Blush\Theme;
 use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionLicense;
+use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 
@@ -36,8 +38,9 @@ use Blush\Extension\ExtensionNamespace;
  * component variants by component (D-266). Its `preview` is what the
  * admin sketches it from (D-381). Keys this version doesn't read (image
  * sizes) are kept in `$data`. Its `authors` are in `composer.json`'s
- * shape (D-384); discovery fills them in from the `composer.json` in its
- * folder when the manifest has none.
+ * shape (D-384), its `license` a string or a list (D-427, D-428), and its
+ * `homepage`, `support`, and `funding` as Composer has them (D-428);
+ * discovery fills each in from the `composer.json` in its folder when the manifest has none.
  */
 final readonly class ThemeManifest
 {
@@ -53,6 +56,8 @@ final readonly class ThemeManifest
 	 * @param Autoload              $autoload Its `psr-4` map and `files`, relative to the theme (D-418).
 	 * @param ?ThemePreview         $preview  What the admin draws its preview from, if it says.
 	 * @param list<ExtensionAuthor> $authors  Who made it.
+	 * @param string                $license  How it may be used, as Composer has it (`MIT`, D-427, D-428).
+	 * @param ExtensionLinks        $links    Its homepage, support, and funding (D-428).
 	 */
 	public function __construct(
 		public string $name,
@@ -69,7 +74,9 @@ final readonly class ThemeManifest
 		public ?string $provider = null,
 		public Autoload $autoload = new Autoload(),
 		public ?ThemePreview $preview = null,
-		public array $authors = []
+		public array $authors = [],
+		public string $license = '',
+		public ExtensionLinks $links = new ExtensionLinks()
 	) {}
 
 	/**
@@ -157,6 +164,8 @@ final readonly class ThemeManifest
 		try {
 			$authors  = ExtensionAuthor::list($data['authors'] ?? []);
 			$autoload = Autoload::fromArray($data['autoload'] ?? null);
+			$license  = ExtensionLicense::fromManifest($data['license'] ?? '');
+			$links    = ExtensionLinks::fromArray($data);
 		} catch (ExtensionException $error) {
 			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
 		}
@@ -177,7 +186,9 @@ final readonly class ThemeManifest
 			provider: $provider,
 			autoload: $autoload,
 			preview: $preview === null ? null : ThemePreview::fromArray($theme, $preview),
-			authors: $authors
+			authors: $authors,
+			license: $license,
+			links: $links
 		);
 	}
 

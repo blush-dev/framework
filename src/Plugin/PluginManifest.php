@@ -16,6 +16,8 @@ namespace Blush\Plugin;
 use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionLicense;
+use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 
@@ -35,9 +37,11 @@ use Blush\Extension\ExtensionNamespace;
  * whose requirements aren't met doesn't run (D-385,
  * `PluginRequirements`).
  *
- * `authors` (D-384's shape) and `license` (a string, `MIT`) say who made
- * it and how it may be used; the finders fill either from `composer.json`
- * when the manifest leaves it out.
+ * `authors` (D-384's shape) and `license` (`MIT`, or a list any of
+ * which applies, D-428) say who made it and how it may be used, and
+ * `homepage`, `support`, and `funding` where to learn about, get help
+ * with, and fund it (`ExtensionLinks`, D-428); the finders fill each from
+ * `composer.json` when the manifest leaves it out.
  */
 final readonly class PluginManifest
 {
@@ -64,6 +68,7 @@ final readonly class PluginManifest
 		public array $require = [],
 		public array $authors = [],
 		public string $license = '',
+		public ExtensionLinks $links = new ExtensionLinks(),
 		public ?string $provider = null
 	) {
 		if (! ExtensionName::isValid($name)) {
@@ -131,6 +136,8 @@ final readonly class PluginManifest
 		try {
 			$authors  = ExtensionAuthor::list($data['authors'] ?? []);
 			$autoload = Autoload::fromArray($data['autoload'] ?? null);
+			$license  = ExtensionLicense::fromManifest($data['license'] ?? '');
+			$links    = ExtensionLinks::fromArray($data);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
 		}
@@ -148,7 +155,8 @@ final readonly class PluginManifest
 			autoload: $autoload,
 			require: self::map($data, 'require'),
 			authors: $authors,
-			license: self::string($data, 'license', ''),
+			license: $license,
+			links: $links,
 			provider: isset($data['provider']) ? self::string($data, 'provider') : null
 		);
 	}
@@ -172,7 +180,8 @@ final readonly class PluginManifest
 			'autoload'    => $this->autoload->toArray(),
 			'require'     => $this->require,
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
-			'license'     => $this->license
+			'license'     => $this->license,
+			...$this->links->toArray()
 		];
 	}
 

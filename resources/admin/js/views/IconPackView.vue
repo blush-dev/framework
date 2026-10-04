@@ -12,6 +12,8 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import ExtensionLinks from '../components/ExtensionLinks.vue';
+import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { ApiError, request, type CoreIcons, type IconPackSummary } from '../api';
@@ -163,11 +165,13 @@ async function remove(): Promise<void> {
 								<a v-if="author.homepage" :href="author.homepage" target="_blank" rel="noopener">{{ author.name }}<span class="visually-hidden"> (new tab)</span></a>
 								<template v-else>{{ author.name }}</template>
 								<span v-if="author.role" class="pack-facts__role">{{ author.role }}</span>
-								<a v-if="author.email" class="pack-facts__email" :href="`mailto:${author.email}`" :aria-label="`Email ${author.name}`"><AdminIcon name="mail" /></a>
 							</span>
 						</dd>
 						<dt>Version</dt>
 						<dd :class="{ mono: pack.version }">{{ pack.version || '—' }}</dd>
+						<dt>License</dt>
+						<dd :class="{ mono: pack.licenses.length }"><LicenseLinks :parts="pack.licenses" /></dd>
+						<ExtensionLinks :links="pack.links" :funding="pack.funding" />
 						<dt>Namespace</dt>
 						<dd class="mono">{{ pack.namespace }}/</dd>
 						<dt>Icons</dt>
@@ -370,20 +374,6 @@ async function remove(): Promise<void> {
 
 .pack-facts__role {
 	color: var(--fg-3);
-}
-
-.pack-facts__email {
-	align-self: center;
-	color: var(--fg-3);
-}
-
-.pack-facts__email:hover {
-	color: var(--accent);
-}
-
-.pack-facts__email .icon {
-	width: 14px;
-	height: 14px;
 }
 
 .pack-facts__copy {

@@ -12,6 +12,8 @@
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import ExtensionLinks from '../components/ExtensionLinks.vue';
+import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { pluginRoute, requirementText, usePlugins } from '../plugins';
@@ -90,13 +92,13 @@ async function remove(): Promise<void> {
 									<a v-if="author.homepage" :href="author.homepage" target="_blank" rel="noopener">{{ author.name }}<span class="visually-hidden"> (new tab)</span></a>
 									<template v-else>{{ author.name }}</template>
 									<span v-if="author.role" class="plugin-facts__role">{{ author.role }}</span>
-									<a v-if="author.email" class="plugin-facts__email" :href="`mailto:${author.email}`" :aria-label="`Email ${author.name}`"><AdminIcon name="mail" /></a>
 								</span>
 							</dd>
 							<dt>Version</dt>
 							<dd class="mono">{{ plugin.version }}</dd>
 							<dt>License</dt>
-							<dd :class="{ mono: plugin.license }">{{ plugin.license || '—' }}</dd>
+							<dd :class="{ mono: plugin.licenses.length }"><LicenseLinks :parts="plugin.licenses" /></dd>
+							<ExtensionLinks :links="plugin.links" :funding="plugin.funding" />
 							<dt>Installed by</dt>
 							<dd>{{ plugin.source === 'composer' ? 'Composer' : 'A folder in extensions/' }}</dd>
 							<dt>Folder</dt>
@@ -210,20 +212,6 @@ async function remove(): Promise<void> {
 
 .plugin-facts__role {
 	color: var(--fg-3);
-}
-
-.plugin-facts__email {
-	align-self: center;
-	color: var(--fg-3);
-}
-
-.plugin-facts__email:hover {
-	color: var(--accent);
-}
-
-.plugin-facts__email .icon {
-	width: 14px;
-	height: 14px;
 }
 
 .plugin-facts__copy {

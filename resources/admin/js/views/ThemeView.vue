@@ -15,6 +15,8 @@
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import ExtensionLinks from '../components/ExtensionLinks.vue';
+import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
 import { PALETTE_ROLES, type PaletteRole } from '../api';
@@ -193,11 +195,13 @@ async function remove(): Promise<void> {
 									<a v-if="author.homepage" :href="author.homepage" target="_blank" rel="noopener">{{ author.name }}<span class="visually-hidden"> (new tab)</span></a>
 									<template v-else>{{ author.name }}</template>
 									<span v-if="author.role" class="theme-facts__role">{{ author.role }}</span>
-									<a v-if="author.email" class="theme-facts__email" :href="`mailto:${author.email}`" :aria-label="`Email ${author.name}`"><AdminIcon name="mail" /></a>
 								</span>
 							</dd>
 							<dt>Version</dt>
 							<dd :class="{ mono: theme.version }">{{ theme.version || '—' }}</dd>
+							<dt>License</dt>
+							<dd :class="{ mono: theme.licenses.length }"><LicenseLinks :parts="theme.licenses" /></dd>
+							<ExtensionLinks :links="theme.links" :funding="theme.funding" />
 							<dt>Installed by</dt>
 							<dd>{{ installedBy }}</dd>
 							<dt>Folder</dt>
@@ -348,20 +352,6 @@ async function remove(): Promise<void> {
 
 .theme-facts__role {
 	color: var(--fg-3);
-}
-
-.theme-facts__email {
-	align-self: center;
-	color: var(--fg-3);
-}
-
-.theme-facts__email:hover {
-	color: var(--accent);
-}
-
-.theme-facts__email .icon {
-	width: 14px;
-	height: 14px;
 }
 
 .theme-facts__copy {
