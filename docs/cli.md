@@ -19,7 +19,7 @@ for even more), `-q` for errors only, `-n` to never ask questions, and
 | Command | What it does |
 |---|---|
 | `init` | Set up a new site: create `.env` (asking for the basics) with an `APP_SECRET`, create the `storage/` folders, report any Blush can't write to, and offer to create the first admin account. `--webhook` adds a `PUBLISH_SECRET`, which turns on the publish webhook. Safe to run again; it never changes an existing `.env` except to add missing secrets. |
-| `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, and writable storage. Fails when something needs fixing. |
+| `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, and writable storage. Fails when something needs fixing. It also warns of extensions that are on but can't run: an active theme whose [requirements](extending.md#requirements) aren't met (so the default theme shows), and plugins and icon packs that are on but don't run. |
 
 ## Accounts
 
@@ -66,19 +66,20 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 |---|---|
 | `plugin:list` | List installed [plugins](extending.md#plugins) (name, label, namespace, version, source) and whether each is on, off, or turned on but unable to run, and any that are broken |
 | `plugin:new <name>` | Create a plugin named `vendor/name` in `extensions/{vendor}/{name}`: a `plugin.json` and an empty service provider in `src/`. `--label=` titles it (default: made from the part after `/`), `--namespace=` sets its namespace (default: the name, hyphenated, so `acme/hello` is `acme-hello`), and `--php-namespace=` sets its classes' PHP namespace (default: the name in StudlyCase, so `acme/hello-world` is `Acme\HelloWorld`). Its name and namespace can't be any installed plugin's, theme's, or icon pack's. It's off until you [turn it on](extending.md#turning-extensions-on). |
-| `plugin:check [name]` | Check every plugin's manifest and [requirements](extending.md#requirements), or one plugin's, by name. One that's off is checked as if it were on. A plugin that's turned on but can't run fails the command; one that's off is a warning. |
+| `plugin:check [name]` | Check every plugin's manifest and [requirements](extending.md#requirements), or one plugin's, by name. One that's off is checked as if it were on. A plugin that's turned on but can't run fails the command; one that's off is a warning, and so is a `version` Composer can't read (such as `1.0-final`), which only `*` matches when another extension requires it. |
 
 ## Themes
 
 | Command | What it does |
 |---|---|
 | `theme:list` | List installed themes (name, label, namespace, version, parent, source), which is active, and any that are broken |
-| `theme:activate <name>` | Switch themes, by name (`theme:activate acme/notebook`), in `config/theme.php`; clears a theme activated in the admin |
+| `theme:activate <name>` | Switch themes, by name (`theme:activate acme/notebook`), in `config/theme.php`; clears a theme activated in the admin. Refuses a theme whose [requirements](extending.md#requirements) (or those of a theme it falls back to) aren't met. |
 | `theme:new <name>` | Create a theme named `vendor/name` in `extensions/{vendor}/{name}`. `--label=` titles it (default: made from the part after `/`), `--namespace=` sets its namespace (default: the name, hyphenated, so `acme/nova` is `acme-nova`), and `--parent=` builds it on another theme, by name. Its name and namespace can't be any installed plugin's, theme's, or icon pack's. Its `theme.json` points editors at the [schema](themes.md#autocomplete-in-your-editor). |
-| `theme:check [name]` | Check a theme's manifest, settings, components, menus and regions, and accessibility basics. `--strict` shows notices too. |
+| `theme:check [name]` | Check a theme's manifest, [requirements](extending.md#requirements), settings, components, menus and regions, and accessibility basics. The active theme's requirements not being met is an error (the default theme shows in its place); another theme's is a warning. So is a `version` Composer can't read. `--strict` shows notices too. |
 | `theme:why <view>` | Show which file a template name uses, such as `theme:why single-post` |
 | `menu:list` | List your theme's menu locations, the [menu](menus.md) each shows, and any items that can't be shown. `--theme=` lists another theme's, by name. |
 | `menu:show <location>` | Show a location's menu as a page sees it, with every URL. `--locale=fr` shows it in another language. |
 | `icon:list` | List the icons your theme can use: each one's full name, its label, and the file that draws it. `--theme=` lists another theme's, by name. |
+| `icon-pack:check [name]` | Check every icon pack's manifest and [requirements](extending.md#requirements), or one pack's, by name, as `plugin:check` checks plugins. One that's off is checked as if it were on. A pack that's turned on but can't load fails the command; one that's off, a broken one, and a `version` Composer can't read are warnings. |
 | `component:list` | List the components your theme can use: each one's full name, its label, whether it's registered, its class (if it has one), its [variants](components.md#variants), and the file that draws it. Also points out files in `components/` that aren't named for a component. `--theme=` lists another theme's, by name. |
 | `theme:publish` | Copy the active theme's files (and its parents') into `public/`. `--all` copies every theme's. |

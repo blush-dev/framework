@@ -1123,16 +1123,43 @@ and **icon packs**; **admin themes** are planned on the same pieces.
     (`PluginDiscovery::discover()` returns `DiscoveredPlugins`). It
     never runs, turned on or not; `Plugins::broken()` lists them.
     Duplicate names and namespaces still fail discovery.
-  - **Requirements are enforced** (D-385, `PluginRequirements`): an
+  - **Requirements are enforced** (D-385, `Extension\Requirements`): an
     enabled plugin runs only when its `require` is met: Blush as
     `blush-dev/framework` (D-418), `php`,
-    `ext-{name}`, and other plugins by `vendor/name` (installed at a
-    fitting version and running), as Composer-style constraints
-    (`Extension\VersionConstraint`). `Plugins` holds the ones that run,
-    every installed one, and what the rest don't meet; providers register
-    a plugin's requirements first.
+    `ext-{name}`, and other extensions of any kind by `vendor/name`
+    (installed at a fitting version and running), as Composer's
+    constraints, by Composer's rules, stability included
+    (`Extension\VersionConstraint`, a port of `composer/semver`'s parser,
+    D-429). `Plugins` holds the ones that run, every installed one, and
+    what the rest don't meet; providers register a plugin's requirements
+    first. Every kind is enforced the same way (D-431): see
+    **Requirements across kinds** below.
   - CLI: `plugin:list` and `plugin:check` (D-394), and `plugin:new`
     (D-416).
+- **Requirements across kinds** (D-431): plugins, themes, and icon packs
+  share `ExtensionManifest` (`name`, `label`, `version`, `require`,
+  `kind()`) and `ExtensionRequire` (reading `require`), and
+  `ExtensionState::settle()` decides at boot which run, all kinds
+  together, since any may require any other: the plugins config turns
+  on, the packs that are on, and the active theme's chain, each only
+  when its `require` is met by the site and by the others that run
+  (`Requirements::settle()`, to a fixed point). A chain is a group: it
+  runs whole or not at all, and one that can't run falls back to the
+  default theme (`Themes::running()`, used by `ThemeResolver::active()`
+  and the autoloader); a pack that can't run adds no icons
+  (`IconPacks::enabled()`, with `on()` for what's turned on). A theme
+  requirement is met by a theme in the running chain. Names are one
+  extension's across kinds (`Bootstrap` leaves out a theme or pack whose
+  name an extension before it has). `ExtensionState` is bound in the
+  container: `check()` (as if on), `report()` (the admin's
+  `requirements`, `blocked`, and `requiredBy`), `with()` (settling again
+  with other choices, for 422s and what starts or stops), and
+  `runningNotIn()`. A Composer package's `composer.json` `require` is
+  Composer's to check: a Composer theme or pack doesn't take it
+  (`ComposerJson::fill()`'s `skip`). Enforced in the admin (`PUT
+  plugins`, `PUT icon-packs`, `PATCH settings` `theme.active`, rollback),
+  `theme:activate`, the check commands (`plugin:check`, `theme:check`,
+  `icon-pack:check`), and `doctor`.
 - **Themes:** see `theming.md`. Known by name everywhere (`active`,
   `parent`, `?theme=`, `/themes/{vendor}/{name}/…`,
   `resources/views/themes/{vendor}/{name}`); the default theme is

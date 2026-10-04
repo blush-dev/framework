@@ -15,10 +15,13 @@ namespace Blush\Icon;
 
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionLicense;
 use Blush\Extension\ExtensionLinks;
+use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
+use Blush\Extension\ExtensionRequire;
 
 /**
  * An icon pack (D-378): SVG icons in its own namespace, with no code. Its
@@ -39,14 +42,17 @@ use Blush\Extension\ExtensionNamespace;
  * from the pack's `lang/` catalog (`icons.{icon}.label`). Its `authors`
  * are in D-384's shape, its `license` a string or a list (D-427, D-428), and its
  * `homepage`, `support`, and `funding` (D-428), each from its
- * `composer.json` when the manifest has none (D-385).
+ * `composer.json` when the manifest has none (D-385). Its `require` is
+ * checked as a plugin's is (D-431): a pack that's on but whose
+ * requirements aren't met doesn't load.
  */
-final readonly class IconPack
+final readonly class IconPack implements ExtensionManifest
 {
 	/**
 	 * @param string $path   The pack's absolute folder.
 	 * @param string $folder The folder its SVGs are in, relative to `$path` (`''` for the pack's own).
 	 * @param list<ExtensionAuthor> $authors Who made it.
+	 * @param array<string, string> $require What it needs, each mapped to a version constraint (D-431).
 	 * @throws ExtensionException
 	 */
 	public function __construct(
@@ -60,7 +66,8 @@ final readonly class IconPack
 		public string $folder = '',
 		public array $authors = [],
 		public string $license = '',
-		public ExtensionLinks $links = new ExtensionLinks()
+		public ExtensionLinks $links = new ExtensionLinks(),
+		public array $require = []
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf('The icon pack in %s needs a "name": vendor/name, such as "acme/brands".', $path));
@@ -101,6 +108,7 @@ final readonly class IconPack
 			$authors = ExtensionAuthor::list($data['authors'] ?? []);
 			$license = ExtensionLicense::fromManifest($data['license'] ?? '');
 			$links   = ExtensionLinks::fromArray($data);
+			$require = ExtensionRequire::fromArray($data['require'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('The icon pack in %s: %s', $path, $error->getMessage()), previous: $error);
 		}
@@ -117,7 +125,8 @@ final readonly class IconPack
 			folder: trim($data['folder'] ?? '', '/'),
 			authors: $authors,
 			license: $license,
-			links: $links
+			links: $links,
+			require: $require
 		);
 	}
 
@@ -141,9 +150,15 @@ final readonly class IconPack
 				'folder'      => $this->folder,
 				'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
 				'license'     => $this->license,
+				'require'     => $this->require,
 				...$this->links->toArray()
 			]
 		];
+	}
+
+	public function kind(): ExtensionKind
+	{
+		return ExtensionKind::IconPack;
 	}
 
 	/**

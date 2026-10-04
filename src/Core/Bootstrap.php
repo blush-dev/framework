@@ -29,6 +29,7 @@ use Blush\Content\Type\ContentTypeCache;
 use Blush\Env\Env;
 use Blush\Embed\EmbedConfig;
 use Blush\Export\ExportConfig;
+use Blush\Extension\ExtensionState;
 use Blush\Extension\LocalAutoloader;
 use Blush\Feed\FeedConfig;
 use Blush\Field\FieldConfig;
@@ -74,16 +75,19 @@ use Blush\Theme\Themes;
  * 3. Outside development, the container reads compiled resolution plans.
  * 4. The bootstrap itself, `Paths`, `Env`, the config repository, and
  *    every config object are bound in the container.
- * 5. Plugins are discovered (or read from cache), filtered by config and
- *    the settings (by default Composer's and the local ones config names,
- *    or only what the admin's saved list names; D-390, D-391),
- *    and by their requirements (D-385), and the local ones
- *    that run are autoloaded.
- * 6. Themes and icon packs are discovered (or read from cache), and the
- *    active theme chain's local themes are autoloaded. A theme or icon
- *    pack whose namespace an installed plugin (or, for a pack, a theme)
- *    claims is left out as broken (D-378), and packs that aren't on
- *    (`IconConfig`, as plugins are, D-391) are kept but add no icons.
+ * 5. Plugins, themes, and icon packs are discovered (or read from
+ *    cache). A theme or icon pack whose namespace or name an installed
+ *    plugin (or, for a pack, a theme) claims is left out as broken
+ *    (D-378, D-431).
+ * 6. Which run is settled across every kind (`ExtensionState`, D-431):
+ *    the plugins config and the settings turn on (by default Composer's
+ *    and the local ones config names, or only what the admin's saved
+ *    list names; D-390, D-391), the packs that are on (`IconConfig`),
+ *    and the active theme's chain, each only when its `require` is met
+ *    (D-385). A chain that can't run falls back to the default theme;
+ *    packs that are off or can't load are kept but add no icons. The
+ *    local plugins that run, and the running chain's local themes, are
+ *    autoloaded.
  * 7. Providers register in order: framework, plugins, the active theme
  *    chain's (ancestors first), then the site's (D-054). A broken theme
  *    chain registers no theme providers, so the CLI still runs to fix it;
@@ -217,21 +221,32 @@ final readonly class Bootstrap
 		}
 
 		$installed = $this->discoverPlugins($app->environment);
-		$plugins   = Plugins::enabled($installed->manifests, $config->get(PluginConfig::class), broken: $installed->broken);
 
 		[$themes, $iconPacks] = $this->settleNamespaces(
 			$installed->manifests,
 			$this->discoverThemes($app->environment),
 			$this->discoverIconPacks($app->environment)
 		);
-		$iconPacks = $iconPacks->withConfig($config->get(IconConfig::class));
+
+		// Every kind's requirements, settled together (D-431).
+		$extensions = ExtensionState::settle(
+			$installed->manifests,
+			$installed->broken,
+			$config->get(PluginConfig::class),
+			$themes,
+			$config->get(ThemeConfig::class)->active,
+			$iconPacks->withConfig($config->get(IconConfig::class))
+		);
+		$plugins   = $extensions->plugins;
+		$themes    = $extensions->themes;
+		$iconPacks = $extensions->packs;
 
 		$themeProviders = [];
 		$autoloader     = new LocalAutoloader();
 		$autoloader->addPlugins($plugins);
 
 		try {
-			$chain = $themes->chain($config->get(ThemeConfig::class)->active);
+			$chain = $themes->chain($themes->running($config->get(ThemeConfig::class)->active));
 			$autoloader->addThemes($chain);
 		} catch (ThemeException) {
 			// Reported when a page renders, and by `theme:check`.
@@ -251,6 +266,7 @@ final readonly class Bootstrap
 		$container->instance(Plugins::class, $plugins);
 		$container->instance(Themes::class, $themes);
 		$container->instance(IconPacks::class, $iconPacks);
+		$container->instance(ExtensionState::class, $extensions);
 		$container->instance(LocalAutoloader::class, $autoloader);
 
 		$application = new Application($container);
@@ -360,11 +376,13 @@ final readonly class Bootstrap
 	}
 
 	/**
-	 * Leaves out the themes and icon packs whose namespace an extension
-	 * before them claims (D-378): installed plugins first, since they're
-	 * code a site may depend on, then themes, then icon packs. Each one
-	 * left out is recorded as broken, naming the claimant. (Plugins that
-	 * share one fail discovery, and themes or packs that do are broken.)
+	 * Leaves out the themes and icon packs whose namespace or name an
+	 * extension before them claims (D-378, D-431): installed plugins
+	 * first, since they're code a site may depend on, then themes, then
+	 * icon packs. Each one left out is recorded as broken, naming the
+	 * claimant. (Plugins that share one fail discovery, and themes or
+	 * packs that do are broken.) A name is one extension's across kinds,
+	 * so `require` can name any of them.
 	 *
 	 * @param  list<PluginManifest> $plugins
 	 * @return array{Themes, IconPacks}
@@ -372,17 +390,24 @@ final readonly class Bootstrap
 	private function settleNamespaces(array $plugins, Themes $themes, IconPacks $packs): array
 	{
 		$claims  = [];
+		$names   = [];
 		$reasons = [];
 
 		foreach ($plugins as $plugin) {
 			$claims[$plugin->namespace] = "the plugin {$plugin->name}";
+			$names[$plugin->name]       = 'a plugin\'s';
 		}
 
 		foreach ($themes->all() as $theme) {
+			$where = ThemeDiscovery::where($theme, $this->paths);
+
 			if (isset($claims[$theme->namespace])) {
-				$reasons[$theme->name] = [ThemeDiscovery::where($theme, $this->paths), sprintf('Its namespace, "%s", is %s\'s.', $theme->namespace, $claims[$theme->namespace])];
+				$reasons[$theme->name] = [$where, sprintf('Its namespace, "%s", is %s\'s.', $theme->namespace, $claims[$theme->namespace])];
+			} elseif (isset($names[$theme->name])) {
+				$reasons[$theme->name] = [$where, sprintf('Its name, "%s", is %s too.', $theme->name, $names[$theme->name])];
 			} else {
 				$claims[$theme->namespace] = "the theme {$theme->name}";
+				$names[$theme->name]       = 'a theme\'s';
 			}
 		}
 
@@ -390,8 +415,12 @@ final readonly class Bootstrap
 		$reasons = [];
 
 		foreach ($packs->all() as $pack) {
+			$where = IconPackDiscovery::where($pack, $this->paths);
+
 			if (isset($claims[$pack->namespace])) {
-				$reasons[$pack->name] = [IconPackDiscovery::where($pack, $this->paths), sprintf('Its namespace, "%s", is %s\'s.', $pack->namespace, $claims[$pack->namespace])];
+				$reasons[$pack->name] = [$where, sprintf('Its namespace, "%s", is %s\'s.', $pack->namespace, $claims[$pack->namespace])];
+			} elseif (isset($names[$pack->name])) {
+				$reasons[$pack->name] = [$where, sprintf('Its name, "%s", is %s too.', $pack->name, $names[$pack->name])];
 			}
 		}
 

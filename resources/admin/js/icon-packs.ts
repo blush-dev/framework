@@ -14,6 +14,7 @@ import { ref } from 'vue';
 import { ApiError, request, type IconPacks, type IconPackSummary, type PackIcon } from './api';
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
+import { list } from './extensions';
 import { toast } from './toast';
 import { folderPath } from './themes';
 
@@ -32,17 +33,26 @@ export function useIconPacks() {
 		}
 	}
 
-	// Turns a pack on or off; resolves whether it was saved. With
-	// `undone`, the toast offers an Undo, which turns it back and then
-	// calls `undone` with the state it's back in, for the screen to show.
+	// Turns a pack on or off; resolves whether it was saved. The toast
+	// names the other extensions, of any kind, that started or stopped
+	// with it (D-431). With `undone`, it offers an Undo when nothing else
+	// started or stopped, which turns it back and then calls `undone` with
+	// the state it's back in, for the screen to show.
 	async function toggle(pack: IconPackSummary, on: boolean, undone?: (on: boolean) => void): Promise<boolean> {
 		busy.value = pack.name;
 
 		try {
-			await request('PUT', `/icon-packs/${pack.name}`, { enabled: on });
-			toast(on ? `Turned on ${pack.label}` : `Turned off ${pack.label}; its ${pack.count === 1 ? 'icon isn\'t' : `${pack.count} icons aren't`} available now`, {
+			const saved  = await request<{ started: string[]; stopped: string[]; refresh: boolean }>('PUT', `/icon-packs/${pack.name}`, { enabled: on });
+			const others = on ? saved.started : saved.stopped;
+			const also   = others.length === 0 ? '' : `, and ${list(others)} ${on ? 'started' : 'stopped'} with it`;
+
+			if (saved.refresh) {
+				await request('POST', '/settings/refresh').catch(() => undefined);
+			}
+
+			toast(on ? `Turned on ${pack.label}${also}` : `Turned off ${pack.label}${also}; its ${pack.count === 1 ? 'icon isn\'t' : `${pack.count} icons aren't`} available now`, {
 				kind: on ? 'good' : 'danger',
-				undo: undone === undefined ? undefined : () => void toggle(pack, !on).then((saved) => saved && undone(!on))
+				undo: undone === undefined || others.length > 0 ? undefined : () => void toggle(pack, !on).then((back) => back && undone(!on))
 			});
 
 			return true;

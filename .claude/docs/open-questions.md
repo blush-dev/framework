@@ -389,6 +389,17 @@ Move each item to `decisions.md` once it's answered.
     source, GitHub only as a host for files; whether to show everything
     or an allowlist until a first-party catalog exists; integrity, since
     Packagist's GitHub zipballs usually carry no checksum.
+  - Installing a missing requirement (the author's idea, for later): a
+    `require` naming an extension that isn't installed (kind `missing`,
+    D-431) offers **Install from Packagist** where it's listed. Open:
+    whether a name always resolves to a Packagist package of a Blush
+    type (`blush-plugin`, `blush-theme`, `blush-icons`), or a manifest
+    may name the source (a stranger's package of the same name is the
+    risk); picking the version the constraint allows, and that
+    version's own requirements; whether it unpacks into `extensions/` as
+    a zip install does or goes through Composer (the installer refuses a
+    package that needs Composer libraries); and whether one install may
+    bring others, and how the admin asks first.
 - **Requiring components to be registered** (D-266's direction): how
   a template-only component registers without PHP (a JSON file beside
   the template, with its text in the catalog?), and what happens to
@@ -434,13 +445,6 @@ Move each item to `decisions.md` once it's answered.
   The M3 router and `UrlGenerator` assume the site is at the host's root,
   and so does static export: `build --base-url` takes only an origin
   (D-135).
-- **Theme and icon pack requirements**: plugins' `require` is
-  enforced with Composer-style constraints since D-385
-  (`VersionConstraint`); whether a theme's `require` (only a notice in
-  `theme:check` now; filled from its `composer.json` since D-418, so a
-  theme package's own `require` shows there too) should block activating
-  it, and whether packs get `require` at all.
-
 - **CLI publishing and opcache** (found while writing `docs/`, D-141):
   `publish` from the CLI rewrites the index and compiled caches, but its
   `opcache_invalidate()` can't reach the web server's opcache. With

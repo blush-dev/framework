@@ -35,20 +35,28 @@ final readonly class ComposerJson
 
 	/**
 	 * Fills in the shared keys a manifest leaves out from the
-	 * `composer.json` in its folder. Blush's own keys never come from it.
+	 * `composer.json` in its folder, but for the ones to skip. Blush's own
+	 * keys never come from it.
+	 *
+	 * A Composer package's theme or icon pack skips `require` (D-431):
+	 * Composer has met its `composer.json`'s, whose packages aren't
+	 * extensions, so only its manifest's are Blush's to check.
 	 *
 	 * @param  array<string, mixed> $data
+	 * @param  list<string>         $skip
 	 * @return array<string, mixed>
 	 */
-	public static function fill(array $data, string $folder): array
+	public static function fill(array $data, string $folder, array $skip = []): array
 	{
-		if (array_diff(self::SHARED, array_keys($data)) === []) {
+		$shared = array_diff(self::SHARED, $skip);
+
+		if (array_diff($shared, array_keys($data)) === []) {
 			return $data;
 		}
 
 		$composer = self::read($folder);
 
-		foreach (self::SHARED as $key) {
+		foreach ($shared as $key) {
 			if (array_key_exists($key, $data) || ! array_key_exists($key, $composer)) {
 				continue;
 			}

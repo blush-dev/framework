@@ -11,7 +11,9 @@
  * `user/data/settings.json` over `config/icons.php`; a pack that's off
  * adds no icons. As with plugins (D-391), a Composer pack is on and a
  * local one only when config names it, until a list is saved here; then
- * the list names every pack that's on. The core set is always on. **Delete** removes a folder
+ * the list names every pack that's on. A pack whose requirements aren't
+ * met can't be turned on, or, when it's on, adds no icons, and says why
+ * (D-431). The core set is always on. **Delete** removes a folder
  * pack (or a broken one) from `extensions/`. A pack's name, and **Icon
  * pack details** in its menu, open its details screen (`IconPackView`).
  *
@@ -44,7 +46,12 @@ const CELLS = 12;
 
 const packs   = computed(() => answer.value?.packs ?? []);
 const count   = computed(() => packs.value.length + (answer.value?.invalid.length ?? 0) + (answer.value ? 1 : 0));
-const showing = computed(() => (answer.value?.core.count ?? 0) + packs.value.filter((pack) => pack.enabled).reduce((total, pack) => total + pack.count, 0));
+const showing = computed(() => (answer.value?.core.count ?? 0) + packs.value.filter((pack) => pack.running).reduce((total, pack) => total + pack.count, 0));
+
+// Why a pack can't be turned on, when it isn't running, or `null` (D-431).
+function blocked(pack: IconPackSummary): string | null {
+	return pack.running ? null : pack.blocked;
+}
 
 // A card's cells: its first icons, the rest as a count, then blanks.
 function cells(pack: IconPackSummary | CoreIcons): { icons: PackIcon[]; more: number; blanks: number } {
@@ -66,7 +73,7 @@ function installState(name: string): InstallState {
 
 	return {
 		words: pack?.enabled ? 'turned on' : 'turned off',
-		next: pack !== undefined && !pack.enabled && canActivate,
+		next: pack !== undefined && !pack.enabled && blocked(pack) === null && canActivate,
 		live: pack?.enabled ?? false
 	};
 }
@@ -107,7 +114,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 	</div>
 
 	<div v-if="answer" class="packs">
-		<article v-for="pack in packs" :key="pack.name" class="pack" :class="{ 'is-off': !pack.enabled }">
+		<article v-for="pack in packs" :key="pack.name" class="pack" :class="{ 'is-off': !pack.running }">
 			<div class="pack__glyphs" aria-hidden="true">
 				<span v-for="icon in cells(pack).icons" :key="icon.name"><span v-if="icon.svg" class="pack__glyph" :style="{ maskImage: packIconMask(icon) }" /></span>
 				<span v-if="cells(pack).more"><span class="pack__more">+{{ cells(pack).more }}</span></span>
@@ -116,10 +123,14 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 			<div class="pack__body">
 				<p class="pack__name">
 					<RouterLink class="pack__label" :to="iconPackRoute(pack.name)">{{ pack.label }}</RouterLink>
+					<span v-if="blocked(pack)" class="pill pill--warn">Can't turn on</span>
 					<span v-if="pack.version" class="pack__version mono">{{ pack.version }}</span>
 				</p>
 				<p v-if="pack.description" class="pack__description">{{ pack.description }}</p>
-				<p v-if="pack.source === 'composer' && !pack.enabled" class="pack__description">Installed by Composer. It's off because the list of packs turned on here doesn't name it.</p>
+				<p v-if="blocked(pack)" class="pack__message">
+					<AdminIcon name="triangle-alert" /><span>{{ blocked(pack) }} {{ pack.enabled ? 'It\'s turned on, but its icons aren\'t available until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+				</p>
+				<p v-else-if="pack.source === 'composer' && !pack.enabled" class="pack__description">Installed by Composer. It's off because the list of packs turned on here doesn't name it.</p>
 				<ul class="pack__facts">
 					<li v-if="pack.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ pack.name }}</span></span></li>
 					<li v-else><AdminIcon name="folder" /><span class="mono">{{ pack.path }}</span></li>
@@ -127,7 +138,7 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 				</ul>
 			</div>
 			<div class="pack__foot">
-				<ToggleSwitch :checked="pack.enabled" :label="pack.label" :locked="!canActivate" :busy="busy === pack.name" :reason="canActivate ? null : 'Your role can\'t turn icon packs on and off.'" @change="toggle(pack, $event)" />
+				<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked(pack) !== null || !canActivate" :busy="busy === pack.name" :reason="blocked(pack) ?? (canActivate ? null : 'Your role can\'t turn icon packs on and off.')" @change="toggle(pack, $event)" />
 				<MenuButton class="pack__more-actions" button-class="button button--ghost button--small button--icon" :label="`More actions for ${pack.label}`" floating>
 					<template #button>
 						<AdminIcon name="ellipsis" />
@@ -368,6 +379,27 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 	color: var(--fg-2);
 	font-size: var(--text-sm);
 	line-height: 1.5;
+}
+
+.pack__message {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-2);
+	max-width: 70ch;
+	margin: 0;
+	padding: var(--s-3);
+	border-radius: var(--r-1);
+	background: var(--warn-soft);
+	color: var(--warn);
+	font-size: var(--text-xs);
+	line-height: 1.45;
+}
+
+.pack__message .icon {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	margin-top: 1px;
 }
 
 .pack__facts {

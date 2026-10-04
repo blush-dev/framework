@@ -3,20 +3,22 @@
  * A plugin's details (D-385, the extensions sketch's), at
  * `/plugins/{vendor}/{name}`: its switch in the header, why it can't run
  * when it can't, a Details panel and a Requires panel of equal weight
- * (each requirement checked against the site, a required plugin linked),
- * then **Delete plugin** for a folder plugin that's off. A Composer
- * plugin says how it's removed instead, and one that's on says to turn it
- * off first.
+ * (each requirement checked against the site; a required extension of
+ * any kind, and one that requires it, linked, D-431), then **Delete
+ * plugin** for a folder plugin that's off. A Composer plugin says how
+ * it's removed instead, and one that's on says to turn it off first.
  */
 
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
+import ExtensionRequirements from '../components/ExtensionRequirements.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
-import { pluginRoute, requirementText, usePlugins } from '../plugins';
+import { usePlugins } from '../plugins';
 import { screenTitle } from '../screen';
 import { copy } from '../themes';
 import { can } from '../session';
@@ -108,14 +110,7 @@ async function remove(): Promise<void> {
 							</dd>
 							<dt>Namespace</dt>
 							<dd class="mono">{{ plugin.namespace }}</dd>
-							<template v-if="needs.length">
-								<dt>Required by</dt>
-								<dd>
-									<template v-for="(other, index) in needs" :key="other.name">
-										<RouterLink :to="pluginRoute(other.name)">{{ other.label }}</RouterLink><template v-if="index < needs.length - 1">, </template>
-									</template>
-								</dd>
-							</template>
+							<ExtensionDependents :dependents="needs" />
 						</dl>
 					</div>
 				</section>
@@ -126,16 +121,7 @@ async function remove(): Promise<void> {
 						<p class="panel__hint">Checked against this site</p>
 					</header>
 					<div class="panel__body">
-						<ul v-if="plugin.requirements.length" class="requirements">
-							<li v-for="requirement in plugin.requirements" :key="requirement.name">
-								<AdminIcon :name="requirement.met ? 'circle-check' : 'circle-x'" :class="requirement.met ? 'is-met' : 'is-unmet'" />
-								<span class="visually-hidden">{{ requirement.met ? 'Met:' : 'Not met:' }}</span>
-								<RouterLink v-if="requirement.kind === 'plugin' && requirement.label" :to="pluginRoute(requirement.name)">{{ requirementText(requirement) }}</RouterLink>
-								<span v-else :class="{ mono: requirement.kind === 'unknown' }">{{ requirementText(requirement) }}</span>
-								<span v-if="requirement.note" class="requirements__note" :class="{ 'is-unmet': !requirement.met }">{{ requirement.note }}</span>
-							</li>
-						</ul>
-						<p v-else class="field__help">Nothing: its manifest has no <code>requires</code>.</p>
+						<ExtensionRequirements :requirements="plugin.requirements" />
 					</div>
 				</section>
 			</div>
@@ -151,7 +137,7 @@ async function remove(): Promise<void> {
 				<span><code>config/plugins.php</code> turns it on by name, so it can't be deleted until it's taken out of that file's <code>enabled</code> list.</span>
 			</p>
 			<div v-else-if="canDelete && plugin.deletable" class="danger-zone">
-				<p>Deleting removes the folder from the server.<template v-if="needs.length"> {{ needs.length === 1 ? '1 plugin requires' : `${needs.length} plugins require` }} it.</template></p>
+				<p>Deleting removes the folder from the server.<template v-if="needs.length"> {{ needs.length === 1 ? '1 extension requires' : `${needs.length} extensions require` }} it.</template></p>
 				<button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete plugin</button>
 			</div>
 		</div>
@@ -217,44 +203,6 @@ async function remove(): Promise<void> {
 .plugin-facts__copy {
 	margin-block: -6px;
 	vertical-align: middle;
-}
-
-.requirements {
-	display: grid;
-	gap: var(--s-2);
-	margin: 0;
-	padding: 0;
-	font-size: var(--text-sm);
-	list-style: none;
-}
-
-.requirements li {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-}
-
-.requirements .icon {
-	flex: none;
-	width: 15px;
-	height: 15px;
-}
-
-.requirements .is-met {
-	color: var(--good);
-}
-
-.requirements .is-unmet {
-	color: var(--danger);
-}
-
-.requirements__note {
-	color: var(--fg-3);
-}
-
-.requirements__note.is-unmet {
-	color: var(--warn);
 }
 
 .plugin-message {

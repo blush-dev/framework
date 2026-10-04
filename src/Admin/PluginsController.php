@@ -23,6 +23,7 @@ use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionLicense;
+use Blush\Extension\ExtensionState;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
@@ -30,10 +31,8 @@ use Blush\Http\Status;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\PluginDiscovery;
 use Blush\Plugin\PluginManifest;
-use Blush\Plugin\PluginRequirements;
 use Blush\Plugin\Plugins;
 use Blush\Plugin\PluginSource;
-use Blush\Plugin\Requirement;
 
 /**
  * Answers `GET {path}/api/plugins` (D-308, D-378, D-385), for accounts
@@ -54,10 +53,12 @@ use Blush\Plugin\Requirement;
  *   whether it runs on this request, which an enabled plugin doesn't when
  *   its requirements aren't met.
  * - `requirements`: each of its `require`, checked against the site
- *   (`{"name", "constraint", "kind", "met", "note", "label"}`); for one
- *   that's off, as if it were turned on. `blocked` says why one can't run
- *   (`null` when it can), and `requiredBy` names the plugins that require
- *   it.
+ *   (`{"name", "constraint", "kind", "met", "note", "label"}`, `kind` one
+ *   of `blush`, `php`, `extension`, `plugin`, `theme`, `icon-pack`,
+ *   `missing`, or `unknown`); for one that's off, as if it were turned
+ *   on. `blocked` says why one can't run (`null` when it can), and
+ *   `requiredBy` lists the extensions of every kind that require it
+ *   (`{"name", "label", "kind"}`, D-431).
  * - `deletable`: a folder plugin that isn't running, and that
  *   `config/plugins.php` doesn't turn on by name.
  *
@@ -76,6 +77,7 @@ final readonly class PluginsController
 		private Paths $paths,
 		private Plugins $plugins,
 		private PluginConfig $config,
+		private ExtensionState $extensions,
 		private Permissions $permissions,
 		private ExtensionInstaller $installer
 	) {}
@@ -95,25 +97,12 @@ final readonly class PluginsController
 		}
 
 		$installed = $discovered->keyed();
-
-		$running = [];
-		$blocked = [];
-
-		foreach ($installed as $name => $plugin) {
-			if ($this->plugins->has($name)) {
-				$running[$name] = true;
-			} elseif ($this->config->isEnabled($plugin)) {
-				$blocked[$name] = true;
-			}
-		}
-
-		$requirements = new PluginRequirements();
-		$plugins      = [];
-		$saved        = $this->config->saved !== null;
+		$plugins   = [];
+		$saved     = $this->config->saved !== null;
 
 		foreach ($installed as $name => $plugin) {
-			$checked = $requirements->check($plugin, $installed, $running, $blocked);
 			$folder  = $this->folder($plugin);
+			$running = $this->plugins->has($name);
 
 			$plugins[] = [
 				'name'         => $plugin->name,
@@ -130,11 +119,9 @@ final readonly class PluginsController
 				'path'         => $this->paths->relative($plugin->path),
 				'folder'       => $folder,
 				'enabled'      => $this->config->isEnabled($plugin),
-				'running'      => isset($running[$name]),
-				'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), $checked),
-				'blocked'      => PluginRequirements::met($checked) ? null : PluginRequirements::reason($checked),
-				'requiredBy'   => array_keys(array_filter($installed, static fn (PluginManifest $other): bool => array_key_exists($name, $other->require))),
-				'deletable'    => $folder !== null && ! isset($running[$name]) && ! self::namedByConfig($this->config, $name),
+				'running'      => $running,
+				...$this->extensions->report($plugin),
+				'deletable'    => $folder !== null && ! $running && ! self::namedByConfig($this->config, $name),
 				'backup'       => ExtensionInstallController::backup($this->installer, ExtensionKind::Plugin, $folder === null ? null : $plugin->path, $name)
 			];
 		}

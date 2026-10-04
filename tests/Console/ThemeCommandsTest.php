@@ -155,6 +155,17 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:activate', 'missing'])->exitCode);
 	}
 
+	public function testRefusesAThemeWhoseRequirementsArentMet(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/future/theme.json', '{"name": "acme/future", "require": {"acme/shop": "^2.0"}}');
+
+		$result = $this->command(['theme:activate', 'acme/future']);
+
+		$this->assertSame(ExitCode::Invalid, $result->exitCode);
+		$this->assertStringContainsString('The "acme/future" theme can\'t be activated. Needs acme/shop ^2.0 (isn\'t installed).', $result->errors);
+		$this->assertFileDoesNotExist($this->root() . '/config/theme.php');
+	}
+
 	public function testActivatingClearsTheThemeSavedInTheAdmin(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
@@ -193,7 +204,8 @@ final class ThemeCommandsTest extends TestCase
 			'label'     => 'Rough',
 			'namespace' => 'rough',
 			'provider'  => 'Nope\\Provider',
-			'require' => ['blush-dev/framework' => '^2.0'],
+			'version'   => '1.0-final',
+			'require'   => ['blush-dev/framework' => '^2.0', 'acme/absent' => '^1.0'],
 			'settings'  => ['size' => ['type' => 'number', 'default' => 1]]
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('extensions/acme/rough/theme.yaml', "name: acme/rough\nlabel: Shadowed\nnamespace: rough");
@@ -210,7 +222,8 @@ final class ThemeCommandsTest extends TestCase
 			'warning theme extensions/acme/other:',
 			'warning manifest: theme.yaml is ignored; the "acme/rough" theme\'s theme.json wins',
 			'error   provider: The "acme/rough" theme\'s provider Nope\\Provider isn\'t a service provider class',
-			'notice  require:',
+			'warning version: The "acme/rough" theme\'s version, "1.0-final", isn\'t one Composer can read',
+			'warning require: Needs acme/absent ^1.0 (isn\'t installed). It can\'t be activated until that\'s fixed.',
 			'warning setting size:',
 			'error   layout: The base layout\'s <html> has no lang attribute.',
 			'error   layout: The base layout needs one <main> landmark; it has 0.',

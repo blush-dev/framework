@@ -19,6 +19,8 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\ThemesController;
 use Blush\Admin\ThemeEditController;
 use Blush\Theme\ThemeConfig;
+use Blush\Theme\ThemeResolver;
+use Blush\Theme\Themes;
 
 #[CoversClass(ThemesController::class)]
 #[CoversClass(ThemeEditController::class)]
@@ -38,7 +40,7 @@ final class AdminThemesTest extends TestCase
 	 *
 	 * @param list<string> $roles
 	 */
-	private function site(array $roles = ['administrator']): void
+	private function site(array $roles = ['administrator'], string $active = 'acme/pocket'): void
 	{
 		$this->writeTemporaryFile('extensions/acme/notebook/theme.json', '{"name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.2.0", "description": "Lined paper.", "support": {"docs": "https://notebook.test/docs"}}');
 		$this->writeTemporaryFile('extensions/acme/notebook/composer.json', '{"name": "acme/notebook", "authors": [{"name": "Jane Doe", "homepage": "https://example.test", "role": "Designer"}], "license": "(MIT and OFL-1.1)"}');
@@ -47,7 +49,7 @@ final class AdminThemesTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/plate/style.css', 'body {}');
 		$this->writeTemporaryFile('extensions/acme/orphan/theme.json', '{"name": "acme/orphan", "label": "Orphan", "namespace": "orphan", "parent": "acme/gone"}');
 		$this->writeTemporaryFile('extensions/acme/broken/theme.json', '{"name": 5}');
-		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/pocket');\n");
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: '{$active}');\n");
 		$this->boot(roles: $roles);
 		$this->login();
 	}
@@ -72,10 +74,12 @@ final class AdminThemesTest extends TestCase
 		$this->assertSame(['acme/pocket', 'blush/default', 'acme/notebook', 'acme/orphan', 'acme/plate'], array_column($themes, 'name'), 'Then by label.');
 		$this->assertArrayHasKey('problem', $answer);
 		$this->assertNull($answer['problem']);
+		$this->assertArrayHasKey('fallback', $answer);
+		$this->assertNull($answer['fallback']);
 		$this->assertFalse($answer['saved'] ?? null);
 
 		$notebook = self::theme($themes, 'acme/notebook');
-		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'extensions/acme/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'license' => '(MIT and OFL-1.1)', 'licenses' => [['text' => 'MIT', 'url' => 'https://spdx.org/licenses/MIT.html', 'operator' => false], ['text' => 'and', 'url' => null, 'operator' => true], ['text' => 'OFL-1.1', 'url' => 'https://spdx.org/licenses/OFL-1.1.html', 'operator' => false]], 'links' => [['kind' => 'docs', 'url' => 'https://notebook.test/docs']], 'funding' => [], 'blocked' => null, 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
+		$this->assertSame(['name' => 'acme/notebook', 'label' => 'Notebook', 'namespace' => 'notebook', 'version' => '1.2.0', 'description' => 'Lined paper.', 'parent' => null, 'source' => 'local', 'active' => false, 'folder' => 'extensions/acme/notebook', 'preview' => null, 'authors' => [['name' => 'Jane Doe', 'homepage' => 'https://example.test', 'role' => 'Designer']], 'license' => '(MIT and OFL-1.1)', 'licenses' => [['text' => 'MIT', 'url' => 'https://spdx.org/licenses/MIT.html', 'operator' => false], ['text' => 'and', 'url' => null, 'operator' => true], ['text' => 'OFL-1.1', 'url' => 'https://spdx.org/licenses/OFL-1.1.html', 'operator' => false]], 'links' => [['kind' => 'docs', 'url' => 'https://notebook.test/docs']], 'funding' => [], 'running' => true, 'requirements' => [], 'blocked' => null, 'requiredBy' => [], 'deletable' => false, 'backup' => null], $notebook, 'The active theme falls back to it, so it can\'t be deleted.');
 
 		$plate = self::theme($themes, 'acme/plate');
 		$this->assertTrue($plate['deletable'] ?? null);
@@ -134,6 +138,38 @@ final class AdminThemesTest extends TestCase
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/orphan']])->getStatusCode(), 'It falls back to a theme that isn\'t installed.');
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'plate']])->getStatusCode());
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings.json');
+	}
+
+	public function testEnforcesAThemesRequirements(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/future/theme.json', '{"name": "acme/future", "label": "Future", "parent": "acme/notebook", "require": {"blush-dev/framework": "^9.0"}}');
+		$this->site();
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/future']]);
+		$this->assertSame(422, $response->getStatusCode());
+		$this->assertStringContainsString('Future can\'t be activated. Needs Blush ^9.0 (this site runs', (string) $response->getBody());
+
+		$themes = self::json($this->send('GET', '/themes'))['themes'] ?? null;
+		$future = self::theme(is_array($themes) ? $themes : [], 'acme/future');
+		$this->assertFalse($future['running'] ?? null);
+		$this->assertStringStartsWith('Needs Blush ^9.0', is_string($future['blocked'] ?? null) ? $future['blocked'] : '');
+		$this->assertSame([['name' => 'blush-dev/framework', 'constraint' => '^9.0', 'kind' => 'blush', 'met' => false, 'note' => 'this site runs 2.0.0-dev', 'label' => '']], $future['requirements'] ?? null);
+	}
+
+	public function testAnActiveThemeThatCantRunFallsBackToTheDefault(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/future/theme.json', '{"name": "acme/future", "label": "Future", "parent": "acme/notebook", "require": {"blush-dev/framework": "^9.0"}}');
+		$this->site(active: 'acme/future');
+
+		$answer = self::json($this->send('GET', '/themes'));
+		$this->assertSame('acme/future', $answer['active'] ?? null, 'Config still names it.');
+		$this->assertStringStartsWith('Needs Blush ^9.0', is_string($answer['fallback'] ?? null) ? $answer['fallback'] : '');
+
+		$themes = is_array($answer['themes'] ?? null) ? $answer['themes'] : [];
+		$this->assertFalse(self::theme($themes, 'acme/future')['running'] ?? null);
+		$this->assertFalse(self::theme($themes, 'acme/notebook')['running'] ?? null, 'Its chain runs whole or not at all.');
+		$this->assertTrue(self::theme($themes, 'blush/default')['running'] ?? null);
+		$this->assertSame(Themes::DEFAULT, $this->app->container()->make(ThemeResolver::class)->active()->active()->name, 'Pages render with the default theme.');
 	}
 
 	public function testDeletesThemeFolders(): void

@@ -433,7 +433,8 @@ The extension's details screen shows the version that was kept, with
 version it replaces is kept in its place, so the message's **Undo**, or
 rolling back again, switches back. An earlier version that wouldn't
 run on the site now isn't rolled back to: a plugin whose requirements
-aren't met, or a theme in use whose parent theme isn't installed.
+aren't met, a theme or icon pack in use whose requirements aren't, or a
+theme in use whose parent theme isn't installed.
 **Discard** removes the kept version. Rolling back needs the kind's
 `extensions.{kind}.update` capability, and discarding its
 `extensions.{kind}.delete`.
@@ -610,21 +611,52 @@ listed, and turning it on does nothing.
 
 ### Requirements
 
-`require` maps what a plugin needs to a version constraint, as
-Composer's does (`^2.0`, `~1.2`, `>=8.4`, `1.*`, `^1.0 || ^2.0`):
+`require` maps what an extension needs to a version constraint, as
+Composer's does (`^2.0`, `~1.2`, `>=8.4`, `1.*`, `1.0 - 2.0`,
+`^1.0 || ^2.0`). It works the same way for plugins, themes, and icon
+packs. Constraints are checked by Composer's rules, wherever a version
+comes from (the manifest, `composer.json`, or Composer). That includes
+stability: `^2.0` and `>=2.0` take `2.0.0-beta1` and `2.0.0-dev`, `<2.0`
+doesn't, and `>=2.0@beta` starts at the first beta. A branch version,
+such as `dev-main`, meets only `*` or its own name. Give an extension a
+`version` Composer can read (`1.2.0`, `2.0.0-beta1`); one it can't, such
+as `1.0-final`, meets only `*`, and the check commands warn about it.
+One with no `version` counts as `0.0.0`.
 
 - `blush-dev/framework`: the Blush version.
 - `php`: the PHP version.
 - `ext-{name}`: a PHP extension that must be loaded (`"ext-intl": "*"`).
-- Another plugin, by its name: `"acme/shop": "^2.0"` needs Shop
-  installed at a version that fits, and turned on.
+- Another plugin, theme, or icon pack, by its name: `"acme/shop": "^2.0"`
+  needs Shop installed at a version that fits, and running. A plugin or
+  icon pack runs when it's turned on and its own requirements are met;
+  a theme runs when it's the active theme or one it falls back to.
 
-A plugin whose requirements aren't met doesn't run, even when it's on,
-and the Plugins screen says why. Anything else in `require` can't be
-checked, so it isn't met. Turning a plugin off also stops every plugin
-that requires it, and a plugin's requirements are loaded before it.
-`bin/blush plugin:check` checks every plugin's requirements from the
-command line, and `plugin:list` shows which plugins are on.
+No two extensions share a name, of any kind, so a name in `require`
+always means one extension. A theme or icon pack with the name of an
+extension found before it (plugins first, then themes) is broken.
+
+When requirements aren't met:
+
+- **A plugin** doesn't run, even when it's on, and the Plugins screen
+  says why.
+- **An icon pack** adds no icons, even when it's on, and the Icon Packs
+  screen says why.
+- **A theme** can't be activated, in the admin or with `theme:activate`.
+  If the active theme stops meeting them (a plugin it needs is turned
+  off, say), visitors see the default theme in its place until that's
+  fixed, and the Themes screen says why. A theme and the themes it falls
+  back to run together or not at all, so a requirement of any of them
+  counts for all of them.
+
+Anything else in `require` can't be checked, so it isn't met. Turning
+an extension off (or switching themes) also stops every extension that
+requires it, and the admin names what stopped. A plugin's requirements
+are loaded before it. A Composer package's own `composer.json`
+`require` is Composer's to check, not Blush's: for one, Blush checks
+only the `require` in its manifest (or, for a plugin, `extra.blush`).
+`bin/blush plugin:check`, `theme:check`, and `icon-pack:check` check
+each kind from the command line, and `doctor` warns of anything that's
+on but can't run.
 
 A plugin whose manifest can't be read (a `plugin.json` that doesn't
 parse, or is missing a key it needs) is broken. It never runs, even
@@ -876,7 +908,9 @@ Only `name` is required. Without a `label` it's shown by its name, and
 without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors`, `license`, `homepage`,
-`support`, and `funding` work as a plugin's do. Each `{icon}.svg` in the
+`support`, `funding`, and [`require`](#requirements) work as a plugin's
+do: a pack whose requirements aren't met adds no icons, even when it's
+on. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is
 `{namespace}/{icon}`: `svg/github.svg` is `brands/github`, used as
 `:icon[GitHub]{name=brands/github}` or `$template->icon('brands/github')`.

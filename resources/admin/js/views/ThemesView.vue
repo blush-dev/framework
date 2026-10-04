@@ -9,8 +9,11 @@
  * `user/data/settings.json` (`PATCH settings`, `theme.active`), over
  * `config/theme.php`, and has the server compile and reindex for it; a
  * failure is said on the card, leading with the fact that the site is
- * unchanged. A theme that falls back to one that isn't installed can't be
- * activated, and says why. **Delete** removes a folder theme from
+ * unchanged. A theme that falls back to one that isn't installed, or
+ * whose chain has a requirement that isn't met (D-431), can't be
+ * activated, and says why; an active theme whose requirements stopped
+ * being met says it isn't running, and that the default theme shows in
+ * its place. **Delete** removes a folder theme from
  * `extensions/`, unless the active theme uses it; Composer themes and the
  * default theme can't be deleted here. Broken themes are cards too, with
  * no preview.
@@ -32,7 +35,7 @@ import { useInstall } from '../install';
 import { can } from '../session';
 import { copy, folderName, previewUrl, themeRoute, useThemes } from '../themes';
 
-const { answer, error, busy, failed, themes, active, load, label, installed, dependents, blockedMessage, activate: activateTheme, useConfig, remove: removeTheme, find } = useThemes();
+const { answer, error, busy, failed, themes, active, load, label, installed, dependents, blockedMessage, fallbackMessage, activate: activateTheme, useConfig, remove: removeTheme, find } = useThemes();
 const { installing, canInstall, afterInstall, hop } = useInstall('theme', load);
 
 // What the account may do here (D-389).
@@ -107,7 +110,8 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 				<p class="theme__name">
 					<RouterLink class="theme__label" :to="themeRoute(theme.name)">{{ theme.label }}</RouterLink>
 					<span v-if="theme.active" class="pill pill--good">Active</span>
-					<span v-else-if="theme.blocked" class="pill pill--warn">Can't activate</span>
+					<span v-if="fallbackMessage(theme)" class="pill pill--warn">Not running</span>
+					<span v-else-if="theme.blocked && !theme.active" class="pill pill--warn">Can't activate</span>
 					<span v-else-if="theme.source === 'framework'" class="pill">Built in</span>
 					<span v-if="theme.version" class="theme__version mono">{{ theme.version }}</span>
 				</p>
@@ -121,6 +125,9 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 					<li v-else-if="theme.parent && !installed(theme.parent)" class="is-warn"><AdminIcon name="triangle-alert" /><span>Falls back to <span class="mono">{{ theme.parent }}</span>, which isn't installed</span></li>
 					<li v-else><AdminIcon name="corner-down-right" /><span>Falls back to <RouterLink class="theme__link" :to="themeRoute(theme.parent ?? 'blush/default')">{{ label(theme.parent ?? 'blush/default') }}</RouterLink></span></li>
 				</ul>
+				<p v-if="fallbackMessage(theme)" class="theme__message theme__message--warn">
+					<AdminIcon name="triangle-alert" /><span>{{ fallbackMessage(theme) }}</span>
+				</p>
 				<p v-if="failed?.name === theme.name" class="theme__message theme__message--danger" role="alert">
 					<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
 				</p>

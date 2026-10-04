@@ -69,7 +69,7 @@
 		},
 		"require": {
 			"type": "object",
-			"description": "What the plugin needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren't met doesn't run. Without it, the require in the composer.json beside this file is used.",
+			"description": "What the plugin needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name. A plugin whose requirements aren't met doesn't run. Without it, the require in the composer.json beside this file is used.",
 			"additionalProperties": {
 				"type": "string"
 			}

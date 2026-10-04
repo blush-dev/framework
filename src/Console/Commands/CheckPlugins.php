@@ -18,10 +18,12 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Console\Style;
+use Blush\Extension\ExtensionState;
+use Blush\Extension\Requirements;
+use Blush\Extension\VersionConstraint;
 use Blush\Plugin\BrokenPlugin;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\PluginManifest;
-use Blush\Plugin\PluginRequirements;
 use Blush\Plugin\Plugins;
 
 /**
@@ -29,14 +31,16 @@ use Blush\Plugin\Plugins;
  * can be read (D-394) and its `require` are met (D-385), checking one
  * that's off as if it were turned on. A plugin that's turned on but
  * can't run is an error, which fails the command; one that's off and
- * couldn't be turned on is a warning.
+ * couldn't be turned on is a warning, and so is a version Composer
+ * can't read (D-430).
  */
 #[Command('plugin:check', 'Check plugins\' manifests and requirements.')]
 final readonly class CheckPlugins
 {
 	public function __construct(
 		private Plugins $plugins,
-		private PluginConfig $config
+		private PluginConfig $config,
+		private ExtensionState $extensions
 	) {}
 
 	public function __invoke(
@@ -44,17 +48,9 @@ final readonly class CheckPlugins
 		#[Argument('The plugin\'s name (vendor/name); defaults to every plugin.')] ?string $name = null
 	): ExitCode {
 		$installed = [];
-		$running   = [];
-		$blocked   = [];
 
 		foreach ($this->plugins->installed() as $plugin) {
 			$installed[$plugin->name] = $plugin;
-
-			if ($this->plugins->has($plugin->name)) {
-				$running[$plugin->name] = true;
-			} elseif ($this->config->isEnabled($plugin)) {
-				$blocked[$plugin->name] = true;
-			}
 		}
 
 		$plugins = array_filter($installed, static fn (PluginManifest $plugin): bool => $name === null || $plugin->name === $name);
@@ -66,16 +62,27 @@ final readonly class CheckPlugins
 			return ExitCode::Failure;
 		}
 
-		$requirements = new PluginRequirements();
-		$errors       = 0;
-		$warnings     = 0;
+		$errors   = 0;
+		$warnings = 0;
 
 		foreach ($plugins as $plugin) {
-			$checked = $requirements->check($plugin, $installed, $running, $blocked);
+			$checked = $this->extensions->check($plugin);
 
-			if (PluginRequirements::met($checked)) {
+			// A version Composer can't read meets only `*` (D-429).
+			if (VersionConstraint::normalize($plugin->version) === null) {
+				$warnings++;
+
+				$output->line(sprintf(
+					'%s %s: Its version, "%s", isn\'t one Composer can read, so a plugin that requires it is met only by "*".',
+					$output->style('warning', Style::Yellow),
+					$plugin->name,
+					$plugin->version
+				));
+			} elseif (Requirements::met($checked)) {
 				$output->line(sprintf('%s %s %s', $output->style('ok     ', Style::Green), $plugin->name, $output->style($plugin->version, Style::Dim)));
+			}
 
+			if (Requirements::met($checked)) {
 				continue;
 			}
 
@@ -87,7 +94,7 @@ final readonly class CheckPlugins
 				'%s %s: %s%s',
 				$output->style($on ? 'error  ' : 'warning', $on ? Style::Red : Style::Yellow),
 				$plugin->name,
-				PluginRequirements::reason($checked),
+				Requirements::reason($checked),
 				$on ? ' It\'s turned on, but doesn\'t run.' : ''
 			));
 		}

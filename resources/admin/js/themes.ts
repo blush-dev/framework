@@ -63,6 +63,14 @@ export function useThemes() {
 		return `${theme.blocked ?? ''} It can't be activated until that's fixed.`;
 	}
 
+	// Why the active theme doesn't run, when its chain's requirements
+	// aren't met and the default theme runs in its place (D-431), or `null`.
+	function fallbackMessage(theme: ThemeSummary): string | null {
+		const fallback = answer.value?.fallback ?? null;
+
+		return theme.active && fallback !== null ? `${fallback} Visitors see ${label('blush/default')} in its place until that's fixed.` : null;
+	}
+
 	// Asks, then activates a theme; resolves whether it was activated.
 	async function activate(theme: ThemeSummary): Promise<boolean> {
 		const sure = await confirmAction({
@@ -131,7 +139,7 @@ export function useThemes() {
 		}
 	}
 
-	return { answer, error, busy, failed, themes, active, load, find, label, installed, dependents, blockedMessage, activate, useConfig, remove };
+	return { answer, error, busy, failed, themes, active, load, find, label, installed, dependents, blockedMessage, fallbackMessage, activate, useConfig, remove };
 }
 
 // Saves the theme setting, then has the server compile and reindex for it

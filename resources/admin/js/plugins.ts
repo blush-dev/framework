@@ -12,9 +12,10 @@
  */
 
 import { computed, ref } from 'vue';
-import { ApiError, request, type BrokenPluginSummary, type PluginRequirement, type Plugins, type PluginSummary } from './api';
+import { ApiError, request, type BrokenPluginSummary, type ExtensionDependent, type Plugins, type PluginSummary } from './api';
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
+import { list } from './extensions';
 import { toast } from './toast';
 import { folderName, folderPath } from './themes';
 
@@ -40,13 +41,13 @@ export function usePlugins() {
 		return plugins.value.find((plugin) => plugin.name === name) ?? null;
 	}
 
-	// The plugins that require one.
-	function requiredBy(plugin: PluginSummary): PluginSummary[] {
-		return plugin.requiredBy.map(find).filter((other): other is PluginSummary => other !== null);
+	// The extensions, of every kind, that require one (D-431).
+	function requiredBy(plugin: PluginSummary): ExtensionDependent[] {
+		return plugin.requiredBy;
 	}
 
 	// Turns a plugin on or off, saying what happened, and which other
-	// plugins started or stopped with it. The toast offers an Undo only
+	// extensions, of any kind, started or stopped with it. The toast offers an Undo only
 	// when nothing else started or stopped, since turning the one plugin
 	// back wouldn't put the others back; the reverse offers none.
 	async function toggle(plugin: PluginSummary, on: boolean, offer = true): Promise<void> {
@@ -153,32 +154,4 @@ export function pluginRoute(name: string): { name: 'plugin'; params: { vendor: s
 	const [vendor = '', short = ''] = name.split('/');
 
 	return { name: 'plugin', params: { vendor, name: short } };
-}
-
-// A requirement as a person reads it: `Blush ^2.0`, `the PHP extension
-// intl`, `Shop ^2.0`.
-export function requirementText(requirement: PluginRequirement): string {
-	const constraint = requirement.constraint === '*' ? '' : ` ${requirement.constraint}`;
-
-	switch (requirement.kind) {
-		case 'blush':
-			return `Blush${constraint}`;
-		case 'php':
-			return `PHP${constraint}`;
-		case 'extension':
-			return `the PHP extension ${requirement.name.slice(4)}${constraint}`;
-		case 'plugin':
-			return `${requirement.label || requirement.name}${constraint}`;
-		default:
-			return `${requirement.name}${constraint}`;
-	}
-}
-
-// Names joined as a sentence says them: "A", "A and B", "A, B, and C".
-function list(names: string[]): string {
-	if (names.length < 3) {
-		return names.join(' and ');
-	}
-
-	return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1] ?? ''}`;
 }

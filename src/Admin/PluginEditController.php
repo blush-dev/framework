@@ -25,9 +25,12 @@ use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionManifest;
+use Blush\Extension\ExtensionState;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Extension\Install\InstallException;
 use Blush\Extension\LocalExtensions;
+use Blush\Extension\Requirements;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Plugin\BrokenPlugin;
@@ -35,7 +38,6 @@ use Blush\Plugin\DiscoveredPlugins;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\PluginDiscovery;
 use Blush\Plugin\PluginManifest;
-use Blush\Plugin\PluginRequirements;
 use Blush\Plugin\Plugins;
 use Blush\Plugin\PluginSource;
 use Blush\Settings\InvalidSetting;
@@ -73,6 +75,7 @@ final readonly class PluginEditController
 		private Paths $paths,
 		private Plugins $plugins,
 		private PluginConfig $config,
+		private ExtensionState $extensions,
 		private SettingsFile $settings,
 		private ContentVersion $version,
 		private Bootstrap $bootstrap,
@@ -108,8 +111,7 @@ final readonly class PluginEditController
 			return self::error(sprintf('No plugin named %s is installed.', $target), Status::NotFound);
 		}
 
-		$requirements = new PluginRequirements();
-		$before       = array_keys(array_filter($installed, fn (PluginManifest $other): bool => $this->plugins->has($other->name)));
+		$before = $this->extensions->with(discovered: [$discovered->manifests, $discovered->broken]);
 
 		if ($enable) {
 			// A broken one can only be turned off (D-394).
@@ -117,10 +119,10 @@ final readonly class PluginEditController
 				return self::error(sprintf('%s can\'t be turned on. %s', $target, $broken->reason), Status::UnprocessableContent);
 			}
 
-			$checked = $requirements->check($plugin, $installed, array_fill_keys($before, true));
+			$checked = $before->check($plugin);
 
-			if (! PluginRequirements::met($checked)) {
-				return self::error(sprintf('%s can\'t be turned on. %s', $plugin->label, PluginRequirements::reason($checked)), Status::UnprocessableContent);
+			if (! Requirements::met($checked)) {
+				return self::error(sprintf('%s can\'t be turned on. %s', $plugin->label, Requirements::reason($checked)), Status::UnprocessableContent);
 			}
 		}
 
@@ -134,18 +136,18 @@ final readonly class PluginEditController
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}
 
-		// Which plugins run once it's saved, to say which others start or stop.
-		$config  = new PluginConfig(saved: self::names($saved->get(Setting::Plugins)));
-		$after   = array_map(static fn (PluginManifest $other): string => $other->name, Plugins::enabled($discovered->manifests, $config, $requirements, $discovered->broken)->all());
-		$label   = static fn (string $other): string => $installed[$other]->label ?? $other;
+		// What runs once it's saved, of every kind, to say what else starts
+		// or stops (D-431).
+		$after = $before->with(new PluginConfig(saved: self::names($saved->get(Setting::Plugins))));
+		$label = static fn (ExtensionManifest $other): string => $other->label;
 
 		$this->bootstrap->clearCompiled(CompiledCache::ContentTypes, CompiledCache::Routes);
 		$this->version->bump();
 
 		return Response::json([
 			'enabled' => $enable,
-			'started' => array_map($label, array_values(array_diff($after, $before, [$target]))),
-			'stopped' => array_map($label, array_values(array_diff($before, $after, [$target]))),
+			'started' => array_map($label, $after->runningNotIn($before, $target)),
+			'stopped' => array_map($label, $before->runningNotIn($after, $target)),
 			'refresh' => true
 		], headers: ['Cache-Control' => 'no-store']);
 	}

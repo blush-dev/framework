@@ -5,14 +5,18 @@
  * `/icon-packs/core`: its switch in the header (the core set's locked
  * on), every icon at a size to judge, with a filter, each one copying its
  * reference when clicked (`weather/sun`, or a core icon's name), then a
- * Details panel and **Delete icon pack** for a folder pack. A Composer
- * pack says how it's removed instead.
+ * Details panel, a Requires panel (each requirement checked against the
+ * site, as a plugin's are, D-431; one that isn't met keeps the pack from
+ * turning on, or its icons from loading), and **Delete icon pack** for a
+ * folder pack. A Composer pack says how it's removed instead.
  */
 
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
+import ExtensionRequirements from '../components/ExtensionRequirements.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
@@ -78,20 +82,29 @@ watch(label, (value) => {
 }, { immediate: true });
 
 async function toggle(on: boolean): Promise<void> {
-	const name = pack.value?.name;
-
-	if (pack.value && await togglePack(pack.value, on, (back) => show(name, back))) {
-		show(name, on);
+	if (pack.value && await togglePack(pack.value, on, () => void refresh())) {
+		await refresh();
 	}
 }
 
-// Shows the pack as on or off, after a switch or its Undo, if it's still
-// the pack on screen.
-function show(name: string | undefined, on: boolean): void {
-	if (pack.value && pack.value.name === name) {
-		pack.value = { ...pack.value, enabled: on };
+// Fetches the pack again after a switch, without clearing the screen, if
+// it's still the pack on screen: whether it runs, and its requirements.
+async function refresh(): Promise<void> {
+	const current = pack.value?.name;
+
+	try {
+		const fresh = (await request<{ pack: IconPackSummary }>('GET', `/icon-packs/${current ?? ''}`)).pack;
+
+		if (pack.value?.name === fresh.name) {
+			pack.value = fresh;
+		}
+	} catch {
+		// The switch saved; the screen shows it on the next load.
 	}
 }
+
+// Why it can't be turned on, when it isn't running, or `null` (D-431).
+const blocked = computed(() => pack.value && !pack.value.running ? pack.value.blocked : null);
 
 async function remove(): Promise<void> {
 	const value = pack.value;
@@ -111,7 +124,8 @@ async function remove(): Promise<void> {
 			<p v-else-if="core" class="page-header__hint">Blush's own icons: always on, and always available to content.</p>
 		</div>
 		<div v-if="pack" class="page-header__actions">
-			<ToggleSwitch :checked="pack.enabled" :label="pack.label" :locked="!canActivate" :busy="busy === pack.name" :reason="canActivate ? null : 'Your role can\'t turn icon packs on and off.'" @change="toggle" />
+			<span v-if="blocked" class="pill pill--warn">Can't turn on</span>
+			<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked !== null || !canActivate" :busy="busy === pack.name" :reason="blocked ?? (canActivate ? null : 'Your role can\'t turn icon packs on and off.')" @change="toggle" />
 		</div>
 		<div v-else-if="core" class="page-header__actions">
 			<span class="pill">Built in</span>
@@ -122,7 +136,10 @@ async function remove(): Promise<void> {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<div v-if="shown" class="pack-detail">
-		<p v-if="pack && !pack.enabled" class="notice notice--warn">
+		<p v-if="pack && blocked" class="notice notice--warn">
+			<span>{{ blocked }} {{ pack.enabled ? 'It\'s turned on, but its icons aren\'t available until that\'s fixed, and anywhere one is used shows nothing.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+		</p>
+		<p v-else-if="pack && !pack.enabled" class="notice notice--warn">
 			<span>This pack is off, so its icons aren't available, and anywhere one is used shows nothing.</span>
 		</p>
 
@@ -174,6 +191,7 @@ async function remove(): Promise<void> {
 						<ExtensionLinks :links="pack.links" :funding="pack.funding" />
 						<dt>Namespace</dt>
 						<dd class="mono">{{ pack.namespace }}/</dd>
+						<ExtensionDependents :dependents="pack.requiredBy" />
 						<dt>Icons</dt>
 						<dd>{{ pack.count }}</dd>
 						<dt>Installed by</dt>
@@ -199,6 +217,16 @@ async function remove(): Promise<void> {
 				</div>
 			</section>
 		</div>
+
+		<section v-if="pack" class="panel" aria-labelledby="requires-heading">
+			<header class="panel__header">
+				<h2 id="requires-heading">Requires</h2>
+				<p class="panel__hint">Checked against this site</p>
+			</header>
+			<div class="panel__body">
+				<ExtensionRequirements :requirements="pack.requirements" />
+			</div>
+		</section>
 
 		<template v-if="pack">
 			<PreviousVersion kind="icon-pack" :extension="pack" :live="pack.enabled" @changed="load" />

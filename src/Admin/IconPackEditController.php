@@ -24,11 +24,15 @@ use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionManifest;
+use Blush\Extension\ExtensionState;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Extension\Install\InstallException;
 use Blush\Extension\LocalExtensions;
+use Blush\Extension\Requirements;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Icon\IconConfig;
 use Blush\Icon\IconPack;
 use Blush\Icon\IconPacks;
 use Blush\Icon\IconPackSource;
@@ -49,7 +53,11 @@ use Blush\Support\FilesystemException;
  *   (`icons.enabled`), Composer's included, over `config/icons.php`
  *   (D-391); the first save starts from what's on by default. A pack
  *   that's off adds no icons, so anywhere one is used shows nothing.
- *   Answers `{"enabled"}`.
+ *   One whose requirements aren't met can't be turned on (`422`,
+ *   D-431). Answers `{"enabled", "started", "stopped", "refresh"}`: the
+ *   other extensions, of any kind, that start or stop with it (by
+ *   label), and whether the admin should ask for `settings/refresh`
+ *   (when any did).
  * - `DELETE icon-packs/{folder}` removes a pack's folder from
  *   `extensions/`, or a broken pack's, clears the icon pack cache, and
  *   answers `{"deleted"}` with where it was. Composer packs aren't
@@ -62,6 +70,7 @@ final readonly class IconPackEditController
 	public function __construct(
 		private Paths $paths,
 		private IconPacks $packs,
+		private ExtensionState $extensions,
 		private SettingsFile $settings,
 		private ContentVersion $version,
 		private Bootstrap $bootstrap,
@@ -88,9 +97,16 @@ final readonly class IconPackEditController
 			return self::error(sprintf('No icon pack named %s/%s is installed.', $vendor, $name), Status::NotFound);
 		}
 
+		// One whose requirements aren't met can't be turned on (D-431).
+		$checked = $this->extensions->check($pack);
+
+		if ($enable && ! Requirements::met($checked)) {
+			return self::error(sprintf('%s can\'t be turned on. %s', $pack->label, Requirements::reason($checked)), Status::UnprocessableContent);
+		}
+
 		try {
-			$this->settings->update(function (Settings $settings) use ($pack, $enable): Settings {
-				$enabled = array_values(array_diff($settings->has(Setting::IconPacks) ? self::names($settings->get(Setting::IconPacks)) : array_keys($this->packs->enabled()), [$pack->name]));
+			$saved = $this->settings->update(function (Settings $settings) use ($pack, $enable): Settings {
+				$enabled = array_values(array_diff($settings->has(Setting::IconPacks) ? self::names($settings->get(Setting::IconPacks)) : array_keys($this->packs->on()), [$pack->name]));
 
 				return $settings->with([Setting::IconPacks->value => $enable ? [...$enabled, $pack->name] : $enabled]);
 			});
@@ -98,9 +114,26 @@ final readonly class IconPackEditController
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}
 
+		// What else starts or stops with it, of every kind: a plugin that
+		// requires it, say (D-431).
+		$after   = $this->extensions->with(icons: new IconConfig(saved: self::names($saved->get(Setting::IconPacks))));
+		$label   = static fn (ExtensionManifest $other): string => $other->label;
+		$started = array_map($label, $after->runningNotIn($this->extensions, $pack->name));
+		$stopped = array_map($label, $this->extensions->runningNotIn($after, $pack->name));
+		$refresh = $started !== [] || $stopped !== [];
+
+		if ($refresh) {
+			$this->bootstrap->clearCompiled(CompiledCache::ContentTypes, CompiledCache::Routes);
+		}
+
 		$this->version->bump();
 
-		return Response::json(['enabled' => $enable], headers: ['Cache-Control' => 'no-store']);
+		return Response::json([
+			'enabled' => $enable,
+			'started' => $started,
+			'stopped' => $stopped,
+			'refresh' => $refresh
+		], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	public function delete(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface

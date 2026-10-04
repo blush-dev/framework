@@ -362,8 +362,15 @@ export interface ThemeSummary {
 	licenses: LicensePart[];
 	links: ExtensionLink[];
 	funding: ExtensionFunding[];
-	// Why it can't be activated (a theme it falls back to is missing), or `null`.
+	// Whether it's in the chain that runs.
+	running: boolean;
+	// Checked as if it were active (D-431).
+	requirements: ExtensionRequirement[];
+	// Why it can't be activated (a theme it falls back to is missing, or a
+	// requirement in its chain isn't met), or `null`.
 	blocked: string | null;
+	// The extensions, of every kind, that require it.
+	requiredBy: ExtensionDependent[];
 	// Whether it's a folder in `extensions/` the active theme doesn't use.
 	deletable: boolean;
 	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
@@ -380,6 +387,9 @@ export interface Themes {
 	// empty when it can't be built, with the `problem`.
 	chain: string[];
 	problem: string | null;
+	// Why the active chain doesn't run, so the default theme runs in its
+	// place (D-431), or `null`.
+	fallback: string | null;
 	// Whether `config/theme.php` exists.
 	config: boolean;
 	// Whether the active theme is saved in `user/data/settings.json`.
@@ -434,18 +444,29 @@ export interface InstallClash {
 }
 
 /**
- * One of a plugin's `requires`, checked against the site (D-385).
+ * One of an extension's `require`, checked against the site the same for
+ * every kind (D-385, D-431).
  */
-export interface PluginRequirement {
-	// `blush`, `php`, `ext-{name}`, or another plugin's `vendor/name`.
+export interface ExtensionRequirement {
+	// `blush-dev/framework`, `php`, `ext-{name}`, or another extension's `vendor/name`.
 	name: string;
 	constraint: string;
-	kind: 'blush' | 'php' | 'extension' | 'plugin' | 'unknown';
+	// `missing` is a `vendor/name` that isn't installed.
+	kind: 'blush' | 'php' | 'extension' | 'plugin' | 'theme' | 'icon-pack' | 'missing' | 'unknown';
 	met: boolean;
-	// What the site has: `this site runs 8.5.1`, `isn't installed`, `is turned off`.
+	// What the site has: `this site runs 8.5.1`, `isn't installed`, `is turned off`, `isn't active`.
 	note: string;
-	// The required plugin's label, when it's installed.
+	// The required extension's label, when it's installed.
 	label: string;
+}
+
+/**
+ * An extension that requires another (D-431).
+ */
+export interface ExtensionDependent {
+	name: string;
+	label: string;
+	kind: 'plugin' | 'theme' | 'icon-pack';
 }
 
 /**
@@ -476,11 +497,11 @@ export interface PluginSummary {
 	enabled: boolean;
 	running: boolean;
 	// For one that's off, checked as if it were turned on.
-	requirements: PluginRequirement[];
+	requirements: ExtensionRequirement[];
 	// Why it can't run, or `null`.
 	blocked: string | null;
-	// The plugins that require it, by name.
-	requiredBy: string[];
+	// The extensions, of every kind, that require it.
+	requiredBy: ExtensionDependent[];
 	// A folder plugin that isn't running.
 	deletable: boolean;
 	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
@@ -547,7 +568,16 @@ export interface IconPackSummary {
 	path: string;
 	// Its folder in `extensions/`, or `null` for a Composer pack.
 	folder: string | null;
+	// Turned on, and whether its icons load: one that's on doesn't when
+	// its requirements aren't met (D-431).
 	enabled: boolean;
+	running: boolean;
+	// For one that's off, checked as if it were turned on.
+	requirements: ExtensionRequirement[];
+	// Why it can't load, or `null`.
+	blocked: string | null;
+	// The extensions, of every kind, that require it.
+	requiredBy: ExtensionDependent[];
 	deletable: boolean;
 	count: number;
 	// The first twelve on the list; every one from `GET icon-packs/{name}`.

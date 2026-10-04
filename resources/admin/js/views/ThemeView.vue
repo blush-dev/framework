@@ -2,8 +2,10 @@
 /**
  * A theme's details (D-383, the themes sketch's detail screen), at
  * `/themes/{vendor}/{name}`: its preview in both halves of its palette,
- * its details, its palette as swatches, and, for a folder theme the
- * active one doesn't use, **Delete theme**. A Composer theme says how
+ * its details, its requirements (checked as if it were active, D-431),
+ * its palette as swatches, and, for a folder theme the active one
+ * doesn't use, **Delete theme**. An active theme whose requirements
+ * aren't met says it isn't running. A Composer theme says how
  * it's removed instead.
  *
  * **Activate** asks, as on the Themes screen (`useThemes()`), and a
@@ -15,7 +17,9 @@
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
+import ExtensionRequirements from '../components/ExtensionRequirements.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
@@ -28,7 +32,7 @@ import { copy, themeRoute, useThemes } from '../themes';
 const route  = useRoute();
 const router = useRouter();
 
-const { answer, error, busy, failed, active, load, find, label, installed, dependents, blockedMessage, activate, remove: removeTheme } = useThemes();
+const { answer, error, busy, failed, active, load, find, label, installed, dependents, blockedMessage, fallbackMessage, activate, remove: removeTheme } = useThemes();
 
 // What the account may do here (D-389).
 const canActivate = can('extensions.themes.activate');
@@ -135,6 +139,7 @@ async function remove(): Promise<void> {
 		<div v-if="theme" class="page-header__actions">
 			<template v-if="theme.active">
 				<span class="pill pill--good">Active</span>
+				<span v-if="fallbackMessage(theme)" class="pill pill--warn">Not running</span>
 				<a class="button" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View site<span class="visually-hidden"> (new tab)</span></a>
 			</template>
 			<template v-else-if="theme.blocked">
@@ -151,6 +156,9 @@ async function remove(): Promise<void> {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-if="theme && answer">
+		<p v-if="fallbackMessage(theme)" class="theme-message theme-message--warn">
+			<AdminIcon name="triangle-alert" /><span>{{ fallbackMessage(theme) }}</span>
+		</p>
 		<p v-if="failed?.name === theme.name" class="theme-message theme-message--danger" role="alert">
 			<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
 		</p>
@@ -224,6 +232,7 @@ async function remove(): Promise<void> {
 								</template>
 								<RouterLink v-else :to="themeRoute(theme.parent ?? 'blush/default')">{{ label(theme.parent ?? 'blush/default') }}</RouterLink>
 							</dd>
+							<ExtensionDependents :dependents="theme.requiredBy" />
 							<dt>Used as fallback by</dt>
 							<dd>
 								<template v-if="theme.source === 'framework'">Every theme</template>
@@ -236,6 +245,16 @@ async function remove(): Promise<void> {
 					</div>
 				</section>
 			</div>
+
+			<section class="panel" aria-labelledby="requires-heading">
+				<header class="panel__header">
+					<h2 id="requires-heading">Requires</h2>
+					<p class="panel__hint">{{ theme.active ? 'Checked against this site' : 'Checked against this site, as if it were active' }}</p>
+				</header>
+				<div class="panel__body">
+					<ExtensionRequirements :requirements="theme.requirements" />
+				</div>
+			</section>
 
 			<section v-if="halves.length" class="panel" aria-labelledby="palette-heading">
 				<header class="panel__header">

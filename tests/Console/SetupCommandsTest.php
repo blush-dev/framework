@@ -142,6 +142,7 @@ final class SetupCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->output . $result->errors);
 		$this->assertMatchesRegularExpression('/ok\s+PHP: 8\.5/', $result->output);
 		$this->assertStringContainsString('storage/: Created when it\'s needed.', $result->output);
+		$this->assertStringContainsString('ok      Extensions: Everything that\'s on runs.', $result->output);
 		$this->assertStringContainsString('0 failure(s), 0 warning(s).', $result->output);
 	}
 
@@ -153,6 +154,24 @@ final class SetupCommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('/failure APP_DEBUG: Debugging is on in production/', $result->output);
 		$this->assertStringContainsString('        Set APP_DEBUG=false.', $result->output);
 		$this->assertStringContainsString('2 failure(s)', $result->errors);
+	}
+
+	public function testDoctorWarnsOfExtensionsThatCantRun(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/future/theme.json', '{"name": "acme/future", "require": {"blush-dev/framework": "^9.0"}}');
+		$this->writeTemporaryFile('extensions/acme/later/plugin.json', '{"name": "acme/later", "require": {"php": ">=9.0"}}');
+		$this->writeTemporaryFile('extensions/acme/glyphs/icons.json', '{"name": "acme/glyphs", "require": {"acme/missing": "^1.0"}}');
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/future');\n");
+		$this->writeTemporaryFile('config/plugins.php', "<?php\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/later']);\n");
+		$this->writeTemporaryFile('config/icons.php', "<?php\n\nreturn new Blush\\Icon\\IconConfig(enabled: ['acme/glyphs']);\n");
+
+		$result = $this->command('doctor', environment: ['APP_URL' => 'https://example.com']);
+
+		$this->assertMatchesRegularExpression('/warning Theme: The "acme\/future" theme can\'t run, so the default theme runs in its place\. Needs Blush \^9\.0/', $result->output);
+		$this->assertStringContainsString('warning Plugins: 1 plugin is turned on but can\'t run: acme/later.', $result->output);
+		$this->assertStringContainsString('warning Icon packs: 1 icon pack is turned on but can\'t run: acme/glyphs.', $result->output);
+		$this->assertStringContainsString('Run "blush icon-pack:check" to see why.', $result->output);
+		$this->assertStringNotContainsString('ok      Extensions', $result->output);
 	}
 
 	public function testOffersTheFirstAccount(): void

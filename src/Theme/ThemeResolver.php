@@ -45,13 +45,14 @@ final class ThemeResolver
 	) {}
 
 	/**
-	 * Returns the active theme's chain.
+	 * Returns the active theme's chain, or the default theme's when the
+	 * active chain's requirements aren't met (D-431).
 	 *
 	 * @throws ThemeException When the active theme or an ancestor is missing.
 	 */
 	public function active(): ThemeChain
 	{
-		return $this->chain($this->config->active);
+		return $this->chain($this->themes->running($this->config->active));
 	}
 
 	/**

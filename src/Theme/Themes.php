@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
+use Blush\Extension\Requirement;
+
 /**
  * The installed themes, as `ThemeDiscovery` (or the theme cache) found
  * them: valid manifests by name (D-378), plus the themes whose manifests
@@ -27,13 +29,47 @@ final readonly class Themes
 	public const string DEFAULT = 'blush/default';
 
 	/**
-	 * @param array<string, ThemeManifest> $themes  Valid themes, by name.
-	 * @param array<string, string>        $invalid Broken themes, by where they were found, with the reason.
+	 * @param array<string, ThemeManifest>     $themes  Valid themes, by name.
+	 * @param array<string, string>            $invalid Broken themes, by where they were found, with the reason.
+	 * @param array<string, list<Requirement>> $unmet   The active chain's themes, when it can't run, each with the requirements it doesn't meet (D-431).
 	 */
 	public function __construct(
 		private array $themes,
-		private array $invalid = []
+		private array $invalid = [],
+		private array $unmet = []
 	) {}
+
+	/**
+	 * Returns a copy knowing which of the active chain's themes can't
+	 * run, and why (D-431).
+	 *
+	 * @param array<string, list<Requirement>> $unmet
+	 */
+	public function withUnmet(array $unmet): self
+	{
+		return new self($this->themes, $this->invalid, $unmet);
+	}
+
+	/**
+	 * The active chain's themes, when its requirements aren't met, each
+	 * with the requirements it doesn't meet (none for a theme left out
+	 * with the rest of its chain). Empty when the chain runs.
+	 *
+	 * @return array<string, list<Requirement>>
+	 */
+	public function unmet(): array
+	{
+		return $this->unmet;
+	}
+
+	/**
+	 * Returns the theme that runs in place of the one named: itself, or
+	 * the default theme when its chain's requirements aren't met (D-431).
+	 */
+	public function running(string $name): string
+	{
+		return isset($this->unmet[$name]) ? self::DEFAULT : $name;
+	}
 
 	/**
 	 * Returns a theme's manifest, or `null` when it isn't installed.
@@ -116,7 +152,7 @@ final readonly class Themes
 			}
 		}
 
-		return new self($themes, $invalid);
+		return new self($themes, $invalid, $this->unmet);
 	}
 
 	/**

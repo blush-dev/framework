@@ -45,6 +45,13 @@
 			"pattern": "^/?[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*/?$",
 			"description": "The folder inside the pack its *.svg files are in, such as \"svg\". Defaults to the pack's own folder. Each {icon}.svg is {namespace}/{icon}."
 		},
+		"require": {
+			"type": "object",
+			"description": "What the pack needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name. A pack whose requirements aren't met doesn't load. Without it, a pack in extensions/ uses the require in the composer.json beside this file.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
 		"authors": {
 			"type": "array",
 			"description": "Who made the icon pack, as composer.json lists authors. Without it, the authors in the composer.json beside this file are used.",

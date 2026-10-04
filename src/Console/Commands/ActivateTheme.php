@@ -21,6 +21,8 @@ use Blush\Console\Output;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
+use Blush\Extension\ExtensionState;
+use Blush\Extension\Requirements;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
@@ -36,13 +38,16 @@ use Blush\Theme\Themes;
  * compiled config (and theme cache) are cleared, since they hold the old
  * value. A theme activated in the admin is saved in
  * `user/data/settings.json` over `config/theme.php` (D-381), so that's
- * cleared too, or the command wouldn't change the theme.
+ * cleared too, or the command wouldn't change the theme. A theme whose
+ * chain's requirements aren't met is refused, since it wouldn't run
+ * (D-431).
  */
 #[Command('theme:activate', 'Make a theme the active one.')]
 final readonly class ActivateTheme
 {
 	public function __construct(
 		private Themes $themes,
+		private ExtensionState $extensions,
 		private Paths $paths,
 		private Bootstrap $bootstrap,
 		private Filesystem $filesystem,
@@ -60,6 +65,13 @@ final readonly class ActivateTheme
 			$this->themes->chain($name);
 		} catch (ThemeException $error) {
 			throw new InvalidInput($error->getMessage(), 0, $error);
+		}
+
+		// A chain whose requirements aren't met wouldn't run (D-431).
+		$unmet = $this->extensions->with(theme: $name)->themes->unmet();
+
+		if ($unmet !== []) {
+			throw new InvalidInput(sprintf('The "%s" theme can\'t be activated. %s', $name, Requirements::reason(array_merge(...array_values($unmet)))));
 		}
 
 		$file = "{$this->paths->config}/theme.php";

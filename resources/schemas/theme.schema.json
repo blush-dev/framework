@@ -520,7 +520,7 @@
 		},
 		"require": {
 			"type": "object",
-			"description": "What the theme needs, as composer.json says it, such as {\"blush-dev/framework\": \"^2.0\"}. Not checked yet.",
+			"description": "What the theme needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins, themes, or icon packs by vendor/name. When the active theme's chain has a requirement that isn't met, the default theme runs in its place. Without it, a theme in extensions/ uses the require in the composer.json beside this file.",
 			"additionalProperties": {
 				"type": "string"
 			}

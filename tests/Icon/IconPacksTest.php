@@ -197,4 +197,18 @@ final class IconPacksTest extends TestCase
 
 		$this->assertNotNull($this->scratchApplication()->container()->make(IconPacks::class)->find('acme/later'));
 	}
+
+	public function testAComposerPackChecksOnlyItsManifestsRequire(): void
+	{
+		$this->packs();
+		$this->writeTemporaryFile('vendor/acme/arrows/composer.json', '{"name": "acme/arrows", "require": {"acme/svg-tools": "^1.0"}}');
+		$this->writeTemporaryFile('extensions/acme/weather/composer.json', '{"require": {"blush-dev/framework": "^9.0"}}');
+
+		$packs = $this->app()->container()->make(IconPacks::class);
+
+		$this->assertSame([], $packs->find('acme/arrows')?->require, 'Composer met its composer.json\'s require, whose packages aren\'t extensions.');
+		$this->assertArrayHasKey('acme/arrows', $packs->enabled());
+		$this->assertSame(['blush-dev/framework' => '^9.0'], $packs->find('acme/weather')?->require, 'A folder pack takes its composer.json\'s.');
+		$this->assertArrayNotHasKey('acme/weather', $packs->enabled(), 'It\'s on, but its requirements aren\'t met (D-431).');
+	}
 }

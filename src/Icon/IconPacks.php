@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Icon;
 
+use Blush\Extension\Requirement;
+
 /**
  * The installed icon packs (D-378), as `IconPackDiscovery` (or its
  * cache) found them: valid packs by name, plus the broken ones, by where
@@ -24,14 +26,16 @@ namespace Blush\Icon;
 final readonly class IconPacks
 {
 	/**
-	 * @param array<string, IconPack> $packs    Valid packs, by name.
-	 * @param array<string, string>   $invalid  Broken packs, by where they were found, with the reason.
-	 * @param IconConfig              $config   Which are on.
+	 * @param array<string, IconPack>          $packs   Valid packs, by name.
+	 * @param array<string, string>            $invalid Broken packs, by where they were found, with the reason.
+	 * @param IconConfig                       $config  Which are on.
+	 * @param array<string, list<Requirement>> $unmet   The packs that are on but can't load, with the requirements each doesn't meet (D-431).
 	 */
 	public function __construct(
 		private array $packs = [],
 		private array $invalid = [],
-		private IconConfig $config = new IconConfig()
+		private IconConfig $config = new IconConfig(),
+		private array $unmet = []
 	) {}
 
 	/**
@@ -39,17 +43,53 @@ final readonly class IconPacks
 	 */
 	public function withConfig(IconConfig $config): self
 	{
-		return new self($this->packs, $this->invalid, $config);
+		return new self($this->packs, $this->invalid, $config, $this->unmet);
 	}
 
 	/**
-	 * Returns the valid packs that are on, by name.
+	 * Returns a copy knowing which packs that are on can't load, and why
+	 * (D-431).
+	 *
+	 * @param array<string, list<Requirement>> $unmet
+	 */
+	public function withUnmet(array $unmet): self
+	{
+		ksort($unmet);
+
+		return new self($this->packs, $this->invalid, $this->config, $unmet);
+	}
+
+	/**
+	 * Returns the valid packs that load: on, with their requirements
+	 * met, by name.
 	 *
 	 * @return array<string, IconPack>
 	 */
 	public function enabled(): array
 	{
+		return array_diff_key($this->on(), $this->unmet);
+	}
+
+	/**
+	 * Returns the valid packs that are on, by name, whether or not their
+	 * requirements are met.
+	 *
+	 * @return array<string, IconPack>
+	 */
+	public function on(): array
+	{
 		return array_filter($this->packs, $this->isEnabled(...), ARRAY_FILTER_USE_KEY);
+	}
+
+	/**
+	 * The packs that are on but can't load, by name, each with the
+	 * requirements it doesn't meet.
+	 *
+	 * @return array<string, list<Requirement>>
+	 */
+	public function unmet(): array
+	{
+		return $this->unmet;
 	}
 
 	/**
@@ -122,6 +162,6 @@ final readonly class IconPacks
 			}
 		}
 
-		return new self($packs, $invalid, $this->config);
+		return new self($packs, $invalid, $this->config, $this->unmet);
 	}
 }

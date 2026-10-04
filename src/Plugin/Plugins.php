@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Plugin;
 
 use Blush\Extension\ExtensionException;
+use Blush\Extension\Requirement;
+use Blush\Extension\Requirements;
 
 /**
  * The site's plugins: the ones that run, in name order, every installed
@@ -71,11 +73,15 @@ final readonly class Plugins
 	 * whose requirements are met. A broken plugin config names isn't
 	 * missing: it's installed, and doesn't run.
 	 *
-	 * @param  list<PluginManifest> $discovered
-	 * @param  list<BrokenPlugin>   $broken
+	 * Requirements are settled among plugins alone unless they're given,
+	 * settled across every kind (`ExtensionState::settle()`, D-431).
+	 *
+	 * @param  list<PluginManifest>               $discovered
+	 * @param  list<BrokenPlugin>                 $broken
+	 * @param  ?array<string, list<Requirement>> $unmet The enabled plugins that can't run, when already settled.
 	 * @throws ExtensionException When config enables a plugin that isn't installed.
 	 */
-	public static function enabled(array $discovered, PluginConfig $config, PluginRequirements $requirements = new PluginRequirements(), array $broken = []): self
+	public static function enabled(array $discovered, PluginConfig $config, Requirements $requirements = new Requirements(), array $broken = [], ?array $unmet = null): self
 	{
 		$names   = array_map(static fn (PluginManifest $manifest): string => $manifest->name, $discovered);
 		$missing = array_diff($config->named(), $names, array_map(static fn (BrokenPlugin $plugin): string => $plugin->name, $broken));
@@ -95,7 +101,7 @@ final readonly class Plugins
 			$discovered,
 			$config->isEnabled(...)
 		));
-		$unmet = $requirements->settle($enabled, self::keyed($discovered));
+		$unmet ??= $requirements->settle($enabled, self::keyed($discovered));
 
 		return new self(
 			array_values(array_filter($enabled, static fn (PluginManifest $manifest): bool => ! isset($unmet[$manifest->name]))),

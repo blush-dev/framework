@@ -209,8 +209,9 @@ Only `name` is required.
   asset URLs all use it, and it's the theme's folder in `extensions/`.
   Leave it out and the `composer.json` beside `theme.json` gives it; a
   Composer theme's name is its package's. `description`, `version`,
-  `license`, `autoload`, `homepage`, `support`, and `funding` also come
-  from that `composer.json` when `theme.json` leaves them out.
+  `license`, `autoload`, `require`, `homepage`, `support`, and `funding`
+  also come from that `composer.json` when `theme.json` leaves them out
+  (but `require`, for a Composer theme).
 - **`label`:** the theme's title, as people read it. Leave it out and
   the theme is shown by its `name`.
 - **`namespace`:** what your theme's components, icons, and translations
@@ -242,6 +243,15 @@ Only `name` is required.
 - **`parent`:** the name of the theme this one builds on, instead of
   starting from the default. Anything this theme doesn't include comes
   from its parent.
+- **`require`:** what the theme needs, with version constraints, as a
+  plugin's [requirements](extending.md#requirements) work: Blush
+  (`blush-dev/framework`), `php`, PHP extensions, and other plugins,
+  themes, or icon packs by name (`"acme/shop": "^2.0"` needs the Shop
+  plugin turned on). A theme whose requirements aren't met can't be
+  activated. When the active theme's requirements stop being met, or
+  those of a theme it falls back to, visitors see the default theme
+  until that's fixed; the Themes screen, `theme:check`, and `doctor` say
+  why.
 - **`provider`** and **`autoload`:** a theme can run PHP, through a
   service provider of its own (see [Components](#components)).
   `autoload` is Composer's shape: `psr-4` folders, and `files` loaded

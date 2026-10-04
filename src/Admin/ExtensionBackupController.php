@@ -22,19 +22,21 @@ use Blush\Cache\ContentVersion;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
+use Blush\Extension\ComposerJson;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionState;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Extension\Install\InstallException;
 use Blush\Extension\ManifestFile;
+use Blush\Extension\Requirements;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Icon\IconPack;
 use Blush\Plugin\LocalPluginFinder;
-use Blush\Plugin\PluginManifest;
-use Blush\Plugin\PluginRequirements;
-use Blush\Plugin\Plugins;
 use Blush\Theme\ThemeDiscovery;
 use Blush\Theme\ThemeException;
+use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
 
 /**
@@ -44,9 +46,10 @@ use Blush\Theme\Themes;
  * - `POST {themes|plugins|icon-packs}/{vendor}/{name}/rollback` swaps the
  *   backup in, keeping the version it replaces as the backup, so rolling
  *   back again undoes it. It needs the kind's `update` capability. The
- *   earlier version must fit the site: a plugin's requirements met, and,
- *   for a theme in the active chain, the theme it falls back to
- *   installed; otherwise it's a `422` saying why. Answers `{"rolledBack",
+ *   earlier version must fit the site: a plugin's requirements met, and
+ *   a theme's or pack's in use (D-431), and, for a theme in the active
+ *   chain, the theme it falls back to installed; otherwise it's a `422`
+ *   saying why. Answers `{"rolledBack",
  *   "from", "refresh"}`: the extension as it is now, the version it was,
  *   and whether the admin should ask for `settings/refresh` (it runs).
  * - `DELETE {themes|plugins|icon-packs}/{vendor}/{name}/backup` removes
@@ -64,8 +67,8 @@ final readonly class ExtensionBackupController
 		private Paths $paths,
 		private Bootstrap $bootstrap,
 		private ContentVersion $version,
-		private Plugins $plugins,
-		private Themes $themes
+		private Themes $themes,
+		private ExtensionState $state
 	) {}
 
 	public function rollbackTheme(ServerRequestInterface $request, string $vendor, string $name): ResponseInterface
@@ -164,33 +167,29 @@ final readonly class ExtensionBackupController
 	}
 
 	/**
-	 * Why the earlier version wouldn't fit the site, or `null`: a plugin
-	 * whose requirements aren't met, or a theme in use whose parent isn't
-	 * installed.
+	 * Why the earlier version wouldn't fit the site, or `null`: one whose
+	 * requirements aren't met (a plugin always; a theme or pack in use,
+	 * D-431), or a theme in use whose parent isn't installed.
 	 */
 	private function misfit(ExtensionKind $kind, string $name, string $backup, bool $live): ?string
 	{
 		try {
-			if ($kind === ExtensionKind::Plugin) {
-				$older     = LocalPluginFinder::manifest(ManifestFile::find($backup, ExtensionKind::Plugin)[0] ?? '');
-				$installed = [];
+			$older = match ($kind) {
+				ExtensionKind::Plugin   => LocalPluginFinder::manifest(ManifestFile::find($backup, ExtensionKind::Plugin)[0] ?? ''),
+				ExtensionKind::Theme    => ThemeManifest::fromArray($backup, ComposerJson::fill(ThemeDiscovery::read($backup) ?? [], $backup)),
+				ExtensionKind::IconPack => IconPack::fromArray($backup, ComposerJson::fill(ManifestFile::read(ManifestFile::find($backup, ExtensionKind::IconPack)[0] ?? ''), $backup))
+			};
 
-				foreach ($this->plugins->installed() as $plugin) {
-					$installed[$plugin->name] = $plugin->name === $name ? $older : $plugin;
+			if ($kind === ExtensionKind::Plugin || $live) {
+				$checked = $this->state->check($older);
+
+				if (! Requirements::met($checked)) {
+					return Requirements::reason($checked);
 				}
-
-				$running = array_fill_keys(array_map(static fn (PluginManifest $plugin): string => $plugin->name, $this->plugins->all()), true);
-				$checked = new PluginRequirements()->check($older, $installed, $running);
-
-				return PluginRequirements::met($checked) ? null : PluginRequirements::reason($checked);
 			}
 
-			if ($kind === ExtensionKind::Theme && $live) {
-				$parent = ThemeDiscovery::read($backup)['parent'] ?? null;
-
-				return is_string($parent) && $parent !== '' && ! $this->themes->has($parent)
-					? sprintf('it falls back to %s, which isn\'t installed.', $parent)
-					: null;
+			if ($older instanceof ThemeManifest && $live && $older->parent !== null && ! $this->themes->has($older->parent)) {
+				return sprintf('it falls back to %s, which isn\'t installed.', $older->parent);
 			}
 		} catch (ExtensionException | ThemeException $error) {
 			return $error->getMessage();

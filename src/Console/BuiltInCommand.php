@@ -18,6 +18,7 @@ use Blush\Console\Commands\AddAccount;
 use Blush\Console\Commands\Build;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
+use Blush\Console\Commands\CheckIconPacks;
 use Blush\Console\Commands\CheckPlugins;
 use Blush\Console\Commands\CheckSite;
 use Blush\Console\Commands\CheckTheme;
@@ -87,6 +88,7 @@ enum BuiltInCommand: string
 	case PluginNew     = 'plugin:new';
 	case ComponentList = 'component:list';
 	case IconList      = 'icon:list';
+	case IconPackCheck = 'icon-pack:check';
 	case MenuList      = 'menu:list';
 	case MenuShow      = 'menu:show';
 	case Publish       = 'publish';
@@ -137,6 +139,7 @@ enum BuiltInCommand: string
 			self::PluginNew     => CreatePlugin::class,
 			self::ComponentList => ListComponents::class,
 			self::IconList      => ListIcons::class,
+			self::IconPackCheck => CheckIconPacks::class,
 			self::MenuList      => ListMenus::class,
 			self::MenuShow      => ShowMenu::class,
 			self::Publish       => Publish::class,

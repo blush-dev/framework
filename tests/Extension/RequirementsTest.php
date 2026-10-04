@@ -11,30 +11,30 @@
 
 declare(strict_types=1);
 
-namespace Blush\Tests\Plugin;
+namespace Blush\Tests\Extension;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\PluginManifest;
-use Blush\Plugin\PluginRequirements;
+use Blush\Extension\Requirements;
 use Blush\Plugin\Plugins;
 use Blush\Plugin\PluginSource;
-use Blush\Plugin\Requirement;
-use Blush\Plugin\RequirementKind;
+use Blush\Extension\Requirement;
+use Blush\Extension\RequirementKind;
 
-#[CoversClass(PluginRequirements::class)]
+#[CoversClass(Requirements::class)]
 #[CoversClass(Requirement::class)]
 #[CoversClass(RequirementKind::class)]
 #[CoversClass(Plugins::class)]
-final class PluginRequirementsTest extends TestCase
+final class RequirementsTest extends TestCase
 {
 	/**
 	 * A site on Blush 2.1.0 and PHP 8.5.1, with only the `intl` extension.
 	 */
-	private static function requirements(): PluginRequirements
+	private static function requirements(): Requirements
 	{
-		return new PluginRequirements('2.1.0', '8.5.1', static fn (string $name): string|false => $name === 'intl' ? '8.5.1' : false);
+		return new Requirements('2.1.0', '8.5.1', static fn (string $name): string|false => $name === 'intl' ? '8.5.1' : false);
 	}
 
 	/**
@@ -62,10 +62,20 @@ final class PluginRequirementsTest extends TestCase
 		$checks = self::requirements()->check($plugin, [], []);
 
 		$this->assertSame([true, false, true, false, false, false], array_map(static fn (Requirement $check): bool => $check->met, $checks));
-		$this->assertSame(['blush', 'php', 'extension', 'extension', 'unknown', 'plugin'], array_map(static fn (Requirement $check): string => $check->kind->value, $checks));
+		$this->assertSame(['blush', 'php', 'extension', 'extension', 'unknown', 'missing'], array_map(static fn (Requirement $check): string => $check->kind->value, $checks));
 		$this->assertSame('PHP >=8.6 (this site runs 8.5.1)', $checks[1]->describe());
 		$this->assertSame('the PHP extension redis (isn\'t loaded)', $checks[3]->describe());
 		$this->assertSame('isn\'t a version constraint Blush understands', $checks[5]->note);
+	}
+
+	public function testReadsAnExtensionVersionAsComposerDoes(): void
+	{
+		$versions     = ['apcu' => '5.1.24 (Build 3)', 'odd' => 'unknown'];
+		$requirements = new Requirements('2.1.0', '8.5.1', static fn (string $name): string|false => $versions[$name] ?? false);
+		$checks       = $requirements->check(self::plugin('acme/one', ['ext-apcu' => '^5.1', 'ext-odd' => '>=0']), [], []);
+
+		$this->assertSame([true, true], array_map(static fn (Requirement $check): bool => $check->met, $checks));
+		$this->assertFalse($requirements->check(self::plugin('acme/one', ['ext-odd' => '>=1']), [], [])[0]->met);
 	}
 
 	/**
@@ -85,7 +95,7 @@ final class PluginRequirementsTest extends TestCase
 		$this->assertTrue(self::shop('^2.0', ['acme/shop' => true])->met);
 		$this->assertSame('Shop ^2.0 (is turned off)', self::shop('^2.0', [])->describe());
 		$this->assertSame('version 2.3.0 is installed', self::shop('^3.0', ['acme/shop' => true])->note);
-		$this->assertSame('the acme/crm plugin ^1.0 (isn\'t installed)', self::requirements()->check(self::plugin('acme/sync', ['acme/crm' => '^1.0']), [], [])[0]->describe());
+		$this->assertSame('acme/crm ^1.0 (isn\'t installed)', self::requirements()->check(self::plugin('acme/sync', ['acme/crm' => '^1.0']), [], [])[0]->describe());
 	}
 
 	public function testRunsOnlyPluginsWhoseRequirementsAreMet(): void
@@ -111,8 +121,8 @@ final class PluginRequirementsTest extends TestCase
 		$plugins = Plugins::enabled($discovered, new PluginConfig(['acme/reports', 'acme/charts', 'acme/future']), self::requirements());
 		$this->assertSame([], array_map(static fn (PluginManifest $plugin): string => $plugin->name, $plugins->all()));
 		$this->assertSame(['acme/charts', 'acme/future', 'acme/reports'], array_keys($plugins->unmet()));
-		$this->assertSame('Needs Reports (can\'t run).', PluginRequirements::reason($plugins->unmet()['acme/charts'] ?? []));
-		$this->assertSame('Needs Shop ^1.0 (is turned off).', PluginRequirements::reason($plugins->unmet()['acme/reports'] ?? []));
+		$this->assertSame('Needs Reports (can\'t run).', Requirements::reason($plugins->unmet()['acme/charts'] ?? []));
+		$this->assertSame('Needs Shop ^1.0 (is turned off).', Requirements::reason($plugins->unmet()['acme/reports'] ?? []));
 	}
 
 	public function testPluginsThatRequireEachOtherBothRun(): void

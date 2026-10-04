@@ -23,6 +23,8 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionLicense;
+use Blush\Extension\ExtensionState;
+use Blush\Extension\Requirements;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
@@ -52,10 +54,17 @@ use Blush\Theme\ThemeSource;
  * its `authors` (D-384, `composer.json`'s shape); its `license` and
  * `licenses` (as `GET plugins` has them, D-426, D-427); its `links` and
  * `funding` (as `GET plugins` has them, D-428);
- * its `preview` (what the admin sketches it from, or `null`); why it's
- * `blocked` from being activated (a theme it falls back to is missing,
- * or `null`); and whether it's `deletable` (a folder in `extensions/`
- * the active theme doesn't use). Each invalid theme has `where` it was
+ * its `preview` (what the admin sketches it from, or `null`); whether
+ * it's `running` (in the chain that runs); its `requirements`, checked as
+ * if it were active, and `requiredBy` (as `GET plugins` has them,
+ * D-431); why it's `blocked` from being activated (a theme it falls
+ * back to is missing, or a requirement in its chain isn't met, or
+ * `null`); and whether it's `deletable` (a folder in `extensions/` the
+ * active theme doesn't use).
+ *
+ * `fallback` says why the active theme's chain doesn't run, when its
+ * requirements aren't met and the default theme runs in its place
+ * (D-431), or is `null`. Each invalid theme has `where` it was
  * found, the `reason`, and whether it's `deletable`.
  *
  * The Themes screen activates a theme with `PATCH settings`
@@ -66,6 +75,7 @@ final readonly class ThemesController
 	public function __construct(
 		private Themes $themes,
 		private ThemeConfig $config,
+		private ExtensionState $extensions,
 		private SettingsFile $settings,
 		private AppConfig $app,
 		private Paths $paths,
@@ -113,7 +123,8 @@ final readonly class ThemesController
 			'licenses'    => ExtensionLicense::parts($theme->license),
 			'links'       => $theme->links->links(),
 			'funding'     => $theme->links->funding,
-			'blocked'     => $this->blocked($theme),
+			'running'     => $this->extensions->runs($theme->name),
+			...$this->requirements($theme, $active),
 			'deletable'   => $theme->source === ThemeSource::Local && $theme->name !== $active && ! in_array($theme->name, $chain, true),
 			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::Theme, $theme->source === ThemeSource::Local ? $theme->path : null, $theme->name)
 		], $this->themes->all()));
@@ -136,6 +147,7 @@ final readonly class ThemesController
 			'active'  => $active,
 			'chain'   => $chain,
 			'problem' => $problem,
+			'fallback' => self::fallback($this->extensions),
 			'config'  => is_file("{$this->paths->config}/theme.php"),
 			'saved'   => $saved,
 			'preview' => $this->app->environment->isDevelopment(),
@@ -146,18 +158,34 @@ final readonly class ThemesController
 	}
 
 	/**
-	 * Why a theme can't be activated: a theme it falls back to is
-	 * missing or broken, or its parents loop.
+	 * A theme's requirements, checked with it active (D-431), and why it
+	 * can't be activated: a theme it falls back to is missing or broken,
+	 * its parents loop, or a requirement in its chain isn't met.
+	 *
+	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>}
 	 */
-	private function blocked(ThemeManifest $theme): ?string
+	private function requirements(ThemeManifest $theme, string $active): array
 	{
+		$state  = $theme->name === $active ? $this->extensions : $this->extensions->with(theme: $theme->name);
+		$report = $state->report($theme);
+
 		try {
 			$this->themes->chain($theme->name);
 		} catch (ThemeException $error) {
-			return $error->getMessage();
+			return [...$report, 'blocked' => $error->getMessage()];
 		}
 
-		return null;
+		return [...$report, 'blocked' => self::fallback($state)];
+	}
+
+	/**
+	 * Why the active chain doesn't run, or `null` when it does.
+	 */
+	private static function fallback(ExtensionState $state): ?string
+	{
+		$unmet = array_merge(...array_values($state->themes->unmet()));
+
+		return $state->themes->unmet() === [] ? null : Requirements::reason($unmet);
 	}
 
 	private static function error(string $message, Status $status): ResponseInterface

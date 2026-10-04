@@ -117,7 +117,7 @@ final class PluginCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Failure, $result->exitCode, 'A plugin turned on can\'t run.');
 		$this->assertMatchesRegularExpression('#ok\s+acme/on#', $all);
 		$this->assertMatchesRegularExpression('#error\s+acme/future: Needs Blush \^9\.0 \(this site runs [^)]+\)\. It\'s turned on, but doesn\'t run\.#', $all);
-		$this->assertMatchesRegularExpression('#warning\s+acme/needy: Needs the acme/missing plugin \^1\.0 \(isn\'t installed\)\.#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+acme/needy: Needs acme/missing \^1\.0 \(isn\'t installed\)\.#', $all);
 		$this->assertMatchesRegularExpression('#warning\s+extensions/acme/broken: #', $all);
 		$this->assertStringContainsString('Checked 5 plugin(s): 1 error(s), 2 warning(s).', $all);
 	}
@@ -130,6 +130,21 @@ final class PluginCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('Checked 5 plugin(s): 0 error(s), 3 warning(s).', $result->output);
+	}
+
+	public function testWarnsOfAVersionComposerCantRead(): void
+	{
+		$this->plugin('on', 'acme/on', 'On');
+		$this->writeTemporaryFile('extensions/acme/odd/plugin.json', sprintf('{"name": "acme/odd", "label": "Odd", "namespace": "odd", "version": "1.0-final", "provider": "%s"}', self::PROVIDER));
+		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/on', 'acme/odd']);\n");
+
+		$result = $this->command('plugin:check');
+		$all    = $result->output . $result->errors;
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertMatchesRegularExpression('#warning\s+acme/odd: Its version, "1\.0-final", isn\'t one Composer can read#', $all);
+		$this->assertDoesNotMatchRegularExpression('#ok\s+acme/odd#', $all);
+		$this->assertStringContainsString('Checked 2 plugin(s): 0 error(s), 1 warning(s).', $all);
 	}
 
 	public function testChecksOnePlugin(): void

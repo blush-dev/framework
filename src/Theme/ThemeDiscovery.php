@@ -92,7 +92,7 @@ final readonly class ThemeDiscovery
 						continue;
 					}
 
-					$data = ComposerJson::fill($data, $path);
+					$data = ComposerJson::fill($data, $path, $source === ThemeSource::Composer ? ['require'] : []);
 				}
 
 				if ($source === ThemeSource::Composer) {

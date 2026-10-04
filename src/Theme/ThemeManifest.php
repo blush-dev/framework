@@ -16,10 +16,13 @@ namespace Blush\Theme;
 use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionLicense;
 use Blush\Extension\ExtensionLinks;
+use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
+use Blush\Extension\ExtensionRequire;
 
 /**
  * A theme, as its `theme.json` (or `.yaml`, D-032) describes it: its
@@ -41,8 +44,11 @@ use Blush\Extension\ExtensionNamespace;
  * shape (D-384), its `license` a string or a list (D-427, D-428), and its
  * `homepage`, `support`, and `funding` as Composer has them (D-428);
  * discovery fills each in from the `composer.json` in its folder when the manifest has none.
+ * Its `require` is checked as a plugin's is (D-431): an active theme
+ * whose chain needs what the site doesn't have falls back to the
+ * default theme.
  */
-final readonly class ThemeManifest
+final readonly class ThemeManifest implements ExtensionManifest
 {
 	/**
 	 * @param string               $name    The theme's `vendor/name`.
@@ -58,6 +64,7 @@ final readonly class ThemeManifest
 	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 * @param string                $license  How it may be used, as Composer has it (`MIT`, D-427, D-428).
 	 * @param ExtensionLinks        $links    Its homepage, support, and funding (D-428).
+	 * @param array<string, string> $require  What it needs, each mapped to a version constraint (D-431).
 	 */
 	public function __construct(
 		public string $name,
@@ -76,8 +83,14 @@ final readonly class ThemeManifest
 		public ?ThemePreview $preview = null,
 		public array $authors = [],
 		public string $license = '',
-		public ExtensionLinks $links = new ExtensionLinks()
+		public ExtensionLinks $links = new ExtensionLinks(),
+		public array $require = []
 	) {}
+
+	public function kind(): ExtensionKind
+	{
+		return ExtensionKind::Theme;
+	}
 
 	/**
 	 * Builds a manifest from parsed data, found in a folder.
@@ -166,6 +179,7 @@ final readonly class ThemeManifest
 			$autoload = Autoload::fromArray($data['autoload'] ?? null);
 			$license  = ExtensionLicense::fromManifest($data['license'] ?? '');
 			$links    = ExtensionLinks::fromArray($data);
+			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
 		}
@@ -188,7 +202,8 @@ final readonly class ThemeManifest
 			preview: $preview === null ? null : ThemePreview::fromArray($theme, $preview),
 			authors: $authors,
 			license: $license,
-			links: $links
+			links: $links,
+			require: $require
 		);
 	}
 

@@ -10415,7 +10415,8 @@ decision, add a new entry that supersedes it and mark the old one
 - **Status:** Built (plugins, themes, and icon packs) by D-379; admin
   themes and installing from the admin are still planned (D-388
   decides the admin installs into `user/`). Icon packs
-  can be turned off since D-385. Supersedes
+  can be turned off since D-385. Every kind's `require` is enforced, and
+  names are one extension's across kinds, since D-431. Supersedes
   D-041's naming (its
   "extensions" are now **plugins**) and D-171's rule for where a theme's
   or extension's component namespace comes from; amends D-058 and
@@ -10760,7 +10761,9 @@ decision, add a new entry that supersedes it and mark the old one
 - **Status:** The packs and plugins turned off (`icons.disabled`,
   `plugins.disabled`) are superseded by D-390: lists of what's on.
   `requires` is `require`, with Blush as `blush-dev/framework`, since
-  D-418.
+  D-418. Constraints follow Composer's rules, stability included, since
+  D-429. Themes' and icon packs' `require` is enforced the same way, and
+  `require` names extensions of any kind, since D-431.
 - **Decision:** Builds the author's extensions sketch
   (`admin-design/blush-extensions.html`) for plugins and icon packs; its
   themes part is already built (D-381, D-383), and the author asked to
@@ -12390,3 +12393,151 @@ decision, add a new entry that supersedes it and mark the old one
   browser.
 - **Why:** the author asked for Composer parity on licenses, and for
   funding and support links, keeping `irc` and `rss`.
+
+### D-429: Version constraints follow Composer's rules exactly
+- **Date:** 2026-10-04
+- **Status:** Supersedes D-385's "ignoring stability, so `2.0.0-dev`
+  satisfies `^2.0`" (it still does, by Composer's rules).
+- **Decision:** `VersionConstraint` is a port of `composer/semver`'s
+  `VersionParser` (constraints) and `Constraint::versionCompare()`, not
+  an approximation of it, because a version may come from a manifest,
+  its `composer.json`, or Composer's `installed.json`, and should mean
+  the same wherever it's read. The author's call, after a review found
+  three differences:
+  - **Stability counts, as in Composer's constraints.** Versions are
+    normalized as Composer does (four parts; `b` is `beta`, `p` and
+    `pl` are `patch`; `1.x-dev` is a numbered branch; `master` is
+    `dev-master`), and compared with `version_compare()`: `dev` <
+    `alpha` < `beta` < `RC` < stable < `patch`. Composer's bounds carry
+    `-dev` where it puts them, so `^2.0` and `>=2.0` take `2.0.0-beta1`,
+    `<2.0` doesn't, `>=2.0.0-beta2` doesn't take `beta1`, and a `@beta`
+    flag lowers a comparison to that stability. There's still no
+    `minimum-stability` or `prefer-stable`: those choose packages to
+    install, and Blush only checks what's installed.
+  - **Hyphen ranges with a partial end** take everything that starts
+    with it (`1.0 - 2.0` is below `2.1`), as Composer's do.
+  - **Four-part versions** compare equal to their three-part form
+    (`1.2.3` is `1.2.3.0`).
+  - **Also now read as Composer reads them:** aliases (`dev-main as
+    1.2.3`, the left side counts), `#commit` references, branch
+    constraints (`dev-main` is satisfied only by `dev-main`, or `*`, or
+    `!=` another), `foo-dev` as `dev-foo`, `<>`, date versions, and `~>`
+    refused.
+  - **An extension's version from `phpversion()`** that Composer can't
+    normalize is read as Composer's platform repository reads it: its
+    leading `x.y.z`, or `0`.
+  - **Built:** `VersionConstraint` (and its public `normalize()`); the
+    fallback in `PluginRequirements`.
+- **Checked:** `composer check`; and, as an oracle, 2,106 pairs of 39
+  versions and 54 constraints (stabilities, branches, aliases,
+  references, hyphen and partial ranges, flags, invalid ones) against
+  `composer/semver` 3.4.4 from another local project: every validity,
+  match, and normalized version agreed. `composer/semver` isn't a
+  dependency.
+- **Why:** the author wants manifests to follow Composer's rules, not
+  look like them.
+
+### D-430: `plugin:check` warns of a version Composer can't read
+- **Date:** 2026-10-04
+- **Decision:** Follows D-429. A plugin's `version` (from its manifest,
+  its `composer.json`, or Composer) that `VersionConstraint::normalize()`
+  can't read, such as `1.0-final`, meets only `*` when another plugin
+  requires it, so `plugin:check` warns of it (`warning acme/odd: Its
+  version, "1.0-final", isn't one Composer can read, …`), in place of
+  the plugin's `ok` line and alongside any requirement line. It's a
+  warning, not an error: the plugin itself still runs. The author asked
+  for it.
+- **Checked:** `composer check` (a plugin with `1.0-final`, turned on,
+  warns and passes).
+- **Why:** a version only fails quietly otherwise, when something
+  requires the plugin.
+
+### D-431: Every kind's `require` is enforced the same way
+- **Date:** 2026-10-04
+- **Status:** Answers the open question "Theme and icon pack
+  requirements" (whether a theme's `require` blocks activating it, and
+  whether packs get `require`). Amends D-385 (plugins' `require` named
+  only plugins), D-378 (names were unique only within a kind), and
+  D-418 (a Composer theme or pack no longer takes its `composer.json`'s
+  `require`).
+- **Decision:** The author asked that all extensions be enforced the same
+  way, and chose each part:
+  - **One requirement layer for every kind.** `Requirement`,
+    `RequirementKind`, and `Requirements` (was `PluginRequirements`)
+    move to `Blush\Extension`. Plugins, themes, and icon packs share
+    `ExtensionManifest` (`name`, `label`, `version`, `require`,
+    `kind()`; an interface with property hooks) and `ExtensionRequire`
+    (reading `require`, the same errors for each). Themes and packs gain
+    `require` (packs had none; themes kept it unread in `$data`), and
+    `icons.json`'s schema has it.
+  - **`require` names any kind** (the author's call, over "plugins and
+    packs only"): `"acme/nova": "*"` is met by a theme in the running
+    chain, so a plugin that requires a theme stops when you switch
+    themes. A plugin or pack is met when it runs (on, its own
+    requirements met). `RequirementKind` gains `theme`, `icon-pack`, and
+    `missing` (a `vendor/name` that isn't installed, which was
+    `plugin`); `describe()` says `acme/crm (isn't installed)` for one,
+    and a theme that isn't in the chain `isn't active`.
+  - **Names are one extension's across kinds,** so a requirement names
+    one extension: `Bootstrap::settleNamespaces()` leaves out a theme or
+    pack whose name an extension before it has (plugins, then themes),
+    as broken (`Its name, "acme/nova", is a theme's too.`). Local
+    folders already can't clash (D-418); this catches Composer against
+    local.
+  - **Settled together at boot** (`ExtensionState::settle()`): the
+    plugins config turns on, the packs that are on, and the active
+    theme's chain, each only when its `require` is met by the site and
+    by the others that run, repeated to a fixed point. A chain is a
+    group: one member left out leaves out the rest.
+  - **An active theme that can't run falls back to the default theme**
+    (the author's call, over failing like a broken chain or only
+    warning): `Themes::running()`, used by `ThemeResolver::active()`
+    and the autoloader, so visitors see `blush/default` and the site
+    carries on, as it does without a plugin that can't run. A broken
+    chain (missing parent, a loop) still has no fallback.
+  - **A pack that can't run adds no icons:** `IconPacks::enabled()` is
+    what loads; `on()` is what's turned on, for the saved list.
+  - **Enforced everywhere a choice is made:** `PATCH settings`
+    (`theme.active`) and `theme:activate` refuse a theme whose chain's
+    requirements aren't met (`422`, or invalid input); `PUT
+    icon-packs` refuses one whose aren't (`422`) and, like `PUT
+    plugins`, answers `started` and `stopped` (now of every kind, by
+    label) and `refresh`; a rollback checks a theme's or pack's in use
+    as well as a plugin's.
+  - **The admin shows it the same for every kind:** `GET plugins`,
+    `GET themes`, and `GET icon-packs` answer `requirements`, `blocked`,
+    and `requiredBy` (now `{"name", "label", "kind"}`, of every kind),
+    and themes and packs `running`; `GET themes` adds `fallback` (why
+    the active chain doesn't run). A theme's requirements are checked as
+    if it were active (`ExtensionState::with(theme:)`). The detail
+    screens share `ExtensionRequirements.vue` (a Requires panel, a
+    required extension linked by kind) and `ExtensionDependents.vue`
+    (**Required by**); the Themes screen marks an active theme that
+    doesn't run **Not running**, with why, and the Icon Packs screens
+    lock a pack that can't be turned on, as Plugins does.
+  - **The CLI:** `theme:check` checks the chain's requirements as if the
+    theme were active (an error for the active theme, a warning for
+    another) and warns of a `version` Composer can't read, replacing its
+    "isn't checked yet" notice; a new `icon-pack:check` does for packs
+    what `plugin:check` does for plugins (the author's pick, over a list
+    command too); and `doctor` warns of an active theme falling back and
+    of plugins and packs that are on but can't run (it passes with
+    "Everything that's on runs.").
+  - **A Composer package's `composer.json` `require` is Composer's:** a
+    Composer theme or pack doesn't take it (`ComposerJson::fill()`'s
+    `skip`), since its packages are libraries Composer has met, not
+    extensions; only its manifest's `require` is checked, as a Composer
+    plugin's `extra.blush.require` is.
+  - A theme or pack with no `version` is compared as `0.0.0`, as a
+    plugin's default is.
+- **Checked:** `composer check` (cross-kind settling, chains as groups,
+  the fallback, theme requirements met by the chain, what starts and
+  stops; names across kinds; a Composer pack ignoring its
+  `composer.json`'s `require`; the admin's 422s, `fallback`, and
+  `requiredBy`; `theme:activate`, `theme:check`, `icon-pack:check`, and
+  `doctor`); `npm run admin:build`; and on the jtcom trial,
+  `plugin:check`, `icon-pack:check`, `theme:check`, and `doctor` (all
+  clean), and the home page answering 200. The admin's screens weren't
+  checked in a browser.
+- **Why:** the author wants every extension enforced the same way, so
+  `require` means the same thing in any manifest.

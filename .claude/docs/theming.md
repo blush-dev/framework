@@ -4,7 +4,7 @@ Decisions: D-009, D-010, D-020 through D-035, and D-102 through D-125 (M5).
 Unresolved items are listed at the bottom.
 
 **Status:** M5a and M5b (D-102 to D-121) implemented everything here except
-image derivatives (`image()`) and `require` enforcement. Menus and
+image derivatives (`image()`); `require` is enforced since D-431. Menus and
 regions came later (D-199 to D-204). M5c (D-122 to D-124) added the feed and sitemap templates.
 
 ## Principles
@@ -58,7 +58,11 @@ themes may live in `vendor/` (D-034). A theme is one kind of extension
 be its folder's, and its components, icons, and catalog keys go by its
 declared `namespace`. Keys it shares with `composer.json` (`name`,
 `description`, `version`, `license`, `authors`, `autoload`, `require`)
-fall back to the one beside it; `autoload` takes `psr-4` and `files`.
+fall back to the one beside it (but `require`, for a Composer theme,
+D-431); `autoload` takes `psr-4` and `files`. Its `require` is enforced
+as a plugin's is (D-431): a theme whose chain's requirements aren't met
+can't be activated, and an active one whose requirements stop being met
+falls back to the default theme, whole chain at once.
 With the same name, `extensions/` beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
 exist (D-032).
 

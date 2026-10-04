@@ -23,6 +23,7 @@ use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionLicense;
+use Blush\Extension\ExtensionState;
 use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
@@ -44,7 +45,9 @@ use Blush\Settings\SettingsFile;
  *   D-427), `links` and `funding` (as `GET plugins` has them, D-428),
  *   `source` (`local` or `composer`), `path` (from the site's
  *   root), `folder` (its folder in `extensions/`, or `null`), whether it's
- *   `enabled`, how many icons it has (`count`), the first twelve
+ *   `enabled` (turned on) and `running` (on, with its requirements met,
+ *   so its icons load), its `requirements`, `blocked`, and `requiredBy`
+ *   (as `GET plugins` has them, D-431), how many icons it has (`count`), the first twelve
  *   (`icons`, each `{"name", "svg"}`, the name in full, `weather/sun`),
  *   and whether it's `deletable` (a folder in `extensions/`); the `core`
  *   set the same way (`label`, `version`, `count`, `icons`, with short
@@ -73,6 +76,7 @@ final readonly class IconPacksController
 
 	public function __construct(
 		private IconPacks $packs,
+		private ExtensionState $extensions,
 		private Paths $paths,
 		private SettingsFile $settings,
 		private Permissions $permissions,
@@ -155,6 +159,8 @@ final readonly class IconPacksController
 			'path'        => $this->paths->relative($pack->path),
 			'folder'      => $folder,
 			'enabled'     => $this->packs->isEnabled($pack->name),
+			'running'     => $this->extensions->runs($pack->name),
+			...$this->extensions->report($pack),
 			'deletable'   => $folder !== null,
 			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::IconPack, $folder === null ? null : $pack->path, $pack->name),
 			'count'       => count($files),

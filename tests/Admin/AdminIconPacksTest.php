@@ -88,7 +88,11 @@ final class AdminIconPacksTest extends TestCase
 			'source'      => 'local',
 			'path'        => 'extensions/acme/brands',
 			'folder'      => 'extensions/acme/brands',
-			'enabled'     => true,
+			'enabled'      => true,
+			'running'      => true,
+			'requirements' => [],
+			'blocked'      => null,
+			'requiredBy'   => [],
 			'deletable'   => true,
 			'backup'      => null,
 			'count'       => 2,
@@ -151,6 +155,35 @@ final class AdminIconPacksTest extends TestCase
 		$this->assertSame(200, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => true])->getStatusCode());
 		$this->assertSame(['icons' => ['enabled' => ['acme/arrows', 'acme/brands']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
 		$this->assertSame(404, $this->write('PUT', '/icon-packs/acme/missing', ['enabled' => true])->getStatusCode());
+	}
+
+	public function testEnforcesAPacksRequirements(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/future/icons.json', '{"name": "acme/future", "label": "Future", "require": {"blush-dev/framework": "^9.0"}}');
+		$this->site();
+
+		$response = $this->write('PUT', '/icon-packs/acme/future', ['enabled' => true]);
+		$this->assertSame(422, $response->getStatusCode());
+		$this->assertStringContainsString('Future can\'t be turned on. Needs Blush ^9.0 (this site runs', (string) $response->getBody());
+
+		$future = array_find(is_array($packs = self::json($this->send('GET', '/icon-packs'))['packs'] ?? null) ? $packs : [], static fn (mixed $pack): bool => is_array($pack) && ($pack['name'] ?? null) === 'acme/future');
+		$this->assertIsArray($future);
+		$this->assertFalse($future['running'] ?? null);
+		$this->assertStringStartsWith('Needs Blush ^9.0', is_string($future['blocked'] ?? null) ? $future['blocked'] : '');
+	}
+
+	public function testSaysWhatStopsWithAPack(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/logo-block/plugin.json', '{"name": "acme/logo-block", "label": "Logo Block", "require": {"acme/brands": "^2.0"}}');
+		$this->writeTemporaryFile('config/plugins.php', "<?php\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/logo-block']);\n");
+		$this->site();
+
+		$brands = array_find(is_array($packs = self::json($this->send('GET', '/icon-packs'))['packs'] ?? null) ? $packs : [], static fn (mixed $pack): bool => is_array($pack) && ($pack['name'] ?? null) === 'acme/brands');
+		$this->assertIsArray($brands);
+		$this->assertSame([['name' => 'acme/logo-block', 'label' => 'Logo Block', 'kind' => 'plugin']], $brands['requiredBy'] ?? null);
+
+		$answer = self::json($this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false]));
+		$this->assertSame(['enabled' => false, 'started' => [], 'stopped' => ['Logo Block'], 'refresh' => true], $answer);
 	}
 
 	public function testNothingLocalIsOnUntilNamed(): void

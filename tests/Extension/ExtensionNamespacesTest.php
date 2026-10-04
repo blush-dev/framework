@@ -146,4 +146,18 @@ final class ExtensionNamespacesTest extends TestCase
 		$this->assertSame('Its namespace, "nova", is the theme acme/nova\'s.', $packs->invalid()['extensions/acme/nova-icons'] ?? null);
 		$this->assertSame('Its namespace, "gallery", is the plugin acme/gallery\'s.', $packs->invalid()['extensions/acme/gallery-icons'] ?? null);
 	}
+
+	public function testANameIsOneExtensionsAcrossKinds(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
+		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode(['packages' => [
+			['name' => 'acme/nova', 'type' => 'blush-icons', 'install-path' => '../acme/nova']
+		]]));
+		$this->writeTemporaryFile('vendor/acme/nova/icons.json', '{"label": "Nova Icons", "namespace": "nova-icons"}');
+
+		$packs = new Bootstrap($this->paths())->createApplication()->container()->make(IconPacks::class);
+
+		$this->assertSame([], array_keys($packs->all()));
+		$this->assertSame('Its name, "acme/nova", is a theme\'s too.', $packs->invalid()['acme/nova'] ?? null, 'So a requirement of acme/nova names one extension (D-431).');
+	}
 }

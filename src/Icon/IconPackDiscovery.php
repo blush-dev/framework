@@ -76,7 +76,7 @@ final readonly class IconPackDiscovery
 						continue;
 					}
 
-					$data            = ComposerJson::fill(ManifestFile::read($file), $path);
+					$data            = ComposerJson::fill(ManifestFile::read($file), $path, ['require']);
 					$data['name'] ??= $where;
 
 					if ($data['name'] !== $where) {

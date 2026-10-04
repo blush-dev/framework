@@ -132,7 +132,7 @@ final class AdminPluginsTest extends TestCase
 		$this->assertFalse($off['enabled'] ?? null);
 		$this->assertSame('MIT or GPL-2.0-or-later', $off['license'] ?? null, 'From its composer.json.');
 		$this->assertSame([['name' => 'Acme']], $off['authors'] ?? null);
-		$this->assertSame(['acme/needy'], $off['requiredBy'] ?? null);
+		$this->assertSame([['name' => 'acme/needy', 'label' => 'Needy', 'kind' => 'plugin']], $off['requiredBy'] ?? null);
 		$this->assertTrue($off['deletable'] ?? null);
 
 		$needy = $this->plugin($answer, 'acme/needy');

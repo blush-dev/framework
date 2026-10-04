@@ -28,6 +28,8 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Extension\ExtensionKind;
+use Blush\Extension\ExtensionState;
+use Blush\Extension\Requirements;
 use Blush\Field\FieldContext;
 use Blush\Field\InvalidField;
 use Blush\Http\Response;
@@ -88,7 +90,8 @@ final readonly class SettingsEditController
 		private Permissions $permissions,
 		private SiteSettings $site,
 		private FieldContext $context,
-		private Themes $themes
+		private Themes $themes,
+		private ExtensionState $extensions
 	) {}
 
 	public function update(ServerRequestInterface $request): ResponseInterface
@@ -261,7 +264,8 @@ final readonly class SettingsEditController
 
 	/**
 	 * Checks that a theme being made active is installed, with every
-	 * theme it falls back to.
+	 * theme it falls back to, and that its chain's requirements are met
+	 * (D-431).
 	 *
 	 * @throws InvalidSetting
 	 */
@@ -277,6 +281,12 @@ final readonly class SettingsEditController
 			$this->themes->chain($theme);
 		} catch (ThemeException $error) {
 			throw new InvalidSetting($error->getMessage(), previous: $error);
+		}
+
+		$unmet = $this->extensions->with(theme: $theme)->themes->unmet();
+
+		if ($unmet !== []) {
+			throw new InvalidSetting(sprintf('%s can\'t be activated. %s', $this->themes->find($theme)->label ?? $theme, Requirements::reason(array_merge(...array_values($unmet)))));
 		}
 	}
 

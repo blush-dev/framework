@@ -65,12 +65,13 @@ Implemented in M2 (D-065, D-069).
 | `media:index [--full]` | Build or refresh the media index, with a progress bar; `-v` lists changes, and metadata files with no media file are warnings (D-288) |
 | `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099) |
 | `theme:list` | List installed themes (framework, Composer, local), the active one, and broken manifests (M5b, D-120) |
-| `theme:activate <name>` | Set the active theme (by its `vendor/name`, D-378) in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120), and a theme the admin saved in `user/data/settings.json` (D-381) |
+| `theme:activate <name>` | Set the active theme (by its `vendor/name`, D-378) in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120), and a theme the admin saved in `user/data/settings.json` (D-381); refuses a theme whose chain's `require` isn't met (D-431) |
 | `theme:new <vendor/name> [--parent] [--label] [--namespace]` | Create a minimal theme (manifest plus stylesheet) in `extensions/{vendor}/{name}` (D-418, D-120, D-378); the namespace defaults to the name, hyphenated (`acme-nova`, D-424), the name and namespace must be free across every installed extension (D-417), and the manifest has a `$schema` key (D-206) |
 | `theme:publish [--all]` | Copy servable theme assets to `public/themes/{vendor}/{name}`, removing stale ones; the active chain, or every theme (D-119) |
-| `theme:check [name] [--strict]` | Check the chain, manifests, provider, settings, components without a template (D-164), component files not named for a component, registered components without a label (notice; D-173), and the base layout's landmarks and skip link (D-030, D-121, D-160) |
+| `theme:check [name] [--strict]` | Check the chain, manifests, `require` as if active (an error for the active theme, which falls back; a warning for another, D-431), a `version` Composer can't read (warning), provider, settings, components without a template (D-164), component files not named for a component, registered components without a label (notice; D-173), and the base layout's landmarks and skip link (D-030, D-121, D-160) |
 | `theme:why <view> [--theme]` | Show which file in the view chain wins for a view, and what it shadows (D-120) |
 | `icon:list [--theme]` | List every icon the chain can show: full name, label, and winning file (D-187) |
+| `icon-pack:check [name]` | Check every icon pack's manifest, `require` (one that's off as if it were on), and `version`, as `plugin:check` does: a pack that's on but can't load is an error and fails it; one that's off, a broken one, and a `version` Composer can't read are warnings (D-431) |
 | `menu:list [--theme]` | List the chain's menu locations, the site menu each shows, resolved item counts, and files; site menus no location shows; problems (D-204) |
 | `menu:show <location> [--theme] [--locale]` | Print a location's menu resolved as a page sees it (labels and URLs, nested), with its problems; fails when it shows none (D-204) |
 | `component:list [--theme]` | List every component the chain can render: full name, label, registered or not, class, variants (D-266), and winning template; warn when one can't render (D-164) and about files not named for a component (D-173) |
@@ -78,7 +79,7 @@ Implemented in M2 (D-065, D-069).
 | `build [--base-url] [--no-crawl] [--incremental]` | Export the site to static files in `storage/export`, rendered as production for the export's origin, with redirects and host files; `--incremental` keeps the last export's pages when nothing changed; broken links and host-file notices are warnings, failed URLs fail it (M7, D-135 to D-140) |
 | `publish [--pull\|--no-pull]` | Pull `user/` (with `PublishConfig::$git`), recompile the content types and routes, reindex, clear the store, and bump the content version, as the webhook does (D-131) |
 | `plugin:list` | List installed plugins (name, label, namespace, version, source, and on, off, or can't run, D-385), and broken manifests as warnings (D-394) |
-| `plugin:check [name]` | Check every plugin's manifest and `require` (or one plugin's), one that's off as if it were on; a plugin turned on that can't run, or a broken one config turns on, is an error and fails it, one that's off a warning (D-394) |
+| `plugin:check [name]` | Check every plugin's manifest and `require` (or one plugin's), one that's off as if it were on; a plugin turned on that can't run, or a broken one config turns on, is an error and fails it, one that's off a warning (D-394), and so is a `version` Composer can't normalize (D-430) |
 | `plugin:new <vendor/name> [--label] [--namespace] [--php-namespace]` | Create a plugin (manifest plus an empty service provider in `src/`, autoloaded PSR-4) in `extensions/{vendor}/{name}`, off until turned on (D-416, D-418); the namespace defaults to the name, hyphenated (`acme-hello`, D-424), the name and namespace must be free across every installed extension, the PHP namespace defaults to the name in StudlyCase, and the manifest has a `$schema` key (D-206) |
 | `schedule:run` | Optional cron entry: move the content version on at go-live times and prune the store (D-040, D-133) |
 | `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
@@ -93,6 +94,6 @@ Implemented in M2 (D-065, D-069).
 | `account:suspend <username>` | Suspend an account: signed out, and no sign-in or password link until reinstated (D-312) |
 | `account:reinstate <username>` | Reinstate a suspended account (D-312) |
 | `account:remove <username> [--yes]` | Delete an account after confirming (D-219) |
-| `doctor` | Run every `SetupChecks` check (PHP, extensions, `.env`, production risks, `public/`, storage) with hints; fails on any failure. No opcache check, since the CLI's PHP isn't the web server's (D-218) |
+| `doctor` | Run every `SetupChecks` check (PHP, extensions, `.env`, production risks, `public/`, storage) with hints; fails on any failure. Also warns of extensions that are on but can't run (an active theme falling back, plugins, icon packs; D-431). No opcache check, since the CLI's PHP isn't the web server's (D-218) |
 | `generate:{provider,component,controller,command,type}` | Scaffolding (not `make:`, D-008) |
 | `new <dir>` | Create a new site from the skeleton (may live in a global installer) |

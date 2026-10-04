@@ -22,6 +22,9 @@ use Blush\Component\ComponentVariants;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Core\ServiceProvider;
+use Blush\Extension\ExtensionState;
+use Blush\Extension\Requirements;
+use Blush\Extension\VersionConstraint;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Menu\Menus;
@@ -32,18 +35,20 @@ use Blush\View\Views;
 /**
  * Checks a theme for `theme:check` (D-020, D-030, D-032):
  *
- * - **Errors:** a chain that doesn't resolve; a provider that isn't a
- *   service provider; invalid setting definitions; invalid menu or
+ * - **Errors:** a chain that doesn't resolve; the active theme's chain
+ *   with a requirement that isn't met, so the default theme runs in its
+ *   place (D-431); a provider that isn't a service provider; invalid setting definitions; invalid menu or
  *   region location declarations; a base layout without `lang` on
  *   `<html>`, one `<main>`, or a skip link to it.
- * - **Warnings:** shadowed manifests (JSON wins); site setting values
+ * - **Warnings:** another theme's chain with a requirement that isn't
+ *   met, so it can't be activated; a `version` Composer can't read
+ *   (D-430, D-431); shadowed manifests (JSON wins); site setting values
  *   that don't fit; other broken themes; a component with a class but no
  *   template to render; a component template not named for a component;
  *   site menu and region files or items that are invalid or don't
  *   resolve (D-199, D-201); a layout without `<header>` or `<footer>`,
  *   or with other than one `<h1>`.
- * - **Notices:** `require` entries, which aren't enforced yet; the
- *   theme's registered components without a translated label; site
+ * - **Notices:** the theme's registered components without a translated label; site
  *   menus and regions no location shows.
  *
  * The layout is checked by rendering the `welcome` page.
@@ -52,6 +57,8 @@ final readonly class ThemeChecker
 {
 	public function __construct(
 		private Themes $themes,
+		private ExtensionState $extensions,
+		private ThemeConfig $config,
 		private SettingsResolver $settings,
 		private ViewFactory $views,
 		private Menus $menus,
@@ -80,6 +87,8 @@ final readonly class ThemeChecker
 		foreach ($chain as $theme) {
 			$problems = [...$problems, ...$this->manifest($theme)];
 		}
+
+		$problems = [...$problems, ...$this->requirements($name)];
 
 		$problems = [
 			...$problems,
@@ -110,11 +119,37 @@ final readonly class ThemeChecker
 			$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider %s isn\'t a service provider class (check its "autoload").', $theme->name, $theme->provider));
 		}
 
-		if (isset($theme->data['require'])) {
-			$problems[] = new Violation('require', sprintf('The "%s" theme\'s "require" isn\'t checked yet.', $theme->name), Severity::Notice);
+		// A version Composer can't read meets only `*` (D-429, D-430).
+		if ($theme->version !== '' && VersionConstraint::normalize($theme->version) === null) {
+			$problems[] = new Violation('version', sprintf('The "%s" theme\'s version, "%s", isn\'t one Composer can read, so a requirement of it is met only by "*".', $theme->name, $theme->version), Severity::Warning);
 		}
 
 		return $problems;
+	}
+
+	/**
+	 * Checks the chain's requirements (D-431), as if the theme were
+	 * active: an error for the active theme, whose chain then falls back
+	 * to the default theme, and a warning for another, which can't be
+	 * activated.
+	 *
+	 * @return list<Violation>
+	 */
+	private function requirements(string $name): array
+	{
+		$active = $name === $this->config->active;
+		$state  = $active ? $this->extensions : $this->extensions->with(theme: $name);
+		$unmet  = $state->themes->unmet();
+
+		if ($unmet === []) {
+			return [];
+		}
+
+		$reason = Requirements::reason(array_merge(...array_values($unmet)));
+
+		return [$active
+			? new Violation('require', sprintf('%s The default theme runs in its place until that\'s fixed.', $reason))
+			: new Violation('require', sprintf('%s It can\'t be activated until that\'s fixed.', $reason), Severity::Warning)];
 	}
 
 	/**

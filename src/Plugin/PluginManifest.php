@@ -16,10 +16,13 @@ namespace Blush\Plugin;
 use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
+use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionLicense;
 use Blush\Extension\ExtensionLinks;
+use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
+use Blush\Extension\ExtensionRequire;
 
 /**
  * Describes one plugin: its name (`vendor/name`, D-378), label (its
@@ -33,9 +36,9 @@ use Blush\Extension\ExtensionNamespace;
  *
  * `require` maps a requirement to a version constraint, as Composer's
  * does (D-418): `php`, Blush as `blush-dev/framework`, `ext-{name}` for
- * PHP extensions, and other plugins by name (`vendor/name`). A plugin
- * whose requirements aren't met doesn't run (D-385,
- * `PluginRequirements`).
+ * PHP extensions, and other extensions of any kind by name
+ * (`vendor/name`, D-431). A plugin whose requirements aren't met doesn't
+ * run (D-385, `Requirements`).
  *
  * `authors` (D-384's shape) and `license` (`MIT`, or a list any of
  * which applies, D-428) say who made it and how it may be used, and
@@ -43,7 +46,7 @@ use Blush\Extension\ExtensionNamespace;
  * with, and fund it (`ExtensionLinks`, D-428); the finders fill each from
  * `composer.json` when the manifest leaves it out.
  */
-final readonly class PluginManifest
+final readonly class PluginManifest implements ExtensionManifest
 {
 	/**
 	 * Matches a fully qualified class name.
@@ -138,6 +141,7 @@ final readonly class PluginManifest
 			$autoload = Autoload::fromArray($data['autoload'] ?? null);
 			$license  = ExtensionLicense::fromManifest($data['license'] ?? '');
 			$links    = ExtensionLinks::fromArray($data);
+			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
 		}
@@ -153,7 +157,7 @@ final readonly class PluginManifest
 			version: self::string($data, 'version', '0.0.0'),
 			description: self::string($data, 'description', ''),
 			autoload: $autoload,
-			require: self::map($data, 'require'),
+			require: $require,
 			authors: $authors,
 			license: $license,
 			links: $links,
@@ -185,6 +189,11 @@ final readonly class PluginManifest
 		];
 	}
 
+	public function kind(): ExtensionKind
+	{
+		return ExtensionKind::Plugin;
+	}
+
 	/**
 	 * Reads a required (or defaulted) string.
 	 *
@@ -204,32 +213,5 @@ final readonly class PluginManifest
 		}
 
 		return $value;
-	}
-
-	/**
-	 * Reads an optional string-to-string map.
-	 *
-	 * @param  array<array-key, mixed> $data
-	 * @return array<string, string>
-	 * @throws ExtensionException
-	 */
-	private static function map(array $data, string $key): array
-	{
-		$value = $data[$key] ?? [];
-		$map   = [];
-
-		if (! is_array($value)) {
-			throw new ExtensionException(sprintf('Plugin manifest "%s" must be an object.', $key));
-		}
-
-		foreach ($value as $name => $item) {
-			if (! is_string($name) || ! is_string($item)) {
-				throw new ExtensionException(sprintf('Plugin manifest "%s" must map strings to strings.', $key));
-			}
-
-			$map[$name] = $item;
-		}
-
-		return $map;
 	}
 }

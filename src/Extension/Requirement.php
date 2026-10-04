@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin requirement.
+ * Extension requirement.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,14 +11,14 @@
 
 declare(strict_types=1);
 
-namespace Blush\Plugin;
+namespace Blush\Extension;
 
 /**
- * One of a plugin's `require`, checked against the site (D-385): what
- * it names, its constraint, its kind, whether it's met, and a note on
- * what the site has (`this site runs 8.5.1`, `isn't installed`, `is
- * turned off`). A plugin requirement has the required plugin's `label`
- * when it's installed.
+ * One of an extension's `require`, checked against the site (D-385,
+ * D-431): what it names, its constraint, its kind, whether it's met, and
+ * a note on what the site has (`this site runs 8.5.1`, `isn't
+ * installed`, `is turned off`). A requirement of another extension has
+ * that extension's `label` when it's installed.
  */
 final readonly class Requirement
 {
@@ -33,19 +33,22 @@ final readonly class Requirement
 
 	/**
 	 * Says what's needed and what the site has, for messages:
-	 * `Blush ^3.0 (this site runs 2.0.0)`, `the acme/crm plugin (isn't
-	 * installed)`.
+	 * `Blush ^3.0 (this site runs 2.0.0)`, `Shop ^2.0 (is turned off)`,
+	 * `acme/crm (isn't installed)`.
 	 */
 	public function describe(): string
 	{
 		$constraint = $this->constraint === '*' ? '' : " {$this->constraint}";
-		$plugin     = $this->label !== '' ? $this->label : "the {$this->name} plugin";
+		$extension  = $this->label !== '' ? $this->label : $this->name;
 
 		$what = match ($this->kind) {
 			RequirementKind::Blush     => "Blush {$this->constraint}",
 			RequirementKind::Php       => "PHP {$this->constraint}",
 			RequirementKind::Extension => 'the PHP extension ' . substr($this->name, 4) . $constraint,
-			RequirementKind::Plugin    => $plugin . $constraint,
+			RequirementKind::Plugin,
+			RequirementKind::Theme,
+			RequirementKind::IconPack  => $extension . $constraint,
+			RequirementKind::Missing   => $this->name . $constraint,
 			RequirementKind::Unknown   => "{$this->name} {$this->constraint}"
 		};
 
