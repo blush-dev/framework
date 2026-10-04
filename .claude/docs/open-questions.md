@@ -236,6 +236,40 @@ Move each item to `decisions.md` once it's answered.
   direction's "pending changes" and the profiles sketch's open question.
   Autosaving drafts alone is possible today.
 
+- **The global `blush` command** (D-165, discussed 2026-10-03): its
+  shape so far, in place of D-421's bash launcher.
+  - **Name:** `blush-dev/cli` over `blush-dev/installer`. It also hands
+    off to a site's CLI, which is its everyday use. Peers that do both
+    say `cli` (`statamic/cli`, `getkirby/cli`); `installer` is for tools
+    that only create projects (`laravel/installer`). The risk is
+    reading it as where the commands live; its README says it finds the
+    site and runs its `bin/blush`.
+  - **Contents:** its own repository, no dependencies (global packages
+    share one dependency tree), `"bin": ["bin/blush"]`, about 150 lines:
+    `Application` (dispatch), `SiteLocator` (walks up to the nearest
+    `bin/blush`), `Process` (`proc_open()` with an argument list and the
+    real `STDIN`/`STDOUT`/`STDERR`, so prompts, colors, and `serve`
+    work; returns the exit code), and `NewSite` (`blush new <dir>` runs
+    `composer create-project blush-dev/blush <dir>`; the skeleton's
+    `post-create-project-cmd` runs `init`). It never loads the
+    framework: the site's `bin/blush` runs as its own process. Written
+    in PHP, so it works on Windows without WSL, unlike the launcher.
+  - **Global commands shadow the site's:** keep them to `new` and
+    something like `--global-version`. Should `--version` and `help` go
+    to the site when inside one and answer globally only outside?
+  - **Which PHP:** it runs the site with `PHP_BINARY`, the PHP running
+    the global tool. If that's older than the site needs, fail with a
+    message naming it.
+  - **Ctrl+C during `serve`:** both processes get the signal. Use
+    `pcntl_exec()` (replacing the process) where available, with
+    `proc_open()` as the fallback (Windows, builds without `pcntl`)?
+  - **Namespace:** `Blush\Cli` sits close to the framework's
+    `Blush\Console` (no clash, since they never share a process);
+    `BlushDev\Cli` is the alternative.
+  - **Publishing:** it and the skeleton on Packagist. `create-project`
+    needs tagged releases of the skeleton and framework 2.x; until
+    then, `blush new --dev` passes `--stability=dev`.
+
 ## Later milestones
 - **Hierarchy** (D-257):
   - Should a hierarchical term's page also list its child terms'

@@ -457,7 +457,8 @@ Other starting points the author may pick up (none decided):
   (like `laravel/installer`, via `composer global require`) that creates
   sites (`blush new mysite`) and, inside a site, runs that site's
   `bin/blush`. Until then, `docs/installation.md` shows the small
-  launcher script that finds the nearest `bin/blush` (D-421).
+  launcher script that finds the nearest `bin/blush` (D-421). Its shape
+  (`blush-dev/cli`) and open points are in `open-questions.md`.
 - Setup notices beyond storage (D-218): whether a web server rewrite
   check is possible (the welcome page's next steps and setup notes are
   D-419).
