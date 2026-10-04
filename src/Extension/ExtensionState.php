@@ -200,6 +200,8 @@ final readonly class ExtensionState
 	 * for every kind: `requirements` (each checked as if it were on),
 	 * `conflicts` (D-435, each met when it doesn't conflict with what's
 	 * on), `replaces` (D-436, each met when what it replaces isn't on),
+	 * `provides` (D-439, each `{"name", "constraint"}`, `self.version`
+	 * resolved),
 	 * `blocked` (why it can't run, or `null`), and `requiredBy` (the
 	 * extensions of every kind that require it); and `abandoned` (`false`,
 	 * `true`, or the package to use instead, D-433), with the
@@ -209,7 +211,7 @@ final readonly class ExtensionState
 	 * anything else), and the `version` the site has of either (`null`
 	 * when it has none).
 	 *
-	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, replacedBy: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, replacedBy: string}>, replaces: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, replacedBy: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>}
+	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, replaces: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, provides: list<array{name: string, constraint: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>}
 	 */
 	public function report(ExtensionManifest $extension): array
 	{
@@ -219,6 +221,7 @@ final readonly class ExtensionState
 			'requirements' => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, static fn (Requirement $requirement): bool => ! $requirement->conflict))),
 			'conflicts'    => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, Requirements::isConflict(...)))),
 			'replaces'     => array_map(static fn (Requirement $requirement): array => $requirement->toArray(), array_values(array_filter($checked, Requirements::isReplace(...)))),
+			'provides'     => array_map(static fn (string $name): array => ['name' => $name, 'constraint' => Requirements::provided($extension, $name, 'provide') ?? ''], array_map(strval(...), array_keys($extension->provide))),
 			'blocked'      => Requirements::met($checked) ? null : Requirements::reason($checked),
 			'requiredBy'   => array_map(self::describe(...), $this->requiredBy($extension->name)),
 			'abandoned'    => $extension->abandoned,
@@ -272,13 +275,14 @@ final readonly class ExtensionState
 
 	/**
 	 * The installed extensions, of every kind, whose `require` names an
-	 * extension, or a package it replaces (D-436).
+	 * extension, or a package it replaces (D-436) or provides (D-439).
 	 *
 	 * @return list<ExtensionManifest>
 	 */
 	public function requiredBy(string $name): array
 	{
-		$names = [$name, ...array_map(strval(...), array_keys(($this->installed[$name] ?? null)->replace ?? []))];
+		$extension = $this->installed[$name] ?? null;
+		$names     = [$name, ...array_map(strval(...), array_keys([...$extension->replace ?? [], ...$extension->provide ?? []]))];
 
 		return array_values(array_filter($this->installed, static fn (ExtensionManifest $other): bool => $other->name !== $name && array_intersect($names, array_keys($other->require)) !== []));
 	}

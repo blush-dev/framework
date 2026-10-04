@@ -24,7 +24,8 @@ namespace Blush\Extension;
  * can't run with, met when the site doesn't have one of them on. So is
  * each package it `replace`s (D-436), a conflict at any version, met
  * when that package isn't on. A requirement met by an extension that
- * replaces what it names says which one (`replacedBy`).
+ * replaces or provides what it names (D-439), or a conflict with one,
+ * says which one (`metBy`).
  */
 final readonly class Requirement
 {
@@ -37,7 +38,7 @@ final readonly class Requirement
 		public string $label = '',
 		public bool $conflict = false,
 		public bool $replace = false,
-		public string $replacedBy = ''
+		public string $metBy = ''
 	) {}
 
 	/**
@@ -69,7 +70,7 @@ final readonly class Requirement
 	/**
 	 * The requirement as the admin shows it.
 	 *
-	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, replacedBy: string}
+	 * @return array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}
 	 */
 	public function toArray(): array
 	{
@@ -80,7 +81,7 @@ final readonly class Requirement
 			'met'        => $this->met,
 			'note'       => $this->note,
 			'label'      => $this->label,
-			'replacedBy' => $this->replacedBy
+			'metBy' => $this->metBy
 		];
 	}
 }

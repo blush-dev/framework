@@ -402,27 +402,13 @@ Move each item to `decisions.md` once it's answered.
     the library; a `missing` name may be a library or an extension);
     and whether one install may
     bring others, and how the admin asks first.
-- **Composer's other package links** (raised 2026-10-04; `require` is
-  enforced since D-431, `suggest` is shown and `require-dev` ignored
-  since D-434, `conflict` is enforced since D-435, and `replace` since
-  D-436, each read 1:1 from a Composer package's `composer.json`, with
-  libraries checked against what Composer installed, since D-437 and
-  D-438). Left to settle before it's built:
-  - **`provide`:** virtual packages, as `psr/log-implementation` is. A
-    `require` of a provided name is met by any running extension that
-    provides it at a fitting version, and several may provide one, so a
-    provided name isn't claimed. Waits for a use: the planned
-    `Blush\Ai` provider layer (D-397) is the likely first, with a plugin
-    requiring something like `blush-dev/ai-provider`. It would meet a
-    `require` as `replace` does (D-436: `VersionConstraint::matches()`,
-    `self.version`, `replacedBy`), but without `replace`'s conflict.
-  - **For Composer packages,** read the top-level `provide` as every
-    other link is (D-437, D-438).
-  - **Conflicts from the other side** (left out of D-435 and D-436): an
-    extension's details could say what conflicts with or replaces *it*
-    (as **Required by** does for `require`), and turning it on could
-    warn first that it will stop the extensions declaring the conflict
-    or replacing it, rather than only naming them in what stopped.
+- **Package links from the other side** (left out of D-435, D-436, and
+  D-439; every Composer package link is built, D-431 to D-439): an
+  extension's details could say what conflicts with, replaces, or
+  provides *it* (as **Required by** does for `require`), and turning it
+  on could warn first that it will stop the extensions declaring a
+  conflict with it or replacing it, rather than only naming them in what
+  stopped.
 - **Requiring components to be registered** (D-266's direction): how
   a template-only component registers without PHP (a JSON file beside
   the template, with its text in the catalog?), and what happens to

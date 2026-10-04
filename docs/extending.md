@@ -382,7 +382,7 @@ Each extension can be its own git repository.
 
 Manifests use Composer's names and shapes for the keys they share with
 `composer.json`: `name`, `description`, `version`, `license`,
-`authors`, `autoload`, `require`, `conflict`, `replace`, `homepage`,
+`authors`, `autoload`, `require`, `conflict`, `replace`, `provide`, `homepage`,
 `support`, `funding`, `abandoned`, and `suggest`. A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
 them once. A manifest's own value replaces `composer.json`'s whole; the
@@ -773,7 +773,10 @@ the check commands and `doctor` report one the same way as a
 requirement that isn't met: `Conflicts with Old SEO <2.0 (version 1.4.0
 is on).` A constraint Blush can't read counts as a conflict. A library counts too:
 it conflicts when the site's Composer installed it at a version that
-fits. A Composer package's own `composer.json` `conflict` counts, as in
+fits. So does an extension that's on and
+[replaces](#replacing-another-extension) or [provides](#providing-a-package)
+what a conflict names, at a version that fits, as in Composer. A
+Composer package's own `composer.json` `conflict` counts, as in
 Composer, since Composer can't see the extensions in `extensions/`
 (`extra.blush`'s `conflict`, if it has one, is used in its place).
 
@@ -813,6 +816,36 @@ package's own `composer.json` `replace` counts too, as in Composer
 keeps its original's [namespace](#plugins) can't be installed beside
 it, since no two extensions share a namespace; delete the original
 first.
+
+### Providing a package
+
+`provide` names packages an extension implements, as Composer's does,
+usually a shared name that several extensions can stand behind, such as
+an AI provider any plugin can require without caring which one is
+installed. Each maps to the versions it provides, or `self.version` for
+the extension's own version:
+
+```json
+{
+	"name": "acme/claude",
+	"provide": {
+		"acme/ai-provider": "1.0"
+	}
+}
+```
+
+While `acme/claude` runs, an extension that requires `acme/ai-provider`
+is met by it, when the versions match (`"acme/ai-provider": "^1.0"`
+is; `^2.0` isn't), and the requirement says what met it ("Claude 1.0.0
+provides it"). Unlike `replace`, providing isn't a conflict: any number
+of extensions may provide the same package and run together, and a
+package provided this way doesn't need to exist anywhere. A
+[conflict](#conflicts) naming it does hit an extension that's on and
+provides it. Its details list what it provides under **Provides**, and
+**Required by** lists what requires those packages. A Composer
+package's own `composer.json` `provide` counts too (`extra.blush`'s, if
+it has one, is used in its place), and a library Composer installed is
+met by what other Composer packages provide, as Composer checks it.
 
 A plugin whose manifest can't be read (a `plugin.json` that doesn't
 parse, or is missing a key it needs) is broken. It never runs, even
@@ -1064,7 +1097,7 @@ Only `name` is required. Without a `label` it's shown by its name, and
 without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors`, `license`, `homepage`,
-`support`, `funding`, `abandoned`, `suggest`, [`require`](#requirements), [`conflict`](#conflicts), and [`replace`](#replacing-another-extension) work as a plugin's
+`support`, `funding`, `abandoned`, `suggest`, [`require`](#requirements), [`conflict`](#conflicts), [`replace`](#replacing-another-extension), and [`provide`](#providing-a-package) work as a plugin's
 do: a pack whose requirements aren't met adds no icons, even when it's
 on. Each `{icon}.svg` in the
 pack's `folder` (the pack's own folder, without one) is

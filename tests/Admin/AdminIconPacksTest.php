@@ -93,6 +93,7 @@ final class AdminIconPacksTest extends TestCase
 			'requirements' => [],
 			'conflicts'    => [],
 			'replaces'     => [],
+			'provides'     => [],
 			'blocked'      => null,
 			'requiredBy'   => [],
 			'abandoned'    => false,

@@ -29,7 +29,7 @@ const STATUS = {
 		<li v-for="requirement in requirements" :key="requirement.name">
 			<AdminIcon :name="requirement.met ? 'circle-check' : 'circle-x'" :class="requirement.met ? 'is-met' : 'is-unmet'" />
 			<span class="visually-hidden">{{ STATUS[list ?? 'requires'][requirement.met ? 0 : 1] }}</span>
-			<RouterLink v-if="requirementKind(requirement)" :to="extensionRoute(requirementKind(requirement) ?? 'plugin', requirement.replacedBy || requirement.name)">{{ requirementText(requirement) }}</RouterLink>
+			<RouterLink v-if="requirementKind(requirement)" :to="extensionRoute(requirementKind(requirement) ?? 'plugin', requirement.metBy || requirement.name)">{{ requirementText(requirement) }}</RouterLink>
 			<span v-else :class="{ mono: requirement.kind === 'unknown' || requirement.kind === 'missing' || requirement.kind === 'library' || requirement.kind === 'composer' }">{{ requirementText(requirement) }}</span>
 			<span v-if="requirement.note" class="requirements__note" :class="{ 'is-unmet': !requirement.met }">{{ requirement.note }}</span>
 		</li>

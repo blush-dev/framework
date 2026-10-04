@@ -210,7 +210,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertTrue(Requirements::met($state->check($plugins[0])), 'Checked as if it were on.');
 		$this->assertSame(['acme/brands-block', 'acme/nova'], array_map(static fn ($other): string => $other->name, $state->requiredBy('acme/brands')));
 		$this->assertSame(
-			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands', 'replacedBy' => '']], 'conflicts' => [], 'replaces' => [], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => []],
+			['requirements' => [['name' => 'acme/brands', 'constraint' => '^1.0', 'kind' => 'icon-pack', 'met' => true, 'note' => '', 'label' => 'Brands', 'metBy' => '']], 'conflicts' => [], 'replaces' => [], 'provides' => [], 'blocked' => null, 'requiredBy' => [], 'abandoned' => false, 'replacement' => null, 'suggests' => []],
 			$state->report($plugins[0])
 		);
 	}
@@ -250,7 +250,7 @@ final class ExtensionStateTest extends TestCase
 		$this->assertFalse($state->runs('acme/sitemap'), 'What needs the one that stops stops too.');
 		$this->assertSame('Conflicts with Old-seo <2.0 (version 1.0.0 is on).', Requirements::reason($state->plugins->unmet()['acme/new-seo'] ?? []));
 		$this->assertSame(
-			[['name' => 'acme/old-seo', 'constraint' => '<2.0', 'kind' => 'plugin', 'met' => false, 'note' => 'version 1.0.0 is on', 'label' => 'Old-seo', 'replacedBy' => '']],
+			[['name' => 'acme/old-seo', 'constraint' => '<2.0', 'kind' => 'plugin', 'met' => false, 'note' => 'version 1.0.0 is on', 'label' => 'Old-seo', 'metBy' => '']],
 			$state->report($plugins[0])['conflicts']
 		);
 		$this->assertSame([], $state->report($plugins[0])['requirements'], 'Conflicts are listed apart from requirements.');
@@ -331,7 +331,7 @@ final class ExtensionStateTest extends TestCase
 
 		$this->assertTrue($state->runs('acme/sitemap'));
 		$this->assertSame(
-			[['name' => 'acme/seo', 'constraint' => '^2.0', 'kind' => 'plugin', 'met' => true, 'note' => 'Seo-pro 2.0.0 replaces it', 'label' => '', 'replacedBy' => 'acme/seo-pro']],
+			[['name' => 'acme/seo', 'constraint' => '^2.0', 'kind' => 'plugin', 'met' => true, 'note' => 'Seo-pro 2.0.0 replaces it', 'label' => '', 'metBy' => 'acme/seo-pro']],
 			$state->report($plugins[1])['requirements']
 		);
 		$this->assertFalse($state->runs('acme/legacy-map'), 'It replaces 2.0.0 only (self.version), which ^1.0 doesn\'t match.');
@@ -358,11 +358,64 @@ final class ExtensionStateTest extends TestCase
 
 		$this->assertTrue($swapped->runs('acme/seo-pro'), 'It runs once the one it replaces is off, installed or not.');
 		$this->assertTrue($swapped->runs('acme/sitemap'));
-		$this->assertSame('acme/seo-pro', $swapped->check($plugins[2])[0]->replacedBy ?? null);
+		$this->assertSame('acme/seo-pro', $swapped->check($plugins[2])[0]->metBy ?? null);
 		$this->assertSame(
-			[['name' => 'acme/seo', 'constraint' => '*', 'kind' => 'plugin', 'met' => true, 'note' => 'is turned off', 'label' => 'Seo', 'replacedBy' => '']],
+			[['name' => 'acme/seo', 'constraint' => '*', 'kind' => 'plugin', 'met' => true, 'note' => 'is turned off', 'label' => 'Seo', 'metBy' => '']],
 			$swapped->report($plugins[0])['replaces']
 		);
+	}
+
+	/**
+	 * @param array<string, string> $provide
+	 * @param array<string, string> $conflict
+	 */
+	private static function providing(string $name, array $provide, string $version = '1.2.0', array $conflict = []): PluginManifest
+	{
+		$plugin = self::plugin($name);
+
+		return new PluginManifest(name: $plugin->name, label: $plugin->label, namespace: $plugin->namespace, source: PluginSource::Local, path: $plugin->path, version: $version, conflict: $conflict, provide: $provide);
+	}
+
+	public function testARequirementIsMetByAnythingThatProvidesIt(): void
+	{
+		$plugins = [
+			self::providing('acme/openai', ['acme/ai-provider' => 'self.version']),
+			self::providing('acme/claude', ['acme/ai-provider' => '^1.0']),
+			self::providing('acme/next-ai', ['acme/ai-provider' => '2.0.0']),
+			self::plugin('acme/writer', ['acme/ai-provider' => '^1.0'])
+		];
+
+		$one = self::settle($plugins, ['acme/openai', 'acme/writer'], [], Themes::DEFAULT);
+
+		$this->assertTrue($one->runs('acme/writer'));
+		$this->assertSame(['Openai 1.2.0 provides it', 'acme/openai'], [$one->check($plugins[3])[0]->note, $one->check($plugins[3])[0]->metBy]);
+		$this->assertSame([['name' => 'acme/ai-provider', 'constraint' => '1.2.0']], $one->report($plugins[0])['provides'], 'self.version is its own.');
+		$this->assertSame(['acme/writer'], array_map(static fn ($other): string => $other->name, $one->requiredBy('acme/claude')), 'What requires what it provides requires it.');
+
+		$both = self::settle($plugins, ['acme/openai', 'acme/claude', 'acme/writer'], [], Themes::DEFAULT);
+
+		$this->assertTrue($both->runs('acme/openai') && $both->runs('acme/claude') && $both->runs('acme/writer'), 'Any number may provide one, with no conflict.');
+
+		$wrong = self::settle($plugins, ['acme/next-ai', 'acme/writer'], [], Themes::DEFAULT);
+
+		$this->assertFalse($wrong->runs('acme/writer'), 'It provides 2.0.0, which ^1.0 doesn\'t match.');
+		$this->assertSame('Needs acme/ai-provider ^1.0 (isn\'t installed).', Requirements::reason($wrong->plugins->unmet()['acme/writer'] ?? []));
+	}
+
+	public function testAConflictHitsWhatProvidesOrReplacesWhatItNames(): void
+	{
+		$plugins = [
+			self::providing('acme/openai', ['acme/ai-provider' => 'self.version']),
+			self::providing('acme/offline', [], conflict: ['acme/ai-provider' => '*', 'acme/seo' => '*']),
+			self::replacing('acme/seo-pro', ['acme/seo' => 'self.version'])
+		];
+
+		$state = self::settle($plugins, ['acme/openai', 'acme/offline', 'acme/seo-pro'], [], Themes::DEFAULT);
+
+		$this->assertFalse($state->runs('acme/offline'));
+		$this->assertSame('Conflicts with acme/ai-provider (Openai 1.2.0 provides it, and is on), and acme/seo (Seo-pro 2.0.0 replaces it, and is on).', Requirements::reason($state->plugins->unmet()['acme/offline'] ?? []));
+		$this->assertSame(['acme/openai', 'acme/seo-pro'], array_column($state->report($plugins[1])['conflicts'], 'metBy'));
+		$this->assertTrue(self::settle($plugins, ['acme/offline'], [], Themes::DEFAULT)->runs('acme/offline'), 'Neither is on.');
 	}
 
 	public function testReportsWhatItSuggests(): void

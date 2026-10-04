@@ -212,7 +212,7 @@ Only `name` is required.
   asset URLs all use it, and it's the theme's folder in `extensions/`.
   Leave it out and the `composer.json` beside `theme.json` gives it; a
   Composer theme's name is its package's. `description`, `version`,
-  `license`, `autoload`, `require`, `conflict`, `replace`, `homepage`,
+  `license`, `autoload`, `require`, `conflict`, `replace`, `provide`, `homepage`,
   `support`, `funding`, `abandoned`, and `suggest` also come from that
   `composer.json` when `theme.json` leaves them out.
 - **`label`:** the theme's title, as people read it. Leave it out and
@@ -271,6 +271,9 @@ Only `name` is required.
   [`replace`](extending.md#replacing-another-extension) works: a
   requirement of one is met by the theme while it's active, and it can't
   be activated while one it replaces is on.
+- **`provide`:** the packages the theme implements, as a plugin's
+  [`provide`](extending.md#providing-a-package) works: a requirement of
+  one is met by the theme while it's active.
 - **`provider`** and **`autoload`:** a theme can run PHP, through a
   service provider of its own (see [Components](#components)).
   `autoload` is Composer's shape: `psr-4` folders, and `files` loaded

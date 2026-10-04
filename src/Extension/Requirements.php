@@ -49,9 +49,12 @@ use Blush\Core\Framework;
  * Composer, where the two can't be installed together: an extension
  * doesn't run while what it replaces is on (the one declaring it stops,
  * as for a conflict). And a `vendor/name` that isn't met by its own
- * extension is met by a running one that replaces it, at versions that
- * match (`VersionConstraint::matches()`; `self.version` is the
- * replacer's own).
+ * extension (or library) is met by a running one that replaces it, or
+ * `provide`s it (D-439), at versions that match
+ * (`VersionConstraint::matches()`; `self.version` is the extension's
+ * own). Providing isn't a conflict, and any number may provide one
+ * package; but a `conflict` hits an extension that's on and replaces or
+ * provides what it names, as in Composer.
  *
  * `settle()` decides which enabled extensions run: those whose
  * requirements are met by the site and by the others that run, and that
@@ -125,7 +128,7 @@ final readonly class Requirements
 
 		foreach ($extension->conflict as $name => $constraint) {
 			if ($name !== $extension->name) {
-				$requirements[] = $this->conflict($name, $constraint, $installed, $on);
+				$requirements[] = $this->conflict($extension->name, $name, $constraint, $installed, $on);
 			}
 		}
 
@@ -155,14 +158,45 @@ final readonly class Requirements
 	}
 
 	/**
-	 * The versions an extension stands in for a package it replaces: its
-	 * `replace` constraint, with `self.version` its own version.
+	 * The versions an extension stands in for a package it replaces
+	 * (D-436) or provides (D-439): its `replace` or `provide` constraint,
+	 * with `self.version` its own version, or `null` when it doesn't.
+	 *
+	 * @param 'replace'|'provide' $link
 	 */
-	public static function provided(ExtensionManifest $extension, string $name): ?string
+	public static function provided(ExtensionManifest $extension, string $name, string $link = 'replace'): ?string
 	{
-		$constraint = $extension->replace[$name] ?? null;
+		$constraint = ($link === 'replace' ? $extension->replace : $extension->provide)[$name] ?? null;
 
 		return $constraint === 'self.version' ? self::version($extension) : $constraint;
+	}
+
+	/**
+	 * The first extension that's in a set (running, or on), isn't the one
+	 * left out, and replaces or provides a package at versions matching a
+	 * constraint (D-436, D-439), with the verb that says how, or `null`.
+	 *
+	 * @param  array<string, ExtensionManifest> $installed
+	 * @param  array<string, true>              $in
+	 * @return ?array{ExtensionManifest, string}
+	 */
+	private static function standIn(string $name, string $constraint, array $installed, array $in, string $except = ''): ?array
+	{
+		foreach ($installed as $other) {
+			if ($other->name === $name || $other->name === $except || ! isset($in[$other->name])) {
+				continue;
+			}
+
+			foreach (['replace' => 'replaces', 'provide' => 'provides'] as $link => $verb) {
+				$provided = self::provided($other, $name, $link);
+
+				if ($provided !== null && VersionConstraint::matches($constraint, $provided)) {
+					return [$other, $verb];
+				}
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -296,16 +330,17 @@ final readonly class Requirements
 			return $requirement;
 		}
 
-		// Met by a running extension that replaces it (D-436).
-		foreach ($installed as $replacer) {
-			$provided = self::provided($replacer, $name);
+		// Met by a running extension that replaces or provides it (D-436,
+		// D-439).
+		$standIn = self::standIn($name, $constraint, $installed, $running);
 
-			if ($provided !== null && $replacer->name !== $name && isset($running[$replacer->name]) && VersionConstraint::matches($constraint, $provided)) {
-				return new Requirement($name, $constraint, RequirementKind::for($replacer->kind()), true, sprintf('%s %s replaces it', $replacer->label, self::version($replacer)), $requirement->label, replacedBy: $replacer->name);
-			}
+		if ($standIn === null) {
+			return $requirement;
 		}
 
-		return $requirement;
+		[$other, $verb] = $standIn;
+
+		return new Requirement($name, $constraint, RequirementKind::for($other->kind()), true, sprintf('%s %s %s it', $other->label, self::version($other), $verb), $requirement->label, metBy: $other->name);
 	}
 
 	/**
@@ -378,13 +413,41 @@ final readonly class Requirements
 	}
 
 	/**
-	 * Checks one conflict (D-435): met unless what it names is on at a
-	 * version it names.
+	 * Checks one conflict (D-435): met unless what it names, or another
+	 * extension that replaces or provides it (D-439), is on at a version
+	 * it names.
 	 *
 	 * @param array<string, ExtensionManifest> $installed
 	 * @param array<string, true>              $on
 	 */
-	private function conflict(string $name, string $constraint, array $installed, array $on): Requirement
+	private function conflict(string $declarer, string $name, string $constraint, array $installed, array $on): Requirement
+	{
+		$conflict = $this->conflictWith($name, $constraint, $installed, $on);
+
+		if (! $conflict->met) {
+			return $conflict;
+		}
+
+		// An extension that's on and replaces or provides it at those
+		// versions conflicts too, as in Composer (D-439).
+		$standIn = self::standIn($name, $constraint, $installed, $on, $declarer);
+
+		if ($standIn === null) {
+			return $conflict;
+		}
+
+		[$other, $verb] = $standIn;
+
+		return new Requirement($name, $constraint, RequirementKind::for($other->kind()), false, sprintf('%s %s %s it, and is %s', $other->label, self::version($other), $verb, $other->kind() === ExtensionKind::Theme ? 'active' : 'on'), $conflict->label, true, metBy: $other->name);
+	}
+
+	/**
+	 * Checks one conflict against what it names itself.
+	 *
+	 * @param array<string, ExtensionManifest> $installed
+	 * @param array<string, true>              $on
+	 */
+	private function conflictWith(string $name, string $constraint, array $installed, array $on): Requirement
 	{
 		$other = $installed[$name] ?? null;
 		$kind  = RequirementKind::of($name, $other);

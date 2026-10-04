@@ -88,6 +88,13 @@
 				"type": "string"
 			}
 		},
+		"provide": {
+			"type": "object",
+			"description": "The packages the plugin provides an implementation of, as composer.json says it, each with the versions it provides (self.version for its own): a require of one is met by this plugin when it runs, and any number of extensions may provide one. Without it, the provide in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
+		},
 		"authors": {
 			"type": "array",
 			"description": "Who made the plugin, as composer.json lists authors. Without it, the authors in the composer.json beside this file are used.",

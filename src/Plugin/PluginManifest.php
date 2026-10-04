@@ -52,7 +52,8 @@ use Blush\Extension\ExtensionSuggest;
  * can't run with, as Composer's does (D-435): a plugin that conflicts
  * with something that's on doesn't run. `replace` names what it stands
  * in for (D-436): a `require` of one is met by it, and it doesn't run
- * while one is on. `suggest` maps packages
+ * while one is on. `provide` names what it implements (D-439): a
+ * `require` of one is met by it, and any number may provide one. `suggest` maps packages
  * that would work well with it to why (`ExtensionSuggest`, D-434), and
  * is only shown.
  */
@@ -67,6 +68,7 @@ final readonly class PluginManifest implements ExtensionManifest
 	 * @param array<string, string> $require  Requirement => version constraint.
 	 * @param array<string, string> $conflict Conflict => the versions it can't run with (D-435).
 	 * @param array<string, string> $replace  What it replaces, each mapped to the versions it stands in for (D-436).
+	 * @param array<string, string> $provide  What it provides, each mapped to the versions it provides (D-439).
 	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
 	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 * @param ?string               $provider Fully qualified class name of the plugin's service provider, if it has one.
@@ -84,6 +86,7 @@ final readonly class PluginManifest implements ExtensionManifest
 		public array $require = [],
 		public array $conflict = [],
 		public array $replace = [],
+		public array $provide = [],
 		public array $authors = [],
 		public string $license = '',
 		public ExtensionLinks $links = new ExtensionLinks(),
@@ -162,6 +165,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			$require  = ExtensionRequire::fromArray($data['require'] ?? null);
 			$conflict  = ExtensionRequire::fromArray($data['conflict'] ?? null, 'conflict');
 			$replace  = ExtensionRequire::fromArray($data['replace'] ?? null, 'replace');
+			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide');
 			$suggest  = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
@@ -181,6 +185,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			require: $require,
 			conflict: $conflict,
 			replace: $replace,
+			provide: $provide,
 			authors: $authors,
 			license: $license,
 			links: $links,
@@ -210,6 +215,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			'require'     => $this->require,
 			'conflict'    => $this->conflict,
 			'replace'     => $this->replace,
+			'provide'     => $this->provide,
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), $this->authors),
 			'license'     => $this->license,
 			'abandoned'   => $this->abandoned,

@@ -557,6 +557,13 @@
 			"additionalProperties": {
 				"type": "string"
 			}
+		},
+		"provide": {
+			"type": "object",
+			"description": "The packages the theme provides an implementation of, as composer.json says it, each with the versions it provides (self.version for its own): a require of one is met by this theme when it runs, and any number of extensions may provide one. Without it, the provide in the composer.json beside this file is used.",
+			"additionalProperties": {
+				"type": "string"
+			}
 		}
 	},
 	"definitions": {

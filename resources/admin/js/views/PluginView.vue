@@ -6,7 +6,8 @@
  * (each requirement checked against the site; a required extension of
  * any kind, and one that requires it, linked, D-431), a Conflicts panel
  * when its manifest has `conflict` (D-435), a Replaces panel when it
- * has `replace` (D-436), a Suggests panel
+ * has `replace` (D-436), a Provides panel when it has `provide`
+ * (D-439), a Suggests panel
  * when its manifest suggests anything (D-434), then **Delete
  * plugin** for a folder plugin that's off. A Composer plugin says how
  * it's removed instead, and one that's on says to turn it off first.
@@ -18,6 +19,7 @@ import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
+import ExtensionProvides from '../components/ExtensionProvides.vue';
 import ExtensionRequirements from '../components/ExtensionRequirements.vue';
 import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
@@ -149,6 +151,16 @@ async function remove(): Promise<void> {
 				</header>
 				<div class="panel__body">
 					<ExtensionRequirements :requirements="plugin.replaces" list="replaces" />
+				</div>
+			</section>
+
+			<section v-if="plugin.provides.length" class="panel" aria-labelledby="provides-heading">
+				<header class="panel__header">
+					<h2 id="provides-heading">Provides</h2>
+					<p class="panel__hint">Meets a requirement of any of these while it runs</p>
+				</header>
+				<div class="panel__body">
+					<ExtensionProvides :provides="plugin.provides" />
 				</div>
 			</section>
 

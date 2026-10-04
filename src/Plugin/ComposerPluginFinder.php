@@ -45,7 +45,7 @@ use Blush\Support\FilesystemException;
  * (D-423), without a `namespace`, it goes by its name, hyphenated
  * (D-424), and without a `provider`, it registers nothing (D-425), so a
  * package needs no `extra.blush` at all. Its own `require`, `conflict`,
- * and `replace` count, as in Composer, unless `extra.blush` has them
+ * `replace`, and `provide` count, as in Composer, unless `extra.blush` has them
  * (D-437, D-438). Composer autoloads
  * these packages itself. A package whose manifest
  * doesn't hold is broken, known by its name (D-394).
@@ -107,6 +107,7 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			'require'     => $blush['require'] ?? self::links($package, 'require'),
 			'conflict'    => $blush['conflict'] ?? self::links($package, 'conflict'),
 			'replace'     => $blush['replace'] ?? self::links($package, 'replace'),
+			'provide'     => $blush['provide'] ?? self::links($package, 'provide'),
 			'authors'     => array_map(static fn (ExtensionAuthor $author): array => $author->toArray(), ExtensionAuthor::lenient($package['authors'] ?? [])),
 			'license'     => ComposerJson::license($package['license'] ?? null),
 			'abandoned'   => ExtensionAbandoned::lenient($package['abandoned'] ?? false),
@@ -116,8 +117,8 @@ final readonly class ComposerPluginFinder implements PluginFinder
 	}
 
 	/**
-	 * A package's own `require`, `conflict`, or `replace`, which Blush
-	 * reads as Composer does (D-437, D-438).
+	 * A package's own `require`, `conflict`, `replace`, or `provide`,
+	 * which Blush reads as Composer does (D-437 to D-439).
 	 *
 	 * @param  array<array-key, mixed> $package
 	 * @return array<array-key, mixed>

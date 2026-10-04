@@ -370,6 +370,8 @@ export interface ThemeSummary {
 	conflicts: ExtensionRequirement[];
 	// What it replaces (D-436), each met when that isn't on.
 	replaces: ExtensionRequirement[];
+	// What it provides (D-439), with the versions it provides (`self.version` resolved).
+	provides: { name: string; constraint: string }[];
 	// Why it can't be activated (a theme it falls back to is missing, or a
 	// requirement in its chain isn't met), or `null`.
 	blocked: string | null;
@@ -474,9 +476,10 @@ export interface ExtensionRequirement {
 	note: string;
 	// The required extension's label, when it's installed.
 	label: string;
-	// The extension that meets it by replacing what it names (D-436), whose
-	// kind is `kind`; empty otherwise.
-	replacedBy: string;
+	// The extension that replaces or provides what it names (D-436, D-439),
+	// meeting it or, for a conflict, conflicting; its kind is `kind`. Empty
+	// otherwise.
+	metBy: string;
 }
 
 /**
@@ -535,6 +538,8 @@ export interface PluginSummary {
 	conflicts: ExtensionRequirement[];
 	// What it replaces (D-436), each met when that isn't on.
 	replaces: ExtensionRequirement[];
+	// What it provides (D-439), with the versions it provides (`self.version` resolved).
+	provides: { name: string; constraint: string }[];
 	// Why it can't run, or `null`.
 	blocked: string | null;
 	// The extensions, of every kind, that require it.
@@ -621,6 +626,8 @@ export interface IconPackSummary {
 	conflicts: ExtensionRequirement[];
 	// What it replaces (D-436), each met when that isn't on.
 	replaces: ExtensionRequirement[];
+	// What it provides (D-439), with the versions it provides (`self.version` resolved).
+	provides: { name: string; constraint: string }[];
 	// Why it can't load, or `null`.
 	blocked: string | null;
 	// The extensions, of every kind, that require it.

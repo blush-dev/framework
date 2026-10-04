@@ -12906,3 +12906,53 @@ decision, add a new entry that supersedes it and mark the old one
   one departure left was for want of seeing Composer's packages, and
   Blush can see them.
 
+### D-439: `provide` meets requirements, and conflicts reach what stands in
+- **Date:** 2026-10-04
+- **Status:** Settles the last of the open question "Composer's other
+  package links" (D-434); with it, every Composer package link is read
+  (D-431 to D-438). Renames D-436's `replacedBy` to `metBy`.
+- **Decision:** The author asked for `provide` too, ahead of the
+  `Blush\Ai` layer (D-397) that was to be its first use. Every kind
+  reads Composer's `provide`: the packages it implements, each mapped to
+  the versions it provides, or `self.version` for its own. As in
+  Composer:
+  - **A `require` of a provided package** that isn't otherwise met is
+    met by a running extension providing it at versions that match
+    (`VersionConstraint::matches()`), as by one replacing it (D-436):
+    `Claude 1.0.0 provides it`, with `metBy`.
+  - **Providing isn't a conflict, and claims nothing:** any number of
+    extensions may provide one package and run together, and the
+    package needn't exist.
+  - **A `conflict` reaches what stands in** (new for every conflict, as
+    Composer's `whatProvides()` has it): a conflict naming a package also
+    hits another extension that's on and replaces or provides it at a
+    version that fits: `Conflicts with acme/ai-provider (Openai 1.2.0
+    provides it, and is on).` The declarer still stops (D-435).
+  - **Libraries Composer installed** were already met by what other
+    Composer packages provide or replace, through `installed.php`'s
+    `provided` and `replaced` (D-438).
+  - **Required by** on a provider lists what requires a package it
+    provides, as for `replace`.
+  - **Read** from the manifest, `extra.blush`, or the top level of
+    `composer.json`, for local and Composer packages alike (D-437).
+  - **`metBy`** replaces `replacedBy` on every requirement in the API
+    (D-436's, committed): the extension that replaces or provides what a
+    requirement names, meeting it, or, for a conflict, conflicting.
+  - **Built:** `ExtensionManifest::$provide` on each kind;
+    `Requirements::provided()` takes the link (`replace` or `provide`),
+    and `standIn()` finds a replacer or provider in a set (running for a
+    requirement, on for a conflict, never the declarer);
+    `conflict()` wraps `conflictWith()`; `ExtensionState::report()` adds
+    `provides` (`{"name", "constraint"}`, `self.version` resolved). Each
+    details screen has a **Provides** panel when the manifest has
+    `provide` (`ExtensionProvides.vue`), a list of names and versions
+    with nothing checked. The JSON Schemas have it.
+- **Checked:** `composer check` (a requirement met by a provider, by
+  `self.version` and a range, and not at a version that doesn't match;
+  two providers running together; Required by; a conflict hitting a
+  provider and a replacer that are on, and neither when they're off;
+  every kind and a Composer plugin reading it); `npm run admin:build`.
+  Not checked in a browser.
+- **Why:** completes Composer parity for package links, so a manifest's
+  links mean what they mean in Composer.
+

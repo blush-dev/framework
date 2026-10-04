@@ -9,7 +9,8 @@
  * site, as a plugin's are, D-431; one that isn't met keeps the pack from
  * turning on, or its icons from loading), a Conflicts panel when it
  * has `conflict` (D-435), a Replaces panel when it has `replace`
- * (D-436), a Suggests panel when it
+ * (D-436), a Provides panel when it has `provide` (D-439), a
+ * Suggests panel when it
  * suggests anything (D-434), and **Delete icon pack** for a
  * folder pack. A Composer pack says how it's removed instead.
  */
@@ -20,6 +21,7 @@ import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
+import ExtensionProvides from '../components/ExtensionProvides.vue';
 import ExtensionRequirements from '../components/ExtensionRequirements.vue';
 import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
@@ -250,6 +252,16 @@ async function remove(): Promise<void> {
 			</header>
 			<div class="panel__body">
 				<ExtensionRequirements :requirements="pack.replaces" list="replaces" />
+			</div>
+		</section>
+
+		<section v-if="pack && pack.provides.length" class="panel" aria-labelledby="provides-heading">
+			<header class="panel__header">
+				<h2 id="provides-heading">Provides</h2>
+				<p class="panel__hint">Meets a requirement of any of these while it runs</p>
+			</header>
+			<div class="panel__body">
+				<ExtensionProvides :provides="pack.provides" />
 			</div>
 		</section>
 

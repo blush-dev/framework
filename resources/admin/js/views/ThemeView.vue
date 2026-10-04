@@ -3,8 +3,9 @@
  * A theme's details (D-383, the themes sketch's detail screen), at
  * `/themes/{vendor}/{name}`: its preview in both halves of its palette,
  * its details, its requirements (checked as if it were active, D-431),
- * its conflicts (D-435), what it replaces (D-436), what it suggests (D-434), its palette as swatches, and, for a folder theme the active one
- * doesn't use, **Delete theme**. An active theme whose requirements
+ * its conflicts (D-435), what it replaces (D-436), what it provides
+ * (D-439), what it suggests (D-434), its palette as swatches, and, for a
+ * folder theme the active one doesn't use, **Delete theme**. An active theme whose requirements
  * aren't met says it isn't running. A Composer theme says how
  * it's removed instead.
  *
@@ -20,6 +21,7 @@ import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionLinks from '../components/ExtensionLinks.vue';
+import ExtensionProvides from '../components/ExtensionProvides.vue';
 import ExtensionRequirements from '../components/ExtensionRequirements.vue';
 import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
 import LicenseLinks from '../components/LicenseLinks.vue';
@@ -275,6 +277,16 @@ async function remove(): Promise<void> {
 				</header>
 				<div class="panel__body">
 					<ExtensionRequirements :requirements="theme.replaces" list="replaces" />
+				</div>
+			</section>
+
+			<section v-if="theme.provides.length" class="panel" aria-labelledby="provides-heading">
+				<header class="panel__header">
+					<h2 id="provides-heading">Provides</h2>
+					<p class="panel__hint">Meets a requirement of any of these while it runs</p>
+				</header>
+				<div class="panel__body">
+					<ExtensionProvides :provides="theme.provides" />
 				</div>
 			</section>
 

@@ -201,7 +201,7 @@ final class IconPacksTest extends TestCase
 	public function testAComposerPackReadsItsComposerJsonsPackageLinks(): void
 	{
 		$this->packs();
-		$this->writeTemporaryFile('vendor/acme/arrows/composer.json', '{"name": "acme/arrows", "require": {"acme/svg-tools": "^1.0"}, "conflict": {"acme/old-svg": "*"}, "replace": {"acme/old-arrows": "self.version"}}');
+		$this->writeTemporaryFile('vendor/acme/arrows/composer.json', '{"name": "acme/arrows", "require": {"acme/svg-tools": "^1.0"}, "conflict": {"acme/old-svg": "*"}, "replace": {"acme/old-arrows": "self.version"}, "provide": {"acme/arrow-set": "1.0"}}');
 		$this->writeTemporaryFile('extensions/acme/weather/composer.json', '{"require": {"blush-dev/framework": "^9.0"}, "conflict": {"acme/arrows": "<1.0"}}');
 
 		$packs = $this->app()->container()->make(IconPacks::class);
@@ -209,6 +209,7 @@ final class IconPacksTest extends TestCase
 		$this->assertSame(['acme/svg-tools' => '^1.0'], $packs->find('acme/arrows')?->require, 'Read as Composer reads it (D-438).');
 		$this->assertSame(['acme/old-svg' => '*'], $packs->find('acme/arrows')->conflict, 'Its conflict and replace are read, as Composer reads them (D-437).');
 		$this->assertSame(['acme/old-arrows' => 'self.version'], $packs->find('acme/arrows')->replace);
+		$this->assertSame(['acme/arrow-set' => '1.0'], $packs->find('acme/arrows')->provide);
 		$this->assertArrayNotHasKey('acme/arrows', $packs->enabled(), 'acme/svg-tools isn\'t installed, by Composer or as an extension.');
 		$this->assertSame(['blush-dev/framework' => '^9.0'], $packs->find('acme/weather')?->require, 'A folder pack takes its composer.json\'s.');
 		$this->assertSame(['acme/arrows' => '<1.0'], $packs->find('acme/weather')->conflict);

@@ -46,7 +46,7 @@ use Blush\Extension\ExtensionSuggest;
  * `homepage`, `support`, and `funding` (D-428), each from its
  * `composer.json` when the manifest has none (D-385). Its `abandoned`
  * (`true`, or the package to use instead) only warns (D-433), and its
- * `suggest` is only shown (D-434). Its `require`, `conflict` (D-435), and `replace` (D-436) are
+ * `suggest` is only shown (D-434). Its `require`, `conflict` (D-435), `replace` (D-436), and `provide` (D-439) are
  * checked as a plugin's is (D-431): a pack that's on but whose
  * requirements aren't met doesn't load.
  */
@@ -59,6 +59,7 @@ final readonly class IconPack implements ExtensionManifest
 	 * @param array<string, string> $require What it needs, each mapped to a version constraint (D-431).
 	 * @param array<string, string> $conflict What it can't run with, each mapped to the versions it can't (D-435).
 	 * @param array<string, string> $replace  What it replaces, each mapped to the versions it stands in for (D-436).
+	 * @param array<string, string> $provide  What it provides, each mapped to the versions it provides (D-439).
 	 * @param bool|string           $abandoned Whether it's abandoned, or the package to use instead (D-433).
 	 * @param array<string, string> $suggest   Package => why it's suggested (D-434).
 	 * @throws ExtensionException
@@ -78,6 +79,7 @@ final readonly class IconPack implements ExtensionManifest
 		public array $require = [],
 		public array $conflict = [],
 		public array $replace = [],
+		public array $provide = [],
 		public bool|string $abandoned = false,
 		public array $suggest = []
 	) {
@@ -123,6 +125,7 @@ final readonly class IconPack implements ExtensionManifest
 			$require = ExtensionRequire::fromArray($data['require'] ?? null);
 			$conflict = ExtensionRequire::fromArray($data['conflict'] ?? null, 'conflict');
 			$replace  = ExtensionRequire::fromArray($data['replace'] ?? null, 'replace');
+			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide');
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
 			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
 		} catch (ExtensionException $error) {
@@ -145,6 +148,7 @@ final readonly class IconPack implements ExtensionManifest
 			require: $require,
 			conflict: $conflict,
 			replace: $replace,
+			provide: $provide,
 			abandoned: $abandoned,
 			suggest: $suggest
 		);
@@ -173,6 +177,7 @@ final readonly class IconPack implements ExtensionManifest
 				'require'     => $this->require,
 				'conflict'    => $this->conflict,
 				'replace'     => $this->replace,
+				'provide'     => $this->provide,
 				'abandoned'   => $this->abandoned,
 				'suggest'     => $this->suggest,
 				...$this->links->toArray()

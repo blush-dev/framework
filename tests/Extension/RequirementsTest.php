@@ -144,12 +144,13 @@ final class RequirementsTest extends TestCase
 		$this->assertCount(2, $plugins->providers());
 	}
 
-	public function testEveryKindReadsConflictAndReplaceAsRequireIsRead(): void
+	public function testEveryKindReadsItsPackageLinksAsRequireIsRead(): void
 	{
-		$plugin = PluginManifest::fromArray(['name' => 'acme/hello', 'source' => 'local', 'path' => '/site/extensions/acme/hello', 'conflict' => ['acme/old' => '<2.0'], 'replace' => ['acme/hi' => 'self.version']]);
+		$plugin = PluginManifest::fromArray(['name' => 'acme/hello', 'source' => 'local', 'path' => '/site/extensions/acme/hello', 'conflict' => ['acme/old' => '<2.0'], 'replace' => ['acme/hi' => 'self.version'], 'provide' => ['acme/greeter' => '1.0']]);
 
 		$this->assertSame(['acme/old' => '<2.0'], $plugin->conflict);
 		$this->assertSame(['acme/hi' => 'self.version'], $plugin->replace, 'And replace (D-436).');
+		$this->assertSame(['acme/greeter' => '1.0'], $plugin->provide, 'And provide (D-439).');
 		$this->assertEquals($plugin, PluginManifest::fromArray($plugin->toArray()), 'It round-trips through a cached manifest.');
 		$this->assertSame(['php' => '<8.0'], IconPack::fromArray('/site/extensions/acme/brands', ['name' => 'acme/brands', 'conflict' => ['php' => '<8.0']])->conflict);
 		$this->assertSame(['acme/old' => '*'], ThemeManifest::fromArray('/site/extensions/acme/nova', ['name' => 'acme/nova', 'conflict' => ['acme/old' => '*']])->conflict);
