@@ -611,9 +611,9 @@ why, as in `composer.json`: other plugins, themes, or icon packs by
 
 Nothing is checked or installed for it: an extension runs the same with
 or without what it suggests. The admin lists them on the extension's
-details, under **Suggests**, with the version the site has beside each
-one that's installed (linked) and each PHP extension that's loaded, and installing an extension from a
-zip lists what it suggests. In a manifest, anything but an object of
+details, under **Suggests**, each with why beneath it, linking one
+that's installed and saying whether a PHP extension is loaded, and
+installing an extension from a zip lists what it suggests. In a manifest, anything but an object of
 names to strings is an error; in `composer.json`, an entry that doesn't
 fit is left out.
 
@@ -816,6 +816,16 @@ package's own `composer.json` `replace` counts too, as in Composer
 keeps its original's [namespace](#plugins) can't be installed beside
 it, since no two extensions share a namespace; delete the original
 first.
+
+### Seeing it from the other side
+
+An extension's details also show the links other extensions have to
+it: **Conflicts with it** (the extensions whose `conflict` hits it at
+its version, naming it or a package it replaces or provides), **Replaced
+by**, and **Also provided by**, beside **Required by**. Turning an
+extension on, or activating a theme, asks first when that would stop
+others, naming them: the ones that conflict with it or replace it, and
+the ones that need those.
 
 ### Providing a package
 

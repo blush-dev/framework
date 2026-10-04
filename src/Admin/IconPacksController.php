@@ -161,6 +161,8 @@ final readonly class IconPacksController
 			'enabled'     => $this->packs->isEnabled($pack->name),
 			'running'     => $this->extensions->runs($pack->name),
 			...$this->extensions->report($pack),
+			...$this->extensions->opposite($pack),
+			'stops'       => $this->extensions->stops($pack),
 			'deletable'   => $folder !== null,
 			'backup'      => ExtensionInstallController::backup($this->installer, ExtensionKind::IconPack, $folder === null ? null : $pack->path, $pack->name),
 			'count'       => count($files),

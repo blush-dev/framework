@@ -207,11 +207,10 @@ final readonly class ExtensionState
 	 * `true`, or the package to use instead, D-433), with the
 	 * `replacement` when it's an installed extension, or `null`; and what
 	 * it `suggests` (D-434), each with the `extension` when it's an
-	 * installed one, whether a PHP extension is `loaded` (`null` for
-	 * anything else), and the `version` the site has of either (`null`
-	 * when it has none).
+	 * installed one, and whether a PHP extension is `loaded` (`null` for
+	 * anything else).
 	 *
-	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, replaces: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, provides: list<array{name: string, constraint: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>}
+	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, conflicts: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, replaces: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string, metBy: string}>, provides: list<array{name: string, constraint: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>, abandoned: bool|string, replacement: ?array{name: string, label: string, kind: string}, suggests: list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool}>}
 	 */
 	public function report(ExtensionManifest $extension): array
 	{
@@ -232,11 +231,11 @@ final readonly class ExtensionState
 
 	/**
 	 * What an extension suggests (D-434), each with the installed
-	 * extension it names, if any, whether a PHP extension it names is
-	 * loaded, and the version of either the site has. Nothing else is looked up: a `vendor/name` that isn't an
+	 * extension it names, if any, and whether a PHP extension it names
+	 * is loaded. Nothing else is looked up: a `vendor/name` that isn't an
 	 * extension may be a library Composer has installed.
 	 *
-	 * @return list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool, version: ?string}>
+	 * @return list<array{name: string, reason: string, extension: ?array{name: string, label: string, kind: string}, loaded: ?bool}>
 	 */
 	private function suggests(ExtensionManifest $extension): array
 	{
@@ -244,19 +243,12 @@ final readonly class ExtensionState
 
 		foreach ($extension->suggest as $name => $reason) {
 			$installed = $this->installed[$name] ?? null;
-			$loaded    = str_starts_with($name, 'ext-') ? extension_loaded(substr($name, 4)) : null;
-			$version   = match (true) {
-				$installed !== null => $installed->version,
-				$loaded === true    => phpversion(substr($name, 4)),
-				default             => null
-			};
 
 			$suggests[] = [
 				'name'      => $name,
 				'reason'    => $reason,
 				'extension' => $installed === null ? null : self::describe($installed),
-				'loaded'    => $loaded,
-				'version'   => is_string($version) && $version !== '' ? $version : null
+				'loaded'    => str_starts_with($name, 'ext-') ? extension_loaded(substr($name, 4)) : null
 			];
 		}
 
@@ -285,6 +277,81 @@ final readonly class ExtensionState
 		$names     = [$name, ...array_map(strval(...), array_keys([...$extension->replace ?? [], ...$extension->provide ?? []]))];
 
 		return array_values(array_filter($this->installed, static fn (ExtensionManifest $other): bool => $other->name !== $name && array_intersect($names, array_keys($other->require)) !== []));
+	}
+
+	/**
+	 * The other side of package links (D-440): the installed extensions
+	 * whose `conflict` hits an extension at its version (naming it, or a
+	 * package it replaces or provides, as `Requirements` judges them), the
+	 * ones that `replace` it, and the ones that `provide` it, each as the
+	 * admin names and links to it.
+	 *
+	 * @return array{conflictedBy: list<array{name: string, label: string, kind: string}>, replacedBy: list<array{name: string, label: string, kind: string}>, providedBy: list<array{name: string, label: string, kind: string}>}
+	 */
+	public function opposite(ExtensionManifest $extension): array
+	{
+		$conflicted = [];
+		$replaced   = [];
+		$provided   = [];
+		$version    = Requirements::version($extension);
+
+		foreach ($this->installed as $other) {
+			if ($other->name === $extension->name) {
+				continue;
+			}
+
+			foreach ($other->conflict as $name => $constraint) {
+				$stands = $name === $extension->name
+					? VersionConstraint::satisfies($version, $constraint)
+					: array_any(['replace', 'provide'], static fn (string $link): bool => ($in = Requirements::provided($extension, (string) $name, $link)) !== null && VersionConstraint::matches($constraint, $in));
+
+				if ($stands) {
+					$conflicted[] = self::describe($other);
+
+					break;
+				}
+			}
+
+			if (array_key_exists($extension->name, $other->replace)) {
+				$replaced[] = self::describe($other);
+			}
+
+			if (array_key_exists($extension->name, $other->provide)) {
+				$provided[] = self::describe($other);
+			}
+		}
+
+		return ['conflictedBy' => $conflicted, 'replacedBy' => $replaced, 'providedBy' => $provided];
+	}
+
+	/**
+	 * What turning on an extension that doesn't run would stop (D-440):
+	 * a plugin or pack turned on as well, or a theme activated, settled as
+	 * saving it would be, so it takes in what stops because of what stops.
+	 * The themes an activated theme takes the place of aren't listed.
+	 * Nothing for one that runs.
+	 *
+	 * @return list<array{name: string, label: string, kind: string}>
+	 * @throws ExtensionException When config enables a plugin that isn't installed.
+	 */
+	public function stops(ExtensionManifest $extension): array
+	{
+		if ($this->runs($extension->name)) {
+			return [];
+		}
+
+		$after = match ($extension->kind()) {
+			ExtensionKind::Plugin   => $this->with($this->config->with($extension->name)),
+			ExtensionKind::IconPack => $this->with(icons: $this->packs->configWith($extension->name)),
+			ExtensionKind::Theme    => $this->with(theme: $extension->name)
+		};
+
+		$stopped = array_filter(
+			$this->runningNotIn($after, $extension->name),
+			static fn (ExtensionManifest $other): bool => $extension->kind() !== ExtensionKind::Theme || $other->kind() !== ExtensionKind::Theme
+		);
+
+		return array_values(array_map(self::describe(...), $stopped));
 	}
 
 	/**

@@ -12632,6 +12632,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-434: `suggest` is shown, and `require-dev` ignored, as in Composer
 - **Date:** 2026-10-04
+- **Status:** The Suggests panel puts each reason beneath its name, and
+  `version` is gone from the panel and the API, since D-440.
 - **Decision:** From a discussion of Composer's package links
   (https://getcomposer.org/doc/04-schema.md#package-links): the author
   agreed to build them in the order `suggest`, `conflict`, `replace`,
@@ -12955,4 +12957,49 @@ decision, add a new entry that supersedes it and mark the old one
   Not checked in a browser.
 - **Why:** completes Composer parity for package links, so a manifest's
   links mean what they mean in Composer.
+
+### D-440: The other side of package links, and asking before what stops
+- **Date:** 2026-10-04
+- **Status:** Settles the open question "Package links from the other
+  side" (D-439). Amends D-434's Suggests panel (the author's earlier
+  request for a version beside each name came from reading `suggest`'s
+  reason as a version).
+- **Decision:** The author asked for both halves of the question, and
+  two changes to the details screens' lists:
+  - **The other side, on each details screen:** beside **Required by**,
+    **Conflicts with it** (the installed extensions whose `conflict` hits
+    it at its version, naming it or a package it replaces or provides,
+    as `Requirements` judges a conflict), **Replaced by** (whose
+    `replace` names it), and **Also provided by** (whose `provide` names
+    it). `ExtensionState::opposite()`; `GET plugins`, `GET themes`, and
+    `GET icon-packs` answer `conflictedBy`, `replacedBy`, and
+    `providedBy`, each `{"name", "label", "kind"}`, drawn by
+    `ExtensionDependents.vue` with a `label`.
+  - **Asking before turning on what stops others:** `stops` is what
+    turning a plugin or pack on, or activating a theme, would stop, with
+    what stops because of that, settled as saving it would be
+    (`ExtensionState::stops()`: the config with it on, or the theme
+    active, and `runningNotIn()`, as `PUT` reports `stopped`), leaving
+    out the themes an activated theme takes the place of; empty for one
+    that runs. A switch that would stop others asks first (`Turn on
+    Claude?`, naming them: "An extension that conflicts with it or
+    replaces it can't run alongside it, and neither can one that needs
+    it."); a theme's **Activate** question gains that paragraph.
+    `PluginConfig::with()` and `IconPacks::configWith()` add one that's
+    on. It costs a settle for each extension that's off, per list.
+  - **Provides has an icon** (the author asked whether it should): a
+    neutral `package` icon for every row, lining the rows up with the
+    other lists, since a status icon would claim a check there isn't.
+  - **Suggests: the reason sits beneath the name,** and there's no
+    version: `suggest` names none, and the version the site has (added
+    at the author's request, which came from a misreading) is gone from
+    the panel and from `suggests` in the API.
+- **Checked:** `composer check` (what conflicts with an extension, at
+  its version and through what it provides, and what replaces and
+  provides it; what turning on a plugin, a pack, and activating a theme
+  stops, with what needs it, and nothing for one that runs);
+  `npm run admin:build`. Not checked in a browser.
+- **Why:** the author asked for the other side, so an extension's
+  details say what can't run beside it, and turning one on never stops
+  others without saying so first.
 

@@ -121,6 +121,8 @@ final readonly class PluginsController
 				'enabled'      => $this->config->isEnabled($plugin),
 				'running'      => $running,
 				...$this->extensions->report($plugin),
+				...$this->extensions->opposite($plugin),
+				'stops'        => $this->extensions->stops($plugin),
 				'deletable'    => $folder !== null && ! $running && ! self::namedByConfig($this->config, $name),
 				'backup'       => ExtensionInstallController::backup($this->installer, ExtensionKind::Plugin, $folder === null ? null : $plugin->path, $name)
 			];

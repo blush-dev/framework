@@ -418,6 +418,48 @@ final class ExtensionStateTest extends TestCase
 		$this->assertTrue(self::settle($plugins, ['acme/offline'], [], Themes::DEFAULT)->runs('acme/offline'), 'Neither is on.');
 	}
 
+	public function testSaysWhatConflictsWithReplacesAndProvidesAnExtension(): void
+	{
+		$old     = new PluginManifest(name: 'acme/old-seo', label: 'Old-seo', namespace: 'old-seo', source: PluginSource::Local, path: '/site/extensions/acme/old-seo', version: '1.0.0', provide: ['acme/seo-api' => 'self.version']);
+		$plugins = [
+			$old,
+			self::conflicting('acme/new-seo', ['acme/old-seo' => '<2.0']),
+			self::conflicting('acme/later', ['acme/old-seo' => '>=2.0']),
+			self::conflicting('acme/strict', ['acme/seo-api' => '*']),
+			self::replacing('acme/seo-pro', ['acme/old-seo' => '*']),
+			self::providing('acme/seo-lite', ['acme/old-seo' => '1.0'])
+		];
+
+		$state = self::settle($plugins, [], [], Themes::DEFAULT);
+		$names = static fn (array $list): array => array_column($list, 'name');
+
+		$opposite = $state->opposite($old);
+
+		$this->assertSame(['acme/new-seo', 'acme/strict'], $names($opposite['conflictedBy']), 'At its version, or through what it provides.');
+		$this->assertSame(['acme/seo-pro'], $names($opposite['replacedBy']));
+		$this->assertSame(['acme/seo-lite'], $names($opposite['providedBy']));
+	}
+
+	public function testSaysWhatTurningOnOrActivatingStops(): void
+	{
+		$packs   = [self::pack('acme/brands')];
+		$theme   = self::theme('acme/nova');
+		$plugins = [
+			self::plugin('acme/old-seo'),
+			self::conflicting('acme/new-seo', ['acme/old-seo' => '*', 'acme/nova' => '*']),
+			self::plugin('acme/sitemap', ['acme/new-seo' => '*']),
+			self::replacing('acme/logos', ['acme/brands' => '*'])
+		];
+
+		$state = self::settle($plugins, ['acme/new-seo', 'acme/sitemap', 'acme/logos'], [$theme], Themes::DEFAULT, $packs);
+		$names = static fn (array $list): array => array_column($list, 'name');
+
+		$this->assertSame(['acme/new-seo', 'acme/sitemap'], $names($state->stops($plugins[0])), 'What declares a conflict with it, and what needs that.');
+		$this->assertSame([], $state->stops($plugins[1]), 'Nothing for one that runs.');
+		$this->assertSame(['acme/logos'], $names($state->stops($packs[0])), 'What replaces a pack stops when the pack is on.');
+		$this->assertSame(['acme/new-seo', 'acme/sitemap'], $names($state->stops($theme)), 'The themes it takes the place of aren\'t listed.');
+	}
+
 	public function testReportsWhatItSuggests(): void
 	{
 		$packs   = [self::pack('acme/brands')];
@@ -426,10 +468,10 @@ final class ExtensionStateTest extends TestCase
 		$state = self::settle($plugins, [], [self::theme('acme/nova')], Themes::DEFAULT, $packs, []);
 
 		$this->assertSame([
-			['name' => 'acme/brands', 'reason' => 'For logos.', 'extension' => ['name' => 'acme/brands', 'label' => 'Brands', 'kind' => 'icon-pack'], 'loaded' => null, 'version' => '1.0.0'],
-			['name' => 'ext-json', 'reason' => 'Faster.', 'extension' => null, 'loaded' => true, 'version' => phpversion('json')],
-			['name' => 'ext-blush-none', 'reason' => '', 'extension' => null, 'loaded' => false, 'version' => null],
-			['name' => 'guzzlehttp/guzzle', 'reason' => 'For feeds.', 'extension' => null, 'loaded' => null, 'version' => null]
+			['name' => 'acme/brands', 'reason' => 'For logos.', 'extension' => ['name' => 'acme/brands', 'label' => 'Brands', 'kind' => 'icon-pack'], 'loaded' => null],
+			['name' => 'ext-json', 'reason' => 'Faster.', 'extension' => null, 'loaded' => true],
+			['name' => 'ext-blush-none', 'reason' => '', 'extension' => null, 'loaded' => false],
+			['name' => 'guzzlehttp/guzzle', 'reason' => 'For feeds.', 'extension' => null, 'loaded' => null]
 		], $state->report($plugins[0])['suggests'], 'An installed extension is described even when it\'s off; anything else is only named.');
 	}
 

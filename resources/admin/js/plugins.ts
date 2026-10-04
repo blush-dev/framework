@@ -15,7 +15,7 @@ import { computed, ref } from 'vue';
 import { ApiError, request, type BrokenPluginSummary, type ExtensionDependent, type Plugins, type PluginSummary } from './api';
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
-import { list } from './extensions';
+import { list, stopsParagraph } from './extensions';
 import { toast } from './toast';
 import { folderName, folderPath } from './themes';
 
@@ -47,10 +47,16 @@ export function usePlugins() {
 	}
 
 	// Turns a plugin on or off, saying what happened, and which other
-	// extensions, of any kind, started or stopped with it. The toast offers an Undo only
+	// extensions, of any kind, started or stopped with it, asking first
+	// when turning it on would stop others (D-440). The toast offers an Undo only
 	// when nothing else started or stopped, since turning the one plugin
 	// back wouldn't put the others back; the reverse offers none.
 	async function toggle(plugin: PluginSummary, on: boolean, offer = true): Promise<void> {
+		// Turning one on that stops others asks first (D-440).
+		if (on && plugin.stops.length > 0 && !await confirmAction({ title: `Turn on ${plugin.label}?`, body: stopsParagraph(plugin.stops), confirm: `Turn on ${plugin.label}` })) {
+			return;
+		}
+
 		busy.value = plugin.name;
 
 		try {

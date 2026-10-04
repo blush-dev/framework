@@ -372,6 +372,14 @@ export interface ThemeSummary {
 	replaces: ExtensionRequirement[];
 	// What it provides (D-439), with the versions it provides (`self.version` resolved).
 	provides: { name: string; constraint: string }[];
+	// The other side (D-440): the extensions whose `conflict` hits it, that
+	// replace it, and that provide it.
+	conflictedBy: ExtensionDependent[];
+	replacedBy: ExtensionDependent[];
+	providedBy: ExtensionDependent[];
+	// What turning it on (a theme: activating it) would stop, with what
+	// stops because of that; empty for one that runs.
+	stops: ExtensionDependent[];
 	// Why it can't be activated (a theme it falls back to is missing, or a
 	// requirement in its chain isn't met), or `null`.
 	blocked: string | null;
@@ -501,8 +509,6 @@ export interface ExtensionSuggestion {
 	extension: ExtensionDependent | null;
 	// Whether a PHP extension (`ext-{name}`) is loaded; `null` for anything else.
 	loaded: boolean | null;
-	// The version the site has of an installed extension or a loaded PHP extension, or `null`.
-	version: string | null;
 }
 
 /**
@@ -540,6 +546,14 @@ export interface PluginSummary {
 	replaces: ExtensionRequirement[];
 	// What it provides (D-439), with the versions it provides (`self.version` resolved).
 	provides: { name: string; constraint: string }[];
+	// The other side (D-440): the extensions whose `conflict` hits it, that
+	// replace it, and that provide it.
+	conflictedBy: ExtensionDependent[];
+	replacedBy: ExtensionDependent[];
+	providedBy: ExtensionDependent[];
+	// What turning it on (a theme: activating it) would stop, with what
+	// stops because of that; empty for one that runs.
+	stops: ExtensionDependent[];
 	// Why it can't run, or `null`.
 	blocked: string | null;
 	// The extensions, of every kind, that require it.
@@ -628,6 +642,14 @@ export interface IconPackSummary {
 	replaces: ExtensionRequirement[];
 	// What it provides (D-439), with the versions it provides (`self.version` resolved).
 	provides: { name: string; constraint: string }[];
+	// The other side (D-440): the extensions whose `conflict` hits it, that
+	// replace it, and that provide it.
+	conflictedBy: ExtensionDependent[];
+	replacedBy: ExtensionDependent[];
+	providedBy: ExtensionDependent[];
+	// What turning it on (a theme: activating it) would stop, with what
+	// stops because of that; empty for one that runs.
+	stops: ExtensionDependent[];
 	// Why it can't load, or `null`.
 	blocked: string | null;
 	// The extensions, of every kind, that require it.

@@ -200,6 +200,9 @@ async function remove(): Promise<void> {
 						<dt>Namespace</dt>
 						<dd class="mono">{{ pack.namespace }}/</dd>
 						<ExtensionDependents :dependents="pack.requiredBy" />
+						<ExtensionDependents :dependents="pack.conflictedBy" label="Conflicts with it" />
+						<ExtensionDependents :dependents="pack.replacedBy" label="Replaced by" />
+						<ExtensionDependents :dependents="pack.providedBy" label="Also provided by" />
 						<dt>Icons</dt>
 						<dd>{{ pack.count }}</dd>
 						<dt>Installed by</dt>

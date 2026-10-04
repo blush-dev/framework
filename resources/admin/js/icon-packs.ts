@@ -14,7 +14,7 @@ import { ref } from 'vue';
 import { ApiError, request, type IconPacks, type IconPackSummary, type PackIcon } from './api';
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
-import { list } from './extensions';
+import { list, stopsParagraph } from './extensions';
 import { toast } from './toast';
 import { folderPath } from './themes';
 
@@ -33,12 +33,18 @@ export function useIconPacks() {
 		}
 	}
 
-	// Turns a pack on or off; resolves whether it was saved. The toast
+	// Turns a pack on or off, asking first when turning it on would stop
+	// others (D-440); resolves whether it was saved. The toast
 	// names the other extensions, of any kind, that started or stopped
 	// with it (D-431). With `undone`, it offers an Undo when nothing else
 	// started or stopped, which turns it back and then calls `undone` with
 	// the state it's back in, for the screen to show.
 	async function toggle(pack: IconPackSummary, on: boolean, undone?: (on: boolean) => void): Promise<boolean> {
+		// Turning one on that stops others asks first (D-440).
+		if (on && pack.stops.length > 0 && !await confirmAction({ title: `Turn on ${pack.label}?`, body: stopsParagraph(pack.stops), confirm: `Turn on ${pack.label}` })) {
+			return false;
+		}
+
 		busy.value = pack.name;
 
 		try {

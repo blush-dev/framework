@@ -402,13 +402,6 @@ Move each item to `decisions.md` once it's answered.
     the library; a `missing` name may be a library or an extension);
     and whether one install may
     bring others, and how the admin asks first.
-- **Package links from the other side** (left out of D-435, D-436, and
-  D-439; every Composer package link is built, D-431 to D-439): an
-  extension's details could say what conflicts with, replaces, or
-  provides *it* (as **Required by** does for `require`), and turning it
-  on could warn first that it will stop the extensions declaring a
-  conflict with it or replacing it, rather than only naming them in what
-  stopped.
 - **Requiring components to be registered** (D-266's direction): how
   a template-only component registers without PHP (a JSON file beside
   the template, with its text in the catalog?), and what happens to

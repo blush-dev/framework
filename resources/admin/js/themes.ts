@@ -15,6 +15,7 @@ import { ApiError, request, type Themes, type ThemeSummary } from './api';
 import { config } from './config';
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
+import { stopsParagraph } from './extensions';
 import { toast } from './toast';
 
 export function useThemes() {
@@ -75,7 +76,8 @@ export function useThemes() {
 	async function activate(theme: ThemeSummary): Promise<boolean> {
 		const sure = await confirmAction({
 			title: `Activate ${theme.label}?`,
-			body: `Visitors will see the ${theme.label} theme as soon as it's saved. Your content, addresses, and settings don't change, and you can switch back at any time.`,
+			// With what activating it stops, if anything (D-440).
+			body: [`Visitors will see the ${theme.label} theme as soon as it's saved. Your content, addresses, and settings don't change, and you can switch back at any time.`, stopsParagraph(theme.stops)].filter((paragraph) => paragraph !== ''),
 			confirm: `Activate ${theme.label}`
 		});
 

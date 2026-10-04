@@ -60,6 +60,17 @@ final readonly class PluginConfig implements Config
 	}
 
 	/**
+	 * A copy with a plugin turned on as well (D-440): added to the
+	 * admin's saved list, or, without one, to config's.
+	 */
+	public function with(string $name): self
+	{
+		return $this->saved !== null
+			? new self($this->enabled, [...$this->saved, $name])
+			: new self([...$this->enabled, $name]);
+	}
+
+	/**
 	 * The plugins named as on by the list in use: the admin's, or the
 	 * config file's.
 	 *

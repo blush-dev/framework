@@ -238,6 +238,9 @@ async function remove(): Promise<void> {
 								<RouterLink v-else :to="themeRoute(theme.parent ?? 'blush/default')">{{ label(theme.parent ?? 'blush/default') }}</RouterLink>
 							</dd>
 							<ExtensionDependents :dependents="theme.requiredBy" />
+							<ExtensionDependents :dependents="theme.conflictedBy" label="Conflicts with it" />
+							<ExtensionDependents :dependents="theme.replacedBy" label="Replaced by" />
+							<ExtensionDependents :dependents="theme.providedBy" label="Also provided by" />
 							<dt>Used as fallback by</dt>
 							<dd>
 								<template v-if="theme.source === 'framework'">Every theme</template>

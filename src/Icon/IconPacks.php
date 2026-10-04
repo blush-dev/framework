@@ -93,6 +93,17 @@ final readonly class IconPacks
 	}
 
 	/**
+	 * The config with a pack turned on as well (D-440): added to the
+	 * admin's saved list, or, without one, to config's.
+	 */
+	public function configWith(string $name): IconConfig
+	{
+		return $this->config->saved !== null
+			? new IconConfig($this->config->enabled, [...$this->config->saved, $name])
+			: new IconConfig([...$this->config->enabled, $name]);
+	}
+
+	/**
 	 * Whether a pack is on: installed, and named by the admin's saved
 	 * list, or, without one, from Composer or named by config.
 	 */

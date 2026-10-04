@@ -50,3 +50,18 @@ export function list(names: string[]): string {
 
 	return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1] ?? ''}`;
 }
+
+// What turning an extension on stops (D-440), as a confirmation's
+// paragraph: the extensions that conflict with it or replace it can't run
+// alongside it, and neither can what needs one of them. Empty when nothing
+// stops.
+export function stopsParagraph(stops: ExtensionDependent[]): string {
+	if (stops.length === 0) {
+		return '';
+	}
+
+	const names = list(stops.map((other) => `**${other.label}**`));
+
+	return `It also stops ${names}. An extension that conflicts with it or replaces it can't run alongside it, and neither can one that needs it.`;
+}
+

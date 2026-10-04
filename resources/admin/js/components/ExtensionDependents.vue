@@ -2,7 +2,9 @@
 /**
  * The extensions, of every kind, that require one (D-431), as a row of
  * its details' facts, **Required by**, each linked to its details. Not
- * drawn when none does.
+ * drawn when none does. With `label`, the same row for the other side of
+ * its package links (D-440): what conflicts with it, replaces it, or
+ * provides it.
  *
  * Its row is a fragment, so the details' scoped `dt` and `dd` rules
  * don't reach it; it styles its own to match.
@@ -11,12 +13,12 @@
 import type { ExtensionDependent } from '../api';
 import { extensionRoute } from '../extensions';
 
-defineProps<{ dependents: ExtensionDependent[] }>();
+withDefaults(defineProps<{ dependents: ExtensionDependent[]; label?: string }>(), { label: 'Required by' });
 </script>
 
 <template>
 	<template v-if="dependents.length">
-		<dt class="extension-dependents__label">Required by</dt>
+		<dt class="extension-dependents__label">{{ label }}</dt>
 		<dd class="extension-dependents">
 			<template v-for="(other, index) in dependents" :key="other.name">
 				<RouterLink :to="extensionRoute(other.kind, other.name)">{{ other.label }}</RouterLink><template v-if="index < dependents.length - 1">, </template>

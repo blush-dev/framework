@@ -160,14 +160,16 @@ final readonly class ThemesController
 	/**
 	 * A theme's requirements, checked with it active (D-431), and why it
 	 * can't be activated: a theme it falls back to is missing or broken,
-	 * its parents loop, or a requirement in its chain isn't met.
+	 * its parents loop, or a requirement in its chain isn't met; with the
+	 * other side of its package links and what activating it stops,
+	 * judged against what runs now (D-440).
 	 *
-	 * @return array{requirements: list<array{name: string, constraint: string, kind: string, met: bool, note: string, label: string}>, blocked: ?string, requiredBy: list<array{name: string, label: string, kind: string}>}
+	 * @return array<string, mixed>
 	 */
 	private function requirements(ThemeManifest $theme, string $active): array
 	{
 		$state  = $theme->name === $active ? $this->extensions : $this->extensions->with(theme: $theme->name);
-		$report = $state->report($theme);
+		$report = [...$state->report($theme), ...$this->extensions->opposite($theme), 'stops' => $this->extensions->stops($theme)];
 
 		try {
 			$this->themes->chain($theme->name);

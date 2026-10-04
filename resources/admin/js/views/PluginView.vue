@@ -119,6 +119,9 @@ async function remove(): Promise<void> {
 							<dt>Namespace</dt>
 							<dd class="mono">{{ plugin.namespace }}</dd>
 							<ExtensionDependents :dependents="needs" />
+							<ExtensionDependents :dependents="plugin.conflictedBy" label="Conflicts with it" />
+							<ExtensionDependents :dependents="plugin.replacedBy" label="Replaced by" />
+							<ExtensionDependents :dependents="plugin.providedBy" label="Also provided by" />
 						</dl>
 					</div>
 				</section>
