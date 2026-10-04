@@ -15,10 +15,8 @@ namespace Blush\Extension;
 
 /**
  * The kinds of extension a site installs (D-378). Each kind has its own
- * folder under `user/`, its own manifest file, and its own Composer
- * package type, and says whether it runs code: a kind that doesn't is
- * data and assets only, which is what will let the admin install it
- * (planned; nothing installs from the admin yet).
+ * manifest file and its own Composer package type, either of which says
+ * a folder is one (D-432), and says whether it runs code.
  *
  * Admin themes are planned as a fourth kind, on the same pieces.
  */
@@ -68,6 +66,15 @@ enum ExtensionKind: string
 			self::Theme    => 'blush-theme',
 			self::IconPack => 'blush-icons'
 		};
+	}
+
+	/**
+	 * Returns the kind whose Composer package type this is, or `null`
+	 * when it isn't one of Blush's.
+	 */
+	public static function fromPackageType(mixed $type): ?self
+	{
+		return array_find(self::cases(), static fn (self $kind): bool => $kind->packageType() === $type);
 	}
 
 	/**

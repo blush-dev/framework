@@ -26,7 +26,10 @@ A theme is known by its **name**, `vendor/name` (`acme/notebook`), which
 its `theme.json` gives. Themes live in `extensions/{vendor}/{name}/`, a
 folder at their name (`extensions/acme/notebook/`), and each can be its
 own git repository. They can also be installed with Composer (package
-type `blush-theme`), where the theme's name is the package's. If two
+type `blush-theme`), where the theme's name is the package's. A theme
+can do without `theme.json` when its `composer.json` has the type
+`blush-theme`: its keys go under `extra.blush` there (see
+[Extensions](extending.md#extensions)). If two
 share a name, the one in `extensions/` wins. The framework's default theme is `blush/default`. The active theme
 is set in `config/theme.php`, which `theme:activate` writes for you:
 

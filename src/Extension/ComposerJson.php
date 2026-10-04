@@ -17,11 +17,12 @@ use JsonException;
 
 /**
  * Reads the `composer.json` in an extension's folder leniently, for what
- * a manifest may leave to it: the keys a manifest shares with Composer's
- * schema (D-418; `authors` since D-384, `license` since D-385, and
- * `homepage`, `support`, and `funding` since D-428). It isn't
- * the manifest, so a missing or unreadable file is nothing, and so is a
- * key of the wrong shape.
+ * a manifest may leave to it: Blush's own keys, under `extra.blush`
+ * (D-432), and the keys a manifest shares with Composer's schema (D-418;
+ * `authors` since D-384, `license` since D-385, and `homepage`,
+ * `support`, and `funding` since D-428). Its `type` may say the folder's
+ * kind (D-432). A missing or unreadable file is nothing, and so is a key
+ * of the wrong shape.
  */
 final readonly class ComposerJson
 {
@@ -34,13 +35,16 @@ final readonly class ComposerJson
 	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'homepage', 'support', 'funding'];
 
 	/**
-	 * Fills in the shared keys a manifest leaves out from the
-	 * `composer.json` in its folder, but for the ones to skip. Blush's own
-	 * keys never come from it.
+	 * Fills in what a manifest leaves out from the `composer.json` in its
+	 * folder: first the keys in its `extra.blush`, then the shared keys,
+	 * but for the ones to skip (D-432). So a manifest's key wins over
+	 * `extra.blush`'s, which wins over `composer.json`'s own, and a folder
+	 * with no manifest file at all is described by its `composer.json`.
 	 *
 	 * A Composer package's theme or icon pack skips `require` (D-431):
 	 * Composer has met its `composer.json`'s, whose packages aren't
-	 * extensions, so only its manifest's are Blush's to check.
+	 * extensions, so only its manifest's (or `extra.blush`'s) are Blush's
+	 * to check.
 	 *
 	 * @param  array<string, mixed> $data
 	 * @param  list<string>         $skip
@@ -48,15 +52,15 @@ final readonly class ComposerJson
 	 */
 	public static function fill(array $data, string $folder, array $skip = []): array
 	{
-		$shared = array_diff(self::SHARED, $skip);
-
-		if (array_diff($shared, array_keys($data)) === []) {
-			return $data;
-		}
-
 		$composer = self::read($folder);
 
-		foreach ($shared as $key) {
+		foreach (self::blush($composer) as $key => $value) {
+			if (! array_key_exists($key, $data)) {
+				$data[$key] = $value;
+			}
+		}
+
+		foreach (array_diff(self::SHARED, $skip) as $key) {
 			if (array_key_exists($key, $data) || ! array_key_exists($key, $composer)) {
 				continue;
 			}
@@ -75,6 +79,34 @@ final readonly class ComposerJson
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Returns the kind the `composer.json` in a folder says it is, by its
+	 * `type` (`blush-plugin`, `blush-theme`, `blush-icons`), or `null`.
+	 */
+	public static function kind(string $folder): ?ExtensionKind
+	{
+		return ExtensionKind::fromPackageType(self::read($folder)['type'] ?? null);
+	}
+
+	/**
+	 * Returns the map under a decoded file's `extra.blush`, or an empty
+	 * array when there's none.
+	 *
+	 * @param  array<array-key, mixed> $composer
+	 * @return array<string, mixed>
+	 */
+	public static function blush(array $composer): array
+	{
+		$extra = is_array($composer['extra'] ?? null) ? $composer['extra'] : [];
+		$blush = $extra['blush'] ?? null;
+
+		if (! is_array($blush) || array_is_list($blush)) {
+			return [];
+		}
+
+		return array_filter($blush, is_string(...), ARRAY_FILTER_USE_KEY);
 	}
 
 	/**

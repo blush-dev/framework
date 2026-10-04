@@ -1065,10 +1065,13 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   kind (`plugin.json`, `theme.json`, `icons.json`, or `.yaml`/`.yml`;
   `ManifestFile`, JSON wins), one folder for every kind,
   `extensions/{vendor}/{name}` (D-418; `LocalExtensions` finds a kind's
-  folders, `LocalExtension` reads one, and a folder with two kinds'
-  manifests is broken for each), a Composer package type per kind
+  folders, `LocalExtension` reads one, and a folder claiming two kinds
+  is broken for each), a Composer package type per kind
   (`blush-plugin`, `blush-theme`, `blush-icons`), and whether it runs
-  code (plugins and themes do; icon packs don't).
+  code (plugins and themes do; icon packs don't). A folder's kind is its
+  manifest file or its `composer.json`'s `type`, either or both, which
+  must agree (D-432, `LocalExtensions::claims()`); a manifest file is
+  optional for every kind and source, Composer's too.
 - **Identity:** every manifest has `name`, the key (`vendor/name`,
   Composer's rule, `ExtensionName`; a Composer package's own name), and
   `label`, the readable title (optional: without one, or with a blank
@@ -1082,8 +1085,10 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   `composer.json` (`name`, `description`, `version`, `license`,
   `authors`, `autoload`, `require`) take Composer's names and shapes, and
   a manifest that leaves one out takes it from the `composer.json`
-  beside it (`ComposerJson::fill()`); Blush's own keys never come from
-  it. `autoload` (`Extension\Autoload`) is `psr-4` plus `files`, every
+  beside it (`ComposerJson::fill()`); Blush's own keys come only from
+  its `extra.blush` (D-432). Each key is read from the manifest file,
+  then `extra.blush`, then `composer.json`'s top level (shared keys
+  only); `ManifestFile::load()` reads a folder that way. `autoload` (`Extension\Autoload`) is `psr-4` plus `files`, every
   path inside the extension.
 - **Namespace:** every manifest declares one (`ExtensionNamespace`):
   what its components, icons, and translation domain go by. Reserved:
@@ -1101,7 +1106,9 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   `lang/` is its namespace's domain).
   - Composer plugins keep the rest of their manifest in `composer.json`
     `extra.blush` (`label`, `namespace`, `provider`, `require`, all
-    optional, so `extra.blush` may be left out).
+    optional, so `extra.blush` may be left out), read from Composer's
+    `installed.json`. A local plugin may do the same, with no
+    `plugin.json` (D-432).
   - Local plugins' `plugin.json` declares name, label, namespace,
     version, description, `autoload`, the provider, `require`, and
     optionally `authors` and `license` (any Composer key it leaves out
@@ -1184,7 +1191,8 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   5,000 files and 100 MB unpacked), unwraps a zip whose files sit in one
   folder, and writes entries itself. The archive is unpacked into a
   hidden `extensions/.install-…` (discovery skips hidden folders), read
-  as discovery reads a folder, and checked: its kind, manifest,
+  as discovery reads a folder, and checked: its kind (one, by manifest
+  file or `composer.json` `type`, D-432), manifest,
   its name held by another kind, namespace (reserved, or claimed across
   kinds), a Composer install of its name, `composer.json` requirements
   beyond the platform, and PHP syntax for kinds that run code

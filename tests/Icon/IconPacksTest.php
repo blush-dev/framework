@@ -211,4 +211,19 @@ final class IconPacksTest extends TestCase
 		$this->assertSame(['blush-dev/framework' => '^9.0'], $packs->find('acme/weather')?->require, 'A folder pack takes its composer.json\'s.');
 		$this->assertArrayNotHasKey('acme/weather', $packs->enabled(), 'It\'s on, but its requirements aren\'t met (D-431).');
 	}
+
+	public function testAComposerPackNeedsNoManifestFile(): void
+	{
+		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode(['packages' => [
+			['name' => 'acme/plain', 'type' => 'blush-icons', 'install-path' => '../acme/plain']
+		]]));
+		$this->writeTemporaryFile('vendor/acme/plain/composer.json', '{"name": "acme/plain", "type": "blush-icons", "extra": {"blush": {"label": "Plain", "folder": "svg"}}}');
+		$this->writeTemporaryFile('vendor/acme/plain/svg/dot.svg', self::SVG);
+
+		$pack = new IconPackDiscovery(Paths::fromRoot($this->temporaryDirectory()))->discover()->find('acme/plain');
+
+		$this->assertNotNull($pack);
+		$this->assertSame('Plain', $pack->label, 'Its type says it\'s a pack, and extra.blush the rest (D-432).');
+		$this->assertStringEndsWith('vendor/acme/plain/svg', $pack->iconsPath());
+	}
 }

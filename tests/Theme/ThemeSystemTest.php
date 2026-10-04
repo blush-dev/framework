@@ -119,6 +119,18 @@ final class ThemeSystemTest extends TestCase
 		$this->assertNull($themes->find('acme/broken'));
 	}
 
+	public function testAComposerThemeNeedsNoManifestFile(): void
+	{
+		$this->writeTemporaryFile('vendor/composer/installed.json', json_encode(['packages' => [
+			['name' => 'acme/plain', 'type' => 'blush-theme', 'install-path' => '../acme/plain']
+		]], JSON_THROW_ON_ERROR));
+		$this->writeTemporaryFile('vendor/acme/plain/composer.json', '{"name": "acme/plain", "type": "blush-theme", "extra": {"blush": {"label": "Plain", "namespace": "plain"}}}');
+
+		$theme = new ThemeDiscovery(Paths::fromRoot($this->temporaryDirectory()))->discover()->find('acme/plain');
+
+		$this->assertSame(['Plain', 'plain', ThemeSource::Composer], [$theme?->label, $theme?->namespace, $theme?->source], 'Its type says it\'s a theme, and extra.blush the rest (D-432).');
+	}
+
 	public function testThemesCompileToACacheUsedOutsideDevelopment(): void
 	{
 		$this->composerTheme();

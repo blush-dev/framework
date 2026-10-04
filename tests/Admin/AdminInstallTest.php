@@ -192,7 +192,8 @@ final class AdminInstallTest extends TestCase
 		$this->writeTemporaryFile('extensions/other/plate/theme.json', '{"name": "other/plate", "label": "Plate", "namespace": "plate"}');
 
 		$cases = [
-			'readme.zip has no plugin.json in it, so it isn\'t a plugin.'                                            => ['readme.zip', $this->zip(['README.md' => 'Hi.'])],
+			'readme.zip has no plugin.json in it, and no composer.json of type "blush-plugin", so it isn\'t a plugin.' => ['readme.zip', $this->zip(['README.md' => 'Hi.', 'composer.json' => '{"type": "library"}'])],
+			'odd.zip holds plugin.json and a composer.json of type "blush-theme", but an extension is one kind.'   => ['odd.zip', $this->zip(['plugin.json' => '{}', 'composer.json' => '{"name": "acme/odd", "type": "blush-theme"}'])],
 			'hello.png isn\'t a .zip file.'                                                                          => ['hello.png', 'PNG'],
 			'fake.zip isn\'t a .zip file Blush can read.'                                                           => ['fake.zip', 'not a zip'],
 			'evil.zip has a file that would land outside its folder (../evil.php), so it wasn\'t unpacked.'          => ['evil.zip', $this->zip(['plugin.json' => '{}', '../evil.php' => '<?php'])],
@@ -212,6 +213,23 @@ final class AdminInstallTest extends TestCase
 		$this->assertSame(['fixture', 'other'], array_map('basename', glob($this->temporaryDirectory() . '/extensions/*') ?: []), 'Nothing was written.');
 		$this->assertSame([], glob($this->temporaryDirectory() . '/extensions/.*-*') ?: []);
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/evil.php');
+	}
+
+	public function testInstallsAPluginWhoseManifestIsItsComposerJson(): void
+	{
+		$this->site();
+
+		$response = $this->upload('/plugins', 'hello.zip', $this->zip([
+			'composer.json'    => (string) json_encode(['name' => 'acme/hello', 'type' => 'blush-plugin', 'version' => '1.0.0', 'extra' => ['blush' => ['label' => 'Hello', 'namespace' => 'hello']]]),
+			'src/Provider.php' => "<?php\n\ndeclare(strict_types=1);\n"
+		]));
+
+		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['name' => 'acme/hello', 'label' => 'Hello', 'version' => '1.0.0', 'folder' => 'extensions/acme/hello'], self::json($response)['installed'] ?? null, 'Its type says it\'s a plugin (D-432).');
+
+		$theme = $this->upload('/plugins', 'nova.zip', $this->zip(['composer.json' => '{"name": "acme/nova", "type": "blush-theme"}']));
+
+		$this->assertSame(['error' => 'nova.zip is a theme, not a plugin.', 'kind' => 'theme'], self::json($theme));
 	}
 
 	public function testInstallsThemesAndIconPacks(): void

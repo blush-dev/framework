@@ -15,7 +15,6 @@ namespace Blush\Icon;
 
 use Throwable;
 use Blush\Core\Paths;
-use Blush\Extension\ComposerJson;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\LocalExtension;
@@ -25,11 +24,13 @@ use Blush\Support\ComposerPackages;
 
 /**
  * Finds every installed icon pack (D-378): Composer packages of type
- * `blush-icons` (the manifest is the `icons.json` in the package, and its
- * name is the package's) and folders in `extensions/{vendor}/{name}`
- * holding an `icons.json` (or `.yaml`), whose name must be the folder's
- * (D-418). What a manifest leaves out of the keys it shares with
- * Composer it takes from its `composer.json`. With the same name, a
+ * `blush-icons` (the manifest is the `icons.json` in the package, if it
+ * has one, and its name is the package's) and folders in
+ * `extensions/{vendor}/{name}` holding an `icons.json` (or `.yaml`) or a
+ * `composer.json` of type `blush-icons`, whose name must be the folder's
+ * (D-418, D-432). What a manifest leaves out it takes from its
+ * `composer.json`: Blush's keys from `extra.blush`, and the keys it
+ * shares with Composer. With the same name, a
  * folder pack replaces a Composer one. A broken pack is recorded, by
  * where it was found, instead of failing discovery, since icons are never
  * worth taking the site down for.
@@ -69,14 +70,8 @@ final readonly class IconPackDiscovery
 					$path = $at->path;
 					$data = $at->read();
 				} else {
-					$path = $at;
-					$file = ManifestFile::find($path, ExtensionKind::IconPack)[0] ?? null;
-
-					if ($file === null) {
-						continue;
-					}
-
-					$data            = ComposerJson::fill(ManifestFile::read($file), $path, ['require']);
+					$path            = $at;
+					$data            = ManifestFile::load($path, ExtensionKind::IconPack, ['require']);
 					$data['name'] ??= $where;
 
 					if ($data['name'] !== $where) {

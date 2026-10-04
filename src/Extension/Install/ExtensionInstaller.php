@@ -52,7 +52,8 @@ use Blush\Theme\ThemeSource;
  * `composer.json`); the zip's own folder name doesn't matter. It's
  * refused, and the hidden folder removed, when:
  *
- * - it holds another kind of extension, or none;
+ * - it holds another kind of extension, more than one, or none (its
+ *   kind is its manifest file, or its `composer.json`'s `type`; D-432);
  * - an extension of another kind has its name;
  * - its manifest doesn't pass, or its namespace is reserved or another
  *   installed extension's;
@@ -133,13 +134,13 @@ final readonly class ExtensionInstaller
 		$staging = sprintf('%s/.install-%s', $folder, bin2hex(random_bytes(6)));
 
 		try {
-			self::expect($archive, $kind, $name);
-
 			if (! @mkdir($staging, 0775)) {
 				throw new InstallException(sprintf('%s couldn\'t be unpacked into %s.', $name, $this->paths->relative($folder)));
 			}
 
 			$archive->extractTo($staging);
+
+			self::expect($staging, $kind, $name);
 
 			$incoming = $this->read($kind, $staging, $name);
 			$existing = $this->check($incoming, $name);
@@ -264,28 +265,31 @@ final readonly class ExtensionInstaller
 	}
 
 	/**
-	 * Checks that the archive holds the kind of extension expected.
+	 * Checks that the unpacked folder is the kind of extension expected,
+	 * by its manifest file or its `composer.json`'s `type` (D-432), and
+	 * only that kind.
 	 *
 	 * @throws InstallException
 	 */
-	private static function expect(ExtensionArchive $archive, ExtensionKind $kind, string $name): void
+	private static function expect(string $folder, ExtensionKind $kind, string $name): void
 	{
-		$holds = static fn (ExtensionKind $kind): bool => array_any(
-			ManifestFile::FORMATS,
-			static fn (string $format): bool => $archive->has("{$kind->manifest()}.{$format}")
-		);
+		$claims = LocalExtensions::claims($folder);
 
-		if ($holds($kind)) {
+		if (count($claims) > 1) {
+			throw new InstallException(sprintf('%s holds %s, but an extension is one kind.', $name, LocalExtensions::describe($claims)));
+		}
+
+		if (array_key_exists($kind->value, $claims)) {
 			return;
 		}
 
-		$other = array_find(ExtensionKind::cases(), $holds);
+		if ($claims !== []) {
+			$other = ExtensionKind::from((string) array_key_first($claims));
 
-		if ($other !== null) {
 			throw new InstallException(sprintf('%s is %s, not %s.', $name, self::a($other), self::a($kind)), $other);
 		}
 
-		throw new InstallException(sprintf('%s has no %s.json in it, so it isn\'t %s.', $name, $kind->manifest(), self::a($kind)));
+		throw new InstallException(sprintf('%s has no %s.json in it, and no composer.json of type "%s", so it isn\'t %s.', $name, $kind->manifest(), $kind->packageType(), self::a($kind)));
 	}
 
 	/**
@@ -313,7 +317,7 @@ final readonly class ExtensionInstaller
 	 */
 	private function plugin(string $folder): ExtensionPackage
 	{
-		$plugin = LocalPluginFinder::manifest(ManifestFile::find($folder, ExtensionKind::Plugin)[0] ?? '');
+		$plugin = LocalPluginFinder::manifest($folder);
 
 		return new ExtensionPackage(ExtensionKind::Plugin, $plugin->name, $plugin->label, $plugin->namespace, $plugin->version, $folder, true);
 	}
@@ -323,7 +327,7 @@ final readonly class ExtensionInstaller
 	 */
 	private function theme(string $folder): ExtensionPackage
 	{
-		$theme = ThemeManifest::fromArray($folder, ComposerJson::fill(ThemeDiscovery::read($folder) ?? [], $folder));
+		$theme = ThemeManifest::fromArray($folder, ManifestFile::load($folder, ExtensionKind::Theme));
 
 		if ($theme->name === Themes::DEFAULT) {
 			throw new ThemeException(sprintf('"%s" is the framework default theme\'s name.', Themes::DEFAULT));
@@ -337,7 +341,7 @@ final readonly class ExtensionInstaller
 	 */
 	private function pack(string $folder): ExtensionPackage
 	{
-		$pack = IconPack::fromArray($folder, ComposerJson::fill(ManifestFile::read(ManifestFile::find($folder, ExtensionKind::IconPack)[0] ?? ''), $folder));
+		$pack = IconPack::fromArray($folder, ManifestFile::load($folder, ExtensionKind::IconPack));
 
 		return new ExtensionPackage(ExtensionKind::IconPack, $pack->name, $pack->label, $pack->namespace, $pack->version, $folder, true);
 	}

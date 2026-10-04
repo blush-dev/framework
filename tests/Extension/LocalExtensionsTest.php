@@ -90,9 +90,71 @@ final class LocalExtensionsTest extends TestCase
 		$themes  = new ThemeDiscovery($this->paths())->discover();
 
 		$this->assertSame([], $plugins->manifests);
-		$this->assertSame('It holds plugin.json and theme.json, but an extension is one kind, with one manifest.', $plugins->broken[0]->reason ?? null);
+		$this->assertSame('It holds plugin.json and theme.json, but an extension is one kind.', $plugins->broken[0]->reason ?? null);
 		$this->assertFalse($themes->has('acme/both'));
 		$this->assertArrayHasKey('extensions/acme/both', $themes->invalid(), 'Broken for each kind it claims.');
+	}
+
+	public function testAManifestAndComposerTypeMustAgree(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/odd/plugin.json', '{"provider": "A\\\\B"}');
+		$this->writeTemporaryFile('extensions/acme/odd/composer.json', '{"name": "acme/odd", "type": "blush-theme"}');
+		$this->writeTemporaryFile('extensions/acme/even/plugin.json', '{}');
+		$this->writeTemporaryFile('extensions/acme/even/composer.json', '{"name": "acme/even", "type": "blush-plugin"}');
+
+		$plugins = PluginDiscovery::forPaths($this->paths())->discover();
+		$themes  = new ThemeDiscovery($this->paths())->discover();
+
+		$this->assertSame(['acme/even'], array_map(static fn ($plugin): string => $plugin->name, $plugins->manifests), 'A manifest and a type that agree are one claim.');
+		$this->assertSame('It holds plugin.json and a composer.json of type "blush-theme", but an extension is one kind.', $plugins->broken[0]->reason ?? null);
+		$this->assertArrayHasKey('extensions/acme/odd', $themes->invalid());
+	}
+
+	public function testAComposerJsonOfABlushTypeIsAManifest(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/hello/composer.json', (string) json_encode([
+			'name'     => 'acme/hello',
+			'type'     => 'blush-plugin',
+			'version'  => '1.2.0',
+			'autoload' => ['files' => ['helpers.php']],
+			'extra'    => ['blush' => ['label' => 'Hello', 'provider' => 'Acme\\Hello\\Provider']]
+		]));
+		$this->writeTemporaryFile('extensions/acme/nova/composer.json', '{"name": "acme/nova", "type": "blush-theme", "extra": {"blush": {"label": "Nova", "parent": "blush/default"}}}');
+		$this->writeTemporaryFile('extensions/acme/arrows/composer.json', '{"name": "acme/arrows", "type": "blush-icons"}');
+		$this->writeTemporaryFile('extensions/acme/library/composer.json', '{"name": "acme/library", "type": "library"}');
+
+		$plugin = PluginDiscovery::forPaths($this->paths())->discover()->manifests[0] ?? null;
+		$themes = new ThemeDiscovery($this->paths())->discover();
+		$packs  = new IconPackDiscovery($this->paths())->discover();
+
+		$this->assertNotNull($plugin);
+		$this->assertSame(['acme/hello', 'Hello', '1.2.0', 'Acme\\Hello\\Provider', ['helpers.php']], [$plugin->name, $plugin->label, $plugin->version, $plugin->provider, $plugin->autoload->files]);
+		$nova = $themes->find('acme/nova');
+
+		$this->assertNotNull($nova);
+		$this->assertSame(['Nova', 'blush/default'], [$nova->label, $nova->parent]);
+		$this->assertSame('acme/arrows', $packs->find('acme/arrows')?->label, 'Nothing but its type and name.');
+		$this->assertNull(LocalExtensions::forPaths($this->paths())->of(ExtensionKind::Plugin)[0]->file, 'composer.json is its manifest.');
+		$this->assertSame(['acme/hello'], array_map(static fn (LocalExtension $extension): string => $extension->name, LocalExtensions::forPaths($this->paths())->of(ExtensionKind::Plugin)), 'Another type isn\'t an extension.');
+	}
+
+	public function testAManifestWinsOverExtraBlushOverComposersOwn(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/hello/plugin.json', '{"label": "From the manifest"}');
+		$this->writeTemporaryFile('extensions/acme/hello/composer.json', (string) json_encode([
+			'name'        => 'acme/hello',
+			'description' => 'From composer.json.',
+			'require'     => ['php' => '>=8.5'],
+			'extra'       => ['blush' => ['label' => 'From extra.blush', 'namespace' => 'greetings', 'description' => 'From extra.blush.', 'require' => ['acme/other' => '*']]]
+		]));
+
+		$plugin = PluginDiscovery::forPaths($this->paths())->discover()->manifests[0] ?? null;
+
+		$this->assertNotNull($plugin);
+		$this->assertSame('From the manifest', $plugin->label);
+		$this->assertSame('greetings', $plugin->namespace);
+		$this->assertSame('From extra.blush.', $plugin->description);
+		$this->assertSame(['acme/other' => '*'], $plugin->require, 'extra.blush\'s require over composer.json\'s own.');
 	}
 
 	public function testComposerJsonFillsTheKeysItShares(): void

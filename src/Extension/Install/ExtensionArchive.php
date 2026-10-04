@@ -80,15 +80,6 @@ final class ExtensionArchive
 	}
 
 	/**
-	 * Whether the extension's folder has a file, by its path in the
-	 * folder.
-	 */
-	public function has(string $path): bool
-	{
-		return in_array($path, $this->entries, true);
-	}
-
-	/**
 	 * Unpacks the extension's files into a folder, which must exist.
 	 *
 	 * @throws InstallException When a file can't be written.

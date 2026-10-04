@@ -16,7 +16,6 @@ namespace Blush\Theme;
 use Throwable;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
-use Blush\Extension\ComposerJson;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\LocalExtension;
@@ -33,13 +32,15 @@ use Blush\Support\ComposerPackages;
  * so it reads manifests itself: `theme.json`, else `theme.yaml` or
  * `theme.yml` (D-032).
  *
- * What a manifest leaves out of the keys it shares with Composer (its
- * `authors`, D-384, and the rest, D-418) it takes from the
- * `composer.json` in its folder, so a package says them once.
+ * A manifest file is optional when the `composer.json` in the folder has
+ * the type `blush-theme` (D-432). What a manifest leaves out it takes
+ * from that `composer.json`: Blush's keys from its `extra.blush`, and the
+ * keys it shares with Composer (its `authors`, D-384, and the rest,
+ * D-418), so a package says them once.
  *
- * A Composer theme's manifest is the `theme.json` in its package, and
- * its name is the package's: a manifest without a `name` takes it, and
- * one with another name is broken. With the same name, a folder theme
+ * A Composer theme's manifest is the `theme.json` in its package, if it
+ * has one, and its name is the package's: a manifest without a `name`
+ * takes it, and one with another name is broken. With the same name, a folder theme
  * replaces a Composer theme; nothing replaces `blush/default`. A theme
  * whose manifest is broken is recorded as invalid, by where it was found
  * (`extensions/{vendor}/{name}`, or its package name), instead of
@@ -86,13 +87,7 @@ final readonly class ThemeDiscovery
 					$data = $at->read();
 				} else {
 					$path = $at;
-					$data = self::read($path);
-
-					if ($data === null) {
-						continue;
-					}
-
-					$data = ComposerJson::fill($data, $path, $source === ThemeSource::Composer ? ['require'] : []);
+					$data = ManifestFile::load($path, ExtensionKind::Theme, $source === ThemeSource::Composer ? ['require'] : []);
 				}
 
 				if ($source === ThemeSource::Composer) {
@@ -163,26 +158,5 @@ final readonly class ThemeDiscovery
 	public static function manifestFiles(string $path): array
 	{
 		return ManifestFile::find($path, ExtensionKind::Theme);
-	}
-
-	/**
-	 * Reads a theme folder's manifest, or returns `null` when it has none.
-	 *
-	 * @return ?array<string, mixed>
-	 * @throws ThemeException When the manifest can't be parsed.
-	 */
-	public static function read(string $path): ?array
-	{
-		$file = self::manifestFiles($path)[0] ?? null;
-
-		if ($file === null) {
-			return null;
-		}
-
-		try {
-			return ManifestFile::read($file);
-		} catch (Throwable $error) {
-			throw new ThemeException($error->getMessage(), 0, $error);
-		}
 	}
 }

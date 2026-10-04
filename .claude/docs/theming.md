@@ -128,6 +128,9 @@ exist (D-032).
 - Themes may also be Composer packages of type `blush-theme`, named by
   the package (a manifest without `name` takes it; another name is
   broken); a local theme with the same name wins (D-115, D-378).
+- `theme.json` is optional when the folder's `composer.json` has the
+  type `blush-theme`, local or Composer: Blush's keys then come from its
+  `extra.blush`, and a `theme.json` beside it wins key by key (D-432).
 
 ## Resolution chain
 

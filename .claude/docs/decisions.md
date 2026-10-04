@@ -12541,3 +12541,53 @@ decision, add a new entry that supersedes it and mark the old one
   checked in a browser.
 - **Why:** the author wants every extension enforced the same way, so
   `require` means the same thing in any manifest.
+
+### D-432: A `composer.json` of a Blush type is a manifest
+- **Date:** 2026-10-04
+- **Status:** Amends D-418 ("the kind is the manifest present", "a
+  folder with no manifest is skipped", and "Blush's own keys never come
+  from `composer.json`") and D-378 (a Composer theme or icon pack needed
+  its `theme.json` or `icons.json`).
+- **Decision:** The author asked for extensions without a manifest file
+  at all, with Composer's `type` as the check, so Blush supports
+  Composer's model fully. For every kind and source:
+  - **A folder's kind is its manifest file or its `composer.json`'s
+    `type`** (`blush-plugin`, `blush-theme`, `blush-icons`), either or
+    both (the author's call, over `type` only, or the file winning): a
+    manifest file alone still works, a `type` alone works, and both must
+    name the same kind. One claiming two kinds (two manifest files, or
+    a file and another kind's `type`) is broken for each, saying what it
+    holds (`It holds plugin.json and a composer.json of type
+    "blush-theme", but an extension is one kind.`). Another `type`
+    (`library`) claims nothing. `LocalExtensions::claims()` and
+    `describe()`; `ExtensionKind::fromPackageType()`;
+    `ComposerJson::kind()`.
+  - **Blush's keys may live under `extra.blush`,** as a Composer
+    plugin's always have: `ComposerJson::fill()` takes them, then the
+    shared keys from `composer.json`'s top level. Each key is read from
+    the first place that has it, the manifest file, then `extra.blush`,
+    then the top level (the author's call, over the file replacing
+    `extra.blush` whole), so `extra.blush.require` beats the top-level
+    `require`, and a Composer theme's or pack's top-level `require` is
+    still skipped (D-431). Blush's keys still never come from the top
+    level. `ManifestFile::load()` reads a folder this way, with or
+    without a manifest file, and discovery, the installer, and backups
+    all use it (`ThemeDiscovery::read()` is gone).
+  - **Composer themes and icon packs** need no `theme.json` or
+    `icons.json` either; one of the type without a manifest file was
+    skipped before, and is now read from its `composer.json`.
+  - **Installing from a zip** checks the kind after unpacking into the
+    hidden staging folder (it was checked on the archive's file list),
+    the same way discovery does, and refuses a zip claiming two kinds.
+    `ExtensionArchive::has()` is gone. A zip with neither says so: `has
+    no plugin.json in it, and no composer.json of type "blush-plugin",
+    so it isn't a plugin.`
+  - `plugin:new` and `theme:new` still write manifest files.
+- **Checked:** `composer check` (each kind from a `composer.json`
+  alone, with `extra.blush` and shared keys; another `type` skipped; a
+  manifest and a `type` agreeing, and disagreeing; the file over
+  `extra.blush` over the top level; a Composer theme and pack without a
+  manifest file; installing a plugin from a `composer.json` alone, and
+  refusing one of another kind or two kinds).
+- **Why:** a `composer.json` already says what a package is; Blush
+  reads it as Composer would, so one file can describe an extension.

@@ -19,9 +19,11 @@ use Blush\Core\Paths;
  * Finds the local extensions of every kind (D-418): folders two levels
  * deep in `extensions/`, at their names (`extensions/acme/hello`), as
  * Composer keeps packages in `vendor/`. A folder's kind is the manifest
- * it holds (`plugin.*`, `theme.*`, or `icons.*`); one holding more than
- * one kind's is broken, for each kind it claims, and one holding none is
- * skipped. Hidden folders (an install in progress) are skipped too.
+ * it holds (`plugin.*`, `theme.*`, or `icons.*`), or its `composer.json`'s
+ * `type` (`blush-plugin`, `blush-theme`, or `blush-icons`; D-432), either
+ * or both. One claiming more than one kind is broken, for each kind it
+ * claims, and one claiming none is skipped. Hidden folders (an install in
+ * progress) are skipped too.
  */
 final readonly class LocalExtensions
 {
@@ -90,6 +92,48 @@ final readonly class LocalExtensions
 	}
 
 	/**
+	 * Returns the kinds a folder claims, each with its winning manifest
+	 * file, or `null` when only its `composer.json`'s `type` claims it
+	 * (D-432), in the kinds' order.
+	 *
+	 * @return array<string, ?string>
+	 */
+	public static function claims(string $folder): array
+	{
+		$type   = ComposerJson::kind($folder);
+		$claims = [];
+
+		foreach (ExtensionKind::cases() as $kind) {
+			$file = ManifestFile::find($folder, $kind)[0] ?? null;
+
+			if ($file !== null || $kind === $type) {
+				$claims[$kind->value] = $file;
+			}
+		}
+
+		return $claims;
+	}
+
+	/**
+	 * Says what makes a folder claim each of its kinds, for messages:
+	 * `plugin.json and a composer.json of type "blush-theme"`.
+	 *
+	 * @param array<string, ?string> $claims
+	 */
+	public static function describe(array $claims): string
+	{
+		$described = [];
+
+		foreach ($claims as $kind => $file) {
+			$described[] = $file === null
+				? sprintf('a composer.json of type "%s"', ExtensionKind::from($kind)->packageType())
+				: basename($file);
+		}
+
+		return implode(' and ', $described);
+	}
+
+	/**
 	 * Returns the local extensions of a kind, in name order.
 	 *
 	 * @return list<LocalExtension>
@@ -99,27 +143,19 @@ final readonly class LocalExtensions
 		$found = [];
 
 		foreach ($this->folders() as $path) {
-			$manifests = [];
+			$claims = self::claims($path);
 
-			foreach (ExtensionKind::cases() as $case) {
-				$file = ManifestFile::find($path, $case)[0] ?? null;
-
-				if ($file !== null) {
-					$manifests[$case->value] = $file;
-				}
-			}
-
-			if (! isset($manifests[$kind->value])) {
+			if (! array_key_exists($kind->value, $claims)) {
 				continue;
 			}
 
 			$name    = substr($path, strlen($this->folder) + 1);
 			$where   = $this->root !== '' && str_starts_with($path, $this->root . '/') ? substr($path, strlen($this->root) + 1) : $path;
-			$problem = count($manifests) > 1
-				? sprintf('It holds %s, but an extension is one kind, with one manifest.', implode(' and ', array_map(basename(...), array_values($manifests))))
+			$problem = count($claims) > 1
+				? sprintf('It holds %s, but an extension is one kind.', self::describe($claims))
 				: null;
 
-			$found[] = new LocalExtension($kind, $name, $path, $where, $manifests[$kind->value], $problem);
+			$found[] = new LocalExtension($kind, $name, $path, $where, $claims[$kind->value], $problem);
 		}
 
 		return $found;

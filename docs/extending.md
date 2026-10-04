@@ -372,10 +372,13 @@ can't share a name on one site, and two vendors' `hello` live side by
 side. The folder must match the manifest's `name`. One that doesn't is
 listed as broken, saying where it belongs.
 
-What kind an extension is comes from its manifest: `plugin.json`,
-`theme.json`, or `icons.json` (or `.yaml`). A folder holds one kind, so
-a folder with two kinds' manifests is broken. Each extension can be its
-own git repository.
+What kind an extension is comes from its manifest file, `plugin.json`,
+`theme.json`, or `icons.json` (or `.yaml`), or from the `type` in its
+`composer.json`: `blush-plugin`, `blush-theme`, or `blush-icons`, as
+Composer has it. Either is enough, and a folder may have both, as long
+as they name the same kind. A folder holds one kind, so one that names
+two (two manifests, or a manifest and another kind's `type`) is broken.
+Each extension can be its own git repository.
 
 Manifests use Composer's names and shapes for the keys they share with
 `composer.json`: `name`, `description`, `version`, `license`,
@@ -383,9 +386,33 @@ Manifests use Composer's names and shapes for the keys they share with
 A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
 them once. A manifest's own value replaces `composer.json`'s whole; the
-two aren't merged. Blush's own keys (`label`, `namespace`, `provider`, and a
-theme's or icon pack's own) always go in the manifest, if anywhere. A
-manifest may even be empty (`{}`) when its `composer.json` names it.
+two aren't merged. Blush's own keys (`label`, `namespace`, `provider`,
+and a theme's or icon pack's own) go in the manifest, or in
+`composer.json` under `extra.blush`, never at its top level. A manifest
+may even be empty (`{}`) when its `composer.json` names it.
+
+So an extension can do without a manifest file entirely, as a Composer
+package does: a `composer.json` of a Blush type, with Blush's keys under
+`extra.blush`, is its manifest.
+
+```json
+{
+	"name": "acme/hello",
+	"type": "blush-plugin",
+	"version": "1.0.0",
+	"autoload": { "psr-4": { "Acme\\Hello\\": "src/" } },
+	"extra": {
+		"blush": {
+			"label": "Hello",
+			"provider": "Acme\\Hello\\HelloServiceProvider"
+		}
+	}
+}
+```
+
+When there's both, each key is read from the first place that has it:
+the manifest file, then `extra.blush`, then the top of `composer.json`
+(for the keys shared with Composer).
 
 The admin lists them under **Extensions** (Themes, Plugins, and Icon
 Packs), and installs them from a `.zip` (see
@@ -396,8 +423,8 @@ Packs), and installs them from a `.zip` (see
 **Install Theme**, **Install Plugin**, and **Install Icon Pack** take a
 `.zip` of an extension's folder, up to 25 MB (or less, if PHP's upload
 limit is lower). The manifest (`plugin.json`, `theme.json`, or
-`icons.json`) can be at the zip's root or inside one folder, as GitHub's
-release zips have it. It's unpacked into `extensions/` at the name in
+`icons.json`, or a `composer.json` of the kind's `type`) can be at the
+zip's root or inside one folder, as GitHub's release zips have it. It's unpacked into `extensions/` at the name in
 its manifest (or its `composer.json`): `acme/hello` goes in
 `extensions/acme/hello`, whatever the zip or its folder is called.
 Nothing is turned on: a plugin or icon pack arrives off, and a theme
@@ -407,7 +434,7 @@ Blush checks the zip before anything is written, and installs nothing
 when:
 
 - it holds another kind of extension (the message names the screen it
-  belongs on), or none;
+  belongs on), more than one kind, or none;
 - an extension of another kind has its name;
 - a file in it would land outside its folder, or is a symbolic link, or
   it holds more than 5,000 files or 100 MB unpacked;
@@ -935,9 +962,10 @@ then show nowhere. A theme can restyle one with
 For autocomplete, point `$schema` at
 `vendor/blush-dev/framework/resources/schemas/icons.schema.json`.
 
-**A Composer icon pack** is a package of type `blush-icons`, with its
-`icons.json` in the package. Its name is the package's, so the manifest
-can leave `name` out; one naming something else is broken.
+**A Composer icon pack** is a package of type `blush-icons`. Its
+manifest is the `icons.json` in the package, or its `composer.json`'s
+`extra.blush`, or both. Its name is the package's, so the manifest can
+leave `name` out; one naming something else is broken.
 
 ## Events
 

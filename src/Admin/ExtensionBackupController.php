@@ -22,7 +22,6 @@ use Blush\Cache\ContentVersion;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
-use Blush\Extension\ComposerJson;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionState;
@@ -34,7 +33,6 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Icon\IconPack;
 use Blush\Plugin\LocalPluginFinder;
-use Blush\Theme\ThemeDiscovery;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
@@ -175,9 +173,9 @@ final readonly class ExtensionBackupController
 	{
 		try {
 			$older = match ($kind) {
-				ExtensionKind::Plugin   => LocalPluginFinder::manifest(ManifestFile::find($backup, ExtensionKind::Plugin)[0] ?? ''),
-				ExtensionKind::Theme    => ThemeManifest::fromArray($backup, ComposerJson::fill(ThemeDiscovery::read($backup) ?? [], $backup)),
-				ExtensionKind::IconPack => IconPack::fromArray($backup, ComposerJson::fill(ManifestFile::read(ManifestFile::find($backup, ExtensionKind::IconPack)[0] ?? ''), $backup))
+				ExtensionKind::Plugin   => LocalPluginFinder::manifest($backup),
+				ExtensionKind::Theme    => ThemeManifest::fromArray($backup, ManifestFile::load($backup, ExtensionKind::Theme)),
+				ExtensionKind::IconPack => IconPack::fromArray($backup, ManifestFile::load($backup, ExtensionKind::IconPack))
 			};
 
 			if ($kind === ExtensionKind::Plugin || $live) {

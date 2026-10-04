@@ -20,7 +20,9 @@ use Blush\Data\SymfonyYamlParser;
 /**
  * Finds and reads an extension's manifest file, for every kind: JSON,
  * else YAML (D-032). Extensions are found before the container exists,
- * so YAML is read with the framework's parser directly.
+ * so YAML is read with the framework's parser directly. A manifest file
+ * is optional when the folder's `composer.json` has the kind's `type`
+ * (D-432); `load()` reads a folder either way.
  */
 final readonly class ManifestFile
 {
@@ -43,6 +45,22 @@ final readonly class ManifestFile
 			array_map(static fn (string $format): string => "{$folder}/{$kind->manifest()}.{$format}", self::FORMATS),
 			is_file(...)
 		));
+	}
+
+	/**
+	 * Reads a folder's manifest of a kind, if it has one, filled in from
+	 * its `composer.json` (`extra.blush`, then the shared keys, but for
+	 * the ones to skip; D-418, D-432).
+	 *
+	 * @param  list<string> $skip
+	 * @return array<string, mixed>
+	 * @throws ExtensionException When the manifest can't be parsed or isn't a map.
+	 */
+	public static function load(string $folder, ExtensionKind $kind, array $skip = []): array
+	{
+		$file = self::find($folder, $kind)[0] ?? null;
+
+		return ComposerJson::fill($file === null ? [] : self::read($file), $folder, $skip);
 	}
 
 	/**
