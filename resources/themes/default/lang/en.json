@@ -22,7 +22,17 @@
 	"welcome": {
 		"title": "Welcome to {site}",
 		"running": "{generator} is running.",
-		"start": "Add a homepage at {path} to replace this page."
+		"next": "Next steps",
+		"start": "Add a homepage at {path} to replace this page.",
+		"admin": {
+			"off": "To write in your browser, turn on the admin in {path}.",
+			"account": "Create an account with {command}, then sign in to the admin at {admin}.",
+			"sign_in": "Sign in to the admin at {admin}."
+		},
+		"problems": {
+			"title": "Setup notes",
+			"doctor": "Run {command} for the full report. These notes aren’t shown in production."
+		}
 	},
 	"error": {
 		"home": "Go to the homepage",

@@ -238,8 +238,21 @@ folder, which introduces its archive) is pinned at the top of its list
 with a pin and an **Index** tag, on the list's first page. It isn't
 counted in the list's totals, and it can't be moved to the trash (see
 [Editing an index page](#editing-an-index-page)). It still follows the
-tabs and search: it shows only when it matches them. Pages have no index page; the site's homepage is listed
-with the other pages.
+tabs and search: it shows only when it matches them.
+
+Pages pin their **root page** (`user/content/index.md`) the same way.
+When it's the homepage, it has a house in place of the pin and a
+**Homepage** tag. It isn't counted in the totals, isn't offered as a
+parent, and can't be duplicated or moved, and the editor leaves out
+its slug and position, since it's the top of the tree. It can be moved
+to the trash; the site then shows a welcome page at `/`.
+
+When the homepage is set to show a collection (**Settings › Reading**),
+that collection's index page gets the house and the **Homepage** tag,
+and the root page is tagged **Not shown**, since visitors never see it.
+If you can change the site's settings, **Make homepage** beside the tag
+(also in its row menu, and in the editor) switches the homepage back to
+it.
 
 A type whose [people field](content-types.md#crediting-people) has
 archives may have a **list page** for it (`_authors.md` or `_cooks.md`

@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * Welcome page notes factory.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Setup;
+
+use Blush\Admin\AdminConfig;
+use Blush\Auth\AccountStore;
+use Blush\Core\AppConfig;
+use Blush\Core\Framework;
+use Blush\Core\Paths;
+
+/**
+ * Gathers the welcome page's notes. Setup problems are left out in
+ * production, since the welcome page is public.
+ */
+final readonly class WelcomeFactory
+{
+	public function __construct(
+		private Paths $paths,
+		private AppConfig $app,
+		private AdminConfig $admin,
+		private AccountStore $accounts,
+		private SetupChecks $checks
+	) {}
+
+	/**
+	 * Returns the notes for the current site.
+	 */
+	public function make(): Welcome
+	{
+		$problems = $this->app->environment->isProduction() ? [] : array_values(array_filter(
+			$this->checks->all($this->app),
+			static fn(CheckResult $result): bool => $result->status !== CheckStatus::Pass
+		));
+
+		return new Welcome(
+			homepage: $this->paths->relative("{$this->paths->content}/index.md"),
+			binary: 'bin/' . Framework::BINARY,
+			admin: $this->admin->enabled ? $this->admin->path : null,
+			accounts: ! $this->accounts->isEmpty(),
+			problems: $problems
+		);
+	}
+}

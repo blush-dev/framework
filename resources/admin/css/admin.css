@@ -613,6 +613,18 @@
 	text-decoration: underline;
 }
 
+/* An action beside a title's tag, as a link (D-420's Make homepage). */
+.entry-title__action {
+	padding: 0;
+	border: 0;
+	background: none;
+	font-family: var(--font-ui);
+	font-size: var(--text-sm);
+	font-weight: 500;
+	letter-spacing: normal;
+	cursor: pointer;
+}
+
 /*
  * A type's index page, pinned above its entries (D-255): the same row,
  * tinted just enough to say it isn't sorted or paged with the rest.

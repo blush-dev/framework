@@ -274,8 +274,10 @@ final readonly class ThemeChecker
 	private function layout(ThemeChain $chain): array
 	{
 		try {
-			$views = $this->views->forChain($chain);
-			$html  = $views->render('welcome', ['page' => new ContentPage(PageKind::Welcome, ''), 'title' => ''], $this->views->context($views));
+			$views   = $this->views->forChain($chain);
+			$context = $this->views->context($views);
+			$context->share(['page' => new ContentPage(PageKind::Welcome, ''), 'entry' => null, 'entries' => null, 'type' => null, 'title' => '']);
+			$html    = $views->render('welcome', [], $context);
 		} catch (Throwable $error) {
 			return [new Violation('layout', sprintf('The welcome page doesn\'t render: %s', $error->getMessage()))];
 		}

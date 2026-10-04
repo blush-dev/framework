@@ -16,6 +16,7 @@ namespace Blush\Tests\View;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
+use Blush\Auth\Accounts;
 use Blush\Core\Application;
 use Blush\Http\Kernel;
 use Blush\Http\Middleware\HandleErrors;
@@ -219,7 +220,27 @@ final class ThemedRenderingTest extends TestCase
 
 		$this->assertStringContainsString('<h1 class="entry__title">Welcome to Blush</h1>', $html);
 		$this->assertStringContainsString('<body class="is-welcome">', $html);
-		$this->assertStringContainsString('user/content/index.md', $html);
+		$this->assertStringContainsString('<code>user/content/index.md</code>', $html);
+		$this->assertStringContainsString('turn on the admin in <code>config/admin.php</code>', $html);
+		$this->assertStringNotContainsString('Setup notes', $html);
+	}
+
+	public function testTheWelcomePageShowsTheAdminAndSetupNotesWhileDeveloping(): void
+	{
+		$this->contentConfig([]);
+		$this->writeTemporaryFile('config/admin.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\AdminConfig(enabled: true);\n");
+
+		$app  = $this->site('development');
+		$html = $this->body('/', $app);
+
+		$this->assertStringContainsString('Create an account with <code>bin/blush account:add</code>, then sign in to the admin at <a href="/admin">/admin</a>.', $html);
+		$this->assertStringContainsString('Setup notes', $html);
+		$this->assertStringContainsString('<code>.env</code>: Not found', $html);
+		$this->assertStringContainsString('<code>bin/blush doctor</code>', $html);
+
+		$app->container()->make(Accounts::class)->create('jane', 'a long enough password', ['administrator'], email: 'jane@example.com');
+
+		$this->assertStringContainsString('Sign in to the admin at <a href="/admin">/admin</a>.', $this->body('/', $app));
 	}
 
 	public function testErrorsRenderWithTheTheme(): void

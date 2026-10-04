@@ -5346,6 +5346,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-255: Fira Code everywhere, and the index page pinned in its list
 - **Date:** 2026-09-30
+- **Status:** "Pages have no index page" is superseded by D-420: Pages pin
+  their root page, and the homepage is marked wherever it's listed.
 - **Decision:**
   - **Fira Code is the admin's mono** (`--font-mono`), replacing IBM
     Plex Mono everywhere; D-254's `--font-editor` is gone and the
@@ -12144,4 +12146,74 @@ decision, add a new entry that supersedes it and mark the old one
   `vendor/name`, so names can't clash on disk (WordPress's long-standing
   plugin and theme slug clashes), and a manifest that reads like a
   `composer.json`.
+
+### D-419: The welcome page shows next steps and setup notes
+- **Date:** 2026-10-03
+- **Decision:** Quick win 4, "a friendly front page for a brand-new
+  site". The skeleton already ships `user/content/index.md`, and the
+  welcome page (D-108) already answered `/` without one, so:
+  - **The skeleton's `index.md` becomes a short guide** (pages are
+    files, the admin, next steps, a `callout`), replacing 1.x's "run
+    for the hills" text. It's written for the author to commit to the
+    skeleton's `2.x` branch.
+  - **The welcome page keeps the fallback and says what to do:** add
+    the homepage; then turn on the admin, create an account with
+    `bin/blush account:add`, or sign in at the admin's path, by
+    whichever is next. Outside production it also lists the warnings
+    and failures `doctor` reports (`SetupChecks::all()`), pointing at
+    `bin/blush doctor`; in production it doesn't, since the page is
+    public.
+  - **Built:** `Setup\Welcome` (the notes) and `Setup\WelcomeFactory`,
+    used by `HomeController`; `ContentPage::$welcome`; the default
+    theme's `parts/welcome` (the content, so a theme's own `welcome`
+    can wrap it in its markup) and new `welcome.*` strings.
+    `ThemeChecker` now shares the welcome page's data in the context,
+    as the renderer does, so parts see `$page`.
+  - **The jtcom trial** has its own `welcome` view, in its
+    `o-container-base` markup, including the part.
+- **Checked:** `composer check`; the welcome page's three admin states
+  and its notes rendered under the jtcom theme; `theme:check` on the
+  trial; the new `index.md` rendered on a scratch site.
+- **Why:** the author's pick; shipping the welcome as content keeps the
+  first page editable, and the fallback keeps `/` from being a 404.
+
+### D-420: The root page is pinned, and the homepage is marked
+- **Date:** 2026-10-03
+- **Decision:** Supersedes D-255's "Pages have no index page". The
+  author noticed `index.md` wasn't pinned on Pages, now that error pages
+  are (D-411).
+  - **The root page** (`user/content/index.md`, the root tree's landing
+    page; `Admin\Homepage::isRootPage()`) is pinned on Pages in the
+    index page's place: answered as `index` on the first page, left out
+    of the entries, totals, tree, and section counts. It keeps the
+    landing page's limits (no parent, slug, or move, and not offered as
+    a parent), can't be duplicated (`POST …/duplicate` refuses it), and
+    the editor leaves out its `position`. It can be trashed; the
+    welcome page stands in (D-419). It isn't an index page
+    (`IndexPage::is()` stays false), so it keeps its type's fields and
+    scheduling.
+  - **The homepage** (`Homepage::is()`) is the root page, or, when the
+    homepage setting names a collection, that collection's index page.
+    Wherever it's pinned, its pin is a house and it's tagged
+    **Homepage** (in place of **Index**).
+  - **A root page that isn't the homepage** is tagged **Not shown**
+    (its title says what the homepage shows instead), with **Make
+    homepage** beside the tag, in its row menu, and at the end of its
+    note in the editor, for accounts with `site.settings`. It asks
+    first, then saves `content.home` as `null` in
+    `user/data/settings.json` (`PATCH settings`, then `settings/refresh`
+    when asked); the editor updates the marks in place so unsaved edits
+    stay.
+  - **API:** list and editor entries have `homepage`, `rootPage`, and
+    `homeInstead` ("The latest posts", from `Setting::homeChoices()`,
+    for a root page that isn't shown, else `null`), and
+    `can.makeHomepage`.
+- **Checked:** `composer check` (the root page pinned and uncounted, its
+  marks and `can`, no `position`, duplicating refused, a collection's
+  index page as the homepage, and `site.settings` for Make homepage);
+  `npm run admin:build`. Not checked in a browser.
+- **Why:** the author's calls: pin it with a Homepage chip, show
+  something else with a way to make it the homepage when it isn't, a
+  house for whichever entry is the homepage, and nothing that doesn't
+  apply to the top of the tree.
 

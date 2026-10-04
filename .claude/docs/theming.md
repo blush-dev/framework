@@ -228,7 +228,9 @@ aren't candidates (D-104).
 - **Profile** (a profile's own page): `profile-{slug}` → `profile` →
   `collection`; `$entry` is the profile.
 - **Home:** `home` → then the hierarchy of whatever it aliases.
-- **Welcome:** `welcome` (a site with no homepage yet, D-108).
+- **Welcome:** `welcome` (a site with no homepage yet, D-108), with
+  `$page->welcome` (`Setup\Welcome`); its content is the default
+  theme's `parts/welcome`, which a theme's `welcome` can include (D-419).
 - **Errors:** `error-{status}` → `error`, filled from
   `user/content/_errors/{status}.md` (or 1.x's `_error/{status}.md`) when
   it exists (D-108).

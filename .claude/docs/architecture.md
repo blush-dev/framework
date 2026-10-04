@@ -1028,7 +1028,8 @@ by source, keeps recents, and writes the directive text). The
   and end in a row menu (`MenuButton`, `floating`; D-254); a
   collection's or taxonomy's landing page is its **index page**, pinned
   in a `tbody` of its own above the rest and answered apart from them
-  as `index` in `GET entries` (D-255). The element tab follows the
+  as `index` in `GET entries` (D-255), as Pages' root page is, with
+  the homepage marked by a house and a **Homepage** tag (D-420). The element tab follows the
   caret (D-268, D-280): `elements.ts` resolves the most specific of the
   directives, images, and blocks (`blocks()`, with lists and definition
   lists) and builds the outline and breadcrumb from their spans; a

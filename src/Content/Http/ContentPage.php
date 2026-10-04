@@ -19,6 +19,7 @@ use Blush\Content\Query\PageLink;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\PeopleField;
+use Blush\Setup\Welcome;
 
 /**
  * What a content controller found, handed to the `PageRenderer`: the kind
@@ -32,6 +33,8 @@ use Blush\Content\Type\PeopleField;
  * The people pages (D-351) say which people field they're for, and a
  * person's archive which profile: its `$entry` is the page written for
  * that archive when there is one, else the profile itself.
+ *
+ * The welcome page carries its `Welcome` notes.
  */
 final readonly class ContentPage
 {
@@ -43,6 +46,7 @@ final readonly class ContentPage
 	 * @param ?PageKind                  $base    For the homepage, the kind of page it shows.
 	 * @param ?PeopleField               $people  The people field a people list or person's archive is for.
 	 * @param ?Entry                     $profile The profile a person's archive or profile page is about.
+	 * @param ?Welcome                   $welcome The welcome page's notes.
 	 */
 	public function __construct(
 		public PageKind $kind,
@@ -54,7 +58,8 @@ final readonly class ContentPage
 		public ?Closure $pageUrl = null,
 		public ?PageKind $base = null,
 		public ?PeopleField $people = null,
-		public ?Entry $profile = null
+		public ?Entry $profile = null,
+		public ?Welcome $welcome = null
 	) {}
 
 	/**

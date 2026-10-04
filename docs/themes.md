@@ -492,6 +492,7 @@ Blush picks the most specific template your theme (or its parents) has:
 | A profile's page (such as `/profiles/jane`) | `profile-{slug}`, `profile`, `collection` |
 | The homepage | `home`, then whatever it shows |
 | An error | `error-{status}`, `error` |
+| A site with no homepage yet | `welcome` |
 
 On a type's people page, `$entries` holds the profiles (link each with
 `$template->personUrl($profile, $type, $page->people->field)`) and
@@ -501,6 +502,12 @@ person's archive, `$entry` is the page written for it
 profile, and `$entries` their entries of that type. On a profile's
 page, `$entry` is the profile and `$entries` everything crediting
 them.
+
+The welcome page shows until `user/content/index.md` exists. Its
+content (the next steps, and, outside production, any problems
+`bin/blush doctor` would report) is the default theme's
+`parts/welcome` part, so a theme's own `welcome` view can wrap it in
+its markup with `$template->include('parts/welcome')`.
 
 An entry's `template` front matter is always tried first. Feeds
 (`feed-rss`, `feed-atom`, `feed-json`) and sitemaps (`sitemap`,

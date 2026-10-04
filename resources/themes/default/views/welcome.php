@@ -18,7 +18,6 @@ $template->layout('base');
 	</header>
 
 	<div class="entry__content">
-		<p><?= e($template->t('welcome.running', generator: $site->generator)) ?></p>
-		<p><?= e($template->t('welcome.start', path: 'user/content/index.md')) ?></p>
+		<?= $template->include('parts/welcome') ?>
 	</div>
 </article>

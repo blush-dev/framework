@@ -83,6 +83,13 @@ export interface EntrySummary {
 	// The status it's the site's error page for, pinned at the top of
 	// Pages (D-411), or `null`.
 	errorPage: number | null;
+	// Whether it's what the site shows at `/`, and whether it's the root
+	// page (`index.md`), pinned on Pages (D-420). A root page the
+	// homepage doesn't show says what it shows instead ("The latest
+	// posts"); else `null`.
+	homepage: boolean;
+	rootPage: boolean;
+	homeInstead: string | null;
 	// That list page's field's name ("Cooks"), or `null`.
 	peopleLabel?: string | null;
 	// A profile's: whether an account is linked to it, and which, when
@@ -90,7 +97,8 @@ export interface EntrySummary {
 	linked?: boolean;
 	account?: { username: string; displayName: string } | null;
 	// Duplicate: not for landing pages, and needs `content.create` (D-275).
-	can: { delete: boolean; duplicate: boolean };
+	// Make homepage: a root page that isn't, with `site.settings` (D-420).
+	can: { delete: boolean; duplicate: boolean; makeHomepage: boolean };
 	// For a term, how many published entries use it; else `null` (D-236).
 	uses: number | null;
 	// The titles of the entries above it, from the top down: a page's
@@ -775,6 +783,10 @@ export interface EntryDetail {
 	peoplePage: { field: string; label: string; profile: string | null; profileTitle: string | null } | null;
 	// The status it's the site's error page for (D-411), or `null`.
 	errorPage: number | null;
+	// Its part in the homepage, as `EntrySummary` says (D-420).
+	homepage: boolean;
+	rootPage: boolean;
+	homeInstead: string | null;
 	type: {
 		name: string;
 		kind: ContentTypeSummary['kind'];
@@ -789,7 +801,8 @@ export interface EntryDetail {
 	body: string;
 	// `rename`: not for a landing page, whose slug is its folder's.
 	// `move`: a tree's page, under another (D-410).
-	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean; move: boolean; duplicate: boolean };
+	// `makeHomepage`: a root page that isn't, with `site.settings` (D-420).
+	can: { edit: boolean; publish: boolean; delete: boolean; rename: boolean; move: boolean; duplicate: boolean; makeHomepage: boolean };
 	violations: Violation[];
 }
 

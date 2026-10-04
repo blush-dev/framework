@@ -24,10 +24,12 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
 use Blush\Auth\AuthException;
+use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Entry\Position;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status as EntryStatus;
@@ -140,7 +142,8 @@ final readonly class EntryController
 		private AppConfig $app,
 		private ClockInterface $clock,
 		private FieldTargets $targets,
-		private AccountStore $accounts
+		private AccountStore $accounts,
+		private Homepage $homepage
 	) {}
 
 	/**
@@ -210,16 +213,20 @@ final readonly class EntryController
 			'authorsPage' => false,
 			'peoplePage'  => null,
 			'errorPage'   => null,
+			'homepage'    => false,
+			'rootPage'    => false,
+			'homeInstead' => null,
 			'values'      => $this->authorDefault($account, $type->name),
 			'extra'       => [],
 			'body'        => '',
 			'can'         => [
-				'edit'      => true,
-				'publish'   => $this->permissions->can($account, ContentAction::Publish, $type->name),
-				'rename'    => true,
-				'move'      => false,
-				'delete'    => false,
-				'duplicate' => false
+				'edit'         => true,
+				'publish'      => $this->permissions->can($account, ContentAction::Publish, $type->name),
+				'rename'       => true,
+				'move'         => false,
+				'delete'       => false,
+				'duplicate'    => false,
+				'makeHomepage' => false
 			],
 			'violations'  => []
 		]);
@@ -496,6 +503,10 @@ final readonly class EntryController
 
 		if (IndexPage::is($entry)) {
 			return self::error(sprintf('"%s" is the index page for %s, and there\'s only one.', $entry->title, $entry->type->labels->items), Status::UnprocessableContent);
+		}
+
+		if (Homepage::isRootPage($entry)) {
+			return self::error(sprintf('"%s" is the site\'s root page, and there\'s only one.', $entry->title), Status::UnprocessableContent);
 		}
 
 		$now   = $this->clock->now()->setTimezone($this->app->timezone());
@@ -894,6 +905,7 @@ final readonly class EntryController
 		$people = PeoplePage::is($entry);
 		$person = PeoplePage::isPerson($entry);
 		$error  = ErrorPage::status($entry);
+		$home   = $this->homepage->describe($entry);
 		$fields = $this->types->schema($entry->type->name)->fields;
 
 		// An index page describes the type's archive, not one of its
@@ -903,6 +915,12 @@ final readonly class EntryController
 		// (D-353), introduce their pages the same way.
 		if ($index || $people || $person) {
 			$fields = array_filter($fields, static fn (Field $field): bool => in_array($field->name, ['title', 'status'], true));
+		}
+
+		// The root page (D-420) is the top of the tree, so it has no
+		// siblings to be placed among.
+		if (Homepage::isRootPage($entry)) {
+			$fields = array_filter($fields, static fn (Field $field): bool => $field->name !== Position::FIELD);
 		}
 
 		// The schema has every taxonomy's term field, so a file may use any
@@ -934,16 +952,18 @@ final readonly class EntryController
 			'authorsPage' => $people,
 			'peoplePage'  => $this->peoplePage($entry),
 			'errorPage'   => ErrorPage::status($entry),
+			...$home,
 			'values'      => $values,
 			'extra'       => $extra,
 			'body'        => substr($file->body, strlen(DocumentEditor::gap($file->body))),
 			'can'         => [
-				'edit'      => $this->permissions->can($account, ContentAction::Edit, $entry),
-				'publish'   => $this->permissions->can($account, ContentAction::Publish, $entry),
-				'rename'    => ! $entry->landing && ! $people && ! $person && $error === null && ! $this->isLinked($entry),
-				'move'      => $entry->type instanceof Tree && ! $entry->landing && $error === null,
-				'delete'    => ! $index && ! $person && $this->permissions->can($account, ContentAction::Delete, $entry),
-				'duplicate' => ! $entry->landing && ! $people && ! $person && $error === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name)
+				'edit'         => $this->permissions->can($account, ContentAction::Edit, $entry),
+				'publish'      => $this->permissions->can($account, ContentAction::Publish, $entry),
+				'rename'       => ! $entry->landing && ! $people && ! $person && $error === null && ! $this->isLinked($entry),
+				'move'         => $entry->type instanceof Tree && ! $entry->landing && $error === null,
+				'delete'       => ! $index && ! $person && $this->permissions->can($account, ContentAction::Delete, $entry),
+				'duplicate'    => ! $entry->landing && ! $people && ! $person && $error === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
+				'makeHomepage' => $home['homeInstead'] !== null && $this->permissions->can($account, Capability::SiteSettings->value)
 			],
 			'violations'  => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,

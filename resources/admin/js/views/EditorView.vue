@@ -93,6 +93,7 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
+import { makeHomepage } from '../homepage';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, entryPath, entryRoute, request, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
@@ -435,6 +436,20 @@ async function freshType(asked: string): Promise<string> {
 	await router.replace({ name: 'entry-new', query: { type: name } });
 
 	return name;
+}
+
+/**
+ * Makes the root page the homepage (D-420). Only its homepage marks
+ * change, so unsaved edits stay.
+ */
+async function toHomepage(): Promise<void> {
+	const current = entry.value;
+
+	if (current !== null && await makeHomepage(current.title, current.homeInstead)) {
+		current.homepage         = true;
+		current.homeInstead      = null;
+		current.can.makeHomepage = false;
+	}
 }
 
 async function load(): Promise<void> {
@@ -2691,7 +2706,12 @@ function fieldKey(field: FieldDescription): string {
 								</template>
 								<p v-else id="editor-slug-help" class="visually-hidden">The slug is lowercase letters, numbers, and hyphens, and the address ends in it.</p>
 								<p v-if="entry.errorPage !== null" class="editor__group-note">The page the site shows for error {{ entry.errorPage }}{{ entry.errorPage === 404 ? ', when an address doesn\'t exist' : '' }}: its title and text, in the theme's error layout. Its slug is the status. Without it, the theme's own message is shown.</p>
-								<p v-if="entry.index" class="editor__group-note">The index page for <strong>{{ labels.plural }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.</p>
+								<p v-if="entry.index" class="editor__group-note">The index page for <strong>{{ labels.plural }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.<template v-if="entry.homepage"> It's also the site's homepage, at /.</template></p>
+								<p v-if="entry.rootPage && entry.homepage" class="editor__group-note">The site's homepage, at /. It's the top of the page tree, so it has no parent, slug, or position. Without it, the site shows a welcome page.</p>
+								<p v-else-if="entry.rootPage" class="editor__group-note">
+									The page at <code>user/content/index.md</code>. The homepage shows {{ entry.homeInstead?.toLowerCase() ?? 'something else' }} instead, so this page isn't on the site.
+									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk editor__note-action" @click="toHomepage">Make homepage</button></template>
+								</p>
 								<p v-if="entry.peoplePage && entry.peoplePage.profile === null" class="editor__group-note">The page introducing the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>: its title heads their list, and its body comes before it. It has no address of its own.</p>
 								<p v-else-if="entry.peoplePage" class="editor__group-note">The page introducing <RouterLink :to="{ name: 'profile-detail', params: { slug: entry.peoplePage.profile } }">{{ entry.peoplePage.profileTitle }}</RouterLink>'s archive as one of the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>, in place of their bio there. It has no address of its own.</p>
 							</div>
@@ -3705,6 +3725,15 @@ function fieldKey(field: FieldDescription): string {
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 	line-height: 1.5;
+}
+
+/* Make homepage, at the end of the root page's note (D-420). */
+.editor__note-action {
+	padding: 0;
+	border: 0;
+	background: none;
+	font-weight: 500;
+	cursor: pointer;
 }
 
 .editor__group-note + .editor__group-note {

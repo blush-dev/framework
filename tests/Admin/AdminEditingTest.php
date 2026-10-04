@@ -62,6 +62,18 @@ final class AdminEditingTest extends TestCase
 	}
 
 	/**
+	 * Returns a value inside a JSON answer by its keys, or `null`.
+	 */
+	private static function at(mixed $value, string ...$keys): mixed
+	{
+		foreach ($keys as $key) {
+			$value = is_array($value) ? ($value[$key] ?? null) : null;
+		}
+
+		return $value;
+	}
+
+	/**
 	 * @param array<string, mixed> $data
 	 */
 	private function call(string $method, string $path, array $data = []): ResponseInterface
@@ -205,7 +217,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/' . self::FLAME), strtotime($entry['modified']));
 		$this->assertSame('/archives/flame', $entry['url'] ?? null);
 		$this->assertTrue($entry['own'] ?? null);
-		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'move' => false, 'delete' => true, 'duplicate' => true], $entry['can'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'move' => false, 'delete' => true, 'duplicate' => true, 'makeHomepage' => false], $entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertTrue($entry['type']['dated'] ?? null);
 		$this->assertIsArray($entry['type']['fields'] ?? null);
@@ -258,7 +270,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertIsArray($idea);
 		$this->assertSame('/archives/flame', $flame['url'] ?? null);
 		$this->assertSame('/archives/idea', $idea['url'] ?? null, 'A draft has the address it will have.');
-		$this->assertSame(['delete' => true, 'duplicate' => true], $flame['can'] ?? null, 'An author trashes their own.');
+		$this->assertSame(['delete' => true, 'duplicate' => true, 'makeHomepage' => false], $flame['can'] ?? null, 'An author trashes their own.');
 		$this->assertArrayNotHasKey('_posts/2021-05-05.sams.md', $byId, 'An author lists only their own.');
 	}
 
@@ -275,7 +287,7 @@ final class AdminEditingTest extends TestCase
 		$index = $list['index'] ?? null;
 		$this->assertIsArray($index);
 		$this->assertSame(['_posts/index.md', true], [$index['id'] ?? null, $index['index'] ?? null]);
-		$this->assertSame(['delete' => false, 'duplicate' => false], $index['can'] ?? null, 'It can\'t be trashed from the list.');
+		$this->assertSame(['delete' => false, 'duplicate' => false, 'makeHomepage' => false], $index['can'] ?? null, 'It can\'t be trashed from the list.');
 
 		$this->assertNull($this->pinned('/entries?type=post&per=1&page=2'), 'It\'s pinned on the first page only.');
 
@@ -289,10 +301,63 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame('_posts/index.md', $this->pinned('/entries?type=post&search=writ'));
 
 		$pages = self::json($this->call('GET', '/entries?type=page'));
-		$this->assertArrayHasKey('index', $pages);
-		$this->assertNull($pages['index'], 'Pages have no index page.');
 		$this->assertIsArray($pages['entries'] ?? null);
-		$this->assertContains('index.md', array_column($pages['entries'], 'id'), 'The homepage is a page like the others.');
+		$this->assertNotContains('index.md', array_column($pages['entries'], 'id'), 'Pages pin their root page instead (D-420).');
+		$this->assertSame('index.md', self::at($pages, 'index', 'id'));
+	}
+
+	public function testPinsTheRootPageAndMarksTheHomepage(): void
+	{
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\nposition: 2\n---\n");
+		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\n---\n");
+		$this->site(['administrator']);
+
+		$marks = static fn (mixed $entry): array => is_array($entry) ? [$entry['id'] ?? null, $entry['index'] ?? null, $entry['homepage'] ?? null, $entry['rootPage'] ?? null, $entry['homeInstead'] ?? null] : [];
+
+		$pages = self::json($this->call('GET', '/entries?type=page'));
+		$this->assertIsArray($pages['entries'] ?? null);
+		$this->assertSame(['about.md'], array_column($pages['entries'], 'id'), 'The root page isn\'t one of the pages.');
+		$this->assertSame(1, $pages['total'] ?? null, 'Nor is it counted.');
+		$this->assertSame(['index.md', false, true, true, null], $marks($pages['index'] ?? null));
+		$this->assertSame(['delete' => true, 'duplicate' => false, 'makeHomepage' => false], self::at($pages, 'index', 'can'));
+		$this->assertSame(['_posts/index.md', true, false, false, null], $marks(self::json($this->call('GET', '/entries?type=post'))['index'] ?? null));
+
+		$root = self::json($this->call('GET', '/entries/index.md'));
+		$this->assertSame([null, false, false, false], [array_key_exists('parent', $root) ? $root['parent'] : 'missing', self::at($root, 'can', 'rename'), self::at($root, 'can', 'move'), self::at($root, 'can', 'duplicate')]);
+		$fields = self::at($root, 'type', 'fields');
+		$about  = self::at(self::json($this->call('GET', '/entries/about.md')), 'type', 'fields');
+		$this->assertIsArray($fields);
+		$this->assertIsArray($about);
+		$this->assertNotContains('position', array_column($fields, 'name'), 'It has no siblings to be placed among.');
+		$this->assertContains('position', array_column($about, 'name'));
+		$this->assertSame(422, $this->call('POST', '/entries/index.md/duplicate')->getStatusCode(), 'There\'s only one.');
+	}
+
+	public function testACollectionsIndexPageIsTheHomepageWhenItsSet(): void
+	{
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\n---\n");
+		$this->writeTemporaryFile('user/data/settings.json', '{"content": {"home": "post"}}');
+		$this->site(['administrator']);
+
+		$marks = static fn (mixed $entry): array => is_array($entry) ? [$entry['id'] ?? null, $entry['index'] ?? null, $entry['homepage'] ?? null, $entry['rootPage'] ?? null, $entry['homeInstead'] ?? null] : [];
+		$pages = self::json($this->call('GET', '/entries?type=page'));
+		$root  = self::json($this->call('GET', '/entries/index.md'));
+
+		$this->assertSame(['index.md', false, false, true, 'The latest posts'], $marks($pages['index'] ?? null), 'The root page isn\'t shown.');
+		$this->assertTrue(self::at($pages, 'index', 'can', 'makeHomepage'));
+		$this->assertSame(['_posts/index.md', true, true, false, null], $marks(self::json($this->call('GET', '/entries?type=post'))['index'] ?? null));
+		$this->assertSame(['The latest posts', true], [$root['homeInstead'] ?? null, self::at($root, 'can', 'makeHomepage')]);
+	}
+
+	public function testMakingTheRootPageTheHomepageNeedsSiteSettings(): void
+	{
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
+		$this->writeTemporaryFile('user/data/settings.json', '{"content": {"home": "post"}}');
+		$this->site();
+
+		$this->assertFalse(self::at(self::json($this->call('GET', '/entries?type=page')), 'index', 'can', 'makeHomepage'));
 	}
 
 	public function testATreeInAFolderHasAnIndexPage(): void
@@ -352,8 +417,8 @@ final class AdminEditingTest extends TestCase
 		$list = self::json($this->call('GET', '/entries?type=post'));
 		$this->assertIsArray($list['entries'] ?? null);
 		$this->assertIsArray($list['index'] ?? null);
-		$this->assertSame(['delete' => true, 'duplicate' => true], array_column($list['entries'], 'can', 'id')[self::FLAME] ?? null);
-		$this->assertSame(['delete' => false, 'duplicate' => false], $list['index']['can'] ?? null, 'Not the index page.');
+		$this->assertSame(['delete' => true, 'duplicate' => true, 'makeHomepage' => false], array_column($list['entries'], 'can', 'id')[self::FLAME] ?? null);
+		$this->assertSame(['delete' => false, 'duplicate' => false, 'makeHomepage' => false], $list['index']['can'] ?? null, 'Not the index page.');
 
 		$response = $this->call('POST', '/entries/' . self::FLAME . '/duplicate');
 		$copy     = self::json($response);
@@ -627,7 +692,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame('draft', $entry['status'] ?? null);
 		$this->assertSame(['authors' => ['jane']], $entry['values'] ?? null, 'Credited to the account\'s author.');
 		$this->assertSame('', $entry['body'] ?? null);
-		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'move' => false, 'delete' => false, 'duplicate' => false], $entry['can'] ?? null);
+		$this->assertSame(['edit' => true, 'publish' => true, 'rename' => true, 'move' => false, 'delete' => false, 'duplicate' => false, 'makeHomepage' => false], $entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertSame('post', $entry['type']['name'] ?? null);
 		$this->assertTrue($entry['type']['dated'] ?? null);

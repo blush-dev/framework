@@ -86,8 +86,10 @@ use Blush\View\ThemedErrorPages;
  * site's locale) isn't one of its entries (D-255): it's left out of the
  * entries, the total, and the pages, and answered on its own as `index`
  * on the first page (D-264), when it matches the filters and the account
- * may edit it; otherwise `null`. Pages have no index page: their landing page is
- * the site's home, an entry like any other. A type's **authors page**
+ * may edit it; otherwise `null`. Pages pin their root page, `index.md`,
+ * there the same way (D-420). Every entry says whether it's the
+ * `homepage` and the `rootPage`, with `homeInstead` (what the homepage
+ * shows) for a root page that isn't it, and `can.makeHomepage`. A type's **authors page**
  * (`_authors`, D-329) is set apart the same way, as `authorsPage`. The
  * site's **error pages** (`_errors/404.md`, D-411) are set apart from
  * Pages the same way, as `errorPages`, by status, each with its
@@ -127,7 +129,8 @@ final readonly class EntriesController
 		private AppConfig $app,
 		private ClockInterface $clock,
 		private AccountStore $accounts,
-		private Accounts $names
+		private Accounts $names,
+		private Homepage $homepage
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -250,7 +253,7 @@ final readonly class EntriesController
 
 		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '';
 
-		$pinned      = $contentType !== null && ! ($contentType instanceof Tree && $contentType->atRoot());
+		$pinned      = $contentType !== null;
 		$query       = $this->permissions->restrict($account, ContentAction::Edit, $query);
 		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...PeoplePage::listPages($contentType))->exceptIn(...PeoplePage::personFolders($contentType)) : $query;
 		$linked      = $contentType instanceof Profiles ? $this->linked($account) : [];
@@ -440,12 +443,13 @@ final readonly class EntriesController
 	}
 
 	/**
-	 * Returns the type's index page, if the list's query finds it.
+	 * Returns the type's index page, or Pages' root page, if the list's
+	 * query finds it.
 	 */
 	private function index(Query $query): ?Entry
 	{
 		foreach ($query->names('index')->get() as $entry) {
-			if (IndexPage::is($entry) && $entry->locale === $this->app->locale) {
+			if ((IndexPage::is($entry) || Homepage::isRootPage($entry)) && $entry->locale === $this->app->locale) {
 				return $entry;
 			}
 		}
@@ -515,6 +519,7 @@ final readonly class EntriesController
 	private function describe(Account $account, Entry $entry, array $counts, ?array $tree = null, bool $continued = false, array $linked = []): array
 	{
 		$authors = $this->types->profiles()?->name;
+		$home    = $this->homepage->describe($entry);
 
 		return [
 			'id'          => $entry->id,
@@ -532,9 +537,11 @@ final readonly class EntriesController
 			'authorsPage' => PeoplePage::is($entry),
 			'errorPage'   => ErrorPage::status($entry),
 			'peopleLabel' => PeoplePage::fieldOf($entry)->plural ?? null,
+			...$home,
 			'can'         => [
-				'delete'    => ! IndexPage::is($entry) && $this->permissions->can($account, ContentAction::Delete, $entry),
-				'duplicate' => ! $entry->landing && ! PeoplePage::is($entry) && ErrorPage::status($entry) === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name)
+				'delete'       => ! IndexPage::is($entry) && $this->permissions->can($account, ContentAction::Delete, $entry),
+				'duplicate'    => ! $entry->landing && ! PeoplePage::is($entry) && ErrorPage::status($entry) === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
+				'makeHomepage' => $home['homeInstead'] !== null && $this->permissions->can($account, Capability::SiteSettings->value)
 			],
 			'uses'        => $entry->type->hasTerms() ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors'   => $this->ancestors($entry),

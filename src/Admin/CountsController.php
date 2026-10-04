@@ -44,7 +44,8 @@ use Blush\Theme\Themes;
  *
  * - `types`: each content type the account may edit entries of, by name:
  *   how many entries its list shows the account (any status, without
- *   its index page or people pages, as `GET entries` counts them).
+ *   its index page, root page, or people pages, as `GET entries` counts
+ *   them).
  * - `media`: the files in the library, with a media capability (D-372,
  *   D-407).
  * - `accounts` and `roles`, with `accounts.view`.
@@ -87,7 +88,8 @@ final readonly class CountsController
 			}
 
 			$query = $this->permissions->restrict($account, ContentAction::Edit, $this->content->query()->any()->type($type->name));
-			$query = $type instanceof Tree && $type->atRoot() ? $query : $query->withLanding(false)->exceptNames(...PeoplePage::listPages($type))->exceptIn(...PeoplePage::personFolders($type));
+			$query = $query->withLanding(false);
+			$query = $type instanceof Tree && $type->atRoot() ? $query : $query->exceptNames(...PeoplePage::listPages($type))->exceptIn(...PeoplePage::personFolders($type));
 
 			$types[$type->name] = $query->count();
 		}

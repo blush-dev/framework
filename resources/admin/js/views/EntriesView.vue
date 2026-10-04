@@ -36,6 +36,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import EntryTable from '../components/EntryTable.vue';
 import { compact } from '../density';
+import { makeHomepage } from '../homepage';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import TrashTable from '../components/TrashTable.vue';
 import { plural } from '../format';
@@ -269,7 +270,8 @@ const dateColumn = computed<{ key: 'published' | 'updated'; label: string }>(() 
 	? { key: 'published', label: 'Published' }
 	: { key: 'updated', label: 'Updated' });
 
-// The rows pinned above the entries: the index page, then the authors
+// The rows pinned above the entries: the index page (or Pages' root
+// page, D-420), then the authors
 // page (D-255, D-329), then Pages' error pages (D-411).
 function pinnedOf(answer: EntryList): EntrySummary[] {
 	return [answer.index, answer.authorsPage, ...(answer.errorPages ?? [])].filter((entry): entry is EntrySummary => entry !== null && entry !== undefined);
@@ -510,6 +512,16 @@ function duplicate(entry: EntrySummary): void {
 	});
 }
 
+/**
+ * Makes the root page the homepage (D-420), then reloads the list for
+ * its new chip.
+ */
+async function toHomepage(entry: EntrySummary): Promise<void> {
+	if (await makeHomepage(entry.title, entry.homeInstead)) {
+		await load();
+	}
+}
+
 type BulkAction = 'publish' | 'draft' | 'trash';
 
 const canPublish = computed(() => canType(type.value, 'publish'));
@@ -635,7 +647,7 @@ const emptyText = computed(() => {
 		<section v-if="nothingYet" class="panel" aria-labelledby="entries-heading">
 			<!-- A type with an index page is never empty: the index page is
 			     already there, so the first-run state sits under it (D-255). -->
-			<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" :date-label="dateColumn.label" :date-key="dateColumn.key" :terms="terms && info?.kind !== 'profiles'" :profiles="info?.kind === 'profiles'" />
+			<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" :date-label="dateColumn.label" :date-key="dateColumn.key" :terms="terms && info?.kind !== 'profiles'" :profiles="info?.kind === 'profiles'" @homepage="toHomepage" />
 			<div class="empty">
 				<AdminIcon :name="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" />
 				<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
@@ -746,6 +758,7 @@ const emptyText = computed(() => {
 						:dir="dir || null"
 						@trash="moveToTrash"
 						@duplicate="duplicate"
+						@homepage="toHomepage"
 						@sort="sortBy"
 					/>
 

@@ -61,6 +61,8 @@ bin/blush serve
 
 Open http://127.0.0.1:8000. You'll see the homepage from
 `user/content/index.md`. Edit that file and reload to see your change.
+(Without that file, a welcome page shows the next steps instead, and,
+while you're not in production, anything wrong with your setup.)
 
 Use `bin/blush serve --port=8080` for another port.
 

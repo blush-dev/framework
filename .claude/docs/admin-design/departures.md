@@ -649,6 +649,11 @@ Each is recorded in `.claude/docs/decisions.md`.
   line on the entry's tab (under Publish, as the prototype has it),
   no type fields, no date or scheduling, and no Move to trash. Not yet:
   the type screen's switch, or a new type being born with one.
+- **The root page and the homepage** (D-420), not in the direction:
+  Pages pin `index.md` in the index page's place, and whichever entry
+  is the homepage has a house for its pin and a **Homepage** tag; a root
+  page the homepage doesn't show is tagged **Not shown**, with **Make
+  homepage**.
 - **The design refresh of D-265.** From the updated direction: the space
   scale (`--s-1` to `--s-7`), `--ctl` and `--ctl-sm`, flat surfaces
   (`--shadow-1: none`), larger radii, and the looser density tokens, in

@@ -27,6 +27,13 @@ const collapsed = ref(new Set<string>());
  * trashed. Pages' error pages are pinned the same way (D-411), tagged
  * with their status (**Error 404**), never duplicated.
  *
+ * Pages pin their root page, `index.md`, in the index page's place
+ * (D-420). The homepage, there or a collection's index page, has a
+ * house for its pin and a **Homepage** tag in place of **Index**. A
+ * root page the homepage doesn't show is tagged **Not shown**, with
+ * **Make homepage** beside it and in its menu (`homepage`) for whoever
+ * may change the setting.
+ *
  * A tree page that starts inside a branch begins with the entries above
  * it, marked **Continued** (D-263). Collapsing a branch hides the rows
  * under it on this page.
@@ -78,6 +85,7 @@ const selected = defineModel<string[]>('selected', { default: () => [] });
 defineEmits<{
 	trash: [entry: EntrySummary];
 	duplicate: [entry: EntrySummary];
+	homepage: [entry: EntrySummary];
 	sort: [column: EntrySort];
 }>();
 
@@ -141,6 +149,14 @@ const chosen    = computed(() => choosable.value.filter((id) => selected.value.i
 const allState  = computed<'true' | 'false' | 'mixed'>(() => chosen.value === 0 ? 'false' : (chosen.value === choosable.value.length ? 'true' : 'mixed'));
 
 function pinTitle(entry: EntrySummary): string {
+	if (entry.homepage) {
+		return 'Pinned: the site\'s homepage, at /';
+	}
+
+	if (entry.rootPage) {
+		return 'Pinned: the page at user/content/index.md';
+	}
+
 	if (entry.errorPage !== null) {
 		return `Pinned: the page the site shows for error ${entry.errorPage}`;
 	}
@@ -149,7 +165,12 @@ function pinTitle(entry: EntrySummary): string {
 }
 
 function isPinned(entry: EntrySummary): boolean {
-	return entry.index || entry.authorsPage || entry.errorPage !== null;
+	return entry.index || entry.rootPage || entry.authorsPage || entry.errorPage !== null;
+}
+
+// The homepage's pin is a house, wherever it's pinned (D-420).
+function pinIcon(entry: EntrySummary): 'house' | 'pin' {
+	return entry.homepage ? 'house' : 'pin';
 }
 
 function canSelect(entry: EntrySummary): boolean {
@@ -224,7 +245,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 			<tbody v-for="group in groups" :key="group.key" :class="{ 'table__pinned': group.key === 'pinned' }">
 				<tr v-for="entry in group.entries" :key="`${entry.id}${entry.continued ? ':continued' : ''}`" :class="{ 'is-selected': selectable && isSelected(entry) }">
 					<td v-if="selectable" class="table__check">
-						<span v-if="isPinned(entry)" class="table__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /><span class="visually-hidden">Pinned</span></span>
+						<span v-if="isPinned(entry)" class="table__pin" :title="pinTitle(entry)"><AdminIcon :name="pinIcon(entry)" /><span class="visually-hidden">Pinned</span></span>
 						<button v-else-if="canSelect(entry)" type="button" class="check" role="checkbox" :aria-checked="isSelected(entry) ? 'true' : 'false'" :aria-label="`Select ${entry.title || 'Untitled'}`" @click="choose(entry)"><AdminIcon name="check" /></button>
 					</td>
 					<th scope="row">
@@ -234,13 +255,18 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 						<span v-if="profiles" class="avatar" :class="{ 'avatar--guest': !entry.linked }" aria-hidden="true">{{ initials(entry.title || '?') }}</span>
 						<span class="entry-title">
 							<span class="entry-title__text">
-								<span v-if="isPinned(entry) && !selectable" class="entry-title__pin" :title="pinTitle(entry)"><AdminIcon name="pin" /></span>
+								<span v-if="isPinned(entry) && !selectable" class="entry-title__pin" :title="pinTitle(entry)"><AdminIcon :name="pinIcon(entry)" /></span>
 								<span v-if="entry.depth === null && entry.ancestors.length" class="entry-title__ancestors">{{ entry.ancestors.join(' › ') }} ›{{ ' ' }}</span>
 								<RouterLink class="entry-title__link" :to="listRoute(entry)">
 									<template v-if="entry.title">{{ entry.title }}</template>
 									<span v-else class="untitled">Untitled</span>
 								</RouterLink>
-								<template v-if="entry.index">{{ ' ' }}<span class="index-mark">Index</span></template>
+								<template v-if="entry.homepage">{{ ' ' }}<span class="index-mark">Homepage</span></template>
+								<template v-else-if="entry.index">{{ ' ' }}<span class="index-mark">Index</span></template>
+								<template v-else-if="entry.rootPage">
+									{{ ' ' }}<span class="index-mark" :title="`The homepage shows ${entry.homeInstead?.toLowerCase() ?? 'something else'} instead, so this page isn't on the site`">Not shown</span>
+									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk entry-title__action" @click="$emit('homepage', entry)">Make homepage</button></template>
+								</template>
 								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">{{ entry.peopleLabel ?? 'People' }}</span></template>
 								<template v-if="entry.errorPage !== null">{{ ' ' }}<span class="index-mark">Error {{ entry.errorPage }}</span></template>
 								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span><span v-else-if="entry.own" class="tag">Yours</span>
@@ -276,6 +302,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 								<button type="button" class="menu-item" @click="copyLink(entry)"><AdminIcon name="link" />Copy link</button>
 							</template>
 							<button v-if="entry.can.duplicate && !terms && !profiles" type="button" class="menu-item" @click="$emit('duplicate', entry)"><AdminIcon name="copy" />Duplicate</button>
+							<button v-if="entry.can.makeHomepage" type="button" class="menu-item" @click="$emit('homepage', entry)"><AdminIcon name="house" />Make homepage</button>
 							<template v-if="entry.can.delete">
 								<div class="menu-divider" />
 								<button type="button" class="menu-item menu-item--danger" @click="$emit('trash', entry)"><AdminIcon name="trash-2" />Move to trash</button>
