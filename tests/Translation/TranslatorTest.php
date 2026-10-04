@@ -81,6 +81,19 @@ final class TranslatorTest extends TestCase
 		$this->assertSame('English', $translator->translate('only', [], 'theme', 'fr_CA'));
 		$this->assertSame('Color', $translator->translate('color', [], 'theme'));
 		$this->assertSame(['fr_CA', 'fr', 'en_US', 'en'], Translator::fallbacks('fr-ca', 'en_US'));
+		$this->assertSame(['de', 'fr_FR', 'fr', 'en'], Translator::fallbacks('de', 'fr_FR'), 'English last, always.');
+	}
+
+	public function testFallsBackToEnglishLast(): void
+	{
+		$this->writeTemporaryFile('parent/en.json', '{"hello": "Hello", "lines": {"one": "One"}}');
+		$this->writeTemporaryFile('parent/fr.json', '{"bye": "Au revoir"}');
+
+		$translator = $this->translator('fr_FR');
+
+		$this->assertSame('Au revoir', $translator->translate('bye', [], 'theme'));
+		$this->assertSame('Hello', $translator->translate('hello', [], 'theme'), 'A package with only English shows English, not its key.');
+		$this->assertSame(['one' => 'One'], $translator->group('lines', [], 'theme'));
 	}
 
 	public function testGroupsComeWholeFromOneLocale(): void
@@ -94,6 +107,18 @@ final class TranslatorTest extends TestCase
 		$this->assertSame(['mixtape' => 'A mixtape.', 'coffee' => 'Coffee, Ada.', 'love' => 'Love.'], $translator->group('lines', ['name' => 'Ada'], 'theme'), 'A child theme adds to the group.');
 		$this->assertSame(['cafe' => 'Au café, Ada.'], $translator->group('lines', ['name' => 'Ada'], 'theme', 'fr'), 'No English lines mixed in.');
 		$this->assertSame([], $translator->group('missing', [], 'theme'));
+	}
+
+	public function testMetadataKeysArentMessages(): void
+	{
+		$this->writeTemporaryFile('parent/en.json', '{"@@locale": "en", "@@domain": "acme/hello", "hello": "Hello"}');
+		$this->writeTemporaryFile('child/en.yaml', "'@@locale': en\nhello: Howdy\n");
+
+		$translator = $this->translator();
+
+		$this->assertSame('Howdy', $translator->translate('hello', [], 'theme'));
+		$this->assertFalse($translator->has('@@locale', 'theme'));
+		$this->assertFalse($translator->has('@@domain', 'theme'));
 	}
 
 	public function testMissingKeysComeBackAsTheKey(): void

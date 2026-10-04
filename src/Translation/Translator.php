@@ -30,15 +30,23 @@ use Blush\Data\InvalidData;
  * (`lang/en_US.json`, `lang/en.yaml`) in an ordered list of directories;
  * for each key the first directory that has it wins, so a child theme
  * overrides its parent message by message. Nested objects flatten into
- * dotted keys.
+ * dotted keys. Keys starting with `@@` are metadata, not messages: a
+ * catalog says what it translates with `@@locale` and `@@domain` (D-452).
  *
- * Locales fall back from the most specific: `en_US`, then `en`, then the
- * site locale and its language. A key found nowhere comes back as the
+ * Locales fall back from the most specific: `fr_CA`, then `fr`, then the
+ * site locale and its language, and last `en` (D-453), the language
+ * packages ship first, so a package with only `en.json` shows English
+ * rather than its keys on a French site. A key found nowhere comes back as the
  * key itself (formatted with its parameters), so a missing translation
  * shows up without breaking the page.
  */
 final class Translator
 {
+	/**
+	 * The locale every lookup falls back to last.
+	 */
+	public const string LAST = 'en';
+
 	/**
 	 * Loaded catalogs, keyed by `{domain}|{locale}`.
 	 *
@@ -143,7 +151,7 @@ final class Translator
 
 	/**
 	 * Returns the locales to look in, most specific first: the locale,
-	 * its language, then the default locale and its language.
+	 * its language, the default locale and its language, then `en`.
 	 *
 	 * @return list<string>
 	 */
@@ -156,6 +164,8 @@ final class Translator
 			$locales[] = $name;
 			$locales[] = Locale::getPrimaryLanguage($name) ?? $name;
 		}
+
+		$locales[] = self::LAST;
 
 		return array_filter($locales, static fn (string $name): bool => $name !== '')
 			|> array_unique(...)
@@ -186,7 +196,8 @@ final class Translator
 	}
 
 	/**
-	 * Flattens nested messages into dotted keys, keeping only strings.
+	 * Flattens nested messages into dotted keys, keeping only strings and
+	 * skipping `@@` metadata keys.
 	 *
 	 * @param  array<array-key, mixed> $messages
 	 * @return array<string, string>
@@ -196,6 +207,10 @@ final class Translator
 		$flat = [];
 
 		foreach ($messages as $key => $message) {
+			if (Catalog::isMeta($key)) {
+				continue;
+			}
+
 			$key = $prefix . $key;
 
 			if (is_array($message)) {

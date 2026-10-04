@@ -28,10 +28,12 @@ use Blush\Extension\InstalledExtensions;
 use Blush\Extension\LocalExtensions;
 use Blush\JsonSchema\JsonSchemas;
 use Blush\Support\Filesystem;
+use Blush\Translation\Catalog;
 
 /**
- * Starts a plugin in `extensions/{vendor}/{name}` (D-418): a manifest and
- * an empty service provider, autoloaded from `src/` (D-041, D-416). The
+ * Starts a plugin in `extensions/{vendor}/{name}` (D-418): a manifest,
+ * an empty service provider, autoloaded from `src/` (D-041, D-416), and
+ * a starter `lang/en.json` that names what it translates (D-452). The
  * plugin is named `vendor/name` (D-378); its namespace defaults to its
  * name, hyphenated (D-424), its label to one made from the part after
  * the `/`, and its PHP
@@ -108,6 +110,7 @@ final readonly class CreatePlugin
 
 		$this->filesystem->writeAtomic("{$folder}/plugin.json", json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
 		$this->filesystem->writeAtomic("{$folder}/src/{$class}.php", self::provider($phpNamespace, $class, $label));
+		$this->filesystem->writeAtomic("{$folder}/lang/en.json", Catalog::starter($name));
 
 		$output->success(sprintf(
 			'Created %s. It\'s off: turn it on in the admin (Config → Plugins) or add "%s" to config/plugins.php\'s enabled list.',

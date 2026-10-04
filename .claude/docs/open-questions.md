@@ -194,6 +194,17 @@ Move each item to `decisions.md` once it's answered.
   - **A possible shape:** Tools with tabs for Actions (built-ins and
     plugins' actions, grouped by who registered them), Status (the site
     check), and Logs; Backups and Export once they exist.
+- **Translation overrides and management** (D-451; raised 2026-10-04):
+  - Where uploads and management go in the admin: translations aren't
+    extensions (no code, no manifest), but an **Extend** rail section
+    (Plugins, Themes, Icon Packs, then Translations) could hold them;
+    or a Languages screen tied to multilingual sites.
+  - Multilingual sites in 2.0.0 (D-451, D-036): the site's languages,
+    translated content, and translated strings likely belong on one
+    screen, with what's missing per language.
+  - Whether `user/lang/{locale}/app.json` is offered in the admin, or
+    the site's own strings stay in `resources/lang`.
+  - The admin's own strings, which aren't translatable yet (D-278).
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the

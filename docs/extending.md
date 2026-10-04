@@ -510,8 +510,10 @@ Themes work as they always have: one is active, set in
 
 **A local plugin** lives in `extensions/{vendor}/{name}/`, with a
 `plugin.json` (or `plugin.yaml`). `bin/blush plugin:new acme/hello`
-starts one for you in `extensions/acme/hello/`: the manifest, and an
-empty provider in `src/HelloServiceProvider.php` to fill in.
+starts one for you in `extensions/acme/hello/`: the manifest, an
+empty provider in `src/HelloServiceProvider.php` to fill in, and a
+`lang/en.json` for its text, with its
+[`@@locale` and `@@domain`](themes.md#translations) filled in.
 
 ```json
 {
@@ -868,7 +870,8 @@ it was found, such as `extensions/acme/hello`, with the reason.
 A plugin's [components](components.md) use its namespace: `acme/hello`,
 with the namespace `hello`, registers `hello/tabs`, not `tabs`. Their
 text (labels, descriptions) goes in the plugin's `lang/en.json`, under
-`components.tabs`. A plugin's component draws itself with its
+`components.tabs`, with `@@locale` and `@@domain` (`"acme/hello"`) at
+the top ([Translations](themes.md#translations)). A plugin's component draws itself with its
 `render()`, usually a template file in the plugin returned by
 `$this->view(__DIR__ . '/../views/tabs.php')` (see
 [Rendering itself](components.md#rendering-itself)); a theme or your
@@ -1117,11 +1120,16 @@ Labels go in the pack's `lang/en.json`, under `icons.{icon}.label`:
 
 ```json
 {
+	"@@locale": "en",
+	"@@domain": "acme/brands",
 	"icons": {
 		"github": { "label": "GitHub" }
 	}
 }
 ```
+
+Start every catalog with `@@locale` and `@@domain` (the pack's name), as
+[themes do](themes.md#translations).
 
 Every installed pack is on, and its icons appear in `bin/blush
 icon:list` and the admin's icon inserter. Turn one off on the admin's

@@ -13289,3 +13289,87 @@ decision, add a new entry that supersedes it and mark the old one
   `<meta name="generator">` tag.
 - **Checked:** `composer check`.
 - **Why:** personality, as 1.x had.
+
+### D-451: Translation domains by `vendor/name`, and overrides in `user/lang`
+
+- **Date:** 2026-10-04
+- **Status:** Decided, not built. Amends D-378 (an extension's
+  translation domain was its namespace) and D-028 (the shared `theme`
+  domain). Admin placement is open (`open-questions.md`).
+- **Decision:**
+  - **One format for domains:** every extension's translation domain is
+    its `vendor/name` (`acme/hello`, `justintadlock/jtcom`), for
+    plugins, themes, and icon packs alike, with no alias for the old
+    namespace domain. The framework keeps `blush` and the site keeps
+    `app`. The namespace stays the short prefix for components and
+    icons (`::jtcom/…`); a component's labels (D-172) find their domain
+    through the extension that owns the namespace.
+  - **Themes:** the shared `theme` domain goes. `$template->t()` and
+    `tGroup()` search the active chain's domains in order, child first,
+    so theme authors write the same calls.
+  - **Overrides in `user/lang`, locale first:** a site's own catalogs
+    for any domain, one folder per language: `user/lang/fr/blush.json`,
+    `user/lang/fr/app.json`, and
+    `user/lang/fr/extensions/{vendor}/{name}.json` (extensions apart
+    from `blush` and `app`, mirroring the root `extensions/`).
+    Packages still ship domain first (`lang/fr.json`); a site's
+    overrides are arranged by language because that's how a
+    multilingual site is run: a language is one folder to see, add,
+    zip as a language pack, and remove (the author's call, as the
+    starting point for getting the structure right). They win over the
+    package's own, key by key, within a locale (the
+    locale is still checked first, so a package's `fr` beats an
+    override's `en`). A group (`tGroup()`) in an override replaces the
+    package's group for that locale.
+  - **Uploadable:** catalogs (and a `.zip` of them) can be uploaded in
+    the admin into `user/lang`; where in the admin is open.
+  - **Multilingual sites are in scope for 2.0.0** (the author's goal),
+    which the admin's translation management should be designed for.
+- **Why:** `vendor/name` is already unique and checked, it's the folder
+  extensions live in (D-418), and it gives overrides a path that maps
+  one to one; the author sees `vendor/name` as Blush's strongest
+  convention. Overrides let a site reword or translate any package
+  without a child theme.
+
+### D-452: Catalogs say what they translate: `@@locale` and `@@domain`
+
+- **Date:** 2026-10-04
+- **Status:** Builds on D-451.
+- **Decision:** A translation catalog names its language and domain in
+  ARB's style (Flutter's format, where `@`-prefixed keys are metadata):
+  `"@@locale": "fr"` and `"@@domain": "acme/hello"` (the package's
+  `vendor/name`, or `blush`, or `app`). Keys starting with `@@` are
+  never messages; the translator skips them at any depth. They're
+  optional when reading, but the default everywhere Blush writes or
+  shows a catalog: every catalog the framework ships
+  (`resources/lang/en.json`, the default theme's), the jtcom trial's
+  and the example extensions', and every catalog example in `docs/`,
+  which recommends them (`themes.md` → Translations; quote them in
+  YAML), and the starter `lang/en.json` that `theme:new` and
+  `plugin:new` write (`Translation\Catalog::starter()`; the author's
+  ask, the same day). Catalogs the admin downloads or writes will carry them, and an
+  uploaded file with them places itself; in a `.zip`, metadata that
+  disagrees with the file's path refuses the upload (to build with
+  uploads, D-451).
+- **Checked:** `composer check`.
+- **Why:** most JSON catalog systems (Symfony, Laravel, i18next) rely
+  on the path alone, but the exchange formats (gettext headers,
+  WordPress's JSON, ARB, XLIFF) carry it in the file, so a catalog can
+  be recognized away from its folder, sent to a translator and back, or
+  uploaded on its own. ARB's `@@` prefix is the plainest JSON form.
+  The author asked for it to be the default and encouraged.
+
+### D-453: English is the last fallback locale
+
+- **Date:** 2026-10-04
+- **Status:** Amends D-028's fallback order.
+- **Decision:** `Translator::fallbacks()` ends with `en`
+  (`Translator::LAST`) after the locale, its language, the site locale,
+  and its language. Before, the chain stopped at the site's language, so
+  on a French site a package with only `en.json` (what `theme:new` and
+  `plugin:new` start, D-452) showed its keys. Locale maps in menus and
+  regions (`LocaleMap::text()`) use the same chain, so they try English
+  before the first text written.
+- **Checked:** `composer check`.
+- **Why:** English is the language packages ship first; the author's
+  call.

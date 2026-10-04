@@ -147,6 +147,7 @@ That makes the smallest valid theme, in a folder at its name:
 extensions/acme/notebook/
   theme.json    {"$schema": "…", "name": "acme/notebook", "label": "Notebook", "namespace": "acme-notebook", "version": "1.0.0", "styles": ["style.css"]}
   style.css
+  lang/en.json  {"@@locale": "en", "@@domain": "acme/notebook"}, for your theme's text
 ```
 
 `--label`, `--namespace`, and `--parent` (another theme's name) set those
@@ -486,6 +487,32 @@ The head prints root-relative links and scripts (`/feed`,
 `$template->asset(...)`) as full URLs on your site's `url`, so pass
 paths as they are. Meta tag values print as given, so give `og:image`
 and the like a full URL.
+
+### Translations
+
+A theme's text lives in its `lang/` folder, one catalog per language
+(`en.json`, `fr.json`, `fr_CA.json`; YAML works too), read with
+`$template->t('key')`. Start each catalog with `@@locale` and `@@domain`,
+which say what it translates: the language, and your theme's name.
+
+```json
+{
+	"@@locale": "fr",
+	"@@domain": "acme/notebook",
+	"read_more": "Lire la suite de {title}"
+}
+```
+
+A page looks for each message in its own language (`fr_CA`), then
+without the region (`fr`), then your site's language, and last English.
+So `en.json` is the one catalog every theme should have: a site in a
+language you haven't translated shows your English text.
+
+Keys that start with `@@` aren't messages, so they never show on a page.
+They let a catalog be recognized on its own, away from its folder, such
+as when it's sent to a translator and back. Every catalog Blush ships
+has them, and plugins and icon packs use them the same way, with their
+own names. In YAML, quote them: `'@@locale': fr`.
 
 On later pages of a listing, the title gets the page number: "Blog:
 Page 2", or "Page 2" on the front page. To word it differently, add

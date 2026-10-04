@@ -382,6 +382,10 @@ dynamically).
   `open-questions.md`. Markdown pages and `llms.txt` are done (D-395,
   D-396), and the AI Settings screen with AI crawler rules and a site
   description (D-398, D-399).
+- **Translations and multilingual sites (D-451):** translation domains
+  by `vendor/name`, overrides in `user/lang/{locale}/` that win,
+  uploads in the admin, and multilingual sites (D-036) as a 2.0.0 goal;
+  the admin's placement is open (`open-questions.md`).
 - **Front-end search:** a JSON index that also works on a static
   export; see `open-questions.md`.
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a

@@ -209,6 +209,7 @@ final class PluginCommandsTest extends TestCase
 			],
 			json_decode((string) file_get_contents("{$folder}/plugin.json"), true)
 		);
+		$this->assertSame(['@@locale' => 'en', '@@domain' => 'acme/scaffold-test'], json_decode((string) file_get_contents("{$folder}/lang/en.json"), true));
 		$this->assertStringContainsString('config/plugins.php', $result->output);
 
 		// It's off until named; named, it loads and runs.

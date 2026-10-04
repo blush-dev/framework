@@ -180,8 +180,8 @@ Any text can be written once per language:
 
 The page's language picks the text: an entry's `locale`, or your site's
 (`APP_LOCALE`). If there's no text for it, the language without its
-region is tried (`fr` for `fr_CA`), then your site's, then the first one
-written.
+region is tried (`fr` for `fr_CA`), then your site's, then English, then
+the first one written.
 
 ## For theme authors
 

@@ -752,6 +752,8 @@ under `components.{name}`:
 
 ```json
 {
+	"@@locale": "en",
+	"@@domain": "acme/hello",
 	"components": {
 		"badge": {
 			"label": "Badge",

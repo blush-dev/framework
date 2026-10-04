@@ -1,4 +1,6 @@
 {
+	"@@locale": "en",
+	"@@domain": "blush/default",
 	"skip_to_content": "Skip to content",
 	"site_navigation": "Site",
 	"powered_by": {

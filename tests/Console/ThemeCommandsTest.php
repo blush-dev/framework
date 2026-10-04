@@ -102,6 +102,7 @@ final class ThemeCommandsTest extends TestCase
 			json_decode((string) file_get_contents($this->root() . '/extensions/acme/nova/theme.json'), true)
 		);
 		$this->assertFileExists($this->root() . '/extensions/acme/nova/style.css');
+		$this->assertSame(['@@locale' => 'en', '@@domain' => 'acme/nova'], json_decode((string) file_get_contents($this->root() . '/extensions/acme/nova/lang/en.json'), true));
 		$this->assertStringContainsString('theme:activate acme/nova', $result->output);
 		$this->assertSame(ExitCode::Success, $this->command(['theme:new', 'acme/dusk-mode', '--namespace=dusk'])->exitCode);
 		$this->assertStringContainsString('"label": "Dusk Mode"', (string) file_get_contents($this->root() . '/extensions/acme/dusk-mode/theme.json'));
