@@ -330,8 +330,6 @@ Move each item to `decisions.md` once it's answered.
   their title.
 - **More icons** (D-187): bundle all of Lucide (about 2,100) rather than
   the front-end subset. Brand logos are the theme's (D-203).
-- **Refreshing embeds**: `storage/cache/store/embeds` is only emptied by
-  hand; a `cache:clear --embeds` or `embed:refresh` command may help.
 - **Extensions the framework ships** (discussed 2026-10-03, after D-418;
   nothing decided, nothing built): the author expects to ship several
   defaults over the years (themes, icon packs, plugins), so they'd

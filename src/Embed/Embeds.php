@@ -21,7 +21,7 @@ use Blush\Cache\Caches;
 /**
  * Looks up URLs with their oEmbed providers (D-184). Each answer is kept
  * in the `embeds` store, which publishing and `cache:clear` leave alone
- * and which works even when caching is off, so a provider is asked about
+ * (only `cache:clear --embeds` empties it, D-448) and which works even when caching is off, so a provider is asked about
  * a URL once a month, not on every render. A failure (no answer, an error
  * status, or a response that isn't oEmbed) is kept for an hour, and the
  * embed falls back to what its provider can do from the URL alone.

@@ -54,7 +54,7 @@ Implemented in M2 (D-065, D-069).
 | `list` | List the commands (the default) |
 | `help <command>` | Show a command's usage |
 | `serve [--host] [-p\|--port] [--static]` | Dev server (`php -S` + `resources/server.php`); `--static` previews the static export through `resources/static-server.php`, applying its `_redirects` (D-138, D-140) |
-| `cache:clear [--config\|--plugins\|--container\|--routes\|--types\|--themes\|--icon-packs\|--store]` | Clear compiled caches and the cache store, bumping the content version (no flags: all; `--store`: only the store, D-128) |
+| `cache:clear [--config\|--plugins\|--container\|--routes\|--types\|--themes\|--icon-packs\|--store\|--embeds]` | Clear compiled caches and the cache store, bumping the content version (no flags: all; `--store`: only the store, D-128; `--embeds`: the oEmbed answers and the store, D-448) |
 | `cache:compile` | Compile config, plugins, themes, icon packs, routes, content types, and container plans, then clear the cache store and bump the content version (D-060, D-066, D-077, D-092, D-115, D-128) |
 | `content:index [--full]` | Build or refresh the content index, with a progress bar; `-v` lists changes (M4b, D-087) |
 | `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry; `--strict` adds notices for undeclared keys, 1.x aliases, and virtual terms (D-081, D-084, D-091). Also checks media metadata files in `user/data/media`: unreadable, values that don't fit, hidden by another format, or describing a file that's gone (D-293) |

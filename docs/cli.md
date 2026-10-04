@@ -53,7 +53,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 |---|---|
 | `publish` | Put content changes live: reindex, refresh, and clear the caches. `--pull` runs `git pull` in `user/` first; `--no-pull` skips it. See [Going live](going-live.md#publishing-changes). |
 | `cache:compile` | Precompile config, routes, content types, themes, plugins, and icon packs for speed |
-| `cache:clear` | Clear every compiled file and cache. Flags clear just one: `--config`, `--plugins`, `--container`, `--routes`, `--types`, `--themes`, `--icon-packs`, `--store`. |
+| `cache:clear` | Clear every compiled file and cache. Flags clear just one: `--config`, `--plugins`, `--container`, `--routes`, `--types`, `--themes`, `--icon-packs`, `--store`. `--embeds` also clears the saved oEmbed answers (which nothing else clears) and the cache store, so providers are asked again. |
 | `content:index` | Update the content index. `--full` rebuilds it from scratch. (`publish` does this for you.) |
 | `schedule:run` | For cron: puts scheduled posts live on time, and prunes the cache and idle admin sessions |
 | `build` | Export the site to static files in `storage/export/`. Takes `--base-url=`, `--incremental`, and `--no-crawl`. |

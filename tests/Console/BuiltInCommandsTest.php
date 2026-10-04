@@ -15,6 +15,8 @@ namespace Blush\Tests\Console;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Blush\Cache\CacheNamespace;
+use Blush\Cache\Caches;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
 use Blush\Console\Commands\Help;
@@ -160,5 +162,30 @@ final class BuiltInCommandsTest extends TestCase
 		$this->assertStringNotContainsString('compiled', $store->output);
 		$this->assertStringContainsString('Cleared the cache store', $store->output);
 		$this->assertNotSame($version, file_get_contents("{$root}/storage/cache/content-version.json"));
+	}
+
+	public function testCacheClearEmbedsEmptiesTheOEmbedAnswersAndTheStore(): void
+	{
+		$app    = $this->site($this->fixtureSite());
+		$tester = new CommandTester($app->container()->make(Console::class));
+		$caches = $app->container()->make(Caches::class);
+
+		$caches->persistent(CacheNamespace::Embeds)->set('answer', ['response' => null]);
+		$caches->persistent(CacheNamespace::Pages)->set('page', 'html');
+
+		$tester->run('cache:clear');
+
+		$this->assertTrue($caches->persistent(CacheNamespace::Embeds)->has('answer'));
+
+		$caches->persistent(CacheNamespace::Pages)->set('page', 'html');
+
+		$result = $tester->run('cache:clear --embeds');
+
+		$this->assertTrue($result->isSuccessful());
+		$this->assertStringContainsString('Cleared the oEmbed answers.', $result->output);
+		$this->assertStringContainsString('Cleared the cache store', $result->output);
+		$this->assertStringNotContainsString('compiled', $result->output);
+		$this->assertFalse($caches->persistent(CacheNamespace::Embeds)->has('answer'));
+		$this->assertFalse($caches->persistent(CacheNamespace::Pages)->has('page'));
 	}
 }

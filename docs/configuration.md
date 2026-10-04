@@ -242,7 +242,8 @@ Instagram) show as links for now.
 | `failureTtl` | `3600` | Seconds before asking again after a provider didn't answer |
 
 Answers are kept in `storage/cache/store/embeds`, which publishing and
-`cache:clear` leave alone. Delete that folder to ask every provider again.
+`cache:clear` leave alone. Run `bin/blush cache:clear --embeds` to ask
+every provider again.
 
 ### Markdown
 

@@ -849,6 +849,7 @@ Implemented in M7 (D-135 to D-140).
   (`StreamFetcher` by default) on first render and keeps the answer
   (`EmbedData`) in the persistent `embeds` store: 30 days, failures an
   hour. `EmbedConfig` sets the providers, `fetch`, timeout, and TTLs.
+  `cache:clear --embeds` empties the store, with the cache store (D-448).
 - **Rendering:** the `embed` component frames `provider->frame()` with
   the answer's size (as `--embed-ratio`) and title; the theme owns the
   markup. Script-based rich embeds render as links for now.

@@ -46,7 +46,8 @@ enum CacheNamespace: string
 
 	/**
 	 * oEmbed answers (D-184), which expire on their own. Never cleared with
-	 * the others, so publishing doesn't ask every provider again.
+	 * the others, so publishing doesn't ask every provider again;
+	 * `cache:clear --embeds` empties it (D-448).
 	 */
 	case Embeds = 'embeds';
 

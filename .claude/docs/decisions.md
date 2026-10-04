@@ -13215,3 +13215,22 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `composer check`.
 - **Why:** an editor completes it, and a misspelled style is an error
   instead of an ICU pattern that quietly prints letters.
+
+### D-448: `cache:clear --embeds`
+
+- **Date:** 2026-10-04
+- **Status:** Resolves the "Refreshing embeds" open question; builds on
+  D-184 and D-128.
+- **Decision:** `cache:clear --embeds` empties the `embeds` store, the
+  saved oEmbed answers, which neither publishing nor `cache:clear` touch
+  otherwise. It clears the cache store too (moving the content version
+  on), since rendered pages and bodies still hold the old embeds; it
+  leaves the compiled caches alone, like `--store`. A plain
+  `cache:clear` still keeps the answers. No `embed:refresh` command:
+  clearing is enough, because each embed is looked up again on its next
+  render.
+- **Checked:** `composer check`, with PHPStan 2.2.17 and
+  `symfony/yaml` 8.1.8 (patch updates; `composer.lock` isn't tracked, and
+  `composer.json`'s constraints already allow them).
+- **Why:** before this, the only way to ask providers again was deleting
+  `storage/cache/store/embeds` by hand.
