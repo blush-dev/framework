@@ -128,7 +128,7 @@ final readonly class JsonSchemas
 			'title'       => sprintf('%s theme manifest', Framework::NAME),
 			'description' => 'A theme\'s theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.',
 			'type'        => 'object',
-			'required'    => ['namespace'],
+			'required'    => [],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$this->identity('theme'),
@@ -232,7 +232,7 @@ final readonly class JsonSchemas
 			'title'       => sprintf('%s plugin manifest', Framework::NAME),
 			'description' => 'A local plugin\'s plugin.json: its name, label, namespace, service provider, and the classes autoloaded for it.',
 			'type'        => 'object',
-			'required'    => ['namespace', 'provider'],
+			'required'    => ['provider'],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$this->identity('plugin'),
@@ -262,7 +262,7 @@ final readonly class JsonSchemas
 			'title'       => sprintf('%s icon pack manifest', Framework::NAME),
 			'description' => 'An icon pack\'s icons.json: its name, label, namespace, and the folder its SVG icons are in.',
 			'type'        => 'object',
-			'required'    => ['namespace'],
+			'required'    => [],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$this->identity('icon pack'),
@@ -615,7 +615,7 @@ final readonly class JsonSchemas
 				'type'        => 'string',
 				'pattern'     => trim(ExtensionNamespace::PATTERN, '/'),
 				'not'         => ['enum' => ExtensionNamespace::RESERVED],
-				'description' => sprintf('The namespace the %s\'s components, icons, and translations go by, such as "gallery" for gallery/slideshow. No two installed extensions may share one.', $kind)
+				'description' => sprintf('The namespace the %s\'s components, icons, and translations go by, such as "gallery" for gallery/slideshow. No two installed extensions may share one. Without one, it\'s the name with hyphens for the "/" and any ".", such as "acme-gallery".', $kind)
 			]
 		];
 	}

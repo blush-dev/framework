@@ -1073,7 +1073,10 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   Composer's rule, `ExtensionName`; a Composer package's own name), and
   `label`, the readable title (optional: without one, or with a blank
   one, the name is the title, `ExtensionName::label()`, D-423; so a
-  Composer package needs no `extra.blush.label`). A local extension's folder is its name: a
+  Composer package needs no `extra.blush.label`), and `namespace`
+  (optional too: without one, the name with hyphens for the `/` and any
+  `.`, `ExtensionNamespace::fromName()`, D-424; an empty manifest, `{}`,
+  is valid). A local extension's folder is its name: a
   manifest naming another is broken, saying where it belongs.
 - **Composer's schema** (D-418): the keys a manifest shares with
   `composer.json` (`name`, `description`, `version`, `license`,

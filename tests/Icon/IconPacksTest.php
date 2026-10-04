@@ -53,7 +53,7 @@ final class IconPacksTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/brands/lang/en.json', '{"icons": {"github": {"label": "GitHub"}}}');
 		$this->writeTemporaryFile('extensions/acme/weather/icons.yaml', "name: acme/weather\nlabel: Weather\nnamespace: weather\n");
 		$this->writeTemporaryFile('extensions/acme/weather/sun.svg', self::SVG);
-		$this->writeTemporaryFile('extensions/acme/broken/icons.json', '{"name": "acme/broken", "label": "Broken"}');
+		$this->writeTemporaryFile('extensions/acme/broken/icons.json', '{"name": "acme/broken", "label": "Broken", "namespace": "Not Valid"}');
 		$this->writeTemporaryFile('extensions/acme/not-a-pack/readme.md', 'No manifest.');
 		$this->writeTemporaryFile('config/icons.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Icon\\IconConfig(enabled: ['acme/brands', 'acme/weather']);\n");
 		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode(['packages' => [
@@ -129,6 +129,7 @@ final class IconPacksTest extends TestCase
 	public function testWithoutALabelAPackIsShownByItsName(): void
 	{
 		$this->assertSame('acme/x', IconPack::fromArray('/tmp/x', ['name' => 'acme/x', 'namespace' => 'x'])->label);
+		$this->assertSame('acme-x', IconPack::fromArray('/tmp/x', ['name' => 'acme/x'])->namespace, 'And by its name, hyphenated, without a namespace.');
 		$this->assertSame('acme/x', IconPack::fromArray('/tmp/x', ['name' => 'acme/x', 'label' => '', 'namespace' => 'x'])->label);
 	}
 

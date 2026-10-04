@@ -178,7 +178,7 @@ final class ThemesTest extends TestCase
 			'{"version": "1"}'                          => 'needs a "name"',
 			'{"name": "bad", "label": "X", "namespace": "bad"}' => 'needs a "name"',
 			'{"name": "acme/bad", "label": 5, "namespace": "bad"}' => '"label" must be a string',
-			'{"name": "acme/bad", "label": "X"}'        => 'needs a "namespace"',
+			'{"name": "acme/bad", "label": "X", "namespace": ""}' => 'needs a "namespace"',
 			'{"name": "acme/bad", "label": "X", "namespace": "app"}' => 'needs a "namespace"',
 			"{{$x}, \"parent\": \"Bad Slug\"}"         => '"parent" must be a theme\'s name',
 			"{{$x}, \"parent\": \"bad\"}"              => '"parent" must be a theme\'s name',
@@ -203,12 +203,16 @@ final class ThemesTest extends TestCase
 		}
 	}
 
-	public function testWithoutALabelAThemeIsShownByItsName(): void
+	public function testWithoutALabelOrNamespaceAThemeGoesByItsName(): void
 	{
-		$this->writeTemporaryFile('extensions/acme/plain/theme.json', '{"namespace": "plain"}');
+		$this->writeTemporaryFile('extensions/acme/plain/theme.json', '{}');
 		$this->writeTemporaryFile('extensions/acme/plain/composer.json', '{"name": "acme/plain"}');
 
-		$this->assertSame('acme/plain', $this->themes()->find('acme/plain')?->label);
+		$theme = $this->themes()->find('acme/plain');
+
+		$this->assertNotNull($theme);
+		$this->assertSame('acme/plain', $theme->label);
+		$this->assertSame('acme-plain', $theme->namespace, 'And by its name, hyphenated, without a namespace.');
 	}
 
 	public function testConfigValidatesTheActiveName(): void

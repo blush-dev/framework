@@ -46,7 +46,9 @@ final readonly class ManifestFile
 	}
 
 	/**
-	 * Reads a manifest file as a map of keys to values.
+	 * Reads a manifest file as a map of keys to values. An empty one (`{}`)
+	 * is a map with nothing in it, since a manifest may leave every key to
+	 * its `composer.json` or a default (D-424).
 	 *
 	 * @return array<string, mixed>
 	 * @throws ExtensionException When it can't be parsed or isn't a map.
@@ -63,7 +65,7 @@ final readonly class ManifestFile
 			throw new ExtensionException(sprintf('The manifest %s is invalid: %s', $file, $e->getMessage()), previous: $e);
 		}
 
-		if (! is_array($data) || array_is_list($data)) {
+		if (! is_array($data) || ($data !== [] && array_is_list($data))) {
 			throw new ExtensionException(sprintf('The manifest %s must be a map of keys to values.', $file));
 		}
 

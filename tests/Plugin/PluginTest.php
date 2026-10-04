@@ -118,7 +118,7 @@ final class PluginTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/plain/plugin.json', '{"namespace": "plain", "provider": "A\\\\B", "label": " "}');
 		$this->writeTemporaryFile('extensions/acme/plain/composer.json', '{"name": "acme/plain"}');
 		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode([
-			['name' => 'acme/bare', 'type' => 'blush-plugin', 'extra' => ['blush' => ['namespace' => 'bare', 'provider' => 'Acme\Bare\Provider']]]
+			['name' => 'acme/bare', 'type' => 'blush-plugin', 'extra' => ['blush' => ['provider' => 'Acme\Bare\Provider']]]
 		]));
 
 		$local    = self::finder($this->temporaryDirectory() . '/extensions')->find();
@@ -127,6 +127,8 @@ final class PluginTest extends TestCase
 		$this->assertSame([], $local->broken);
 		$this->assertSame('acme/plain', $local->manifests[0]->label ?? null, 'A blank label is no label, and the name may come from composer.json.');
 		$this->assertSame('acme/bare', $composer[0]->label, 'Composer packages need no extra.blush.label.');
+		$this->assertSame('plain', $local->manifests[0]->namespace ?? null);
+		$this->assertSame('acme-bare', $composer[0]->namespace, 'Without a namespace, it goes by its name, hyphenated.');
 	}
 
 	public function testComposerPluginsWithoutTheirManifestAreBroken(): void
@@ -175,7 +177,7 @@ final class PluginTest extends TestCase
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "autoload": {"psr-4": {"A\\\\": "../escape"}}}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "autoload": {"psr-4": {"NoSlash": "src"}}}',
 			'{"name": "ok/name", "label": 5, "namespace": "ok", "provider": "A\\\\B"}',
-			'{"name": "ok/name", "label": "OK", "provider": "A\\\\B"}',
+			'{"name": "ok/name", "label": "OK", "namespace": 5, "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "blush", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "Not Valid", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok"}',

@@ -34,8 +34,8 @@ use Blush\Theme\Themes;
  * Starts a theme in `extensions/{vendor}/{name}` (D-418): the smallest
  * valid theme, a manifest and a stylesheet (D-021). Everything else falls
  * back to its parent, or to the default theme. The theme is named
- * `vendor/name` (D-378); its namespace defaults to the part after the
- * `/`, and its label to one made from it. The name and namespace must be free
+ * `vendor/name` (D-378); its namespace defaults to its name, hyphenated
+ * (D-424), and its label to one made from the part after the `/`. The name and namespace must be free
  * across every installed extension (`InstalledExtensions`, D-417). The
  * manifest points editors at the framework's `theme.json` schema in
  * `vendor` (D-206).
@@ -59,14 +59,14 @@ final readonly class CreateTheme
 		#[Argument('The theme\'s name: vendor/name, such as acme/nova.')] string $name,
 		#[Option('The parent theme\'s name.')] ?string $parent = null,
 		#[Option('The theme\'s label; defaults to one made from its name.')] ?string $label = null,
-		#[Option('The theme\'s namespace; defaults to the part of its name after the "/".')] ?string $namespace = null
+		#[Option('The theme\'s namespace; defaults to its name, hyphenated, such as acme-hello.')] ?string $namespace = null
 	): ExitCode {
 		if (! ExtensionName::isValid($name) || $name === Themes::DEFAULT) {
 			throw new InvalidInput(sprintf('"%s" can\'t be a theme\'s name; use vendor/name in lowercase letters, digits, "-", "_", and "." (and not "%s").', $name, Themes::DEFAULT));
 		}
 
 		$short       = substr((string) strrchr($name, '/'), 1);
-		$namespace ??= $short;
+		$namespace ??= ExtensionNamespace::fromName($name);
 
 		if (! ExtensionNamespace::isValid($namespace) || ExtensionNamespace::isReserved($namespace)) {
 			throw new InvalidInput(sprintf('"%s" can\'t be a namespace; use lowercase letters, digits, "-", and "_" (and not %s). Pass --namespace.', $namespace, implode(', ', ExtensionNamespace::RESERVED)));

@@ -21,7 +21,8 @@ use Blush\Extension\ExtensionNamespace;
 /**
  * An icon pack (D-378): SVG icons in its own namespace, with no code. Its
  * `icons.json` (or `.yaml`) gives its name (`vendor/name`), label (its
- * name without one, D-423), namespace, and optionally a version, a description, and the `folder`
+ * name without one, D-423), namespace (its name, hyphenated, without
+ * one, D-424), and optionally a version, a description, and the `folder`
  * inside the pack its `*.svg` files are in (the pack's own folder by
  * default):
  *
@@ -101,7 +102,7 @@ final readonly class IconPack
 		return new self(
 			name: $data['name'] ?? '',
 			label: ExtensionName::label($data['label'] ?? null, $data['name'] ?? ''),
-			namespace: $data['namespace'] ?? '',
+			namespace: $data['namespace'] ?? ExtensionNamespace::fromName($data['name'] ?? ''),
 			path: $path,
 			source: $source,
 			version: $data['version'] ?? '',

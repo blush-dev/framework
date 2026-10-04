@@ -21,7 +21,8 @@ use Blush\Component\ComponentName;
  * (`jtcom`, for `::jtcom/post-archives` and `jtcom/github`). No two
  * installed extensions may claim one, and core's (`blush`), the site's
  * (`app`), the theme chain's translation domain (`theme`), and the
- * framework default theme's (`default`) are reserved.
+ * framework default theme's (`default`) are reserved. A manifest without
+ * one goes by its name, hyphenated (D-424).
  */
 final readonly class ExtensionNamespace
 {
@@ -44,6 +45,17 @@ final readonly class ExtensionNamespace
 	public static function isValid(string $namespace): bool
 	{
 		return preg_match(self::PATTERN, $namespace) === 1;
+	}
+
+	/**
+	 * Returns the namespace a manifest without one goes by: its name with
+	 * the `/` and any `.` as hyphens (`acme/photo.gallery` is
+	 * `acme-photo-gallery`, D-424). A valid name gives a valid namespace,
+	 * never a reserved one, since it always has a hyphen.
+	 */
+	public static function fromName(string $name): string
+	{
+		return str_replace(['/', '.'], '-', $name);
 	}
 
 	/**

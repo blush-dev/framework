@@ -170,7 +170,7 @@ final class PluginCommandsTest extends TestCase
 				'$schema'   => '../../../vendor/blush-dev/framework/resources/schemas/plugin.schema.json',
 				'name'      => 'acme/scaffold-test',
 				'label'     => 'Scaffold',
-				'namespace' => 'scaffold-test',
+				'namespace' => 'acme-scaffold-test',
 				'version'   => '1.0.0',
 				'provider'  => 'Acme\\ScaffoldTest\\ScaffoldTestServiceProvider',
 				'autoload'  => ['psr-4' => ['Acme\\ScaffoldTest\\' => 'src/']],
@@ -206,10 +206,10 @@ final class PluginCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Success, $this->command(['plugin:new', 'other/scaffold-test', '--namespace=free', '--php-namespace=Other\\Scaffold'])->exitCode, 'Another vendor\'s has its own folder.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/scaffold-test', '--namespace=free'])->exitCode, 'The name is taken.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/new', '--namespace=elsewhere'])->exitCode, 'A plugin has the namespace.');
-		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/nova'])->exitCode, 'A theme has the namespace.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'other/x', '--namespace=nova'])->exitCode, 'A theme has the namespace.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/nova', '--namespace=free'])->exitCode, 'A theme has the name.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'hello'])->exitCode);
-		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/app'])->exitCode, 'A reserved namespace.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/x', '--namespace=app'])->exitCode, 'A reserved namespace.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/2fa'])->exitCode, 'Not a PHP namespace.');
 	}
 }

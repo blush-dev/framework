@@ -94,7 +94,7 @@ final class ThemeCommandsTest extends TestCase
 				'$schema'   => '../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json',
 				'name'      => 'acme/nova',
 				'label'     => 'Nova Theme',
-				'namespace' => 'nova',
+				'namespace' => 'acme-nova',
 				'version'   => '1.0.0',
 				'parent'    => 'blush/default',
 				'styles'    => ['style.css']
@@ -112,23 +112,23 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Failure, $this->command(['theme:new', 'other/stray'])->exitCode, 'The folder is taken.');
 		$this->assertSame(ExitCode::Success, $this->command(['theme:new', 'other/nova', '--namespace=other-nova'])->exitCode, 'Another vendor\'s nova has its own folder.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/nova'])->exitCode);
-		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/nova2', '--namespace=nova'])->exitCode, 'The namespace is taken.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/nova2', '--namespace=acme-nova'])->exitCode, 'The namespace is taken.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'nova'])->exitCode);
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'Bad Slug'])->exitCode);
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'blush/default'])->exitCode);
-		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/app'])->exitCode, 'A reserved namespace.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/x', '--namespace=app'])->exitCode, 'A reserved namespace.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/kid', '--parent=missing'])->exitCode);
 
 		// Names and namespaces are checked against plugins and icon packs too.
 		$this->writeTemporaryFile('extensions/acme/shop/plugin.json', '{"name": "acme/shop", "label": "Shop", "namespace": "shop", "provider": "Acme\\\\Shop\\\\ShopServiceProvider"}');
 		$this->writeTemporaryFile('extensions/acme/brands/icons.json', '{"name": "acme/brands", "label": "Brands", "namespace": "brands"}');
 
-		$plugin = $this->command(['theme:new', 'other/shop']);
+		$plugin = $this->command(['theme:new', 'other/shop', '--namespace=shop']);
 
 		$this->assertSame(ExitCode::Invalid, $plugin->exitCode);
 		$this->assertStringContainsString('The "acme/shop" plugin already has the namespace "shop"', $plugin->errors);
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/shop', '--namespace=free'])->exitCode, 'A plugin has the name.');
-		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'other/brands'])->exitCode, 'An icon pack has the namespace.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'other/x', '--namespace=brands'])->exitCode, 'An icon pack has the namespace.');
 	}
 
 	public function testActivatesThemes(): void

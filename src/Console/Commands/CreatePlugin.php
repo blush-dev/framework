@@ -32,8 +32,9 @@ use Blush\Support\Filesystem;
 /**
  * Starts a plugin in `extensions/{vendor}/{name}` (D-418): a manifest and
  * an empty service provider, autoloaded from `src/` (D-041, D-416). The
- * plugin is named `vendor/name` (D-378); its namespace defaults to the
- * part after the `/`, its label to one made from it, and its PHP
+ * plugin is named `vendor/name` (D-378); its namespace defaults to its
+ * name, hyphenated (D-424), its label to one made from the part after
+ * the `/`, and its PHP
  * namespace to both parts in StudlyCase (`acme/hello-world` is
  * `Acme\HelloWorld`). The name and namespace must be free across every
  * installed extension (`InstalledExtensions`). It's created off
@@ -57,7 +58,7 @@ final readonly class CreatePlugin
 		Output $output,
 		#[Argument('The plugin\'s name: vendor/name, such as acme/hello.')] string $name,
 		#[Option('The plugin\'s label; defaults to one made from its name.')] ?string $label = null,
-		#[Option('The plugin\'s namespace; defaults to the part of its name after the "/".')] ?string $namespace = null,
+		#[Option('The plugin\'s namespace; defaults to its name, hyphenated, such as acme-hello.')] ?string $namespace = null,
 		#[Option('The PHP namespace of its classes; defaults to its name in StudlyCase, such as Acme\\Hello.')] ?string $phpNamespace = null
 	): ExitCode {
 		if (! ExtensionName::isValid($name)) {
@@ -65,7 +66,7 @@ final readonly class CreatePlugin
 		}
 
 		[$vendor, $short] = explode('/', $name, 2);
-		$namespace      ??= $short;
+		$namespace      ??= ExtensionNamespace::fromName($name);
 
 		if (! ExtensionNamespace::isValid($namespace) || ExtensionNamespace::isReserved($namespace)) {
 			throw new InvalidInput(sprintf('"%s" can\'t be a namespace; use lowercase letters, digits, "-", and "_" (and not %s). Pass --namespace.', $namespace, implode(', ', ExtensionNamespace::RESERVED)));

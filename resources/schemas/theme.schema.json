@@ -3,9 +3,7 @@
 	"title": "Blush Framework theme manifest",
 	"description": "A theme's theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.",
 	"type": "object",
-	"required": [
-		"namespace"
-	],
+	"required": [],
 	"properties": {
 		"$schema": {
 			"type": "string",
@@ -32,7 +30,7 @@
 					"default"
 				]
 			},
-			"description": "The namespace the theme's components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one."
+			"description": "The namespace the theme's components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one. Without one, it's the name with hyphens for the \"/\" and any \".\", such as \"acme-gallery\"."
 		},
 		"version": {
 			"type": "string",

@@ -72,6 +72,9 @@ final class ExtensionNamespacesTest extends TestCase
 
 		$this->assertTrue(ExtensionNamespace::isValid('jtcom'));
 		$this->assertFalse(ExtensionNamespace::isValid('Jt Com'));
+		$this->assertSame('acme-gallery', ExtensionNamespace::fromName('acme/gallery'));
+		$this->assertSame('a-b-c-d', ExtensionNamespace::fromName('a.b/c-d'));
+		$this->assertTrue(ExtensionNamespace::isValid(ExtensionNamespace::fromName('a.b/c_d--e')));
 
 		foreach (['blush', 'app', 'theme', 'default'] as $reserved) {
 			$this->assertTrue(ExtensionNamespace::isReserved($reserved), $reserved);
@@ -89,6 +92,10 @@ final class ExtensionNamespacesTest extends TestCase
 		$this->assertSame(['plugin.json', 'plugin.yaml'], array_map(basename(...), $files));
 		$this->assertSame(['name' => 'acme/one'], ManifestFile::read($files[0]));
 		$this->assertSame([], ManifestFile::find($this->temporaryDirectory() . '/one', ExtensionKind::Theme));
+
+		$this->writeTemporaryFile('three/theme.json', '{}');
+
+		$this->assertSame([], ManifestFile::read($this->temporaryDirectory() . '/three/theme.json'), 'An empty manifest leaves everything to composer.json and the defaults.');
 
 		$this->expectException(ExtensionException::class);
 

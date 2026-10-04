@@ -12258,3 +12258,32 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `composer check`; `plugin:list` on the trial.
 - **Why:** the author's call: there's a use for the name as the title
   when a label is missing, falling back through Composer's name.
+
+### D-424: An extension without a namespace goes by its name, hyphenated
+- **Date:** 2026-10-04
+- **Decision:** An extension's `namespace` is optional, for every kind
+  and source (a Composer plugin's `extra.blush.namespace` too). Without
+  one, it's the name with a hyphen for the `/` and for any `.`
+  (`ExtensionNamespace::fromName()`: `acme/hello` is `acme-hello`,
+  `a.b/c-d` is `a-b-c-d`). A valid name always gives a valid namespace,
+  never a reserved one (it always has a hyphen), and unique names give
+  unique namespaces, except in rare cases like `acme/foo-bar` and
+  `acme-foo/bar`, which the usual namespace clash check catches. A
+  namespace that's given but invalid (empty, not a string, reserved)
+  still breaks the manifest.
+  - **The preferred form everywhere** (the author's call): docs
+    recommend leaving `namespace` out, and `plugin:new` and `theme:new`
+    default `--namespace` to this form (once the part after the `/`,
+    D-416, D-417) and still write it into the manifest.
+  - Since a manifest may now leave every key to its `composer.json` or a
+    default, `ManifestFile::read()` accepts an empty map (`{}`).
+  - The JSON Schemas no longer require `namespace`; a plugin's requires
+    only `provider`. Supersedes "required" for `namespace` in D-378.
+  - **Test bed:** `../blush/extensions/example/no-namespace/`, a plugin
+    without a namespace that adds the `example-no-namespace/leaf` icon,
+    labeled from its `lang/` (the namespace's translation domain).
+- **Checked:** `composer check`; on the trial, `plugin:list` shows the
+  namespace and, with the plugin on (reverted after), `icon:list` shows
+  `example-no-namespace/leaf` labeled "Leaf".
+- **Why:** the author's call: the name already identifies the extension
+  uniquely, so its hyphenated form is a namespace nobody has to choose.

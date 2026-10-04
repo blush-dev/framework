@@ -3,9 +3,7 @@
 	"title": "Blush Framework icon pack manifest",
 	"description": "An icon pack's icons.json: its name, label, namespace, and the folder its SVG icons are in.",
 	"type": "object",
-	"required": [
-		"namespace"
-	],
+	"required": [],
 	"properties": {
 		"$schema": {
 			"type": "string",
@@ -32,7 +30,7 @@
 					"default"
 				]
 			},
-			"description": "The namespace the icon pack's components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one."
+			"description": "The namespace the icon pack's components, icons, and translations go by, such as \"gallery\" for gallery/slideshow. No two installed extensions may share one. Without one, it's the name with hyphens for the \"/\" and any \".\", such as \"acme-gallery\"."
 		},
 		"version": {
 			"type": "string",

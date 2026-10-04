@@ -352,7 +352,12 @@ Every extension's manifest has the same three keys:
   the extension is shown by its `name`.
 - **`namespace`:** what its components, icons, and translations go by
   (`hello`, for `hello/tabs`). Lowercase letters, digits, `-`, and `_`.
-  `blush`, `app`, `theme`, and `default` are reserved.
+  `blush`, `app`, `theme`, and `default` are reserved. Optional, and
+  best left out: without one, it's the name with a hyphen for the `/`
+  (and for any `.`), so `acme/hello` goes by `acme-hello`
+  (`acme-hello/tabs`). Since names are unique, so is that namespace.
+  `plugin:new` and `theme:new` write that form too. Give one only when
+  you want something shorter.
 
 No two installed extensions may share a namespace. Two plugins that do
 are an error. Two themes, or two icon packs, that do are both broken.
@@ -377,7 +382,8 @@ Manifests use Composer's names and shapes for the keys they share with
 `authors`, `autoload`, and `require`. A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
 them once. Blush's own keys (`label`, `namespace`, `provider`, and a
-theme's or icon pack's own) always go in the manifest.
+theme's or icon pack's own) always go in the manifest, if anywhere. A
+manifest may even be empty (`{}`) when its `composer.json` names it.
 
 The admin lists them under **Extensions** (Themes, Plugins, and Icon
 Packs), and installs them from a `.zip` (see
@@ -492,8 +498,9 @@ empty provider in `src/HelloServiceProvider.php` to fill in.
 }
 ```
 
-`name` (here or in its `composer.json`), `namespace`, and `provider` are
-required. Without a `label`, it's shown by its name. Blush finds the plugin and loads it; no
+`name` (here or in its `composer.json`) and `provider` are required.
+Without a `label`, it's shown by its name, and without a `namespace`, it
+goes by its name, hyphenated. Blush finds the plugin and loads it; no
 Composer step needed. `autoload` works as Composer's does: `psr-4` maps
 namespace prefixes (each ending in `\`) to folders, and `files` lists
 files loaded once when the plugin runs, such as helper functions. Every
@@ -519,7 +526,7 @@ In `plugin.yaml`, use a first-line comment instead:
 
 **A Composer plugin** is a package of type `blush-plugin`. Its name is
 the package's, and the rest of the manifest goes in its `composer.json`
-under `extra.blush` (`label` is optional here too):
+under `extra.blush` (`label` and `namespace` are optional here too):
 
 ```json
 {
@@ -804,8 +811,8 @@ code. Put it in `extensions/{vendor}/{name}/`, with an `icons.json` (or
 }
 ```
 
-`name` and `namespace` are required, and without a `label` it's shown by
-its name. Like a local plugin, it's
+Only `name` is required. Without a `label` it's shown by its name, and
+without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors` works as a
 plugin's does. Each `{icon}.svg` in the

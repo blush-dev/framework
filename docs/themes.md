@@ -135,7 +135,7 @@ That makes the smallest valid theme, in a folder at its name:
 
 ```
 extensions/acme/notebook/
-  theme.json    {"$schema": "…", "name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.0.0", "styles": ["style.css"]}
+  theme.json    {"$schema": "…", "name": "acme/notebook", "label": "Notebook", "namespace": "acme-notebook", "version": "1.0.0", "styles": ["style.css"]}
   style.css
 ```
 
@@ -202,7 +202,7 @@ extensions/acme/notebook/
 }
 ```
 
-`name` and `namespace` are required.
+Only `name` is required.
 
 - **`name`:** the key the theme is known by, `vendor/name` in lowercase
   letters, digits, `-`, `_`, and `.`. Config, `parent`, `?theme=`, and
@@ -215,6 +215,10 @@ extensions/acme/notebook/
   the theme is shown by its `name`.
 - **`namespace`:** what your theme's components, icons, and translations
   go by (`notebook/badge`). Lowercase letters, digits, `-`, and `_`.
+  Optional, and best left out: without one, it's the name with a hyphen
+  for the `/` (and any `.`), so `acme/notebook` goes by `acme-notebook`.
+  `theme:new` writes that form. Give one only when you want something
+  shorter.
   `blush`, `app`, `theme`, and `default` are reserved, and no two
   installed extensions (plugins, themes, icon packs) may share one: two
   themes that do are both broken, and a theme whose namespace a plugin
