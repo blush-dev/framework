@@ -163,8 +163,8 @@ final readonly class Plugins
 	}
 
 	/**
-	 * Returns the provider class of every plugin that runs, the plugins it
-	 * requires before it, otherwise in name order.
+	 * Returns the provider class of every plugin that runs and has one
+	 * (D-425), the plugins it requires before it, otherwise in name order.
 	 *
 	 * @return list<class-string>
 	 */

@@ -12287,3 +12287,28 @@ decision, add a new entry that supersedes it and mark the old one
   `example-no-namespace/leaf` labeled "Leaf".
 - **Why:** the author's call: the name already identifies the extension
   uniquely, so its hyphenated form is a namespace nobody has to choose.
+
+### D-425: A plugin's provider is optional, and empty plugins are allowed
+- **Date:** 2026-10-04
+- **Decision:** A plugin's `provider` is optional, in `plugin.json` and
+  in a Composer package's `extra.blush`, so a Composer plugin needs no
+  `extra.blush` at all (with D-423 and D-424). A plugin without one
+  registers nothing (`Plugins::providers()` skips it;
+  `PluginManifest::$provider` and `providerClass()` are nullable, and
+  `$provider` is now the constructor's last parameter). It still runs:
+  its `autoload.files` load before providers register (template
+  helpers, the author's case), its `require` is checked and orders
+  others, and its `lang/` is its namespace's domain. A plugin with none
+  of these is allowed, not broken (the author's call); it's listed and
+  does nothing. A `provider` that's given but isn't a class name still
+  breaks the manifest. The schema requires nothing; `plugin:new` still
+  writes a provider. Supersedes "a plugin is a manifest plus a service
+  provider" (D-041) and the required `provider` in D-378.
+  - **Test bed:** `../blush/extensions/example/template-helpers/`, with
+    only `autoload.files` (`example_reading_minutes()`).
+- **Checked:** `composer check` (a files-only and an empty plugin boot,
+  and a Composer package without `extra.blush`); on the trial, with the
+  plugin on (reverted after), `plugin:check` passes and the function is
+  defined after boot.
+- **Why:** the author asked whether every plugin needs a provider; one
+  that only loads files, or only requires others, doesn't.

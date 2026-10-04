@@ -1092,12 +1092,16 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   two themes, or two icon packs, are both broken; across kinds,
   `Bootstrap` lets installed plugins (even ones turned off) claim first,
   then themes, then icon packs, and records each loser as broken.
-- **Plugins** (`Blush\Plugin`): a manifest plus a service provider. A
+- **Plugins** (`Blush\Plugin`): a manifest plus, usually, a service
+  provider; `provider` is optional (D-425), so a plugin may only load
+  `autoload.files`, `require` others, or carry `lang/`, and one with
+  nothing is allowed (`Plugins::providers()` skips those). A
   plugin can register content types, routes, CLI commands, components,
   listeners, parsers, field types, cache drivers, and translations (its
   `lang/` is its namespace's domain).
   - Composer plugins keep the rest of their manifest in `composer.json`
-    `extra.blush` (`label`, `namespace`, `provider`, `require`).
+    `extra.blush` (`label`, `namespace`, `provider`, `require`, all
+    optional, so `extra.blush` may be left out).
   - Local plugins' `plugin.json` declares name, label, namespace,
     version, description, `autoload`, the provider, `require`, and
     optionally `authors` and `license` (any Composer key it leaves out

@@ -118,7 +118,8 @@ final class PluginTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/plain/plugin.json', '{"namespace": "plain", "provider": "A\\\\B", "label": " "}');
 		$this->writeTemporaryFile('extensions/acme/plain/composer.json', '{"name": "acme/plain"}');
 		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode([
-			['name' => 'acme/bare', 'type' => 'blush-plugin', 'extra' => ['blush' => ['provider' => 'Acme\Bare\Provider']]]
+			['name' => 'acme/bare', 'type' => 'blush-plugin', 'extra' => ['blush' => ['provider' => 'Acme\Bare\Provider']]],
+			['name' => 'acme/library', 'type' => 'blush-plugin']
 		]));
 
 		$local    = self::finder($this->temporaryDirectory() . '/extensions')->find();
@@ -129,12 +130,14 @@ final class PluginTest extends TestCase
 		$this->assertSame('acme/bare', $composer[0]->label, 'Composer packages need no extra.blush.label.');
 		$this->assertSame('plain', $local->manifests[0]->namespace ?? null);
 		$this->assertSame('acme-bare', $composer[0]->namespace, 'Without a namespace, it goes by its name, hyphenated.');
+		$this->assertSame('acme/library', $composer[1]->label ?? null, 'A package needs no extra.blush at all.');
+		$this->assertNull($composer[1]->providerClass() ?? null, 'Without a provider, it registers nothing.');
 	}
 
-	public function testComposerPluginsWithoutTheirManifestAreBroken(): void
+	public function testComposerPluginsWithABadManifestAreBroken(): void
 	{
 		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode([
-			'packages' => [['name' => 'acme/none', 'type' => 'blush-plugin', 'extra' => ['blush' => ['label' => 'None', 'namespace' => 'none']]]]
+			'packages' => [['name' => 'acme/none', 'type' => 'blush-plugin', 'extra' => ['blush' => ['label' => 'None', 'namespace' => 'none', 'provider' => 'not a class']]]]
 		]));
 
 		$found = new ComposerPluginFinder($this->temporaryDirectory() . '/vendor')->find();
@@ -144,7 +147,7 @@ final class PluginTest extends TestCase
 		$this->assertSame('acme/none', $found->broken[0]->where);
 		$this->assertSame('acme/none', $found->broken[0]->name);
 		$this->assertSame(PluginSource::Composer, $found->broken[0]->source);
-		$this->assertStringContainsString('extra.blush.provider', $found->broken[0]->reason);
+		$this->assertStringContainsString('"not a class" is not a class name', $found->broken[0]->reason);
 	}
 
 	public function testDiscoveryCombinesSourcesInNameOrder(): void
@@ -180,7 +183,7 @@ final class PluginTest extends TestCase
 			'{"name": "ok/name", "label": "OK", "namespace": 5, "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "blush", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "Not Valid", "provider": "A\\\\B"}',
-			'{"name": "ok/name", "label": "OK", "namespace": "ok"}',
+			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": 5}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "authors": [{"email": "a@example.test"}]}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "license": ["MIT"]}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "autoload": {"files": ["../outside.php"]}}',

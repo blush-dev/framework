@@ -232,7 +232,7 @@ final readonly class JsonSchemas
 			'title'       => sprintf('%s plugin manifest', Framework::NAME),
 			'description' => 'A local plugin\'s plugin.json: its name, label, namespace, service provider, and the classes autoloaded for it.',
 			'type'        => 'object',
-			'required'    => ['provider'],
+			'required'    => [],
 			'properties'  => [
 				'$schema'     => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$this->identity('plugin'),
@@ -240,7 +240,7 @@ final readonly class JsonSchemas
 				'description' => ['type' => 'string', 'description' => 'What the plugin does.'],
 				'provider'    => [
 					'type'        => 'string',
-					'description' => 'The class name of the plugin\'s service provider.'
+					'description' => 'The class name of the plugin\'s service provider. Leave it out for a plugin without one, such as one that only loads autoload.files.'
 				],
 				'autoload'    => $this->autoload('plugin', 'Namespace prefixes, each ending in a backslash, and the folders inside the plugin their classes are in, such as {"Acme\\\\Gallery\\\\": "src/"}.'),
 				'require'     => $this->requires('What the plugin needs, as composer.json says it, with version constraints: php, blush-dev/framework for Blush, ext-{name} for PHP extensions, and other plugins by vendor/name. A plugin whose requirements aren\'t met doesn\'t run. Without it, the require in the composer.json beside this file is used.'),

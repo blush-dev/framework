@@ -3,9 +3,7 @@
 	"title": "Blush Framework plugin manifest",
 	"description": "A local plugin's plugin.json: its name, label, namespace, service provider, and the classes autoloaded for it.",
 	"type": "object",
-	"required": [
-		"provider"
-	],
+	"required": [],
 	"properties": {
 		"$schema": {
 			"type": "string",
@@ -45,7 +43,7 @@
 		},
 		"provider": {
 			"type": "string",
-			"description": "The class name of the plugin's service provider."
+			"description": "The class name of the plugin's service provider. Leave it out for a plugin without one, such as one that only loads autoload.files."
 		},
 		"autoload": {
 			"type": "object",

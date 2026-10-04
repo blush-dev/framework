@@ -237,7 +237,7 @@ final class AdminPluginsTest extends TestCase
 	public function testListsBrokenPlugins(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/broken/plugin.json', '{broken');
-		$this->writeTemporaryFile('extensions/acme/named/plugin.json', '{"name": "acme/named", "label": "Named"}');
+		$this->writeTemporaryFile('extensions/acme/named/plugin.json', '{"name": "acme/named", "label": "Named", "namespace": "Not Valid"}');
 		$this->site(config: "enabled: ['fixture/recipes', 'acme/named']");
 
 		$answer = self::json($this->send('GET', '/plugins'));

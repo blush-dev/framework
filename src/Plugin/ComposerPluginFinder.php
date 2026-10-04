@@ -38,8 +38,10 @@ use Blush\Support\FilesystemException;
  *         }
  *     }
  *
- * Without a `label`, it's shown by its name (D-423), and without a
- * `namespace`, it goes by its name, hyphenated (D-424). Composer autoloads
+ * Every key is optional: without a `label`, it's shown by its name
+ * (D-423), without a `namespace`, it goes by its name, hyphenated
+ * (D-424), and without a `provider`, it registers nothing (D-425), so a
+ * package needs no `extra.blush` at all. Composer autoloads
  * these packages itself. A package whose manifest
  * doesn't hold is broken, known by its name (D-394).
  */
@@ -88,19 +90,11 @@ final readonly class ComposerPluginFinder implements PluginFinder
 		$extra = is_array($package['extra'] ?? null) ? $package['extra'] : [];
 		$blush = is_array($extra['blush'] ?? null) ? $extra['blush'] : [];
 
-		if (! isset($blush['provider'])) {
-			throw new ExtensionException(sprintf(
-				'Composer package "%s" is a %s but has no "extra.blush.provider".',
-				$name,
-				ExtensionKind::Plugin->packageType()
-			));
-		}
-
 		return PluginManifest::fromArray([
 			'name'        => $name,
 			'label'       => $blush['label'] ?? '',
 			'namespace'   => $blush['namespace'] ?? null,
-			'provider'    => $blush['provider'],
+			'provider'    => $blush['provider'] ?? null,
 			'source'      => PluginSource::Composer,
 			'path'        => is_string($package['path'] ?? null) ? $package['path'] : '',
 			'version'     => is_string($package['version'] ?? null) ? $package['version'] : '0.0.0',

@@ -339,7 +339,7 @@ includes it.
 Extensions are what a site installs. There are three kinds:
 
 - **Plugins** package the same kind of code as your site's, for reuse
-  across sites: a manifest plus a service provider. Below.
+  across sites: a manifest plus, usually, a service provider. Below.
 - **[Themes](themes.md)** control how the site looks.
 - **[Icon packs](#icon-packs)** are SVG icons, with no code.
 
@@ -498,9 +498,10 @@ empty provider in `src/HelloServiceProvider.php` to fill in.
 }
 ```
 
-`name` (here or in its `composer.json`) and `provider` are required.
-Without a `label`, it's shown by its name, and without a `namespace`, it
-goes by its name, hyphenated. Blush finds the plugin and loads it; no
+Only `name` (here or in its `composer.json`) is required. Without a
+`label`, it's shown by its name, and without a `namespace`, it goes by
+its name, hyphenated. Without a `provider`, it registers nothing (see
+[A plugin without a provider](#a-plugin-without-a-provider)). Blush finds the plugin and loads it; no
 Composer step needed. `autoload` works as Composer's does: `psr-4` maps
 namespace prefixes (each ending in `\`) to folders, and `files` lists
 files loaded once when the plugin runs, such as helper functions. Every
@@ -526,7 +527,8 @@ In `plugin.yaml`, use a first-line comment instead:
 
 **A Composer plugin** is a package of type `blush-plugin`. Its name is
 the package's, and the rest of the manifest goes in its `composer.json`
-under `extra.blush` (`label` and `namespace` are optional here too):
+under `extra.blush` (every key is optional, so a package can leave
+`extra.blush` out):
 
 ```json
 {
@@ -546,6 +548,30 @@ under `extra.blush` (`label` and `namespace` are optional here too):
 Every installed plugin is on. Turn one off on the admin's
 [Plugins](admin.md#plugins) screen, or by its name in
 [`config/plugins.php`](configuration.md#plugins-and-middleware).
+
+### A plugin without a provider
+
+A provider is what connects a plugin's classes to Blush: components,
+icons, commands, listeners, and the rest. A plugin that has none of those
+can leave `provider` out. It can still:
+
+- load files of functions, such as helpers for templates, with
+  `autoload.files`;
+- need other plugins, PHP, or extensions, with `require`;
+- carry a `lang/` catalog, in its namespace.
+
+```json
+{
+	"name": "acme/template-helpers",
+	"autoload": { "files": ["src/helpers.php"] }
+}
+```
+
+Its files load when it's on, before any provider registers, so templates
+can call its functions. They can't reach Blush's services. Wrap each
+function in `if (! function_exists(…))`, since a file of functions
+can't be loaded twice. A plugin with none of these is allowed too; it's
+listed, and turning it on does nothing.
 
 ### Requirements
 

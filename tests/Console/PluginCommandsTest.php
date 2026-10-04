@@ -150,7 +150,7 @@ final class PluginCommandsTest extends TestCase
 
 	public function testABrokenPluginTurnedOnIsAnError(): void
 	{
-		$this->writeTemporaryFile('extensions/acme/named/plugin.json', '{"name": "acme/named", "label": "Named"}');
+		$this->writeTemporaryFile('extensions/acme/named/plugin.json', '{"name": "acme/named", "label": "Named", "namespace": "Not Valid"}');
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/named']);\n");
 
 		$result = $this->command(['plugin:check', 'acme/named']);

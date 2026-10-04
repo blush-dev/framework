@@ -22,9 +22,12 @@ use Blush\Extension\ExtensionNamespace;
 /**
  * Describes one plugin: its name (`vendor/name`, D-378), label (its
  * name when the manifest has none, D-423), namespace (its name,
- * hyphenated, when it has none, D-424), version, service provider, where it lives, and (for local
- * plugins) the `autoload` Blush loads it with (`psr-4` and `files`,
- * D-418). A plugin is a manifest plus a service provider (D-041).
+ * hyphenated, when it has none, D-424), version, service provider, where
+ * it lives, and (for local plugins) the `autoload` Blush loads it with
+ * (`psr-4` and `files`, D-418). A plugin is a manifest plus, usually, a
+ * service provider (D-041); without one, it can still load `files`
+ * (template helpers), need other plugins through `require`, or carry a
+ * `lang/` catalog, and one with none of these is allowed too (D-425).
  *
  * `require` maps a requirement to a version constraint, as Composer's
  * does (D-418): `php`, Blush as `blush-dev/framework`, `ext-{name}` for
@@ -44,16 +47,15 @@ final readonly class PluginManifest
 	private const string CLASS_PATTERN = '/^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)*$/';
 
 	/**
-	 * @param string                $provider Fully qualified class name of the plugin's service provider.
 	 * @param array<string, string> $require  Requirement => version constraint.
 	 * @param list<ExtensionAuthor> $authors  Who made it.
+	 * @param ?string               $provider Fully qualified class name of the plugin's service provider, if it has one.
 	 * @throws ExtensionException
 	 */
 	public function __construct(
 		public string $name,
 		public string $label,
 		public string $namespace,
-		public string $provider,
 		public PluginSource $source,
 		public string $path,
 		public string $version = '0.0.0',
@@ -61,7 +63,8 @@ final readonly class PluginManifest
 		public Autoload $autoload = new Autoload(),
 		public array $require = [],
 		public array $authors = [],
-		public string $license = ''
+		public string $license = '',
+		public ?string $provider = null
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf(
@@ -83,7 +86,7 @@ final readonly class PluginManifest
 			));
 		}
 
-		if (preg_match(self::CLASS_PATTERN, ltrim($provider, '\\')) !== 1) {
+		if ($provider !== null && preg_match(self::CLASS_PATTERN, ltrim($provider, '\\')) !== 1) {
 			throw new ExtensionException(sprintf(
 				'Plugin "%s" must name its service provider class; "%s" is not a class name.',
 				$name,
@@ -103,14 +106,15 @@ final readonly class PluginManifest
 	}
 
 	/**
-	 * The provider class name, without a leading backslash.
+	 * The provider class name, without a leading backslash, or `null` for
+	 * a plugin without one.
 	 *
-	 * @return class-string
+	 * @return ?class-string
 	 */
-	public function providerClass(): string
+	public function providerClass(): ?string
 	{
-		/** @var class-string Validated as a class name by the constructor. */
-		return ltrim($this->provider, '\\');
+		/** @var ?class-string Validated as a class name by the constructor. */
+		return $this->provider === null ? null : ltrim($this->provider, '\\');
 	}
 
 	/**
@@ -135,7 +139,6 @@ final readonly class PluginManifest
 			name: self::string($data, 'name'),
 			label: ExtensionName::label(self::string($data, 'label', ''), self::string($data, 'name')),
 			namespace: self::string($data, 'namespace', ExtensionNamespace::fromName(self::string($data, 'name'))),
-			provider: self::string($data, 'provider'),
 			source: $source instanceof PluginSource
 				? $source
 				: PluginSource::tryFrom(is_string($source) ? $source : '') ?? throw new ExtensionException('Plugin "source" is invalid.'),
@@ -145,7 +148,8 @@ final readonly class PluginManifest
 			autoload: $autoload,
 			require: self::map($data, 'require'),
 			authors: $authors,
-			license: self::string($data, 'license', '')
+			license: self::string($data, 'license', ''),
+			provider: isset($data['provider']) ? self::string($data, 'provider') : null
 		);
 	}
 

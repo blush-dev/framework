@@ -88,6 +88,31 @@ final class BootstrapTest extends TestCase
 		$this->assertSame('Hello from Fixture Site', $greeter->greet());
 	}
 
+	public function testPluginsWithoutAProviderRun(): void
+	{
+		$root = $this->fixtureSite();
+
+		file_put_contents("{$root}/config/plugins.php", "<?php\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/empty', 'acme/helpers', 'fixture/hello']);\n");
+		mkdir("{$root}/extensions/acme/helpers/src", 0775, true);
+		mkdir("{$root}/extensions/acme/empty", 0775, true);
+		file_put_contents("{$root}/extensions/acme/helpers/plugin.json", '{"name": "acme/helpers", "autoload": {"files": ["src/helpers.php"]}}');
+		file_put_contents("{$root}/extensions/acme/helpers/src/helpers.php", "<?php\n\nif (! function_exists('blush_test_shout')) {\n\tfunction blush_test_shout(string \$text): string\n\t{\n\t\treturn strtoupper(\$text);\n\t}\n}\n");
+		file_put_contents("{$root}/extensions/acme/empty/plugin.json", '{"name": "acme/empty"}');
+
+		$app              = $this->bootstrap($root)->createApplication();
+		$container        = $app->container();
+		$this->autoloader = $container->make(LocalAutoloader::class);
+		$plugins          = $container->make(Plugins::class);
+
+		$app->boot();
+
+		$this->assertTrue($plugins->has('acme/helpers'), 'Only autoload.files, and no provider.');
+		$this->assertTrue($plugins->has('acme/empty'), 'Nothing at all is allowed too.');
+		$this->assertTrue(function_exists('blush_test_shout'));
+		$this->assertContains('Fixture\Hello\HelloServiceProvider', $plugins->providers(), 'Plugins with providers still register them.');
+		$this->assertCount(2, $plugins->providers(), 'Fixture\'s Hello and the Composer plugin.');
+	}
+
 	public function testCoreServicesResolve(): void
 	{
 		$app              = $this->bootstrap($this->fixtureSite())->createApplication();
