@@ -110,7 +110,7 @@ final class IconPacksTest extends TestCase
 		$cases = [
 			['label' => 'X', 'namespace' => 'x'],
 			['name' => 'x', 'label' => 'X', 'namespace' => 'x'],
-			['name' => 'acme/x', 'namespace' => 'x'],
+			['name' => 'acme/x', 'label' => 5, 'namespace' => 'x'],
 			['name' => 'acme/x', 'label' => 'X', 'namespace' => 'blush'],
 			['name' => 'acme/x', 'label' => 'X', 'namespace' => 'x', 'folder' => '../out'],
 			['name' => 'acme/x', 'label' => 'X', 'namespace' => 'x', 'version' => 2]
@@ -124,6 +124,12 @@ final class IconPacksTest extends TestCase
 				$this->addToAssertionCount(1);
 			}
 		}
+	}
+
+	public function testWithoutALabelAPackIsShownByItsName(): void
+	{
+		$this->assertSame('acme/x', IconPack::fromArray('/tmp/x', ['name' => 'acme/x', 'namespace' => 'x'])->label);
+		$this->assertSame('acme/x', IconPack::fromArray('/tmp/x', ['name' => 'acme/x', 'label' => '', 'namespace' => 'x'])->label);
 	}
 
 	public function testPacksSharingANamespaceAreBroken(): void

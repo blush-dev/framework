@@ -4,7 +4,6 @@
 	"description": "A theme's theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.",
 	"type": "object",
 	"required": [
-		"label",
 		"namespace"
 	],
 	"properties": {
@@ -20,7 +19,7 @@
 		"label": {
 			"type": "string",
 			"minLength": 1,
-			"description": "The theme's title, as people read it."
+			"description": "The theme's title, as people read it. Without one, it's shown by its name."
 		},
 		"namespace": {
 			"type": "string",

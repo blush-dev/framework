@@ -202,7 +202,7 @@ extensions/acme/notebook/
 }
 ```
 
-`name`, `label`, and `namespace` are required.
+`name` and `namespace` are required.
 
 - **`name`:** the key the theme is known by, `vendor/name` in lowercase
   letters, digits, `-`, `_`, and `.`. Config, `parent`, `?theme=`, and
@@ -211,7 +211,8 @@ extensions/acme/notebook/
   Composer theme's name is its package's. `description`, `version`,
   `license`, and `autoload` also come from that `composer.json` when
   `theme.json` leaves them out.
-- **`label`:** the theme's title, as people read it.
+- **`label`:** the theme's title, as people read it. Leave it out and
+  the theme is shown by its `name`.
 - **`namespace`:** what your theme's components, icons, and translations
   go by (`notebook/badge`). Lowercase letters, digits, `-`, and `_`.
   `blush`, `app`, `theme`, and `default` are reserved, and no two

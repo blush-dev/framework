@@ -348,7 +348,8 @@ Every extension's manifest has the same three keys:
 - **`name`:** the key it's known by, `vendor/name` (`acme/hello`), in
   lowercase letters, digits, `-`, `_`, and `.`. For a Composer package,
   it's the package's name.
-- **`label`:** its title, as people read it.
+- **`label`:** its title, as people read it. Optional: leave it out and
+  the extension is shown by its `name`.
 - **`namespace`:** what its components, icons, and translations go by
   (`hello`, for `hello/tabs`). Lowercase letters, digits, `-`, and `_`.
   `blush`, `app`, `theme`, and `default` are reserved.
@@ -491,8 +492,8 @@ empty provider in `src/HelloServiceProvider.php` to fill in.
 }
 ```
 
-`name` (here or in its `composer.json`), `label`, `namespace`, and
-`provider` are required. Blush finds the plugin and loads it; no
+`name` (here or in its `composer.json`), `namespace`, and `provider` are
+required. Without a `label`, it's shown by its name. Blush finds the plugin and loads it; no
 Composer step needed. `autoload` works as Composer's does: `psr-4` maps
 namespace prefixes (each ending in `\`) to folders, and `files` lists
 files loaded once when the plugin runs, such as helper functions. Every
@@ -518,7 +519,7 @@ In `plugin.yaml`, use a first-line comment instead:
 
 **A Composer plugin** is a package of type `blush-plugin`. Its name is
 the package's, and the rest of the manifest goes in its `composer.json`
-under `extra.blush`:
+under `extra.blush` (`label` is optional here too):
 
 ```json
 {
@@ -803,7 +804,8 @@ code. Put it in `extensions/{vendor}/{name}/`, with an `icons.json` (or
 }
 ```
 
-`name`, `label`, and `namespace` are required. Like a local plugin, it's
+`name` and `namespace` are required, and without a `label` it's shown by
+its name. Like a local plugin, it's
 off until it's turned on, in **Config → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors` works as a
 plugin's does. Each `{icon}.svg` in the

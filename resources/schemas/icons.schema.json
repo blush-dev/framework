@@ -4,7 +4,6 @@
 	"description": "An icon pack's icons.json: its name, label, namespace, and the folder its SVG icons are in.",
 	"type": "object",
 	"required": [
-		"label",
 		"namespace"
 	],
 	"properties": {
@@ -20,7 +19,7 @@
 		"label": {
 			"type": "string",
 			"minLength": 1,
-			"description": "The icon pack's title, as people read it."
+			"description": "The icon pack's title, as people read it. Without one, it's shown by its name."
 		},
 		"namespace": {
 			"type": "string",

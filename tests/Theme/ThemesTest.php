@@ -177,7 +177,7 @@ final class ThemesTest extends TestCase
 		$cases = [
 			'{"version": "1"}'                          => 'needs a "name"',
 			'{"name": "bad", "label": "X", "namespace": "bad"}' => 'needs a "name"',
-			'{"name": "acme/bad", "namespace": "bad"}'  => 'needs a "label"',
+			'{"name": "acme/bad", "label": 5, "namespace": "bad"}' => '"label" must be a string',
 			'{"name": "acme/bad", "label": "X"}'        => 'needs a "namespace"',
 			'{"name": "acme/bad", "label": "X", "namespace": "app"}' => 'needs a "namespace"',
 			"{{$x}, \"parent\": \"Bad Slug\"}"         => '"parent" must be a theme\'s name',
@@ -201,6 +201,14 @@ final class ThemesTest extends TestCase
 			$this->assertFalse($themes->has('acme/bad'), "{$json} should not load.");
 			$this->assertStringContainsString($message, $themes->invalid()['extensions/acme/bad'] ?? '', $json);
 		}
+	}
+
+	public function testWithoutALabelAThemeIsShownByItsName(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/plain/theme.json', '{"namespace": "plain"}');
+		$this->writeTemporaryFile('extensions/acme/plain/composer.json', '{"name": "acme/plain"}');
+
+		$this->assertSame('acme/plain', $this->themes()->find('acme/plain')?->label);
 	}
 
 	public function testConfigValidatesTheActiveName(): void

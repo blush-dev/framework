@@ -22,8 +22,9 @@ regions came later (D-199 to D-204). M5c (D-122 to D-124) added the feed and sit
 
 ## Anatomy
 
-The smallest valid theme (`name`, `label`, and `namespace` are required,
-`name` possibly from its `composer.json`; `styles` defaults to
+The smallest valid theme (`name` and `namespace` are required, `name`
+possibly from its `composer.json`, and `label` is the name without one,
+D-423; `styles` defaults to
 `["style.css"]`, D-105, D-378, D-418):
 ```
 extensions/acme/minimal/
@@ -111,7 +112,8 @@ exist (D-032).
   `accent`, `border`), each a hex color or a `[light, dark]` pair, drawn
   through `light-dark()` so the sketch follows the admin's color scheme.
   A malformed `preview` breaks the manifest, as other keys do.
-- `name`, `label`, and `namespace` are required (D-378). `parent`, the
+- `name` and `namespace` are required (D-378); `label` is the name
+  without one (D-423). `parent`, the
   config's `active`, `?theme=`, asset URLs, and site overrides all use
   the name. The namespace is unique across installed extensions; the
   reserved ones are `blush`, `app`, `theme`, and `default` (the default

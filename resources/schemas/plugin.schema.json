@@ -4,7 +4,6 @@
 	"description": "A local plugin's plugin.json: its name, label, namespace, service provider, and the classes autoloaded for it.",
 	"type": "object",
 	"required": [
-		"label",
 		"namespace",
 		"provider"
 	],
@@ -21,7 +20,7 @@
 		"label": {
 			"type": "string",
 			"minLength": 1,
-			"description": "The plugin's title, as people read it."
+			"description": "The plugin's title, as people read it. Without one, it's shown by its name."
 		},
 		"namespace": {
 			"type": "string",

@@ -113,6 +113,22 @@ final class PluginTest extends TestCase
 		$this->assertSame('acme/one', $manifests[0]->name);
 	}
 
+	public function testWithoutALabelAPluginIsShownByItsName(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/plain/plugin.json', '{"namespace": "plain", "provider": "A\\\\B", "label": " "}');
+		$this->writeTemporaryFile('extensions/acme/plain/composer.json', '{"name": "acme/plain"}');
+		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode([
+			['name' => 'acme/bare', 'type' => 'blush-plugin', 'extra' => ['blush' => ['namespace' => 'bare', 'provider' => 'Acme\Bare\Provider']]]
+		]));
+
+		$local    = self::finder($this->temporaryDirectory() . '/extensions')->find();
+		$composer = new ComposerPluginFinder($this->temporaryDirectory() . '/vendor')->find()->manifests;
+
+		$this->assertSame([], $local->broken);
+		$this->assertSame('acme/plain', $local->manifests[0]->label ?? null, 'A blank label is no label, and the name may come from composer.json.');
+		$this->assertSame('acme/bare', $composer[0]->label, 'Composer packages need no extra.blush.label.');
+	}
+
 	public function testComposerPluginsWithoutTheirManifestAreBroken(): void
 	{
 		$this->writeTemporaryFile('vendor/composer/installed.json', (string) json_encode([
@@ -158,7 +174,7 @@ final class PluginTest extends TestCase
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "not a class"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "autoload": {"psr-4": {"A\\\\": "../escape"}}}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "autoload": {"psr-4": {"NoSlash": "src"}}}',
-			'{"name": "ok/name", "namespace": "ok", "provider": "A\\\\B"}',
+			'{"name": "ok/name", "label": 5, "namespace": "ok", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "blush", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "Not Valid", "provider": "A\\\\B"}',

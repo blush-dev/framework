@@ -12240,3 +12240,21 @@ decision, add a new entry that supersedes it and mark the old one
   Supersedes the class name and endpoint in D-306.
 - **Checked:** `composer check`; `npm run admin:build`.
 - **Why:** the author's call.
+
+### D-423: An extension without a label is shown by its name
+- **Date:** 2026-10-04
+- **Decision:** An extension's `label` is optional, for every kind
+  (plugins, themes, icon packs) and source. Without one, or with a blank
+  one, its title is its `name` (`vendor/name`), which a local manifest
+  may itself leave to the `composer.json` beside it (D-418), so a
+  package can say nothing beyond Composer's keys and Blush's
+  `namespace` (and a plugin's `provider`). A Composer plugin needs no
+  `extra.blush.label`. A `label` that isn't a string still breaks the
+  manifest. `ExtensionName::label()` picks the title; the JSON Schemas
+  no longer require `label`. Supersedes "required" for `label` in D-378.
+  - **Test bed:** `../blush/extensions/example/no-label/`, a plugin whose
+    `plugin.json` has no `name` or `label` (its `composer.json` names
+    it), shown as `example/no-label`.
+- **Checked:** `composer check`; `plugin:list` on the trial.
+- **Why:** the author's call: there's a use for the name as the title
+  when a label is missing, falling back through Composer's name.

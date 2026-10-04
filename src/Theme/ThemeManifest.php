@@ -23,8 +23,8 @@ use Blush\Extension\ExtensionNamespace;
  * A theme, as its `theme.json` (or `.yaml`, D-032) describes it: its
  * name (`vendor/name`, the key it's known by), label, and namespace
  * (D-378), a version, an optional parent (by name), and the stylesheets
- * and scripts every page loads. Only `name`, `label`, and `namespace` are
- * required; `styles` defaults to `["style.css"]`, so the smallest theme
+ * and scripts every page loads. Only `name` and `namespace` are required
+ * (its `label` is its name without one, D-423); `styles` defaults to `["style.css"]`, so the smallest theme
  * is a manifest and a stylesheet (D-021).
  *
  * A theme with PHP names a `provider` (a service provider, registered
@@ -87,8 +87,8 @@ final readonly class ThemeManifest
 
 		$label = $data['label'] ?? null;
 
-		if (! is_string($label) || trim($label) === '') {
-			throw new ThemeException(sprintf('The "%s" theme\'s manifest needs a "label".', $theme));
+		if ($label !== null && ! is_string($label)) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "label" must be a string.', $theme));
 		}
 
 		$namespace = $data['namespace'] ?? null;
@@ -164,7 +164,7 @@ final readonly class ThemeManifest
 		return new self(
 			name: $theme,
 			path: $path,
-			label: trim($label),
+			label: ExtensionName::label($label, $theme),
 			namespace: $namespace,
 			version: self::string($theme, $data, 'version'),
 			parent: $parent,

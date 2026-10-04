@@ -20,8 +20,8 @@ use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 
 /**
- * Describes one plugin: its name (`vendor/name`, D-378), label,
- * namespace, version, service provider, where it lives, and (for local
+ * Describes one plugin: its name (`vendor/name`, D-378), label (its
+ * name when the manifest has none, D-423), namespace, version, service provider, where it lives, and (for local
  * plugins) the `autoload` Blush loads it with (`psr-4` and `files`,
  * D-418). A plugin is a manifest plus a service provider (D-041).
  *
@@ -132,7 +132,7 @@ final readonly class PluginManifest
 
 		return new self(
 			name: self::string($data, 'name'),
-			label: self::string($data, 'label'),
+			label: ExtensionName::label(self::string($data, 'label', ''), self::string($data, 'name')),
 			namespace: self::string($data, 'namespace'),
 			provider: self::string($data, 'provider'),
 			source: $source instanceof PluginSource

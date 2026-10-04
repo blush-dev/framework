@@ -38,7 +38,8 @@ use Blush\Support\FilesystemException;
  *         }
  *     }
  *
- * Composer autoloads these packages itself. A package whose manifest
+ * Without a `label`, it's shown by its name (D-423). Composer autoloads
+ * these packages itself. A package whose manifest
  * doesn't hold is broken, known by its name (D-394).
  */
 final readonly class ComposerPluginFinder implements PluginFinder
@@ -86,7 +87,7 @@ final readonly class ComposerPluginFinder implements PluginFinder
 		$extra = is_array($package['extra'] ?? null) ? $package['extra'] : [];
 		$blush = is_array($extra['blush'] ?? null) ? $extra['blush'] : [];
 
-		foreach (['label', 'namespace', 'provider'] as $key) {
+		foreach (['namespace', 'provider'] as $key) {
 			if (! isset($blush[$key])) {
 				throw new ExtensionException(sprintf(
 					'Composer package "%s" is a %s but has no "extra.blush.%s".',
@@ -99,7 +100,7 @@ final readonly class ComposerPluginFinder implements PluginFinder
 
 		return PluginManifest::fromArray([
 			'name'        => $name,
-			'label'       => $blush['label'],
+			'label'       => $blush['label'] ?? '',
 			'namespace'   => $blush['namespace'],
 			'provider'    => $blush['provider'],
 			'source'      => PluginSource::Composer,
