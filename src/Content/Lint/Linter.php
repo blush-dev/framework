@@ -14,8 +14,11 @@ declare(strict_types=1);
 namespace Blush\Content\Lint;
 
 use Closure;
+use DateMalformedStringException;
+use DateTimeImmutable;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexSnapshot;
+use Blush\Content\Index\ParsedEntry;
 use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Query\InvalidQuery;
@@ -26,6 +29,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
 use Blush\Content\Routing\PageRoutes;
+use Blush\Field\Fields\DateField;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Routing\RouteTable;
@@ -47,7 +51,8 @@ use Blush\Media\MediaMetadataCheck;
  *   whose address another route answers (`movie/2024.md` beside a type
  *   with date archives at `/movie/{year}`), and a directive asking for a
  *   variant its component doesn't have under the active theme
- *   (`VariantCheck`, D-266);
+ *   (`VariantCheck`, D-266), and a date that isn't on the calendar
+ *   (`2019-00-00`, which is read as 2018-11-30; D-449);
  * - notices: undeclared keys and 1.x aliases (D-081), and terms that are
  *   referenced but have no file, which become virtual terms.
  *
@@ -92,7 +97,7 @@ final readonly class Linter
 				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->variants->check($contents)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage())];
 			}
@@ -147,7 +152,7 @@ final readonly class Linter
 			$contents = $this->source->read($path);
 			$parsed   = $this->builder->build($file, $contents);
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->variants->check($contents)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage())];
 		}
@@ -173,6 +178,53 @@ final readonly class Linter
 		}
 
 		return [];
+	}
+
+	/**
+	 * Checks that each date in the front matter, as written, is on the
+	 * calendar (D-449). PHP rolls a zero or too-large month or day over
+	 * (`2019-00-00` is 2018-11-30, `2019-02-30` is 2019-03-02), so a
+	 * placeholder date quietly becomes a real one. YAML hands dates over
+	 * already rolled, so the date is read from the key's line in the file
+	 * when there is one (JSON front matter keeps its strings as written).
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkDates(ParsedEntry $parsed, string $contents): array
+	{
+		$schema     = $this->types->schema($parsed->record->type);
+		$violations = [];
+
+		foreach ($parsed->frontMatter as $key => $value) {
+			$key = (string) $key;
+
+			if (! $schema->field($key) instanceof DateField) {
+				continue;
+			}
+
+			// The key's own line first: YAML hands dates over already rolled.
+			$written = preg_match('/^' . preg_quote($key, '/') . ':[ \t]*[\'"]?(.*)$/m', $contents, $line) === 1
+				? $line[1]
+				: (is_string($value) ? $value : '');
+
+			if (
+				preg_match('/^\s*(\d{4})-(\d{2})-(\d{2})/', $written, $matches) !== 1
+				|| checkdate((int) $matches[2], (int) $matches[3], (int) $matches[1])
+			) {
+				continue;
+			}
+
+			// A month or day PHP can't roll over is already the field's error.
+			try {
+				$read = new DateTimeImmutable("{$matches[1]}-{$matches[2]}-{$matches[3]}")->format('Y-m-d');
+			} catch (DateMalformedStringException) {
+				continue;
+			}
+
+			$violations[] = new Violation($key, sprintf('"%s-%s-%s" isn\'t a real date, so it\'s read as %s.', $matches[1], $matches[2], $matches[3], $read), Severity::Warning);
+		}
+
+		return $violations;
 	}
 
 	/**

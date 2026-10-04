@@ -225,7 +225,8 @@ bin/blush content:list           # everything Blush has found
 bin/blush content:new page "Contact me"   # create a new entry
 ```
 
-`content:lint` is worth running before you publish: it catches bad dates,
-misspelled values, two files claiming the same URL, a page a content
+`content:lint` is worth running before you publish: it catches bad dates
+(including ones that aren't on the calendar, such as a placeholder
+`2019-00-00`, which would quietly be read as 2018-11-30), misspelled values, two files claiming the same URL, a page a content
 type's URLs hide (such as `blog/2026.md` when the blog has yearly
 archives at `/blog/2026`), and term parents that are missing or loop.

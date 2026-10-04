@@ -112,7 +112,7 @@ final readonly class RecordBuilder
 			parent: $landing ? null : $type->parentKey(implode('/', [...$segments, $slug]), $values)
 		);
 
-		return new ParsedEntry($record, $result->violations);
+		return new ParsedEntry($record, $result->violations, $document->frontMatter);
 	}
 
 	/**

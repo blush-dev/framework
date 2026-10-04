@@ -13234,3 +13234,27 @@ decision, add a new entry that supersedes it and mark the old one
   `composer.json`'s constraints already allow them).
 - **Why:** before this, the only way to ask providers again was deleting
   `storage/cache/store/embeds` by hand.
+
+### D-449: `content:lint` warns of dates that aren't on the calendar
+
+- **Date:** 2026-10-04
+- **Status:** Resolves "Lint zero months and days" (noticed in D-227).
+- **Decision:** `content:lint` (and `Linter::lintFile()`, for the
+  editor) warns when a date field's value, as written, isn't a real
+  date: a zero month or day, or a day past the month's end
+  (`2019-00-00`, `2019-02-30`, `2023-02-29`), which PHP rolls over into
+  a real date. The warning names the date it's read as
+  (`published: "2019-00-00" isn't a real date, so it's read as
+  2018-11-30.`). Aliases are checked under the key written (`date`).
+  YAML's parser has already rolled the date by the time front matter
+  arrives, so the check reads the key's own line in the file, falling
+  back to the value (JSON keeps its strings). `ParsedEntry` now carries
+  the parsed front matter for it. A month past 12 is already a YAML
+  parse error, so it isn't reported twice. Only top-level date fields
+  are checked. A warning, not an error: the file still indexes, as
+  before.
+- **Checked:** `composer check`; the jtcom trial reports one
+  (`_posts/2022-11-13.x3p0-progress-plugin.md`, `2022-00-00`), left as
+  is.
+- **Why:** a placeholder date quietly became a real one, putting a
+  draft in the wrong place in the archive with nothing said.

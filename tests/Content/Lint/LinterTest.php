@@ -81,6 +81,24 @@ final class LinterTest extends TestCase
 		$this->assertNotContains('notice category: "art" has no category entry; a virtual term stands in.', $notices['_posts/2008-04-05.spring.md']);
 	}
 
+	public function testWarnsOfDatesThatArentOnTheCalendar(): void
+	{
+		$this->standardContent();
+		$this->entry('zeros.md', "title: Zeros\npublished: 2019-00-00 00:00:00 -6");
+		$this->entry('alias.md', "title: Alias\ndate: 2019-02-30");
+		$this->entry('leap.md', "title: Leap\npublished: 2024-02-29\nupdated: 2023-02-29");
+		$this->entry('text.md', "title: 2019-00-00");
+
+		$linter   = $this->site()->container()->make(Linter::class);
+		$messages = self::messages($linter->lint(), Severity::Notice);
+
+		$this->assertSame(['warning published: "2019-00-00" isn\'t a real date, so it\'s read as 2018-11-30.'], $messages['zeros.md'] ?? null);
+		$this->assertContains('warning date: "2019-02-30" isn\'t a real date, so it\'s read as 2019-03-02.', $messages['alias.md'] ?? [], 'An alias is checked under the name it\'s written with.');
+		$this->assertSame(['warning updated: "2023-02-29" isn\'t a real date, so it\'s read as 2023-03-01.'], $messages['leap.md'] ?? null, 'A leap day is fine in a leap year.');
+		$this->assertArrayNotHasKey('text.md', $messages, 'Only date fields are checked.');
+		$this->assertSame('"2019-00-00" isn\'t a real date, so it\'s read as 2018-11-30.', $linter->lintFile('zeros.md')[0]->message ?? null);
+	}
+
 	public function testChecksTermParents(): void
 	{
 		$this->contentConfig(['types' => ['topic' => ['kind' => 'taxonomy', 'folder' => 'topics', 'hierarchical' => true]]]);

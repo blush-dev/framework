@@ -468,9 +468,6 @@ Move each item to `decisions.md` once it's answered.
   design and what it taught are in `theming.md` → Design.
 
 ## Tooling
-- **Lint zero months and days** (D-227, held by the author for later):
-  placeholder dates such as `2019-00-00` roll back to a real date
-  (`2018-11-30`) without a `content:lint` warning.
 - **Benchmark regressions in CI** (D-044, D-101): CI machines differ from
   the author's, so absolute baselines don't transfer. Options: compare
   against a baseline measured in the same CI run (the base branch), or

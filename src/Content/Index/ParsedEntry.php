@@ -18,15 +18,18 @@ use Blush\Field\Violation;
 /**
  * A content file turned into an index record, with the problems its front
  * matter has. Bad values never stop a file from being indexed (D-084);
- * they're dropped from the record and reported here for `content:lint`.
+ * they're dropped from the record and reported here for `content:lint`,
+ * which also reads the front matter as written (D-449).
  */
 final readonly class ParsedEntry
 {
 	/**
-	 * @param list<Violation> $violations
+	 * @param list<Violation>         $violations
+	 * @param array<array-key, mixed> $frontMatter
 	 */
 	public function __construct(
 		public IndexRecord $record,
-		public array $violations = []
+		public array $violations = [],
+		public array $frontMatter = []
 	) {}
 }

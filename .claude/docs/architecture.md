@@ -539,7 +539,9 @@ Implemented in M4b (D-087, D-090).
   `redirect_from`. URLs are resolved by the router's content routes, not
   the repository. A stale index (another fingerprint) is rebuilt on first
   use in any environment (D-098).
-- **`Linter`** checks every file for `content:lint` (D-091), then the
+- **`Linter`** checks every file for `content:lint` (D-091; dates not
+  on the calendar, read from the key's line since YAML has already
+  rolled them, D-449), then the
   media metadata files (`Media\MediaMetadataCheck`, D-293: unreadable,
   out-of-schema, hidden, and orphaned ones, by their path from the site
   root).
