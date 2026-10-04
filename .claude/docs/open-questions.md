@@ -148,6 +148,52 @@ Move each item to `decisions.md` once it's answered.
   - A suggested order, not agreed: the content API's shape, then
     tokens, then MCP (Markdown pages and `llms.txt` came first, as the
     easiest, D-395).
+- **A Tools screen for actions** (discussed 2026-10-03, for a redesign;
+  nothing decided): the dashboard's Actions panel (D-223) draws each
+  `AdminAction` the account may run as a button, so a task the CLI can
+  do can also run from the admin without a shell (shared hosting), and
+  plugins can add their own (`docs/extending.md`). The built-ins are
+  Publish (`site.publish`), Reindex content (`site.publish`), and Clear
+  caches (`cache.clear`).
+  - **Publish is part of writing, not maintenance.** If actions move,
+    Publish shouldn't go with them; it belongs where writers are (a
+    top-bar "3 unpublished changes · Publish", or the editor's save
+    flow), with the dashboard keeping a status tile.
+  - **The rest get a screen.** Reindex, Clear caches, and plugins'
+    actions are fixes and chores, not the first thing an editor sees.
+    Suggested name: **Tools**, under Config ("Maintenance" doesn't fit
+    a plugin's sync-orders action; "System" sounds like read-only
+    status).
+  - **Possible contents**, each something the CLI can already do or
+    data that already exists without an admin screen:
+    - A site check: `doctor`'s `SetupChecks` as passes and failures,
+      plus an HTTP exposure test (fetching `/.env`, `config/`, and a
+      `storage/` sentinel from `APP_URL`; a 200 fails), which catches
+      what `.htaccess` can't (`AllowOverride None`, dotfiles not
+      uploaded, a replaced root `.htaccess`). That test was raised in
+      the same discussion as an alternative to an `.htaccess` in each
+      private folder, which would help only when the root file is
+      replaced, and never for `.env`, a file at the root.
+    - Static export (`build`), once it can run in the background or in
+      steps (D-223 left it out because a build can take longer than a
+      request), and perhaps a `.zip` download of the export.
+    - Reindex media (`media:index`) and republish media and theme
+      assets (`media:publish`, `themes:publish`), for files uploaded
+      over FTP.
+    - Scheduled tasks (`schedule:run`): when it last ran, and Run now,
+      for hosts without cron.
+    - Logs: the latest lines in `storage/logs`, read-only.
+    - Backups: `storage/backups` (the versions extension replacements
+      keep, D-393) listed with restore and delete; later a "back up
+      `user/`" action.
+    - Routes (`routes:list`), read-only, for debugging a 404; aimed at
+      developers.
+  - **Content Health** (D-225) probably stays under Home: it's about
+    content, for editors, while Tools is for whoever runs the site.
+    Or Tools gets tabs for the site check and Content Health together.
+  - **A possible shape:** Tools with tabs for Actions (built-ins and
+    plugins' actions, grouped by who registered them), Status (the site
+    check), and Logs; Backups and Export once they exist.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the
