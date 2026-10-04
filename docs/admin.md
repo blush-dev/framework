@@ -931,8 +931,16 @@ screens:
 
 - **General:** the site's name, a one-line description (for
   `llms.txt`, and the homepage and feeds when nothing more specific
-  describes them), its language and region (such as
-  `en_US`), and its time zone, with the time there now. Beside them,
+  describes them), its language and region (picked from a menu of every
+  language and region PHP knows, each named in its own language with
+  its English name beside it, and each region under its language;
+  search by either name or the code, or choose **Other…** to type any
+  code, such as `en_US`), and its time zone, with the time there now.
+  Time zones are listed by city under their regions, each with its
+  common name and offset today (Chicago: Central Time · UTC−5); search
+  by city, name, abbreviation (`CST`, `CDT`), offset (`-05:00`), or an
+  old name such as `US/Central`. The zone is still saved by its full
+  name, such as `America/Chicago`. Beside them,
   shown but not changed here: the site's address, the environment, and
   detailed error pages.
 - **Reading:** the homepage (the page at `user/content/index.md`, or the

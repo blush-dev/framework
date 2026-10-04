@@ -10,9 +10,31 @@
  * The list takes at least the button's width and opens above it when
  * there's no room below; the chosen option is ticked, not just tinted;
  * an option's `depth` indents it, which is how a tree reaches the list.
- * Arrow keys move through it, Enter or Space chooses, Escape closes it
- * before anything else hears the key, and a click outside closes it.
+ * An option may have a `hint`, a quieter second name after its label
+ * (D-442: a language's name in English beside its own), and the `lang`
+ * its label is written in, which reads in its own direction.
+ * Arrow keys move through it, typing jumps to the option whose label
+ * or hint starts with what's typed (D-441: a long list, such as the time zones
+ * or the languages), Enter or Space chooses, Escape closes it before
+ * anything else hears the key, and a click outside closes it.
  * The button is the control a `<label for>` names.
+ *
+ * A `searchable` list (D-443) opens with a search field over it, focused,
+ * and stays one height while it filters. A search matches an option's
+ * label, hint, and `search` words (a locale's code) anywhere in them,
+ * ignoring case, accents, spaces, and punctuation (`frca` finds
+ * `fr_CA`), and a match under another (`depth`) keeps the options above
+ * it in view, as the hierarchical terms box does. A `pinned` option
+ * (Other…) is always shown, last, under "No match" when nothing else is.
+ * Down Arrow moves into the list and Up Arrow from its top back to the
+ * search; Enter in the search chooses the first match; Escape clears a
+ * search, then closes; typing in the list, or on the closed button,
+ * types in the search. Choosing
+ * emits `picked`, with the search and whether anything matched it.
+ *
+ * Options may be listed under headings (`group`, D-444), as the time
+ * zones are under their regions; a search matches a heading's name too
+ * (`europe` lists Europe's).
  */
 
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
@@ -23,6 +45,15 @@ export interface SelectOption {
 	label: string;
 	depth?: number;
 	disabled?: boolean;
+	hint?: string | null;
+	lang?: string;
+	// More words a search finds it by.
+	search?: string;
+	// Always shown, at the end, whatever the search.
+	pinned?: boolean;
+	// The heading it's listed under (D-444: a time zone's region); one
+	// heading starts each run of options that share it.
+	group?: string | null;
 }
 
 const props = defineProps<{
@@ -34,25 +65,82 @@ const props = defineProps<{
 	// Drawn as a value in a row of settings, not a box (the document
 	// panel's Parent).
 	plain?: boolean;
+	// A search field over the open list (D-443).
+	searchable?: boolean;
 }>();
 
 const model = defineModel<string>({ required: true });
+
+const emit = defineEmits<{ picked: [value: string, query: string, matched: boolean] }>();
 
 const button = ref<HTMLButtonElement | null>(null);
 const list   = ref<HTMLElement | null>(null);
 const open   = ref(false);
 const place  = ref<Record<string, string> | null>(null);
 const listId = `${props.id}-list`;
+const search = ref<HTMLInputElement | null>(null);
+const query  = ref('');
+
+// What's been typed in the open list, and when it's forgotten.
+let typed = '';
+let typedTimer: ReturnType<typeof setTimeout> | undefined;
 
 const current = computed(() => props.options.find((option) => option.value === model.value) ?? props.options[0]);
+
+// Text as a search compares it: lowercase, without accents, spaces, or
+// punctuation.
+function folded(text: string): string {
+	return text.normalize('NFD').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+const searchText = computed(() => props.options.map((option) => folded([option.label, option.hint ?? '', option.search ?? '', option.group ?? ''].join(' '))));
+
+// The options the search finds, with the ones above each match (by
+// depth), and whether anything matched; pinned ones come after.
+const found = computed(() => {
+	const text   = folded(query.value);
+	const pinned = props.options.filter((option) => option.pinned === true);
+	const rest   = props.options.filter((option) => option.pinned !== true);
+
+	if (!props.searchable || text === '') {
+		return { shown: [...rest, ...pinned], matched: true };
+	}
+
+	const keep = new Set<number>();
+
+	props.options.forEach((option, index) => {
+		if (option.pinned === true || !(searchText.value[index] ?? '').includes(text)) {
+			return;
+		}
+
+		keep.add(index);
+
+		let depth = option.depth ?? 0;
+
+		for (let above = index - 1; above >= 0 && depth > 0; above--) {
+			const at = props.options[above]?.depth ?? 0;
+
+			if (at < depth) {
+				keep.add(above);
+				depth = at;
+			}
+		}
+	});
+
+	return { shown: [...props.options.filter((option, index) => keep.has(index)), ...pinned], matched: keep.size > 0 };
+});
 
 function choose(option: SelectOption): void {
 	if (option.disabled === true) {
 		return;
 	}
 
+	const search  = query.value.trim();
+	const matched = found.value.matched;
+
 	model.value = option.value;
 	close();
+	emit('picked', option.value, search, matched);
 }
 
 function nativeChange(event: Event): void {
@@ -70,6 +158,7 @@ async function show(): Promise<void> {
 
 	open.value  = true;
 	place.value = null;
+	query.value = '';
 	await nextTick();
 
 	const box    = button.value?.getBoundingClientRect();
@@ -90,7 +179,49 @@ async function show(): Promise<void> {
 
 	document.addEventListener('pointerdown', outside, true);
 	await nextTick();
-	(list.value?.querySelector<HTMLElement>('[aria-selected="true"]') ?? list.value?.querySelector<HTMLElement>('button:not(:disabled)'))?.focus();
+
+	const chosen = list.value?.querySelector<HTMLElement>('[aria-selected="true"]');
+
+	if (props.searchable) {
+		chosen?.scrollIntoView({ block: 'center' });
+		search.value?.focus();
+
+		return;
+	}
+
+	(chosen ?? list.value?.querySelector<HTMLElement>('button:not(:disabled)'))?.focus();
+}
+
+function items(): HTMLElement[] {
+	return [...(list.value?.querySelectorAll<HTMLElement>('button:not(:disabled)') ?? [])];
+}
+
+// The search field's keys; none reach the list's.
+function searchKey(event: KeyboardEvent): void {
+	event.stopPropagation();
+
+	if (event.key === 'Escape') {
+		event.preventDefault();
+
+		if (query.value !== '') {
+			query.value = '';
+		} else {
+			close();
+		}
+	} else if (event.key === 'Tab') {
+		close(false);
+	} else if (event.key === 'ArrowDown') {
+		event.preventDefault();
+		items()[0]?.focus();
+	} else if (event.key === 'Enter') {
+		event.preventDefault();
+
+		const first = found.value.shown.find((option) => option.disabled !== true);
+
+		if (first !== undefined) {
+			choose(first);
+		}
+	}
 }
 
 function close(refocus = true): void {
@@ -118,12 +249,18 @@ function buttonKey(event: KeyboardEvent): void {
 	if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
 		event.preventDefault();
 		void show();
+	} else if (props.searchable && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+		// Typing on a closed list with a search starts the search.
+		event.preventDefault();
+		void show().then(() => {
+			query.value = event.key;
+		});
 	}
 }
 
 function listKey(event: KeyboardEvent): void {
-	const items = [...(list.value?.querySelectorAll<HTMLElement>('button:not(:disabled)') ?? [])];
-	const at    = items.indexOf(document.activeElement as HTMLElement);
+	const buttons = items();
+	const at      = buttons.indexOf(document.activeElement as HTMLElement);
 
 	if (event.key === 'Escape') {
 		event.preventDefault();
@@ -131,17 +268,50 @@ function listKey(event: KeyboardEvent): void {
 		close();
 	} else if (event.key === 'Tab') {
 		close(false);
+	} else if (event.key === 'ArrowUp' && at <= 0 && props.searchable) {
+		event.preventDefault();
+		search.value?.focus();
 	} else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
 		event.preventDefault();
-		items[Math.min(items.length - 1, Math.max(0, at + (event.key === 'ArrowDown' ? 1 : -1)))]?.focus();
+		buttons[Math.min(buttons.length - 1, Math.max(0, at + (event.key === 'ArrowDown' ? 1 : -1)))]?.focus();
 	} else if (event.key === 'Home' || event.key === 'End') {
 		event.preventDefault();
-		(event.key === 'Home' ? items[0] : items.at(-1))?.focus();
+		(event.key === 'Home' ? buttons[0] : buttons.at(-1))?.focus();
+	} else if (event.key.length === 1 && event.key !== ' ' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+		event.preventDefault();
+
+		if (props.searchable) {
+			query.value += event.key;
+			search.value?.focus();
+		} else {
+			typeAhead(event.key, buttons, at);
+		}
 	}
+}
+
+/**
+ * Focuses the next option whose label starts with what's been typed; the
+ * same letter again moves on to the next one that starts with it.
+ */
+function typeAhead(key: string, items: HTMLElement[], at: number): void {
+	clearTimeout(typedTimer);
+	typedTimer = setTimeout(() => {
+		typed = '';
+	}, 700);
+
+	typed += key.toLowerCase();
+
+	const repeat = [...typed].every((letter) => letter === typed[0]);
+	const prefix = repeat ? typed[0] ?? '' : typed;
+	const starts = (item: HTMLElement): boolean => [item.dataset.label, item.dataset.hint].some((name) => name?.toLowerCase().startsWith(prefix) === true);
+	const from   = repeat ? at + 1 : Math.max(0, at);
+
+	(items.slice(from).find(starts) ?? items.find(starts))?.focus();
 }
 
 onBeforeUnmount(() => {
 	document.removeEventListener('pointerdown', outside, true);
+	clearTimeout(typedTimer);
 });
 </script>
 
@@ -165,25 +335,50 @@ onBeforeUnmount(() => {
 			@click="open ? close() : show()"
 			@keydown="buttonKey"
 		>
-			<span class="select__label">{{ current?.label ?? '' }}</span>
+			<span class="select__label">
+				<span :lang="current?.lang" dir="auto">{{ current?.label ?? '' }}</span>
+				<span v-if="current?.hint" class="select__hint">{{ current.hint }}</span>
+			</span>
 			<AdminIcon name="chevron-down" class="select__caret" />
 		</button>
 		<Teleport to="body">
-			<div v-if="open" :id="listId" ref="list" class="select-list" role="listbox" :aria-labelledby="id" :style="place ?? { visibility: 'hidden' }" @keydown="listKey">
-				<button
-					v-for="option in options"
-					:key="option.value"
-					type="button"
-					role="option"
-					class="select-list__option"
-					:aria-selected="option.value === model"
-					:disabled="option.disabled"
-					:style="option.depth ? { paddingLeft: `calc(var(--s-3) + ${option.depth} * var(--s-4))` } : undefined"
-					@click="choose(option)"
-				>
-					<span class="select-list__label">{{ option.label }}</span>
-					<AdminIcon v-if="option.value === model" name="check" class="select-list__tick" />
-				</button>
+			<div v-if="open" ref="list" class="select-list" :class="{ 'select-list--search': searchable }" :style="place ?? { visibility: 'hidden' }" @keydown="listKey">
+				<div v-if="searchable" class="select-list__search">
+					<AdminIcon name="search" />
+					<input
+						ref="search"
+						v-model="query"
+						type="search"
+						aria-label="Search"
+						:aria-controls="listId"
+						autocomplete="off"
+						spellcheck="false"
+						placeholder="Search…"
+						@keydown="searchKey"
+					>
+				</div>
+				<div :id="listId" class="select-list__options" role="listbox" :aria-labelledby="id">
+					<p v-if="!found.matched" class="select-list__empty">No match</p>
+					<template v-for="(option, index) in found.shown" :key="option.value">
+						<p v-if="option.group && option.group !== found.shown[index - 1]?.group" class="select-list__group" aria-hidden="true">{{ option.group }}</p>
+						<button
+							type="button"
+							role="option"
+							class="select-list__option"
+							:class="{ 'select-list__option--pinned': option.pinned }"
+							:aria-selected="option.value === model"
+							:disabled="option.disabled"
+							:style="option.depth ? { paddingLeft: `calc(var(--s-3) + ${option.depth} * var(--s-4))` } : undefined"
+							:data-label="option.label"
+							:data-hint="option.hint ?? undefined"
+							@click="choose(option)"
+						>
+							<span class="select-list__label" :lang="option.lang" dir="auto">{{ option.label }}</span>
+							<span v-if="option.hint" class="select-list__hint">{{ option.hint }}</span>
+							<AdminIcon v-if="option.value === model" name="check" class="select-list__tick" />
+						</button>
+					</template>
+				</div>
 			</div>
 		</Teleport>
 	</div>
@@ -264,6 +459,11 @@ onBeforeUnmount(() => {
 	white-space: nowrap;
 }
 
+.select__hint {
+	margin-left: var(--s-2);
+	color: var(--fg-3);
+}
+
 .select__caret {
 	flex: none;
 	width: 14px;
@@ -278,15 +478,89 @@ onBeforeUnmount(() => {
 .select-list {
 	position: fixed;
 	z-index: 70;
-	display: grid;
+	display: flex;
+	flex-direction: column;
 	max-width: calc(100vw - 16px);
 	max-height: min(320px, 60vh);
-	padding: 6px;
-	overflow-y: auto;
+	overflow: hidden;
 	border: 1px solid var(--border);
 	border-radius: var(--r-2);
 	background: var(--surface);
 	box-shadow: var(--shadow-2);
+}
+
+/* A list with a search keeps one height as it filters, so it doesn't
+   jump about under the field. */
+.select-list--search {
+	width: 400px;
+	height: min(360px, 60vh);
+	max-height: none;
+}
+
+.select-list__search {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 9px;
+	height: var(--ctl);
+	padding: 0 12px;
+	border-bottom: 1px solid var(--border);
+	color: var(--fg-3);
+}
+
+.select-list__search svg {
+	flex: none;
+	width: 14px;
+	height: 14px;
+}
+
+.select-list__search input {
+	flex: 1;
+	min-width: 0;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--fg);
+	font: inherit;
+	font-size: var(--text-sm);
+}
+
+.select-list__search input:focus-visible {
+	outline: none;
+}
+
+.select-list__options {
+	display: grid;
+	align-content: start;
+	min-height: 0;
+	padding: 6px;
+	overflow-y: auto;
+}
+
+.select-list__group {
+	margin: 0;
+	padding: var(--s-3) var(--s-3) var(--s-1);
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	font-weight: 600;
+}
+
+.select-list__group:first-child {
+	padding-top: var(--s-1);
+}
+
+.select-list__empty {
+	margin: 0;
+	padding: 7px var(--s-3);
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+/* What's always there (Other…) sits apart from what the search finds. */
+.select-list__option:not(.select-list__option--pinned) + .select-list__option--pinned {
+	margin-top: 6px;
+	box-shadow: 0 -4px 0 -3px var(--border);
 }
 
 .select-list__option {
@@ -323,6 +597,14 @@ onBeforeUnmount(() => {
 .select-list__label {
 	flex: 1;
 	min-width: 0;
+	text-align: left;
+}
+
+.select-list__hint {
+	flex: none;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	font-weight: 400;
 }
 
 .select-list__tick {

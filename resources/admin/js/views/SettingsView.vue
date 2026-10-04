@@ -22,7 +22,9 @@
  *
  * Each setting is edited as a field (D-343), with the control the server
  * names (`FieldInput`, as every form draws them), but a yes or no is a
- * switch saying On or Off (`ToggleSwitch`). After a screen's own
+ * switch saying On or Off (`ToggleSwitch`), and the language is a menu
+ * of locales with Other for any code (`LocalePicker`, D-441); a setting
+ * with a `menu` (the time zones, D-444) is a searchable menu of it. After a screen's own
  * panels, each field set on it adds a panel of its settings, saved in
  * `settings.json`'s `site` section, with no config value behind them: a
  * saved one can be cleared instead.
@@ -39,7 +41,9 @@ import { computed, ref, watch } from 'vue';
 import { confirmLeave } from '../confirm';
 import { onBeforeRouteLeave, onBeforeRouteUpdate, RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import AdminSelect from '../components/AdminSelect.vue';
 import FieldInput from '../components/FieldInput.vue';
+import LocalePicker from '../components/LocalePicker.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import UploadRules from '../components/UploadRules.vue';
 import { ApiError, request, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
@@ -368,6 +372,25 @@ onBeforeRouteUpdate(leave);
 										@change="form[item.setting!] = $event"
 									/>
 								</div>
+								<LocalePicker
+									v-else-if="item.locales"
+									:id="`setting-${item.key}`"
+									:model-value="typeof form[item.setting] === 'string' ? form[item.setting] as string : ''"
+									:options="item.locales"
+									:described-by="`setting-${item.key}-help`"
+									:disabled="unset.includes(item.setting) || locked(item)"
+									@update:model-value="form[item.setting!] = $event"
+								/>
+								<AdminSelect
+									v-else-if="item.menu"
+									:id="`setting-${item.key}`"
+									:model-value="typeof form[item.setting] === 'string' ? form[item.setting] as string : ''"
+									:options="item.menu"
+									searchable
+									:described-by="`setting-${item.key}-help`"
+									:disabled="unset.includes(item.setting) || locked(item)"
+									@update:model-value="form[item.setting!] = $event"
+								/>
 								<FieldInput
 									v-else
 									:model-value="form[item.setting] ?? ''"

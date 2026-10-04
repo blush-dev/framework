@@ -22,6 +22,7 @@ use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\CacheConfig;
 use Blush\Cache\PageCache;
+use Blush\Clock\TimeZones;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -52,6 +53,7 @@ use Blush\Settings\SettingsScreen;
 use Blush\Settings\SettingsTarget;
 use Blush\Sitemap\AiCrawlerGroup;
 use Blush\Sitemap\SitemapConfig;
+use Blush\Translation\Locales;
 
 /**
  * Answers `GET {path}/api/settings/{screen}` (D-309, D-324, D-325), for
@@ -79,7 +81,10 @@ use Blush\Sitemap\SitemapConfig;
  * field set on it (`settings:{screen}`) adds a group of its settings,
  * saved as `site.{name}`, with no `file` behind them. Media's upload
  * rules are one setting drawn as a grid (`kind` `uploads`, D-406; see
- * `media()`). The rest live in `config/` and `.env`
+ * `media()`). The language (`app.locale`) adds `locales`, the menu it's
+ * picked from (`Locales::options()`, D-441), and may be any code typed
+ * instead. The time zone adds `menu`, the options its searchable menu
+ * is drawn from (`TimeZones::options()`, D-444). The rest live in `config/` and `.env`
  * (D-039) and are only shown, beside the ones they relate to. Secrets are
  * never sent: only whether one is set.
  */
@@ -184,11 +189,11 @@ final readonly class SettingsController
 			self::group('site', 'Site', 'Its name and language', [
 				$this->edit(self::item('name', 'Site name', $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, $this->app->name),
 				$this->edit(self::item('description', 'Description', $this->app->description, $this->app->description === '', help: Setting::DESCRIPTION_HELP), $saved, Setting::Description, $this->app->description),
-				$this->edit(self::item('locale', 'Language and region', $this->app->locale, $this->app->locale === $app->locale, 'mono', 'A language code, with a region if you like, such as en_US or fr.'), $saved, Setting::Locale, $this->app->locale),
+				[...$this->edit(self::item('locale', 'Language and region', $this->app->locale, $this->app->locale === $app->locale, 'mono', 'Choose Other to type a code the menu doesn\'t have.'), $saved, Setting::Locale, $this->app->locale), 'locales' => Locales::options()],
 				self::item('url', 'Site address', $this->app->url, $this->app->url === $app->url, 'mono', 'From APP_URL in .env by default.', 'config/app.php')
 			]),
 			self::group('dates', 'Dates and Time', 'How times are read and shown', [
-				$this->edit(self::item('timezone', 'Time zone', $this->app->timezone, $this->app->timezone === $app->timezone, 'mono', sprintf('It\'s %s there now.', $now->format('D, j M Y, H:i'))), $saved, Setting::Timezone, $this->app->timezone)
+				[...$this->edit(self::item('timezone', 'Time zone', $this->app->timezone, $this->app->timezone === $app->timezone, 'mono', sprintf('It\'s %s there now.', $now->format('D, j M Y, H:i'))), $saved, Setting::Timezone, $this->app->timezone), 'menu' => TimeZones::options($now)]
 			]),
 			self::group('environment', 'Environment', 'Set where the site runs', [
 				self::item('environment', 'Environment', ucfirst($environment->value), $environment === $app->environment, help: match ($environment) {

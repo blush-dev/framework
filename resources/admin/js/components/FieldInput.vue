@@ -9,7 +9,7 @@
  * checkboxes are a group, labeled by `labelledBy`, one per option, each
  * with its `choices` label when the field has one; an optional choice's
  * empty option says the `caption`, or "None" (radio buttons) and "—" (a
- * menu). Options with `details` (D-404) are a list, each its name, then
+ * menu), and a long menu has a search (D-443). Options with `details` (D-404) are a list, each its name, then
  * a sentence and the machine names it covers. A date opens a month (`DatePicker`) and can be cleared. A
  * reference picks from the entries it points at (`ReferencePicker`). A
  * media field, when `pickable`, has a **Choose** button for the media
@@ -39,6 +39,9 @@ const model = defineModel<FormValue>({ required: true });
 
 // A media field can open the media picker (D-247).
 const emit = defineEmits<{ pick: [] }>();
+
+// A menu longer than this has a search (D-443), such as the time zones.
+const SEARCHABLE = 20;
 
 const kind    = computed(() => control(props.field));
 const invalid = computed(() => props.invalid === true ? 'true' : undefined);
@@ -102,7 +105,7 @@ const checked = computed({
 	</div>
 	<textarea v-else-if="kind === 'textarea'" :id="id" v-model="text" rows="3" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid" />
 	<textarea v-else-if="kind === 'lines'" :id="id" v-model="text" class="mono" rows="3" spellcheck="false" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid" />
-	<AdminSelect v-else-if="kind === 'select'" :id="id" v-model="text" :options="[...(field.required && text !== '' ? [] : [{ value: '', label: field.caption ?? '—' }]), ...choicesOf.map((option) => ({ value: option, label: choice(option) }))]" :disabled="disabled" :described-by="describedBy" :invalid="invalid === 'true'" />
+	<AdminSelect v-else-if="kind === 'select'" :id="id" v-model="text" :searchable="choicesOf.length > SEARCHABLE" :options="[...(field.required && text !== '' ? [] : [{ value: '', label: field.caption ?? '—' }]), ...choicesOf.map((option) => ({ value: option, label: choice(option) }))]" :disabled="disabled" :described-by="describedBy" :invalid="invalid === 'true'" />
 	<ReferencePicker v-else-if="kind === 'reference'" :id="id" v-model="text" :field="field" :described-by="describedBy" :invalid="invalid === 'true'" />
 	<div v-else-if="kind === 'date'" class="field-input__date">
 		<DatePicker :id="id" v-model="text" :described-by="describedBy" :invalid="invalid === 'true'" />

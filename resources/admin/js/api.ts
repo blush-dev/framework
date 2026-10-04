@@ -731,6 +731,13 @@ export interface SettingItem {
 	requires?: { setting: string; note: string };
 	// What the upload rules' grid needs (D-406).
 	uploads?: UploadsInfo;
+	// The language menu (D-441): each locale, named in its own language
+	// with its English name as the `hint` (D-442), regions under their
+	// language.
+	locales?: { value: string; label: string; hint: string | null; depth: number }[];
+	// A searchable menu drawn from these options in place of the field's
+	// own (the time zones, D-444).
+	menu?: { value: string; label: string; hint: string | null; group: string | null; search: string }[];
 }
 
 /**

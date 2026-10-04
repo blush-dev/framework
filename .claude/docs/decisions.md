@@ -13003,3 +13003,129 @@ decision, add a new entry that supersedes it and mark the old one
   details say what can't run beside it, and turning one on never stops
   others without saying so first.
 
+
+### D-441: The language is picked from a menu, with Other for any code
+- **Date:** 2026-10-04
+- **Status:** Amends D-324's General screen (the language was a text
+  box).
+- **Decision:** The author asked for a language picker on Settings →
+  General, a menu first, with custom codes still allowed:
+  - **The menu** is every locale ICU knows (`Blush\Translation\Locales::options()`,
+    from `ResourceBundle::getLocales('')`), named in English
+    (`Locale::getDisplayName()`: `English (United States)`), grouped by
+    language: the language, then its regions and scripts indented under
+    it, languages alphabetical by name (a collator's order). Variants
+    (`en_US_POSIX`) are left out. `GET settings/general` adds
+    `locales` (`value`, `label`, `depth`) to the `app.locale` item; the
+    field itself stays a text field, since the Fields API is paused
+    (D-348).
+  - **Other…**, the menu's last option, opens a code box under it for
+    anything the menu doesn't have; a saved code the menu lacks starts
+    with the box open. A code the menu has matches however it's written
+    (`en-us`), and stays as written until something's chosen.
+    Validation is unchanged (`Setting::locale()`'s pattern).
+    `LocalePicker.vue`.
+  - **Typing jumps** in every drawn select (`AdminSelect`): letters
+    typed in the open list focus the next option whose label starts
+    with them, and the same letter again moves to the next, as a native
+    menu does; it helps the time zones too.
+- **Checked:** `composer check` (the options' grouping and order, no
+  variants, and the setting's `locales`); `npm run admin:build`. Not
+  checked in a browser.
+- **Why:** a code box asks people to know their locale's code; a menu
+  names it, and Other keeps every code a site could use.
+
+### D-442: Languages are named in their own language, English beside them
+- **Date:** 2026-10-04
+- **Status:** Amends D-441 (every locale was named in English).
+- **Decision:** The author asked why the language menu was all in
+  English, and chose both names:
+  - **Each locale's label is its own name** (`Locale::getDisplayName($code, $code)`:
+    `Deutsch (Österreich)`, `日本語 (日本)`), its first letter a capital
+    (`mb_ucfirst()`: `Français`), with its English name as a quieter
+    `hint` beside it (`German (Austria)`), `null` where the two are the
+    same (`English (United States)`).
+  - **The order is still by the English names**, so it holds across
+    scripts; native names would sort by code point, leaving every
+    non-Latin language jumbled at the end.
+  - **`AdminSelect` options gain `hint` and `lang`:** the hint is drawn
+    after the label in the list and on the button, and typing jumps
+    to an option whose label or hint starts with what's typed (`ja` and
+    `日` both reach Japanese). A label in its `lang` reads in its own
+    direction (`dir="auto"`), so Arabic is right to left and CJK takes
+    the right glyphs; `LocalePicker` sets each locale's `lang`.
+- **Checked:** `composer check` (native labels, the capital, English
+  hints and none where they match, English order across scripts);
+  `npm run admin:build`. Not checked in a browser.
+- **Why:** people find their own language by its own name, and the
+  English name keeps the menu usable by someone setting up a site in a
+  language they don't read.
+
+### D-443: Long menus have a search
+- **Date:** 2026-10-04
+- **Status:** Builds on D-441 and D-442; type-to-jump stays for menus
+  without a search.
+- **Decision:** The author asked whether the language menu called for a
+  search like the hierarchical terms box's, and chose one for it and
+  the time zones:
+  - **`AdminSelect` takes `searchable`:** the open list has a search
+    field over it, focused, and keeps one height (360px, or 60% of the
+    window) while it filters. It's a list that opens, not a box always
+    open as the terms box is, since it's one choice in a row of
+    settings.
+  - **Matching** is anywhere in an option's label, hint, and `search`
+    words, folded (lowercase, accents, spaces, and punctuation dropped:
+    `francais` finds `Français`, `frca` finds `fr_CA`, `new york` finds
+    `America/New York`). A match under another (`depth`) keeps those
+    above it in view, the terms box's rule.
+  - **A `pinned` option** is always shown, last, set apart; when nothing
+    else matches, "No match" sits above it. `LocalePicker` pins
+    **Other…**, and choosing it after a search found nothing fills the
+    code box with the search (`picked`, emitted with the search and
+    whether it matched).
+  - **Keys:** Down Arrow from the search into the list, Up Arrow from the
+    list's top back to it; Enter in the search chooses the first match;
+    Escape clears a search, then closes; typing in the list, or on the
+    closed button, types in the search.
+  - **Which menus:** the language (`LocalePicker`, with each locale's
+    code as its `search`), and every field drawn as a menu with more
+    than 20 options (`FieldInput`), which is how the time zones get it
+    without a change to the paused Fields API (D-348).
+- **Checked:** `npm run admin:build`. Not checked in a browser; nothing
+  on the server changed.
+- **Why:** 880 languages and 400-odd time zones are too many to scroll
+  or reach by first letters; a search finds a region or a code by any
+  part of it.
+
+### D-444: Time zones by city, with their common names and offsets
+- **Date:** 2026-10-04
+- **Status:** Builds on D-443. The saved value is unchanged (an IANA
+  zone, checked against `DateTimeZone::listIdentifiers()`).
+- **Decision:** The author asked why the time zones had no Central or
+  Eastern, and chose the names people use beside the IANA ones:
+  - **`Blush\Clock\TimeZones::options($now)`**: every IANA zone,
+    labeled by its city (`Chicago`; `Indianapolis, Indiana` and
+    `Buenos Aires, Argentina` for zones under another part), grouped by
+    region (`America`), UTC first and ungrouped, cities alphabetical (a
+    collator's order). Its hint is ICU's common name
+    (`IntlTimeZone::DISPLAY_LONG_GENERIC`: `Central Time`; left out
+    where ICU only knows an offset, `GMT`) and the offset in effect at
+    `$now` (`UTC−5`, `UTC+5:30`, with a minus sign), so it changes with
+    daylight saving time; the time beside the menu already says so.
+  - **A search also finds** a zone's IANA name, its abbreviations in
+    January and July (`CST`, `CDT`; numeric ones like `+03` left out),
+    its offset as `-05:00`, `UTC-5`, and `GMT-5`, and the old names
+    that point to it (`US/Central`, `Asia/Calcutta`), matched through
+    ICU's canonical names, which aren't always IANA's. The old names
+    stay out of the list (deprecated).
+  - **`AdminSelect` options take a `group`**, a heading over each run of
+    options that share one; a search matches it too.
+  - `GET settings/general`'s time zone adds `menu`, drawn by the
+    Settings screen as a searchable `AdminSelect` in place of the
+    field's own menu; the field is unchanged (D-348).
+- **Checked:** `composer check` (labels, groups, hints, the offset by
+  season, the search words and old names, the order);
+  `npm run admin:build`. Not checked in a browser.
+- **Why:** city names keep zones unambiguous (Eastern is New York and
+  Sydney) and their history apart (Indianapolis), but people know their
+  zone as Central or CST; showing and searching both serves each.

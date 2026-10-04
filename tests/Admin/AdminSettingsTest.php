@@ -81,6 +81,12 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame('Notes', $name['value'] ?? null);
 		$this->assertFalse($name['default'] ?? null);
 		$this->assertSame('America/Chicago', $this->setting($general, 'dates', 'timezone')['value'] ?? null);
+		$locales = $this->setting($general, 'site', 'locale')['locales'] ?? null;
+		$this->assertIsArray($locales, 'The language is picked from a menu (D-441).');
+		$this->assertContains(['value' => 'fr_CA', 'label' => 'Français (Canada)', 'hint' => 'French (Canada)', 'depth' => 1], $locales);
+		$zones = $this->setting($general, 'dates', 'timezone')['menu'] ?? null;
+		$this->assertIsArray($zones, 'The time zone is a searchable menu (D-444).');
+		$this->assertContains('America/Chicago', array_column($zones, 'value'));
 		$this->assertSame('The latest posts', $this->setting($reading, 'home', 'home')['value'] ?? null);
 		$this->assertFalse($this->setting($search, 'addresses', 'trailingSlash')['value'] ?? null);
 		$this->assertTrue($this->setting($search, 'addresses', 'trailingSlash')['default'] ?? null);
