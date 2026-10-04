@@ -71,6 +71,16 @@ final class ViewsTest extends TestCase
 		return $this->views()->render($name, $data, $context ?? new ViewContext(new Head('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]));
 	}
 
+	public function testDatesAndTimesUseTheSitesFormats(): void
+	{
+		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"dateFormat": "d MMMM y", "timeFormat": "HH:mm"}}');
+		$this->view('dates', '<?= $template->date($when) ?>|<?= $template->time($when) ?>|<?= $template->datetime($when) ?>|<?= $template->date($when, \'short\') ?>|<?= $template->date($when, Blush\\Clock\\DateStyle::Medium) ?>|<?= $template->time($when, \'h:mm a\') ?>|<?= $template->datetime($when, \'long\', \'short\') ?>');
+
+		$html = $this->render('dates', ['when' => new DateTimeImmutable('2026-01-05 23:30:00', new DateTimeZone('UTC'))]);
+
+		$this->assertSame('5 January 2026|17:30|5 January 2026, 17:30|1/5/26|Jan 5, 2026|5:30 PM|January 5, 2026 at 5:30 PM', str_replace("\u{202F}", ' ', trim($html)));
+	}
+
 	public function testRendersLayoutsSectionsAndData(): void
 	{
 		$this->view('layouts/shell', '<html><?= $template->section(\'content\') ?>|<?= $template->section(\'aside\', \'no aside\') ?>|<?= e($title) ?>|<?= e($site->name) ?></html>');

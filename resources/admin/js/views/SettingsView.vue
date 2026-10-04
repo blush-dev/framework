@@ -24,7 +24,9 @@
  * names (`FieldInput`, as every form draws them), but a yes or no is a
  * switch saying On or Off (`ToggleSwitch`), and the language is a menu
  * of locales with Other for any code (`LocalePicker`, D-441); a setting
- * with a `menu` (the time zones, D-444) is a searchable menu of it. After a screen's own
+ * with a `menu` (the time zones, D-444) is a searchable menu of it, and
+ * the date and time formats are menus of how each reads, with Custom for
+ * any pattern (`DateFormatPicker`, D-445). After a screen's own
  * panels, each field set on it adds a panel of its settings, saved in
  * `settings.json`'s `site` section, with no config value behind them: a
  * saved one can be cleared instead.
@@ -43,6 +45,7 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate, RouterLink } from 'vue-router'
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect from '../components/AdminSelect.vue';
 import FieldInput from '../components/FieldInput.vue';
+import DateFormatPicker from '../components/DateFormatPicker.vue';
 import LocalePicker from '../components/LocalePicker.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import UploadRules from '../components/UploadRules.vue';
@@ -377,6 +380,17 @@ onBeforeRouteUpdate(leave);
 									:id="`setting-${item.key}`"
 									:model-value="typeof form[item.setting] === 'string' ? form[item.setting] as string : ''"
 									:options="item.locales"
+									:described-by="`setting-${item.key}-help`"
+									:disabled="unset.includes(item.setting) || locked(item)"
+									@update:model-value="form[item.setting!] = $event"
+								/>
+								<DateFormatPicker
+									v-else-if="item.formats"
+									:id="`setting-${item.key}`"
+									:model-value="typeof form[item.setting] === 'string' ? form[item.setting] as string : ''"
+									:options="item.formats"
+									:kind="item.setting === 'app.timeFormat' ? 'time' : 'date'"
+									:locale="stringValue('app.locale')"
 									:described-by="`setting-${item.key}-help`"
 									:disabled="unset.includes(item.setting) || locked(item)"
 									@update:model-value="form[item.setting!] = $event"

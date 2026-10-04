@@ -738,6 +738,9 @@ export interface SettingItem {
 	// A searchable menu drawn from these options in place of the field's
 	// own (the time zones, D-444).
 	menu?: { value: string; label: string; hint: string | null; group: string | null; search: string }[];
+	// The date or time format's menu (D-445): each format as it reads
+	// now, with its name or pattern as the `hint`.
+	formats?: { value: string; label: string; hint: string; group: string }[];
 }
 
 /**

@@ -65,6 +65,12 @@ final class InlineComponentsTest extends TestCase
 		}
 
 		$this->assertSame('6. Oktober 2026', new Time(new AppConfig(locale: 'de_DE'), '2026-10-06')->formatted);
+
+		$formats = new AppConfig(timezone: 'America/Chicago', dateFormat: 'y-MM-dd', timeFormat: 'HH:mm');
+		$this->assertSame('2026-10-06', new Time($formats, '2026-10-06')->formatted, 'A date takes the site\'s date format (D-445).');
+		$this->assertSame('14:30', new Time($formats, '14:30')->formatted);
+		$this->assertSame('2026-10-06, 14:30', new Time($formats, '2026-10-06T14:30')->formatted);
+		$this->assertSame('October 2026', new Time($formats, '2026-10')->formatted, 'A month has no day to format.');
 	}
 
 	public function testInsertionsTakeOnlyRealDates(): void

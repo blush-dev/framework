@@ -408,7 +408,9 @@ What a template can use:
 | `$template->parent($entry)` | A page's parent page (from its folder) or a term's parent term, if published |
 | `$template->ancestors($entry)` | Its parents from the top down, for breadcrumbs |
 | `$template->children($entry)` | A page's subpages or a term's child terms, published, by `position` and then title |
-| `$template->date($entry->published)` | A date, formatted for the site's locale |
+| `$template->date($entry->published)` | A date in the site's date format and language |
+| `$template->time($entry->published)` | A time in the site's time format |
+| `$template->datetime($entry->published)` | Both, joined as the site's language joins them (`October 4, 2026 at 2:30 PM`) |
 | `$template->setting('name')` | A theme setting |
 | `$template->site('name')` | A site setting a field set adds ([Your own settings](#your-own-settings)) |
 | `$template->asset('app.js')` | A theme file's URL, versioned |
@@ -418,6 +420,26 @@ What a template can use:
 | `$template->t('key')` | A translated string from `lang/` |
 | `$template->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
 | `$template->bodyClass()` | The `<body>` classes |
+
+Dates and times use the formats the site owner picks on **Settings →
+General** (`dateFormat` and `timeFormat` in `config/app.php`), so use
+them without a format wherever a date is just a date. Pass one only
+where your design needs it: a style (`full`, `long`, `medium`, `short`)
+or an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax),
+such as `$template->date($date, 'MMMM y')` for an archive's heading, or
+`$template->datetime($date, 'short', 'HH:mm')`. A style can also be
+given as `Blush\Clock\DateStyle` (`Full`, `Long`, `Medium`, `Short`), so
+your editor completes it and a typo is an error rather than a pattern:
+
+```php
+<?php use Blush\Clock\DateStyle; ?>
+<?= e($template->date($entry->published, DateStyle::Short)) ?>
+```
+
+ICU patterns aren't PHP's
+`date()` letters: `MMMM d, y` is PHP's `F j, Y`, and `h:mm a` is `g:i A`.
+For a machine-readable date, such as a `<time datetime="">`, use
+`$date->format(DATE_ATOM)`.
 
 Every template gets `$site` (name, URL, and language). Content pages also
 get `$page`, `$entry` (the entry), `$entries` (a listing, when there is

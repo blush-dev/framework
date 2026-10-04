@@ -87,6 +87,11 @@ final class AdminSettingsTest extends TestCase
 		$zones = $this->setting($general, 'dates', 'timezone')['menu'] ?? null;
 		$this->assertIsArray($zones, 'The time zone is a searchable menu (D-444).');
 		$this->assertContains('America/Chicago', array_column($zones, 'value'));
+		$dateFormat = $this->setting($general, 'dates', 'dateFormat');
+		$this->assertSame(['app.dateFormat', 'long', true], [$dateFormat['setting'] ?? null, $dateFormat['input'] ?? null, $dateFormat['default'] ?? null]);
+		$this->assertSame('https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax', is_array($dateFormat['link'] ?? null) ? $dateFormat['link']['href'] ?? null : null, 'It links to the pattern letters (D-446).');
+		$this->assertContains('long', array_column(is_array($dateFormat['formats'] ?? null) ? $dateFormat['formats'] : [], 'value'), 'The date format is a menu of how each reads (D-445).');
+		$this->assertContains('HH:mm', array_column(is_array($this->setting($general, 'dates', 'timeFormat')['formats'] ?? null) ? $this->setting($general, 'dates', 'timeFormat')['formats'] : [], 'value'));
 		$this->assertSame('The latest posts', $this->setting($reading, 'home', 'home')['value'] ?? null);
 		$this->assertFalse($this->setting($search, 'addresses', 'trailingSlash')['value'] ?? null);
 		$this->assertTrue($this->setting($search, 'addresses', 'trailingSlash')['default'] ?? null);
@@ -163,6 +168,25 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame('Notes on the web.', $this->setting(self::json($this->send('GET', '/settings/general')), 'site', 'description')['value'] ?? null);
 
 		foreach ([['app.description' => "Two\nlines"], ['app.description' => str_repeat('x', 301)], ['sitemap.blockAi' => ['robots']], ['sitemap.blockAi' => 'training']] as $set) {
+			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => $set])->getStatusCode(), (string) json_encode($set));
+		}
+	}
+
+	public function testSavesAndPreviewsTheDateAndTimeFormats(): void
+	{
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$preview = self::json($this->send('GET', '/settings/date-format?format=' . rawurlencode("y 'year'") . '&kind=date'));
+		$this->assertSame(1, preg_match('/^\d{4} year$/', is_string($preview['text'] ?? null) ? $preview['text'] : ''), (string) json_encode($preview));
+		$this->assertSame(422, $this->send('GET', '/settings/date-format?format=' . rawurlencode('MMMM d at y'))->getStatusCode());
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['app.dateFormat' => ' d MMMM y ', 'app.timeFormat' => 'short']]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertFalse(self::json($response)['refresh'] ?? null, 'Formats change no addresses.');
+		$this->assertSame(['app' => ['dateFormat' => 'd MMMM y', 'timeFormat' => 'short']], json_decode($this->file('user/data/settings.json'), true));
+
+		foreach ([['app.dateFormat' => ''], ['app.dateFormat' => "d 'de MMMM"], ['app.timeFormat' => 'jj:mm'], ['app.timeFormat' => 5]] as $set) {
 			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => $set])->getStatusCode(), (string) json_encode($set));
 		}
 	}

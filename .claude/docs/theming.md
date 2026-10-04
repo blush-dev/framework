@@ -204,7 +204,9 @@ The template API (kept deliberately small; D-103):
 | `permalink($entry)` / `route($name, $params)` | Entry and named-route URLs |
 | `terms($entry, $taxonomy)` | An entry's published term entries |
 | `parent($entry)` / `ancestors($entry)` / `children($entry)` | A page's or hierarchical term's published parent, parents from the top down, and children by title (D-257) |
-| `date($date, $format)` | A localized date (`long`, or an ICU pattern) |
+| `date($date, $format)` | A localized date, in the site's date format (`app.dateFormat`, D-445) or a style (a name or `DateStyle`, D-447) or ICU pattern given |
+| `time($date, $format)` | A localized time, in the site's time format (`app.timeFormat`) or one given |
+| `datetime($date, $dateFormat, $timeFormat)` | Both, joined as the language joins them |
 | `bodyClass()` | The `<body>` classes |
 
 Every template also gets `$site` (name, URL, locale, `lang`). Content

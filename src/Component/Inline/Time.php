@@ -19,6 +19,7 @@ use Exception;
 use IntlDateFormatter;
 use IntlDatePatternGenerator;
 use Override;
+use Blush\Clock\DateFormat;
 use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 use Blush\Component\ComponentView;
@@ -33,8 +34,11 @@ use Blush\Core\Framework;
  * `machine`; otherwise the element has no `datetime`.
  *
  * Without a label (`::time{datetime=2026-10-06}`), `text()` shows it in
- * the site's language and time zone ("October 6, 2026" in `en_US`), or
- * as written for a duration or an invalid value (`formatted`).
+ * the site's language and time zone, or as written for a duration or an
+ * invalid value (`formatted`). A date, a time, or both are shown with the
+ * site's date and time formats (D-445: "October 6, 2026" in `en_US` by
+ * default); a year or a month, which those would add a day to, with
+ * ICU's best pattern for just those ("2026", "October 2026").
  */
 final class Time extends Component
 {
@@ -44,17 +48,18 @@ final class Time extends Component
 	public const ComponentContent CONTENT = ComponentContent::Text;
 
 	/**
-	 * The forms of a valid `datetime`, with the date pattern skeleton
-	 * each is shown with (`null` for a duration, shown as written).
+	 * The forms of a valid `datetime`, with how each is shown: a date
+	 * pattern skeleton, the site's `date`, `time`, or `datetime` formats,
+	 * or `null` for a duration, shown as written.
 	 *
 	 * @var array<string, ?string>
 	 */
 	private const array FORMS = [
 		'/^\d{4}$/'                                                                          => 'y',
 		'/^\d{4}-\d{2}$/'                                                                    => 'yMMMM',
-		'/^\d{4}-\d{2}-\d{2}$/'                                                              => 'yMMMMd',
-		'/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:?\d{2})?$/' => 'yMMMMd jm',
-		'/^\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?$/'                                           => 'jm',
+		'/^\d{4}-\d{2}-\d{2}$/'                                                              => 'date',
+		'/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:?\d{2})?$/' => 'datetime',
+		'/^\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?$/'                                           => 'time',
 		'/^P(?=\d|T\d)(?:\d+Y)?(?:\d+M)?(?:\d+W)?(?:\d+D)?(?:T(?=\d)(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$/' => null
 	];
 
@@ -138,10 +143,22 @@ final class Time extends Component
 	}
 
 	/**
-	 * Formats a date with a pattern skeleton in the site's locale.
+	 * Formats a date in the site's locale, with its formats or a pattern
+	 * skeleton.
 	 */
 	private static function format(DateTimeImmutable $date, string $skeleton, AppConfig $app): string
 	{
+		$formats = match ($skeleton) {
+			'date'     => [$app->dateFormat, null],
+			'time'     => [null, $app->timeFormat],
+			'datetime' => [$app->dateFormat, $app->timeFormat],
+			default    => null
+		};
+
+		if ($formats !== null) {
+			return DateFormat::format($date, $app->locale, $app->timezone, ...$formats);
+		}
+
 		$pattern   = new IntlDatePatternGenerator($app->locale)->getBestPattern($skeleton);
 		$formatter = new IntlDateFormatter($app->locale, IntlDateFormatter::NONE, IntlDateFormatter::NONE, $app->timezone, null, $pattern ?: null);
 

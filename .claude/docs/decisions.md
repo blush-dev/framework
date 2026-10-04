@@ -13129,3 +13129,89 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** city names keep zones unambiguous (Eastern is New York and
   Sydney) and their history apart (Indianapolis), but people know their
   zone as Central or CST; showing and searching both serves each.
+
+### D-445: Date and time formats for the site
+- **Date:** 2026-10-04
+- **Status:** Builds on D-444 (the General screen's Dates and Time
+  panel). `Template::date()` keeps its signature's meaning, its default
+  now the site's format instead of a fixed `long`.
+- **Decision:** The author asked for standard date and time formats a
+  theme shows dates with, as config options, and chose:
+  - **ICU, not PHP's `date()` letters.** `app.dateFormat` and
+    `app.timeFormat` (`AppConfig`, defaults `long` and `short`) are each
+    a style the language defines (`full`, `long`, `medium`, `short`), so
+    order and words follow the site's language, or an ICU pattern
+    (`d MMMM y`, `HH:mm`), fixed in order whatever the language, with
+    month and day names still in it. PHP's letters can't name months in
+    another language (`strftime()` is gone), and the template already
+    used ICU. A setting typed in PHP's letters isn't translated.
+  - **`Blush\Clock\DateFormat`** checks, formats, and lists them. A
+    pattern is checked more closely than ICU checks it (ICU drops
+    letters it doesn't know): every letter outside quotes must be an
+    ICU field (`j`, `J`, `C`, and `l`, skeleton-only or deprecated, are
+    not), quotes must close, one field at least, one line, at most 100
+    characters. A date and time together are joined as the language
+    joins those styles (`October 4, 2026 at 2:30 PM`, `um` in German);
+    a pattern takes its style's place in the join, and two patterns
+    join as `medium` does.
+  - **Templates:** `date($date, ?$format)`, and new `time($date,
+    ?$format)` and `datetime($date, ?$dateFormat, ?$timeFormat)`, use
+    the site's formats unless given one.
+  - **`:time`** (D-175) shows a date, a time, or both with the site's
+    formats; a year or a month keeps its skeleton (`2026`, `October
+    2026`), since a date format would add a day.
+  - **Settings → General**, under Dates and Time: two settings
+    (`app.dateFormat`, `app.timeFormat`, saved in
+    `user/data/settings.json`), each a menu (`DateFormatPicker`) of how
+    now reads in the styles, then a few fixed patterns whose result no
+    style already gives, grouped "From the language" and "Fixed", with
+    the name or pattern as each one's hint; **Custom…** opens a pattern
+    box with how it reads as you type (`GET settings/date-format`,
+    in the form's language). A saved pattern the menu doesn't have
+    opens the box. No refresh: formats change no addresses; the save
+    moves the content version on, so cached pages go.
+  - **Front end only for now.** Whether the admin's own dates follow
+    them is in `open-questions.md`.
+- **Checked:** `composer check` (styles by language, patterns, the
+  join, the checks, the menu, `AppConfig`, the template's three, `:time`,
+  saving, the preview and its `422`); `npm run admin:build`. Not checked
+  in a browser.
+- **Why:** a site owner picks how dates read once, and every theme
+  follows; styles keep a translated site right without a second
+  setting, and patterns cover a fixed house style.
+
+### D-446: The admin's dates follow the site's formats, later; the formats link to ICU's letters
+- **Date:** 2026-10-04
+- **Status:** Settles D-445's open question (moved out of
+  `open-questions.md`). The admin's part is planned, not built.
+- **Decision:**
+  - **The admin shows dates in the site's formats too, where it makes
+    sense**: dates read as dates (an entry's published date in the
+    document panel, Trash, a media file's details, accounts' last
+    sign-in), not compact or structural ones (list columns, the
+    Calendar's grid, date pickers). The admin formats in the browser
+    (`Intl.DateTimeFormat`), which reads no ICU patterns, so the work
+    is either the server sending dates formatted (`DateFormat::format`)
+    or the admin reading the formats' patterns; decide when it's built.
+    Recorded in `roadmap.md`.
+  - **The date and time format settings link to ICU's pattern letters**
+    (`DateFormat::REFERENCE`, the ICU user guide's "Date/Time Format
+    Syntax"), as each row's external `link`, "Pattern letters".
+- **Checked:** `composer check`; nothing in the admin's sources changed
+  (the row's `link` is drawn already).
+- **Why:** the admin is where people read their own dates most; a
+  pattern box needs its letters a click away.
+
+### D-447: `DateStyle`, the styles as an enum
+- **Date:** 2026-10-04
+- **Status:** Builds on D-445; style names as strings still work.
+- **Decision:** The author asked for a constant for the date styles in
+  templates, and chose an enum: `Blush\Clock\DateStyle` (`Full`,
+  `Long`, `Medium`, `Short`, backed by the names a format is written
+  with), with `icu()` for its `IntlDateFormatter` constant. The
+  template's `date()`, `time()`, and `datetime()` and
+  `DateFormat::format()` take `DateStyle|string|null`; it replaces
+  `DateFormat::STYLES`. Config and settings stay strings.
+- **Checked:** `composer check`.
+- **Why:** an editor completes it, and a misspelled style is an error
+  instead of an ICU pattern that quietly prints letters.

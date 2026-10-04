@@ -304,8 +304,10 @@ The launch is :time[next Tuesday]{datetime=2026-10-06}. Comments :badge[Beta]{va
 
 `time` gives software (search engines, calendars) the exact date while
 readers see your words. On its own line without a label,
-`::time{datetime=2026-10-06}` shows the date in your site's language and
-time zone, such as "October 6, 2026".
+`::time{datetime=2026-10-06}` shows the date in your site's language,
+time zone, and date format, such as "October 6, 2026". A time uses the
+site's time format, and a date with a time uses both; a year or a month
+shows just those ("October 2026").
 
 For the rest, Markdown already has a way: `==text==` highlights
 (`<mark>`), `~~text~~` strikes out (`<del>`), and `[text]{.class}` wraps

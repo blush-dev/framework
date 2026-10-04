@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use DateTimeZone;
+use Blush\Clock\DateFormat;
 use Blush\Config\Config;
 use Blush\Config\InvalidConfig;
 use Blush\Content\Type\ContentConfig;
@@ -62,6 +63,8 @@ enum Setting: string
 	case Description     = 'app.description';
 	case Locale          = 'app.locale';
 	case Timezone        = 'app.timezone';
+	case DateFormat      = 'app.dateFormat';
+	case TimeFormat      = 'app.timeFormat';
 	case Home            = 'content.home';
 	case TrailingSlash   = 'routes.trailingSlash';
 	case FeedFormats     = 'feed.formats';
@@ -93,6 +96,11 @@ enum Setting: string
 	public const string DESCRIPTION_HELP = 'One line about the site, for llms.txt, and for the homepage and feeds when nothing more specific describes them. Search results show about 160 characters.';
 
 	/**
+	 * What the date and time formats are (D-445).
+	 */
+	public const string FORMAT_HELP = 'How themes show dates and times. One from the language follows the site\'s language; a fixed one keeps its order whatever the language.';
+
+	/**
 	 * The most paths robots.txt may be asked to skip.
 	 */
 	public const int DISALLOW_MAX = 50;
@@ -112,7 +120,8 @@ enum Setting: string
 	{
 		return match ($this) {
 			self::Theme, self::Plugins, self::IconPacks                   => null,
-			self::Name, self::Description, self::Locale, self::Timezone   => SettingsScreen::General,
+			self::Name, self::Description, self::Locale, self::Timezone,
+			self::DateFormat, self::TimeFormat                            => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::MediaUploads                                            => SettingsScreen::Media,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
@@ -133,6 +142,8 @@ enum Setting: string
 			self::Description     => new TextField('description')->labeled('Description')->described(self::DESCRIPTION_HELP),
 			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.')->control(Control::Mono),
 			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
+			self::DateFormat      => new TextField('dateFormat')->labeled('Date format')->described(self::FORMAT_HELP)->control(Control::Mono),
+			self::TimeFormat      => new TextField('timeFormat')->labeled('Time format')->described(self::FORMAT_HELP)->control(Control::Mono),
 			self::Home            => self::homeChoices($types) === []
 				? new TextField('home')->labeled('Homepage')
 				: new EnumField('home', array_keys(self::homeChoices($types)))->labeled('Homepage'),
@@ -310,6 +321,8 @@ enum Setting: string
 			self::Description     => self::description($value),
 			self::Locale          => self::locale($value),
 			self::Timezone        => self::timezone($value),
+			self::DateFormat,
+			self::TimeFormat      => self::dateFormat($value),
 			self::Home            => self::home($value),
 			self::FeedFormats     => self::formats($value),
 			self::FeedLimit       => self::limit($value),
@@ -372,6 +385,17 @@ enum Setting: string
 		return is_string($value) && in_array($value, DateTimeZone::listIdentifiers(), true)
 			? $value
 			: throw new InvalidSetting(sprintf('"%s" isn\'t a time zone; use one such as America/Chicago or UTC.', is_string($value) ? $value : get_debug_type($value)));
+	}
+
+	/**
+	 * @throws InvalidSetting
+	 */
+	private static function dateFormat(mixed $value): string
+	{
+		$format  = is_string($value) ? trim($value) : throw new InvalidSetting('A date or time format must be text.');
+		$problem = DateFormat::problem($format);
+
+		return $problem === null ? $format : throw new InvalidSetting($problem);
 	}
 
 	/**

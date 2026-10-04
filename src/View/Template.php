@@ -16,10 +16,11 @@ namespace Blush\View;
 use BackedEnum;
 use Closure;
 use DateTimeInterface;
-use IntlDateFormatter;
 use Stringable;
 use Blush\Cache\CacheException;
 use Blush\Cache\CacheNamespace;
+use Blush\Clock\DateFormat;
+use Blush\Clock\DateStyle;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\Taxonomy;
@@ -559,24 +560,36 @@ final class Template
 	}
 
 	/**
-	 * Formats a date in the site's locale and timezone: `full`, `long`,
-	 * `medium`, or `short`, or else an ICU pattern (`'MMMM y'`).
+	 * Formats a date in the site's locale and timezone, with the site's
+	 * date format (`app.dateFormat`, D-445) or the one given: `full`,
+	 * `long`, `medium`, or `short` (or a `DateStyle`, D-447), or else an
+	 * ICU pattern (`'MMMM y'`).
 	 */
-	public function date(DateTimeInterface $date, string $format = 'long'): string
+	public function date(DateTimeInterface $date, DateStyle|string|null $format = null): string
 	{
-		$style     = ['full' => IntlDateFormatter::FULL, 'long' => IntlDateFormatter::LONG, 'medium' => IntlDateFormatter::MEDIUM, 'short' => IntlDateFormatter::SHORT][$format] ?? null;
-		$formatter = new IntlDateFormatter(
-			$this->views->translator->locale(),
-			$style ?? IntlDateFormatter::NONE,
-			IntlDateFormatter::NONE,
-			$this->views->services->app->timezone,
-			null,
-			$style === null ? $format : null
-		);
+		return DateFormat::format($date, $this->views->translator->locale(), $this->views->services->app->timezone, $format ?? $this->views->services->app->dateFormat);
+	}
 
-		$formatted = $formatter->format($date);
+	/**
+	 * Formats a time in the site's locale and timezone, with the site's
+	 * time format (`app.timeFormat`, D-445) or the one given, as `date()`
+	 * takes them.
+	 */
+	public function time(DateTimeInterface $date, DateStyle|string|null $format = null): string
+	{
+		return DateFormat::format($date, $this->views->translator->locale(), $this->views->services->app->timezone, null, $format ?? $this->views->services->app->timeFormat);
+	}
 
-		return $formatted === false ? $date->format('Y-m-d') : $formatted;
+	/**
+	 * Formats a date and its time, joined as the site's language joins
+	 * them (`October 4, 2026 at 2:30 PM`), with the site's formats or the
+	 * ones given (D-445).
+	 */
+	public function datetime(DateTimeInterface $date, DateStyle|string|null $dateFormat = null, DateStyle|string|null $timeFormat = null): string
+	{
+		$app = $this->views->services->app;
+
+		return DateFormat::format($date, $this->views->translator->locale(), $app->timezone, $dateFormat ?? $app->dateFormat, $timeFormat ?? $app->timeFormat);
 	}
 
 	/**

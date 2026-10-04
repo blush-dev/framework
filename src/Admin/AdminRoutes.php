@@ -97,7 +97,8 @@ use Blush\Session\StartSession;
  *     (`SettingsController`, D-325); `PATCH settings` saves the ones
  *     the admin can change in `user/data/settings.json`, and `POST
  *     settings/refresh` compiles and reindexes after
- *     (`SettingsEditController`, D-324).
+ *     (`SettingsEditController`, D-324). `GET settings/date-format`
+ *     shows how a date or time format reads now (D-445).
  *   - `POST previews`: a signed preview link to an entry.
  */
 final readonly class AdminRoutes implements RouteSource
@@ -207,6 +208,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::delete('/icon-packs/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}', [IconPackEditController::class, 'delete'])->named('icon-pack.delete')->middleware(Authenticate::class),
 			Route::patch('/settings', [SettingsEditController::class, 'update'])->named('settings.update')->middleware(Authenticate::class),
 			Route::post('/settings/refresh', [SettingsEditController::class, 'refresh'])->named('settings.refresh')->middleware(Authenticate::class),
+			Route::get('/settings/date-format', [SettingsController::class, 'format'])->named('settings.date-format')->middleware(Authenticate::class),
 			Route::get('/settings/{screen:[a-z]+}', SettingsController::class)->named('settings')->middleware(Authenticate::class),
 			Route::post('/previews', PreviewLinkController::class)->named('preview')->middleware(Authenticate::class)
 		], name: 'admin.api.', middleware: [StartSession::class, VerifyCsrf::class], exact: true);

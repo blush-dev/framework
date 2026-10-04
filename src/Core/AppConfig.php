@@ -16,6 +16,7 @@ namespace Blush\Core;
 use DateTimeZone;
 use Override;
 use Uri\Rfc3986\Uri;
+use Blush\Clock\DateFormat;
 use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 use Blush\Config\InvalidConfig;
@@ -28,6 +29,10 @@ use Blush\Env\Env;
  * `description` is a line about the site (D-398), for `llms.txt`, and
  * for the homepage's meta description and feeds when nothing more
  * specific exists; empty, there's none.
+ *
+ * `dateFormat` and `timeFormat` are how themes show dates and times
+ * (D-445): a style the language defines (`full`, `long`, `medium`, or
+ * `short`) or an ICU pattern (`MMMM d, y`, `HH:mm`); see `DateFormat`.
  */
 final readonly class AppConfig implements Config
 {
@@ -43,7 +48,9 @@ final readonly class AppConfig implements Config
 		public string $timezone = 'UTC',
 		public string $locale = 'en_US',
 		public array $providers = [],
-		public string $description = ''
+		public string $description = '',
+		public string $dateFormat = 'long',
+		public string $timeFormat = 'short'
 	) {
 		if (Uri::parse($url) === null || ! preg_match('#^https?://#i', $url)) {
 			throw new InvalidConfig(sprintf('AppConfig "url" must be an absolute http(s) URL; "%s" given.', $url));
@@ -51,6 +58,14 @@ final readonly class AppConfig implements Config
 
 		if (! in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
 			throw new InvalidConfig(sprintf('AppConfig "timezone" "%s" is not a valid timezone.', $timezone));
+		}
+
+		foreach (['dateFormat' => $dateFormat, 'timeFormat' => $timeFormat] as $key => $format) {
+			$problem = DateFormat::problem($format);
+
+			if ($problem !== null) {
+				throw new InvalidConfig(sprintf('AppConfig "%s" "%s": %s', $key, $format, $problem));
+			}
 		}
 
 		foreach ($providers as $provider) {
@@ -119,7 +134,7 @@ final readonly class AppConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description']);
+		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description', 'dateFormat', 'timeFormat']);
 
 		$environment = $data['environment'] ?? null;
 
@@ -136,7 +151,9 @@ final readonly class AppConfig implements Config
 			timezone: $values->string('timezone', 'UTC'),
 			locale: $values->string('locale', 'en_US'),
 			providers: $providers,
-			description: $values->string('description', '')
+			description: $values->string('description', ''),
+			dateFormat: $values->string('dateFormat', 'long'),
+			timeFormat: $values->string('timeFormat', 'short')
 		);
 	}
 
@@ -154,7 +171,9 @@ final readonly class AppConfig implements Config
 			'timezone'    => $this->timezone,
 			'locale'      => $this->locale,
 			'providers'   => $this->providers,
-			'description' => $this->description
+			'description' => $this->description,
+			'dateFormat'  => $this->dateFormat,
+			'timeFormat'  => $this->timeFormat
 		];
 	}
 }

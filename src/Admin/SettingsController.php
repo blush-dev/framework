@@ -22,6 +22,7 @@ use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\CacheConfig;
 use Blush\Cache\PageCache;
+use Blush\Clock\DateFormat;
 use Blush\Clock\TimeZones;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentType;
@@ -84,7 +85,10 @@ use Blush\Translation\Locales;
  * `media()`). The language (`app.locale`) adds `locales`, the menu it's
  * picked from (`Locales::options()`, D-441), and may be any code typed
  * instead. The time zone adds `menu`, the options its searchable menu
- * is drawn from (`TimeZones::options()`, D-444). The rest live in `config/` and `.env`
+ * is drawn from (`TimeZones::options()`, D-444). The date and time
+ * formats add `formats`, their menus (`DateFormat::options()`, D-445),
+ * and may be any pattern typed instead; each links to ICU's pattern
+ * letters (D-446). The rest live in `config/` and `.env`
  * (D-039) and are only shown, beside the ones they relate to. Secrets are
  * never sent: only whether one is set.
  */
@@ -142,6 +146,38 @@ final readonly class SettingsController
 	}
 
 	/**
+	 * Answers `GET settings/date-format` (D-445): how a date or time
+	 * format shows now, for the admin's preview of one typed in. Takes
+	 * `format`, `kind` (`date` or `time`), and the `locale` the form has
+	 * (the site's when it isn't a language code). Answers `{"text"}`, or
+	 * a `422` saying what's wrong with the format.
+	 */
+	public function format(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteSettings)) {
+			return Response::json(['error' => 'You aren\'t allowed to see the site\'s settings.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		$query   = $request->getQueryParams();
+		$format  = is_string($query['format'] ?? null) ? trim($query['format']) : '';
+		$locale  = is_string($query['locale'] ?? null) && preg_match('/^[a-z]{2,3}(?:[_-][A-Za-z0-9]{2,8})*$/', $query['locale']) === 1 ? $query['locale'] : $this->app->locale;
+		$problem = DateFormat::problem($format);
+
+		if ($problem !== null) {
+			return Response::json(['error' => $problem], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
+		}
+
+		$now  = $this->clock->now();
+		$text = ($query['kind'] ?? 'date') === 'time'
+			? DateFormat::format($now, $locale, $this->app->timezone, null, $format)
+			: DateFormat::format($now, $locale, $this->app->timezone, $format);
+
+		return Response::json(['text' => $text], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
 	 * The groups the field sets on a screen add (D-343): one per set,
 	 * headed by its label, each of its fields a setting saved in
 	 * `user/data/settings.json`'s `site` section (`site.{name}`), with no
@@ -193,7 +229,9 @@ final readonly class SettingsController
 				self::item('url', 'Site address', $this->app->url, $this->app->url === $app->url, 'mono', 'From APP_URL in .env by default.', 'config/app.php')
 			]),
 			self::group('dates', 'Dates and Time', 'How times are read and shown', [
-				[...$this->edit(self::item('timezone', 'Time zone', $this->app->timezone, $this->app->timezone === $app->timezone, 'mono', sprintf('It\'s %s there now.', $now->format('D, j M Y, H:i'))), $saved, Setting::Timezone, $this->app->timezone), 'menu' => TimeZones::options($now)]
+				[...$this->edit(self::item('timezone', 'Time zone', $this->app->timezone, $this->app->timezone === $app->timezone, 'mono', sprintf('It\'s %s there now.', $now->format('D, j M Y, H:i'))), $saved, Setting::Timezone, $this->app->timezone), 'menu' => TimeZones::options($now)],
+				[...$this->edit(self::item('dateFormat', 'Date format', $this->app->dateFormat, $this->app->dateFormat === $app->dateFormat, 'mono', Setting::FORMAT_HELP), $saved, Setting::DateFormat, $this->app->dateFormat), 'formats' => DateFormat::options('date', $now, $this->app->locale, $this->app->timezone), 'link' => ['label' => 'Pattern letters', 'href' => DateFormat::REFERENCE]],
+				[...$this->edit(self::item('timeFormat', 'Time format', $this->app->timeFormat, $this->app->timeFormat === $app->timeFormat, 'mono', Setting::FORMAT_HELP), $saved, Setting::TimeFormat, $this->app->timeFormat), 'formats' => DateFormat::options('time', $now, $this->app->locale, $this->app->timezone), 'link' => ['label' => 'Pattern letters', 'href' => DateFormat::REFERENCE]]
 			]),
 			self::group('environment', 'Environment', 'Set where the site runs', [
 				self::item('environment', 'Environment', ucfirst($environment->value), $environment === $app->environment, help: match ($environment) {
