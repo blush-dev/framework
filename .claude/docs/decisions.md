@@ -12228,3 +12228,15 @@ decision, add a new entry that supersedes it and mark the old one
   docs. Windows without WSL keeps `php bin/blush`.
 - **Why:** the author's pick from the quick wins.
 
+### D-422: The themes controller is `ThemesController`
+- **Date:** 2026-10-04
+- **Decision:** `Blush\Admin\AppearanceController` is renamed
+  `ThemesController` (and its test `AdminThemesTest`), matching the
+  screen's name (D-327) and its siblings `PluginsController` and
+  `IconPacksController`. Its endpoint is now `GET themes` (named
+  `themes`), like `GET plugins` and `GET icon-packs`, and the admin's
+  type for it is `Themes`. The admin's `/appearance` screen URL, which
+  redirected to Themes, is gone.
+  Supersedes the class name and endpoint in D-306.
+- **Checked:** `composer check`; `npm run admin:build`.
+- **Why:** the author's call.

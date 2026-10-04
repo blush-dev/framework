@@ -26,7 +26,7 @@ import { copy, themeRoute, useThemes } from '../themes';
 const route  = useRoute();
 const router = useRouter();
 
-const { appearance, error, busy, failed, active, load, find, label, installed, dependents, blockedMessage, activate, remove: removeTheme } = useThemes();
+const { answer, error, busy, failed, active, load, find, label, installed, dependents, blockedMessage, activate, remove: removeTheme } = useThemes();
 
 // What the account may do here (D-389).
 const canActivate = can('extensions.themes.activate');
@@ -148,9 +148,9 @@ async function remove(): Promise<void> {
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<template v-if="theme && appearance">
+	<template v-if="theme && answer">
 		<p v-if="failed?.name === theme.name" class="theme-message theme-message--danger" role="alert">
-			<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? appearance.active }}; nothing changed. {{ failed.reason }}</span>
+			<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
 		</p>
 
 		<div class="theme-detail">
@@ -251,12 +251,12 @@ async function remove(): Promise<void> {
 				</div>
 			</section>
 
-			<PreviousVersion kind="theme" :extension="theme" :live="appearance.chain.includes(theme.name)" @changed="load" />
+			<PreviousVersion kind="theme" :extension="theme" :live="answer.chain.includes(theme.name)" @changed="load" />
 			<p v-if="theme.source === 'composer'" class="notice">
 				<span>Composer manages this theme, so it can't be deleted here. Remove it from the project with <code>composer remove {{ theme.name }}</code>, and it leaves this list.</span>
 			</p>
 			<p v-else-if="theme.source === 'local' && !theme.deletable" class="notice">
-				<span>{{ theme.active ? 'This is the active theme' : `The active theme, ${active?.label ?? appearance.active}, falls back to it` }}, so it can't be deleted. Activate another theme first.</span>
+				<span>{{ theme.active ? 'This is the active theme' : `The active theme, ${active?.label ?? answer.active}, falls back to it` }}, so it can't be deleted. Activate another theme first.</span>
 			</p>
 			<div v-else-if="canDelete && theme.deletable" class="danger-zone">
 				<p>{{ deleteNote }}</p>
@@ -265,7 +265,7 @@ async function remove(): Promise<void> {
 		</div>
 	</template>
 
-	<p v-else-if="appearance" class="notice notice--warn" role="alert">
+	<p v-else-if="answer" class="notice notice--warn" role="alert">
 		<span>No theme named <span class="mono">{{ name }}</span> is installed.</span>
 	</p>
 

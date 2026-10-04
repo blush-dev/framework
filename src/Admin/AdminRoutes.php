@@ -79,7 +79,7 @@ use Blush\Session\StartSession;
  *     accounts/{username}`, and `POST accounts/{username}/link` change
  *     accounts (`AccountEditController`), and `POST roles`, and `PATCH`
  *     and `DELETE roles/{name}` change roles (`RoleEditController`).
- *   - `GET  appearance`: the installed themes (`AppearanceController`);
+ *   - `GET  themes`: the installed themes (`ThemesController`);
  *     `DELETE themes/{vendor}/{name}` deletes one from `extensions/`
  *     (`ThemeEditController`, D-381). `PATCH settings` activates one
  *     (`theme.active`).
@@ -186,7 +186,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/accounts/{username:[a-z0-9][a-z0-9._-]*}/link', [AccountEditController::class, 'link'])->named('account.link')->middleware(Authenticate::class),
 			Route::patch('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'update'])->named('account.update')->middleware(Authenticate::class),
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'delete'])->named('account.delete')->middleware(Authenticate::class),
-			Route::get('/appearance', AppearanceController::class)->named('appearance')->middleware(Authenticate::class),
+			Route::get('/themes', ThemesController::class)->named('themes')->middleware(Authenticate::class),
 			Route::post('/themes', [ExtensionInstallController::class, 'theme'])->named('theme.install')->middleware(Authenticate::class),
 			Route::post('/themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/rollback', [ExtensionBackupController::class, 'rollbackTheme'])->named('theme.rollback')->middleware(Authenticate::class),
 			Route::delete('/themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/backup', [ExtensionBackupController::class, 'discardTheme'])->named('theme.backup.discard')->middleware(Authenticate::class),

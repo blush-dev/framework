@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Admin Appearance screen's API tests.
+ * Admin Themes screen's API tests.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -16,13 +16,13 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\AppearanceController;
+use Blush\Admin\ThemesController;
 use Blush\Admin\ThemeEditController;
 use Blush\Theme\ThemeConfig;
 
-#[CoversClass(AppearanceController::class)]
+#[CoversClass(ThemesController::class)]
 #[CoversClass(ThemeEditController::class)]
-final class AdminAppearanceTest extends TestCase
+final class AdminThemesTest extends TestCase
 {
 	use BootsAdmin;
 
@@ -56,7 +56,7 @@ final class AdminAppearanceTest extends TestCase
 	{
 		$this->site();
 
-		$answer = self::json($this->send('GET', '/appearance'));
+		$answer = self::json($this->send('GET', '/themes'));
 
 		$this->assertSame('acme/pocket', $answer['active'] ?? null);
 		$this->assertSame(['acme/pocket', 'acme/notebook', 'blush/default'], $answer['chain'] ?? null);
@@ -121,7 +121,7 @@ final class AdminAppearanceTest extends TestCase
 
 		$this->assertSame('acme/plate', $this->app->container()->make(ThemeConfig::class)->active, 'The saved theme wins over config/theme.php.');
 
-		$answer = self::json($this->send('GET', '/appearance'));
+		$answer = self::json($this->send('GET', '/themes'));
 		$this->assertSame('acme/plate', $answer['active'] ?? null);
 		$this->assertTrue($answer['saved'] ?? null);
 	}
@@ -172,7 +172,7 @@ final class AdminAppearanceTest extends TestCase
 		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('stylist', 'Stylist', ['extensions.themes.view', 'extensions.themes.activate'])]);\n");
 		$this->site(['stylist']);
 
-		$this->assertSame(200, $this->send('GET', '/appearance')->getStatusCode());
+		$this->assertSame(200, $this->send('GET', '/themes')->getStatusCode());
 		$this->assertSame(200, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/plate']])->getStatusCode(), 'Activating (D-389).');
 		$this->assertSame(403, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/notebook', 'app.name' => 'Mine']])->getStatusCode(), 'Other settings need site.settings.');
 		$this->assertSame(403, $this->write('DELETE', '/themes/acme/broken')->getStatusCode(), 'Deleting is its own.');
@@ -187,7 +187,7 @@ final class AdminAppearanceTest extends TestCase
 	{
 		$this->site(['editor']);
 
-		$this->assertSame(403, $this->send('GET', '/appearance')->getStatusCode());
+		$this->assertSame(403, $this->send('GET', '/themes')->getStatusCode());
 		$this->assertSame(403, $this->write('DELETE', '/themes/acme/plate')->getStatusCode());
 		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/acme/plate');
 	}

@@ -1,6 +1,6 @@
 /**
  * What the Themes screen and a theme's details screen share (D-381,
- * D-383): the installed themes (`GET appearance`), and activating,
+ * D-383): the installed themes (`GET themes`), and activating,
  * deleting, and copying, each with its question, toast, or failure.
  *
  * Activating saves `theme.active` in `user/data/settings.json` (`PATCH
@@ -11,26 +11,26 @@
  */
 
 import { computed, ref } from 'vue';
-import { ApiError, request, type Appearance, type ThemeSummary } from './api';
+import { ApiError, request, type Themes, type ThemeSummary } from './api';
 import { config } from './config';
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
 import { toast } from './toast';
 
 export function useThemes() {
-	const appearance = ref<Appearance | null>(null);
-	const error      = ref('');
+	const answer = ref<Themes | null>(null);
+	const error  = ref('');
 	// The theme being activated, and the one whose activation failed, with why.
-	const busy       = ref<string | null>(null);
-	const failed     = ref<{ name: string; reason: string } | null>(null);
+	const busy   = ref<string | null>(null);
+	const failed = ref<{ name: string; reason: string } | null>(null);
 
-	const themes = computed(() => appearance.value?.themes ?? []);
+	const themes = computed(() => answer.value?.themes ?? []);
 	const active = computed(() => themes.value.find((theme) => theme.active) ?? null);
 
 	async function load(): Promise<void> {
 		try {
-			appearance.value = await request<Appearance>('GET', '/appearance');
-			error.value      = '';
+			answer.value = await request<Themes>('GET', '/themes');
+			error.value  = '';
 		} catch (caught) {
 			error.value = caught instanceof ApiError ? caught.message : 'The themes couldn\'t be loaded.';
 		}
@@ -131,7 +131,7 @@ export function useThemes() {
 		}
 	}
 
-	return { appearance, error, busy, failed, themes, active, load, find, label, installed, dependents, blockedMessage, activate, useConfig, remove };
+	return { answer, error, busy, failed, themes, active, load, find, label, installed, dependents, blockedMessage, activate, useConfig, remove };
 }
 
 // Saves the theme setting, then has the server compile and reindex for it

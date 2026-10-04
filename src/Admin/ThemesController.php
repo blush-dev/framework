@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Admin appearance controller.
+ * Admin themes controller.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -36,7 +36,7 @@ use Blush\Theme\Themes;
 use Blush\Theme\ThemeSource;
 
 /**
- * Answers `GET {path}/api/appearance` (D-306, D-381), for accounts with
+ * Answers `GET {path}/api/themes` (D-306, D-381, D-422), for accounts with
  * `extensions.themes.view` (D-389): the `active` theme's name, its `chain` (the theme,
  * its ancestors, then the default theme, by name; empty, with the
  * `problem`, when it can't be built), whether `config/theme.php` exists
@@ -58,7 +58,7 @@ use Blush\Theme\ThemeSource;
  * The Themes screen activates a theme with `PATCH settings`
  * (`theme.active`), and deletes one with `DELETE themes/{folder}`.
  */
-final readonly class AppearanceController
+final readonly class ThemesController
 {
 	public function __construct(
 		private Themes $themes,
@@ -75,7 +75,7 @@ final readonly class AppearanceController
 		$account = $request->getAttribute(Account::class);
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, ExtensionAction::View->on(ExtensionKind::Theme))) {
-			return self::error('You aren\'t allowed to see the site\'s appearance.', Status::Forbidden);
+			return self::error('You aren\'t allowed to see the site\'s themes.', Status::Forbidden);
 		}
 
 		$active  = $this->config->active;

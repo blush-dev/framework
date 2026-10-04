@@ -227,8 +227,8 @@ final class AdminInstallTest extends TestCase
 		$this->assertDirectoryExists($this->temporaryDirectory() . '/extensions/acme/weather');
 
 		$this->reboot();
-		$appearance = self::json($this->send('GET', '/appearance'));
-		$this->assertSame(Themes::DEFAULT, $appearance['active'] ?? null, 'Nothing is activated.');
+		$themes = self::json($this->send('GET', '/themes'));
+		$this->assertSame(Themes::DEFAULT, $themes['active'] ?? null, 'Nothing is activated.');
 		$packs = self::json($this->send('GET', '/icon-packs'))['packs'] ?? [];
 		$this->assertSame([false], array_column(is_array($packs) ? $packs : [], 'enabled'), 'It arrives off.');
 	}

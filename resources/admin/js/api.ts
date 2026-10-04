@@ -307,7 +307,7 @@ export interface ExtensionAuthor {
 }
 
 /**
- * An installed theme (`GET appearance`).
+ * An installed theme (`GET themes`).
  */
 export interface ThemeSummary {
 	// The key it's known by: `vendor/name` (D-378).
@@ -335,9 +335,9 @@ export interface ThemeSummary {
 }
 
 /**
- * The installed themes (`GET appearance`).
+ * The installed themes (`GET themes`).
  */
-export interface Appearance {
+export interface Themes {
 	// The active theme's name.
 	active: string;
 	// The active theme, its ancestors, then the default theme, by name;

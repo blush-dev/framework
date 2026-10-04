@@ -32,7 +32,7 @@ import { useInstall } from '../install';
 import { can } from '../session';
 import { copy, folderName, previewUrl, themeRoute, useThemes } from '../themes';
 
-const { appearance, error, busy, failed, themes, active, load, label, installed, dependents, blockedMessage, activate: activateTheme, useConfig, remove: removeTheme, find } = useThemes();
+const { answer, error, busy, failed, themes, active, load, label, installed, dependents, blockedMessage, activate: activateTheme, useConfig, remove: removeTheme, find } = useThemes();
 const { installing, canInstall, afterInstall, hop } = useInstall('theme', load);
 
 // What the account may do here (D-389).
@@ -41,7 +41,7 @@ const canDelete   = can('extensions.themes.delete');
 
 void load();
 
-const count = computed(() => themes.value.length + (appearance.value?.invalid.length ?? 0));
+const count = computed(() => themes.value.length + (answer.value?.invalid.length ?? 0));
 
 async function activate(theme: ThemeSummary): Promise<void> {
 	if (await activateTheme(theme)) {
@@ -58,7 +58,7 @@ function installState(name: string): InstallState {
 	return {
 		words: theme?.active ? 'the active theme' : 'inactive',
 		next: theme !== null && !theme.active && theme.blocked === null && canActivate,
-		live: appearance.value?.chain.includes(name) ?? false
+		live: answer.value?.chain.includes(name) ?? false
 	};
 }
 
@@ -91,16 +91,16 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 	</header>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-	<p v-if="appearance?.problem" class="notice notice--warn" role="alert">
-		<span>The active theme, <span class="mono">{{ appearance.active }}</span>, can't be used: {{ appearance.problem }} Activate another theme to fix the site.</span>
+	<p v-if="answer?.problem" class="notice notice--warn" role="alert">
+		<span>The active theme, <span class="mono">{{ answer.active }}</span>, can't be used: {{ answer.problem }} Activate another theme to fix the site.</span>
 	</p>
 
 	<div class="count-row">
-		<span>{{ appearance ? `${count} ${count === 1 ? 'theme' : 'themes'} · 1 active` : 'Loading themes' }}</span>
+		<span>{{ answer ? `${count} ${count === 1 ? 'theme' : 'themes'} · 1 active` : 'Loading themes' }}</span>
 		<span class="count-row__rule" />
 	</div>
 
-	<div v-if="appearance" class="themes">
+	<div v-if="answer" class="themes">
 		<article v-for="theme in themes" :key="theme.name" class="theme" :class="{ 'is-active': theme.active, 'is-busy': busy === theme.name }">
 			<ThemeSketch :preview="theme.preview" />
 			<div class="theme__body">
@@ -122,7 +122,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 					<li v-else><AdminIcon name="corner-down-right" /><span>Falls back to <RouterLink class="theme__link" :to="themeRoute(theme.parent ?? 'blush/default')">{{ label(theme.parent ?? 'blush/default') }}</RouterLink></span></li>
 				</ul>
 				<p v-if="failed?.name === theme.name" class="theme__message theme__message--danger" role="alert">
-					<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? appearance.active }}; nothing changed. {{ failed.reason }}</span>
+					<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
 				</p>
 				<p v-else-if="theme.blocked && !theme.active" class="theme__message theme__message--warn">
 					<AdminIcon name="triangle-alert" /><span>{{ blockedMessage(theme) }}</span>
@@ -139,7 +139,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 						<AdminIcon name="ellipsis" />
 					</template>
 					<RouterLink class="menu-item" :to="themeRoute(theme.name)"><AdminIcon name="info" />Theme details</RouterLink>
-					<a v-if="appearance.preview && !theme.active && !theme.blocked" class="menu-item" :href="previewUrl(theme.name)" target="_blank" rel="noopener"><AdminIcon name="eye" />Preview on the site</a>
+					<a v-if="answer.preview && !theme.active && !theme.blocked" class="menu-item" :href="previewUrl(theme.name)" target="_blank" rel="noopener"><AdminIcon name="eye" />Preview on the site</a>
 					<button v-if="theme.folder" type="button" class="menu-item" @click="copy(theme.folder, 'the folder path')"><AdminIcon name="copy" />Copy folder path</button>
 					<button v-if="!theme.active && !theme.blocked" type="button" class="menu-item" @click="copy(`bin/blush theme:activate ${theme.name}`, 'the command')"><AdminIcon name="terminal" />Copy activate command</button>
 					<template v-if="canDelete && theme.deletable && theme.folder">
@@ -150,7 +150,7 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 			</div>
 		</article>
 
-		<article v-for="theme in appearance.invalid" :key="theme.where" class="theme">
+		<article v-for="theme in answer.invalid" :key="theme.where" class="theme">
 			<ThemeSketch :preview="null" broken />
 			<div class="theme__body">
 				<p class="theme__name">
@@ -186,18 +186,18 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 		</div>
 	</div>
 
-	<p v-if="appearance" class="notice themes__note">
+	<p v-if="answer" class="notice themes__note">
 		<span>
-			<template v-if="appearance.saved">
+			<template v-if="answer.saved">
 				The active theme was set here, and is saved in <code>user/data/settings.json</code> over <code>config/theme.php</code>.
 				<button v-if="canActivate" type="button" class="link-button" @click="useConfig">Use <code>config/theme.php</code>'s theme</button>
 			</template>
-			<template v-else>The active theme is set in <code>config/theme.php</code><template v-if="!appearance.config"> (the default theme until it exists)</template>; activating one here saves it in <code>user/data/settings.json</code>, over that file.</template>
+			<template v-else>The active theme is set in <code>config/theme.php</code><template v-if="!answer.config"> (the default theme until it exists)</template>; activating one here saves it in <code>user/data/settings.json</code>, over that file.</template>
 			A deploy usually activates a theme from the command line instead: <code>bin/blush theme:activate {name}</code>.
 		</span>
 	</p>
 
-	<InstallModal kind="theme" :open="installing" :upload="appearance?.upload ?? null" :state="installState" @close="installing = false" @installed="afterInstall" @next="next" @hop="hop" />
+	<InstallModal kind="theme" :open="installing" :upload="answer?.upload ?? null" :state="installState" @close="installing = false" @installed="afterInstall" @next="next" @hop="hop" />
 </template>
 
 <style scoped>
