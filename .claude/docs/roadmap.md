@@ -456,11 +456,11 @@ Other starting points the author may pick up (none decided):
 - **A global installer (D-165):** a separately installed `blush` command
   (like `laravel/installer`, via `composer global require`) that creates
   sites (`blush new mysite`) and, inside a site, runs that site's
-  `bin/blush`. Until then, the docs can show the small launcher script
-  that finds the nearest `bin/blush` (the author uses one in
-  `~/.local/bin/blush`).
-- Setup notices beyond storage (D-218): a friendly page for "no
-  content yet", and whether a web server rewrite check is possible.
+  `bin/blush`. Until then, `docs/installation.md` shows the small
+  launcher script that finds the nearest `bin/blush` (D-421).
+- Setup notices beyond storage (D-218): whether a web server rewrite
+  check is possible (the welcome page's next steps and setup notes are
+  D-419).
 - The first look: the welcome page, the skeleton's sample content (its
   `blog/` isn't a content type, so the sample post is a plain page), and
   the default theme.

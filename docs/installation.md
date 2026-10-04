@@ -66,6 +66,44 @@ while you're not in production, anything wrong with your setup.)
 
 Use `bin/blush serve --port=8080` for another port.
 
+## Run `blush` from anywhere in your site (optional)
+
+Every command in these docs starts with `bin/blush`, run from the site's
+folder. To type just `blush`, from the site's folder or any folder
+inside it, save this script as `blush` somewhere on your `PATH`, such as
+`~/.local/bin/blush`:
+
+```bash
+#!/usr/bin/env bash
+
+# Runs the Blush CLI of the site you're in (this folder or any above it).
+
+dir=$PWD
+
+while [[ $dir != / && ! -f $dir/bin/blush ]]; do
+	dir=$(dirname "$dir")
+done
+
+if [[ ! -f $dir/bin/blush ]]; then
+	echo "blush: not inside a Blush site (no bin/blush here or above)" >&2
+	exit 1
+fi
+
+exec php "$dir/bin/blush" "$@"
+```
+
+Then make it executable:
+
+```sh
+chmod +x ~/.local/bin/blush
+```
+
+Now `blush doctor` in `user/content/` runs the same as `bin/blush doctor`
+at the site's root. Each site keeps its own `bin/blush`, so the script
+always runs the Blush of the site you're in. It needs `bash`, so it's
+for macOS, Linux, and WSL; on Windows otherwise, keep using
+`php bin/blush`.
+
 ## Serving it for real
 
 Pick whichever fits your host. In every case, only the `public/` folder is

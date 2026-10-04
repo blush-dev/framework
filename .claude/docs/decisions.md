@@ -12217,3 +12217,14 @@ decision, add a new entry that supersedes it and mark the old one
   house for whichever entry is the homepage, and nothing that doesn't
   apply to the top of the tree.
 
+### D-421: The launcher script is in the installation guide
+- **Date:** 2026-10-03
+- **Decision:** Quick win 5. Until the global installer (D-165),
+  `docs/installation.md` has an optional section with the author's
+  launcher script (a `bash` script on the `PATH`, such as
+  `~/.local/bin/blush`, that walks up from the current folder to the
+  nearest `bin/blush` and runs it with `php`), and `docs/cli.md` points
+  to it. Plain `bin/blush` stays the form used everywhere else in the
+  docs. Windows without WSL keeps `php bin/blush`.
+- **Why:** the author's pick from the quick wins.
+

@@ -7,6 +7,9 @@ bin/blush                   # list every command
 bin/blush help content:new  # how to use one command
 ```
 
+To type just `blush` from anywhere inside your site, see
+[the launcher script](installation.md#run-blush-from-anywhere-in-your-site-optional).
+
 Options that work with every command: `-v` for more detail (`-vv`, `-vvv`
 for even more), `-q` for errors only, `-n` to never ask questions, and
 `--no-ansi` to turn off colors.
