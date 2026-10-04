@@ -747,7 +747,8 @@ the built-in ones, and every other name needs its namespace.
 ### Labels and translations
 
 A component's label, description, prop names, and variants are
-translatable text, kept in the translation catalog of its namespace,
+translatable text, kept in the translation catalog of the theme, plugin,
+or icon pack that owns its namespace,
 under `components.{name}`:
 
 ```json
@@ -781,6 +782,12 @@ under `components.{name}`:
 | `app`                    | Your site's `resources/lang/en.json`          |
 | A plugin's namespace     | The plugin's `lang/en.json`                   |
 | An icon pack's namespace | The pack's `lang/en.json`                     |
+
+A theme's components can be reworded by a child theme's catalog, and
+any of them by your site's catalogs in `user/lang/` (see
+[Your own wording](themes.md#your-own-wording)). A component that
+translates text as it renders (`$this->t()` in its class) reads the
+theme's catalogs first, then its own plugin's.
 
 A variant someone else adds to your component, such as a theme's
 `bordered` callout, has its text in their catalog, under the same

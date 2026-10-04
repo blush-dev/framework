@@ -321,7 +321,7 @@ final class Template
 	 */
 	public function t(string $key, mixed ...$params): string
 	{
-		return $this->views->translator->translate($key, self::named($params), 'theme');
+		return $this->views->messages->translate($key, self::named($params));
 	}
 
 	/**
@@ -335,7 +335,7 @@ final class Template
 	 */
 	public function tGroup(string $key, mixed ...$params): array
 	{
-		return $this->views->translator->group($key, self::named($params), 'theme');
+		return $this->views->messages->group($key, self::named($params));
 	}
 
 	/**

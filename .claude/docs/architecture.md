@@ -164,15 +164,27 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 
 ## Translation (D-028)
 
-Implemented in M5a for the `blush` and `theme` domains (D-107).
+Implemented in M5a (D-107); domains by `vendor/name` and `user/lang`
+overrides in D-451, catalog metadata in D-452, `en` last in D-453.
 
 - **`Translator`:** CMS-wide, in-house, using ICU MessageFormat via `ext-intl`
   (`MessageFormatter`) for plurals, select, and number/date arguments.
-- **Catalogs:** per domain (`blush`, plugin and icon pack namespaces,
-  `theme`, `site`), per locale, stored as data files (`lang/{locale}.json`).
-  Resolved through the same chains as views (site → theme chain → plugin
-  → framework).
-- **Locale fallback:** `en_US` → `en` → the default locale.
+- **Catalogs:** per domain (`blush`, `app`, and each extension's
+  `vendor/name`), per locale, stored as data files (`lang/{locale}.json`),
+  starting with `@@locale` and `@@domain` (D-452). `Translator::domainOf()`
+  maps an extension namespace to its domain, for component and icon
+  labels.
+- **Overrides:** `user/lang/{locale}/blush.json`, `app.json`, and
+  `extensions/{vendor}/{name}.json`: each domain's first layer, winning
+  key by key within a locale; a group in one replaces the package's
+  group (`group()`), while across a list of domains groups add up.
+- **Lists of domains:** `translate()`, `has()`, and `group()` take one
+  domain or a list, searched in order within each locale.
+  `DomainTranslator` binds a list: `Views::$messages` is the theme
+  chain's, child first (`$template->t()`, `tGroup()`); a component gets
+  the chain's and then its own extension's (`Component::t()`).
+- **Locale fallback:** `en_US` → `en` → the default locale and its
+  language → `en` (D-453).
 - **Formatting services:** `DateFormatter` and `NumberFormatter` wrappers
   (`IntlDateFormatter`, `NumberFormatter`) use the site locale and timezone.
 - **Available in:** views (`$template->t()`), components, controllers, the CLI,
@@ -1094,7 +1106,8 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   only); `ManifestFile::load()` reads a folder that way. `autoload` (`Extension\Autoload`) is `psr-4` plus `files`, every
   path inside the extension.
 - **Namespace:** every manifest declares one (`ExtensionNamespace`):
-  what its components, icons, and translation domain go by. Reserved:
+  what its components and icons go by (its translation domain is its
+  `vendor/name`, mapped from the namespace, D-451). Reserved:
   `blush`, `app`, `theme`, and `default` (the default theme's). No two
   installed extensions share one: two plugins doing so fail discovery;
   two themes, or two icon packs, are both broken; across kinds,
@@ -1106,7 +1119,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   nothing is allowed (`Plugins::providers()` skips those). A
   plugin can register content types, routes, CLI commands, components,
   listeners, parsers, field types, cache drivers, and translations (its
-  `lang/` is its namespace's domain).
+  `lang/` is its domain, its `vendor/name`, D-451).
   - Composer plugins keep the rest of their manifest in `composer.json`
     `extra.blush` (`label`, `namespace`, `provider`, `require`, all
     optional, so `extra.blush` may be left out), read from Composer's

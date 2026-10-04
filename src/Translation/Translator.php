@@ -22,16 +22,21 @@ use Blush\Data\InvalidData;
 /**
  * The CMS-wide translator (D-028). Messages are ICU MessageFormat
  * patterns (plurals, select, and number and date arguments), looked up
- * by key in catalogs grouped by domain: `blush` for the framework,
- * `theme` for the active theme chain, and more for extensions and sites
- * later.
+ * by key in catalogs grouped by domain (D-451): `blush` for the
+ * framework, `app` for the site, and each extension's `vendor/name`
+ * (`acme/hello`, `blush/default`). An extension's namespace maps to its
+ * domain (`domainOf()`), for component and icon labels.
  *
  * A domain's catalogs are data files named by locale
- * (`lang/en_US.json`, `lang/en.yaml`) in an ordered list of directories;
- * for each key the first directory that has it wins, so a child theme
- * overrides its parent message by message. Nested objects flatten into
- * dotted keys. Keys starting with `@@` are metadata, not messages: a
- * catalog says what it translates with `@@locale` and `@@domain` (D-452).
+ * (`lang/en_US.json`, `lang/en.yaml`) in an ordered list of directories.
+ * Ahead of them, the site's own catalogs in `user/lang` win (D-451),
+ * arranged by language: `user/lang/fr/blush.json`, `user/lang/fr/app.json`,
+ * and `user/lang/fr/extensions/acme/hello.json`. A lookup can take a list
+ * of domains, such as a theme chain's, child first; for each key the
+ * first that has it wins, so a child theme overrides its parent message
+ * by message. Nested objects flatten into dotted keys. Keys starting with
+ * `@@` are metadata, not messages: a catalog says what it translates with
+ * `@@locale` and `@@domain` (D-452).
  *
  * Locales fall back from the most specific: `fr_CA`, then `fr`, then the
  * site locale and its language, and last `en` (D-453), the language
@@ -48,30 +53,45 @@ final class Translator
 	public const string LAST = 'en';
 
 	/**
-	 * Loaded catalogs, keyed by `{domain}|{locale}`.
+	 * The domains whose overrides sit directly in a language's folder;
+	 * every other domain's are under `extensions/`.
 	 *
-	 * @var array<string, array<string, string>>
+	 * @var list<string>
 	 */
-	private array $catalogs = [];
+	public const array OWN = ['blush', 'app'];
+
+	/**
+	 * Loaded layers, keyed by `{domain}|{locale}`: the site's override,
+	 * then the domain's own catalogs merged.
+	 *
+	 * @var array<string, array{array<string, string>, array<string, string>}>
+	 */
+	private array $layers = [];
 
 	/**
 	 * @param array<string, list<string>> $directories Catalog directories by domain, highest precedence first.
+	 * @param ?string                     $overrides   The site's override folder (`user/lang`), or `null` for none.
+	 * @param array<string, string>       $namespaces  Extension namespaces' domains.
 	 */
 	public function __construct(
 		private readonly DataLoader $loader,
 		private readonly string $locale = 'en_US',
-		private readonly array $directories = []
+		private readonly array $directories = [],
+		private readonly ?string $overrides = null,
+		private readonly array $namespaces = []
 	) {}
 
 	/**
-	 * Returns a copy that reads a domain from other directories.
+	 * Returns a copy with more domains, replacing any with the same name,
+	 * and their namespaces.
 	 *
-	 * @param list<string> $directories Highest precedence first.
+	 * @param array<string, list<string>> $directories Catalog directories by domain, highest precedence first.
+	 * @param array<string, string>       $namespaces  Namespaces' domains.
 	 */
 	#[NoDiscard]
-	public function withDirectories(string $domain, array $directories): self
+	public function withDomains(array $directories, array $namespaces = []): self
 	{
-		return new self($this->loader, $this->locale, [...$this->directories, $domain => $directories]);
+		return new self($this->loader, $this->locale, [...$this->directories, ...$directories], $this->overrides, [...$this->namespaces, ...$namespaces]);
 	}
 
 	/**
@@ -83,18 +103,44 @@ final class Translator
 	}
 
 	/**
+	 * Returns the domain an extension namespace's text is in: its
+	 * extension's `vendor/name`, or the namespace itself (`blush`, `app`).
+	 */
+	public function domainOf(string $namespace): string
+	{
+		return $this->namespaces[$namespace] ?? $namespace;
+	}
+
+	/**
+	 * Returns the override catalog's path for a domain and locale, without
+	 * its extension, or `null` when the site has no override folder.
+	 */
+	public function overridePath(string $domain, string $locale): ?string
+	{
+		if ($this->overrides === null) {
+			return null;
+		}
+
+		return in_array($domain, self::OWN, true) || ! str_contains($domain, '/')
+			? "{$this->overrides}/{$locale}/{$domain}"
+			: "{$this->overrides}/{$locale}/extensions/{$domain}";
+	}
+
+	/**
 	 * Translates a key, formatting it with named parameters:
-	 * `translate('reading_time', ['minutes' => 5], 'theme')`.
+	 * `translate('reading_time', ['minutes' => 5], 'acme/hello')`. A list
+	 * of domains is searched in order for each locale.
 	 *
-	 * @param  array<string, mixed> $params
+	 * @param  array<string, mixed>  $params
+	 * @param  string|list<string>   $domain
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function translate(string $key, array $params = [], string $domain = 'blush', ?string $locale = null): string
+	public function translate(string $key, array $params = [], string|array $domain = 'blush', ?string $locale = null): string
 	{
 		$locale ??= $this->locale;
 
 		foreach (self::fallbacks($locale, $this->locale) as $candidate) {
-			$message = $this->catalog($domain, $candidate)[$key] ?? null;
+			$message = $this->find($domain, $candidate, $key);
 
 			if ($message !== null) {
 				return self::format($message, $params, $candidate);
@@ -108,23 +154,38 @@ final class Translator
 	 * Returns the messages nested under a key, formatted and keyed by
 	 * their last segment, from the first fallback locale that has any
 	 * (D-450): a group comes whole from one locale, so a translation can
-	 * have more or fewer messages in it than the default. Empty when no
-	 * locale has the group.
+	 * have more or fewer messages in it than the default. Within a domain,
+	 * the site's override replaces the package's group; across a list of
+	 * domains, the groups add up, earlier ones winning, so a child theme
+	 * adds to its parent's. Empty when no locale has the group.
 	 *
 	 * @param  array<string, mixed> $params
+	 * @param  string|list<string>  $domain
 	 * @return array<string, string>
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function group(string $key, array $params = [], string $domain = 'blush', ?string $locale = null): array
+	public function group(string $key, array $params = [], string|array $domain = 'blush', ?string $locale = null): array
 	{
 		$prefix = "{$key}.";
 
 		foreach (self::fallbacks($locale ?? $this->locale, $this->locale) as $candidate) {
 			$messages = [];
 
-			foreach ($this->catalog($domain, $candidate) as $name => $message) {
-				if (str_starts_with($name, $prefix)) {
-					$messages[substr($name, strlen($prefix))] = self::format($message, $params, $candidate);
+			foreach ((array) $domain as $name) {
+				foreach ($this->layers($name, $candidate) as $layer) {
+					$found = [];
+
+					foreach ($layer as $id => $message) {
+						if (str_starts_with($id, $prefix)) {
+							$found[substr($id, strlen($prefix))] = self::format($message, $params, $candidate);
+						}
+					}
+
+					if ($found !== []) {
+						$messages += $found;
+
+						break;
+					}
 				}
 			}
 
@@ -139,13 +200,14 @@ final class Translator
 	/**
 	 * Returns whether a key has a message in any fallback locale.
 	 *
+	 * @param  string|list<string> $domain
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function has(string $key, string $domain = 'blush', ?string $locale = null): bool
+	public function has(string $key, string|array $domain = 'blush', ?string $locale = null): bool
 	{
 		return array_any(
 			self::fallbacks($locale ?? $this->locale, $this->locale),
-			fn (string $candidate): bool => isset($this->catalog($domain, $candidate)[$key])
+			fn (string $candidate): bool => $this->find($domain, $candidate, $key) !== null
 		);
 	}
 
@@ -173,26 +235,51 @@ final class Translator
 	}
 
 	/**
-	 * Returns a domain's merged catalog for one locale.
+	 * Returns a key's message in one locale from the first of the domains
+	 * (and, within each, the override first) that has it, or `null`.
 	 *
-	 * @return array<string, string>
+	 * @param  string|list<string> $domain
 	 * @throws InvalidData
 	 */
-	private function catalog(string $domain, string $locale): array
+	private function find(string|array $domain, string $locale, string $key): ?string
+	{
+		foreach ((array) $domain as $name) {
+			foreach ($this->layers($name, $locale) as $layer) {
+				if (isset($layer[$key])) {
+					return $layer[$key];
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Returns a domain's layers for one locale: the site's override, then
+	 * its own catalogs merged, highest precedence first.
+	 *
+	 * @return array{array<string, string>, array<string, string>}
+	 * @throws InvalidData
+	 */
+	private function layers(string $domain, string $locale): array
 	{
 		$id = "{$domain}|{$locale}";
 
-		if (isset($this->catalogs[$id])) {
-			return $this->catalogs[$id];
+		if (isset($this->layers[$id])) {
+			return $this->layers[$id];
 		}
 
-		$catalog = [];
+		$override = $this->overridePath($domain, $locale);
+		$own      = [];
 
 		foreach ($this->directories[$domain] ?? [] as $directory) {
-			$catalog += self::flatten($this->loader->load($directory, $locale) ?? []);
+			$own += self::flatten($this->loader->load($directory, $locale) ?? []);
 		}
 
-		return $this->catalogs[$id] = $catalog;
+		return $this->layers[$id] = [
+			$override === null ? [] : self::flatten($this->loader->load(dirname($override), basename($override)) ?? []),
+			$own
+		];
 	}
 
 	/**

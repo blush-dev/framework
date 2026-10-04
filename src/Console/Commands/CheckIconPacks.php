@@ -22,8 +22,11 @@ use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 use Blush\Icon\IconPack;
 use Blush\Icon\IconPacks;
+use Blush\Translation\CatalogCheck;
 
 /**
  * Checks every installed icon pack (or one, by name), as `plugin:check`
@@ -31,15 +34,17 @@ use Blush\Icon\IconPacks;
  * is met (checking one that's off as if it were on), and its `version`
  * is one Composer can read. A pack that's on but can't load is an error,
  * which fails the command; one that's off and couldn't be turned on, a
- * broken one, an unreadable version, and an abandoned pack (D-433) are
- * warnings.
+ * broken one, an unreadable version, an abandoned pack (D-433), and a
+ * `lang/` catalog whose `@@locale` or `@@domain` doesn't match (D-452)
+ * are warnings.
  */
 #[Command('icon-pack:check', 'Check icon packs\' manifests and requirements.')]
 final readonly class CheckIconPacks
 {
 	public function __construct(
 		private IconPacks $packs,
-		private ExtensionState $extensions
+		private ExtensionState $extensions,
+		private CatalogCheck $catalogs
 	) {}
 
 	public function __invoke(
@@ -61,6 +66,18 @@ final readonly class CheckIconPacks
 		foreach ($packs as $pack) {
 			$checked = $this->extensions->check($pack);
 
+			// Its catalogs against what they say they translate (D-452);
+			// notices (a catalog without them) are `theme:check --strict`'s.
+			$catalogs = array_filter($this->catalogs->check("{$pack->path}/lang", $pack->name), static fn (Violation $violation): bool => $violation->severity !== Severity::Notice);
+
+			foreach ($catalogs as $violation) {
+				$failed    = $violation->severity === Severity::Error;
+				$errors   += $failed ? 1 : 0;
+				$warnings += $failed ? 0 : 1;
+
+				$output->line(sprintf('%s %s: %s %s', $output->style($failed ? 'error  ' : 'warning', $failed ? Style::Red : Style::Yellow), $pack->name, $violation->field, $violation->message));
+			}
+
 			$abandoned = ExtensionAbandoned::warning($pack->abandoned);
 
 			// An abandoned pack still loads, as in Composer (D-433).
@@ -80,7 +97,7 @@ final readonly class CheckIconPacks
 					$pack->name,
 					$pack->version
 				));
-			} elseif ($abandoned === null && Requirements::met($checked)) {
+			} elseif ($abandoned === null && $catalogs === [] && Requirements::met($checked)) {
 				$output->line(sprintf('%s %s %s', $output->style('ok     ', Style::Green), $pack->name, $output->style($pack->version, Style::Dim)));
 			}
 

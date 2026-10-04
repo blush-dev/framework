@@ -22,10 +22,13 @@ use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
+use Blush\Field\Severity;
+use Blush\Field\Violation;
 use Blush\Plugin\BrokenPlugin;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\PluginManifest;
 use Blush\Plugin\Plugins;
+use Blush\Translation\CatalogCheck;
 
 /**
  * Checks every installed plugin (or one, by name): that its manifest
@@ -33,7 +36,8 @@ use Blush\Plugin\Plugins;
  * that's off as if it were turned on. A plugin that's turned on but
  * can't run is an error, which fails the command; one that's off and
  * couldn't be turned on is a warning, and so is a version Composer
- * can't read (D-430) and an abandoned plugin, which still runs (D-433).
+ * can't read (D-430), an abandoned plugin, which still runs (D-433), and
+ * a `lang/` catalog whose `@@locale` or `@@domain` doesn't match (D-452).
  */
 #[Command('plugin:check', 'Check plugins\' manifests and requirements.')]
 final readonly class CheckPlugins
@@ -41,7 +45,8 @@ final readonly class CheckPlugins
 	public function __construct(
 		private Plugins $plugins,
 		private PluginConfig $config,
-		private ExtensionState $extensions
+		private ExtensionState $extensions,
+		private CatalogCheck $catalogs
 	) {}
 
 	public function __invoke(
@@ -69,6 +74,18 @@ final readonly class CheckPlugins
 		foreach ($plugins as $plugin) {
 			$checked = $this->extensions->check($plugin);
 
+			// Its catalogs against what they say they translate (D-452);
+			// notices (a catalog without them) are `theme:check --strict`'s.
+			$catalogs = array_filter($this->catalogs->check("{$plugin->path}/lang", $plugin->name), static fn (Violation $violation): bool => $violation->severity !== Severity::Notice);
+
+			foreach ($catalogs as $violation) {
+				$failed    = $violation->severity === Severity::Error;
+				$errors   += $failed ? 1 : 0;
+				$warnings += $failed ? 0 : 1;
+
+				$output->line(sprintf('%s %s: %s %s', $output->style($failed ? 'error  ' : 'warning', $failed ? Style::Red : Style::Yellow), $plugin->name, $violation->field, $violation->message));
+			}
+
 			$abandoned = ExtensionAbandoned::warning($plugin->abandoned);
 
 			// An abandoned plugin still runs, as in Composer (D-433).
@@ -88,7 +105,7 @@ final readonly class CheckPlugins
 					$plugin->name,
 					$plugin->version
 				));
-			} elseif ($abandoned === null && Requirements::met($checked)) {
+			} elseif ($abandoned === null && $catalogs === [] && Requirements::met($checked)) {
 				$output->line(sprintf('%s %s %s', $output->style('ok     ', Style::Green), $plugin->name, $output->style($plugin->version, Style::Dim)));
 			}
 

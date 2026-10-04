@@ -13293,7 +13293,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-451: Translation domains by `vendor/name`, and overrides in `user/lang`
 
 - **Date:** 2026-10-04
-- **Status:** Decided, not built. Amends D-378 (an extension's
+- **Status:** Domains and overrides built (D-454); uploads not yet.
+  Amends D-378 (an extension's
   translation domain was its namespace) and D-028 (the shared `theme`
   domain). Admin placement is open (`open-questions.md`).
 - **Decision:**
@@ -13373,3 +13374,44 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `composer check`.
 - **Why:** English is the language packages ship first; the author's
   call.
+
+### D-454: Domains by `vendor/name` and `user/lang` overrides, built; catalogs checked
+
+- **Date:** 2026-10-04
+- **Status:** Builds D-451; checks D-452's metadata.
+- **Decision:**
+  - **`Translator`:** domains are `blush`, `app`, and every plugin's,
+    icon pack's (that's on), and chain theme's `vendor/name`, with each
+    extension's namespace mapped to its domain (`domainOf()`). Each
+    domain has two layers per locale: the site's override
+    (`user/lang/{locale}/{blush|app}.json`, or
+    `user/lang/{locale}/extensions/{vendor}/{name}.json`;
+    `overridePath()`), then the package's catalogs. `translate()`,
+    `has()`, and `group()` take a domain or a list, searched in order
+    within each locale (the locale first). In `group()`, an override's
+    group replaces the package's, while groups across a list add up, so
+    a child theme still adds lines to its parent's. `withDirectories()`
+    became `withDomains()`. Lookups walk the layers instead of merging
+    catalogs per call.
+  - **`DomainTranslator`:** the translator bound to a list of domains.
+    `Views::$messages` is the chain's, child first, and is what
+    `$template->t()`, `tGroup()`, error pages, and the paged title
+    (with `blush` after it) read. A component's `t()` gets the chain's
+    and then its own extension's domain: before, it read only the
+    theme's catalogs, so a plugin's component couldn't ship its own
+    text. Component and icon labels resolve as before (core in `blush`,
+    a chain theme's in the chain), but through `vendor/name`.
+  - **`ThemeChain::langDirectories()`** is keyed by theme name, and
+    `namespaceDomains()` maps namespaces to names.
+  - **Checks:** `Translation\CatalogCheck` reads an extension's `lang/`
+    catalogs: one that can't be read is an error, `@@locale` that isn't
+    the file's locale (`fr-ca` matches `fr_CA`) or `@@domain` that isn't
+    the extension's name is a warning, and a catalog without them is a
+    notice. `theme:check` reports it for every theme in the chain
+    (notices with `--strict`); `plugin:check` and `icon-pack:check`
+    report errors and warnings (they have no `--strict`), and a
+    plugin or pack with any isn't listed as ok.
+- **Checked:** `composer check`; the jtcom trial renders, and its
+  `theme:check`, `plugin:check`, and `icon-pack:check` report no catalog
+  problems.
+- **Why:** the author's go on D-451 and the check (2026-10-04).

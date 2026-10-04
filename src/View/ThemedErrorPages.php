@@ -94,7 +94,7 @@ final readonly class ThemedErrorPages implements ErrorPages
 	 */
 	private static function message(Views $views, string $key, string $fallback): string
 	{
-		return $views->translator->has($key, 'theme') ? $views->translator->translate($key, [], 'theme') : $fallback;
+		return $views->messages->has($key) ? $views->messages->translate($key) : $fallback;
 	}
 
 	/**

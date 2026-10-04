@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Component;
 
-use Blush\Translation\Translator;
+use Blush\Translation\DomainTranslator;
 use Blush\View\Escaper;
 use Blush\View\ViewContext;
 
@@ -130,9 +130,10 @@ abstract class Component
 	private array $props = [];
 
 	/**
-	 * The translator with the theme's catalogs.
+	 * The translator bound to the theme chain's domains and then the
+	 * component's own (D-451).
 	 */
-	private ?Translator $translator = null;
+	private ?DomainTranslator $translator = null;
 
 	/**
 	 * The render it's part of.
@@ -173,7 +174,7 @@ abstract class Component
 		array $props,
 		string $content = '',
 		?Slots $slots = null,
-		?Translator $translator = null,
+		?DomainTranslator $translator = null,
 		?ViewContext $context = null,
 		?Variant $variant = null
 	): void {
@@ -374,14 +375,16 @@ abstract class Component
 	}
 
 	/**
-	 * Translates a message from the theme's catalogs, like a template's
-	 * `$template->t()`. Without a translator (a component built outside
+	 * Translates a message from the theme chain's catalogs, like a
+	 * template's `$template->t()`, and then from the component's own
+	 * extension's (D-451), so a plugin's component can ship its text and a
+	 * theme can reword it. Without a translator (a component built outside
 	 * `Views`), it returns the key.
 	 */
 	protected function t(string $key, string|int|float ...$params): string
 	{
 		/** @var array<string, string|int|float> $params */
-		return $this->translator?->translate($key, $params, 'theme') ?? $key;
+		return $this->translator?->translate($key, $params) ?? $key;
 	}
 
 	/**

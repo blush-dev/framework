@@ -20,6 +20,7 @@ use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeSettings;
 use Blush\Icon\IconName;
+use Blush\Translation\DomainTranslator;
 use Blush\Translation\Translator;
 use Blush\Component\ComponentListing;
 use Blush\Component\ComponentName;
@@ -53,6 +54,12 @@ final readonly class Views
 {
 	public ThemeChain $chain;
 
+	/**
+	 * The translator bound to the chain's domains, child first (D-451):
+	 * what `$template->t()` reads.
+	 */
+	public DomainTranslator $messages;
+
 	public function __construct(
 		public ViewFinder $finder,
 		public ThemeAssets $assets,
@@ -60,7 +67,8 @@ final readonly class Views
 		public ViewServices $services,
 		public ThemeSettings $settings = new ThemeSettings()
 	) {
-		$this->chain = $assets->chain;
+		$this->chain    = $assets->chain;
+		$this->messages = new DomainTranslator($translator, $this->chain->names());
 	}
 
 	/**
@@ -308,21 +316,31 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns a message from a namespace's catalog domain: `blush` for
-	 * core, `theme` for the chain's themes, and otherwise the namespace
-	 * itself (`app`, or a plugin's or icon pack's namespace).
+	 * Returns a message from a namespace's catalog domain (D-451):
+	 * `blush` for core, the chain's themes for any of theirs (so a child
+	 * theme can reword its parent's), and otherwise the namespace's
+	 * extension's `vendor/name` (or `app`).
 	 *
 	 * @param array<string, mixed> $params
 	 */
 	private function namespaceText(string $namespace, string $message, array $params): ?string
 	{
 		$domain = match (true) {
-			$namespace === ComponentName::CORE                => 'blush',
-			in_array($namespace, $this->chain->namespaces(), true) => 'theme',
-			default                                           => $namespace
+			$namespace === ComponentName::CORE                     => 'blush',
+			in_array($namespace, $this->chain->namespaces(), true) => $this->chain->names(),
+			default                                                => $this->translator->domainOf($namespace)
 		};
 
 		return $this->translator->has($message, $domain) ? $this->translator->translate($message, $params, $domain) : null;
+	}
+
+	/**
+	 * Returns the domain of a component namespace's own text: `blush` for
+	 * core, or its extension's `vendor/name` (a theme's is in the chain).
+	 */
+	private function componentDomain(string $namespace): string
+	{
+		return $namespace === ComponentName::CORE ? 'blush' : $this->translator->domainOf($namespace);
 	}
 
 	/**
@@ -347,7 +365,7 @@ final readonly class Views
 
 		$variant   = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
 
-		$component->attach($parsed, $props, $slot, $slots, $this->translator, $context, $variant);
+		$component->attach($parsed, $props, $slot, $slots, $this->messages->with($this->componentDomain($parsed->namespace)), $context, $variant);
 
 		if (! $component->shouldRender()) {
 			return '';

@@ -24,13 +24,12 @@ use Blush\Icon\IconPacks;
 use Blush\Plugin\Plugins;
 
 /**
- * Binds the translator in the site locale, with the framework's own
- * `blush` domain, the site's `app` domain (`resources/lang`), and a
- * domain for each enabled plugin and installed icon pack, its namespace
- * (its `lang` folder: `acme/hello`, with the namespace `hello`, is in
- * `hello`; D-378).
- * These match component namespaces (D-171, D-172). The view layer adds
- * the `theme` domain for the theme chain it renders with.
+ * Binds the translator in the site locale (D-451), with the framework's
+ * own `blush` domain, the site's `app` domain (`resources/lang`), and a
+ * domain for each enabled plugin and icon pack that's on, by its
+ * `vendor/name` (its `lang` folder), with its namespace mapped to it for
+ * component and icon labels. The site's overrides in `user/lang` win over
+ * them all. The view layer adds the theme chain's domains.
  */
 final class TranslationServiceProvider extends ServiceProvider
 {
@@ -45,49 +44,27 @@ final class TranslationServiceProvider extends ServiceProvider
 
 		$this->container->singleton(
 			Translator::class,
-			static fn (ServiceResolver $resolver): Translator => new Translator(
-				$resolver->make(DataLoader::class),
-				$resolver->make(AppConfig::class)->locale,
-				[
+			static function (ServiceResolver $resolver) use ($plugins, $packs): Translator {
+				$paths      = $resolver->make(Paths::class);
+				$domains    = [
 					'blush' => [Framework::path('resources/lang')],
-					'app'   => [$resolver->make(Paths::class)->resources . '/lang'],
-					...($plugins ? self::pluginDomains($resolver->make(Plugins::class)) : []),
-					...($packs ? self::packDomains($resolver->make(IconPacks::class)) : [])
-				]
-			)
+					'app'   => ["{$paths->resources}/lang"]
+				];
+				$namespaces = [];
+
+				foreach ([...($plugins ? $resolver->make(Plugins::class)->all() : []), ...($packs ? $resolver->make(IconPacks::class)->enabled() : [])] as $extension) {
+					$domains[$extension->name][]        = "{$extension->path}/lang";
+					$namespaces[$extension->namespace] = $extension->name;
+				}
+
+				return new Translator(
+					$resolver->make(DataLoader::class),
+					$resolver->make(AppConfig::class)->locale,
+					$domains,
+					"{$paths->user}/lang",
+					$namespaces
+				);
+			}
 		);
-	}
-
-	/**
-	 * Returns each plugin namespace's catalog folders.
-	 *
-	 * @return array<string, list<string>>
-	 */
-	private static function pluginDomains(Plugins $plugins): array
-	{
-		$domains = [];
-
-		foreach ($plugins->all() as $plugin) {
-			$domains[$plugin->namespace][] = "{$plugin->path}/lang";
-		}
-
-		return $domains;
-	}
-
-	/**
-	 * Returns the catalog folder of each icon pack that's on, by
-	 * namespace.
-	 *
-	 * @return array<string, list<string>>
-	 */
-	private static function packDomains(IconPacks $packs): array
-	{
-		$domains = [];
-
-		foreach ($packs->enabled() as $pack) {
-			$domains[$pack->namespace][] = $pack->langPath();
-		}
-
-		return $domains;
 	}
 }

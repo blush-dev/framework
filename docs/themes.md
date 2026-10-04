@@ -117,7 +117,8 @@ For example, to change the site footer, copy the default theme's
 
 The default footer ends with a "Powered by" line ("Powered by coffee.",
 "Powered by sleepless nights.", and others), picked at random
-from `$template->tGroup('powered_by')`. Each line has its own key
+from `$template->tGroup('powered_by')`. To use your own lines, you don't
+need to copy the template: see [Your own wording](#your-own-wording). Each line has its own key
 under `powered_by` in the theme's `lang/en.json` (`powered_by.coffee`).
 A translation's `powered_by` replaces the whole group, so it can have
 more lines or fewer, and none of the English ones show through.
@@ -512,7 +513,47 @@ Keys that start with `@@` aren't messages, so they never show on a page.
 They let a catalog be recognized on its own, away from its folder, such
 as when it's sent to a translator and back. Every catalog Blush ships
 has them, and plugins and icon packs use them the same way, with their
-own names. In YAML, quote them: `'@@locale': fr`.
+own names. In YAML, quote them: `'@@locale': fr`. `theme:check` warns
+about a catalog whose `@@locale` or `@@domain` doesn't match its file or
+your theme (and, with `--strict`, notes one without them).
+
+A child theme's catalogs come before its parent's, message by message,
+so a child rewords only what it needs to.
+
+#### Your own wording
+
+To reword or translate any text without touching the theme or plugin
+it comes from, put your own catalog in `user/lang/`, one folder per
+language:
+
+```
+user/lang/
+  en/
+    blush.json                          Blush's own text
+    app.json                            your site's (resources/lang)
+    extensions/acme/notebook.json       a theme's, by its name
+    extensions/acme/hello.json          a plugin's or icon pack's
+  fr/
+    extensions/acme/notebook.json
+```
+
+Your catalog wins over the package's, message by message, so it only
+needs what you change, and the rest still comes from the package. The
+language is checked first, so the package's own `fr.json` still beats
+your `en` folder on a French page. For a group such as the default
+footer's `powered_by` lines, your group replaces the theme's: list only
+the lines you want.
+
+```json
+{
+	"@@locale": "en",
+	"@@domain": "blush/default",
+	"skip_to_content": "Jump to the post",
+	"powered_by": {
+		"tea": "Powered by tea."
+	}
+}
+```
 
 On later pages of a listing, the title gets the page number: "Blog:
 Page 2", or "Page 2" on the front page. To word it differently, add

@@ -174,6 +174,17 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertSame('site override', $this->body('/archives/spring'));
 	}
 
+	public function testSiteTranslationsOverrideThemes(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/lang/en/extensions/blush/default.json', '{"@@locale": "en", "@@domain": "blush/default", "skip_to_content": "Jump to the post", "powered_by": {"tea": "Powered by tea."}}');
+
+		$single = $this->body('/archives/spring');
+
+		$this->assertStringContainsString('<a class="skip-link" href="#main">Jump to the post</a>', $single);
+		$this->assertStringContainsString('<p>Powered by tea.</p>', $single, 'An override\'s group replaces the theme\'s.');
+	}
+
 	public function testAnEntrysImageBecomesTheSharingImage(): void
 	{
 		$this->standardContent();

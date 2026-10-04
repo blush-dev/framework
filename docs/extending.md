@@ -665,7 +665,7 @@ can leave `provider` out. It can still:
 - load files of functions, such as helpers for templates, with
   `autoload.files`;
 - need other plugins, PHP, or extensions, with `require`;
-- carry a `lang/` catalog, in its namespace.
+- carry a `lang/` catalog for its text (see [Translations](themes.md#translations)).
 
 ```json
 {

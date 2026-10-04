@@ -30,7 +30,7 @@ final class TranslatorTest extends TestCase
 {
 	use TemporaryDirectory;
 
-	private function translator(string $locale = 'en_US'): Translator
+	private function loader(): DataLoader
 	{
 		$registry = new DataParserRegistry();
 		new DataParserRegistrar($registry)->register();
@@ -38,9 +38,14 @@ final class TranslatorTest extends TestCase
 		$container = new ServiceContainer();
 		$container->singleton(YamlParser::class, SymfonyYamlParser::class);
 
+		return new DataLoader($registry, $container);
+	}
+
+	private function translator(string $locale = 'en_US'): Translator
+	{
 		$root = $this->temporaryDirectory();
 
-		return new Translator(new DataLoader($registry, $container), $locale, ['theme' => ["{$root}/child", "{$root}/parent"]]);
+		return new Translator($this->loader(), $locale, ['theme' => ["{$root}/child", "{$root}/parent"]]);
 	}
 
 	public function testChildCatalogsWinKeyByKey(): void
@@ -130,17 +135,56 @@ final class TranslatorTest extends TestCase
 		$this->assertSame('Hi Ada', $translator->translate('Hi {name}', ['name' => 'Ada'], 'nowhere'));
 	}
 
-	public function testWithDirectoriesReplacesADomain(): void
+	public function testWithDomainsAddsAndReplacesDomains(): void
 	{
 		$this->writeTemporaryFile('other/en.json', '{"hello": "Other"}');
 		$this->writeTemporaryFile('parent/en.json', '{"hello": "Parent"}');
 
 		$translator = $this->translator();
-		$other      = $translator->withDirectories('theme', [$this->temporaryDirectory() . '/other']);
+		$other      = $translator->withDomains(['theme' => [$this->temporaryDirectory() . '/other']], ['other' => 'acme/other']);
 
 		$this->assertSame('Parent', $translator->translate('hello', [], 'theme'));
 		$this->assertSame('Other', $other->translate('hello', [], 'theme'));
 		$this->assertSame('en_US', $other->locale());
+		$this->assertSame('acme/other', $other->domainOf('other'));
+		$this->assertSame('app', $other->domainOf('app'), 'A namespace without an extension is its own domain.');
+	}
+
+	public function testListsOfDomainsAreSearchedInOrder(): void
+	{
+		$this->writeTemporaryFile('child/en.json', '{"hello": "Howdy", "lines": {"one": "Child one"}}');
+		$this->writeTemporaryFile('parent/en.json', '{"hello": "Hello", "bye": "Bye", "lines": {"one": "Parent one", "two": "Parent two"}}');
+		$this->writeTemporaryFile('parent/fr.json', '{"bye": "Au revoir"}');
+
+		$root       = $this->temporaryDirectory();
+		$translator = $this->translator()->withDomains(['acme/child' => ["{$root}/child"], 'acme/parent' => ["{$root}/parent"]]);
+		$chain      = ['acme/child', 'acme/parent'];
+
+		$this->assertSame('Howdy', $translator->translate('hello', [], $chain));
+		$this->assertSame('Bye', $translator->translate('bye', [], $chain));
+		$this->assertSame('Au revoir', $translator->translate('bye', [], $chain, 'fr'), 'The locale comes first, then the domains.');
+		$this->assertSame(['one' => 'Child one', 'two' => 'Parent two'], $translator->group('lines', [], $chain), 'A child adds to its parent\'s group.');
+		$this->assertTrue($translator->has('bye', $chain));
+	}
+
+	public function testOverridesInUserLangWin(): void
+	{
+		$this->writeTemporaryFile('parent/en.json', '{"hello": "Hello", "bye": "Bye", "lines": {"one": "One", "two": "Two"}}');
+		$this->writeTemporaryFile('parent/fr.json', '{"hello": "Bonjour"}');
+		$this->writeTemporaryFile('blush/en.json', '{"hello": "Framework"}');
+		$this->writeTemporaryFile('user/lang/en/extensions/acme/hello.json', '{"@@locale": "en", "@@domain": "acme/hello", "hello": "Hi there", "lines": {"mine": "Mine"}}');
+		$this->writeTemporaryFile('user/lang/en/blush.json', '{"hello": "Site framework"}');
+
+		$root       = $this->temporaryDirectory();
+		$translator = new Translator($this->loader(), 'en_US', ['acme/hello' => ["{$root}/parent"], 'blush' => ["{$root}/blush"]], "{$root}/user/lang");
+
+		$this->assertSame('Hi there', $translator->translate('hello', [], 'acme/hello'));
+		$this->assertSame('Bye', $translator->translate('bye', [], 'acme/hello'), 'Keys the override doesn\'t have come from the package.');
+		$this->assertSame('Bonjour', $translator->translate('hello', [], 'acme/hello', 'fr'), 'The package\'s French beats the override\'s English.');
+		$this->assertSame(['mine' => 'Mine'], $translator->group('lines', [], 'acme/hello'), 'An override\'s group replaces the package\'s.');
+		$this->assertSame('Site framework', $translator->translate('hello', [], 'blush'));
+		$this->assertSame("{$root}/user/lang/fr/extensions/acme/hello", $translator->overridePath('acme/hello', 'fr'));
+		$this->assertSame("{$root}/user/lang/fr/app", $translator->overridePath('app', 'fr'));
 	}
 
 	public function testBrokenCatalogsThrow(): void

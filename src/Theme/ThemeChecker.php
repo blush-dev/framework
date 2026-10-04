@@ -32,6 +32,7 @@ use Blush\Menu\Menus;
 use Blush\Region\Regions;
 use Blush\View\ViewFactory;
 use Blush\View\Views;
+use Blush\Translation\CatalogCheck;
 
 /**
  * Checks a theme for `theme:check` (D-020, D-030, D-032):
@@ -40,7 +41,8 @@ use Blush\View\Views;
  *   with a requirement that isn't met, so the default theme runs in its
  *   place (D-431); a provider that isn't a service provider; invalid setting definitions; invalid menu or
  *   region location declarations; a base layout without `lang` on
- *   `<html>`, one `<main>`, or a skip link to it.
+ *   `<html>`, one `<main>`, or a skip link to it; a `lang/` catalog that
+ *   can't be read.
  * - **Warnings:** another theme's chain with a requirement that isn't
  *   met, so it can't be activated; a `version` Composer can't read
  *   (D-430, D-431); an abandoned theme (D-433); shadowed manifests (JSON wins); site setting values
@@ -48,9 +50,11 @@ use Blush\View\Views;
  *   template to render; a component template not named for a component;
  *   site menu and region files or items that are invalid or don't
  *   resolve (D-199, D-201); a layout without `<header>` or `<footer>`,
- *   or with other than one `<h1>`.
+ *   or with other than one `<h1>`; a catalog whose `@@locale` or
+ *   `@@domain` doesn't match its file or theme (D-452).
  * - **Notices:** the theme's registered components without a translated label; site
- *   menus and regions no location shows.
+ *   menus and regions no location shows; a catalog without `@@locale`
+ *   and `@@domain`.
  *
  * The layout is checked by rendering the `welcome` page.
  */
@@ -63,7 +67,8 @@ final readonly class ThemeChecker
 		private SettingsResolver $settings,
 		private ViewFactory $views,
 		private Menus $menus,
-		private Regions $regions
+		private Regions $regions,
+		private CatalogCheck $catalogs
 	) {}
 
 	/**
@@ -86,7 +91,7 @@ final readonly class ThemeChecker
 		}
 
 		foreach ($chain as $theme) {
-			$problems = [...$problems, ...$this->manifest($theme)];
+			$problems = [...$problems, ...$this->manifest($theme), ...$this->catalogs($theme)];
 		}
 
 		$problems = [...$problems, ...$this->requirements($name)];
@@ -101,6 +106,20 @@ final readonly class ThemeChecker
 		];
 
 		return new ThemeReport($name, $problems);
+	}
+
+	/**
+	 * Checks a theme's `lang/` catalogs against what they say they
+	 * translate (D-452), named for the theme in the chain they're in.
+	 *
+	 * @return list<Violation>
+	 */
+	private function catalogs(ThemeManifest $theme): array
+	{
+		return array_map(
+			static fn (Violation $violation): Violation => new Violation("{$violation->field} ({$theme->name})", $violation->message, $violation->severity),
+			$this->catalogs->check($theme->langPath(), $theme->name)
+		);
 	}
 
 	/**

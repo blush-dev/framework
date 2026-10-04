@@ -138,13 +138,30 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns every theme's message catalog folder, in lookup order.
+	 * Returns every theme's message catalog folder by its domain, its
+	 * name (D-451), in lookup order.
 	 *
-	 * @return list<string>
+	 * @return array<string, list<string>>
 	 */
 	public function langDirectories(): array
 	{
-		return array_map(static fn (ThemeManifest $theme): string => $theme->langPath(), $this->themes);
+		$directories = [];
+
+		foreach ($this->themes as $theme) {
+			$directories[$theme->name] = [$theme->langPath()];
+		}
+
+		return $directories;
+	}
+
+	/**
+	 * Returns every theme's namespace's domain, its name (D-451).
+	 *
+	 * @return array<string, string>
+	 */
+	public function namespaceDomains(): array
+	{
+		return array_combine($this->namespaces(), $this->names());
 	}
 
 	/**

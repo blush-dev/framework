@@ -109,7 +109,9 @@ final class ThemesTest extends TestCase
 		$this->assertNull($themes->find('acme/not-a-theme'));
 		$this->assertNull($themes->find('../etc'));
 		$this->assertSame($this->temporaryDirectory() . '/extensions/acme/child/views', $chain->viewDirectories()[0]);
-		$this->assertSame(Framework::path('resources/themes/default/lang'), $chain->langDirectories()[2]);
+		$this->assertSame([Framework::path('resources/themes/default/lang')], $chain->langDirectories()['blush/default']);
+		$this->assertSame(['acme/child', 'acme/parent', 'blush/default'], array_keys($chain->langDirectories()), 'Each theme\'s domain is its name (D-451).');
+		$this->assertSame(['child' => 'acme/child', 'parent' => 'acme/parent', 'default' => 'blush/default'], $chain->namespaceDomains());
 	}
 
 	public function testBleedClassesComeFromTheChain(): void

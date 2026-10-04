@@ -28,6 +28,7 @@ use Blush\Tests\Fixtures\Embed\FixtureFetcher;
 use Blush\Tests\Fixtures\Component\Card;
 use Blush\Tests\Fixtures\View\Greeting;
 use Blush\Tests\Fixtures\Component\Orphan;
+use Blush\Tests\Fixtures\Component\Salutation;
 use Blush\Tests\Fixtures\Component\Stamp;
 use Blush\Tests\Fixtures\Component\Tone;
 use Blush\Tests\Fixtures\Component\Toned;
@@ -261,7 +262,7 @@ final class ComponentsTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
 		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"components": {"card": {"label": "Alt card"}}}');
 		$this->writeTemporaryFile('extensions/fixture/hello/plugin.json', '{"name": "fixture/hello", "label": "Hello", "namespace": "hello", "provider": "Blush\\\\Tests\\\\Fixtures\\\\Component\\\\OrphanProvider"}');
-		$this->writeTemporaryFile('extensions/fixture/hello/lang/en.json', '{"components": {"tabs": {"label": "Tabs"}}}');
+		$this->writeTemporaryFile('extensions/fixture/hello/lang/en.json', '{"components": {"tabs": {"label": "Tabs"}}, "greeting": "Hello, {name}."}');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/alt');\n");
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['fixture/hello']);\n");
 
@@ -270,6 +271,21 @@ final class ComponentsTest extends TestCase
 		$this->assertSame('Alt card', $views->componentText(new ComponentName('alt', 'card'), 'label'));
 		$this->assertSame('Tabs', $views->componentText(new ComponentName('hello', 'tabs'), 'label'));
 		$this->assertNull($views->componentText(new ComponentName('other', 'tabs'), 'label'));
+
+		// A plugin's component reads its own catalog, by its vendor/name
+		// domain, and the theme can reword it (D-451).
+		$this->app->container()->make(ComponentRegistry::class)->register('hello/greeting', Salutation::class);
+
+		$this->assertSame('<p>Hello, Ada.</p>', $views->component('hello/greeting', [], '', new Slots(), new ViewContext()));
+
+		$this->writeTemporaryFile('user/lang/en/extensions/fixture/hello.json', '{"components": {"tabs": {"label": "Site tabs"}}}');
+		$this->writeTemporaryFile('extensions/acme/alt/lang/en.json', '{"components": {"card": {"label": "Alt card"}}, "greeting": "Howdy, {name}."}');
+
+		$views = $this->boot();
+		$this->app->container()->make(ComponentRegistry::class)->register('hello/greeting', Salutation::class);
+
+		$this->assertSame('Site tabs', $views->componentText(new ComponentName('hello', 'tabs'), 'label'), 'The site\'s override wins.');
+		$this->assertSame('<p>Howdy, Ada.</p>', $views->component('hello/greeting', [], '', new Slots(), new ViewContext()));
 	}
 
 	public function testCoreComponentsAreRegisteredWithTheirDefinitions(): void

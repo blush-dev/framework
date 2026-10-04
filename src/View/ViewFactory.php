@@ -58,7 +58,7 @@ final class ViewFactory
 		return $this->views[$chain->active()->name] ??= new Views(
 			new ViewFinder($this->directories($chain)),
 			new ThemeAssets($chain),
-			$this->translator->withDirectories('theme', $chain->langDirectories()),
+			$this->translator->withDomains($chain->langDirectories(), $chain->namespaceDomains()),
 			$this->services,
 			$this->settings->for($chain)
 		);

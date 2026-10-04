@@ -193,7 +193,7 @@ The template API (kept deliberately small; D-103):
 | `includeIf()` / `includeWhen($when, ...)` / `includeUnless($unless, ...)` | Include only if a view exists, or on a condition (1.x's names, D-159) |
 | `each($views, $items, as:, empty:, ...$data)` | Include a partial per item (with `$index`), or `empty` when there are none (D-159) |
 | `component($name, ...$props)` | Render a component; `->content($html)` and `->slot($name, $html)` fill slots |
-| `t($key, ...$params)` | Translate from the `theme` domain (D-028, D-107) |
+| `t($key, ...$params)` | Translate from the theme chain's domains, child first (D-028, D-107, D-451) |
 | `setting($key, $default)` | A theme setting's value |
 | `site($key, $default)` | A site setting a field set adds to the Settings screens (D-343), through its field, or its default |
 | `asset($path)` / `image($media, $size)` | Versioned asset URLs; responsive `<img>` output (`image()` later) |
@@ -466,8 +466,9 @@ D-199 to D-204; the user guide is `docs/menus.md`.
 
 ## Translation (D-028)
 
-Themes ship `lang/{locale}.json` catalogs in the `theme` domain, and templates
-call `$template->t()`. A child theme overrides its ancestors message by message
+Themes ship `lang/{locale}.json` catalogs, each in its own domain, the
+theme's `vendor/name` (D-451), and templates call `$template->t()`, which
+searches the chain's domains (`Views::$messages`, a `DomainTranslator`). A child theme overrides its ancestors message by message
 (D-107). `$template->tGroup('group')` returns a group's messages (the keys
 under `group`), keyed by name; a group comes
 whole from one locale (`Translator::group()`, D-450). The translator itself is CMS-wide; see
