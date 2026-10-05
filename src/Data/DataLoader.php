@@ -24,6 +24,9 @@ use Blush\Container\Container;
  * (JSON wins), then any formats extensions registered. The files a winner
  * hides are reported by `shadowed()`, for `doctor` to warn about.
  *
+ * A top-level `$schema` key, which points an editor at a file's JSON
+ * Schema, is never part of the data (D-491).
+ *
  * Names may contain `/` to reach into subdirectories (`types/post`), but
  * never `..`. Parsers are built through the container on first use.
  */
@@ -136,7 +139,13 @@ final class DataLoader
 	}
 
 	/**
-	 * Parses one file with the parser for its extension.
+	 * The key that points an editor at a file's JSON Schema.
+	 */
+	public const string SCHEMA = '$schema';
+
+	/**
+	 * Parses one file with the parser for its extension, leaving out a
+	 * top-level `$schema` key.
 	 *
 	 * @return array<array-key, mixed>
 	 * @throws InvalidData
@@ -150,10 +159,14 @@ final class DataLoader
 		}
 
 		try {
-			return $this->parser(pathinfo($path, PATHINFO_EXTENSION))->parse($contents);
+			$data = $this->parser(pathinfo($path, PATHINFO_EXTENSION))->parse($contents);
 		} catch (InvalidData $e) {
 			throw InvalidData::inFile($path, $e);
 		}
+
+		unset($data[self::SCHEMA]);
+
+		return $data;
 	}
 
 	/**

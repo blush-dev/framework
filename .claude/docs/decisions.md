@@ -14552,3 +14552,28 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author: "We should be storing these as json coming from
   the cms itself. The goal is to support yaml if a user writes it, but
   json takes precedence."
+
+### D-491: Any JSON data file may name its schema
+- **Date:** 2026-10-05
+- **Decision:** the author's call, after the trial's YAML data files
+  became JSON (D-490) and lost their `# yaml-language-server` comments.
+  - **`DataLoader::loadFile()` leaves out a top-level `$schema` key**
+    (`DataLoader::SCHEMA`), in any format, so every file read through it
+    (content types, field sets, menus, regions, redirects, media
+    metadata, the site's theme data, translations) can carry one. The
+    menu, region, and field set loaders' own allowances stay; they cost
+    nothing.
+  - **`settings.json`** reads itself, so `SettingsFile` ignores the key
+    on read and writes it back first on save. A file left with no
+    settings is still removed.
+  - **The admin keeps it:** JSON writers edit the file's own keys
+    (`DataFileKeys`, `MediaMetadataStore`), so it stays where it was. A
+    media metadata file with only `$schema` left is removed, as an
+    empty one is.
+  - **`media.schema.json`** now describes `$schema`, as the others do.
+    Content types and settings have no schema yet.
+- **Done:** the trial's two menus and two field sets have their
+  `$schema` keys back. `docs/media.md` and `docs/admin.md`.
+- **Checked:** `composer check` (`DataLoaderTest`, `SettingsTest`,
+  `AdminTypeEditTest::testEditsAJsonType`, `AdminPickersTest`).
+- **Why:** the author: "support $schema in json data files".

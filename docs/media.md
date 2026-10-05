@@ -66,8 +66,11 @@ can't reuse a built-in field's name. **Config → Fields** in the admin
 creates and edits sets ([Fields](admin.md#fields)).
 
 A metadata file can point your editor at the built-in fields'
-schema: `# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/media.schema.json`
-(with as many `../` as it's deep).
+schema, with a `"$schema"` key in JSON:
+`"$schema": "../../../vendor/blush-dev/framework/resources/schemas/media.schema.json"`
+(with as many `../` as it's deep), or in YAML, a first-line comment:
+`# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/media.schema.json`.
+The admin keeps the key when it saves the file.
 
 ## What a file says about itself
 

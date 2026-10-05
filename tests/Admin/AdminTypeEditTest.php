@@ -237,13 +237,14 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testEditsAJsonType(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"kind": "taxonomy", "folder": "topics", "termListing": {"perPage": 5}}');
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"$schema": "../type.schema.json", "kind": "taxonomy", "folder": "topics", "termListing": {"perPage": 5}}');
 		$this->site();
 
 		$this->assertSame(200, $this->write('PATCH', '/types/topic', ['set' => ['hierarchical' => true, 'labels' => ['plural' => 'Subjects']]])->getStatusCode());
 		$this->assertSame(
-			['kind' => 'taxonomy', 'folder' => 'topics', 'termListing' => ['perPage' => 5], 'hierarchical' => true, 'labels' => ['plural' => 'Subjects']],
-			json_decode($this->file('user/data/types/topic.json'), true)
+			['$schema' => '../type.schema.json', 'kind' => 'taxonomy', 'folder' => 'topics', 'termListing' => ['perPage' => 5], 'hierarchical' => true, 'labels' => ['plural' => 'Subjects']],
+			json_decode($this->file('user/data/types/topic.json'), true),
+			'An editor\'s schema key isn\'t an option, and stays (D-491).'
 		);
 	}
 

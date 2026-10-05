@@ -608,6 +608,15 @@ Move each item to `decisions.md` once it's answered.
   (version 1), whether loaders migrate old shapes or refuse them, and
   how this fits Composer-shaped manifests that fall back to
   `composer.json`, which has no such key.
+- **Schemas for content types and settings** (raised 2026-10-05, after
+  D-491; the author: "wait on this for later"): editor JSON Schemas
+  (D-206) for `user/data/types/*` and `user/data/settings.json`, so
+  their `$schema` keys have something to point at. The other data files
+  already have one. Undecided: whether the types schema can describe a
+  type's fields (an extension's field types are only known per site,
+  as with entries) and whether the settings schema comes from the
+  `Setting` enum, as the others come from their PHP definitions. It
+  may fold into the versioning question below.
 - **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
 - **Theming:** see the open questions in `theming.md`.
 - **Menus and regions, later** (D-199 to D-204): entries adding

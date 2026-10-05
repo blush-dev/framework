@@ -297,6 +297,7 @@ final readonly class MediaMetadataStore
 			$data[MediaMetadata::ID] = $id;
 		}
 
-		return $data === [] ? '' : json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
+		// A file with only an editor's schema pointer has nothing to say.
+		return array_diff_key($data, [DataLoader::SCHEMA => true]) === [] ? '' : json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
 	}
 }

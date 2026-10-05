@@ -382,16 +382,18 @@ final class AdminPickersTest extends TestCase
 		$this->assertSame("# Credit goes here.\ncredit: Jane\n", (string) file_get_contents($data));
 
 		unlink($data);
-		$this->writeTemporaryFile('user/data/media/2020/old.png.json', '{"credit": "Sam"}');
+		$this->writeTemporaryFile('user/data/media/2020/old.png.json', '{"$schema": "../../../media.schema.json", "credit": "Sam"}');
 		$this->patch('2020/old.png', ['alt' => 'Old']);
 
-		$this->assertSame(['credit' => 'Sam', 'alt' => 'Old'], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2020/old.png.json'), true), 'JSON stays JSON.');
+		$this->assertSame(['$schema' => '../../../media.schema.json', 'credit' => 'Sam', 'alt' => 'Old'], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2020/old.png.json'), true), 'JSON stays JSON, its schema key kept (D-491).');
 
 		$this->patch('2020/old.png', ['alt' => '']);
 		$this->patch('2026/new-photo.png', ['alt' => 'Back', 'caption' => '']);
+		$this->writeTemporaryFile('user/data/media/2026/new-photo.png.json', '{"$schema": "../../../media.schema.json", "alt": "Back"}');
+		$this->assertSame('Back', self::json($this->send('GET', '/media/2026/new-photo.png'))['alt'] ?? null);
 		$this->patch('2026/new-photo.png', ['alt' => '']);
 
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.json', 'A file with nothing to say goes.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.json', 'A file with nothing to say goes, even with a schema key.');
 	}
 
 	public function testChecksChangesToMetadata(): void

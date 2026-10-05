@@ -80,6 +80,18 @@ final class SettingsTest extends TestCase
 		$this->assertSame('Café', $file->read()->get(Setting::Name));
 	}
 
+	public function testKeepsAnEditorsSchemaKey(): void
+	{
+		$this->writeTemporaryFile('user/data/settings.json', '{"$schema": "settings.schema.json", "app": {"name": "Blog"}}');
+		$file = $this->file();
+
+		$this->assertSame('Blog', $file->read()->get(Setting::Name), 'It isn\'t a setting (D-491).');
+
+		$file->update(static fn (Settings $settings): Settings => $settings->with(['app.name' => 'Notes']));
+
+		$this->assertSame(['$schema' => 'settings.schema.json', 'app' => ['name' => 'Notes']], json_decode((string) file_get_contents($file->path()), true), 'Kept first.');
+	}
+
 	public function testRefusesABrokenFile(): void
 	{
 		$cases = ['{"app": ', '["app"]', '{"app": "Name"}', '{"app": {"url": "https://x.test"}}', '{"colour": {"red": true}}', '{"feed": {"limit": 0}}'];

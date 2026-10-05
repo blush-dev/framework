@@ -17,6 +17,7 @@ use Closure;
 use JsonException;
 use Throwable;
 use Blush\Core\Paths;
+use Blush\Data\DataLoader;
 use Blush\Support\Filesystem;
 
 /**
@@ -79,6 +80,9 @@ final readonly class SettingsFile
 			throw new InvalidSetting(sprintf('%s must hold a JSON object of settings.', $this->paths->relative($path)));
 		}
 
+		// An editor's JSON Schema pointer isn't a setting (D-491).
+		unset($data[DataLoader::SCHEMA]);
+
 		try {
 			return Settings::fromArray($data);
 		} catch (InvalidSetting $error) {
@@ -122,10 +126,23 @@ final readonly class SettingsFile
 				return;
 			}
 
-			$this->filesystem->writeAtomic($path, json_encode($settings->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
+			$this->filesystem->writeAtomic($path, json_encode([...$this->schema(), ...$settings->toArray()], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
 		} catch (Throwable $error) {
 			throw new InvalidSetting(sprintf('The settings couldn\'t be saved in %s.', $this->paths->relative($path)), previous: $error);
 		}
+	}
+
+	/**
+	 * The file's `$schema` key, kept first when the settings are written.
+	 *
+	 * @return array<string, string>
+	 */
+	private function schema(): array
+	{
+		$json = @file_get_contents($this->path());
+		$data = $json === false ? null : json_decode($json, true, 16);
+
+		return is_array($data) && is_string($data[DataLoader::SCHEMA] ?? null) ? [DataLoader::SCHEMA => $data[DataLoader::SCHEMA]] : [];
 	}
 
 	/**

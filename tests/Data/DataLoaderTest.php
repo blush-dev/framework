@@ -80,6 +80,19 @@ final class DataLoaderTest extends TestCase
 		$this->assertSame(['from' => 'json'], $loader->load($this->temporaryDirectory(), 'theme'));
 	}
 
+	public function testLeavesOutAnEditorsSchemaKey(): void
+	{
+		$this->writeTemporaryFile('types/post.json', '{"$schema": "../schemas/type.json", "folder": "_posts"}');
+		$this->writeTemporaryFile('types/era.yaml', "\$schema: ../schemas/type.json\nkind: taxonomy\n");
+		$this->writeTemporaryFile('list.json', '["$schema"]');
+
+		$loader = $this->loader();
+
+		$this->assertSame(['folder' => '_posts'], $loader->load($this->temporaryDirectory(), 'types/post'), 'Not part of the data (D-491).');
+		$this->assertSame(['era' => ['kind' => 'taxonomy'], 'post' => ['folder' => '_posts']], $loader->loadAll($this->temporaryDirectory() . '/types'));
+		$this->assertSame(['$schema'], $loader->load($this->temporaryDirectory(), 'list'), 'Only a key at the top.');
+	}
+
 	public function testReadsNamesInSubdirectories(): void
 	{
 		$this->writeTemporaryFile('types/post.yml', 'path: _posts');

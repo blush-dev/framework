@@ -769,7 +769,9 @@ the media paths: `user/media/2026/09/lake.jpg` has
 ```
 
 The admin writes new ones as JSON. You can write these by hand, in JSON
-or YAML (`lake.jpg.yml` or `.yaml`); if both exist, JSON wins. Saving
+or YAML (`lake.jpg.yml` or `.yaml`); if both exist, JSON wins. Any JSON
+file in `user/data` may start with a `"$schema"` key for your editor;
+it isn't read as data, and the admin keeps it when it saves. Saving
 from the admin edits the file that's there, YAML included, changing
 only the fields you changed and keeping the rest (keys that aren't
 fields are listed, as they are, and a YAML file's comments stay), and

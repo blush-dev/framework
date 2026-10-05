@@ -366,6 +366,7 @@ final readonly class JsonSchemas
 			'description' => 'A media file\'s metadata, kept in user/data/media: the built-in fields (alt is for images). Sites and extensions add their own.',
 			...$schema,
 			'properties'  => [
+				'$schema' => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$fields,
 				MediaMetadata::SIZES => [
 					'type'                 => 'object',
