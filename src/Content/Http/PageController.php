@@ -15,9 +15,13 @@ namespace Blush\Content\Http;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\InvalidQuery;
+use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
+use Blush\Content\Type\ContentTypes;
+use Blush\Core\AppConfig;
 use Blush\Content\Visibility;
 use Blush\Http\NotFound;
 
@@ -30,10 +34,22 @@ use Blush\Http\NotFound;
  *
  * In another language (D-455), the path is the entry's key in that
  * language under its type's path, whose folders are their translations'
- * slugs (D-457): `/fr/a-propos/biographie`.
+ * slugs (D-457): `/fr/a-propos/biographie`. One without a published
+ * translation redirects to its original, unless the site's
+ * `untranslated` setting is `hide` (D-467).
  */
 final class PageController extends ContentController
 {
+	public function __construct(
+		ContentRepository $content,
+		ContentTypes $types,
+		ContentUrls $urls,
+		PageRenderer $renderer,
+		private readonly AppConfig $app
+	) {
+		parent::__construct($content, $types, $urls, $renderer);
+	}
+
 	/**
 	 * @throws NotFound
 	 * @throws InvalidQuery
@@ -46,7 +62,19 @@ final class PageController extends ContentController
 			throw new NotFound(sprintf('"%s" is private.', $path));
 		}
 
-		$entry = $this->find($this->types->folderPath($path), $language) ?? throw new NotFound(sprintf('There is no page at "%s".', $path));
+		$folder = $this->types->folderPath($path);
+		$entry  = $this->find($folder, $language);
+
+		if ($entry === null && $language !== null) {
+			$place = $this->place($folder);
+
+			return ($place === null ? null : $this->untranslated($request, $place[0], $place[1], $language, $this->app))
+				?? throw new NotFound(sprintf('There is no page at "%s".', $path));
+		}
+
+		if ($entry === null) {
+			throw new NotFound(sprintf('There is no page at "%s".', $path));
+		}
 
 		return $this->canonicalRedirect($request, $entry) ?? $this->renderer->render(new ContentPage(
 			kind: PageKind::Page,
@@ -88,11 +116,23 @@ final class PageController extends ContentController
 	}
 
 	/**
-	 * Finds the entry of a language at a page path: the key below the
-	 * deepest type served as pages whose path the page's is in, with the
-	 * type's own path being its landing page.
+	 * Finds the entry of a language at a page path.
 	 */
 	private function translated(string $path, string $language): ?Entry
+	{
+		$place = $this->place($path);
+
+		return $place === null ? null : $this->visible($this->content->named($place[0]->name, $place[1], $language));
+	}
+
+	/**
+	 * Returns the type a page path is in and its key there: the key below
+	 * the deepest type served as pages whose path the page's is in, with
+	 * the type's own path being its landing page.
+	 *
+	 * @return ?array{ContentType, string}
+	 */
+	private function place(string $path): ?array
 	{
 		$types = array_filter($this->types->all(), static fn (ContentType $type): bool => $type->servedAsPages());
 
@@ -102,7 +142,7 @@ final class PageController extends ContentController
 			$base = $type->pagePath();
 
 			if ($base === '' || $path === $base || str_starts_with($path, "{$base}/")) {
-				return $this->visible($this->content->named($type->name, trim(substr($path, strlen($base)), '/'), $language));
+				return [$type, trim(substr($path, strlen($base)), '/')];
 			}
 		}
 

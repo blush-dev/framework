@@ -117,6 +117,9 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame('checks', is_array($formats) ? $formats['control'] ?? null : null);
 		$this->assertSame(1, is_array($this->setting($reading, 'feeds', 'limit')['field'] ?? null) ? $this->setting($reading, 'feeds', 'limit')['field']['min'] ?? null : null);
 
+		$site = array_find(is_array($general['groups'] ?? null) ? $general['groups'] : [], static fn (mixed $group): bool => is_array($group) && ($group['key'] ?? null) === 'site');
+		$this->assertNotContains('untranslated', array_column(is_array($site) && is_array($site['items'] ?? null) ? $site['items'] : [], 'key'), 'A site in one language has nothing to translate (D-468).');
+
 		$url = $this->setting($general, 'site', 'url');
 		$this->assertArrayNotHasKey('setting', $url, 'The address stays in config, beside the name.');
 		$this->assertSame('config/app.php', $url['file'] ?? null);
@@ -170,6 +173,28 @@ final class AdminSettingsTest extends TestCase
 		foreach ([['app.description' => "Two\nlines"], ['app.description' => str_repeat('x', 301)], ['sitemap.blockAi' => ['robots']], ['sitemap.blockAi' => 'training']] as $set) {
 			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => $set])->getStatusCode(), (string) json_encode($set));
 		}
+	}
+
+	public function testShowsAndSavesUntranslatedPagesOnAMultilingualSite(): void
+	{
+		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Core\\AppConfig::fromArray(['environment' => 'development', 'languages' => ['fr' => 'fr_FR']]);\n");
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$item  = $this->setting(self::json($this->send('GET', '/settings/general')), 'site', 'untranslated');
+		$field = is_array($item['field'] ?? null) ? $item['field'] : [];
+
+		$this->assertSame(['app.untranslated', 'redirect', true, 'Redirect to the original'], [$item['setting'] ?? null, $item['input'] ?? null, $item['default'] ?? null, $item['value'] ?? null]);
+		$this->assertSame('radios', $field['control'] ?? null, 'Each choice is shown with what it does (D-468).');
+		$this->assertSame(['hide', 'redirect', 'include'], $field['options'] ?? null);
+		$this->assertSame('Redirect, and list originals too', is_array($field['choices'] ?? null) ? $field['choices']['include'] ?? null : null);
+		$this->assertIsArray(is_array($field['details'] ?? null) ? $field['details']['hide'] ?? null : null);
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['app.untranslated' => 'include']]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertFalse(self::json($response)['refresh'] ?? null, 'It changes no addresses.');
+		$this->assertSame(['app' => ['untranslated' => 'include']], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['app.untranslated' => 'fallback']])->getStatusCode());
 	}
 
 	public function testSavesAndPreviewsTheDateAndTimeFormats(): void

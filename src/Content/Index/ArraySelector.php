@@ -23,7 +23,9 @@ use Blush\Content\Query\Selection;
  * `PhpIndex` answers queries. Records are expected in ID order, which is
  * file-name order; sorting is stable, so ties keep it.
  *
- * Each record is tested by a `RecordMatcher`.
+ * Each record is tested by a `RecordMatcher`. With a fallback language
+ * (D-469), a translation group's record in the query's language wins over
+ * its fallback's.
  *
  * @phpstan-import-type RecordArray from IndexRecord
  */
@@ -45,10 +47,38 @@ final readonly class ArraySelector
 			}
 		}
 
+		if ($query->fallback !== null) {
+			$matches = self::translated($matches, $query->language);
+		}
+
 		$matches = $this->sort($matches, $query->orderBy, $query->order, $now);
 		$ids     = array_column(array_slice($matches, $query->offset, $query->limit), 'id');
 
 		return new Selection($ids, count($matches));
+	}
+
+	/**
+	 * Returns matching records without the fallback language's where the
+	 * query's language matched one of the same translation group (D-469),
+	 * so an entry is listed once: in the language, else as its original.
+	 *
+	 * @param  list<RecordArray> $records
+	 * @return list<RecordArray>
+	 */
+	private static function translated(array $records, ?string $language): array
+	{
+		$translated = [];
+
+		foreach ($records as $record) {
+			if ($record['language'] === $language) {
+				$translated[IndexRecord::groupOf($record)] = true;
+			}
+		}
+
+		return array_values(array_filter(
+			$records,
+			static fn (array $record): bool => $record['language'] === $language || ! isset($translated[IndexRecord::groupOf($record)])
+		));
 	}
 
 	/**

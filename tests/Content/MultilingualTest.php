@@ -107,11 +107,12 @@ final class MultilingualTest extends TestCase
 	}
 
 	/**
-	 * Writes `config/app.php` with languages.
+	 * Writes `config/app.php` with languages, and what they do with
+	 * untranslated entries.
 	 *
 	 * @param array<string, mixed> $languages
 	 */
-	private function languages(array $languages): void
+	private function languages(array $languages, string $untranslated = 'redirect'): void
 	{
 		$source = var_export($languages, true);
 
@@ -120,8 +121,18 @@ final class MultilingualTest extends TestCase
 
 			declare(strict_types=1);
 
-			return new Blush\Core\AppConfig(timezone: 'America/Chicago', languages: {$source});
+			return Blush\Core\AppConfig::fromArray(['timezone' => 'America/Chicago', 'languages' => {$source}, 'untranslated' => '{$untranslated}']);
 			PHP);
+	}
+
+	/**
+	 * Boots the site again with another `untranslated` setting.
+	 */
+	private function untranslated(string $setting): void
+	{
+		$this->languages(['fr' => ['locale' => 'fr_FR', 'label' => 'Français'], 'pt-br' => 'pt_BR'], $setting);
+
+		$this->app = $this->site();
 	}
 
 	private function get(string $uri): ResponseInterface
@@ -292,7 +303,7 @@ final class MultilingualTest extends TestCase
 		$this->assertSame(200, $this->get('/fr/a-propos/biographie')->getStatusCode());
 		$this->assertSame(200, $this->get('/fr/a-propos/team/jane')->getStatusCode());
 		$this->assertSame(404, $this->get('/fr/about/biographie')->getStatusCode());
-		$this->assertSame(404, $this->get('/fr/about')->getStatusCode());
+		$this->assertSame('/fr/a-propos', $this->get('/fr/about')->getHeaderLine('Location'), 'The original\'s key finds its translation (D-467).');
 		$this->assertSame(404, $this->get('/pt-br/a-propos')->getStatusCode());
 
 		$home = (string) $this->get('/fr')->getBody();
@@ -303,7 +314,7 @@ final class MultilingualTest extends TestCase
 		$this->assertStringNotContainsString('Printemps', (string) $this->get('/')->getBody());
 
 		$this->assertSame(200, $this->get('/fr/archives/printemps')->getStatusCode());
-		$this->assertSame(404, $this->get('/fr/archives/spring')->getStatusCode());
+		$this->assertSame('/fr/archives/printemps', $this->get('/fr/archives/spring')->getHeaderLine('Location'));
 		$this->assertSame(404, $this->get('/archives/printemps')->getStatusCode());
 		$this->assertStringContainsString('Journal', $home);
 		$this->assertStringContainsString('Printemps', (string) $this->get('/fr/archives/2008/04')->getBody());
@@ -317,6 +328,57 @@ final class MultilingualTest extends TestCase
 		$this->assertStringContainsString('Printemps', (string) $term->getBody());
 		$this->assertSame('/fr/topics/lart', $this->get('/fr/topics/art')->getHeaderLine('Location'));
 		$this->assertStringNotContainsString('Printemps', (string) $this->get('/topics/art')->getBody());
+	}
+
+	public function testUntranslatedEntriesRedirectToTheirOriginals(): void
+	{
+		$this->entry('about/team/bob.md', 'title: Bob');
+		$this->entry('_posts/2003-04-15.welcome.fr.md', "title: Bienvenue\nslug: bienvenue\nstatus: draft");
+
+		$this->app = $this->site();
+
+		$single = $this->get('/fr/archives/welcome?ref=feed');
+
+		$this->assertSame(302, $single->getStatusCode());
+		$this->assertSame('/archives/welcome?ref=feed', $single->getHeaderLine('Location'));
+		$this->assertSame('/archives/welcome', $this->get('/fr/archives/bienvenue')->getHeaderLine('Location'), 'A translation that isn\'t published names its original.');
+		$this->assertSame('/notes', $this->get('/fr/notes')->getHeaderLine('Location'));
+		$this->assertSame('/about/team/bob', $this->get('/fr/a-propos/team/bob')->getHeaderLine('Location'), 'Translated folders name the original\'s.');
+		$this->assertSame(404, $this->get('/fr/archives/nothing')->getStatusCode());
+		$this->assertSame(404, $this->get('/fr/nothing')->getStatusCode());
+
+		$this->untranslated('hide');
+
+		$this->assertSame(404, $this->get('/fr/archives/welcome')->getStatusCode());
+		$this->assertSame(404, $this->get('/fr/notes')->getStatusCode());
+		$this->assertSame(404, $this->get('/fr/about')->getStatusCode());
+	}
+
+	public function testListsIncludeOriginalsWhenAsked(): void
+	{
+		$titles = static fn (EntryCollection $entries): array => array_map(static fn (Entry $entry): string => $entry->title, $entries->all());
+
+		$this->assertSame(['Printemps'], $titles($this->content()->query()->type('post')->language('fr')->limit(null)->get()), 'Redirect, the default, lists only translations.');
+
+		$this->untranslated('include');
+
+		$french = (string) $this->get('/fr')->getBody();
+
+		$this->assertStringContainsString('Printemps', $french);
+		$this->assertStringContainsString('href="/archives/welcome"', $french, 'An original links to its own URL.');
+		$this->assertStringContainsString('Hello Bundle', $french);
+		$this->assertStringNotContainsString('>spring<', $french, 'A translated entry is listed once, in the language.');
+		$this->assertStringContainsString('Welcome', (string) $this->get('/fr/archives/2003')->getBody());
+		$this->assertStringContainsString('Welcome', (string) $this->get('/fr/topics/old-posts')->getBody());
+
+		$content = $this->content();
+		$counts  = $content->termCounts('category', $content->query()->language('fr'));
+
+		$this->assertSame([1, 1], [$counts['art'], $counts['old-posts']]);
+		$this->assertSame(['Welcome', 'Printemps', 'Hello Bundle'], $titles($content->query()->type('post')->language('fr')->limit(null)->get()));
+		$this->assertSame(['Printemps'], $titles($content->query()->type('post')->language('fr')->withOriginals(false)->limit(null)->get()));
+		$this->assertSame(['Welcome', 'spring', 'Hello Bundle'], $titles($content->query()->type('post')->limit(null)->get()), 'The default language has no originals to add.');
+		$this->assertContains('Welcome', $titles(new LocalizedRepository($content, 'fr')->query()->type('post')->limit(null)->get()), 'Components list them too.');
 	}
 
 	public function testComponentsFollowThePageLanguage(): void

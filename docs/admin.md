@@ -935,7 +935,10 @@ screens:
   language and region PHP knows, each named in its own language with
   its English name beside it, and each region under its language;
   search by either name or the code, or choose **Other…** to type any
-  code, such as `en_US`), and its time zone, with the time there now.
+  code, such as `en_US`); on a site with other languages, **Untranslated
+  pages**, what another language does with an entry not translated
+  into it (see [Translations](content.md#pages-that-arent-translated));
+  and its time zone, with the time there now.
   Time zones are listed by city under their regions, each with its
   common name and offset today (Chicago: Central Time · UTC−5); search
   by city, name, abbreviation (`CST`, `CDT`), offset (`-05:00`), or an

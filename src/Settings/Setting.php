@@ -21,6 +21,7 @@ use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
+use Blush\Core\Untranslated;
 use Blush\Extension\ExtensionName;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
@@ -62,6 +63,7 @@ enum Setting: string
 	case Name            = 'app.name';
 	case Description     = 'app.description';
 	case Locale          = 'app.locale';
+	case Untranslated    = 'app.untranslated';
 	case Timezone        = 'app.timezone';
 	case DateFormat      = 'app.dateFormat';
 	case TimeFormat      = 'app.timeFormat';
@@ -120,8 +122,8 @@ enum Setting: string
 	{
 		return match ($this) {
 			self::Theme, self::Plugins, self::IconPacks                   => null,
-			self::Name, self::Description, self::Locale, self::Timezone,
-			self::DateFormat, self::TimeFormat                            => SettingsScreen::General,
+			self::Name, self::Description, self::Locale, self::Untranslated,
+			self::Timezone, self::DateFormat, self::TimeFormat            => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::MediaUploads                                            => SettingsScreen::Media,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
@@ -141,6 +143,7 @@ enum Setting: string
 			self::Name            => new TextField('name')->labeled('Site name')->required(),
 			self::Description     => new TextField('description')->labeled('Description')->described(self::DESCRIPTION_HELP),
 			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.')->control(Control::Mono),
+			self::Untranslated    => new EnumField('untranslated', array_column(Untranslated::cases(), 'value'))->labeled('Untranslated pages')->described('What another language\'s address does for an entry not translated into it.')->control(Control::Radios)->required(),
 			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
 			self::DateFormat      => new TextField('dateFormat')->labeled('Date format')->described(self::FORMAT_HELP)->control(Control::Mono),
 			self::TimeFormat      => new TextField('timeFormat')->labeled('Time format')->described(self::FORMAT_HELP)->control(Control::Mono),
@@ -167,34 +170,37 @@ enum Setting: string
 
 	/**
 	 * Words for the field's values, where its options aren't words: a
-	 * time zone without underscores, the homepage's collections, and the
-	 * feed formats' names.
+	 * time zone without underscores, the untranslated settings' names,
+	 * the homepage's collections, and the feed formats' names.
 	 *
 	 * @return array<string, string>
 	 */
 	public function choices(ContentTypes $types): array
 	{
 		return match ($this) {
-			self::Timezone    => array_combine(DateTimeZone::listIdentifiers(), array_map(static fn (string $zone): string => str_replace('_', ' ', $zone), DateTimeZone::listIdentifiers())),
-			self::Home        => self::homeChoices($types),
-			self::FeedFormats => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): string => $format->label(), FeedFormat::cases())),
-			self::BlockAi     => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): string => $group->label(), AiCrawlerGroup::cases())),
-			default           => []
+			self::Timezone     => array_combine(DateTimeZone::listIdentifiers(), array_map(static fn (string $zone): string => str_replace('_', ' ', $zone), DateTimeZone::listIdentifiers())),
+			self::Untranslated => array_combine(array_column(Untranslated::cases(), 'value'), array_map(static fn (Untranslated $case): string => $case->label(), Untranslated::cases())),
+			self::Home         => self::homeChoices($types),
+			self::FeedFormats  => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): string => $format->label(), FeedFormat::cases())),
+			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): string => $group->label(), AiCrawlerGroup::cases())),
+			default            => []
 		};
 	}
 
 	/**
 	 * More about each of the field's options, where a name alone doesn't
 	 * say enough (D-404): a sentence (`text`) and the machine names it
-	 * covers (`code`), as the AI crawler groups' user agents.
+	 * covers (`code`, or `''`), as the AI crawler groups' user agents, and
+	 * what each untranslated setting does (D-469).
 	 *
 	 * @return array<string, array{text: string, code: string}>
 	 */
 	public function details(): array
 	{
 		return match ($this) {
-			self::BlockAi => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): array => ['text' => $group->description(), 'code' => implode(' · ', $group->agents())], AiCrawlerGroup::cases())),
-			default       => []
+			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): array => ['text' => $group->description(), 'code' => implode(' · ', $group->agents())], AiCrawlerGroup::cases())),
+			self::Untranslated => array_combine(array_column(Untranslated::cases(), 'value'), array_map(static fn (Untranslated $case): array => ['text' => $case->description(), 'code' => ''], Untranslated::cases())),
+			default            => []
 		};
 	}
 
@@ -320,6 +326,7 @@ enum Setting: string
 			self::Name            => self::name($value),
 			self::Description     => self::description($value),
 			self::Locale          => self::locale($value),
+			self::Untranslated    => self::untranslated($value),
 			self::Timezone        => self::timezone($value),
 			self::DateFormat,
 			self::TimeFormat      => self::dateFormat($value),
@@ -375,6 +382,15 @@ enum Setting: string
 		return preg_match('/^[a-z]{2,3}(?:[_-][A-Za-z0-9]{2,8})*$/', $locale) === 1
 			? $locale
 			: throw new InvalidSetting('Use a language code, with a region if you like, such as en_US or fr.');
+	}
+
+	/**
+	 * @throws InvalidSetting
+	 */
+	private static function untranslated(mixed $value): string
+	{
+		return (is_string($value) ? Untranslated::tryFrom($value) : null)->value
+			?? throw new InvalidSetting(sprintf('Untranslated pages are one of: %s.', implode(', ', array_column(Untranslated::cases(), 'value'))));
 	}
 
 	/**

@@ -15,7 +15,11 @@ namespace Blush\Content\Http;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Content\ContentRepository;
 use Blush\Content\Query\InvalidQuery;
+use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Type\ContentTypes;
+use Blush\Core\AppConfig;
 use Blush\Http\NotFound;
 
 /**
@@ -26,13 +30,32 @@ use Blush\Http\NotFound;
  */
 final class SingleController extends ContentController
 {
+	public function __construct(
+		ContentRepository $content,
+		ContentTypes $types,
+		ContentUrls $urls,
+		PageRenderer $renderer,
+		private readonly AppConfig $app
+	) {
+		parent::__construct($content, $types, $urls, $renderer);
+	}
+
 	/**
 	 * @throws NotFound
 	 * @throws InvalidQuery
 	 */
 	public function __invoke(ServerRequestInterface $request, string $type, string $name, ?string $language = null): ResponseInterface
 	{
-		$entry = $this->visible($this->content->named($this->type($type)->name, $name, $language));
+		$contentType = $this->type($type);
+		$entry       = $this->visible($this->content->named($contentType->name, $name, $language));
+
+		if ($entry === null && $language !== null) {
+			$redirect = $this->untranslated($request, $contentType, $name, $language, $this->app);
+
+			if ($redirect !== null) {
+				return $redirect;
+			}
+		}
 
 		if ($entry === null || $entry->landing) {
 			throw new NotFound(sprintf('There is no "%s" entry named "%s".', $type, $name));

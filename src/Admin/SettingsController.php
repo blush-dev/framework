@@ -226,6 +226,7 @@ final readonly class SettingsController
 				$this->edit(self::item('name', 'Site name', $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, $this->app->name),
 				$this->edit(self::item('description', 'Description', $this->app->description, $this->app->description === '', help: Setting::DESCRIPTION_HELP), $saved, Setting::Description, $this->app->description),
 				[...$this->edit(self::item('locale', 'Language and region', $this->app->locale, $this->app->locale === $app->locale, 'mono', 'Choose Other to type a code the menu doesn\'t have.'), $saved, Setting::Locale, $this->app->locale), 'locales' => Locales::options()],
+				...$this->untranslated($saved, $app),
 				self::item('url', 'Site address', $this->app->url, $this->app->url === $app->url, 'mono', 'From APP_URL in .env by default.', 'config/app.php')
 			]),
 			self::group('dates', 'Dates and Time', 'How times are read and shown', [
@@ -245,6 +246,21 @@ final readonly class SettingsController
 				]
 			], 'From `.env` (`APP_ENV`, `APP_DEBUG`) when `config/app.php` reads them, as it does by default.')
 		];
+	}
+
+	/**
+	 * What another language's address does for an untranslated entry
+	 * (D-467, D-468), on a site with other languages; a site without
+	 * them has nothing for it to do, so it isn't shown.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function untranslated(Settings $saved, AppConfig $app): array
+	{
+		$setting = $this->app->untranslated;
+		$item    = self::item('untranslated', 'Untranslated pages', $setting->label(), $setting === $app->untranslated, help: Setting::Untranslated->field($this->types)->description);
+
+		return $this->app->languages->isMultilingual() ? [$this->edit($item, $saved, Setting::Untranslated, $setting->value)] : [];
 	}
 
 	/**

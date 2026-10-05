@@ -13784,3 +13784,93 @@ decision, add a new entry that supersedes it and mark the old one
 - **Not changed:** static export's missing `AppConfig` fields (D-465's
   note); the author may drop static export, since Blush is meant to be
   dynamic first (2026-10-04).
+
+### D-467: Untranslated content: one site option in three levels
+
+- **Date:** 2026-10-04
+- **Status:** Decided; not built. Settles D-465's second step.
+- **Decision:** `untranslated` in `config/app.php`, beside `languages`,
+  backed by an enum (`Untranslated::Hide`, `Redirect`, `Include`). One
+  value for the whole site, not per language or per type. Each level
+  builds on the one before:
+  - `'hide'`: a language's URL for an entry without its translation
+    (`/fr/about` without `about.fr.md`) is a 404, and a language's lists
+    show only its entries (D-456's behavior).
+  - `'redirect'` (the default): that URL is a 302 to the original
+    (`/about`); lists as `hide`.
+  - `'include'`: redirects as `redirect`, and a language's lists (its
+    homepage, collections, terms, date archives) also show untranslated
+    entries, linking to their originals' URLs and keeping their
+    language, so a theme can mark them (`lang` on the link, a badge).
+    Counts and pagination use the same entries the list shows.
+  - Collection and term pages without the language's file keep working
+    as they do; the option is about entries.
+  - 302, not 301: a translation may come later, and a cached permanent
+    redirect would hide it.
+  - **Never the original's text at the language's URL** (Kirby's
+    fallback): the author rejects it as duplicate content.
+  - `hreflang` alternates keep naming only real translations, and
+    sitemaps (later) only real pages.
+  - Config only for now, like `languages`; its admin row goes wherever
+    the languages setting ends up. A per-type list override waits until
+    a site needs one.
+- **Why:** the author's calls, 2026-10-04. A page with no exit is
+  unkind to a site translated a little at a time, so `redirect` is the
+  default; it leaves lists as they are, so it changes nothing a reader
+  sees on a list.
+
+### D-468: `untranslated` on the General settings screen
+
+- **Date:** 2026-10-04
+- **Status:** Decided; not built. Supersedes D-467's "config only for
+  now".
+- **Decision:** `untranslated` is an admin setting
+  (`Setting::Untranslated`, `app.untranslated`) on **General**, under
+  the site's language, saved in `user/data/settings.json` over
+  `config/` (D-324). A drawn select: **Show "Page not found"**, **Redirect to
+  the original** (the default), and **Redirect, and list originals
+  too**, each with a line of help. `languages` stays config only.
+- **Why:** the author, 2026-10-04: the admin needs the setting now, but
+  languages in the admin need a bigger redesign, so no Languages screen
+  (proposed: the site's language, a table of languages, and this
+  setting, with a warning when removing a language would turn its files
+  into pages of their own) until then.
+
+### D-469: Untranslated content, built
+
+- **Date:** 2026-10-04
+- **Status:** Built. Builds D-467 and D-468.
+- **Decision:**
+  - `Core\Untranslated` (`Hide`, `Redirect`, `Include`, with
+    `redirects()` and `lists()`) is `AppConfig::$untranslated`, from
+    `untranslated` in `config/app.php`, `redirect` by default.
+  - **Redirects:** `SingleController` and `PageController` call
+    `ContentController::untranslated()` when a language's URL finds no
+    published entry: a 302 (query string kept) to the original, found
+    as the original of an unpublished translation, the default
+    language's entry with the key, or, below translated folders
+    (D-457), the entry in the deepest translated folder's original.
+    When the original has a published translation (the URL used the
+    original's key, `/fr/about` for `slug: a-propos`), it goes there
+    instead. Collection, term, and date archive pages are unchanged.
+  - **Lists:** `Query` gains `originals` (`withOriginals(?bool)`, `null`
+    following the setting) and `fallback` (internal).
+    `IndexedRepository::resolved()` sets `fallback` to the default
+    language for a query in another language when `originals`, or the
+    setting, asks for originals. `RecordMatcher` lets the fallback
+    language's records match, and `ArraySelector` keeps one record per
+    translation group (`IndexRecord::groupOf()`), the language's when
+    it matched, before sorting and paging, so counts, pagination, term
+    counts, menus' `CollectionLink`, `hreflang` alternates, and
+    components (`LocalizedRepository`) all see the same entries. The
+    language's record wins only when it matches the query's
+    conditions, so a translation that's a draft lists its original.
+  - An original keeps its language and URL, so a theme can mark it.
+  - **Admin:** `Setting::Untranslated` (`app.untranslated`) on General
+    after the language, shown only on a multilingual site, as radio
+    buttons each with its label and sentence (`details`), not the
+    select D-468 described: three choices read better with what each
+    does under it. `FieldInput` draws `details` on radio buttons as it
+    does on checkboxes, and leaves out an empty `code`.
+- **Not done:** static export doesn't write redirect files (the author
+  may drop static export; it passes `untranslated` through for lists).

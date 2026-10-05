@@ -122,6 +122,7 @@ site with a message naming the problem.
 | `dateFormat` | `'long'` | How themes show dates: `full`, `long`, `medium`, or `short` follow the site's language (`October 4, 2026` in `en_US`); an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax) such as `'d MMMM y'` keeps its order in any language |
 | `timeFormat` | `'short'` | How themes show times, the same way: `short` is `2:30 PM` in `en_US`; `'HH:mm'` is always `14:30` |
 | `languages` | `[]` | Other languages your content is written in, by code: `['fr' => 'fr_FR']`, or `['fr' => ['locale' => 'fr_FR', 'label' => 'Français']]`. See [Translations](content.md#translations) |
+| `untranslated` | `'redirect'` | What another language does with an entry not translated into it: `'hide'` (not found), `'redirect'` (to the original), or `'include'` (redirect, and list the originals in that language's lists too). See [Pages that aren't translated](content.md#pages-that-arent-translated) |
 
 Without `config/app.php`, these come from the `APP_*` variables.
 

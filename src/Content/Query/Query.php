@@ -45,6 +45,11 @@ use Blush\Content\Visibility;
  *         static fn (Query $q): Query => $q->whereTerm('author', 'jane')
  *     );
  *
+ * On a multilingual site, a query in a language other than the default
+ * also finds the originals of entries without a translation in it when
+ * the site's `untranslated` setting is `include` (D-469); `withOriginals()`
+ * asks for them, or not, whatever the setting.
+ *
  * A query made by a runner (the repository's `query()`) can run itself
  * with `get()`, `first()`, `count()`, and `paginate()`.
  */
@@ -101,6 +106,8 @@ final readonly class Query
 	 * @param ?int                             $updatedSince  A Unix time entries must have been updated at or after.
 	 * @param list<string>                     $excludedDirectories Folders whose entries are left out.
 	 * @param ?string                          $language      A language code to limit entries to (D-455), `ANY_LANGUAGE` for all, or `null` for the site's default language.
+	 * @param ?bool                            $originals     Whether a language's originals stand in for its missing translations (D-469); `null` for the site's `untranslated` setting.
+	 * @param ?string                          $fallback      The language whose entries stand in for those without one in `$language`, set by the repository from `$originals`.
 	 */
 	public function __construct(
 		public array $types = [],
@@ -124,6 +131,8 @@ final readonly class Query
 		public ?int $updatedSince = null,
 		public array $excludedDirectories = [],
 		public ?string $language = null,
+		public ?bool $originals = null,
+		public ?string $fallback = null,
 		private ?QueryRunner $runner = null
 	) {}
 
@@ -450,6 +459,31 @@ final readonly class Query
 	public function language(?string $language): self
 	{
 		return clone($this, ['language' => $language]);
+	}
+
+	/**
+	 * Returns a copy that, in a language, also finds the originals of
+	 * entries without a translation in it (D-469), or never does
+	 * (`false`), whatever the site's `untranslated` setting. `null`
+	 * follows the setting again.
+	 */
+	#[NoDiscard]
+	public function withOriginals(?bool $originals = true): self
+	{
+		return clone($this, ['originals' => $originals]);
+	}
+
+	/**
+	 * Returns a copy whose entries in a language are stood in for by a
+	 * fallback language's when they have no translation (D-469): what
+	 * the repository makes of `originals` before running it.
+	 *
+	 * @internal
+	 */
+	#[NoDiscard]
+	public function fallback(?string $language): self
+	{
+		return clone($this, ['fallback' => $language]);
 	}
 
 	/**

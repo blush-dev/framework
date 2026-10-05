@@ -89,16 +89,23 @@ final class IndexedRepository implements ContentRepository
 
 	/**
 	 * Returns a query with 1.x's `author` reading the profiles type
-	 * (D-351), unless a type is named `author`, and with no language
-	 * meaning the default language (D-455).
+	 * (D-351), unless a type is named `author`, with no language meaning
+	 * the default language (D-455), and in another language, the default
+	 * language's entries standing in for missing translations when it
+	 * asks for originals or the site's `untranslated` setting lists them
+	 * (D-469).
 	 */
 	private function resolved(Query $query): Query
 	{
-		$profiles = $this->types->profiles()?->name;
+		$profiles  = $this->types->profiles()?->name;
+		$languages = $this->app->languages;
 
 		if ($query->language === null) {
-			$query = $query->language($this->app->languages->default->code);
+			$query = $query->language($languages->default->code);
 		}
+
+		$originals = $query->originals ?? $this->app->untranslated->lists();
+		$query     = $query->fallback($originals && $languages->isOther($query->language ?? '') ? $languages->default->code : null);
 
 		return $profiles === null || $profiles === self::AUTHOR || $this->types->has(self::AUTHOR)
 			? $query

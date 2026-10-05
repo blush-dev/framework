@@ -37,6 +37,9 @@ use Blush\Env\Env;
  * `languages` are the languages content is written in besides the
  * site's locale (D-455), by code: `['fr' => 'fr_FR']` or `['fr' =>
  * ['locale' => 'fr_FR', 'label' => 'Français']]`; see `Languages`.
+ * `untranslated` is what those languages do with an entry that has no
+ * translation (D-467): `hide`, `redirect` (the default), or `include`;
+ * see `Untranslated`.
  */
 final readonly class AppConfig implements Config
 {
@@ -62,7 +65,8 @@ final readonly class AppConfig implements Config
 		public string $description = '',
 		public string $dateFormat = 'long',
 		public string $timeFormat = 'short',
-		array $languages = []
+		array $languages = [],
+		public Untranslated $untranslated = Untranslated::Redirect
 	) {
 		if (Uri::parse($url) === null || ! preg_match('#^https?://#i', $url)) {
 			throw new InvalidConfig(sprintf('AppConfig "url" must be an absolute http(s) URL; "%s" given.', $url));
@@ -148,7 +152,7 @@ final readonly class AppConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description', 'dateFormat', 'timeFormat', 'languages']);
+		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description', 'dateFormat', 'timeFormat', 'languages', 'untranslated']);
 
 		$environment = $data['environment'] ?? null;
 
@@ -168,7 +172,8 @@ final readonly class AppConfig implements Config
 			description: $values->string('description', ''),
 			dateFormat: $values->string('dateFormat', 'long'),
 			timeFormat: $values->string('timeFormat', 'short'),
-			languages: self::languagesOf($data['languages'] ?? [])
+			languages: self::languagesOf($data['languages'] ?? []),
+			untranslated: $values->enum('untranslated', Untranslated::class, Untranslated::Redirect)
 		);
 	}
 
@@ -179,17 +184,18 @@ final readonly class AppConfig implements Config
 	public function toArray(): array
 	{
 		return [
-			'name'        => $this->name,
-			'url'         => $this->url,
-			'environment' => $this->environment,
-			'debug'       => $this->debug,
-			'timezone'    => $this->timezone,
-			'locale'      => $this->locale,
-			'providers'   => $this->providers,
-			'description' => $this->description,
-			'dateFormat'  => $this->dateFormat,
-			'timeFormat'  => $this->timeFormat,
-			'languages'   => $this->languages->toArray()
+			'name'         => $this->name,
+			'url'          => $this->url,
+			'environment'  => $this->environment,
+			'debug'        => $this->debug,
+			'timezone'     => $this->timezone,
+			'locale'       => $this->locale,
+			'providers'    => $this->providers,
+			'description'  => $this->description,
+			'dateFormat'   => $this->dateFormat,
+			'timeFormat'   => $this->timeFormat,
+			'languages'    => $this->languages->toArray(),
+			'untranslated' => $this->untranslated
 		];
 	}
 

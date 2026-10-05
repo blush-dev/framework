@@ -205,6 +205,11 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   its components get a `LocalizedRepository` in its language (D-458,
   `ViewContext::$language`), in a translation's Markdown too: the
   parsed document carries the language to its directives (D-459).
+  `untranslated` (`Core\Untranslated`, D-467 to D-469) says what a
+  language does without an entry's translation: a 404, a 302 to the
+  original (`ContentController::untranslated()`), or that plus lists
+  with the originals (a query's `fallback` language, set by the
+  repository; `ArraySelector` keeps one record per translation group).
 
 ## HTTP (custom, D-005)
 
@@ -604,7 +609,9 @@ Implemented in M4b (D-089).
   a page's `collection` front matter) plus `status`, `visibility`,
   `terms`, `locale`, and `language`.
 - A query finds the default language's entries unless given a code
-  (`language('fr')`) or `anyLanguage()` (D-456).
+  (`language('fr')`) or `anyLanguage()` (D-456). In another language,
+  `withOriginals()` (or the site's `untranslated: include`) adds the
+  default language's entries without a translation in it (D-469).
 - `search()` matches the title or source path in any case, and
   `either()` takes alternatives (each built from `Query::condition()`,
   which matches everything) of which an entry must match one: the OR

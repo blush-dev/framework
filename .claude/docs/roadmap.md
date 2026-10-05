@@ -395,8 +395,8 @@ dynamically).
   alternates (D-461) are done, and so are component text, date
   archive titles, menus, and template routes in the page's language
   (D-462 to D-464), and the `time`, `progress`, `meter`, `file`, and
-  `video` components' formatting (D-466). Next, in the author's order
-  (D-465): untranslated content as a config option; later, sitemaps and
+  `video` components' formatting (D-466), and untranslated content
+  (D-467 to D-469). Next, in the author's order (D-465): sitemaps and
   then feeds and `llms.txt` per language; translations in the admin
   (uploads, a strings editor) once there's a design; a language
   switcher is on hold.

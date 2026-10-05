@@ -28,7 +28,9 @@ use Blush\Support\Slug;
  * any item of a list); dates match the published time in the site
  * timezone. A term condition reads the record's terms for the taxonomy,
  * or, when the taxonomy isn't a content type, a field of that name. A
- * search matches the title or ID in any case (D-230). Each `either()`
+ * search matches the title or ID in any case (D-230). A query's fallback
+ * language's records match as its language's do (D-469); `ArraySelector`
+ * keeps one per translation group. Each `either()`
  * group needs one of its alternatives to match, and an alternative is
  * tested by its own matcher.
  *
@@ -107,7 +109,7 @@ final readonly class RecordMatcher
 			|| ($query->directory !== null && $record['directory'] !== $query->directory)
 			|| in_array($record['directory'], $query->excludedDirectories, true)
 			|| ($query->locale !== null && $record['locale'] !== $query->locale)
-			|| ($query->language !== null && $query->language !== Query::ANY_LANGUAGE && $record['language'] !== $query->language)
+			|| ($query->language !== null && $query->language !== Query::ANY_LANGUAGE && $record['language'] !== $query->language && $record['language'] !== $query->fallback)
 			|| ! in_array($record['visibility'], $this->visibilities, true)
 			|| ! in_array(IndexRecord::effectiveStatus($record['status'], $record['published'], $this->now)->value, $this->statuses, true)
 			|| ($query->names !== [] && ! in_array($record['slug'], $query->names, true))

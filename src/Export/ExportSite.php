@@ -68,7 +68,8 @@ final readonly class ExportSite
 				timezone: $this->app->timezone,
 				locale: $this->app->locale,
 				providers: $this->app->providers,
-				languages: $this->app->languages->toArray()
+				languages: $this->app->languages->toArray(),
+				untranslated: $this->app->untranslated
 			),
 			new CacheConfig(enabled: true, driver: CacheDriver::Array->value, pages: false)
 		)->createApplication();

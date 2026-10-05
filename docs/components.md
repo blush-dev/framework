@@ -528,7 +528,10 @@ final class RecentPosts extends Component
   topics, so `posts()` above lists the French posts, whether a template
   or a translation's Markdown uses the component. Ask for another
   language with `->language('en')`, or every language with
-  `->anyLanguage()`.
+  `->anyLanguage()`. When the site's `untranslated` setting is
+  `'include'`, French lists add the originals of untranslated entries;
+  `->withOriginals()` asks for them whatever the setting, and
+  `->withOriginals(false)` never does.
 - **Name the content for its role.** A component's main content is
   `$this->content()`: a `:::` block's HTML, or the escaped label for `::`
   and `:`. When it has a role, such as a caption or a title, add a method

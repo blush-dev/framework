@@ -143,9 +143,32 @@ translated page's folder use its translated slug: with that,
 `/fr/a-propos/biographie`. A folder whose page isn't translated keeps
 its name.
 
-Each language lists only its own entries: `/fr` and the French
-collections, topics, and date archives show only the French
-translations. A French page is shown in French: its dates, `<html
+### Pages that aren't translated
+
+`untranslated` in `config/app.php` (or **Untranslated pages** on the
+admin's General settings) says what another language does with an
+entry that has no translation in it:
+
+| Setting | `/fr/contact` without `contact.fr.md` | French lists |
+|---|---|---|
+| `'hide'` | Not found | Only French entries |
+| `'redirect'` (the default) | Sends readers to `/contact` | Only French entries |
+| `'include'` | Sends readers to `/contact` | French entries, and the originals of the rest |
+
+The redirect is temporary, so `/fr/contact` works as soon as you write
+`contact.fr.md`. A French translation that's still a draft counts as
+missing. A French address that uses the original's name for a page that
+is translated (`/fr/about` for `about.fr.md` with `slug: a-propos`)
+sends readers to the translation. With `'include'`, an untranslated
+entry is listed under its original's title and links to the original's
+address; one that's translated is listed once, in French. Blush never
+shows the original's text at the French address, which would be the
+same page at two addresses.
+
+With `'include'`, `/fr`, the French collections, topics, and date
+archives, and the lists components and templates make on French pages
+include the originals. Otherwise each language lists only its own
+entries. A French page is shown in French: its dates, `<html
 lang="fr-FR">`, and the theme's text when the theme is translated.
 Date archive titles are written the language's way too
 (`3 de diciembre de 2025`). Components follow the page as well, in
@@ -168,8 +191,6 @@ its French translation.
 
 A few things don't work in other languages yet:
 
-- A page that isn't translated has no French address: `/fr/about` is
-  "not found" until `about.fr.md` exists.
 - Feeds, sitemaps, `llms.txt`, profiles, and author archives are in the
   default language only.
 - The admin shows and edits only the default language's entries; edit

@@ -24,6 +24,7 @@ use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Core\AppConfig;
 use Blush\Http\NotFound;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -40,8 +41,12 @@ use Blush\Http\Status;
  * - A single entry reached by a URL that isn't its own (a wrong date in
  *   the path, say) redirects to its URL.
  * - A language's routes (D-455) pass its code as `$language`; `null` is
- *   the default language. A page in a language finds and lists only
- *   that language's entries.
+ *   the default language. A page in a language finds and lists that
+ *   language's entries, and with the site's `untranslated` setting at
+ *   `include`, the originals of the rest (D-469).
+ * - A language's URL for an entry without a published translation in it
+ *   redirects to the original (a 302), unless `untranslated` is `hide`
+ *   (D-467).
  */
 abstract class ContentController
 {
@@ -102,6 +107,60 @@ abstract class ContentController
 
 			return $translation === null ? null : $this->urls->entry($translation);
 		};
+	}
+
+	/**
+	 * Returns a temporary redirect for a language's URL to an entry with
+	 * no published translation in it (D-467): to its original, or to its
+	 * translation when the URL used the original's key. `null` when the
+	 * site's `untranslated` setting is `hide` or there's no original.
+	 */
+	protected function untranslated(ServerRequestInterface $request, ContentType $type, string $key, string $language, AppConfig $app): ?ResponseInterface
+	{
+		if (! $app->untranslated->redirects()) {
+			return null;
+		}
+
+		$original = $this->original($type, trim($key, '/'), $language, $app->languages->default->code);
+		$target   = $original === null ? null : $this->visible($this->content->translation($original, $language)) ?? $original;
+		$url      = $target === null ? null : $this->urls->entry($target);
+		$query    = $request->getUri()->getQuery();
+
+		return $url === null ? null : Response::redirect($query === '' ? $url : "{$url}?{$query}", Status::Found);
+	}
+
+	/**
+	 * Returns the published original an entry's key in a language names:
+	 * the original of a translation that isn't published, the default
+	 * language's entry with the key, or, below translated folders
+	 * (D-457), the entry in the deepest one's original folder.
+	 */
+	private function original(ContentType $type, string $key, string $language, string $default): ?Entry
+	{
+		$entry = $this->content->named($type->name, $key, $language);
+
+		if ($entry !== null) {
+			return $this->visible($this->content->translation($entry, $default));
+		}
+
+		$original = $this->visible($this->content->named($type->name, $key));
+
+		if ($original !== null || ! str_contains($key, '/')) {
+			return $original;
+		}
+
+		$segments = explode('/', $key);
+
+		for ($count = count($segments) - 1; $count > 0; $count--) {
+			$folder = $this->content->named($type->name, implode('/', array_slice($segments, 0, $count)), $language);
+			$source = $folder === null ? null : $this->content->translation($folder, $default);
+
+			if ($source !== null) {
+				return $this->visible($this->content->named($type->name, $source->key . '/' . implode('/', array_slice($segments, $count))));
+			}
+		}
+
+		return null;
 	}
 
 	/**

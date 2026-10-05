@@ -9,8 +9,9 @@
  * checkboxes are a group, labeled by `labelledBy`, one per option, each
  * with its `choices` label when the field has one; an optional choice's
  * empty option says the `caption`, or "None" (radio buttons) and "—" (a
- * menu), and a long menu has a search (D-443). Options with `details` (D-404) are a list, each its name, then
- * a sentence and the machine names it covers. A date opens a month (`DatePicker`) and can be cleared. A
+ * menu), and a long menu has a search (D-443). Radio buttons and
+ * checkboxes whose options have `details` (D-404, D-469) are a list,
+ * each its name, then a sentence and any machine names it covers. A date opens a month (`DatePicker`) and can be cleared. A
  * reference picks from the entries it points at (`ReferencePicker`). A
  * media field, when `pickable`, has a **Choose** button for the media
  * picker beside it (D-247); otherwise its path is typed. A field the form
@@ -88,9 +89,17 @@ const checked = computed({
 		<input :id="id" v-model="checked" type="checkbox" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid">
 		{{ field.caption ?? label(field) }}
 	</label>
-	<div v-else-if="kind === 'radios'" class="field-input__choices" role="radiogroup" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
+	<div v-else-if="kind === 'radios'" class="field-input__choices" :class="{ 'field-input__choices--detailed': field.details }" role="radiogroup" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
 		<label v-if="!field.required" class="checkbox"><input :id="id" v-model="text" type="radio" :name="id" value="" :disabled="disabled"> {{ field.caption ?? 'None' }}</label>
-		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox"><input :id="index === 0 && field.required ? id : undefined" v-model="text" type="radio" :name="id" :value="option" :disabled="disabled"> {{ choice(option) }}</label>
+		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox">
+			<input :id="index === 0 && field.required ? id : undefined" v-model="text" type="radio" :name="id" :value="option" :disabled="disabled">
+			<span v-if="detail(option)" class="field-input__choice">
+				<span class="field-input__name">{{ choice(option) }}</span>
+				<span class="field-input__text">{{ detail(option)?.text }}</span>
+				<span v-if="detail(option)?.code" class="field-input__code">{{ detail(option)?.code }}</span>
+			</span>
+			<template v-else>{{ choice(option) }}</template>
+		</label>
 	</div>
 	<div v-else-if="kind === 'checks'" class="field-input__choices" :class="{ 'field-input__choices--detailed': field.details }" role="group" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
 		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox">
@@ -98,7 +107,7 @@ const checked = computed({
 			<span v-if="detail(option)" class="field-input__choice">
 				<span class="field-input__name">{{ choice(option) }}</span>
 				<span class="field-input__text">{{ detail(option)?.text }}</span>
-				<span class="field-input__code">{{ detail(option)?.code }}</span>
+				<span v-if="detail(option)?.code" class="field-input__code">{{ detail(option)?.code }}</span>
 			</span>
 			<template v-else>{{ choice(option) }}</template>
 		</label>
