@@ -396,7 +396,8 @@ dynamically).
   archive titles, menus, and template routes in the page's language
   (D-462 to D-464), and the `time`, `progress`, `meter`, `file`, and
   `video` components' formatting (D-466), and untranslated content
-  (D-467 to D-469). Next, in the author's order (D-465): sitemaps and
+  (D-467 to D-469), and `dir` on a page's `<html>` (D-470, D-471).
+  Paused there by the author (2026-10-04). When it's picked up again, in the author's order (D-465): sitemaps and
   then feeds and `llms.txt` per language; translations in the admin
   (uploads, a strings editor) once there's a design; a language
   switcher is on hold.

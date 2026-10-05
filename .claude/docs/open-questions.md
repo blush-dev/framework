@@ -211,6 +211,20 @@ Move each item to `decisions.md` once it's answered.
   - Whether `user/lang/{locale}/app.json` is offered in the admin, or
     the site's own strings stay in `resources/lang`.
   - The admin's own strings, which aren't translatable yet (D-278).
+- **Turning languages on and off** (raised 2026-10-04, D-470): the
+  author asked for a switch for multilingual as a whole. Proposed
+  instead: `languages` is already the switch (a site is multilingual
+  when it lists one), and turning it off while languages are listed
+  would make `about.fr.md` a page at `/about.fr`; so a **`live` flag per
+  language** (`'de' => ['locale' => 'de_DE', 'live' => false]`; the
+  name is open, also `enabled` or `public`): its files are still read
+  as translations, but it has no `/de/` routes, `hreflang` links,
+  switcher or menu entries, or sitemap. That covers translating a whole
+  language before launch and taking one offline without renaming
+  files. Config only until the languages redesign (D-468). Leaning no
+  (the proposal, not yet the author's call): choosing a language from
+  the browser's `Accept-Language` at `/` (breaks the page cache, and
+  search engines), and domains per language (set aside in D-455).
 - **Multilingual, what's left** (D-455 to D-467): untranslated content
   is decided (D-467, on General, D-468). Still open: a bigger
   redesign of languages in the admin (the author, 2026-10-04); the
@@ -223,7 +237,10 @@ Move each item to `decisions.md` once it's answered.
   core component the default theme draws in its footer); feeds,
   sitemaps, `llms.txt`, profiles, and people archives per language; a
   per-type list override for `untranslated` if a site needs one
-  (D-467); and the admin's Translate action (translations aren't listed
+  (D-467), with types whose entries are never translated (deferred,
+  D-470); site settings per language (name, description, date format;
+  deferred, D-470); fallback chains (`pt-br` → `pt`) and the default
+  language under a prefix (later, D-470); and the admin's Translate action (translations aren't listed
   or editable in the admin yet).
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`

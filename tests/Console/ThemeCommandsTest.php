@@ -229,6 +229,7 @@ final class ThemeCommandsTest extends TestCase
 			'warning require: Needs acme/absent ^1.0 (isn\'t installed). It can\'t be activated until that\'s fixed.',
 			'warning setting size:',
 			'error   layout: The base layout\'s <html> has no lang attribute.',
+			'layout: The base layout\'s <html> has no dir attribute',
 			'error   layout: The base layout needs one <main> landmark; it has 0.',
 			'error   layout: The base layout needs a skip link',
 			'warning layout: The base layout has no <header> landmark.',

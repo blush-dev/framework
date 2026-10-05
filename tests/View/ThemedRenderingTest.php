@@ -65,7 +65,7 @@ final class ThemedRenderingTest extends TestCase
 		$app  = $this->site();
 		$home = $this->body('/', $app);
 
-		$this->assertStringContainsString('<html lang="en-US">', $home);
+		$this->assertStringContainsString('<html lang="en-US" dir="ltr">', $home);
 		$this->assertStringContainsString('<title>Blush</title>', $home);
 		$this->assertStringContainsString('<body class="is-home type-post">', $home);
 		$this->assertStringContainsString('<a class="skip-link" href="#main">Skip to content</a>', $home);

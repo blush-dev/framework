@@ -201,7 +201,8 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   unless given another (`language()`, `anyLanguage()`), and each other
   language's routes are registered again under `/{code}` (named
   `{code}:{name}`, `language` parameter). A page's locale follows its
-  language, so `$template->t()`, dates, and `$site->lang` do too, and
+  language, so `$template->t()`, dates, `$site->lang`, and `$site->dir`
+  (`Locale::isRightToLeft()`, D-471) do too, and
   its components get a `LocalizedRepository` in its language (D-458,
   `ViewContext::$language`), in a translation's Markdown too: the
   parsed document carries the language to its directives (D-459).

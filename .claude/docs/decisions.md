@@ -13874,3 +13874,38 @@ decision, add a new entry that supersedes it and mark the old one
     does on checkboxes, and leaves out an empty `code`.
 - **Not done:** static export doesn't write redirect files (the author
   may drop static export; it passes `untranslated` through for lists).
+
+### D-470: More multilingual options, as the author ordered them
+
+- **Date:** 2026-10-04
+- **Status:** Direction; nothing built.
+- **Decision:** the author's answers to a list of multilingual options
+  (raised with "shouldn't we have an option to enable/disable
+  multilingual altogether?"):
+  - **Text direction:** expected, not an option ("we should already be
+    doing this"). A page's `<html>` needs `dir` from its locale (`rtl`
+    for Arabic, Hebrew, and so on); the default theme writes only
+    `lang`. To fix.
+  - **Site settings per language** (name, description, date format):
+    deferred.
+  - **Translation per content type** (a type whose entries are never
+    translated): deferred, with D-467's per-type list override.
+  - **Fallback chains** (`pt-br` → `pt` → the default): later.
+  - **The default language under a prefix** (`/en/about`), as an
+    option on top of D-455's root: later.
+- **Open:** a switch for multilingual as a whole, or a `live` flag per
+  language (proposed instead); see `open-questions.md`.
+
+### D-471: `$site->dir`, a page's text direction
+
+- **Date:** 2026-10-04
+- **Status:** Built. Fixes D-470's text direction gap.
+- **Decision:** `View\Site` gains `dir` (`ltr` or `rtl`) from the page's
+  locale with PHP 8.5's `Locale::isRightToLeft()`, so a translation's
+  page follows its language (Arabic, Hebrew, Persian, Urdu, and so on
+  are `rtl`). The default theme's base layout writes
+  `<html lang="…" dir="…">`. `theme:check` gives a notice (shown with
+  `--strict`) when a base layout's `<html>` has no `dir`: a notice, not
+  an error, since a theme for left-to-right sites works without it.
+  The framework's own English pages (setup, the admin shell, error
+  pages) are unchanged. The jtcom trial's layouts write it too.

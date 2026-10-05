@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 ?>
 <!DOCTYPE html>
-<html lang="<?= attr($site->lang) ?>">
+<html lang="<?= attr($site->lang) ?>" dir="<?= attr($site->dir) ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

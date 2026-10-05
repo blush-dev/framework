@@ -169,7 +169,9 @@ With `'include'`, `/fr`, the French collections, topics, and date
 archives, and the lists components and templates make on French pages
 include the originals. Otherwise each language lists only its own
 entries. A French page is shown in French: its dates, `<html
-lang="fr-FR">`, and the theme's text when the theme is translated.
+lang="fr-FR">`, and the theme's text when the theme is translated. A
+page in a language written right to left, such as Arabic or Hebrew,
+has `dir="rtl"`, so it reads right to left.
 Date archive titles are written the language's way too
 (`3 de diciembre de 2025`). Components follow the page as well, in
 templates and in Markdown: a

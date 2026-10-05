@@ -13,17 +13,20 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use Locale;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 
 /**
  * What every template knows about the site, as `$site`: its name, home
- * URL, language, and description (D-398; empty when it has none).
+ * URL, language, the direction its text runs in (D-470), and description
+ * (D-398; empty when it has none).
  */
 final readonly class Site
 {
 	/**
 	 * @param string $lang The locale as a BCP 47 tag (`en-US`), for `<html lang>`.
+	 * @param string $dir  The locale's text direction, `ltr` or `rtl`, for `<html dir>`.
 	 */
 	public function __construct(
 		public string $name,
@@ -31,7 +34,8 @@ final readonly class Site
 		public string $locale,
 		public string $lang,
 		public string $generator = Framework::NAME . ' ' . Framework::VERSION,
-		public string $description = ''
+		public string $description = '',
+		public string $dir = 'ltr'
 	) {}
 
 	/**
@@ -47,7 +51,8 @@ final readonly class Site
 			url: $app->url,
 			locale: $locale,
 			lang: str_replace('_', '-', $locale),
-			description: $app->description
+			description: $app->description,
+			dir: Locale::isRightToLeft($locale) ? 'rtl' : 'ltr'
 		);
 	}
 }

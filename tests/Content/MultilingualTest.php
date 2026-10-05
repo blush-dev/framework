@@ -50,6 +50,7 @@ use Blush\Menu\MenuItem;
 use Blush\Menu\Menus;
 use Blush\Tests\Fixtures\Content\PostTitles;
 use Blush\Theme\ThemeResolver;
+use Blush\View\Site;
 use Blush\View\Template;
 use Blush\View\ViewContext;
 use Blush\View\ViewFactory;
@@ -68,6 +69,7 @@ use Blush\View\ViewFactory;
 #[CoversClass(EntryLink::class)]
 #[CoversClass(TermLink::class)]
 #[CoversClass(CollectionLink::class)]
+#[CoversClass(Site::class)]
 final class MultilingualTest extends TestCase
 {
 	use BuildsContentSite;
@@ -296,10 +298,10 @@ final class MultilingualTest extends TestCase
 
 		$this->assertSame(200, $page->getStatusCode());
 		$this->assertStringContainsString('À propos', $body);
-		$this->assertStringContainsString('<html lang="fr-FR">', $body);
+		$this->assertStringContainsString('<html lang="fr-FR" dir="ltr">', $body);
 
 		$this->assertSame(200, $this->get('/about')->getStatusCode());
-		$this->assertStringContainsString('<html lang="en-US">', (string) $this->get('/about')->getBody());
+		$this->assertStringContainsString('<html lang="en-US" dir="ltr">', (string) $this->get('/about')->getBody());
 		$this->assertSame(200, $this->get('/fr/a-propos/biographie')->getStatusCode());
 		$this->assertSame(200, $this->get('/fr/a-propos/team/jane')->getStatusCode());
 		$this->assertSame(404, $this->get('/fr/about/biographie')->getStatusCode());
@@ -310,7 +312,7 @@ final class MultilingualTest extends TestCase
 
 		$this->assertStringContainsString('Printemps', $home);
 		$this->assertStringNotContainsString('Welcome', $home);
-		$this->assertStringContainsString('<html lang="fr-FR">', $home);
+		$this->assertStringContainsString('<html lang="fr-FR" dir="ltr">', $home);
 		$this->assertStringNotContainsString('Printemps', (string) $this->get('/')->getBody());
 
 		$this->assertSame(200, $this->get('/fr/archives/printemps')->getStatusCode());
@@ -328,6 +330,19 @@ final class MultilingualTest extends TestCase
 		$this->assertStringContainsString('Printemps', (string) $term->getBody());
 		$this->assertSame('/fr/topics/lart', $this->get('/fr/topics/art')->getHeaderLine('Location'));
 		$this->assertStringNotContainsString('Printemps', (string) $this->get('/topics/art')->getBody());
+	}
+
+	public function testRightToLeftLanguagesSetTheirDirection(): void
+	{
+		$this->languages(['fr' => 'fr_FR', 'ar' => 'ar_SA']);
+		$this->entry('about/index.ar.md', "title: حول\nslug: hawl");
+
+		$this->app = $this->site();
+
+		$this->assertStringContainsString('<html lang="ar-SA" dir="rtl">', (string) $this->get('/ar/hawl')->getBody());
+		$this->assertStringContainsString('<html lang="en-US" dir="ltr">', (string) $this->get('/about')->getBody());
+		$this->assertSame('rtl', Site::fromConfig(new AppConfig(locale: 'he_IL'))->dir);
+		$this->assertSame('ltr', Site::fromConfig(new AppConfig(), 'pt_BR')->dir);
 	}
 
 	public function testUntranslatedEntriesRedirectToTheirOriginals(): void

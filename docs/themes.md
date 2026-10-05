@@ -926,7 +926,10 @@ bin/blush theme:check
 
 It checks the manifest and settings, the site's menus and regions, and
 makes sure the base layout has the landmarks and skip link screen reader
-users rely on.
+users rely on. With `--strict`, it also notes a base layout whose
+`<html>` has no `dir`: write `<html lang="<?= attr($site->lang) ?>"
+dir="<?= attr($site->dir) ?>">`, so a page in a right-to-left language
+(`$site->dir` is `rtl`) reads right to left.
 
 ### Going live with a theme
 

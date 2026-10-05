@@ -54,7 +54,7 @@ use Blush\Translation\CatalogCheck;
  *   `@@domain` doesn't match its file or theme (D-452).
  * - **Notices:** the theme's registered components without a translated label; site
  *   menus and regions no location shows; a catalog without `@@locale`
- *   and `@@domain`.
+ *   and `@@domain`; a base layout without `dir` on `<html>` (D-470).
  *
  * The layout is checked by rendering the `welcome` page.
  */
@@ -351,6 +351,10 @@ final readonly class ThemeChecker
 
 		if (! $root instanceof Element || trim((string) $root->getAttribute('lang')) === '') {
 			$problems[] = new Violation('layout', 'The base layout\'s <html> has no lang attribute.');
+		}
+
+		if ($root instanceof Element && trim((string) $root->getAttribute('dir')) === '') {
+			$problems[] = new Violation('layout', 'The base layout\'s <html> has no dir attribute; add dir="<?= attr($site->dir) ?>" so right-to-left languages read right to left.', Severity::Notice);
 		}
 
 		if ($mains->length !== 1) {
