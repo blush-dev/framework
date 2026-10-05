@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\View;
 
 use Blush\Content\Entry\Entry;
+use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Data\InvalidData;
 use Blush\Theme\SettingsResolver;
@@ -79,8 +80,9 @@ final class ViewFactory
 	}
 
 	/**
-	 * Builds the context for a page: the `Head` with the site name and
-	 * the active theme's stylesheets and scripts (with any stylesheets a
+	 * Builds the context for a page: the `Head` with the site name, the
+	 * `viewport` and `generator` meta tags (D-472), and the active
+	 * theme's stylesheets and scripts (with any stylesheets a
 	 * build manifest pairs with them; built scripts load as modules),
 	 * `$site`, the entry's presentation front matter (`layout`,
 	 * `class`, and `stylesheet`, D-027), and the page's URL path and
@@ -93,6 +95,9 @@ final class ViewFactory
 	{
 		$head  = new Head($this->services->app->name, origin: $this->services->app->origin());
 		$theme = $views->chain->active();
+
+		$head->meta('viewport', 'width=device-width, initial-scale=1');
+		$head->meta('generator', Framework::NAME . ' ' . Framework::VERSION);
 
 		foreach ([...$theme->styles, ...$theme->scripts] as $asset) {
 			foreach ($views->assets->css($asset) as $url) {

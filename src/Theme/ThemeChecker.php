@@ -50,7 +50,8 @@ use Blush\Translation\CatalogCheck;
  *   template to render; a component template not named for a component;
  *   site menu and region files or items that are invalid or don't
  *   resolve (D-199, D-201); a layout without `<header>` or `<footer>`,
- *   or with other than one `<h1>`; a catalog whose `@@locale` or
+ *   or with other than one `<h1>`, or one that prints a tag `head()`
+ *   prints (`<meta charset>`, `viewport`, `generator`, `<title>`; D-472); a catalog whose `@@locale` or
  *   `@@domain` doesn't match its file or theme (D-452).
  * - **Notices:** the theme's registered components without a translated label; site
  *   menus and regions no location shows; a catalog without `@@locale`
@@ -355,6 +356,12 @@ final readonly class ThemeChecker
 
 		if ($root instanceof Element && trim((string) $root->getAttribute('dir')) === '') {
 			$problems[] = new Violation('layout', 'The base layout\'s <html> has no dir attribute; add dir="<?= attr($site->dir) ?>" so right-to-left languages read right to left.', Severity::Notice);
+		}
+
+		foreach (['meta[charset]' => '<meta charset>', 'meta[name="viewport"]' => '<meta name="viewport">', 'meta[name="generator"]' => '<meta name="generator">', 'title' => '<title>'] as $selector => $tag) {
+			if ($document->querySelectorAll($selector)->length > 1) {
+				$problems[] = new Violation('layout', sprintf('The base layout prints %s more than once; $template->head() prints it, so take it out of the layout.', $tag), Severity::Warning);
+			}
 		}
 
 		if ($mains->length !== 1) {

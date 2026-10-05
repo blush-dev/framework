@@ -211,7 +211,7 @@ final class ThemeCommandsTest extends TestCase
 			'settings'  => ['size' => ['type' => 'number', 'default' => 1]]
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('extensions/acme/rough/theme.yaml', "name: acme/rough\nlabel: Shadowed\nnamespace: rough");
-		$this->writeTemporaryFile('extensions/acme/rough/views/layouts/base.php', '<!DOCTYPE html><html><body><div><?= $template->section("content") ?></div></body></html>');
+		$this->writeTemporaryFile('extensions/acme/rough/views/layouts/base.php', '<!DOCTYPE html><html><head><meta charset="utf-8"><?= $template->head() ?></head><body><div><?= $template->section("content") ?></div></body></html>');
 		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"size": "big"}}');
 		$this->writeTemporaryFile('extensions/acme/other/theme.json', '{"name": 1}');
 
@@ -233,7 +233,8 @@ final class ThemeCommandsTest extends TestCase
 			'error   layout: The base layout needs one <main> landmark; it has 0.',
 			'error   layout: The base layout needs a skip link',
 			'warning layout: The base layout has no <header> landmark.',
-			'warning layout: The base layout has no <footer> landmark.'
+			'warning layout: The base layout has no <footer> landmark.',
+			'warning layout: The base layout prints <meta charset> more than once'
 		];
 
 		foreach ($expected as $line) {

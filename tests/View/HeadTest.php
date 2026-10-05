@@ -30,7 +30,7 @@ final class HeadTest extends TestCase
 		$this->assertSame('About', new Head('Site')->title('About')->pageTitle());
 	}
 
-	public function testRendersEachTagOnceInOrder(): void
+	public function testRendersEachTagOnceGroupedByKind(): void
 	{
 		$head = new Head('A & B')
 			->style('/a.css')
@@ -46,16 +46,17 @@ final class HeadTest extends TestCase
 			->canonical('/new');
 
 		$this->assertSame(
-			implode("\n", [
+			"\t" . implode("\n\t", [
+				'<meta charset="utf-8">',
 				'<title>A &amp; B</title>',
-				'<link rel="stylesheet" href="/a.css" media="print">',
 				'<meta name="description" content="Second">',
-				'<link rel="canonical" href="/new">',
 				'<meta property="og:title" content="Title">',
-				'<script src="/app.js" defer></script>',
-				'<script src="/module.js" type="module"></script>',
+				'<link rel="canonical" href="/new">',
 				'<link rel="alternate" href="/feed" type="application/rss+xml">',
-				'<link rel="alternate" href="/feed/atom" type="application/atom+xml">'
+				'<link rel="alternate" href="/feed/atom" type="application/atom+xml">',
+				'<link rel="stylesheet" href="/a.css" media="print">',
+				'<script src="/app.js" defer></script>',
+				'<script src="/module.js" type="module"></script>'
 			]),
 			(string) $head
 		);
@@ -71,7 +72,8 @@ final class HeadTest extends TestCase
 			->addProperty('article:author', 'https://example.test/blog/authors/jane');
 
 		$this->assertSame(
-			implode("\n", [
+			"\t" . implode("\n\t", [
+				'<meta charset="utf-8">',
 				'<title></title>',
 				'<meta property="article:author" content="https://example.test/blog/authors/jane">',
 				'<meta property="article:author" content="https://example.test/blog/authors/sam">'
@@ -90,18 +92,46 @@ final class HeadTest extends TestCase
 			->canonical('https://example.com/about');
 
 		$this->assertSame(
-			implode("\n", [
+			"\t" . implode("\n\t", [
+				'<meta charset="utf-8">',
 				'<title>Site</title>',
-				'<link rel="stylesheet" href="https://example.com/theme/style.css">',
-				'<script src="https://example.com/theme/app.js" type="module"></script>',
 				'<link rel="next" href="https://example.com/page/2">',
 				'<link rel="icon" href="//cdn.example.org/icon.png">',
-				'<link rel="canonical" href="https://example.com/about">'
+				'<link rel="canonical" href="https://example.com/about">',
+				'<link rel="stylesheet" href="https://example.com/theme/style.css">',
+				'<script src="https://example.com/theme/app.js" type="module"></script>'
 			]),
 			$head->render()
 		);
 		$this->assertTrue($head->remove('style:/theme/style.css')->has('script:/theme/app.js'));
 		$this->assertStringNotContainsString('style.css', $head->render());
+	}
+
+	public function testPrintsResourceHintsBeforeStylesKeepingTheCascade(): void
+	{
+		$head = new Head()
+			->script('/app.js')
+			->style('/a.css')
+			->inlineStyle('tokens', ':root {}')
+			->style('/b.css')
+			->link('preload', '/font.woff2', ['as' => 'font'])
+			->link('icon', '/icon.png')
+			->meta('theme-color', '#fff');
+
+		$this->assertSame(
+			"\t" . implode("\n\t", [
+				'<meta charset="utf-8">',
+				'<title></title>',
+				'<meta name="theme-color" content="#fff">',
+				'<link rel="icon" href="/icon.png">',
+				'<link rel="preload" href="/font.woff2" as="font">',
+				'<link rel="stylesheet" href="/a.css">',
+				"<style id=\"tokens\">\n\t\t:root {}\n\t</style>",
+				'<link rel="stylesheet" href="/b.css">',
+				'<script src="/app.js" defer></script>'
+			]),
+			$head->render()
+		);
 	}
 
 	public function testDropsUnsafeUrls(): void
@@ -113,7 +143,7 @@ final class HeadTest extends TestCase
 	{
 		$head = new Head()->inlineStyle('palette', ":root {}\n")->style('/a.css')->inlineStyle('palette', ":root { --a: 1; }\n");
 
-		$this->assertSame("<title></title>\n<style id=\"palette\">\n:root { --a: 1; }\n</style>\n<link rel=\"stylesheet\" href=\"/a.css\">", $head->render());
+		$this->assertSame("\t<meta charset=\"utf-8\">\n\t<title></title>\n\t<style id=\"palette\">\n\t\t:root { --a: 1; }\n\t</style>\n\t<link rel=\"stylesheet\" href=\"/a.css\">", $head->render());
 		$this->assertTrue($head->has('inline-style:palette'));
 
 		$this->expectException(ViewException::class);

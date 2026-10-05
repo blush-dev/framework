@@ -486,6 +486,24 @@ field, `og:image` and a Twitter card. Add or replace any tag with
 `$template->head()`, or drop one with `remove()`, such as your stylesheet on
 a page that stands alone:
 `$template->head()->remove('style:' . $template->asset('style.css'))`.
+`$template->head()` prints everything inside `<head>`, so your base
+layout needs only:
+
+```php
+<head>
+<?= $template->head() ?>
+
+</head>
+```
+
+It starts with `<meta charset="utf-8">` and the `<title>`, then prints
+its tags grouped by kind: meta tags (including `viewport` and
+`generator`, which you can replace or remove like any other), OpenGraph
+tags, links, preloads and other resource hints, styles, then scripts.
+Each group keeps the order its tags were added in, so stylesheets and
+inline styles stay in your cascade order. Every line is indented by one
+tab. `bin/blush theme:check` warns if your layout prints the charset,
+`viewport`, `generator`, or `<title>` itself as well.
 The head prints root-relative links and scripts (`/feed`,
 `$template->asset(...)`) as full URLs on your site's `url`, so pass
 paths as they are. Meta tag values print as given, so give `og:image`

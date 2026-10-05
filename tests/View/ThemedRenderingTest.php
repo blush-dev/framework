@@ -149,7 +149,7 @@ final class ThemedRenderingTest extends TestCase
 
 		$this->assertStringContainsString('<h1 class="post">Post: spring</h1>', $single);
 		$this->assertStringContainsString('<a class="skip-link" href="#main">Skip ahead</a>', $single);
-		$this->assertMatchesRegularExpression('#href="http://localhost/themes/blush/default/style.css\?v=[0-9a-f]{8}">\n<link rel="stylesheet" href="http://localhost/themes/acme/child/extra.css\?v=[0-9a-f]{8}">#', $single);
+		$this->assertMatchesRegularExpression('#href="http://localhost/themes/blush/default/style.css\?v=[0-9a-f]{8}">\n\t<link rel="stylesheet" href="http://localhost/themes/acme/child/extra.css\?v=[0-9a-f]{8}">#', $single);
 		$this->assertMatchesRegularExpression('#<script src="http://localhost/themes/acme/child/app.js\?v=[0-9a-f]{8}" defer></script>#', $single);
 		$this->assertStringContainsString('<h1 class="entry__title">Biography</h1>', $this->body('/about/biography', $app));
 	}

@@ -20,12 +20,20 @@ use Stringable;
  * Collects what goes in a page's `<head>`: the title, meta tags
  * (including OpenGraph properties), links (canonical, alternates,
  * pagination), stylesheets, and scripts. Templates and the renderer add
- * to it while the page renders, and the base layout prints it once with
+ * to it while the page renders, and the base layout prints it once,
+ * as everything between `<head>` and `</head>`, with
  * `<?= $template->head() ?>`. Since layouts render after the templates they
  * wrap, anything a template adds is in place by then.
  *
  * Each item is keyed, so adding it twice keeps one copy (the later value)
- * in the place it was first added.
+ * in the place it was first added. The head prints `<meta charset>`
+ * first (Blush is UTF-8 throughout, and the encoding has to come before
+ * any text), then the title, then the tags grouped by kind (D-472):
+ * `<meta name>` tags, `<meta property>` tags, links, resource hints
+ * (`preload`, `preconnect`, …), styles, then scripts. Each group keeps the
+ * order its tags were added in, and stylesheets and inline styles share a
+ * group so the cascade stays as added. Every line is indented by one tab,
+ * and an inline style's CSS by two.
  *
  * Root-relative `href` and `src` values (`/feed`, a theme asset) print as
  * full URLs on the site's origin, so the head never has relative URLs.
@@ -45,6 +53,12 @@ final class Head implements Stringable
 	 * @var array<string, array{string, array<string, string|bool>, string}>
 	 */
 	private array $tags = [];
+
+	/**
+	 * Link `rel` values printed as resource hints, after the other links
+	 * and before the styles they often serve.
+	 */
+	private const array HINTS = ['dns-prefetch', 'modulepreload', 'preconnect', 'prefetch', 'preload'];
 
 	/**
 	 * @param string $origin The site's origin (`https://example.com`), for
@@ -192,20 +206,23 @@ final class Head implements Stringable
 	}
 
 	/**
-	 * Renders the title and every tag.
+	 * Renders the charset, the title, and every tag, grouped by kind.
 	 */
 	public function render(): string
 	{
-		$html = sprintf('<title>%s</title>', Escaper::html($this->documentTitle()));
+		$lines = ['<meta charset="utf-8">', sprintf('<title>%s</title>', Escaper::html($this->documentTitle()))];
+		$tags  = array_values($this->tags);
 
-		foreach ($this->tags as [$element, $attributes, $content]) {
-			$html .= "\n" . match ($element) {
-				'script', 'style' => sprintf('<%1$s%2$s>%3$s</%1$s>', $element, $this->attributes($attributes), $content === '' ? '' : "\n{$content}"),
+		usort($tags, fn(array $a, array $b): int => $this->group($a[0], $a[1]) <=> $this->group($b[0], $b[1]));
+
+		foreach ($tags as [$element, $attributes, $content]) {
+			$lines[] = match ($element) {
+				'script', 'style' => sprintf('<%1$s%2$s>%3$s</%1$s>', $element, $this->attributes($attributes), $this->indent($content)),
 				default           => sprintf('<%s%s>', $element, $this->attributes($attributes))
 			};
 		}
 
-		return $html;
+		return "\t" . implode("\n\t", $lines);
 	}
 
 	/**
@@ -227,6 +244,42 @@ final class Head implements Stringable
 		$this->tags[$key] = [$element, $attributes, $content];
 
 		return $this;
+	}
+
+	/**
+	 * Returns an inline block's content on its own lines, indented by two
+	 * tabs, with the closing tag back at one. Blank lines stay blank.
+	 */
+	private function indent(string $content): string
+	{
+		$content = trim($content, "\n");
+
+		if ($content === '') {
+			return '';
+		}
+
+		$lines = array_map(static fn(string $line): string => $line === '' ? '' : "\t\t{$line}", explode("\n", $content));
+
+		return "\n" . implode("\n", $lines) . "\n\t";
+	}
+
+	/**
+	 * Returns the group a tag prints in (see the class summary). `usort()`
+	 * is stable, so tags in one group keep the order they were added in.
+	 *
+	 * @param array<string, string|bool> $attributes
+	 */
+	private function group(string $element, array $attributes): int
+	{
+		$rel = $attributes['rel'] ?? '';
+
+		return match (true) {
+			$element === 'meta'                                      => isset($attributes['property']) ? 1 : 0,
+			$element === 'style', $rel === 'stylesheet'              => 4,
+			$element === 'link' && in_array($rel, self::HINTS, true) => 3,
+			$element === 'link'                                      => 2,
+			default                                                  => 5
+		};
 	}
 
 	/**

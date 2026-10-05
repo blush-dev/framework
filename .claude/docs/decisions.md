@@ -13909,3 +13909,32 @@ decision, add a new entry that supersedes it and mark the old one
   an error, since a theme for left-to-right sites works without it.
   The framework's own English pages (setup, the admin shell, error
   pages) are unchanged. The jtcom trial's layouts write it too.
+
+### D-472: The head prints its tags grouped by kind, indented
+
+- **Date:** 2026-10-04
+- **Status:** Built.
+- **Decision:** `View\Head` prints everything between `<head>` and
+  `</head>`: `<meta charset="utf-8">` first (the encoding has to come
+  before any text, the title's included), then the `<title>`, then its
+  tags grouped by kind, not in the order they were added: `<meta name>`
+  tags, `<meta property>` tags (OpenGraph and the like), links
+  (canonical, alternates, pagination, icons, the manifest), resource
+  hints (`preload`, `preconnect`, `dns-prefetch`, `prefetch`,
+  `modulepreload`), styles, then scripts. Each group keeps the order
+  its tags were added in. Stylesheets and inline `<style>` blocks share
+  a group, so the cascade is as the theme added it. Every line is
+  indented by one tab (an inline style's CSS by two). A page's context
+  adds `viewport` (`width=device-width, initial-scale=1`) and
+  `generator` as meta tags, so a theme can replace or `remove()` them.
+  Base layouts print only `<?= $template->head() ?>` inside `<head>`;
+  the default theme's and the jtcom trial's no longer write the charset,
+  viewport, or generator tags. `theme:check` warns when a base layout
+  prints `<meta charset>`, `viewport`, `generator`, or `<title>` more
+  than once. Keys, `has()`, `remove()`, and replacing a tag are
+  unchanged. `$site->generator` stays, for templates that want it.
+- **Why:** the author asked for the front end's `<head>` to be grouped by
+  kind, indented once, with the title first; added order mixed
+  stylesheets, scripts, links, and meta tags together, since the
+  theme's assets, the renderer's tags, and the theme's own tags are
+  added at different times. Only the charset goes before the title.

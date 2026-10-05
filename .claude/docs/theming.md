@@ -409,7 +409,10 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
 
 - A theme lists its stylesheets and scripts in `theme.json`, and templates and
   components can request more.
-- `Head` prints each asset once, in order.
+- `Head` prints each asset once, and everything inside `<head>`: the charset,
+  the title, then tags grouped by kind (meta, OpenGraph, links, resource
+  hints, styles, scripts), each group in the order added, indented one tab
+  (D-472).
 - **Serving:** the `theme.asset` route (`/themes/{vendor}/{name}/{path}`) streams
   allowed files from any installed theme until they're published (D-105).
 - **Resolving:** from a Vite-style manifest if present:
