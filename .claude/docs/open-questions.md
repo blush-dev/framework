@@ -655,6 +655,67 @@ Move each item to `decisions.md` once it's answered.
     the cookie domain or path or assume the admin sits at the root's
     `/admin`; and allow for accounts and sessions living at network
     level when those areas get their storage interfaces.
+- **Responses: comments, reviews, webmentions** (discussed 2026-10-05;
+  wanted for v2.0.0, not built yet): visitors responding to entries,
+  turned on per content type. Leaning so far:
+  - **One model, a response with a `kind`:** `comment` (a form, from a
+    guest or a signed-in account; `parent` for threads), `review` (the
+    same form, with a `rating`), `webmention` (verified against its
+    source; a subtype such as reply, like, repost, bookmark, or mention
+    read from the source's microformats). Shared fields: a UUIDv7 `id`
+    (as D-477), `entry` (the entry's id, not its path, so renames and
+    moves keep it), `author` (name, url, optional email, or an
+    account), `body`, `status`, `created`. Statuses `pending`,
+    `approved`, `spam`, `trash` (trash as a status, as D-484).
+  - **Storage under `storage/`** (the author's call): runtime data that
+    visitors write, never overwritten by a git deploy. A fifth storage
+    area (`responses`, D-486) behind a `ResponseStore` interface, the
+    filesystem driver first (one file per response, a folder per entry
+    id, so concurrent posts never write the same file), a database
+    driver for busy sites.
+  - **Settings per type, overridden per entry:** on the content type,
+    e.g. `responses: {accept: [comment, webmention], moderation:
+    first-time, closeAfter: 30, threads: 3, rating: 5}`; front matter
+    `responses: closed` or `open` on an entry. Site defaults and spam
+    rules on a Settings screen.
+  - **Dynamic sites only** (the author's call): no responses on static
+    sites. A new approved response clears its entry's cached page and
+    changes its ETag (or responses render outside the body cache; see
+    "Leaving a fragment out of the page cache").
+  - **Pingback and trackback:** not in core (the author agreed);
+    receive-only in a plugin at most.
+  - **Identity:** guests give a name, an optional email and URL, with a
+    remember-me cookie; signed-in accounts respond as their profile
+    (D-351) with their byline; IndieAuth sign-in later as a plugin (the
+    author agreed).
+  - **Capabilities** (the author agreed), as D-359:
+    `responses.{type}.moderate` and `responses.*.moderate`, and whether
+    an account's responses skip moderation.
+  - Still open:
+    - **Rendering bodies** (the author: needs real honing): the Markdown
+      API (D-492) with a locked-down profile: no raw HTML whatever
+      D-495's capability says, links `rel="nofollow ugc"`, mentions
+      (D-493) perhaps only for signed-in accounts; what else is allowed
+      (headings, images, code).
+    - **Privacy** (the author: to consider): emails and IPs are personal
+      data; a retention period for IPs; exporting and erasing every
+      response by email, in the CLI and the admin.
+    - **The first public write path:** CSRF, rate limits, a honeypot and
+      time-trap, size limits, and a spam-check hook for plugins (an
+      Akismet-style service as a plugin).
+    - **Webmention:** in core or a first-party plugin on the same model.
+      Receiving returns `202`, then verifies the source; with no job
+      queue, a pending-verification state and a cron-run CLI command
+      (`responses:verify`). Sending hangs off `ContentPublished`
+      (discover the endpoints of an entry's links and notify them).
+    - **Reviews:** visitor reviews only, or also an author reviewing
+      something with visitor responses under it; an average and count
+      per entry, cached, for templates and `AggregateRating`.
+    - **Moderation in the admin:** a Responses screen under Content
+      (status tabs as the entry lists have), tabs inside each entry, or
+      both.
+    - **Core or plugin overall:** the leaning is the model, storage
+      area, per-type setting, moderation, comments, and reviews in core.
 - **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
 - **Theming:** see the open questions in `theming.md`.
 - **Menus and regions, later** (D-199 to D-204): entries adding
