@@ -13950,3 +13950,21 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked for it. On the Media screen the library is
   the screen behind the modal, so a Library tab in it repeats the page
   and turns an upload into a choice.
+
+### D-474: The Media screen has the entries list's shape, without alt text warnings
+
+- **Date:** 2026-10-04
+- **Status:** Built. Supersedes D-288's **Missing alt text** filter and
+  grid marks on the Media screen, and D-407's **My files** toggle.
+- **Decision:** the Media screen is laid out as the entries lists are:
+  status tabs under the page header, **All** and **Mine** (the account's
+  own uploads, `?mine=1`), each with its count; then a toolbar with the
+  search and a **Kind** select (in place of the segmented control); then
+  a panel headed by the tab's name with the file count. The files stay a
+  grid of thumbnails. The screen no longer warns about alt text: no
+  **Missing alt text** filter and no mark on an image's card. The API's
+  `missing=alt` stays; a file's own screen still says when an image
+  has no alt text.
+- **Why:** the author asked for the library to match the other content
+  screens' headers, for **My files** to be a **Mine** tab beside
+  **All**, and for the alt text warnings to go from the list.

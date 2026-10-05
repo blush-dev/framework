@@ -728,10 +728,10 @@ Your changes aren't lost:
 ## Media
 
 **Content → Media** shows the files in `user/media`, newest first, each
-by its title (or its file name, until it has one):
-search by name or details, show only images, video, audio, or other
-files, or choose **Missing alt text** for the images without it (each
-is marked in the grid too). Choose one for a
+by its title (or its file name, until it has one), laid out like the
+entries lists: **All** and **Mine** tabs with their counts (**Mine** is
+what you uploaded), then a search by name or details and a filter for
+images, video, audio, documents, or other files. Choose one for a
 preview, its **Details** (the fields files of its kind have: **Alt
 text** for an image, **Caption**, **Credit**, and **Description**, and
 any your site adds; see [Details about a file](media.md#details-about-a-file)),
@@ -756,8 +756,7 @@ use it (by any of its addresses, in their text or front matter).
 **Delete** (your own files with `media.delete`, anyone's with
 `media.delete.others`) asks first, naming those entries, which will
 show a broken image or link until they're changed; it removes the file,
-its details, and the copy `media:publish --copy` made. In the library,
-**My files** shows only what you uploaded.
+its details, and the copy `media:publish --copy` made.
 
 They're kept apart from the file, in `user/data/media/`, which mirrors
 the media paths: `user/media/2026/09/lake.jpg` has

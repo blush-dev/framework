@@ -1,45 +1,67 @@
 <script setup lang="ts">
 /**
  * Media (D-251): the library in `user/media`, newest first, from the
- * media index (D-288), as a grid of files with a search (names and
- * details), filters by kind, **Missing alt text** for images without
- * it, each marked in the grid, and **My files** for the account's own
- * uploads (D-407); then a screen for each file
- * (admin.md §8, List, then detail). **Upload** opens the media picker on
- * its Upload tab (D-268): one uploader, one set of rules about what a
- * file may be (shown to an account that may upload some kind); **Open**
- * goes to the file's screen.
+ * media index (D-288), as a grid of files with the entries list's shape
+ * (D-474): **All** and **Mine** tabs (the account's own uploads, D-407)
+ * with their counts, then a toolbar with a search (names and details) and
+ * a kind filter, then a panel headed by the tab; then a screen for each
+ * file (admin.md §8, List, then detail). **Upload** opens the media picker
+ * with only its Upload panel (D-268, D-473): one uploader, one set of
+ * rules about what a file may be (shown to an account that may upload
+ * some kind); **Open** goes to the file's screen.
  */
 
-import { ref, watch } from 'vue';
-import { RouterLink, useRouter } from 'vue-router';
+import { computed, ref, watch } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import AdminSelect from '../components/AdminSelect.vue';
 import { mediaFacts, mediaName } from '../media';
 import MediaPicker from '../components/MediaPicker.vue';
 import { ApiError, request, type MediaItem, type MediaList } from '../api';
+import { plural } from '../format';
 import type { IconName } from '../icons';
 import { canUpload } from '../session';
+
+type Kind = 'any' | 'image' | 'video' | 'audio' | 'document' | 'file';
 
 const files   = ref<MediaItem[]>([]);
 const total   = ref(0);
 const page    = ref(1);
 const pages   = ref(1);
 const search  = ref('');
-const kind    = ref<'any' | 'image' | 'video' | 'audio' | 'document' | 'file'>('any');
-const missing = ref(false);
-// Only the account's own uploads (D-407).
-const mine    = ref(false);
+const kind    = ref<Kind>('any');
 const loading = ref(true);
 const error   = ref('');
 
-const KINDS = [
-	{ key: 'any', label: 'All' },
-	{ key: 'image', label: 'Images' },
-	{ key: 'video', label: 'Video' },
-	{ key: 'audio', label: 'Audio' },
-	{ key: 'document', label: 'Documents' },
-	{ key: 'file', label: 'Files' }
+const route  = useRoute();
+const router = useRouter();
+
+// The tab: every file, or only the account's own uploads (D-407).
+const mine = computed(() => route.query.mine === '1');
+
+const TABS = [
+	{ key: 'all', label: 'All' },
+	{ key: 'mine', label: 'Mine' }
 ] as const;
+
+// Each tab's count, whatever the search and kind.
+const counts = ref<{ all?: number; mine?: number }>({});
+
+const KINDS: { value: Kind; label: string }[] = [
+	{ value: 'any', label: 'All kinds' },
+	{ value: 'image', label: 'Images' },
+	{ value: 'video', label: 'Video' },
+	{ value: 'audio', label: 'Audio' },
+	{ value: 'document', label: 'Documents' },
+	{ value: 'file', label: 'Other files' }
+];
+
+const kindValue = computed({
+	get: () => kind.value as string,
+	set: (value: string) => {
+		kind.value = KINDS.find((item) => item.value === value)?.value ?? 'any';
+	}
+});
 
 let latest = 0;
 
@@ -49,10 +71,6 @@ async function load(more = false): Promise<void> {
 
 	if (search.value.trim() !== '') {
 		params.set('search', search.value.trim());
-	}
-
-	if (missing.value) {
-		params.set('missing', 'alt');
 	}
 
 	if (mine.value) {
@@ -89,18 +107,30 @@ watch(search, () => {
 	typing = setTimeout(() => void load(), 250);
 });
 
-watch([kind, missing, mine], () => void load());
+watch([kind, mine], () => void load());
 
-const filtered = (): boolean => search.value !== '' || kind.value !== 'any' || missing.value || mine.value;
+const filtered = computed(() => search.value !== '' || kind.value !== 'any');
 
 function clear(): void {
-	search.value  = '';
-	kind.value    = 'any';
-	missing.value = false;
-	mine.value    = false;
+	search.value = '';
+	kind.value   = 'any';
+}
+
+async function count(): Promise<void> {
+	try {
+		const [all, own] = await Promise.all([
+			request<MediaList>('GET', '/media?per=1'),
+			request<MediaList>('GET', '/media?per=1&mine=1')
+		]);
+
+		counts.value = { all: all.total, mine: own.total };
+	} catch {
+		counts.value = {};
+	}
 }
 
 void load();
+void count();
 
 function icon(file: MediaItem): IconName {
 	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : (file.kind === 'document' ? 'file-text' : 'file'));
@@ -115,7 +145,6 @@ function path(file: MediaItem): string[] {
 	return [file.folder, file.name].filter((part) => part !== '').join('/').split('/');
 }
 
-const router    = useRouter();
 const uploading = ref(false);
 
 function uploaded(file: MediaItem): void {
@@ -126,6 +155,7 @@ function uploaded(file: MediaItem): void {
 function closed(): void {
 	uploading.value = false;
 	void load();
+	void count();
 }
 </script>
 
@@ -140,31 +170,41 @@ function closed(): void {
 		</div>
 	</header>
 
+	<nav class="status-tabs" aria-label="Owner">
+		<RouterLink v-for="tab in TABS" :key="tab.key" class="status-tabs__tab" :to="{ query: tab.key === 'mine' ? { mine: '1' } : {} }" :aria-current="(tab.key === 'mine') === mine ? 'page' : undefined">
+			{{ tab.label }}
+			<span v-if="counts[tab.key] !== undefined" class="status-tabs__count">{{ counts[tab.key] }}</span>
+		</RouterLink>
+	</nav>
+
+	<div class="toolbar" role="search">
+		<label class="search-field media-search">
+			<AdminIcon name="search" />
+			<span class="visually-hidden">Search names and details</span>
+			<input v-model="search" type="search" placeholder="Search names and details" autocomplete="off">
+		</label>
+		<div class="media-filter">
+			<label class="visually-hidden" for="media-kind">Kind</label>
+			<AdminSelect id="media-kind" v-model="kindValue" :options="KINDS" />
+		</div>
+		<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
+	</div>
+
+	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
+
 	<section class="panel" aria-labelledby="media-heading" :aria-busy="loading">
-		<header class="panel__header toolbar-row">
-			<h2 id="media-heading" class="visually-hidden">Library</h2>
-			<div class="segmented" role="group" aria-label="Kind">
-				<button v-for="item in KINDS" :key="item.key" type="button" :aria-pressed="kind === item.key" @click="kind = item.key">{{ item.label }}</button>
-			</div>
-			<button type="button" class="button button--small toggle" :aria-pressed="missing" @click="missing = !missing"><AdminIcon name="triangle-alert" />Missing alt text</button>
-			<button type="button" class="button button--small toggle" :aria-pressed="mine" @click="mine = !mine"><AdminIcon name="circle-user-round" />My files</button>
-			<p class="panel__hint" aria-live="polite">{{ loading && !files.length ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'file' : 'files'}` }}</p>
-			<label class="search-field search">
-				<AdminIcon name="search" />
-				<span class="visually-hidden">Search names and details</span>
-				<input v-model="search" type="search" placeholder="Search names and details…" autocomplete="off">
-			</label>
+		<header class="panel__header">
+			<h2 id="media-heading">{{ mine ? 'Mine' : 'All' }}</h2>
+			<p class="panel__hint" aria-live="polite">{{ loading && !files.length ? 'Loading…' : plural(total, 'file', 'files') }}</p>
 		</header>
 
 		<div class="panel__body">
-			<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 			<ul v-if="files.length" class="grid">
 				<li v-for="file in files" :key="file.reference">
 					<RouterLink class="card" :to="{ name: 'media-file', params: { path: path(file) } }">
 						<span class="card__thumb">
 							<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
-							<span v-if="file.kind === 'image' && file.alt === ''" class="card__warn" title="No alt text"><AdminIcon name="triangle-alert" /><span class="visually-hidden">No alt text</span></span>
-							<template v-if="file.kind !== 'image'"><AdminIcon :name="icon(file)" /><span class="card__kind mono">{{ file.kind }}</span></template>
+							<template v-else><AdminIcon :name="icon(file)" /><span class="card__kind mono">{{ file.kind }}</span></template>
 						</span>
 						<span class="card__text">
 							<span class="card__name" :title="file.name">{{ mediaName(file) }}</span>
@@ -177,11 +217,11 @@ function closed(): void {
 				<span v-for="card in 10" :key="card" class="skeleton card__skeleton" />
 			</div>
 			<div v-else-if="!error" class="empty">
-				<AdminIcon name="image" />
-				<p class="empty__heading">{{ missing && !search && kind === 'any' ? 'Every Image Has Alt Text' : (filtered() ? 'No Files Match' : 'The Library Is Empty') }}</p>
-				<p class="empty__text">{{ missing && !search && kind === 'any' ? 'Nothing left to describe.' : (filtered() ? 'Try another name or kind.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.') }}</p>
-				<button v-if="filtered()" type="button" class="button" @click="clear">Clear filters</button>
-				<button v-else type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload your first file</button>
+				<AdminIcon :name="filtered ? 'search' : 'image'" />
+				<p class="empty__heading">{{ filtered ? 'No Files Match' : (mine ? 'No Files of Yours' : 'The Library Is Empty') }}</p>
+				<p class="empty__text">{{ filtered ? 'Try another name or kind.' : (mine ? 'Files you upload show up here. The All tab shows everyone\'s.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.') }}</p>
+				<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+				<button v-else-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload {{ mine && counts.all ? 'a file' : 'your first file' }}</button>
 			</div>
 			<p v-if="page < pages" class="more">
 				<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show more' }}</button>
@@ -193,13 +233,17 @@ function closed(): void {
 </template>
 
 <style scoped>
-.toolbar-row {
-	flex-wrap: wrap;
+.media-search {
+	flex: 1 1 16rem;
+	max-width: 24rem;
 }
 
-.search {
-	flex: 0 1 280px;
-	margin-left: auto;
+/* A filter's select is as wide as it needs, not the row (§7, Selects). */
+.media-filter {
+	flex: none;
+	width: auto;
+	min-width: 9rem;
+	max-width: 16rem;
 }
 
 .grid {
@@ -250,33 +294,6 @@ function closed(): void {
 	width: 28px;
 	height: 28px;
 	stroke-width: 1.5;
-}
-
-/* A pressed toggle reads as on: accent ink on a soft fill. */
-.toggle[aria-pressed="true"] {
-	border-color: var(--accent-line);
-	background: var(--accent-soft);
-	color: var(--accent);
-}
-
-/* An image without alt text is marked on its thumbnail, with the words
-   read out: never color alone. */
-.card__warn {
-	position: absolute;
-	top: 8px;
-	right: 8px;
-	display: grid;
-	place-items: center;
-	width: 24px;
-	height: 24px;
-	border-radius: 50%;
-	background: var(--warn-soft);
-	color: var(--warn);
-}
-
-.card__warn :deep(svg) {
-	width: 14px;
-	height: 14px;
 }
 
 /* A kind only where the thumbnail is a placeholder. */
