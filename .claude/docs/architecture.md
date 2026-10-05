@@ -389,7 +389,8 @@ is in that decision.
   read, but lint reports an error (D-409).
 - A `_` prefix on a file name, or on a folder between the type's folder
   and the file, means hidden (D-088).
-- A `_drafts/` folder or `status: draft` marks unpublished entries.
+- A `_drafts/` folder or `status: draft` marks unpublished entries;
+  `status: trash` (with `trashed`) marks entries in the trash (D-484).
 - **Folder entries:** `slug/index.md` is the entry `slug`, listed in the
   folder above. `index` directly in a type's folder is the landing page
   instead. Media is never kept beside an entry (D-294): only
@@ -476,7 +477,10 @@ Implemented in M4b (D-088).
 - `Content\Entry\Entry`, a readonly value object: `path` (the source
   path, or `virtual:{type}/{slug}`), `id` (the entry's UUIDv7 from its
   `id` front matter, `null` without a valid one; D-477, D-480), `type`, `slug`, `key` (the slug with any folders below the type's),
-  `title`, `status` (`Published | Draft | Scheduled`), `visibility`
+  `title`, `status` (`Published | Draft | Scheduled | Trash`; D-484:
+  `Status::selectable()` is what status controls offer, and
+  `Status::active()`, every one but `Trash`, is what `Query::any()`
+  finds), `visibility`
   (`Public | Unlisted | Hidden`, D-082), `published`/`updated`
   (`DateTimeImmutable`, site timezone), `locale`, `fields` (typed by the
   schema), `extra` (undeclared keys), `terms`, `landing`, and `source`
@@ -602,10 +606,9 @@ Implemented in M4b (D-087, D-090).
   new slug; date prefixes kept, bundles move their folder), `duplicate`
   (a copy beside it under the first free name, `-2` and on; a new date
   prefix; a bundle's folder copied; D-275), and
-  `delete` (to its own `storage/trash/{time}-{random}/` folder with a
-  `trash.json` manifest), and `trashed`, `loadTrashed` (D-276),
-  `restore` (changes made before
-  the move back), and `purge` (D-237). Writes are atomic, serialized
+  `trash` (`status: trash` and `trashed`, the file left in place),
+  `restore` (to `status: draft`, `trashed` removed), and `delete` (the
+  file, and a bundle's folder once empty, for good; D-484). Writes are atomic, serialized
   by a lock file, checked against the caller's revision (`WriteConflict`),
   confined to the content root and content formats, and followed by an
   incremental reindex and a content version bump. `DocumentEditor`
@@ -616,8 +619,6 @@ Implemented in M4b (D-087, D-090).
   `id`, written last; `update` adds one to a file without it and never
   changes or removes one; a new key goes before an existing `id`; and
   `assignIds` gives files new ones in one reindex (D-477, D-480).
-  Trashed entries are `name`, `path`, and `id`; `restore` refuses an id
-  another entry has now (`IdTaken`) unless asked for a new one (D-482).
   Outside the writer, entries are named by id (D-481): the admin API,
   preview links, and the editor's addresses.
 
@@ -1013,8 +1014,8 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   and required fields checked before publishing), and content health
   (D-225); lists, the dashboard, and the editor show skeletons while
   loading (D-240); drafts and scheduled entries are
-  tabs on each list (D-236), as is the trash (D-237: restore as a draft,
-  delete permanently, empty), and a taxonomy's list counts each term's uses. The body is
+  tabs on each list (D-236), as is the trash (D-237, a status since
+  D-484: restore as a draft, delete permanently, empty), and a taxonomy's list counts each term's uses. The body is
   edited in `MarkdownEditor` (D-241: a text area over a highlighted copy
   from `markdown.ts`, which finds directives by the server's rules, and
   styles emphasis, strong text, headings, quotes, and list markers with

@@ -64,7 +64,8 @@ needed in practice. The built-in keys:
 | `slug` | The URL name, instead of the file name |
 | `published` | The publish date, such as `2026-09-26 09:00:00 -05:00`. A date in the future schedules the entry. (`date` works too.) |
 | `updated` | When it last changed; defaults to `published`, then the file's modified time |
-| `status` | `published` (the default) or `draft` |
+| `status` | `published` (the default), `draft`, or `trash`. The admin's **Move to trash** sets `trash`, which takes the entry off your site |
+| `trashed` | When the entry was moved to the trash; set with `status: trash`, and removed when it's restored |
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words are used. (`excerpt` works too.) |
 | `image` | A featured image |
@@ -105,6 +106,7 @@ Today's the day...
 | Publish it later | Set `published` to a future date. It goes live by itself at that time. |
 | Reach it only by its link | Add `visibility: unlisted`. It has a URL, but no listing, feed, or sitemap shows it. |
 | Hide it completely | Start its file name with `_` (`_notes.md`), or add `visibility: hidden` |
+| Throw it away, but keep it for now | Add `status: trash` (the admin's **Move to trash** does this). It's off your site, and the admin lists it under **Trash** until you restore it or delete it. |
 
 A `_` at the start of a folder name hides everything inside it.
 

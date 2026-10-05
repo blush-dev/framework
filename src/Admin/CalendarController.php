@@ -85,6 +85,7 @@ final readonly class CalendarController
 
 		$value  = $params['status'] ?? 'any';
 		$status = is_string($value) ? Status::tryFrom($value) : null;
+		$status = in_array($status, Status::active(), true) ? $status : null;
 
 		if ($status === null && $value !== 'any') {
 			return self::json(['error' => '"status" must be draft, scheduled, published, or any.'], HttpStatus::BadRequest);

@@ -22,6 +22,7 @@ use Blush\Auth\Account;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
+use Blush\Content\Status as EntryStatus;
 use Blush\Preview\PreviewConfig;
 use Blush\Preview\PreviewLinks;
 use Blush\Http\Response;
@@ -64,6 +65,10 @@ final readonly class PreviewLinkController
 
 		if ($entry === null) {
 			return self::json(['error' => sprintf('There\'s no entry with the id "%s".', $id)], Status::NotFound);
+		}
+
+		if ($entry->status === EntryStatus::Trash) {
+			return self::json(['error' => 'That entry is in the trash, so it has no preview; restore it first.'], Status::UnprocessableContent);
 		}
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {

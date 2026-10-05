@@ -11,7 +11,8 @@ const props = defineProps<{ status: EntryStatus }>();
 const pills: Record<EntryStatus, { label: string; kind: string }> = {
 	published: { label: 'Published', kind: 'pill--good' },
 	scheduled: { label: 'Scheduled', kind: 'pill--accent' },
-	draft: { label: 'Draft', kind: '' }
+	draft: { label: 'Draft', kind: '' },
+	trash: { label: 'Trash', kind: 'pill--danger' }
 };
 
 const pill = computed(() => pills[props.status]);

@@ -57,8 +57,7 @@ my-site/
 
 The short version: **you write in `user/`, you add extensions in
 `extensions/`, and you configure in `config/` and `.env`.** Everything in `storage/` is generated and safe to delete,
-except `storage/accounts/`, which holds the admin's accounts, and
-`storage/trash/`, which holds entries deleted from the admin.
+except `storage/accounts/`, which holds the admin's accounts.
 
 `user/` holds what you write: content, media, and data. Publishing (and
 its `git pull`) only ever touches `user/`, so publishing content never

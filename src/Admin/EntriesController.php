@@ -27,6 +27,7 @@ use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
+use Blush\Content\EntryFields;
 use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
@@ -46,7 +47,10 @@ use Blush\View\ThemedErrorPages;
  * account may edit, a page at a time, so an author sees their own and an
  * editor everyone's. The query string narrows the list:
  *
- * - `status`: `draft`, `scheduled`, `published`, or `any` (the default).
+ * - `status`: `draft`, `scheduled`, `published`, `any` (the default,
+ *   every status but `trash`), or `trash`: the entries in the trash the
+ *   account may delete (D-484), most recently trashed first, each with
+ *   its `trashed` date. The trash pins nothing and isn't a tree.
  * - `type`: a content type's name.
  * - `search`: text the title or file path must contain (any case).
  * - `author`: an author's slug the entries must credit (D-300).
@@ -146,8 +150,10 @@ final readonly class EntriesController
 		$status = is_string($value) ? Status::tryFrom($value) : null;
 
 		if ($status === null && $value !== 'any') {
-			return self::json(['error' => '"status" must be draft, scheduled, published, or any.'], HttpStatus::BadRequest);
+			return self::json(['error' => '"status" must be draft, scheduled, published, trash, or any.'], HttpStatus::BadRequest);
 		}
+
+		$trash = $status === Status::Trash;
 
 		$type = $params['type'] ?? null;
 
@@ -234,6 +240,7 @@ final readonly class EntriesController
 		$positioned  = $contentType instanceof Tree || $contentType instanceof Taxonomy;
 		$by          = match (true) {
 			$sort !== ''                                         => $sort,
+			$trash                                               => EntryFields::TRASHED,
 			$status === Status::Scheduled                        => 'published',
 			$status === Status::Published                        => 'published',
 			$status === null && $positioned                      => 'position',
@@ -253,9 +260,10 @@ final readonly class EntriesController
 
 		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '';
 
-		$pinned      = $contentType !== null;
-		$query       = $this->permissions->restrict($account, ContentAction::Edit, $query);
+		$pinned      = $contentType !== null && ! $trash;
+		$query       = $this->permissions->restrict($account, $trash ? ContentAction::Delete : ContentAction::Edit, $query);
 		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...PeoplePage::listPages($contentType))->exceptIn(...PeoplePage::personFolders($contentType)) : $query;
+		$listed      = $trash ? $listed->withLanding(false) : $listed;
 		$linked      = $contentType instanceof Profiles ? $this->linked($account) : [];
 		$listed      = match (true) {
 			! $contentType instanceof Profiles || $link === '' => $listed,
@@ -263,7 +271,7 @@ final readonly class EntriesController
 			$link === 'linked'                                 => $listed->names(...(array_map(strval(...), array_keys($linked)) ?: ['/'])),
 			default                                            => $listed->exceptNames(...PeoplePage::listPages($contentType), ...array_map(strval(...), array_keys($linked)))
 		};
-		$errors      = $contentType instanceof Tree && $contentType->atRoot();
+		$errors      = $pinned && $contentType instanceof Tree && $contentType->atRoot();
 		$listed      = $errors ? $listed->exceptIn(...ThemedErrorPages::FOLDERS) : $listed;
 		$errorPages  = $errors && $page === 1 ? $this->errorPages($query) : [];
 		$index       = $pinned && $page === 1 ? $this->index($query) : null;
@@ -528,6 +536,7 @@ final readonly class EntriesController
 			'title'       => $entry->title,
 			'type'        => $entry->type->name,
 			'status'      => $entry->status->value,
+			'trashed'     => EntryController::trashed($entry),
 			'published'   => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'     => $entry->updated->format(DateTimeInterface::ATOM),
 			'url'         => $this->urls->entry($entry),

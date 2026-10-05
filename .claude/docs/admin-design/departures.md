@@ -61,8 +61,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   opens on an unwritten entry, and the first save creates the file,
   named for its title (so it needs one). Abandoned starts leave nothing
   behind.
-- **Trash is a tab, not an index status** (D-237): trashed files leave the
-  index, so the Trash tab lists them separately and "All" doesn't include them.
+- **Trash is a status outside All** (D-237, D-484): a trashed file stays
+  where it is with `status: trash`, the Trash tab lists those, and "All"
+  doesn't include them.
 - **Term use counts are published entries only** (D-236), matching the site's
   term pages.
 - **No reparenting on delete** (D-236, D-257): a hierarchical taxonomy's
@@ -83,7 +84,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   autosave. Author and term selects list only what the type's entries
   use (D-303), at most 100 items. The status
   tabs' counts follow the filters (the prototype's ignore them). The
-  Trash tab takes only the search, and nothing sorts it.
+  Trash tab takes only the search, and nothing sorts it (it's newest
+  trashed first, paged like the rest since D-484).
 - **Bulk selection** (D-301): the bulk bar has Publish, Move to draft,
   and Move to trash, but no **Discard changes** (no autosave). Selection
   is the page's: changing the tab, a filter, the sort, or the page

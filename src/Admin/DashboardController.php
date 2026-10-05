@@ -57,7 +57,8 @@ final readonly class DashboardController
 
 		$counts = [];
 
-		foreach (Status::cases() as $status) {
+		// The trash isn't content anyone reads or writes (D-484).
+		foreach (Status::active() as $status) {
 			$counts[$status->value] = $this->content->query()->any()->status($status)->count();
 		}
 

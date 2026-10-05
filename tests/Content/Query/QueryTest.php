@@ -70,7 +70,8 @@ final class QueryTest extends TestCase
 		$this->assertSame('writing/forms', $query->in('/writing/forms/')->directory);
 		$this->assertSame(['year' => 2008, 'month' => 4], $query->date(year: 2008, month: 4)->date);
 		$this->assertSame([['author', ['a']], ['author', ['b']]], $query->whereAuthor('a', 'b')->terms);
-		$this->assertSame(Status::cases(), $query->any()->statuses);
+		$this->assertSame(Status::active(), $query->any()->statuses, 'Every status but the trash (D-484).');
+		$this->assertSame(Status::cases(), Query::condition()->statuses);
 		$this->assertTrue($query->any()->findsLanding());
 		$this->assertSame(['category', 'art'], [$query->where('category', 'art')->metaKey, $query->where('category', 'art')->metaValue]);
 	}

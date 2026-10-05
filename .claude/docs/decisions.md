@@ -4565,7 +4565,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-237: The trash, in the admin
 - **Date:** 2026-09-29
-- **Status:** Partially superseded by D-254 (a trashed entry's actions are in its row menu, and its file isn't shown).
+- **Status:** Partially superseded by D-254 (a trashed entry's actions are in its row menu, and its file isn't shown) and D-484 (trash is a status; files stay where they are, and `storage/trash` is gone).
 - **Decision:** Answers D-228's open "restoring from the trash (by hand
   for now)", following the design direction's Trash pattern: trash is a
   tab on each list, not a separate screen.
@@ -14167,7 +14167,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 - **Date:** 2026-10-05
 - **Status:** Built (D-482), but for the public API (D-479, not built).
-  Amends D-479 and D-480.
+  Amends D-479 and D-480. Its Trash part is superseded by D-484 (a
+  trashed entry keeps its id in the index, so restoring can't collide).
 - **Decision:** Entries are named by id wherever anything outside the
   content writer names one; source paths stay the writer's business.
   - **Public content API (D-479):** no file paths in requests or
@@ -14195,7 +14196,7 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-482: Ids at the admin's boundary, as built
 
 - **Date:** 2026-10-05
-- **Status:** Built. Builds D-481.
+- **Status:** Built. Builds D-481. Its Trash part is superseded by D-484.
 - **Decision:**
   - **Admin API:** `entries/{id}` (a UUID route constraint), bulk `ids`
     (`done` ids, `skipped[].id`), `POST previews {"entry": id}`;
@@ -14243,3 +14244,64 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author expected ids in the admin's addresses once ids
   were in, and didn't want old handle bookmarks preserved.
 
+### D-484: Trash is a status; trashed files stay where they are
+
+- **Date:** 2026-10-05
+- **Status:** Built. Supersedes D-237's storage (`storage/trash`
+  folders and manifests) and API (`TrashController`), and the trash
+  parts of D-481 and D-482. Answers D-237's open "a trash status in the
+  index".
+- **Decision:**
+  - **`trash` is a status** (`Status::Trash`), set in front matter with
+    `trashed` (when, `Y-m-d H:i:s P` in the site timezone; a built-in
+    date field, `EntryFields::TRASHED`, which the editor never offers).
+    Moving to the trash writes both and leaves the file where it is, so
+    it keeps its id and its address in the index; restoring sets
+    `status: draft` and removes `trashed` (always a draft, as D-237
+    had it); deleting for good removes the file, and a bundle's folder
+    once nothing else is in it (a tree page's children stay).
+  - **What a status is for**, on the enum: `writable()` is what front
+    matter may set (`published`, `draft`, `trash`); `selectable()` is
+    what a status control offers (`published`, `draft`: trash is set by
+    Move to Trash and taken off by Restore, and `scheduled` by a date);
+    `active()` is every status but `trash`, what "any status" means:
+    `Query::any()` finds only those, and a query finds the trash only by
+    asking for `Status::Trash`. (`Query::condition()`, the base for
+    alternatives, still matches every status.) A future status like it
+    gets its place the same way.
+  - **Never public:** only `published` routes, so the trash is off the
+    site, feeds, sitemaps, and `llms.txt` as drafts are. Preview links
+    refuse it too (the admin won't make one; a genuine link answers as
+    not found).
+  - **The address stays taken:** creating an entry where a trashed one
+    is says so ("“About” in the trash has this address; restore it, or
+    delete it permanently, first."), as does a rename to its slug. No
+    `__trashed` renames.
+  - **Permissions:** a trashed entry isn't live, so, like a draft,
+    restoring it or deleting it for good needs `delete` (`delete.others`
+    for someone else's) but not publishing.
+  - **Admin API:** the trash joins the entries API. `GET
+    entries?status=trash` lists it (restricted by `delete`, newest
+    trashed first, paged, pinning nothing; each entry has `trashed`).
+    `DELETE entries/{id}?revision=…` trashes (`{"trashed"}`);
+    `DELETE entries/{id}?permanently=1` deletes one that's in the trash
+    (`{"deleted"}`), and each is a 422 for the other kind. `POST
+    entries/{id}/restore` and `POST entries/empty-trash` (`{"type"?}`)
+    replace `trash/restore`, `trash/delete`, and `trash/empty`. `GET
+    entries/{id}` answers a trashed entry to whoever may delete it, with
+    `can.edit` false; changing, copying, or bulk-changing one is refused
+    until it's restored. `TrashController`, `TrashedEntry`, `IdTaken`,
+    and the admin's restore-with-a-new-id prompt are gone.
+  - **The admin:** the Trash tab is the list with `status=trash`, paged
+    like the rest; its look-only screen is at `/trash/{id}`, and the
+    editor sends a trashed entry there. The status pill has a Trash
+    kind, and the editor's status menu never offers it.
+  - **No migration tool:** the author's call; the jtcom trial's three
+    trashed files were moved back into `user/content` with `status:
+    trash` and their `trashed` times, and given ids.
+- **Checked:** `composer check`; `npm run admin:build`; on the jtcom
+  trial, `content:list --status=trash` lists the three and their old
+  addresses answer 404.
+- **Why:** the author: trash is meant to be a status, kept out of
+  status dropdowns, and with ids there's no need to move files to a
+  folder for drafts or trash.

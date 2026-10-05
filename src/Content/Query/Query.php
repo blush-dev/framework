@@ -143,7 +143,7 @@ final readonly class Query
 	 */
 	public static function condition(): self
 	{
-		return new self()->any();
+		return clone(new self()->any(), ['statuses' => Status::cases()]);
 	}
 
 	/**
@@ -433,12 +433,13 @@ final readonly class Query
 
 	/**
 	 * Returns a copy that finds entries whatever their status and
-	 * visibility, landing pages included.
+	 * visibility, landing pages included, but those in the trash, which
+	 * a query finds only by asking for `Status::Trash` (D-484).
 	 */
 	#[NoDiscard]
 	public function any(): self
 	{
-		return clone($this, ['statuses' => Status::cases(), 'visibilities' => Visibility::cases(), 'landing' => true]);
+		return clone($this, ['statuses' => Status::active(), 'visibilities' => Visibility::cases(), 'landing' => true]);
 	}
 
 	/**

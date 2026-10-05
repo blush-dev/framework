@@ -38,7 +38,8 @@ use Blush\Content\Visibility;
  *   in its folder's parent.
  * - `landing` marks a type folder's own `index` file, which is the
  *   collection's page rather than one of its entries.
- * - `status` is the declared status (`published` or `draft`); whether a
+ * - `status` is the declared status (`published`, `draft`, or `trash`,
+ *   D-484); whether a
  *   published entry is scheduled depends on the time, so it's decided
  *   when the record is read.
  * - `date` is the published time in the site timezone as `YmdHis`, for
@@ -157,8 +158,8 @@ final readonly class IndexRecord
 	 */
 	public static function effectiveStatus(string $status, ?int $published, int $now): Status
 	{
-		if ($status === Status::Draft->value) {
-			return Status::Draft;
+		if ($status === Status::Draft->value || $status === Status::Trash->value) {
+			return Status::from($status);
 		}
 
 		return $published !== null && $published > $now ? Status::Scheduled : Status::Published;

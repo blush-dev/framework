@@ -38,6 +38,12 @@ final class EntryFields
 	public const string ID = 'id';
 
 	/**
+	 * When an entry was moved to the trash (D-484), set with `status:
+	 * trash` and removed when it's restored.
+	 */
+	public const string TRASHED = 'trashed';
+
+	/**
 	 * Returns the built-in schema.
 	 */
 	public static function schema(): Schema
@@ -48,7 +54,8 @@ final class EntryFields
 			new SlugField('slug')->described('The URL name, instead of the file name.'),
 			new DateField('published')->aliases('date')->described('The publish date, such as 2026-09-26 09:00:00 -05:00. A date in the future schedules the entry.'),
 			new DateField('updated')->described('When it last changed; defaults to published, then the file\'s modified time.'),
-			new EnumField('status', Status::writable())->described('published (the default) or draft.'),
+			new EnumField('status', Status::writable())->described('published (the default), draft, or trash.'),
+			new DateField(self::TRASHED)->described('When the entry was moved to the trash, set with status: trash.'),
 			new EnumField('visibility', array_column(Visibility::cases(), 'value'))->described('public (the default), unlisted, or hidden.'),
 			new MarkdownField('summary')->aliases('excerpt')->described('A short Markdown summary for listings and feeds. Without one, the first 50 words are used.'),
 			new MediaField('image')->described('A featured image.'),

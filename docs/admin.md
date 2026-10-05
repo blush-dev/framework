@@ -1292,28 +1292,29 @@ everyone out:
 ## Trash
 
 Each list has a **Trash** tab (if your account can delete entries) with
-the entries moved there, most recent first. Each one's **⋯** button has:
+the entries moved there, most recent first. The **All** tab never
+includes them. Each one's **⋯** button has:
 
-- **Restore as a draft** puts it back where it was, as a draft, even if
-  it was published before; publish it again from the editor when you're
-  ready. If something else now has its file name, rename or move that
-  first. It comes back with its [id](content.md#ids); if another entry
-  has that id now (say, a copy made before it was trashed), the admin
-  says which, and you choose: **Restore with a new ID**, or leave it in
-  the trash.
+- **Restore as a draft** makes it a draft again, even if it was
+  published before; publish it again from the editor when you're
+  ready.
 - **Preview** (or clicking its title) shows what's in it: the body, as
   the editor shows it but read-only, and its front matter. From there
   you can restore it or delete it permanently. A trashed entry isn't on
-  your site, so it can't be viewed there or edited until it's restored.
-- **Delete permanently** removes it for good.
+  your site, so it can't be viewed there, previewed, or edited until
+  it's restored.
+- **Delete permanently** removes its file for good.
 
 **Empty trash** deletes everything in that tab permanently. Authors and
 contributors see and handle their own trashed entries; editors see
 everyone's.
 
-On the server, each trashed entry is a folder in `storage/trash/` (an
-entry in its own folder, `trip/index.md`, takes the folder with it), so you can also restore one by moving its
-file back into `user/content/`.
+Moving an entry to the trash doesn't move its file. The file stays
+where it is, with `status: trash` and the time in `trashed` in its front
+matter (see [Front matter](content.md#front-matter)), so it keeps its
+[id](content.md#ids) and its address. Nothing new can take that address
+while it's there: restore it, or delete it permanently, first. You can
+also restore one by hand by changing its `status`.
 
 ## Previewing drafts
 
@@ -1470,14 +1471,12 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET entries/{id}` | An entry for editing (see below) |
 | `POST entries` | Create an entry: `{"type", "title"}`, and optionally `"slug"`, `"set"`, `"body"`, `"status"` |
 | `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
-| `DELETE entries/{id}?revision=…` | Move an entry to the trash |
+| `DELETE entries/{id}?revision=…` | Move an entry to the trash: `{"trashed": id}`. A `422` for one that's there already |
+| `DELETE entries/{id}?permanently=1` | Delete an entry that's in the trash for good: `{"deleted": id}`. A `422` for one that isn't |
+| `POST entries/{id}/restore` | Restore an entry from the trash as a draft: `{"id"}` |
+| `POST entries/empty-trash` | Delete everything in the trash the account may delete, for good (`{"type"}` for one type): `{"deleted"}`, how many |
 | `POST entries/bulk` | Publish, move to draft, or trash several entries at once (see below) |
 | `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above), with an id of its own; answers `201` with the copy as `GET entries/{id}` shows it. Needs to create entries of its type and to edit the entry; an index page is refused with a `422` |
-| `GET trash` | The trashed entries the account may handle, newest first (`?type=` for one type): `{"trash": [{"name", "path", "id", "title", "type", "bundle", "trashed", "authors", "own"}]}`: `name` is the trash's name for it, `path` the file it was, and `id` its id (or `null`) |
-| `GET trash/{name}` | One trashed entry, as in `GET trash`, with its `frontMatter` and `body`; 404 if it isn't there or the account can't handle it |
-| `POST trash/restore` | Restore `{"name"}` as a draft, with its id: answers `{"id"}`. A `409` when something else has its place, or when another entry has its id now: then the answer's `conflict` is that entry's `{"id", "title", "path"}`, and `{"name", "newId": true}` restores it with a new id |
-| `POST trash/delete` | Delete `{"name"}` permanently |
-| `POST trash/empty` | Delete everything the account may handle permanently (`{"type"}` for one type): `{"deleted"}` |
 
 Once signed in, send the token from `session` or `login` in an
 `X-CSRF-Token` header with every `POST`, `PATCH`, and `DELETE`. Errors are JSON too:
@@ -1491,7 +1490,8 @@ Once signed in, send the token from `session` or `login` in an
 overwrite anyone's writing. Each is checked on its own, with the same
 rules as a single change, with the entry's type's capabilities: editing
 the entry, publishing anything that isn't a draft, deleting to trash it, required
-fields filled to publish, and never an index page in the trash. The
+fields filled to publish, and never an index page in the trash. An
+entry that's already in the trash is skipped. The
 answer is `action`, `done` (the ids changed), and `skipped` (each with
 its `id`, `title`, and the `reason`); an entry that couldn't be changed
 doesn't stop the rest.
@@ -1503,7 +1503,7 @@ or everyone's for an editor. Narrow it with:
 
 | Parameter | What it does |
 |---|---|
-| `status` | `draft`, `scheduled`, `published`, or `any` (the default) |
+| `status` | `draft`, `scheduled`, `published`, `any` (the default: every status but the trash), or `trash` (the entries in the trash the account may delete, most recently trashed first, each with its `trashed` time) |
 | `type` | A content type's name |
 | `search` | Text the title or file path must contain, in any case |
 | `author` | An author's slug the entries must credit |

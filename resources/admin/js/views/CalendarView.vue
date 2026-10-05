@@ -17,7 +17,7 @@
 
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, entryRoute, request, type CalendarEntry, type CalendarMonth, type EntryStatus } from '../api';
+import { ApiError, entryRoute, request, type CalendarEntry, type CalendarMonth, type ActiveStatus } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import { plural } from '../format';
@@ -31,14 +31,14 @@ const router = useRouter();
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTH    = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
-const STATUSES: { key: EntryStatus | 'any'; label: string }[] = [
+const STATUSES: { key: ActiveStatus | 'any'; label: string }[] = [
 	{ key: 'any', label: 'All' },
 	{ key: 'published', label: 'Published' },
 	{ key: 'scheduled', label: 'Scheduled' },
 	{ key: 'draft', label: 'Drafts' }
 ];
 
-const MARKS: Record<EntryStatus, { icon: IconName; label: string }> = {
+const MARKS: Record<ActiveStatus, { icon: IconName; label: string }> = {
 	published: { icon: 'circle-check', label: 'Published' },
 	scheduled: { icon: 'clock', label: 'Scheduled' },
 	draft: { icon: 'file-pen-line', label: 'Draft' }
@@ -60,7 +60,7 @@ function queryText(name: string): string {
 // the first answer says which that is.
 const asked  = computed(() => MONTH.test(queryText('month')) ? queryText('month') : '');
 const month  = computed(() => asked.value || calendar.value?.month || '');
-const status = computed<EntryStatus | 'any'>(() => STATUSES.find((item) => item.key === queryText('status'))?.key ?? 'any');
+const status = computed<ActiveStatus | 'any'>(() => STATUSES.find((item) => item.key === queryText('status'))?.key ?? 'any');
 const type   = computed(() => queryText('type'));
 
 const typeOptions = computed<SelectOption[]>(() => [

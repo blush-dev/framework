@@ -61,13 +61,14 @@ use Blush\Session\StartSession;
  *     caption.
  *   - `GET  references/{type}`: what a reference field to a type can
  *     point at, for the editor's picker.
- *   - `GET  entries`: the entries the account may edit, a page at a time.
+ *   - `GET  entries`: the entries the account may edit, a page at a
+ *     time, or with `status=trash`, those in the trash it may delete.
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
  *     the editing API (`EntryController`), `POST entries/bulk` (D-301),
  *     `POST entries/{id}/duplicate`, `GET entries/new` (a new entry, not
- *     yet written, D-336), each entry named by its id (D-481, D-483).
- *   - `GET  trash` and `GET trash/{name}`, and `POST trash/restore`,
- *     `trash/delete`, and `trash/empty`: the trash (`TrashController`).
+ *     yet written, D-336), each entry named by its id (D-481, D-483);
+ *     and the trash (D-484): `POST entries/{id}/restore` and `POST
+ *     entries/empty-trash`.
  *   - `GET  health`: the content's lint problems, and `POST health/ids`
  *     and `POST health/ids/keep` to fix ids (D-477, D-478).
  *   - `GET  calendar`: a month of dated entries (`CalendarController`,
@@ -162,15 +163,12 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
 			Route::post('/entries/bulk', [EntryController::class, 'bulk'])->named('entry.bulk')->middleware(Authenticate::class),
 			Route::get('/entries/new', [EntryController::class, 'blank'])->named('entry.new')->middleware(Authenticate::class),
+			Route::post('/entries/empty-trash', [EntryController::class, 'emptyTrash'])->named('entry.empty-trash')->middleware(Authenticate::class),
+			Route::post('/entries/{id:[0-9a-fA-F-]{36}}/restore', [EntryController::class, 'restore'])->named('entry.restore')->middleware(Authenticate::class),
 			Route::post('/entries/{id:[0-9a-fA-F-]{36}}/duplicate', [EntryController::class, 'duplicate'])->named('entry.duplicate')->middleware(Authenticate::class),
 			Route::get('/entries/{id:[0-9a-fA-F-]{36}}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
 			Route::patch('/entries/{id:[0-9a-fA-F-]{36}}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),
 			Route::delete('/entries/{id:[0-9a-fA-F-]{36}}', [EntryController::class, 'delete'])->named('entry.delete')->middleware(Authenticate::class),
-			Route::get('/trash', [TrashController::class, 'index'])->named('trash')->middleware(Authenticate::class),
-			Route::get('/trash/{name:.+}', [TrashController::class, 'show'])->named('trash.entry')->middleware(Authenticate::class),
-			Route::post('/trash/restore', [TrashController::class, 'restore'])->named('trash.restore')->middleware(Authenticate::class),
-			Route::post('/trash/delete', [TrashController::class, 'delete'])->named('trash.delete')->middleware(Authenticate::class),
-			Route::post('/trash/empty', [TrashController::class, 'empty'])->named('trash.empty')->middleware(Authenticate::class),
 			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
 			Route::post('/health/ids', [HealthController::class, 'assign'])->named('health.ids')->middleware(Authenticate::class),
 			Route::post('/health/ids/keep', [HealthController::class, 'keep'])->named('health.ids.keep')->middleware(Authenticate::class),

@@ -32,7 +32,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
 import { RouterLink, useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
-import { ApiError, entryPath, request, type ContentTypeSummary, type EntryDetail, type EntryList, type EntrySort, type EntryStatus, type EntrySummary, type TrashedSummary } from '../api';
+import { ApiError, entryPath, request, type ContentTypeSummary, type EntryDetail, type EntryList, type EntrySort, type EntryStatus, type EntrySummary } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import EntryTable from '../components/EntryTable.vue';
@@ -43,7 +43,6 @@ import TrashTable from '../components/TrashTable.vue';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
 import { toast, type ToastKind } from '../toast';
-import { restoreFromTrash } from '../trash';
 import { can, canType, session } from '../session';
 import { loadReferences } from '../references';
 import { profileType, currentType, findType, labelsOf, loadTypes, types } from '../types';
@@ -70,7 +69,8 @@ const SORTS: EntrySort[] = ['title', 'status', 'author', 'published', 'updated']
 // The most terms or authors a filter offers.
 const OPTION_LIMIT = 100;
 
-// Trash is a tab like the statuses (D-237), for accounts that can delete.
+// Trash is a tab like the statuses (D-237), and a status (D-484), for
+// accounts that can delete.
 const canTrash = computed(() => canType(type.value, 'delete'));
 // Mine sits after All (D-475): the entries crediting the account's
 // profile, for a type that credits authors and an account with a profile.
@@ -86,7 +86,6 @@ const route  = useRoute();
 const router = useRouter();
 
 const list    = ref<EntryList | null>(null);
-const trash   = ref<TrashedSummary[] | null>(null);
 const counts  = ref<Partial<Record<Tab, number>>>({});
 const error   = ref('');
 const loading = ref(false);
@@ -413,12 +412,9 @@ function listParams(): Record<string, string> {
 	};
 }
 
-// The trash isn't paged; the search narrows it here.
-const trashShown = computed(() => {
-	const needle = search.value.toLowerCase();
-
-	return (trash.value ?? []).filter((item) => needle === '' || item.title.toLowerCase().includes(needle) || item.path.toLowerCase().includes(needle));
-});
+// The trash is the list with `status=trash` (D-484), paged and searched
+// like the rest.
+const trashShown = computed(() => inTrash.value ? list.value?.entries ?? [] : []);
 
 // A skeleton guesses at the rows to come: the tab's last count, up to a
 // page, or a handful before anything is known.
@@ -447,8 +443,8 @@ async function load(): Promise<void> {
 
 	try {
 		const [current, trashed, own, ...totals] = await Promise.all([
-			inTrash.value ? Promise.resolve(null) : request<EntryList>('GET', `/entries?${params(listParams())}`),
-			canTrash.value ? request<{ trash: TrashedSummary[] }>('GET', `/trash?type=${encodeURIComponent(type.value)}`) : Promise.resolve(null),
+			request<EntryList>('GET', `/entries?${params(listParams())}`),
+			canTrash.value ? request<EntryList>('GET', `/entries?${params({ status: 'trash', per: '1' }, false)}`) : Promise.resolve(null),
 			mine.value === '' ? Promise.resolve(null) : request<EntryList>('GET', `/entries?${params({ status: 'any', per: '1' }, true)}`),
 			...statusTabs.map((tab) => request<EntryList>('GET', `/entries?${params({ status: tab.status, per: '1' }, false)}`))
 		]);
@@ -459,11 +455,10 @@ async function load(): Promise<void> {
 		}
 
 		list.value   = current;
-		trash.value  = trashed?.trash ?? null;
 		counts.value = {
 			...Object.fromEntries(statusTabs.map((tab, index) => [tab.status, totals[index]?.total ?? 0])),
 			...(own === null ? {} : { mine: own.total }),
-			...(trashed === null ? {} : { trash: trashed.trash.length })
+			...(trashed === null ? {} : { trash: trashed.total })
 		};
 		loaded.value = wanted;
 	} catch (caught) {
@@ -592,35 +587,43 @@ async function bulk(action: BulkAction): Promise<void> {
 	}, action === 'trash' ? 'danger' : 'good');
 }
 
-function restore(item: TrashedSummary): void {
-	void act(item.name, async () => {
-		const id = await restoreFromTrash(item.name);
+function restore(item: EntrySummary): void {
+	const id = item.id;
 
-		return id === null ? 'Left in the trash' : `Restored ${nameOf(item)} as a draft`;
-	});
-}
-
-async function purge(item: TrashedSummary): Promise<void> {
-	if (!await confirmAction({ title: `Delete ${nameOf(item)} Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete permanently', danger: true })) {
+	if (id === null) {
 		return;
 	}
 
-	void act(item.name, async () => {
-		await request<void>('POST', '/trash/delete', { name: item.name });
+	void act(id, async () => {
+		await request<{ id: string }>('POST', `${entryPath(id)}/restore`);
+
+		return `Restored ${nameOf(item)} as a draft`;
+	});
+}
+
+async function purge(item: EntrySummary): Promise<void> {
+	const id = item.id;
+
+	if (id === null || !await confirmAction({ title: `Delete ${nameOf(item)} Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete permanently', danger: true })) {
+		return;
+	}
+
+	void act(id, async () => {
+		await request<{ deleted: string }>('DELETE', `${entryPath(id)}?permanently=1`);
 
 		return `Deleted ${nameOf(item)} permanently`;
 	}, 'danger');
 }
 
 async function emptyTrash(): Promise<void> {
-	const count = trash.value?.length ?? 0;
+	const count = counts.value.trash ?? 0;
 
 	if (!await confirmAction({ title: 'Empty the Trash?', body: `${plural(count, labels.value.item, labels.value.items)} in the trash will be deleted permanently. This can't be undone.`, confirm: 'Empty the trash', danger: true })) {
 		return;
 	}
 
 	void act('empty', async () => {
-		const answer = await request<{ deleted: number }>('POST', '/trash/empty', { type: type.value });
+		const answer = await request<{ deleted: number }>('POST', '/entries/empty-trash', { type: type.value });
 
 		return `Deleted ${plural(answer.deleted, labels.value.item, labels.value.items)} permanently`;
 	}, 'danger');
@@ -728,7 +731,7 @@ const emptyText = computed(() => {
 					</div>
 				</template>
 				<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
-				<span v-if="profilesList" class="toolbar__count" aria-live="polite">{{ !ready ? 'Loading…' : (inTrash ? plural(trashShown.length, labels.item, labels.items) : (list ? plural(list.total, labels.item, labels.items) : '')) }}</span>
+				<span v-if="profilesList" class="toolbar__count" aria-live="polite">{{ !ready ? 'Loading…' : (list ? plural(list.total, labels.item, labels.items) : '') }}</span>
 				<div v-if="!inTrash && !profilesList" class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
 					<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
 						<AdminIcon name="rows-3" /><span class="visually-hidden">Roomy</span>
@@ -754,10 +757,10 @@ const emptyText = computed(() => {
 					<h2 id="entries-heading">{{ tabs.find((tab) => tab.status === status)?.label }}</h2>
 					<p class="panel__hint" aria-live="polite">
 						<template v-if="!ready">&nbsp;</template>
-						<template v-else-if="inTrash">{{ plural(trashShown.length, labels.item, labels.items) }} · Restored entries come back as drafts</template>
+						<template v-else-if="inTrash && list">{{ plural(list.total, labels.item, labels.items) }} · Restored entries come back as drafts</template>
 						<template v-else-if="list">{{ plural(list.total, labels.item, labels.items) }}<template v-if="info?.kind === 'profiles'"> · Bylines counts the published entries crediting each</template><template v-else-if="terms"> · Entries counts the published entries using each</template></template>
 					</p>
-					<div v-if="ready && inTrash && trash?.length" class="panel__actions">
+					<div v-if="ready && inTrash && list?.total" class="panel__actions">
 						<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty trash</button>
 					</div>
 				</header>
@@ -806,21 +809,21 @@ const emptyText = computed(() => {
 						<p class="empty__text">{{ emptyText }}</p>
 						<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
 					</div>
-
-					<nav v-if="list.total > PER_OPTIONS[0]!" class="pager" aria-label="Pages">
-						<span class="pager__status">{{ list.pages > 1 ? `Page ${list.page} of ${list.pages}` : `All ${plural(list.total, labels.item, labels.items)}` }}</span>
-						<div class="pager__end">
-							<label class="visually-hidden" for="entries-per">Rows per page</label>
-							<div class="entries-filter">
-								<AdminSelect id="entries-per" v-model="perValue" :options="perOptions" />
-							</div>
-							<template v-if="list.pages > 1">
-								<RouterLink v-if="page > 1" class="button button--small" :to="{ query: { ...route.query, page: page - 1 === 1 ? undefined : page - 1 } }"><AdminIcon name="chevron-left" />Previous</RouterLink>
-								<RouterLink v-if="page < list.pages" class="button button--small" :to="{ query: { ...route.query, page: page + 1 } }">Next<AdminIcon name="chevron-right" /></RouterLink>
-							</template>
-						</div>
-					</nav>
 				</template>
+
+				<nav v-if="ready && list && list.total > PER_OPTIONS[0]!" class="pager" aria-label="Pages">
+					<span class="pager__status">{{ list.pages > 1 ? `Page ${list.page} of ${list.pages}` : `All ${plural(list.total, labels.item, labels.items)}` }}</span>
+					<div class="pager__end">
+						<label class="visually-hidden" for="entries-per">Rows per page</label>
+						<div class="entries-filter">
+							<AdminSelect id="entries-per" v-model="perValue" :options="perOptions" />
+						</div>
+						<template v-if="list.pages > 1">
+							<RouterLink v-if="page > 1" class="button button--small" :to="{ query: { ...route.query, page: page - 1 === 1 ? undefined : page - 1 } }"><AdminIcon name="chevron-left" />Previous</RouterLink>
+							<RouterLink v-if="page < list.pages" class="button button--small" :to="{ query: { ...route.query, page: page + 1 } }">Next<AdminIcon name="chevron-right" /></RouterLink>
+						</template>
+					</div>
+				</nav>
 
 				<p v-if="profilesList && !inTrash && ready" class="panel__note"><strong>Guest</strong> is a profile with no account: it can be credited and has an archive, but can't sign in. <strong>Bylines</strong> counts every published entry of every type that credits the profile.</p>
 			</section>

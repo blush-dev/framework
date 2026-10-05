@@ -119,42 +119,33 @@ interface ContentWriter
 	public function move(string $path, ?string $parentPath, ?string $revision = null): WriteResult;
 
 	/**
-	 * Deletes an entry: its file, or its bundle's folder, moves to the
-	 * trash, from where `restore()` brings it back.
+	 * Moves an entry to the trash (D-484): it stays where it is, with
+	 * `status: trash` and `trashed` (when) in its front matter, so it's
+	 * off the site but keeps its address and id until it's restored or
+	 * deleted.
+	 *
+	 * @throws WriteConflict
+	 * @throws WriteException
+	 */
+	public function trash(string $path, ?string $revision = null): WriteResult;
+
+	/**
+	 * Brings an entry back from the trash as a draft (D-237, D-484): its
+	 * `status` becomes `draft` and its `trashed` date goes.
+	 *
+	 * @throws WriteConflict
+	 * @throws WriteException
+	 */
+	public function restore(string $path, ?string $revision = null): WriteResult;
+
+	/**
+	 * Deletes an entry for good: its file, and its bundle's folder when
+	 * nothing else is left in it.
 	 *
 	 * @throws WriteConflict
 	 * @throws WriteException
 	 */
 	public function delete(string $path, ?string $revision = null): WriteResult;
-
-	/**
-	 * Returns the entries in the trash, most recently trashed first.
-	 *
-	 * @return list<TrashedEntry>
-	 */
-	public function trashed(): array;
-
-	/**
-	 * Reads an entry in the trash, to look at before restoring it (D-276).
-	 * Its path is the one it had, and has again once restored.
-	 *
-	 * @throws WriteException When there's no such entry in the trash, or
-	 *                        it can't be read.
-	 */
-	public function loadTrashed(string $name): EditableEntry;
-
-	/**
-	 * Brings an entry back from the trash to where it was, after making
-	 * the changes to it (such as `status: draft`), so it's never back
-	 * without them. It keeps its id (D-481) unless `$newId` asks for a
-	 * new one; one without an id is given one.
-	 *
-	 * @throws IdTaken When another entry has its id now; restore it with
-	 *                 `$newId`, or leave it in the trash.
-	 * @throws WriteException When there's no such entry in the trash, or
-	 *                        something now has its place.
-	 */
-	public function restore(string $name, EntryChanges $changes = new EntryChanges(), bool $newId = false): WriteResult;
 
 	/**
 	 * Gives entries new ids (D-477), for `content:ids` and Content health:
@@ -165,11 +156,4 @@ interface ContentWriter
 	 * @param list<string> $paths
 	 */
 	public function assignIds(array $paths): AssignedIds;
-
-	/**
-	 * Deletes an entry in the trash for good.
-	 *
-	 * @throws WriteException When there's no such entry in the trash.
-	 */
-	public function purge(string $name): void;
 }

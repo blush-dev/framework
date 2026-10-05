@@ -87,7 +87,16 @@ use Blush\Support\Slug;
  *   page already at the new place, is a 422 with `field: "parent"`. When
  *   a tree's page moves or is renamed with `redirect: true`, each
  *   published page under it gets a redirect from its old address too.
- * - `DELETE entries/{id}?revision=…`: moves it to the trash.
+ * - `DELETE entries/{id}?revision=…`: moves it to the trash (D-484):
+ *   it stays where it is, with `status: trash`, off the site, keeping
+ *   its address and id. `DELETE entries/{id}?permanently=1` deletes an
+ *   entry that's in the trash for good (and only one that is).
+ * - `POST   entries/{id}/restore`: brings one back from the trash **as a
+ *   draft** (D-237), so it's never republished without someone choosing
+ *   to.
+ * - `POST   entries/empty-trash` (`{"type"?}`): deletes for good every
+ *   entry in the trash the account may delete (of one type, when
+ *   given), answering how many (`deleted`).
  * - `POST   entries/bulk`: publishes, moves to draft, or trashes several
  *   (`action`: `publish`, `draft`, or `trash`; `ids`, at most 100) at
  *   their current revisions, since a status change or a move to the
@@ -101,6 +110,10 @@ use Blush\Support\Slug;
  *   dated now if its type is dated (D-275). Needs to create entries of
  *   its type, and to edit the entry; a landing page (an index page or the homepage) can't be
  *   copied.
+ *
+ * An entry in the trash is looked at, not edited: `GET` answers it to
+ * whoever may delete it (with `can.edit` false and its `trashed` date),
+ * and changing or copying it is refused until it's restored.
  *
  * **Permissions come from the change, not only the entry,** and are the
  * entry's type's (D-359, `content.{type}.edit` and so on): editing needs
@@ -182,7 +195,7 @@ final readonly class EntryController
 			return self::error(sprintf('You aren\'t allowed to create %s.', $type->labels->items), Status::Forbidden);
 		}
 
-		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []));
+		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []) && $field->name !== EntryFields::TRASHED);
 
 		return self::json([
 			'path'        => null,
@@ -227,8 +240,9 @@ final readonly class EntryController
 	private function edit(ServerRequestInterface $request, Entry $entry): ResponseInterface
 	{
 		$account = self::account($request);
+		$action  = $entry->status === EntryStatus::Trash ? ContentAction::Delete : ContentAction::Edit;
 
-		if (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
+		if (! $this->permissions->can($account, $action, $entry)) {
 			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
 		}
 
@@ -301,7 +315,12 @@ final readonly class EntryController
 				? $this->writer->create($type, $slug, $changes, $now)
 				: $this->writer->createUnder($parent->path, $slug, $changes);
 		} catch (WriteException $e) {
-			return self::error($e->getMessage(), Status::UnprocessableContent);
+			// A trashed entry keeps its address until it's deleted (D-484).
+			$holder = $this->content->named($type->name, $parent === null ? $slug : "{$parent->key}/{$slug}");
+
+			return self::error($holder?->status === EntryStatus::Trash
+				? sprintf('“%s” in the trash has this address; restore it, or delete it permanently, first.', trim($holder->title) === '' ? 'Untitled' : $holder->title)
+				: $e->getMessage(), Status::UnprocessableContent);
 		}
 
 		$entry = $this->content->findPath($result->path);
@@ -328,6 +347,10 @@ final readonly class EntryController
 
 		if (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
+		}
+
+		if ($entry->status === EntryStatus::Trash) {
+			return self::error(self::inTrash($entry), Status::UnprocessableContent);
 		}
 
 		$revision = $input['revision'] ?? null;
@@ -494,6 +517,10 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to duplicate that entry.', Status::Forbidden);
 		}
 
+		if ($entry->status === EntryStatus::Trash) {
+			return self::error(self::inTrash($entry), Status::UnprocessableContent);
+		}
+
 		if (IndexPage::is($entry)) {
 			return self::error(sprintf('"%s" is the index page for %s, and there\'s only one.', $entry->title, $entry->type->labels->items), Status::UnprocessableContent);
 		}
@@ -526,13 +553,15 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Deletes an entry (to the trash).
+	 * Moves an entry to the trash, or deletes one in the trash for good.
 	 */
 	public function delete(ServerRequestInterface $request, string $id): ResponseInterface
 	{
-		$account  = self::account($request);
-		$entry    = $this->content->find($id);
-		$revision = $request->getQueryParams()['revision'] ?? null;
+		$account     = self::account($request);
+		$entry       = $this->content->find($id);
+		$params      = $request->getQueryParams();
+		$revision    = $params['revision'] ?? null;
+		$permanently = in_array($params['permanently'] ?? null, ['1', 'true'], true);
 
 		if ($entry === null) {
 			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
@@ -542,23 +571,106 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to delete that entry.', Status::Forbidden);
 		}
 
+		$trashed = $entry->status === EntryStatus::Trash;
+
+		if ($trashed !== $permanently) {
+			return self::error($trashed
+				? sprintf('"%s" is already in the trash; delete it permanently, or restore it.', $entry->title)
+				: sprintf('"%s" isn\'t in the trash; move it there first.', $entry->title), Status::UnprocessableContent);
+		}
+
 		if (IndexPage::is($entry)) {
 			return self::error(sprintf('"%s" is the index page for %s, so it can\'t be moved to the trash.', $entry->title, $entry->type->labels->items), Status::UnprocessableContent);
 		}
 
-		if (! is_string($revision)) {
+		if (! $trashed && ! is_string($revision)) {
 			return self::error('Send the "revision" you loaded, so no one else\'s change is lost.', Status::PreconditionRequired);
 		}
 
 		try {
-			$this->writer->delete($entry->path, $revision);
+			if ($trashed) {
+				$this->writer->delete($entry->path);
+			} elseif (is_string($revision)) {
+				$this->writer->trash($entry->path, $revision);
+			}
 		} catch (WriteConflict $e) {
 			return self::error($e->getMessage(), Status::Conflict);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		return self::json(['deleted' => $id]);
+		return self::json($trashed ? ['deleted' => $id] : ['trashed' => $id]);
+	}
+
+	/**
+	 * Brings an entry back from the trash as a draft.
+	 */
+	public function restore(ServerRequestInterface $request, string $id): ResponseInterface
+	{
+		$account = self::account($request);
+		$entry   = $this->content->find($id);
+
+		if ($entry === null || $entry->status !== EntryStatus::Trash) {
+			return self::error('That isn\'t in the trash.', Status::NotFound);
+		}
+
+		if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
+			return self::error('You aren\'t allowed to restore that entry.', Status::Forbidden);
+		}
+
+		try {
+			$this->writer->restore($entry->path);
+		} catch (WriteException $e) {
+			return self::error($e->getMessage(), Status::UnprocessableContent);
+		}
+
+		return self::json(['id' => $id]);
+	}
+
+	/**
+	 * Deletes for good every entry in the trash the account may delete.
+	 */
+	public function emptyTrash(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = self::account($request);
+		$type    = self::input($request)['type'] ?? null;
+
+		if ($type !== null && (! is_string($type) || ! $this->types->has($type))) {
+			return self::error('There is no such content type.', Status::BadRequest);
+		}
+
+		$query   = $this->content->query()->any()->status(EntryStatus::Trash)->limit(null);
+		$query   = $type === null ? $query : $query->type($type);
+		$deleted = 0;
+
+		foreach ($this->permissions->restrict($account, ContentAction::Delete, $query)->get() as $entry) {
+			try {
+				$this->writer->delete($entry->path);
+				$deleted++;
+			} catch (WriteException $e) {
+				return self::json(['error' => $e->getMessage(), 'deleted' => $deleted], Status::UnprocessableContent);
+			}
+		}
+
+		return self::json(['deleted' => $deleted]);
+	}
+
+	/**
+	 * Returns when an entry was moved to the trash, or `null`.
+	 */
+	public static function trashed(Entry $entry): ?string
+	{
+		$trashed = $entry->field(EntryFields::TRASHED);
+
+		return $entry->status === EntryStatus::Trash && $trashed instanceof DateTimeInterface ? $trashed->format(DateTimeInterface::ATOM) : null;
+	}
+
+	/**
+	 * Says that an entry is in the trash, so it can't be changed.
+	 */
+	private static function inTrash(Entry $entry): string
+	{
+		return sprintf('"%s" is in the trash; restore it to change it.', trim($entry->title) === '' ? 'Untitled' : $entry->title);
 	}
 
 	/**
@@ -604,6 +716,10 @@ final readonly class EntryController
 	 */
 	private function bulkChange(Account $account, Entry $entry, string $action): ?string
 	{
+		if ($entry->status === EntryStatus::Trash) {
+			return 'It\'s in the trash already; restore it to change it.';
+		}
+
 		if ($action === 'trash') {
 			if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
 				return 'You aren\'t allowed to delete it.';
@@ -620,7 +736,7 @@ final readonly class EntryController
 			$revision = $this->writer->load($entry->path)->revision;
 
 			if ($action === 'trash') {
-				$this->writer->delete($entry->path, $revision);
+				$this->writer->trash($entry->path, $revision);
 
 				return null;
 			}
@@ -725,9 +841,11 @@ final readonly class EntryController
 		$folder ??= dirname($entry->key);
 		$key      = ($folder === '.' ? '' : "{$folder}/") . $slug;
 
-		return $this->content->named($entry->type->name, $key) === null
-			? null
-			: sprintf('Another %s already has the slug "%s".', $entry->type->labels->item, $slug);
+		return match ($this->content->named($entry->type->name, $key)?->status) {
+			null              => null,
+			EntryStatus::Trash => sprintf('A %s in the trash has the slug "%s"; restore it, or delete it permanently, to use it.', $entry->type->labels->item, $slug),
+			default           => sprintf('Another %s already has the slug "%s".', $entry->type->labels->item, $slug)
+		};
 	}
 
 	/**
@@ -900,6 +1018,7 @@ final readonly class EntryController
 		$error  = ErrorPage::status($entry);
 		$home   = $this->homepage->describe($entry);
 		$fields = $this->types->schema($entry->type->name)->fields;
+		$live   = $entry->status !== EntryStatus::Trash;
 
 		// An index page describes the type's archive, not one of its
 		// entries, so the type's fields don't apply; its title and status
@@ -920,8 +1039,9 @@ final readonly class EntryController
 		// of them, but the editor offers only the taxonomies that group the
 		// type (D-283): those naming it in `types`, and those with no
 		// `types` (every type) unless it's a taxonomy itself. One the file
-		// already uses stays, so it can still be edited.
-		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry->type, $file->frontMatter));
+		// already uses stays, so it can still be edited. `trashed` is the
+		// trash's (D-484), never edited.
+		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry->type, $file->frontMatter) && $field->name !== EntryFields::TRASHED);
 
 		[$values, $extra] = self::split($fields, $file->frontMatter);
 
@@ -939,6 +1059,7 @@ final readonly class EntryController
 			'modified'    => $file->modified === null ? null : new DateTimeImmutable('@' . $file->modified)->format(DateTimeInterface::ATOM),
 			'title'       => $entry->title,
 			'status'      => $entry->status->value,
+			'trashed'     => self::trashed($entry),
 			'own'         => $this->permissions->owns($account, $entry),
 			'url'         => $entry->isPublished() ? $this->urls->entry($entry) : null,
 			'type'        => $this->typeOf($entry->type, $fields),
@@ -951,13 +1072,13 @@ final readonly class EntryController
 			'extra'       => $extra,
 			'body'        => substr($file->body, strlen(DocumentEditor::gap($file->body))),
 			'can'         => [
-				'edit'         => $this->permissions->can($account, ContentAction::Edit, $entry),
-				'publish'      => $this->permissions->can($account, ContentAction::Publish, $entry),
-				'rename'       => ! $entry->landing && ! $people && ! $person && $error === null && ! $this->isLinked($entry),
-				'move'         => $entry->type instanceof Tree && ! $entry->landing && $error === null,
+				'edit'         => $live && $this->permissions->can($account, ContentAction::Edit, $entry),
+				'publish'      => $live && $this->permissions->can($account, ContentAction::Publish, $entry),
+				'rename'       => $live && ! $entry->landing && ! $people && ! $person && $error === null && ! $this->isLinked($entry),
+				'move'         => $live && $entry->type instanceof Tree && ! $entry->landing && $error === null,
 				'delete'       => ! $index && ! $person && $this->permissions->can($account, ContentAction::Delete, $entry),
-				'duplicate'    => ! $entry->landing && ! $people && ! $person && $error === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
-				'makeHomepage' => $home['homeInstead'] !== null && $this->permissions->can($account, Capability::SiteSettings->value)
+				'duplicate'    => $live && ! $entry->landing && ! $people && ! $person && $error === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
+				'makeHomepage' => $live && $home['homeInstead'] !== null && $this->permissions->can($account, Capability::SiteSettings->value)
 			],
 			'violations'  => array_map(static fn (Violation $violation): array => [
 				'field'    => $violation->field,
@@ -1053,7 +1174,7 @@ final readonly class EntryController
 	private static function split(array $fields, array $frontMatter): array
 	{
 		$values  = [];
-		$claimed = [EntryFields::ID];
+		$claimed = [EntryFields::ID, EntryFields::TRASHED];
 
 		foreach ($fields as $field) {
 			foreach ([$field->name, ...$field->aliases] as $key) {

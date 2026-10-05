@@ -457,6 +457,13 @@ async function load(): Promise<void> {
 			: entryPath(at.name);
 		const detail = await request<EntryDetail | NewEntryDetail>('GET', path);
 
+		// One in the trash is looked at, not edited (D-484).
+		if (detail.id !== null && detail.status === 'trash') {
+			await router.replace({ name: 'trashed', params: { id: detail.id } });
+
+			return;
+		}
+
 		fill(detail);
 
 		// Changes kept from before are offered back, unless they're what
@@ -909,11 +916,13 @@ const secondary = computed<{ label: string; status?: EntryStatus } | null>(() =>
 });
 
 // The Status value's menu: what each status does, in a sentence, and
-// only the ones this account can move it to. Choosing one saves.
+// only the ones this account can move it to. Choosing one saves. The
+// trash is never offered (D-484): Move to Trash sets it.
 const statusNames: Record<EntryStatus, { label: string; icon: IconName }> = {
 	published: { label: 'Published', icon: 'circle-check' },
 	scheduled: { label: 'Scheduled', icon: 'calendar-clock' },
-	draft: { label: 'Draft', icon: 'file-pen-line' }
+	draft: { label: 'Draft', icon: 'file-pen-line' },
+	trash: { label: 'Trash', icon: 'trash-2' }
 };
 
 const statusOptions = computed(() => {
@@ -933,7 +942,7 @@ const statusOptions = computed(() => {
 		options.push({ status: 'published', label: 'Published', text: 'On the site, for anyone to read.', icon: 'circle-check' });
 	}
 
-	if (!options.some((option) => option.status === detail.status)) {
+	if (detail.status !== 'trash' && !options.some((option) => option.status === detail.status)) {
 		options.push({ status: detail.status, ...statusNames[detail.status], text: detail.status === 'scheduled' ? 'Its date has passed, so it goes live the next time it is published.' : 'On the site, for anyone to read.' });
 	}
 

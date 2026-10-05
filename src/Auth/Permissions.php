@@ -34,7 +34,9 @@ use Blush\Media\MediaKind;
  *   An account with no author owns nothing.
  * - **Live entries:** editing or deleting an entry that isn't a draft
  *   changes the live site, so it also needs publishing for that entry.
- *   That's what keeps contributors to drafts.
+ *   That's what keeps contributors to drafts. An entry in the trash
+ *   isn't live either (D-484), so restoring it (as a draft) or deleting
+ *   it for good doesn't need publishing.
  *
  * Both rules come down to which statuses an account may act on in a type,
  * for its own entries and for others' (`statuses()`). `can()` checks one
@@ -126,8 +128,8 @@ final readonly class Permissions
 	 * Returns the statuses of a type's entries the account may use a
 	 * content action on: its own entries', or others'. Others' need the
 	 * action's `.others` form. When acting changes the live site (editing
-	 * or deleting), entries that aren't drafts also need publishing for
-	 * them.
+	 * or deleting), entries that aren't drafts (or in the trash) also
+	 * need publishing for them.
 	 *
 	 * @return list<Status>
 	 */
@@ -143,7 +145,7 @@ final readonly class Permissions
 
 		return ! $changesLive || $this->statuses($account, $type, ContentAction::Publish, $others) !== []
 			? Status::cases()
-			: [Status::Draft];
+			: [Status::Draft, Status::Trash];
 	}
 
 	/**

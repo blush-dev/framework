@@ -118,7 +118,8 @@ model, with manifests in Composer's shape (`require`, `autoload` with
 `files`) falling back to `composer.json` (D-418); and, ahead of a read-only
 content API (D-479), a UUIDv7 `id` in every content file, with
 `content:ids` and Content health to fix files without one (D-477,
-D-478, D-480).
+D-478, D-480); and trash as a status, `status: trash` on a file left
+where it is, outside "any status" and every status control (D-484).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

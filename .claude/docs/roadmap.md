@@ -384,6 +384,7 @@ write conflicts through the API, not by editing files on disk.
   and the CLI (built: D-477, D-478, D-480: `content:ids`, Content
   health, `find()` by id and `findPath()` by path), and named by id at
   every boundary: the admin API, previews, and the trash (D-481, D-482).
+  Trash is a status, its files left where they are (D-484).
   Decided, next: a
   read-only, opt-in content API at `/api/v1` beside the admin's
   (D-479); its answer shape, bodies, path, and caching are still open.

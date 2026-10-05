@@ -72,6 +72,8 @@ export interface EntrySummary {
 	title: string;
 	type: string;
 	status: EntryStatus;
+	// When it was moved to the trash (ISO 8601), for one that's there.
+	trashed: string | null;
 	published: string | null;
 	updated: string;
 	// Its path on the site, where it is or will be once published, if it
@@ -115,31 +117,13 @@ export interface EntrySummary {
 	continued: boolean;
 }
 
-export type EntryStatus = 'draft' | 'scheduled' | 'published';
+// Every status an entry has (D-484). `trash` is set by Move to Trash
+// and taken off by Restore, and `scheduled` by a future date, so a status
+// control offers neither as such.
+export type EntryStatus = 'draft' | 'scheduled' | 'published' | 'trash';
 
-/**
- * An entry in the trash (`GET trash`, D-237).
- */
-export interface TrashedSummary {
-	// The trash's name for it, the path it had, and its id (D-481).
-	name: string;
-	path: string;
-	id: string | null;
-	title: string;
-	type: string | null;
-	bundle: boolean;
-	trashed: string;
-	authors: string[];
-	own: boolean;
-}
-
-/**
- * A trashed entry with what's in it (`GET trash/{id}`, D-276).
- */
-export interface TrashedDetail extends TrashedSummary {
-	frontMatter: Record<string, unknown>;
-	body: string;
-}
+// What "any status" means: every status but the trash.
+export type ActiveStatus = Exclude<EntryStatus, 'trash'>;
 
 export type EntrySort = 'title' | 'status' | 'author' | 'published' | 'updated';
 
@@ -946,6 +930,9 @@ export interface EntryDetail {
 	modified: string | null;
 	title: string;
 	status: EntryStatus;
+	// When it was moved to the trash (ISO 8601); `null` unless it's there.
+	// One that's there is looked at, not edited (`can.edit` is false).
+	trashed: string | null;
 	own: boolean;
 	url: string | null;
 	// Whether it's its type's index page (D-274): edited without the
@@ -1001,7 +988,7 @@ export interface CalendarEntry {
 	handle: string | null;
 	title: string;
 	type: string;
-	status: EntryStatus;
+	status: ActiveStatus;
 	published: string;
 	day: number;
 	time: string;
@@ -1010,7 +997,7 @@ export interface CalendarEntry {
 export interface CalendarMonth {
 	month: string;
 	today: string;
-	status: EntryStatus | 'any';
+	status: ActiveStatus | 'any';
 	type: string | null;
 	total: number;
 	entries: CalendarEntry[];

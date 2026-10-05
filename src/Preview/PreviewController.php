@@ -16,6 +16,7 @@ namespace Blush\Preview;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\ContentRepository;
+use Blush\Content\Status as EntryStatus;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Http\PageRenderer;
@@ -23,7 +24,7 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
- * Shows an entry, whatever its status, to anyone with a genuine,
+ * Shows an entry, whatever its status but the trash, to anyone with a genuine,
  * unexpired preview link (D-226). The entry renders with the theme as
  * its own page would: a routed type's entry as a single, any other as a
  * page.
@@ -60,6 +61,9 @@ final readonly class PreviewController
 			&& $this->links->isValid($id, (int) $expires, $signature);
 
 		$entry = $valid ? $this->content->find($id) : null;
+
+		// The trash is never shown, even by a genuine link (D-484).
+		$entry = $entry?->status === EntryStatus::Trash ? null : $entry;
 
 		if ($entry === null) {
 			return Response::text(

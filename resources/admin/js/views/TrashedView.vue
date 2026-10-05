@@ -10,38 +10,48 @@
 import { computed, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryRoute, request, type TrashedDetail } from '../api';
+import { ApiError, entryPath, entryRoute, request, type EntryDetail } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import MarkdownEditor from '../components/MarkdownEditor.vue';
 import { formatDate } from '../format';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
-import { restoreFromTrash } from '../trash';
 import { currentType, labelsOf, loadTypes } from '../types';
 
 const route  = useRoute();
 const router = useRouter();
 
-const item  = ref<TrashedDetail | null>(null);
+const item  = ref<EntryDetail | null>(null);
 const body  = ref('');
 const error = ref('');
 const busy  = ref(false);
 
-const trashName = computed(() => (Array.isArray(route.params.name) ? route.params.name : [route.params.name ?? '']).join('/'));
-const labels   = computed(() => labelsOf(item.value?.type || 'entry'));
+const id       = computed(() => String(route.params.id ?? ''));
+const labels   = computed(() => labelsOf(item.value?.type.name || 'entry'));
 const noun     = computed(() => labels.value.item);
 const name     = computed(() => item.value?.title || 'Untitled');
-const back     = computed(() => item.value?.type ? { name: 'type', params: { type: item.value.type }, query: { status: 'trash' } } : { name: 'dashboard' });
-const keys     = computed(() => Object.entries(item.value?.frontMatter ?? {}).filter(([key]) => key !== 'title'));
+const back     = computed(() => item.value ? { name: 'type', params: { type: item.value.type.name }, query: { status: 'trash' } } : { name: 'dashboard' });
+// Its front matter, as the editor reads it: field values, then the rest.
+const keys     = computed(() => Object.entries({ ...item.value?.values, ...item.value?.extra })
+	.filter(([key, value]) => key !== 'title' && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)));
 
 loadTypes().catch(() => undefined);
 
-watch(trashName, async (value) => {
+watch(id, async (value) => {
 	item.value  = null;
 	error.value = '';
 
 	try {
-		item.value = await request<TrashedDetail>('GET', `/trash/${value.split('/').map(encodeURIComponent).join('/')}`);
+		const detail = await request<EntryDetail>('GET', entryPath(value));
+
+		// Restored meanwhile: it's edited, not looked at.
+		if (detail.status !== 'trash') {
+			await router.replace(entryRoute({ id: detail.id, type: detail.type.name }));
+
+			return;
+		}
+
+		item.value = detail;
 		// Shown only, so the blank lines after the front matter can go.
 		body.value = item.value.body.replace(/^\n+/, '');
 	} catch (caught) {
@@ -50,7 +60,7 @@ watch(trashName, async (value) => {
 }, { immediate: true });
 
 watch(item, (value) => {
-	currentType.value = value?.type ?? null;
+	currentType.value = value?.type.name ?? null;
 	screenTitle.value = value === null ? null : (value.title || 'Untitled');
 });
 
@@ -69,16 +79,10 @@ async function restore(): Promise<void> {
 	error.value = '';
 
 	try {
-		const restored = await restoreFromTrash(detail.name);
-
-		if (restored === null) {
-			busy.value = false;
-
-			return;
-		}
+		await request<{ id: string }>('POST', `${entryPath(detail.id)}/restore`);
 
 		toast(`Restored “${name.value}” as a draft`);
-		await router.push(detail.type === null ? back.value : entryRoute({ id: restored, type: detail.type }));
+		await router.push(entryRoute({ id: detail.id, type: detail.type.name }));
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be restored.`;
 		busy.value  = false;
@@ -96,7 +100,7 @@ async function purge(): Promise<void> {
 	error.value = '';
 
 	try {
-		await request<void>('POST', '/trash/delete', { name: detail.name });
+		await request<{ deleted: string }>('DELETE', `${entryPath(detail.id)}?permanently=1`);
 
 		toast(`Deleted “${name.value}” permanently`, { kind: 'danger' });
 		await router.push(back.value);
@@ -116,7 +120,7 @@ async function purge(): Promise<void> {
 				<template v-else>In the Trash</template>
 			</h1>
 			<p v-if="item" class="page-header__hint">
-				{{ labels.singular }} · Moved to the trash <time :datetime="item.trashed">{{ formatDate(item.trashed) }}</time>
+				{{ labels.singular }}<template v-if="item.trashed"> · Moved to the trash <time :datetime="item.trashed">{{ formatDate(item.trashed) }}</time></template>
 			</p>
 		</div>
 		<div class="page-header__actions">

@@ -242,15 +242,10 @@ $writer->update($entry->path, new EntryChanges(
   an entry in its own folder, `trip/index.md`, moves the folder), `duplicate($path, $slug,
   $changes)` (a copy beside it under the first free name from `$slug`,
   dated today if it's dated, an entry's own folder copied whole),
-  and `delete()` (the file moves to `storage/trash/`) work the same way.
-  `trashed()` lists the trash (each with the trash's `name` for it, its
-  `path`, and its `id`), `loadTrashed($name)` reads one,
-  `restore($name, $changes)` brings an entry back after making the
-  changes (such as `new EntryChanges(set: ['status' => 'draft'])`), and
-  `purge($name)` deletes one for good. A restored entry keeps its id;
-  when another entry has it now, `restore()` throws `IdTaken` (with the
-  `id` and the `holder`'s path), and `restore($name, $changes, newId:
-  true)` brings it back with a new one.
+  `trash($path)` (sets `status: trash` and `trashed`, leaving the file
+  where it is), `restore($path)` (back to `status: draft`, without
+  `trashed`), and `delete()` (removes the file for good) work the same
+  way.
 - **Ids** (see [Ids](content.md#ids)): every entry the writer creates,
   a copy included, gets a new `id`, last in its front matter, and an
   `update()` adds one to a file that has none. Changes never set or

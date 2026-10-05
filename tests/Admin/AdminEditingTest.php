@@ -20,7 +20,6 @@ use Blush\Admin\EntryController;
 use Blush\Admin\EntryHandles;
 use Blush\Admin\IndexPage;
 use Blush\Admin\InvalidEdit;
-use Blush\Admin\TrashController;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Lint\Linter;
 
@@ -28,7 +27,6 @@ use Blush\Content\Lint\Linter;
 #[CoversClass(EntryHandles::class)]
 #[CoversClass(IndexPage::class)]
 #[CoversClass(InvalidEdit::class)]
-#[CoversClass(TrashController::class)]
 #[CoversClass(Linter::class)]
 final class AdminEditingTest extends TestCase
 {
@@ -115,19 +113,11 @@ final class AdminEditingTest extends TestCase
 	 */
 	private function trash(string $query = ''): array
 	{
-		$trash = self::json($this->call('GET', "/trash{$query}"))['trash'] ?? null;
+		$trash = self::json($this->call('GET', "/entries?status=trash{$query}"))['entries'] ?? null;
 		$this->assertIsArray($trash);
 
 		/** @var list<array<mixed>> $trash */
 		return $trash;
-	}
-
-	private function trashName(string $path): string
-	{
-		$name = array_find($this->trash(), static fn (array $trashed): bool => $trashed['path'] === $path)['name'] ?? null;
-		$this->assertIsString($name);
-
-		return $name;
 	}
 
 	public function testTrashRestoresAsADraftDeletesAndEmpties(): void
@@ -135,72 +125,73 @@ final class AdminEditingTest extends TestCase
 		$this->site();
 		$sams = '_posts/2021-05-05.sams.md';
 
-		$this->assertSame(200, $this->call('DELETE', $this->entryPath(self::FLAME) . '?revision=' . $this->revision(self::FLAME))->getStatusCode());
+		$this->assertSame(['trashed' => self::FLAME_ID], self::json($this->call('DELETE', $this->entryPath(self::FLAME) . '?revision=' . $this->revision(self::FLAME))));
 		$this->assertSame(200, $this->call('DELETE', $this->entryPath($sams) . '?revision=' . $this->revision($sams))->getStatusCode());
 
 		$this->assertEqualsCanonicalizing(['Rekindling the Flame', "Sam's Post"], array_column($this->trash(), 'title'));
-		$this->assertSame(['post', 'post'], array_column($this->trash('?type=post'), 'type'));
-		$this->assertSame([], $this->trash('?type=page'));
-		$this->assertSame(400, $this->call('GET', '/trash?type=missing')->getStatusCode());
+		$this->assertSame(['post', 'post'], array_column($this->trash('&type=post'), 'type'));
+		$this->assertSame([], $this->trash('&type=page'));
+		$this->assertIsString($this->trash()[0]['trashed'] ?? null, 'When it was trashed.');
+		$listed = self::at(self::json($this->call('GET', '/entries')), 'entries');
+		$this->assertIsArray($listed);
+		$this->assertNotContains(self::FLAME_ID, array_column($listed, 'id'), 'Every status but the trash.');
 
-		$shown = self::json($this->call('GET', '/trash/' . $this->trashName(self::FLAME)));
+		$shown = $this->load(self::FLAME);
 
-		$this->assertSame([self::FLAME, self::FLAME_ID, 'Rekindling the Flame', 'post'], [$shown['path'] ?? null, $shown['id'] ?? null, $shown['title'] ?? null, $shown['type'] ?? null]);
-		$this->assertIsArray($shown['frontMatter'] ?? null);
-		$this->assertSame('hopeful', $shown['frontMatter']['mood'] ?? null);
+		$this->assertSame(['trash', false, true], [$shown['status'] ?? null, self::at($shown, 'can', 'edit'), self::at($shown, 'can', 'delete')], 'Looked at, not edited.');
+		$this->assertIsString($shown['trashed'] ?? null);
 		$this->assertSame("The body.\n", $shown['body'] ?? null);
-		$this->assertSame(404, $this->call('GET', '/trash/20250101-090000/_posts/nothing.md')->getStatusCode());
+		$this->assertSame(422, $this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $shown['revision'] ?? '', 'set' => ['title' => 'No']])->getStatusCode(), 'Restored first.');
+		$this->assertSame(422, $this->call('POST', $this->entryPath(self::FLAME) . '/duplicate')->getStatusCode());
+		$this->assertSame(422, $this->call('DELETE', $this->entryPath(self::FLAME) . '?revision=' . $this->revision(self::FLAME))->getStatusCode(), 'Already in the trash.');
+		$this->assertSame(422, $this->call('DELETE', $this->entryPath('_posts/2023-01-01.idea.md') . '?permanently=1')->getStatusCode(), 'Only the trash is deleted for good.');
 
-		$restored = $this->call('POST', '/trash/restore', ['name' => $this->trashName(self::FLAME)]);
+		$restored = $this->call('POST', $this->entryPath(self::FLAME) . '/restore');
 
-		$this->assertSame(['id' => self::FLAME_ID], self::json($restored), 'It comes back with its id (D-481).');
+		$this->assertSame(['id' => self::FLAME_ID], self::json($restored), 'It keeps its id.');
 		$this->assertSame('draft', $this->load(self::FLAME)['status'] ?? null, 'A restored entry is never live again by itself.');
 		$this->assertStringContainsString("mood      : hopeful\nstatus: draft\n", $this->file(self::FLAME));
+		$this->assertStringNotContainsString('trashed', $this->file(self::FLAME));
+		$this->assertSame(404, $this->call('POST', $this->entryPath(self::FLAME) . '/restore')->getStatusCode(), 'It isn\'t in the trash now.');
 
-		$this->assertSame(204, $this->call('POST', '/trash/delete', ['name' => $this->trashName($sams)])->getStatusCode());
+		$samsId = $this->idOf($sams);
+
+		$this->assertSame(['deleted' => $samsId], self::json($this->call('DELETE', "/entries/{$samsId}?permanently=1")));
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . "/user/content/{$sams}");
 		$this->assertSame([], $this->trash());
-		$this->assertSame(404, $this->call('POST', '/trash/restore', ['name' => 'nothing'])->getStatusCode());
 
 		$idea = '_posts/2023-01-01.idea.md';
 		$this->call('DELETE', $this->entryPath($idea) . '?revision=' . $this->revision($idea));
 
-		$this->assertSame(['deleted' => 1], self::json($this->call('POST', '/trash/empty', ['type' => 'post'])));
+		$this->assertSame(400, $this->call('POST', '/entries/empty-trash', ['type' => 'missing'])->getStatusCode());
+		$this->assertSame(['deleted' => 1], self::json($this->call('POST', '/entries/empty-trash', ['type' => 'post'])));
 		$this->assertSame([], $this->trash());
 	}
 
-	public function testAsksBeforeRestoringAnIdAnotherEntryHas(): void
+	public function testATrashedEntryKeepsItsAddress(): void
 	{
+		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
 		$this->site();
-		$this->call('DELETE', $this->entryPath(self::FLAME) . '?revision=' . $this->revision(self::FLAME));
-		$this->writeTemporaryFile('user/content/_posts/2022-04-01.copy.md', "---\ntitle: The Copy\nid: " . self::FLAME_ID . "\n---\n");
-		$this->app->container()->make(Indexer::class)->index();
+		$this->call('DELETE', $this->entryPath('about.md') . '?revision=' . $this->revision('about.md'));
 
-		$refused = $this->call('POST', '/trash/restore', ['name' => $this->trashName(self::FLAME)]);
-		$answer  = self::json($refused);
+		$created = $this->call('POST', '/entries', ['type' => 'page', 'title' => 'About']);
 
-		$this->assertSame(409, $refused->getStatusCode());
-		$this->assertSame(['id' => self::FLAME_ID, 'title' => 'The Copy', 'path' => '_posts/2022-04-01.copy.md'], $answer['conflict'] ?? null, 'Which entry has the id (D-481).');
-		$this->assertCount(1, $this->trash(), 'It stays in the trash.');
-
-		$restored = self::json($this->call('POST', '/trash/restore', ['name' => $this->trashName(self::FLAME), 'newId' => true]));
-
-		$this->assertIsString($restored['id'] ?? null);
-		$this->assertNotSame(self::FLAME_ID, $restored['id'], 'Restored with a new id, when asked.');
-		$this->assertSame(self::FLAME, $this->load(self::FLAME)['path'] ?? null);
+		$this->assertSame(422, $created->getStatusCode());
+		$this->assertSame('“About” in the trash has this address; restore it, or delete it permanently, first.', self::json($created)['error'] ?? null);
 	}
 
 	public function testAuthorsHandleOnlyTheirOwnTrash(): void
 	{
-		$this->writeTemporaryFile('storage/trash/20250101-090000/user/content/_posts/2020-01-01.old.md', "---\ntitle: Old\nauthors: sam\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/2020-01-01.old.md', "---\ntitle: Old\nauthors: sam\nstatus: trash\n---\n");
 		$this->site(['author']);
 
 		$this->call('DELETE', $this->entryPath('_posts/2023-01-01.idea.md') . '?revision=' . $this->revision('_posts/2023-01-01.idea.md'));
 
 		$this->assertSame(['An Idea'], array_column($this->trash(), 'title'), 'Sam\'s trash is his.');
-		$this->assertSame(404, $this->call('POST', '/trash/restore', ['name' => '20250101-090000/_posts/2020-01-01.old.md'])->getStatusCode());
-		$this->assertSame(404, $this->call('GET', '/trash/20250101-090000/_posts/2020-01-01.old.md')->getStatusCode(), 'Nor can he look at it.');
-		$this->assertSame(['deleted' => 1], self::json($this->call('POST', '/trash/empty', ['type' => 'post'])));
-		$this->assertFileExists($this->temporaryDirectory() . '/storage/trash/20250101-090000/user/content/_posts/2020-01-01.old.md');
+		$this->assertSame(403, $this->call('POST', $this->entryPath('_posts/2020-01-01.old.md') . '/restore')->getStatusCode());
+		$this->assertSame(403, $this->call('GET', $this->entryPath('_posts/2020-01-01.old.md'))->getStatusCode(), 'Nor can he look at it.');
+		$this->assertSame(['deleted' => 1], self::json($this->call('POST', '/entries/empty-trash', ['type' => 'post'])));
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/2020-01-01.old.md');
 	}
 
 	public function testOffersOnlyTheTaxonomiesThatGroupTheType(): void
@@ -543,8 +534,12 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame([$ideaId], $answer['done'] ?? null);
 		$this->assertSame([['id' => '0199b6e2-7f3a-7c41-9d2e-000000000000', 'title' => '', 'reason' => 'It\'s no longer there.']], $answer['skipped'] ?? null);
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . "/user/content/{$idea}");
+		$this->assertStringContainsString("\nstatus: trash\n", $this->file($idea));
 		$this->assertSame([$idea, $ideaId], [$this->trash()[0]['path'] ?? null, $this->trash()[0]['id'] ?? null]);
+
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'ids' => [$ideaId]]));
+
+		$this->assertSame('It\'s in the trash already; restore it to change it.', self::at($answer, 'skipped', '0', 'reason'));
 	}
 
 	public function testBulkChangesSkipWhatCantChange(): void
@@ -818,6 +813,8 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(428, $this->call('DELETE', $this->entryPath(self::FLAME))->getStatusCode());
 		$this->assertSame(200, $this->call('DELETE', $this->entryPath(self::FLAME) . '?revision=' . $this->revision(self::FLAME))->getStatusCode());
+		$this->assertStringContainsString("\nstatus: trash\n", $this->file(self::FLAME), 'It stays where it is (D-484).');
+		$this->assertSame(200, $this->call('DELETE', '/entries/' . self::FLAME_ID . '?permanently=1')->getStatusCode(), 'An author deletes their own for good.');
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/' . self::FLAME);
 		$this->assertSame(404, $this->call('GET', '/entries/' . self::FLAME_ID)->getStatusCode());
 
