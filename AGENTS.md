@@ -132,7 +132,9 @@ league/commonmark, which is never public: one dialect, settings by name
 screen with smart punctuation, heading anchors, and line breaks on by
 default (D-494), raw HTML in the admin by capability, with an allowed
 list and an always-refused list (D-495), and struck, highlighted, and
-code text in the editor's inline menu (D-496).
+code text in the editor's inline menu (D-496); SVG never uploaded
+(D-497); and mentions highlighted and suggested as `@` is typed
+(D-498).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

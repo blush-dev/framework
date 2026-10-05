@@ -14633,7 +14633,10 @@ decision, add a new entry that supersedes it and mark the old one
   to the user's profile if it supports profiles."
   - **`@slug` is a profile's slug**, not an account's (content never
     points at accounts, D-351), linked to the profile's canonical URL
-    with the `mention` class, the text kept as written. A slug with no
+    with the `mention` class, the text kept as written. The `@` and the
+    name are spans, `mention__at` and `mention__name` (the author's
+    call, "so theme authors can style them differently"), built as
+    span nodes rather than raw HTML, so `RawHtml::Escape` keeps them. A slug with no
     published, routable profile, or a site whose profiles have no
     URLs, stays text. Not inside a word (`me@example.com`) or code.
   - **`Markdown\MentionResolver`** (`url(name)`), bound to
@@ -14650,7 +14653,7 @@ decision, add a new entry that supersedes it and mark the old one
     at the caret. The command palette has Mention too. The shell config
     says whether mentions are on.
 - **Not done:** highlighting `@slug` in the editor, and suggesting
-  names as `@` is typed.
+  names as `@` is typed (both built in D-498).
 - **Checked:** `composer check` (`CommonMarkParserTest`,
   `AdminSettingsTest::testShowsAndSavesTheWritingScreen` with a real
   profile).
@@ -14717,8 +14720,8 @@ decision, add a new entry that supersedes it and mark the old one
     mirrors the rules, sent in the shell config). It marks HTML already
     there too, which the server would let stay.
   - **Not done:** opening the allowed list to Authors (possible once
-    it's settled as tight enough); SVG uploads, the same risk by
-    another route, belong with the media rules.
+    it's settled as tight enough). SVG uploads, the same risk by
+    another route, are refused (D-497).
 - **Done:** `docs/accounts.md`, `docs/admin.md`.
 - **Checked:** `composer check` (`AdminHtmlTest`, `HtmlRulesTest`).
 
@@ -14743,4 +14746,75 @@ decision, add a new entry that supersedes it and mark the old one
     taller than its room, and refits on resize.
 - **Checked:** `npm run admin:build`; the highlighter and toggles
   under Node.
+
+### D-497: SVG is never uploaded
+- **Date:** 2026-10-05
+- **Decision:** the author's call: "Deny svg uploads (we have the icon
+  api for that)." An SVG can carry script, the same risk D-495 closes in
+  bodies.
+  - **`MediaUploads::REFUSED`** (`image/svg+xml`) is refused by
+    `MediaUploadController` whatever `MediaConfig::$types` allows, by
+    its name ("SVG files can carry script. For icons, add an icon
+    pack.") and by its contents (an SVG named `.png`). It's left out of
+    the extensions the picker offers and the Media settings screen
+    lists.
+  - **Serving is unchanged:** SVGs already in `user/media`, or put
+    there by hand, are served as before, sandboxed
+    (`MediaController` sends `Content-Security-Policy: sandbox`), though
+    a `media:publish`ed copy served by the web server isn't. Icons come from icon packs and
+    the icon registry.
+- **Done:** `docs/media.md`.
+- **Checked:** `composer check` (`AdminPickersTest`).
+
+### D-498: Mentions are highlighted and suggested in the editor
+- **Date:** 2026-10-05
+- **Decision:** the author's call: "Add @mention highlighting and
+  suggestions while typing @ in the editor." Builds D-493's not-done
+  items.
+  - **Highlighting:** a `mention` token, read as the site reads one
+    (`MENTION`, the same pattern as `CommonMarkParser::MENTION`; not
+    after a letter, digit, `_`, or `@`, and not in code), drawn in the
+    accent, only while the site has mentions on (`setMentions()`).
+    Whether a profile exists isn't shown.
+  - **Suggestions:** `MarkdownEditor` takes `people` (a lookup by
+    what's typed); typing `@` in prose (a paragraph, heading, list, or
+    quote line, not code or inline code, not inside a word) lists up
+    to eight matching published profiles (`GET references/{profiles}`,
+    by title or slug) under the `@`, or over it when there's more room
+    above. ↑ and ↓ move, Enter or Tab writes `@slug` through the
+    browser's editing (so undo takes it back), with a space after it
+    at the end of a line, and Esc leaves the text and stays closed for
+    that `@`. Moving the caret away, a click, or leaving the field
+    closes it. The text area names the list and the active option
+    (`aria-controls`, `aria-activedescendant`).
+  - **Fixed after the author tried it:** clicking or arrowing onto a
+    mention already written opened the list, so only typing opens it
+    now (moving off still closes it). The list sat a character off
+    below any code block: the highlighted copy has no line break after
+    a code block (it's a block of its own), which `caretRect()` now
+    counts, so the slash panel's position is right there too. And while
+    a new search was on its way the list still held the last one's
+    answer, so a quick Enter picked its first name (on the trial,
+    always Justin Tadlock); now what no longer matches is dropped at
+    once, before the answer comes.
+  - **And again, after the author found the list disappearing as they
+    typed:** with the trial's search taking 0.2–0.4s, dropping what no
+    longer matched could leave nothing to show, and the list closed
+    until an answer came; and an answer for an earlier query (`@`)
+    could replace a narrower list (`@j`). Now the list stays open while
+    a mention is being typed, saying "Finding profiles…" while it waits
+    and "No profile matches" when nothing does (Esc still closes it),
+    and an answer is narrowed to what's typed when it arrives.
+    Reproduced and checked in Chromium against a scratch site's real
+    admin (Playwright, scratchpad only).
+  - **And the author's exact steps** (`@zadie @superman`, Enter twice,
+    `@j`): the list jumped to the window's top as `j` was typed. `@j`
+    becomes a mention token, so its `@` starts a text node at the start
+    of a line, and Chrome gives a collapsed range there no box (0, 0).
+    `caretRect()` now measures the character itself
+    (`characterRect()`: the one at the offset, else the one before it,
+    else, on an empty line, the collapsed range), which also keeps
+    `reveal()`'s scrolling right at a line's start.
+- **Checked:** `npm run admin:build`; the highlighter under Node, and
+  `ProfileMentions` linking all three of the trial's profiles.
 

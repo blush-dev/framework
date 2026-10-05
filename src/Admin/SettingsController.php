@@ -320,7 +320,7 @@ final readonly class SettingsController
 					MediaKind::Document => 'notes.pdf',
 					MediaKind::File     => 'captions.vtt'
 				},
-				'extensions' => array_keys(array_filter(MediaResolver::EXTENSIONS, fn (string $mime): bool => MediaKind::fromMime($mime) === $kind && $this->media->allows($mime)))
+				'extensions' => array_keys(array_filter(MediaResolver::EXTENSIONS, fn (string $mime): bool => MediaKind::fromMime($mime) === $kind && $this->media->allows($mime) && ! in_array($mime, MediaUploads::REFUSED, true)))
 			];
 		}
 

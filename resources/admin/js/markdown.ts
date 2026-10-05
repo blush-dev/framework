@@ -48,10 +48,10 @@ export interface Directive {
 
 type LineKind = 'text' | 'heading' | 'fence' | 'code' | 'open' | 'close' | 'leaf';
 
-type TokenKind = 'escape' | 'code' | 'directive' | 'link' | 'footnote' | 'autolink' | 'strong' | 'em' | 'strike' | 'marked' | 'html' | 'attributes';
+type TokenKind = 'escape' | 'code' | 'directive' | 'link' | 'footnote' | 'autolink' | 'strong' | 'em' | 'strike' | 'marked' | 'html' | 'mention' | 'attributes';
 
 // The kinds in the order `INLINE` names their groups.
-const KINDS = ['escape', 'code', 'directive', 'link', 'footnote', 'autolink', 'html', 'strong', 'em', 'strike', 'marked', 'attributes'] as const;
+const KINDS = ['escape', 'code', 'directive', 'link', 'footnote', 'autolink', 'html', 'mention', 'strong', 'em', 'strike', 'marked', 'attributes'] as const;
 
 interface Token {
 	kind: TokenKind;
@@ -121,6 +121,10 @@ const DELIMITER = /^ {0,3}\|?(?: *:?-+:? *\|)+ *(?::?-+:? *)?$/;
 const PART       = '(?:[.#][A-Za-z0-9_-]+|[A-Za-z_:][A-Za-z0-9_:.-]*[ \\t]*=[ \\t]*(?:"[^"\\n]*"|\'[^\'\\n]*\'|[^\\s{}"\'=]+))';
 const ATTRIBUTES = `\\{:?[ \\t]*${PART}(?:[ \\t]+${PART})*[ \\t]*\\}`;
 
+// What a mention's name may be, as the site reads it
+// (`CommonMarkParser::MENTION`, D-493): a profile's slug.
+export const MENTION = '[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?';
+
 // Inline marks, earliest first and, at one place, in this order. Strong,
 // emphasis, struck, and highlighted text need something that isn't a space just
 // inside their marks, and underscores don't count inside a word, much as
@@ -135,6 +139,8 @@ const INLINE = new RegExp([
 	'(?<autolink><(?:https?:\\/\\/|mailto:)[^>\\s]+>)',
 	// Raw HTML: a tag, opening or closing, or a comment (D-495).
 	String.raw`(?<html><!--.*?-->|<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s+[^\s"'>\/=]+(?:\s*=\s*(?:"[^"\n]*"|'[^'\n]*'|[^\s"'=<>\x60]+))?)*\s*\/?>)`,
+	// A mention, not inside a word or an address (D-493).
+	String.raw`(?<mention>(?<![\p{L}\p{N}_@])@${MENTION})`,
 	`(?<strong>\\*\\*(?!\\s)(?:.*?\\S)?\\*\\*(?!\\*)|(?<!${WORD})__(?!\\s)(?:.*?\\S)?__(?!${WORD}))`,
 	`(?<em>\\*(?![\\s*])(?:.*?[^\\s*])?\\*(?!\\*)|(?<!${WORD})_(?![\\s_])(?:.*?[^\\s_])?_(?!${WORD}))`,
 	'(?<strike>~~(?!\\s)(?:.*?\\S)?~~)',
@@ -381,6 +387,20 @@ export interface HtmlCheck {
 
 let htmlCheck: HtmlCheck | null = null;
 
+// Whether `@name` is a mention on this site (D-493).
+let mentions = false;
+
+/**
+ * Sets whether the highlighter marks mentions.
+ */
+export function setMentions(on: boolean): void {
+	if (on !== mentions) {
+		lineCache = new Map();
+	}
+
+	mentions = on;
+}
+
 /**
  * Sets the check the highlighter marks HTML and addresses with, or `null`
  * for none.
@@ -538,6 +558,8 @@ function tokenHtml(text: string, token: Token, current: Current): string {
 			return attributesHtml(source);
 		case 'footnote':
 			return `<span class="md-footnote">${escape(source)}</span>`;
+		case 'mention':
+			return mentions ? `<span class="md-mention">${escape(source)}</span>` : escape(source);
 		case 'html':
 			return `<span class="md-html${htmlCheck?.tag(source) === true ? ' md-refused' : ''}">${escape(source)}</span>`;
 		case 'autolink':

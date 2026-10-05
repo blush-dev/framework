@@ -211,7 +211,7 @@ final class AdminPickersTest extends TestCase
 		$png  = (string) base64_decode(self::PNG, true);
 		$list = $this->media();
 
-		$this->assertSame(['extensions' => ['apng', 'avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp', 'mp3', 'oga', 'ogg', 'wav', 'm4v', 'mp4', 'ogv', 'webm', 'pdf', 'vtt']], array_diff_key(is_array($list['upload'] ?? null) ? $list['upload'] : [], ['limit' => true]), 'The picker learns what it may upload.');
+		$this->assertSame(['extensions' => ['apng', 'avif', 'gif', 'jpeg', 'jpg', 'png', 'webp', 'mp3', 'oga', 'ogg', 'wav', 'm4v', 'mp4', 'ogv', 'webm', 'pdf', 'vtt']], array_diff_key(is_array($list['upload'] ?? null) ? $list['upload'] : [], ['limit' => true]), 'The picker learns what it may upload.');
 
 		$first = $this->upload('My Holiday (1).PNG', $png);
 		$file  = self::json($first);
@@ -246,6 +246,12 @@ final class AdminPickersTest extends TestCase
 
 		$this->assertSame(422, $this->upload('notes.txt', 'plain text')->getStatusCode(), 'Not a library type.');
 		$this->assertSame(422, $this->upload('page.png', '<html><script>alert(1)</script></html>')->getStatusCode(), 'Not what its name says.');
+
+		$svg = $this->upload('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+
+		$this->assertSame(422, $svg->getStatusCode(), 'SVG is never uploaded (D-497).');
+		$this->assertStringContainsString('For icons, add an icon pack.', (string) $svg->getBody());
+		$this->assertSame(422, $this->upload('logo.png', '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"></svg>')->getStatusCode(), 'Nor under another name.');
 		$this->assertSame(413, $this->upload('big.png', '', UPLOAD_ERR_INI_SIZE)->getStatusCode());
 		$this->assertSame([], glob($this->temporaryDirectory() . '/user/media/*/*/{.,}*.png', GLOB_BRACE) ?: [], 'Nothing is left behind.');
 		$this->assertSame(['.hidden.png'], array_map(basename(...), glob($this->temporaryDirectory() . '/user/media/.*.png') ?: []));

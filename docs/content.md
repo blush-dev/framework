@@ -281,8 +281,13 @@ lists, autolinks, and footnotes. On top of that:
 
 - **Highlighting:** `==text==` marks text as highlighted (`<mark>`).
 - **Mentions:** `@jane` links to the profile whose slug is `jane`, once
-  it's published, with the `mention` class. A name that isn't anyone's,
-  an address like `me@example.com`, and code stay as written.
+  it's published. A name that isn't anyone's, an address like
+  `me@example.com`, and code stay as written. The `@` and the name are
+  spans of their own, so a theme can style them apart:
+
+  ```html
+  <a class="mention" href="/profiles/jane"><span class="mention__at">@</span><span class="mention__name">jane</span></a>
+  ```
 - **Smart punctuation:** straight quotes become curly ones, `--` an en
   dash, `---` an em dash, and `...` an ellipsis. Code stays as written.
 - **Heading anchors:** each heading gets a link to itself (`#`), shown

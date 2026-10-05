@@ -184,7 +184,7 @@ final class AdminSettingsTest extends TestCase
 
 		$page = (string) $this->visit('GET', '/hello')->getBody();
 
-		$this->assertStringContainsString('Thanks, <a class="mention" href="https://example.test/profiles/sam">@sam</a> and @nobody. “Quoted”', $page, 'A published profile is linked; nobody\'s name stays text.');
+		$this->assertStringContainsString('Thanks, <a class="mention" href="https://example.test/profiles/sam"><span class="mention__at">@</span><span class="mention__name">sam</span></a> and @nobody. “Quoted”', $page, 'A published profile is linked; nobody\'s name stays text.');
 		$this->assertStringContainsString('<h2>Part <b>one</b><a id="part-one" href="#part-one" class="heading-anchor"', $page);
 
 		$writing  = self::json($this->send('GET', '/settings/writing'));

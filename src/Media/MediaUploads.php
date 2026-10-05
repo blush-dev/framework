@@ -40,11 +40,20 @@ use Blush\Config\InvalidConfig;
  *   value): it may be turned off, or have its own largest file or path.
  *
  * Only the types `MediaConfig` allows can be uploaded at all; these rules
- * narrow them, and never change what's served. A file keeps the address
+ * narrow them, and never change what's served. SVG is never uploaded
+ * (`REFUSED`, D-497): it can carry script, and icons come from icon packs. A file keeps the address
  * it was uploaded at when the path changes.
  */
 final readonly class MediaUploads
 {
+	/**
+	 * Types no upload may be, whatever the site allows (D-497). Files
+	 * already in `user/media` are still served.
+	 *
+	 * @var list<string>
+	 */
+	public const array REFUSED = ['image/svg+xml'];
+
 	/**
 	 * The default path: a folder for each year and month, as 1.x had.
 	 */

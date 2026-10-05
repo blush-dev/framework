@@ -212,6 +212,10 @@ SVG, WebP, APNG, MP3, WAV, Ogg, MP4, and WebM, plus WebVTT caption files
 (`.vtt`) for videos. You can change the list, or
 the `/media` URL, in [`config/media.php`](configuration.md#media).
 
+SVG files are served, but can't be uploaded in the admin, whatever the
+list says: an SVG can carry script. For icons, add an
+[icon pack](extending.md#icon-packs); for other SVGs, put the file in `user/media` yourself.
+
 ## Faster media on a live site
 
 By default, Blush's PHP code streams each media file. On a live site, let

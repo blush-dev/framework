@@ -107,7 +107,7 @@ import ImagePreview from '../components/ImagePreview.vue';
 import ReferencePicker from '../components/ReferencePicker.vue';
 import IconPicker from '../components/IconPicker.vue';
 import ImageOptions from '../components/ImageOptions.vue';
-import MarkdownEditor from '../components/MarkdownEditor.vue';
+import MarkdownEditor, { type MentionSuggestion } from '../components/MarkdownEditor.vue';
 import MediaPicker from '../components/MediaPicker.vue';
 import MenuButton from '../components/MenuButton.vue';
 import StatusPill from '../components/StatusPill.vue';
@@ -1979,6 +1979,20 @@ const mentionSpot  = ref<{ start: number; end: number } | null>(null);
 let mentionSearch  = 0;
 let mentionTimer: ReturnType<typeof setTimeout> | undefined;
 
+// The profiles typing `@` suggests (D-498): published ones, whose names
+// or slugs match.
+async function findPeople(query: string): Promise<MentionSuggestion[]> {
+	const type = profileType.value;
+
+	if (type === null) {
+		return [];
+	}
+
+	const found = await loadReferences(type, { search: query, limit: 8 });
+
+	return found.items.filter((item) => item.status === 'published').map((item) => ({ slug: item.slug, title: item.title }));
+}
+
 async function findMentions(): Promise<void> {
 	const type = profileType.value;
 	const ask  = ++mentionSearch;
@@ -2705,6 +2719,7 @@ function fieldKey(field: FieldDescription): string {
 							class="editor__body-text"
 							v-model="body"
 							v-model:caret="caret"
+							:people="canMention ? findPeople : undefined"
 							label="Body (Markdown)"
 							placeholder="Write in Markdown. Type / on an empty line, or use +, to add a block."
 							v-model:extent="extent"

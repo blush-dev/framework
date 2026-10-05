@@ -30,6 +30,7 @@ use Blush\Media\MediaKind;
 use Blush\Media\MediaMetadata;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
+use Blush\Media\MediaUploads;
 use Blush\Support\UrlPath;
 use Blush\Support\Uuid;
 
@@ -47,7 +48,9 @@ use Blush\Support\Uuid;
  * contents, the way the media resolver serves them: the file is written
  * hidden first, and takes its name only once its contents pass.
  *
- * A kind the rules turn off, or every upload turned off, is refused, as
+ * SVG is refused whatever the site allows (`MediaUploads::REFUSED`,
+ * D-497), by its name and by its contents. A kind the rules turn off, or
+ * every upload turned off, is refused, as
  * is a file larger than its kind's largest, and one of a kind the account
  * may not upload (`media.{kind}.upload`, D-407). The file's metadata
  * records who uploaded it (`owner`), which decides who may edit or
@@ -97,6 +100,10 @@ final readonly class MediaUploadController
 		$extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 		$mime      = MediaListController::EXTENSIONS[$extension] ?? null;
 
+		if ($mime !== null && in_array($mime, MediaUploads::REFUSED, true)) {
+			return self::error(sprintf('%s can\'t be uploaded: SVG files can carry script. For icons, add an icon pack.', $name), Status::UnprocessableContent);
+		}
+
 		if ($mime === null || ! $this->config->allows($mime)) {
 			return self::error(sprintf('%s isn\'t a type the library takes: %s.', $name, implode(', ', $this->extensions())), Status::UnprocessableContent);
 		}
@@ -134,7 +141,7 @@ final readonly class MediaUploadController
 
 		$actual = MediaResolver::mimeOf($hidden);
 
-		if (! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual)) || ! $this->permissions->mayUpload($account, MediaKind::fromMime($actual))) {
+		if (in_array($actual, MediaUploads::REFUSED, true) || ! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual)) || ! $this->permissions->mayUpload($account, MediaKind::fromMime($actual))) {
 			@unlink($hidden);
 
 			return self::error(sprintf('%s isn\'t what its name says it is, or isn\'t a type the library takes.', $name), Status::UnprocessableContent);
@@ -177,7 +184,8 @@ final readonly class MediaUploadController
 	}
 
 	/**
-	 * The file extensions that can be uploaded: the types the site allows,
+	 * The file extensions that can be uploaded: the types the site allows
+	 * but SVG,
 	 * of the kinds the upload rules allow, and, given an account, the
 	 * kinds it may upload (D-407).
 	 *
@@ -185,7 +193,7 @@ final readonly class MediaUploadController
 	 */
 	public function extensions(?Account $account = null): array
 	{
-		return array_keys(array_filter(MediaListController::EXTENSIONS, fn (string $mime): bool => $this->config->allows($mime) && $this->uploadable(MediaKind::fromMime($mime), $account)));
+		return array_keys(array_filter(MediaListController::EXTENSIONS, fn (string $mime): bool => ! in_array($mime, MediaUploads::REFUSED, true) && $this->config->allows($mime) && $this->uploadable(MediaKind::fromMime($mime), $account)));
 	}
 
 	/**

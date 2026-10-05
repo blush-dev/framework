@@ -365,7 +365,10 @@ side is what you do to the text, in three groups:
   it's on at the cursor), **Mention** (a search for a published profile
   by name, which writes `@slug` where the cursor is; shown when
   [mentions](#settings) are on), then any component inside a sentence;
-  and the shapes for an icon. Inside a component that holds only some
+  and the shapes for an icon. Typing `@` in the text does the same as you
+  type: the published profiles whose names or slugs match are listed
+  under the cursor; ↑ and ↓ move, Enter or Tab writes `@slug`, and Esc
+  leaves what you typed. Mentions are colored like links. Inside a component that holds only some
   things, such as a gallery's images, they go, the component panel
   offers only what it holds, and the media picker shows only images.
 - **Bleed**, for an element at the top of the entry: how far it reaches

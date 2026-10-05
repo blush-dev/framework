@@ -40,13 +40,19 @@
  * while it's open, the keys that drive the panel are passed on
  * (`slashKey`) rather than typed. The query stays in the text until a
  * component replaces it (`insert()`), so an abandoned slash is just text.
+ *
+ * Typing `@` in prose, given `people`, lists the profiles whose names
+ * match what follows it under the caret (D-498): arrows move, Enter or
+ * Tab writes `@slug`, and Escape leaves what's typed as text. Mentions
+ * are highlighted where the site links them (`config.mentions`).
  * Inserting and removing go through the browser's own editing, so undo
  * takes them back in one step.
  */
 
 import { computed, nextTick, ref } from 'vue';
+import { config } from '../config';
 import { htmlCheck } from '../html';
-import { blocks, closingFence, setHtmlCheck, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
+import { blocks, closingFence, setHtmlCheck, setMentions, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
 import { directiveText, type ComponentDescription } from '../components';
 
 const props = defineProps<{
@@ -66,7 +72,15 @@ const props = defineProps<{
 	// keystroke reads it once.
 	parsed?: MarkdownOutline;
 	blocks?: MarkdownBlock[];
+	// Finds profiles to mention by what's typed after `@` (D-498); without
+	// it, typing `@` suggests nothing.
+	people?: (query: string) => Promise<MentionSuggestion[]>;
 }>();
+
+export interface MentionSuggestion {
+	slug: string;
+	title: string;
+}
 
 const model = defineModel<string>({ required: true });
 
@@ -94,8 +108,10 @@ const emit = defineEmits<{
 const markdown = computed(() => props.parsed ?? outline(model.value));
 const current  = computed(() => props.directive ?? (props.image === undefined ? directiveAt(markdown.value.directives, caret.value) : -1));
 
-// Raw HTML and addresses the account couldn't add are marked (D-495).
+// Raw HTML and addresses the account couldn't add are marked (D-495),
+// and mentions, where they link (D-493).
 setHtmlCheck(htmlCheck());
+setMentions(config.mentions);
 
 const html = computed(() => highlight(markdown.value, current.value, props.image ?? -1, props.blocks ?? blocks(markdown.value)));
 
@@ -144,28 +160,71 @@ function slashAt(): { at: number; query: string } | null {
 }
 
 /**
+ * The box of the character at an offset in a text node (its left edge),
+ * or of the one before it (its right edge) at the node's end or a line's,
+ * or `null` when there's none to measure. A collapsed range would be
+ * simpler, but at the start of a node on a line of its own Chrome gives
+ * it no box at all, which put the mention list at the window's top.
+ */
+function characterRect(node: Node, at: number): { left: number; top: number; bottom: number } | null {
+	const length = node.nodeValue?.length ?? 0;
+	const range  = document.createRange();
+	const after  = at < length && node.nodeValue?.[at] !== '\n';
+
+	if (after) {
+		range.setStart(node, at);
+		range.setEnd(node, at + 1);
+	} else if (at > 0 && node.nodeValue?.[at - 1] !== '\n') {
+		range.setStart(node, at - 1);
+		range.setEnd(node, at);
+	} else {
+		// An empty line: between two breaks, the collapsed range is all
+		// there is.
+		range.setStart(node, at);
+		range.collapse(true);
+	}
+
+	const rect = range.getClientRects()[0] ?? range.getBoundingClientRect();
+
+	if (rect === undefined || (rect.width === 0 && rect.height === 0)) {
+		return null;
+	}
+
+	return { left: after ? rect.left : rect.right, top: rect.top, bottom: rect.bottom };
+}
+
+/**
  * Where an offset in the body is on screen, measured on the highlighted
- * copy, which has every character of the text in the same place.
+ * copy, which has every character of the text in the same place but one:
+ * a code block is a block of its own, so the line break after it isn't
+ * in the copy, and is counted here.
  */
 function caretRect(offset: number): { left: number; top: number; bottom: number } {
 	const copy = source.value?.querySelector('.md__highlight');
 
 	if (copy instanceof HTMLElement) {
 		const walker = document.createTreeWalker(copy, NodeFilter.SHOW_TEXT);
-		let seen = 0;
+		let seen  = 0;
+		let block: Element | null = null;
 
 		for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
 			const length = node.nodeValue?.length ?? 0;
+			const inside = node.parentElement?.closest('.md-codeblock') ?? null;
+
+			if (block !== null && inside !== block) {
+				seen++;
+			}
+
+			block = inside;
 
 			if (seen + length >= offset) {
-				const range = document.createRange();
+				// Never before the node: the break after a code block is at its start.
+				const at   = Math.max(0, offset - seen);
+				const rect = characterRect(node, at);
 
-				range.setStart(node, offset - seen);
-				range.collapse(true);
-
-				const rect = range.getBoundingClientRect();
-
-				return { left: rect.left, top: rect.top, bottom: rect.bottom };
+				if (rect !== null) {
+					return rect;
+				}
 			}
 
 			seen += length;
@@ -175,6 +234,208 @@ function caretRect(offset: number): { left: number; top: number; bottom: number 
 	const rect = field.value?.getBoundingClientRect();
 
 	return { left: rect?.left ?? 0, top: rect?.top ?? 0, bottom: rect?.top ?? 0 };
+}
+
+// The mention being typed (D-498): where its `@` is, what follows it,
+// the profiles that match, the one picked, and where the list goes.
+// One closed with Escape stays closed until it's gone.
+const mention          = ref<{ at: number; query: string } | null>(null);
+const mentionDismissed = ref<number | null>(null);
+const suggestions      = ref<MentionSuggestion[]>([]);
+const suggested        = ref(0);
+const suggestAt        = ref<{ left: number; top: number; above: boolean } | null>(null);
+// Whether an answer for what's typed is still to come.
+const searching        = ref(false);
+let suggestTimer: ReturnType<typeof setTimeout> | undefined;
+let suggestAsk = 0;
+
+// What a mention typed so far may be: nothing yet, or a name's start.
+const TYPED_MENTION = /(?:^|[^\p{L}\p{N}_@`])@([A-Za-z0-9_-]{0,64})$/u;
+
+/**
+ * The mention being typed at the caret, if any: `@` and a name's start,
+ * not inside a word, an address, or code.
+ */
+function mentionAt(): { at: number; query: string } | null {
+	const element = field.value;
+
+	if (element === null || props.people === undefined || !config.mentions || element.selectionStart !== element.selectionEnd) {
+		return null;
+	}
+
+	const position  = element.selectionStart;
+	const value     = element.value;
+	const lineStart = value.lastIndexOf('\n', position - 1) + 1;
+	const before    = value.slice(lineStart, position);
+	const match     = TYPED_MENTION.exec(before);
+
+	// Inside inline code, the backticks before it are odd.
+	if (match === null || (before.split('`').length - 1) % 2 === 1) {
+		return null;
+	}
+
+	const kind = outline(value).lines.find((item) => item.start === lineStart)?.kind;
+
+	if (kind !== 'text' && kind !== 'heading') {
+		return null;
+	}
+
+	const query = match[1] ?? '';
+
+	return { at: position - query.length - 1, query };
+}
+
+function closeSuggestions(): void {
+	clearTimeout(suggestTimer);
+	suggestAsk++;
+	mention.value     = null;
+	suggestions.value = [];
+	suggestAt.value   = null;
+	searching.value   = false;
+}
+
+// Whether a profile matches what's typed after `@`, as the server
+// searches: its name or slug has it in it.
+function matches(person: MentionSuggestion, query: string): boolean {
+	const typed = query.toLowerCase();
+
+	return person.slug.toLowerCase().includes(typed) || person.title.toLowerCase().includes(typed);
+}
+
+/**
+ * Follows the mention at the caret, asking for the profiles that match.
+ * Only typing opens the list (`open`); moving the caret onto a mention
+ * already written doesn't, but moving off one closes it.
+ */
+function followMention(open = true): void {
+	const found = mentionAt();
+
+	if (found === null || found.at === mentionDismissed.value) {
+		if (found === null) {
+			mentionDismissed.value = null;
+		}
+
+		if (mention.value !== null) {
+			closeSuggestions();
+		}
+
+		return;
+	}
+
+	if (mention.value?.at === found.at && mention.value.query === found.query) {
+		return;
+	}
+
+	if (mention.value === null && !open) {
+		return;
+	}
+
+	mention.value = found;
+
+	// Until the answer comes, only what's listed that still matches stays,
+	// so Enter can't pick a name typed past; the list stays open,
+	// saying it's looking when nothing listed matches.
+	suggestions.value = suggestions.value.filter((person) => matches(person, found.query));
+	suggested.value   = 0;
+	searching.value   = true;
+	placeSuggestions();
+	clearTimeout(suggestTimer);
+	suggestTimer = setTimeout(() => void suggest(found.query), 120);
+}
+
+async function suggest(query: string): Promise<void> {
+	const ask    = ++suggestAsk;
+	const people = props.people;
+
+	if (people === undefined) {
+		return;
+	}
+
+	let found: MentionSuggestion[] = [];
+
+	try {
+		found = await people(query);
+	} catch {
+		found = [];
+	}
+
+	const typed = mention.value;
+
+	if (ask !== suggestAsk || typed === null) {
+		return;
+	}
+
+	// An answer for less than what's typed now is narrowed to it, and the
+	// answer for the rest is still to come.
+	suggestions.value = found.filter((person) => matches(person, typed.query)).slice(0, 8);
+	suggested.value   = 0;
+	searching.value   = typed.query !== query;
+	placeSuggestions();
+}
+
+// Under the `@`, or over it when there's more room above.
+function placeSuggestions(): void {
+	const at  = mention.value?.at;
+	const box = source.value?.getBoundingClientRect();
+
+	if (at === undefined || box === undefined) {
+		suggestAt.value = null;
+
+		return;
+	}
+
+	const rect  = caretRect(at);
+	const above = window.innerHeight - rect.bottom < 260 && rect.top > window.innerHeight - rect.bottom;
+
+	suggestAt.value = { left: Math.max(0, Math.min(rect.left - box.left, box.width - 240)), top: (above ? rect.top : rect.bottom) - box.top, above };
+}
+
+/**
+ * Writes the profile picked as `@slug`, in place of what's typed, with a
+ * space after it at the end of a line.
+ */
+function chooseMention(person: MentionSuggestion | undefined): void {
+	const element = field.value;
+	const typed   = mention.value;
+
+	if (element === null || typed === null || person === undefined) {
+		return;
+	}
+
+	const end   = typed.at + 1 + typed.query.length;
+	const next  = element.value[end];
+	const space = next === undefined || next === '\n' ? ' ' : '';
+
+	mentionDismissed.value = typed.at;
+	closeSuggestions();
+	replace(element, typed.at, end, `@${person.slug}${space}`);
+}
+
+// While the list is open, it takes the keys that drive it: the arrows,
+// Enter, and Tab while it has names, and Escape. Returns whether the key
+// was used.
+function mentionKey(event: KeyboardEvent): boolean {
+	const count = suggestions.value.length;
+
+	if (mention.value === null || suggestAt.value === null || event.metaKey || event.ctrlKey || event.altKey) {
+		return false;
+	}
+
+	if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && count > 0) {
+		suggested.value = (suggested.value + (event.key === 'ArrowDown' ? 1 : count - 1)) % count;
+	} else if ((event.key === 'Enter' || event.key === 'Tab') && count > 0) {
+		chooseMention(suggestions.value[suggested.value]);
+	} else if (event.key === 'Escape') {
+		mentionDismissed.value = mention.value.at;
+		closeSuggestions();
+	} else {
+		return false;
+	}
+
+	event.preventDefault();
+	event.stopPropagation();
+
+	return true;
 }
 
 // Reports a slash as it's typed, changed, or gone.
@@ -211,6 +472,7 @@ function dismissSlash(): void {
 function input(event: Event): void {
 	track(event);
 	followSlash();
+	followMention();
 
 	// The third backtick writes the rest of the block, as an edit of its
 	// own, so undo takes back the closing fence first.
@@ -225,9 +487,19 @@ function input(event: Event): void {
 	}
 }
 
+// A key that moves the caret may leave the mention being typed.
+function keyup(event: KeyboardEvent): void {
+	track(event);
+
+	if (!['ArrowDown', 'ArrowUp', 'Enter', 'Tab', 'Escape'].includes(event.key) || suggestions.value.length === 0) {
+		followMention(false);
+	}
+}
+
 // Clicking elsewhere in the text leaves a slash as text.
 function clicked(event: Event): void {
 	track(event);
+	followMention(false);
 
 	if (slash.value !== null) {
 		dismissSlash();
@@ -238,6 +510,10 @@ function clicked(event: Event): void {
 // While a slash has the panel open, it takes the keys that drive it;
 // otherwise Enter in a list, quote, or table carries its marker down.
 function keydown(event: KeyboardEvent): void {
+	if (mentionKey(event)) {
+		return;
+	}
+
 	if (!props.slashOpen || slash.value === null) {
 		if (!shortcut(event)) {
 			carry(event);
@@ -784,15 +1060,43 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 				:readonly="props.readonly"
 				:aria-label="props.label"
 				:placeholder="props.placeholder"
+				:aria-controls="suggestAt ? `${props.id}-people` : undefined"
+				:aria-activedescendant="suggestAt && suggestions.length ? `${props.id}-person-${suggested}` : undefined"
 				@beforeinput="beforeinput"
 				@input="input"
 				@keydown="keydown"
-				@keyup="track"
+				@keyup="keyup"
 				@click="clicked"
 				@select="track"
 				@focus="track"
+				@blur="closeSuggestions"
 				@paste="paste"
 			/>
+			<ul
+				v-if="suggestAt"
+				:id="`${props.id}-people`"
+				class="md__people"
+				:class="{ 'is-above': suggestAt.above }"
+				:style="{ left: `${suggestAt.left}px`, top: `${suggestAt.top}px` }"
+				role="listbox"
+				aria-label="Profiles to mention"
+			>
+				<li
+					v-for="(person, index) in suggestions"
+					:id="`${props.id}-person-${index}`"
+					:key="person.slug"
+					class="md__person"
+					:class="{ 'is-active': index === suggested }"
+					role="option"
+					:aria-selected="index === suggested"
+					@mousedown.prevent="chooseMention(person)"
+					@mouseenter="suggested = index"
+				>
+					<span class="md__person-name">{{ person.title }}</span>
+					<span class="md__person-slug">@{{ person.slug }}</span>
+				</li>
+				<li v-if="suggestions.length === 0" class="md__people-note" role="presentation">{{ searching ? 'Finding profiles…' : 'No profile matches' }}</li>
+			</ul>
 		</div>
 	</div>
 </template>
@@ -810,6 +1114,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
  */
 
 .md__source {
+	position: relative;
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	min-height: 40vh;
@@ -913,6 +1218,65 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 	color: var(--danger);
 	text-decoration: wavy underline;
 	text-decoration-color: var(--danger);
+}
+
+/* A mention reads as a link would (D-493). */
+.md__highlight :deep(.md-mention) {
+	color: var(--accent);
+}
+
+/* The profiles to mention, under the `@` being typed (D-498). */
+.md__people {
+	position: absolute;
+	z-index: 50;
+	display: grid;
+	width: 240px;
+	max-height: 240px;
+	margin: 6px 0 0;
+	padding: 5px;
+	overflow-y: auto;
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface);
+	box-shadow: var(--shadow-2);
+	font-family: var(--font-ui);
+	font-size: var(--base);
+	list-style: none;
+	overscroll-behavior: contain;
+}
+
+.md__people.is-above {
+	margin: 0;
+	transform: translateY(calc(-100% - 6px));
+}
+
+.md__person {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--s-3);
+	padding: var(--s-2) var(--s-3);
+	border-radius: var(--r-1);
+	color: var(--fg-2);
+	cursor: pointer;
+}
+
+.md__person.is-active {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
+.md__people-note {
+	padding: var(--s-2) var(--s-3);
+	color: var(--fg-3);
+}
+
+.md__person-slug {
+	overflow: hidden;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 /* A highlighter's yellow, as the site's <mark> is by default. */

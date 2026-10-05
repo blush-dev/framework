@@ -121,12 +121,13 @@ final class CommonMarkParserTest extends TestCase
 	{
 		$parser = $this->parser(mentions: self::people());
 
-		$this->assertSame("<p>Thanks, <a class=\"mention\" href=\"/profiles/jane\">@jane</a>.</p>\n", $parser->toHtml('Thanks, @jane.'));
+		$this->assertSame("<p>Thanks, <a class=\"mention\" href=\"/profiles/jane\"><span class=\"mention__at\">@</span><span class=\"mention__name\">jane</span></a>.</p>\n", $parser->toHtml('Thanks, @jane.'));
 		$this->assertSame("<p>Thanks, @nobody.</p>\n", $parser->toHtml('Thanks, @nobody.'), 'Nobody\'s name stays text.');
 		$this->assertStringNotContainsString('class="mention"', $parser->toHtml('Write to me@jane.example'), 'Not inside a word.');
 		$this->assertStringNotContainsString('class="mention"', $parser->toHtml('`@jane`'), 'Not in code.');
 		$this->assertSame("<p>@jane</p>\n", $this->parser(new MarkdownConfig(mentions: false), self::people())->toHtml('@jane'));
 		$this->assertSame("<p>@jane</p>\n", $this->parser()->toHtml('@jane'), 'Not without a resolver.');
+		$this->assertStringContainsString('<span class="mention__name">jane</span>', $this->parser(new MarkdownConfig(html: RawHtml::Escape), self::people())->toHtml('@jane'), 'The spans aren\'t raw HTML, so escaping it leaves them.');
 	}
 
 	public function testFindsRawHtmlAndAddressesOutsideCode(): void
