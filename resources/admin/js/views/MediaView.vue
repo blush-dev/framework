@@ -189,7 +189,7 @@ function closed(): void {
 		</div>
 	</section>
 
-	<MediaPicker v-if="uploading" title="Upload to the Library" action="Open" tab="upload" @choose="uploaded" @close="closed" />
+	<MediaPicker v-if="uploading" title="Upload to the Library" action="Open" upload-only @choose="uploaded" @close="closed" />
 </template>
 
 <style scoped>

@@ -772,8 +772,9 @@ caption: The lake at dawn
 hand; saving from the admin changes only the fields you changed and
 keeps the rest (keys that aren't fields are listed, as they are), and
 removes a file left with nothing in it. If you rename or
-delete a media file by hand, move or delete its metadata file too. **Upload** opens the same picker the editor uses, on its Upload
-tab; **Open** goes to the file you uploaded. You can also put files in
+delete a media file by hand, move or delete its metadata file too. **Upload** opens the same picker the editor uses, with only its
+Upload panel (the library is the screen behind it); **Open** goes to the
+file you uploaded. You can also put files in
 `user/media` yourself.
 
 ## Content types

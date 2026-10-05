@@ -13938,3 +13938,15 @@ decision, add a new entry that supersedes it and mark the old one
   stylesheets, scripts, links, and meta tags together, since the
   theme's assets, the renderer's tags, and the theme's own tags are
   added at different times. Only the charset goes before the title.
+
+### D-473: The Media screen's Upload has no Library tab
+
+- **Date:** 2026-10-04
+- **Status:** Built.
+- **Decision:** the media picker takes `uploadOnly`: no tabs, no library
+  panel, no **Show in library**, only the Upload panel, with "Upload a
+  file." in the footer until something's uploaded. The Media screen's
+  **Upload** opens it that way; the editor's pickers keep both tabs.
+- **Why:** the author asked for it. On the Media screen the library is
+  the screen behind the modal, so a Library tab in it repeats the page
+  and turns an upload into a choice.

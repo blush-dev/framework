@@ -16,7 +16,9 @@
  * tab switches as the drag comes in). Each file goes up on its own
  * (`POST media`), lands at the top of the library, and is selected, so
  * the primary button finishes the job; the tab keeps a receipt of what
- * was added. A search that finds nothing offers the Upload tab.
+ * was added. A search that finds nothing offers the Upload tab. An
+ * `uploadOnly` picker (the Media screen's Upload) has no tabs and no
+ * library: only the Upload panel, since the library is the screen behind it.
  *
  * A `locked` picker is for one kind of file (D-314): a video's file, a
  * poster image, a gallery's images. It has no kind filter, its file
@@ -47,6 +49,8 @@ const props = defineProps<{
 	kind?: Kind;
 	// Whether it takes only that kind.
 	locked?: boolean;
+	// Whether it only uploads, with no Library tab.
+	uploadOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -71,7 +75,8 @@ const selected = ref<MediaItem | null>(null);
 // tab showing, a drag over the modal, and this visit's uploads.
 const uploads  = canUpload();
 const accepts  = ref<MediaList['upload']>(null);
-const tab      = ref<'library' | 'upload'>(uploads ? props.tab ?? 'library' : 'library');
+const tabbed   = uploads && !props.uploadOnly;
+const tab      = ref<'library' | 'upload'>(uploads ? (props.uploadOnly ? 'upload' : props.tab ?? 'library') : 'library');
 const dragging = ref(false);
 const added    = ref<{ key: number; name: string; state: 'sending' | 'done' | 'failed'; file?: MediaItem; message?: string }[]>([]);
 
@@ -319,7 +324,7 @@ onBeforeUnmount(() => {
 			</button>
 		</div>
 
-		<div v-if="uploads" class="picker__tabs" role="tablist" aria-label="Source" @keydown="tabKey">
+		<div v-if="tabbed" class="picker__tabs" role="tablist" aria-label="Source" @keydown="tabKey">
 			<button id="media-tab-library" type="button" class="picker__tab" role="tab" aria-controls="media-panel-library" :aria-selected="tab === 'library'" :tabindex="tab === 'library' ? 0 : -1" @click="tab = 'library'">
 				<AdminIcon name="image" />Library
 			</button>
@@ -328,8 +333,8 @@ onBeforeUnmount(() => {
 			</button>
 		</div>
 
-		<div v-show="tab === 'library'" id="media-panel-library" class="picker__panel" :role="uploads ? 'tabpanel' : undefined" :aria-labelledby="uploads ? 'media-tab-library' : undefined">
-			<div class="modal__bar" :class="{ 'picker__bar--tabbed': uploads }">
+		<div v-if="!uploadOnly" v-show="tab === 'library'" id="media-panel-library" class="picker__panel" :role="tabbed ? 'tabpanel' : undefined" :aria-labelledby="tabbed ? 'media-tab-library' : undefined">
+			<div class="modal__bar" :class="{ 'picker__bar--tabbed': tabbed }">
 				<label class="search-field">
 					<AdminIcon name="search" />
 					<input ref="searchEl" v-model="search" type="search" placeholder="Search file names…" aria-label="Search media" autocomplete="off">
@@ -392,8 +397,8 @@ onBeforeUnmount(() => {
 			</div>
 		</div>
 
-		<div v-if="uploads" v-show="tab === 'upload'" id="media-panel-upload" class="picker__panel" role="tabpanel" aria-labelledby="media-tab-upload">
-			<div class="modal__body picker__body picker__upload">
+		<div v-if="uploads" v-show="tab === 'upload'" id="media-panel-upload" class="picker__panel" :role="tabbed ? 'tabpanel' : undefined" :aria-labelledby="tabbed ? 'media-tab-upload' : undefined">
+			<div class="modal__body picker__body" :class="{ 'picker__upload--tabbed': tabbed }">
 				<div class="picker__drop">
 					<AdminIcon name="upload" />
 					<p class="picker__drop-heading">Drag Files Here</p>
@@ -406,7 +411,7 @@ onBeforeUnmount(() => {
 				<section v-if="added.length" class="picker__added" aria-labelledby="media-added">
 					<h3 id="media-added" class="modal__count">
 						<span>Added to the Library</span>
-						<button type="button" class="picker__show" @click="showTab('library')">Show in library</button>
+						<button v-if="tabbed" type="button" class="picker__show" @click="showTab('library')">Show in library</button>
 					</h3>
 					<ul class="picker__receipt" aria-live="polite">
 						<li v-for="row in added" :key="row.key" class="picker__row" :class="`picker__row--${row.state}`">
@@ -426,7 +431,7 @@ onBeforeUnmount(() => {
 		<div class="modal__foot">
 			<p class="modal__selected" aria-live="polite">
 				<template v-if="selected"><b>{{ mediaName(selected) }}</b> · {{ details(selected) }}</template>
-				<template v-else>Choose a file.</template>
+				<template v-else>{{ uploadOnly ? 'Upload a file.' : 'Choose a file.' }}</template>
 			</p>
 			<button type="button" class="button" @click="dialog?.close()">Cancel</button>
 			<button type="button" class="button button--primary" :disabled="selected === null" @click="use(selected)">{{ action ?? 'Insert' }}</button>
@@ -495,7 +500,7 @@ onBeforeUnmount(() => {
 	gap: var(--s-6);
 }
 
-.picker__upload {
+.picker__upload--tabbed {
 	border-top: 0;
 }
 
