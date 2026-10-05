@@ -269,7 +269,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 								</template>
 								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">{{ entry.peopleLabel ?? 'People' }}</span></template>
 								<template v-if="entry.errorPage !== null">{{ ' ' }}<span class="index-mark">Error {{ entry.errorPage }}</span></template>
-								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span><span v-else-if="entry.own" class="tag">Yours</span>
+								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span>
 								{{ ' ' }}<span v-if="entry.continued" class="tag" title="Listed on an earlier page; shown again above the entries under it">Continued</span>
 							</span>
 							<span v-if="entry.url" class="entry-title__path">{{ entry.url }}</span>

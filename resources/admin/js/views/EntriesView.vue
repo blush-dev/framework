@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * The entries of one content type the account may edit (D-230,
- * `/content/{type}`, D-234): status tabs with counts, then one row of
+ * `/content/{type}`, D-234): status tabs with counts (with **Mine**
+ * after **All** for a type that credits authors, D-475), then one row of
  * filters (D-300): a search (`/` focuses it), an author, each taxonomy
  * the type uses, and how recently it was updated, with **Clear filters**
  * while any is on and a toggle for compact rows (roomy by default,
@@ -42,11 +43,11 @@ import TrashTable from '../components/TrashTable.vue';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
 import { toast, type ToastKind } from '../toast';
-import { can, canType } from '../session';
+import { can, canType, session } from '../session';
 import { loadReferences } from '../references';
 import { profileType, currentType, findType, labelsOf, loadTypes, types } from '../types';
 
-type Tab = EntryStatus | 'any' | 'trash';
+type Tab = EntryStatus | 'any' | 'mine' | 'trash';
 
 const statusTabs: { status: EntryStatus | 'any'; label: string }[] = [
 	{ status: 'any', label: 'All' },
@@ -70,7 +71,15 @@ const OPTION_LIMIT = 100;
 
 // Trash is a tab like the statuses (D-237), for accounts that can delete.
 const canTrash = computed(() => canType(type.value, 'delete'));
-const tabs     = computed<{ status: Tab; label: string }[]>(() => canTrash.value ? [...statusTabs, { status: 'trash', label: 'Trash' }] : statusTabs);
+// Mine sits after All (D-475): the entries crediting the account's
+// profile, for a type that credits authors and an account with a profile.
+const mineTab  = computed<{ status: Tab; label: string }[]>(() => mine.value === '' ? [] : [{ status: 'mine', label: 'Mine' }]);
+const tabs     = computed<{ status: Tab; label: string }[]>(() => [
+	statusTabs[0]!,
+	...mineTab.value,
+	...statusTabs.slice(1),
+	...(canTrash.value ? [{ status: 'trash' as const, label: 'Trash' }] : [])
+]);
 
 const route  = useRoute();
 const router = useRouter();
@@ -109,7 +118,7 @@ const key    = computed(() => `${type.value}|${status.value}`);
 const ready  = computed(() => loaded.value === key.value);
 
 // The filters beyond the search, which the trash doesn't take.
-const author = computed(() => inTrash.value ? '' : text(route.query.author));
+const author = computed(() => inTrash.value || status.value === 'mine' ? '' : text(route.query.author));
 const days   = computed(() => inTrash.value || !DAYS.includes(Number(route.query.days)) ? '' : text(route.query.days));
 // Profiles' own filter (D-369): linked to an account, or a guest.
 const linkedTo = computed(() => !inTrash.value && info.value?.kind === 'profiles' && (route.query.account === 'linked' || route.query.account === 'guest') ? route.query.account : '');
@@ -151,6 +160,10 @@ const flattened = computed(() => {
 
 	if (filtered.value) {
 		return 'Filtered, so the tree is flattened. Clear the filters to see the hierarchy.';
+	}
+
+	if (status.value === 'mine') {
+		return 'Only yours, so the tree is flattened. Choose All to see the hierarchy.';
 	}
 
 	return status.value === 'any' ? '' : 'Filtered by status, so the tree is flattened. Choose All to see the hierarchy.';
@@ -285,6 +298,9 @@ const taxonomies = computed(() => types.value.filter((item) => item.kind === 'ta
 // Only the types that credit authors have an author filter (D-329).
 const authored = computed(() => profileType.value !== null && info.value?.authors === true);
 
+// The account's profile's slug, for the Mine tab; `''` for none.
+const mine = computed(() => authored.value ? session.account?.author ?? '' : '');
+
 let optionsFor = '';
 
 async function loadOptions(): Promise<void> {
@@ -356,7 +372,7 @@ function tabQuery(tab: Tab): LocationQueryRaw {
 	return next;
 }
 
-function params(extra: Record<string, string>): string {
+function params(extra: Record<string, string>, own = status.value === 'mine'): string {
 	const values = new URLSearchParams({ ...extra, type: type.value });
 	const pairs  = Object.entries(chosen.value).map(([name, slug]) => `${name}:${slug}`);
 
@@ -364,7 +380,10 @@ function params(extra: Record<string, string>): string {
 		values.set('search', search.value);
 	}
 
-	if (author.value !== '') {
+	// Mine is the account's profile as the author.
+	if (own && mine.value !== '') {
+		values.set('author', mine.value);
+	} else if (author.value !== '') {
 		values.set('author', author.value);
 	}
 
@@ -386,7 +405,7 @@ function params(extra: Record<string, string>): string {
 // The list's own: the page, its size, and the sort.
 function listParams(): Record<string, string> {
 	return {
-		status: status.value,
+		status: status.value === 'mine' ? 'any' : status.value,
 		page: String(page.value),
 		per: String(per.value),
 		...(sort.value === '' ? {} : { sort: sort.value, dir: dir.value })
@@ -426,10 +445,11 @@ async function load(): Promise<void> {
 	error.value   = '';
 
 	try {
-		const [current, trashed, ...totals] = await Promise.all([
+		const [current, trashed, own, ...totals] = await Promise.all([
 			inTrash.value ? Promise.resolve(null) : request<EntryList>('GET', `/entries?${params(listParams())}`),
 			canTrash.value ? request<{ trash: TrashedSummary[] }>('GET', `/trash?type=${encodeURIComponent(type.value)}`) : Promise.resolve(null),
-			...statusTabs.map((tab) => request<EntryList>('GET', `/entries?${params({ status: tab.status, per: '1' })}`))
+			mine.value === '' ? Promise.resolve(null) : request<EntryList>('GET', `/entries?${params({ status: 'any', per: '1' }, true)}`),
+			...statusTabs.map((tab) => request<EntryList>('GET', `/entries?${params({ status: tab.status, per: '1' }, false)}`))
 		]);
 
 		// A later load has taken over.
@@ -441,6 +461,7 @@ async function load(): Promise<void> {
 		trash.value  = trashed?.trash ?? null;
 		counts.value = {
 			...Object.fromEntries(statusTabs.map((tab, index) => [tab.status, totals[index]?.total ?? 0])),
+			...(own === null ? {} : { mine: own.total }),
 			...(trashed === null ? {} : { trash: trashed.trash.length })
 		};
 		loaded.value = wanted;
@@ -625,6 +646,10 @@ const emptyText = computed(() => {
 		return `${heading.value} you move to the trash wait here until you restore them or delete them permanently.`;
 	}
 
+	if (status.value === 'mine') {
+		return `None of the ${labels.value.items} credit you yet.`;
+	}
+
 	return status.value === 'any' ? `There are no ${labels.value.items} you can edit.` : `No ${status.value === 'draft' ? 'drafts' : tabs.value.find((tab) => tab.status === status.value)?.label.toLowerCase()} among the ${labels.value.items}.`;
 });
 </script>
@@ -672,7 +697,7 @@ const emptyText = computed(() => {
 					<kbd class="entries-search__key" aria-hidden="true">/</kbd>
 				</label>
 				<template v-if="!inTrash">
-					<div v-if="authorOptions.length" class="entries-filter">
+					<div v-if="authorOptions.length && status !== 'mine'" class="entries-filter">
 						<label class="visually-hidden" for="entries-author">Author</label>
 						<AdminSelect id="entries-author" v-model="authorValue" :options="authorOptions" />
 					</div>

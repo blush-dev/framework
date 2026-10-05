@@ -46,7 +46,6 @@ function name(item: TrashedSummary): string {
 									<template v-if="item.title">{{ item.title }}</template>
 									<span v-else class="untitled">Untitled</span>
 								</RouterLink>
-								{{ ' ' }}<span v-if="item.own" class="tag">Yours</span>
 							</span>
 						</span>
 					</th>

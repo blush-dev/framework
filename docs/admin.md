@@ -156,10 +156,11 @@ a theme or turning a plugin or pack on and off needs the kind's
 shown.
 
 The tabs above a list show all of them, or only published entries,
-drafts, or scheduled ones, with a count on each. You see your own
+drafts, or scheduled ones, with a count on each. For a type that credits
+authors, when your account has a profile, **Mine** beside **All** shows
+the entries crediting you. You see your own
 entries if you're an author or contributor, and everyone's if you're an
-editor; entries credited to your account's profile are marked "Yours"
-(and your own profile, in Profiles, "You").
+editor; in Profiles, your own profile is marked "You".
 On the **All** tab, a collection's entries come newest published first,
 pages and terms by their **Position** and then by title (those without
 one after the rest), and profiles by name; the date column shows the

@@ -13968,3 +13968,18 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author asked for the library to match the other content
   screens' headers, for **My files** to be a **Mine** tab beside
   **All**, and for the alt text warnings to go from the list.
+
+### D-475: A Mine tab on entries lists, in place of the Yours chip
+
+- **Date:** 2026-10-04
+- **Status:** Built.
+- **Decision:** an entries list shows **Mine** after **All**, with its
+  count, when the type credits authors (`authors`, with a profiles type)
+  and the signed-in account has a profile. It's `?status=mine`: every
+  status, credited to that profile (the API's `author` filter), so the
+  Author filter is hidden on it, and a tree type's list is flattened, as
+  on the status tabs. Rows no longer carry a **Yours** chip, in the
+  entries table or the trash; the profiles list keeps **You** on your
+  own profile.
+- **Why:** the author asked for entries lists to match the Media
+  screen's **Mine** tab (D-474) rather than mark rows one by one.
