@@ -215,6 +215,10 @@ the `/media` URL, in [`config/media.php`](configuration.md#media).
 SVG files are served, but can't be uploaded in the admin, whatever the
 list says: an SVG can carry script. For icons, add an
 [icon pack](extending.md#icon-packs); for other SVGs, put the file in `user/media` yourself.
+For the same reason, the admin never takes HTML, XML, JavaScript, or PHP
+files, or Office files with macros (`.docm`, `.xlsm`, `.pptm`), and an
+uploaded file's name keeps only its last extension (`shell.php.jpg` is
+saved as `shell-php.jpg`).
 
 ## Faster media on a live site
 
@@ -227,3 +231,30 @@ bin/blush media:publish --copy   # copy the files, for hosts without symlinks
 ```
 
 With `--copy`, run it again whenever you add media.
+
+Either way, `media:publish` writes an `.htaccess` in the folder the web
+server serves (`user/media/.htaccess` when linked, `public/media/.htaccess`
+when copied), so Apache serves media as Blush does: no script ever runs
+there, even one named like `shell.php.jpg`; files are sent with
+`X-Content-Type-Options: nosniff`; and SVGs are sandboxed. It keeps the
+file current each time it runs. If the folder already has an `.htaccess`
+of your own, it's left alone and you're warned; to take over the one
+`media:publish` wrote, remove its first line.
+
+On nginx, or another server that doesn't read `.htaccess`, add the same
+rules to its config. For nginx, with media at `/media`:
+
+```nginx
+location ^~ /media/ {
+	add_header X-Content-Type-Options nosniff always;
+
+	location ~* \.(php\d*|pht|phtml|phar|phps|cgi|pl|py|sh|shtml|asp|aspx|jsp)(\.|$) {
+		deny all;
+	}
+
+	location ~* \.svg$ {
+		add_header X-Content-Type-Options nosniff always;
+		add_header Content-Security-Policy sandbox always;
+	}
+}
+```

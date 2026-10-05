@@ -47,12 +47,39 @@ use Blush\Config\InvalidConfig;
 final readonly class MediaUploads
 {
 	/**
-	 * Types no upload may be, whatever the site allows (D-497). Files
-	 * already in `user/media` are still served.
+	 * Types no upload may be, whatever the site allows (D-497): SVG, and,
+	 * so a type added to `MediaResolver::EXTENSIONS` can't let them in,
+	 * the markup a browser may run script in, scripts, and Office files
+	 * with macros (D-499). Files already in `user/media` are still served.
 	 *
 	 * @var list<string>
 	 */
-	public const array REFUSED = ['image/svg+xml'];
+	public const array REFUSED = [
+		'image/svg+xml',
+		'text/html',
+		'application/xhtml+xml',
+		'text/xml',
+		'application/xml',
+		'text/xsl',
+		'application/xslt+xml',
+		'text/javascript',
+		'application/javascript',
+		'application/x-javascript',
+		'application/x-httpd-php',
+		'application/x-php',
+		'text/x-php',
+		'application/vnd.ms-word.document.macroenabled.12',
+		'application/vnd.ms-excel.sheet.macroenabled.12',
+		'application/vnd.ms-powerpoint.presentation.macroenabled.12'
+	];
+
+	/**
+	 * Whether a type is one no upload may be, `REFUSED` (D-499).
+	 */
+	public static function refuses(string $mime): bool
+	{
+		return in_array(strtolower($mime), self::REFUSED, true);
+	}
 
 	/**
 	 * The default path: a folder for each year and month, as 1.x had.

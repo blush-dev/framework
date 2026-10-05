@@ -14818,3 +14818,34 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `npm run admin:build`; the highlighter under Node, and
   `ProfileMentions` linking all three of the trial's profiles.
 
+
+### D-499: Uploads refuse script-bearing types, keep one extension, and published media can't run
+- **Date:** 2026-10-05
+- **Decision:** the author's call, from a review of what else D-497
+  should refuse: build three of its suggestions. Uploads already pass
+  only `MediaResolver::EXTENSIONS`, judged by name and contents, so most
+  of this is defense in depth.
+  - **`MediaUploads::REFUSED`** adds HTML, XHTML, XML and XSLT,
+    JavaScript, PHP, and the macro-enabled Office types (`docm`, `xlsm`,
+    `pptm`) to SVG, so adding a type to `EXTENSIONS` can't let them in.
+    `MediaUploads::refuses()` checks a type, ignoring case. Only SVG's
+    refusal names icon packs; the rest say the type can carry script.
+  - **Names keep one extension:** `MediaUploadController::safeName()`
+    turns dots before the extension into hyphens (`shell.php.jpg` →
+    `shell-php.jpg`), so Apache's multiple-extension handlers can't run
+    an upload. Existing files keep their names.
+  - **`media:publish` writes the served folder's `.htaccess`**
+    (`PublishMedia::HTACCESS`): `user/media/.htaccess` when linked,
+    `public{url}/.htaccess` when copied. It denies any name with a
+    script extension anywhere in it, sends `nosniff`, and sandboxes SVG,
+    as `MediaController` does. Each part is in an `<IfModule>`, and it
+    avoids `Options` and `php_flag`, which fail the folder where
+    `AllowOverride` doesn't allow them. Its first line (`MARKER`) marks
+    it as the command's, kept current on every run; an `.htaccess`
+    without it is left alone, with a warning. nginx's equivalent is in
+    the docs.
+  - **Not done:** legacy Office files (`doc`, `xls`, `ppt`) and `rtf`
+    stay uploadable; decompression-bomb limits on image sizes are
+    separate.
+- **Done:** `docs/media.md`, `docs/admin.md`, `docs/cli.md`.
+- **Checked:** `composer check` (`AdminPickersTest`, `MediaTest`).

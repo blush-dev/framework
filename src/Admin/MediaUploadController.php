@@ -40,16 +40,18 @@ use Blush\Support\Uuid;
  *
  * The file goes in the folder the upload rules give its kind
  * (`MediaUploads`, D-406; `user/media/{year}/{month}/` by default, by the
- * site's clock), under its own name made safe for a URL (letters, digits, dots, hyphens,
- * and underscores; spaces become hyphens), with `-2`, `-3`, … before the
+ * site's clock), under its own name made safe for a URL (letters, digits, hyphens,
+ * and underscores; spaces and dots become hyphens, so `shell.php.jpg`
+ * can't be run by a server that reads every extension, D-499), with `-2`, `-3`, … before the
  * extension when the name is taken, so nothing is ever replaced. Only the
  * types the library lists (`MediaListController::EXTENSIONS`) that the
  * site allows are accepted, judged by the extension and then by the
  * contents, the way the media resolver serves them: the file is written
  * hidden first, and takes its name only once its contents pass.
  *
- * SVG is refused whatever the site allows (`MediaUploads::REFUSED`,
- * D-497), by its name and by its contents. A kind the rules turn off, or
+ * SVG, markup, scripts, and Office files with macros are refused whatever
+ * the site allows (`MediaUploads::REFUSED`, D-497, D-499), by name and by
+ * contents. A kind the rules turn off, or
  * every upload turned off, is refused, as
  * is a file larger than its kind's largest, and one of a kind the account
  * may not upload (`media.{kind}.upload`, D-407). The file's metadata
@@ -100,8 +102,11 @@ final readonly class MediaUploadController
 		$extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 		$mime      = MediaListController::EXTENSIONS[$extension] ?? null;
 
-		if ($mime !== null && in_array($mime, MediaUploads::REFUSED, true)) {
-			return self::error(sprintf('%s can\'t be uploaded: SVG files can carry script. For icons, add an icon pack.', $name), Status::UnprocessableContent);
+		if ($mime !== null && MediaUploads::refuses($mime)) {
+			return self::error(match ($mime) {
+				'image/svg+xml' => sprintf('%s can\'t be uploaded: SVG files can carry script. For icons, add an icon pack.', $name),
+				default         => sprintf('%s can\'t be uploaded: files of this type can carry script.', $name)
+			}, Status::UnprocessableContent);
 		}
 
 		if ($mime === null || ! $this->config->allows($mime)) {
@@ -141,7 +146,7 @@ final readonly class MediaUploadController
 
 		$actual = MediaResolver::mimeOf($hidden);
 
-		if (in_array($actual, MediaUploads::REFUSED, true) || ! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual)) || ! $this->permissions->mayUpload($account, MediaKind::fromMime($actual))) {
+		if (MediaUploads::refuses($actual) || ! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual)) || ! $this->permissions->mayUpload($account, MediaKind::fromMime($actual))) {
 			@unlink($hidden);
 
 			return self::error(sprintf('%s isn\'t what its name says it is, or isn\'t a type the library takes.', $name), Status::UnprocessableContent);
@@ -193,7 +198,7 @@ final readonly class MediaUploadController
 	 */
 	public function extensions(?Account $account = null): array
 	{
-		return array_keys(array_filter(MediaListController::EXTENSIONS, fn (string $mime): bool => ! in_array($mime, MediaUploads::REFUSED, true) && $this->config->allows($mime) && $this->uploadable(MediaKind::fromMime($mime), $account)));
+		return array_keys(array_filter(MediaListController::EXTENSIONS, fn (string $mime): bool => ! MediaUploads::refuses($mime) && $this->config->allows($mime) && $this->uploadable(MediaKind::fromMime($mime), $account)));
 	}
 
 	/**
@@ -289,8 +294,10 @@ final readonly class MediaUploadController
 	}
 
 	/**
-	 * A file name made safe for a URL: letters, digits, dots, hyphens, and
-	 * underscores, never starting with a dot, and never empty.
+	 * A file name made safe for a URL: letters, digits, hyphens, and
+	 * underscores, then its extension, never starting with a dot, and
+	 * never empty. Dots before the extension become hyphens, so no name
+	 * carries a second extension a server might run (D-499).
 	 */
 	public static function safeName(string $name): string
 	{
@@ -298,9 +305,9 @@ final readonly class MediaUploadController
 		$extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 		$base      = pathinfo($name, PATHINFO_FILENAME);
 
-		$base = (string) preg_replace('/\s+/u', '-', trim($base));
-		$base = (string) preg_replace('/[^A-Za-z0-9._-]+/', '', $base);
-		$base = trim((string) preg_replace('/-{2,}/', '-', $base), '.-_');
+		$base = (string) preg_replace('/[\s.]+/u', '-', trim($base));
+		$base = (string) preg_replace('/[^A-Za-z0-9_-]+/', '', $base);
+		$base = trim((string) preg_replace('/-{2,}/', '-', $base), '-_');
 
 		if ($base === '') {
 			$base = 'file';

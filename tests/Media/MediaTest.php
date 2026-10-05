@@ -175,6 +175,7 @@ final class MediaTest extends TestCase
 		$this->assertSame('../user/media', readlink($public));
 		$this->assertFileExists("{$public}/2019/cat.png");
 		$this->assertStringContainsString('is already linked', $tester->run('media:publish')->output);
+		$this->assertSame(PublishMedia::HTACCESS, file_get_contents($this->temporaryDirectory() . '/user/media/.htaccess'), 'The linked folder keeps scripts from running (D-499).');
 
 		$copied = $tester->run('media:publish --copy -v');
 
@@ -185,6 +186,15 @@ final class MediaTest extends TestCase
 		$this->assertFileDoesNotExist("{$public}/script.php");
 		$this->assertFileDoesNotExist("{$public}/.hidden/cat.png");
 		$this->assertStringContainsString('Copied 0 file(s) to public/media; 2 already current.', $tester->run('media:publish --copy')->output);
+		$this->assertSame(PublishMedia::HTACCESS, file_get_contents("{$public}/.htaccess"));
+
+		file_put_contents("{$public}/.htaccess", "Options -Indexes\n");
+
+		$own = $tester->run('media:publish --copy');
+
+		$this->assertTrue($own->isSuccessful());
+		$this->assertStringContainsString('public/media/.htaccess is your own', $own->errors);
+		$this->assertSame("Options -Indexes\n", file_get_contents("{$public}/.htaccess"), 'A site\'s own .htaccess is left alone.');
 
 		$blocked = $tester->run('media:publish');
 

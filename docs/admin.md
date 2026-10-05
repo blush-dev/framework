@@ -1657,9 +1657,12 @@ needs the capability to upload its kind (`media.{kind}.upload`, a 403
 otherwise). Its uploader is recorded in its details (`owner`). It goes in the folder the upload rules give its
 kind (`user/media/{year}/{month}/` by default; see
 [`MediaConfig`'s `uploads`](configuration.md#media)) with a
-name safe for a URL, and `-2`, `-3`, and so on when the name is taken.
-Its extension must be one the library lists, and its contents must be
-of a type your site allows ([`MediaConfig`](configuration.md)). The
+name safe for a URL (dots before its extension become hyphens, so
+`shell.php.jpg` is saved as `shell-php.jpg`), and `-2`, `-3`, and so on
+when the name is taken. Its extension must be one the library lists, and
+its contents must be of a type your site allows
+([`MediaConfig`](configuration.md)). SVG, HTML, XML, JavaScript, PHP, and
+Office files with macros are never taken, whatever your site allows. The
 answer is a 201 with the file, as `GET media` describes one; a file too
 large (for PHP or its kind) is a 413, one of the wrong type or a kind
 turned off a 422, and any upload while uploads are off a 403.

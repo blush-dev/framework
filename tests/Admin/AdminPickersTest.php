@@ -20,6 +20,7 @@ use Blush\Admin\MediaListController;
 use Blush\Admin\MediaUploadController;
 use Blush\Media\MediaMetadata;
 use Blush\Media\MediaMetadataStore;
+use Blush\Media\MediaUploads;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Http\UploadedFile;
@@ -31,6 +32,7 @@ use Psr\Http\Message\ResponseInterface;
 #[CoversClass(MediaUploadController::class)]
 #[CoversClass(MediaMetadata::class)]
 #[CoversClass(MediaMetadataStore::class)]
+#[CoversClass(MediaUploads::class)]
 final class AdminPickersTest extends TestCase
 {
 	use BootsAdmin;
@@ -258,6 +260,16 @@ final class AdminPickersTest extends TestCase
 
 		$this->assertSame('file.png', MediaUploadController::safeName('../../.png'));
 		$this->assertSame('etc-passwd.svg', MediaUploadController::safeName('/etc passwd.SVG'));
+		$this->assertSame('shell-php.jpg', MediaUploadController::safeName('shell.php.jpg'), 'No second extension (D-499).');
+		$this->assertSame('photo-2024-v2.png', MediaUploadController::safeName('photo. 2024..v2.png'));
+		$this->assertTrue(MediaUploads::refuses('Text/HTML'));
+		$this->assertTrue(MediaUploads::refuses('application/vnd.ms-word.document.macroEnabled.12'));
+		$this->assertFalse(MediaUploads::refuses('image/png'));
+
+		$shell = $this->upload('shell.php.png', (string) base64_decode(self::PNG, true));
+
+		$this->assertSame(201, $shell->getStatusCode());
+		$this->assertStringContainsString('shell-php.png', (string) $shell->getBody());
 	}
 
 	public function testFollowsTheUploadRules(): void

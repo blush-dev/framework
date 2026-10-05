@@ -29,10 +29,45 @@ use Blush\Support\Filesystem;
  * copies the allowed files instead (for hosts that can't symlink), and
  * can be run again to copy what changed. Until media is published, the
  * media route streams it.
+ *
+ * Either way, the served folder gets an `.htaccess` (`HTACCESS`, D-499)
+ * so Apache serves its files the way the media route does: never runs a
+ * script (by any of a name's extensions), sends `nosniff`, and sandboxes
+ * SVG. It's `user/media`'s own when linked. An `.htaccess` that isn't the
+ * one this writes (its first line is `MARKER`) is left alone, with a
+ * warning. Other servers need the same rules in their own config.
  */
 #[Command('media:publish', 'Link or copy user/media into the public folder.')]
 final readonly class PublishMedia
 {
+	/**
+	 * The first line of the `.htaccess` this writes, how it knows its own.
+	 */
+	public const string MARKER = '# Written by media:publish, which keeps it current. Remove this line to keep your own.';
+
+	/**
+	 * The `.htaccess` for the served folder (D-499). Each part is in an
+	 * `<IfModule>`, so a server without the module skips it rather than
+	 * failing.
+	 */
+	public const string HTACCESS = self::MARKER . <<<'HTACCESS'
+
+		# Media is only ever served as files: no script runs here, by any of
+		# a name's extensions.
+		<IfModule mod_authz_core.c>
+			<FilesMatch "\.(?i:php\d*|pht|phtml|phar|phps|cgi|pl|py|sh|shtml|asp|aspx|jsp)(\.|$)">
+				Require all denied
+			</FilesMatch>
+		</IfModule>
+		<IfModule mod_headers.c>
+			Header set X-Content-Type-Options "nosniff"
+			<FilesMatch "\.(?i:svg)$">
+				Header set Content-Security-Policy "sandbox"
+			</FilesMatch>
+		</IfModule>
+
+		HTACCESS;
+
 	public function __construct(
 		private Paths $paths,
 		private MediaConfig $config,
@@ -65,6 +100,7 @@ final readonly class PublishMedia
 	private function link(Output $output, string $source, string $target): ExitCode
 	{
 		if (is_link($target)) {
+			$this->protect($output, $source);
 			$output->success(sprintf('%s is already linked to %s.', $this->paths->relative($target), $this->paths->relative($source)));
 
 			return ExitCode::Success;
@@ -86,6 +122,7 @@ final readonly class PublishMedia
 			return ExitCode::Failure;
 		}
 
+		$this->protect($output, $source);
 		$output->success(sprintf('Linked %s to %s.', $this->paths->relative($target), $this->paths->relative($source)));
 
 		return ExitCode::Success;
@@ -122,8 +159,36 @@ final readonly class PublishMedia
 			$copied++;
 		}
 
+		$this->protect($output, $target);
 		$output->success(sprintf('Copied %d file(s) to %s; %d already current.', $copied, $this->paths->relative($target), $current));
 
 		return ExitCode::Success;
+	}
+
+	/**
+	 * Writes the served folder's `.htaccess` (`HTACCESS`), unless one
+	 * that isn't this command's is there.
+	 */
+	private function protect(Output $output, string $folder): void
+	{
+		$file     = "{$folder}/.htaccess";
+		$existing = is_file($file) ? (string) file_get_contents($file) : null;
+
+		if ($existing === self::HTACCESS) {
+			return;
+		}
+
+		if ($existing !== null && ! str_starts_with($existing, self::MARKER)) {
+			$output->warning(sprintf('%s is your own, so it\'s left as is. Make sure it keeps scripts from running there; see the media docs.', $this->paths->relative($file)));
+
+			return;
+		}
+
+		if (! is_dir($folder)) {
+			mkdir($folder, 0775, true);
+		}
+
+		$this->filesystem->writeAtomic($file, self::HTACCESS);
+		$output->line(sprintf('Wrote %s', $this->paths->relative($file)), Verbosity::Verbose);
 	}
 }

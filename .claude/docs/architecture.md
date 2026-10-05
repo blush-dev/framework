@@ -686,9 +686,15 @@ Implemented in M4c (D-099), apart from image derivatives.
   from the site root (D-190). `fromKey()` resolves a media key (its path
   under `user/media`), as the index and metadata files name files.
 - **Serving** (web root is `public/`): `media:publish` links `public{url}`
-  to `user/media` (or copies the allowed files with `--copy`). The
+  to `user/media` (or copies the allowed files with `--copy`), and
+  writes the served folder's `.htaccess` (`PublishMedia::HTACCESS`,
+  D-499: no scripts by any extension, `nosniff`, sandboxed SVG), leaving
+  one without its `MARKER` alone. The
   `MediaController` streams anything unpublished, with ranges, `nosniff`,
   and sandboxed SVGs.
+- **Uploads refuse** `MediaUploads::REFUSED` (SVG, markup, scripts, Office
+  files with macros; D-497, D-499) whatever the site allows, and
+  `safeName()` turns dots before the extension into hyphens.
 - **Metadata (D-238, D-269, D-287):** fields for media, defined with
   content types' field types but without a body, status, or URLs, by
   kind (`MediaKind`: image, video, audio, document, file; documents are
