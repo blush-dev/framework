@@ -36,7 +36,8 @@ use Blush\Component\PendingComponent;
  * `$template` inside a template file: the small API templates use to build
  * pages (see `theming.md`). A template file runs in an isolated scope with
  * its data as variables, and can reach only this class's public methods
- * (D-158).
+ * (D-158). It's the API for every view engine (D-502); methods marked
+ * `#[ReturnsHtml]` return rendered HTML, to print as it is.
  *
  * ```php
  * <?php $template->layout('base') ?>
@@ -91,7 +92,17 @@ final class Template
 	}
 
 	/**
-	 * Starts capturing a section.
+	 * Sets a section to rendered HTML. PHP templates usually capture one
+	 * with `start()` and `stop()`; this is for view engines with blocks of
+	 * their own (D-502), and for HTML a template already has.
+	 */
+	public function setSection(string $name, Stringable|string $html): void
+	{
+		$this->context->setSection($name, (string) $html);
+	}
+
+	/**
+	 * Starts capturing a section in a PHP template, with output buffering.
 	 */
 	public function start(string $name): void
 	{
@@ -127,6 +138,7 @@ final class Template
 	 * Returns a section's content, or a default. Sections hold rendered
 	 * HTML, so print them as they are: `<?= $template->section('content') ?>`.
 	 */
+	#[ReturnsHtml]
 	public function section(string $name, string $default = ''): string
 	{
 		return $this->context->section($name) ?? $default;
@@ -149,6 +161,7 @@ final class Template
 	 * @param  string|list<string> $views
 	 * @throws ViewException When none exists.
 	 */
+	#[ReturnsHtml]
 	public function include(string|array $views, mixed ...$data): string
 	{
 		return $this->views->partial($views, self::named($data), $this->context);
@@ -161,6 +174,7 @@ final class Template
 	 * @param  string|list<string> $views
 	 * @throws ViewException
 	 */
+	#[ReturnsHtml]
 	public function includeIf(string|array $views, mixed ...$data): string
 	{
 		return $this->views->exists($views) ? $this->include($views, ...$data) : '';
@@ -173,6 +187,7 @@ final class Template
 	 * @param  string|list<string> $views
 	 * @throws ViewException
 	 */
+	#[ReturnsHtml]
 	public function includeWhen(mixed $when, string|array $views, mixed ...$data): string
 	{
 		return $when ? $this->include($views, ...$data) : '';
@@ -184,6 +199,7 @@ final class Template
 	 * @param  string|list<string> $views
 	 * @throws ViewException
 	 */
+	#[ReturnsHtml]
 	public function includeUnless(mixed $unless, string|array $views, mixed ...$data): string
 	{
 		return $unless ? '' : $this->include($views, ...$data);
@@ -200,6 +216,7 @@ final class Template
 	 * @param  string|list<string>|null  $empty
 	 * @throws ViewException
 	 */
+	#[ReturnsHtml]
 	public function each(string|array $views, iterable $items, string $as = 'item', string|array|null $empty = null, mixed ...$data): string
 	{
 		$data   = self::named($data);
@@ -222,6 +239,7 @@ final class Template
 	 * have a `name` prop; `$component` is taken in component templates
 	 * anyway.)
 	 */
+	#[ReturnsHtml]
 	public function component(string $component, mixed ...$props): PendingComponent
 	{
 		return new PendingComponent($this->views, $this->context, $component, self::named($props));
@@ -232,6 +250,7 @@ final class Template
 	 * for decoration, or `<?= $template->icon('jtcom/github', 'GitHub') ?>`
 	 * for one named by its label.
 	 */
+	#[ReturnsHtml]
 	public function icon(string $name, string $label = ''): PendingComponent
 	{
 		return $this->component('icon', name: $name, label: $label);
@@ -277,6 +296,7 @@ final class Template
 	 * @throws RegionException When the theme's location declaration is invalid.
 	 * @throws InvalidData When a region file can't be read.
 	 */
+	#[ReturnsHtml]
 	public function region(string $location): string
 	{
 		return $this->views->services->regions->render($this->views, $this->context, $location);
@@ -385,6 +405,7 @@ final class Template
 	 * @param Closure(): (string|Stringable) $render
 	 * @throws CacheException When the fragment store can't be built.
 	 */
+	#[ReturnsHtml]
 	public function cache(string $key, Closure $render): string
 	{
 		$html = static fn (): string => (string) $render();
@@ -403,6 +424,7 @@ final class Template
 	 * of three words or fewer is only escaped. Print the result as is:
 	 * `<?= $template->widont($title) ?>`.
 	 */
+	#[ReturnsHtml]
 	public function widont(string $text): string
 	{
 		$html  = e($text);

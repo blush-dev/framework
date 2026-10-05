@@ -356,7 +356,9 @@ is allowed, but the editor can't suggest its options.
 
 ### Templates
 
-Templates are plain PHP. Here's a simplified `single.php`:
+Templates are plain PHP, unless a plugin adds another template language
+([Template engines from a plugin](extending.md#template-engines-from-a-plugin)).
+Here's a simplified `single.php`:
 
 ```php
 <?php

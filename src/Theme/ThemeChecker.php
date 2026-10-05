@@ -234,7 +234,7 @@ final readonly class ThemeChecker
 			}
 
 			if ($component->isMissingTemplate()) {
-				$problems[] = new Violation("component {$name}", sprintf('The "%s" component (%s) has no %s.php template in the chain.', $name, $component->className() ?? 'no class', array_last($component->name->views())), Severity::Warning);
+				$problems[] = new Violation("component {$name}", sprintf('The "%s" component (%s) has no %s template in the chain.', $name, $component->className() ?? 'no class', array_last($component->name->views())), Severity::Warning);
 			}
 
 			if ($component->isRegistered() && $component->label === null && $component->name->namespace === $theme->namespace) {
@@ -246,8 +246,9 @@ final readonly class ThemeChecker
 
 		foreach ($stray as $file) {
 			if (str_starts_with($file, $theme->viewsPath() . '/')) {
-				$fileName   = basename($file, '.php');
-				$problems[] = new Violation("component {$fileName}", sprintf('components/%s.php isn\'t named for a component, so it never renders; name it components/%s-%s.php.', $fileName, $theme->namespace, $fileName), Severity::Warning);
+				$fileName   = strstr(basename($file), '.', true) ?: basename($file);
+				$extension  = substr(basename($file), strlen($fileName));
+				$problems[] = new Violation("component {$fileName}", sprintf('components/%s%s isn\'t named for a component, so it never renders; name it components/%s-%s%s.', $fileName, $extension, $theme->namespace, $fileName, $extension), Severity::Warning);
 			}
 		}
 
@@ -298,7 +299,7 @@ final readonly class ThemeChecker
 			$other = ComponentName::fromFileName($fileName, $namespaces);
 
 			if ($other !== null && in_array((string) $other, $known, true) && (string) $other !== (string) $name) {
-				$problems[] = new Violation("component {$other}", sprintf('components/%s.php is both the "%s" component\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
+				$problems[] = new Violation("component {$other}", sprintf('components/%s is both the "%s" component\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
 			}
 		}
 

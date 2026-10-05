@@ -87,12 +87,12 @@ final readonly class ListComponents
 
 		foreach ($components as $component) {
 			if ($component->isMissingTemplate()) {
-				$output->warning(sprintf('"%s" has no %s.php template, so it can\'t render.', $component->name, implode('.php or ', $component->name->views())));
+				$output->warning(sprintf('"%s" has no %s template, so it can\'t render.', $component->name, implode(' or ', $component->name->views())));
 			}
 		}
 
 		foreach ($views->strayComponentFiles() as $file) {
-			$output->warning(sprintf('%s isn\'t named for a component, so nothing renders it. Name it {namespace}-%s.php.', $this->paths->relative($file), basename($file, '.php')));
+			$output->warning(sprintf('%s isn\'t named for a component, so nothing renders it. Name it {namespace}-%s.', $this->paths->relative($file), basename($file)));
 		}
 
 		return ExitCode::Success;

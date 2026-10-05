@@ -267,11 +267,11 @@ final class ThemeCommandsTest extends TestCase
 		$list = $this->command('component:list');
 
 		$this->assertMatchesRegularExpression('#\| app/orphan\s*\| Orphan\s*\| yes\s*\| .*Orphan\s*\|\s*\| \(none\)#', $list->output);
-		$this->assertStringContainsString('"app/orphan" has no components/app-orphan.php template, so it can\'t render.', $list->output . $list->errors);
+		$this->assertStringContainsString('"app/orphan" has no components/app-orphan template, so it can\'t render.', $list->output . $list->errors);
 
 		$check = $this->command('theme:check');
 
-		$this->assertStringContainsString('warning component app/orphan: The "app/orphan" component (Blush\\Tests\\Fixtures\\Component\\Orphan) has no components/app-orphan.php template in the chain.', $check->output);
+		$this->assertStringContainsString('warning component app/orphan: The "app/orphan" component (Blush\\Tests\\Fixtures\\Component\\Orphan) has no components/app-orphan template in the chain.', $check->output);
 	}
 
 	public function testThemeCheckFlagsComponentTemplatesNotNamedForAComponent(): void
@@ -295,7 +295,7 @@ final class ThemeCommandsTest extends TestCase
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Core\\AppConfig(providers: [Blush\\Tests\\Fixtures\\Component\\NovaProvider::class]);\n");
 		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
 
-		$missing = 'The "nova/badge" component (no class) has no components/nova-badge.php template in the chain.';
+		$missing = 'The "nova/badge" component (no class) has no components/nova-badge template in the chain.';
 
 		$this->assertStringNotContainsString('nova/badge', $this->command(['theme:check', 'blush/default'])->output);
 		$this->assertStringNotContainsString('nova/badge', $this->command(['component:list', '--theme=blush/default'])->output);

@@ -22,6 +22,7 @@ use Blush\Menu\Menus;
 use Blush\Region\Regions;
 use Blush\Routing\UrlGenerator;
 use Blush\Settings\SiteSettings;
+use Blush\View\Engine\ViewEngines;
 use Blush\Component\ComponentFactory;
 use Blush\Component\ComponentRegistry;
 use Blush\Component\ComponentVariants;
@@ -30,7 +31,7 @@ use Blush\Component\ComponentVariants;
  * The services every `Views` shares, whatever its theme chain: what
  * templates reach through `Template` (URLs, content, routes, the app
  * config, menus, regions, the site settings field sets add), context
- * providers, and components.
+ * providers, components, and the view engines (D-502).
  */
 final readonly class ViewServices
 {
@@ -47,6 +48,7 @@ final readonly class ViewServices
 		public Menus $menus,
 		public Regions $regions,
 		public SiteSettings $site,
+		public ViewEngines $engines,
 		public ?ContentCache $cache = null
 	) {}
 }

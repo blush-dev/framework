@@ -165,6 +165,12 @@ site overrides (resources/views, config, user/data)
 Plain PHP (D-009) in an isolated scope. `$template` is the template API
 (D-158); `$this` isn't available.
 
+Plain PHP is the built-in view engine; a plugin can register others by
+file extension (`single.twig`), and engines mix in one chain (D-502).
+`Template` is every engine's API: methods marked `#[ReturnsHtml]` and
+`SafeHtml` values are rendered HTML, so an engine that escapes on its
+own prints them as they are.
+
 ```php
 <?php declare(strict_types=1);
 
@@ -497,5 +503,3 @@ theme. Anything more (such as admin preview) comes later.
 
 ## Open questions
 
-- **Future template engine:** how would it coexist with PHP templates? (The
-  current thinking is one `ViewEngine` interface chosen by file extension.)

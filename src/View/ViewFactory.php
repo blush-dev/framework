@@ -57,7 +57,7 @@ final class ViewFactory
 	public function forChain(ThemeChain $chain): Views
 	{
 		return $this->views[$chain->active()->name] ??= new Views(
-			new ViewFinder($this->directories($chain)),
+			new ViewFinder($this->directories($chain), $this->services->engines->extensions()),
 			new ThemeAssets($chain),
 			$this->translator->withDomains($chain->langDirectories(), $chain->namespaceDomains()),
 			$this->services,

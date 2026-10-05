@@ -18,10 +18,12 @@ namespace Blush\View;
  * site's overrides, then the active theme, its ancestors, and the
  * framework default theme (D-024). The first directory with a file wins.
  *
- * A view name is a path without the `.php` extension (`single-post`,
+ * A view name is a path without its extension (`single-post`,
  * `layouts/base`, `parts/header`): letters, digits, `_`, and `-`, in
  * segments split by `/`. Nothing else is accepted, so names from front
- * matter can't leave the view directories.
+ * matter can't leave the view directories. A name's file is in any view
+ * engine's extension (D-502): `single.php`, `single.twig`. Within a
+ * directory, the engine registered first wins.
  */
 final class ViewFinder
 {
@@ -41,9 +43,12 @@ final class ViewFinder
 
 	/**
 	 * @param list<string> $directories Absolute directories, highest precedence first.
+	 * @param list<string> $extensions  View engines' extensions, without the dot, in precedence order.
 	 */
-	public function __construct(private readonly array $directories)
-	{}
+	public function __construct(
+		private readonly array $directories,
+		private readonly array $extensions = ['php']
+	) {}
 
 	/**
 	 * Returns the directories searched, highest precedence first.
@@ -53,6 +58,16 @@ final class ViewFinder
 	public function directories(): array
 	{
 		return $this->directories;
+	}
+
+	/**
+	 * Returns the extensions searched, in precedence order.
+	 *
+	 * @return list<string>
+	 */
+	public function extensions(): array
+	{
+		return $this->extensions;
 	}
 
 	/**
@@ -120,8 +135,9 @@ final class ViewFinder
 	}
 
 	/**
-	 * Returns every file for any of the names, by directory precedence
-	 * and then name order, winner first, with each file's name.
+	 * Returns every file for any of the names, by directory precedence,
+	 * then name order, then extension order, winner first, with each
+	 * file's name.
 	 *
 	 * @param  list<string> $names
 	 * @return list<array{string, string}> Names and files.
@@ -139,8 +155,8 @@ final class ViewFinder
 
 		foreach ($this->directories as $directory) {
 			foreach ($names as $name) {
-				if (is_file("{$directory}/{$name}.php")) {
-					$files[] = [$name, "{$directory}/{$name}.php"];
+				foreach ($this->files($directory, $name) as $file) {
+					$files[] = [$name, $file];
 				}
 			}
 		}
@@ -161,8 +177,18 @@ final class ViewFinder
 			throw new ViewException(sprintf('"%s" is not a valid view name.', $name));
 		}
 
+		return array_merge(...array_map(fn (string $directory): array => $this->files($directory, $name), $this->directories));
+	}
+
+	/**
+	 * Returns a name's files in one directory, in extension order.
+	 *
+	 * @return list<string>
+	 */
+	private function files(string $directory, string $name): array
+	{
 		return array_values(array_filter(
-			array_map(static fn (string $directory): string => "{$directory}/{$name}.php", $this->directories),
+			array_map(static fn (string $extension): string => "{$directory}/{$name}.{$extension}", $this->extensions),
 			is_file(...)
 		));
 	}

@@ -15,6 +15,7 @@ namespace Blush\Component;
 
 use Override;
 use Stringable;
+use Blush\View\SafeHtml;
 use Blush\View\ViewContext;
 use Blush\View\ViewException;
 use Blush\View\Views;
@@ -29,7 +30,7 @@ use Blush\View\Views;
  *     ->slot('footer', $template->section('card-footer')) ?>
  * ```
  */
-final class PendingComponent implements Stringable
+final class PendingComponent implements SafeHtml
 {
 	/**
 	 * The default slot's HTML.

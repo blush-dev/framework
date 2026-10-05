@@ -4,6 +4,23 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Global helper functions** (D-106, D-504): `e()`, `attr()`, `url()`,
+  `js()`, `css()`, and `raw()` are global and unguarded, so Blush can't
+  share a site with a library that defines its own, such as Laravel's
+  `illuminate/support` (and so `illuminate/view`, for a Blade adapter).
+  The author doesn't want pluggable functions (`function_exists()`
+  guards, tried as D-503) and wonders whether to avoid global functions
+  altogether. The options:
+  - Methods on `$template` (`$template->e($title)`): no global functions
+    at all; matches how templates reach everything else; longer to type,
+    and every template changes.
+  - Namespaced functions (`Blush\View\e()`): short calls, but a
+    `use function` line in every template.
+  - Variables the PHP engine passes in (`$e($title)`): names like `$url`
+    clash with template data.
+  - Keep them global and unguarded (today): a Blade adapter would need a
+    standalone compiler, such as BladeOne.
+
 - **Profiles** (D-351 to D-353, D-369): who may edit their own profile
   and who may edit anyone's (capabilities the roles don't have yet; the
   revised sketch calls it the first capability that depends on the
@@ -229,6 +246,54 @@ Move each item to `decisions.md` once it's answered.
   deferred, D-470); fallback chains (`pt-br` → `pt`) and the default
   language under a prefix (later, D-470); and the admin's Translate action (translations aren't listed
   or editable in the admin yet).
+- **Translations written inline, and collecting them** (discussed
+  2026-10-05): write a message's English where it's used, and have a
+  command add it to the catalog. Where the discussion got to:
+  - **Explicit keys, not the source text** (the author's call): the
+    key names the message, the English sits beside it in the code, and
+    a catalog stays keyed as today (D-107, D-451).
+  - **`text()`** (name open) beside keyed `t()`, which stays as it is:
+    `$template->text('nav.go_to', 'Go to the {page} page', page: $title)`.
+    Signature `text(string $key, string $text, ?string $context = null,
+    mixed ...$params)`: named parameters as `t()` takes them (D-028),
+    and context through `text()` (the author's call) as a named
+    argument, so `key`, `text`, and `context` can't be placeholder
+    names. The inline English is the fallback when no catalog has the
+    key, so English needs no catalog entry. Also on `DomainTranslator`
+    and `Component`, for plugins, services, and component classes.
+  - **Context is for translators**, not for telling messages apart
+    (the key does that: `entry.type_post` and `actions.post` are both
+    "Post"): where the text shows, what a placeholder holds, or a
+    length limit. Stored the way ARB does (the format `@@locale` comes
+    from, D-452): `"post": "Post", "@post": {"context": "…"}`, so the
+    translator skips single-`@` keys as well as `@@` ones.
+  - **Use cases shown:** plain text; one or several placeholders;
+    context, alone and with placeholders; ICU plurals, `select`, and
+    `number`/`date` arguments; attributes (`aria-label`); ICU quoting
+    (`'{'name'}'`; a lone apostrophe is literal); component classes and
+    plugin services.
+  - **HTML in a message** (needs the author's call): `Written by
+    {author}` with a link. Escaping the parameters by hand and printing
+    the result raw lets a translation add raw HTML; a stricter
+    `textHtml()` (name open) could escape the message and leave only
+    the parameters raw.
+  - **`lang:extract [vendor/name] [--prune] [--dry-run]`**: reads an
+    extension's PHP (templates and `src/`; also the framework's `blush`
+    domain and the site's `app`) with PHP's tokenizer for `text()`
+    calls; checks each message is valid ICU; adds new keys with their
+    English and `@key` context to `lang/en.json`, keeping what's there;
+    marks a key whose English changed, so translators recheck it;
+    reports keys no longer used, removing them only with `--prune`.
+    Warns about a key or text that isn't a literal string
+    (`"status.{$status}"`, to be written out or made a `select`) and
+    about one key used with two texts. `lang:missing` (`cli.md`) then
+    lists what each locale lacks.
+  - **Set aside:** keys generated from the text and context, as
+    gettext does (they break whenever either is reworded); the Vue
+    admin's strings (D-278), which need their own collector; and moving
+    the default theme and framework to `text()`, which can go bit by
+    bit (error and component metadata messages stay keyed, since code
+    looks them up by convention).
 - **Leaving a fragment out of the page cache** (raised 2026-10-04): a
   component, piece of text, or template part that's drawn fresh on
   every request while the rest of the page stays cached. Today the page
@@ -597,6 +662,59 @@ Move each item to `decisions.md` once it's answered.
   improve the existing blockquote (a source URL and a credited speaker),
   or add a general figure wrapper that captions a quote, table, or code
   block?
+- **Indented page source** (raised 2026-10-05; tried and set aside,
+  "might be better as plugin territory"): indent each front-end page's
+  whole HTML source by its nesting, as `View\Head` does the head
+  (D-472), so "view source" reads as if written by hand. It's a site
+  owner's choice, not a theme's. What a trial showed:
+  - **The shape that worked:** one pass over the rendered page
+    (themed pages and error pages), before the page cache stores it.
+    A string scanner, not a `Dom\HTMLDocument` round trip, since
+    serializing again rewrites entities (`&hellip;` to `…`), `/>`,
+    boolean attributes, and the line after the doctype.
+  - **Whitespace only, never added:** reshape only runs already
+    there. A run with a line break, or with a tab (a line break a
+    template's `<?php endif ?>` took), becomes a break and a tab per
+    level, as does a run beside a block-level tag. Leave single spaces
+    between inline tags alone, and add nothing where tags touch. Keep
+    one blank line at most between siblings, never just inside an
+    element, and drop trailing whitespace. `<pre>`, `<textarea>`,
+    `<script>`, `<style>`, `<title>`, comments, and tag text stay
+    verbatim. `<html>`'s children aren't indented. Close omitted end
+    tags (`li`, `p`, `td`, …) as a parser would, and return a page
+    whose tags don't balance unchanged. The only rendering risk is
+    CSS `white-space: pre`/`pre-line` on ordinary elements.
+  - **Results:** about 1 ms for a 40 KB page; the jtcom trial's pages
+    came out cleanly, the Markdown body and nested menus included.
+    Touching tags from component and Markdown output
+    (`</figure></aside>`) stay as they are; those renderers would need
+    to print their own line breaks.
+  - **Undecided:** core or a plugin (a plugin needs a way to change a
+    rendered HTML response before the page cache, such as middleware
+    or an event); if core, a setting, and on which screen.
+- **Scripts and styles at the end of the page** (raised 2026-10-05):
+  `View\Head` (D-109, D-472) prints only inside `<head>`, so there's no
+  way to print an asset before `</body>`. Scripts in the head are
+  already deferred (or modules), so the gaps are styles that aren't
+  render-critical and inline scripts (`Head` has no inline-script
+  method at all). Today a theme can print tags in its footer part with
+  `$template->asset()`, but those aren't printed once by key, and
+  plugins and components can't add to them. The likely shape needs
+  two pieces:
+  - **A placement flag** on `Head`'s `script()`, `style()`, and
+    `inlineStyle()` (and a new inline-script method), keeping one
+    collection and one key space, so each asset still prints once
+    wherever it's asked for, and `has()` and `remove()` work as now.
+    A separate body-end object would mean two collections and
+    printing once across both.
+  - **A second print point**, such as `$template->foot()`, that base
+    layouts print before `</body>`.
+  - **Undecided:** the flag's name and form; whether `Head` is renamed,
+    since it would no longer hold only the head; which placement wins
+    when an asset is asked for in both (probably the head, since
+    earlier is always safe); and what happens when a layout never
+    prints the late point (default layouts always print it, or a theme
+    check warns).
 - **Product name** (D-038): the author will decide.
 - **Versioning manifest and schema shapes** (raised 2026-10-04): the
   author wants a version on JSON manifests (extension and theme

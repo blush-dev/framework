@@ -774,13 +774,19 @@ token system, D-160). The
 view layer was implemented in M5 (D-103 to D-125).
 
 - **`Views`** (`Blush\View`): renders templates for one theme chain.
-  A template runs in a static closure with its `Template` as `$template`
+  A PHP template runs in a static closure with its `Template` as `$template`
   and no object or class scope, so it reaches only the template API
   (D-158). Layouts (which may nest), sections, and partials (shared data plus their own). Failures
   close their output buffers and become `ViewException`s.
+- **View engines** (`Blush\View\Engine`, D-502): `Views` renders each
+  template file through the engine its extension names, `PhpEngine`
+  built in; a plugin registers more (`ViewEngineRegistry`). `Template`
+  is every engine's API, with `#[ReturnsHtml]` and `SafeHtml` marking
+  rendered HTML for engines that escape on their own.
 - **`ViewFinder`:** view names (`single-post`, `layouts/base`) resolve
   through `resources/views/themes/{active}`, `resources/views`, then the
-  theme chain. `ViewFactory` builds one `Views` per chain and the per-page
+  theme chain, in each engine's extension (the first registered wins
+  within a folder). `ViewFactory` builds one `Views` per chain and the per-page
   `ViewContext` (the `Head`, sections, shared `$site`, body classes, and
   the front matter `layout`).
 - **`Escaper`:** `e()`, `attr()`, `url()`, `js()`, `css()`, and `raw()` are the

@@ -136,7 +136,8 @@ code text in the editor's inline menu (D-496); SVG never uploaded
 (D-497); and mentions highlighted and suggested as `@` is typed
 (D-498); and an owner role above the administrator, which only an
 owner gives or changes, with the administrator a list that leaves out
-changing plugins and themes (D-500).
+changing plugins and themes (D-500); and view engines chosen by file
+extension, plain PHP built in, so plugins can add Twig or Blade later (D-502).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

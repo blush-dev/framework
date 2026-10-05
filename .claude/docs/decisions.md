@@ -14935,3 +14935,101 @@ decision, add a new entry that supersedes it and mark the old one
     (`FormatCheck`); no converter for now.
   - Data files (`user/data`, manifests, settings) keep JSON or YAML
     (D-032); this is entries only.
+
+### D-502: View engines, chosen by extension
+- **Date:** 2026-10-05
+- **Decision:** the author's call: other template systems (Twig, Blade,
+  and so on) should plug in through adapters later, so the view layer
+  gets the seam now; no adapter ships. Implements D-009's "view-engine
+  interface" and answers `theming.md`'s open question.
+  - **`Blush\View\Engine\ViewEngine`:** `render(string $file, array
+    $data, Template $template): string`. Type enum + Registry + Factory
+    + Registrar (D-019): `ViewEngineType` (`php` only), keyed by file
+    extension without its dot (`twig`, `blade.php`; lowercase letters and
+    digits split by dots, checked by `ViewEngineRegistry`);
+    `ViewEngineRegistrar` seeds the built-ins; `ViewEngines` (on
+    `ViewServices`) builds each once through the container and picks a
+    file's engine by the longest registered extension it ends with, so
+    `card.blade.php` goes to `blade.php`, not `php`. A plugin registers
+    an engine in its provider's `boot()`.
+  - **`PhpEngine`** is the old `Views::evaluate()`: the isolated scope,
+    output buffers closed on failure, the `$this` message. `Views` still
+    names the file in any other exception and checks for an open
+    section, whatever the engine.
+  - **Finding views:** `ViewFinder` takes the engines' extensions and
+    looks for each name in each one. Folder precedence decides as
+    before, so a site's or child theme's `single.twig` overrides a
+    parent's `single.php`; within one folder, the engine registered
+    first wins (PHP is first). Component templates are found in every
+    extension; `card.blade.php` under `php` would be `card.blade`, not a
+    valid name, so it isn't counted twice or called stray.
+  - **Engines mix:** every render goes through `Views`, so a Twig page
+    can use a PHP layout, partial, or component, and the reverse. A
+    component's own `render()` file (D-382) goes to its extension's
+    engine too.
+  - **`Template` is every engine's API.** An adapter exposes it as it
+    likes (a `template` global). New `setSection(name, html)` sets a
+    section without output buffering, for engines with their own blocks;
+    `start()`/`stop()` stay PHP's.
+  - **Escaping:** engines that escape on their own would escape Blush's
+    HTML twice. Methods returning rendered HTML carry `#[ReturnsHtml]`
+    (`section`, `include`, `includeIf`, `includeWhen`, `includeUnless`,
+    `each`, `component`, `icon`, `region`, `cache`, `widont`), for an
+    adapter to mark safe (Twig's `is_safe`) by reflection instead of
+    keeping a list; and a `SafeHtml` interface (Stringable) marks HTML
+    values: `PendingComponent` implements it, for Twig's
+    `addSafeClass()` and the like. Return types are unchanged, so PHP
+    templates are unaffected. Other HTML a template is handed (an
+    entry's `body()`, a component's `$slot`) stays a string, printed
+    raw as PHP templates do with `raw()`.
+  - **Messages** name templates without `.php` (`theme:check`,
+    `component:list`), or with the file's own extension.
+  - **`Head` is `SafeHtml`** too (found building the Blade test,
+    D-503, D-504): a layout prints it.
+  - **Not done:** a compiled-template folder for engines that compile
+    (an adapter can use `storage/cache` for now); and front matter's
+    `template` still strips only `.php` (1.x's convention, D-078).
+- **Checked:** `composer check` (`ViewEnginesTest`: the registry's order
+  and extension rule, engines mixing across layouts, partials, sections,
+  and components, precedence in a folder and across folders, the
+  longest extension, the `ReturnsHtml` list).
+
+### D-503: The escaping helpers give way to a library's own
+- **Date:** 2026-10-05
+- **Decision:** the author's call, after a Blade adapter (D-502) brought
+  in Laravel's `illuminate/support`, whose `e()` Composer loads before
+  Blush's, so the site stopped with "Cannot redeclare e()". Supersedes
+  D-106's "aren't wrapped in `function_exists()`": any library that
+  needs `illuminate/support` (many do) would have broken a site.
+  - Each of the six helpers in `src/View/functions.php` is defined only
+    when no function has the name yet. When another library's wins,
+    templates call it.
+  - Laravel's `e()` escapes as Blush's does (`htmlspecialchars`,
+    `ENT_QUOTES | ENT_SUBSTITUTE`, UTF-8; `null` prints `''`), and
+    prints its `Htmlable` values as they are. Without `ENT_HTML5`, an
+    apostrophe is `&#039;`, not `&apos;`; both are the same HTML.
+  - **`doctor`** says which helpers aren't Blush's (`View\Helpers`):
+    an Escaping line that passes, said so, for Laravel's `e()`, and
+    warns, naming each function and its file, for any other library's.
+    Nothing when every helper is Blush's.
+  - Whether Blush should have global helper functions at all is open
+    (`open-questions.md`).
+- **Checked:** `composer check`; the jtcom trial with `illuminate/view`
+  installed (`doctor`: "e() is Laravel's"), and its Blade copy of the
+  jtcom theme (`example/blade`, `justintadlock/jtcom-blade`) rendering
+  all 1,293 linked URLs the same as jtcom, but for whitespace and that
+  apostrophe.
+
+### D-504: The escaping helpers stay unguarded
+- **Date:** 2026-10-05
+- **Decision:** the author's call: no pluggable functions. Supersedes
+  D-503; D-106 stands. The six helpers are global and not wrapped in
+  `function_exists()`, and `View\Helpers` and `doctor`'s Escaping line
+  are gone.
+  - So a library that defines its own `e()` (Laravel's
+    `illuminate/support`, which `illuminate/view` needs) can't be
+    installed beside Blush: the site stops with "Cannot redeclare e()".
+    The jtcom trial's Blade test (`example/blade`,
+    `justintadlock/jtcom-blade`) is kept but off, with `illuminate/view`
+    removed.
+  - What to do about global helpers is open (`open-questions.md`).

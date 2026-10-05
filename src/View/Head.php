@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Blush\View;
 
 use Override;
-use Stringable;
 
 /**
  * Collects what goes in a page's `<head>`: the title, meta tags
@@ -39,7 +38,7 @@ use Stringable;
  * full URLs on the site's origin, so the head never has relative URLs.
  * Keys keep the value as given, so `remove('style:' . $url)` still works.
  */
-final class Head implements Stringable
+final class Head implements SafeHtml
 {
 	/**
 	 * The page's own title, without the site name.

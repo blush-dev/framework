@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
-use Closure;
-use Error;
 use Throwable;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
@@ -30,11 +28,11 @@ use Blush\Component\Slots;
 use Blush\Component\TemplateComponent;
 
 /**
- * Renders plain PHP templates (D-009) for one theme chain.
+ * Renders templates for one theme chain, each through the view engine
+ * its extension names (D-502): plain PHP templates (D-009) built in.
  *
- * A template runs in an isolated scope: its data become variables, and
- * `$template` is a `Template`, which exposes only its public API (D-158);
- * `$this` isn't available. When a
+ * A template gets its data and a `Template`, which exposes only its
+ * public API (D-158). When a
  * template calls `layout()`, its output becomes the `content` section
  * and the layout renders next, with the same data plus the layout's own
  * (layouts may have layouts). Partials see the shared data (the site,
@@ -435,8 +433,9 @@ final readonly class Views
 
 	/**
 	 * Returns the templates directly in each view directory's
-	 * `components/` folder, as file names (without `.php`) and paths.
-	 * Subfolders aren't components.
+	 * `components/` folder, in any engine's extension (D-502), as file
+	 * names (without the extension) and paths. Subfolders aren't
+	 * components.
 	 *
 	 * @return list<array{string, string}>
 	 */
@@ -445,11 +444,13 @@ final readonly class Views
 		$files = [];
 
 		foreach ($this->finder->directories() as $directory) {
-			foreach (glob("{$directory}/components/*.php") ?: [] as $path) {
-				$fileName = basename($path, '.php');
+			foreach ($this->finder->extensions() as $extension) {
+				foreach (glob("{$directory}/components/*.{$extension}") ?: [] as $path) {
+					$fileName = basename($path, ".{$extension}");
 
-				if (is_file($path) && ViewFinder::isValidName($fileName)) {
-					$files[] = [$fileName, $path];
+					if (is_file($path) && ViewFinder::isValidName($fileName)) {
+						$files[] = [$fileName, $path];
+					}
 				}
 			}
 		}
@@ -489,30 +490,18 @@ final readonly class Views
 	}
 
 	/**
-	 * Runs a template file and returns its output. Output buffers it
-	 * opens are closed whatever happens, and an exception is rethrown
-	 * with the file named.
+	 * Runs a template file through its engine (D-502) and returns its
+	 * output. An exception is rethrown with the file named, and so is a
+	 * section left open.
 	 *
 	 * @param  array<string, mixed> $data
 	 * @throws ViewException
 	 */
 	private function evaluate(Template $template, string $file, array $data): string
 	{
-		$level = ob_get_level();
-
-		ob_start();
-
 		try {
-			self::includer($template)($file, $data);
+			$output = $this->services->engines->forFile($file)->render($file, $data, $template);
 		} catch (Throwable $exception) {
-			while (ob_get_level() > $level) {
-				ob_end_clean();
-			}
-
-			if ($exception instanceof Error && str_contains($exception->getMessage(), 'Using $this')) {
-				throw new ViewException(sprintf('Views use $template, not $this, in view %s', $file), 0, $exception);
-			}
-
 			throw $exception instanceof ViewException
 				? $exception
 				: new ViewException(sprintf('%s in view %s', $exception->getMessage(), $file), 0, $exception);
@@ -520,35 +509,10 @@ final readonly class Views
 
 		$open = $template->openSections();
 
-		while (ob_get_level() > $level + 1) {
-			ob_end_clean();
-		}
-
-		$output = (string) ob_get_clean();
-
 		if ($open !== []) {
 			throw new ViewException(sprintf('Section "%s" was never stopped in view %s.', array_last($open), $file));
 		}
 
 		return $output;
-	}
-
-	/**
-	 * Returns a function that includes a template file with the template
-	 * as `$template` and no object or class scope, so the file sees its
-	 * data and `Template`'s public API only (D-158). A data key named
-	 * `template` is ignored; so are `__data` and `__file`, and `$__file`
-	 * stays in scope.
-	 *
-	 * @return Closure(string, array<string, mixed>): void
-	 */
-	private static function includer(Template $template): Closure
-	{
-		return static function (string $__file, array $__data) use ($template): void {
-			extract($__data, EXTR_SKIP);
-			unset($__data);
-
-			include func_get_arg(0);
-		};
 	}
 }
