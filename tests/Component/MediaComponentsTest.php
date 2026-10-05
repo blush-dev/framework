@@ -24,6 +24,7 @@ use Blush\Http\Request;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaResolver;
 use Blush\Tests\BootsScratchSite;
+use Blush\View\ViewContext;
 use Blush\Component\ComponentName;
 use Blush\Component\ComponentDefinition;
 use Blush\Component\Media\Audio;
@@ -85,6 +86,11 @@ final class MediaComponentsTest extends TestCase
 		$this->assertSame('VTT', $file->format);
 		$this->assertSame('1.5 KB', $file->size);
 		$this->assertSame('1,5 KB', new File($this->media(), new AppConfig(locale: 'de_DE'), '/media/notes.vtt')->size);
+
+		// A translation's page: its locale, not the site's (D-466).
+		$file->attach(new ComponentName('blush', 'file'), [], context: new ViewContext(locale: 'de_DE'));
+
+		$this->assertSame('1,5 KB', $file->size);
 
 		// Not local media: no size.
 		$remote = new File($this->media(), new AppConfig(), 'https://example.com/files/Annual%20report.pdf');

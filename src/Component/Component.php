@@ -365,6 +365,18 @@ abstract class Component
 	}
 
 	/**
+	 * Returns the page's locale, so a translation's numbers and dates are
+	 * in its language (D-466), else `$site` (the site's): for a component
+	 * built outside `Views`, or a page in the site's language.
+	 */
+	protected function locale(string $site): string
+	{
+		$locale = $this->viewContext->locale ?? '';
+
+		return $locale === '' ? $site : $locale;
+	}
+
+	/**
 	 * Returns the content, or else `$text` escaped as HTML: for a method
 	 * that names the content for its role, such as a caption, so it
 	 * works whether the text came as the content or as a prop.

@@ -34,8 +34,8 @@ use Blush\Core\Framework;
  * `machine`; otherwise the element has no `datetime`.
  *
  * Without a label (`::time{datetime=2026-10-06}`), `text()` shows it in
- * the site's language and time zone, or as written for a duration or an
- * invalid value (`formatted`). A date, a time, or both are shown with the
+ * the page's language and the site's time zone, or as written for a
+ * duration or an invalid value (`formatted`). A date, a time, or both are shown with the
  * site's date and time formats (D-445: "October 6, 2026" in `en_US` by
  * default); a year or a month, which those would add a day to, with
  * ICU's best pattern for just those ("2026", "October 2026").
@@ -68,13 +68,30 @@ final class Time extends Component
 	 */
 	public readonly ?string $machine;
 
+	// phpcs:disable -- PHPCS 4.0 doesn't tokenize property hooks yet.
 	/**
-	 * The date as people read it, shown without a label.
+	 * The date as people read it, shown without a label, in the page's
+	 * language.
 	 */
-	public readonly string $formatted;
+	public string $formatted {
+		get => $this->date === null ? trim($this->datetime) : $this->format($this->date, $this->form);
+	}
+	// phpcs:enable
+
+	/**
+	 * The moment a valid date or time names, or `null` for a duration or
+	 * an invalid value, shown as written.
+	 */
+	private readonly ?DateTimeImmutable $date;
+
+	/**
+	 * How the date is shown: a pattern skeleton, or the site's `date`,
+	 * `time`, or `datetime` formats.
+	 */
+	private readonly string $form;
 
 	public function __construct(
-		AppConfig $app,
+		private readonly AppConfig $app,
 		public readonly string $datetime = '',
 		public readonly string $label = ''
 	) {
@@ -90,8 +107,9 @@ final class Time extends Component
 
 		$date = is_string($skeleton) ? self::date($value, $app->timezone) : null;
 
-		$this->machine   = $skeleton === null || $date !== null ? $value : null;
-		$this->formatted = is_string($skeleton) && $date !== null ? self::format($date, $skeleton, $app) : $value;
+		$this->machine = $skeleton === null || $date !== null ? $value : null;
+		$this->date    = $date;
+		$this->form    = is_string($skeleton) ? $skeleton : '';
 	}
 
 	/**
@@ -143,11 +161,13 @@ final class Time extends Component
 	}
 
 	/**
-	 * Formats a date in the site's locale, with its formats or a pattern
-	 * skeleton.
+	 * Formats a date in the page's locale, with the site's formats or a
+	 * pattern skeleton.
 	 */
-	private static function format(DateTimeImmutable $date, string $skeleton, AppConfig $app): string
+	private function format(DateTimeImmutable $date, string $skeleton): string
 	{
+		$app     = $this->app;
+		$locale  = $this->locale($app->locale);
 		$formats = match ($skeleton) {
 			'date'     => [$app->dateFormat, null],
 			'time'     => [null, $app->timeFormat],
@@ -156,11 +176,11 @@ final class Time extends Component
 		};
 
 		if ($formats !== null) {
-			return DateFormat::format($date, $app->locale, $app->timezone, ...$formats);
+			return DateFormat::format($date, $locale, $app->timezone, ...$formats);
 		}
 
-		$pattern   = new IntlDatePatternGenerator($app->locale)->getBestPattern($skeleton);
-		$formatter = new IntlDateFormatter($app->locale, IntlDateFormatter::NONE, IntlDateFormatter::NONE, $app->timezone, null, $pattern ?: null);
+		$pattern   = new IntlDatePatternGenerator($locale)->getBestPattern($skeleton);
+		$formatter = new IntlDateFormatter($locale, IntlDateFormatter::NONE, IntlDateFormatter::NONE, $app->timezone, null, $pattern ?: null);
 
 		return $formatter->format($date) ?: $date->format('c');
 	}

@@ -142,7 +142,7 @@ so they still work in feeds.
 | Component | Example                                                                     | Props                                                                                                                                                                                                             |
 |-----------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `audio`   | `::audio[Episode 12]{src=/media/episode.mp3}`                               | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption.                                                                                                                      |
-| `video`   | `::video[Launch day]{src=/media/launch.mp4 poster=/media/launch.jpg}`       | `src`, `poster` (an image shown before it plays), `track` (a WebVTT captions file, in your site's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
+| `video`   | `::video[Launch day]{src=/media/launch.mp4 poster=/media/launch.jpg}`       | `src`, `poster` (an image shown before it plays), `track` (a WebVTT captions file, in the page's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
 | `file`    | `::file[The annual report]{src=/media/report.pdf}`                          | `src`. The label is the link text (the file's name without one). It shows the file's type, and its size when it's in your media folder.                                                                           |
 
 Only the [file types your site allows](media.md#allowed-file-types) are
@@ -304,8 +304,9 @@ The launch is :time[next Tuesday]{datetime=2026-10-06}. Comments :badge[Beta]{va
 
 `time` gives software (search engines, calendars) the exact date while
 readers see your words. On its own line without a label,
-`::time{datetime=2026-10-06}` shows the date in your site's language,
-time zone, and date format, such as "October 6, 2026". A time uses the
+`::time{datetime=2026-10-06}` shows the date in the page's language
+(on a [translation](content.md#translations), the translation's) and
+your site's time zone and date format, such as "October 6, 2026". A time uses the
 site's time format, and a date with a time uses both; a year or a month
 shows just those ("October 2026").
 

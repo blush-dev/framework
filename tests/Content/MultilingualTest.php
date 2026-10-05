@@ -383,6 +383,38 @@ final class MultilingualTest extends TestCase
 		$this->assertStringContainsString('aria-label="Progress"', $views->component('progress', ['value' => '1', 'max' => '2'], '', new Slots(), $english));
 	}
 
+	/**
+	 * Returns a component's props from a query string (`value=1&max=2`).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function props(string $query): array
+	{
+		parse_str($query, $props);
+
+		/** @var array<string, mixed> */
+		return $props;
+	}
+
+	public function testComponentNumbersAndDatesAreInThePageLanguage(): void
+	{
+		$container = $this->app->container();
+		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
+		$content   = $this->content();
+		$french    = $container->make(ViewFactory::class)->context($views, $content->named('page', 'a-propos', 'fr'));
+		$english   = $container->make(ViewFactory::class)->context($views, $content->named('page', 'about'));
+		$render    = static fn (string $name, string $props, ViewContext $context): string => str_replace(["\u{202F}", "\u{A0}"], ' ', $views->component($name, self::props($props), '', new Slots(), $context));
+
+		$this->assertStringContainsString('1 250,5', $render('progress', 'value=1250.5&max=5000', $french));
+		$this->assertStringContainsString('1,250.5', $render('progress', 'value=1250.5&max=5000', $english));
+		$this->assertStringContainsString('62 %', $render('meter', 'value=62', $french));
+		$this->assertStringContainsString('62%', $render('meter', 'value=62', $english));
+		$this->assertStringContainsString('octobre 2026', $render('time', 'datetime=2026-10', $french));
+		$this->assertStringContainsString('October 2026', $render('time', 'datetime=2026-10', $english));
+		$this->assertStringContainsString('srclang="fr"', $render('video', 'src=https://example.com/clip.mp4&track=https://example.com/clip.vtt', $french));
+		$this->assertStringContainsString('srclang="en"', $render('video', 'src=https://example.com/clip.mp4&track=https://example.com/clip.vtt', $english));
+	}
+
 	public function testMenusLinkToTranslations(): void
 	{
 		$this->writeTemporaryFile('user/data/menus/primary.yaml', <<<'YAML'

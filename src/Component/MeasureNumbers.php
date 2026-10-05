@@ -17,7 +17,7 @@ use NumberFormatter;
 
 /**
  * Number formatting for the `progress` and `meter` components (D-188):
- * machine-readable attribute values, and text for people in the site's
+ * machine-readable attribute values, and text for people in the page's
  * locale.
  */
 final readonly class MeasureNumbers

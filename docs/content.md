@@ -150,7 +150,9 @@ lang="fr-FR">`, and the theme's text when the theme is translated.
 Date archive titles are written the language's way too
 (`3 de diciembre de 2025`). Components follow the page as well, in
 templates and in Markdown: a
-`::app/recent-posts` in `about.fr.md` lists the French posts.
+`::app/recent-posts` in `about.fr.md` lists the French posts, and
+`time`, `progress`, `meter`, and `file` write their dates and numbers
+the French way (`1 250,5`, `62 %`).
 
 Each page tells search engines about its versions in other languages
 with `hreflang` links in its `<head>`: a page's published translations,

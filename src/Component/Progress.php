@@ -28,7 +28,7 @@ use Blush\Core\Framework;
  * its value for people with `text()`. The attribute values
  * (`valueAttribute`, `null` when indeterminate, and `maxAttribute`) and
  * text (`percent`, such as "24%", `valueText`, and `maxText`, in the
- * site's number format) are also properties.
+ * page's number format) are also properties.
  */
 final class Progress extends Component
 {
@@ -47,36 +47,50 @@ final class Progress extends Component
 	 */
 	public readonly string $maxAttribute;
 
+	// phpcs:disable -- PHPCS 4.0 doesn't tokenize property hooks yet.
 	/**
 	 * The value as a percentage of `max`, or `''` when indeterminate.
 	 */
-	public readonly string $percent;
+	public string $percent {
+		get => $this->amount === null ? '' : $this->numbers()->percent($this->amount / $this->limit);
+	}
 
 	/**
 	 * The value for people, or `''` when indeterminate.
 	 */
-	public readonly string $valueText;
+	public string $valueText {
+		get => $this->amount === null ? '' : $this->numbers()->number($this->amount);
+	}
 
 	/**
 	 * The maximum for people.
 	 */
-	public readonly string $maxText;
+	public string $maxText {
+		get => $this->numbers()->number($this->limit);
+	}
+	// phpcs:enable
+
+	/**
+	 * The value kept between 0 and the maximum, or `null`.
+	 */
+	private readonly ?float $amount;
+
+	/**
+	 * The maximum: `max`, or 100 when it's invalid.
+	 */
+	private readonly float $limit;
 
 	public function __construct(
-		AppConfig $app,
+		private readonly AppConfig $app,
 		public readonly ?float $value = null,
 		public readonly float $max = 100,
 		public readonly string $label = ''
 	) {
-		$numbers = new MeasureNumbers($app->locale);
-		$limit   = $max > 0 ? $max : 100.0;
-		$amount  = $value === null ? null : max(0.0, min($limit, $value));
+		$this->limit  = $max > 0 ? $max : 100.0;
+		$this->amount = $value === null ? null : max(0.0, min($this->limit, $value));
 
-		$this->valueAttribute = $amount === null ? null : MeasureNumbers::attribute($amount);
-		$this->maxAttribute   = MeasureNumbers::attribute($limit);
-		$this->percent        = $amount === null ? '' : $numbers->percent($amount / $limit);
-		$this->valueText      = $amount === null ? '' : $numbers->number($amount);
-		$this->maxText        = $numbers->number($limit);
+		$this->valueAttribute = $this->amount === null ? null : MeasureNumbers::attribute($this->amount);
+		$this->maxAttribute   = MeasureNumbers::attribute($this->limit);
 	}
 
 	/**
@@ -115,6 +129,14 @@ final class Progress extends Component
 			'value'      => $this->valueAttribute,
 			'aria-label' => trim($this->label) === '' ? $this->t('progress.label') : null
 		]);
+	}
+
+	/**
+	 * Returns number formatting in the page's locale.
+	 */
+	private function numbers(): MeasureNumbers
+	{
+		return new MeasureNumbers($this->locale($this->app->locale));
 	}
 
 	/**

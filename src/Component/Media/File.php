@@ -29,7 +29,7 @@ use Blush\Media\MediaResolver;
  * image's; the label is the link text, or the file's name without one.
  * It knows the file's `format` (its extension, such as `PDF`) and, for a
  * file in the media folder, its `size` (such as
- * `1.2 MB`, in the site's number format); `details()` joins them.
+ * `1.2 MB`, in the page's number format); `details()` joins them.
  *
  * Only the media types the site allows are served (`MediaConfig`), so a
  * local file of another type has no size and won't download.
@@ -51,14 +51,23 @@ final class File extends Component
 	 */
 	public readonly string $format;
 
+	// phpcs:disable -- PHPCS 4.0 doesn't tokenize property hooks yet.
 	/**
 	 * The file's size for people, or `''` when it isn't local media.
 	 */
-	public readonly string $size;
+	public string $size {
+		get => $this->bytes === null ? '' : self::bytes($this->bytes, $this->locale($this->app->locale));
+	}
+	// phpcs:enable
+
+	/**
+	 * The file's size in bytes, or `null` when it isn't local media.
+	 */
+	private readonly ?int $bytes;
 
 	public function __construct(
 		MediaResolver $media,
-		AppConfig $app,
+		private readonly AppConfig $app,
 		#[MediaProp] public readonly string $src = '',
 		public readonly string $label = ''
 	) {
@@ -67,7 +76,7 @@ final class File extends Component
 
 		$this->name   = rawurldecode(basename($path));
 		$this->format = strtoupper(pathinfo($this->name, PATHINFO_EXTENSION));
-		$this->size   = $file === null ? '' : self::bytes($file->size, $app->locale);
+		$this->bytes  = $file?->size;
 	}
 
 	/**

@@ -28,7 +28,7 @@ use Blush\Media\MediaResolver;
  * Plays a video file with the browser's controls (D-175, D-179):
  * `::video[A caption]{src=clip.mp4 poster=clip.jpg track=clip.vtt}`.
  * `src`, `poster` (an image shown before it plays), and `track` (a WebVTT
- * captions file, in the site's language) are resolved like an image's,
+ * captions file, in the page's language) are resolved like an image's,
  * and the label is the caption (D-198).
  *
  * Without `width` and `height`, the poster's size is used, so the page
@@ -52,14 +52,18 @@ final class Video extends Component
 	 */
 	public readonly ?int $height;
 
+	// phpcs:disable -- PHPCS 4.0 doesn't tokenize property hooks yet.
 	/**
-	 * The track's language: the site locale's language.
+	 * The track's language: the page locale's language.
 	 */
-	public readonly string $trackLang;
+	public string $trackLang {
+		get => Locale::getPrimaryLanguage($this->locale($this->app->locale)) ?? 'en';
+	}
+	// phpcs:enable
 
 	public function __construct(
 		MediaResolver $media,
-		AppConfig $app,
+		private readonly AppConfig $app,
 		#[MediaProp(MediaKind::Video)] public readonly string $src = '',
 		#[MediaProp(MediaKind::Image)] public readonly string $poster = '',
 		#[MediaProp] public readonly string $track = '',
@@ -72,9 +76,8 @@ final class Video extends Component
 	) {
 		$image = $width === null && $height === null && $poster !== '' ? $media->resolve($poster) : null;
 
-		$this->width        = $width ?? $image?->width;
-		$this->height       = $height ?? $image?->height;
-		$this->trackLang    = Locale::getPrimaryLanguage($app->locale) ?? 'en';
+		$this->width  = $width ?? $image?->width;
+		$this->height = $height ?? $image?->height;
 	}
 
 	/**
@@ -118,7 +121,7 @@ final class Video extends Component
 
 	/**
 	 * Returns the `<track>` element's attributes, escaped: its class
-	 * (`component-video__track`), `kind="captions"`, `src`, the site's
+	 * (`component-video__track`), `kind="captions"`, `src`, the page's
 	 * language, and the theme's `media.captions` text as its label. It's
 	 * on by default.
 	 */

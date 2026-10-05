@@ -13760,3 +13760,27 @@ decision, add a new entry that supersedes it and mark the old one
 - **Also noted, not prioritized:** `Export\ExportSite::boot()` builds
   its `AppConfig` without `description`, `dateFormat`, or `timeFormat`,
   so a static export uses their defaults.
+
+### D-466: Component numbers and dates in the page's locale
+
+- **Date:** 2026-10-04
+- **Status:** Built. The first of D-465's steps.
+- **Decision:**
+  - `time`, `progress`, `meter`, and `file` format their dates and
+    numbers in the page's locale, and `video`'s captions track takes
+    the page's language for `srclang` (not in D-465's list; the same
+    gap). The site's time zone and date and time formats still apply.
+  - `Component::locale(string $site)` returns the view context's
+    locale, else `$site` (a component built outside `Views`, or a page
+    in the site's language).
+  - The context is attached after a component is constructed, so the
+    formatted text is no longer worked out in the constructor: `time`'s
+    `formatted`, `progress`'s and `meter`'s `percent`, `valueText`, and
+    `maxText`, `file`'s `size`, and `video`'s `trackLang` are virtual
+    properties with `get` hooks. Templates read them as before; they
+    can't be written, as readonly properties couldn't.
+- **Why:** they used `AppConfig::$locale`, so a Spanish page of the
+  jtcom trial showed English numbers and dates (D-462's note).
+- **Not changed:** static export's missing `AppConfig` fields (D-465's
+  note); the author may drop static export, since Blush is meant to be
+  dynamic first (2026-10-04).

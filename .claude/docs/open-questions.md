@@ -4,6 +4,12 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Static export's future** (raised 2026-10-04): the author is
+  considering dropping static export (M7, `build`), since Blush is
+  meant to be dynamic first, and isn't concerned with its gaps for now
+  (such as `ExportSite::boot()` dropping `description`, `dateFormat`,
+  and `timeFormat`, D-465). Other open items here lean on it (front-end
+  search, headless JSON, untranslated-content redirects).
 - **Profiles** (D-351 to D-353, D-369): who may edit their own profile
   and who may edit anyone's (capabilities the roles don't have yet; the
   revised sketch calls it the first capability that depends on the

@@ -28,7 +28,7 @@ use Blush\Core\Framework;
  * Its template prints the gauge's attributes with `gaugeAttributes()`
  * and its value for people with `text()`. Each attribute
  * (`valueAttribute`, and so on) and text (`percent`, `valueText`, and
- * `maxText`) is also a property.
+ * `maxText`, in the page's number format) is also a property.
  */
 final class Meter extends Component
 {
@@ -67,23 +67,46 @@ final class Meter extends Component
 	 */
 	public readonly ?string $optimumAttribute;
 
+	// phpcs:disable -- PHPCS 4.0 doesn't tokenize property hooks yet.
 	/**
 	 * The value's place in the range, as a percentage.
 	 */
-	public readonly string $percent;
+	public string $percent {
+		get => $this->numbers()->percent(($this->amount - $this->from) / ($this->to - $this->from));
+	}
 
 	/**
 	 * The value for people.
 	 */
-	public readonly string $valueText;
+	public string $valueText {
+		get => $this->numbers()->number($this->amount);
+	}
 
 	/**
 	 * The maximum for people.
 	 */
-	public readonly string $maxText;
+	public string $maxText {
+		get => $this->numbers()->number($this->to);
+	}
+	// phpcs:enable
+
+	/**
+	 * The value kept inside the range.
+	 */
+	private readonly float $amount;
+
+	/**
+	 * The range's start: `min`, or 0 when the range is invalid.
+	 */
+	private readonly float $from;
+
+	/**
+	 * The range's end: `max`, or 100 when the range is invalid.
+	 */
+	private readonly float $to;
 
 	public function __construct(
-		AppConfig $app,
+		private readonly AppConfig $app,
 		public readonly float $value = 0,
 		public readonly float $min = 0,
 		public readonly float $max = 100,
@@ -92,7 +115,6 @@ final class Meter extends Component
 		public readonly ?float $optimum = null,
 		public readonly string $label = ''
 	) {
-		$numbers = new MeasureNumbers($app->locale);
 		[$from, $to] = $max > $min ? [$min, $max] : [0.0, 100.0];
 
 		$clamp = static fn (?float $number): ?float => $number === null ? null : max($from, min($to, $number));
@@ -103,17 +125,16 @@ final class Meter extends Component
 			[$low, $high] = [$high, $low];
 		}
 
-		$amount = (float) $clamp($value);
+		$this->amount = (float) $clamp($value);
+		$this->from   = $from;
+		$this->to     = $to;
 
-		$this->valueAttribute   = MeasureNumbers::attribute($amount);
+		$this->valueAttribute   = MeasureNumbers::attribute($this->amount);
 		$this->minAttribute     = MeasureNumbers::attribute($from);
 		$this->maxAttribute     = MeasureNumbers::attribute($to);
 		$this->lowAttribute     = $low === null ? null : MeasureNumbers::attribute($low);
 		$this->highAttribute    = $high === null ? null : MeasureNumbers::attribute($high);
 		$this->optimumAttribute = $optimum === null ? null : MeasureNumbers::attribute((float) $clamp($optimum));
-		$this->percent          = $numbers->percent(($amount - $from) / ($to - $from));
-		$this->valueText        = $numbers->number($amount);
-		$this->maxText          = $numbers->number($to);
 	}
 
 	/**
@@ -151,6 +172,14 @@ final class Meter extends Component
 			'optimum'    => $this->optimumAttribute,
 			'aria-label' => trim($this->label) === '' ? $this->t('meter.label') : null
 		]);
+	}
+
+	/**
+	 * Returns number formatting in the page's locale.
+	 */
+	private function numbers(): MeasureNumbers
+	{
+		return new MeasureNumbers($this->locale($this->app->locale));
 	}
 
 	/**
